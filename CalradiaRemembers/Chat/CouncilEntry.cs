@@ -1,6 +1,6 @@
 // Code written by Gabriel Mailhot, 23/08/2026.
-// The player-facing entry to a council: the shared logic behind BOTH the settlement-menu option and the
-// campaign-map button. Decides which scopes could seat someone right now, whether a council may open at all
+// The player-facing entry to a council: the shared logic behind the campaign-bar button (Map/CouncilNavigationElement;
+// reachable on the map and inside a settlement alike). Decides which scopes could seat someone right now, whether a council may open at all
 // (feature on, no chat open, not captive, on land), shows a scope picker, and convenes through the SAME
 // VRAM-safe staged path cr.council uses (CouncilConversationStager). A council on a boat is refused: no
 // conversation scene loads on open water, and the direct fallback would ride the live map (Gabriel 2026-08-23).
@@ -21,7 +21,7 @@ using TaleWorlds.Localization;
 
 namespace CalradiaRemembers.Chat
 {
-   /// <summary>Shared "convene a council" logic for the settlement menu and the campaign-map button.</summary>
+   /// <summary>Shared "convene a council" logic behind the campaign-bar button (reachable on the map and inside a settlement).</summary>
    public static class CouncilEntry
    {
       // The scopes a player convenes directly. Assembly is the separate invite-and-wait model; Parley is
@@ -47,8 +47,8 @@ namespace CalradiaRemembers.Chat
       /// <summary>
       ///   True when the player may convene a council right now: the feature is enabled, nothing blocks it
       ///   (<see cref="ChatManager.PreCouncilBlockReason" />: no chat open, not captive), the player is on land
-      ///   (never on a boat), and at least one scope would seat someone. Drives both the menu option's condition
-      ///   and the map button's visibility.
+      ///   (never on a boat), and at least one scope would seat someone. Drives the campaign-bar button's
+      ///   permission (it greys out when a council cannot open).
       /// </summary>
       public static bool CanConveneNow()
       {

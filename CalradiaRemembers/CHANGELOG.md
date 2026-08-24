@@ -8,8 +8,8 @@ Gather your people to a council. Your saves from 2.1.5 carry over untouched.
 
 ### New
 - **A council you can convene.** Call your people together to talk as a group: your companions, your kin, your
-  clan's lords, or a war council of your allies. Open it from the new button on the campaign map (on land), or from
-  a town, castle, or village menu. Everyone sits at one table and speaks in the same scene, each in their own voice,
+  clan's lords, or a war council of your allies. Open it from a new button on the campaign bar (bottom left), on land; it stays
+  within reach whether you are out on the map or inside a town, castle, or village. Everyone sits at one table and speaks in the same scene, each in their own voice,
   weighing their regard for you, their culture, and their age. A new book-style window shows who is seated, where
   the sitting is held, and the decisions taken as they settle. The scene art follows the kind of council and where
   you hold it. Turn the whole feature on or off with the new "Enable Council" option in the mod settings.
