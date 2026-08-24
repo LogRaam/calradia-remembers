@@ -84,6 +84,14 @@ namespace CalradiaRemembers.Assemblies
 
         public int ActiveCount => _active.Count;
 
+        /// <summary>Council Tier 2: the live term this hero is HELD under (they are the hostage), or null. Additive read-only accessor for the 1:1 prompt (see CouncilAccordClause).</summary>
+        public CouncilHostage GetByHostage(string heroId)
+            => string.IsNullOrEmpty(heroId) ? null : _active.Find(h => h.HostageId == heroId);
+
+        /// <summary>Council Tier 2: the live term this hero PLEDGED (their house gave the hostage to the player), or null.</summary>
+        public CouncilHostage GetByPledger(string heroId)
+            => string.IsNullOrEmpty(heroId) ? null : _active.Find(h => h.PledgerId == heroId);
+
         /// <summary>
         ///   Starts a new hostage term: <paramref name="hostage" /> must STILL pass HostageEligibilityPolicy right
         ///   now (bridge is law - re-checked here even though the caller, CouncilLift.SettleGiveHostage, already

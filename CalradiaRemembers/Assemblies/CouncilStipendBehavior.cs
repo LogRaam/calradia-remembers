@@ -59,6 +59,10 @@ namespace CalradiaRemembers.Assemblies
         public bool HasActive(string payeeId)
             => !string.IsNullOrEmpty(payeeId) && _active.Any(s => s.PayeeId == payeeId);
 
+        /// <summary>Council Tier 2: the running stipend for this payee, or null when none. Additive read-only accessor so the 1:1 prompt can surface the accord (see CouncilAccordClause).</summary>
+        public CouncilStipend Get(string payeeId)
+            => string.IsNullOrEmpty(payeeId) ? null : _active.Find(s => s.PayeeId == payeeId);
+
         /// <summary>
         ///   Starts a new stipend for <paramref name="payee" /> at <paramref name="amountPerDay" /> denars/day
         ///   (re-clamped here to StipendPolicy's [50, 500] range - "the prompt is advice, the bridge is law"),

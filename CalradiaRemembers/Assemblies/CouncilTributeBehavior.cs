@@ -62,6 +62,10 @@ namespace CalradiaRemembers.Assemblies
 
         public int ActiveCount => _active.Count;
 
+        /// <summary>Council Tier 2: the running tribute this payer owes the player, or null when none. Additive read-only accessor for the 1:1 prompt (see CouncilAccordClause).</summary>
+        public CouncilTribute Get(string payerHeroId)
+            => string.IsNullOrEmpty(payerHeroId) ? null : _active.Find(t => t.PayerHeroId == payerHeroId);
+
         /// <summary>
         ///   Starts a new tribute from <paramref name="payerLeader" /> at <paramref name="amountPerDay" />
         ///   denars/day (re-clamped here to TributePolicy's [50, 2000] range - "the prompt is advice, the bridge

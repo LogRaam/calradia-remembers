@@ -109,6 +109,14 @@ namespace CalradiaRemembers.Assemblies
             return _active.Any(p => NonAggressionPactPolicy.IsMatch(p.FactionAId, p.FactionBId, factionA.StringId, factionB.StringId));
         }
 
+        /// <summary>Council Tier 2: the live pact binding these two factions (either order), or null when none. Additive read-only accessor for the 1:1 prompt (see CouncilAccordClause).</summary>
+        public CouncilPact Get(IFaction factionA, IFaction factionB)
+        {
+            if (factionA == null || factionB == null) return null;
+
+            return _active.Find(p => NonAggressionPactPolicy.IsMatch(p.FactionAId, p.FactionBId, factionA.StringId, factionB.StringId));
+        }
+
         public override void RegisterEvents()
         {
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);

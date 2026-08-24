@@ -450,6 +450,9 @@ namespace CalradiaRemembers.Mapping
             // just above (see ResolveTeachableSkills below): taught exactly when the NPC genuinely has mastery
             // to teach, per CalradiaRemembers.Logic.TeachSkillPolicy.CanTeach.
             TeachableSkills = ResolveTeachableSkills(hero),
+            // Council Tier 2: still-standing council-born accords between this NPC and the player (tribute, stipend,
+            // pact, hostage), one first-person clause each, so the character can reference them in ordinary talk.
+            StandingAccords = ResolveStandingAccords(hero),
             SchemeAgentTargetName = ResolveSchemeAgentTarget(hero),
             SchemeTargetsThisNpc = ResolveSchemeTargetsThisNpc(hero),
             // One-shot and consumed on read, so ONLY resolve it on a real LLM turn, never on the dead
@@ -1654,6 +1657,60 @@ namespace CalradiaRemembers.Mapping
             return teachable.Count > 0 ? teachable : null;
          }
          catch { return null; }
+      }
+
+      /// <summary>
+      ///   Council Tier 2: gathers this NPC's STILL-STANDING council-born accords with the player into one
+      ///   first-person clause each (see CalradiaRemembers.Logic.Assemblies.CouncilAccordClause), by asking each
+      ///   live accord behavior for a record touching this hero. Null when none stand, so AppendStandingAccords
+      ///   skips the section. The wording and DIRECTION of each clause is the unit-tested pure describer's job;
+      ///   this reader only resolves the live records and the names.
+      /// </summary>
+      private static IReadOnlyList<string> ResolveStandingAccords(Hero hero)
+      {
+         try
+         {
+            if (hero is not {IsAlive: true}) return null;
+
+            Hero player = Hero.MainHero;
+            if (player == null) return null;
+
+            string playerName = player.Name?.ToString() ?? "";
+            var clauses = new List<string>();
+
+            CouncilTribute tribute = CouncilTributeBehavior.Instance?.Get(hero.StringId);
+            if (tribute != null)
+               clauses.Add(CouncilAccordClause.TributeOwedToPlayer(playerName, tribute.AmountPerDay, tribute.DaysRemaining, tribute.MissedDays));
+
+            CouncilStipend stipend = CouncilStipendBehavior.Instance?.Get(hero.StringId);
+            if (stipend != null)
+               clauses.Add(CouncilAccordClause.StipendGrantedByPlayer(playerName, stipend.AmountPerDay, stipend.DaysRemaining));
+
+            // The pact is faction-level: it appears only for a hero of the exact faction it was struck with (a pact
+            // is never both sides the player's own faction, so this stays null for the player's own lords).
+            CouncilPact pact = CouncilPactBehavior.Instance?.Get(player.MapFaction, hero.MapFaction);
+            if (pact != null)
+               clauses.Add(CouncilAccordClause.PactWithPlayer(playerName, pact.DaysRemaining));
+
+            CouncilHostage held = CouncilHostageBehavior.Instance?.GetByHostage(hero.StringId);
+            if (held != null)
+               clauses.Add(CouncilAccordClause.HeldAsHostageByPlayer(playerName, held.DaysRemaining));
+
+            CouncilHostage pledged = CouncilHostageBehavior.Instance?.GetByPledger(hero.StringId);
+            if (pledged != null)
+            {
+               string hostageName = Hero.FindFirst(h => h.StringId == pledged.HostageId)?.Name?.ToString();
+               clauses.Add(CouncilAccordClause.HostageGivenToPlayer(playerName, hostageName, pledged.DaysRemaining));
+            }
+
+            return clauses.Count > 0 ? clauses : null;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ResolveStandingAccords failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
       }
 
       /// <summary>True when A.2 already granted the family's blessing for this NPC.</summary>
