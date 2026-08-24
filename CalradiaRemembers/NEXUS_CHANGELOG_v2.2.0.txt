@@ -1,0 +1,11 @@
+Version 2.2.0
+
+Gather your people to a council. Your saves from 2.1.5 carry over untouched.
+
+New
+- A council you can convene. Call your people together to talk as a group: your companions, your kin, your clan's lords, or a war council of your allies. Open it from the new button on the campaign map (on land), or from a town, castle, or village menu. Everyone sits at one table and speaks in the same scene, each in their own voice, weighing their regard for you, their culture, and their age. A new book-style window shows who is seated, where the sitting is held, and the decisions taken as they settle. The scene art follows the kind of council and where you hold it. Turn the whole feature on or off with the new Enable Council option in the mod settings.
+- A family council that knows its own. Your kin gather at your word, seated from your household. Children old enough to sit (thirteen and up) take a place, and everyone speaks true to their age: a young one as a young one, an elder with the weight of years. The sitting opens with each of them greeting you in their own way.
+
+Fixed
+- No quest in an intimate scene. In NSFW mode the mod no longer turns anything into a quest (that is not where a field task belongs). Roleplay and Enhanced still can. And, as before, a vow or a feeling is never mistaken for a quest: a quest is a concrete deed you can go and do, nothing else.
+- A witness remembers what they know. When someone else is present in a conversation and speaks up, they now draw on their own memories, not just the last few lines said, so a companion no longer forgets an agreement you made with them alone. A character's memories are also tidied when you end the conversation.
