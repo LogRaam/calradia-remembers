@@ -94,6 +94,9 @@ namespace CalradiaRemembers
       /// </summary>
       public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
 
+      /// <summary>When ON (default), the player can convene a council from a settlement menu and the campaign-map button; OFF hides those entry points (console still works).</summary>
+      public static bool EnableCouncil => CrSettings.Instance?.EnableCouncil ?? true;
+
       /// <summary>
       ///   Master switch for the whole jealousy system (the daily competition loop AND event-triggered
       ///   reactions). Read live from the MCM menu; ON by default, and default-safe (treated as ON) when MCM

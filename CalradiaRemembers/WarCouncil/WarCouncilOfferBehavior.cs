@@ -227,6 +227,13 @@ namespace CalradiaRemembers.WarCouncil
          {
             string result = CouncilConversationStager.StageCouncil(CouncilScope.WarCouncil);
             ModLog.Info($"[WARCOUNCIL] convene -> {result}");
+
+            // If staging did not start (empty war roster: no allied lords, or the player leads no faction at war),
+            // the council never opens. Surface WHY to the player instead of the popup simply doing nothing (player
+            // report 2026-08-23: "the popup appears but nothing happens after"); cr.council war already reports it
+            // to the console, but this offer path swallowed it.
+            if (!CouncilConversationStager.IsStaging && !string.IsNullOrEmpty(result))
+               InformationManager.DisplayMessage(new InformationMessage(result));
          }
          catch (Exception ex) { ModLog.Error($"[WARCOUNCIL] convene failed: {ex.GetType().Name}: {ex.Message}"); }
       }

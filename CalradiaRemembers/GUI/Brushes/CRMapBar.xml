@@ -1,0 +1,27 @@
+<Brushes>
+
+  <!--
+    Council button in the map's bottom-left navigation bar (see Map/CouncilNavigationItemVM.cs).
+    The bar's button (IconOffsetButtonWidget) takes its SIZE from the sprite of the layer named after the
+    item's ItemId in MapBar.Left.Button.Backgrounds: with no "cr_council" layer the button stays 0x0 -
+    invisible, unclickable, and the bar does not even lengthen (confirmed by decompiling
+    IconOffsetButtonWidget.OnUpdate: SuggestedWidth/Height are set only when GetLayer(IconID) finds a
+    sprite). This is why the nav item, though present in MapNavigationVM.NavigationItems, showed nothing.
+    The engine's own OverrideBrush mechanism (BrushFactory.LoadBrushFromFileAux: the override is filled
+    from the original brush, then this file's layers are merged in by name) lets us ADD the single layer
+    without copying the whole native brush, so native entries (incl. NavalDLC's manage_fleet) survive.
+    The layer's sprite IS the council picture (cr_council_button.png, pre-cropped to the native 76x52
+    tile, so the button keeps the exact native size and the image FILLS it edge to edge); it is injected
+    at runtime by CouncilBarIconSprite.EnsureRegistered - a brush layer needs a Sprite and an image file
+    cannot be declared as one in XML (SpriteData sheets are engine resources, not loose files). The whole
+    image gets the native hover/pressed tinting from MapBar.Left.Button's styles, and the item template's
+    IconBrushWidget glyph draws nothing (no cr_council layer in MapBar.Left.Icons), leaving the picture
+    as the whole button surface.
+  -->
+  <Brush Name="CR.MapBar.Left.Button.Backgrounds" OverrideBrush="MapBar.Left.Button.Backgrounds">
+    <Layers>
+      <BrushLayer Name="cr_council" Sprite="CR\council_icon" />
+    </Layers>
+  </Brush>
+
+</Brushes>

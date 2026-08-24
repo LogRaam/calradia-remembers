@@ -77,6 +77,13 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public bool AllowProviderFallbacks { get; set; } = false;
 
+      [SettingPropertyBool("Enable Council", RequireRestart = false, Order = 3,
+         HintText = "When ON, you can convene a council of your companions, kin, clan lords, or a war council from a " +
+                    "town, castle, or village menu, and from a button on the campaign map while on land. Turn OFF to " +
+                    "hide those entry points; the council can still be opened from the console.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool EnableCouncil { get; set; } = true;
+
       [SettingPropertyDropdown("Council Voices", RequireRestart = false, Order = 4,
          HintText = "Default for a NEWLY opened council (flip it anytime with the button in the council window " +
                     "itself). One call for the table keeps the scene cohesive, everyone reacts inside the same " +
