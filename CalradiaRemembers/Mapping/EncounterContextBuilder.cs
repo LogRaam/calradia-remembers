@@ -29,6 +29,7 @@ using CalradiaRemembers.Missions;
 using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Retainer;
+using CalradiaRemembers.Services;
 using CalradiaRemembers.Social;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Verbs;
@@ -382,6 +383,9 @@ namespace CalradiaRemembers.Mapping
             ViableQuestMenu = playerStatus == PlayerStatusVsNpc.Captive
                ? null
                : ViableQuestScanner.BuildMenu(hero, bridge?.GetCurrentGameDay() ?? 0),
+            // No quest is taught or offered in NSFW mode: an intimate scene must never mint a quest from a vow
+            // (player report 2026-08-23). Roleplay and Enhanced keep quests; captivity already suppresses them.
+            SuppressQuests = LlmServices.ActiveModelMode == ManualModelMode.Nsfw,
             // COUNCIL_ACTIONS.md Partie 5 (the "Caladog" case): mirrors the MCM opt-in straight through, off by
             // default so the existing "never a fief or marriage as the price of a task" guardrail stays intact
             // for every player who never touches this menu.
