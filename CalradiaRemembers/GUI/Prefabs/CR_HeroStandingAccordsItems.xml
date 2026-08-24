@@ -1,0 +1,8 @@
+<DummyRoot>
+  <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="StretchToParent"
+                          HorizontalAlignment="Left"
+                          Brush="Encyclopedia.Stat.ValueText"
+                          Brush.TextHorizontalAlignment="Left"
+                          Text="@CalradiaStandingAccordsItems"
+                          MarginTop="2" MarginLeft="30" MarginBottom="4" />
+</DummyRoot>

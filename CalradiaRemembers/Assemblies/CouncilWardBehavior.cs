@@ -83,6 +83,14 @@ namespace CalradiaRemembers.Assemblies
         /// <summary>True once <paramref name="heroId" /> is already the protege of a live bond: sponsor_ward's own "one mentor at a time" rule (Kimi's own condition).</summary>
         public bool IsProtege(string heroId) => !string.IsNullOrEmpty(heroId) && _active.Any(w => w.ProtegeId == heroId);
 
+        /// <summary>Council Tier 3: the live ward bond where this hero is the PROTEGE, or null. Additive read-only accessor for the encyclopedia panel (see CouncilAccordPanelText).</summary>
+        public CouncilWard GetAsProtege(string heroId)
+            => string.IsNullOrEmpty(heroId) ? null : _active.Find(w => w.ProtegeId == heroId);
+
+        /// <summary>Council Tier 3: the live ward bond where this hero is the MENTOR, or null.</summary>
+        public CouncilWard GetAsMentor(string heroId)
+            => string.IsNullOrEmpty(heroId) ? null : _active.Find(w => w.MentorId == heroId);
+
         /// <summary>
         ///   Starts a new mentorship bond: <paramref name="protege" /> must STILL pass WardEligibilityPolicy right
         ///   now (bridge is law - re-checked here even though the caller, CouncilLift.SettleSponsorWard, already
