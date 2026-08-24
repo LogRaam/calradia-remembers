@@ -132,12 +132,30 @@ namespace CalradiaRemembers.Chat
       ///   every other participant. When a witness holds the floor, the main NPC is
       ///   added as a witness so the speaker knows whose audience they share.
       /// </summary>
+      /// <summary>How many of a witness's own memory events to give the main speaker's turn: the compression-folded
+      /// summary (kept) plus the most recent few, so a group scene voices each witness true to what THEY recall.</summary>
+      private const int WitnessMemoryEventCap = 8;
+
       private IReadOnlyList<WitnessEntry> BuildContextWitnesses(ChatSpeaker speaker)
       {
          if (speaker.IsMain)
-            return _witnesses.Count > 0
-               ? _witnesses.AsReadOnly()
-               : null;
+         {
+            if (_witnesses.Count == 0) return null;
+
+            // Give each witness their OWN memory this turn (player report 2026-08-23): the single call that voices
+            // their [WITNESS_REACTION] otherwise sees only their name/persona/relation, so a companion forgot an
+            // agreement struck one-on-one. Their profile events are already compression-folded (durable + compact).
+            var memoryStore = NpcMemoryCampaignBehavior.Instance?.Store;
+            var enriched = new List<WitnessEntry>(_witnesses.Count);
+
+            foreach (WitnessEntry w in _witnesses)
+            {
+               NpcProfile p = memoryStore != null && !string.IsNullOrEmpty(w.HeroStringId) ? memoryStore.Get(w.HeroStringId) : null;
+               enriched.Add(WithWitnessMemory(w, BuildWitnessMemory(p, WitnessMemoryEventCap)));
+            }
+
+            return enriched;
+         }
 
          // Round-table audit D2: entries were built once from the HOST's angle and handed unchanged to every
          // other speaker, so a participant read the room through someone else's eyes ("Aldric (your vassal)"
@@ -156,6 +174,52 @@ namespace CalradiaRemembers.Chat
          return list.Count > 0
             ? list
             : null;
+      }
+
+      /// <summary>
+      ///   cr.testall seam: the compact recall a group scene would give this hero as a witness, read from their
+      ///   profile through the SAME path (<see cref="BuildWitnessMemory" /> + <see cref="WitnessMemoryEventCap" />)
+      ///   the live turn uses. Null when the hero has no profile or no events.
+      /// </summary>
+      public static string DebugWitnessMemory(string heroId)
+      {
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         NpcProfile p = store != null && !string.IsNullOrEmpty(heroId) ? store.Get(heroId) : null;
+
+         return BuildWitnessMemory(p, WitnessMemoryEventCap);
+      }
+
+      /// <summary>A copy of <paramref name="e" /> carrying <paramref name="memory" />, or the original when there is no memory to add.</summary>
+      private static WitnessEntry WithWitnessMemory(WitnessEntry e, string memory)
+      {
+         if (e == null || string.IsNullOrWhiteSpace(memory)) return e;
+
+         return new WitnessEntry {
+            Name = e.Name,
+            RelationToNpc = e.RelationToNpc,
+            IsPlayerCompanion = e.IsPlayerCompanion,
+            IsCaptiveVictim = e.IsCaptiveVictim,
+            IsBroughtCaptive = e.IsBroughtCaptive,
+            HeroStringId = e.HeroStringId,
+            Persona = e.Persona,
+            PresenceStatus = e.PresenceStatus,
+            Memory = memory
+         };
+      }
+
+      /// <summary>
+      ///   A witness's compact recall from their already-compressed profile events: the folded summary / first
+      ///   meeting (events[0]) plus the most recent, capped at <paramref name="cap" />, so nothing salient is
+      ///   dropped yet the group prompt stays bounded. Null when the witness has no profile or no events.
+      /// </summary>
+      private static string BuildWitnessMemory(NpcProfile profile, int cap)
+      {
+         List<NotableEvent> events = profile?.Events;
+         if (events == null || events.Count == 0) return null;
+
+         // The oldest-kept-plus-recent selection is pure and unit-tested in CalradiaRemembers.Logic; here we only
+         // hand it this witness's event summaries in order.
+         return WitnessMemoryDigest.Compose(events.Select(ev => ev?.summary).ToList(), cap);
       }
 
       /// <summary>
