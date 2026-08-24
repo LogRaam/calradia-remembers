@@ -208,6 +208,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("quests_suppressed_in_nsfw", Severity.Light, "Mechanical: build the REAL EncounterContext in NSFW mode -> SuppressQuests is true (an intimate scene never mints a quest from a vow, player report); in Roleplay it stays false (quests remain). Restores the active mode. No LLM.", TestQuestsSuppressedInNsfw),
+         new SelfTest("witness_recalls_own_memory", Severity.Light, "Mechanical: seed a memory on a hero -> the witness recall a group scene would give them (the real BuildWitnessMemory path + cap) includes it, so a companion no longer answers a group scene as if a prior one-on-one agreement never happened. Removes the seed afterwards.", TestWitnessRecallsOwnMemory),
          new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
@@ -6441,6 +6443,77 @@ namespace CalradiaRemembers.Diagnostics
 
             profile.ReputationWithPlayer = regardBefore;
             behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      // Player report 2026-08-23: in an intimate (NSFW) scene the model turned a vow into a quest. The mod
+      // suppresses quests for an NSFW turn; this drives the REAL EncounterContextBuilder in each mode and pins
+      // that NSFW sets SuppressQuests while Roleplay does not (Roleplay is where quests still belong).
+      private static string TestQuestsSuppressedInNsfw(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("quests_suppressed_in_nsfw");
+
+         Hero npc = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         if (t.Skip(npc == null, "no living lord to build a context for")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         ManualModelMode restore = LlmServices.ActiveModelMode;
+
+         try
+         {
+            LlmServices.ActiveModelMode = ManualModelMode.Nsfw;
+            EncounterContext nsfw = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, "hello");
+
+            LlmServices.ActiveModelMode = ManualModelMode.Roleplay;
+            EncounterContext rp = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, "hello");
+
+            t.Note($"NSFW SuppressQuests={nsfw.SuppressQuests}; Roleplay SuppressQuests={rp.SuppressQuests}");
+            t.Expect("nsfwSuppressesQuests", nsfw.SuppressQuests, true);
+            t.Expect("roleplayKeepsQuests", rp.SuppressQuests, false);
+         }
+         finally
+         {
+            LlmServices.ActiveModelMode = restore;
+         }
+
+         return t.Line();
+      }
+
+      // Player report 2026-08-23: a witness voiced in a group scene had no access to her own memory and forgot
+      // an agreement struck one-on-one. Seeds a memory on a hero and asserts the recall a group scene would give
+      // them (the REAL BuildWitnessMemory path + cap) carries it. Removes the seeded event afterwards.
+      private static string TestWitnessRecallsOwnMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("witness_recalls_own_memory");
+
+         Hero hero = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsAlive);
+         if (t.Skip(hero == null, "no living hero to seed a witness memory on")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, hero);
+         const string marker = "[SELFTEST] agreed to speak up on the signal word";
+         var day = (int) CampaignTime.Now.ToDays;
+
+         try
+         {
+            profile.Events.Add(new NotableEvent(day, NotableEventType.Agreement, marker));
+            behavior.Store.Set(profile);
+
+            string memory = ChatViewModel.DebugWitnessMemory(hero.StringId);
+
+            t.Note($"{hero.Name} witness memory: {Show(memory ?? "(null)")}");
+            t.Expect("witnessMemoryBuilt", !string.IsNullOrWhiteSpace(memory), true);
+            t.Expect("recallsTheAgreement", memory != null && memory.Contains(marker), true);
+         }
+         finally
+         {
+            NpcProfile fresh = behavior.Store.Get(hero.StringId);
+            if (fresh?.Events != null)
+            {
+               fresh.Events.RemoveAll(e => e?.summary == marker);
+               behavior.Store.Set(fresh);
+            }
          }
 
          return t.Line();
