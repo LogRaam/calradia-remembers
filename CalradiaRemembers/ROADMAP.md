@@ -70,11 +70,14 @@ letter's real `Content` so it is specific, not generic. Only letters with real s
 tunable chance), so it stays a memorable event, not noise.
 
 Increments:
-- Inc 1: pure `LetterLeakPolicy` (should this letter leak? which antagonist is eligible?) fully unit-tested; a new
-  SDK `LetterReason.LeakedCorrespondence` (the antagonist writes because they now hold your intercepted words)
-  whose prompt draws on the leaked content; wiring at the courier-lost site (`CourierService.HandlePartyDestroyed`);
-  a `WorldEvent` so the leak can also surface as rumor; a `cr.testall` self-test; an MCM chance/toggle. Default OFF
-  or low, since the mod is LIVE.
+- Inc 1: DONE 2026-08-24 (SDK `d4a2fe1` / MOD `ed3f55f`, committed NOT pushed). Pure `LetterLeakPolicy` +
+  `LetterLeakAntagonistPolicy` (grudge-holder preferred, else hostile lord) fully unit-tested; SDK
+  `LetterReason.LeakedCorrespondence` + prompt + `LetterWeights` intrigue-tier weight; wiring at
+  `CourierService.PlayerToNpcCourierLost` (bandit branch) -> `TryLeakLostLetter` -> `QueueInitialLetter` grounded in
+  the real text; a `WorldEvent` (`letter_leaked`); MCM toggle `InterceptedLettersCanLeak` DEFAULT OFF; self-test
+  `letter_leak_evaluates` (non-destructive antagonist scan). DEVIATION from the scope note: substance is a CONTENT
+  HEURISTIC (`LetterLeakPolicy.HasSubstance`, min length), NOT `LetterMemoryPolicy.ShouldRemember`, because
+  `PlayerLetter` carries no `Reason` field (adding one is a later increment).
 - Inc 2 (later): the antagonist ACTS on the intel (a scheme hook, or a real edge), and the player can hear the
   rumor that their plans leaked.
 
