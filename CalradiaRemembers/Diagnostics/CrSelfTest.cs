@@ -210,6 +210,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
          new SelfTest("quests_suppressed_in_nsfw", Severity.Light, "Mechanical: build the REAL EncounterContext in NSFW mode -> SuppressQuests is true (an intimate scene never mints a quest from a vow, player report); in Roleplay it stays false (quests remain). Restores the active mode. No LLM.", TestQuestsSuppressedInNsfw),
          new SelfTest("witness_recalls_own_memory", Severity.Light, "Mechanical: seed a memory on a hero -> the witness recall a group scene would give them (the real BuildWitnessMemory path + cap) includes it, so a companion no longer answers a group scene as if a prior one-on-one agreement never happened. Removes the seed afterwards.", TestWitnessRecallsOwnMemory),
+         new SelfTest("witness_density_thins_the_room", Severity.Light, "Mechanical: player complaint that conversations are ALWAYS crowded. Drives the REAL WitnessPresencePolicy.Filter directly against a fixed eligible list: Sparse thins the room down to its cap of 1; Bustling with an always-passing rng keeps every one of them, the exact passthrough that reproduces today's live behaviour for a player who never opens the menu. No LLM, mutates nothing.", TestWitnessDensityThinsTheRoom),
          new SelfTest("end_conversation_guards_open_question", Severity.Light, "Mechanical: read the REAL taught end_conversation vocabulary -> its description forbids closing on a turn that awaits the player's reply (player report: NPCs ended while asking a question or making a request). No LLM.", TestEndConversationGuardsAwaitingReply),
          new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
@@ -6516,6 +6517,35 @@ namespace CalradiaRemembers.Diagnostics
                behavior.Store.Set(fresh);
             }
          }
+
+         return t.Line();
+      }
+
+      // Player complaint: conversations are ALWAYS crowded with ambient bystanders. Drives the REAL
+      // WitnessPresencePolicy.Filter directly (the pure policy WitnessResolver.ApplyWitnessDensity wires as a
+      // post-filter over the ambient hero witnesses it gathers, never over the player's own companions): Sparse
+      // against a fixed eligible list thins the room down to its cap of 1, while Bustling with an always-passing
+      // rng keeps every one of them, the exact passthrough that must reproduce today's live behaviour for a
+      // player who never opens the menu (the mod is LIVE). No LLM, mutates nothing.
+      private static string TestWitnessDensityThinsTheRoom(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("witness_density_thins_the_room");
+
+         var eligible = new List<string> {"Aldric", "Boyd", "Corwin", "Derthert"};
+
+         // Sparse: p=0.25, cap=1. An rng stub that always passes the probability check (0.0 < 0.25) isolates
+         // the CAP as the thing doing the thinning here, so a regression that dropped the cap (but kept the
+         // probability) would still be caught.
+         List<string> sparse = WitnessPresencePolicy.Filter(eligible, WitnessDensity.Sparse, () => 0.0);
+         t.Note($"sparseKeptCount={sparse.Count}");
+         t.Expect("sparseThinnedAndCappedToOne", sparse.Count, 1);
+
+         // Bustling: p=1.0, cap=int.MaxValue. Even an rng returning just under 1.0 must still pass every roll;
+         // nothing is removed. This is the shipped default, so a regression here changes an existing player's
+         // game the moment they update, without them ever touching the new menu.
+         List<string> bustling = WitnessPresencePolicy.Filter(eligible, WitnessDensity.Bustling, () => 0.999999);
+         t.Note($"bustlingKeptCount={bustling.Count}");
+         t.Expect("bustlingIsExactPassthrough", bustling.Count, eligible.Count);
 
          return t.Line();
       }

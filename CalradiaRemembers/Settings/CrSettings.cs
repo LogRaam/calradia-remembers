@@ -409,5 +409,18 @@ namespace CalradiaRemembers.Settings
                     "report: it floods the log. Requires Enable Logging.")]
       [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
       public bool VerboseLogging { get; set; } = false;
+
+      // Player complaint: conversations are ALWAYS crowded with ambient bystanders. Thins the AMBIENT hero
+      // witnesses a conversation gathers only; never the player's own companions (see
+      // CalradiaRemembers.Logic.WitnessPresencePolicy + WitnessResolver.ResolveAutoWitnesses). Default Bustling
+      // is an EXACT passthrough (p=1.0, cap=int.MaxValue): the mod is LIVE, so an existing player who never opens
+      // this menu sees precisely today's room, unchanged.
+      [SettingPropertyDropdown("Witness Density", RequireRestart = false, Order = 12,
+         HintText = "How many ambient bystanders a conversation gathers. Sparse thins the room fast; Normal keeps " +
+                    "a genuine middle ground; Bustling (default) is today's full room, unchanged. Never touches " +
+                    "companions you bring yourself. Applies on your next conversation.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public Dropdown<string> WitnessDensity { get; set; } =
+         new(new[] {"Sparse", "Normal", "Bustling"}, 2); // default: Bustling (today's live behaviour, unchanged)
    }
 }

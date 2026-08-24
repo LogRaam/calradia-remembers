@@ -481,5 +481,28 @@ namespace CalradiaRemembers
       ///   Read live from the MCM menu; off by default. See <see cref="Logic.UnknownActionNotice" />.
       /// </summary>
       public static bool ReportUnsupportedActions => CrSettings.Instance?.ReportUnsupportedActions ?? false;
+
+      /// <summary>
+      ///   How many ambient hero witnesses a conversation gathers (player complaint: conversations are always
+      ///   crowded). Read live from the MCM menu; falls back to <see cref="Logic.WitnessDensity.Bustling" />
+      ///   when MCM has not loaded, which is an EXACT passthrough (see
+      ///   <see cref="Logic.WitnessPresencePolicy" />) reproducing today's live behaviour unchanged. Applied
+      ///   only to AMBIENT hero witnesses (<see cref="Witnesses.WitnessResolver.ResolveAutoWitnesses" />),
+      ///   NEVER to the player's own companions (<see cref="Witnesses.WitnessResolver.ResolveSceneCompanions" />).
+      /// </summary>
+      public static WitnessDensity WitnessDensity
+      {
+         get
+         {
+            string v = CrSettings.Instance?.WitnessDensity?.SelectedValue;
+
+            switch (v)
+            {
+               case "Sparse": return WitnessDensity.Sparse;
+               case "Normal": return WitnessDensity.Normal;
+               default: return WitnessDensity.Bustling;
+            }
+         }
+      }
    }
 }

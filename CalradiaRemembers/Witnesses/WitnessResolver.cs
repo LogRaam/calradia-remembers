@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -168,11 +169,18 @@ namespace CalradiaRemembers.Witnesses
 
          try
          {
+            // Witness density (player complaint: conversations are ALWAYS crowded): read once so both
+            // convergence paths below thin against the same setting, then post-filtered together at the single
+            // chokepoint where hero witnesses from either path land in the same list.
+            WitnessDensity density = ModSettings.WitnessDensity;
+
             Settlement settlement = npcHero.CurrentSettlement ?? npcHero.StayingInSettlement;
             if (settlement != null)
-               ResolveSettlementWitnesses(witnesses, settlement, npcHero, store);
+               ResolveSettlementWitnesses(witnesses, settlement, npcHero, store, density);
             else
                ResolveCampaignMapWitnesses(witnesses, npcHero, store);
+
+            ApplyWitnessDensity(witnesses, density);
          }
          catch (Exception ex)
          {
@@ -180,6 +188,27 @@ namespace CalradiaRemembers.Witnesses
          }
 
          return witnesses;
+      }
+
+      /// <summary>
+      ///   Post-filter chokepoint for BOTH hero-witness paths (settlement + campaign map): thins the AMBIENT
+      ///   HERO witnesses (entries carrying a <see cref="WitnessEntry.HeroStringId" />) per
+      ///   <see cref="WitnessPresencePolicy" />, applied ON TOP of the resolver's own existing cap
+      ///   (<see cref="MaxLordWitnesses" />) since it runs after that cap already truncated the list, and at
+      ///   <see cref="WitnessDensity.Bustling" /> (the default) this is an exact passthrough (p=1.0,
+      ///   cap=int.MaxValue), so it reproduces today's live behaviour unchanged. Never touches entries without a
+      ///   HeroStringId (the notable's synthetic flavor witness, which has its own density-aware skip in
+      ///   <see cref="TryAddFlavorWitness" />); the player's own companions never enter this list at all, they
+      ///   are resolved separately by <see cref="ResolveSceneCompanions" />.
+      /// </summary>
+      private static void ApplyWitnessDensity(List<WitnessEntry> witnesses, WitnessDensity density)
+      {
+         List<WitnessEntry> heroWitnesses = witnesses.Where(w => !string.IsNullOrEmpty(w.HeroStringId)).ToList();
+         if (heroWitnesses.Count == 0) return;
+
+         List<WitnessEntry> kept = WitnessPresencePolicy.Filter(heroWitnesses, density, () => MBRandom.RandomFloat);
+
+         witnesses.RemoveAll(w => !string.IsNullOrEmpty(w.HeroStringId) && !kept.Contains(w));
       }
 
       /// <summary>
@@ -719,14 +748,15 @@ namespace CalradiaRemembers.Witnesses
          List<WitnessEntry> witnesses,
          Settlement settlement,
          Hero npcHero,
-         BannerlordNpcMemoryStore store)
+         BannerlordNpcMemoryStore store,
+         WitnessDensity density)
       {
          // Notables (artisans, merchants, gang leaders…) receive the player one-on-one
          // in their own corner of town — other heroes are never plausibly present at
          // that meeting. A non-hero flavor witness fitting their trade may be, though.
          if (npcHero.IsNotable)
          {
-            TryAddFlavorWitness(witnesses, npcHero);
+            TryAddFlavorWitness(witnesses, npcHero, density);
             ModLog.Info($"[WitnessResolver] '{npcHero.Name}' is a notable — " +
                         $"{witnesses.Count} flavor witness(es), no hero witnesses.");
 
@@ -785,9 +815,17 @@ namespace CalradiaRemembers.Witnesses
       ///   Half the time no one is around, so private moments stay possible and the
       ///   scenes stay varied. Synthetic entries carry no HeroStringId; the display
       ///   and [WITNESS_REACTION] paths already support that (player companions too).
+      ///   <para>
+      ///     Witness density (player complaint: conversations are always crowded): this flavor witness has no
+      ///     HeroStringId, so the general <see cref="ApplyWitnessDensity" /> hero post-filter never reaches it.
+      ///     Instead it gets its own, simpler density rule here: at <see cref="WitnessDensity.Sparse" /> it is
+      ///     skipped entirely (a room already thinned to almost no one should not gain a substitute bystander);
+      ///     at Normal and Bustling the existing 50% roll is left exactly as it was.
+      ///   </para>
       /// </summary>
-      private static void TryAddFlavorWitness(List<WitnessEntry> witnesses, Hero npcHero)
+      private static void TryAddFlavorWitness(List<WitnessEntry> witnesses, Hero npcHero, WitnessDensity density)
       {
+         if (density == WitnessDensity.Sparse) return;
          if (MBRandom.RandomFloat < 0.5f) return;
 
          WitnessEntry entry;
