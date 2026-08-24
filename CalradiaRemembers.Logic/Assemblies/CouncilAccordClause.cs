@@ -29,14 +29,14 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>THIS NPC is the hostage the player holds as a pledge of their house's good faith (CouncilHostage).</summary>
         public static string HeldAsHostageByPlayer(string playerName, int daysRemaining)
-            => $"You are held by {Player(playerName)} as a hostage of your house's good faith, given at a parley{DaysSuffix(daysRemaining)}.";
+            => $"You are held by {Player(playerName)} as a hostage of your house's good faith, given at a parley{DaysSuffix(daysRemaining)}. Should your house take arms against them, you are forfeit to their dungeon.";
 
         /// <summary>THIS NPC's house gave a hostage to the player (CouncilHostage), named where known.</summary>
         public static string HostageGivenToPlayer(string playerName, string hostageName, int daysRemaining)
         {
             string h = string.IsNullOrWhiteSpace(hostageName) ? "one of your kin" : hostageName.Trim();
 
-            return $"Your house has given {h} to {Player(playerName)} as a hostage of good faith, sworn at a parley{DaysSuffix(daysRemaining)}.";
+            return $"Your house has given {h} to {Player(playerName)} as a hostage of good faith, sworn at a parley{DaysSuffix(daysRemaining)}. Break faith and take arms against them, and {h} is forfeit to their dungeon.";
         }
 
         #region private

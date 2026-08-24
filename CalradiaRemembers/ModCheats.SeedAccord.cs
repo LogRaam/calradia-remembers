@@ -77,5 +77,26 @@ namespace CalradiaRemembers
 
             return $"Seeded a {type} accord on {hero.Name}. Open their Encyclopedia page to see the 'Standing accords' section. (Dev seed: a real record, so it behaves normally if days pass or you save.)";
         }
+
+        /// <summary>
+        ///   cr.hostage_force_breach [name]
+        ///   Forces the give_hostage breach consequence on an active/seeded hostage term: the hostage's house
+        ///   "breaks faith" and the hostage becomes the player's prisoner, without staging a real battle. Seed one
+        ///   first with cr.seed_accord hostage &lt;name&gt;.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("hostage_force_breach", "cr")]
+        public static string HostageForceBreach(List<string> args)
+        {
+            if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+            if (CouncilHostageBehavior.Instance == null) return "Hostage system not active (load a campaign first).";
+
+            Hero hero = ResolveHero(args);
+            if (hero == null) return "No hero found (give the hostage's name, or open a conversation first).";
+
+            bool forced = CouncilHostageBehavior.Instance.DebugForceBreach(hero.StringId);
+            if (!forced) return $"{hero.Name} is not an active hostage. Seed one first: cr.seed_accord hostage {hero.Name}.";
+
+            return $"Forced the breach: {hero.Name}'s house broke faith, so {hero.Name} is now your prisoner. Check the party prisoner roster or their Encyclopedia page.";
+        }
     }
 }

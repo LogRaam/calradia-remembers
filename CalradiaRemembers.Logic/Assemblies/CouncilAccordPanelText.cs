@@ -28,14 +28,14 @@ namespace CalradiaRemembers.Logic.Assemblies
 
         /// <summary>This hero is the hostage the player holds (CouncilHostage).</summary>
         public static string HeldAsHostage(int daysRemaining)
-            => $"Held by you as a hostage of their house's good faith, given at a parley{Days(daysRemaining)}.";
+            => $"Held by you as a hostage of their house's good faith, given at a parley{Days(daysRemaining)}. If their house takes arms against you, they are forfeit to your dungeon.";
 
         /// <summary>This hero's house gave a hostage to the player (CouncilHostage), named where known.</summary>
         public static string HostageGiven(string hostageName, int daysRemaining)
         {
             string h = string.IsNullOrWhiteSpace(hostageName) ? "one of their kin" : hostageName.Trim();
 
-            return $"Gave {h} to you as a hostage of good faith, sworn at a parley{Days(daysRemaining)}.";
+            return $"Gave {h} to you as a hostage of good faith, sworn at a parley{Days(daysRemaining)}. If their house breaks faith, {h} is forfeit to you.";
         }
 
         /// <summary>This hero is a ward the player's council sponsored, mentored by another clan member (CouncilWard).</summary>

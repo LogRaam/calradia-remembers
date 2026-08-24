@@ -36,18 +36,17 @@
 // the SAME "not this build's scope" discipline CouncilTributeBehavior's own header already documents for
 // TributeDefaulted); (b) the pledger's own clan is eliminated mid-term - the hostage is released home immediately
 // (best-effort per the fallback chain above) rather than waiting out the remaining days for a clan that no
-// longer exists, and the record is dropped; (c) war re-erupts between the two factions during the term - v1
-// deliberately does NOT escalate the hostage to a war prisoner (COUNCIL_ACTIONS.md's own "l'otage devient
-// automatiquement prisonnier de guerre" is the DOCUMENTED v2 punitive path, not built here): the hostage simply
-// completes their fixed term and returns home as agreed, because this v1 "invite d'honneur" design's own
-// honesty rests on NEVER claiming the hostage is anything but a free guest - inventing a war-prisoner escalation
-// here would be exactly the "the prompt is advice, the bridge is law" violation this codebase exists to prevent,
-// since nothing in this slice's own prompt teaching ever promises that consequence to the player.
+// longer exists, and the record is dropped; (c) the pledger's own house breaks faith and takes arms against the
+// player during the term (Tier 4, BUILT 2026-08-24): the hostage is FORFEIT and becomes the player's prisoner
+// (OnMapEventEnded -> pure HostageBreachPolicy -> TakePrisonerAction into MainParty), the punitive path
+// COUNCIL_ACTIONS.md documented as v2. It fires ONLY when the pledger's own faction is the ATTACKER (they broke the
+// faith the hostage stood surety for); a player-initiated attack is the player's OWN broken faith and never
+// punishes the hostage. No longer a silent trap: the standing-accord clauses (CouncilAccordClause /
+// CouncilAccordPanelText) now teach the stakes, so the player and the NPCs both know a hostage is leverage.
 //
-// v2 (DOCUMENTED FOLLOW-UP, NOT built this slice): COUNCIL_ACTIONS.md's own "captif contraint" - if the guaranteed
-// accord is later broken, the garant may execute or imprison the hostage (reusing execute_prisoner's own
-// GrudgeSource.ExecutedKin / the mod's existing prisoner flow). That punitive path needs its own accord-breach
-// detection and sanction design; this slice ships ONLY the honest "guest of good faith" mechanic.
+// v2 EXECUTE (still DOCUMENTED FOLLOW-UP, NOT built): COUNCIL_ACTIONS.md's "captif contraint" also lets the holder
+// EXECUTE a forfeit hostage. This slice imprisons rather than kills (execution stays the player's own separate
+// choice through the existing execute_prisoner flow), so no automatic, irreversible death is ever imposed.
 #region
 
 using System;
@@ -56,10 +55,15 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.Core;
+using TaleWorlds.Library;
+using TaleWorlds.Localization;
 
 #endregion
 
@@ -150,6 +154,7 @@ namespace CalradiaRemembers.Assemblies
         public override void RegisterEvents()
         {
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+            CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -286,6 +291,109 @@ namespace CalradiaRemembers.Assemblies
             // Last resort (rare: no home party, no home settlement - a clan destroyed to the last fief): the hostage
             // simply remains in the player's own party, logged rather than forced anywhere unverified.
             ModLog.Info($"[HOSTAGE] {hostage.Name} has no home party or settlement to return to; remains at the player's own court.");
+        }
+
+        /// <summary>
+        ///   Breach detection (Tier 4, recognizes-never-causes, mirroring CouncilPactBehavior.OnMapEventEnded): a
+        ///   real MapEvent pitting the pledger's own faction against the player's during the term forfeits the
+        ///   hostage. Only the direction where the PLEDGER struck imprisons them (see HostageBreachPolicy).
+        /// </summary>
+        private void OnMapEventEnded(MapEvent mapEvent)
+        {
+            if (_active.Count == 0 || mapEvent == null) return;
+
+            foreach (CouncilHostage h in _active.ToList())
+            {
+                CouncilHostage hostageTerm = h;
+                SafeRun.Step($"CouncilHostageBehavior.CheckBreach({hostageTerm.HostageId})", () => CheckBreach(hostageTerm, mapEvent));
+            }
+        }
+
+        private void CheckBreach(CouncilHostage h, MapEvent mapEvent)
+        {
+            Clan homeClan = string.IsNullOrEmpty(h.HomeClanId) ? null : Clan.All?.FirstOrDefault(c => c.StringId == h.HomeClanId);
+            IFaction pledgerFaction = homeClan?.MapFaction;
+            IFaction playerFaction = Hero.MainHero?.MapFaction;
+
+            if (pledgerFaction == null || playerFaction == null || pledgerFaction == playerFaction) return;
+
+            MBReadOnlyList<MapEventParty> attackers = mapEvent.GetMapEventSide(BattleSideEnum.Attacker)?.Parties;
+            MBReadOnlyList<MapEventParty> defenders = mapEvent.GetMapEventSide(BattleSideEnum.Defender)?.Parties;
+
+            bool attackerIsPledger = SideHasFaction(attackers, pledgerFaction.StringId);
+            bool attackerIsPlayer = SideHasFaction(attackers, playerFaction.StringId);
+            bool defenderIsPledger = SideHasFaction(defenders, pledgerFaction.StringId);
+            bool defenderIsPlayer = SideHasFaction(defenders, playerFaction.StringId);
+
+            if (!HostageBreachPolicy.IsBreach(attackerIsPledger, attackerIsPlayer, defenderIsPledger, defenderIsPlayer)) return;
+
+            // Only the pledger's own aggression forfeits the hostage; a player-initiated attack is the PLAYER's
+            // broken faith, not the pledger's, and must never punish the person given in good faith.
+            if (!HostageBreachPolicy.IsPledgerAtFault(attackerIsPledger)) return;
+
+            ExecuteBreach(h);
+        }
+
+        /// <summary>
+        ///   Forfeits the hostage: they become the player's prisoner (TakePrisonerAction into MainParty, the same
+        ///   capture path the rest of the mod uses), the term record is dropped, and the betrayal is announced and
+        ///   recorded. No grudge is planted against the player here: the player is the WRONGED party (the pledger
+        ///   broke faith), so the fault-directional grudge the pact breach uses has no honest equivalent.
+        /// </summary>
+        private void ExecuteBreach(CouncilHostage h)
+        {
+            _active.Remove(h);
+
+            Hero hostage = Hero.AllAliveHeroes.FirstOrDefault(hero => hero.StringId == h.HostageId);
+            if (hostage == null) return;
+
+            try { TakePrisonerAction.Apply(PartyBase.MainParty, hostage); }
+            catch (Exception ex) { ModLog.Error($"[HOSTAGE] imprison-on-breach failed: {ex.GetType().Name}: {ex.Message}"); }
+
+            try
+            {
+                MBInformationManager.AddQuickInformation(
+                    new TextObject($"{hostage.Name}'s house broke faith; the hostage given to you is now your prisoner."));
+            }
+            catch (Exception ex) { ModLog.Error($"[HOSTAGE] breach banner failed: {ex.GetType().Name}: {ex.Message}"); }
+
+            WorldEventStore.Instance?.Record(new WorldEvent {
+                Type = WorldEventType.Other,
+                Day = (int) CampaignTime.Now.ToDays,
+                InvolvesPlayer = true,
+                Magnitude = 30,
+                Status = "hostage_forfeit",
+                Summary = $"{hostage.Name}'s house broke faith during the hostage term; the hostage is forfeit to the player.",
+                ActorIds = new List<string> {h.HostageId, h.PledgerId},
+                FactionIds = new List<string>()
+            });
+
+            ModLog.Info($"[HOSTAGE] {hostage.Name} forfeit: the pledger's house took arms against the player during the term.");
+        }
+
+        /// <summary>True when any party on this side belongs to the given faction (mirrors CouncilPactBehavior.SideHasFaction).</summary>
+        private static bool SideHasFaction(MBReadOnlyList<MapEventParty> parties, string factionId)
+        {
+            if (parties == null || string.IsNullOrEmpty(factionId)) return false;
+
+            foreach (MapEventParty mp in parties)
+                if (mp.Party?.MapFaction?.StringId == factionId)
+                    return true;
+
+            return false;
+        }
+
+        /// <summary>Dev/test only (cr.hostage_force_breach): force the forfeit-on-breach consequence on a seeded/active hostage term, so the imprison path can be validated without staging a real battle.</summary>
+        public bool DebugForceBreach(string hostageId)
+        {
+            if (string.IsNullOrEmpty(hostageId)) return false;
+
+            CouncilHostage h = _active.Find(x => x.HostageId == hostageId);
+            if (h == null) return false;
+
+            ExecuteBreach(h);
+
+            return true;
         }
 
         #endregion

@@ -212,6 +212,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("witness_recalls_own_memory", Severity.Light, "Mechanical: seed a memory on a hero -> the witness recall a group scene would give them (the real BuildWitnessMemory path + cap) includes it, so a companion no longer answers a group scene as if a prior one-on-one agreement never happened. Removes the seed afterwards.", TestWitnessRecallsOwnMemory),
          new SelfTest("witness_density_thins_the_room", Severity.Light, "Mechanical: player complaint that conversations are ALWAYS crowded. Drives the REAL WitnessPresencePolicy.Filter directly against a fixed eligible list: Sparse thins the room down to its cap of 1; Bustling with an always-passing rng keeps every one of them, the exact passthrough that reproduces today's live behaviour for a player who never opens the menu. No LLM, mutates nothing.", TestWitnessDensityThinsTheRoom),
          new SelfTest("end_conversation_guards_open_question", Severity.Light, "Mechanical: read the REAL taught end_conversation vocabulary -> its description forbids closing on a turn that awaits the player's reply (player report: NPCs ended while asking a question or making a request). No LLM.", TestEndConversationGuardsAwaitingReply),
+         new SelfTest("hostage_breach_imprisons", Severity.Light, "Mechanical: seed a hostage term on a free lord, force the breach through the REAL ExecuteBreach path (TakePrisonerAction) -> the hostage is imprisoned; then release them so the campaign is untouched. Briefly jails and frees a test lord. No LLM.", TestHostageBreachImprisons),
          new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
@@ -6567,6 +6568,36 @@ namespace CalradiaRemembers.Diagnostics
          t.Note(Show(desc));
          t.Expect("guardsWithMustStayOpen", desc.Contains("MUST stay open"), true);
          t.Expect("namesTheAwaitedReply", desc.Contains("await a reply"), true);
+
+         return t.Line();
+      }
+
+      // Council Tier 4 (give_hostage v2, 2026-08-24): a hostage whose house breaks faith is forfeit and becomes the
+      // player's prisoner. Seeds a hostage term on a free lord, forces the breach through the REAL ExecuteBreach
+      // path (TakePrisonerAction), asserts they are imprisoned, then frees them so the campaign is left untouched.
+      private static string TestHostageBreachImprisons(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("hostage_breach_imprisons");
+
+         if (t.Skip(CouncilHostageBehavior.Instance == null, "hostage system not active")) return t.Line();
+
+         Hero hero = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Clan != null);
+         if (t.Skip(hero == null, "no free lord to stand in as a test hostage")) return t.Line();
+
+         try
+         {
+            CouncilHostageBehavior.Instance.DebugSeed(hero.StringId, hero.StringId, hero.Clan?.StringId, 40);
+            bool forced = CouncilHostageBehavior.Instance.DebugForceBreach(hero.StringId);
+
+            t.Note($"{hero.Name}: forced={forced}, IsPrisoner={hero.IsPrisoner}");
+            t.Expect("breachForced", forced, true);
+            t.Expect("hostageImprisoned", hero.IsPrisoner, true);
+         }
+         finally
+         {
+            try { if (hero.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(hero); }
+            catch (Exception ex) { ModLog.Error($"[SELFTEST] hostage_breach cleanup failed: {ex.Message}"); }
+         }
 
          return t.Line();
       }
