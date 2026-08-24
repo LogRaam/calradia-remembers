@@ -18,6 +18,10 @@ Gather your people to a council. Your saves from 2.1.5 carry over untouched.
   an elder with the weight of years. The sitting opens with each of them greeting you in their own way.
 
 ### Fixed
+- **A character no longer cuts you off mid-conversation.** An NPC would too often end the talk right after their own
+  line, even while asking you something or making a request, so you never got to answer. They now keep the
+  conversation open whenever they are waiting on a reply from you, and end it only when they truly part or dismiss
+  you (a grave insult, a firm farewell). You decide when you have said enough.
 - **No quest in an intimate scene.** In NSFW mode the mod no longer turns anything into a quest (that is not where a
   field task belongs). Roleplay and Enhanced still can. And, as before, a vow or a feeling is never mistaken for a
   quest: a quest is a concrete deed you can go and do, nothing else.

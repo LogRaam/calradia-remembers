@@ -210,6 +210,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
          new SelfTest("quests_suppressed_in_nsfw", Severity.Light, "Mechanical: build the REAL EncounterContext in NSFW mode -> SuppressQuests is true (an intimate scene never mints a quest from a vow, player report); in Roleplay it stays false (quests remain). Restores the active mode. No LLM.", TestQuestsSuppressedInNsfw),
          new SelfTest("witness_recalls_own_memory", Severity.Light, "Mechanical: seed a memory on a hero -> the witness recall a group scene would give them (the real BuildWitnessMemory path + cap) includes it, so a companion no longer answers a group scene as if a prior one-on-one agreement never happened. Removes the seed afterwards.", TestWitnessRecallsOwnMemory),
+         new SelfTest("end_conversation_guards_open_question", Severity.Light, "Mechanical: read the REAL taught end_conversation vocabulary -> its description forbids closing on a turn that awaits the player's reply (player report: NPCs ended while asking a question or making a request). No LLM.", TestEndConversationGuardsAwaitingReply),
          new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
@@ -6515,6 +6516,27 @@ namespace CalradiaRemembers.Diagnostics
                behavior.Store.Set(fresh);
             }
          }
+
+         return t.Line();
+      }
+
+      // Player report 2026-08-23 (v2.1.5): NPCs ended the conversation while still asking a question or making a
+      // request, leaving no room to reply. The end_conversation teaching now forbids closing on a turn that awaits
+      // a reply (a rhetorical outburst as the NPC dismisses the player still ends; a genuine awaited question does
+      // not). Pins that guard in the taught vocabulary so a later prompt edit cannot silently drop it. No LLM.
+      private static string TestEndConversationGuardsAwaitingReply(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("end_conversation_guards_open_question");
+
+         GameActionDefinition end = LlmServices.DebugActionVocabulary(ModSettings.RelationWarmth)
+            .FirstOrDefault(a => a.Type == "end_conversation");
+
+         if (t.Skip(end == null, "end_conversation is not in the taught vocabulary")) return t.Line();
+
+         string desc = end.Description ?? "";
+         t.Note(Show(desc));
+         t.Expect("guardsWithMustStayOpen", desc.Contains("MUST stay open"), true);
+         t.Expect("namesTheAwaitedReply", desc.Contains("await a reply"), true);
 
          return t.Line();
       }

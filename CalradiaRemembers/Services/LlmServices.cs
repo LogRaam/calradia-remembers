@@ -347,6 +347,14 @@ namespace CalradiaRemembers.Services
       // bridge anyway — external configurability adds no practical value. The
       // change_relation wording varies with the Relationship Warmth setting so the
       // player's chosen pacing is reflected in what the NPC is told to feel.
+      /// <summary>
+      ///   Test seam (cr.testall): the exact action vocabulary taught to the model, so a self-test can assert an
+      ///   action's teaching still carries a required guard without going through the live chat pipeline. Used to
+      ///   pin that end_conversation must not fire while the NPC is still awaiting the player's reply.
+      /// </summary>
+      internal static IReadOnlyList<GameActionDefinition> DebugActionVocabulary(RelationWarmth warmth)
+         => BuildActionVocabulary(warmth);
+
       private static IReadOnlyList<GameActionDefinition> BuildActionVocabulary(RelationWarmth warmth) =>
          new List<GameActionDefinition> {
             new() {
@@ -359,7 +367,11 @@ namespace CalradiaRemembers.Services
                Description = "End this conversation now. Emit when you, in character, would genuinely refuse to continue: " +
                              "after a grave insult, a crude or unwelcome advance you will not tolerate, " +
                              "an advance you already refused that the player presses again, repeated disrespect, an open threat — " +
-                             "or when the exchange has reached its natural close and there is nothing more you wish to say. " +
+                             "or when the PLAYER winds the talk down (a goodbye, a parting word) and you answer in kind. " +
+                             "NEVER end on a turn where your own words still engage the player: if you ask a question you want answered, " +
+                             "make a request of them, or otherwise await a reply, the conversation MUST stay open, so do NOT emit this action. " +
+                             "By default the talk stays open and the PLAYER decides when they are done. A rhetorical outburst as you dismiss them " +
+                             "('How dare you?') is still a dismissal and DOES end; a genuine question you expect them to answer does not. " +
                              "CRUCIAL — your words and this action must AGREE: if your dialogue this turn dismisses the player or " +
                              "declares the talk over ('I have duties that demand my attention', 'I will hear no more of this today', " +
                              "'we are done here', a firm farewell, or sending them on their way), you MUST emit this action so the " +
