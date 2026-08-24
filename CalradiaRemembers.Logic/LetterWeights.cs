@@ -34,6 +34,9 @@ namespace CalradiaRemembers.Logic
         /// <summary>An enemy pressuring the player for sensitive information: adversarial and actionable.</summary>
         public const int WeightCorruptionAttempt = 80;
 
+        /// <summary>An antagonist exploiting a private letter of the player's they intercepted on the road: adversarial and actionable, a sibling of blackmail over a secret now fallen into the wrong hands.</summary>
+        public const int WeightLeakedCorrespondence = 85;
+
         /// <summary>A marriage proposal: a genuine decision the player must eventually answer.</summary>
         public const int WeightMarriageProposal = 80;
 
@@ -148,6 +151,7 @@ namespace CalradiaRemembers.Logic
                 case LetterReason.ReinforcementRequest: return WeightReinforcementRequest;
                 case LetterReason.JealousThreat: return WeightJealousThreat;
                 case LetterReason.CorruptionAttempt: return WeightCorruptionAttempt;
+                case LetterReason.LeakedCorrespondence: return WeightLeakedCorrespondence;
                 case LetterReason.MarriageProposal: return WeightMarriageProposal;
                 case LetterReason.QuestUpdate: return WeightQuestUpdate;
                 case LetterReason.StanceHostility: return WeightStanceHostility;

@@ -5,9 +5,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.Travel;
+using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
@@ -1303,8 +1307,114 @@ namespace CalradiaRemembers.Letters
          // stakes stay), but the writing is never wasted.
          OfferResend(store, profile, forward, byBandit);
 
+         // Intercepted-letter-leak Inc 1: a bandit waylay may spill a substantive letter's contents to a hostile hand.
+         TryLeakLostLetter(store, forward, byBandit);
+
          return true;
       }
+
+      /// <summary>
+      ///   Intercepted-letter-leak Inc 1: when a substantive player letter is waylaid by bandits and the feature is
+      ///   enabled, a bounded chance (LetterLeakPolicy) its contents fall into an antagonist's hands. The antagonist
+      ///   then writes to the player to exploit them (a LeakedCorrespondence letter grounded in the real text), and
+      ///   a WorldEvent records the leak. All the DECISION lives in the pure policies; this only reads the loss,
+      ///   scans for an antagonist, and queues the letter. OFF by default; never throws.
+      /// </summary>
+      private static void TryLeakLostLetter(BannerlordNpcMemoryStore store, PlayerLetter forward, bool byBandit)
+      {
+         try
+         {
+            bool enabled = ModSettings.InterceptedLettersCanLeak;
+            bool hasSubstance = LetterLeakPolicy.HasSubstance(forward?.Content);
+            if (!enabled || !byBandit || !hasSubstance) return;
+
+            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+            if (behavior?.LlmServices == null || store == null) return;
+
+            Hero antagonist = ResolveLeakAntagonist(forward.RecipientId);
+            double roll = MBRandom.RandomFloat;
+
+            if (!LetterLeakPolicy.ShouldLeak(enabled, byBandit, hasSubstance, antagonist != null, LetterLeakPolicy.DefaultLeakChance, roll))
+               return;
+
+            var today = (int) CampaignTime.Now.ToDays;
+
+            NpcProfile antagonistProfile = store.Get(antagonist.StringId);
+            if (antagonistProfile == null)
+            {
+               antagonistProfile = HeroProfileMapper.FromHero(antagonist);
+               store.Set(antagonistProfile);
+            }
+
+            string recipient = string.IsNullOrWhiteSpace(forward.RecipientName) ? "another lord" : forward.RecipientName;
+            string context = $"You have come into possession of a private letter the player sent to {recipient}, intercepted on the road after its courier was waylaid. It read: \"{forward.Content}\"";
+
+            LetterGenerationService.QueueInitialLetter(antagonistProfile, antagonist, LetterReason.LeakedCorrespondence, context, behavior.LlmServices, store, today);
+
+            WorldEventStore.Instance?.Record(new WorldEvent {
+               Type = WorldEventType.Other,
+               Day = today,
+               InvolvesPlayer = true,
+               Magnitude = 25,
+               Status = "letter_leaked",
+               Summary = $"A private letter the player sent to {recipient} was intercepted and fell into {antagonist.Name}'s hands.",
+               ActorIds = new List<string> {antagonist.StringId},
+               FactionIds = new List<string>()
+            });
+
+            ModLog.Info($"[COURIER] leaked: the player's intercepted letter reached {antagonist.Name}.");
+         }
+         catch (Exception ex) { ModLog.Error($"[COURIER] letter-leak failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Picks a plausible hostile recipient for a leaked letter: a hero who holds a live grudge against the
+      ///   player (strongest first), else a hostile lord (at war with the player's faction, or relation &lt;= -20).
+      ///   Excludes the letter's own recipient, children, prisoners, and the dead. Returns null when no one fits
+      ///   (then nothing leaks). The pick order is the pure LetterLeakAntagonistPolicy's.
+      /// </summary>
+      private static Hero ResolveLeakAntagonist(string recipientId)
+      {
+         Hero player = Hero.MainHero;
+         if (player == null) return null;
+
+         bool Valid(string id)
+         {
+            if (string.IsNullOrEmpty(id) || id == recipientId) return false;
+            Hero h = Hero.FindFirst(x => x.StringId == id);
+
+            return h != null && h != player && h.IsAlive && !h.IsChild && !h.IsPrisoner;
+         }
+
+         bool Hostile(Hero h)
+         {
+            IFaction lf = h.MapFaction, pf = player.MapFaction;
+            if (lf != null && pf != null && lf != pf && FactionManager.IsAtWarAgainstFaction(lf, pf)) return true;
+
+            return h.GetRelation(player) <= -20;
+         }
+
+         List<string> grudgeHolders = GrudgeBehavior.Instance?.All
+                                                    ?.Where(g => g != null && !g.IsResolved && g.TargetId == player.StringId)
+                                                    .OrderByDescending(g => g.Magnitude)
+                                                    .Select(g => g.HolderId)
+                                                    .Where(Valid)
+                                                    .ToList() ?? new List<string>();
+
+         List<string> hostileLords = Hero.AllAliveHeroes
+                                         .Where(h => h != null && h != player && h.IsLord && !h.IsPrisoner && !h.IsChild && Hostile(h))
+                                         .Select(h => h.StringId)
+                                         .Where(Valid)
+                                         .ToList();
+
+         string pickedId = LetterLeakAntagonistPolicy.Pick(grudgeHolders, hostileLords);
+
+         return string.IsNullOrEmpty(pickedId) ? null : Hero.FindFirst(h => h.StringId == pickedId);
+      }
+
+      /// <summary>Test seam (cr.testall): the antagonist a leaked letter addressed to <paramref name="recipientId" /> would reach right now, or null. Non-destructive: runs the real grudge/hostility scan but queues nothing.</summary>
+      internal static string DebugEvaluateLeakAntagonist(string recipientId)
+         => ResolveLeakAntagonist(recipientId)?.Name?.ToString();
 
       /// <summary>Asks the player whether to send a lost letter again, re-dispatching it with the same text.</summary>
       private static void OfferResend(BannerlordNpcMemoryStore store, NpcProfile profile, PlayerLetter letter, bool byBandit = true)

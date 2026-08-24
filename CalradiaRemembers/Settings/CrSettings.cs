@@ -335,6 +335,15 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool InvulnerableCouriers { get; set; } = false;
 
+      // Intercepted-letter-leak Inc 1 (player report 2026-08-24): OFF ships today's behaviour (a waylaid letter is
+      // simply lost). On: a bandit-waylaid letter of real substance has a bounded chance its contents fall into a
+      // hostile hand, who writes to the player to exploit them.
+      [SettingPropertyBool("Intercepted letters can leak", RequireRestart = false, Order = 12,
+         HintText = "Off (default): a letter waylaid by bandits is simply lost. On: a substantive intercepted letter " +
+                    "has a chance its contents fall into a hostile lord's hands, who then writes to exploit them.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool InterceptedLettersCanLeak { get; set; } = false;
+
       // Player request (2026-08-04, "AI Executes" mod parity): a captive under torture wanted the scene able to
       // end their character for real. High-stakes and IRREVERSIBLE (game over, or heir succession), so this is
       // opt-in like AdultContentLevel/Hardcore, off by default, and re-validated by the bridge at the moment of

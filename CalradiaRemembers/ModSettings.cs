@@ -69,6 +69,9 @@ namespace CalradiaRemembers
       /// </summary>
       public static bool InvulnerableCouriers => CrSettings.Instance?.InvulnerableCouriers ?? false;
 
+      /// <summary>Intercepted-letter-leak Inc 1: when ON, a bandit-waylaid substantive letter may leak to a hostile hand. OFF by default (today's behaviour).</summary>
+      public static bool InterceptedLettersCanLeak => CrSettings.Instance?.InterceptedLettersCanLeak ?? false;
+
       /// <summary>
       ///   The chat window skin prefab chosen in the MCM menu ("Chat Window Style"), mapped from its display
       ///   label to the prefab name. Read live; falls back to the Dark Leather (Manuscript) book when MCM has

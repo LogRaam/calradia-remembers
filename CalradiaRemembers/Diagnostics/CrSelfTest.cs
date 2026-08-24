@@ -214,6 +214,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("end_conversation_guards_open_question", Severity.Light, "Mechanical: read the REAL taught end_conversation vocabulary -> its description forbids closing on a turn that awaits the player's reply (player report: NPCs ended while asking a question or making a request). No LLM.", TestEndConversationGuardsAwaitingReply),
          new SelfTest("hostage_breach_imprisons", Severity.Light, "Mechanical: seed a hostage term on a free lord, force the breach through the REAL ExecuteBreach path (TakePrisonerAction) -> the hostage is imprisoned; then release them so the campaign is untouched. Briefly jails and frees a test lord. No LLM.", TestHostageBreachImprisons),
          new SelfTest("claimant_support_evaluates", Severity.Light, "Mechanical: gather a real same-kingdom other-clan lord's facts and run the REAL ClaimantSupportPolicy via CouncilLift.EvaluateSupportClaimant (non-destructive, no influence moved) -> a valid backer lands on the amount decision (Applied/CannotAfford), never a WHO gate. No LLM.", TestClaimantSupportEvaluates),
+         new SelfTest("letter_leak_evaluates", Severity.Light, "Mechanical: run the REAL leak antagonist scan (grudges + hostile lords) via CourierService.DebugEvaluateLeakAntagonist (non-destructive, nothing queued) and confirm the pure LetterLeakPolicy fires when enabled+bandit+substance+antagonist. Skips a peaceful campaign. No LLM.", TestLetterLeakEvaluates),
          new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
@@ -6623,6 +6624,27 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{backer.Name}: outcome={r.Outcome}, amount={r.Amount}");
          bool clearedWhoGates = r.Outcome == ClaimantSupportOutcome.Applied || r.Outcome == ClaimantSupportOutcome.CannotAfford;
          t.Expect("clearedWhoGatesToTheAmountDecision", clearedWhoGates, true);
+
+         return t.Line();
+      }
+
+      // Intercepted-letter-leak Inc 1: the leak DECISION is pure (LetterLeakPolicy), but the antagonist SCAN is
+      // engine (grudges + hostile lords). Drives the REAL scan via CourierService.DebugEvaluateLeakAntagonist
+      // (non-destructive: nothing is queued), and confirms the pure decision fires when every condition is met.
+      // Skips a peaceful campaign with no hostile lord or grudge-holder to leak to.
+      private static string TestLetterLeakEvaluates(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("letter_leak_evaluates");
+
+         Hero recipient = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero);
+         string antagonist = CourierService.DebugEvaluateLeakAntagonist(recipient?.StringId);
+
+         if (t.Skip(antagonist == null, "no hostile lord or grudge-holder in this campaign to leak to")) return t.Line();
+
+         t.Note($"antagonist={antagonist}");
+         bool leaksWhenAllMet = LetterLeakPolicy.ShouldLeak(true, true, true, true, LetterLeakPolicy.DefaultLeakChance, 0.0);
+         t.Expect("realScanFoundAntagonist", !string.IsNullOrEmpty(antagonist), true);
+         t.Expect("policyLeaksWhenEnabledAndAllMet", leaksWhenAllMet, true);
 
          return t.Line();
       }
