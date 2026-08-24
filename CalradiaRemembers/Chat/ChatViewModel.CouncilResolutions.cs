@@ -107,6 +107,10 @@ namespace CalradiaRemembers.Chat
             List<string> witnessIds = heroIds.Where(id => !string.IsNullOrEmpty(id) && id != heroId).ToList();
             RecordCouncilResolution(proposal, heroId, memberName, witnessIds);
          }
+
+         // Tier 1 (2026-08-24): the Engagements panel is now the real ledger, so refresh it here, the same place
+         // and turn the ledger changed, instead of firing a separate LLM re-reading of the transcript.
+         RefreshEngagementsFromLedger();
       }
 
       /// <summary>

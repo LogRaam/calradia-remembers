@@ -2018,11 +2018,6 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private void ExecuteSendCouncilMessage(string text)
       {
-         // Bespoke council window (Inc 1): before this new turn, mirror what the table has settled so far into
-         // the Engagements panel. Reads the previous, fully-settled turn (this send's lines are not committed to
-         // the transcript until the call runs), so the panel stays one turn behind but never mid-turn.
-         KickCouncilEngagementExtraction();
-
          AppendPlayerMessage(text, false);
          IsSendEnabled = false;
          InputText = "";

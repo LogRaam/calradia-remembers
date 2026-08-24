@@ -39,14 +39,11 @@ namespace CalradiaRemembers.Chat
       private const int CouncilEngagementExtractTimeoutSeconds = 45;
       private readonly MBBindingList<CouncilEngagementViewModel> _engagements = new MBBindingList<CouncilEngagementViewModel>();
       private readonly MBBindingList<CouncilParticipantViewModel> _councilParticipants = new MBBindingList<CouncilParticipantViewModel>();
-      private readonly EngagementLedger _engagementLedger = new EngagementLedger();
       private string _councilAgendaText = "";
       private string _councilTitleText = "";
       private string _councilSeatCountText = "";
       private ChatMessageViewModel _councilDossierPortrait; // transient carrier resolving the clicked seat's portrait, released on close/reopen
       private bool _isCouncilDossierOpen;
-      private bool _engagementExtractionRunning;
-      private bool _engagementExtractionRequeued;
 
       /// <summary>
       ///   The short "Ordre du jour" line shown under the title in the bespoke council window. Seeded from the
@@ -928,125 +925,62 @@ namespace CalradiaRemembers.Chat
 
       #endregion
 
-      #region Engagements extraction (Inc 1)
+      #region Engagements panel (driven by the real resolution ledger)
 
       /// <summary>
-      ///   Kicks a background reading of the council's standing engagements, unless one is already in flight, the
-      ///   LLM is unavailable, or this is not a council. Fired once per player turn (from ExecuteSendMessage), so
-      ///   the right-hand Engagements panel mirrors what the table has settled through the previous turn. Fire and
-      ///   forget: a failed or slow reading simply leaves the panel as it was. There is no cancel button by design
-      ///   (Gabriel 2026-07-30); a decision is walked back purely by the conversation no longer asserting it, which
-      ///   the next reading picks up.
+      ///   Rebuilds the Engagements panel from the council's REAL resolution ledger (Tier 1, 2026-08-24). The panel
+      ///   now shows exactly the [RESOLUTION] decisions that will actually take effect at the lift, in the order
+      ///   raised, rather than a separate LLM re-reading of the transcript that could disagree with them. Called
+      ///   synchronously after every <see cref="ProcessCouncilResolutions(System.Collections.Generic.IReadOnlyList{NpcMemoryService.Core.Models.ResolutionProposal})" />
+      ///   (already on the main thread), so a decision, or a withdrawal, reaches the panel the same turn it is made
+      ///   with no extra model call. A withdrawn motion is dropped by <see cref="CouncilPanelPolicy.ShouldShow" />.
       /// </summary>
-      private void KickCouncilEngagementExtraction()
-      {
-         if (_councilScope == null) return;
-
-         var behavior = NpcMemoryCampaignBehavior.Instance;
-         if (behavior?.LlmServices is not {IsAvailable: true}) return;
-
-         // Coalesce: if a reading is already in flight, remember the transcript moved and read again the moment it
-         // lands, rather than dropping this turn's decisions. Without this the end-of-turn kick was skipped while
-         // the start-of-turn one was still running, so a SECOND pledge made the same turn, or a pledge REPLACED by
-         // another, never reached the panel (player report 2026-08-23).
-         if (_engagementExtractionRunning)
-         {
-            _engagementExtractionRequeued = true;
-
-            return;
-         }
-
-         _engagementExtractionRunning = true;
-         _ = RunCouncilEngagementExtractionAsync();
-      }
-
-      /// <summary>
-      ///   Reads the whole conversation, asks the extractor which decisions currently stand, and reconciles the
-      ///   ledger to that snapshot (a decision walked back in the talk simply stops appearing and is dropped). The
-      ///   LLM runs off-thread; the ledger mutation and the binding refresh happen back on the main thread. Never
-      ///   throws, and always clears the in-flight guard.
-      /// </summary>
-      private async Task RunCouncilEngagementExtractionAsync()
-      {
-         try
-         {
-            var behavior = NpcMemoryCampaignBehavior.Instance;
-            string conversation = _transcript.ToPlainText(PlayerTranscriptLabel());
-            if (string.IsNullOrWhiteSpace(conversation) || behavior?.LlmServices?.LlmClient == null) return;
-
-            var extractor = new CouncilEngagementExtractor(behavior.LlmServices.LlmClient);
-            string raw = null;
-
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CouncilEngagementExtractTimeoutSeconds)))
-            {
-               try
-               {
-                  raw = await Task.Run(() => extractor.ExtractAsync(conversation, cts.Token)).ConfigureAwait(false);
-               }
-               catch (Exception netEx)
-               {
-                  ModLog.Error($"[ENGAGEMENTS] extraction call failed: {netEx.Message}");
-               }
-            }
-
-            await MainThreadDispatcher.SwitchToMainThread();
-
-            // The window may have closed or the council ended while the call was in flight.
-            if (_councilScope == null || raw == null) return;
-
-            _engagementLedger.Reconcile(EngagementSnapshotParser.Parse(raw));
-            RefreshEngagementsBinding();
-            ModLog.Info($"[ENGAGEMENTS] reconciled: {_engagementLedger.Engagements.Count} standing.");
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"RunCouncilEngagementExtractionAsync failed: {ex.GetType().Name}: {ex.Message}");
-         }
-         finally
-         {
-            _engagementExtractionRunning = false;
-
-            // A kick arrived while this reading was in flight: the transcript has moved on (another pledge, or a
-            // pledge walked back and replaced), so read once more now against the latest transcript.
-            if (_engagementExtractionRequeued && _councilScope != null)
-            {
-               _engagementExtractionRequeued = false;
-               KickCouncilEngagementExtraction();
-            }
-         }
-      }
-
-      /// <summary>Rebuilds the bound Engagements rows from the ledger and refreshes the empty-state gates.</summary>
-      private void RefreshEngagementsBinding()
+      private void RefreshEngagementsFromLedger()
       {
          _engagements.Clear();
 
-         foreach (CouncilEngagement e in _engagementLedger.Engagements)
-            _engagements.Add(new CouncilEngagementViewModel(e.Subject, e.Text, DescribeEngagementStatus(e.Status)));
+         foreach (AssemblyResolutionEntry e in _councilLedger.Entries)
+         {
+            if (!CouncilPanelPolicy.ShouldShow(e.Status)) continue;
+
+            string subject = SeatNameFor(e.TargetHeroId);
+            // Detail is the specific decision ("grant Pravend to Boyd"); Label is a generic "Council pledge" the
+            // recorder stamps on every entry, so it is only a last-resort fallback for a blank detail.
+            string text = string.IsNullOrWhiteSpace(e.Detail) ? e.Label : e.Detail;
+
+            _engagements.Add(new CouncilEngagementViewModel(subject, text, CouncilPanelPolicy.StatusLabel(e.Status)));
+         }
 
          OnPropertyChanged(nameof(HasEngagements));
          OnPropertyChanged(nameof(ShowEngagementsPlaceholder));
       }
 
-      /// <summary>The seated-panel wording for an engagement's standing: settled versus still under discussion.</summary>
-      private static string DescribeEngagementStatus(EngagementStatus status)
-         => status == EngagementStatus.Agreed ? "Agreed" : "Discussed";
+      /// <summary>The seated member's display name for a resolution's target hero id, or an empty string when that seat is not found.</summary>
+      private string SeatNameFor(string heroId)
+      {
+         if (string.IsNullOrEmpty(heroId)) return "";
+
+         foreach (CouncilParticipantViewModel seat in _councilParticipants)
+            if (string.Equals(seat.HeroStringId, heroId, StringComparison.Ordinal))
+               return seat.Name ?? "";
+
+         return "";
+      }
 
       #endregion
 
       #region Engagements seal (apply-at-End)
 
       /// <summary>
-      ///   Council apply-at-End for engagements: real world-effect executors (grant fief, gold, etc.) do not
-      ///   exist yet in this codebase (only a bandit-clear quest is executable, see CouncilLift.Settle), so an
-      ///   AGREED engagement's applied effect is a durable memory sealed onto the concerned hero, so the NPC
-      ///   remembers what the council settled. A decision bound to a seated member (see
-      ///   <see cref="EngagementSubjectMatcher" />) seals in the first person on THEM; a collective or unresolved
-      ///   subject seals on the presiding anchor instead. What the player saw standing in the Engagements panel
-      ///   at the last reconciliation is exactly what is sealed here: the ledger is one turn behind, never
-      ///   mid-turn, which is the intended "only what was seen applies" property the whole feature is built on.
-      ///   Called once from <see cref="FinalizeCouncilResolutions" />, under the same idempotency guard, so it
-      ///   fires once per close.
+      ///   Council apply-at-End (Tier 1, 2026-08-24): seals a first-person memory-of-decision onto the acting
+      ///   member for each resolution that actually COMMITTED at the lift, so the member remembers what the council
+      ///   settled with them. Sourced from the REAL resolution ledger (the same one <see cref="CouncilLift.Finalize" />
+      ///   just committed), never from a separate reading, so what is sealed always matches what took effect. A
+      ///   kind whose lift executor already records its own member memory (SwearOath via CommitmentBehavior,
+      ///   PledgeAgainst via LaunchPledge) is skipped here to avoid doubling it, and so is a failed motion (the lift
+      ///   wrote its own broken-pledge memory), both via <see cref="CouncilPanelPolicy.ShouldSeal" />. Called once
+      ///   from <see cref="FinalizeCouncilResolutions" />, AFTER <see cref="CouncilLift.Finalize" /> has moved each
+      ///   entry to Applied or Failed, under the same idempotency guard, so it fires once per close.
       /// </summary>
       public void SealCouncilEngagements(NpcMemoryCampaignBehavior behavior, int gameDay)
       {
@@ -1054,36 +988,25 @@ namespace CalradiaRemembers.Chat
          {
             if (behavior?.Store == null) return;
 
-            var names = new List<string>();
-            var heroIds = new List<string>();
-
-            foreach (CouncilParticipantViewModel seat in _councilParticipants)
+            foreach (AssemblyResolutionEntry e in _councilLedger.Entries)
             {
-               names.Add(seat.Name);
-               heroIds.Add(seat.HeroStringId);
-            }
+               if (!CouncilPanelPolicy.ShouldSeal(e.Kind, e.Status)) continue;
 
-            string anchorHeroId = MainSpeaker()?.Hero?.StringId;
+               // Detail is the specific decision; Label is a generic "Council pledge" fallback for a blank detail.
+               string text = string.IsNullOrWhiteSpace(e.Detail) ? e.Label : e.Detail;
+               if (string.IsNullOrWhiteSpace(text)) continue;
 
-            foreach (CouncilEngagement e in _engagementLedger.PendingCommit())
-            {
-               if (string.IsNullOrWhiteSpace(e.Text)) continue;
-
-               int idx = EngagementSubjectMatcher.MatchIndex(e.Subject, names);
-               bool onBound = idx >= 0;
-               string heroId = onBound ? heroIds[idx] : anchorHeroId;
-
-               if (string.IsNullOrEmpty(heroId)) continue;
-
-               string summary = EngagementSealText.Summarize(e.Text, onBound);
+               // The acting member IS the subject of their own resolution, so the memory is always sealed in the
+               // first person on them (onBound: true).
+               string summary = EngagementSealText.Summarize(text, true);
                if (string.IsNullOrEmpty(summary)) continue;
 
-               NpcProfile profile = behavior.Store.Get(heroId);
+               NpcProfile profile = behavior.Store.Get(e.TargetHeroId);
                if (profile == null) continue;
 
                profile.Events.Add(new NotableEvent(gameDay, NotableEventType.Agreement, summary));
                behavior.Store.Set(profile);
-               ModLog.Info($"[ENGAGEMENTS] sealed onto {heroId}: {summary}");
+               ModLog.Info($"[ENGAGEMENTS] sealed onto {e.TargetHeroId}: {summary}");
             }
          }
          catch (Exception ex)
@@ -1194,13 +1117,7 @@ namespace CalradiaRemembers.Chat
                AppendNarration("(The council exchanges glances, but no one speaks.)");
 
             ApplyCouncilRelationShifts(parsed.RelationShifts, behavior); // live regard, actor-attributed
-            ProcessCouncilResolutions(parsed.Resolutions);              // commitments, settled at the lift
-
-            // Now that THIS turn's lines are committed to the transcript, re-read the standing engagements so the
-            // panel reflects a decision the SAME turn it was made (player report: a pledge showed in the chat while
-            // the Engagements panel still read "No decisions yet"). The in-flight guard in
-            // KickCouncilEngagementExtraction dedupes against the start-of-turn read in ExecuteSendCouncilMessage.
-            KickCouncilEngagementExtraction();
+            ProcessCouncilResolutions(parsed.Resolutions);              // commitments, settled at the lift (also refreshes the Engagements panel from the real ledger)
 
             ChatManager.ScrollToBottom();
          }
