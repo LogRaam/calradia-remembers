@@ -917,53 +917,51 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static void SettleSupportClaimant(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, Action<string, bool> report)
       {
-         if (actorHero is not {IsAlive: true, IsLord: true} || actorHero.IsPrisoner)
+         // The gates and the amount are now the pure ClaimantSupportPolicy's job (Tier 4, Logic + self-test); this
+         // executor keeps only the real influence move and the player-facing reason strings, in the SAME gate order.
+         ClaimantSupportResult result = EvaluateSupportClaimant(actorHero);
+
+         string reason = result.Outcome switch {
+            ClaimantSupportOutcome.NotFound => "they could not be found.",
+            ClaimantSupportOutcome.BackerIsPlayerHouse => "their own house is the player's own; there is no backing to lend.",
+            ClaimantSupportOutcome.NotInPlayerKingdom => "their house holds no seat in your own kingdom's court.",
+            ClaimantSupportOutcome.CannotAfford => "their house cannot spare the influence just now.",
+            _ => null
+         };
+
+         if (reason != null)
          {
-            const string reason = "they could not be found.";
             ledger.MarkFailed(entry.Id, reason);
             report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
 
             return;
          }
 
-         Clan backer = actorHero.Clan;
-
-         if (backer == null || backer == Clan.PlayerClan)
-         {
-            const string reason = "their own house is the player's own; there is no backing to lend.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         if (backer.Kingdom == null || Clan.PlayerClan?.Kingdom == null || backer.Kingdom != Clan.PlayerClan.Kingdom)
-         {
-            const string reason = "their house holds no seat in your own kingdom's court.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         int relation = actorHero.GetRelation(Hero.MainHero);
-         int amount = CourtActionPolicy.InfluenceGrant(relation);
-
-         if (amount <= 0 || !CourtActionPolicy.CanAffordInfluenceGrant(backer.Influence, amount))
-         {
-            const string reason = "their house cannot spare the influence just now.";
-            ledger.MarkFailed(entry.Id, reason);
-            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
-
-            return;
-         }
-
-         ChangeClanInfluenceAction.Apply(backer, -amount);
-         ChangeClanInfluenceAction.Apply(Clan.PlayerClan, amount);
+         ChangeClanInfluenceAction.Apply(actorHero.Clan, -result.Amount);
+         ChangeClanInfluenceAction.Apply(Clan.PlayerClan, result.Amount);
 
          ledger.MarkApplied(entry.Id);
-         report?.Invoke($"{actorName} throws their house's weight behind you (+{amount} influence).", true);
-         ModLog.Info($"[COUNCIL] lift: {actorName} publicly backed the player's claim with {amount} influence.");
+         report?.Invoke($"{actorName} throws their house's weight behind you (+{result.Amount} influence).", true);
+         ModLog.Info($"[COUNCIL] lift: {actorName} publicly backed the player's claim with {result.Amount} influence.");
+      }
+
+      /// <summary>
+      ///   Council Tier 4: gathers the live facts SettleSupportClaimant's gates need and runs the pure
+      ///   <see cref="ClaimantSupportPolicy.Evaluate" /> against them, WITHOUT moving any influence. Internal seam
+      ///   so a cr.testall self-test can drive the real fact-gathering + decision on a live backer non-destructively.
+      /// </summary>
+      internal static ClaimantSupportResult EvaluateSupportClaimant(Hero actorHero)
+      {
+         if (actorHero == null) return new ClaimantSupportResult(ClaimantSupportOutcome.NotFound, 0);
+
+         Clan backer = actorHero.Clan;
+         Clan playerClan = Clan.PlayerClan;
+         bool inPlayerKingdom = backer?.Kingdom != null && playerClan?.Kingdom != null && backer.Kingdom == playerClan.Kingdom;
+
+         return ClaimantSupportPolicy.Evaluate(
+            actorHero.IsAlive, actorHero.IsLord, actorHero.IsPrisoner,
+            backer != null, backer == playerClan, inPlayerKingdom,
+            actorHero.GetRelation(Hero.MainHero), backer?.Influence ?? 0f);
       }
 
       /// <summary>
