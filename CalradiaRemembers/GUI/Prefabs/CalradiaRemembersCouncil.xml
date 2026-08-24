@@ -1,29 +1,29 @@
 <Prefab>
   <!--
-    Bespoke COUNCIL window, Inc 0 (built 2026-07-30). A THIRD skin bound to the SAME ChatViewModel as Classic and
-    Manuscript, selected only for a council/assembly session (ChatManager.CouncilSkin, forced by
-    OpenForCouncil/OpenForAssembly). Unlike Manuscript this is a STRETCH layout (WidthSizePolicy/HeightSizePolicy
-    StretchToParent with margins), NOT a fixed-aspect book: it fills the screen and never needs the Manuscript's
-    UIContext.ScaleModifier zoom (ChatManager.ArbitrateFocus only applies that zoom when ActiveSkin == ManuscriptSkin).
+    Bespoke COUNCIL window. A THIRD skin bound to the SAME ChatViewModel as Classic and Manuscript, selected only
+    for a council/assembly session (ChatManager.CouncilSkin).
 
-    Layout: three columns.
-      LEFT   "CLAN JOUEUR"   : a vertical strip of seated participants (CouncilParticipants), portrait + name,
-                               click opens that hero's dossier.
-      CENTER                 : title + agenda line, the group chatroom (message list copied verbatim from
-                               CalradiaRemembersChat.xml so every command/@-binding/scrollbar path stays proven),
-                               and an End button.
-      RIGHT  "Engagements"   : Inc 0 placeholder: a bound but empty list (Inc 1 fills it from the council's
-                               ledger) + "Aucun engagement pour l'instant" when empty.
+    2026-08-23: rebuilt onto Gabriel's full-book leather art (GUI/Images/cr_counsel.jpg, 1683x935). Like the
+    Manuscript skin this is now a FIXED-ASPECT book (not the old stretch layout): a fixed-size BookRoot holds the
+    painted background, and every control is laid over the slots the art already paints (the "YOUR COUNCIL" strip,
+    the centre panel with its title banner + input bar + red End button, the "ENGAGEMENTS" strip). ChatManager
+    scales the whole council layer (UIContext.ScaleModifier = CouncilZoom) so the book and every overlay stay
+    aligned and fill the same fraction of the screen at any resolution, exactly as Manuscript does.
 
-    The dossier overlay reuses the exact Panel* bindings the Manuscript left page / Classic portrait pop-out use
-    (ChatViewModel.PopulatePanelData / ResolvePanelInfo), gated on IsCouncilDossierOpen instead of
-    IsManuscriptLeftPageOpen / IsPortraitPanelOpen.
+    HEADER (Gabriel's design): the small pennant on the banner shows the SEAT COUNT (@CouncilSeatCountText); the
+    banner title names the mod and WHERE the sitting is held (@CouncilTitleText, "Calradia Remembers, Valek
+    Castle"); the line under it names the KIND of gathering (@CouncilAgendaText, "Council of companions").
+
+    POSITIONS ARE ESTIMATES from the art, to tune in-game with cr.reload_ui (hot-reloads this prefab from the
+    DEPLOYED module folder). The End-conversation button is BAKED into the art, so a transparent hit-box sits over
+    it; it currently carries a visible tint for positioning (make its Color #FFFFFF00 once placed).
+
+    The dossier overlay (a seat clicked in the left strip) reuses the exact Panel* bindings the Manuscript left
+    page / Classic portrait pop-out use, gated on IsCouncilDossierOpen.
   -->
   <Constants>
-    <Constant Name="Council.Left.Width"   Value="320" />
-    <Constant Name="Council.Right.Width"  Value="360" />
-    <Constant Name="Council.Left.Margin"  Value="336" /> <!-- Left.Width + a 16px gap -->
-    <Constant Name="Council.Right.Margin" Value="376" /> <!-- Right.Width + a 16px gap -->
+    <Constant Name="Council.Book.Width"  Value="1683" />
+    <Constant Name="Council.Book.Height" Value="935" />
   </Constants>
 
   <Window Id="CalradiaRemembersChatWindow" Layer="Overlay">
@@ -33,12 +33,10 @@
             HeightSizePolicy="StretchToParent">
       <Children>
 
-        <!-- OPAQUE by design (Gabriel 2026-08-02). The council is hosted over a staged CONVERSATION mission
-             (CouncilConversationStager) so the map is genuinely suspended (no VRAM leak, real keyboard focus),
-             but the council has NO single presiding NPC, so we do NOT want to see the conversation anchor standing
-             there with the vanilla dialogue behind. A full-opaque fill hides that scene entirely; the mission is
-             still what owns the framebuffer and suspends the map. Carries ChatVisualOffsetX so it slides aside with
-             the rest when the focus-arbiter yields to another screen (encyclopedia, escape menu). -->
+        <!-- OPAQUE backdrop (Gabriel 2026-08-02). The council is hosted over a staged CONVERSATION mission so the
+             map is suspended, but there is no presiding NPC to show: a full-opaque fill hides that scene in the
+             margins the fixed-aspect book leaves on the sides. Carries ChatVisualOffsetX so it slides aside with
+             the book when the focus-arbiter yields to another screen. -->
         <Widget Id="CouncilBackdrop"
                 WidthSizePolicy="StretchToParent"
                 HeightSizePolicy="StretchToParent"
@@ -46,431 +44,347 @@
                 Color="#0d0a08FF"
                 PositionXOffset="@ChatVisualOffsetX" />
 
-        <!-- Fills the screen with modest margins. PositionXOffset keeps the focus-arbiter's slide-aside behaviour
-             (ChatViewModel.SetVisualOffscreen) working exactly as the other two skins. -->
-        <Widget Id="CouncilRoot"
-                WidthSizePolicy="StretchToParent"
-                HeightSizePolicy="StretchToParent"
-                MarginTop="36" MarginBottom="36" MarginLeft="36" MarginRight="36"
+        <!-- The book: fixed size (aspect-locked to cr_counsel.jpg). Centred; ChatManager's CouncilZoom scales the
+             whole layer to fit. PositionXOffset keeps the focus-arbiter slide-aside (SetVisualOffscreen) working. -->
+        <Widget Id="CouncilBookRoot"
+                WidthSizePolicy="Fixed"
+                HeightSizePolicy="Fixed"
+                SuggestedWidth="!Council.Book.Width"
+                SuggestedHeight="!Council.Book.Height"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
                 PositionXOffset="@ChatVisualOffsetX">
           <Children>
 
-            <!-- ============================ LEFT: CLAN JOUEUR ============================ -->
-            <Widget Id="LeftColumn"
-                    WidthSizePolicy="Fixed"
-                    HeightSizePolicy="StretchToParent"
-                    SuggestedWidth="!Council.Left.Width"
-                    HorizontalAlignment="Left"
-                    Sprite="BlankWhiteSquare_9" Color="#14110dF2">
+            <!-- Painted leather book: left strip, centre panel, right strip, all baked. CorrectRedBlue=true (JPG
+                 reads with red/blue swapped in game, like the chat page art). -->
+            <CrRuntimeImageWidget Id="CouncilBg"
+                                  WidthSizePolicy="StretchToParent"
+                                  HeightSizePolicy="StretchToParent"
+                                  ImagePath="@CouncilBackgroundPath"
+                                  CorrectRedBlue="true"
+                                  IsDisabled="true" />
+
+            <!-- ============================ HEADER (on the centre banner) ============================ -->
+
+            <!-- Seat count, in the small pennant at the banner's left. -->
+            <TextWidget Id="CouncilSeatCountWidget"
+                        WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                        SuggestedWidth="64" SuggestedHeight="52"
+                        HorizontalAlignment="Left" VerticalAlignment="Top"
+                        MarginLeft="353" MarginTop="30"
+                        Brush="Default" Brush.FontSize="30" Brush.FontColor="#d8b878FF"
+                        Brush.TextHorizontalAlignment="Center" Text="@CouncilSeatCountText" IsDisabled="true" />
+
+            <!-- Title: mod name + place, centred over the centre panel (the book centre ~= the panel centre). -->
+            <TextWidget Id="CouncilTitleWidget"
+                        WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                        SuggestedWidth="900" SuggestedHeight="44"
+                        HorizontalAlignment="Center" VerticalAlignment="Top" MarginTop="30"
+                        Brush="Default" Brush.FontSize="32" Brush.FontColor="#d8b878FF"
+                        Brush.TextHorizontalAlignment="Center" Text="@CouncilTitleText" IsDisabled="true" />
+
+            <!-- Kind of gathering, under the title. -->
+            <TextWidget Id="CouncilAgendaTextWidget"
+                        WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                        SuggestedWidth="900" SuggestedHeight="26"
+                        HorizontalAlignment="Center" VerticalAlignment="Top" MarginTop="75"
+                        Brush="Default" Brush.FontSize="18" Brush.FontColor="#b8a888FF"
+                        Brush.TextHorizontalAlignment="Center" Text="@CouncilAgendaText" IsDisabled="true" />
+
+            <!-- ============================ LEFT: seated roster ============================ -->
+            <Widget Id="LeftListArea"
+                    WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                    SuggestedWidth="267" SuggestedHeight="750"
+                    HorizontalAlignment="Left" VerticalAlignment="Top"
+                    MarginLeft="42" MarginTop="112">
               <Children>
 
-                <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                        Sprite="frame_9" ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
-                        AlphaFactor="0.4" IsDisabled="true" />
-
-                <TextWidget Id="LeftHeader"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="36"
-                            VerticalAlignment="Top" MarginTop="14"
-                            Brush="Default" Brush.FontSize="20" Brush.FontColor="#c8a878FF"
-                            Brush.TextHorizontalAlignment="Center" Text="YOUR CLAN" IsDisabled="true" />
-
-                <Widget Id="LeftListArea"
-                        WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                        VerticalAlignment="Top" MarginTop="56" MarginBottom="10" MarginLeft="10" MarginRight="10">
+                <PortraitScrollablePanel Id="CouncilParticipantsScroll"
+                                         WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                         MarginRight="14" AutoHideScrollBars="true"
+                                         ClipRect="CouncilParticipantsClip"
+                                         InnerPanel="CouncilParticipantsClip\CouncilParticipantsList"
+                                         VerticalScrollbar="..\CouncilParticipantsScrollbar\Scrollbar">
                   <Children>
-
-                    <PortraitScrollablePanel Id="CouncilParticipantsScroll"
-                                             WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                             MarginRight="14" AutoHideScrollBars="true"
-                                             ClipRect="CouncilParticipantsClip"
-                                             InnerPanel="CouncilParticipantsClip\CouncilParticipantsList"
-                                             VerticalScrollbar="..\CouncilParticipantsScrollbar\Scrollbar">
+                    <Widget Id="CouncilParticipantsClip"
+                            WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            ClipContents="true">
                       <Children>
-                        <Widget Id="CouncilParticipantsClip"
-                                WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                ClipContents="true">
-                          <Children>
 
-                            <NavigatableListPanel Id="CouncilParticipantsList"
-                                                  DataSource="{CouncilParticipants}"
-                                                  WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                                                  HorizontalAlignment="Left" VerticalAlignment="Top"
-                                                  StackLayout.LayoutMethod="VerticalTopToBottom">
-                              <ItemTemplate>
+                        <NavigatableListPanel Id="CouncilParticipantsList"
+                                              DataSource="{CouncilParticipants}"
+                                              WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                              HorizontalAlignment="Left" VerticalAlignment="Top"
+                                              StackLayout.LayoutMethod="VerticalTopToBottom">
+                          <ItemTemplate>
 
-                                <ButtonWidget Id="ParticipantTile"
-                                              WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
-                                              SuggestedHeight="124"
-                                              MarginBottom="8"
-                                              DoNotPassEventsToChildren="true"
-                                              Command.Click="ExecuteOpenDossier">
+                            <ButtonWidget Id="ParticipantTile"
+                                          WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
+                                          SuggestedHeight="124"
+                                          MarginBottom="8"
+                                          DoNotPassEventsToChildren="true"
+                                          Command.Click="ExecuteOpenDossier">
+                              <Children>
+
+                                <Widget Id="ParticipantHighlight"
+                                        WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                        IsVisible="@IsActiveSpeaker"
+                                        Sprite="frame_9"
+                                        ExtendLeft="4" ExtendTop="4" ExtendRight="4" ExtendBottom="4"
+                                        Color="#D9A441FF" AlphaFactor="0.8" IsDisabled="true" />
+
+                                <ImageIdentifierWidget Id="ParticipantVanillaPortrait"
+                                                       WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                                                       SuggestedWidth="@PortraitWidth" SuggestedHeight="@PortraitHeight"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                       MarginTop="8"
+                                                       IsVisible="@ShowVanillaPortrait"
+                                                       TextureProviderName="@PortraitTextureProviderName"
+                                                       ImageId="@PortraitId"
+                                                       AdditionalArgs="@PortraitAdditionalArgs"
+                                                       IsBig="true" HideWhenNull="false" IsDisabled="true" />
+
+                                <CrRuntimeImageWidget Id="ParticipantCustomPortrait"
+                                                      WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                                                      SuggestedWidth="@PortraitWidth" SuggestedHeight="@PortraitHeight"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Top"
+                                                      MarginTop="8"
+                                                      IsVisible="@ShowCustomPortrait"
+                                                      ImagePath="@PlayerPortraitPath" IsDisabled="true" />
+
+                                <TextWidget Id="ParticipantName"
+                                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
+                                            SuggestedHeight="20"
+                                            HorizontalAlignment="Center" VerticalAlignment="Top"
+                                            MarginTop="74" MarginLeft="6" MarginRight="6"
+                                            Brush="Default" Brush.FontSize="15" Brush.FontColor="#e8d8b8FF"
+                                            Brush.TextHorizontalAlignment="Center" Text="@Name" IsDisabled="true" />
+
+                                <TextWidget Id="ParticipantSeatLabel"
+                                            WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                            HorizontalAlignment="Center" VerticalAlignment="Top"
+                                            MarginTop="96" MarginLeft="6" MarginRight="6"
+                                            Brush="Default" Brush.FontSize="12" Brush.FontColor="#9a8a78FF"
+                                            Brush.TextHorizontalAlignment="Center" Text="@SeatLabel" IsDisabled="true" />
+
+                              </Children>
+                            </ButtonWidget>
+
+                          </ItemTemplate>
+                        </NavigatableListPanel>
+
+                      </Children>
+                    </Widget>
+                  </Children>
+                </PortraitScrollablePanel>
+
+                <Standard.VerticalScrollbar Id="CouncilParticipantsScrollbar"
+                                            HeightSizePolicy="StretchToParent"
+                                            HorizontalAlignment="Right" MarginRight="0" />
+
+              </Children>
+            </Widget>
+
+            <!-- ============================ CENTER: the conversation ============================ -->
+
+            <!-- Message list, over the centre panel. -->
+            <Widget Id="MessagesArea"
+                    WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                    VerticalAlignment="Top"
+                    MarginTop="150" MarginBottom="150"
+                    MarginLeft="352" MarginRight="335">
+              <Children>
+
+                <ChatScrollablePanel Id="MessagesScrollPanel"
+                                     WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                     MarginRight="28" AutoHideScrollBars="true"
+                                     ClipRect="MessagesClipRect"
+                                     InnerPanel="MessagesClipRect\MessagesList"
+                                     VerticalScrollbar="..\MessagesScrollbar\Scrollbar">
+                  <Children>
+                    <Widget Id="MessagesClipRect"
+                            WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            ClipContents="true">
+                      <Children>
+
+                        <NavigatableListPanel Id="MessagesList"
+                                              DataSource="{Messages}"
+                                              WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                              HorizontalAlignment="Left" VerticalAlignment="Top"
+                                              StackLayout.LayoutMethod="VerticalTopToBottom">
+                          <ItemTemplate>
+
+                            <Widget Id="MessageRow"
+                                    WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                    HorizontalAlignment="Left"
+                                    MarginLeft="20" MarginTop="12" MarginBottom="2">
+                              <Children>
+
+                                <ButtonWidget Id="AvatarContainer"
+                                        Command.Click="ExecuteShowPortrait"
+                                        WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                                        SuggestedWidth="@AvatarWidth" SuggestedHeight="@AvatarHeight"
+                                        HorizontalAlignment="Left" VerticalAlignment="Top"
+                                        MarginTop="2"
+                                        IsVisible="@ShowAvatar"
+                                        Command.AlternateClick="ExecuteOpenEncyclopedia">
                                   <Children>
 
-                                    <!-- Active-speaker highlight (RoundTableController's per-turn lap). -->
-                                    <Widget Id="ParticipantHighlight"
-                                            WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                            IsVisible="@IsActiveSpeaker"
-                                            Sprite="frame_9"
-                                            ExtendLeft="4" ExtendTop="4" ExtendRight="4" ExtendBottom="4"
-                                            Color="#D9A441FF" AlphaFactor="0.8" IsDisabled="true" />
-
-                                    <!-- Vertical card: a wide 2:1 portrait on top, name + role centred below it, so the
-                                         wider tile no longer crowds the label the way the old side-by-side layout did. -->
-                                    <ImageIdentifierWidget Id="ParticipantVanillaPortrait"
+                                    <ImageIdentifierWidget Id="AvatarPortrait"
                                                            WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                                                           SuggestedWidth="@PortraitWidth" SuggestedHeight="@PortraitHeight"
+                                                           SuggestedWidth="88" SuggestedHeight="44"
                                                            HorizontalAlignment="Center" VerticalAlignment="Top"
-                                                           MarginTop="8"
                                                            IsVisible="@ShowVanillaPortrait"
                                                            TextureProviderName="@PortraitTextureProviderName"
                                                            ImageId="@PortraitId"
                                                            AdditionalArgs="@PortraitAdditionalArgs"
                                                            IsBig="true" HideWhenNull="false" IsDisabled="true" />
 
-                                    <CrRuntimeImageWidget Id="ParticipantCustomPortrait"
-                                                          WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                                                          SuggestedWidth="@PortraitWidth" SuggestedHeight="@PortraitHeight"
-                                                          HorizontalAlignment="Center" VerticalAlignment="Top"
-                                                          MarginTop="8"
+                                    <CrRuntimeImageWidget Id="CustomAvatar"
+                                                          WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                                           IsVisible="@ShowCustomPortrait"
                                                           ImagePath="@PlayerPortraitPath" IsDisabled="true" />
 
-                                    <TextWidget Id="ParticipantName"
-                                                WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
-                                                SuggestedHeight="20"
-                                                HorizontalAlignment="Center" VerticalAlignment="Top"
-                                                MarginTop="74" MarginLeft="6" MarginRight="6"
-                                                Brush="Default" Brush.FontSize="15" Brush.FontColor="#e8d8b8FF"
-                                                Brush.TextHorizontalAlignment="Center" Text="@Name" IsDisabled="true" />
-
-                                    <TextWidget Id="ParticipantSeatLabel"
-                                                WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                                                HorizontalAlignment="Center" VerticalAlignment="Top"
-                                                MarginTop="96" MarginLeft="6" MarginRight="6"
-                                                Brush="Default" Brush.FontSize="12" Brush.FontColor="#9a8a78FF"
-                                                Brush.TextHorizontalAlignment="Center" Text="@SeatLabel" IsDisabled="true" />
-
+                                    <Widget Id="AvatarFrame"
+                                            WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                            IsVisible="@ShowVanillaPortrait"
+                                            Sprite="frame_9"
+                                            ExtendLeft="15" ExtendTop="22" ExtendRight="15" ExtendBottom="-22"
+                                            AlphaFactor="0.25" IsDisabled="true" />
                                   </Children>
                                 </ButtonWidget>
 
-                              </ItemTemplate>
-                            </NavigatableListPanel>
+                                <RichTextWidget Id="MessageText"
+                                                WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                                HorizontalAlignment="Left" VerticalAlignment="Top"
+                                                MarginLeft="@TextMarginLeft" MarginRight="14"
+                                                Brush="Default" Brush.FontSize="18" Brush.FontColor="@AuthorColor"
+                                                Brush.TextHorizontalAlignment="Left"
+                                                Text="@DisplayText" IsDisabled="true" />
 
-                          </Children>
-                        </Widget>
-                      </Children>
-                    </PortraitScrollablePanel>
+                              </Children>
+                            </Widget>
 
-                    <Standard.VerticalScrollbar Id="CouncilParticipantsScrollbar"
-                                                HeightSizePolicy="StretchToParent"
-                                                HorizontalAlignment="Right" MarginRight="0" />
+                          </ItemTemplate>
+                        </NavigatableListPanel>
 
-                  </Children>
-                </Widget>
-
-              </Children>
-            </Widget>
-
-            <!-- ============================ CENTER: the conversation ============================ -->
-            <Widget Id="CenterColumn"
-                    WidthSizePolicy="StretchToParent"
-                    HeightSizePolicy="StretchToParent"
-                    MarginLeft="!Council.Left.Margin"
-                    MarginRight="!Council.Right.Margin">
-              <Children>
-
-                <TextWidget Id="TitleTextWidget"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="32"
-                            HorizontalAlignment="Center" VerticalAlignment="Top" MarginTop="4"
-                            Brush="Default" Brush.FontSize="24" Brush.FontColor="#c8a878FF"
-                            Brush.TextHorizontalAlignment="Center" Text="@TitleText" IsDisabled="true" />
-
-                <TextWidget Id="CouncilAgendaTextWidget"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="24"
-                            HorizontalAlignment="Center" VerticalAlignment="Top" MarginTop="38"
-                            Brush="Default" Brush.FontSize="15" Brush.FontColor="#9a8a78FF"
-                            Brush.TextHorizontalAlignment="Center" Text="@CouncilAgendaText" IsDisabled="true" />
-
-                <TextWidget Id="WitnessesTextWidget"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="18"
-                            HorizontalAlignment="Center" VerticalAlignment="Top" MarginTop="64"
-                            IsVisible="@HasWitnesses"
-                            Brush="Default" Brush.FontSize="13" Brush.FontColor="#7a9070FF"
-                            Brush.TextHorizontalAlignment="Center" Text="@WitnessesText" IsDisabled="true" />
-
-                <!-- End conversation now lives as a RED button directly under the input bar (see EndCouncilButton
-                     further down), per Gabriel. -->
-
-                <!-- ===================== MESSAGE LIST (copied verbatim from Classic) ===================== -->
-                <Widget Id="MessagesArea"
-                        WidthSizePolicy="StretchToParent"
-                        HeightSizePolicy="StretchToParent"
-                        VerticalAlignment="Top"
-                        MarginTop="92"
-                        MarginBottom="132"
-                        MarginLeft="4"
-                        MarginRight="4">
-                  <Children>
-
-                    <ChatScrollablePanel Id="MessagesScrollPanel"
-                                         WidthSizePolicy="StretchToParent"
-                                         HeightSizePolicy="StretchToParent"
-                                         MarginRight="28"
-                                         AutoHideScrollBars="true"
-                                         ClipRect="MessagesClipRect"
-                                         InnerPanel="MessagesClipRect\MessagesList"
-                                         VerticalScrollbar="..\MessagesScrollbar\Scrollbar">
-                      <Children>
-                        <Widget Id="MessagesClipRect"
-                                WidthSizePolicy="StretchToParent"
-                                HeightSizePolicy="StretchToParent"
-                                ClipContents="true">
-                          <Children>
-
-                            <NavigatableListPanel Id="MessagesList"
-                                                  DataSource="{Messages}"
-                                                  WidthSizePolicy="StretchToParent"
-                                                  HeightSizePolicy="CoverChildren"
-                                                  HorizontalAlignment="Left"
-                                                  VerticalAlignment="Top"
-                                                  StackLayout.LayoutMethod="VerticalTopToBottom">
-                              <ItemTemplate>
-
-                                <Widget Id="MessageRow"
-                                        WidthSizePolicy="StretchToParent"
-                                        HeightSizePolicy="CoverChildren"
-                                        HorizontalAlignment="Left"
-                                        MarginLeft="20"
-                                        MarginTop="12"
-                                        MarginBottom="2">
-                                  <Children>
-
-                                    <ButtonWidget Id="AvatarContainer"
-                                            Command.Click="ExecuteShowPortrait"
-                                            WidthSizePolicy="Fixed"
-                                            HeightSizePolicy="Fixed"
-                                            SuggestedWidth="@AvatarWidth"
-                                            SuggestedHeight="@AvatarHeight"
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Top"
-                                            MarginTop="2"
-                                            IsVisible="@ShowAvatar"
-                                            Command.AlternateClick="ExecuteOpenEncyclopedia">
-                                      <Children>
-
-                                        <ImageIdentifierWidget Id="AvatarPortrait"
-                                                               WidthSizePolicy="Fixed"
-                                                               HeightSizePolicy="Fixed"
-                                                               SuggestedWidth="88"
-                                                               SuggestedHeight="44"
-                                                               HorizontalAlignment="Center"
-                                                               VerticalAlignment="Top"
-                                                               IsVisible="@ShowVanillaPortrait"
-                                                               TextureProviderName="@PortraitTextureProviderName"
-                                                               ImageId="@PortraitId"
-                                                               AdditionalArgs="@PortraitAdditionalArgs"
-                                                               IsBig="true"
-                                                               HideWhenNull="false"
-                                                               IsDisabled="true" />
-
-                                        <CrRuntimeImageWidget Id="CustomAvatar"
-                                                              WidthSizePolicy="StretchToParent"
-                                                              HeightSizePolicy="StretchToParent"
-                                                              IsVisible="@ShowCustomPortrait"
-                                                              ImagePath="@PlayerPortraitPath"
-                                                              IsDisabled="true" />
-
-                                        <Widget Id="AvatarFrame"
-                                                WidthSizePolicy="StretchToParent"
-                                                HeightSizePolicy="StretchToParent"
-                                                IsVisible="@ShowVanillaPortrait"
-                                                Sprite="frame_9"
-                                                ExtendLeft="15" ExtendTop="22" ExtendRight="15" ExtendBottom="-22"
-                                                AlphaFactor="0.25"
-                                                IsDisabled="true" />
-                                      </Children>
-                                    </ButtonWidget>
-
-                                    <RichTextWidget Id="MessageText"
-                                                    WidthSizePolicy="StretchToParent"
-                                                    HeightSizePolicy="CoverChildren"
-                                                    HorizontalAlignment="Left"
-                                                    VerticalAlignment="Top"
-                                                    MarginLeft="@TextMarginLeft"
-                                                    MarginRight="14"
-                                                    Brush="Default"
-                                                    Brush.FontSize="18"
-                                                    Brush.FontColor="@AuthorColor"
-                                                    Brush.TextHorizontalAlignment="Left"
-                                                    Text="@DisplayText"
-                                                    IsDisabled="true" />
-
-                                  </Children>
-                                </Widget>
-
-                              </ItemTemplate>
-                            </NavigatableListPanel>
-
-                          </Children>
-                        </Widget>
-                      </Children>
-                    </ChatScrollablePanel>
-
-                    <Standard.VerticalScrollbar Id="MessagesScrollbar"
-                                                HeightSizePolicy="StretchToParent"
-                                                HorizontalAlignment="Right"
-                                                MarginRight="0" />
-
-                  </Children>
-                </Widget>
-
-                <!-- Dim hint sitting directly above the input bar: marks where to type, since the field itself
-                     carries no placeholder text. -->
-                <TextWidget Id="InputHintTextWidget"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="20"
-                            HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="104"
-                            IsVisible="@IsChatInputVisible"
-                            Brush="Default" Brush.FontSize="15" Brush.FontColor="#9a8f7aFF"
-                            Brush.TextHorizontalAlignment="Center"
-                            Text="Speak to the council, then press Enter" IsDisabled="true" />
-
-                <!-- Input row: FULL-WIDTH field, no Send button (Gabriel). Enter / NumpadEnter sends. Sits above the
-                     red End button below it. -->
-                <Widget Id="InputArea"
-                        WidthSizePolicy="StretchToParent"
-                        HeightSizePolicy="Fixed"
-                        SuggestedHeight="44"
-                        VerticalAlignment="Bottom"
-                        MarginBottom="56"
-                        MarginLeft="4"
-                        MarginRight="4">
-                  <Children>
-                    <Widget Id="InputBox"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            IsVisible="@IsChatInputVisible"
-                            Sprite="BlankWhiteSquare_9" Color="#241d14FF">
-                      <Children>
-                        <ChatInputWidget Id="MessageInput"
-                                         WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                         HorizontalAlignment="Left" VerticalAlignment="Center"
-                                         MarginLeft="12" MarginRight="12" MarginTop="6" MarginBottom="6"
-                                         Brush="Default" Brush.FontSize="19" Brush.FontColor="#e8d8b8FF"
-                                         Brush.TextHorizontalAlignment="Left" MaxLength="8000" Text="@InputText" />
                       </Children>
                     </Widget>
                   </Children>
-                </Widget>
+                </ChatScrollablePanel>
 
-                <!-- End conversation: a RED button directly UNDER the input bar (Gabriel). Same ExecuteClose
-                     lifecycle as before; a solid red fill + a red frame under a pale label so it reads clearly as
-                     the leave action. -->
-                <ButtonWidget Id="EndCouncilButton"
-                              WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                              SuggestedWidth="220" SuggestedHeight="34"
-                              HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="14"
-                              DoNotPassEventsToChildren="true"
-                              UpdateChildrenStates="true" Command.Click="ExecuteClose">
-                  <Children>
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#7a1f1fFF" IsDisabled="true" />
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="frame_9" ExtendLeft="4" ExtendTop="4" ExtendRight="4" ExtendBottom="4"
-                            Color="#c04040FF" AlphaFactor="0.7" IsDisabled="true" />
-                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                                Brush="Default" Brush.FontSize="16" Brush.FontColor="#f2e2d2FF"
-                                Brush.TextHorizontalAlignment="Center" Text="@CloseButtonText" IsDisabled="true" />
-                  </Children>
-                </ButtonWidget>
+                <Standard.VerticalScrollbar Id="MessagesScrollbar"
+                                            HeightSizePolicy="StretchToParent"
+                                            HorizontalAlignment="Right" MarginRight="0" />
 
               </Children>
             </Widget>
 
-            <!-- ============================ RIGHT: Engagements ============================ -->
-            <Widget Id="RightColumn"
-                    WidthSizePolicy="Fixed"
-                    HeightSizePolicy="StretchToParent"
-                    SuggestedWidth="!Council.Right.Width"
-                    HorizontalAlignment="Right"
-                    Sprite="BlankWhiteSquare_9" Color="#14110dF2">
+            <!-- Input row, over the baked input bar (to the right of the painted chat-bubble icon). Enter sends;
+                 no visible fill, the art paints the bar. -->
+            <Widget Id="InputArea"
+                    WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
+                    SuggestedHeight="52"
+                    VerticalAlignment="Bottom" MarginBottom="60"
+                    MarginLeft="412" MarginRight="356">
               <Children>
-
-                <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                        Sprite="frame_9" ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
-                        AlphaFactor="0.4" IsDisabled="true" />
-
-                <TextWidget Id="RightHeader"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="36"
-                            VerticalAlignment="Top" MarginTop="14"
-                            Brush="Default" Brush.FontSize="20" Brush.FontColor="#c8a878FF"
-                            Brush.TextHorizontalAlignment="Center" Text="Engagements" IsDisabled="true" />
-
-                <TextWidget Id="EngagementsPlaceholder"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                            HorizontalAlignment="Center" VerticalAlignment="Top" MarginTop="70"
-                            MarginLeft="16" MarginRight="16"
-                            IsVisible="@ShowEngagementsPlaceholder"
-                            Brush="Default" Brush.FontSize="14" Brush.FontColor="#9a8a78FF"
-                            Brush.TextHorizontalAlignment="Center" Text="@EngagementsPlaceholderText" IsDisabled="true" />
-
-                <Widget Id="RightListArea"
+                <Widget Id="InputBox"
                         WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                        VerticalAlignment="Top" MarginTop="56" MarginBottom="10" MarginLeft="10" MarginRight="10"
-                        IsVisible="@HasEngagements">
+                        IsVisible="@IsChatInputVisible">
                   <Children>
-
-                    <PortraitScrollablePanel Id="EngagementsScroll"
-                                             WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                             MarginRight="14" AutoHideScrollBars="true"
-                                             ClipRect="EngagementsClip"
-                                             InnerPanel="EngagementsClip\EngagementsList"
-                                             VerticalScrollbar="..\EngagementsScrollbar\Scrollbar">
-                      <Children>
-                        <Widget Id="EngagementsClip"
-                                WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                ClipContents="true">
-                          <Children>
-
-                            <NavigatableListPanel Id="EngagementsList"
-                                                  DataSource="{Engagements}"
-                                                  WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                                                  HorizontalAlignment="Left" VerticalAlignment="Top"
-                                                  StackLayout.LayoutMethod="VerticalTopToBottom">
-                              <ItemTemplate>
-                                <ListPanel Id="EngagementRow"
-                                           WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                                           HorizontalAlignment="Left" MarginTop="8" MarginBottom="8"
-                                           MarginLeft="4" MarginRight="4"
-                                           StackLayout.LayoutMethod="VerticalTopToBottom">
-                                  <Children>
-                                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                                                HorizontalAlignment="Left"
-                                                Brush="Default" Brush.FontSize="14" Brush.FontColor="#c8a878FF"
-                                                Brush.TextHorizontalAlignment="Left" Text="@Label" IsDisabled="true" />
-                                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                                                HorizontalAlignment="Left" MarginTop="2"
-                                                Brush="Default" Brush.FontSize="13" Brush.FontColor="#e8d8b8FF"
-                                                Brush.TextHorizontalAlignment="Left" Text="@Detail" IsDisabled="true" />
-                                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                                                HorizontalAlignment="Left" MarginTop="2"
-                                                Brush="Default" Brush.FontSize="12" Brush.FontColor="#9a8a78FF"
-                                                Brush.TextHorizontalAlignment="Left" Text="@Status" IsDisabled="true" />
-                                  </Children>
-                                </ListPanel>
-                              </ItemTemplate>
-                            </NavigatableListPanel>
-
-                          </Children>
-                        </Widget>
-                      </Children>
-                    </PortraitScrollablePanel>
-
-                    <Standard.VerticalScrollbar Id="EngagementsScrollbar"
-                                                HeightSizePolicy="StretchToParent"
-                                                HorizontalAlignment="Right" MarginRight="0" />
-
+                    <ChatInputWidget Id="MessageInput"
+                                     WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                     HorizontalAlignment="Left" VerticalAlignment="Center"
+                                     MarginLeft="8" MarginRight="8" MarginTop="6" MarginBottom="6"
+                                     Brush="Default" Brush.FontSize="19" Brush.FontColor="#e8d8b8FF"
+                                     Brush.TextHorizontalAlignment="Left" MaxLength="8000" Text="@InputText" />
                   </Children>
                 </Widget>
+              </Children>
+            </Widget>
+
+            <!-- End conversation: the button is BAKED into the art; this is the invisible hit-box over it.
+                 TINTED for positioning (Gabriel): set Color to #FFFFFF00 once it sits over the painted button. -->
+            <ButtonWidget Id="EndCouncilButton"
+                          WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                          SuggestedWidth="195" SuggestedHeight="33"
+                          HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="23" MarginLeft="10"
+                          DoNotPassEventsToChildren="true"
+                          UpdateChildrenStates="true" Command.Click="ExecuteClose">
+              <Children>
+                <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                        Sprite="BlankWhiteSquare_9" Color="#33cc3300" IsDisabled="true" />
+              </Children>
+            </ButtonWidget>
+
+            <!-- ============================ RIGHT: Engagements ============================ -->
+
+            <TextWidget Id="EngagementsPlaceholder"
+                        WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren"
+                        SuggestedWidth="240"
+                        HorizontalAlignment="Right" VerticalAlignment="Top" MarginTop="130" MarginRight="40"
+                        IsVisible="@ShowEngagementsPlaceholder"
+                        Brush="Default" Brush.FontSize="15" Brush.FontColor="#9a8a78FF"
+                        Brush.TextHorizontalAlignment="Center" Text="@EngagementsPlaceholderText" IsDisabled="true" />
+
+            <Widget Id="RightListArea"
+                    WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                    SuggestedWidth="250" SuggestedHeight="512"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    MarginRight="35" MarginTop="112"
+                    IsVisible="@HasEngagements">
+              <Children>
+
+                <PortraitScrollablePanel Id="EngagementsScroll"
+                                         WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                         MarginRight="14" AutoHideScrollBars="true"
+                                         ClipRect="EngagementsClip"
+                                         InnerPanel="EngagementsClip\EngagementsList"
+                                         VerticalScrollbar="..\EngagementsScrollbar\Scrollbar">
+                  <Children>
+                    <Widget Id="EngagementsClip"
+                            WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            ClipContents="true">
+                      <Children>
+
+                        <NavigatableListPanel Id="EngagementsList"
+                                              DataSource="{Engagements}"
+                                              WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                              HorizontalAlignment="Left" VerticalAlignment="Top"
+                                              StackLayout.LayoutMethod="VerticalTopToBottom">
+                          <ItemTemplate>
+                            <ListPanel Id="EngagementRow"
+                                       WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                       HorizontalAlignment="Left" MarginTop="8" MarginBottom="8"
+                                       MarginLeft="4" MarginRight="4"
+                                       StackLayout.LayoutMethod="VerticalTopToBottom">
+                              <Children>
+                                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                            HorizontalAlignment="Left"
+                                            Brush="Default" Brush.FontSize="14" Brush.FontColor="#c8a878FF"
+                                            Brush.TextHorizontalAlignment="Left" Text="@Label" IsDisabled="true" />
+                                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                            HorizontalAlignment="Left" MarginTop="2"
+                                            Brush="Default" Brush.FontSize="13" Brush.FontColor="#e8d8b8FF"
+                                            Brush.TextHorizontalAlignment="Left" Text="@Detail" IsDisabled="true" />
+                                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                            HorizontalAlignment="Left" MarginTop="2"
+                                            Brush="Default" Brush.FontSize="12" Brush.FontColor="#9a8a78FF"
+                                            Brush.TextHorizontalAlignment="Left" Text="@Status" IsDisabled="true" />
+                              </Children>
+                            </ListPanel>
+                          </ItemTemplate>
+                        </NavigatableListPanel>
+
+                      </Children>
+                    </Widget>
+                  </Children>
+                </PortraitScrollablePanel>
+
+                <Standard.VerticalScrollbar Id="EngagementsScrollbar"
+                                            HeightSizePolicy="StretchToParent"
+                                            HorizontalAlignment="Right" MarginRight="0" />
 
               </Children>
             </Widget>
@@ -480,7 +394,7 @@
 
         <!-- ============================ Dossier overlay ============================ -->
         <!-- Reuses the SAME Panel* bindings as the Manuscript left page / Classic portrait pop-out, gated on
-             IsCouncilDossierOpen instead of IsManuscriptLeftPageOpen / IsPortraitPanelOpen. -->
+             IsCouncilDossierOpen. Scales with the layer (ChatManager's CouncilZoom) like everything else. -->
         <Widget Id="CouncilDossierOverlay"
                 WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                 SuggestedWidth="620" SuggestedHeight="760"
@@ -500,7 +414,6 @@
                         Brush="Default" Brush.FontSize="24" Brush.FontColor="#c8a878FF"
                         Brush.TextHorizontalAlignment="Center" Text="@PortraitPanelTitle" IsDisabled="true" />
 
-            <!-- Portrait, pinned to the top of the dossier. -->
             <Widget Id="CouncilDossierPortraitArea"
                     WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                     SuggestedWidth="230" SuggestedHeight="272"
@@ -527,7 +440,6 @@
               </Children>
             </Widget>
 
-            <!-- Scrollable dossier text: facts + Background / Character / Appearance / What you have learned / Grievances. -->
             <Widget Id="CouncilDossierTextArea"
                     WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                     VerticalAlignment="Top" MarginTop="360" MarginBottom="70" MarginLeft="30" MarginRight="30">

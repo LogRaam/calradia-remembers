@@ -80,6 +80,12 @@ namespace CalradiaRemembers.Chat
       private const float ManuscriptFill = 0.92f; // fraction of the screen height the book fills (leaves a margin)
       private const float ManuscriptZoom = GauntletReferenceHeight / ManuscriptBookHeightUnits * ManuscriptFill;
 
+      // Council skin: same fixed-aspect scaling as Manuscript, tuned for cr_counsel.jpg (1683x935). The art fills
+      // nearly the whole screen, so the fill fraction is higher than the Manuscript book's.
+      private const float CouncilArtHeightUnits = 935f;
+      private const float CouncilFill = 0.98f; // fraction of screen height the council book fills (TUNE)
+      private const float CouncilZoom = GauntletReferenceHeight / CouncilArtHeightUnits * CouncilFill;
+
       /// <summary>
       ///   Dev override for the chat skin (set by cr.skin). Null means "use the MCM menu choice". A skin is just
       ///   another prefab bound to the SAME <see cref="ChatViewModel" />, so it changes only the look. Applies on
@@ -161,6 +167,12 @@ namespace CalradiaRemembers.Chat
          if (ActiveSkin == ManuscriptSkin && _activeLayer?.UIContext != null)
             _activeLayer.UIContext.ScaleModifier = ManuscriptZoom * ModSettings.DarkLeatherScale;
 
+         // Council skin (2026-08-23): the same fixed-aspect treatment as Manuscript, now that its background is
+         // Gabriel's full-book leather art (cr_counsel.jpg, 1683x935) with every control laid over the painted
+         // slots. Its own zoom, because the art fills more of the screen than the Manuscript book does.
+         if (ActiveSkin == CouncilSkin && _activeLayer?.UIContext != null)
+            _activeLayer.UIContext.ScaleModifier = CouncilZoom * ModSettings.DarkLeatherScale;
+
          SampleVramPeriodically(); // a heartbeat VRAM read, so an idle (no-response) scene still traces its trend
 
          // Pushed-screen mode needs no focus juggling — the engine hands focus to whatever is pushed on top of us.
@@ -220,6 +232,10 @@ namespace CalradiaRemembers.Chat
             SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
             SafeStep(() => ActiveViewModel?.NoteCompanionHeard(), "NoteCompanionHeard");
             SafeStep(() => ActiveViewModel?.FinalizeWitnessMemories(), "FinalizeWitnessMemories");
+            // Now that this conversation's memory is recorded, fold the NPC's history back to a compact form so it
+            // stays fresh for their next chat and for when they appear as a witness (2026-08-23), instead of only
+            // the once-a-day pass. Internally gated (threshold + MCM + not busy), so most closes are a no-op.
+            SafeStep(() => ActiveViewModel?.CompressMemoryOnClose(), "CompressMemoryOnClose");
             // The council's LIFT: re-validates and executes every surviving [RESOLUTION] against the world as
             // it stands NOW. A no-op outside a council (or one with nothing agreed), see FinalizeCouncilResolutions.
             SafeStep(() => ActiveViewModel?.FinalizeCouncilResolutions(), "FinalizeCouncilResolutions");
@@ -613,7 +629,9 @@ namespace CalradiaRemembers.Chat
          }
       }
 
-      private static string DescribeCouncilSeat(CouncilScope scope)
+      // Internal (not private): ChatViewModel.PopulateCouncilParticipants reuses this for the anchor seat too, so
+      // the staging anchor reads with the SAME scope label as every other seat (no privileged/leader seat).
+      internal static string DescribeCouncilSeat(CouncilScope scope)
          => scope switch {
             CouncilScope.Family => "kin of the player's house, seated at this council",
             CouncilScope.ClanLords => "a lord of the player's clan, seated at this council",

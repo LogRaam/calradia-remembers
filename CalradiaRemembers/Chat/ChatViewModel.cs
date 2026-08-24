@@ -16,6 +16,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Lore;
+using CalradiaRemembers.Memory;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Portraits;
 using CalradiaRemembers.Services;
@@ -1179,6 +1180,7 @@ namespace CalradiaRemembers.Chat
          _mode = ChatMode.Conversation;
          _councilScope = scope;
          _councilParleyTargetFactionId = parleyTargetFactionId;
+         ChatVisualOffsetX = 0f; // the council book is centered; start at rest 0 (not the right-anchored -30 default)
          _councilVoiceMode = ModSettings.DefaultCouncilVoiceMode;
          CouncilVoiceModeText = DescribeCouncilVoiceMode(_councilVoiceMode);
          IsCouncilVoiceToggleVisible = true;
@@ -1200,6 +1202,14 @@ namespace CalradiaRemembers.Chat
          };
          PopulateCouncilParticipants();
 
+         // Header (Gabriel's design 2026-08-23): the pennant carries the seat count, the banner title names the
+         // mod and WHERE the sitting is held, and CouncilAgendaText (set above) names the KIND of gathering.
+         CouncilSeatCountText = _councilParticipants.Count.ToString();
+         string councilPlace = Hero.MainHero?.CurrentSettlement?.Name?.ToString();
+         CouncilTitleText = string.IsNullOrEmpty(councilPlace)
+            ? "Calradia Remembers"
+            : "Calradia Remembers " + (char) 0x2014 + " " + councilPlace; // 0x2014 = em dash, kept out of source
+
          ChatSpeaker speaker = MainSpeaker();
          if (speaker.Profile == null)
          {
@@ -1217,39 +1227,38 @@ namespace CalradiaRemembers.Chat
          // rather than having the anchor personally welcome everyone. A synthetic scene-setting cue, never shown
          // or logged as a player line; it rides the SAME one-call group-scene pipeline (RunCouncilTurnAsync,
          // isOpener) as every later turn, carried as OpeningCue so the model reads it as a stage direction.
+         // Opener cue (2026-08-23): each seated member GREETS as the sitting opens. Earlier cues said "one member,
+         // not all need speak yet", which fought the group-scene rule that every seat speaks and left the opener
+         // empty (no introduction). Now the scene settles in and each member greets in turn, true to their own
+         // bond and age, so the sitting always opens on a real introduction.
          string opener = scope switch {
             CouncilScope.Assembly =>
                "[The player has convened an ASSEMBLY: lords, kin, companions, and envoys speaking for those who could " +
-               "not come in person are gathered in the hall at the player's word. Describe the gathering settling in, " +
-               "briefly, then give the floor: one seated member may acknowledge the summons and ask what matter the " +
-               "player lays before the assembly. The others are present and listening, each with their own standing " +
-               "and stake; not all of them need speak yet.]",
+               "not come in person are gathered in the hall at the player's word. Describe the hall settling in, " +
+               "briefly, then let EACH seated member greet the player and take their place as the assembly opens, in " +
+               "their own voice and standing, warmly or coolly as their regard runs.]",
             CouncilScope.Family =>
                "[The player has called their own household together: their closest kin are gathered at their word. " +
-               "Describe the gathering settling in, briefly, then give the floor: one seated member may acknowledge " +
-               "the summons and ask what they would put before the family. The others are present and listening; not " +
-               "all of them need speak yet.]",
+               "Describe the family settling in around the table, briefly, then let EACH kinsman and kinswoman greet " +
+               "the player as the family council opens, true to their bond and their AGE (a child speaks as a child, " +
+               "a green youth as a youth, an elder with the weight of years), before any matter is raised.]",
             CouncilScope.ClanLords =>
                "[The player has called the lords of their clan to council: they are gathered at their word. Describe " +
-               "the gathering settling in, briefly, then give the floor: one seated member may acknowledge the " +
-               "summons and ask what business the player lays before the clan. The others are present and listening; " +
-               "not all of them need speak yet.]",
+               "the hall settling in, briefly, then let EACH seated lord greet the player and take their seat as the " +
+               "clan council opens, in their own voice and standing.]",
             CouncilScope.WarCouncil =>
-               "[The player has summoned a WAR COUNCIL: their allies are gathered at their word to decide war " +
-               "policy. Describe the gathering settling in, briefly, then give the floor: one seated ally may " +
-               "acknowledge the summons and ask what war matter the player lays before the table. The others are " +
-               "present and listening, each with their own stake in what war would cost them; not all of them need " +
-               "speak yet.]",
+               "[The player has summoned a WAR COUNCIL: their allies are gathered at their word to decide war policy. " +
+               "Describe the table settling in, briefly, then let EACH seated ally greet the player and take their " +
+               "place as the war council opens, each mindful of their own stake in what war would cost them.]",
             CouncilScope.Parley =>
                "[The player has sought a PARLEY: the enemy's own envoy sits across the table, at the player's " +
-               "word, to speak of peace. Describe the meeting settling in, briefly, then give the floor: the " +
-               "counterpart may acknowledge why they came and ask what terms the player would offer. Wary, not " +
-               "friendly, they did not come to surrender, only to hear.]",
+               "word, to speak of peace. Describe the meeting settling in, briefly, then let the counterpart open: " +
+               "acknowledge why they came and ask what terms the player would offer. Wary, not friendly, they did " +
+               "not come to surrender, only to hear.]",
             _ =>
                "[The player has called their companions together: they are gathered at their word. Describe the " +
-               "gathering settling in, briefly, then give the floor: one seated member may acknowledge the summons " +
-               "and ask what the player would have of them all. The others are present and listening; not all of " +
-               "them need speak yet.]"
+               "gathering settling in, briefly, then let EACH companion greet the player in their own way and settle " +
+               "in as the council opens, before any matter is raised.]"
          };
 
          _ = RunCouncilTurnAsync(opener, placeholder, isOpener: true);
@@ -2246,6 +2255,25 @@ namespace CalradiaRemembers.Chat
       ///   Conversation mode (letters keep their own records; captive scenes have
       ///   their own finalizer).
       /// </summary>
+      /// <summary>
+      ///   Compresses the main NPC's memory as the conversation closes, so their history stays compact and fresh
+      ///   for their next chat AND for when they appear as a witness in a group scene, rather than waiting for the
+      ///   once-a-day background pass to reach them (player report 2026-08-23: witnesses carrying stale, uncompressed
+      ///   memory). Fire-and-forget and internally gated: <see cref="MemoryCompressionService.CompressAsync" /> only
+      ///   actually runs when the NPC's events exceed the threshold, MCM memory compression is on, and none is busy.
+      /// </summary>
+      public void CompressMemoryOnClose()
+      {
+         try
+         {
+            string npcId = _npcHero?.StringId;
+            if (string.IsNullOrEmpty(npcId)) return;
+
+            _ = MemoryCompressionService.CompressAsync(NpcMemoryCampaignBehavior.Instance, npcId);
+         }
+         catch (Exception ex) { ModLog.Error($"CompressMemoryOnClose failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
       public void FinalizeConversationMemory()
       {
          if (_conversationMemoryFinalized || _mode != ChatMode.Conversation) return;
@@ -2601,10 +2629,14 @@ namespace CalradiaRemembers.Chat
          // is FULL SCREEN WIDTH (player report: slid only 800, its left column still covered the pause menu's
          // buttons, so the player could not click Resume and was stuck). A full-width window needs a slide larger
          // than any screen, so it clears entirely; 6000 covers up to a 5K ultrawide.
-         float slide = ChatManager.ActiveSkin == ChatManager.CouncilSkin ? 6000f : 800f;
+         bool isCouncil = ChatManager.ActiveSkin == ChatManager.CouncilSkin;
+         float slide = isCouncil ? 6000f : 800f;
+         // The 1:1 chat / Manuscript are anchored to the RIGHT with a -30 resting margin; the council book is
+         // CENTERED, so its resting offset is 0 (a -30 there shoved the whole centred book left of centre and
+         // clipped a border, player report 2026-08-23).
          ChatVisualOffsetX = off
             ? slide
-            : -30f;
+            : isCouncil ? 0f : -30f;
 
          // The portrait dossier is anchored to the right of the screen (not inside the sliding window), so it
          // would sit ON TOP of whatever screen just took focus (report: it overlapped the encyclopedia). Close

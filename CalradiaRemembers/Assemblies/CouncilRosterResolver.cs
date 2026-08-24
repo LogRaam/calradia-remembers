@@ -153,23 +153,52 @@ namespace CalradiaRemembers.Assemblies
       }
 
       // Roster default (author's decision): the war council gathers the player's ALLIES, i.e. the leaders of
-      // the OTHER clans in the player's kingdom. An independent clan (no kingdom, so no allies to gather) falls
-      // back to the player's own clan lords instead, mirroring CandidatePool's ClanLords case exactly, so a
-      // solo player can still convene a war council over his own house rather than seat nobody at all.
+      // the OTHER clans in the player's kingdom. When there are NO allies to gather (an independent clan, or a
+      // kingdom that holds no OTHER clan), it FALLS BACK to the player's own house, his companions AND his clan's
+      // lords, so a war council still convenes on someone rather than seat nobody at all (Gabriel 2026-08-23).
       private static IEnumerable<Hero> WarCouncilCandidates(Clan clan)
       {
-         if (clan.Kingdom != null)
+         if (!WarCouncilFallsBackToHouse())
             return clan.Kingdom.Clans?
                       .Where(c => c != null && c != clan)
                       .Select(c => c.Leader)
                       .Where(h => h != null)
                   ?? Enumerable.Empty<Hero>();
 
-         return clan.Heroes?.Where(h => h is {IsLord: true} && h != Hero.MainHero) ?? Enumerable.Empty<Hero>();
+         return PlayerHouseCandidates(clan);
       }
 
-      // The player's spouse, siblings, and grown children. Children who are still minors are excluded here
-      // rather than in the policy: a child is not refused a seat, they were never a candidate for one.
+      // True when a war council has no allies to gather and must fall back to the player's own house: an
+      // independent clan (no kingdom), or a kingdom that holds no OTHER clan whose leader could be seated.
+      private static bool WarCouncilFallsBackToHouse()
+      {
+         Clan clan = Clan.PlayerClan;
+
+         if (clan == null) return false;
+         if (clan.Kingdom == null) return true;
+
+         return !(clan.Kingdom.Clans?.Any(c => c != null && c != clan && c.Leader != null) ?? false);
+      }
+
+      // The player's own house as a war-council fallback pool: his companions first, then his clan's other lords,
+      // de-duplicated (a clan lord is never also a companion, but the guard keeps the pool clean regardless).
+      private static IEnumerable<Hero> PlayerHouseCandidates(Clan clan)
+      {
+         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+         foreach (Hero h in (clan.Companions ?? Enumerable.Empty<Hero>()).Where(h => h != null))
+            if (seen.Add(h.StringId)) yield return h;
+
+         foreach (Hero h in (clan.Heroes ?? Enumerable.Empty<Hero>()).Where(h => h is {IsLord: true} && h != Hero.MainHero))
+            if (seen.Add(h.StringId)) yield return h;
+      }
+
+      // Youngest age a child may take a seat at the family council. A teen (13+) can hold a place and speak
+      // true to their years; a young child is present in the household but not a candidate for the table.
+      private const int FamilyCouncilMinAge = 13;
+
+      // The player's spouse, siblings, and children old enough to sit (13+). Younger children are excluded here
+      // rather than in the policy: a small child is not refused a seat, they were never a candidate for one.
       private static IEnumerable<Hero> ImmediateFamily()
       {
          var player = Hero.MainHero;
@@ -183,7 +212,7 @@ namespace CalradiaRemembers.Assemblies
                yield return sibling;
 
          if (player.Children != null)
-            foreach (Hero child in player.Children.Where(c => c is {IsAlive: true, IsChild: false}))
+            foreach (Hero child in player.Children.Where(c => c is {IsAlive: true} && c.Age >= FamilyCouncilMinAge))
                yield return child;
       }
 
@@ -194,15 +223,16 @@ namespace CalradiaRemembers.Assemblies
          bool isFamily = player != null
                        && (hero == player.Spouse
                         || (player.Siblings?.Contains(hero) ?? false)
-                        || ((player.Children?.Contains(hero) ?? false) && !hero.IsChild));
+                        || ((player.Children?.Contains(hero) ?? false) && hero.Age >= FamilyCouncilMinAge));
 
-         // Mirrors WarCouncilCandidates exactly (a hero seated by that pool must also read true here): with a
-         // kingdom, an allied leader is a DIFFERENT clan's own leader within the player's kingdom; without one
-         // (independent clan, no allies), the same no-kingdom fallback as ClanLords applies.
+         // Mirrors WarCouncilCandidates exactly (a hero seated by that pool must also read true here): when allies
+         // can be gathered, an allied leader is a DIFFERENT clan's own leader within the player's kingdom; when
+         // none can (independent clan, or a kingdom with no other clan), the war council falls back to the
+         // player's own house, so a companion OR an own-clan lord reads as a war-council seat instead.
          bool isAlliedLeader = clan != null
-                             && (clan.Kingdom != null
-                                ? hero.Clan != null && hero.Clan != clan && hero.Clan.Kingdom == clan.Kingdom && hero.Clan.Leader == hero
-                                : hero.Clan == clan && hero.IsLord && hero != player);
+                             && (WarCouncilFallsBackToHouse()
+                                ? hero.IsPlayerCompanion || (hero.Clan == clan && hero.IsLord && hero != player)
+                                : hero.Clan != null && hero.Clan != clan && hero.Clan.Kingdom == clan.Kingdom && hero.Clan.Leader == hero);
 
          // Mirrors ParleyCandidates exactly (the one hero that pool ever returns must also read true here): the
          // leader of the stored parley target faction, resolved by StringId (never by name, unlike declare_war's

@@ -41,9 +41,12 @@ namespace CalradiaRemembers.Chat
       private readonly MBBindingList<CouncilParticipantViewModel> _councilParticipants = new MBBindingList<CouncilParticipantViewModel>();
       private readonly EngagementLedger _engagementLedger = new EngagementLedger();
       private string _councilAgendaText = "";
+      private string _councilTitleText = "";
+      private string _councilSeatCountText = "";
       private ChatMessageViewModel _councilDossierPortrait; // transient carrier resolving the clicked seat's portrait, released on close/reopen
       private bool _isCouncilDossierOpen;
       private bool _engagementExtractionRunning;
+      private bool _engagementExtractionRequeued;
 
       /// <summary>
       ///   The short "Ordre du jour" line shown under the title in the bespoke council window. Seeded from the
@@ -58,6 +61,47 @@ namespace CalradiaRemembers.Chat
          {
             if (_councilAgendaText == value) return;
             _councilAgendaText = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>
+      ///   The full-book leather background art for the bespoke council window (cr_counsel.jpg), painted behind
+      ///   every overlay just as the chat skins paint their own page art. JPG, so the widget reads it with
+      ///   CorrectRedBlue.
+      /// </summary>
+      [DataSourceProperty]
+      public string CouncilBackgroundPath => System.IO.Path.Combine(
+         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_counsel.jpg");
+
+      /// <summary>
+      ///   The council header shown on the centre banner: the mod name and WHERE the sitting is held
+      ///   ("Calradia Remembers, Valek Castle"). Set from the player's current settlement when the council opens.
+      /// </summary>
+      [DataSourceProperty]
+      public string CouncilTitleText
+      {
+         get => _councilTitleText;
+         set
+         {
+            if (_councilTitleText == value) return;
+            _councilTitleText = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>
+      ///   How many seats are at the table, shown in the small pennant on the centre banner. Set from the seated
+      ///   roster when the council opens (a plain count, e.g. "3").
+      /// </summary>
+      [DataSourceProperty]
+      public string CouncilSeatCountText
+      {
+         get => _councilSeatCountText;
+         set
+         {
+            if (_councilSeatCountText == value) return;
+            _councilSeatCountText = value;
             OnPropertyChangedWithValue(value);
          }
       }
@@ -160,11 +204,15 @@ namespace CalradiaRemembers.Chat
          ChatSpeaker anchor = MainSpeaker();
          if (anchor?.Hero != null)
          {
-            // Council narrator model (2026-08-02): the anchor is the conversation's staging body only (the
-            // profile behind the LLM call, hidden behind the opaque backdrop), never a privileged voice. The
-            // seat label used to read "Presides over this council"; that presiding language is exactly what
-            // the reshape drops, so the label is now the same neutral seat description any other member gets.
-            _councilParticipants.Add(new CouncilParticipantViewModel(anchor.Hero, "Seated at this council"));
+            // The anchor is the conversation's staging body only (the profile behind the LLM call, hidden behind
+            // the opaque backdrop), never a leader: when the player convenes a council, the ONLY leader is the
+            // player. So the anchor gets the SAME scope label every other seat gets (a companion reads as a
+            // companion, kin as kin), rather than a bare "Seated at this council" that singled it out (player
+            // report 2026-08-23: one seat lacked the companion description the rest had).
+            string anchorSeatLabel = _councilScope.HasValue
+               ? ChatManager.DescribeCouncilSeat(_councilScope.Value)
+               : "seated at this council";
+            _councilParticipants.Add(new CouncilParticipantViewModel(anchor.Hero, anchorSeatLabel));
             seatedHeroIds.Add(anchor.Hero.StringId);
          }
 
@@ -816,13 +864,17 @@ namespace CalradiaRemembers.Chat
          {
             if (placeholder == null) return;
 
+            // No single member presides over a council, so the waiting tile carries the scene image, not a face,
+            // and NO speaker name (Gabriel 2026-08-23): show only "The council weighs your words...", never an
+            // anchor's name above it. MakeSpeakerMessage seeded the name; overwrite it with the bare line here.
+            placeholder.DisplayText = CouncilPlaceholderText;
+
             bool outside = Settlement.CurrentSettlement == null;
-            bool scopeIsFamily = _councilScope == CouncilScope.Family;
-            bool ownedByPlayer = Settlement.CurrentSettlement?.OwnerClan == Clan.PlayerClan;
+            CouncilSceneKind kind = ResolveCouncilSceneKind(_councilScope);
             CouncilSceneTerrain terrain = ResolveCouncilSceneTerrain();
             bool playerIsFemale = Hero.MainHero?.IsFemale == true;
 
-            string basename = CouncilSceneImagePolicy.Resolve(outside, scopeIsFamily, ownedByPlayer, terrain, playerIsFemale);
+            string basename = CouncilSceneImagePolicy.Resolve(outside, kind, terrain, playerIsFemale);
             string path = Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", basename + ".jpg");
 
             placeholder.ApplyScenePortrait(path);
@@ -832,6 +884,20 @@ namespace CalradiaRemembers.Chat
             ModLog.Error($"ChatViewModel.ApplyCouncilSceneImage failed: {ex.GetType().Name}: {ex.Message}");
          }
       }
+
+      /// <summary>
+      ///   Maps the live council scope to the image family <see cref="CouncilSceneImagePolicy" /> keys on. Family
+      ///   and War have their own sex-keyed art; a Parley is a war negotiation so it borrows the war scene; an
+      ///   Assembly borrows the tavern scene; every other scope (companions, clan lords, or no scope yet) is
+      ///   Generic and lets the location decide (Gabriel 2026-08-23).
+      /// </summary>
+      private static CouncilSceneKind ResolveCouncilSceneKind(CouncilScope? scope) => scope switch {
+         CouncilScope.Family => CouncilSceneKind.Family,
+         CouncilScope.WarCouncil => CouncilSceneKind.War,
+         CouncilScope.Parley => CouncilSceneKind.War,
+         CouncilScope.Assembly => CouncilSceneKind.Assembly,
+         _ => CouncilSceneKind.Generic
+      };
 
       /// <summary>
       ///   Maps the engine terrain at the player party's map position to the coarse bucket
@@ -874,10 +940,21 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private void KickCouncilEngagementExtraction()
       {
-         if (_councilScope == null || _engagementExtractionRunning) return;
+         if (_councilScope == null) return;
 
          var behavior = NpcMemoryCampaignBehavior.Instance;
          if (behavior?.LlmServices is not {IsAvailable: true}) return;
+
+         // Coalesce: if a reading is already in flight, remember the transcript moved and read again the moment it
+         // lands, rather than dropping this turn's decisions. Without this the end-of-turn kick was skipped while
+         // the start-of-turn one was still running, so a SECOND pledge made the same turn, or a pledge REPLACED by
+         // another, never reached the panel (player report 2026-08-23).
+         if (_engagementExtractionRunning)
+         {
+            _engagementExtractionRequeued = true;
+
+            return;
+         }
 
          _engagementExtractionRunning = true;
          _ = RunCouncilEngagementExtractionAsync();
@@ -928,6 +1005,14 @@ namespace CalradiaRemembers.Chat
          finally
          {
             _engagementExtractionRunning = false;
+
+            // A kick arrived while this reading was in flight: the transcript has moved on (another pledge, or a
+            // pledge walked back and replaced), so read once more now against the latest transcript.
+            if (_engagementExtractionRequeued && _councilScope != null)
+            {
+               _engagementExtractionRequeued = false;
+               KickCouncilEngagementExtraction();
+            }
          }
       }
 
@@ -1154,7 +1239,8 @@ namespace CalradiaRemembers.Chat
                IsFemale = hero?.IsFemale ?? false,
                PersonaLine = p?.Personality ?? p?.Trait,
                RegardTowardPlayer = p?.ReputationWithPlayer ?? 0,
-               Culture = hero?.Culture?.StringId
+               Culture = hero?.Culture?.StringId,
+               Age = hero != null ? (int?) hero.Age : null // so a seated child/youth is voiced true to their years
             });
          }
 

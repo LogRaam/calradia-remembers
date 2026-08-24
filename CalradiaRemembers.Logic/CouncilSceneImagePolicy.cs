@@ -20,35 +20,52 @@ namespace CalradiaRemembers.Logic
     }
 
     /// <summary>
+    ///   The image family a council's TYPE calls for, independent of terrain. Family and War carry their own
+    ///   sex-keyed art that primes over the location; Assembly reuses the tavern scene; every other scope
+    ///   (companions, clan lords) is Generic and lets the LOCATION pick the image.
+    /// </summary>
+    public enum CouncilSceneKind
+    {
+        Family,
+        War,
+        Assembly,
+        Generic
+    }
+
+    /// <summary>
     ///   Picks the scene-image BASENAME (no extension, no path) for a council's thinking placeholder, from the
-    ///   player's location and the council's own scope. Pure so the mapping (outside beats scope; gender variants
-    ///   only for Family/War; the "Fermale" typo in the shipped asset) is unit-tested rather than eyeballed in-game.
+    ///   council's own TYPE first and the player's location second. Pure so the mapping (type beats location for
+    ///   Family/War; gender variants only for Family/War) is unit-tested rather than eyeballed in-game.
     /// </summary>
     public static class CouncilSceneImagePolicy
     {
         /// <summary>
-        ///   Resolves the image basename. <paramref name="outside" /> (not in a settlement) wins over everything
-        ///   else, including a Family council held in the wilderness. Inside a settlement: Family scope first,
-        ///   then whether the settlement belongs to the player's own clan (War), else the neutral Tavern image.
-        ///   Gender variants exist only for Family and War; Tavern and every Outside image are gender-neutral.
+        ///   Resolves the image basename (Gabriel 2026-08-23). The council's TYPE decides first: Family and War
+        ///   each have their own sex-keyed art and it wins over the location, so a family council held in the
+        ///   wilderness still shows the family scene, never the outside art. Assembly borrows the tavern scene.
+        ///   A Generic scope (companions, clan lords) has no dedicated art, so the LOCATION picks it: the tavern
+        ///   scene inside a settlement, else the outside scene for the terrain under the player. Gender variants
+        ///   exist only for Family and War; Tavern and every Outside image are gender-neutral.
         /// </summary>
-        public static string Resolve(bool outside, bool scopeIsFamily, bool ownedByPlayer, CouncilSceneTerrain terrain, bool playerIsFemale)
+        public static string Resolve(bool outside, CouncilSceneKind kind, CouncilSceneTerrain terrain, bool playerIsFemale)
         {
-            if (outside)
-                return terrain switch {
-                    CouncilSceneTerrain.Desert => "OutsideCounselDesert",
-                    CouncilSceneTerrain.Steppe => "OutsideCounselSteppes",
-                    _ => "OutsideCounselForestMountains"
-                };
+            switch (kind)
+            {
+                case CouncilSceneKind.Family:
+                    return playerIsFemale ? "FamilyCounselFemale" : "FamilyCounselMale";
+                case CouncilSceneKind.War:
+                    return playerIsFemale ? "WarCounselFemale" : "WarCounselMale";
+                case CouncilSceneKind.Assembly:
+                    return "TavernCounsel";
+            }
 
-            if (scopeIsFamily)
-                // NOTE: "Fermale" is a typo in the shipped asset filename, matched exactly on purpose.
-                return playerIsFemale ? "FamilyCounselFermale" : "FamilyCounselMale";
+            if (!outside) return "TavernCounsel";
 
-            if (ownedByPlayer)
-                return playerIsFemale ? "WarCounselFemale" : "WarCounselMale";
-
-            return "TavernCounsel";
+            return terrain switch {
+                CouncilSceneTerrain.Desert => "OutsideCounselDesert",
+                CouncilSceneTerrain.Steppe => "OutsideCounselSteppes",
+                _ => "OutsideCounselForestMountains"
+            };
         }
     }
 }
