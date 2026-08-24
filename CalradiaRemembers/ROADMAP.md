@@ -32,7 +32,7 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
-## BUILT, untested in game (player report, 2026-08-20): a letter-borne agreement must survive into the in-person conversation
+## SHIPPED v2.2.0 (Level 1; player report, 2026-08-20): a letter-borne agreement must survive into the in-person conversation
 
 A player negotiated a marriage over three letters with Desporion ("we agreed on the terms"), then met him in
 person and he denied everything and called the player a liar. Cause pinned: `LetterPopupManager.MarkReceived`
@@ -42,7 +42,7 @@ This is the known "letter-borne agreement invisible to live chat" gap, now seen 
 possible violation of the mod's core promise (what is said is remembered), and the fix makes the drama BETTER: an
 NPC who remembers can honor OR deliberately renege, instead of having amnesia.
 
-Level 1 (BUILT + unit-tested 2026-08-20, untested in game): substantive letters leave a real first-person memory, mirroring
+Level 1 (SHIPPED v2.2.0: MOD `d50160a` / SDK `c51f7cd`; unit-tested, not play-tested; wired at the `LetterPopupManager` received-letter site with npcIsSender, covers `CorruptionAttempt` and every substantive reason): substantive letters leave a real first-person memory, mirroring
 the two-stage CaptiveSceneSummarizer pattern. Pure `LetterMemoryPolicy` (which LetterReason values warrant a memory,
 excluding pure re-pings AwaitingReply/QuestUpdate; a synchronous first-person BaseMemory as guaranteed capture) +
 SDK `LetterMemorySummarizer` (one-shot LLM, first-person past-tense NPC POV of what the letter proposed/agreed/
@@ -50,6 +50,37 @@ reported) + mod wiring at the letter-received and PlayerLetterReply sites + a `l
 
 Level 2 (LATER, separate, larger): a letter-agreed marriage actually SEEDS the real arrange_marriage / a Commitment,
 so it is not only remembered but executed. Ties into the "letters carry actions" extension.
+
+---
+
+## WISHED + RATIFIED (player report 2026-08-24 + Gabriel): an INTERCEPTED player letter can LEAK into the wrong hands
+
+A player watched a letter get lost on the road, then received a letter from an enemy noble who "knew his plans"
+and wanted to meet, and read the two as cause and effect. They are NOT: the enemy letter was an independent
+`CorruptionAttempt` (a lord fishing for war plans), and an intercepted letter today is simply lost (bandit waylay,
+resend prompt), its contents reaching no one. But the player unknowingly designed a feature that fits the mod's
+spine perfectly (a letter is the private channel; interception is the risk that the privacy fails), so: make the
+coincidence real.
+
+Shape (ratified): when a PLAYER-SENT letter is intercepted (courier waylaid), a BOUNDED chance its contents FALL
+INTO THE WRONG HANDS. An eligible antagonist (an enemy-faction lord, or a grudge-holder) comes to know a fragment
+of what the letter said and writes to the player about it, or gains an intrigue hook. Grounded in the intercepted
+letter's real `Content` so it is specific, not generic. Only letters with real substance can leak (reuse
+`LetterMemoryPolicy.ShouldRemember`; a lost romantic re-ping does not spill state secrets). Rare by design (a low,
+tunable chance), so it stays a memorable event, not noise.
+
+Increments:
+- Inc 1: pure `LetterLeakPolicy` (should this letter leak? which antagonist is eligible?) fully unit-tested; a new
+  SDK `LetterReason.LeakedCorrespondence` (the antagonist writes because they now hold your intercepted words)
+  whose prompt draws on the leaked content; wiring at the courier-lost site (`CourierService.HandlePartyDestroyed`);
+  a `WorldEvent` so the leak can also surface as rumor; a `cr.testall` self-test; an MCM chance/toggle. Default OFF
+  or low, since the mod is LIVE.
+- Inc 2 (later): the antagonist ACTS on the intel (a scheme hook, or a real edge), and the player can hear the
+  rumor that their plans leaked.
+
+Testability note (Gabriel not playing until ~Christmas, see the feedback memory): all the decision logic lives in
+`LetterLeakPolicy` with exhaustive unit tests; the engine wiring stays thin. The LLM output (the antagonist's
+letter) stays unvalidated until play.
 
 ---
 
