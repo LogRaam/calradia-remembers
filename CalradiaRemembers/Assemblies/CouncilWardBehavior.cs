@@ -91,6 +91,13 @@ namespace CalradiaRemembers.Assemblies
         public CouncilWard GetAsMentor(string heroId)
             => string.IsNullOrEmpty(heroId) ? null : _active.Find(w => w.MentorId == heroId);
 
+        /// <summary>Dev/test only (cr.seed_accord): inject a live ward bond directly, bypassing eligibility, so the encyclopedia panel can be validated without a council playthrough.</summary>
+        public void DebugSeed(string mentorId, string protegeId)
+        {
+            if (string.IsNullOrEmpty(protegeId)) return;
+            _active.Add(new CouncilWard {MentorId = mentorId, ProtegeId = protegeId});
+        }
+
         /// <summary>
         ///   Starts a new mentorship bond: <paramref name="protege" /> must STILL pass WardEligibilityPolicy right
         ///   now (bridge is law - re-checked here even though the caller, CouncilLift.SettleSponsorWard, already

@@ -66,6 +66,13 @@ namespace CalradiaRemembers.Assemblies
         public CouncilTribute Get(string payerHeroId)
             => string.IsNullOrEmpty(payerHeroId) ? null : _active.Find(t => t.PayerHeroId == payerHeroId);
 
+        /// <summary>Dev/test only (cr.seed_accord): inject a live tribute record directly, bypassing every guard, so the encyclopedia panel can be validated without a full parley playthrough.</summary>
+        public void DebugSeed(string payerHeroId, int amountPerDay, int days)
+        {
+            if (string.IsNullOrEmpty(payerHeroId)) return;
+            _active.Add(new CouncilTribute {PayerHeroId = payerHeroId, AmountPerDay = amountPerDay, DaysRemaining = days, MissedDays = 0});
+        }
+
         /// <summary>
         ///   Starts a new tribute from <paramref name="payerLeader" /> at <paramref name="amountPerDay" />
         ///   denars/day (re-clamped here to TributePolicy's [50, 2000] range - "the prompt is advice, the bridge

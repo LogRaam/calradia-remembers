@@ -92,6 +92,13 @@ namespace CalradiaRemembers.Assemblies
         public CouncilHostage GetByPledger(string heroId)
             => string.IsNullOrEmpty(heroId) ? null : _active.Find(h => h.PledgerId == heroId);
 
+        /// <summary>Dev/test only (cr.seed_accord): inject a live hostage record directly, bypassing eligibility/party moves, so the encyclopedia panel can be validated without a parley playthrough.</summary>
+        public void DebugSeed(string hostageId, string pledgerId, string homeClanId, int days)
+        {
+            if (string.IsNullOrEmpty(hostageId)) return;
+            _active.Add(new CouncilHostage {HostageId = hostageId, PledgerId = pledgerId, HomeClanId = homeClanId, DaysRemaining = days, Residence = MainPartyResidence});
+        }
+
         /// <summary>
         ///   Starts a new hostage term: <paramref name="hostage" /> must STILL pass HostageEligibilityPolicy right
         ///   now (bridge is law - re-checked here even though the caller, CouncilLift.SettleGiveHostage, already

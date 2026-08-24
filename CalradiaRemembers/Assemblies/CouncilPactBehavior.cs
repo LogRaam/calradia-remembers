@@ -117,6 +117,13 @@ namespace CalradiaRemembers.Assemblies
             return _active.Find(p => NonAggressionPactPolicy.IsMatch(p.FactionAId, p.FactionBId, factionA.StringId, factionB.StringId));
         }
 
+        /// <summary>Dev/test only (cr.seed_accord): inject a live pact record directly, bypassing every guard, so the encyclopedia panel can be validated without a parley playthrough.</summary>
+        public void DebugSeed(string factionAId, string factionBId, int days)
+        {
+            if (string.IsNullOrEmpty(factionAId) || string.IsNullOrEmpty(factionBId)) return;
+            _active.Add(new CouncilPact {FactionAId = factionAId, FactionBId = factionBId, DaysRemaining = days});
+        }
+
         public override void RegisterEvents()
         {
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);

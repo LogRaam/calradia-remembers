@@ -63,6 +63,13 @@ namespace CalradiaRemembers.Assemblies
         public CouncilStipend Get(string payeeId)
             => string.IsNullOrEmpty(payeeId) ? null : _active.Find(s => s.PayeeId == payeeId);
 
+        /// <summary>Dev/test only (cr.seed_accord): inject a live stipend record directly, bypassing escrow/guards, so the encyclopedia panel can be validated without a council playthrough.</summary>
+        public void DebugSeed(string payeeId, string payeeName, int amountPerDay, int days)
+        {
+            if (string.IsNullOrEmpty(payeeId)) return;
+            _active.Add(new CouncilStipend {PayeeId = payeeId, PayeeName = payeeName, AmountPerDay = amountPerDay, DaysRemaining = days, EscrowBalance = amountPerDay * days});
+        }
+
         /// <summary>
         ///   Starts a new stipend for <paramref name="payee" /> at <paramref name="amountPerDay" /> denars/day
         ///   (re-clamped here to StipendPolicy's [50, 500] range - "the prompt is advice, the bridge is law"),
