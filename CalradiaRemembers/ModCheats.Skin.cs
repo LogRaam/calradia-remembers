@@ -7,6 +7,7 @@
 
 using System.Collections.Generic;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Letters;
 using TaleWorlds.Library;
 
 #endregion
@@ -53,19 +54,27 @@ namespace CalradiaRemembers
 
       /// <summary>
       ///   cr.reload_ui
-      ///   Dev hot-reload for the chat/memories prefabs: re-reads any changed prefab XML from the DEPLOYED
-      ///   module folder and, if the chat is open, rebuilds its widget tree in place (same conversation, same
-      ///   history). Edit the file under the game's own Modules\CalradiaRemembers\GUI\Prefabs (NOT the repo
-      ///   copy; a dotnet build would overwrite it), then run this to see the change without restarting.
+      ///   Dev hot-reload for the chat/memories/letter prefabs: re-reads any changed prefab XML from the DEPLOYED
+      ///   module folder and, if the chat OR the letter book is open, rebuilds its widget tree in place (same
+      ///   conversation / same letter, same history). Edit the file under the game's own
+      ///   Modules\CalradiaRemembers\GUI\Prefabs (NOT the repo copy; a dotnet build would overwrite it), then run
+      ///   this to see the change without restarting. NOTE: this reloads XML only, never compiled C#; a change to
+      ///   a view-model still needs a full build + game restart.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("reload_ui", "cr")]
       public static string ReloadUi(List<string> args)
       {
+         // ChatManager.ReloadActiveMovie runs WidgetFactory.CheckForUpdates first, which re-reads every changed
+         // prefab (the letter book included), so the letter reload below then rebuilds against fresh XML.
          ChatManager.ReloadActiveMovie();
+         LetterWindowManager.ReloadActiveMovie();
+
+         if (LetterWindowManager.IsOpen)
+            return "Prefabs re-read and the open letter book rebuilt in place.";
 
          return ChatManager.IsOpen
             ? "Prefabs re-read and the open chat rebuilt in place."
-            : "Prefabs re-read. Open a chat to see the changes.";
+            : "Prefabs re-read. Open a chat or a letter to see the changes.";
       }
    }
 }

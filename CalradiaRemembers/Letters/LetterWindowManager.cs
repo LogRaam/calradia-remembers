@@ -64,6 +64,29 @@ namespace CalradiaRemembers.Letters
       }
 
       /// <summary>
+      ///   Dev hot-reload (cr.reload_ui): if the letter book is open, rebuild its widget tree in place by
+      ///   releasing and reloading the movie against the SAME view-model, so the current letter, its mode, and
+      ///   the correspondence thread all survive. Lets a UI author tune the letter prefab's margins without
+      ///   reopening. The prefab XML itself is re-read by the caller (WidgetFactory.CheckForUpdates) before this.
+      ///   The portrait id is left intact so the reloaded portrait widget rebinds to the same cached tableau.
+      /// </summary>
+      public static void ReloadActiveMovie()
+      {
+         if (!IsOpen) return;
+
+         try
+         {
+            _layer.ReleaseMovie(_movieId);
+            _movieId = _layer.LoadMovie(PrefabName, _vm);
+            ModLog.Info("[RELOAD_UI] letter book rebuilt in place.");
+         }
+         catch (System.Exception ex)
+         {
+            ModLog.Error($"[RELOAD_UI] letter book reload failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
       ///   C4: nulls the statics WITHOUT touching any engine object (they belong to a screen torn down by a
       ///   previous session or load). Called at session launch so a dead layer reference from before can never
       ///   leave <see cref="IsOpen" /> stuck true, which would send every subsequent letter into the
