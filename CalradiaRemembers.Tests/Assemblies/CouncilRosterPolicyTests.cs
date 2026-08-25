@@ -25,8 +25,9 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                      bool inArmy = false,
                                                      bool onMission = false,
                                                      bool alliedLeader = false,
-                                                     bool parleyCounterpart = false)
-            => new CouncilMembershipFacts(alive, prisoner, inBattle, companion, family, clanLord, inArmy, onMission, alliedLeader, parleyCounterpart);
+                                                     bool parleyCounterpart = false,
+                                                     bool partyMember = false)
+            => new CouncilMembershipFacts(alive, prisoner, inBattle, companion, family, clanLord, inArmy, onMission, alliedLeader, parleyCounterpart, partyMember);
 
         // The straight case: a companion is seated at a companions' council. If this failed the right-hand roster
         // would be empty and the player would have no one to address.
@@ -301,6 +302,27 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             CouncilRosterPolicy.IsOldEnoughToSit(CouncilRosterPolicy.MinSeatAge).Should().BeTrue();
             CouncilRosterPolicy.IsOldEnoughToSit(CouncilRosterPolicy.MinSeatAge - 1).Should().BeFalse();
+        }
+
+        // Player wish (2026-08-25): a council of everyone riding with the player. A party member is seated at a
+        // Party council; the scope is still a filter, so someone who is NOT riding along (only a party member's
+        // flag is unset) is not of that council.
+        [Test]
+        public void GIVEN_a_party_member_WHEN_a_party_council_is_gathered_THEN_they_are_seated()
+        {
+            CouncilRosterPolicy.Evaluate(CouncilScope.Party, Member(partyMember: true)).Eligible.Should().BeTrue();
+            CouncilRosterPolicy.Evaluate(CouncilScope.Party, Member(companion: true)).Eligible.Should().BeFalse();
+        }
+
+        // Availability still gates first at a party council: a party member pinned in a battle right now cannot
+        // break off to sit, the same "absent member acts as if present" guard every other own-house scope uses.
+        [Test]
+        public void GIVEN_a_party_member_in_a_battle_WHEN_a_party_council_is_gathered_THEN_they_are_excluded_as_in_battle()
+        {
+            CouncilEligibility e = CouncilRosterPolicy.Evaluate(CouncilScope.Party, Member(partyMember: true, inBattle: true));
+
+            e.Eligible.Should().BeFalse();
+            e.Reason.Should().Be(CouncilExclusionReason.InBattle);
         }
     }
 }

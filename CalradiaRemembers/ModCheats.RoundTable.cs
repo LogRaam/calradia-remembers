@@ -69,7 +69,7 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.council [companions|family|lords|war|parley &lt;faction name&gt;]
+      ///   cr.council [companions|party|family|lords|war|parley &lt;faction name&gt;]
       ///   Opens a REAL council of the player's own house (default: companions), or, with "war", the WarCouncil
       ///   scope: the player's ALLIES (the leaders of the OTHER clans in his kingdom, or, with no kingdom, his
       ///   own clan lords) deciding war policy. With "parley &lt;faction name&gt;", opens a Parley against the
@@ -104,6 +104,10 @@ namespace CalradiaRemembers
                   break;
                case "companions":
                   scope = CouncilScope.Companions;
+
+                  break;
+               case "party":
+                  scope = CouncilScope.Party;
 
                   break;
                case "war":

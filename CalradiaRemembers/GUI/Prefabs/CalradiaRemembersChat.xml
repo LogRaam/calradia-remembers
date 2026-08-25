@@ -347,7 +347,7 @@
                                             MarginLeft="@TextMarginLeft"
                                             MarginRight="18"
                                             Brush="Default"
-                                            Brush.FontSize="22"
+                                            Brush.FontSize="@ClassicMessageFontSize"
                                             Brush.FontColor="@AuthorColor"
                                             Brush.TextHorizontalAlignment="Left"
                                             Text="@DisplayText"

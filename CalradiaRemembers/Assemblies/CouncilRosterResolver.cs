@@ -14,6 +14,7 @@ using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Missions;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Roster;
 
 #endregion
 
@@ -135,8 +136,26 @@ namespace CalradiaRemembers.Assemblies
                                               && CouncilRosterPolicy.IsOldEnoughToSit((int) h.Age)) ?? Enumerable.Empty<Hero>();
             case CouncilScope.WarCouncil:
                return WarCouncilCandidates(clan);
+            case CouncilScope.Party:
+               return PartyMembers();
             default:
                return Enumerable.Empty<Hero>();
+         }
+      }
+
+      // Everyone riding WITH the player right now: every hero in the main party's roster (companions and any kin
+      // or lord travelling along), except the player, old enough to sit. Gathered from PRESENCE, so a council of
+      // the party seats exactly who is at hand, unlike Family/ClanLords which answer the ban wherever they stand.
+      private static IEnumerable<Hero> PartyMembers()
+      {
+         MobileParty main = MobileParty.MainParty;
+         if (main?.MemberRoster == null) yield break;
+
+         foreach (TroopRosterElement el in main.MemberRoster.GetTroopRoster())
+         {
+            Hero h = el.Character?.HeroObject;
+            if (h is {IsAlive: true} && h != Hero.MainHero && CouncilRosterPolicy.IsOldEnoughToSit((int) h.Age))
+               yield return h;
          }
       }
 
@@ -238,6 +257,10 @@ namespace CalradiaRemembers.Assemblies
          // free-text target).
          bool isParleyCounterpart = ParleyFactionLookup.ByStringId(parleyTargetFactionId)?.Leader == hero;
 
+         // Party roster: riding in the main party right now, not the player, old enough to sit.
+         bool isPartyMember = hero.PartyBelongedTo == MobileParty.MainParty && hero != player
+                            && CouncilRosterPolicy.IsOldEnoughToSit((int) hero.Age);
+
          return new CouncilMembershipFacts(
             hero.IsAlive,
             hero.IsPrisoner,
@@ -248,7 +271,8 @@ namespace CalradiaRemembers.Assemblies
             hero.PartyBelongedTo?.Army != null,
             CompanionMissionBehavior.Instance?.IsAway(hero.StringId) ?? false,
             isAlliedLeader,
-            isParleyCounterpart);
+            isParleyCounterpart,
+            isPartyMember);
       }
 
       #endregion

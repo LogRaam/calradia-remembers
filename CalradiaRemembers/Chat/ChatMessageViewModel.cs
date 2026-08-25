@@ -116,6 +116,18 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      /// <summary>
+      ///   The dialogue-line font size, each skin's shipped base scaled by the independent "Chat Text Size" setting
+      ///   (<see cref="ModSettings.ChatTextScale" />) so the player can fit more words per line without shrinking
+      ///   the whole window. Read when the message binds, so the setting applies to the next conversation. Two
+      ///   properties because the two skins ship different base sizes (Origin 22, Dark Leather 18).
+      /// </summary>
+      [DataSourceProperty]
+      public float ClassicMessageFontSize => 22f * ModSettings.ChatTextScale;
+
+      [DataSourceProperty]
+      public float ManuscriptMessageFontSize => 18f * ModSettings.ChatTextScale;
+
       [DataSourceProperty]
       public float AvatarHeight { get; private set; } = 88f;
 

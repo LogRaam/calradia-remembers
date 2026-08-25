@@ -47,7 +47,8 @@ namespace CalradiaRemembers.Logic.Assemblies
                                       bool isInArmy,
                                       bool isOnMission,
                                       bool isAlliedLeader = false,
-                                      bool isParleyCounterpart = false)
+                                      bool isParleyCounterpart = false,
+                                      bool isPartyMember = false)
         {
             IsAlive = isAlive;
             IsPrisoner = isPrisoner;
@@ -59,6 +60,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             IsOnMission = isOnMission;
             IsAlliedLeader = isAlliedLeader;
             IsParleyCounterpart = isParleyCounterpart;
+            IsPartyMember = isPartyMember;
         }
 
         public bool IsAlive { get; }
@@ -100,6 +102,13 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   only alive and not a prisoner are checked.
         /// </summary>
         public bool IsParleyCounterpart { get; }
+
+        /// <summary>
+        ///   The Party council's own roster fact: a hero riding in the player's main party right now (a companion,
+        ///   or any kin or lord travelling along), old enough to sit. Gathered from PRESENCE, not house or realm,
+        ///   so it can overlap every other flag; the ordinary availability gates (battle/army/mission) still apply.
+        /// </summary>
+        public bool IsPartyMember { get; }
     }
 
     /// <summary>Whether a hero is seated at a council, and if not, the reason to show on the roster.</summary>

@@ -133,6 +133,42 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   How large the council (round-table) window is drawn, INDEPENDENTLY of the chat's Dark Leather size: the
+      ///   council book is much wider than a chat window, so on a high-resolution screen it can overflow at the same
+      ///   percent the chat fits at (player report, 2026-08-25). 1.0 (100%) is the shipped council size; clamped to
+      ///   [0.6, 1.4] to match the slider even if a stale config carries something outside it; 1.0 when MCM has not
+      ///   loaded. Applies to the NEXT council opened (the fixed book size is read when the window is built).
+      /// </summary>
+      public static float CouncilScale
+      {
+         get
+         {
+            int pct = CrSettings.Instance?.CouncilZoomPercent ?? 100;
+            if (pct < 60) pct = 60;
+            if (pct > 140) pct = 140;
+            return pct / 100f;
+         }
+      }
+
+      /// <summary>
+      ///   How large the chat DIALOGUE TEXT is drawn, independently of the window size: since the window scale
+      ///   scales the whole book (font included), text-per-line stayed constant however the player sized the
+      ///   window (player report, 2026-08-25). This scales only the message font, so a smaller value fits more
+      ///   words per line. 1.0 (100%) is the shipped size; clamped to [0.7, 1.3]; 1.0 when MCM has not loaded.
+      ///   Applies to the next conversation opened (the font size is read when each message binds).
+      /// </summary>
+      public static float ChatTextScale
+      {
+         get
+         {
+            int pct = CrSettings.Instance?.ChatTextSizePercent ?? 100;
+            if (pct < 70) pct = 70;
+            if (pct > 130) pct = 130;
+            return pct / 100f;
+         }
+      }
+
+      /// <summary>
       ///   How readily lords ride out to have a word with the player on the road (player request, Fakade). Read
       ///   live from the MCM menu; Occasionally (the shipped feel) when MCM has not loaded, so nothing changes for
       ///   a player who never touches it.

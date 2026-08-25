@@ -1198,6 +1198,7 @@ namespace CalradiaRemembers.Chat
             CouncilScope.ClanLords => "Council of your clan's lords",
             CouncilScope.WarCouncil => "War council",
             CouncilScope.Parley => "Parley",
+            CouncilScope.Party => "Council of those riding with you",
             _ => "Council of companions"
          };
          PopulateCouncilParticipants();
@@ -1255,6 +1256,11 @@ namespace CalradiaRemembers.Chat
                "word, to speak of peace. Describe the meeting settling in, briefly, then let the counterpart open: " +
                "acknowledge why they came and ask what terms the player would offer. Wary, not friendly, they did " +
                "not come to surrender, only to hear.]",
+            CouncilScope.Party =>
+               "[The player has gathered everyone riding with them: their companions, and any kin or lords " +
+               "travelling in the party, are together at the player's word. Describe the camp or hall settling in, " +
+               "briefly, then let EACH one present greet the player and settle in as the council opens, in their " +
+               "own voice and true to their AGE and their bond.]",
             _ =>
                "[The player has called their companions together: they are gathered at their word. Describe the " +
                "gathering settling in, briefly, then let EACH companion greet the player in their own way and settle " +

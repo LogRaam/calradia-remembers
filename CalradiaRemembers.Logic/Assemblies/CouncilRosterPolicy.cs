@@ -64,6 +64,9 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case CouncilScope.Parley:
                     belongs = f.IsParleyCounterpart;
                     break;
+                case CouncilScope.Party:
+                    belongs = f.IsPartyMember;
+                    break;
                 default:
                     belongs = false;
                     break;

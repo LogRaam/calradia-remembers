@@ -470,7 +470,7 @@
                                                     MarginLeft="@TextMarginLeft"
                                                     MarginRight="14"
                                                     Brush="Default"
-                                                    Brush.FontSize="18"
+                                                    Brush.FontSize="@ManuscriptMessageFontSize"
                                                     Brush.FontColor="@AuthorColor"
                                                     Brush.TextHorizontalAlignment="Left"
                                                     Text="@DisplayText"

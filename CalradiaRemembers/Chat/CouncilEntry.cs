@@ -27,7 +27,7 @@ namespace CalradiaRemembers.Chat
       // The scopes a player convenes directly. Assembly is the separate invite-and-wait model; Parley is
       // contextual to a specific war (it needs an enemy target), so neither belongs in this general picker.
       private static readonly CouncilScope[] PlayerScopes =
-         {CouncilScope.Companions, CouncilScope.Family, CouncilScope.ClanLords, CouncilScope.WarCouncil};
+         {CouncilScope.Party, CouncilScope.Companions, CouncilScope.Family, CouncilScope.ClanLords, CouncilScope.WarCouncil};
 
       /// <summary>The scopes that would seat at least one member right now, in menu order.</summary>
       public static List<CouncilScope> OfferableScopes()
@@ -137,6 +137,7 @@ namespace CalradiaRemembers.Chat
 
       private static string ScopeLabel(CouncilScope scope)
          => scope switch {
+            CouncilScope.Party => "Those riding with you",
             CouncilScope.Companions => "Your companions",
             CouncilScope.Family => "Your kin",
             CouncilScope.ClanLords => "Your clan's lords",

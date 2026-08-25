@@ -59,7 +59,15 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   player's faction and the chosen enemy. Appended LAST so its ordinal is additive (this enum is
         ///   persisted by ordinal, see CouncilSessionBehavior.CouncilSessionSnapshot.Scope).
         /// </summary>
-        Parley
+        Parley,
+
+        /// <summary>
+        ///   Everyone riding WITH the player right now: every hero in the main party (companions AND any kin or
+        ///   lord travelling along), a mixed table gathered from presence rather than house or realm (player wish,
+        ///   2026-08-25). Unlike Family/ClanLords (which seat kin wherever they stand), this seats only those
+        ///   actually in the party. Appended last to preserve the persisted ordinals of existing saves.
+        /// </summary>
+        Party
     }
 
     /// <summary>

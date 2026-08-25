@@ -169,9 +169,12 @@ namespace CalradiaRemembers.Chat
 
          // Council skin (2026-08-23): the same fixed-aspect treatment as Manuscript, now that its background is
          // Gabriel's full-book leather art (cr_counsel.jpg, 1683x935) with every control laid over the painted
-         // slots. Its own zoom, because the art fills more of the screen than the Manuscript book does.
+         // slots. Its own zoom, because the art fills more of the screen than the Manuscript book does. Scaled by
+         // the SEPARATE "Council Size" setting (ModSettings.CouncilScale), NOT the chat's Dark Leather size: the
+         // council book is far wider, so on a 1440p+ screen it overflowed at the same percent the chat fit at
+         // (player report, 2026-08-25). The two window sizes are now dialled independently.
          if (ActiveSkin == CouncilSkin && _activeLayer?.UIContext != null)
-            _activeLayer.UIContext.ScaleModifier = CouncilZoom * ModSettings.DarkLeatherScale;
+            _activeLayer.UIContext.ScaleModifier = CouncilZoom * ModSettings.CouncilScale;
 
          SampleVramPeriodically(); // a heartbeat VRAM read, so an idle (no-response) scene still traces its trend
 
@@ -637,6 +640,7 @@ namespace CalradiaRemembers.Chat
             CouncilScope.ClanLords => "a lord of the player's clan, seated at this council",
             CouncilScope.WarCouncil => "an allied lord seated at this war council",
             CouncilScope.Parley => "the enemy leader this parley was sought with",
+            CouncilScope.Party => "one riding with the player, seated at this council",
             _ => "a companion in the player's service, seated at this council"
          };
 
