@@ -946,8 +946,10 @@ Trait-mapping sketch: low Mercy produces demeaning, low Honor projects suspicion
 cold transactional dismissal of a low-value newcomer, low Generosity produces reward-jealousy. Shipped as
 `FirstImpressionPolicy` + `FirstImpressionDisposition` + `FirstImpressionDescriber` (Logic, tested),
 `EncounterContext.OpeningDisposition` + SDK "FIRST IMPRESSION" prompt block, mod `FirstImpressionResolver`,
-`cr.impression` console. STILL OPEN (deferred): the noble-rides-out-to-meet-you (interception) frequency knob
-UP that ProudSeal also asked for; and extending first impressions beyond lords to notables/wanderers.
+`cr.impression` console. DONE since (verified 2026-08-25): the noble-rides-out-to-meet-you (interception)
+frequency knob ProudSeal asked for is the "Lords Approaching You" MCM dropdown (`CrSettings.InterceptionPacing`
+-> `InterceptionPacingRules`, Never/Rarely/Occasionally/Often). STILL OPEN (deferred): extending first
+impressions beyond lords to notables/wanderers.
 
 ---
 
