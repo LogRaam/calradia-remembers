@@ -2,7 +2,7 @@
   <!--
     The letter window as an open leather BOOK (Gabriel's art, cr_letters.jpg), a fixed-size centered widget so
     the painted borders never distort (aspect 1402:1122). Left page = the whole dated correspondence thread with
-    this contact (open by default; the top toggle can hide it). Right page = the current letter: sender portrait,
+    this contact (always shown). Right page = the current letter: sender portrait,
     body, signature. Buttons sit on the bottom leather strip. Compose/reply reuse the same book (the writing field
     replaces the read body on the right page).
 
@@ -41,28 +41,7 @@
                                   CorrectRedBlue="true"
                                   IsDisabled="true" />
 
-            <!-- Show/hide toggle on the top spine -->
-            <ButtonWidget Id="HistoryToggleButton"
-                          WidthSizePolicy="Fixed"
-                          HeightSizePolicy="Fixed"
-                          SuggestedWidth="170"
-                          SuggestedHeight="34"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Top"
-                          MarginTop="16"
-                          IsVisible="@HasHistory"
-                          Brush="ButtonBrush1"
-                          DoNotPassEventsToChildren="true"
-                          UpdateChildrenStates="true"
-                          Command.Click="ExecuteToggleHistory">
-              <Children>
-                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Brush="Popup.Button.Text" Brush.FontSize="14" Text="@HistoryToggleText" />
-              </Children>
-            </ButtonWidget>
-
-            <!-- ============================ LEFT PAGE: the correspondence thread ============================ -->
+            <!-- ============================ LEFT PAGE: the correspondence thread (always shown) ============================ -->
             <Widget Id="LeftPage"
                     WidthSizePolicy="Fixed"
                     HeightSizePolicy="Fixed"
@@ -70,8 +49,7 @@
                     SuggestedHeight="!Book.Height"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    MarginLeft="47"
-                    IsVisible="@ShowHistory">
+                    MarginLeft="47">
               <Children>
 
                 <TextWidget Id="HistoryTitle"

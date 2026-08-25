@@ -48,13 +48,11 @@ namespace CalradiaRemembers.Letters
 
       private string _title = "";
 
-      // ── Correspondence left page (open by default; reuses the encyclopedia archive's thread + row template) ──
+      // ── Correspondence left page (always shown; reuses the encyclopedia archive's thread + row template) ──
       private readonly MBBindingList<LetterArchiveEntryViewModel> _historyEntries = new MBBindingList<LetterArchiveEntryViewModel>();
-      private bool _hasHistory;
       private string _historyEmptyText = "";
       private bool _historyIsEmpty;
       private string _historyTitle = "";
-      private bool _showHistory = true;
 
       [DataSourceProperty]
       public string AcknowledgeButtonText => "Acknowledge";
@@ -255,32 +253,6 @@ namespace CalradiaRemembers.Letters
       [DataSourceProperty]
       public MBBindingList<LetterArchiveEntryViewModel> HistoryEntries => _historyEntries;
 
-      /// <summary>True when this contact has any past correspondence at all (gates the show/hide toggle).</summary>
-      [DataSourceProperty]
-      public bool HasHistory
-      {
-         get => _hasHistory;
-         set
-         {
-            if (_hasHistory == value) return;
-            _hasHistory = value;
-            OnPropertyChangedWithValue(value);
-         }
-      }
-
-      /// <summary>Whether the left correspondence page is currently shown (open by default; the toggle can hide it).</summary>
-      [DataSourceProperty]
-      public bool ShowHistory
-      {
-         get => _showHistory;
-         set
-         {
-            if (_showHistory == value) return;
-            _showHistory = value;
-            OnPropertyChangedWithValue(value);
-         }
-      }
-
       /// <summary>True when the left page has no letters to show (a fresh contact): a quiet empty line stands in for the thread.</summary>
       [DataSourceProperty]
       public bool HistoryIsEmpty
@@ -320,10 +292,6 @@ namespace CalradiaRemembers.Letters
          }
       }
 
-      /// <summary>The show/hide toggle label, reflecting the left page's current state.</summary>
-      [DataSourceProperty]
-      public string HistoryToggleText => _showHistory ? "Hide letters" : "Show letters";
-
       // ── Commands ────────────────────────────────────────────────────────
 
       /// <summary>Read mode: dismiss the letter (it was already marked delivered on arrival).</summary>
@@ -334,15 +302,6 @@ namespace CalradiaRemembers.Letters
       }
 
       public void ExecuteClose() => OnCloseRequested?.Invoke();
-
-      /// <summary>Show or hide the left correspondence page (the thread is already built; this only flips its visibility).</summary>
-      public void ExecuteToggleHistory()
-      {
-         if (!_hasHistory) return;
-
-         ShowHistory = !_showHistory;
-         OnPropertyChanged(nameof(HistoryToggleText));
-      }
 
       /// <summary>Read mode: turn this into a reply — flip the same window to reply mode in place.</summary>
       public void ExecuteReply()
@@ -482,12 +441,9 @@ namespace CalradiaRemembers.Letters
          OnPropertyChanged(nameof(InputBrush));
          OnPropertyChanged(nameof(CloseButtonText));
          OnPropertyChanged(nameof(PanelHeight));
-         OnPropertyChanged(nameof(HasHistory));
-         OnPropertyChanged(nameof(ShowHistory));
          OnPropertyChanged(nameof(HistoryIsEmpty));
          OnPropertyChanged(nameof(HistoryEmptyText));
          OnPropertyChanged(nameof(HistoryTitle));
-         OnPropertyChanged(nameof(HistoryToggleText));
          OnPropertyChanged(nameof(ShowPortrait));
          OnPropertyChanged(nameof(PortraitTextureProviderName));
          OnPropertyChanged(nameof(PortraitId));
@@ -508,15 +464,11 @@ namespace CalradiaRemembers.Letters
       // ── Correspondence left page ────────────────────────────────────────
 
       /// <summary>
-      ///   Recomputes the left page for the current contact: the show/hide gate, the heading, and the thread
-      ///   itself (built eagerly since the page is open by default). A fresh contact with no letters yet shows a
-      ///   quiet empty line instead of an empty book page.
+      ///   Recomputes the left page for the current contact: the heading and the thread itself (the page is
+      ///   always shown). A fresh contact with no letters yet shows a quiet empty line instead of a blank page.
       /// </summary>
       private void RefreshHistoryState()
       {
-         _hasHistory = _profile != null &&
-                       LetterArchivePolicy.HasCorrespondence(_profile.SentLetters, _profile.ReceivedPlayerLetters);
-         _showHistory = true;
          _historyTitle = string.IsNullOrEmpty(_profile?.Name)
             ? "Correspondence"
             : $"Letters with {_profile.Name}";
