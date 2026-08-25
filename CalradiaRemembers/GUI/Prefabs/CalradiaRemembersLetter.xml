@@ -8,7 +8,8 @@
 
     V1 built from Gabriel's mockup; control positions are estimated and meant to be tuned in-game (same as the
     Manuscript chat skin). NOT yet reproduced from the mockup (pending a decision / art): the name-first "1086th
-    year" header style, the per-entry wax seals, the illuminated drop-cap, and the floral vignette on the portrait.
+    year" header style, the per-entry wax seals, and the floral vignette on the portrait. (No illuminated drop-cap:
+    Gabriel's call, 2026-08-24.)
   -->
   <Constants>
     <Constant Name="Book.Width"  Value="1180" />
