@@ -1,0 +1,7 @@
+Version 2.2.2
+
+Two fixes: a settlement-entry crash, and characters keeping up with a realm that changed under them. Your saves from 2.2.1 carry over untouched.
+
+Fixed
+- A word in a settlement no longer floods the screen. When a character caught you as you entered a town, castle, or village and asked for a word, accepting could pile the same popup up without end and freeze the game (you had to force it closed). The conversation now opens cleanly, one popup, no cascade. Declining was never affected.
+- Characters keep up with a realm that changed under them. After a lord defected or a kingdom split apart at runtime (including new realms spawned by other mods, such as civil-war mods), they could still be introduced by the allegiance they had left, even while the same conversation already knew the new war lines. A character's realm and house are now refreshed to the current state every time you speak, so they name the kingdom they actually belong to now.
