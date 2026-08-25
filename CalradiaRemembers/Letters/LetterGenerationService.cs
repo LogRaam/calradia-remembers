@@ -249,7 +249,7 @@ namespace CalradiaRemembers.Letters
             };
 
             NpcChatResult result;
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(LetterLlmTimeoutSeconds)))
             {
                CancellationToken token = cts.Token;
                result = await Task.Run(
@@ -265,6 +265,14 @@ namespace CalradiaRemembers.Letters
 
             return null;
          }
+         catch (System.OperationCanceledException)
+         {
+            // A slow model/provider that exceeds the timeout, not a fault: the letter is simply skipped, so this
+            // is INFO, not a red ERROR. (TaskCanceledException derives from OperationCanceledException.)
+            ModLog.Info($"[LETTER] generation timed out after {LetterLlmTimeoutSeconds}s (slow LLM response); letter skipped.");
+
+            return null;
+         }
          catch (Exception ex)
          {
             ModLog.Error($"[LETTER] CallLlmForLetterAsync threw: {ex.Message}");
@@ -272,6 +280,9 @@ namespace CalradiaRemembers.Letters
             return null;
          }
       }
+
+      /// <summary>How long a single letter-generation LLM call may run before it is cancelled and the letter skipped.</summary>
+      private const int LetterLlmTimeoutSeconds = 60;
 
       /// <summary>
       ///   A deep copy of the profile for read-only prompt building, so the off-thread LLM call never
