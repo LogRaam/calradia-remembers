@@ -10,6 +10,18 @@ namespace CalradiaRemembers.Logic.Assemblies
     /// <summary>Reads a <see cref="CouncilMembershipFacts" /> for one hero into a seated/excluded verdict.</summary>
     public static class CouncilRosterPolicy
     {
+        /// <summary>
+        ///   The youngest age a hero may take a council seat, in ANY scope (family, clan lords, and the war
+        ///   council's own-house fallback alike). A teen (13+) may sit and speak true to their years; a younger
+        ///   child is present in the household but is never a candidate for the table. Kept here, pure, so the one
+        ///   age rule is shared by every roster and unit-tested rather than re-derived (or forgotten) per scope,
+        ///   which is exactly how toddlers were seating at a war / clan-lords council.
+        /// </summary>
+        public const int MinSeatAge = 13;
+
+        /// <summary>True when a hero is old enough to take a council seat (see <see cref="MinSeatAge" />).</summary>
+        public static bool IsOldEnoughToSit(int age) => age >= MinSeatAge;
+
         public static CouncilEligibility Evaluate(CouncilScope scope, CouncilMembershipFacts f)
         {
             // Availability first: a summons to your own house still cannot seat the dead, the imprisoned, or a

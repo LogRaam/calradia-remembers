@@ -131,7 +131,8 @@ namespace CalradiaRemembers.Assemblies
             case CouncilScope.Family:
                return ImmediateFamily();
             case CouncilScope.ClanLords:
-               return clan.Heroes?.Where(h => h is {IsLord: true} && h != Hero.MainHero) ?? Enumerable.Empty<Hero>();
+               return clan.Heroes?.Where(h => h is {IsLord: true} && h != Hero.MainHero
+                                              && CouncilRosterPolicy.IsOldEnoughToSit((int) h.Age)) ?? Enumerable.Empty<Hero>();
             case CouncilScope.WarCouncil:
                return WarCouncilCandidates(clan);
             default:
@@ -189,16 +190,14 @@ namespace CalradiaRemembers.Assemblies
          foreach (Hero h in (clan.Companions ?? Enumerable.Empty<Hero>()).Where(h => h != null))
             if (seen.Add(h.StringId)) yield return h;
 
-         foreach (Hero h in (clan.Heroes ?? Enumerable.Empty<Hero>()).Where(h => h is {IsLord: true} && h != Hero.MainHero))
+         foreach (Hero h in (clan.Heroes ?? Enumerable.Empty<Hero>()).Where(h => h is {IsLord: true} && h != Hero.MainHero
+                                                                                 && CouncilRosterPolicy.IsOldEnoughToSit((int) h.Age)))
             if (seen.Add(h.StringId)) yield return h;
       }
 
-      // Youngest age a child may take a seat at the family council. A teen (13+) can hold a place and speak
-      // true to their years; a young child is present in the household but not a candidate for the table.
-      private const int FamilyCouncilMinAge = 13;
-
-      // The player's spouse, siblings, and children old enough to sit (13+). Younger children are excluded here
-      // rather than in the policy: a small child is not refused a seat, they were never a candidate for one.
+      // The player's spouse, siblings, and children old enough to sit (CouncilRosterPolicy.MinSeatAge). Younger
+      // children are excluded here rather than in the policy: a small child is not refused a seat, they were never
+      // a candidate for one, so they stay out of the refusal list entirely.
       private static IEnumerable<Hero> ImmediateFamily()
       {
          var player = Hero.MainHero;
@@ -212,7 +211,7 @@ namespace CalradiaRemembers.Assemblies
                yield return sibling;
 
          if (player.Children != null)
-            foreach (Hero child in player.Children.Where(c => c is {IsAlive: true} && c.Age >= FamilyCouncilMinAge))
+            foreach (Hero child in player.Children.Where(c => c is {IsAlive: true} && CouncilRosterPolicy.IsOldEnoughToSit((int) c.Age)))
                yield return child;
       }
 
@@ -223,7 +222,7 @@ namespace CalradiaRemembers.Assemblies
          bool isFamily = player != null
                        && (hero == player.Spouse
                         || (player.Siblings?.Contains(hero) ?? false)
-                        || ((player.Children?.Contains(hero) ?? false) && hero.Age >= FamilyCouncilMinAge));
+                        || ((player.Children?.Contains(hero) ?? false) && CouncilRosterPolicy.IsOldEnoughToSit((int) hero.Age)));
 
          // Mirrors WarCouncilCandidates exactly (a hero seated by that pool must also read true here): when allies
          // can be gathered, an allied leader is a DIFFERENT clan's own leader within the player's kingdom; when
@@ -231,7 +230,7 @@ namespace CalradiaRemembers.Assemblies
          // player's own house, so a companion OR an own-clan lord reads as a war-council seat instead.
          bool isAlliedLeader = clan != null
                              && (WarCouncilFallsBackToHouse()
-                                ? hero.IsPlayerCompanion || (hero.Clan == clan && hero.IsLord && hero != player)
+                                ? hero.IsPlayerCompanion || (hero.Clan == clan && hero.IsLord && hero != player && CouncilRosterPolicy.IsOldEnoughToSit((int) hero.Age))
                                 : hero.Clan != null && hero.Clan != clan && hero.Clan.Kingdom == clan.Kingdom && hero.Clan.Leader == hero);
 
          // Mirrors ParleyCandidates exactly (the one hero that pool ever returns must also read true here): the
@@ -245,7 +244,7 @@ namespace CalradiaRemembers.Assemblies
             hero.PartyBelongedTo?.MapEvent != null,
             hero.IsPlayerCompanion,
             isFamily,
-            clan != null && hero.Clan == clan && hero.IsLord && hero != player,
+            clan != null && hero.Clan == clan && hero.IsLord && hero != player && CouncilRosterPolicy.IsOldEnoughToSit((int) hero.Age),
             hero.PartyBelongedTo?.Army != null,
             CompanionMissionBehavior.Instance?.IsAway(hero.StringId) ?? false,
             isAlliedLeader,

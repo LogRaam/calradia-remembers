@@ -280,5 +280,27 @@ namespace CalradiaRemembers.Tests.Assemblies
             e.Eligible.Should().BeFalse();
             e.Reason.Should().Be(CouncilExclusionReason.Imprisoned);
         }
+
+        // Player report (2026-08-25): toddlers were seating at a war / clan-lords council because the 13+ age rule
+        // was only applied to the FAMILY roster. The rule now lives here, shared by every scope's candidate pool.
+        // A child below the threshold is not old enough to sit; a teen at the threshold is. If this drifted, either
+        // toddlers return to the table, or a 13-year-old kin who should hold a place is silently barred.
+        [TestCase(2, false)]
+        [TestCase(12, false)]
+        [TestCase(13, true)]
+        [TestCase(40, true)]
+        public void GIVEN_a_heros_age_WHEN_asked_if_old_enough_to_sit_THEN_only_the_threshold_and_up_qualify(int age, bool expected)
+        {
+            CouncilRosterPolicy.IsOldEnoughToSit(age).Should().Be(expected);
+        }
+
+        // The threshold is exactly the seat age, so the boundary is unambiguous: one year under is out, the age
+        // itself is in. Pins the boundary against an off-by-one that would seat twelve-year-olds or bar thirteens.
+        [Test]
+        public void GIVEN_the_seat_age_boundary_WHEN_checked_THEN_it_is_inclusive_at_MinSeatAge()
+        {
+            CouncilRosterPolicy.IsOldEnoughToSit(CouncilRosterPolicy.MinSeatAge).Should().BeTrue();
+            CouncilRosterPolicy.IsOldEnoughToSit(CouncilRosterPolicy.MinSeatAge - 1).Should().BeFalse();
+        }
     }
 }
