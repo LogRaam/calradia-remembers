@@ -61,6 +61,22 @@ namespace CalradiaRemembers.Mapping
          profile.SpouseName = hero.Spouse?.IsAlive == true
             ? hero.Spouse.Name?.ToString()
             : null;
+         RefreshIdentity(profile, hero);
+      }
+
+      /// <summary>
+      ///   Brings the hero's realm/house identity up to date with live game state. A hero can change kingdom or
+      ///   clan at runtime (a defection, or a civil-war split spawned by another mod such as Bellum Civile), so the
+      ///   frozen creation-time <see cref="NpcProfile.Faction" /> / <see cref="NpcProfile.Clan" /> would otherwise
+      ///   keep introducing them by an allegiance they have left, even while the same prompt's war status and liege
+      ///   line already reflect the new realm. Uses the exact fallbacks <see cref="FromHero" /> uses. Call at
+      ///   conversation open (and session launch) so the identity line always names the current realm.
+      /// </summary>
+      public static void RefreshIdentity(NpcProfile profile, Hero hero)
+      {
+         if (profile == null || hero == null) return;
+         profile.Faction = hero.MapFaction?.Name?.ToString() ?? "Unaligned";
+         profile.Clan = hero.Clan?.Name?.ToString() ?? "";
       }
 
       /// <summary>

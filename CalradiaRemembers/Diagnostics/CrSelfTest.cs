@@ -303,6 +303,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_captor_release", Severity.Light, "LLM: the PLAYER is captive and pleads for freedom -> assert a disposed captor's release gate OPENED (deterministic wiring) + judge whether release_player fires (should feel earned, not instant)", TestChatCaptorRelease, true),
          new SelfTest("gang_rivalry", Severity.Light, "Mechanical: a same-town gang-leader pair is framed as RIVALS in the name hint (never friends-by-culture); skips if the campaign has no such pair", TestGangRivalry),
          new SelfTest("captive_fear_coerced", Severity.Light, "Mechanical: a terrified captive (high Fear) trips the freedom-bargain coercion flag, a fearless one does not (Fear-1 wiring)", TestCaptiveFearCoerced),
+         new SelfTest("faction_identity_refreshes", Severity.Light, "Mechanical: a profile's frozen realm/house identity is refreshed to live game state on conversation open, so a hero who changed kingdom (a defection, or a runtime civil-war split from another mod like Bellum Civile) is introduced by their CURRENT faction/clan, not the one frozen at profile creation. Corrupts Faction/Clan, calls RefreshIdentity, asserts they match the live hero", TestFactionIdentityRefreshes),
          new SelfTest("party_troop_count", Severity.Light, "Mechanical: a companion in the player's party sees the real troop count in context (no more hallucinated army size); skips if the player has no party companion", TestPartyTroopCount),
          new SelfTest("nemesis_mint", Severity.Light, "Mechanical: minting a nemesis creates a persistent Hero WITH a memory profile (the 'no memory' bug fixed), reuses him in-region, mints a distinct one per region; PLANTS test nemeses (reload after)", TestNemesisMint),
          new SelfTest("assembly_convene", Severity.Light, "Mechanical (ASSEMBLY Inc 1): arranges a host town + live lords with a seeded regard, convenes through the real facts-builder + RSVP policy, asserts the regard read-back + roster + tally, then cancels and restores (no manual in-game setup needed)", TestAssemblyConvene),
@@ -1735,6 +1736,40 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("noFearNotCoerced", calm.CaptiveFearCoerced, false);
 
          t.Note($"Fear coercion wiring on {npc.Name}: Fear 60 -> coerced, Fear 0 -> not.");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Realm/house identity must track live game state. A hero who changed kingdom (a defection, or a runtime
+      ///   civil-war split spawned by another mod like Bellum Civile) was otherwise still introduced by the faction
+      ///   frozen at profile creation, even though the same prompt's war status and liege line already read the new
+      ///   realm. Pins that RefreshIdentity (run on every conversation open) overwrites a stale Faction/Clan with
+      ///   the current live values.
+      /// </summary>
+      private static string TestFactionIdentityRefreshes(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("faction_identity_refreshes");
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC available")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+
+         string liveFaction = npc.MapFaction?.Name?.ToString() ?? "Unaligned";
+         string liveClan = npc.Clan?.Name?.ToString() ?? "";
+
+         // Corrupt the identity exactly as a mid-session defection leaves a frozen profile.
+         profile.Faction = "[SELFTEST] Old Fallen Realm";
+         profile.Clan = "[SELFTEST] Old House";
+
+         CalradiaRemembers.Mapping.HeroProfileMapper.RefreshIdentity(profile, npc);
+
+         t.Expect("factionRefreshedToLive", profile.Faction == liveFaction, true);
+         t.Expect("clanRefreshedToLive", profile.Clan == liveClan, true);
+
+         t.Note($"{npc.Name}: stale identity overwritten with live faction '{liveFaction}', clan '{liveClan}'.");
 
          return t.Line();
       }

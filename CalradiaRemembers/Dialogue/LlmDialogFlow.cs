@@ -350,6 +350,11 @@ namespace CalradiaRemembers.Dialogue
             // current from the next conversation on, same cadence as Relationships above.
             existing.Age = (int) hero.Age;
 
+            // Realm/house identity, same live cadence: a hero who has since defected or joined a
+            // runtime-created kingdom (e.g. a civil-war split from another mod) is introduced by
+            // their CURRENT realm, not the one frozen when their profile was first built.
+            HeroProfileMapper.RefreshIdentity(existing, hero);
+
             return existing;
          }
 
