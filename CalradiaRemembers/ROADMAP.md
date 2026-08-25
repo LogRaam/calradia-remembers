@@ -78,8 +78,14 @@ Increments:
   `letter_leak_evaluates` (non-destructive antagonist scan). DEVIATION from the scope note: substance is a CONTENT
   HEURISTIC (`LetterLeakPolicy.HasSubstance`, min length), NOT `LetterMemoryPolicy.ShouldRemember`, because
   `PlayerLetter` carries no `Reason` field (adding one is a later increment).
-- Inc 2 (later): the antagonist ACTS on the intel (a scheme hook, or a real edge), and the player can hear the
-  rumor that their plans leaked.
+- Inc 2: DONE 2026-08-25 (MOD `7fc203f`). The leak now LASTS beyond the one exploiting letter. The antagonist
+  forms a persisted grudge against the player (`GrudgeSource.LeakedLetter` via `GrudgeBehavior.TryPlant`), so the
+  grudge system escalates it into future hostile letters or an interception; and the player loses a little renown as
+  their private words become known (the rumour's public cost, on top of the `letter_leaked` WorldEvent Inc 1 already
+  records as the rumour substrate). Magnitudes are the pure, unit-tested `LetterLeakConsequencePolicy` (grudge +
+  renown, both sharper when the antagonist was ALREADY a personal enemy). Wired in `CourierService.ApplyLeakConsequences`
+  (called from `TryLeakLostLetter`); self-test `letter_leak_consequences` (plants on a grudge-free lord, asserts
+  grudge + renown, then clears + restores). Same MCM toggle `InterceptedLettersCanLeak` (feature deepened, not new).
 
 Testability note (Gabriel not playing until ~Christmas, see the feedback memory): all the decision logic lives in
 `LetterLeakPolicy` with exhaustive unit tests; the engine wiring stays thin. The LLM output (the antagonist's
