@@ -57,13 +57,6 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public int CouncilZoomPercent { get; set; } = 100;
 
-      [SettingPropertyInteger("Chat Text Size (%)", 70, 130, "0 '%'", RequireRestart = false, Order = 9,
-         HintText = "Scales ONLY the dialogue text in the chat window, independently of the window size above. Lower " +
-                    "it to fit MORE words per line (a denser, more readable page); raise it for larger type. 100 is " +
-                    "the shipped size. Applies to the next conversation opened.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
-      public int ChatTextSizePercent { get; set; } = 100;
-
       [SettingPropertyText("OpenRouter API Key", RequireRestart = false, Order = 0,
          HintText = "Paste your key from openrouter.ai/keys. Stored locally on this machine only. NEVER share your " +
                     "config file or a screenshot of this field. Applies immediately.")]

@@ -150,23 +150,6 @@ namespace CalradiaRemembers
          }
       }
 
-      /// <summary>
-      ///   How large the chat DIALOGUE TEXT is drawn, independently of the window size: since the window scale
-      ///   scales the whole book (font included), text-per-line stayed constant however the player sized the
-      ///   window (player report, 2026-08-25). This scales only the message font, so a smaller value fits more
-      ///   words per line. 1.0 (100%) is the shipped size; clamped to [0.7, 1.3]; 1.0 when MCM has not loaded.
-      ///   Applies to the next conversation opened (the font size is read when each message binds).
-      /// </summary>
-      public static float ChatTextScale
-      {
-         get
-         {
-            int pct = CrSettings.Instance?.ChatTextSizePercent ?? 100;
-            if (pct < 70) pct = 70;
-            if (pct > 130) pct = 130;
-            return pct / 100f;
-         }
-      }
 
       /// <summary>
       ///   How readily lords ride out to have a word with the player on the road (player request, Fakade). Read
