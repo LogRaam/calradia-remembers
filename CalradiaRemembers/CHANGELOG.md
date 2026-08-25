@@ -2,6 +2,32 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.2.1.. 2026-08-25
+
+Your letters become a book you can leaf through. Your saves from 2.2.0 carry over untouched.
+
+### New
+- **Your letters are now an open book.** Reading a letter opens a two-page leather book: the whole
+  correspondence with that person runs down the left page (every letter that has ever passed between you,
+  kept for good, oldest to newest), and the letter in your hand sits on the right. Their portrait rides the
+  page, using a custom chat portrait if you have dropped one in, otherwise their usual face.
+- **Intercepted letters can go astray (off by default).** Turn on "Intercepted letters can leak" in the mod
+  settings and a letter waylaid on the road may fall into the wrong hands, and someone who wishes you ill may
+  write to you about what they read.
+- **A quieter or a busier room.** A new "Witness Density" setting lets you thin the crowd that gathers around
+  a conversation, or leave it as full as it is now.
+- **Council decisions that stick.** The accords your council reaches are now remembered as standing
+  agreements: a character brings them up when you speak one to one, and you can review them on their
+  encyclopedia page. A hostage pledged to you whose house then breaks faith is forfeit to you and becomes
+  your prisoner.
+
+### Fixed
+- **Backing out of a reply no longer closes the letter.** When you started a reply and changed your mind,
+  Cancel shut the whole window. It now simply returns you to reading the letter, so you can still acknowledge
+  it and leave the ordinary way.
+- **A slow letter is given more time.** Writing a letter waited only thirty seconds on the model before giving
+  up; it now waits sixty, and a slow reply is no longer reported to you as an error.
+
 ## v2.2.0.. 2026-08-23
 
 Gather your people to a council. Your saves from 2.1.5 carry over untouched.
