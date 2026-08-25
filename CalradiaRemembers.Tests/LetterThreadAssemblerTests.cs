@@ -3,9 +3,11 @@
 // dated, threaded conversation. This assembler is that thread's only source of truth (the in-game viewer
 // just binds it), so these tests pin what actually reaches the player: entries oldest-first, the exact
 // header wording per direction ("Letter from X" vs "Your letter/reply to X") dated in the Calradian
-// calendar, a player's inline reply surfaced as its own entry, in-flight/lost/blank letters kept out, and
-// the newest-only display cap. Get any of these wrong and the archive misdates, misattributes, reorders,
-// or leaks a letter that never actually arrived.
+// calendar, a player's inline reply surfaced as its own entry, and in-flight/lost/blank letters kept out.
+// Production shows the whole history (the archive is unbounded by design, so it calls Build with cap 0), but
+// the assembler still exposes an optional newest-only cap, pinned here too. Get any of these wrong and the
+// archive misdates, misattributes, reorders, drops history the player wants, or leaks a letter that never
+// actually arrived.
 
 #region
 
@@ -88,7 +90,7 @@ namespace CalradiaRemembers.Tests
             var outgoing = new List<PlayerLetter> { Outgoing(20, "second") };
 
             IReadOnlyList<LetterThreadEntry> thread =
-                LetterThreadAssembler.Build("Derthert", incoming, outgoing, LetterArchivePolicy.PerContactCap);
+                LetterThreadAssembler.Build("Derthert", incoming, outgoing, cap: 0);
 
             thread.Should().HaveCount(3);
             thread[0].Body.Should().Be("first");
@@ -107,7 +109,7 @@ namespace CalradiaRemembers.Tests
             letter.PlayerReply = "and I you";
 
             IReadOnlyList<LetterThreadEntry> thread =
-                LetterThreadAssembler.Build("Derthert", new List<PendingLetter> { letter }, null, LetterArchivePolicy.PerContactCap);
+                LetterThreadAssembler.Build("Derthert", new List<PendingLetter> { letter }, null, cap: 0);
 
             thread.Should().HaveCount(2);
             thread[0].IsIncoming.Should().BeTrue();
@@ -129,10 +131,28 @@ namespace CalradiaRemembers.Tests
             };
 
             IReadOnlyList<LetterThreadEntry> thread =
-                LetterThreadAssembler.Build("Derthert", incoming, null, LetterArchivePolicy.PerContactCap);
+                LetterThreadAssembler.Build("Derthert", incoming, null, cap: 0);
 
             thread.Should().HaveCount(1);
             thread[0].Body.Should().Be("delivered");
+        }
+
+        // Gabriel's call (2026-08-24): losing an old letter has no value, so the archive is unbounded. This pins
+        // that intent against a future reintroduction of the old 30-letter eviction cap: a long-running
+        // correspondence must keep EVERY delivered letter, oldest included, when Build is called with no cap.
+        [Test]
+        public void GIVEN_far_more_than_thirty_letters_WHEN_assembling_with_no_cap_THEN_every_one_is_kept()
+        {
+            var incoming = new List<PendingLetter>();
+            for (int day = 1; day <= 50; day++)
+                incoming.Add(Incoming(day, $"letter {day}"));
+
+            IReadOnlyList<LetterThreadEntry> thread =
+                LetterThreadAssembler.Build("Derthert", incoming, null, cap: 0);
+
+            thread.Should().HaveCount(50);
+            thread[0].Body.Should().Be("letter 1");   // the very oldest survives, not evicted
+            thread[49].Body.Should().Be("letter 50");
         }
 
         // A decades-long correspondence must not flood the view; the cap keeps the NEWEST letters (the ones the

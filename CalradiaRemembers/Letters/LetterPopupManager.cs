@@ -74,9 +74,8 @@ namespace CalradiaRemembers.Letters
             // initial letter or a PlayerLetterReply, both arrive to the player through this one site).
             LetterMemoryFinalizer.RecordLetterMemory(profile, letter.Reason, letter.Content, true, today, behavior);
 
-            // Retention: this letter now joins the readable archive; keep the contact's history bounded.
-            LetterArchiveRetention.EnforceCap(profile);
-
+            // This letter now joins the readable archive. The correspondence history is unbounded by design
+            // (nothing is evicted); the byte[] profile store carries the full thread. See LetterArchivePolicy.
             behavior?.Store.Set(profile);
 
             if (letter.Reason == LetterReason.ChildSupportRequest)

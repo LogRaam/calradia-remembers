@@ -6,256 +6,464 @@
 
   <Window Id="CalradiaRemembersLetterWindow" Layer="Overlay">
 
-    <Widget Id="LetterPanel"
-            WidthSizePolicy="Fixed"
-            HeightSizePolicy="Fixed"
-            SuggestedWidth="!Letter.Width"
-            SuggestedHeight="@PanelHeight"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Sprite="BlankWhiteSquare_9"
-            Color="#E2D6B4FF">
-
+    <!-- Horizontal row: the collapsible correspondence panel (left) sits beside the letter card. The row
+         hugs its children and is centered, so with the panel collapsed (width 0) the card stays centered. -->
+    <ListPanel Id="LetterRow"
+               WidthSizePolicy="CoverChildren"
+               HeightSizePolicy="CoverChildren"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               StackLayout.LayoutMethod="HorizontalLeftToRight">
       <Children>
 
-        <!-- Opportunistic paper grain over the solid parchment (invisible if the sprite isn't resident). -->
-        <Widget Id="LetterPaperGrain"
-                WidthSizePolicy="StretchToParent"
-                HeightSizePolicy="StretchToParent"
-                Sprite="paper_texture_tile"
-                Color="#C8B488FF"
-                AlphaFactor="0.30"
-                IsDisabled="true" />
-
-        <!-- Gilded edge over the parchment -->
-        <Widget Id="LetterFrame"
-                WidthSizePolicy="StretchToParent"
-                HeightSizePolicy="StretchToParent"
-                Sprite="frame_9"
-                ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
-                AlphaFactor="0.65"
-                IsDisabled="true" />
-
-        <!-- Correspondent portrait (recipient when composing, sender when reading / replying) -->
-        <Widget Id="LetterPortraitFrame"
+        <!-- ── Correspondence history side panel (left, collapsible) ─────────────────────────────────── -->
+        <Widget Id="HistoryPanel"
                 WidthSizePolicy="Fixed"
                 HeightSizePolicy="Fixed"
-                SuggestedWidth="250"
-                SuggestedHeight="206"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                MarginTop="22"
-                IsVisible="@ShowPortrait">
+                SuggestedWidth="@HistoryWidth"
+                SuggestedHeight="@PanelHeight"
+                VerticalAlignment="Center"
+                IsVisible="@ShowHistory"
+                Sprite="BlankWhiteSquare_9"
+                Color="#E2D6B4FF">
           <Children>
-            <ImageIdentifierWidget Id="LetterPortrait"
-                                   WidthSizePolicy="Fixed"
-                                   HeightSizePolicy="Fixed"
-                                   SuggestedWidth="300"
-                                   SuggestedHeight="150"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   TextureProviderName="@PortraitTextureProviderName"
-                                   ImageId="@PortraitId"
-                                   AdditionalArgs="@PortraitAdditionalArgs"
-                                   IsBig="true"
-                                   HideWhenNull="false"
-                                   IsDisabled="true" />
-          </Children>
-        </Widget>
 
-        <!-- Small context line (From / To / Reply to …), under the portrait -->
-        <TextWidget Id="LetterHeading"
+            <Widget Id="HistoryPaperGrain"
                     WidthSizePolicy="StretchToParent"
-                    HeightSizePolicy="Fixed"
-                    SuggestedHeight="28"
-                    VerticalAlignment="Top"
-                    MarginTop="234"
-                    MarginLeft="34"
-                    MarginRight="34"
-                    Brush="@HeadingBrush"
-                    Brush.FontSize="19"
-                    Text="@SenderHeading"
+                    HeightSizePolicy="StretchToParent"
+                    Sprite="paper_texture_tile"
+                    Color="#C8B488FF"
+                    AlphaFactor="0.30"
                     IsDisabled="true" />
 
-        <Widget Id="TitleDivider"
-                WidthSizePolicy="Fixed"
-                SuggestedWidth="340"
-                HeightSizePolicy="Fixed"
-                SuggestedHeight="2"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                PositionYOffset="268"
-                Sprite="BlankWhiteSquare_9"
-                Color="#6A5028FF"
-                AlphaFactor="0.7"
-                IsDisabled="true" />
-
-        <!-- The letter, on parchment (read / reply) -->
-        <Widget Id="ReceivedArea"
-                WidthSizePolicy="StretchToParent"
-                HeightSizePolicy="StretchToParent"
-                VerticalAlignment="Top"
-                MarginTop="284"
-                MarginBottom="150"
-                MarginLeft="36"
-                MarginRight="26"
-                IsVisible="@ShowReceivedBody">
-          <Children>
-
-            <ChatScrollablePanel Id="ReceivedScrollPanel"
-                                 WidthSizePolicy="StretchToParent"
-                                 HeightSizePolicy="StretchToParent"
-                                 MarginRight="18"
-                                 AutoHideScrollBars="true"
-                                 ClipRect="ReceivedClipRect"
-                                 InnerPanel="ReceivedClipRect\ReceivedInner"
-                                 VerticalScrollbar="..\ReceivedScrollbar\Scrollbar">
-              <Children>
-                <Widget Id="ReceivedClipRect"
-                        WidthSizePolicy="StretchToParent"
-                        HeightSizePolicy="StretchToParent"
-                        ClipContents="true">
-                  <Children>
-                    <ListPanel Id="ReceivedInner"
-                               WidthSizePolicy="StretchToParent"
-                               HeightSizePolicy="CoverChildren"
-                               HorizontalAlignment="Left"
-                               VerticalAlignment="Top"
-                               StackLayout.LayoutMethod="VerticalTopToBottom">
-                      <Children>
-                        <RichTextWidget Id="ReceivedBodyText"
-                                        WidthSizePolicy="StretchToParent"
-                                        HeightSizePolicy="CoverChildren"
-                                        HorizontalAlignment="Left"
-                                        Brush="@BodyBrush"
-                                        Brush.FontSize="21"
-                                        Text="@ReceivedBody"
-                                        IsDisabled="true" />
-                      </Children>
-                    </ListPanel>
-                  </Children>
-                </Widget>
-              </Children>
-            </ChatScrollablePanel>
-
-            <Standard.VerticalScrollbar Id="ReceivedScrollbar"
-                                        HeightSizePolicy="StretchToParent"
-                                        HorizontalAlignment="Right"
-                                        MarginRight="0" />
-
-          </Children>
-        </Widget>
-
-        <!-- Courier fee note (compose) -->
-        <TextWidget Id="CourierNoteWidget"
-                    WidthSizePolicy="StretchToParent"
-                    HeightSizePolicy="Fixed"
-                    SuggestedHeight="22"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Bottom"
-                    MarginBottom="166"
-                    IsVisible="@HasCourierNote"
-                    Brush="@HeadingBrush"
-                    Brush.FontSize="15"
-                    Text="@CourierNote"
-                    IsDisabled="true" />
-
-        <!-- Writing area (compose / reply) — a single line; the decorative frame sits clear of the ink. -->
-        <Widget Id="InputBox"
-                WidthSizePolicy="Fixed"
-                HeightSizePolicy="Fixed"
-                SuggestedWidth="386"
-                SuggestedHeight="58"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Bottom"
-                MarginBottom="66"
-                IsVisible="@ShowInput"
-                Sprite="BlankWhiteSquare_9"
-                Color="#C8B488FF"
-                AlphaFactor="0.55">
-          <Children>
-            <Widget Id="InputBoxBorder"
+            <Widget Id="HistoryFrame"
                     WidthSizePolicy="StretchToParent"
                     HeightSizePolicy="StretchToParent"
                     Sprite="frame_9"
-                    ExtendLeft="6" ExtendTop="6" ExtendRight="6" ExtendBottom="6"
-                    AlphaFactor="0.55"
+                    ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
+                    AlphaFactor="0.65"
                     IsDisabled="true" />
-            <EditableTextWidget Id="LetterInput"
-                                WidthSizePolicy="StretchToParent"
-                                HeightSizePolicy="StretchToParent"
-                                HorizontalAlignment="Left"
-                                VerticalAlignment="Center"
-                                MarginLeft="26"
-                                MarginRight="26"
-                                MarginTop="8"
-                                MarginBottom="8"
-                                Brush="@InputBrush"
-                                MaxLength="8000"
-                                Text="@InputText" />
+
+            <TextWidget Id="HistoryTitle"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="Fixed"
+                        SuggestedHeight="34"
+                        VerticalAlignment="Top"
+                        MarginTop="20"
+                        MarginLeft="28"
+                        MarginRight="28"
+                        Brush="@HeadingBrush"
+                        Brush.FontSize="22"
+                        Text="@HistoryTitle"
+                        IsDisabled="true" />
+
+            <Widget Id="HistoryTitleDivider"
+                    WidthSizePolicy="Fixed"
+                    SuggestedWidth="300"
+                    HeightSizePolicy="Fixed"
+                    SuggestedHeight="2"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    PositionYOffset="58"
+                    Sprite="BlankWhiteSquare_9"
+                    Color="#6A5028FF"
+                    AlphaFactor="0.7"
+                    IsDisabled="true" />
+
+            <!-- Scrollable list of correspondence entries (reuses the archive's row shape) -->
+            <Widget Id="HistoryEntriesArea"
+                    WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="StretchToParent"
+                    VerticalAlignment="Top"
+                    MarginTop="72"
+                    MarginBottom="24"
+                    MarginLeft="30"
+                    MarginRight="20">
+              <Children>
+
+                <ChatScrollablePanel Id="HistoryScrollPanel"
+                                     WidthSizePolicy="StretchToParent"
+                                     HeightSizePolicy="StretchToParent"
+                                     MarginRight="24"
+                                     AutoHideScrollBars="true"
+                                     ClipRect="HistoryClipRect"
+                                     InnerPanel="HistoryClipRect\HistoryList"
+                                     VerticalScrollbar="..\HistoryScrollbar\Scrollbar">
+                  <Children>
+                    <Widget Id="HistoryClipRect"
+                            WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            ClipContents="true">
+                      <Children>
+
+                        <NavigatableListPanel Id="HistoryList"
+                                              DataSource="{HistoryEntries}"
+                                              WidthSizePolicy="StretchToParent"
+                                              HeightSizePolicy="CoverChildren"
+                                              HorizontalAlignment="Left"
+                                              VerticalAlignment="Top"
+                                              StackLayout.LayoutMethod="VerticalTopToBottom">
+                          <ItemTemplate>
+
+                            <ListPanel Id="HistoryEntryRow"
+                                       WidthSizePolicy="StretchToParent"
+                                       HeightSizePolicy="CoverChildren"
+                                       HorizontalAlignment="Left"
+                                       MarginTop="8"
+                                       MarginBottom="12"
+                                       MarginRight="16"
+                                       StackLayout.LayoutMethod="VerticalTopToBottom">
+                              <Children>
+
+                                <!-- Incoming attribution (a letter from the NPC): deep gold ink -->
+                                <TextWidget Id="HistoryHeaderIn"
+                                            WidthSizePolicy="StretchToParent"
+                                            HeightSizePolicy="Fixed"
+                                            SuggestedHeight="24"
+                                            HorizontalAlignment="Left"
+                                            IsVisible="@IsIncoming"
+                                            Brush="@BodyBrush"
+                                            Brush.FontSize="15"
+                                            Brush.FontColor="#7A4E14FF"
+                                            Brush.TextHorizontalAlignment="Left"
+                                            Text="@Header"
+                                            IsDisabled="true" />
+
+                                <!-- Outgoing attribution (the player's own letter/reply): muted blue-grey ink -->
+                                <TextWidget Id="HistoryHeaderOut"
+                                            WidthSizePolicy="StretchToParent"
+                                            HeightSizePolicy="Fixed"
+                                            SuggestedHeight="24"
+                                            HorizontalAlignment="Left"
+                                            IsVisible="@IsOutgoing"
+                                            Brush="@BodyBrush"
+                                            Brush.FontSize="15"
+                                            Brush.FontColor="#3B4A63FF"
+                                            Brush.TextHorizontalAlignment="Left"
+                                            Text="@Header"
+                                            IsDisabled="true" />
+
+                                <RichTextWidget Id="HistoryEntryBody"
+                                                WidthSizePolicy="StretchToParent"
+                                                HeightSizePolicy="CoverChildren"
+                                                HorizontalAlignment="Left"
+                                                MarginTop="2"
+                                                MarginLeft="6"
+                                                Brush="@BodyBrush"
+                                                Brush.FontSize="18"
+                                                Text="@Body"
+                                                IsDisabled="true" />
+
+                                <Widget Id="HistoryEntryDivider"
+                                        WidthSizePolicy="StretchToParent"
+                                        HeightSizePolicy="Fixed"
+                                        SuggestedHeight="1"
+                                        MarginTop="8"
+                                        Sprite="BlankWhiteSquare_9"
+                                        Color="#6A502840"
+                                        IsDisabled="true" />
+
+                              </Children>
+                            </ListPanel>
+
+                          </ItemTemplate>
+                        </NavigatableListPanel>
+
+                      </Children>
+                    </Widget>
+                  </Children>
+                </ChatScrollablePanel>
+
+                <Standard.VerticalScrollbar Id="HistoryScrollbar"
+                                            HeightSizePolicy="StretchToParent"
+                                            HorizontalAlignment="Right"
+                                            MarginRight="0" />
+
+              </Children>
+            </Widget>
+
           </Children>
         </Widget>
 
-        <!-- Buttons (max two at a time: Acknowledge+Reply in read, Send+Cancel otherwise) -->
-        <ListPanel Id="LetterButtons"
-                   WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
-                   HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="18"
-                   StackLayout.LayoutMethod="HorizontalLeftToRight">
+        <!-- ── The letter card ──────────────────────────────────────────────────────────────────────── -->
+        <Widget Id="LetterPanel"
+                WidthSizePolicy="Fixed"
+                HeightSizePolicy="Fixed"
+                SuggestedWidth="!Letter.Width"
+                SuggestedHeight="@PanelHeight"
+                VerticalAlignment="Center"
+                Sprite="BlankWhiteSquare_9"
+                Color="#E2D6B4FF">
+
           <Children>
 
-            <ButtonWidget Id="AcknowledgeButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                          SuggestedWidth="180" SuggestedHeight="42" MarginRight="10"
-                          IsVisible="@ShowAcknowledge"
-                          Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
-                          Command.Click="ExecuteAcknowledge">
+            <!-- Opportunistic paper grain over the solid parchment (invisible if the sprite isn't resident). -->
+            <Widget Id="LetterPaperGrain"
+                    WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="StretchToParent"
+                    Sprite="paper_texture_tile"
+                    Color="#C8B488FF"
+                    AlphaFactor="0.30"
+                    IsDisabled="true" />
+
+            <!-- Gilded edge over the parchment -->
+            <Widget Id="LetterFrame"
+                    WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="StretchToParent"
+                    Sprite="frame_9"
+                    ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
+                    AlphaFactor="0.65"
+                    IsDisabled="true" />
+
+            <!-- Correspondence toggle (top-left corner, clear of the centered portrait); shows only when a history exists. -->
+            <ButtonWidget Id="HistoryToggleButton"
+                          WidthSizePolicy="Fixed"
+                          HeightSizePolicy="Fixed"
+                          SuggestedWidth="100"
+                          SuggestedHeight="30"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Top"
+                          MarginTop="16"
+                          MarginLeft="8"
+                          IsVisible="@HasHistory"
+                          Brush="ButtonBrush1"
+                          DoNotPassEventsToChildren="true"
+                          UpdateChildrenStates="true"
+                          Command.Click="ExecuteToggleHistory">
               <Children>
-                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Brush="Popup.Button.Text" Brush.FontSize="16" Text="@AcknowledgeButtonText" />
+                <TextWidget WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Brush="Popup.Button.Text"
+                            Brush.FontSize="13"
+                            Text="@HistoryToggleText" />
               </Children>
             </ButtonWidget>
 
-            <ButtonWidget Id="ReplyButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                          SuggestedWidth="190" SuggestedHeight="42"
-                          IsVisible="@ShowReplyButton"
-                          Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
-                          Command.Click="ExecuteReply">
+            <!-- Correspondent portrait (recipient when composing, sender when reading / replying) -->
+            <Widget Id="LetterPortraitFrame"
+                    WidthSizePolicy="Fixed"
+                    HeightSizePolicy="Fixed"
+                    SuggestedWidth="250"
+                    SuggestedHeight="206"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    MarginTop="22"
+                    IsVisible="@ShowPortrait">
               <Children>
-                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Brush="Popup.Button.Text" Brush.FontSize="16" Text="@ReplyButtonText" />
+                <ImageIdentifierWidget Id="LetterPortrait"
+                                       WidthSizePolicy="Fixed"
+                                       HeightSizePolicy="Fixed"
+                                       SuggestedWidth="300"
+                                       SuggestedHeight="150"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       TextureProviderName="@PortraitTextureProviderName"
+                                       ImageId="@PortraitId"
+                                       AdditionalArgs="@PortraitAdditionalArgs"
+                                       IsBig="true"
+                                       HideWhenNull="false"
+                                       IsDisabled="true" />
               </Children>
-            </ButtonWidget>
+            </Widget>
 
-            <ButtonWidget Id="SendButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                          SuggestedWidth="180" SuggestedHeight="42" MarginRight="10"
-                          IsVisible="@ShowSend" IsEnabled="@IsSendEnabled"
-                          Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
-                          Command.Click="ExecuteSend">
-              <Children>
-                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Brush="Popup.Button.Text" Brush.FontSize="16" Text="@SendButtonText" />
-              </Children>
-            </ButtonWidget>
+            <!-- Small context line (From / To / Reply to …), under the portrait -->
+            <TextWidget Id="LetterHeading"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="Fixed"
+                        SuggestedHeight="28"
+                        VerticalAlignment="Top"
+                        MarginTop="234"
+                        MarginLeft="34"
+                        MarginRight="34"
+                        Brush="@HeadingBrush"
+                        Brush.FontSize="19"
+                        Text="@SenderHeading"
+                        IsDisabled="true" />
 
-            <ButtonWidget Id="CloseButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                          SuggestedWidth="150" SuggestedHeight="42"
-                          IsVisible="@ShowSend"
-                          Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
-                          Command.Click="ExecuteClose">
+            <Widget Id="TitleDivider"
+                    WidthSizePolicy="Fixed"
+                    SuggestedWidth="340"
+                    HeightSizePolicy="Fixed"
+                    SuggestedHeight="2"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    PositionYOffset="268"
+                    Sprite="BlankWhiteSquare_9"
+                    Color="#6A5028FF"
+                    AlphaFactor="0.7"
+                    IsDisabled="true" />
+
+            <!-- The letter, on parchment (read / reply) -->
+            <Widget Id="ReceivedArea"
+                    WidthSizePolicy="StretchToParent"
+                    HeightSizePolicy="StretchToParent"
+                    VerticalAlignment="Top"
+                    MarginTop="284"
+                    MarginBottom="150"
+                    MarginLeft="36"
+                    MarginRight="26"
+                    IsVisible="@ShowReceivedBody">
               <Children>
-                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Brush="Popup.Button.Text" Brush.FontSize="16" Text="@CloseButtonText" />
+
+                <ChatScrollablePanel Id="ReceivedScrollPanel"
+                                     WidthSizePolicy="StretchToParent"
+                                     HeightSizePolicy="StretchToParent"
+                                     MarginRight="18"
+                                     AutoHideScrollBars="true"
+                                     ClipRect="ReceivedClipRect"
+                                     InnerPanel="ReceivedClipRect\ReceivedInner"
+                                     VerticalScrollbar="..\ReceivedScrollbar\Scrollbar">
+                  <Children>
+                    <Widget Id="ReceivedClipRect"
+                            WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            ClipContents="true">
+                      <Children>
+                        <ListPanel Id="ReceivedInner"
+                                   WidthSizePolicy="StretchToParent"
+                                   HeightSizePolicy="CoverChildren"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Top"
+                                   StackLayout.LayoutMethod="VerticalTopToBottom">
+                          <Children>
+                            <RichTextWidget Id="ReceivedBodyText"
+                                            WidthSizePolicy="StretchToParent"
+                                            HeightSizePolicy="CoverChildren"
+                                            HorizontalAlignment="Left"
+                                            Brush="@BodyBrush"
+                                            Brush.FontSize="21"
+                                            Text="@ReceivedBody"
+                                            IsDisabled="true" />
+                          </Children>
+                        </ListPanel>
+                      </Children>
+                    </Widget>
+                  </Children>
+                </ChatScrollablePanel>
+
+                <Standard.VerticalScrollbar Id="ReceivedScrollbar"
+                                            HeightSizePolicy="StretchToParent"
+                                            HorizontalAlignment="Right"
+                                            MarginRight="0" />
+
               </Children>
-            </ButtonWidget>
+            </Widget>
+
+            <!-- Courier fee note (compose) -->
+            <TextWidget Id="CourierNoteWidget"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="Fixed"
+                        SuggestedHeight="22"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Bottom"
+                        MarginBottom="166"
+                        IsVisible="@HasCourierNote"
+                        Brush="@HeadingBrush"
+                        Brush.FontSize="15"
+                        Text="@CourierNote"
+                        IsDisabled="true" />
+
+            <!-- Writing area (compose / reply): a single line; the decorative frame sits clear of the ink. -->
+            <Widget Id="InputBox"
+                    WidthSizePolicy="Fixed"
+                    HeightSizePolicy="Fixed"
+                    SuggestedWidth="386"
+                    SuggestedHeight="58"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    MarginBottom="66"
+                    IsVisible="@ShowInput"
+                    Sprite="BlankWhiteSquare_9"
+                    Color="#C8B488FF"
+                    AlphaFactor="0.55">
+              <Children>
+                <Widget Id="InputBoxBorder"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        Sprite="frame_9"
+                        ExtendLeft="6" ExtendTop="6" ExtendRight="6" ExtendBottom="6"
+                        AlphaFactor="0.55"
+                        IsDisabled="true" />
+                <EditableTextWidget Id="LetterInput"
+                                    WidthSizePolicy="StretchToParent"
+                                    HeightSizePolicy="StretchToParent"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    MarginLeft="26"
+                                    MarginRight="26"
+                                    MarginTop="8"
+                                    MarginBottom="8"
+                                    Brush="@InputBrush"
+                                    MaxLength="8000"
+                                    Text="@InputText" />
+              </Children>
+            </Widget>
+
+            <!-- Buttons (max two at a time: Acknowledge+Reply in read, Send+Cancel otherwise) -->
+            <ListPanel Id="LetterButtons"
+                       WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                       HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="18"
+                       StackLayout.LayoutMethod="HorizontalLeftToRight">
+              <Children>
+
+                <ButtonWidget Id="AcknowledgeButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="180" SuggestedHeight="42" MarginRight="10"
+                              IsVisible="@ShowAcknowledge"
+                              Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteAcknowledge">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="16" Text="@AcknowledgeButtonText" />
+                  </Children>
+                </ButtonWidget>
+
+                <ButtonWidget Id="ReplyButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="190" SuggestedHeight="42"
+                              IsVisible="@ShowReplyButton"
+                              Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteReply">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="16" Text="@ReplyButtonText" />
+                  </Children>
+                </ButtonWidget>
+
+                <ButtonWidget Id="SendButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="180" SuggestedHeight="42" MarginRight="10"
+                              IsVisible="@ShowSend" IsEnabled="@IsSendEnabled"
+                              Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteSend">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="16" Text="@SendButtonText" />
+                  </Children>
+                </ButtonWidget>
+
+                <ButtonWidget Id="CloseButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="150" SuggestedHeight="42"
+                              IsVisible="@ShowSend"
+                              Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteClose">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="16" Text="@CloseButtonText" />
+                  </Children>
+                </ButtonWidget>
+
+              </Children>
+            </ListPanel>
 
           </Children>
-        </ListPanel>
+        </Widget>
 
       </Children>
-    </Widget>
+    </ListPanel>
 
   </Window>
 </Prefab>

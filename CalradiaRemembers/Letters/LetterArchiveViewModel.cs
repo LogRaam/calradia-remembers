@@ -97,9 +97,9 @@ namespace CalradiaRemembers.Letters
 
          Entries.Clear();
 
+         // cap 0 = unbounded: the correspondence history is kept whole by design, so the whole thread is shown.
          System.Collections.Generic.IReadOnlyList<LetterThreadEntry> thread =
-            LetterThreadAssembler.Build(name, _profile?.SentLetters, _profile?.ReceivedPlayerLetters,
-               LetterArchivePolicy.PerContactCap);
+            LetterThreadAssembler.Build(name, _profile?.SentLetters, _profile?.ReceivedPlayerLetters, cap: 0);
 
          if (thread == null || thread.Count == 0)
          {

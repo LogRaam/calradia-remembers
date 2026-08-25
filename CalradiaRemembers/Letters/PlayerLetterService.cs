@@ -164,10 +164,8 @@ namespace CalradiaRemembers.Letters
 
          profile.Events.Add(new NotableEvent(today, NotableEventType.Other, summary));
 
-         // Retention: the delivered player letter now joins the readable archive; keep it bounded. Mutates the
-         // profile in place; every caller of RecordReceipt persists the profile immediately afterward.
-         LetterArchiveRetention.EnforceCap(profile);
-
+         // The delivered player letter now joins the readable archive. The correspondence history is unbounded
+         // by design (nothing is evicted); the byte[] profile store carries the full thread. See LetterArchivePolicy.
          ModLog.Info($"[PLAYER LETTER] filed a receipt memory on {profile.Name}.");
       }
 
