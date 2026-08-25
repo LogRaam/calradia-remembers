@@ -375,8 +375,16 @@ namespace CalradiaRemembers.Missions
          // like the spend-once keys above are only ever marked on a real grant, never a mere offer.
          if (topic == CompanionAudienceReason.Ambition) _ambitionAskedDays[companion.StringId] = Today;
 
-         ChatManager.OpenForCompanionAudience(companion, profile, topic, false, detail);
-         ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s {topic} audience opened.");
+         // Defer the chat open to the next main-thread frame. Opening the focus-grabbing, time-pausing chat
+         // overlay synchronously from inside this inquiry consequence, while a settlement menu is the active
+         // state being restored under the dismissing inquiry, left the inquiry undismissed and the engine
+         // re-presented it every frame (the "million popups" cascade). One frame later the inquiry is gone and
+         // the menu has settled, so the overlay opens cleanly. See NpcMemoryServiceSubmodule.OnApplicationTick.
+         MainThreadDispatcher.Enqueue(() =>
+         {
+            ChatManager.OpenForCompanionAudience(companion, profile, topic, false, detail);
+            ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s {topic} audience opened.");
+         });
       }
 
       private bool InCooldown() => _lastAskedDay != NeverAsked && Today - _lastAskedDay < CompanionAudienceTopicPolicy.GlobalCooldownDays;

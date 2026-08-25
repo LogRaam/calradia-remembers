@@ -304,6 +304,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("gang_rivalry", Severity.Light, "Mechanical: a same-town gang-leader pair is framed as RIVALS in the name hint (never friends-by-culture); skips if the campaign has no such pair", TestGangRivalry),
          new SelfTest("captive_fear_coerced", Severity.Light, "Mechanical: a terrified captive (high Fear) trips the freedom-bargain coercion flag, a fearless one does not (Fear-1 wiring)", TestCaptiveFearCoerced),
          new SelfTest("faction_identity_refreshes", Severity.Light, "Mechanical: a profile's frozen realm/house identity is refreshed to live game state on conversation open, so a hero who changed kingdom (a defection, or a runtime civil-war split from another mod like Bellum Civile) is introduced by their CURRENT faction/clan, not the one frozen at profile creation. Corrupts Faction/Clan, calls RefreshIdentity, asserts they match the live hero", TestFactionIdentityRefreshes),
+         new SelfTest("deferred_audience_open_pumps", Severity.Light, "Mechanical: the deferral mechanism the settlement-entry audience fix relies on. An enqueued action does NOT run until the next MainThreadDispatcher.Pump (fired by OnApplicationTick), which is why the audience chat opens one frame AFTER its inquiry dismisses instead of synchronously inside the inquiry consequence, breaking the 'million popups' cascade when accepting an approach in a settlement", TestDeferredAudienceOpenPumps),
          new SelfTest("party_troop_count", Severity.Light, "Mechanical: a companion in the player's party sees the real troop count in context (no more hallucinated army size); skips if the player has no party companion", TestPartyTroopCount),
          new SelfTest("nemesis_mint", Severity.Light, "Mechanical: minting a nemesis creates a persistent Hero WITH a memory profile (the 'no memory' bug fixed), reuses him in-region, mints a distinct one per region; PLANTS test nemeses (reload after)", TestNemesisMint),
          new SelfTest("assembly_convene", Severity.Light, "Mechanical (ASSEMBLY Inc 1): arranges a host town + live lords with a seeded regard, convenes through the real facts-builder + RSVP policy, asserts the regard read-back + roster + tally, then cancels and restores (no manual in-game setup needed)", TestAssemblyConvene),
@@ -1770,6 +1771,28 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("clanRefreshedToLive", profile.Clan == liveClan, true);
 
          t.Note($"{npc.Name}: stale identity overwritten with live faction '{liveFaction}', clan '{liveClan}'.");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Pins the deferral the settlement-entry audience fix depends on. The "million popups" cascade came from
+      ///   opening the focus-grabbing, time-pausing chat overlay synchronously inside the approach inquiry's Accept
+      ///   consequence, while a settlement menu was the active state being restored under the dismissing inquiry.
+      ///   The fix enqueues the open instead, so it runs one frame later (on OnApplicationTick's Pump), after the
+      ///   inquiry has fully dismissed. This proves the enqueued action does NOT run until the pump.
+      /// </summary>
+      private static string TestDeferredAudienceOpenPumps(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("deferred_audience_open_pumps");
+
+         var ran = false;
+         CalradiaRemembers.Chat.MainThreadDispatcher.Enqueue(() => ran = true);
+         t.Expect("notRunBeforePump", ran, false); // the open MUST be deferred, never synchronous with the inquiry
+         CalradiaRemembers.Chat.MainThreadDispatcher.Pump();
+         t.Expect("ranAfterPump", ran, true); // OnApplicationTick's Pump is what actually opens the audience chat
+
+         t.Note("Deferred-open mechanism holds: Enqueue withholds the action until the next Pump (OnApplicationTick), one frame after the approach inquiry dismisses, breaking the settlement-entry popup cascade.");
 
          return t.Line();
       }

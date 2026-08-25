@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.Logic;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
@@ -260,9 +261,18 @@ namespace CalradiaRemembers.Interception
          Hero npc = heroId != null ? Hero.FindFirst(h => h != null && h.StringId == heroId) : null;
          if (npc == null) return;
 
-         InterceptionBehavior.Instance?.StashFiefAudienceReason(npc, trigger, detail);
-         NpcMemoryCampaignBehavior.Instance?.DialogFlow?.OpenChatForInterceptingHero(npc);
-         ModLog.Info($"[FIEF_AUDIENCE] {npc.Name}'s audience opened ({trigger}).");
+         // Defer the stash + chat open to the next main-thread frame. Opening the focus-grabbing, time-pausing
+         // chat synchronously from inside this inquiry consequence, while the settlement menu is the active state
+         // being restored under the dismissing inquiry, left the inquiry undismissed and the engine re-presented
+         // it every frame (the "million popups" cascade). One frame later the inquiry is gone and the menu has
+         // settled, so the chat opens cleanly. The stash rides with the open so the one-shot reason it feeds is
+         // set right before it is consumed. See NpcMemoryServiceSubmodule.OnApplicationTick.
+         MainThreadDispatcher.Enqueue(() =>
+         {
+            InterceptionBehavior.Instance?.StashFiefAudienceReason(npc, trigger, detail);
+            NpcMemoryCampaignBehavior.Instance?.DialogFlow?.OpenChatForInterceptingHero(npc);
+            ModLog.Info($"[FIEF_AUDIENCE] {npc.Name}'s audience opened ({trigger}).");
+         });
       }
 
       #endregion

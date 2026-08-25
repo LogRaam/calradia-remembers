@@ -57,13 +57,17 @@ namespace CalradiaRemembers
       private const string ModuleId = "CalradiaRemembers";
 
       /// <summary>
-      ///   Per-frame tick, fired by the engine even when the campaign is paused and no chat is open. Used only
-      ///   to pump the opt-in <see cref="VramWatch" /> heartbeat (off by default) so the background map screen's
-      ///   VRAM can be traced during the no-chat control test.
+      ///   Per-frame tick, fired by the engine even when the campaign is paused and no chat is open. It drains any
+      ///   deferred main-thread work (<see cref="MainThreadDispatcher" />) and drives the staged scene openers, plus
+      ///   the opt-in <see cref="VramWatch" /> heartbeat. Being pause-independent is why a chat open deferred out of
+      ///   an inquiry consequence still runs promptly even while a settlement menu holds the campaign paused.
       /// </summary>
       protected override void OnApplicationTick(float dt)
       {
          base.OnApplicationTick(dt);
+         // Runs continuations queued off the main path (e.g. an audience chat opened ONE FRAME AFTER its inquiry
+         // has fully dismissed, so the overlay never contends with the inquiry teardown inside a settlement menu).
+         MainThreadDispatcher.Pump();
          VramWatch.Tick();
          CaptiveSceneStager.Tick(); // opens a staged captive chat once its conversation scene has loaded
          CouncilConversationStager.Tick(); // opens a staged council once its conversation scene has loaded
