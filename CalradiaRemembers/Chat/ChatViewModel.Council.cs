@@ -1154,7 +1154,12 @@ namespace CalradiaRemembers.Chat
             roster.Add(new CouncilMemberInput {
                Name = names[i],
                IsFemale = hero?.IsFemale ?? false,
-               PersonaLine = p?.Personality ?? p?.Trait,
+               // The individual archetype (Trait) carries the character's VOICE and manners (the polite/knightly
+               // vs blunt register), exactly as the 1:1 prompt's CHARACTER block does. It must LEAD here: Personality
+               // is only culture + rank, and Culture is already rendered as its own clause, so preferring Personality
+               // (the old `Personality ?? Trait`) silently dropped every seat's individual voice and let raw culture
+               // set the tone -- a courteous lord of a martial culture then turned blunt at the table (player report).
+               PersonaLine = p?.Trait ?? p?.Personality,
                RegardTowardPlayer = p?.ReputationWithPlayer ?? 0,
                Culture = hero?.Culture?.StringId,
                Age = hero != null ? (int?) hero.Age : null // so a seated child/youth is voiced true to their years
