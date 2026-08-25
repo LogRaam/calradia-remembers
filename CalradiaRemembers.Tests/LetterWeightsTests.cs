@@ -35,6 +35,8 @@ namespace CalradiaRemembers.Tests
             { LetterReason.JealousThreat, LetterWeights.WeightJealousThreat },
             { LetterReason.CorruptionAttempt, LetterWeights.WeightCorruptionAttempt },
             { LetterReason.LeakedCorrespondence, LetterWeights.WeightLeakedCorrespondence },
+            { LetterReason.PrisonerOffer, LetterWeights.WeightPrisonerOffer },
+            { LetterReason.ServiceOffer, LetterWeights.WeightServiceOffer },
             { LetterReason.MarriageProposal, LetterWeights.WeightMarriageProposal },
             { LetterReason.QuestUpdate, LetterWeights.WeightQuestUpdate },
             { LetterReason.StanceHostility, LetterWeights.WeightStanceHostility },

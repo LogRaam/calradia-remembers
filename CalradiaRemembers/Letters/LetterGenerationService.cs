@@ -157,7 +157,9 @@ namespace CalradiaRemembers.Letters
          string triggerContext,
          LlmServices llmServices,
          BannerlordNpcMemoryStore store,
-         int today)
+         int today,
+         string offerTargetId = null,
+         int offerAmount = 0)
       {
          // Only ADULTS initiate correspondence: a child hero with a profile (the player talked to them once)
          // must never be swept up by a trigger loop into writing tournament congratulations, let alone anything
@@ -169,7 +171,7 @@ namespace CalradiaRemembers.Letters
             return;
          }
 
-         _ = GenerateInitialAsync(profile, giverHero, reason, triggerContext, llmServices, store, today)
+         _ = GenerateInitialAsync(profile, giverHero, reason, triggerContext, llmServices, store, today, offerTargetId, offerAmount)
             .ContinueWith(t =>
             {
                if (t.Exception != null)
@@ -345,7 +347,9 @@ namespace CalradiaRemembers.Letters
          string triggerContext,
          LlmServices llmServices,
          BannerlordNpcMemoryStore store,
-         int today)
+         int today,
+         string offerTargetId = null,
+         int offerAmount = 0)
       {
          if (llmServices?.ChatService == null) return;
 
@@ -359,7 +363,11 @@ namespace CalradiaRemembers.Letters
             SentOnDay = today,
             DispatchDay = int.MaxValue, // sentinel: never dispatched until LLM fills it in
             DeliveryDay = today + 1,    // marks as in-transit for CanSendLetter during async window
-            IsDelivered = false
+            IsDelivered = false,
+            // Offer letters (PrisonerOffer) carry the trade's terms so the read window's Accept can settle
+            // exactly what the letter named, and validate the captive is still held before offering the button.
+            OfferTargetId = offerTargetId,
+            OfferAmount = offerAmount
          };
          profile.SentLetters.Add(placeholder);
          store.Set(profile);

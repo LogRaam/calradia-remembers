@@ -7,6 +7,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Portraits;
+using CalradiaRemembers.Verbs;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
@@ -206,7 +207,7 @@ namespace CalradiaRemembers.Letters
       }
 
       [DataSourceProperty]
-      public bool ShowAcknowledge => _state.ShowsAcknowledge;
+      public bool ShowAcknowledge => _state.ShowsAcknowledge && !IsOfferLetter;
 
       [DataSourceProperty]
       public bool ShowInput => _state.ShowsInput;
@@ -261,10 +262,46 @@ namespace CalradiaRemembers.Letters
       public bool ShowReceivedBody => _state.ShowsReceivedBody;
 
       [DataSourceProperty]
-      public bool ShowReplyButton => _state.ShowsReplyButton;
+      public bool ShowReplyButton => _state.ShowsReplyButton && !IsOfferLetter;
 
       [DataSourceProperty]
       public bool ShowSend => _state.ShowsSend;
+
+      // ── Offer letters (ServiceOffer / PrisonerOffer): Accept / Decline instead of Acknowledge / Reply ──
+
+      /// <summary>True when the letter being read is an actionable lord's offer, so it shows Accept / Decline.</summary>
+      private bool IsOfferLetter
+         => _state.Mode == LetterWindowMode.Read && _letter != null
+            && (_letter.Reason == LetterReason.ServiceOffer || _letter.Reason == LetterReason.PrisonerOffer);
+
+      /// <summary>
+      ///   Whether the offer can actually be accepted right now. A ServiceOffer always can (a light courtesy);
+      ///   a PrisonerOffer only while the named captive is still in the player's prison (they may have escaped,
+      ///   died, or been sold since the letter was written).
+      /// </summary>
+      [DataSourceProperty]
+      public bool ShowAcceptOffer
+      {
+         get
+         {
+            if (!IsOfferLetter) return false;
+            if (_letter.Reason == LetterReason.PrisonerOffer) return OfferPrisonerStillHeld();
+
+            return true;
+         }
+      }
+
+      /// <summary>Decline is always available on an offer letter (a free refusal, the way out when Accept has lapsed).</summary>
+      [DataSourceProperty]
+      public bool ShowDeclineOffer => IsOfferLetter;
+
+      [DataSourceProperty]
+      public string AcceptOfferButtonText => _letter?.Reason == LetterReason.PrisonerOffer
+         ? "Accept the trade"
+         : "Accept the offer";
+
+      [DataSourceProperty]
+      public string DeclineOfferButtonText => "Decline";
 
       // ── Bindings ────────────────────────────────────────────────────────
 
@@ -340,6 +377,83 @@ namespace CalradiaRemembers.Letters
       }
 
       public void ExecuteClose() => OnCloseRequested?.Invoke();
+
+      /// <summary>Offer letter: accept the lord's proposition. A PrisonerOffer settles the ransom; a ServiceOffer warms the bond (light).</summary>
+      public void ExecuteAcceptOffer()
+      {
+         if (!IsOfferLetter) return;
+
+         if (_letter.Reason == LetterReason.PrisonerOffer) AcceptPrisonerOffer();
+         else if (_letter.Reason == LetterReason.ServiceOffer) AcceptServiceOffer();
+         else OnCloseRequested?.Invoke();
+      }
+
+      /// <summary>Offer letter: refuse the proposition. Costs nothing beyond setting the letter aside.</summary>
+      public void ExecuteDeclineOffer()
+      {
+         if (_profile != null)
+            MBInformationManager.AddQuickInformation(new TextObject($"You set {_profile.Name}'s offer aside."));
+
+         OnCloseRequested?.Invoke();
+      }
+
+      /// <summary>True while the PrisonerOffer's named captive is still in the player's prison (Accept is otherwise hidden).</summary>
+      private bool OfferPrisonerStillHeld()
+      {
+         if (string.IsNullOrEmpty(_letter?.OfferTargetId) || _letter.OfferAmount <= 0) return false;
+
+         Hero captive = Hero.FindFirst(h => h.StringId == _letter.OfferTargetId);
+
+         return captive != null && BuyPrisonerVerb.PlayerHeldHeroPrisoners().Contains(captive);
+      }
+
+      /// <summary>Settles the prisoner ransom the letter named, through the shared executor, then closes.</summary>
+      private void AcceptPrisonerOffer()
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+         Hero buyer = _profile != null ? Hero.FindFirst(h => h.StringId == _profile.Id) : null;
+         Hero captive = string.IsNullOrEmpty(_letter?.OfferTargetId)
+            ? null
+            : Hero.FindFirst(h => h.StringId == _letter.OfferTargetId);
+
+         if (buyer == null || captive == null)
+         {
+            MBInformationManager.AddQuickInformation(new TextObject("(The offer can no longer be honoured.)"));
+            OnCloseRequested?.Invoke();
+
+            return;
+         }
+
+         NpcProfile buyerProfile = behavior?.Store?.Get(_profile.Id) ?? _profile;
+         bool ok = PrisonerRansomExecutor.Execute(buyer, captive, _letter.OfferAmount, buyerProfile, out string message);
+         if (ok) behavior?.Store?.Set(buyerProfile);
+
+         MBInformationManager.AddQuickInformation(new TextObject(message));
+         OnCloseRequested?.Invoke();
+      }
+
+      /// <summary>
+      ///   Accepts a service offer: a LIGHT hook. It warms the lord's regard for the player and records that the
+      ///   courtship was received, but it does NOT change the player's allegiance or grant the enticement, which
+      ///   stays a promise the player realises only by actually entering that lord's service.
+      /// </summary>
+      private void AcceptServiceOffer()
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+         NpcProfile p = behavior?.Store?.Get(_profile?.Id) ?? _profile;
+
+         if (p != null)
+         {
+            p.ReputationWithPlayer += ServiceOfferPolicy.AcceptRelationWarmup;
+            p.Events?.Add(new NotableEvent((int) CampaignTime.Now.ToDays, NotableEventType.Other,
+               "The player received my offer of service warmly, though they have not yet left their lord."));
+            behavior?.Store?.Set(p);
+         }
+
+         MBInformationManager.AddQuickInformation(new TextObject(
+            $"You signal your interest to {_profile?.Name}. To truly enter their service, seek them out and change your allegiance."));
+         OnCloseRequested?.Invoke();
+      }
 
       /// <summary>
       ///   Cancel button. In reply mode it drops the draft and returns to READING this same letter (restoring
@@ -491,6 +605,10 @@ namespace CalradiaRemembers.Letters
          OnPropertyChanged(nameof(ShowSend));
          OnPropertyChanged(nameof(ShowAcknowledge));
          OnPropertyChanged(nameof(ShowReplyButton));
+         OnPropertyChanged(nameof(ShowAcceptOffer));
+         OnPropertyChanged(nameof(ShowDeclineOffer));
+         OnPropertyChanged(nameof(AcceptOfferButtonText));
+         OnPropertyChanged(nameof(DeclineOfferButtonText));
          OnPropertyChanged(nameof(HasCourierNote));
          OnPropertyChanged(nameof(BodyBrush));
          OnPropertyChanged(nameof(HeadingBrush));

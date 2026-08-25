@@ -9,6 +9,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Verbs;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -515,6 +516,68 @@ namespace CalradiaRemembers
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
 
          return RealmTidings.RealmTidingsBehavior.DebugEvaluate(behavior.Store, profile, hero);
+      }
+
+      /// <summary>
+      ///   cr.letter_offer &lt;prisoner|service&gt; [name]
+      ///   Opens a synthetic OFFER letter in read mode so the Accept / Decline affordance can be exercised without
+      ///   waiting for the mailbox. "prisoner": a lord (the named one, else any solvent lord) offers to buy the
+      ///   FIRST hero prisoner you hold, and Accept settles the REAL ransom (gold + transfer). "service": the named
+      ///   lord offers you a place in their service, and Accept warms the bond (a light hook, no allegiance change).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("letter_offer", "cr")]
+      public static string OpenLetterOffer(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         string kind = (args != null && args.Count > 0 ? args[0] : "prisoner").Trim().ToLowerInvariant();
+         var rest = args != null && args.Count > 1 ? args.GetRange(1, args.Count - 1) : new List<string>();
+         Hero named = ResolveHero(rest);
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         if (kind == "service")
+         {
+            if (named == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+            NpcProfile profile = GetOrCreateProfile(behavior, named);
+            var serviceLetter = new PendingLetter {
+               SenderId = named.StringId,
+               SenderName = named.Name?.ToString(),
+               Reason = LetterReason.ServiceOffer,
+               Content = $"[TEST] Leave the lord you now serve and come to me. I would grant you a castle of your own to hold. .. {named.Name}",
+               SentOnDay = today,
+               DeliveryDay = today,
+               IsDelivered = true
+            };
+            LetterPopupManager.Show(serviceLetter, profile);
+
+            return $"Opened a ServiceOffer letter from {named.Name} (Accept warms the bond, light hook).";
+         }
+
+         Hero captive = BuyPrisonerVerb.PlayerHeldHeroPrisoners().FirstOrDefault();
+         if (captive == null) return "You hold no hero prisoner to be offered for. Capture a lord first.";
+
+         Hero buyer = named ?? Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != null && h.IsLord && h != Hero.MainHero && !h.IsPrisoner && h.Gold > 1000);
+         if (buyer == null) return "No solvent lord available to play the buyer.";
+
+         NpcProfile buyerProfile = GetOrCreateProfile(behavior, buyer);
+         int amount = PrisonerOfferPolicy.OfferAmount(BuyPrisonerVerb.RansomAnchor(captive), true);
+         var offer = new PendingLetter {
+            SenderId = buyer.StringId,
+            SenderName = buyer.Name?.ToString(),
+            Reason = LetterReason.PrisonerOffer,
+            Content = $"[TEST] I would buy {captive.Name} from you, and I offer {amount} denars for them. .. {buyer.Name}",
+            OfferTargetId = captive.StringId,
+            OfferAmount = amount,
+            SentOnDay = today,
+            DeliveryDay = today,
+            IsDelivered = true
+         };
+         LetterPopupManager.Show(offer, buyerProfile);
+
+         return $"Opened a PrisonerOffer from {buyer.Name} to buy {captive.Name} for {amount} denars (Accept settles the ransom).";
       }
 
       /// <summary>A synthetic delivered letter for the cr.letter_* test commands.</summary>

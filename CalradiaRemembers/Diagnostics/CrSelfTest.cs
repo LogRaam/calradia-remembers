@@ -38,6 +38,7 @@ using CalradiaRemembers.Missions;
 using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.RealmTidings;
+using CalradiaRemembers.Verbs;
 using CalradiaRemembers.Retainer;
 using CalradiaRemembers.Scenarios;
 using CalradiaRemembers.Services;
@@ -216,6 +217,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("claimant_support_evaluates", Severity.Light, "Mechanical: gather a real same-kingdom other-clan lord's facts and run the REAL ClaimantSupportPolicy via CouncilLift.EvaluateSupportClaimant (non-destructive, no influence moved) -> a valid backer lands on the amount decision (Applied/CannotAfford), never a WHO gate. No LLM.", TestClaimantSupportEvaluates),
          new SelfTest("letter_leak_evaluates", Severity.Light, "Mechanical: run the REAL leak antagonist scan (grudges + hostile lords) via CourierService.DebugEvaluateLeakAntagonist (non-destructive, nothing queued) and confirm the pure LetterLeakPolicy fires when enabled+bandit+substance+antagonist. Skips a peaceful campaign. No LLM.", TestLetterLeakEvaluates),
          new SelfTest("letter_leak_consequences", Severity.Light, "Mechanical (Inc 2): apply a fired leak's lasting consequences via CourierService.DebugApplyLeakConsequences on a grudge-free lord -> assert a LeakedLetter grudge against the player was planted AND the player lost renown, then clear the planted grudge and restore the renown. Skips if no grudge-free lord exists. No LLM.", TestLetterLeakConsequences),
+         new SelfTest("letter_offer_prisoner_ransom", Severity.Light, "Mechanical (PrisonerOffer accept): capture an in-party lord into the player's prison, make a buyer solvent, run the shared PrisonerRansomExecutor -> assert the sale succeeds, the captive leaves the player's prison, and the player is paid. Restores everything (frees the captive, reverts both purses). Skips if no capturable lord / no buyer. No LLM.", TestLetterOfferPrisonerRansom),
          new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
@@ -6742,6 +6744,59 @@ namespace CalradiaRemembers.Diagnostics
          GrudgeBehavior.Instance?.ClearGrudgesFor(antagonist.StringId);
          float restore = renownBefore - player.Clan.Renown;
          if (restore != 0f) GainRenownAction.Apply(player, restore, true);
+
+         return t.Line();
+      }
+
+      // PrisonerOffer's Accept settles a real ransom through the shared PrisonerRansomExecutor (the same atomic
+      // trade buy_prisoner uses). Captures an in-party lord into the player's prison, makes a buyer solvent, runs
+      // the executor, and asserts the sale lands: the captive leaves the player's roster and the player is paid.
+      // Restores everything so the sweep leaves no one caged and no purse changed.
+      private static string TestLetterOfferPrisonerRansom(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("letter_offer_prisoner_ransom");
+
+         Hero player = Hero.MainHero;
+
+         Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != player && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != null && h.Clan?.Leader != h);
+         if (t.Skip(captive == null, "no capturable in-party lord to ransom")) return t.Line();
+
+         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != player && h != captive && h.IsLord && !h.IsPrisoner
+            && (h.PartyBelongedTo != null || (h.Clan?.Settlements?.Any(s => s != null && (s.IsTown || s.IsCastle)) ?? false)));
+         if (t.Skip(buyer == null, "no lord with a holding to play the buyer")) return t.Line();
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, captive);
+         bool captured = captive.IsPrisoner && captive.PartyBelongedToAsPrisoner?.LeaderHero == player;
+         if (t.Abort(!captured, $"capture failed for {captive.Name}")) return t.Line();
+
+         int buyerGold0 = buyer.Gold;
+         int playerGold0 = player.Gold;
+         int price = PrisonerOfferPolicy.OfferAmount(BuyPrisonerVerb.RansomAnchor(captive), true);
+         buyer.ChangeHeroGold(price); // make the buyer solvent for the test
+
+         NpcProfile buyerProfile = GetOrCreate(behavior, buyer);
+
+         try
+         {
+            bool ok = PrisonerRansomExecutor.Execute(buyer, captive, price, buyerProfile, out string message);
+            bool goneFromPlayer = !BuyPrisonerVerb.PlayerHeldHeroPrisoners().Contains(captive);
+            bool playerPaid = player.Gold > playerGold0;
+
+            t.Note($"sold {captive.Name} to {buyer.Name}: {message}");
+            t.Expect("ransomSucceeded", ok, true);
+            t.Expect("captiveLeftPlayerPrison", goneFromPlayer, true);
+            t.Expect("playerReceivedGold", playerPaid, true);
+         }
+         finally
+         {
+            try { EndCaptivityAction.ApplyByReleasedByChoice(captive, player); }
+            catch (Exception ex) { ModLog.Error($"[SELFTEST] ransom cleanup release failed: {ex.Message}"); }
+
+            player.ChangeHeroGold(playerGold0 - player.Gold);
+            buyer.ChangeHeroGold(buyerGold0 - buyer.Gold);
+         }
 
          return t.Line();
       }

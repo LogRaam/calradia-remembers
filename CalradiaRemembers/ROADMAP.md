@@ -93,6 +93,34 @@ letter) stays unvalidated until play.
 
 ---
 
+## DONE 2026-08-25 (Gabriel wish): new letter reasons that carry a real proposition (PrisonerOffer + ServiceOffer)
+
+Two new unbidden lord-offer letters, and the letters now carry an ACTION the player can accept from the read window
+(a new Accept / Decline affordance replacing Acknowledge / Reply on offer letters).
+
+- **PrisonerOffer** (the concrete one): a lord who has a stake in a prisoner the PLAYER holds (their own house, else
+  their realm) writes offering to buy them, naming a fair price. Accept settles the REAL ransom (gold + prisoner
+  transfer) through the shared `PrisonerRansomExecutor` (extracted to mirror `BuyPrisonerVerb`'s atomic trade, the
+  verb left untouched). Price = pure `PrisonerOfferPolicy.OfferAmount` (personal-stake premium, clamped to the
+  honest `PrisonerTradePolicy` band). Trigger = daily collector `CollectPrisonerOffers` (scans the player's held hero
+  prisoners; buyer = captive's clan/faction leader; skips a buyer who cannot pay the floor; one offer per captive;
+  creates a buyer profile if the player never met them). Payload persisted on `PendingLetter.OfferTargetId/OfferAmount`
+  (additive, save-safe); Accept re-validates the captive is still held before showing.
+- **ServiceOffer** (poaching): a faction RULER who is not the player's liege and regards them highly writes to lure
+  them into their service, dangling one enticement (a castle if they have a fief to spare, troops if they lead men,
+  else gold: pure `ServiceOfferPolicy.ChooseEnticement`). Deliberately RARE (low weight `WeightServiceOffer=45`, a
+  90-day cooldown, one offer per lord ever). LIGHT hook (Gabriel): Accept only warms the bond
+  (`ServiceOfferPolicy.AcceptRelationWarmup`) and records the courtship; it does NOT change allegiance or grant the
+  prize (that stays the promise, realised only by actually defecting via the vanilla path).
+- Plumbing: SDK `LetterReason.ServiceOffer`/`PrisonerOffer` (appended), `LetterPromptBuilder.DescribeReason` +
+  `LetterMemoryPolicy.PlainWords` cases, `LetterWeights` consts + `LetterWeightsTests` pin. Read-window affordance in
+  `LetterViewModel` (`ShowAcceptOffer`/`ShowDeclineOffer` + Execute*), prefab buttons (build + restart to show).
+  Console `cr.letter_offer <prisoner|service> [name]` (synthetic letter to test Accept without the mailbox). Tests:
+  `PrisonerOfferPolicyTests`, `ServiceOfferPolicyTests`; self-test `letter_offer_prisoner_ransom` (real ransom
+  round-trip with full restore). The LLM letter prose stays unvalidated until play; all decisions are unit-tested.
+
+---
+
 ## BUILT, untested in game (player-session finding 2026-08-15, built 2026-08-20 Sonnet test-first): an NPC can TEACH the player a skill, and it grants real skill XP
 
 In a bench run an NPC spontaneously offered to teach the player:

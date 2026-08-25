@@ -14,9 +14,11 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
+using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
@@ -95,6 +97,8 @@ namespace CalradiaRemembers.Letters
          CollectAwaitingReplies(store, llmServices, today, pool, release);
          CollectSpouseCorrespondence(store, llmServices, today, pool, release);
          CollectMarriageSolicitations(store, llmServices, today, pool, release);
+         CollectPrisonerOffers(store, llmServices, today, pool, release);
+         CollectServiceOffers(store, llmServices, today, pool, release);
 
          LetterBudget budget = LetterPacingRules.BudgetFor(ModSettings.LettersFromNpcs);
          IReadOnlyList<int> recent = GatherRecentReleaseDays(store, today, budget.WindowDays);
@@ -451,6 +455,206 @@ namespace CalradiaRemembers.Letters
             };
          }
       }
+
+      /// <summary>
+      ///   A lord who holds a prisoner the player currently keeps (their own kin, else their realm's own) writes
+      ///   to buy that captive, naming a fair price (PrisonerOfferPolicy, clamped to the honest ransom band). The
+      ///   read window's Accept then settles the exact trade. One outstanding offer per captive from a given buyer;
+      ///   a buyer who cannot raise the honest floor makes no offer (the Accept would only refuse it). A buyer the
+      ///   player has never met gets a profile created here so any kin/liege can make the offer.
+      /// </summary>
+      private void CollectPrisonerOffers(
+         BannerlordNpcMemoryStore store, LlmServices llmServices, int today,
+         List<LetterCandidate> pool, Dictionary<LetterCandidate, Action> release)
+      {
+         List<Hero> captives = BuyPrisonerVerb.PlayerHeldHeroPrisoners();
+         if (captives.Count == 0) return;
+
+         foreach (Hero captive in captives)
+         {
+            if (string.IsNullOrEmpty(captive?.StringId)) continue;
+
+            Hero buyer = ResolvePrisonerBuyer(captive);
+            if (buyer == null) continue;
+
+            // A buyer needs a profile to carry cadence + memory; create one if the player has never met them
+            // (mirrors CourierService's leak antagonist), so any kin/liege can make the offer.
+            NpcProfile buyerProfile = store.Get(buyer.StringId);
+            if (buyerProfile == null)
+            {
+               buyerProfile = HeroProfileMapper.FromHero(buyer);
+               store.Set(buyerProfile);
+            }
+
+            if (!CanSendLetter(buyerProfile, today, 20)) continue;
+
+            // One outstanding offer per captive from this buyer: do not pester about the same prisoner.
+            var alreadyOffered = false;
+            foreach (PendingLetter l in buyerProfile.SentLetters)
+               if (l.Reason == LetterReason.PrisonerOffer && l.OfferTargetId == captive.StringId)
+               {
+                  alreadyOffered = true;
+
+                  break;
+               }
+
+            if (alreadyOffered) continue;
+
+            int anchor = BuyPrisonerVerb.RansomAnchor(captive);
+            if (buyer.Gold < PrisonerTradePolicy.MinAcceptablePayment(anchor)) continue; // cannot pay a fair price
+
+            int amount = PrisonerOfferPolicy.OfferAmount(anchor, personalStake: true);
+            string context = $"The player holds {captive.Name} prisoner. {DescribeBuyerStake(buyer, captive)} " +
+                             $"You are writing to buy {captive.Name} from the player, and you offer {amount} denars for them.";
+
+            int baseWeight = LetterWeights.BaseWeight(LetterReason.PrisonerOffer);
+            int weight = LetterWeights.WeightWithInterest(baseWeight, buyerProfile.CorrespondenceInterest, GetSubjectInterest(LetterReason.PrisonerOffer), GlobalInterest);
+
+            var candidate = new LetterCandidate {
+               Reason = LetterReason.PrisonerOffer,
+               SenderId = buyer.StringId,
+               Weight = weight,
+               EligibleSinceDay = today
+            };
+            pool.Add(candidate);
+
+            NpcProfile capturedProfile = buyerProfile;
+            Hero capturedBuyer = buyer;
+            string capturedCaptiveId = captive.StringId;
+            int capturedAmount = amount;
+            string capturedContext = context;
+            release[candidate] = () =>
+            {
+               LetterGenerationService.QueueInitialLetter(
+                  capturedProfile, capturedBuyer, LetterReason.PrisonerOffer, capturedContext,
+                  llmServices, store, today, capturedCaptiveId, capturedAmount);
+
+               ModLog.Info($"[LETTER] {capturedProfile.Name} offers {capturedAmount} denars for the player's prisoner {capturedCaptiveId}.");
+            };
+         }
+      }
+
+      /// <summary>
+      ///   A faction ruler who is NOT the player's own liege, and who regards the player highly, writes to poach
+      ///   them into their service, dangling a concrete enticement (a castle if they have a fief to spare, a
+      ///   company of soldiers if they lead men, else gold). Deliberately RARE: low base weight, a long per-lord
+      ///   cooldown, and one offer per lord ever. A light hook: accepting only warms the bond and signals interest
+      ///   (see the read window's ExecuteAcceptOffer); it never changes the player's allegiance.
+      /// </summary>
+      private void CollectServiceOffers(
+         BannerlordNpcMemoryStore store, LlmServices llmServices, int today,
+         List<LetterCandidate> pool, Dictionary<LetterCandidate, Action> release)
+      {
+         Hero player = Hero.MainHero;
+         if (player == null) return;
+
+         IFaction playerFaction = player.MapFaction;
+         if (playerFaction is Kingdom pk && pk.Leader == player) return; // do not poach a sovereign into vassalage
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+
+            if (profile == null) continue;
+            if (profile.ReputationWithPlayer < 30) continue; // they must genuinely rate the player to poach them
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+
+            if (hero is not {IsAlive: true} || !hero.IsLord || hero.IsPrisoner) continue;
+            if (IsWithPlayer(hero)) continue;
+
+            // Only a faction RULER (someone who could truly take the player into their service), and never the
+            // ruler of the kingdom the player already serves.
+            Kingdom kingdom = hero.Clan?.Kingdom;
+            if (kingdom == null || kingdom.Leader != hero) continue;
+            if (playerFaction != null && hero.MapFaction == playerFaction) continue;
+
+            if (!CanSendLetter(profile, today, 90)) continue; // rare on purpose
+
+            // One service offer per lord ever: never pester.
+            var alreadyOffered = false;
+            foreach (PendingLetter l in profile.SentLetters)
+               if (l.Reason == LetterReason.ServiceOffer)
+               {
+                  alreadyOffered = true;
+
+                  break;
+               }
+
+            if (alreadyOffered) continue;
+
+            bool canOfferCastle = hero.Clan?.Settlements != null &&
+                                  hero.Clan.Settlements.Count(s => s != null && (s.IsTown || s.IsCastle)) > 1;
+            bool canOfferTroops = hero.PartyBelongedTo != null;
+            ServiceEnticement enticement = ServiceOfferPolicy.ChooseEnticement(canOfferCastle, canOfferTroops);
+
+            string context = $"You are the ruler of {kingdom.Name}, and you would have the player leave the lord they " +
+                             $"now serve and enter YOUR service instead. The enticement you dangle: {DescribeEnticement(enticement)}.";
+
+            int baseWeight = LetterWeights.BaseWeight(LetterReason.ServiceOffer);
+            int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(LetterReason.ServiceOffer), GlobalInterest);
+
+            var candidate = new LetterCandidate {
+               Reason = LetterReason.ServiceOffer,
+               SenderId = id,
+               Weight = weight,
+               EligibleSinceDay = today
+            };
+            pool.Add(candidate);
+
+            NpcProfile capturedProfile = profile;
+            Hero capturedHero = hero;
+            string capturedContext = context;
+            release[candidate] = () =>
+            {
+               LetterGenerationService.QueueInitialLetter(
+                  capturedProfile, capturedHero, LetterReason.ServiceOffer, capturedContext,
+                  llmServices, store, today);
+
+               ModLog.Info($"[LETTER] {capturedProfile.Name} offers the player a place in their service.");
+            };
+         }
+      }
+
+      /// <summary>A short in-fiction line stating why this buyer wants the captive, fed into the letter's Context.</summary>
+      private static string DescribeBuyerStake(Hero buyer, Hero captive)
+      {
+         if (buyer?.Clan != null && buyer.Clan == captive?.Clan) return "This prisoner is of your own house.";
+         if (buyer?.MapFaction != null && captive?.MapFaction != null && buyer.MapFaction == captive.MapFaction)
+            return "This prisoner is one of your own realm.";
+
+         return "You have your own reasons to want this prisoner in your hands.";
+      }
+
+      /// <summary>The plain-words enticement a ServiceOffer dangles, fed into the letter's Context.</summary>
+      private static string DescribeEnticement(ServiceEnticement enticement)
+      {
+         switch (enticement)
+         {
+            case ServiceEnticement.Castle: return "a castle of their own to hold";
+            case ServiceEnticement.Troops: return "a company of your own soldiers to command";
+            default: return "a handsome purse of gold";
+         }
+      }
+
+      /// <summary>The lord who would buy this captive: their own clan leader, else their realm's leader, else none.</summary>
+      private Hero ResolvePrisonerBuyer(Hero captive)
+      {
+         if (captive == null) return null;
+
+         Hero clanLeader = captive.Clan?.Leader;
+         if (IsEligibleBuyer(clanLeader, captive)) return clanLeader;
+
+         Hero factionLeader = captive.MapFaction?.Leader;
+         if (IsEligibleBuyer(factionLeader, captive)) return factionLeader;
+
+         return null;
+      }
+
+      /// <summary>A buyer must be a living free lord, not the captive or the player, and not currently with the player.</summary>
+      private bool IsEligibleBuyer(Hero buyer, Hero captive)
+         => buyer is {IsAlive: true} && buyer.IsLord && !buyer.IsPrisoner
+            && buyer != captive && buyer != Hero.MainHero && !IsWithPlayer(buyer);
 
       /// <summary>
       ///   The player's own vanilla spouse AND every committed consort each become their own candidate when

@@ -437,6 +437,31 @@
                   </Children>
                 </ButtonWidget>
 
+                <!-- Offer letters (ServiceOffer / PrisonerOffer): Accept / Decline in place of Acknowledge / Reply -->
+                <ButtonWidget Id="AcceptOfferButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="260" SuggestedHeight="44" MarginRight="14"
+                              IsVisible="@ShowAcceptOffer"
+                              Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteAcceptOffer">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="18" Text="@AcceptOfferButtonText" />
+                  </Children>
+                </ButtonWidget>
+
+                <ButtonWidget Id="DeclineOfferButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                              SuggestedWidth="200" SuggestedHeight="44"
+                              IsVisible="@ShowDeclineOffer"
+                              Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteDeclineOffer">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="18" Text="@DeclineOfferButtonText" />
+                  </Children>
+                </ButtonWidget>
+
               </Children>
             </ListPanel>
 

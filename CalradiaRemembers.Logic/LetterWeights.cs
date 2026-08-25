@@ -37,6 +37,9 @@ namespace CalradiaRemembers.Logic
         /// <summary>An antagonist exploiting a private letter of the player's they intercepted on the road: adversarial and actionable, a sibling of blackmail over a secret now fallen into the wrong hands.</summary>
         public const int WeightLeakedCorrespondence = 85;
 
+        /// <summary>A lord offering to buy a prisoner the player holds: an actionable trade the player can settle from the letter, near a quest update in weight.</summary>
+        public const int WeightPrisonerOffer = 78;
+
         /// <summary>A marriage proposal: a genuine decision the player must eventually answer.</summary>
         public const int WeightMarriageProposal = 80;
 
@@ -78,6 +81,13 @@ namespace CalradiaRemembers.Logic
         ///   announcement or a tournament win yet below a personal note such as a lord's unbidden goodwill.
         /// </summary>
         public const int WeightRealmTidings = 40;
+
+        /// <summary>
+        ///   A lord poaching the player into their service. A real proposition, but deliberately LOW-weight so it
+        ///   stays a rare, memorable letter (Gabriel: "pas trop souvent") rather than routine mailbox noise; the
+        ///   collector's own long cooldown and one-offer-per-lord dedupe do the rest.
+        /// </summary>
+        public const int WeightServiceOffer = 45;
 
         // ── Flavor: pleasant, never urgent, the first tier to yield when the mailbox is full ────────────
 
@@ -152,6 +162,8 @@ namespace CalradiaRemembers.Logic
                 case LetterReason.JealousThreat: return WeightJealousThreat;
                 case LetterReason.CorruptionAttempt: return WeightCorruptionAttempt;
                 case LetterReason.LeakedCorrespondence: return WeightLeakedCorrespondence;
+                case LetterReason.PrisonerOffer: return WeightPrisonerOffer;
+                case LetterReason.ServiceOffer: return WeightServiceOffer;
                 case LetterReason.MarriageProposal: return WeightMarriageProposal;
                 case LetterReason.QuestUpdate: return WeightQuestUpdate;
                 case LetterReason.StanceHostility: return WeightStanceHostility;
