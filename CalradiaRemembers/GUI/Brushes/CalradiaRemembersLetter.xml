@@ -74,4 +74,48 @@
     </Styles>
   </Brush>
 
+  <!--
+    HISTORY (left page of the letter book) text brushes: same crisp Galahad ink as the letter body, but a
+    SMALLER default size so the correspondence thread reads as secondary to the main letter on the right. The
+    size lives here in the Style (the reliable knob: the widgets that use these brushes carry NO inline
+    Brush.FontSize, so this is the single source of truth). To retune, change the FontSize here and restart the
+    game (brush files are not hot-reloaded by cr.reload_ui). History.Body = the entry text; History.Meta = the
+    dated attribution line above each entry (its colour is overridden per direction in the prefab).
+  -->
+  <Brush Name="CR.Letter.History.Body" Font="Galahad" TextHorizontalAlignment="Left" TextVerticalAlignment="Top">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontColor="#2A1A0EFF" FontSize="16"
+             TextGlowRadius="0" TextBlur="0" TextShadowOffset="0"
+             TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+    </Styles>
+  </Brush>
+
+  <Brush Name="CR.Letter.History.Body.Plain" Font="FiraSansExtraCondensed-Regular" TextHorizontalAlignment="Left" TextVerticalAlignment="Top">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontColor="#2A1A0EFF" FontSize="16"
+             TextGlowRadius="0" TextBlur="0" TextShadowOffset="0"
+             TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+    </Styles>
+  </Brush>
+
+  <Brush Name="CR.Letter.History.Meta" Font="Galahad" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontColor="#5A3C1CFF" FontSize="13"
+             TextGlowRadius="0" TextBlur="0" TextShadowOffset="0"
+             TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+    </Styles>
+  </Brush>
+
+  <Brush Name="CR.Letter.History.Meta.Plain" Font="FiraSansExtraCondensed-Regular" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontColor="#5A3C1CFF" FontSize="13"
+             TextGlowRadius="0" TextBlur="0" TextShadowOffset="0"
+             TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+    </Styles>
+  </Brush>
+
 </Brushes>

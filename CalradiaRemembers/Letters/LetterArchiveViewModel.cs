@@ -173,5 +173,13 @@ namespace CalradiaRemembers.Letters
       /// <summary>The body brush name for this thread entry, swapped to its plain Cyrillic-safe sibling for a Cyrillic game language so archived Russian letters stay legible (Galahad has no proper Cyrillic glyphs).</summary>
       [DataSourceProperty]
       public string BodyBrush => LetterFontResolver.Resolve("CR.Letter.Body", "CR.Letter.Body.Plain");
+
+      /// <summary>The smaller entry-body brush used on the letter book's left page (the thread reads as secondary to the main letter). Same Cyrillic-safe swap as <see cref="BodyBrush" />.</summary>
+      [DataSourceProperty]
+      public string HistoryBodyBrush => LetterFontResolver.Resolve("CR.Letter.History.Body", "CR.Letter.History.Body.Plain");
+
+      /// <summary>The smaller dated-attribution brush used on the letter book's left page. Same Cyrillic-safe swap as <see cref="BodyBrush" />.</summary>
+      [DataSourceProperty]
+      public string HistoryMetaBrush => LetterFontResolver.Resolve("CR.Letter.History.Meta", "CR.Letter.History.Meta.Plain");
    }
 }

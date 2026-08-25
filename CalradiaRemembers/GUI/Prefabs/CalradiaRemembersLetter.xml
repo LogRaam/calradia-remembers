@@ -130,15 +130,15 @@
                                            StackLayout.LayoutMethod="VerticalTopToBottom">
                                   <Children>
 
-                                    <!-- Incoming attribution (a letter from the NPC): deep gold ink -->
+                                    <!-- Incoming attribution (a letter from the NPC): deep gold ink. Size comes from the
+                                         CR.Letter.History.Meta brush (no inline Brush.FontSize), so it stays smaller than the main letter. -->
                                     <TextWidget Id="HistoryHeaderIn"
                                                 WidthSizePolicy="StretchToParent"
                                                 HeightSizePolicy="Fixed"
-                                                SuggestedHeight="24"
+                                                SuggestedHeight="22"
                                                 HorizontalAlignment="Left"
                                                 IsVisible="@IsIncoming"
-                                                Brush="@BodyBrush"
-                                                Brush.FontSize="15"
+                                                Brush="@HistoryMetaBrush"
                                                 Brush.FontColor="#7A4E14FF"
                                                 Brush.TextHorizontalAlignment="Left"
                                                 Text="@Header"
@@ -148,24 +148,23 @@
                                     <TextWidget Id="HistoryHeaderOut"
                                                 WidthSizePolicy="StretchToParent"
                                                 HeightSizePolicy="Fixed"
-                                                SuggestedHeight="24"
+                                                SuggestedHeight="22"
                                                 HorizontalAlignment="Left"
                                                 IsVisible="@IsOutgoing"
-                                                Brush="@BodyBrush"
-                                                Brush.FontSize="15"
+                                                Brush="@HistoryMetaBrush"
                                                 Brush.FontColor="#3B4A63FF"
                                                 Brush.TextHorizontalAlignment="Left"
                                                 Text="@Header"
                                                 IsDisabled="true" />
 
+                                    <!-- Entry body: size comes from the CR.Letter.History.Body brush (no inline Brush.FontSize). -->
                                     <RichTextWidget Id="HistoryEntryBody"
                                                     WidthSizePolicy="StretchToParent"
                                                     HeightSizePolicy="CoverChildren"
                                                     HorizontalAlignment="Left"
                                                     MarginTop="2"
                                                     MarginLeft="6"
-                                                    Brush="@BodyBrush"
-                                                    Brush.FontSize="18"
+                                                    Brush="@HistoryBodyBrush"
                                                     Text="@Body"
                                                     IsDisabled="true" />
 
