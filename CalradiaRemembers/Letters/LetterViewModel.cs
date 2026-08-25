@@ -22,7 +22,6 @@ namespace CalradiaRemembers.Letters
       private const float ComposeHeight = 440f;
       private const float ReadHeight = 680f;
       private const float ReplyHeight = 700f;
-      private const float HistoryPanelWidth = 380f;
 
       public Action OnCloseRequested;
       private int _courierCost; // compose-only fee
@@ -49,13 +48,13 @@ namespace CalradiaRemembers.Letters
 
       private string _title = "";
 
-      // ── Correspondence side panel (collapsible; reuses the encyclopedia archive's thread + row template) ──
+      // ── Correspondence left page (open by default; reuses the encyclopedia archive's thread + row template) ──
       private readonly MBBindingList<LetterArchiveEntryViewModel> _historyEntries = new MBBindingList<LetterArchiveEntryViewModel>();
       private bool _hasHistory;
-      private bool _historyBuilt;
+      private string _historyEmptyText = "";
+      private bool _historyIsEmpty;
       private string _historyTitle = "";
-      private float _historyWidth;
-      private bool _showHistory;
+      private bool _showHistory = true;
 
       [DataSourceProperty]
       public string AcknowledgeButtonText => "Acknowledge";
@@ -245,13 +244,18 @@ namespace CalradiaRemembers.Letters
          }
       }
 
-      // ── Correspondence panel bindings ───────────────────────────────────
+      // ── Correspondence left page bindings ───────────────────────────────
 
-      /// <summary>The collapsible correspondence thread with this contact (empty until first expanded).</summary>
+      /// <summary>The absolute file path to the leather two-page book art (cr_letters.jpg), painted behind the whole window.</summary>
+      [DataSourceProperty]
+      public string LetterBookBackgroundPath => System.IO.Path.Combine(
+         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_letters.jpg");
+
+      /// <summary>The dated correspondence thread with this contact, shown on the left page (whole history, unbounded).</summary>
       [DataSourceProperty]
       public MBBindingList<LetterArchiveEntryViewModel> HistoryEntries => _historyEntries;
 
-      /// <summary>True when this contact has any past correspondence to show (gates the toggle button).</summary>
+      /// <summary>True when this contact has any past correspondence at all (gates the show/hide toggle).</summary>
       [DataSourceProperty]
       public bool HasHistory
       {
@@ -264,7 +268,7 @@ namespace CalradiaRemembers.Letters
          }
       }
 
-      /// <summary>Whether the correspondence panel is currently expanded.</summary>
+      /// <summary>Whether the left correspondence page is currently shown (open by default; the toggle can hide it).</summary>
       [DataSourceProperty]
       public bool ShowHistory
       {
@@ -277,24 +281,33 @@ namespace CalradiaRemembers.Letters
          }
       }
 
-      /// <summary>
-      ///   The panel's bound width: its full width when expanded, zero when collapsed. Bound (not just toggled
-      ///   by IsVisible) so the letter card stays centred whether the panel is open or closed, without relying
-      ///   on the engine collapsing an invisible widget's layout slot.
-      /// </summary>
+      /// <summary>True when the left page has no letters to show (a fresh contact): a quiet empty line stands in for the thread.</summary>
       [DataSourceProperty]
-      public float HistoryWidth
+      public bool HistoryIsEmpty
       {
-         get => _historyWidth;
+         get => _historyIsEmpty;
          set
          {
-            if (_historyWidth == value) return;
-            _historyWidth = value;
+            if (_historyIsEmpty == value) return;
+            _historyIsEmpty = value;
             OnPropertyChangedWithValue(value);
          }
       }
 
-      /// <summary>The correspondence panel heading ("Letters with X").</summary>
+      /// <summary>The empty-state line for the left page when no letters have yet passed with this contact.</summary>
+      [DataSourceProperty]
+      public string HistoryEmptyText
+      {
+         get => _historyEmptyText;
+         set
+         {
+            if (_historyEmptyText == value) return;
+            _historyEmptyText = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>The left-page heading ("Letters with X").</summary>
       [DataSourceProperty]
       public string HistoryTitle
       {
@@ -307,9 +320,9 @@ namespace CalradiaRemembers.Letters
          }
       }
 
-      /// <summary>The toggle button label, reflecting the panel's current state.</summary>
+      /// <summary>The show/hide toggle label, reflecting the left page's current state.</summary>
       [DataSourceProperty]
-      public string HistoryToggleText => _showHistory ? "Hide letters" : "Past letters";
+      public string HistoryToggleText => _showHistory ? "Hide letters" : "Show letters";
 
       // ── Commands ────────────────────────────────────────────────────────
 
@@ -322,16 +335,12 @@ namespace CalradiaRemembers.Letters
 
       public void ExecuteClose() => OnCloseRequested?.Invoke();
 
-      /// <summary>Expand or collapse the correspondence side panel; builds the thread lazily on first open.</summary>
+      /// <summary>Show or hide the left correspondence page (the thread is already built; this only flips its visibility).</summary>
       public void ExecuteToggleHistory()
       {
          if (!_hasHistory) return;
 
-         bool willShow = !_showHistory;
-         if (willShow && !_historyBuilt) BuildHistory();
-
-         ShowHistory = willShow;
-         HistoryWidth = willShow ? HistoryPanelWidth : 0f;
+         ShowHistory = !_showHistory;
          OnPropertyChanged(nameof(HistoryToggleText));
       }
 
@@ -475,7 +484,8 @@ namespace CalradiaRemembers.Letters
          OnPropertyChanged(nameof(PanelHeight));
          OnPropertyChanged(nameof(HasHistory));
          OnPropertyChanged(nameof(ShowHistory));
-         OnPropertyChanged(nameof(HistoryWidth));
+         OnPropertyChanged(nameof(HistoryIsEmpty));
+         OnPropertyChanged(nameof(HistoryEmptyText));
          OnPropertyChanged(nameof(HistoryTitle));
          OnPropertyChanged(nameof(HistoryToggleText));
          OnPropertyChanged(nameof(ShowPortrait));
@@ -495,32 +505,40 @@ namespace CalradiaRemembers.Letters
          _showPortrait = portrait.HasImage;
       }
 
-      // ── Correspondence side panel ───────────────────────────────────────
+      // ── Correspondence left page ────────────────────────────────────────
 
-      /// <summary>Recomputes the correspondence-panel gate and resets it to collapsed for the current contact.</summary>
+      /// <summary>
+      ///   Recomputes the left page for the current contact: the show/hide gate, the heading, and the thread
+      ///   itself (built eagerly since the page is open by default). A fresh contact with no letters yet shows a
+      ///   quiet empty line instead of an empty book page.
+      /// </summary>
       private void RefreshHistoryState()
       {
          _hasHistory = _profile != null &&
                        LetterArchivePolicy.HasCorrespondence(_profile.SentLetters, _profile.ReceivedPlayerLetters);
-         _historyBuilt = false;
-         _historyEntries.Clear();
-         _showHistory = false;
-         _historyWidth = 0f;
+         _showHistory = true;
          _historyTitle = string.IsNullOrEmpty(_profile?.Name)
             ? "Correspondence"
             : $"Letters with {_profile.Name}";
+
+         BuildHistory();
       }
 
       /// <summary>
-      ///   Fills the correspondence panel with the whole dated thread for this contact, oldest-first and every
-      ///   letter kept (the archive is unbounded by design, so cap 0). Reads the freshest persisted profile so a
-      ///   letter delivered this very session is included; falls back to the setup profile if the store is absent.
+      ///   Fills the left page with the whole dated thread for this contact, oldest-first and every letter kept
+      ///   (the archive is unbounded by design, so cap 0). Reads the freshest persisted profile so a letter
+      ///   delivered this very session is included; falls back to the setup profile if the store is absent.
       /// </summary>
       private void BuildHistory()
       {
-         _historyBuilt = true;
          _historyEntries.Clear();
-         if (_profile == null) return;
+         if (_profile == null)
+         {
+            _historyIsEmpty = true;
+            _historyEmptyText = "No letters yet.";
+
+            return;
+         }
 
          NpcProfile source = NpcMemoryCampaignBehavior.Instance?.Store.Get(_profile.Id) ?? _profile;
          string name = source.Name ?? _profile.Name ?? "?";
@@ -528,6 +546,11 @@ namespace CalradiaRemembers.Letters
          foreach (LetterThreadEntry entry in
             LetterThreadAssembler.Build(name, source.SentLetters, source.ReceivedPlayerLetters, cap: 0))
             _historyEntries.Add(new LetterArchiveEntryViewModel(entry.Header, entry.Body, entry.IsIncoming));
+
+         _historyIsEmpty = _historyEntries.Count == 0;
+         _historyEmptyText = _historyIsEmpty
+            ? $"No letters have yet passed between you and {name}."
+            : "";
       }
 
       // ── B1: correspondence interest (persisted; plumbing only, see B2 for the mailbox reading it) ────────
