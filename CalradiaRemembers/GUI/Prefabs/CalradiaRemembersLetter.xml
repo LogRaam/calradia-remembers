@@ -67,18 +67,7 @@
                             Text="@HistoryTitle"
                             IsDisabled="true" />
 
-                <Widget Id="HistoryTitleDivider"
-                        WidthSizePolicy="Fixed"
-                        SuggestedWidth="300"
-                        HeightSizePolicy="Fixed"
-                        SuggestedHeight="2"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Top"
-                        PositionYOffset="122"
-                        Sprite="BlankWhiteSquare_9"
-                        Color="#6A5028FF"
-                        AlphaFactor="0.7"
-                        IsDisabled="true" />
+                
 
                 <!-- Empty-state line (a fresh contact with no letters yet) -->
                 <TextWidget Id="HistoryEmpty"
@@ -222,7 +211,8 @@
                     MarginRight="35">
               <Children>
 
-                <!-- Correspondent portrait (sender when reading/replying, recipient when composing) -->
+                <!-- Correspondent portrait (sender when reading/replying, recipient when composing). A player-dropped
+                     custom chat portrait wins when it exists; otherwise the vanilla 3D render shows. -->
                 <Widget Id="LetterPortraitFrame"
                         WidthSizePolicy="Fixed"
                         HeightSizePolicy="Fixed"
@@ -232,8 +222,9 @@
                         VerticalAlignment="Top"
                         MarginTop="30"
                         MarginRight="60"
-                        IsVisible="@ShowPortrait">
+                        IsVisible="@HasAnyPortrait">
                   <Children>
+                    <!-- Vanilla 3D render (only when no custom portrait overrides it) -->
                     <ImageIdentifierWidget Id="LetterPortrait"
                                            WidthSizePolicy="Fixed"
                                            HeightSizePolicy="Fixed"
@@ -241,12 +232,26 @@
                                            SuggestedHeight="150"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
+                                           IsVisible="@ShowVanillaPortrait"
                                            TextureProviderName="@PortraitTextureProviderName"
                                            ImageId="@PortraitId"
                                            AdditionalArgs="@PortraitAdditionalArgs"
                                            IsBig="true"
                                            HideWhenNull="false"
                                            IsDisabled="true" />
+
+                    <!-- Custom player-dropped portrait, loaded at runtime from its path (cached sprite, VRAM-flat).
+                         CorrectRedBlue left at its default (true), matching the chat's custom-portrait widget. -->
+                    <CrRuntimeImageWidget Id="LetterCustomPortrait"
+                                          WidthSizePolicy="Fixed"
+                                          HeightSizePolicy="Fixed"
+                                          SuggestedWidth="200"
+                                          SuggestedHeight="200"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          IsVisible="@ShowCustomPortrait"
+                                          ImagePath="@CustomPortraitPath"
+                                          IsDisabled="true" />
                   </Children>
                 </Widget>
 
@@ -265,18 +270,7 @@
                             Text="@SenderHeading"
                             IsDisabled="true" />
 
-                <Widget Id="RightTitleDivider"
-                        WidthSizePolicy="Fixed"
-                        SuggestedWidth="560"
-                        HeightSizePolicy="Fixed"
-                        SuggestedHeight="2"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Top"
-                        PositionYOffset="286"
-                        Sprite="BlankWhiteSquare_9"
-                        Color="#6A5028FF"
-                        AlphaFactor="0.7"
-                        IsDisabled="true" />
+               
 
                 <!-- The letter body, on the right page (read / reply) -->
                 <Widget Id="ReceivedArea"

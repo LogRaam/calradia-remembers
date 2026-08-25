@@ -6,6 +6,7 @@ using System;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Portraits;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
@@ -38,11 +39,14 @@ namespace CalradiaRemembers.Letters
       private string _portraitAdditionalArgs = "";
       private string _portraitId = "";
 
-      // Correspondent portrait (the recipient when composing, the sender when reading/replying).
+      // Correspondent portrait (the recipient when composing, the sender when reading/replying). A player-dropped
+      // custom chat portrait (ChatPortraitResolver) wins when it exists; otherwise the vanilla 3D render is used.
+      private string _customPortraitPath = "";
       private string _portraitTextureProviderName = "";
       private NpcProfile _profile; // sender (read / reply) or recipient (compose)
       private string _receivedBody = "";
       private string _senderHeading = "";
+      private bool _showCustomPortrait;
       private bool _showPortrait;
       private LetterComposerState _state = new(LetterWindowMode.Read);
 
@@ -218,6 +222,40 @@ namespace CalradiaRemembers.Letters
             OnPropertyChangedWithValue(value);
          }
       }
+
+      /// <summary>The player-dropped custom portrait file path for this correspondent, or "" when none exists.</summary>
+      [DataSourceProperty]
+      public string CustomPortraitPath
+      {
+         get => _customPortraitPath;
+         set
+         {
+            if (_customPortraitPath == value) return;
+            _customPortraitPath = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>True when a custom portrait exists: it is shown instead of the vanilla 3D render.</summary>
+      [DataSourceProperty]
+      public bool ShowCustomPortrait
+      {
+         get => _showCustomPortrait;
+         set
+         {
+            if (_showCustomPortrait == value) return;
+            _showCustomPortrait = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>The vanilla 3D portrait shows only when there IS one and no custom portrait overrides it.</summary>
+      [DataSourceProperty]
+      public bool ShowVanillaPortrait => _showPortrait && !_showCustomPortrait;
+
+      /// <summary>Whether the portrait frame has anything to show at all (custom or vanilla).</summary>
+      [DataSourceProperty]
+      public bool HasAnyPortrait => _showCustomPortrait || _showPortrait;
 
       [DataSourceProperty]
       public bool ShowReceivedBody => _state.ShowsReceivedBody;
@@ -445,15 +483,42 @@ namespace CalradiaRemembers.Letters
          OnPropertyChanged(nameof(HistoryEmptyText));
          OnPropertyChanged(nameof(HistoryTitle));
          OnPropertyChanged(nameof(ShowPortrait));
+         OnPropertyChanged(nameof(ShowCustomPortrait));
+         OnPropertyChanged(nameof(ShowVanillaPortrait));
+         OnPropertyChanged(nameof(HasAnyPortrait));
+         OnPropertyChanged(nameof(CustomPortraitPath));
          OnPropertyChanged(nameof(PortraitTextureProviderName));
          OnPropertyChanged(nameof(PortraitId));
          OnPropertyChanged(nameof(PortraitAdditionalArgs));
          RecomputeSendEnabled();
       }
 
-      /// <summary>Resolves the correspondent's in-game portrait (same render as chat / encyclopedia).</summary>
+      /// <summary>
+      ///   Resolves the correspondent's portrait: a player-dropped custom chat portrait
+      ///   (<see cref="ChatPortraitResolver" />) wins when one exists, so no vanilla render-target is even created;
+      ///   otherwise the vanilla 3D render (same as chat / encyclopedia) is used.
+      /// </summary>
       private void ResolvePortrait(Hero hero)
       {
+         string custom = hero == null
+            ? null
+            : ChatPortraitResolver.ResolveForHero(hero.StringId, hero.Name?.ToString());
+
+         if (!string.IsNullOrEmpty(custom))
+         {
+            _customPortraitPath = custom;
+            _showCustomPortrait = true;
+            _portraitId = "";
+            _portraitTextureProviderName = "";
+            _portraitAdditionalArgs = "";
+            _showPortrait = false;
+
+            return;
+         }
+
+         _customPortraitPath = "";
+         _showCustomPortrait = false;
+
          PortraitData portrait = PortraitTextureGuard.Create(hero?.CharacterObject);
          _portraitId = portrait.Id;
          _portraitTextureProviderName = portrait.TextureProviderName;
