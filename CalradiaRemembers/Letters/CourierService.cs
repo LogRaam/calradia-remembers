@@ -8,12 +8,14 @@ using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.Travel;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Party;
@@ -1362,10 +1364,46 @@ namespace CalradiaRemembers.Letters
                FactionIds = new List<string>()
             });
 
+            // Inc 2: the leak LASTS. The antagonist forms a grudge (the grudge system then escalates it into
+            // future hostile letters or an interception), and the player loses a little renown as their private
+            // words become known. The WorldEvent above is the rumour substrate the world already reads from.
+            ApplyLeakConsequences(antagonist, today);
+
             ModLog.Info($"[COURIER] leaked: the player's intercepted letter reached {antagonist.Name}.");
          }
          catch (Exception ex) { ModLog.Error($"[COURIER] letter-leak failed: {ex.GetType().Name}: {ex.Message}"); }
       }
+
+      /// <summary>
+      ///   Intercepted-letter-leak Inc 2: the lasting consequences of a fired leak. The antagonist forms a
+      ///   <see cref="GrudgeSource.LeakedLetter" /> grudge against the player (sharper when they were already a
+      ///   personal enemy), and the player loses a little renown as their private words become known. Magnitudes
+      ///   are the pure <see cref="LetterLeakConsequencePolicy" />'s. Never throws: a failure here must not undo
+      ///   the antagonist letter already queued by the caller.
+      /// </summary>
+      private static void ApplyLeakConsequences(Hero antagonist, int today)
+      {
+         Hero player = Hero.MainHero;
+         if (antagonist == null || player == null) return;
+
+         try
+         {
+            bool alreadyHeldGrudge = GrudgeBehavior.Instance?.LiveGrudgesFor(antagonist, today)
+                                        ?.Any(g => g.TargetId == player.StringId) ?? false;
+
+            GrudgeBehavior.Instance?.TryPlant(antagonist, player, GrudgeSource.LeakedLetter,
+               $"Came into possession of {player.Name}'s private letter, waylaid on the road, and turned its words against them.",
+               LetterLeakConsequencePolicy.GrudgeMagnitude(alreadyHeldGrudge), knownToPlayer: true, today);
+
+            int renownHit = LetterLeakConsequencePolicy.RenownPenalty(alreadyHeldGrudge);
+            if (renownHit > 0 && player.Clan != null)
+               GainRenownAction.Apply(player, -renownHit, doNotNotify: false);
+         }
+         catch (Exception ex) { ModLog.Error($"[COURIER] leak consequences failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>Test seam (cr.testall): applies the Inc 2 leak consequences (grudge + renown) to <paramref name="antagonist" /> right now, exactly as a real leak would.</summary>
+      internal static void DebugApplyLeakConsequences(Hero antagonist, int today) => ApplyLeakConsequences(antagonist, today);
 
       /// <summary>
       ///   Picks a plausible hostile recipient for a leaked letter: a hero who holds a live grudge against the

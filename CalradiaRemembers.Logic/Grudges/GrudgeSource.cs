@@ -124,6 +124,16 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   sense (see <c>NonAggressionPactPolicy</c>'s own header). The reverse breach still ends the pact and
         ///   applies a relation hit and a WorldEvent note naming the true attacker, just never this grudge.
         /// </summary>
-        PactBroken = 20
+        PactBroken = 20,
+
+        /// <summary>
+        ///   "I read what you truly wrote": intercepted-letter-leak Inc 2. An antagonist came into possession of
+        ///   the player's private letter, waylaid on the road by bandits, and turned its contents against them.
+        ///   Planted only when the leak feature is on and a substantive letter actually fell into a hostile hand
+        ///   (a grudge-holder makes the sharpest use of it, a merely hostile lord a milder one). The grudge is
+        ///   what makes the leak LAST: the grudge system then escalates it into future hostile letters or an
+        ///   interception, so a single waylaid letter can seed a running enmity rather than one exploiting note.
+        /// </summary>
+        LeakedLetter = 21
     }
 }
