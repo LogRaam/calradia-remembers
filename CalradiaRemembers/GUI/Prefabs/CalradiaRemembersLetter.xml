@@ -46,7 +46,7 @@
             <Widget Id="LeftPage"
                     WidthSizePolicy="Fixed"
                     HeightSizePolicy="Fixed"
-                    SuggestedWidth="402"
+                    SuggestedWidth="428"
                     SuggestedHeight="!Book.Height"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
@@ -62,7 +62,7 @@
                             MarginLeft="22"
                             MarginRight="22"
                             Brush="@HeadingBrush"
-                            Brush.FontSize="26"
+                            Brush.FontSize="28"
                             Brush.TextHorizontalAlignment="Center"
                             Text="@HistoryTitle"
                             IsDisabled="true" />
@@ -91,9 +91,9 @@
                         HeightSizePolicy="StretchToParent"
                         VerticalAlignment="Top"
                         MarginTop="150"
-                        MarginBottom="96"
+                        MarginBottom="125"
                         MarginLeft="26"
-                        MarginRight="22">
+                        MarginRight="0">
                   <Children>
 
                     <ChatScrollablePanel Id="HistoryScrollPanel"
@@ -221,7 +221,7 @@
                         HorizontalAlignment="Right"
                         VerticalAlignment="Top"
                         MarginTop="30"
-                        MarginRight="60"
+                        MarginRight="190"
                         IsVisible="@HasAnyPortrait">
                   <Children>
                     <!-- Vanilla 3D render (only when no custom portrait overrides it) -->
@@ -245,7 +245,7 @@
                     <CrRuntimeImageWidget Id="LetterCustomPortrait"
                                           WidthSizePolicy="Fixed"
                                           HeightSizePolicy="Fixed"
-                                          SuggestedWidth="200"
+                                          SuggestedWidth="160"
                                           SuggestedHeight="200"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center"
@@ -277,10 +277,10 @@
                         WidthSizePolicy="StretchToParent"
                         HeightSizePolicy="StretchToParent"
                         VerticalAlignment="Top"
-                        MarginTop="304"
-                        MarginBottom="150"
-                        MarginLeft="42"
-                        MarginRight="46"
+                        MarginTop="306"
+                        MarginBottom="190"
+                        MarginLeft="52"
+                        MarginRight="30"
                         IsVisible="@ShowReceivedBody">
                   <Children>
 
@@ -347,22 +347,22 @@
                 <Widget Id="InputBox"
                         WidthSizePolicy="Fixed"
                         HeightSizePolicy="Fixed"
-                        SuggestedWidth="520"
+                        SuggestedWidth="650"
                         SuggestedHeight="58"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Bottom"
-                        MarginBottom="30"
+                        MarginBottom="0"
                         IsVisible="@ShowInput"
                         Sprite="BlankWhiteSquare_9"
                         Color="#C8B488FF"
-                        AlphaFactor="0.55">
+                        AlphaFactor="0.75">
                   <Children>
                     <Widget Id="InputBoxBorder"
                             WidthSizePolicy="StretchToParent"
                             HeightSizePolicy="StretchToParent"
                             Sprite="frame_9"
                             ExtendLeft="6" ExtendTop="6" ExtendRight="6" ExtendBottom="6"
-                            AlphaFactor="0.55"
+                            AlphaFactor="0.00"
                             IsDisabled="true" />
                     <EditableTextWidget Id="LetterInput"
                                         WidthSizePolicy="StretchToParent"
@@ -430,7 +430,7 @@
                               SuggestedWidth="200" SuggestedHeight="44"
                               IsVisible="@ShowSend"
                               Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
-                              Command.Click="ExecuteClose">
+                              Command.Click="ExecuteCancel">
                   <Children>
                     <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                 HorizontalAlignment="Center" VerticalAlignment="Center"

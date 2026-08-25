@@ -341,6 +341,24 @@ namespace CalradiaRemembers.Letters
 
       public void ExecuteClose() => OnCloseRequested?.Invoke();
 
+      /// <summary>
+      ///   Cancel button. In reply mode it drops the draft and returns to READING this same letter (restoring
+      ///   Acknowledge / Reply) rather than closing the window, so the player can back out of writing without
+      ///   losing the letter and still leave via Acknowledge. In compose mode there is no letter to return to,
+      ///   so it closes.
+      /// </summary>
+      public void ExecuteCancel()
+      {
+         if (_state.Mode == LetterWindowMode.Reply && _letter != null && _profile != null)
+         {
+            SetupRead(_letter, _profile);
+
+            return;
+         }
+
+         OnCloseRequested?.Invoke();
+      }
+
       /// <summary>Read mode: turn this into a reply — flip the same window to reply mode in place.</summary>
       public void ExecuteReply()
       {
