@@ -2,6 +2,18 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.2.3.. 2026-08-25
+
+A character keeps their own voice at the council table. Your saves from 2.2.2 carry over untouched.
+
+### Fixed
+- **A character keeps their own manner at a council.** A courteous, composed, knight-like character could turn
+  unexpectedly blunt or rough once seated at a council, while the others stayed themselves. The council was
+  describing each member only by their culture and rank, dropping the individual character that carries their
+  voice, so a polite lord of a warlike people fell back to a rough, warrior tone at the table. Each member now
+  carries their own nature into the council and keeps the same manner and level of politeness they use in a
+  private word, so their voice stays consistent between a one-to-one talk and a meeting.
+
 ## v2.2.2.. 2026-08-25
 
 Two fixes: a settlement-entry crash, and characters keeping up with a realm that changed under them. Your
