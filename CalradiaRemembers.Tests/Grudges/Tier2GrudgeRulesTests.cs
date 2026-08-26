@@ -39,32 +39,30 @@ namespace CalradiaRemembers.Tests.Grudges
             proposal.Magnitude.Should().Be(Tier2GrudgeRules.DeliveredPrisonerToEnemyMagnitude);
         }
 
-        // Design judgment call (see the rule's own doc comment): unlike CaptiveAbuse, even a "gentle" delivery
-        // to an ally is still a betrayal of the captor-captive trust the player was supposed to protect, so
-        // this rule deliberately never returns None. Without it, handing a captive to a friendly party would
-        // read as consequence-free.
+        // Player report (2026-08-26): prisoner ransom is a core, honorable practice, and being ransomed home is a
+        // GOOD outcome for the captive, so a delivery that is NOT to their enemy (a ransom back to their own side,
+        // or a sale to a neutral party) must plant NO grudge. Only a hand-over to their bitter enemy is a betrayal
+        // worth resenting. Without this, every routine ransom would sour the freed prisoner ("sold me off like
+        // chattel" on a lord you just released to his faction).
         [Test]
-        public void GIVEN_a_captive_delivered_to_a_neutral_or_allied_party_WHEN_evaluating_THEN_a_grudge_still_forms_but_lighter()
+        public void GIVEN_a_captive_delivered_to_a_non_enemy_WHEN_evaluating_THEN_no_grudge_forms()
         {
-            var toEnemy = new DeliveredPrisonerFacts {DeliveredToEnemyOfCaptive = true, CaptiveRegardForPlayer = 0};
             var toNeutral = new DeliveredPrisonerFacts {DeliveredToEnemyOfCaptive = false, CaptiveRegardForPlayer = 0};
 
-            GrudgeProposal enemyProposal = Tier2GrudgeRules.DeliveredPrisonerGrudge(toEnemy);
-            GrudgeProposal neutralProposal = Tier2GrudgeRules.DeliveredPrisonerGrudge(toNeutral);
+            GrudgeProposal proposal = Tier2GrudgeRules.DeliveredPrisonerGrudge(toNeutral);
 
-            neutralProposal.Forms.Should().BeTrue("even a lesser betrayal of custody still resents, per the ROADMAP's ALWAYS-forms design call");
-            neutralProposal.Magnitude.Should().BeLessThan(enemyProposal.Magnitude);
-            neutralProposal.Magnitude.Should().Be(Tier2GrudgeRules.DeliveredPrisonerBaseMagnitude);
+            proposal.Forms.Should().BeFalse("a ransom home or to a neutral party is a normal, honorable practice, not a betrayal");
+            proposal.Magnitude.Should().Be(0);
         }
 
         // Mirrors DivorceConsequencePolicy.SpouseGrudgeLowRegardBonus's own low-regard-nurses-harder pattern:
         // a captive who already resented the player takes the betrayal harder, not milder, than one who was
         // neutral toward them.
         [Test]
-        public void GIVEN_a_captive_who_already_disliked_the_player_WHEN_delivered_THEN_the_magnitude_is_bumped()
+        public void GIVEN_a_captive_who_already_disliked_the_player_WHEN_sold_to_their_enemy_THEN_the_magnitude_is_bumped()
         {
-            var neutralRegard = new DeliveredPrisonerFacts {DeliveredToEnemyOfCaptive = false, CaptiveRegardForPlayer = 0};
-            var lowRegard = new DeliveredPrisonerFacts {DeliveredToEnemyOfCaptive = false, CaptiveRegardForPlayer = Tier2GrudgeRules.DeliveredPrisonerLowRegardThreshold};
+            var neutralRegard = new DeliveredPrisonerFacts {DeliveredToEnemyOfCaptive = true, CaptiveRegardForPlayer = 0};
+            var lowRegard = new DeliveredPrisonerFacts {DeliveredToEnemyOfCaptive = true, CaptiveRegardForPlayer = Tier2GrudgeRules.DeliveredPrisonerLowRegardThreshold};
 
             int neutralMagnitude = Tier2GrudgeRules.DeliveredPrisonerGrudge(neutralRegard).Magnitude;
             int lowRegardMagnitude = Tier2GrudgeRules.DeliveredPrisonerGrudge(lowRegard).Magnitude;
@@ -276,8 +274,10 @@ namespace CalradiaRemembers.Tests.Grudges
         [Test]
         public void GIVEN_every_tier_2_rules_lightest_forming_case_WHEN_evaluating_THEN_the_magnitude_clears_the_formation_floor()
         {
+            // The lightest FORMING case is now a sale to the captive's enemy at high regard (no low-regard bonus);
+            // a non-enemy delivery no longer forms at all (a normal ransom is not resented).
             int deliveredPrisonerLightest = Tier2GrudgeRules.DeliveredPrisonerGrudge(
-                new DeliveredPrisonerFacts {DeliveredToEnemyOfCaptive = false, CaptiveRegardForPlayer = 100}).Magnitude;
+                new DeliveredPrisonerFacts {DeliveredToEnemyOfCaptive = true, CaptiveRegardForPlayer = 100}).Magnitude;
 
             int captiveAbuseLightest = Tier2GrudgeRules.CaptiveAbuseGrudge(
                 new CaptiveAbuseFacts {Severity = 1, PlayerWasThePerpetrator = false}).Magnitude;

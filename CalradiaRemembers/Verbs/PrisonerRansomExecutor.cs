@@ -95,7 +95,9 @@ namespace CalradiaRemembers.Verbs
                 buyerProfile?.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
                     $"Bought the captive {captive.Name} from the player for {payment} denars."));
 
-                // The sold captive resents being traded like goods, heavier when sold to their own enemy.
+                // A captive resents being sold ONLY when handed to their own enemy (a real betrayal). A ransom back
+                // to their side or a sale to a neutral is a normal, honorable practice and plants nothing
+                // (DeliveredPrisonerGrudge forms only when DeliveredToEnemyOfCaptive; player report 2026-08-26).
                 try
                 {
                     bool toEnemy = captive.MapFaction != null && buyer.MapFaction != null &&
@@ -107,7 +109,7 @@ namespace CalradiaRemembers.Verbs
                     GrudgeProposal proposal = Tier2GrudgeRules.DeliveredPrisonerGrudge(facts);
                     if (proposal.Forms)
                         GrudgeBehavior.Instance?.TryPlant(captive, Hero.MainHero, GrudgeSource.DeliveredPrisoner,
-                            toEnemy ? "The player sold me to my enemy." : "The player sold me off like chattel.",
+                            "The player sold me to my enemy.",
                             proposal.Magnitude, proposal.KnownToPlayer, today);
                 }
                 catch (Exception ex)

@@ -159,12 +159,6 @@ namespace CalradiaRemembers.Logic.Grudges
       // ── DeliveredPrisoner ────────────────────────────────────────────────
 
       /// <summary>
-      ///   Tuning: base magnitude when the captive was delivered to a neutral/allied party (a lesser betrayal, still a
-      ///   betrayal of trust).
-      /// </summary>
-      public const int DeliveredPrisonerBaseMagnitude = 35;
-
-      /// <summary>
       ///   Tuning: the magnitude bump applied when <see cref="DeliveredPrisonerFacts.CaptiveRegardForPlayer" /> is
       ///   at/below <see cref="DeliveredPrisonerLowRegardThreshold" /> (mirrors
       ///   <see cref="DivorceConsequencePolicy.SpouseGrudgeLowRegardBonus" />).
@@ -226,22 +220,18 @@ namespace CalradiaRemembers.Logic.Grudges
       }
 
       /// <summary>
-      ///   ALWAYS forms (a captive always learns, and always resents, who sold them onward — never a
-      ///   silent event), heavier when delivered to a bitter enemy of the captive's than to a neutral
-      ///   or allied party. Design judgment call: unlike CaptiveAbuse (below), even a "gentle" delivery
-      ///   to an ally is still a betrayal of the captor-captive trust the game itself modelled (they were
-      ///   the player's to protect or free), so this rule never returns <see cref="GrudgeProposal.None" />.
-      ///   KnownToPlayer is always true: the captive was physically handed over, so there is no
-      ///   concealment to model. A captive who already regarded the player poorly nurses the betrayal a
-      ///   touch harder, exactly like the divorce's repudiated spouse.
+      ///   Forms ONLY when the captive is handed to a BITTER ENEMY of their own: a genuine betrayal that leaves
+      ///   them worse off, in enemy hands. A ransom back to their own side, or a sale to a neutral party, is a
+      ///   normal and honorable practice in this world, and being ransomed home is a GOOD outcome for the captive,
+      ///   so it plants NO grudge (player report 2026-08-26: prisoner ransom is a core game function; a lord
+      ///   released to their faction should not resent it). KnownToPlayer is true (the captive was physically
+      ///   handed over, nothing to conceal), and one who already regarded the player poorly nurses it harder.
       /// </summary>
       public static GrudgeProposal DeliveredPrisonerGrudge(DeliveredPrisonerFacts facts)
       {
-         if (facts == null) return GrudgeProposal.None;
+         if (facts == null || !facts.DeliveredToEnemyOfCaptive) return GrudgeProposal.None;
 
-         int magnitude = facts.DeliveredToEnemyOfCaptive
-            ? DeliveredPrisonerToEnemyMagnitude
-            : DeliveredPrisonerBaseMagnitude;
+         int magnitude = DeliveredPrisonerToEnemyMagnitude;
 
          if (facts.CaptiveRegardForPlayer <= DeliveredPrisonerLowRegardThreshold)
             magnitude += DeliveredPrisonerLowRegardBonus;
