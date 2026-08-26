@@ -784,6 +784,15 @@ namespace CalradiaRemembers.Chat
 
       private static void EndVanillaConversation()
       {
+         // ONLY end a conversation that is actually in progress. The audience overlays (an NPC's "asks for a
+         // private word", opened WITHOUT a vanilla conversation over a live settlement menu + encounter) leave
+         // Hero.OneToOneConversationHero null; calling EndConversation on that phantom conversation while the real
+         // settlement encounter is active crashes NATIVELY (0xE0434352, uncaught by SafeStep, so nothing is
+         // logged) on leave (player report 2026-08-25, exposed once afe07f9 let in-settlement audiences open at
+         // all). An ordinary chat always rides a real conversation here, so it still ends cleanly; captive /
+         // council / commoner overlays have no conversation to end either, so skipping is a safe no-op for them.
+         if (Hero.OneToOneConversationHero == null) return;
+
          if (Campaign.Current?.ConversationManager != null)
             Campaign.Current.ConversationManager.EndConversation();
       }
