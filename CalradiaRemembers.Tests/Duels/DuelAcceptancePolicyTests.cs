@@ -1,11 +1,12 @@
 // Code written by Gabriel Mailhot, 14/07/2026.
 // Duels pillar, Inc 0: once a challenge is admissible, does the NPC actually take the field? This is where the
-// feature lives or dies as characterisation. The ratified character (ROADMAP): Valour and Honour lean in, a
-// fearful Calculating slips out, an affronted grudge-holder demands it, and, crucially, a duel is NEVER
-// casual, so with no real push the answer is no. If the default drifted to "accept", every idle chat would
-// end in a brawl; if a burning grudge could not overcome caution, the single most dramatic duel (settling a
-// vendetta with steel) would never happen. These tests pin the named forces and, at the seams, the exact
-// score so the curve cannot silently drift under a later tweak.
+// feature lives or dies as characterisation. Ratified 2026-08-26 (player report: challenges fizzled): a duel of
+// HONOUR is ANSWERED by default, the more so for an honourable NPC, so refusal now takes a real reason: fear
+// turned to a calculated exit, a timid dishonourable nature, or a challenger far beneath the NPC's station (a
+// nobody who calls out a king is dismissed, not fought). If the default drifted back to "refuse", challenges
+// would fizzle and the feature would feel dead; if a great station gulf could not override honour, a peasant
+// could force a king onto the field. These tests pin the named forces and, at the seams, the exact score so the
+// curve cannot silently drift under a later tweak.
 
 #region
 
@@ -22,13 +23,37 @@ namespace CalradiaRemembers.Tests.Duels
    [TestFixture]
    public sealed class DuelAcceptancePolicyTests
    {
-      // The default is the whole safety valve: a plain lord with no grudge, no fear, no crowd, and no strong
-      // trait either way must REFUSE. Without this, an admissible challenge would be accepted by anyone at any
-      // time and the map would dissolve into constant duels.
+      // The ratified default (2026-08-26): a plain peer duel of honour, no station gap, no fear, is ACCEPTED. A
+      // challenge should generally lead to a fight; the player reported the opposite (NPCs declining even after
+      // agreeing in dialogue). If this ever refused again, challenges would fizzle and the feature would be dead.
       [Test]
-      public void GIVEN_no_reason_to_fight_WHEN_deciding_THEN_the_default_is_to_refuse()
+      public void GIVEN_a_peer_duel_of_honour_WHEN_deciding_THEN_the_default_is_to_accept()
       {
-         DuelAcceptancePolicy.Decide(Ctx()).Should().Be(DuelResponse.Refuse);
+         DuelAcceptancePolicy.Decide(Ctx()).Should().Be(DuelResponse.Accept);
+      }
+
+      // The honourable refusal (ratified 2026-08-26): a challenger far beneath the NPC's station is dismissed, not
+      // fought. Even an honourable lord will not cross swords with a nobody who calls him out, so a great enough
+      // station gap overrides honour's pull. Without this, a peasant could force a king onto the field.
+      [Test]
+      public void GIVEN_a_challenger_far_beneath_the_npcs_station_WHEN_deciding_THEN_even_an_honourable_lord_refuses()
+      {
+         DuelAcceptanceContext ctx = Ctx(honor: 2);
+         ctx.ChallengerStationBelowNpc = 4;
+
+         DuelAcceptancePolicy.Decide(ctx).Should().Be(DuelResponse.Refuse);
+      }
+
+      // The station gap only leans OUT, monotonically: a peer (gap 0) is more willing than the same NPC facing a
+      // lesser challenger. This pins that the gulf never accidentally pushes someone TOWARD a fight.
+      [Test]
+      public void GIVEN_a_widening_station_gap_WHEN_scoring_THEN_it_only_leans_the_npc_away_from_the_field()
+      {
+         DuelAcceptanceContext peer = Ctx(honor: 1);
+         DuelAcceptanceContext lesser = Ctx(honor: 1);
+         lesser.ChallengerStationBelowNpc = 2;
+
+         DuelAcceptancePolicy.Score(lesser).Should().BeLessThan(DuelAcceptancePolicy.Score(peer));
       }
 
       // A brave, honourable lord called out before a crowd is the archetype who MUST fight: bravery and honour

@@ -36,17 +36,31 @@ namespace CalradiaRemembers.Logic.Duels
 
       /// <summary>The challenge was issued before at least one witness, so refusing it would be a public disgrace.</summary>
       public bool ChallengedBeforeWitnesses { get; set; }
+
+      /// <summary>
+      ///   How many steps of station the CHALLENGER stands BENEATH this NPC (0 = a peer or their better). A great
+      ///   gulf is the honourable reason to decline: a king does not cross swords with a nobody who calls him out
+      ///   (ratified 2026-08-26). The host derives it from rank (ruler / clan tier / renown); 0 when the challenger
+      ///   is an equal or above, so an ordinary duel between peers is unaffected.
+      /// </summary>
+      public int ChallengerStationBelowNpc { get; set; }
    }
 
    /// <summary>
-   ///   Decides whether an NPC accepts an admissible duel. Every constant is a tuning knob. The rule is a sum
-   ///   of leanings: a grudge and an honourable public challenge push hard toward the field, bravery and
-   ///   honour lean in, fear of the player leans out, and a calculating nature turns real fear into a
-   ///   deliberate exit. When nothing pushes past the threshold, the answer is no: a duel is a grave thing,
-   ///   not a default.
+   ///   Decides whether an NPC accepts an admissible duel. Every constant is a tuning knob. A duel of honour is
+   ///   ANSWERED by default (ratified 2026-08-26: a challenge should generally lead to a fight, the more so for an
+   ///   honourable NPC), so the rule starts leaning IN. What overpowers that: real fear turned to a calculated
+   ///   exit, a dishonourable and timid nature, or the challenger standing far beneath the NPC's station (a king
+   ///   does not duel a nobody). A grudge and a public challenge push harder still toward the field.
    /// </summary>
    public static class DuelAcceptancePolicy
    {
+      /// <summary>Tuning: the standing lean IN, so an ordinary duel of honour between peers is ACCEPTED by default; a real reason (fear, cowardice, a great station gap) is needed to refuse.</summary>
+      public const int BaseAcceptLean = 20;
+
+      /// <summary>Tuning: leaning OUT per step the challenger stands beneath the NPC's station. A great gulf (a nobody calling out a king) refuses outright, even for an honourable lord.</summary>
+      public const int StationGapLeanPerStep = 15;
+
       /// <summary>Tuning: a live grudge a duel would answer. The single strongest pull toward the field ("let us settle this with steel").</summary>
       public const int GrudgeDrivesLean = 40;
 
@@ -68,7 +82,7 @@ namespace CalradiaRemembers.Logic.Duels
       /// <summary>Tuning: additional leaning OUT per positive Calculating level, but ONLY once fear clears the cowardice threshold. A calculating man who fears you finds the door; a fearless one does not need it.</summary>
       public const int CalculatingSlipPerLevel = 10;
 
-      /// <summary>Tuning: the score at or above which the NPC accepts. Above zero on purpose, so a real reason is needed to fight at all.</summary>
+      /// <summary>Tuning: the score at or above which the NPC accepts. The <see cref="BaseAcceptLean" /> clears it on its own, so a peer duel of honour is accepted unless something real (fear, cowardice, a station gulf) drags the score under it.</summary>
       public const int AcceptThreshold = 10;
 
       /// <summary>The verdict. Accepts when the leaning score clears <see cref="AcceptThreshold" />, else refuses.</summary>
@@ -90,7 +104,8 @@ namespace CalradiaRemembers.Logic.Duels
          int fear = ctx.Stance?.Fear ?? 0;
          if (fear < 0) fear = 0;
 
-         double score = 0;
+         // A duel of honour is answered by default: start leaning IN, so a real reason is needed to refuse.
+         double score = BaseAcceptLean;
 
          if (ctx.AGrudgeDrivesIt) score += GrudgeDrivesLean;
 
@@ -107,6 +122,11 @@ namespace CalradiaRemembers.Logic.Duels
          // does not fear the player has no reason to slip out on that account.
          if (fear >= FearCowardiceThreshold && calculating > 0)
             score -= calculating * CalculatingSlipPerLevel;
+
+         // The honourable refusal: a challenger far beneath the NPC's station is dismissed rather than fought
+         // (a nobody who calls out a king). A great enough gulf overrides even honour's pull toward the field.
+         int stationGap = ctx.ChallengerStationBelowNpc;
+         if (stationGap > 0) score -= stationGap * StationGapLeanPerStep;
 
          return (int) System.Math.Round(score);
       }

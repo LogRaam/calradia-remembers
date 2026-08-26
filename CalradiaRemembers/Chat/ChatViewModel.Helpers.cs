@@ -998,7 +998,8 @@ namespace CalradiaRemembers.Chat
                 Traits = GrudgeBridge.BuildTraitFacts(opponent),
                 Stance = StanceService.ToStance(profile),
                 AGrudgeDrivesIt = HasLiveGrudge(opponent),
-                ChallengedBeforeWitnesses = _witnesses.Count > 0
+                ChallengedBeforeWitnesses = _witnesses.Count > 0,
+                ChallengerStationBelowNpc = DuelStationGap(opponent)
              }) == DuelResponse.Refuse)
          {
             // Recorded as scene narration rather than a bare system line, so it enters the transcript and the
@@ -1011,6 +1012,8 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         // ChallengerStationBelowNpc: how far the PLAYER stands beneath this NPC, so a nobody who calls out a king
+         // is dismissed rather than fought (ratified 2026-08-26). See DuelStationGap / DuelStation below.
          DuelCoordinator.Arm(opponent, DuelReason.HonourAffront, venue, !playerIssued, _witnesses.Count, null);
 
          // Same deliberate transition as the escape: lock the input and leave only the close button. Clicking
@@ -1028,6 +1031,20 @@ namespace CalradiaRemembers.Chat
             : $"{profile?.Name ?? speaker.Name} demands satisfaction of you. Close this conversation to take the field.", false);
          ModLog.Info($"[DUEL] armed from chat against {speaker.Name}: venue={venue}, "
                    + $"challenger={(playerIssued ? "player" : "npc")}, {_witnesses.Count} witness(es).");
+      }
+
+      /// <summary>How many coarse steps of station the PLAYER stands beneath <paramref name="npc" /> (0 when a peer or above), for DuelAcceptancePolicy's station-gap refusal.</summary>
+      private static int DuelStationGap(Hero npc)
+         => System.Math.Max(0, DuelStation(npc) - DuelStation(Hero.MainHero));
+
+      /// <summary>A coarse social station for a duel: a ruling monarch (3), a great house (2), an established lord (1), or a minor noble / companion / landless figure (0).</summary>
+      private static int DuelStation(Hero h)
+      {
+         if (h?.Clan?.Kingdom != null && h.Clan.Kingdom.Leader == h) return 3; // a ruling king or queen
+         int tier = h?.Clan?.Tier ?? 0;
+         if (tier >= 4) return 2;                       // a great house
+         if (h?.Clan != null && tier >= 1) return 1;    // an established lord
+         return 0;                                      // a minor noble, companion, or landless figure
       }
 
       /// <summary>
