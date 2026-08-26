@@ -486,6 +486,7 @@ namespace CalradiaRemembers.Mapping
             PartnerIsOwnCompanion = MarryCompanionResolver.IsEligibleCompanionMatch(hero),
             NpcSpouseIsPlayer = hero?.Spouse == Hero.MainHero && Hero.MainHero != null,
             NpcIsPlayerHousehold = IsPlayerHousehold(hero, profile),
+            MarriedSeductionStance = ResolveMarriedSeductionStance(hero, profile),
             SpouseMarriedUnwillingly = ResolveSpouseMarriedUnwillingly(hero),
             ConsortEligible = ResolveConsortEligible(hero, profile),
             SecretLoverEligible = ResolveSecretLoverEligible(hero, profile),
@@ -661,6 +662,35 @@ namespace CalradiaRemembers.Mapping
          if (hero.Father == Hero.MainHero || hero.Mother == Hero.MainHero) return true;
 
          return Hero.MainHero.Siblings != null && Hero.MainHero.Siblings.Contains(hero);
+      }
+
+      /// <summary>
+      ///   Stolen Love pillar (gated by the MCM toggle): for an NPC married to a THIRD PARTY, whether the player
+      ///   has genuinely won them past their marriage and their own nature, via the pure
+      ///   <see cref="SeductionEligibilityPolicy" />. Returns <see cref="MarriedSeductionStance.NotApplicable" />
+      ///   when the pillar is off, when the NPC is unwed or wed to the player, so the ordinary infidelity rule is
+      ///   left untouched unless the host opts in.
+      /// </summary>
+      private static MarriedSeductionStance ResolveMarriedSeductionStance(Hero hero, NpcProfile profile)
+      {
+         if (!ModSettings.EnableStolenLove) return MarriedSeductionStance.NotApplicable;
+         if (hero?.Spouse is not {IsAlive: true}) return MarriedSeductionStance.NotApplicable;
+         if (hero.Spouse == Hero.MainHero) return MarriedSeductionStance.NotApplicable; // married to the player, not a third party
+
+         // Marriage duration is not exposed by the engine, so it is left at 0 (a minor, capped factor in the policy).
+         var facts = new SeductionFacts {
+            NpcSpouseRelation = hero.GetRelation(hero.Spouse),
+            HasChildrenTogether = hero.Children != null
+               && hero.Children.Any(c => c != null && (c.Father == hero.Spouse || c.Mother == hero.Spouse)),
+            MarriageDurationDays = 0,
+            NpcHonor = hero.GetTraitLevel(DefaultTraits.Honor),
+            NpcCalculating = hero.GetTraitLevel(DefaultTraits.Calculating),
+            RegardWithPlayer = profile?.ReputationWithPlayer ?? 0
+         };
+
+         return SeductionEligibilityPolicy.Evaluate(facts).Seducible
+            ? MarriedSeductionStance.Seducible
+            : MarriedSeductionStance.Resistant;
       }
 
       /// <summary>Counts towns and castles belonging to a kingdom; returns 0 for a null kingdom.</summary>

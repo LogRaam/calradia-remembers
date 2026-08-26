@@ -110,6 +110,12 @@ namespace CalradiaRemembers
       public static bool EnableJealousy => CrSettings.Instance?.EnableJealousy ?? true;
 
       /// <summary>
+      ///   Stolen Love pillar toggle, read live from the MCM menu. Off (default) keeps the shipped affair rule for
+      ///   a married NPC; on turns the personality-gated seduction path on (see <see cref="Logic.SeductionEligibilityPolicy" />).
+      /// </summary>
+      public static bool EnableStolenLove => CrSettings.Instance?.EnableStolenLove ?? false;
+
+      /// <summary>
       ///   The player-chosen base folder for prompt/style overrides (MCM), or "" for the default ModuleData/Custom.
       ///   Read by <see cref="Mapping.NarrativeLoader.CustomBaseFolder" /> so a player can keep their edits outside
       ///   the module and survive an update that replaces it (player report v1.33.5).

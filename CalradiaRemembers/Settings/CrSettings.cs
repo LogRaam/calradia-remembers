@@ -203,6 +203,14 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool EnableJealousy { get; set; } = true;
 
+      [SettingPropertyBool("Enable Stolen Love", RequireRestart = false, Order = 1,
+         HintText = "Off (default): a married character resists an affair as before (deep trust alone can open one). " +
+                    "On: seducing a MARRIED character becomes a gated, personality-true path (an honourable or " +
+                    "happily married one holds firm however high your standing), the groundwork for luring them away " +
+                    "from their spouse. Explicit content still follows the Adult Content Level.")]
+      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      public bool EnableStolenLove { get; set; } = false;
+
       public override string FolderName => "CalradiaRemembers";
       public override string FormatType => "json2";
       public override string Id => "CalradiaRemembers";
