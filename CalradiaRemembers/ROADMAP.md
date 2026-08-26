@@ -32,6 +32,41 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## STOLEN LOVE pillar (ratified 2026-08-26, player request; NOT built)
+
+Seduce a MARRIED NPC, break their marriage over time, then either marry them yourself or leave them divorced to
+sabotage a rival. A new pillar built on three systems already in place: the affair/infidelity path (the consent
+block already frames intimacy with a third-party-married NPC as infidelity gated at regard >= 30, plus
+RomanticStatus.SecretLover), the player-divorce unmarry (CR sets Hero.Spouse = null on both sides + ExSpouses +
+a relation hit, since the engine has no clean DivorceAction), and MarriageAction.Apply for the remarriage once
+the NPC is free. So the work is design (conditions and consequences), not plumbing.
+
+Ratified decisions:
+- BOTH flavors, one spine (affair -> estrangement -> divorce): (a) seduce -> divorce -> MARRY the freed NPC;
+  (b) seduce -> cause the divorce as SABOTAGE, without marrying.
+- GATED seducibility, never any married NPC: marriage health (the NPC vs their spouse relation; low/negative =
+  vulnerable, high = resists), children together (harder), duration, the NPC's Honor/Calculating traits, and
+  earned regard toward the player. A happy, honorable spouse is nearly unwinnable.
+- Consequence is a PERSONAL grudge on the JILTED SPOUSE only (new GrudgeSource.StolenSpouse). No clan or faction
+  fallout, no war. It feeds nemesis and the vanilla Blood Feuds beta naturally.
+- Player-experience-first: the estrangement exists only for the couple the player is actively breaking; no
+  NPC-NPC affairs are simulated elsewhere.
+- The post-divorce marriage SKIPS the normal courtship (no trial, no family blessing, no regard bar): making the
+  spouse divorce for the player IS the courtship and the proof of consent.
+- Dedicated MCM EnableStolenLove toggle; the explicit intimacy stays under AdultLevel (the divorce/marriage
+  mechanics themselves can run as a courtly seduction without adult content).
+
+Increments (test-first, Logic-heavy while in-game QA is unavailable):
+1. SeductionEligibilityPolicy (pure, unit-tested): seducible + why-not from the factors above. Prompt teaches
+   the seduction path only when the policy says seducible. No engine yet.
+2. NpcMarriageEstrangementBehavior (persisted, additive save key) + EstrangementProgressPolicy (pure): advances
+   an estrangement over days at rate = affair depth x marriage weakness; the NPC voices the growing rift.
+   Mirrors the existing player SpouseDivorceDemandBehavior / DivorceProcessBehavior.
+3. Divorce verdict (reuse the player-divorce unmarry) + GrudgeSource.StolenSpouse planted on the jilted spouse +
+   a magnitude policy + self-test. Spike the NPC-NPC divorce feasibility here.
+4. The two exits: (a) marry the freed NPC via a relaxed gate; (b) sabotage = leave divorced, scheme framing.
+5. Polish: memories (affair, divorce, jilted-spouse grudge), Chronicle entries, the MCM toggle.
+
 ## SHIPPED v2.2.0 (Level 1; player report, 2026-08-20): a letter-borne agreement must survive into the in-person conversation
 
 A player negotiated a marriage over three letters with Desporion ("we agreed on the terms"), then met him in
