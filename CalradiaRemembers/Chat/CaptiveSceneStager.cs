@@ -196,7 +196,12 @@ namespace CalradiaRemembers.Chat
             Captor = lord
          };
 
-         BeginStagedConversation(pending, lord?.CharacterObject, lord?.PartyBelongedTo?.Party, "INTERCEPT STAGE");
+         // A road pursuer rides a field party; a fief audience target (a notable, a lady, a garrisoned lord who
+         // stands in the settlement with no field party) has none, so attach the scene to the settlement they
+         // stand in. If neither yields a party, BeginStagedConversation opens directly rather than stage nothing.
+         PartyBase attachParty = lord?.PartyBelongedTo?.Party ?? lord?.CurrentSettlement?.Party;
+
+         BeginStagedConversation(pending, lord?.CharacterObject, attachParty, "INTERCEPT STAGE");
       }
 
       /// <summary>

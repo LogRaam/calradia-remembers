@@ -270,8 +270,14 @@ namespace CalradiaRemembers.Interception
          MainThreadDispatcher.Enqueue(() =>
          {
             InterceptionBehavior.Instance?.StashFiefAudienceReason(npc, trigger, detail);
-            NpcMemoryCampaignBehavior.Instance?.DialogFlow?.OpenChatForInterceptingHero(npc);
-            ModLog.Info($"[FIEF_AUDIENCE] {npc.Name}'s audience opened ({trigger}).");
+
+            // Stage a conversation scene with the NPC (the same VRAM-safe path the council and companion audience
+            // use) rather than a bare overlay over the suspended settlement menu, where a hidden sub-panel
+            // (Memories/Compose) left ghost pixels. The stashed reason above is consumed when the chat opens over
+            // the loaded scene (StagePlainConversation -> OpenChatForInterceptingHero), a few frames later. Falls
+            // back to the direct overlay open if no scene can load for this partyless notable.
+            CaptiveSceneStager.StagePlainConversation(npc);
+            ModLog.Info($"[FIEF_AUDIENCE] {npc.Name}'s audience staged ({trigger}).");
          });
       }
 
