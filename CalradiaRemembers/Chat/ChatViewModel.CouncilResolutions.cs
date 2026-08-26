@@ -263,6 +263,15 @@ namespace CalradiaRemembers.Chat
          // choice, it is computed fresh at the lift by the SAME CourtActionPolicy.InfluenceGrant
          // (CouncilLift.SettleSupportClaimant), so it also falls through to this default branch with a null
          // TargetHint, never read by the lift.
+         // "quest" (the universal kind) now grounds on TWO pieces (2026-08-26, player report: every council
+         // pledge grounded as a bandit-clear on the named settlement, so ONE bandit fight near the siege target
+         // completed the whole table's tasks at once): WHICH deed is pledged (proposal.QuestType, the [QUEST]
+         // block's own vocabulary) AND the settlement it concerns, composed into this single TargetHint slot by
+         // QuestGroundingCodec.Compose, split apart again at the lift by the SAME codec (CouncilLift.SettleQuest).
+         // A pledge naming no quest_type composes to the bare settlement, the legacy shape, so an un-typed
+         // pledge grounds exactly as it always has (bandit-clear).
+         else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.Quest), StringComparison.OrdinalIgnoreCase))
+            targetHint = QuestGroundingCodec.Compose(proposal.QuestType, proposal.TargetSettlement);
          else
             targetHint = proposal.TargetSettlement;
          AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession, targetHint);

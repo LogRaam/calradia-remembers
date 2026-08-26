@@ -298,17 +298,31 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   The original (and, until AppointGovernor, only) executor: sets the pledging member a bandit-clear
-      ///   task grounded on <see cref="AssemblyResolutionEntry.TargetHint" /> (the settlement named at proposal
-      ///   time), exactly as an ordinary [QUEST] would be issued. Extracted verbatim from the pre-dispatch
-      ///   <see cref="Settle" /> body: this is a refactor, not a behavior change.
+      ///   The original (and, until AppointGovernor, only) executor: sets the pledging member a task grounded on
+      ///   <see cref="AssemblyResolutionEntry.TargetHint" />, exactly as an ordinary [QUEST] would be issued.
+      ///   Since 2026-08-26 the hint is a <see cref="QuestGroundingCodec" /> composite carrying WHICH deed is
+      ///   pledged (quest_type) alongside the settlement: before that, every pledge grounded as a bandit-clear,
+      ///   so a single bandit fight near the target completed the whole table's tasks at once (player report:
+      ///   eight siege-council pledges stamped "Done" by clearing one bandit camp). Differently-typed pledges
+      ///   now complete independently, each on its own real game event (QuestDeedTracker). A hint that carries
+      ///   no readable type (legacy entries, an omitted or unsupported token) keeps the legacy bandit-clear
+      ///   grounding via <see cref="CouncilQuestTypePolicy" />'s fallback.
       /// </summary>
       private static void SettleQuest(AssemblyLedger ledger, AssemblyResolutionEntry entry, Hero actorHero, string actorName, NpcProfile giver, NpcMemoryCampaignBehavior behavior, int gameDay, Action<string, bool> report)
       {
+         string settlement = entry.TargetHint;
+         string questTypeToken = null;
+
+         if (QuestGroundingCodec.TryDecompose(entry.TargetHint, out string token, out string place))
+         {
+            questTypeToken = token;
+            settlement = place;
+         }
+
          var proposal = new QuestProposal {
-            Type = QuestType.BanditClear,
+            Type = CouncilQuestTypePolicy.Resolve(questTypeToken),
             Description = entry.Detail,
-            TargetSettlement = entry.TargetHint
+            TargetSettlement = settlement
          };
 
          var failed = false;
