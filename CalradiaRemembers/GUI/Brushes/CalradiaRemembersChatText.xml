@@ -1,0 +1,113 @@
+<Brushes>
+
+  <!--
+    Sized CHAT / COUNCIL dialogue-text brushes, backing the MCM "Chat Text Size (%)" and
+    "Council Text Size (%)" settings (ModSettings.ChatTextSizeStep / CouncilTextSizeStep).
+
+    Why brush NAMES: Brush.FontSize is NOT a valid Gauntlet bind target (binding it crashed the
+    message list, revert b55af7e), but the brush name IS bindable (proven by the letter brushes and
+    LetterViewModel.BodyBrush). Each ChatMessageViewModel exposes a brush-name property and the
+    MessageText widgets in the two chat prefabs and the council prefab bind Brush="@...FontBrush".
+
+    One brush per 10% step of each window's shipped base size: Classic (Origin chat skin) base 22,
+    Manuscript (Dark Leather chat skin) base 18, Council base 18. No Font is set ON PURPOSE: the
+    widgets previously used the unresolved "Default" brush, so the text renders in the game's
+    per-language default font (Cyrillic included); pinning a Font here would break that resolution.
+    TextHorizontalAlignment lives HERE in the brush, not as a prefab override: the bound Brush assignment
+    happens after the widget's literal attributes are parsed and RESETS them (player report, 2026-08-25:
+    the literal Brush.TextHorizontalAlignment="Left" was lost and the text rendered centered). FontColor
+    stays a prefab override only because it is itself data-bound (@AuthorColor), so it is re-applied after.
+    Brush files are not hot-reloaded by cr.reload_ui: restart the game after editing.
+  -->
+
+  <!-- Classic (Origin chat skin): shipped base size 22. -->
+  <Brush Name="CR.ChatText.Classic.70" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="15" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Classic.80" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="18" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Classic.90" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="20" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Classic.100" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="22" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Classic.110" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="24" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Classic.120" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="26" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Classic.130" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="29" /></Styles>
+  </Brush>
+
+  <!-- Manuscript (Dark Leather chat skin): shipped base size 18. -->
+  <Brush Name="CR.ChatText.Manuscript.70" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="13" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Manuscript.80" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="14" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Manuscript.90" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="16" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Manuscript.100" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="18" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Manuscript.110" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="20" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Manuscript.120" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="22" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Manuscript.130" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="23" /></Styles>
+  </Brush>
+
+  <!-- Council (round-table window): shipped base size 18, independent of the chat text size. -->
+  <Brush Name="CR.ChatText.Council.70" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="13" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Council.80" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="14" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Council.90" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="16" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Council.100" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="18" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Council.110" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="20" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Council.120" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="22" /></Styles>
+  </Brush>
+  <Brush Name="CR.ChatText.Council.130" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles><Style Name="Default" FontSize="23" /></Styles>
+  </Brush>
+
+</Brushes>

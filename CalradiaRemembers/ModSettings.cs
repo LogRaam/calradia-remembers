@@ -2,6 +2,7 @@
 
 #region
 
+using System;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Settings;
 using NpcMemoryService.Core.Models;
@@ -150,6 +151,36 @@ namespace CalradiaRemembers
          }
       }
 
+
+      /// <summary>
+      ///   How large the chat DIALOGUE TEXT is drawn, independently of the window size: since the window scale
+      ///   scales the whole book (font included), text-per-line stayed constant however the player sized the
+      ///   window (player report, 2026-08-25). This scales only the message font, so a smaller value fits more
+      ///   words per line. Returned as a snapped 10% step in [70, 130] because the size reaches the widget as a
+      ///   sized BRUSH NAME (see <see cref="SnapTextSizeStep" />); 100 when MCM has not loaded. Applies to the
+      ///   next conversation (the brush name is read when each message binds).
+      /// </summary>
+      public static int ChatTextSizeStep => SnapTextSizeStep(CrSettings.Instance?.ChatTextSizePercent ?? 100);
+
+      /// <summary>
+      ///   How large the council (round-table) DIALOGUE TEXT is drawn, INDEPENDENTLY of the chat text size
+      ///   above. Same snapping and apply-on-next-window semantics as <see cref="ChatTextSizeStep" />.
+      /// </summary>
+      public static int CouncilTextSizeStep => SnapTextSizeStep(CrSettings.Instance?.CouncilTextSizePercent ?? 100);
+
+      /// <summary>
+      ///   Brush.FontSize is NOT a valid Gauntlet bind target (binding it crashed the message list, revert
+      ///   b55af7e), so the dialogue font size reaches the MessageText widget as a sized brush NAME, which IS
+      ///   bindable (the letter brushes prove the pattern). Sized brushes exist only per 10% step
+      ///   (GUI/Brushes/CalradiaRemembersChatText.xml), so the continuous MCM percent is snapped to the nearest
+      ///   step after clamping to the slider's own [70, 130] bounds (a stale/edited config can carry anything).
+      /// </summary>
+      private static int SnapTextSizeStep(int pct)
+      {
+         if (pct < 70) pct = 70;
+         if (pct > 130) pct = 130;
+         return (int)Math.Round(pct / 10.0, MidpointRounding.AwayFromZero) * 10;
+      }
 
       /// <summary>
       ///   How readily lords ride out to have a word with the player on the road (player request, Fakade). Read

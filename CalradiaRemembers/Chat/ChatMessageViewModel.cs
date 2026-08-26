@@ -122,6 +122,22 @@ namespace CalradiaRemembers.Chat
       [DataSourceProperty]
       public float AvatarWidth { get; private set; } = 96f;
 
+      /// <summary>
+      ///   The dialogue-line brush NAME, its size step driven by the independent "Chat Text Size (%)" MCM setting
+      ///   (<see cref="ModSettings.ChatTextSizeStep" />), so the player can fit more words per line without
+      ///   shrinking the whole window. Bound on Brush (a valid bind target, unlike Brush.FontSize: binding THAT
+      ///   crashed the message list, revert b55af7e). Read when the message binds, so the setting applies to the
+      ///   next conversation. Two chat properties because the two skins ship different base sizes (Origin 22,
+      ///   Dark Leather 18); the council has its own independent step. The sized brushes live in
+      ///   GUI/Brushes/CalradiaRemembersChatText.xml.
+      /// </summary>
+      [DataSourceProperty]
+      public string ClassicMessageFontBrush => "CR.ChatText.Classic." + ModSettings.ChatTextSizeStep;
+
+      /// <summary>The council-window twin of <see cref="ClassicMessageFontBrush" />, on its own independent step.</summary>
+      [DataSourceProperty]
+      public string CouncilMessageFontBrush => "CR.ChatText.Council." + ModSettings.CouncilTextSizeStep;
+
       [DataSourceProperty]
       public string DisplayText
       {
@@ -139,6 +155,10 @@ namespace CalradiaRemembers.Chat
       ///   line, a narration line, or an already-released older duplicate has none.
       /// </summary>
       public bool HasLivePortrait => _showAvatar && !string.IsNullOrEmpty(_portraitId);
+
+      /// <summary>The Dark Leather (Manuscript) skin's twin of <see cref="ClassicMessageFontBrush" /> (base 18, same chat step).</summary>
+      [DataSourceProperty]
+      public string ManuscriptMessageFontBrush => "CR.ChatText.Manuscript." + ModSettings.ChatTextSizeStep;
 
       // ── Portrait spike bindings (player custom vs NPC vanilla) ──
       [DataSourceProperty]

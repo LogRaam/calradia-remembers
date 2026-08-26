@@ -44,6 +44,12 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> ChatSkin { get; set; } =
          new(new[] {"Origin", "Dark Leather"}, 1); // default: Dark Leather (the illuminated book)
 
+      [SettingPropertyInteger("Chat Text Size (%)", 70, 130, "0 '%'", RequireRestart = false, Order = 6,
+         HintText = "Scales ONLY the dialogue text in the chat window, not the window itself: a smaller value fits " +
+                    "more words per line, a larger one reads easier. 100 is the shipped size. Applies on your next conversation.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public int ChatTextSizePercent { get; set; } = 100;
+
       [SettingPropertyInteger("Dark Leather Size (%)", 80, 140, "0 '%'", RequireRestart = false, Order = 7,
          HintText = "Scales the Dark Leather chat window. Raise it on a high-resolution screen (1440p+) if the book " +
                     "feels small or cramped. 100 is the shipped size. No effect on the Origin skin.")]
@@ -56,6 +62,12 @@ namespace CalradiaRemembers.Settings
                     "if it overflows, raise it if it feels small. 100 is the shipped size. Applies to the next council.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public int CouncilZoomPercent { get; set; } = 100;
+
+      [SettingPropertyInteger("Council Text Size (%)", 70, 130, "0 '%'", RequireRestart = false, Order = 9,
+         HintText = "Scales ONLY the dialogue text in the council (round-table) window, INDEPENDENTLY of the chat " +
+                    "text size above. 100 is the shipped size. Applies to the next council.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public int CouncilTextSizePercent { get; set; } = 100;
 
       [SettingPropertyText("OpenRouter API Key", RequireRestart = false, Order = 0,
          HintText = "Paste your key from openrouter.ai/keys. Stored locally on this machine only. NEVER share your " +
