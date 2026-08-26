@@ -474,6 +474,7 @@ namespace CalradiaRemembers.Mapping
             SpouseDivorceDemandNote = ResolveSpouseDivorceDemandNote(hero),
             PlayerEndOwnMarriageNote = ResolvePlayerEndOwnMarriageNote(hero),
             SpouseEstrangementNote = ResolveSpouseEstrangementNote(hero),
+            NpcMarriageFrayingNote = ResolveNpcMarriageFrayingNote(hero),
             StationGuidelinesOverride = ResolveStationGuidelines(hero),
             LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
             MarriageBlockedBecause = ResolveMarriageBlockReason(hero, profile),
@@ -677,18 +678,7 @@ namespace CalradiaRemembers.Mapping
          if (hero?.Spouse is not {IsAlive: true}) return MarriedSeductionStance.NotApplicable;
          if (hero.Spouse == Hero.MainHero) return MarriedSeductionStance.NotApplicable; // married to the player, not a third party
 
-         // Marriage duration is not exposed by the engine, so it is left at 0 (a minor, capped factor in the policy).
-         var facts = new SeductionFacts {
-            NpcSpouseRelation = hero.GetRelation(hero.Spouse),
-            HasChildrenTogether = hero.Children != null
-               && hero.Children.Any(c => c != null && (c.Father == hero.Spouse || c.Mother == hero.Spouse)),
-            MarriageDurationDays = 0,
-            NpcHonor = hero.GetTraitLevel(DefaultTraits.Honor),
-            NpcCalculating = hero.GetTraitLevel(DefaultTraits.Calculating),
-            RegardWithPlayer = profile?.ReputationWithPlayer ?? 0
-         };
-
-         return SeductionEligibilityPolicy.Evaluate(facts).Seducible
+         return SeductionEligibilityPolicy.Evaluate(SeductionFactsMapper.For(hero, profile)).Seducible
             ? MarriedSeductionStance.Seducible
             : MarriedSeductionStance.Resistant;
       }
@@ -2327,6 +2317,45 @@ namespace CalradiaRemembers.Mapping
          catch (Exception ex)
          {
             ModLog.Error($"[MAPPING] ResolveSpouseEstrangementNote failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Stolen Love pillar (Increment 2): when this NPC is married to a THIRD PARTY and their marriage is
+      ///   fraying because of an affair with the player (<see cref="NpcMarriageEstrangementBehavior" /> reports the
+      ///   <see cref="EstrangementPhase.Fraying" /> phase), composes a note in the NPC's own voice, the growing
+      ///   rift between the spouse they have and the player they now want. Deliberately promises NO divorce and
+      ///   teaches no verb: the outcome and its action belong to a later increment, so voicing one here would be an
+      ///   empty promise. Null when the pillar is off, the NPC is unwed or wed to the player, or nothing is fraying.
+      /// </summary>
+      private static string ResolveNpcMarriageFrayingNote(Hero hero)
+      {
+         try
+         {
+            if (!ModSettings.EnableStolenLove) return null;
+            if (hero is not {IsAlive: true} || Hero.MainHero == null) return null;
+            if (hero.Spouse is not {IsAlive: true} || hero.Spouse == Hero.MainHero) return null;
+            if (NpcMarriageEstrangementBehavior.Instance?.PhaseFor(hero.StringId) != EstrangementPhase.Fraying) return null;
+
+            string spouse = hero.Spouse.Name?.ToString() ?? "your spouse";
+
+            var sb = new StringBuilder();
+            sb.AppendLine("YOUR MARRIAGE IS FRAYING BECAUSE OF THE PLAYER:");
+            sb.AppendLine($"Your heart has turned toward the player, and the distance between you and {spouse} has");
+            sb.AppendLine("grown into a rift you can no longer ignore. You are torn: the life and the vows you share");
+            sb.AppendLine($"with {spouse} on one side, and what you now feel for the player on the other. Speak as");
+            sb.AppendLine("someone restless and conflicted, drawn a little closer to the player each time you meet and");
+            sb.AppendLine("quietly unhappy at home. You do NOT declare that you will leave your spouse, and you promise");
+            sb.AppendLine("the player no future: nothing is decided, and you would not say such a thing aloud yet.");
+            sb.AppendLine();
+
+            return sb.ToString();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MAPPING] ResolveNpcMarriageFrayingNote failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

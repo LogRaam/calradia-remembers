@@ -163,6 +163,10 @@ namespace CalradiaRemembers
          // (Instance is set in the constructor); registered beside DivorceProcessBehavior for locality.
          // Console: cr.spouse_divorce_demand / cr.spouse_divorce_info / cr.spouse_divorce_tick.
          campaignStarter.AddBehavior(new SpouseDivorceDemandBehavior());
+         // Stolen Love pillar: watches the player's married affair partners and paces the estrangement of their
+         // marriage (daily tick). Registered before GrudgeBehavior since Increment 3 will plant the jilted
+         // spouse's grudge; gated by the MCM EnableStolenLove toggle (dormant when off).
+         campaignStarter.AddBehavior(new Marriage.NpcMarriageEstrangementBehavior());
          // Grudges (consolidation pillar): a resolvable, event-anchored grievance, coexisting with regard
          // instead of being diluted into it. Registered AFTER WorldEventStore (its one-shot backfill scans
          // the bastard-claim world events) and after Bastards/DivorceProcessBehavior (it scans their
