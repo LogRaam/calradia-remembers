@@ -39,6 +39,16 @@ namespace CalradiaRemembers.Logic
       /// <summary>Tuning: days from start to ReadyToDivorce for a VERYHARD seduction (a hard-won heart is slow to break its vows, ~three seasons).</summary>
       public const int DaysToReadyVeryHard = 63;
 
+      /// <summary>Tuning: days from the NPC DECLARING they will leave (ReadyToDivorce, heard by the player) to the divorce actually completing, about a month.</summary>
+      public const int DivorceDelayDays = 30;
+
+      /// <summary>
+      ///   Whether the divorce is due: the NPC declared they would leave on <paramref name="declaredDay" /> and at
+      ///   least <see cref="DivorceDelayDays" /> have since passed. The caller only asks once a declaration has
+      ///   been made.
+      /// </summary>
+      public static bool IsDivorceDue(int declaredDay, int today) => today >= declaredDay + DivorceDelayDays;
+
       /// <summary>Days from start to ReadyToDivorce for a given seduction difficulty.</summary>
       public static int DaysToReady(SeductionDifficulty difficulty)
       {

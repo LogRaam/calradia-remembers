@@ -25,5 +25,16 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>How narrowly the seduction cleared its bar, frozen at the start: a wide-open affair unravels the marriage faster than a barely-won one.</summary>
       public SeductionDifficulty Difficulty { get; set; }
+
+      /// <summary>
+      ///   The day the NPC DECLARED to the player that they would leave their spouse (once the rift reached
+      ///   ReadyToDivorce and the player was there to hear it). Null until declared. The divorce then follows about
+      ///   a month later. Nullable so a record saved before this field existed loads as "not declared", never as
+      ///   "declared on day zero".
+      /// </summary>
+      public int? DeclaredDay { get; set; }
+
+      /// <summary>The day the divorce actually completed. Null until then; once set, the record is a spent marker that the NPC left their spouse for the player (read by the marry/sabotage exits).</summary>
+      public int? DivorcedDay { get; set; }
    }
 }

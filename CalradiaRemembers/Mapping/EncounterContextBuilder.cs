@@ -2337,21 +2337,46 @@ namespace CalradiaRemembers.Mapping
             if (!ModSettings.EnableStolenLove) return null;
             if (hero is not {IsAlive: true} || Hero.MainHero == null) return null;
             if (hero.Spouse is not {IsAlive: true} || hero.Spouse == Hero.MainHero) return null;
-            if (NpcMarriageEstrangementBehavior.Instance?.PhaseFor(hero.StringId) != EstrangementPhase.Fraying) return null;
+
+            NpcMarriageEstrangementBehavior behavior = NpcMarriageEstrangementBehavior.Instance;
+            if (behavior == null || behavior.HasConcludedFor(hero.StringId)) return null;
 
             string spouse = hero.Spouse.Name?.ToString() ?? "your spouse";
+            EstrangementPhase phase = behavior.PhaseFor(hero.StringId);
 
-            var sb = new StringBuilder();
-            sb.AppendLine("YOUR MARRIAGE IS FRAYING BECAUSE OF THE PLAYER:");
-            sb.AppendLine($"Your heart has turned toward the player, and the distance between you and {spouse} has");
-            sb.AppendLine("grown into a rift you can no longer ignore. You are torn: the life and the vows you share");
-            sb.AppendLine($"with {spouse} on one side, and what you now feel for the player on the other. Speak as");
-            sb.AppendLine("someone restless and conflicted, drawn a little closer to the player each time you meet and");
-            sb.AppendLine("quietly unhappy at home. You do NOT declare that you will leave your spouse, and you promise");
-            sb.AppendLine("the player no future: nothing is decided, and you would not say such a thing aloud yet.");
-            sb.AppendLine();
+            if (phase == EstrangementPhase.Fraying)
+            {
+               var sb = new StringBuilder();
+               sb.AppendLine("YOUR MARRIAGE IS FRAYING BECAUSE OF THE PLAYER:");
+               sb.AppendLine($"Your heart has turned toward the player, and the distance between you and {spouse} has");
+               sb.AppendLine("grown into a rift you can no longer ignore. You are torn: the life and the vows you share");
+               sb.AppendLine($"with {spouse} on one side, and what you now feel for the player on the other. Speak as");
+               sb.AppendLine("someone restless and conflicted, drawn a little closer to the player each time you meet and");
+               sb.AppendLine("quietly unhappy at home. You do NOT declare that you will leave your spouse, and you promise");
+               sb.AppendLine("the player no future: nothing is decided, and you would not say such a thing aloud yet.");
+               sb.AppendLine();
 
-            return sb.ToString();
+               return sb.ToString();
+            }
+
+            if (phase == EstrangementPhase.ReadyToDivorce)
+            {
+               // The player is here to hear it: mark the declaration so the month-long divorce clock starts now.
+               behavior.MarkDeclared(hero.StringId, (int) CampaignTime.Now.ToDays);
+
+               var sb = new StringBuilder();
+               sb.AppendLine("YOU HAVE RESOLVED TO LEAVE YOUR SPOUSE FOR THE PLAYER:");
+               sb.AppendLine($"The rift with {spouse} is beyond mending and your heart is set on the player. Tell them");
+               sb.AppendLine($"plainly, in your own words, that you will leave {spouse} to be with them. This is a settled");
+               sb.AppendLine("resolve, not a whim: you will set the parting in motion, and it will be done before long.");
+               sb.AppendLine("Speak as someone who has decided, tender toward the player, grieved but certain about the");
+               sb.AppendLine("marriage you are ending. Do not haggle or seek permission: you are telling them your choice.");
+               sb.AppendLine();
+
+               return sb.ToString();
+            }
+
+            return null;
          }
          catch (Exception ex)
          {

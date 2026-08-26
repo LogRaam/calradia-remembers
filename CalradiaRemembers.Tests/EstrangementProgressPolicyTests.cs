@@ -74,5 +74,18 @@ namespace CalradiaRemembers.Tests
          EstrangementProgressPolicy.ProgressPercent(ready + 999, SeductionDifficulty.Hard).Should().Be(100);
          EstrangementProgressPolicy.ProgressPercent(ready / 2, SeductionDifficulty.Hard).Should().BeInRange(40, 60);
       }
+
+      // The declaration-then-delay beat: once the NPC has told the player they will leave, the divorce follows
+      // about a month later, not the same day. If this fired instantly the promised "within the month" pacing
+      // would collapse and the marriage would end the moment the NPC spoke.
+      [Test]
+      public void GIVEN_a_declaration_WHEN_checking_the_divorce_due_date_THEN_it_waits_the_delay()
+      {
+         int declared = 1000;
+
+         EstrangementProgressPolicy.IsDivorceDue(declared, declared).Should().BeFalse();
+         EstrangementProgressPolicy.IsDivorceDue(declared, declared + EstrangementProgressPolicy.DivorceDelayDays - 1).Should().BeFalse();
+         EstrangementProgressPolicy.IsDivorceDue(declared, declared + EstrangementProgressPolicy.DivorceDelayDays).Should().BeTrue();
+      }
    }
 }

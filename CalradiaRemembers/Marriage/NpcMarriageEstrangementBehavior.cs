@@ -13,11 +13,14 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 
 #endregion
 
@@ -61,6 +64,25 @@ namespace CalradiaRemembers.Marriage
 
          return e == null ? 0 : EstrangementProgressPolicy.ProgressPercent(Today - e.StartDay, e.Difficulty);
       }
+
+      /// <summary>
+      ///   Records that this NPC has DECLARED to the player they will leave their spouse: called when the ready-to-
+      ///   leave note is shown in conversation, so the divorce clock starts only once the player has actually heard
+      ///   it. No-op unless the NPC is at ReadyToDivorce, not yet declared, and not already divorced.
+      /// </summary>
+      public void MarkDeclared(string npcId, int today)
+      {
+         StolenLoveEstrangement e = Find(npcId);
+         if (e == null || e.DivorcedDay.HasValue || e.DeclaredDay.HasValue) return;
+         if (EstrangementProgressPolicy.Phase(today - e.StartDay, e.Difficulty) != EstrangementPhase.ReadyToDivorce) return;
+
+         e.DeclaredDay = today;
+         Hero npc = Hero.FindFirst(h => h != null && h.StringId == npcId);
+         ModLog.Info($"[STOLEN_LOVE] {npc?.Name?.ToString() ?? npcId} has declared they will leave their spouse for the player; divorce due in {EstrangementProgressPolicy.DivorceDelayDays} days.");
+      }
+
+      /// <summary>True once this NPC's stolen-love arc has concluded (the divorce fired, or could not and was given up); read by the marry/sabotage exits.</summary>
+      public bool HasConcludedFor(string npcId) => Find(npcId)?.DivorcedDay.HasValue == true;
 
       public override void SyncData(IDataStore dataStore)
       {
@@ -114,6 +136,7 @@ namespace CalradiaRemembers.Marriage
          if (behavior?.Store == null) return;
 
          SafeRun.Step("NpcMarriageEstrangementBehavior.BeginNewAffairs", () => BeginNewAffairs(behavior, Today));
+         SafeRun.Step("NpcMarriageEstrangementBehavior.ResolveDueDivorces", () => ResolveDueDivorces(Today));
          SafeRun.Step("NpcMarriageEstrangementBehavior.PruneEnded", () => PruneEnded(behavior));
       }
 
@@ -144,11 +167,63 @@ namespace CalradiaRemembers.Marriage
          }
       }
 
-      /// <summary>Drops any estrangement whose NPC is gone, whose marriage already ended or changed, or whose affair with the player is over.</summary>
+      /// <summary>
+      ///   Fires the divorce for any estrangement the NPC declared and whose month-long delay has elapsed: unmarry
+      ///   the couple and plant the jilted spouse's grudge against the player. Marks the record concluded either
+      ///   way (a divorce that could not complete, e.g. a clan-leading leaving spouse, is given up rather than
+      ///   retried forever), so it stops declaring and the marry/sabotage exits can read the outcome.
+      /// </summary>
+      private void ResolveDueDivorces(int today)
+      {
+         foreach (StolenLoveEstrangement e in _active)
+         {
+            if (e.DivorcedDay.HasValue || !e.DeclaredDay.HasValue) continue;
+            if (!EstrangementProgressPolicy.IsDivorceDue(e.DeclaredDay.Value, today)) continue;
+
+            ExecuteDivorce(e, today);
+         }
+      }
+
+      /// <summary>Unmarries the seduced NPC from their spouse and plants the jilted spouse's StolenSpouse grudge. Marks the record concluded whatever the outcome.</summary>
+      private static void ExecuteDivorce(StolenLoveEstrangement e, int today)
+      {
+         Hero npc = Hero.FindFirst(h => h != null && h.StringId == e.NpcId);
+         Hero jilted = Hero.FindFirst(h => h != null && h.StringId == e.SpouseId);
+
+         if (npc == null || jilted == null || npc.Spouse != jilted)
+         {
+            e.DivorcedDay = today; // the marriage is already gone or the pair is invalid, nothing to do
+            return;
+         }
+
+         // Capture the grudge inputs BEFORE the dissolution: the jilted spouse's relation to the partner who is
+         // leaving them (a loved partner lost cuts deeper) and their forgiving nature.
+         int jiltedRelationToDeparted = jilted.GetRelation(npc);
+         int jiltedMercy = jilted.GetTraitLevel(DefaultTraits.Mercy);
+
+         if (!MarriageDissolutionService.TryDissolve(npc, jilted, out string reason))
+         {
+            e.DivorcedDay = today; // could not complete (e.g. a clan-leading leaving spouse); give up rather than loop
+            ModLog.Info($"[STOLEN_LOVE] could not complete {npc.Name}'s divorce from {jilted.Name} ({reason}); the arc is given up.");
+            return;
+         }
+
+         e.DivorcedDay = today;
+
+         int magnitude = StolenSpouseGrudgePolicy.Magnitude(jiltedRelationToDeparted, jiltedMercy);
+         GrudgeBehavior.Instance?.TryPlant(jilted, Hero.MainHero, GrudgeSource.StolenSpouse,
+            $"the player carried on with {npc.Name} until our marriage came apart", magnitude, true, today);
+
+         ModLog.Info($"[STOLEN_LOVE] {npc.Name} has left {jilted.Name} for the player; a StolenSpouse grudge (magnitude {magnitude}) is planted on {jilted.Name}.");
+      }
+
+      /// <summary>Drops a PRE-DIVORCE estrangement whose NPC is gone, whose marriage already ended or changed, or whose affair with the player is over. A concluded record is kept as a marker for the exits.</summary>
       private void PruneEnded(NpcMemoryCampaignBehavior behavior)
       {
          _active.RemoveAll(e =>
          {
+            if (e.DivorcedDay.HasValue) return false; // concluded: keep as the "left their spouse for the player" marker
+
             Hero npc = Hero.FindFirst(h => h != null && h.StringId == e.NpcId);
             if (npc == null || !npc.IsAlive) return true;
             if (npc.Spouse == null || npc.Spouse.StringId != e.SpouseId) return true; // divorced, widowed, or spouse changed
