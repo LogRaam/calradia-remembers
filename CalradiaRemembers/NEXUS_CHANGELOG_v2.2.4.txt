@@ -1,0 +1,18 @@
+Version 2.2.4
+
+A persistent crash on leaving a character-requested private word is fixed, and the characters who seek you out now stand before you in a proper scene. Plus new letters, and new settings for marriage and text size. Your saves from 2.2.3 carry over untouched.
+
+Fixed
+- The crash on leaving a private audience is gone. Since a recent update, leaving a conversation that a character had started by asking you for a private word could hard-crash the game with nothing in the log. The window now closes cleanly every time.
+- The Memories panel closes properly during an audience. When a character sought you out (a companion with something to say, or someone standing in a fief who wanted a word), the conversation opened as a flat overlay over the frozen map, so opening the Memories panel and closing it again could leave it stuck on screen. These audiences now open over a real scene with the character present, exactly like an ordinary talk, and the side panels open and close cleanly.
+
+New
+- Set the conversation text size. Two new mod settings let you scale the chat text and the council text independently, so you can make either one bigger or smaller to taste.
+- Choose how hard marriage is to reach. A new "Marriage Regard Needed" setting lets you lower the regard a prospective spouse must feel before they will accept, for a gentler courtship. Their family's blessing can still open a match below that bar, as before.
+- Letters that carry a real offer. A lord may now write to buy a prisoner you are holding, paying a real ransom into your purse if you accept; or write to tempt you into their own service, sweetening the offer with gold, a castle, or troops. Both arrive as ordinary letters you can accept or decline.
+- A council of those riding with you. Alongside the household, clan, and war councils, you can now convene the companions and lords currently travelling in your own party.
+
+Improved
+- A reluctant bride points to a real path. When a match is not yet possible, the character no longer puts you off with a vague excuse: she names what would actually change her mind (winning her regard by deeds, earning her family's blessing, or courting her at your side through a season).
+- No children seated at a council. The rule that keeps anyone under thirteen out of a council now applies to every kind of council, not only the family one.
+- A leaked letter leaves a mark. When an intercepted letter falls into the wrong hands (an option you turn on), the one who read it no longer merely mentions it once: they can carry a lasting grudge over it, and it can cost you standing.
