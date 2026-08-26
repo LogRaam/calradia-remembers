@@ -16,7 +16,9 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic.Assemblies;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Conversation;
+using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements.Locations;
 using TaleWorlds.MountAndBlade;
 
 #endregion
@@ -204,6 +206,16 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         // Inside a settlement, never a MAP conversation either: stage the settlement's OWN interior mission.
+         // See CaptiveSceneStager.BeginStagedConversation for the full rationale (player reports 2026-08-25/26:
+         // a map conversation started from a settlement crashes natively when the chat closes).
+         if (PlayerEncounter.InsideSettlement)
+         {
+            BeginSettlementMissionConversation(pending, partner);
+
+            return;
+         }
+
          try
          {
             var playerData = new ConversationCharacterData(CharacterObject.PlayerCharacter, PartyBase.MainParty);
@@ -214,12 +226,51 @@ namespace CalradiaRemembers.Chat
             _settleFrames = 0;
             _fallbackFrames = 0;
             _armedFrames = 0;
+            CaptiveSceneStager.StagedMissionNeedsEnd = false;
             Campaign.Current.ConversationManager.OpenMapConversation(playerData, partnerData);
             ModLog.Info($"[COUNCIL STAGE] conversation started with {partner.StringId}; awaiting the scene to load.");
          }
          catch (Exception ex)
          {
             ModLog.Error($"[COUNCIL STAGE] OpenMapConversation failed: {ex.GetType().Name}: {ex.Message}, opening directly on the map.");
+            _pending = null;
+            OpenDirect(pending);
+         }
+      }
+
+      /// <summary>
+      ///   The settlement twin of <see cref="BeginStagedConversation" />: opens the settlement's own interior
+      ///   mission with the anchor as the talk-to character (the same engine path vanilla uses from settlement
+      ///   menus), so a council convened from a town, castle, or village menu also sits over a live Mission.
+      ///   Mirrors CaptiveSceneStager.BeginSettlementMissionConversation; falls back to the direct overlay only
+      ///   when no usable location/encounter exists or the open throws.
+      /// </summary>
+      private static void BeginSettlementMissionConversation(Pending pending, CharacterObject partner)
+      {
+         Location location = CaptiveSceneStager.ResolveAudienceLocation();
+
+         if (location == null || PlayerEncounter.LocationEncounter == null)
+         {
+            ModLog.Info("[COUNCIL STAGE] no interior location available in this settlement, opening directly.");
+            OpenDirect(pending);
+
+            return;
+         }
+
+         try
+         {
+            _pending = pending;
+            _lineReached = false;
+            _settleFrames = 0;
+            _fallbackFrames = 0;
+            _armedFrames = 0;
+            CaptiveSceneStager.StagedMissionNeedsEnd = false;
+            PlayerEncounter.LocationEncounter.CreateAndOpenMissionController(location, null, partner, null);
+            ModLog.Info($"[COUNCIL STAGE] interior mission opening at {location.StringId} with {partner.StringId}; awaiting the scene to load.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COUNCIL STAGE] interior mission open failed: {ex.GetType().Name}: {ex.Message}, opening directly.");
             _pending = null;
             OpenDirect(pending);
          }
@@ -245,6 +296,11 @@ namespace CalradiaRemembers.Chat
          _settleFrames = 0;
          _fallbackFrames = 0;
          _armedFrames = 0;
+
+         // Same orphan-mission guard as CaptiveSceneStager.OpenPending: if the chat opens over a mission whose
+         // conversation never started, no conversation end will ever tear that mission down, so ChatManager.Close
+         // must end it explicitly.
+         CaptiveSceneStager.StagedMissionNeedsEnd = Mission.Current != null && Hero.OneToOneConversationHero == null;
 
          try
          {

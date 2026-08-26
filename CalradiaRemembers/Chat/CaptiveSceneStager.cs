@@ -8,7 +8,9 @@ using CalradiaRemembers.Behaviors;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Conversation;
+using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements.Locations;
 using TaleWorlds.MountAndBlade;
 
 #endregion
@@ -80,6 +82,16 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>True while a conversation scene is loading and the captive chat is waiting to open over it.</summary>
       public static bool IsStaging => _pending != null;
+
+      /// <summary>
+      ///   True when the currently open chat sits over a mission this stager (or the council twin) opened but
+      ///   whose conversation never started (the intercept line lost the "start" token to another mod): with no
+      ///   conversation in progress, ChatManager.Close's EndConversation never runs, and it is the conversation
+      ///   end that makes the engine tear a conversation mission down, so the player would be stranded in a
+      ///   silent scene. Close consults and clears this to end that mission explicitly. Internal get/set: the
+      ///   council stager arms it through its own OpenPending mirror.
+      /// </summary>
+      internal static bool StagedMissionNeedsEnd { get; set; }
 
       /// <summary>
       ///   Registers the intercept dialogue line: while a captive encounter is staging, this line wins the
@@ -328,6 +340,19 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         // Inside a settlement, never a MAP conversation: vanilla never starts one there (in-settlement talks
+         // ride the settlement's own scene), and tearing that untested engine state down a frame after
+         // ChatManager.Close crashes NATIVELY (player reports CarolusIV/Windmolen, 2026-08-25/26: a hard crash
+         // on LEAVING an NPC-requested private audience, nothing in the log, still present on v2.2.4). Stage the
+         // settlement's own interior mission instead, so the chat still gets a live Mission behind it (never the
+         // bare map/menu overlay, the ghost-pixels class) and the close becomes the proven keep-talk one.
+         if (PlayerEncounter.InsideSettlement)
+         {
+            BeginSettlementMissionConversation(pending, partner, logTag);
+
+            return;
+         }
+
          try
          {
             var playerData = new ConversationCharacterData(CharacterObject.PlayerCharacter, PartyBase.MainParty);
@@ -338,6 +363,7 @@ namespace CalradiaRemembers.Chat
             _settleFrames = 0;
             _fallbackFrames = 0;
             _armedFrames = 0;
+            StagedMissionNeedsEnd = false;
             Campaign.Current.ConversationManager.OpenMapConversation(playerData, partnerData);
             ModLog.Info($"[{logTag}] conversation started with {partner.StringId}; awaiting the scene to load.");
          }
@@ -347,6 +373,64 @@ namespace CalradiaRemembers.Chat
             _pending = null;
             OpenDirect(pending);
          }
+      }
+
+      /// <summary>
+      ///   The settlement twin of <see cref="BeginStagedConversation" /> (player reports CarolusIV/Windmolen,
+      ///   2026-08-25/26: staging a MAP conversation from inside a settlement crashes natively when the chat
+      ///   closes; vanilla never does that). Opens the settlement's OWN interior mission with the partner as the
+      ///   talk-to character, the same engine path vanilla uses from settlement menus (the retirement retreat,
+      ///   the arena, the alley quests): the conversation starts in the scene, our intercept line fires there
+      ///   exactly like over the map, and ending it returns the player to the settlement menu, never ejecting
+      ///   them from town. Falls back to the direct overlay only when no usable location/encounter exists or the
+      ///   open throws.
+      /// </summary>
+      private static void BeginSettlementMissionConversation(Pending pending, CharacterObject partner, string logTag)
+      {
+         Location location = ResolveAudienceLocation();
+
+         if (location == null || PlayerEncounter.LocationEncounter == null)
+         {
+            ModLog.Info($"[{logTag}] no interior location available in this settlement, opening directly.");
+            OpenDirect(pending);
+
+            return;
+         }
+
+         try
+         {
+            _pending = pending;
+            _lineReached = false;
+            _settleFrames = 0;
+            _fallbackFrames = 0;
+            _armedFrames = 0;
+            StagedMissionNeedsEnd = false;
+            PlayerEncounter.LocationEncounter.CreateAndOpenMissionController(location, null, partner, null);
+            ModLog.Info($"[{logTag}] interior mission opening at {location.StringId} with {partner.StringId}; awaiting the scene to load.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[{logTag}] interior mission open failed: {ex.GetType().Name}: {ex.Message}, opening directly.");
+            _pending = null;
+            OpenDirect(pending);
+         }
+      }
+
+      /// <summary>
+      ///   The interior location an in-settlement staged scene opens at: the lord's hall of a town or castle,
+      ///   the village center of a village, the tavern as a last resort (every town has one). Null when the
+      ///   settlement exposes no usable interior (a hideout camp, an exotic custom settlement), which the caller
+      ///   turns into the direct-overlay fallback. Internal so the council stager reuses the exact same pick.
+      /// </summary>
+      internal static Location ResolveAudienceLocation()
+      {
+         LocationComplex complex = LocationComplex.Current;
+
+         if (complex == null) return null;
+
+         return complex.GetLocationWithId("lordshall")
+                ?? complex.GetLocationWithId("village_center")
+                ?? complex.GetLocationWithId("tavern");
       }
 
       /// <summary>Consequence of the intercept line: the conversation is ready; the tick opens the chat next frame.</summary>
@@ -396,6 +480,12 @@ namespace CalradiaRemembers.Chat
          _settleFrames = 0;
          _fallbackFrames = 0;
          _armedFrames = 0;
+
+         // If the chat opens over a mission whose conversation never started (the fallback path: our intercept
+         // line lost the "start" token to another mod), no conversation exists for ChatManager.Close to end, and
+         // it is the conversation end that makes the engine tear a conversation mission down. Flag the mission
+         // as OURS so Close ends it explicitly instead of stranding the player in a silent scene.
+         StagedMissionNeedsEnd = Mission.Current != null && Hero.OneToOneConversationHero == null;
 
          try
          {

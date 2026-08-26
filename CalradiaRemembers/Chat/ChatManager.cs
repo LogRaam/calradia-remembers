@@ -254,6 +254,7 @@ namespace CalradiaRemembers.Chat
             SafeStep(MapSceneSuspender.Resume, "ResumeMapScene");
             SafeStep(KillChatWindow, "KillChatWindow");
             SafeStep(EndVanillaConversation, "EndVanillaConversation");
+            SafeStep(EndOrphanedStagedMission, "EndOrphanedStagedMission");
             SafeStep(EndMapEncounterIfNeeded, "EndMapEncounterIfNeeded");
             SafeStep(RestoreTime, "RestoreTime");
          }
@@ -810,17 +811,43 @@ namespace CalradiaRemembers.Chat
 
       private static void EndVanillaConversation()
       {
-         // ONLY end a conversation that is actually in progress. The audience overlays (an NPC's "asks for a
-         // private word", opened WITHOUT a vanilla conversation over a live settlement menu + encounter) leave
-         // Hero.OneToOneConversationHero null; calling EndConversation on that phantom conversation while the real
-         // settlement encounter is active crashes NATIVELY (0xE0434352, uncaught by SafeStep, so nothing is
-         // logged) on leave (player report 2026-08-25, exposed once afe07f9 let in-settlement audiences open at
-         // all). An ordinary chat always rides a real conversation here, so it still ends cleanly; captive /
-         // council / commoner overlays have no conversation to end either, so skipping is a safe no-op for them.
+         // ONLY end a conversation that is actually in progress. A DIRECT (unstaged) overlay over a live
+         // settlement menu + encounter (the at-sea / no-location fallback, the console harness) leaves
+         // Hero.OneToOneConversationHero null; calling EndConversation on that phantom conversation while the
+         // real settlement encounter is active crashes NATIVELY (0xE0434352, uncaught by SafeStep, so nothing is
+         // logged) on leave (player report 2026-08-25). An ordinary chat and every STAGED overlay (captive,
+         // audience, council) ride a real conversation here, so ending it is what tears their mission down
+         // cleanly; a direct overlay has none, and skipping is a safe no-op for it.
          if (Hero.OneToOneConversationHero == null) return;
 
          if (Campaign.Current?.ConversationManager != null)
             Campaign.Current.ConversationManager.EndConversation();
+      }
+
+      /// <summary>
+      ///   Safety net for a STAGED chat (captive/audience/council scene) whose conversation never started: the
+      ///   intercept line lost the "start" token to another mod, so no conversation exists for
+      ///   <see cref="EndVanillaConversation" /> to end, and it is the conversation end that makes the engine tear
+      ///   a conversation mission down. Without this the player would be stranded in a silent scene after the
+      ///   chat closes. A no-op for every ordinary conversation (the engine's own conversation-end already ended
+      ///   its mission, so the flag the stagers set at open time reads false).
+      /// </summary>
+      private static void EndOrphanedStagedMission()
+      {
+         try
+         {
+            if (!CaptiveSceneStager.StagedMissionNeedsEnd) return;
+            CaptiveSceneStager.StagedMissionNeedsEnd = false;
+
+            if (Mission.Current == null) return;
+
+            Mission.Current.EndMission();
+            ModLog.Info("Orphaned staged mission ended on chat close (its conversation never started).");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"EndOrphanedStagedMission failed: {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       private static void FreeResources()
