@@ -167,6 +167,15 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> CustomParameterCompatibility { get; set; } =
          new(new[] {"Auto", "Standard", "Reasoning"}, 0); // default: Auto
 
+      [SettingPropertyDropdown("Reasoning Effort", RequireRestart = false, Order = 6,
+         HintText = "Controls thinking on a local/OpenAI-Compatible endpoint by sending reasoning_effort on the wire. " +
+                    "Set Off (reasoning_effort=none) if a reasoning model like Qwen wastes the whole reply budget " +
+                    "thinking and stalls. Default sends nothing, so an untouched setup is unchanged. Some local servers " +
+                    "(e.g. vLLM) ignore this and need their own flag; turn on Verbose Logging to see what is sent.")]
+      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      public Dropdown<string> CustomReasoningEffort { get; set; } =
+         new(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Default (send nothing)
+
       [SettingPropertyText("API Key (NSFW)", RequireRestart = false, Order = 5,
          HintText = "Optional. A separate API key for the NSFW role only, so it can authenticate against a different " +
                     "OpenAI-Compatible server than the shared one. Blank = use the API Key above. Applies immediately.")]

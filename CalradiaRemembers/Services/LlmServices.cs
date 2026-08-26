@@ -305,6 +305,7 @@ namespace CalradiaRemembers.Services
                BaseUrlProvider = () => BaseUrlFor(ActiveMainRole(), ActiveRoleKind()),
                UseSystemPromptCachingProvider = () => UseCachingFor(ActiveRoleKind()),
                ReasoningProvider = ResolveReasoning,
+               ReasoningAsEffortStringProvider = () => ActiveRoleKind() == ProviderKind.OpenAiCompatible,
                TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
                ParameterOptionsProvider = () => ParameterOptionsFor(ActiveRoleKind(), ResolveModel()),
                ProviderSlugsProvider = ResolveProviderPin,
@@ -706,10 +707,28 @@ namespace CalradiaRemembers.Services
       ///   like the model id: NSFW mode can run a lower effort than roleplay via its own MCM dropdown. This round
       ///   the effort stays exactly as before, keyed off the active role's kind rather than a per-role dropdown.
       /// </summary>
-      private static string ResolveReasoning() =>
-         ActiveRoleKind() == ProviderKind.OpenRouter
-            ? ModelModePolicy.ResolveReasoningEffort(ActiveMainRole(), ModSettings.ReasoningEffort, ModSettings.NsfwReasoningEffort, InterpreterReasoningEffort)
-            : null;
+      private static string ResolveReasoning()
+      {
+         ProviderKind kind = ActiveRoleKind();
+
+         // OpenRouter: the mode-aware effort (PROSE/NSFW/interpreter), serialized as OpenRouter's reasoning object.
+         // OpenAI-Compatible (Ollama et al.): its OWN dropdown, serialized as the top-level reasoning_effort string
+         //   (the object form is silently ignored there, so a reasoning model kept burning the whole reply budget).
+         //   It is a SEPARATE dial defaulting to "Default" (send nothing) so an untouched local setup is unchanged.
+         // Any other kind (NanoGPT): no reasoning field, as before.
+         string keyword =
+            kind == ProviderKind.OpenRouter
+               ? ModelModePolicy.ResolveReasoningEffort(ActiveMainRole(), ModSettings.ReasoningEffort, ModSettings.NsfwReasoningEffort, InterpreterReasoningEffort)
+               : kind == ProviderKind.OpenAiCompatible
+                  ? ModSettings.CustomReasoningEffort
+                  : null;
+
+         if (ModSettings.VerboseLogging)
+            ModLog.Info($"[LLM] reasoning: kind={kind}, effort={keyword ?? "(none)"}, "
+                      + $"wire={(kind == ProviderKind.OpenAiCompatible ? "reasoning_effort string" : "reasoning object")}");
+
+         return keyword;
+      }
 
       /// <summary>
       ///   Whether to send the cacheable content-array system message for a provider kind. OpenRouter honors the
@@ -739,9 +758,13 @@ namespace CalradiaRemembers.Services
             ModelProvider = () => model,
             BaseUrlProvider = () => BaseUrlFor(ServiceRole.Interpret, kind),
             UseSystemPromptCachingProvider = () => UseCachingFor(kind),
-            ReasoningProvider = () => kind == ProviderKind.OpenRouter
+            // The interpreter is a MECHANICAL extraction that must NEVER reason (a reasoning model told to think
+            // burns its small reply budget and emits no tags). Force Off on BOTH OpenRouter and a local endpoint;
+            // on the latter, serialized as the top-level reasoning_effort string (the object form is ignored).
+            ReasoningProvider = () => kind == ProviderKind.OpenRouter || kind == ProviderKind.OpenAiCompatible
                ? InterpreterReasoningEffort
                : null,
+            ReasoningAsEffortStringProvider = () => kind == ProviderKind.OpenAiCompatible,
             TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
             ParameterOptionsProvider = () => ParameterOptionsFor(kind, model),
             ProviderSlugsProvider = () => kind == ProviderKind.OpenRouter

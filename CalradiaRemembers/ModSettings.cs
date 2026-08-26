@@ -488,6 +488,25 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   The reasoning-effort keyword for a local/OpenAI-Compatible endpoint (Default/Off/Minimal/Low/Medium/
+      ///   High), read live from the MCM menu. Sent on the wire as the top-level <c>reasoning_effort</c> string
+      ///   (which Ollama honors), unlike the OpenRouter <c>reasoning</c> object. Falls back to <c>Default</c>
+      ///   (send nothing) so an untouched local setup is unchanged: this is a separate dial from the OpenRouter
+      ///   <see cref="ReasoningEffort" /> precisely because that one defaults to Low.
+      /// </summary>
+      public static string CustomReasoningEffort
+      {
+         get
+         {
+            string v = CrSettings.Instance?.CustomReasoningEffort?.SelectedValue;
+
+            return string.IsNullOrWhiteSpace(v)
+               ? "Default"
+               : v;
+         }
+      }
+
+      /// <summary>
       ///   Explicit reply language name (e.g. "Spanish"), or blank for the auto-detect mirror. Read live from
       ///   the MCM menu. A player report (2026-07-21, Spanish + DeepSeek V3) showed the mirror's abstract rule
       ///   goes unfollowed by a weaker model, or a language absent from its worked examples, when the rest of
