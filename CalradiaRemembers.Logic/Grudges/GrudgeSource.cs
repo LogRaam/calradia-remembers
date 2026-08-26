@@ -134,6 +134,15 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   what makes the leak LAST: the grudge system then escalates it into future hostile letters or an
         ///   interception, so a single waylaid letter can seed a running enmity rather than one exploiting note.
         /// </summary>
-        LeakedLetter = 21
+        LeakedLetter = 21,
+
+        /// <summary>
+        ///   "You took my spouse from me": Stolen Love pillar. The player carried on an affair with this hero's
+        ///   husband or wife until the marriage came apart and they were left. Planted on the JILTED spouse
+        ///   against the player when a stolen-love estrangement ends in divorce. A purely PERSONAL grudge (the
+        ///   ratified design: no clan or faction fallout), sized to the sting of it; it feeds nemesis and the
+        ///   vanilla Blood Feuds so a broken marriage can seed a running enmity.
+        /// </summary>
+        StolenSpouse = 22
     }
 }
