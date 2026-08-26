@@ -2898,7 +2898,14 @@ namespace CalradiaRemembers.GameState
             // regard bar still holds, and the refusal now names the other road.
             bool forcedUnion = ForcedMarriagePolicy.IsForcedUnion(bestRegard, ModSettings.MarriageRegardThreshold);
 
-            if (forcedUnion && !(MarriageApprovalBehavior.Instance?.IsApproved(npcHero.StringId) ?? false))
+            // Stolen Love pillar, marry exit (ratified decision A): an NPC who left their OWN spouse for the player
+            // has already done the courting, so the match is a willing love match below the regard bar with no
+            // blessing and NO forced-marriage grudge. They are single here by construction (a married NPC is not
+            // marriageable and would have been refused above).
+            bool stolenLoveDivorcee = npcHero.Spouse == null
+               && (NpcMarriageEstrangementBehavior.Instance?.HasConcludedFor(npcHero.StringId) ?? false);
+
+            if (forcedUnion && !stolenLoveDivorcee && !(MarriageApprovalBehavior.Instance?.IsApproved(npcHero.StringId) ?? false))
                return ActionOutcome.Refused(
                   $"({npcHero.Name} does not yet hold you dear enough to take this step, " +
                   "and no family blessing compels them to.)");
@@ -2934,7 +2941,7 @@ namespace CalradiaRemembers.GameState
             // kindnesses, and fades if the marriage is lived well. Planted AFTER the union so a refused plant
             // (a merciful nature's trait-raised floor may decline a faint one) never blocks the wedding.
             // KnownToPlayer: a bride wed by her family's will hides nothing about how she came to the altar.
-            if (forcedUnion)
+            if (forcedUnion && !stolenLoveDivorcee)
             {
                int resentment = ForcedMarriagePolicy.GrudgeMagnitude(bestRegard, ModSettings.MarriageRegardThreshold);
                bool planted = GrudgeBehavior.Instance?.TryPlant(npcHero, player, GrudgeSource.ForcedMarriage,

@@ -1805,7 +1805,12 @@ namespace CalradiaRemembers.Mapping
          // ONLY the soft RegardTooLow gate reached here; every HARD blocker was already returned above, so the
          // trial is beyond their reach by construction. MarriageBlockOverridePolicy states that soft/hard split
          // explicitly so it can never silently widen.
-         if (MarriageBlockOverridePolicy.CanOverride(MarriageBlockReason.RegardTooLow, ResolveCourtshipTrialPassed(hero)))
+         // A courtship trial OR a Stolen Love divorce (they left their own spouse for the player) is the earned
+         // path that opens the match below the regard bar: making them leave their marriage IS the courtship
+         // (ratified decision A). Both override ONLY the soft RegardTooLow reached here; every HARD blocker was
+         // already returned above.
+         if (MarriageBlockOverridePolicy.CanOverride(MarriageBlockReason.RegardTooLow,
+                ResolveCourtshipTrialPassed(hero) || ResolveStolenLoveDivorcee(hero)))
             return MarriageBlockReason.None;
 
          return MarriageBlockReason.RegardTooLow;
@@ -1817,6 +1822,20 @@ namespace CalradiaRemembers.Mapping
          if (hero == null) return false;
 
          return CourtshipTrialBehavior.Instance?.IsTrialPassed(hero.StringId) ?? false;
+      }
+
+      /// <summary>
+      ///   True when this NPC left their own spouse for the player through the Stolen Love pillar and is now free
+      ///   to wed: their estrangement concluded (<see cref="NpcMarriageEstrangementBehavior.HasConcludedFor" />)
+      ///   AND they are actually single now. The singleness check matters because a divorce that could not
+      ///   complete (a clan-leading leaving spouse) is also marked concluded, and we must never open a marriage to
+      ///   a still-married NPC.
+      /// </summary>
+      private static bool ResolveStolenLoveDivorcee(Hero hero)
+      {
+         if (hero?.Spouse != null) return false;
+
+         return NpcMarriageEstrangementBehavior.Instance?.HasConcludedFor(hero?.StringId) ?? false;
       }
 
       /// <summary>The two-sided regard read every marriage gate shares: the mod's personal ledger OR the live vanilla relation reaching the EFFECTIVE bar (MCM "Marriage Regard Needed", capped at the shipped 50).</summary>
@@ -1834,7 +1853,8 @@ namespace CalradiaRemembers.Mapping
       private static bool ResolveLoveMatchReluctant(Hero hero, NpcProfile profile)
          => ResolveMarriageBlockReason(hero, profile) == MarriageBlockReason.None
             && !RegardMeetsMarriageBar(hero, profile)
-            && !ResolveCourtshipTrialPassed(hero);
+            && !ResolveCourtshipTrialPassed(hero)
+            && !ResolveStolenLoveDivorcee(hero); // one who left their spouse for the player is willing, not dutiful
 
       /// <summary>
       ///   True when this NPC is the player's spouse AND still carries a live ForcedMarriage grudge over how
