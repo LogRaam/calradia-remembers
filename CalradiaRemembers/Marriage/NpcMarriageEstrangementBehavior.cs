@@ -84,6 +84,67 @@ namespace CalradiaRemembers.Marriage
       /// <summary>True once this NPC's stolen-love arc has concluded (the divorce fired, or could not and was given up); read by the marry/sabotage exits.</summary>
       public bool HasConcludedFor(string npcId) => Find(npcId)?.DivorcedDay.HasValue == true;
 
+      // ── Debug seam (cr.stolen_love + the self-test): drive the arc without waiting weeks ──────────────
+
+      /// <summary>Test/dev: seed (or report an existing) estrangement for a third-party-married NPC, bypassing the affair/seducibility gate. Returns a short status line.</summary>
+      public string DebugBegin(Hero npc, int today)
+      {
+         if (npc?.Spouse is not {IsAlive: true}) return $"{npc?.Name?.ToString() ?? "That hero"} is not married to a living spouse.";
+         if (npc.Spouse == Hero.MainHero) return $"{npc.Name} is married to you, not a third party.";
+
+         StolenLoveEstrangement e = Find(npc.StringId);
+         if (e == null)
+         {
+            e = new StolenLoveEstrangement {NpcId = npc.StringId, SpouseId = npc.Spouse.StringId, StartDay = today, Difficulty = SeductionDifficulty.Easy};
+            _active.Add(e);
+         }
+
+         return DebugDescribe(npc.StringId);
+      }
+
+      /// <summary>Test/dev: force this NPC to the point of declaring (stamps DeclaredDay now) so the divorce is only the delay away.</summary>
+      public string DebugDeclare(string npcId, int today)
+      {
+         StolenLoveEstrangement e = Find(npcId);
+         if (e == null) return "No estrangement is tracked for that hero (seed one first).";
+
+         e.StartDay = today - EstrangementProgressPolicy.DaysToReady(e.Difficulty); // pull it up to ReadyToDivorce
+         if (!e.DivorcedDay.HasValue && !e.DeclaredDay.HasValue) e.DeclaredDay = today;
+
+         return DebugDescribe(npcId);
+      }
+
+      /// <summary>Test/dev: fire the divorce for this NPC right now (unmarry + jilted grudge), regardless of the delay.</summary>
+      public string DebugForceDivorce(Hero npc, int today)
+      {
+         if (DebugBegin(npc, today).StartsWith("No ") || npc?.Spouse == null) { /* fall through */ }
+
+         StolenLoveEstrangement e = Find(npc?.StringId);
+         if (e == null) return "No estrangement could be seeded or found for that hero.";
+         if (e.DivorcedDay.HasValue) return $"{npc.Name}'s arc already concluded on day {e.DivorcedDay}.";
+
+         if (!e.DeclaredDay.HasValue) e.DeclaredDay = today;
+         ExecuteDivorce(e, today);
+
+         return DebugDescribe(npc.StringId);
+      }
+
+      /// <summary>Test/dev cleanup: forget any tracked estrangement for this NPC, so a non-destructive test leaves no state behind.</summary>
+      public void DebugClear(string npcId) => _active.RemoveAll(e => e.NpcId == npcId);
+
+      /// <summary>Test/dev: a one-line report of the tracked estrangement's phase and milestones.</summary>
+      public string DebugDescribe(string npcId)
+      {
+         StolenLoveEstrangement e = Find(npcId);
+         if (e == null) return "No stolen-love estrangement is tracked for that hero.";
+
+         EstrangementPhase phase = EstrangementProgressPolicy.Phase(Today - e.StartDay, e.Difficulty);
+
+         return $"phase={phase} ({ProgressFor(npcId)}%), difficulty={e.Difficulty}, "
+              + $"declared={(e.DeclaredDay.HasValue ? e.DeclaredDay.ToString() : "no")}, "
+              + $"divorced={(e.DivorcedDay.HasValue ? e.DivorcedDay.ToString() : "no")}.";
+      }
+
       public override void SyncData(IDataStore dataStore)
       {
          if (dataStore.IsSaving)

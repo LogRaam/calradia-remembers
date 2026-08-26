@@ -203,6 +203,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
          new SelfTest("retainer_spike", Severity.Heavy, "FEASIBILITY SPIKE: take a real OTHER-CLAN, partyless lord/lady into MobileParty.MainParty via AddHeroToPartyAction, assert (a) they are in the main member roster and (b) their Hero.Clan is UNCHANGED (still their own, NOT the player clan) with occupation still Lord; drive one RunDailyObservation (this behavior's daily handler) and assert they SURVIVED it at peace (reports honestly - this drives only the mod's own daily seam, not vanilla's full party-spawn tick); assert the pure RetainerLeavePolicy forces a leave on war; then release and assert they left the roster and are partyless again. Restores all borrowed state; skips MANUAL when no partyless other-clan lord exists (a party-leading lord's own party would be disbanded, which is not cleanly reversible in a live campaign)", TestRetainerSpike),
          new SelfTest("ride_with_me", Severity.Heavy, "the PLAYER-FACING ride_with_me / part_ways path through the REAL bridge (not the raw mechanism the retainer_spike test drives): (e) while RetainerBehavior.Enabled is OFF the verb REFUSES and takes no one; (a) enabled, an idle at-peace other-clan lord ends up in MainParty.MemberRoster with Hero.Clan UNCHANGED (not the player clan); (b) a party-LEADING lord is REFUSED (that is follow_me's job) with their own party intact, proving the two verbs are mutually exclusive on the leads-a-party fact; (c) part_ways removes them (out of the roster, partyless, untracked); (d) the pure RetainerLeavePolicy forces a leave on war. Restores regard + the feature switch in a finally; skips MANUAL when no partyless at-peace other-clan lord exists to borrow", TestRideWithMe),
+         new SelfTest("stolen_love", Severity.Light, "Stolen Love pillar (non-destructive): on a real third-party-married NPC, assert the seducibility pipeline runs on live facts (SeductionFactsMapper -> SeductionEligibilityPolicy) without throwing and yields a bounded verdict; drive the estrangement state machine via the debug seam (seed -> None in the opening grace -> declare -> ReadyToDivorce) and assert NO divorce has fired (HasConcludedFor false); assert the jilted-spouse grudge magnitude for the real couple sits within [Min,Max]. Clears the seeded estrangement in a finally so NO marriage is ever touched. Skips when no third-party-married NPC exists", TestStolenLove),
          new SelfTest("reasoning_scrub", Severity.Light, "Mechanical: the inline <think> leak (tthheerroocckk, nemotron on High reasoning). The save/load itself is STUBBED: corrupted memories are written straight into the store as an old save would carry them (a trace before real prose, a memory that is ONLY a truncated trace, a corrupted background paragraph) -> the REAL session-launch scrub runs -> assert the prose is recovered, the all-trace memory becomes the honest 'faded' line (never invented content), the background returns to null, and a second pass is a no-op. Removes its seeds afterwards", TestReasoningScrub),
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
@@ -8500,6 +8501,53 @@ namespace CalradiaRemembers.Diagnostics
       ///   what they could say to your face, and they are not counted as neglected. This pins that on the live map,
       ///   and pins that the letter system's own façade genuinely delegates to the same authority.
       /// </summary>
+      private static string TestStolenLove(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("stolen_love");
+
+         var b = Marriage.NpcMarriageEstrangementBehavior.Instance;
+         if (t.Abort(b == null, "stolen-love behavior not active")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Hero npc = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h.IsAlive && h != Hero.MainHero
+            && h.Spouse is {IsAlive: true} && h.Spouse != Hero.MainHero
+            && !b.HasConcludedFor(h.StringId) && b.PhaseFor(h.StringId) == EstrangementPhase.None);
+
+         if (t.Abort(npc == null, "no third-party-married NPC to exercise the arc on")) return t.Line();
+
+         try
+         {
+            // The seducibility pipeline runs on LIVE facts (traits, spouse relation, regard) without throwing and
+            // yields a bounded, sane verdict: this is the engine-bound half the pure policy tests cannot cover.
+            NpcProfile profile = behavior.Store.Get(npc.StringId);
+            SeductionVerdict verdict = SeductionEligibilityPolicy.Evaluate(Mapping.SeductionFactsMapper.For(npc, profile));
+            t.Note($"seducible={verdict.Seducible} ({verdict.Difficulty})");
+
+            // The state machine, forced via the debug seam: a freshly seeded affair has not visibly frayed yet
+            // (opening grace), declaring pulls it to ReadyToDivorce, and NO divorce has fired by merely declaring.
+            b.DebugBegin(npc, today);
+            t.Expect("freshlySeededHasNotFrayedYet", b.PhaseFor(npc.StringId), EstrangementPhase.None);
+
+            b.DebugDeclare(npc.StringId, today);
+            t.Expect("declaringReachesReadyToDivorce", b.PhaseFor(npc.StringId), EstrangementPhase.ReadyToDivorce);
+            t.Expect("noDivorceFiresJustByDeclaring", b.HasConcludedFor(npc.StringId), false);
+
+            // The jilted-spouse grudge is bounded for the real couple, so a divorce would never plant a nonsense value.
+            Hero jilted = npc.Spouse;
+            int magnitude = StolenSpouseGrudgePolicy.Magnitude(jilted.GetRelation(npc), jilted.GetTraitLevel(DefaultTraits.Mercy));
+            t.Expect("jiltedGrudgeWithinBounds",
+               magnitude >= StolenSpouseGrudgePolicy.MinMagnitude && magnitude <= StolenSpouseGrudgePolicy.MaxMagnitude, true);
+         }
+         finally
+         {
+            b.DebugClear(npc.StringId); // non-destructive: only a test estrangement was seeded, no marriage was touched
+         }
+
+         t.Expect("cleanedUp", b.PhaseFor(npc.StringId), EstrangementPhase.None);
+
+         return t.Line();
+      }
+
       private static string TestPresenceGate(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("presence_gate");
