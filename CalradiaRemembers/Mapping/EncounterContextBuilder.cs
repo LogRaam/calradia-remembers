@@ -1798,10 +1798,10 @@ namespace CalradiaRemembers.Mapping
          return CourtshipTrialBehavior.Instance?.IsTrialPassed(hero.StringId) ?? false;
       }
 
-      /// <summary>The two-sided regard read every marriage gate shares: the mod's personal ledger OR the live vanilla relation reaching the bar.</summary>
+      /// <summary>The two-sided regard read every marriage gate shares: the mod's personal ledger OR the live vanilla relation reaching the EFFECTIVE bar (MCM "Marriage Regard Needed", capped at the shipped 50).</summary>
       private static bool RegardMeetsMarriageBar(Hero hero, NpcProfile profile)
-         => (profile?.ReputationWithPlayer ?? 0) >= MarriageEligibility.MarriageEligibilityThreshold ||
-            (Hero.MainHero?.GetRelation(hero) ?? 0) >= MarriageEligibility.MarriageEligibilityThreshold;
+         => (profile?.ReputationWithPlayer ?? 0) >= ModSettings.MarriageRegardThreshold ||
+            (Hero.MainHero?.GetRelation(hero) ?? 0) >= ModSettings.MarriageRegardThreshold;
 
       /// <summary>
       ///   True when marriage is on offer ONLY through the family's blessing: the match is otherwise clear but

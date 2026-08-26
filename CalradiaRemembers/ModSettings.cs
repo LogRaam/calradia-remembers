@@ -151,6 +151,27 @@ namespace CalradiaRemembers
          }
       }
 
+      /// <summary>
+      ///   The regard a candidate must hold for a LOVE-MATCH marriage to be allowed (personal ledger OR vanilla
+      ///   relation, whichever is higher), read live from the MCM menu. Lets a player soften the courtship (player
+      ///   report 2026-08-25: reaching the shipped bar of 50 by conversation felt impossible). Defaults to and is
+      ///   capped at the shipped bar (<see cref="Logic.MarriageEligibility.MarriageEligibilityThreshold" />, 50) so
+      ///   the setting can only make marriage EASIER, never harder (which also keeps the self-test's regard seed
+      ///   valid); floored at 10 so a wedding is never entirely free. 50 when MCM has not loaded. The family's
+      ///   blessing still opens a match below this bar (a political union), exactly as before.
+      /// </summary>
+      public static int MarriageRegardThreshold
+      {
+         get
+         {
+            int v = CrSettings.Instance?.MarriageRegardNeeded ?? MarriageEligibility.MarriageEligibilityThreshold;
+            if (v < 10) v = 10;
+            if (v > MarriageEligibility.MarriageEligibilityThreshold) v = MarriageEligibility.MarriageEligibilityThreshold;
+
+            return v;
+         }
+      }
+
 
       /// <summary>
       ///   How large the chat DIALOGUE TEXT is drawn, independently of the window size: since the window scale

@@ -140,11 +140,11 @@ namespace CalradiaRemembers
          NpcProfile profile = behavior.Store.Get(npc.StringId);
          int reputation = profile?.ReputationWithPlayer ?? 0;
          int vanillaRelation = npc.GetRelation(player);
-         bool regardEnough = reputation >= MarriageEligibility.MarriageEligibilityThreshold ||
-                              vanillaRelation >= MarriageEligibility.MarriageEligibilityThreshold;
+         int marriageBar = ModSettings.MarriageRegardThreshold;
+         bool regardEnough = reputation >= marriageBar || vanillaRelation >= marriageBar;
          sb.AppendLine(regardEnough
-            ? $"  [PASS] regard: personal {reputation}, vanilla relation {vanillaRelation} (needs >= {MarriageEligibility.MarriageEligibilityThreshold} on either)."
-            : $"  [FAIL] regard too low: personal {reputation}, vanilla relation {vanillaRelation} (needs >= {MarriageEligibility.MarriageEligibilityThreshold} on either).");
+            ? $"  [PASS] regard: personal {reputation}, vanilla relation {vanillaRelation} (needs >= {marriageBar} on either)."
+            : $"  [FAIL] regard too low: personal {reputation}, vanilla relation {vanillaRelation} (needs >= {marriageBar} on either).");
 
          bool eligible = !playerAlreadyWed && !sameClan && marriageable && guardAllowed && regardEnough;
          sb.AppendLine(eligible

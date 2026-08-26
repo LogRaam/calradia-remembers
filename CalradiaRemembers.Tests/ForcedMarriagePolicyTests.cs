@@ -72,5 +72,24 @@ namespace CalradiaRemembers.Tests
       {
          ForcedMarriagePolicy.GrudgeMagnitude(-100).Should().Be(ForcedMarriagePolicy.MaxResentment);
       }
+
+      // The MCM "Marriage Regard Needed" setting lowers the bar the engine injects, so the seal gate and the
+      // love-match gate must judge "forced" against that SAME lowered bar (or they drift: eligible per the
+      // encounter, refused at the altar). A regard that clears a lowered bar is NOT a forced union.
+      [Test]
+      public void GIVEN_a_lowered_marriage_bar_WHEN_regard_clears_it_THEN_the_union_is_not_forced()
+      {
+         ForcedMarriagePolicy.IsForcedUnion(35, 35).Should().BeFalse(); // exactly at the lowered bar
+         ForcedMarriagePolicy.IsForcedUnion(34, 35).Should().BeTrue();  // one short of it
+      }
+
+      // The resentment of a wedding forced at a LOWERED bar is measured against that same bar, so a bride wed
+      // one point short of a 30 bar forms the same faint grievance she would one point short of 50, not a wound
+      // sized to the shipped default she never had to clear.
+      [Test]
+      public void GIVEN_a_lowered_bar_WHEN_a_bride_is_wed_one_point_short_THEN_the_resentment_tracks_the_lowered_bar()
+      {
+         ForcedMarriagePolicy.GrudgeMagnitude(29, 30).Should().Be(ForcedMarriagePolicy.BaseResentment + 1);
+      }
    }
 }

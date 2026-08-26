@@ -34,7 +34,17 @@ namespace CalradiaRemembers.Logic
       ///   two-sided read every marriage gate uses) is still below the marriage bar.
       /// </summary>
       public static bool IsForcedUnion(int bestRegard)
-         => bestRegard < MarriageEligibility.MarriageEligibilityThreshold;
+         => IsForcedUnion(bestRegard, MarriageEligibility.MarriageEligibilityThreshold);
+
+      /// <summary>
+      ///   Threshold-injected overload: a union is political (forced) when the best regard is below the EFFECTIVE
+      ///   marriage bar, which the engine may lower from the shipped default via the MCM "Marriage Regard Needed"
+      ///   setting (ModSettings.MarriageRegardThreshold). Kept pure by taking the bar as a parameter so the seal
+      ///   gate (BannerlordGameStateBridge.ExecuteMarry) and the love-match gate (EncounterContextBuilder) share
+      ///   the SAME effective bar and can never drift.
+      /// </summary>
+      public static bool IsForcedUnion(int bestRegard, int marriageBar)
+         => bestRegard < marriageBar;
 
       /// <summary>
       ///   The grudge magnitude the wedding plants: the base plus ONE point per point of shortfall below the
@@ -44,10 +54,18 @@ namespace CalradiaRemembers.Logic
       ///   unconditionally after any wedding.
       /// </summary>
       public static int GrudgeMagnitude(int bestRegard)
-      {
-         if (!IsForcedUnion(bestRegard)) return 0;
+         => GrudgeMagnitude(bestRegard, MarriageEligibility.MarriageEligibilityThreshold);
 
-         int shortfall = MarriageEligibility.MarriageEligibilityThreshold - bestRegard;
+      /// <summary>
+      ///   Threshold-injected overload: the shortfall (and thus the resentment) is measured against the EFFECTIVE
+      ///   marriage bar the engine used to force the union, so a wedding forced at a LOWERED bar plants a wound
+      ///   sized to that same bar rather than the shipped 50.
+      /// </summary>
+      public static int GrudgeMagnitude(int bestRegard, int marriageBar)
+      {
+         if (!IsForcedUnion(bestRegard, marriageBar)) return 0;
+
+         int shortfall = marriageBar - bestRegard;
          int magnitude = BaseResentment + shortfall;
 
          return magnitude > MaxResentment ? MaxResentment : magnitude;

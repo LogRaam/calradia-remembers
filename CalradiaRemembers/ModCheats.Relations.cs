@@ -49,7 +49,7 @@ namespace CalradiaRemembers
 
          int regard = profile?.ReputationWithPlayer ?? 0;
          int vanilla = Hero.MainHero?.GetRelation(hero) ?? 0;
-         int need = MarriageEligibility.MarriageEligibilityThreshold;
+         int need = ModSettings.MarriageRegardThreshold;
          bool blessed = MarriageApprovalBehavior.Instance?.IsApproved(hero.StringId) ?? false;
 
          // Ratified 2026-07-23: a blessed match below the regard bar is ON OFFER as a POLITICAL union; the

@@ -69,6 +69,14 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public int CouncilTextSizePercent { get; set; } = 100;
 
+      [SettingPropertyInteger("Marriage Regard Needed", 10, 50, "0", RequireRestart = false, Order = 10,
+         HintText = "How much regard a lord or lady must hold for you before they will accept a LOVE-MATCH marriage " +
+                    "(their own personal regard, OR your vanilla clan relation, whichever is higher). 50 is the " +
+                    "shipped bar; lower it for a gentler courtship. Their FAMILY'S BLESSING can still open a match " +
+                    "below this bar. Applies immediately.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public int MarriageRegardNeeded { get; set; } = 50;
+
       [SettingPropertyText("OpenRouter API Key", RequireRestart = false, Order = 0,
          HintText = "Paste your key from openrouter.ai/keys. Stored locally on this machine only. NEVER share your " +
                     "config file or a screenshot of this field. Applies immediately.")]

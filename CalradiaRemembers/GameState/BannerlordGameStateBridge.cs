@@ -2896,7 +2896,7 @@ namespace CalradiaRemembers.GameState
             // proceeds even below the regard bar, and the unwon heart becomes a ForcedMarriage grudge instead
             // of an invisible refusal (planted after the union is sealed, below). Without the blessing the
             // regard bar still holds, and the refusal now names the other road.
-            bool forcedUnion = ForcedMarriagePolicy.IsForcedUnion(bestRegard);
+            bool forcedUnion = ForcedMarriagePolicy.IsForcedUnion(bestRegard, ModSettings.MarriageRegardThreshold);
 
             if (forcedUnion && !(MarriageApprovalBehavior.Instance?.IsApproved(npcHero.StringId) ?? false))
                return ActionOutcome.Refused(
@@ -2936,12 +2936,12 @@ namespace CalradiaRemembers.GameState
             // KnownToPlayer: a bride wed by her family's will hides nothing about how she came to the altar.
             if (forcedUnion)
             {
-               int resentment = ForcedMarriagePolicy.GrudgeMagnitude(bestRegard);
+               int resentment = ForcedMarriagePolicy.GrudgeMagnitude(bestRegard, ModSettings.MarriageRegardThreshold);
                bool planted = GrudgeBehavior.Instance?.TryPlant(npcHero, player, GrudgeSource.ForcedMarriage,
                   "Wed to them by my family's will, not my own.", resentment, true,
                   (int) CampaignTime.Now.ToDays) ?? false;
                ModLog.Info($"[ACTION] marry: a FORCED union (best regard {bestRegard} < " +
-                           $"{MarriageEligibility.MarriageEligibilityThreshold}); resentment {resentment} " +
+                           $"{ModSettings.MarriageRegardThreshold}); resentment {resentment} " +
                            $"{(planted ? "planted" : "refused by the formation floor")}.");
             }
 
