@@ -8,9 +8,9 @@
 using System;
 using System.IO;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Mapping;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Prompts;
-using TaleWorlds.Library;
 
 #endregion
 
@@ -25,8 +25,13 @@ namespace CalradiaRemembers.Lore
     {
         public static void LoadAndApply()
         {
-            string path = Path.Combine(
-                BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData", "setting.json");
+            // Custom-first, like the narrative prompt files: a player's setting.json under ModuleData/Custom (or
+            // their MCM "Custom Folder Path") overrides the shipped one, so a total-overhaul reskin survives a mod
+            // update that re-extracts ModuleData (player report 2026-08-26: a TOR setting.json in Custom was
+            // ignored because this loader read ModuleData directly).
+            string path = NarrativeLoader.ResolveCustomFirst("setting.json");
+            bool useCustom = File.Exists(path)
+                && path != Path.Combine(NarrativeLoader.ModuleDataFolder(), "setting.json");
 
             SettingProfile profile = null;
             if (File.Exists(path))
@@ -41,7 +46,7 @@ namespace CalradiaRemembers.Lore
             PromptLore.WorldName = name;
             PromptLore.WorldAdjective = adjective;
             PromptLore.PatriarchalCultures = cultures;
-            ModLog.Info($"  Setting profile: world '{name}' ({adjective}); {cultures.Count} patriarchal culture(s).");
+            ModLog.Info($"  Setting profile{(useCustom ? " (custom)" : "")}: world '{name}' ({adjective}); {cultures.Count} patriarchal culture(s).");
         }
     }
 }

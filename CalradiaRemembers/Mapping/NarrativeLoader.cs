@@ -83,7 +83,8 @@ namespace CalradiaRemembers.Mapping
 
       #region private
 
-      private static string ModuleDataFolder()
+      // internal so sibling loaders (e.g. SettingProfileLoader) can report whether they resolved a Custom override.
+      internal static string ModuleDataFolder()
          => Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData");
 
       private static string ReadFile(string filename, string label)

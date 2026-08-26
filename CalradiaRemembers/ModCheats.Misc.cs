@@ -350,6 +350,40 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.reload_prompts
+      ///   Reloads the prompt/lore DATA files from disk (Custom-first) without relaunching, for modders iterating
+      ///   on a total-overhaul: the narrative texts (world.txt, player_description.txt, behavior_guidelines*.txt,
+      ///   post_history_instructions.txt), setting.json, cultural_traditions.json, and jealousy_cultures.json.
+      ///   These are otherwise read only at session launch, so an edit needed a save reload before; cr.reload_lore
+      ///   covers ONLY character_overrides.json, which is why editing a prompt file and running reload_lore looked
+      ///   like the Custom folder was ignored. Styles are read per use, so they need no reload (just re-pick one).
+      ///   The next reply uses the fresh values (world state is rebuilt per message).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("reload_prompts", "cr")]
+      public static string ReloadPrompts(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         var failed = new List<string>();
+         void Reload(string what, Action load)
+         {
+            try { load(); }
+            catch (Exception ex) { failed.Add($"{what} ({ex.GetType().Name})"); }
+         }
+
+         Reload("narrative texts", NarrativeLoader.Load);
+         Reload("setting.json", SettingProfileLoader.LoadAndApply);
+         Reload("cultural_traditions.json", CulturalTraditionsLoader.Load);
+         Reload("jealousy_cultures.json", JealousyCultureLoader.Load);
+
+         string basis = $"from {NarrativeLoader.CustomBaseFolder()} (Custom-first, falling back to ModuleData)";
+
+         return failed.Count == 0
+            ? $"Reloaded the prompt/lore data files {basis}. The next reply uses them. Styles are read per use (no reload needed)."
+            : $"Reloaded the prompt/lore data files {basis}, but these failed: {string.Join(", ", failed)}. See the log.";
+      }
+
+      /// <summary>
       ///   cr.lore_status
       ///   On-demand diagnosis for character_overrides.json, independent of the "Enable Logging" MCM toggle
       ///   (that switch gates ModLog.Info/Error, so a player editing the file with logging off otherwise gets
