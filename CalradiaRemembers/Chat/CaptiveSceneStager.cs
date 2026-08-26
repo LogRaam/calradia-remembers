@@ -67,7 +67,15 @@ namespace CalradiaRemembers.Chat
          CaptorScene,
 
          /// <summary>A plain forced meeting (a lord who intercepted the player): opens the ordinary CR conversation chat.</summary>
-         PlainConversation
+         PlainConversation,
+
+         /// <summary>
+         ///   A companion the player already leads asks for a word (grievance, retirement, a found-topic report).
+         ///   <see cref="ChatManager.OpenForCompanionAudienceDirect" />. Staged like the rest so the audience opens
+         ///   over a rendered scene with the companion present, not over the suspended map where a hidden sub-panel
+         ///   (Memories/Compose) leaves ghost pixels behind.
+         /// </summary>
+         CompanionAudience
       }
 
       /// <summary>True while a conversation scene is loading and the captive chat is waiting to open over it.</summary>
@@ -86,7 +94,8 @@ namespace CalradiaRemembers.Chat
             "cr_captive_stage_intercept",
             "start", "cr_captive_stage_hold",
             "So. Here you are.",
-            () => IsStaging && _pending?.Kind != StagedSceneKind.PlainConversation,
+            () => IsStaging
+               && (_pending?.Kind == StagedSceneKind.VictimEncounter || _pending?.Kind == StagedSceneKind.CaptorScene),
             OnInterceptLineReached,
             200);
 
@@ -98,6 +107,16 @@ namespace CalradiaRemembers.Chat
             "start", "cr_captive_stage_hold",
             "You. A word, before you go any further.",
             () => IsStaging && _pending?.Kind == StagedSceneKind.PlainConversation,
+            OnInterceptLineReached,
+            200);
+
+         // A companion the player leads, asking for the audience: a courteous opener in their own voice. Gender-
+         // neutral (it flashes for a few frames before the chat covers it, but never assumes the player's gender).
+         starter.AddDialogLine(
+            "cr_audience_stage_intercept",
+            "start", "cr_captive_stage_hold",
+            "A moment of your time, if I may.",
+            () => IsStaging && _pending?.Kind == StagedSceneKind.CompanionAudience,
             OnInterceptLineReached,
             200);
       }
@@ -181,6 +200,31 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Stages a COMPANION AUDIENCE (a companion the player already leads asks for a word) over the same
+      ///   VRAM-safe conversation scene as the captive paths, instead of a bare overlay on the world map. Call
+      ///   this rather than <see cref="ChatManager.OpenForCompanionAudience" /> whenever there is no scene already
+      ///   live: opening the audience over the suspended map left hidden sub-panels (Memories/Compose) painting
+      ///   ghost pixels, because nothing repaints behind them. Over a staged scene the overlay redraws each frame,
+      ///   exactly like a normal "Talk", and the companion stands present in the shot. Falls back to the direct
+      ///   overlay when there is no companion to converse with or the conversation cannot start.
+      /// </summary>
+      public static void StageCompanionAudience(
+         Hero companion, NpcProfile profile, CompanionAudienceReason reason, bool landed, string topicDetail = null)
+      {
+         var pending = new Pending {
+            Kind = StagedSceneKind.CompanionAudience,
+            Captor = companion, // the hero we converse with to load the scene (named for the captive paths this stager grew from)
+            Profile = profile,
+            Reason = reason,
+            Landed = landed,
+            TopicDetail = topicDetail
+         };
+
+         // A companion rides in the player's own party, so the scene attaches to the main party.
+         BeginStagedConversation(pending, companion?.CharacterObject, companion?.PartyBelongedTo?.Party, "AUDIENCE STAGE");
+      }
+
+      /// <summary>
       ///   Pumped every frame from the submodule. Once the conversation scene is loaded (a Mission is live) and
       ///   the chat is not already open, opens the captive chat over the scene. Fail-soft: any error opens
       ///   directly so the encounter is never lost.
@@ -240,6 +284,11 @@ namespace CalradiaRemembers.Chat
          public NpcProfile Profile;
          public Hero VictimCompanion;
          public List<WitnessEntry> Witnesses;
+
+         // CompanionAudience only.
+         public bool Landed;
+         public CompanionAudienceReason Reason;
+         public string TopicDetail;
       }
 
       #region private
@@ -316,6 +365,15 @@ namespace CalradiaRemembers.Chat
          if (p.Kind == StagedSceneKind.CaptorScene)
          {
             ChatManager.OpenForCaptorScene(p.Captor, p.Profile, p.Intent);
+
+            return;
+         }
+
+         if (p.Kind == StagedSceneKind.CompanionAudience)
+         {
+            // The DIRECT open: the choke that routed us here (ChatManager.OpenForCompanionAudience) stages, so
+            // going back through it would re-arm the stager instead of opening the chat.
+            ChatManager.OpenForCompanionAudienceDirect(p.Captor, p.Profile, p.Reason, p.Landed, p.TopicDetail);
 
             return;
          }
