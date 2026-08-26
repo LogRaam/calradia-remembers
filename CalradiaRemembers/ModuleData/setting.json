@@ -1,17 +1,18 @@
-// setting.json — adapt Calradia Remembers to a total-overhaul mod (e.g. The Old Realms).
+// setting.json - adapt Calradia Remembers to a total-overhaul mod (e.g. The Old Realms).
 //
-// Every field is OPTIONAL; anything you leave out keeps the Calradia default, so a stock install is
-// unchanged. After editing, load your save (or run cr.reload_lore in the console).
+// Every field is OPTIONAL. Leave a line commented (with //) or absent to keep the Calradia default,
+// so a stock install is unchanged. To customise one, remove the // in front of it and edit its value.
+// KEEP EVERYTHING INSIDE THE SINGLE { } BELOW: do not add a second { } block.
+// After editing, load your save (or run cr.reload_prompts in the console) to apply it.
 //
-//   "worldName"           the world's name in prose            ("Calradia" -> "the Old World")
-//   "worldAdjective"      the world's adjective                ("Calradian" -> "Imperial")
-//   "patriarchalCultures" faction/culture name fragments whose men are skeptical of female authority
-//                         (matched case-insensitively against the NPC's faction name)
+//   worldName           the world's name in prose          (default "Calradia",  e.g. "the Old World")
+//   worldAdjective      the world's adjective               (default "Calradian", e.g. "Old-World")
+//   patriarchalCultures faction/culture name fragments whose men are skeptical of female authority,
+//                       matched case-insensitively against the NPC's faction name
+//                       (default ["Vlandia", "Northern Empire", "Western Empire", "Aserai"])
 //
-// Example for an Old-World overhaul (uncomment and edit):
-// {
-//   "worldName": "the Old World",
-//   "worldAdjective": "Old-World",
-//   "patriarchalCultures": ["Bretonnia", "Empire"]
-// }
-{}
+{
+  // "worldName": "the Old World",
+  // "worldAdjective": "Old-World",
+  // "patriarchalCultures": ["Bretonnia", "Empire"]
+}
