@@ -485,6 +485,7 @@ namespace CalradiaRemembers.Mapping
             // companion afterward). Only meaningful when LoveMatchEligible is true.
             PartnerIsOwnCompanion = MarryCompanionResolver.IsEligibleCompanionMatch(hero),
             NpcSpouseIsPlayer = hero?.Spouse == Hero.MainHero && Hero.MainHero != null,
+            NpcIsPlayerHousehold = IsPlayerHousehold(hero, profile),
             SpouseMarriedUnwillingly = ResolveSpouseMarriedUnwillingly(hero),
             ConsortEligible = ResolveConsortEligible(hero, profile),
             SecretLoverEligible = ResolveSecretLoverEligible(hero, profile),

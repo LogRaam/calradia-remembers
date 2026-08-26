@@ -11,6 +11,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
@@ -175,16 +176,29 @@ namespace CalradiaRemembers.Marriage
          Hero spouse = Hero.MainHero?.Spouse;
          if (spouse == null) return;
 
-         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouse.StringId);
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         if (store == null) return;
+
+         // On a save that predates CR, the player's spouse may have NO profile yet (never spoken to since the mod
+         // was installed). Mint one now so the first conversation already reads as a marriage, not a first
+         // meeting, and the romance logic sees Committed from the start instead of one session later. FromHero
+         // seeds SpouseName + a Romantic profile, so pairing it with the heal below covers both the never-met and
+         // the stuck-status cases. This is the DATA half of the in-progress-save recognition; the prompt half
+         // (framing an established spouse/kin as no stranger even with zero events) lives in PromptBuilder.
+         NpcProfile profile = store.Get(spouse.StringId);
+         bool created = profile == null;
+         if (created) profile = HeroProfileMapper.FromHero(spouse);
          if (profile?.Romantic == null) return;
 
-         if (!ProfileMutator.SpouseStatusNeedsHeal(profile.Romantic.Status)) return;
+         if (!created && !ProfileMutator.SpouseStatusNeedsHeal(profile.Romantic.Status)) return;
 
          RomanticStatus before = profile.Romantic.Status;
          profile.Romantic.Status = RomanticStatus.Committed;
          profile.Romantic.IsSecretLover = false;
-         NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
-         ModLog.Info($"[MARRIAGE] healed player-spouse {spouse.Name} romantic status {before} to Committed (C3 save migration).");
+         store.Set(profile);
+         ModLog.Info(created
+            ? $"[MARRIAGE] seeded a Committed profile for pre-existing player-spouse {spouse.Name} (in-progress-save recognition)."
+            : $"[MARRIAGE] healed player-spouse {spouse.Name} romantic status {before} to Committed (C3 save migration).");
       }
 
       /// <summary>Removes a blessing (test / cleanup). Returns true when one was present.</summary>
