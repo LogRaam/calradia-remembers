@@ -129,9 +129,12 @@ namespace CalradiaRemembers.Marriage
 
          // Report the REAL outcome: DivorcedDay is set whether the marriage actually dissolved or the divorce was
          // given up (a clan-leading leaving spouse TryDissolve refuses), so distinguish them for the tester.
+         StolenLoveEstrangement after = Find(npc.StringId);
          string outcome = npc.Spouse == null
             ? $"DIVORCED from {jiltedBefore?.Name?.ToString() ?? "their spouse"} (a StolenSpouse grudge is planted on them)"
-            : $"could NOT divorce (still married to {npc.Spouse.Name}: a clan-leading leaving spouse cannot be relocated); arc given up";
+            : after?.DivorcedDay == null
+               ? $"still married to {npc.Spouse.Name}: blocked this attempt (a role was released or it is transient), run divorce again after a day to complete"
+               : $"could NOT divorce (still married to {npc.Spouse.Name}: their spouse cannot be relocated); arc given up (see the log for the reason)";
 
          return $"{outcome}. {DebugDescribe(npc.StringId)}";
       }
@@ -271,8 +274,33 @@ namespace CalradiaRemembers.Marriage
 
          if (!MarriageDissolutionService.TryDissolve(npc, jilted, out string reason))
          {
-            e.DivorcedDay = today; // could not complete (e.g. a clan-leading leaving spouse); give up rather than loop
+            DivorceBlock block = MarriageDissolutionService.ClassifyBlock(npc, jilted);
+            Hero leaving = DivorceEligibilityResolver.ResolveLeavingSpouse(npc, jilted);
+
+            // A RELEASABLE structural block (the leaving spouse governs or leads a party, but does NOT head their
+            // own clan) is not real resistance: release the post and leave the estrangement standing so a later
+            // daily tick retries and completes (a party disband takes days), mirroring the player-divorce walk-out.
+            if (block == DivorceBlock.Structural && leaving is {IsClanLeader: false})
+            {
+               MarriageDissolutionService.ReleaseStructuralRoles(leaving);
+               ModLog.Info($"[STOLEN_LOVE] {npc.Name}'s divorce is structurally blocked ({reason}); released {leaving.Name}'s post, will retry.");
+
+               return; // NOT concluded: retry next tick
+            }
+
+            // A pregnancy or captivity is transient: retry once it clears, do not conclude.
+            if (block == DivorceBlock.Transient)
+            {
+               ModLog.Info($"[STOLEN_LOVE] {npc.Name}'s divorce is deferred ({reason}); will retry.");
+
+               return; // NOT concluded
+            }
+
+            // Genuine spousal resistance, or a leaving spouse who heads their OWN clan (cannot be relocated): give
+            // up cleanly rather than loop forever.
+            e.DivorcedDay = today;
             ModLog.Info($"[STOLEN_LOVE] could not complete {npc.Name}'s divorce from {jilted.Name} ({reason}); the arc is given up.");
+
             return;
          }
 
