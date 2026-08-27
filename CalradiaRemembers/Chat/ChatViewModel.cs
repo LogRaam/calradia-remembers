@@ -14,6 +14,7 @@ using CalradiaRemembers.GUI;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Lore;
@@ -164,6 +165,11 @@ namespace CalradiaRemembers.Chat
       // Mutable list — authoritative for the session; cleared on privacy-accepted.
       // Passed into EncounterContext each turn so PromptBuilder can inject them.
       private readonly List<WitnessEntry> _witnesses = new();
+
+      // Spotlight pillar: who is a full active participant vs a passive witness, and how that boundary moves as
+      // people are drawn in (Promote) or told to hold their tongue (Demote). Built from the anchor + witnesses at
+      // setup; null in scenes with no real anchor hero (a synthetic bandit captor). Session-only, never persisted.
+      private ConversationCast _cast;
 
       // Portrait troop per heroless (synthetic bandit) witness, so the chief's men show distinct
       // faces instead of a blank avatar. Keyed by witness name.
@@ -2782,7 +2788,32 @@ namespace CalradiaRemembers.Chat
                _witnessColors[w.Name] = ColorForWitness(w);
             }
 
+         RebuildCast();
          RefreshWitnessUi();
+      }
+
+      /// <summary>
+      ///   (Re)builds the <see cref="_cast" /> from the current anchor and witnesses: the anchor is the sole
+      ///   active voice, every witness with a real hero id starts as a witness (a synthetic bandit onlooker has
+      ///   no id to promote later, so it is not tracked). Called at setup; promotions/demotions happen afterward,
+      ///   so a later setup-time rebuild does not wipe an in-conversation promotion. Null when there is no real
+      ///   anchor hero.
+      /// </summary>
+      private void RebuildCast()
+      {
+         string anchorId = _npcHero?.StringId;
+
+         if (string.IsNullOrEmpty(anchorId))
+         {
+            _cast = null;
+
+            return;
+         }
+
+         _cast = new ConversationCast(
+            anchorId,
+            _witnesses.Where(w => !string.IsNullOrEmpty(w?.HeroStringId) && w.HeroStringId != anchorId)
+                      .Select(w => w.HeroStringId));
       }
 
       #region private

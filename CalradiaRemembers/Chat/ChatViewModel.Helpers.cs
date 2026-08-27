@@ -791,6 +791,11 @@ namespace CalradiaRemembers.Chat
             : SpeakerForCurrent().Name;
          ModLog.Info($"[ADDRESS] turn routed to {newName} (was {previousName})");
 
+         // Spotlight pillar: addressing a witness by name draws them INTO the conversation for good, not just for
+         // this turn. Promote them to a full participant; from here the ensemble turn lets them keep speaking.
+         if (!string.IsNullOrEmpty(resolvedId) && _cast?.Promote(resolvedId) == true)
+            ModLog.Info($"[SPOTLIGHT] {newName} promoted to an active participant (addressed by the player).");
+
          return SpeakerForCurrent();
       }
 
