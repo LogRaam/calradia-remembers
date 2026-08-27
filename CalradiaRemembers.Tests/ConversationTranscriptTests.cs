@@ -161,6 +161,66 @@ namespace CalradiaRemembers.Tests
          t.SummarizedThrough.Should().Be(3);
       }
 
+      // STAKE: a duel interrupts a conversation and the post-duel scene opens a FRESH chat; if seeding did not
+      // carry every prior line across, the NPC would resume with no memory of what was just said and the whole
+      // "resume where the blades cut in" promise would break. Lines must arrive oldest-first, attribution intact.
+      [Test]
+      public void GIVEN_a_prior_conversation_WHEN_seeding_a_fresh_transcript_THEN_all_its_lines_carry_across_in_order()
+      {
+         var resumed = new ConversationTranscript();
+
+         resumed.SeedFrom(Exchange());
+
+         resumed.Count.Should().Be(3);
+         resumed.Lines[0].Text.Should().Be("Are you with me?");
+         resumed.Lines[0].IsPlayer.Should().BeTrue();
+         resumed.Lines[1].SpeakerName.Should().Be("Derthert");
+         resumed.Lines[2].SpeakerName.Should().Be("Olaf");
+      }
+
+      // STAKE: a long conversation folds its older half into a running recap; if seeding dropped that recap, a
+      // resumed chat would lose everything before the fold, which is exactly the coherence the fold exists to
+      // keep. The recap and its marker must survive the carry.
+      [Test]
+      public void GIVEN_a_prior_conversation_that_had_folded_WHEN_seeding_THEN_the_recap_and_its_marker_carry_across()
+      {
+         var prior = Exchange();
+         prior.ApplySummary("They spoke of the war.", 2);
+
+         var resumed = new ConversationTranscript();
+         resumed.SeedFrom(prior);
+
+         resumed.RunningSummary.Should().Be("They spoke of the war.");
+         resumed.SummarizedThrough.Should().Be(2);
+      }
+
+      // STAKE: the resumed transcript must serve the NPC their own view of the WHOLE prior exchange on the very
+      // next call, or the post-duel opener would be spoken by someone with no idea what led to the fight. Pinned
+      // at the compose seam the controller actually calls.
+      [Test]
+      public void GIVEN_a_seeded_transcript_WHEN_composing_for_a_participant_THEN_they_receive_the_prior_exchange()
+      {
+         var resumed = new ConversationTranscript();
+         resumed.SeedFrom(Exchange());
+
+         var turns = resumed.ComposeSessionFor("lord_derthert");
+
+         turns.Should().HaveCount(3);
+         turns[1].Role.Should().Be(SessionTurnRole.Speaker); // Derthert's own line, from the prior conversation
+      }
+
+      // A missing source must never throw: a duel armed from a path that had no transcript (a console-forced
+      // duel) still opens the post-duel scene, just with nothing to resume.
+      [Test]
+      public void GIVEN_no_prior_conversation_WHEN_seeding_from_null_THEN_it_is_a_no_op()
+      {
+         var resumed = new ConversationTranscript();
+
+         resumed.SeedFrom(null);
+
+         resumed.Count.Should().Be(0);
+      }
+
       #region private
 
       private static ConversationTranscript Exchange()

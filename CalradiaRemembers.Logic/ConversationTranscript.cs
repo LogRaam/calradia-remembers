@@ -59,6 +59,31 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
+        ///   Adopts the full content of <paramref name="prior" /> so a NEW conversation resumes an earlier one
+        ///   seamlessly: its lines (oldest first), its running summary, and its summarized-through marker are
+        ///   copied in. This is how the conversation that led up to a duel is carried into the post-duel scene,
+        ///   which opens a fresh chat but must continue where the last words left off. A no-op on a null or
+        ///   empty source. Intended for a FRESH transcript: it appends rather than clears, so seeding a
+        ///   non-empty one would splice the two, which no caller does.
+        /// </summary>
+        public void SeedFrom(ConversationTranscript prior)
+        {
+            if (prior == null) return;
+
+            foreach (TranscriptLine e in prior.Lines)
+                _lines.Add(e);
+
+            // Carry the fold too, so a long prior conversation keeps its compressed recap instead of replaying
+            // raw. Clamp the marker to what we actually hold (identical lines here, but the guard keeps the
+            // invariant local rather than trusting the source).
+            if (!string.IsNullOrEmpty(prior.RunningSummary))
+            {
+                RunningSummary = prior.RunningSummary;
+                SummarizedThrough = prior.SummarizedThrough > _lines.Count ? _lines.Count : prior.SummarizedThrough;
+            }
+        }
+
+        /// <summary>
         ///   Records one line, unless there is nothing to record. The blank guard lives HERE, at the single
         ///   point of entry, because a blank line is not merely useless: it would take a slot in every prompt
         ///   rebuilt afterwards, and an empty assistant turn teaches the model that saying nothing is a valid

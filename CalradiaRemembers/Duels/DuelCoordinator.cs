@@ -11,6 +11,7 @@
 
 using System;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Duels;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -33,6 +34,7 @@ namespace CalradiaRemembers.Duels
       private static bool _pendingNpcIssuedChallenge; // true = the NPC called the player out (player must answer)
       private static int _pendingWitnessCount;
       private static Hero _pendingCourtedHero;      // only meaningful for DuelReason.CourtshipRivalry
+      private static ConversationTranscript _pendingTranscript; // the chat that led to the duel, carried into the post-duel scene; null from the console
       private static bool _endedSettlementMissionForStaging; // guards the once-only EndMission on the per-frame tick
 
       // ── Fought, consumed by Phase 2 ──────────────────────────────────────────
@@ -41,6 +43,7 @@ namespace CalradiaRemembers.Duels
       private static DuelReason _outcomeReason;
       private static Hero _outcomeCourtedHero;
       private static int _outcomeWitnessCount;
+      private static ConversationTranscript _outcomeTranscript; // survives to Phase 2 so the post-duel chat can resume the pre-duel conversation
 
       /// <summary>
       ///   Arms a duel from the chat: stores the decision and returns immediately. Must NOT open anything
@@ -50,7 +53,8 @@ namespace CalradiaRemembers.Duels
       ///   out and the NPC has already accepted (the chat's own acceptance policy already ran).
       ///   <paramref name="courtedHero" /> is only meaningful for <see cref="DuelReason.CourtshipRivalry" />.
       /// </summary>
-      public static void Arm(Hero opponent, DuelReason reason, DuelVenue venue, bool npcIssuedChallenge, int witnessCount, Hero courtedHero)
+      public static void Arm(Hero opponent, DuelReason reason, DuelVenue venue, bool npcIssuedChallenge, int witnessCount, Hero courtedHero,
+         ConversationTranscript transcript = null)
       {
          _pendingOpponent = opponent;
          _pendingReason = reason;
@@ -58,6 +62,9 @@ namespace CalradiaRemembers.Duels
          _pendingNpcIssuedChallenge = npcIssuedChallenge;
          _pendingWitnessCount = witnessCount;
          _pendingCourtedHero = courtedHero;
+         // The conversation that led here, so the post-duel scene resumes it seamlessly (null from the console,
+         // where no chat preceded the duel). A process reference: a duel never spans a save.
+         _pendingTranscript = transcript;
          ModLog.Info($"[DUEL] armed from chat: opponent={opponent?.Name?.ToString() ?? "(null)"}, reason={reason}, " +
                      $"venue={venue}, npcIssuedChallenge={npcIssuedChallenge}, witnesses={witnessCount}. Waiting for the chat to close.");
       }
@@ -117,7 +124,9 @@ namespace CalradiaRemembers.Duels
                bool npcIssuedChallenge = _pendingNpcIssuedChallenge;
                int witnessCount = _pendingWitnessCount;
                Hero courtedHero = _pendingCourtedHero;
+               ConversationTranscript transcript = _pendingTranscript;
                _pendingOpponent = null; // one-shot, whichever way this turns out
+               _pendingTranscript = null;
 
                // Resolve the venue from where the player stands NOW, not where they were when the duel was armed:
                // one who armed a duel in a town but has since walked out onto the map fights in the wilderness,
@@ -136,9 +145,9 @@ namespace CalradiaRemembers.Duels
                }
 
                if (npcIssuedChallenge)
-                  AskPlayerToAnswer(opponent, reason, venue, courtedHero, witnessCount);
+                  AskPlayerToAnswer(opponent, reason, venue, courtedHero, witnessCount, transcript);
                else
-                  LaunchDuel(opponent, reason, venue, courtedHero, witnessCount);
+                  LaunchDuel(opponent, reason, venue, courtedHero, witnessCount, transcript);
             }
          }
          catch (Exception ex) { ModLog.Error($"[DUEL] coordinator tick failed: {ex.GetType().Name}: {ex.Message}"); }
@@ -151,14 +160,15 @@ namespace CalradiaRemembers.Duels
       ///   ModCheats.ForceDuelChallenge already uses. "Draw your sword" launches the fight; "Decline" records
       ///   a PlayerForfeited outcome (no blades crossed).
       /// </summary>
-      private static void AskPlayerToAnswer(Hero opponent, DuelReason reason, DuelVenue venue, Hero courtedHero, int witnessCount)
+      private static void AskPlayerToAnswer(Hero opponent, DuelReason reason, DuelVenue venue, Hero courtedHero, int witnessCount,
+         ConversationTranscript transcript)
       {
          InformationManager.ShowInquiry(new InquiryData(
             "A Challenge",
             $"{opponent.Name} demands satisfaction of you: only steel will answer this. Do you take up the challenge?",
             true, true,
             "Draw your sword", "Decline",
-            () => LaunchDuel(opponent, reason, venue, courtedHero, witnessCount),
+            () => LaunchDuel(opponent, reason, venue, courtedHero, witnessCount, transcript),
             () =>
             {
                DuelOutcomeApplier.Apply(reason, DuelResolution.PlayerForfeited, opponent, courtedHero, witnessCount);
@@ -173,7 +183,8 @@ namespace CalradiaRemembers.Duels
       ///   town-centre crowd. They share only this callback, which is the point of keeping the outcome in
       ///   Phase 2 rather than in either mission.
       /// </summary>
-      private static void LaunchDuel(Hero opponent, DuelReason reason, DuelVenue venue, Hero courtedHero, int witnessCount)
+      private static void LaunchDuel(Hero opponent, DuelReason reason, DuelVenue venue, Hero courtedHero, int witnessCount,
+         ConversationTranscript transcript)
       {
          void Report(bool playerWon)
          {
@@ -181,6 +192,7 @@ namespace CalradiaRemembers.Duels
             _outcomeReason = reason;
             _outcomeCourtedHero = courtedHero;
             _outcomeWitnessCount = witnessCount;
+            _outcomeTranscript = transcript; // carried to Phase 2 so the post-duel chat resumes the pre-duel conversation
             _pendingResolution = playerWon ? DuelResolution.PlayerWon : DuelResolution.NpcWon;
          }
 

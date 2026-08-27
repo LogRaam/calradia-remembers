@@ -1014,7 +1014,9 @@ namespace CalradiaRemembers.Chat
 
          // ChallengerStationBelowNpc: how far the PLAYER stands beneath this NPC, so a nobody who calls out a king
          // is dismissed rather than fought (ratified 2026-08-26). See DuelStationGap / DuelStation below.
-         DuelCoordinator.Arm(opponent, DuelReason.HonourAffront, venue, !playerIssued, _witnesses.Count, null);
+         // Carry the conversation that led here so the post-duel scene resumes it (Transcript is this chat's
+         // live source of truth; a duel never spans a save, so the reference travels as-is).
+         DuelCoordinator.Arm(opponent, DuelReason.HonourAffront, venue, !playerIssued, _witnesses.Count, null, Transcript);
 
          // Same deliberate transition as the escape: lock the input and leave only the close button. Clicking
          // it closes the chat, and the coordinator stages the duel on the next tick, on the live map.

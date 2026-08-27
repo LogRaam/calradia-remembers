@@ -147,6 +147,15 @@ namespace CalradiaRemembers.Chat
       // else's as "[Name]: …" user lines). Kept in lockstep with the displayed
       // conversational messages (player, main NPC, witnesses); system lines excluded.
       private readonly ConversationTranscript _transcript = new();
+
+      /// <summary>
+      ///   The live conversation transcript, exposed so a follow-on chat can RESUME this one: the exchange that
+      ///   led up to a duel is carried into the post-duel scene. It is the same process object (a conversation
+      ///   never spans a save), so the caller stashes the reference and later seeds a fresh chat's transcript
+      ///   from it; nothing here is copied or serialized.
+      /// </summary>
+      internal ConversationTranscript Transcript => _transcript;
+
       private readonly Dictionary<string, string> _witnessColors = new();
 
       // ── Multi-NPC witnesses ───────────────────────────────────────────────
