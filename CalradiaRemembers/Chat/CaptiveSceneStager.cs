@@ -11,6 +11,8 @@ using TaleWorlds.CampaignSystem.Conversation;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements.Locations;
+using TaleWorlds.Engine;
+using TaleWorlds.Library;
 using TaleWorlds.MountAndBlade;
 
 #endregion
@@ -408,6 +410,11 @@ namespace CalradiaRemembers.Chat
             _fallbackFrames = 0;
             _armedFrames = 0;
             StagedMissionNeedsEnd = false;
+            // For a companion audience, remember whom to bring beside the player once the scene's agents exist
+            // (the intercept-line hijack skips the vanilla walk-up, leaving the talk-to companion at their spawn
+            // point out of view). PlaceAudienceCompanionIfPending, run from the Mission.AfterStart postfix,
+            // teleports them over. Cleared for every non-companion stage so a stale id never fires.
+            PendingAudienceCompanionId = pending?.Kind == StagedSceneKind.CompanionAudience ? partner?.HeroObject?.StringId : null;
             PlayerEncounter.LocationEncounter.CreateAndOpenMissionController(location, null, partner, null);
             ModLog.Info($"[{logTag}] interior mission opening at {location.StringId} with {partner.StringId}; awaiting the scene to load.");
          }
@@ -439,6 +446,78 @@ namespace CalradiaRemembers.Chat
          return complex.GetLocationWithId("lordshall")
                 ?? complex.GetLocationWithId("village_center")
                 ?? complex.GetLocationWithId("tavern");
+      }
+
+      /// <summary>StringId of a companion whose staged audience scene should bring them beside the player once its agents exist; null when none is pending.</summary>
+      internal static string PendingAudienceCompanionId;
+
+      // Close rings tried around the player to seat the companion beside them (a conversational distance, not a duel's).
+      private static readonly float[] AudienceRingRadii = {2.5f, 3.5f, 4.5f, 6f};
+
+      /// <summary>
+      ///   Run from the Mission.AfterStart postfix (agents now exist): a staged COMPANION audience opens the
+      ///   interior mission with the companion as the talk-to character, but the intercept-line hijack skips the
+      ///   vanilla walk-up, leaving them at their spawn point out of view. Teleport them to a reachable spot beside
+      ///   the player so the audience reads as a face-to-face. No-op unless one is pending; fail-soft (on any
+      ///   trouble the companion simply stays where the engine put them). One-shot: the pending id is consumed here.
+      /// </summary>
+      public static void PlaceAudienceCompanionIfPending(Mission mission)
+      {
+         string id = PendingAudienceCompanionId;
+         PendingAudienceCompanionId = null; // one-shot, whatever happens below
+
+         if (string.IsNullOrEmpty(id) || mission?.MainAgent == null) return;
+
+         try
+         {
+            Agent companion = null;
+            foreach (Agent a in mission.Agents)
+               if (a?.Character is CharacterObject co && co.HeroObject?.StringId == id)
+               {
+                  companion = a;
+
+                  break;
+               }
+
+            if (companion == null) return; // the engine did not place them; nothing to reposition
+
+            if (TryFindPointNearPlayer(mission.Scene, mission.MainAgent.GetWorldPosition(), out Vec3 dest))
+            {
+               companion.TeleportToPosition(dest);
+               ModLog.Info($"[AUDIENCE STAGE] brought {companion.Name} beside the player for the audience.");
+            }
+         }
+         catch (Exception ex) { ModLog.Info($"[AUDIENCE STAGE] could not place the companion ({ex.GetType().Name}); left where they stand."); }
+      }
+
+      /// <summary>A reachable navmesh point a conversational distance from the player, rung around them; false when none is standable.</summary>
+      private static bool TryFindPointNearPlayer(Scene scene, WorldPosition centre, out Vec3 dest)
+      {
+         dest = default;
+         if (scene == null) return false;
+
+         Vec2 origin = centre.AsVec2;
+
+         for (var j = 0; j < 8; j++)
+         {
+            double angle = 2.0 * Math.PI * j / 8.0;
+
+            foreach (float r in AudienceRingRadii)
+            {
+               var target = new Vec2(origin.x + r * (float) Math.Cos(angle), origin.y + r * (float) Math.Sin(angle));
+
+               WorldPosition candidate = centre;
+               candidate.SetVec2(target);
+
+               if (candidate.GetNavMesh() == UIntPtr.Zero) continue; // a wall or a building, not standable
+
+               dest = candidate.GetGroundVec3();
+
+               return true;
+            }
+         }
+
+         return false;
       }
 
       /// <summary>Consequence of the intercept line: the conversation is ready; the tick opens the chat next frame.</summary>
