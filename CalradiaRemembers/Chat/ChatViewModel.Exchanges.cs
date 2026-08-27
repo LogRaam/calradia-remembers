@@ -649,8 +649,13 @@ namespace CalradiaRemembers.Chat
       private async Task RunLlmExchangeAsync(string playerMessage,
                                              ChatSpeaker speaker,
                                              ChatMessageViewModel placeholder,
-                                             bool suppressPlayerLine = false)
+                                             bool suppressPlayerLine = false,
+                                             bool suppressGroupTail = false)
       {
+         // suppressGroupTail: this turn is ONE voice inside an ensemble turn (RunEnsembleTurnAsync). It still
+         // renders its reply and applies its own actions/events/memory (a full participant), but skips the group
+         // machinery that must run ONCE per player turn, not once per active voice: passive-witness reactions,
+         // the 15C auto-exchange, the round-table lap, and the final input re-enable (the orchestrator owns that).
          try
          {
             // ── Commoner mode (v1.1): slim transient path, no memory ───────
@@ -1041,7 +1046,8 @@ namespace CalradiaRemembers.Chat
             // dropped. The rule itself lives in VentriloquizedReactionPolicy where a net10 test can reach it.
             // (IsRequestPending reads without consuming; TryConsumeForMainReply below still owns the request.)
             List<(string name, string heroId, string text)> witnessReactions =
-               VentriloquizedReactionPolicy.DropsReactions(_roundTable.IsRequestPending, speaker.IsMain,
+               suppressGroupTail // an ensemble co-voice never renders passive-witness reactions; the group tail runs once, on the orchestrator's pass
+               || VentriloquizedReactionPolicy.DropsReactions(_roundTable.IsRequestPending, speaker.IsMain,
                   IsCaptiveEncounter, _conversationEnded)
                   ? new List<(string name, string heroId, string text)>()
                   : CollectWitnessReactions(response);
@@ -1582,7 +1588,7 @@ namespace CalradiaRemembers.Chat
             // Takes precedence over the model-driven 15C auto-exchange: instead of hoping the model
             // volunteered [WITNESS_REACTION]s, give each present witness a deterministic turn (they may
             // address one another), capped, then return control to the player. Model-independent.
-            if (_roundTable.TryConsumeForMainReply(speaker.IsMain, IsCaptiveEncounter, _conversationEnded))
+            if (!suppressGroupTail && _roundTable.TryConsumeForMainReply(speaker.IsMain, IsCaptiveEncounter, _conversationEnded))
             {
                foreach (var (wName, wHeroId, wText) in witnessReactions)
                   RecordTranscript(false, wName, wHeroId, wText); // preserve order: any reactions precede the lap
@@ -1602,7 +1608,7 @@ namespace CalradiaRemembers.Chat
             // up to 3 extra captor turns per player message — walls of text, the player rarely
             // getting to reply, and the Continue/Try-something pause never reached. Captive scenes
             // use the continuation pause below instead.
-            if (witnessReactions.Count > 0 && speaker.IsMain && !IsCaptiveEncounter
+            if (!suppressGroupTail && witnessReactions.Count > 0 && speaker.IsMain && !IsCaptiveEncounter
                 && _witnessExchangesThisRound < WitnessExchangeCap && !_conversationEnded)
             {
                _witnessExchangesThisRound++;
@@ -1720,13 +1726,74 @@ namespace CalradiaRemembers.Chat
             // is in flight, if a scene continuation is pending, or if we are paused waiting
             // for the player to press Continue / Try something. Each async path re-enables
             // input in its own finally when it terminates.
-            if (!_npcWitnessExchangePending && !_sceneContinuationPending && !_isScenePaused)
+            if (!suppressGroupTail && !_npcWitnessExchangePending && !_sceneContinuationPending && !_isScenePaused)
             {
                IsSendEnabled = !_conversationEnded;
                // Reply delivered and control is back with the player: raise any queued action confirmation now
                // (PromptNext drops them instead if the conversation just ended).
                if (_confirmation.HasPending && !_confirmation.IsAwaiting) _confirmation.PromptNext(this);
             }
+         }
+      }
+
+      /// <summary>
+      ///   Spotlight pillar: the ENSEMBLE turn. Once a witness has been drawn in (the cast has two or more active
+      ///   voices), the player's turn is answered by EACH active participant in sequence, the one they addressed
+      ///   leading. Every active voice runs the SAME per-speaker exchange the 1:1 path uses (its own reply,
+      ///   actions, events, memory), but with the group tail suppressed so the passive-witness reactions, the 15C
+      ///   auto-exchange, and the input re-enable happen ONCE here, not once per voice. Sequential (awaited) so
+      ///   each voice hears the ones before it through the shared transcript. Passive-witness reactions inside an
+      ///   ensemble turn are a later increment.
+      /// </summary>
+      private async Task RunEnsembleTurnAsync(string text)
+      {
+         try
+         {
+            // The one addressed leads the beat; the rest of the active cast follow, the anchor among them.
+            ChatSpeaker primary = ResolveAddressedSpeaker(text); // sets the sticky speaker and promotes a freshly-addressed witness
+            RefreshWitnessUi();
+
+            var order = new List<ChatSpeaker> {primary};
+            foreach (string id in _cast.ActiveIds)
+            {
+               if (id == primary.Hero?.StringId) continue;
+               ChatSpeaker s = SpeakerForActive(id);
+               if (s != null) order.Add(s);
+            }
+
+            // Player line + per-turn resets, once (mirrors the ordinary ExecuteSendMessage branch).
+            AppendPlayerMessage(text, false);
+            IsSendEnabled = false;
+            InputText = "";
+            if (_isComposeOpen) IsComposeOpen = false;
+            _witnessExchangesThisRound = 0;
+            _sceneContinuations = 0;
+
+            for (var i = 0; i < order.Count; i++)
+            {
+               ChatSpeaker s = order[i];
+               ChatMessageViewModel placeholder = MakeSpeakerMessage(s, PlaceholderText);
+               _messages.Add(placeholder);
+
+               // The first voice commits the player line to the transcript; the rest suppress it (committed once).
+               // Every voice suppresses the group tail: the orchestrator owns it below.
+               await RunLlmExchangeAsync(text, s, placeholder, suppressPlayerLine: i > 0, suppressGroupTail: true);
+
+               if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return; // chat closed/replaced mid-sequence
+               if (_conversationEnded) break;                                   // a voice ended the meeting (e.g. a duel armed)
+            }
+
+            // The group tail, once: return the floor to the player and raise any queued action confirmation.
+            if (!_npcWitnessExchangePending && !_sceneContinuationPending && !_isScenePaused)
+            {
+               IsSendEnabled = !_conversationEnded;
+               if (_confirmation.HasPending && !_confirmation.IsAwaiting) _confirmation.PromptNext(this);
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SPOTLIGHT] RunEnsembleTurnAsync threw {ex.GetType().Name}: {ex.Message}");
+            IsSendEnabled = !_conversationEnded;
          }
       }
 

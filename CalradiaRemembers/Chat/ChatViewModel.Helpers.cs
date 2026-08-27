@@ -691,6 +691,20 @@ namespace CalradiaRemembers.Chat
          };
       }
 
+      /// <summary>
+      ///   A ChatSpeaker for an ACTIVE participant by hero id: the anchor resolves to <see cref="MainSpeaker" />,
+      ///   a promoted witness to their witness speaker. Null when the id is not a present hero with a profile.
+      /// </summary>
+      private ChatSpeaker SpeakerForActive(string heroId)
+      {
+         if (string.IsNullOrEmpty(heroId)) return null;
+         if (heroId == _npcHero?.StringId) return MainSpeaker();
+
+         WitnessEntry w = _witnesses.FirstOrDefault(x => x?.HeroStringId == heroId);
+
+         return w != null ? SpeakerForWitness(w) : null;
+      }
+
       /// <summary>Every present witness that resolves to a live hero with a profile, as ChatSpeakers.</summary>
       private List<ChatSpeaker> PresentWitnessSpeakers()
       {

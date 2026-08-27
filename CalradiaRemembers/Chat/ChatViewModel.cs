@@ -2117,6 +2117,16 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         // Spotlight pillar: once a witness has been drawn in, the scene is an ensemble and EVERY active voice
+         // speaks this turn (the council model, but organic and scoped to who was pulled in). Ordinary scenes
+         // only, never a captive/captor scene; a lone anchor (no promotion yet) keeps the single-speaker path below.
+         if (_cast is {IsEnsemble: true} && _mode == ChatMode.Conversation && !IsCaptiveEncounter && !_captorScene)
+         {
+            _ = RunEnsembleTurnAsync(text);
+
+            return;
+         }
+
          // Sprint 15B: route this turn to whoever the player is addressing — the main
          // NPC by default, or a witness named in a stage direction / vocative (sticky).
          ChatSpeaker speaker = ResolveAddressedSpeaker(text);
