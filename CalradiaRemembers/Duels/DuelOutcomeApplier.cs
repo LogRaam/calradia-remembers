@@ -76,6 +76,23 @@ namespace CalradiaRemembers.Duels
          if (generic.PlayerRenownDelta != 0)
             GainRenownAction.Apply(Hero.MainHero, generic.PlayerRenownDelta, true);
 
+         // A duel lost in single combat costs the loser's HOUSE standing (Gabriel 2026-08-26). The policy sets
+         // this only for a fought duel; the loser is the NPC when the player won and the player when the NPC won
+         // (a forfeit leaves it zero, so this no-ops there). Applied to the clan, not the hero, since influence
+         // is a clan resource; guarded because a wandering hero may have no clan.
+         if (generic.LoserInfluenceDelta != 0)
+         {
+            Hero loser = resolution == DuelResolution.PlayerWon ? opponent
+               : resolution == DuelResolution.NpcWon ? Hero.MainHero
+               : null;
+
+            if (loser?.Clan != null)
+            {
+               ChangeClanInfluenceAction.Apply(loser.Clan, generic.LoserInfluenceDelta);
+               ModLog.Info($"[DUEL] {loser.Name}'s clan loses {-generic.LoserInfluenceDelta} influence for the defeat.");
+            }
+         }
+
          // ApplyDeed is a no-op on a zero delta or an unmet hero, and it persists the profile itself.
          StanceService.ApplyDeed(opponent, StanceAxis.Affection, generic.NpcAffectionDelta);
          StanceService.ApplyDeed(opponent, StanceAxis.Respect, generic.NpcRespectDelta);

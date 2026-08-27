@@ -159,8 +159,52 @@ namespace CalradiaRemembers.Tests.Duels
             .StakeAward.Should().Be(DuelStakeAward.None);
       }
 
+      // A duel LOST in single combat costs the loser's house standing, whichever side lost (Gabriel 2026-08-26):
+      // the delta is negative on both a player win (the NPC's clan pays) and an NPC win (the player's clan pays).
+      // The host reads the resolution to know whose clan; the policy only has to report that a loss happened and
+      // how much. If this were zero, losing a duel would carry no political cost and the stakes would be hollow.
+      [Test]
+      public void GIVEN_a_fought_duel_WHEN_a_side_lost_THEN_the_loser_forfeits_influence()
+      {
+         DuelOutcomePolicy.Resolve(Ctx(DuelResolution.PlayerWon)).LoserInfluenceDelta.Should().BeNegative();
+         DuelOutcomePolicy.Resolve(Ctx(DuelResolution.NpcWon)).LoserInfluenceDelta.Should().BeNegative();
+      }
+
+      // The shame of a defeat scales with who saw it, exactly like a win's renown: a loss before a crowd costs
+      // the house more influence than a quiet one. Without the gradient, a public humiliation would sting no more
+      // than a private bout, and the witness system would not reach influence at all.
+      [Test]
+      public void GIVEN_a_fought_duel_WHEN_more_witnessed_the_defeat_THEN_the_influence_loss_is_larger()
+      {
+         int privately = DuelOutcomePolicy.Resolve(Ctx(DuelResolution.PlayerWon, witnesses: 0)).LoserInfluenceDelta;
+         int beforeACrowd = DuelOutcomePolicy.Resolve(Ctx(DuelResolution.PlayerWon, witnesses: 6)).LoserInfluenceDelta;
+
+         beforeACrowd.Should().BeLessThan(privately); // more negative
+      }
+
+      // The influence loss is capped so a single duel before a vast crowd cannot annihilate a house's standing:
+      // the per-witness surcharge stops at MaxInfluenceLossForLoser. Without the ceiling, a duel in a packed arena
+      // could erase a clan's political weight in one blow, which no single event should.
+      [Test]
+      public void GIVEN_a_fought_duel_WHEN_the_crowd_is_enormous_THEN_the_influence_loss_is_capped()
+      {
+         int loss = -DuelOutcomePolicy.Resolve(Ctx(DuelResolution.PlayerWon, witnesses: 1000)).LoserInfluenceDelta;
+
+         loss.Should().Be(DuelOutcomePolicy.MaxInfluenceLossForLoser);
+      }
+
+      // A duel that was never fought costs no influence: a forfeit already has its own renown and respect price,
+      // and the loser-influence penalty is reserved for a defeat with steel actually crossed. If a forfeit also
+      // docked influence, ducking and losing would be conflated, which is not the design.
+      [Test]
+      public void GIVEN_a_forfeit_WHEN_resolving_THEN_no_influence_is_lost()
+      {
+         DuelOutcomePolicy.Resolve(Ctx(DuelResolution.PlayerForfeited, witnesses: 5)).LoserInfluenceDelta.Should().Be(0);
+         DuelOutcomePolicy.Resolve(Ctx(DuelResolution.NpcForfeited, witnesses: 5)).LoserInfluenceDelta.Should().Be(0);
+      }
+
       // A null context yields an all-zero, no-effect result: a missing outcome must never silently move regard,
-      // renown, a grudge, or a wager.
+      // renown, influence, a grudge, or a wager.
       [Test]
       public void GIVEN_no_context_WHEN_resolving_THEN_nothing_moves()
       {
@@ -170,6 +214,7 @@ namespace CalradiaRemembers.Tests.Duels
          r.NpcRespectDelta.Should().Be(0);
          r.NpcFearDelta.Should().Be(0);
          r.PlayerRenownDelta.Should().Be(0);
+         r.LoserInfluenceDelta.Should().Be(0);
          r.GrudgeEffect.Should().Be(DuelGrudgeEffect.None);
          r.StakeAward.Should().Be(DuelStakeAward.None);
       }

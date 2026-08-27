@@ -1,7 +1,7 @@
 // Code written by Gabriel Mailhot, 14/07/2026.
 // Duels pillar, Inc 0 (pure): what a duel LEAVES BEHIND. Four ways it can end (the player wins, the NPC wins,
 // or either side walks away before it starts), each moving the NPC's posture toward the player, the player's
-// renown, a linked grudge, and the wager. The through-line is that steel honestly crossed SETTLES things
+// renown, the loser's clan influence, a linked grudge, and the wager. The through-line is that steel honestly crossed SETTLES things
 // (respect is earned, a grudge that drove the fight is answered whoever wins), while walking away HARDENS them
 // (contempt, a grudge that festers because it was never faced). Non-lethal is assumed: this is regard and
 // reputation moving, never a death. Get the signs wrong and winning a duel would cost you the NPC's respect,
@@ -86,6 +86,14 @@ namespace CalradiaRemembers.Logic.Duels
       /// <summary>Change to the player's clan renown.</summary>
       public int PlayerRenownDelta { get; set; }
 
+      /// <summary>
+      ///   Influence the LOSER's clan forfeits (always <= 0). Set only for a FOUGHT duel (a loss in single
+      ///   combat is a public embarrassment for the loser's house); 0 for a forfeit or a contest that never
+      ///   happened. The host maps the resolution to the losing hero (the NPC when the player won, the player
+      ///   when the NPC won) and applies it to their clan.
+      /// </summary>
+      public int LoserInfluenceDelta { get; set; }
+
       /// <summary>What became of a grudge that drove the duel.</summary>
       public DuelGrudgeEffect GrudgeEffect { get; set; }
 
@@ -132,6 +140,17 @@ namespace CalradiaRemembers.Logic.Duels
       /// <summary>Tuning: renown the player keeps for fighting bravely and losing, before the witness bonus. Small: losing is not glory.</summary>
       public const int RenownForLosingBravely = 1;
 
+      // ── Influence: a lost duel costs the loser standing ──────────────────
+
+      /// <summary>Tuning: base influence the loser of a FOUGHT duel forfeits. A defeat in single combat is a public embarrassment for their house.</summary>
+      public const int BaseInfluenceLossForLoser = 8;
+
+      /// <summary>Tuning: extra influence the loser forfeits per witness. A defeat before a crowd shames the house further.</summary>
+      public const int InfluenceLossPerWitnessForLoser = 2;
+
+      /// <summary>Tuning: ceiling on the loser's influence loss, so a vast crowd cannot annihilate a house's standing over a single duel.</summary>
+      public const int MaxInfluenceLossForLoser = 30;
+
       // ── Settling a grudge by steel ────────────────────────────────────────
 
       /// <summary>Tuning: the warmth restored when a driving grudge is answered by an honest fight, whoever won. Steel clears the air.</summary>
@@ -173,6 +192,7 @@ namespace CalradiaRemembers.Logic.Duels
                result.NpcFearDelta = FearFromLosingToPlayer;
                result.NpcAffectionDelta = LoserPrideAffrontToAffection;
                result.PlayerRenownDelta = RenownForWinning + witnesses * RenownPerWitnessOnWin;
+               result.LoserInfluenceDelta = -LoserInfluenceLoss(witnesses); // the bested NPC's house loses standing
                result.StakeAward = MaterialAwardOrNone(ctx.Stake, DuelStakeAward.ToPlayer);
                ApplyFoughtGrudge(ctx, result);
 
@@ -185,6 +205,7 @@ namespace CalradiaRemembers.Logic.Duels
                // Flat, and deliberately not scaled by the crowd: fighting well and losing is respectable, but
                // it is not a victory, so a bigger audience does not turn a loss into renown.
                result.PlayerRenownDelta = RenownForLosingBravely;
+               result.LoserInfluenceDelta = -LoserInfluenceLoss(witnesses); // the bested PLAYER's clan loses standing
                result.StakeAward = MaterialAwardOrNone(ctx.Stake, DuelStakeAward.ToNpc);
                ApplyFoughtGrudge(ctx, result);
 
@@ -225,6 +246,14 @@ namespace CalradiaRemembers.Logic.Duels
       /// <summary>The award only means a transfer when the stake was material; an honour-only duel moves no goods however it ended.</summary>
       private static DuelStakeAward MaterialAwardOrNone(DuelStakeKind stake, DuelStakeAward winnerSide)
          => stake == DuelStakeKind.Honour ? DuelStakeAward.None : winnerSide;
+
+      /// <summary>The (positive) magnitude of the loser's influence loss: a base cost plus a per-witness surcharge, capped so one duel cannot ruin a house.</summary>
+      private static int LoserInfluenceLoss(int witnesses)
+      {
+         int loss = BaseInfluenceLossForLoser + witnesses * InfluenceLossPerWitnessForLoser;
+
+         return loss > MaxInfluenceLossForLoser ? MaxInfluenceLossForLoser : loss;
+      }
 
       #endregion
    }
