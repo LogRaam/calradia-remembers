@@ -1761,6 +1761,8 @@ namespace CalradiaRemembers.Chat
                if (s != null) order.Add(s);
             }
 
+            ModLog.Info($"[SPOTLIGHT] ensemble turn: {order.Count} active voice(s) [{string.Join(", ", order.Select(o => o.Name))}], '{primary.Name}' leads.");
+
             // Player line + per-turn resets, once (mirrors the ordinary ExecuteSendMessage branch).
             AppendPlayerMessage(text, false);
             IsSendEnabled = false;
