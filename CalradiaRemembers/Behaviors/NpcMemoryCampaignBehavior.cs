@@ -112,9 +112,11 @@ namespace CalradiaRemembers.Behaviors
          // on the next frame (a mission cannot open from inside the chat screen). Per-frame, cheap when idle.
          CampaignEvents.TickEvent.AddNonSerializedListener(
             this, Duels.CaptiveEscapeCoordinator.OnTick);
-         // Duels: same deferred-launch shape as the escape coordinator above, for a duel armed in chat.
-         CampaignEvents.TickEvent.AddNonSerializedListener(
-            this, Duels.DuelCoordinator.OnTick);
+         // Duels: same deferred-launch shape as the escape coordinator above, for a duel armed in chat. Driven
+         // from the submodule's OnApplicationTick, NOT CampaignEvents.TickEvent: the campaign tick is PAUSED while
+         // the player is inside a settlement (menu or location mission), so a duel armed in a town conversation
+         // never staged until the player left to the map (player report 2026-08-26). OnApplicationTick is
+         // pause-independent and fires everywhere, like the CaptiveSceneStager pump.
          // Courier audit 3.1: drain the letter-mutation queue on the main thread. The LLM letter generators
          // resume on the thread pool and only ENQUEUE their SentLetters/store mutations; this applies them
          // here, in the single-threaded world the daily/courier ticks enumerate.

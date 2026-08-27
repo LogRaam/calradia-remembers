@@ -33,6 +33,7 @@ namespace CalradiaRemembers.Duels
       private static bool _pendingNpcIssuedChallenge; // true = the NPC called the player out (player must answer)
       private static int _pendingWitnessCount;
       private static Hero _pendingCourtedHero;      // only meaningful for DuelReason.CourtshipRivalry
+      private static bool _endedSettlementMissionForStaging; // guards the once-only EndMission on the per-frame tick
 
       // ── Fought, consumed by Phase 2 ──────────────────────────────────────────
       private static DuelResolution? _pendingResolution;
@@ -93,11 +94,20 @@ namespace CalradiaRemembers.Duels
             if (_pendingOpponent != null && !_pendingResolution.HasValue && !ChatManager.IsOpen
                 && Mission.Current != null && Settlement.CurrentSettlement != null && LocationComplex.Current != null)
             {
-               ModLog.Info("[DUEL] ending the settlement walkabout mission so the armed duel can stage.");
-               Mission.Current.EndMission();
+               // This runs every FRAME now (OnApplicationTick), so end the mission exactly once and then wait for
+               // it to finalize (Mission.Current stays non-null for a few frames); calling EndMission repeatedly
+               // would be wrong. The flag clears once the mission is gone (below), letting Phase 1 stage.
+               if (!_endedSettlementMissionForStaging)
+               {
+                  _endedSettlementMissionForStaging = true;
+                  ModLog.Info("[DUEL] ending the settlement walkabout mission so the armed duel can stage.");
+                  Mission.Current.EndMission();
+               }
 
                return;
             }
+
+            _endedSettlementMissionForStaging = false; // no settlement mission is holding us up now
 
             // Phase 1: the chat has closed and no mission is running -> stage the duel exactly once.
             if (_pendingOpponent != null && Mission.Current == null && !ChatManager.IsOpen)
