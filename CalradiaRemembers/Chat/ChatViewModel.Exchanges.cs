@@ -684,6 +684,7 @@ namespace CalradiaRemembers.Chat
 
             if (behavior == null || profile == null || session == null)
             {
+               if (FellSilentAsEnsembleVoice(suppressGroupTail, placeholder, speaker, "not initialized")) return;
                ReplacePlaceholder(placeholder, "(I can't seem to gather my thoughts...)", speaker);
                ModLog.Error("LLM pipeline: behavior/profile/session not initialized.");
                RestoreInputAfterFailedTurn(playerMessage, suppressPlayerLine);
@@ -766,6 +767,7 @@ namespace CalradiaRemembers.Chat
 
             if (behavior.LlmServices is not {IsAvailable: true})
             {
+               if (FellSilentAsEnsembleVoice(suppressGroupTail, placeholder, speaker, "AI unavailable")) return;
                ReplacePlaceholder(placeholder,
                   behavior.LlmServices?.DescribeUnavailability() ?? "(The AI services are not available — check CalradiaRemembers.log.)", speaker);
                ModLog.Error("LLM pipeline: LLM services unavailable (no API key or model?).");
@@ -885,6 +887,11 @@ namespace CalradiaRemembers.Chat
 
             if (!result.IsSuccess)
             {
+               // In an ensemble, one voice's LLM hiccup (a timeout, a rate limit) must not paint an error line:
+               // that voice simply stays quiet this beat while the others speak. The turn made N sequential calls,
+               // so a single slow model is far likelier to trip here than on a lone 1:1 reply (player report,
+               // Ira's second voice timed out at 120s while Itaria's had already answered).
+               if (FellSilentAsEnsembleVoice(suppressGroupTail, placeholder, speaker, result.ErrorMessage)) return;
                ReplacePlaceholder(placeholder, "(My words escape me...)", speaker);
                ModLog.Error($"LLM call failed in {elapsedMs} ms: {result.ErrorMessage}");
                NotifyLlmFailure(result.ErrorMessage);
@@ -1797,6 +1804,22 @@ namespace CalradiaRemembers.Chat
             ModLog.Error($"[SPOTLIGHT] RunEnsembleTurnAsync threw {ex.GetType().Name}: {ex.Message}");
             IsSendEnabled = !_conversationEnded;
          }
+      }
+
+      /// <summary>
+      ///   An ensemble co-voice whose LLM turn failed simply stays quiet this beat: drop its "thinking"
+      ///   placeholder and log it, rather than painting a "(My words escape me...)" line the way a 1:1 reply
+      ///   would. Returns true when it handled the failure (the caller then returns); false on an ordinary turn,
+      ///   which keeps its usual error line. <paramref name="suppressGroupTail" /> marks an ensemble voice.
+      /// </summary>
+      private bool FellSilentAsEnsembleVoice(bool suppressGroupTail, ChatMessageViewModel placeholder, ChatSpeaker speaker, string reason)
+      {
+         if (!suppressGroupTail) return false;
+
+         if (placeholder != null) _messages.Remove(placeholder);
+         ModLog.Info($"[SPOTLIGHT] {speaker?.Name ?? "a voice"} stayed silent this beat ({reason}).");
+
+         return true;
       }
 
       /// <summary>
