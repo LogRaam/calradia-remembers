@@ -170,6 +170,13 @@ namespace CalradiaRemembers.Chat
       private bool _audienceLanded; // retirement audience: landed (step back) vs landless (leave)
       private NpcProfile _audienceProfile; // the companion's profile for this audience (MainSpeaker uses it)
 
+      // POST-DUEL conversation: the fight is over and this chat resumes it, coloured by who won, for as long as
+      // the window stays open (a fresh chat is a fresh view model, so these reset on their own). Fed to
+      // AppendPostDuelContext every turn so the victor/loser register holds past the opener.
+      private bool _postDuelActive;
+      private bool _postDuelPlayerWon;
+      private string _postDuelCourtedHeroName; // the contested hero's name for a courtship duel; null otherwise
+
       // Companion AUDIENCE — a normal conversation the companion themselves requested (grievance / retirement),
       // opened programmatically from a map popup rather than the vanilla dialogue, so the profile is carried here.
       private CompanionAudienceReason _audienceReason = CompanionAudienceReason.None;
@@ -1356,6 +1363,9 @@ namespace CalradiaRemembers.Chat
       public void ActivatePostDuel(NpcProfile profile, bool playerWon, DuelReason reason, Hero courtedHero, ConversationTranscript priorConversation)
       {
          _mode = ChatMode.Conversation;
+         _postDuelActive = true;
+         _postDuelPlayerWon = playerWon;
+         _postDuelCourtedHeroName = reason == DuelReason.CourtshipRivalry && courtedHero != null ? courtedHero.Name?.ToString() : null;
 
          // Resume the pre-duel exchange: seed the transcript (LLM continuity) then replay it into the bubbles
          // (what the player sees), so the scene opens mid-conversation rather than on a blank slate.

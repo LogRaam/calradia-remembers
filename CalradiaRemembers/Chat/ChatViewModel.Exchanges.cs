@@ -749,6 +749,11 @@ namespace CalradiaRemembers.Chat
                // runs entirely through its own one-call group-scene pipeline (RunCouncilTurnAsync), never this
                // path, so the narrator / addressed-member / resolution-offering flags it once set are gone.
                isRoundTableTurn: RoundTableController.CouncilTurnsForced,
+               // Post-duel: keep the victor/loser register on every turn, not only the opener (a beaten NPC does
+               // not fanfare, a victor does not grovel), and name the contested hero for a courtship duel.
+               isPostDuel: _postDuelActive,
+               postDuelPlayerWon: _postDuelPlayerWon,
+               postDuelCourtedHeroName: _postDuelCourtedHeroName,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic
                // scene cue has no attempt to judge.

@@ -122,6 +122,9 @@ namespace CalradiaRemembers.Mapping
          bool audienceRetirementIsLanded = false,
          bool resolveInterception = true,
          bool isRoundTableTurn = false,
+         bool isPostDuel = false,
+         bool postDuelPlayerWon = false,
+         string postDuelCourtedHeroName = null,
          bool? playerAttemptSucceeds = null)
       {
          int daysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge);
@@ -322,6 +325,11 @@ namespace CalradiaRemembers.Mapping
             // (ChatViewModel.RunCouncilTurnAsync / CouncilPromptBuilder), so this path no longer knows it exists:
             // the narrator/addressed/offering flags it once set are gone.
             IsRoundTableTurn = isRoundTableTurn,
+            // Post-duel: the conversation that resumes after a fought duel, coloured by who prevailed. Drives
+            // AppendPostDuelContext so the register (a beaten NPC, or a victorious one) holds on every turn.
+            IsPostDuel = isPostDuel,
+            PostDuelPlayerWon = postDuelPlayerWon,
+            PostDuelCourtedHeroName = postDuelCourtedHeroName,
             // This turn's pre-drawn verdict for a captive player's physical attempt: the mod decides, the model
             // narrates (an LLM judging the struggle it is also writing always sides with its own story).
             PlayerAttemptSucceeds = playerAttemptSucceeds,
