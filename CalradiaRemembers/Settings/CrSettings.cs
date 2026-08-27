@@ -211,6 +211,14 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool EnableStolenLove { get; set; } = false;
 
+      [SettingPropertyBool("Post-duel conversation", RequireRestart = false, Order = 0,
+         HintText = "On (default): after a duel is fought, the conversation reopens over the scene and resumes what " +
+                    "led to it. The loser concedes (a beaten character of honour may grant a favour you ask, such as " +
+                    "keeping away from someone); the victor makes plain what they now expect. Off: a fought duel ends " +
+                    "with only its consequences applied, no conversation.")]
+      [SettingPropertyGroup("Duels", GroupOrder = 9)]
+      public bool EnablePostDuelConversation { get; set; } = true;
+
       public override string FolderName => "CalradiaRemembers";
       public override string FormatType => "json2";
       public override string Id => "CalradiaRemembers";

@@ -102,6 +102,13 @@ namespace CalradiaRemembers
       public static bool EnableCouncil => CrSettings.Instance?.EnableCouncil ?? true;
 
       /// <summary>
+      ///   When ON (default), a fought duel reopens as a conversation resuming what led to it (the loser concedes,
+      ///   the victor presses their point); OFF ends a fought duel silently with only its consequences applied.
+      ///   Read live from MCM, default-safe (treated as ON) when MCM has not loaded.
+      /// </summary>
+      public static bool EnablePostDuelConversation => CrSettings.Instance?.EnablePostDuelConversation ?? true;
+
+      /// <summary>
       ///   Master switch for the whole jealousy system (the daily competition loop AND event-triggered
       ///   reactions). Read live from the MCM menu; ON by default, and default-safe (treated as ON) when MCM
       ///   has not loaded. When false, <see cref="Jealousy.JealousyBehavior" /> early-returns from its daily

@@ -97,7 +97,8 @@ namespace CalradiaRemembers.Duels
                // A duel actually FOUGHT resumes as a conversation: the loser hears the victor, and a victorious
                // player may press the beaten NPC for a favour. Only a real fight opens it (a forfeit was already
                // resolved dryly). Staged over a mission (never a bare map overlay), resuming the pre-duel chat.
-               if ((resolution == DuelResolution.PlayerWon || resolution == DuelResolution.NpcWon) && opponent != null)
+               if ((resolution == DuelResolution.PlayerWon || resolution == DuelResolution.NpcWon)
+                   && opponent != null && ModSettings.EnablePostDuelConversation)
                {
                   bool playerWon = resolution == DuelResolution.PlayerWon;
                   NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(opponent.StringId);

@@ -6,8 +6,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.Duels;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Duels;
+using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Library;
@@ -278,6 +281,55 @@ namespace CalradiaRemembers
             ModLog.Info($"[ESCAPE] outcome: {outcome}");
             InformationManager.DisplayMessage(new InformationMessage(line));
          });
+      }
+
+      /// <summary>
+      ///   cr.postduel [win|loss] [name]
+      ///   Stages the POST-DUEL conversation directly, without fighting a duel first, so the resume and the
+      ///   victor/loser register can be inspected in game. "win" (the default) opens it as though the PLAYER won
+      ///   (the NPC concedes and may grant a favour); "loss" opens it as though the NPC won (they press what they
+      ///   expect). A short synthetic pre-duel exchange is seeded so the replayed bubbles and the LLM continuity
+      ///   are visible. Resolves the named lord, or the conversation NPC, or any nearby lord. Stand on the open
+      ///   map to see it stage a scene (the real flow triggers there right after a fought duel).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("postduel", "cr")]
+      public static string ForcePostDuel(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         var nameTokens = args != null ? new List<string>(args) : new List<string>();
+         var playerWon = true;
+
+         if (nameTokens.Count > 0)
+         {
+            string first = nameTokens[0];
+            if (string.Equals(first, "loss", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(first, "lose", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(first, "lost", StringComparison.OrdinalIgnoreCase))
+            {
+               playerWon = false;
+               nameTokens.RemoveAt(0);
+            }
+            else if (string.Equals(first, "win", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(first, "won", StringComparison.OrdinalIgnoreCase))
+               nameTokens.RemoveAt(0);
+         }
+
+         Hero opponent = ResolveHero(nameTokens)
+                      ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.IsAlive && !h.IsPrisoner);
+
+         if (opponent == null) return "No living lord found for a post-duel conversation.";
+
+         // A short synthetic pre-duel exchange so the replayed bubbles and the seeded LLM continuity are visible.
+         var prior = new ConversationTranscript();
+         prior.Record(true, "You", Hero.MainHero?.StringId, "You have gone too far. Draw your blade and answer for it.");
+         prior.Record(false, opponent.Name?.ToString(), opponent.StringId, "Bold words. We shall see whose steel has the last of it.");
+
+         NpcProfile profile = behavior.Store?.Get(opponent.StringId);
+         ChatSceneStager.StagePostDuel(opponent, profile, playerWon, DuelReason.HonourAffront, null, prior);
+
+         return $"Staging the post-duel conversation with {opponent.Name} as a {(playerWon ? "player WIN (they concede)" : "player LOSS (they prevail)")}. " +
+                "Close any window and watch it open over the scene.";
       }
    }
 }
