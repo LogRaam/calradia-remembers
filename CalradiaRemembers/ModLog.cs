@@ -185,11 +185,11 @@ namespace CalradiaRemembers
          if (!FileLoggingEnabled && !ScreenLoggingEnabled) return;
          var line = $"[{DateTime.Now:HH:mm:ss}] [{Tag}] {message}";
 
-         // In-game console (top-left, ephemeral) — only when on-screen logging is on.
+         // In-game console (top-left, ephemeral): only when on-screen logging is on.
          if (ScreenLoggingEnabled)
             InformationManager.DisplayMessage(new InformationMessage($"[{Tag}] {message}"));
 
-         // File log (persistent, check after the session) — only when file logging is on.
+         // File log (persistent, check after the session): only when file logging is on.
          if (FileLoggingEnabled)
             WriteToFile(line);
       }
