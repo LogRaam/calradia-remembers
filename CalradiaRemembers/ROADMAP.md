@@ -358,6 +358,15 @@ A brief, weaponless struggle: subdue the fleeing captive, or let them slip away.
 mechanic instead of prose. Design it against the captive-escape pillar and the duels-from-chat plumbing so it is
 not built twice.
 
+WISHED (Gabriel 2026-08-26): an IN-TOWN captive escape. The CR escape (CaptiveEscapeCoordinator) is map-only by
+design: it stages when Mission.Current is null, which never happens while the player is inside a settlement (the
+campaign tick is paused and a location mission holds Mission.Current). This is fine for now, captivity happens
+with the captor's party on the map, so the common case works. A real in-town escape would mean staging the fight
+in the PRISON / DUNGEON scene (the settlement-interior mission path the audience staging already uses via
+LocationEncounter.CreateAndOpenMissionController), and driving the coordinator from the pause-independent
+OnApplicationTick with a settlement-location-mission end, exactly as the town DUEL launch now does. Deferred:
+Gabriel is comfortable that CR's escape attempt does not apply in town until then.
+
 ## BUILT (player report, Nexus 2026-07-23): logging wrote NOTHING when the Logs folder did not exist
 
 A player with logging switched ON got no file at all. Bannerlord creates
