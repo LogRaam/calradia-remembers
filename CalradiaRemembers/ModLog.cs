@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using CalradiaRemembers.Logic.Diagnostics;
 using CalradiaRemembers.Settings;
 using TaleWorlds.Library;
 
@@ -38,6 +39,13 @@ namespace CalradiaRemembers
       private static bool _fileChannelBroken;
       private static bool _brokenNoticeShown;
 
+      // The delimiter every session header starts with; the rotation below splits the file on it.
+      private const string SessionMarker = "=== Session started ";
+
+      // How many sessions the log file retains, INCLUDING the one starting now, so it never grows without bound
+      // (player request 2026-08-27). Two: the current run and the one before it, which is what a bug report needs.
+      private const int SessionsToKeep = 2;
+
       static ModLog()
       {
          // Write a header line on each game launch so the log is easy to read. Creating the folder is done
@@ -47,6 +55,8 @@ namespace CalradiaRemembers
          {
             string dir = Path.GetDirectoryName(LogPath);
             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
+            TrimToRecentSessions(SessionsToKeep); // drop old sessions BEFORE this run's header goes in
 
             File.AppendAllText(LogPath,
                $"{Environment.NewLine}=== Session started {DateTime.Now:yyyy-MM-dd HH:mm:ss} ==={Environment.NewLine}");
@@ -61,11 +71,17 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   Master logging switch from the MCM menu. Defaults to disabled when MCM has not
-      ///   yet loaded, so players never see logging active without having turned it on.
-      ///   When off, no on-screen messages and no file writes — the mod runs silent.
+      ///   The FILE logging switch from the MCM menu: writes diagnostics to CalradiaRemembers.log. Defaults to
+      ///   disabled when MCM has not yet loaded, so a player never gets a log file without having asked for one.
       /// </summary>
-      private static bool LoggingEnabled => CrSettings.Instance?.EnableLogging ?? false;
+      private static bool FileLoggingEnabled => CrSettings.Instance?.EnableLogging ?? false;
+
+      /// <summary>
+      ///   The ON-SCREEN logging switch from the MCM menu: prints diagnostics as top-left messages. Separate from
+      ///   the file channel (player request 2026-08-27: the on-screen stream crowds the screen during play), and
+      ///   off when MCM has not loaded.
+      /// </summary>
+      private static bool ScreenLoggingEnabled => CrSettings.Instance?.EnableScreenLogging ?? false;
 
       /// <summary>
       ///   A compatibility notice that is ALWAYS recorded, even when the MCM logging switch is off (its
@@ -133,13 +149,15 @@ namespace CalradiaRemembers
       /// </summary>
       internal static void Error(string message)
       {
-         if (!LoggingEnabled) return;
+         if (!FileLoggingEnabled && !ScreenLoggingEnabled) return;
          var line = $"[{DateTime.Now:HH:mm:ss}] [ERROR] [{Tag}] {message}";
 
-         InformationManager.DisplayMessage(
-            new InformationMessage($"[{Tag}] ERROR: {message}", Colors.Red));
+         if (ScreenLoggingEnabled)
+            InformationManager.DisplayMessage(
+               new InformationMessage($"[{Tag}] ERROR: {message}", Colors.Red));
 
-         WriteToFile(line);
+         if (FileLoggingEnabled)
+            WriteToFile(line);
       }
 
       /// <summary>
@@ -164,14 +182,16 @@ namespace CalradiaRemembers
       /// </summary>
       internal static void Info(string message)
       {
-         if (!LoggingEnabled) return;
+         if (!FileLoggingEnabled && !ScreenLoggingEnabled) return;
          var line = $"[{DateTime.Now:HH:mm:ss}] [{Tag}] {message}";
 
-         // In-game console (top-left, ephemeral)
-         InformationManager.DisplayMessage(new InformationMessage($"[{Tag}] {message}"));
+         // In-game console (top-left, ephemeral) — only when on-screen logging is on.
+         if (ScreenLoggingEnabled)
+            InformationManager.DisplayMessage(new InformationMessage($"[{Tag}] {message}"));
 
-         // File log (persistent, check after the session)
-         WriteToFile(line);
+         // File log (persistent, check after the session) — only when file logging is on.
+         if (FileLoggingEnabled)
+            WriteToFile(line);
       }
 
       #region private
@@ -183,6 +203,31 @@ namespace CalradiaRemembers
       /// </summary>
       private static bool IsApiMismatch(Exception ex)
          => ex is MissingMemberException || ex is TypeLoadException || ex is EntryPointNotFoundException;
+
+      /// <summary>
+      ///   Keeps the log file from growing without bound (player request 2026-08-27): retains only the most
+      ///   recent <paramref name="keep" /> sessions INCLUDING the one about to be appended, so it drops all but
+      ///   the last <c>keep - 1</c> existing session blocks (split on <see cref="SessionMarker" />). Run once at
+      ///   launch, before this run's header. Never throws: log housekeeping must never cost the game a frame, and
+      ///   a file that cannot be trimmed is simply left as it is.
+      /// </summary>
+      private static void TrimToRecentSessions(int keep)
+      {
+         try
+         {
+            if (keep < 1 || !File.Exists(LogPath)) return;
+
+            string content = File.ReadAllText(LogPath);
+            // Retain keep-1 existing sessions; this run's header is appended right after, for `keep` in total.
+            string trimmed = LogRotationPolicy.KeepLastSessions(content, SessionMarker, keep - 1);
+
+            if (!ReferenceEquals(trimmed, content)) File.WriteAllText(LogPath, trimmed);
+         }
+         catch
+         {
+            /* housekeeping only; never crash or block the game over an unreadable/locked log file */
+         }
+      }
 
       /// <summary>
       ///   The single seam every file write goes through, so the missing-folder repair and the
@@ -229,7 +274,7 @@ namespace CalradiaRemembers
       /// </summary>
       private static void NoticeFileChannelBroken()
       {
-         if (_brokenNoticeShown || !_fileChannelBroken || !LoggingEnabled) return;
+         if (_brokenNoticeShown || !_fileChannelBroken || !FileLoggingEnabled) return;
 
          _brokenNoticeShown = true;
 

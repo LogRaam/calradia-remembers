@@ -190,11 +190,18 @@ namespace CalradiaRemembers.Settings
 
       public override string DisplayName => "Calradia Remembers";
 
-      [SettingPropertyBool("Enable Logging", RequireRestart = false, Order = 0,
-         HintText = "Master switch for all mod logging, both the on-screen messages and CalradiaRemembers.log. " +
-                    "Off by default; turn on only to capture a bug report.")]
+      [SettingPropertyBool("Enable File Logging", RequireRestart = false, Order = 0,
+         HintText = "Writes the mod's diagnostics to CalradiaRemembers.log (only the last two sessions are kept, " +
+                    "so the file never grows without bound). Off by default; turn on to capture a bug report.")]
       [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
       public bool EnableLogging { get; set; } = false;
+
+      [SettingPropertyBool("Enable On-Screen Logging", RequireRestart = false, Order = 1,
+         HintText = "Also prints the mod's diagnostics as on-screen messages (top-left). Off by default: the " +
+                    "stream can crowd the screen during play. Turn it on only when you want to watch the mod live; " +
+                    "the file log above is the better channel for a bug report.")]
+      [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
+      public bool EnableScreenLogging { get; set; } = false;
 
       [SettingPropertyBool("Enable Jealousy", RequireRestart = false, Order = 0,
          HintText = "On (default): the world is richer, partners react to being favoured or slighted, a neglected " +
