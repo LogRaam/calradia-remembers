@@ -67,6 +67,33 @@ Increments (test-first, Logic-heavy while in-game QA is unavailable):
 4. The two exits: (a) marry the freed NPC via a relaxed gate; (b) sabotage = leave divorced, scheme framing.
 5. Polish: memories (affair, divorce, jilted-spouse grudge), Chronicle entries, the MCM toggle.
 
+## WISHED (player request + Gabriel, 2026-08-26): 4X-style WORLD ALMANAC panels, statistical not just a feed
+
+Players want summary panels on world events, in the spirit of the info panels in 4X strategy games. Gabriel's
+call: go past a plain chronological event LIST and build STATISTICAL views computed from the live campaign,
+each panel optional behind an MCM toggle. Concrete panel ideas he named:
+- Top 10 most powerful clans (a power score: fiefs + party strength + wealth + influence).
+- Which kingdom holds the military advantage over the others (aggregate army/garrison strength per faction).
+- The richest kingdom (aggregate treasury / settlement prosperity).
+- The 10 greatest battles ever fought in Calradia (needs a persisted battle ledger: participants, casualties,
+  victor, date, place; nothing native records this, so CR would log battles as they happen).
+
+Design notes (not ratified, for the design pass):
+- Two data classes: LIVE snapshots (clan power, faction wealth/military) read on demand from the campaign at
+  panel-open time = no persistence, cheap, always current; and HISTORICAL series (greatest battles, biggest
+  sieges, rise/fall of clans over time) that DO need a persisted ledger written as events happen. The battle
+  ledger is the real new build; the ranked snapshots are mostly pure aggregation over `Clan.All` / `Kingdom.All`.
+- Fits CR's memory identity: "Calradia Remembers" literally remembering the shape of its own history. The
+  battle ledger could reuse the WorldEvent store ([[project_world_event_store]]) rather than a new store.
+- Presentation: reuse the leather-book window chrome (letters/council) for the almanac; bar-style ranked lists
+  first (a filled-bar-per-row is achievable in GauntletUI), true plotted graphs are a stretch (no native chart
+  widget, would be hand-drawn Widgets). Keep V1 to ranked bars + numbers.
+- Each panel = its own MCM toggle under a "World Almanac" group, all default OFF (opt-in, keeps the campaign
+  bar uncluttered for players who do not want it).
+- Player-experience-first: compute snapshots when the player opens the panel, do not maintain running stats
+  for realism nobody sees; only the battle ledger persists, because the player can verify "was that battle
+  actually recorded".
+
 ## SHIPPED v2.2.0 (Level 1; player report, 2026-08-20): a letter-borne agreement must survive into the in-person conversation
 
 A player negotiated a marriage over three letters with Desporion ("we agreed on the terms"), then met him in
