@@ -17,6 +17,7 @@ using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Lore;
+using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Memory;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Portraits;
@@ -1366,6 +1367,13 @@ namespace CalradiaRemembers.Chat
          _postDuelActive = true;
          _postDuelPlayerWon = playerWon;
          _postDuelCourtedHeroName = reason == DuelReason.CourtshipRivalry && courtedHero != null ? courtedHero.Name?.ToString() : null;
+
+         // A duel can be fought against a lord the player never conversed with, so no profile is stored yet and
+         // MainSpeaker would resolve none (the crossed blades ARE the first real contact). Get-or-create one, the
+         // same way ChatManager seeds a first-met witness, so the post-duel conversation always has a speaker.
+         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         if (_npcHero != null && behavior?.Store != null && behavior.Store.Get(_npcHero.StringId) == null)
+            behavior.Store.Set(HeroProfileMapper.FromHero(_npcHero));
 
          // Resume the pre-duel exchange: seed the transcript (LLM continuity) then replay it into the bubbles
          // (what the player sees), so the scene opens mid-conversation rather than on a blank slate.
