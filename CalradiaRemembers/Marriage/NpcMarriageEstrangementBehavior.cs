@@ -124,9 +124,16 @@ namespace CalradiaRemembers.Marriage
          if (e.DivorcedDay.HasValue) return $"{npc.Name}'s arc already concluded on day {e.DivorcedDay}.";
 
          if (!e.DeclaredDay.HasValue) e.DeclaredDay = today;
+         Hero jiltedBefore = npc.Spouse;
          ExecuteDivorce(e, today);
 
-         return DebugDescribe(npc.StringId);
+         // Report the REAL outcome: DivorcedDay is set whether the marriage actually dissolved or the divorce was
+         // given up (a clan-leading leaving spouse TryDissolve refuses), so distinguish them for the tester.
+         string outcome = npc.Spouse == null
+            ? $"DIVORCED from {jiltedBefore?.Name?.ToString() ?? "their spouse"} (a StolenSpouse grudge is planted on them)"
+            : $"could NOT divorce (still married to {npc.Spouse.Name}: a clan-leading leaving spouse cannot be relocated); arc given up";
+
+         return $"{outcome}. {DebugDescribe(npc.StringId)}";
       }
 
       /// <summary>Test/dev cleanup: forget any tracked estrangement for this NPC, so a non-destructive test leaves no state behind.</summary>
