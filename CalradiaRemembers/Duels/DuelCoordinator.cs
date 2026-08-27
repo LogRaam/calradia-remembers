@@ -13,6 +13,9 @@ using System;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Logic.Duels;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.Settlements.Locations;
 using TaleWorlds.Library;
 using TaleWorlds.MountAndBlade;
 
@@ -82,23 +85,42 @@ namespace CalradiaRemembers.Duels
                return;
             }
 
+            // A settlement conversation leaves the player in the town's walkabout LOCATION mission when the chat
+            // closes, so Mission.Current never clears on its own and the duel would wait until the player left the
+            // town by hand (player report: "closing the conversation just ended the conversation, no duel"). End
+            // that location mission now so the duel can stage at the gates next tick. It never touches a field
+            // battle: LocationComplex.Current is null on the open map, so this only fires inside a settlement.
+            if (_pendingOpponent != null && !_pendingResolution.HasValue && !ChatManager.IsOpen
+                && Mission.Current != null && Settlement.CurrentSettlement != null && LocationComplex.Current != null)
+            {
+               ModLog.Info("[DUEL] ending the settlement walkabout mission so the armed duel can stage.");
+               Mission.Current.EndMission();
+
+               return;
+            }
+
             // Phase 1: the chat has closed and no mission is running -> stage the duel exactly once.
             if (_pendingOpponent != null && Mission.Current == null && !ChatManager.IsOpen)
             {
                Hero opponent = _pendingOpponent;
                DuelReason reason = _pendingReason;
-               DuelVenue venue = _pendingVenue;
                bool npcIssuedChallenge = _pendingNpcIssuedChallenge;
                int witnessCount = _pendingWitnessCount;
                Hero courtedHero = _pendingCourtedHero;
                _pendingOpponent = null; // one-shot, whichever way this turns out
 
-               // Defensive: a venue with no built mission must never open the wrong thing (or nothing at all,
-               // silently). Clear and log instead. NotNow is the real case here: the player put to sea between
-               // arming the duel and closing the chat.
+               // Resolve the venue from where the player stands NOW, not where they were when the duel was armed:
+               // one who armed a duel in a town but has since walked out onto the map fights in the wilderness,
+               // not a stale town duel whose guard fails silently (player report: "hit yes, nothing happened").
+               bool atSea = MobileParty.MainParty?.IsCurrentlyAtSea == true;
+               DuelVenue venue = DuelVenuePolicy.Choose(atSea, Settlement.CurrentSettlement != null);
+
+               // The only unstageable case is at sea: tell the player rather than dropping it in silence.
                if (!DuelStagingSupport.CanStage(venue))
                {
-                  ModLog.Error($"[DUEL] armed venue {venue} cannot be staged; clearing without opening anything.");
+                  InformationManager.DisplayMessage(new InformationMessage(
+                     $"There is nowhere to hold a duel with {opponent?.Name} out here; it must wait until you are ashore."));
+                  ModLog.Info($"[DUEL] armed venue {venue} cannot be staged; cleared.");
 
                   return;
                }
@@ -155,6 +177,11 @@ namespace CalradiaRemembers.Duels
          string result = venue == DuelVenue.TownGates
             ? TownDuelBehavior.Arm(opponent, Report)
             : DuelMissionLauncher.StartWildernessDuel(opponent, Report);
+
+         // Show the outcome of the launch to the player (a confirmation on success, or the reason on failure)
+         // rather than only logging it: a silent no-op on "Draw your sword" was the reported bug.
+         if (!string.IsNullOrWhiteSpace(result))
+            InformationManager.DisplayMessage(new InformationMessage(result));
 
          ModLog.Info($"[DUEL] staging at {venue}: {result}");
       }
