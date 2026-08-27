@@ -1,0 +1,20 @@
+Version 2.3.0
+
+A duel now leads somewhere: the fight is followed by a conversation, coloured by who won. Two opt-in paths join the mod (winning a married character away from their spouse, and a reasoning dial for local models), and a batch of fixes lands for duels, ransoms, farewells, and joining a campaign already under way. Your saves from 2.2.4 carry over untouched.
+
+New
+- The conversation continues after a duel. When you cross blades with someone, the meeting no longer ends at the fight: the conversation reopens right where it left off before the swords came out. If you won, the loser concedes, and a character beaten honourably is inclined to grant a reasonable favour you ask of them (to keep away from someone, to let a matter drop) and to hold to their word. If you lost, they speak as the victor and make plain what they now expect of you. Either way the loser's house loses some standing for the defeat, the more so before a crowd. A new "Post-duel conversation" setting (on by default) turns it off if you would rather a fought duel end in silence.
+- Stolen Love (off by default). A new setting opens a path to win away a married character. Seducing a married character becomes a personality-true, gated pursuit (an honourable or contentedly married one holds firm however high your standing); win them over and, in time, their marriage frays, they leave their spouse, and you may marry them or simply leave them divorced. The jilted spouse remembers who did it. Explicit content still follows your Adult Content Level.
+- Reasoning Effort for local and OpenAI-compatible models. A new setting lets you dial how hard such a model thinks, and the mod no longer asks a local endpoint for a second interpreter pass it cannot serve.
+- Reload custom prompts without restarting. A new cr.reload_prompts console command re-reads your custom prompt and style files on the spot, and the settings template is now unambiguous so uncommenting a line can no longer accidentally double the file.
+
+Fixed
+- A character no longer ends the chat over a pleasantry. A closing-flavoured line ("safe travels, then") could end the whole conversation as though they had walked off; now only a real departure closes it.
+- A routine ransom no longer earns a grudge. Selling a prisoner back to their own people for coin is ordinary and forgotten; only selling them to their sworn enemy now plants a lasting grievance.
+- Duels arranged in a town now actually happen. A duel agreed inside a town used to wait until you left town by hand; it now stages when you close the conversation, and the place is decided from where you stand at the moment it begins (so a duel arranged in town but answered on the road is fought on the road).
+- A matter of honour is answered by default. A character called out over a genuine affront now takes up the challenge instead of often declining. A refusal takes a real reason now: fear, plain cowardice, or being called out by someone far beneath their station (a nobody who challenges a king is dismissed, not fought).
+- An established spouse or close kin is recognized on an in-progress save. Adding the mod to a campaign already under way no longer treats your husband, wife, or close relatives as strangers.
+
+Improved
+- A companion's private word is heard in the tavern, at their side. When a companion asks you for a word, the audience now opens in the tavern with them standing beside you, rather than in the lord's hall.
+- A deed sworn at a council becomes the right kind of quest. A pledge taken in council is now issued as its true quest type instead of a generic errand.
