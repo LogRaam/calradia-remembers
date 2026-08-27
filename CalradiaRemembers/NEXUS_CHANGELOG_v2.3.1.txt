@@ -1,6 +1,12 @@
 Version 2.3.1
 
-A quick fix for scenes with more than one character present. Your saves from 2.3.0 carry over untouched.
+Scenes with more than one character present feel more alive, and the mod's logging is tidier. Your saves from 2.3.0 carry over untouched.
+
+New
+- Draw a bystander into the conversation. Speak to someone standing by, by name, and they are no longer just a witness watching from the edge: they step in as a full participant and stay one, replying in their own voice alongside the character you came to see, with their own interests and standing, rather than lapsing back to a silent onlooker on the next line.
 
 Fixed
 - A character spoken to no longer answers with silence. In a scene with other characters present, a bystander addressed directly (asked something, or challenged) could reply with only a wordless gesture, which read as the cold shoulder and soured the conversation. Anyone spoken to now answers in their own words; a silent gesture is kept for a genuine background moment.
+
+Improved
+- Two separate logging switches, and a log that stays small. The single logging option is now split into file logging (writes CalradiaRemembers.log for a bug report) and on-screen logging (the top-left message stream), so you can keep the diagnostics in the file without them crowding your screen during play. On-screen logging is off by default. The log file is also trimmed to its last two sessions on each launch, so it never grows without bound.
