@@ -662,7 +662,8 @@ namespace CalradiaRemembers.Mapping
       ///   and hearth, never as a fading acquaintance the player has not seen in a while (the "wives feel left
       ///   behind" report). Everyone else keeps the ordinary elapsed-gap note.
       /// </summary>
-      private static bool IsPlayerHousehold(Hero hero, NpcProfile profile)
+      // Internal so FirstImpressionResolver can exempt the household from the stranger-framed opening line.
+      internal static bool IsPlayerHousehold(Hero hero, NpcProfile profile)
       {
          if (hero == null || Hero.MainHero == null) return false;
          if (Hero.MainHero.Spouse == hero) return true;

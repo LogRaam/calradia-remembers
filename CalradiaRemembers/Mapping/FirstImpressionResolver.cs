@@ -3,7 +3,8 @@
 // offend first. This gathers the engine facts (the NPC's traits, the player's standing, the faction context)
 // and asks the pure FirstImpressionPolicy how a barely-known noble opens toward the player, then renders it as
 // prompt guidance. It colours the OPENING TONE only, never the relation numbers. A lord in the player's OWN
-// clan is exempt (he opens loyal); an already-known lord keeps his existing stance.
+// clan opens loyal; an already-known lord keeps his existing stance; a spouse, consort, or close kin draws no
+// first impression at all (an established bond is never "a person you barely know").
 
 #region
 
@@ -32,6 +33,11 @@ namespace CalradiaRemembers.Mapping
          if (npc == null || Hero.MainHero == null) return null;
          if (!npc.IsLord) return null; // the report is about nobles; notables/wanderers are out of scope for now
          if (npc == Hero.MainHero) return null;
+
+         // A spouse, consort, or close kin is never "a person you barely know" (field report, in-progress-save
+         // spouse, 2026-08-27): without this exemption an own-clan spouse still drew the clan-Loyal line under a
+         // header that frames her as a stranger, contradicting the marital bond the rest of the prompt renders.
+         if (EncounterContextBuilder.IsPlayerHousehold(npc, profile)) return null;
 
          var inputs = new FirstImpressionInputs {
             Mercy = npc.GetTraitLevel(DefaultTraits.Mercy),
