@@ -33,11 +33,17 @@ namespace CalradiaRemembers
          if (behavior == null) return "Stolen Love system is not active.";
 
          var all = args ?? new List<string>();
-         string sub = all.Count > 0 ? all[0].ToLowerInvariant() : "status";
-         List<string> nameTokens = all.Skip(1).ToList();
+
+         // The first token is the subcommand ONLY when it is one of the known verbs; otherwise the whole input is
+         // a NAME and the subcommand defaults to status. So "cr.stolen_love Ajin" reports on Ajin (it does not
+         // swallow "Ajin" as a subcommand and then find no name), while "cr.stolen_love seed Ajin" still seeds.
+         var verbs = new HashSet<string> {"status", "seed", "declare", "divorce"};
+         bool firstIsVerb = all.Count > 0 && verbs.Contains(all[0].ToLowerInvariant());
+         string sub = firstIsVerb ? all[0].ToLowerInvariant() : "status";
+         List<string> nameTokens = firstIsVerb ? all.Skip(1).ToList() : all;
 
          Hero npc = ResolveHero(nameTokens);
-         if (npc == null) return "No NPC found. Pass a name fragment, or start a conversation first.";
+         if (npc == null) return "No NPC found. Pass a name fragment (a MARRIED lord/lady for seed/divorce), or start a conversation first.";
 
          var today = (int) CampaignTime.Now.ToDays;
 
