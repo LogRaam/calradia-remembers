@@ -94,6 +94,28 @@ Design notes (not ratified, for the design pass):
   for realism nobody sees; only the battle ledger persists, because the player can verify "was that battle
   actually recorded".
 
+## BUILT, untested in game (player request + Gabriel, 2026-08-27): the POST-DUEL conversation
+
+A fought duel now reopens as a conversation that RESUMES the exchange which led to it, the opponent speaking
+first coloured by who prevailed. If the player LOST, the NPC speaks as the vindicated victor and makes plain
+what they now expect; if the player WON, the NPC concedes and is disposed to grant a reasonable favour the
+player asks ("keep away from her, never again"). The loser of a fought duel also forfeits clan influence
+(base + per-witness, capped). Built in five increments (all committed, engine parts untested in game):
+
+0. Centralized chat-scene staging behind one door, `ChatSceneStager.Open(ChatSceneRequest)` (renamed from
+   CaptiveSceneStager), which upholds the invariant that a map-originating chat ALWAYS opens over a live
+   Mission, never a bare map overlay (VRAM leak / non-repainting background). Request built by composition.
+1. `DuelOutcomePolicy.LoserInfluenceDelta` (pure, tested) -> `ChangeClanInfluenceAction` on the loser's clan.
+2. `ConversationTranscript.SeedFrom` (pure, tested): carry the pre-duel transcript into the new chat (process
+   only, a duel never spans a save); `DuelCoordinator` stashes it at arm and hands it to the Phase-2 outcome.
+3. `ChatSceneKind.PostDuel` wired end to end (mod) + SDK `AppendPostDuelContext` holding the victor/loser
+   register on every turn (7 Lane-A tests). The favour is the NPC's own remembered word (the conversation
+   memory), NOT a swear_oath (only pay_gold/keep_peace/protect) nor pledge_against (council scope).
+4. MCM "Post-duel conversation" toggle (Duels group, default ON) + `cr.postduel [win|loss] [name]` test command.
+
+To validate in game: `cr.postduel win` / `cr.postduel loss` on the open map (the bubbles should resume the
+seeded pre-duel exchange, then the NPC opens in the right register), and a real fought duel's aftermath.
+
 ## SHIPPED v2.2.0 (Level 1; player report, 2026-08-20): a letter-borne agreement must survive into the in-person conversation
 
 A player negotiated a marriage over three letters with Desporion ("we agreed on the terms"), then met him in
