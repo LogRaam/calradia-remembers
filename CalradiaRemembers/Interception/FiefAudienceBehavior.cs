@@ -276,7 +276,7 @@ namespace CalradiaRemembers.Interception
             // (Memories/Compose) left ghost pixels. The stashed reason above is consumed when the chat opens over
             // the loaded scene (StagePlainConversation -> OpenChatForInterceptingHero), a few frames later. Falls
             // back to the direct overlay open if no scene can load for this partyless notable.
-            CaptiveSceneStager.StagePlainConversation(npc);
+            ChatSceneStager.StagePlainConversation(npc);
             ModLog.Info($"[FIEF_AUDIENCE] {npc.Name}'s audience staged ({trigger}).");
          });
       }

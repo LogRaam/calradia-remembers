@@ -370,7 +370,7 @@ namespace CalradiaRemembers
       ///   first tracked nemesis with a bound Hero, the inversion of his earlier captivity of the
       ///   player. Confirms his existing memory profile (built in increment 1) loads automatically, since
       ///   the scene keys off his Hero/StringId exactly like cr.captor_scene. Routes through
-      ///   CaptiveSceneStager.StageCaptorScene (the VRAM-safe staged-conversation path, no live conversation
+      ///   ChatSceneStager.StageCaptorScene (the VRAM-safe staged-conversation path, no live conversation
       ///   to ride from the console), unlike the real in-game entry point (NemesisPrisonerDialogFlow's
       ///   hero_main_options line, reached from the party-screen Talk on a held nemesis), which opens
       ///   directly via ChatManager.OpenForCaptorScene because it already rides a live conversation scene.
@@ -398,7 +398,7 @@ namespace CalradiaRemembers
          if (nemesisHero == null) return $"{nem.Name} {nem.Epithet}'s Hero could not be resolved (StringId {nem.HeroStringId}).";
 
          NpcProfile profile = behavior.Store?.Get(nemesisHero.StringId) ?? HeroProfileMapper.FromHero(nemesisHero);
-         CaptiveSceneStager.StageCaptorScene(nemesisHero, profile, intent);
+         ChatSceneStager.StageCaptorScene(nemesisHero, profile, intent);
 
          return $"Staging captor scene with {nem.Name} {nem.Epithet} as YOUR prisoner (the inversion; intent {intent}). " +
                 $"Alive={nem.IsAlive}. The chat opens once the scene loads.";
@@ -591,7 +591,7 @@ namespace CalradiaRemembers
 
       /// <summary>
       ///   cr.crc_scene_staged [female|male] [solo|collective] [intent] [name]
-      ///   Like cr.crc_scene, but STAGES the encounter as a 3D conversation scene (via CaptiveSceneStager) instead
+      ///   Like cr.crc_scene, but STAGES the encounter as a 3D conversation scene (via ChatSceneStager) instead
       ///   of a bare overlay on the world map — the VRAM-crash fix. Starts a conversation with the captor, then
       ///   opens the captive chat over the loaded scene. Watch [VRAM]: it should stay flat (no naval map behind).
       /// </summary>
@@ -642,7 +642,7 @@ namespace CalradiaRemembers
                }
             });
 
-         CaptiveSceneStager.StageCaptiveEncounter(captor, captorProfile, witnesses, collective, intent);
+         ChatSceneStager.StageCaptiveEncounter(captor, captorProfile, witnesses, collective, intent);
 
          string adultWarning = ModSettings.AdultContentLevel != AdultContentLevel.Hardcore
             ? " (NOTE: adult level is not Hardcore — CNC rules will NOT appear; set it in MCM.)"

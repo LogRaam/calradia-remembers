@@ -69,7 +69,7 @@ namespace CalradiaRemembers
          // has fully dismissed, so the overlay never contends with the inquiry teardown inside a settlement menu).
          MainThreadDispatcher.Pump();
          VramWatch.Tick();
-         CaptiveSceneStager.Tick(); // opens a staged captive chat once its conversation scene has loaded
+         ChatSceneStager.Tick(); // opens a staged captive chat once its conversation scene has loaded
          CouncilConversationStager.Tick(); // opens a staged council once its conversation scene has loaded
          Duels.DuelSceneSpike.Tick(dt); // drives the wilderness-duel spike's open/close/VRAM state machine
          Duels.DuelCoordinator.OnTick(dt); // stages an armed duel; here (not CampaignEvents.TickEvent) so it runs inside a settlement too

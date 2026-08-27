@@ -727,7 +727,7 @@ namespace CalradiaRemembers.Interception
          // still, and he obeyed it until he starved (Fakade, 2026-07-13). He must be told to think again.
          ReleaseToVanillaAi(pursuerParty);
 
-         CaptiveSceneStager.StagePlainConversation(pursuer);
+         ChatSceneStager.StagePlainConversation(pursuer);
          ModLog.Info($"[INTERCEPT] {pursuer.Name} reached the player, forcing the meeting open.");
       }
 
@@ -744,7 +744,7 @@ namespace CalradiaRemembers.Interception
          if (PlayerEncounter.Current != null) return false;
          if (Campaign.Current?.CurrentMenuContext != null) return false;
          if (ChatManager.IsOpen) return false;
-         if (CaptiveSceneStager.IsStaging) return false;
+         if (ChatSceneStager.IsStaging) return false;
          // A council staging its own conversation scene is the same kind of "about to hand focus to a
          // conversation" moment as a captive scene staging one; a lord riding out mid-stage would collide.
          if (CouncilConversationStager.IsStaging) return false;

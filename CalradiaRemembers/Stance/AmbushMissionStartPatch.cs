@@ -29,7 +29,7 @@ namespace CalradiaRemembers.Stance
       {
          TownAmbushBehavior.AttachBrawlIfPending(__instance);
          Duels.TownDuelBehavior.AttachDuelIfPending(__instance);
-         Chat.CaptiveSceneStager.PlaceAudienceCompanionIfPending(__instance);
+         Chat.ChatSceneStager.PlaceAudienceCompanionIfPending(__instance);
       }
    }
 }

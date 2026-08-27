@@ -494,25 +494,18 @@ namespace CalradiaRemembers.Chat
       {
          if (companion == null || profile == null) return;
 
-         // When no scene is live behind us (over the world map or a settlement menu), stage a conversation scene so
-         // the audience opens over a rendered mission with the companion present. Over the SUSPENDED map an overlay
+         // Route through the single door, which decides staging vs direct: over the SUSPENDED map an overlay
          // sub-panel that hides itself (Memories/Compose set IsVisible=false) left ghost pixels, because nothing
-         // repaints the region behind it; over a staged scene the overlay redraws each frame, exactly like a normal
-         // "Talk". When a scene is ALREADY live, opening directly over it is already clean, so skip the staging.
-         if (Mission.Current == null && Campaign.Current?.ConversationManager != null)
-         {
-            CaptiveSceneStager.StageCompanionAudience(companion, profile, reason, landed, topicDetail);
-
-            return;
-         }
-
-         OpenForCompanionAudienceDirect(companion, profile, reason, landed, topicDetail);
+         // repaints the region behind it, so the audience must open over a rendered mission with the companion
+         // present. When a scene is ALREADY live, the door opens directly over it (already clean); when none is,
+         // it stages one; the no-conversation-manager edge falls through to the direct open inside the door.
+         ChatSceneStager.StageCompanionAudience(companion, profile, reason, landed, topicDetail);
       }
 
       /// <summary>
       ///   The raw companion-audience open: adds the overlay over whatever the current top screen is, with no
       ///   scene staging. <see cref="OpenForCompanionAudience" /> is the normal entry point (it stages a scene
-      ///   first when none is live); this is what <see cref="CaptiveSceneStager" /> calls once its scene is up,
+      ///   first when none is live); this is what <see cref="ChatSceneStager" /> calls once its scene is up,
       ///   and the choke's fallback when a scene is already live.
       /// </summary>
       public static void OpenForCompanionAudienceDirect(
@@ -836,8 +829,8 @@ namespace CalradiaRemembers.Chat
       {
          try
          {
-            if (!CaptiveSceneStager.StagedMissionNeedsEnd) return;
-            CaptiveSceneStager.StagedMissionNeedsEnd = false;
+            if (!ChatSceneStager.StagedMissionNeedsEnd) return;
+            ChatSceneStager.StagedMissionNeedsEnd = false;
 
             if (Mission.Current == null) return;
 

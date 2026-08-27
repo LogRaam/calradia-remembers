@@ -116,7 +116,7 @@ namespace CalradiaRemembers.Behaviors
          // from the submodule's OnApplicationTick, NOT CampaignEvents.TickEvent: the campaign tick is PAUSED while
          // the player is inside a settlement (menu or location mission), so a duel armed in a town conversation
          // never staged until the player left to the map (player report 2026-08-26). OnApplicationTick is
-         // pause-independent and fires everywhere, like the CaptiveSceneStager pump.
+         // pause-independent and fires everywhere, like the ChatSceneStager pump.
          // Courier audit 3.1: drain the letter-mutation queue on the main thread. The LLM letter generators
          // resume on the thread pool and only ENQUEUE their SentLetters/store mutations; this applies them
          // here, in the single-threaded world the daily/courier ticks enumerate.
@@ -283,7 +283,7 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.DialogFlow.Register", () => DialogFlow.Register(campaignGameStarter));
          // The staged-captive intercept line: while a captive scene is staging its conversation, this wins the
          // "start" token (so no vanilla "Who are you?" intro shows) and hands the conversation to the captive chat.
-         SafeRun.Step("OnSessionLaunched.CaptiveSceneStager.Register", () => CaptiveSceneStager.Register(campaignGameStarter));
+         SafeRun.Step("OnSessionLaunched.ChatSceneStager.Register", () => ChatSceneStager.Register(campaignGameStarter));
          // Same staging, for the council: while cr.council is staging its conversation scene, this line wins
          // the "start" token and hands the conversation to the council once its scene has loaded.
          SafeRun.Step("OnSessionLaunched.CouncilConversationStager.Register", () => CouncilConversationStager.Register(campaignGameStarter));

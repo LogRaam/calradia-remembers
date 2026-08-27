@@ -1,9 +1,9 @@
 // Code written by Gabriel Mailhot, 02/08/2026.
 // Council-in-mission spike: re-hosts cr.council over a staged conversation scene exactly like
-// CaptiveSceneStager already does for the captive chat, instead of the old forced pushed screen. A pushed
+// ChatSceneStager already does for the captive chat, instead of the old forced pushed screen. A pushed
 // screen needed no scene to look right (a blank backdrop); the council prefab now shows a glimpse of the
 // anchor's own conversation scene through its partial-alpha backdrop (CalradiaRemembersCouncil.xml), so it
-// needs the SAME suspended-map / keyboard-focus scene the captive chat gets. Mirrors CaptiveSceneStager's
+// needs the SAME suspended-map / keyboard-focus scene the captive chat gets. Mirrors ChatSceneStager's
 // structure closely on purpose: one proven pattern, two call sites.
 
 #region
@@ -37,12 +37,12 @@ namespace CalradiaRemembers.Chat
    public static class CouncilConversationStager
    {
       // Fallback: if our intercept line never fires (another mod's start line won the token), open anyway once
-      // the conversation has been live this long. ~1 second at 60 fps. Mirrors CaptiveSceneStager.FallbackFrames.
+      // the conversation has been live this long. ~1 second at 60 fps. Mirrors ChatSceneStager.FallbackFrames.
       private const int FallbackFrames = 60;
 
       /// <summary>
       ///   Grace given to <c>OpenMapConversation</c> to register its conversation before we conclude it did
-      ///   nothing. See <see cref="CaptiveSceneStager" />'s own constant for the full rationale (the same
+      ///   nothing. See <see cref="ChatSceneStager" />'s own constant for the full rationale (the same
       ///   engine call, the same failure mode): a call that started no conversation must open directly rather
       ///   than leave the staging armed forever, which (via <see cref="IsStaging" />) would jam every later
       ///   council too.
@@ -67,7 +67,7 @@ namespace CalradiaRemembers.Chat
       ///   "start" token (priority above the vanilla first-meeting intro, so "Who are you?" never shows), and
       ///   its consequence hands the conversation over to the council. Routes to a nonexistent output token so
       ///   the vanilla conversation idles silently behind the council until ChatManager.Close ends it, the same
-      ///   proven pattern <see cref="CaptiveSceneStager" /> uses. Its own line id so the two stagers, each gated
+      ///   proven pattern <see cref="ChatSceneStager" /> uses. Its own line id so the two stagers, each gated
       ///   on their own static IsStaging, never collide or compete for the same token.
       /// </summary>
       public static void Register(CampaignGameStarter starter)
@@ -149,7 +149,7 @@ namespace CalradiaRemembers.Chat
          // The STATE that says the call failed, checked before the conversation-active guard below: a
          // successful OpenMapConversation registers its conversation immediately and only then loads a scene,
          // so "the call returned and no conversation exists" IS the failure, not a slow load. See
-         // CaptiveSceneStager.Tick for the full rationale (the same engine call, the same reasoning).
+         // ChatSceneStager.Tick for the full rationale (the same engine call, the same reasoning).
          if (!conversationActive && ++_armedFrames >= ConversationRegistrationFrames)
          {
             ModLog.Error("[COUNCIL STAGE] OpenMapConversation registered no conversation; opening directly so the "
@@ -178,7 +178,7 @@ namespace CalradiaRemembers.Chat
       ///   Opens a map conversation with <paramref name="anchor" /> and arms the pending state <see cref="Tick" />
       ///   polls; falls back to the direct (unstaged) open when there is no anchor to converse with, no
       ///   <see cref="Campaign.ConversationManager" />, the player is at sea, or the conversation fails to start.
-      ///   Mirrors CaptiveSceneStager.BeginStagedConversation.
+      ///   Mirrors ChatSceneStager.BeginStagedConversation.
       /// </summary>
       private static void BeginStagedConversation(CouncilScope scope, Hero anchor, string parleyTargetFactionId = null)
       {
@@ -196,7 +196,7 @@ namespace CalradiaRemembers.Chat
          }
 
          // Never ask the engine for a conversation scene while the player is at sea, see
-         // CaptiveSceneStager.BeginStagedConversation for the full rationale (no scene exists for open water,
+         // ChatSceneStager.BeginStagedConversation for the full rationale (no scene exists for open water,
          // and the load never completes). The direct overlay needs no scene at all.
          if (MobileParty.MainParty?.IsCurrentlyAtSea == true)
          {
@@ -207,7 +207,7 @@ namespace CalradiaRemembers.Chat
          }
 
          // Inside a settlement, never a MAP conversation either: stage the settlement's OWN interior mission.
-         // See CaptiveSceneStager.BeginStagedConversation for the full rationale (player reports 2026-08-25/26:
+         // See ChatSceneStager.BeginStagedConversation for the full rationale (player reports 2026-08-25/26:
          // a map conversation started from a settlement crashes natively when the chat closes).
          if (PlayerEncounter.InsideSettlement)
          {
@@ -226,7 +226,7 @@ namespace CalradiaRemembers.Chat
             _settleFrames = 0;
             _fallbackFrames = 0;
             _armedFrames = 0;
-            CaptiveSceneStager.StagedMissionNeedsEnd = false;
+            ChatSceneStager.StagedMissionNeedsEnd = false;
             Campaign.Current.ConversationManager.OpenMapConversation(playerData, partnerData);
             ModLog.Info($"[COUNCIL STAGE] conversation started with {partner.StringId}; awaiting the scene to load.");
          }
@@ -242,12 +242,12 @@ namespace CalradiaRemembers.Chat
       ///   The settlement twin of <see cref="BeginStagedConversation" />: opens the settlement's own interior
       ///   mission with the anchor as the talk-to character (the same engine path vanilla uses from settlement
       ///   menus), so a council convened from a town, castle, or village menu also sits over a live Mission.
-      ///   Mirrors CaptiveSceneStager.BeginSettlementMissionConversation; falls back to the direct overlay only
+      ///   Mirrors ChatSceneStager.BeginSettlementMissionConversation; falls back to the direct overlay only
       ///   when no usable location/encounter exists or the open throws.
       /// </summary>
       private static void BeginSettlementMissionConversation(Pending pending, CharacterObject partner)
       {
-         Location location = CaptiveSceneStager.ResolveAudienceLocation();
+         Location location = ChatSceneStager.ResolveAudienceLocation();
 
          if (location == null || PlayerEncounter.LocationEncounter == null)
          {
@@ -264,7 +264,7 @@ namespace CalradiaRemembers.Chat
             _settleFrames = 0;
             _fallbackFrames = 0;
             _armedFrames = 0;
-            CaptiveSceneStager.StagedMissionNeedsEnd = false;
+            ChatSceneStager.StagedMissionNeedsEnd = false;
             PlayerEncounter.LocationEncounter.CreateAndOpenMissionController(location, null, partner, null);
             ModLog.Info($"[COUNCIL STAGE] interior mission opening at {location.StringId} with {partner.StringId}; awaiting the scene to load.");
          }
@@ -297,10 +297,10 @@ namespace CalradiaRemembers.Chat
          _fallbackFrames = 0;
          _armedFrames = 0;
 
-         // Same orphan-mission guard as CaptiveSceneStager.OpenPending: if the chat opens over a mission whose
+         // Same orphan-mission guard as ChatSceneStager.OpenPending: if the chat opens over a mission whose
          // conversation never started, no conversation end will ever tear that mission down, so ChatManager.Close
          // must end it explicitly.
-         CaptiveSceneStager.StagedMissionNeedsEnd = Mission.Current != null && Hero.OneToOneConversationHero == null;
+         ChatSceneStager.StagedMissionNeedsEnd = Mission.Current != null && Hero.OneToOneConversationHero == null;
 
          try
          {

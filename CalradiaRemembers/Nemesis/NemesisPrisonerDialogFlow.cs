@@ -39,7 +39,7 @@ namespace CalradiaRemembers.Nemesis
     ///   line when the partner is the tracked nemesis (<see cref="NemesisBehavior.PlayerHeldNemesisPrisoner" />),
     ///   and a plainer captor line for any OTHER hero prisoner the player holds, so every captive can be
     ///   subjected to the scene, not only a nemesis (Gabriel 2026-08-21). The consequence opens
-    ///   <see cref="ChatManager.OpenForCaptorScene" /> directly (never <see cref="CaptiveSceneStager" />)
+    ///   <see cref="ChatManager.OpenForCaptorScene" /> directly (never <see cref="ChatSceneStager" />)
     ///   because these lines only ever fire from WITHIN an already-live conversation scene the player
     ///   started themselves, so riding it is the VRAM-safe choice.
     /// </summary>
@@ -124,7 +124,7 @@ namespace CalradiaRemembers.Nemesis
         ///   charged line, any other held prisoner for the generic one), mirroring
         ///   <see cref="CalradiaRemembers.Dialogue.LlmDialogFlow" />'s profile-loading shape but for the
         ///   captor-scene entry (<see cref="ChatManager.OpenForCaptorScene" />, never
-        ///   <see cref="CaptiveSceneStager" />: this consequence runs from WITHIN the live conversation the
+        ///   <see cref="ChatSceneStager" />: this consequence runs from WITHIN the live conversation the
         ///   party-screen Talk already started, so opening directly rides that scene instead of starting a
         ///   second one). Re-validates the partner is still a prisoner the player holds (the bridge is law,
         ///   in case they were freed between the line showing and being picked). Default intent Interrogation;

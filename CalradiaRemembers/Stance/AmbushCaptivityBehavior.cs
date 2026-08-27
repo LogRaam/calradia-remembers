@@ -218,7 +218,7 @@ namespace CalradiaRemembers.Stance
             ModLog.Info($"[AMBUSH] opening the lord's reckoning with {paymaster.Name}.");
             // Staged as a 3D conversation with the lord (never a bare overlay on the leaking naval map);
             // falls back to the direct overlay (map suspended) if the conversation cannot start.
-            CaptiveSceneStager.StageCaptiveEncounter(paymaster, profile, new List<WitnessEntry>(), false, CaptiveSceneIntent.Reckoning);
+            ChatSceneStager.StageCaptiveEncounter(paymaster, profile, new List<WitnessEntry>(), false, CaptiveSceneIntent.Reckoning);
 
             return true;
          }
@@ -564,7 +564,7 @@ namespace CalradiaRemembers.Stance
          // during the conversation). Setting the mode before opening the audience and trusting the chat to restore
          // it did not hold (the captive map ends up Stopped), so this is the reliable backstop. One-shot, so the
          // player keeps full control of the clock afterwards. OnTick is real-time, so it fires even while paused.
-         if (_arrivedLogged && !_postAudienceUnpaused && !ChatManager.IsOpen && !CaptiveSceneStager.IsStaging && Hero.MainHero is {IsPrisoner: true} && Campaign.Current != null)
+         if (_arrivedLogged && !_postAudienceUnpaused && !ChatManager.IsOpen && !ChatSceneStager.IsStaging && Hero.MainHero is {IsPrisoner: true} && Campaign.Current != null)
          {
             _postAudienceUnpaused = true;
             if (Campaign.Current.TimeControlMode == CampaignTimeControlMode.Stop)
