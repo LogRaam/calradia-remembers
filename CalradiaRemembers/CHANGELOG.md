@@ -2,6 +2,16 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.3.1.. 2026-08-27
+
+A quick fix for scenes with more than one character present. Your saves from 2.3.0 carry over untouched.
+
+### Fixed
+- **A character spoken to no longer answers with silence.** In a scene with other characters present, a
+  bystander addressed directly (asked something, or challenged) could reply with only a wordless gesture, which
+  read as the cold shoulder and soured the conversation. Anyone spoken to now answers in their own words; a
+  silent gesture is kept for a genuine background moment.
+
 ## v2.3.0.. 2026-08-27
 
 A duel now leads somewhere: the fight is followed by a conversation, coloured by who won. Two opt-in paths
