@@ -387,7 +387,10 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static void BeginSettlementMissionConversation(Pending pending, CharacterObject partner, string logTag)
       {
-         Location location = ResolveAudienceLocation();
+         // A companion asking for a private word belongs in the TAVERN, not the lord's hall (their audience is a
+         // personal matter, not court business); everyone else keeps the hall/centre.
+         bool preferTavern = pending?.Kind == StagedSceneKind.CompanionAudience;
+         Location location = ResolveAudienceLocation(preferTavern);
 
          if (location == null || PlayerEncounter.LocationEncounter == null)
          {
@@ -422,11 +425,16 @@ namespace CalradiaRemembers.Chat
       ///   settlement exposes no usable interior (a hideout camp, an exotic custom settlement), which the caller
       ///   turns into the direct-overlay fallback. Internal so the council stager reuses the exact same pick.
       /// </summary>
-      internal static Location ResolveAudienceLocation()
+      internal static Location ResolveAudienceLocation(bool preferTavern = false)
       {
          LocationComplex complex = LocationComplex.Current;
 
          if (complex == null) return null;
+
+         if (preferTavern)
+            return complex.GetLocationWithId("tavern")
+                   ?? complex.GetLocationWithId("lordshall")
+                   ?? complex.GetLocationWithId("village_center");
 
          return complex.GetLocationWithId("lordshall")
                 ?? complex.GetLocationWithId("village_center")
