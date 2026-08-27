@@ -10,7 +10,9 @@ using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.GUI;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Witnesses;
@@ -463,6 +465,28 @@ namespace CalradiaRemembers.Chat
          else if (prisonerProfile != null) ActiveViewModel.SetNpcName(prisonerProfile.Name);
 
          ActiveViewModel.ActivateCaptorSceneMode(prisonerProfile, intent);
+      }
+
+      /// <summary>
+      ///   Opens the conversation that RESUMES right after a fought duel. The opponent (alive, duels are
+      ///   non-lethal) speaks FIRST, coloured by who prevailed (<paramref name="playerWon" />), and the chat
+      ///   replays <paramref name="priorConversation" /> so the meeting reads as one continuous exchange rather
+      ///   than a fresh talk. A normal conversation otherwise (full memory + actions): a player who WON may press
+      ///   the loser for a favour (an oath), a player who LOST hears the victor out. <paramref name="courtedHero" />
+      ///   is only meaningful for a courtship duel. Staged over a live mission by <see cref="ChatSceneStager" />,
+      ///   so this leaf is reached with a scene already up.
+      /// </summary>
+      public static void OpenForPostDuel(
+         Hero opponent, NpcProfile profile, bool playerWon, DuelReason reason, Hero courtedHero, ConversationTranscript priorConversation)
+      {
+         if (opponent == null) return;
+
+         Open(opponent.Name?.ToString() ?? profile?.Name);
+
+         if (ActiveViewModel == null) return;
+
+         ActiveViewModel.SetNpcHero(opponent);
+         ActiveViewModel.ActivatePostDuel(profile, playerWon, reason, courtedHero, priorConversation);
       }
 
       /// <summary>

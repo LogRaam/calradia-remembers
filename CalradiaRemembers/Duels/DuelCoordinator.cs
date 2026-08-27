@@ -10,9 +10,11 @@
 #region
 
 using System;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Duels;
+using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -84,11 +86,23 @@ namespace CalradiaRemembers.Duels
                DuelReason reason = _outcomeReason;
                Hero courtedHero = _outcomeCourtedHero;
                int witnessCount = _outcomeWitnessCount;
+               ConversationTranscript transcript = _outcomeTranscript;
                _pendingResolution = null;
                _outcomeOpponent = null;
                _outcomeCourtedHero = null;
+               _outcomeTranscript = null;
 
                DuelOutcomeApplier.Apply(reason, resolution, opponent, courtedHero, witnessCount);
+
+               // A duel actually FOUGHT resumes as a conversation: the loser hears the victor, and a victorious
+               // player may press the beaten NPC for a favour. Only a real fight opens it (a forfeit was already
+               // resolved dryly). Staged over a mission (never a bare map overlay), resuming the pre-duel chat.
+               if ((resolution == DuelResolution.PlayerWon || resolution == DuelResolution.NpcWon) && opponent != null)
+               {
+                  bool playerWon = resolution == DuelResolution.PlayerWon;
+                  NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(opponent.StringId);
+                  ChatSceneStager.StagePostDuel(opponent, profile, playerWon, reason, courtedHero, transcript);
+               }
 
                return;
             }

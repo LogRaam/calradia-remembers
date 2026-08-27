@@ -13,6 +13,8 @@
 using System;
 using System.Collections.Generic;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Duels;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Conversation;
@@ -121,6 +123,16 @@ namespace CalradiaRemembers.Chat
             "start", "cr_captive_stage_hold",
             "A moment of your time, if I may.",
             () => IsStaging && _pending?.Kind == ChatSceneKind.CompanionAudience,
+            OnInterceptLineReached,
+            200);
+
+         // The conversation that resumes right after a duel: a neutral opener wins "start" (covered by the chat
+         // within a few frames), then the post-duel chat takes over with the victor's or the loser's own words.
+         starter.AddDialogLine(
+            "cr_postduel_stage_intercept",
+            "start", "cr_captive_stage_hold",
+            "The matter is settled. Now hear me.",
+            () => IsStaging && _pending?.Kind == ChatSceneKind.PostDuel,
             OnInterceptLineReached,
             200);
       }
@@ -238,6 +250,26 @@ namespace CalradiaRemembers.Chat
             // A companion rides in the player's own party, so the scene attaches to the main party.
             AttachParty = companion?.PartyBelongedTo?.Party,
             Audience = new CompanionAudiencePayload {Reason = reason, Landed = landed, TopicDetail = topicDetail}
+         });
+      }
+
+      /// <summary>
+      ///   Builds a POST-DUEL request (the conversation that resumes right after a fought duel) and stages it.
+      ///   <paramref name="opponent" /> is the surviving foe (duels are non-lethal); <paramref name="playerWon" />
+      ///   colours the scene (the NPC concedes or prevails). <paramref name="priorConversation" /> is the exchange
+      ///   that led to the duel, seeded into the new chat so it resumes seamlessly (null from a console-forced duel).
+      /// </summary>
+      public static void StagePostDuel(
+         Hero opponent, NpcProfile profile, bool playerWon, DuelReason reason, Hero courtedHero, ConversationTranscript priorConversation)
+      {
+         Open(new ChatSceneRequest {
+            Kind = ChatSceneKind.PostDuel,
+            Partner = opponent,
+            Profile = profile,
+            // The opponent stands where they fought: attach to their field party, or to the settlement if they have none.
+            AttachParty = opponent?.PartyBelongedTo?.Party ?? opponent?.CurrentSettlement?.Party,
+            SeedTranscript = priorConversation,
+            PostDuel = new PostDuelPayload {PlayerWon = playerWon, Reason = reason, CourtedHero = courtedHero}
          });
       }
 
@@ -536,6 +568,13 @@ namespace CalradiaRemembers.Chat
                   r.Partner, r.Profile, r.Captive?.Witnesses, r.Captive?.IsCollective ?? false,
                   r.Captive?.Intent ?? CaptiveSceneIntent.Interrogation,
                   r.PortraitCharacter, r.Captive?.VictimCompanion, r.Captive?.PlayerCoerced ?? false);
+
+               return;
+
+            case ChatSceneKind.PostDuel:
+               ChatManager.OpenForPostDuel(
+                  r.Partner, r.Profile, r.PostDuel?.PlayerWon ?? false,
+                  r.PostDuel?.Reason ?? DuelReason.HonourAffront, r.PostDuel?.CourtedHero, r.SeedTranscript);
 
                return;
 

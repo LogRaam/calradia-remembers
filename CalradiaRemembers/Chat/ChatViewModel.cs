@@ -14,6 +14,7 @@ using CalradiaRemembers.GUI;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Lore;
 using CalradiaRemembers.Memory;
@@ -1342,6 +1343,96 @@ namespace CalradiaRemembers.Chat
 
          MarkOpenerPending();
          _ = RunLlmExchangeAsync(opener, speaker, placeholder, true);
+      }
+
+      /// <summary>
+      ///   Opens the conversation that RESUMES right after a fought duel. The opponent speaks FIRST, coloured by
+      ///   who prevailed: a player who WON hears the NPC concede (and may press a favour, an oath); a player who
+      ///   LOST hears the victor make plain what the field settled. The exchange that led to the duel is seeded
+      ///   into the transcript (so the NPC's reply remembers every prior word) AND replayed into the bubbles (so
+      ///   the player sees one continuous meeting), before the opener fires. A normal live conversation otherwise
+      ///   (full memory + actions). <paramref name="courtedHero" /> is only meaningful for a courtship duel.
+      /// </summary>
+      public void ActivatePostDuel(NpcProfile profile, bool playerWon, DuelReason reason, Hero courtedHero, ConversationTranscript priorConversation)
+      {
+         _mode = ChatMode.Conversation;
+
+         // Resume the pre-duel exchange: seed the transcript (LLM continuity) then replay it into the bubbles
+         // (what the player sees), so the scene opens mid-conversation rather than on a blank slate.
+         _transcript.SeedFrom(priorConversation);
+         ReplayTranscriptToMessages();
+
+         ChatSpeaker speaker = MainSpeaker();
+         if (speaker.Profile == null)
+         {
+            ModLog.Error("Post-duel: no profile, cannot open the conversation.");
+
+            return;
+         }
+
+         ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+         _messages.Add(placeholder);
+         IsSendEnabled = false;
+
+         string opener = BuildPostDuelOpener(playerWon, reason, courtedHero);
+
+         MarkOpenerPending();
+         _ = RunLlmExchangeAsync(opener, speaker, placeholder, true);
+      }
+
+      /// <summary>
+      ///   The NPC's opening cue for the post-duel scene, coloured by who won and whether it was fought over a
+      ///   third party. A stage direction the model follows, never shown or logged as a player line; the NPC's own
+      ///   nature (magnanimous or bitter, gracious or triumphant) is left to their persona.
+      /// </summary>
+      private string BuildPostDuelOpener(bool playerWon, DuelReason reason, Hero courtedHero)
+      {
+         bool courtship = reason == DuelReason.CourtshipRivalry && courtedHero != null;
+         string lady = courtedHero?.Name?.ToString();
+
+         if (playerWon)
+            return courtship
+               ? $"[The duel is over and you LOST it to the player, fairly, fought over {lady}. Open the conversation " +
+                 "yourself: concede defeat in your own voice, with whatever grace or bitterness your nature allows, " +
+                 $"acknowledge the player bested you, and yield your claim to {lady}. If the player asks something of " +
+                 "you that a beaten person of honour could grant, you are disposed to give your word.]"
+               : "[The duel is over and you LOST it to the player, fairly. Open the conversation yourself: concede " +
+                 "defeat in your own voice, with whatever grace or bitterness your nature allows, and acknowledge the " +
+                 "player bested you. If the player asks something of you that a beaten person of honour could grant, " +
+                 "you are disposed to give your word.]";
+
+         return courtship
+            ? $"[The duel is over and you WON it against the player, fairly, fought over {lady}. Open the conversation " +
+              "yourself: as the victor, in your own voice (magnanimous or triumphant as your nature runs), make plain " +
+              $"that the field settled the matter your way, press your claim to {lady}, and say what you now expect of " +
+              "the player.]"
+            : "[The duel is over and you WON it against the player, fairly. Open the conversation yourself: as the " +
+              "victor, in your own voice (magnanimous or triumphant as your nature runs), make plain that the field " +
+              "settled the matter your way, and say what you now expect of the player.]";
+      }
+
+      /// <summary>
+      ///   Rebuilds the visible chat bubbles from the (already seeded) transcript, so a resumed conversation shows
+      ///   the exchange that led here. Display ONLY: it never re-records into the transcript (the lines are already
+      ///   there from <see cref="ConversationTranscript.SeedFrom" />), it just re-renders each line as the right
+      ///   kind of bubble (player, main NPC, another participant, or narration).
+      /// </summary>
+      private void ReplayTranscriptToMessages()
+      {
+         foreach (TranscriptLine line in _transcript.Lines)
+         {
+            if (string.IsNullOrWhiteSpace(line.Text)) continue;
+
+            if (line.IsNarration)
+               _messages.Add(new ChatMessageViewModel(line.Text, SceneNarrationColor));
+            else if (line.IsPlayer)
+               AppendPlayerMessage(line.Text, false);
+            else if (_npcHero != null && line.SpeakerHeroId == _npcHero.StringId)
+               AppendNpcMessage(line.Text, false);
+            else
+               // Another participant from the prior exchange (a witness): render name-only, never as the main NPC.
+               AppendWitnessReaction(line.SpeakerName, line.Text, false);
+         }
       }
 
       /// <summary>

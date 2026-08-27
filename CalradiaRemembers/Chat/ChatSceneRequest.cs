@@ -33,7 +33,7 @@ namespace CalradiaRemembers.Chat
       /// <summary>A companion the player already leads asks for a word. <see cref="ChatManager.OpenForCompanionAudienceDirect" />.</summary>
       CompanionAudience,
 
-      /// <summary>The conversation that resumes right after a duel, coloured by who prevailed. Wired in a later increment.</summary>
+      /// <summary>The conversation that resumes right after a duel, coloured by who prevailed. <see cref="ChatManager.OpenForPostDuel" />.</summary>
       PostDuel
    }
 
