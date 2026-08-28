@@ -125,12 +125,14 @@ namespace CalradiaRemembers.WorldAlmanac
          KingdomName = s.KingdomName;
          PowerIndexText = s.PowerIndex.ToString("F1");
 
-         Military = (int) System.Math.Round(s.Military);
-         Territory = (int) System.Math.Round(s.Territory);
-         Economy = (int) System.Math.Round(s.Economy);
-         Political = (int) System.Math.Round(s.Political);
-         WarPerformance = (int) System.Math.Round(s.WarPerformance);
-         Diplomacy = (int) System.Math.Round(s.Diplomatic);
+         // Text bindings must be strings: a Gauntlet TextWidget bound to an int throws at RefreshBinding
+         // ("Int32 cannot be converted to String"). The numeric fills below stay double for the bars.
+         Military = System.Math.Round(s.Military).ToString("0");
+         Territory = System.Math.Round(s.Territory).ToString("0");
+         Economy = System.Math.Round(s.Economy).ToString("0");
+         Political = System.Math.Round(s.Political).ToString("0");
+         WarPerformance = System.Math.Round(s.WarPerformance).ToString("0");
+         Diplomacy = System.Math.Round(s.Diplomatic).ToString("0");
 
          MilitaryFill = s.Military / 100.0;
          TerritoryFill = s.Territory / 100.0;
@@ -158,12 +160,12 @@ namespace CalradiaRemembers.WorldAlmanac
       [DataSourceProperty] public string KingdomName { get; }
       [DataSourceProperty] public string PowerIndexText { get; }
 
-      [DataSourceProperty] public int Military { get; }
-      [DataSourceProperty] public int Territory { get; }
-      [DataSourceProperty] public int Economy { get; }
-      [DataSourceProperty] public int Political { get; }
-      [DataSourceProperty] public int WarPerformance { get; }
-      [DataSourceProperty] public int Diplomacy { get; }
+      [DataSourceProperty] public string Military { get; }
+      [DataSourceProperty] public string Territory { get; }
+      [DataSourceProperty] public string Economy { get; }
+      [DataSourceProperty] public string Political { get; }
+      [DataSourceProperty] public string WarPerformance { get; }
+      [DataSourceProperty] public string Diplomacy { get; }
 
       [DataSourceProperty] public double MilitaryFill { get; }
       [DataSourceProperty] public double TerritoryFill { get; }
@@ -191,7 +193,7 @@ namespace CalradiaRemembers.WorldAlmanac
       {
          Rank = s.Rank;
          KingdomName = s.KingdomName;
-         PowerIndex = (int) System.Math.Round(s.PowerIndex);
+         PowerIndex = System.Math.Round(s.PowerIndex).ToString("0"); // string: a Text binding to an int throws
          PowerFill = s.PowerIndex / 100.0;
          MomentumText = "";       // filled once the persisted Power Index history lands
          MomentumIsUp = false;
@@ -199,7 +201,7 @@ namespace CalradiaRemembers.WorldAlmanac
 
       [DataSourceProperty] public int Rank { get; }
       [DataSourceProperty] public string KingdomName { get; }
-      [DataSourceProperty] public int PowerIndex { get; }
+      [DataSourceProperty] public string PowerIndex { get; }
       [DataSourceProperty] public double PowerFill { get; }
       [DataSourceProperty] public string MomentumText { get; }
       [DataSourceProperty] public bool MomentumIsUp { get; }
