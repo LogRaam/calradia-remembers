@@ -8,6 +8,7 @@
 using System.Collections.Generic;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Letters;
+using CalradiaRemembers.WorldAlmanac;
 using TaleWorlds.Library;
 
 #endregion
@@ -65,16 +66,21 @@ namespace CalradiaRemembers
       public static string ReloadUi(List<string> args)
       {
          // ChatManager.ReloadActiveMovie runs WidgetFactory.CheckForUpdates first, which re-reads every changed
-         // prefab (the letter book included), so the letter reload below then rebuilds against fresh XML.
+         // prefab (the letter book and the Balance of Power panel included), so the reloads below then rebuild
+         // against fresh XML.
          ChatManager.ReloadActiveMovie();
          LetterWindowManager.ReloadActiveMovie();
+         BalanceOfPowerManager.ReloadActiveMovie();
+
+         if (BalanceOfPowerManager.IsOpen)
+            return "Prefabs re-read and the open Balance of Power panel rebuilt in place.";
 
          if (LetterWindowManager.IsOpen)
             return "Prefabs re-read and the open letter book rebuilt in place.";
 
          return ChatManager.IsOpen
             ? "Prefabs re-read and the open chat rebuilt in place."
-            : "Prefabs re-read. Open a chat or a letter to see the changes.";
+            : "Prefabs re-read. Open a chat, a letter, or the Balance of Power panel to see the changes.";
       }
    }
 }

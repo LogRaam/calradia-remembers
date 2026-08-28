@@ -51,18 +51,49 @@
                             VerticalAlignment="Top" MarginTop="64" MarginLeft="30"
                             Brush="Default" Brush.FontSize="44" Brush.FontColor="#d9a441FF"
                             Brush.TextHorizontalAlignment="Left" Text="@PowerIndexText" IsDisabled="true" />
-                <!-- Pillars (labels are painted in the art; numbers only), stacked on the right of the card. -->
+                <!-- Pillars: the six 0-100 sub-scores as LABELLED rows inside the card panel. The labels are not
+                     painted in the art, so we render "Label ....... value" here; centred in the card body. -->
                 <ListPanel Id="Pillars"
-                           WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren" SuggestedWidth="240"
-                           HorizontalAlignment="Right" VerticalAlignment="Top" MarginTop="26" MarginRight="20"
+                           WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren" SuggestedWidth="380"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" MarginTop="60"
                            StackLayout.LayoutMethod="VerticalTopToBottom">
                   <Children>
-                    <TextWidget Id="Mil" WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" Brush="Default" Brush.FontSize="22" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Right" Text="@Military" IsDisabled="true" />
-                    <TextWidget Id="Terr" WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" Brush="Default" Brush.FontSize="22" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Right" Text="@Territory" IsDisabled="true" />
-                    <TextWidget Id="Eco" WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" Brush="Default" Brush.FontSize="22" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Right" Text="@Economy" IsDisabled="true" />
-                    <TextWidget Id="Pol" WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" Brush="Default" Brush.FontSize="22" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Right" Text="@Political" IsDisabled="true" />
-                    <TextWidget Id="War" WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" Brush="Default" Brush.FontSize="22" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Right" Text="@WarPerformance" IsDisabled="true" />
-                    <TextWidget Id="Dip" WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" Brush="Default" Brush.FontSize="22" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Right" Text="@Diplomacy" IsDisabled="true" />
+                    <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" StackLayout.LayoutMethod="HorizontalLeftToRight">
+                      <Children>
+                        <TextWidget WidthSizePolicy="Fixed" SuggestedWidth="280" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="22" Brush.FontColor="#c8b890FF" Brush.TextHorizontalAlignment="Left" Text="Military" IsDisabled="true" />
+                        <TextWidget WidthSizePolicy="Fixed" SuggestedWidth="90" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="22" Brush.FontColor="#d9a441FF" Brush.TextHorizontalAlignment="Right" Text="@Military" IsDisabled="true" />
+                      </Children>
+                    </ListPanel>
+                    <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" StackLayout.LayoutMethod="HorizontalLeftToRight">
+                      <Children>
+                        <TextWidget WidthSizePolicy="Fixed" SuggestedWidth="280" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="22" Brush.FontColor="#c8b890FF" Brush.TextHorizontalAlignment="Left" Text="Territory" IsDisabled="true" />
+                        <TextWidget WidthSizePolicy="Fixed" SuggestedWidth="90" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="22" Brush.FontColor="#d9a441FF" Brush.TextHorizontalAlignment="Right" Text="@Territory" IsDisabled="true" />
+                      </Children>
+                    </ListPanel>
+                    <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" StackLayout.LayoutMethod="HorizontalLeftToRight">
+                      <Children>
+                        <TextWidget WidthSizePolicy="Fixed" SuggestedWidth="280" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="22" Brush.FontColor="#c8b890FF" Brush.TextHorizontalAlignment="Left" Text="Economy" IsDisabled="true" />
+                        <TextWidget WidthSizePolicy="Fixed" SuggestedWidth="90" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="22" Brush.FontColor="#d9a441FF" Brush.TextHorizontalAlignment="Right" Text="@Economy" IsDisabled="true" />
+                      </Children>
+                    </ListPanel>
+                    <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" StackLayout.LayoutMethod="HorizontalLeftToRight">
+                      <Children>
+                        <TextWidget WidthSizePolicy="Fixed" SuggestedWidth="280" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="22" Brush.FontColor="#c8b890FF" Brush.TextHorizontalAlignment="Left" Text="Political" IsDisabled="true" />
+                        <TextWidget WidthSizePolicy="Fixed" SuggestedWidth="90" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="22" Brush.FontColor="#d9a441FF" Brush.TextHorizontalAlignment="Right" Text="@Political" IsDisabled="true" />
+                      </Children>
+                    </ListPanel>
+                    <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" StackLayout.LayoutMethod="HorizontalLeftToRight">
+                      <Children>
+                        <TextWidget WidthSizePolicy="Fixed" SuggestedWidth="280" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="22" Brush.FontColor="#c8b890FF" Brush.TextHorizontalAlignment="Left" Text="War" IsDisabled="true" />
+                        <TextWidget WidthSizePolicy="Fixed" SuggestedWidth="90" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="22" Brush.FontColor="#d9a441FF" Brush.TextHorizontalAlignment="Right" Text="@WarPerformance" IsDisabled="true" />
+                      </Children>
+                    </ListPanel>
+                    <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" StackLayout.LayoutMethod="HorizontalLeftToRight">
+                      <Children>
+                        <TextWidget WidthSizePolicy="Fixed" SuggestedWidth="280" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="22" Brush.FontColor="#c8b890FF" Brush.TextHorizontalAlignment="Left" Text="Diplomacy" IsDisabled="true" />
+                        <TextWidget WidthSizePolicy="Fixed" SuggestedWidth="90" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="22" Brush.FontColor="#d9a441FF" Brush.TextHorizontalAlignment="Right" Text="@Diplomacy" IsDisabled="true" />
+                      </Children>
+                    </ListPanel>
                   </Children>
                 </ListPanel>
                 <!-- Facts strip along the bottom of the card. -->
@@ -98,37 +129,46 @@
 
         <!-- ===================== BOTTOM-MID: strategic assessment ===================== -->
         <RichTextWidget Id="Assessment"
-                        WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren" SuggestedWidth="620"
+                        WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren" SuggestedWidth="560"
                         HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                        MarginBottom="260" MarginLeft="40" MarginRight="40"
+                        MarginBottom="360" MarginLeft="120" MarginRight="40"
                         Brush="Default" Brush.FontSize="20" Brush.FontColor="#dcccaaFF"
                         Brush.TextHorizontalAlignment="Left" Text="@StrategicAssessment" IsDisabled="true" />
 
-        <!-- ===================== BOTTOM-RIGHT: key indicators (values; labels are painted) ===================== -->
+        <!-- ===================== BOTTOM-RIGHT: key indicators (label + value; the box paints no labels) =====================
+             Each indicator is a small cream label over its gold value. The taller list rises into the box from the
+             bottom anchor, so it lands inside the "Key Indicators" frame rather than under it. -->
         <ListPanel Id="Indicators"
-                   WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren" SuggestedWidth="560"
+                   WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren" SuggestedWidth="470"
                    HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                   MarginRight="90" MarginBottom="250"
+                   MarginRight="70" MarginBottom="250"
                    StackLayout.LayoutMethod="VerticalTopToBottom">
           <Children>
-            <TextWidget Id="IndArmy" WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="34" Brush="Default" Brush.FontSize="19" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Left" Text="@MostPowerfulArmy" IsDisabled="true" />
-            <TextWidget Id="IndLand" WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="34" Brush="Default" Brush.FontSize="19" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Left" Text="@LargestTerritory" IsDisabled="true" />
-            <TextWidget Id="IndEco" WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="34" Brush="Default" Brush.FontSize="19" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Left" Text="@StrongestEconomy" IsDisabled="true" />
-            <TextWidget Id="IndLeader" WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="34" Brush="Default" Brush.FontSize="19" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Left" Text="@MostInfluentialLeader" IsDisabled="true" />
-            <TextWidget Id="IndWar" WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="34" Brush="Default" Brush.FontSize="19" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Left" Text="@BestWarRecord" IsDisabled="true" />
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="24" Brush="Default" Brush.FontSize="17" Brush.FontColor="#9a8560FF" Brush.TextHorizontalAlignment="Left" Text="Most Powerful Army" IsDisabled="true" />
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" MarginBottom="10" Brush="Default" Brush.FontSize="20" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Left" Text="@MostPowerfulArmy" IsDisabled="true" />
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="24" Brush="Default" Brush.FontSize="17" Brush.FontColor="#9a8560FF" Brush.TextHorizontalAlignment="Left" Text="Largest Territory" IsDisabled="true" />
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" MarginBottom="10" Brush="Default" Brush.FontSize="20" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Left" Text="@LargestTerritory" IsDisabled="true" />
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="24" Brush="Default" Brush.FontSize="17" Brush.FontColor="#9a8560FF" Brush.TextHorizontalAlignment="Left" Text="Strongest Economy" IsDisabled="true" />
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" MarginBottom="10" Brush="Default" Brush.FontSize="20" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Left" Text="@StrongestEconomy" IsDisabled="true" />
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="24" Brush="Default" Brush.FontSize="17" Brush.FontColor="#9a8560FF" Brush.TextHorizontalAlignment="Left" Text="Most Influential Leader" IsDisabled="true" />
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" MarginBottom="10" Brush="Default" Brush.FontSize="20" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Left" Text="@MostInfluentialLeader" IsDisabled="true" />
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="24" Brush="Default" Brush.FontSize="17" Brush.FontColor="#9a8560FF" Brush.TextHorizontalAlignment="Left" Text="Best War Record" IsDisabled="true" />
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="30" Brush="Default" Brush.FontSize="20" Brush.FontColor="#dcccaaFF" Brush.TextHorizontalAlignment="Left" Text="@BestWarRecord" IsDisabled="true" />
           </Children>
         </ListPanel>
 
-        <!-- ===================== BOTTOM BAR: totals (next to the painted World Overview icons) ===================== -->
+        <!-- ===================== BOTTOM BAR: totals, aligned UNDER the four painted World Overview icons
+             (Total Troops / Settlements / Clans / Total Wealth). Right-anchored block, each value centred under
+             its icon; column widths approximate the painted icon spacing and will be tuned on the next render. -->
         <ListPanel Id="Totals"
-                   WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="760" SuggestedHeight="40"
-                   HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="60"
+                   WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="440" SuggestedHeight="34"
+                   HorizontalAlignment="Right" VerticalAlignment="Bottom" MarginRight="230" MarginBottom="55"
                    StackLayout.LayoutMethod="HorizontalLeftToRight">
           <Children>
-            <TextWidget Id="TTroops" WidthSizePolicy="Fixed" SuggestedWidth="190" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="20" Brush.FontColor="#c8a878FF" Brush.TextHorizontalAlignment="Left" Text="@TotalTroops" IsDisabled="true" />
-            <TextWidget Id="TSettl" WidthSizePolicy="Fixed" SuggestedWidth="150" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="20" Brush.FontColor="#c8a878FF" Brush.TextHorizontalAlignment="Left" Text="@TotalSettlements" IsDisabled="true" />
-            <TextWidget Id="TClans" WidthSizePolicy="Fixed" SuggestedWidth="120" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="20" Brush.FontColor="#c8a878FF" Brush.TextHorizontalAlignment="Left" Text="@TotalClans" IsDisabled="true" />
-            <TextWidget Id="TWealth" WidthSizePolicy="Fixed" SuggestedWidth="220" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="20" Brush.FontColor="#c8a878FF" Brush.TextHorizontalAlignment="Left" Text="@TotalWealth" IsDisabled="true" />
+            <TextWidget Id="TTroops" WidthSizePolicy="Fixed" SuggestedWidth="105" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="19" Brush.FontColor="#c8a878FF" Brush.TextHorizontalAlignment="Center" Text="@TotalTroops" IsDisabled="true" />
+            <TextWidget Id="TSettl" WidthSizePolicy="Fixed" SuggestedWidth="95" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="19" Brush.FontColor="#c8a878FF" Brush.TextHorizontalAlignment="Center" Text="@TotalSettlements" IsDisabled="true" />
+            <TextWidget Id="TClans" WidthSizePolicy="Fixed" SuggestedWidth="85" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="19" Brush.FontColor="#c8a878FF" Brush.TextHorizontalAlignment="Center" Text="@TotalClans" IsDisabled="true" />
+            <TextWidget Id="TWealth" WidthSizePolicy="Fixed" SuggestedWidth="155" HeightSizePolicy="StretchToParent" Brush="Default" Brush.FontSize="19" Brush.FontColor="#c8a878FF" Brush.TextHorizontalAlignment="Center" Text="@TotalWealth" IsDisabled="true" />
           </Children>
         </ListPanel>
 

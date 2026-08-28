@@ -71,5 +71,28 @@ namespace CalradiaRemembers.WorldAlmanac
 
          ModLog.Info($"Balance of Power window opened on {_host.GetType().Name} ({result.Ranked.Count} kingdoms).");
       }
+
+      /// <summary>
+      ///   Dev hot-reload (cr.reload_ui): re-reads the changed prefab XML and, if the panel is open, rebuilds its
+      ///   widget tree in place against the SAME view-model, so panel positions can be tuned without restarting
+      ///   the game. Edit the prefab under the game's own Modules\CalradiaRemembers\GUI\Prefabs (a dotnet build
+      ///   overwrites it from source), then run cr.reload_ui. XML only: a view-model change still needs a build.
+      /// </summary>
+      public static void ReloadActiveMovie()
+      {
+         if (!IsOpen) return;
+
+         try
+         {
+            UIResourceManager.WidgetFactory?.CheckForUpdates();
+            _layer.ReleaseMovie(_movieId);
+            _movieId = _layer.LoadMovie(PrefabName, _vm);
+            ModLog.Info("[RELOAD_UI] Balance of Power rebuilt in place.");
+         }
+         catch (System.Exception ex)
+         {
+            ModLog.Error($"[RELOAD_UI] Balance of Power reload failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
    }
 }
