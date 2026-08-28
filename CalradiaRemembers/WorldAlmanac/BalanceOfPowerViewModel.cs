@@ -63,6 +63,11 @@ namespace CalradiaRemembers.WorldAlmanac
       [DataSourceProperty] public string Title => "BALANCE OF POWER";
       [DataSourceProperty] public string Tagline => "Power is not given. It is remembered.";
 
+      /// <summary>Full path to the panel's leather background, for the prefab's CrRuntimeImageWidget (same recipe as the council book).</summary>
+      [DataSourceProperty]
+      public string BackgroundPath => System.IO.Path.Combine(
+         BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_BalanceOfPower.jpg");
+
       [DataSourceProperty] public string BalanceHeader => "Balance of Power";
       [DataSourceProperty] public string AssessmentHeader => "Strategic Assessment";
       [DataSourceProperty] public string IndicatorsHeader => "Key Indicators";

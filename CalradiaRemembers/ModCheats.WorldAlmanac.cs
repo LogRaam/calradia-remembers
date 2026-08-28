@@ -72,6 +72,22 @@ namespace CalradiaRemembers
          return report;
       }
 
+      /// <summary>
+      ///   cr.balanceofpower
+      ///   Opens the "Balance of Power" panel (the World Almanac dashboard) over the current screen. For visual
+      ///   iteration for now; the leak-free campaign-bar entry comes later. Read-and-close, so a brief open over
+      ///   the map is fine.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("balanceofpower", "cr")]
+      public static string BalanceOfPower(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         WorldAlmanac.BalanceOfPowerManager.Open();
+
+         return "Opening the Balance of Power panel.";
+      }
+
       private static string Name(Dictionary<string, KingdomPowerFacts> byId, string id)
          => id != null && byId.TryGetValue(id, out KingdomPowerFacts f) ? f.KingdomName : id ?? "(none)";
    }
