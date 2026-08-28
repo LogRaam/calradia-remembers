@@ -47,7 +47,7 @@ namespace CalradiaRemembers
             sb.AppendLine($"#{s.Rank}  {s.KingdomName}   Power {s.PowerIndex:F1}");
             sb.AppendLine($"     Mil {s.Military:F0}  Terr {s.Territory:F0}  Eco {s.Economy:F0}  Pol {s.Political:F0}  War {s.WarPerformance:F0}  Dip {s.Diplomatic:F0}");
             if (f != null)
-               sb.AppendLine($"     {f.FieldTroops}+{f.GarrisonTroops} troops, {f.ArmyCount} armies | "
+               sb.AppendLine($"     {f.FieldTroops}+{f.GarrisonTroops} troops (str {f.FieldStrength:F0}+{f.GarrisonStrength:F0}), {f.ArmyCount} armies | "
                            + $"{f.Towns}T/{f.Castles}C/{f.Villages}V (prosp {f.TotalProsperity:F0}) | "
                            + $"{f.ClanCount} clans, {f.VassalCount} lords | {f.EstimatedWealth:N0} denars | "
                            + $"{f.LeaderName} inf {f.LeaderInfluence} | wars {f.ActiveWars}");

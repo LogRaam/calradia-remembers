@@ -7,13 +7,16 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic.WorldAlmanac;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Core;
 
 #endregion
 
@@ -64,20 +67,48 @@ namespace CalradiaRemembers.WorldAlmanac
          f.Villages = owned.Count(s => s.IsVillage);
          f.TotalProsperity = owned.Sum(SettlementProsperity);
 
-         // Field troops: lord parties flying this kingdom's colours. Garrison troops: what stands in its walls.
-         f.FieldTroops = MobileParty.All?
-                        .Where(p => p != null && p.IsActive && p.IsLordParty && p.MapFaction == k)
-                        .Sum(p => p.MemberRoster?.TotalManCount ?? 0) ?? 0;
+         // Field forces: lord parties flying this kingdom's colours. Both the headcount (for display) and the
+         // tier-weighted strength (what the Military pillar actually scores from, Gabriel's call).
+         List<MobileParty> lordParties = MobileParty.All?
+                                        .Where(p => p != null && p.IsActive && p.IsLordParty && p.MapFaction == k)
+                                        .ToList() ?? new List<MobileParty>();
+         f.FieldTroops = lordParties.Sum(p => p.MemberRoster?.TotalManCount ?? 0);
+         f.FieldStrength = lordParties.Sum(p => PartyStrength(p));
+
+         // Garrisons: what stands in the walls, again both headcount and strength.
          f.GarrisonTroops = owned.Sum(s => s.Town?.GarrisonParty?.MemberRoster?.TotalManCount ?? 0);
+         f.GarrisonStrength = owned.Sum(s => PartyStrength(s.Town?.GarrisonParty));
+
          f.ArmyCount = k.Armies?.Count ?? 0;
 
          // Diplomacy: how many wars this kingdom is currently fighting.
          f.ActiveWars = Kingdom.All?.Count(o => o != null && o != k && !o.IsEliminated && k.IsAtWarWith(o)) ?? 0;
 
-         // Placeholders until the persisted layer lands: quality proxy, war record, alliances, momentum.
-         f.VeteranRatio = 0.0;
+         // War record and alliances stay 0 until the persisted battle ledger / momentum layer lands.
 
          return f;
+      }
+
+      /// <summary>
+      ///   Tier-weighted fighting strength of a party: each troop counts as its own tier (an elite tier-6 counts
+      ///   ~6x a raw recruit), so a veteran host outweighs a larger levy. No engine strength API is stable across
+      ///   builds, so this is computed from the roster (same GetTroopRoster/Tier read the troop bucketer uses).
+      /// </summary>
+      private static double PartyStrength(MobileParty p)
+      {
+         TroopRoster roster = p?.MemberRoster;
+         if (roster == null) return 0.0;
+
+         var strength = 0.0;
+         foreach (TroopRosterElement el in roster.GetTroopRoster())
+         {
+            CharacterObject c = el.Character;
+            if (c == null) continue;
+
+            strength += el.Number * Math.Max(1, c.Tier);
+         }
+
+         return strength;
       }
 
       /// <summary>Prosperity for a town/castle, or hearth as the village proxy; 0 when neither is available.</summary>

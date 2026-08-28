@@ -37,19 +37,21 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
       public const double NeutralScore = 50.0;
 
       // ── Raw-scalar tuning knobs (relative weights INSIDE a pillar; magnitudes are normalized away) ──
-      public const double GarrisonTroopWeight = 0.5;  // a garrisoned soldier counts for less than a field one
-      public const double ArmyMusterWeight = 150.0;   // a mustered army is concentrated, projectable force
-      public const double VeteranQualityBonus = 0.3;  // full-veteran army is worth +30% of its headcount
+      public const double GarrisonStrengthWeight = 0.5; // garrison strength counts, but a field army projects power (Gabriel: keep 0.5)
+      public const double ArmyMusterWeight = 150.0;     // a mustered army is concentrated, coordinated force
 
       public const double TownTerritoryWeight = 3.0;
       public const double CastleTerritoryWeight = 2.0;
       public const double VillageTerritoryWeight = 1.0;
 
-      public const double WealthEconomyDivisor = 100.0; // denars scaled to sit alongside prosperity
+      public const double WealthEconomyDivisor = 100.0; // denars scaled to sit alongside prosperity (both production AND treasury count)
 
-      public const double ClanPoliticalWeight = 10.0;
-      public const double VassalPoliticalWeight = 2.0;
-      public const double CumulativeInfluenceWeight = 0.1;
+      // Political weighs the SIZE of the noble bloc first (clans, vassals), with influence only an appoint: a
+      // realm of many houses is politically heavy even under a low-influence ruler (tuning 2026-08-27, after the
+      // first cr.powerindex showed cumulative influence swamping the count and burying the many-clan realms).
+      public const double ClanPoliticalWeight = 15.0;
+      public const double VassalPoliticalWeight = 3.0;
+      public const double CumulativeInfluenceWeight = 0.02;
       public const double LeaderInfluenceWeight = 0.05;
 
       public const double SettlementSwingWeight = 2.0; // a captured/lost settlement weighs more than a field win
@@ -116,9 +118,11 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
 
       // ── Pillar raw scalars (bigger = stronger; magnitudes are normalized away downstream) ──
 
+      // Tier-weighted fighting strength, not raw headcount (Gabriel: it is military STRENGTH that counts): a
+      // veteran host outweighs a larger levy. Field strength full, garrison strength discounted, plus a small
+      // muster bonus for coordinated armies.
       private static double MilitaryRaw(KingdomPowerFacts k)
-         => (k.FieldTroops + k.GarrisonTroops * GarrisonTroopWeight) * (1.0 + VeteranQualityBonus * Clamp01(k.VeteranRatio))
-            + k.ArmyCount * ArmyMusterWeight;
+         => k.FieldStrength + k.GarrisonStrength * GarrisonStrengthWeight + k.ArmyCount * ArmyMusterWeight;
 
       private static double TerritoryRaw(KingdomPowerFacts k)
          => k.Towns * TownTerritoryWeight + k.Castles * CastleTerritoryWeight + k.Villages * VillageTerritoryWeight;
@@ -195,8 +199,6 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             TotalClans = kingdoms.Sum(k => k.ClanCount),
             TotalWealth = kingdoms.Sum(k => k.EstimatedWealth)
          };
-
-      private static double Clamp01(double v) => Clamp(v, 0.0, 1.0);
 
       private static double Clamp(double v, double lo, double hi) => v < lo ? lo : v > hi ? hi : v;
 

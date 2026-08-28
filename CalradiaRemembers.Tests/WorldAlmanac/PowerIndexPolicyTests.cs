@@ -28,14 +28,14 @@ namespace CalradiaRemembers.Tests.WorldAlmanac
       [Test]
       public void GIVEN_two_kingdoms_of_different_strength_WHEN_scoring_THEN_the_leader_tops_the_pillar_and_the_other_is_a_proportional_share()
       {
-         var field = new List<KingdomPowerFacts> {K("A", fieldTroops: 1000), K("B", fieldTroops: 500)};
+         var field = new List<KingdomPowerFacts> {K("A", fieldStrength: 1000), K("B", fieldStrength: 500)};
 
          PowerIndexResult r = PowerIndexPolicy.Compute(field);
 
          KingdomPowerScore a = Find(r, "A");
          KingdomPowerScore b = Find(r, "B");
          a.Military.Should().BeApproximately(100.0 / PowerIndexPolicy.Headroom, 0.5); // leader ~93, not a flat 100
-         b.Military.Should().BeApproximately(a.Military / 2.0, 0.5);                  // half the troops, ~half the score
+         b.Military.Should().BeApproximately(a.Military / 2.0, 0.5);                  // half the strength, ~half the score
       }
 
       // The headroom is the whole point of option (a): the top kingdom must NOT read 100, so a realm that later
@@ -54,9 +54,9 @@ namespace CalradiaRemembers.Tests.WorldAlmanac
       public void GIVEN_a_field_WHEN_scoring_THEN_it_is_ranked_by_power_index_descending()
       {
          var field = new List<KingdomPowerFacts> {
-            K("Weak", fieldTroops: 200, towns: 1),
-            K("Strong", fieldTroops: 2000, towns: 10, castles: 8),
-            K("Middle", fieldTroops: 900, towns: 4, castles: 3)
+            K("Weak", fieldStrength: 200, towns: 1),
+            K("Strong", fieldStrength: 2000, towns: 10, castles: 8),
+            K("Middle", fieldStrength: 900, towns: 4, castles: 3)
          };
 
          PowerIndexResult r = PowerIndexPolicy.Compute(field);
@@ -173,7 +173,7 @@ namespace CalradiaRemembers.Tests.WorldAlmanac
       [Test]
       public void GIVEN_a_single_kingdom_WHEN_scoring_THEN_it_ranks_first_at_the_headroom_ceiling()
       {
-         PowerIndexResult r = PowerIndexPolicy.Compute(new List<KingdomPowerFacts> {K("Lone", fieldTroops: 1000, towns: 5)});
+         PowerIndexResult r = PowerIndexPolicy.Compute(new List<KingdomPowerFacts> {K("Lone", fieldStrength: 1000, towns: 5)});
 
          r.Ranked.Should().HaveCount(1);
          r.Ranked[0].Rank.Should().Be(1);
@@ -201,7 +201,7 @@ namespace CalradiaRemembers.Tests.WorldAlmanac
       }
 
       private static KingdomPowerFacts K(
-         string id, int fieldTroops = 0, int garrison = 0, int armies = 0, double veteran = 0,
+         string id, int fieldTroops = 0, int garrison = 0, int armies = 0, double fieldStrength = 0, double garrisonStrength = 0,
          int towns = 0, int castles = 0, int villages = 0, double prosperity = 0, long wealth = 0,
          int clans = 0, int vassals = 0, int cumInfluence = 0, int leaderInfluence = 0, string leader = null,
          int wins = 0, int losses = 0, int captured = 0, int lost = 0, int wars = 0, int alliances = 0)
@@ -212,7 +212,8 @@ namespace CalradiaRemembers.Tests.WorldAlmanac
             FieldTroops = fieldTroops,
             GarrisonTroops = garrison,
             ArmyCount = armies,
-            VeteranRatio = veteran,
+            FieldStrength = fieldStrength,
+            GarrisonStrength = garrisonStrength,
             Towns = towns,
             Castles = castles,
             Villages = villages,

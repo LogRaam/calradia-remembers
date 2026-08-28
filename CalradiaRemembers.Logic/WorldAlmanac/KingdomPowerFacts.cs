@@ -40,8 +40,15 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
       /// <summary>Number of armies currently mustered.</summary>
       public int ArmyCount { get; set; }
 
-      /// <summary>Average troop quality as a 0..1 proxy (share of veteran/high-tier troops); 0 when unknown.</summary>
-      public double VeteranRatio { get; set; }
+      /// <summary>
+      ///   Tier-weighted fighting strength of the field parties (Bannerlord's own party strength, which counts a
+      ///   veteran far above a recruit). This, not the raw headcount, is what the Military pillar scores from:
+      ///   Gabriel's call, it is military STRENGTH that matters, not numbers. The headcounts above stay for display.
+      /// </summary>
+      public double FieldStrength { get; set; }
+
+      /// <summary>Tier-weighted fighting strength standing in garrisons (same basis as <see cref="FieldStrength" />).</summary>
+      public double GarrisonStrength { get; set; }
 
       // ── Territory ─────────────────────────────────────────────────────────
       public int Towns { get; set; }
