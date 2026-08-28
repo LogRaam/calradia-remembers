@@ -18,6 +18,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Items;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
@@ -1536,18 +1537,40 @@ namespace CalradiaRemembers.GameState
 
             // Prefer the exact item the player picked from the bag (by id); fall back to a name match
             // for a gift offered purely in free text. The id path is immune to the LLM rewording the name.
-            ItemRosterElement found = !string.IsNullOrWhiteSpace(itemId)
+            bool isFreeTextGift = string.IsNullOrWhiteSpace(itemId);
+            ItemRosterElement found = !isFreeTextGift
                ? FindRosterElementById(itemId)
                : FindItemInRoster(itemName);
 
+            // Free-text gift, exact name miss: a narrated personal-gift word ("a pendant") rarely matches a
+            // roster entry's literal name, even when the player plainly holds something that fits (a
+            // "Jewelry" trade good). Player report: married, pregnant wife offered "a pendant" in chat, got
+            // a false "you don't have that" though the Jewelry good sat right there in the roster. Fuzzy-
+            // resolve (exact/token/synonym-category) before giving up; the picker (OfferedItemId) path never
+            // reaches here, so it is untouched.
+            GiftCandidate? fuzzyMatch = null;
+            if (isFreeTextGift && found.EquipmentElement.Item == null)
+            {
+               fuzzyMatch = GiftNameResolver.Resolve(itemName, BuildGiftCandidates());
+               if (fuzzyMatch.HasValue) found = FindRosterElementById(fuzzyMatch.Value.Id);
+            }
+
             if (found.EquipmentElement.Item == null)
             {
+               // The fuzzy resolver also found nothing plausible: a softened, generic refusal rather than
+               // echoing back the model's possibly odd-reading word.
+               if (isFreeTextGift)
+                  return ActionOutcome.Refused("(You don't seem to have anything like that to give.)");
+
                string label = !string.IsNullOrWhiteSpace(itemName)
                   ? itemName
                   : itemId;
 
                return ActionOutcome.Refused($"(You don't seem to have '{label}' to give.)");
             }
+
+            if (fuzzyMatch.HasValue)
+               ModLog.Info($"[ACTION] give_item: fuzzy-resolved '{itemName}' -> '{found.EquipmentElement.Item.Name}'");
 
             MobileParty.MainParty.ItemRoster.AddToCounts(found.EquipmentElement, -1);
             var actualName = found.EquipmentElement.Item.Name.ToString();
@@ -4017,6 +4040,32 @@ namespace CalradiaRemembers.GameState
 
             return false;
          }
+      }
+
+      /// <summary>
+      ///   Builds the candidate list <see cref="GiftNameResolver" /> matches a narrated free-text gift word
+      ///   against: every roster item with a positive amount and a positive value (mirrors
+      ///   <see cref="Items.ItemPickerService" />'s own eligibility, so a quest item or a valueless prop is
+      ///   never offered as a fuzzy match), with its category normalized to a lower-case token for the
+      ///   synonym tier (the Jewelry trade good's own ItemCategory StringId is "jewelry").
+      /// </summary>
+      private static List<GiftCandidate> BuildGiftCandidates()
+      {
+         var list = new List<GiftCandidate>();
+         if (MobileParty.MainParty?.ItemRoster == null) return list;
+
+         foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
+         {
+            if (el.Amount <= 0) continue;
+            ItemObject item = el.EquipmentElement.Item;
+
+            if (item == null || item.Value <= 0) continue;
+
+            string category = item.ItemCategory?.StringId?.ToLowerInvariant();
+            list.Add(new GiftCandidate(item.StringId, item.Name.ToString(), category, item.Value));
+         }
+
+         return list;
       }
 
       private static ItemRosterElement FindItemInRoster(string itemName)
