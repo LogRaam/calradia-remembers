@@ -28,26 +28,34 @@ namespace CalradiaRemembers.Logic.Assemblies
     public static class GovernorAppointmentPolicy
     {
         /// <summary>
-        ///   Tuning: standing toward the player at/above this accepts the post. Governing one of the player's
-        ///   fiefs is the SAME class of decision StanceGatePolicy.DelegatedRiskTrustFloor already gates for
-        ///   lending troops or influence: the NPC exposes THEMSELVES on the player's word (an appointment can be
-        ///   revoked, and a fief poorly held reflects on them). This mirrors that established delegated-risk
-        ///   floor (also 20) rather than inventing a second number for the same kind of trust.
+        ///   A regard at/above this marks a companion who holds the player in HIGH esteem. No longer the
+        ///   governor-acceptance bar (a governorship is an honour accepted by default, see <see cref="Decide" />);
+        ///   kept because other surfaces read it as a "high standing" marker (e.g. the companion-audience topic
+        ///   resolver deciding whether to surface ambition-level matters).
         /// </summary>
         public const int StandingFloor = 20;
 
-        /// <summary>Read when a verdict is refused for standing below the floor.</summary>
-        public const string BelowStandingReason = "does not yet trust the player enough to accept the post";
+        /// <summary>
+        ///   Tuning: a governorship is a PROMOTION offered to a member of the player's own clan, so it is accepted
+        ///   by default; only genuine resentment refuses. Standing at/below this (the "resentment" regard band) is
+        ///   the sole refusal: a clan member who actively despises the player will not take an honour from their hand.
+        /// </summary>
+        public const int ResentmentFloor = -30;
+
+        /// <summary>Read when a verdict is refused for deep resentment (the only refusal case).</summary>
+        public const string ResentfulRefusalReason = "resents the player too deeply to accept the honour";
 
         /// <summary>
-        ///   Accept/refuse verdict from the prospective governor's standing toward the player alone. Deterministic
-        ///   (no randomness): the SAME pledge always resolves the SAME way at the lift, so a test can pin the
-        ///   boundary exactly rather than chase a flaky roll.
+        ///   Accept/refuse verdict for a governorship. It is an HONOUR, a promotion within the player's own clan,
+        ///   not a favour the appointee grants the player (Gabriel 2026-08-27), so a member takes the post gladly
+        ///   whatever their ordinary standing; ONLY active resentment (standing at/below <see cref="ResentmentFloor" />)
+        ///   refuses. Deterministic (no randomness): the SAME pledge always resolves the SAME way at the lift, so a
+        ///   test can pin the boundary exactly rather than chase a flaky roll.
         /// </summary>
         public static GovernorAppointmentVerdict Decide(int standingTowardPlayer)
-            => standingTowardPlayer >= StandingFloor
+            => standingTowardPlayer > ResentmentFloor
                 ? new GovernorAppointmentVerdict(true, null)
-                : new GovernorAppointmentVerdict(false, BelowStandingReason);
+                : new GovernorAppointmentVerdict(false, ResentfulRefusalReason);
 
         /// <summary>
         ///   Whether the 1:1 conversation path should TEACH this NPC the appoint_governor action this turn

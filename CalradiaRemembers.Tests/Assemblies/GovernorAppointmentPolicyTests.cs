@@ -32,10 +32,10 @@ namespace CalradiaRemembers.Tests.Assemblies
     [TestFixture]
     public sealed class GovernorAppointmentPolicyTests
     {
-        // The ordinary accept case: standing well above the floor must accept, or a trusted, long-proven
-        // companion could still be turned away at the lift for no discoverable reason.
+        // A governorship is an HONOUR/promotion within the player's own clan, not a favour the appointee grants,
+        // so a member in good standing takes it gladly. The obvious case.
         [Test]
-        public void GIVEN_standing_well_above_the_floor_WHEN_deciding_THEN_the_post_is_accepted()
+        public void GIVEN_high_standing_WHEN_deciding_THEN_the_honour_is_accepted()
         {
             GovernorAppointmentVerdict verdict = GovernorAppointmentPolicy.Decide(standingTowardPlayer: 50);
 
@@ -43,46 +43,40 @@ namespace CalradiaRemembers.Tests.Assemblies
             verdict.RefusalReason.Should().BeNull();
         }
 
-        // The ordinary refuse case: standing well below the floor must refuse, or the mechanical-refusal
-        // condition would be dead code, and every appointment would silently succeed regardless of trust.
+        // The design correction (Gabriel 2026-08-27): NEUTRAL standing must ACCEPT. The old floor turned a
+        // freshly-recruited companion away as if governing were a favour; a promotion from their own clan head
+        // is an honour they take even before any deep bond is built. This is the case the player hit in game.
         [Test]
-        public void GIVEN_standing_well_below_the_floor_WHEN_deciding_THEN_the_post_is_refused()
+        public void GIVEN_neutral_standing_WHEN_deciding_THEN_the_honour_is_accepted()
         {
-            GovernorAppointmentVerdict verdict = GovernorAppointmentPolicy.Decide(standingTowardPlayer: 0);
+            GovernorAppointmentPolicy.Decide(standingTowardPlayer: 0).Accepted.Should().BeTrue();
+        }
+
+        // Even a cool, mildly-negative regard (quiet distrust, above the resentment band) still takes the post:
+        // an honour outweighs ordinary friction. Only true animosity should refuse, not lukewarm standing.
+        [Test]
+        public void GIVEN_a_mildly_negative_standing_WHEN_deciding_THEN_the_honour_is_still_accepted()
+        {
+            GovernorAppointmentPolicy.Decide(standingTowardPlayer: -10).Accepted.Should().BeTrue();
+        }
+
+        // The one refusal: deep resentment. A clan member who actively despises the player will not take an
+        // honour from their hand, so standing at/below the resentment floor refuses, with a factual reason.
+        [Test]
+        public void GIVEN_deep_resentment_WHEN_deciding_THEN_the_honour_is_refused()
+        {
+            GovernorAppointmentVerdict verdict = GovernorAppointmentPolicy.Decide(GovernorAppointmentPolicy.ResentmentFloor);
 
             verdict.Accepted.Should().BeFalse();
             verdict.RefusalReason.Should().NotBeNullOrWhiteSpace();
         }
 
-        // StandingFloor is inclusive (>=): pins that standing sitting EXACTLY on the tuning value already
-        // accepts, so a future retune of the constant can't silently flip this boundary case to a refusal.
+        // The far side of that one boundary: one point above the resentment floor accepts, confirming refusal is
+        // reserved for genuine animosity and does not creep up into ordinary cool standing.
         [Test]
-        public void GIVEN_standing_exactly_at_the_floor_WHEN_deciding_THEN_the_post_is_accepted()
+        public void GIVEN_standing_one_point_above_the_resentment_floor_WHEN_deciding_THEN_the_honour_is_accepted()
         {
-            GovernorAppointmentVerdict verdict = GovernorAppointmentPolicy.Decide(GovernorAppointmentPolicy.StandingFloor);
-
-            verdict.Accepted.Should().BeTrue();
-        }
-
-        // The far side of the same boundary: one point under the floor must refuse, confirming the policy
-        // compares by ordering (>=) rather than by equality with the floor alone.
-        [Test]
-        public void GIVEN_standing_one_point_below_the_floor_WHEN_deciding_THEN_the_post_is_refused()
-        {
-            GovernorAppointmentVerdict verdict = GovernorAppointmentPolicy.Decide(GovernorAppointmentPolicy.StandingFloor - 1);
-
-            verdict.Accepted.Should().BeFalse();
-        }
-
-        // A negative standing (an NPC who actively dislikes the player) must refuse just as plainly as a
-        // neutral one: this is the class of NPC most likely to be tested first in-game, so it must not
-        // accidentally fall through to acceptance via an unguarded arithmetic edge case.
-        [Test]
-        public void GIVEN_negative_standing_WHEN_deciding_THEN_the_post_is_refused()
-        {
-            GovernorAppointmentVerdict verdict = GovernorAppointmentPolicy.Decide(standingTowardPlayer: -30);
-
-            verdict.Accepted.Should().BeFalse();
+            GovernorAppointmentPolicy.Decide(GovernorAppointmentPolicy.ResentmentFloor + 1).Accepted.Should().BeTrue();
         }
 
         // The all-clear case: player leads the clan, the NPC is an available member of it, and a fief sits vacant.
