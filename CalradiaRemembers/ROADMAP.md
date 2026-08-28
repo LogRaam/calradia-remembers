@@ -116,6 +116,29 @@ player asks ("keep away from her, never again"). The loser of a fought duel also
 To validate in game: `cr.postduel win` / `cr.postduel loss` on the open map (the bubbles should resume the
 seeded pre-duel exchange, then the NPC opens in the right register), and a real fought duel's aftermath.
 
+## WISHED (player request, 2026-08-27): a narrative STYLE attached to a character (or a station/culture)
+
+Players want a character to keep a consistent writing voice of their own: a knight in a Dumas register, a
+darker lord in Grimdark, a village commoner in plain prose, without the player switching the global style by
+hand each time. Today the quill picker sets ONE active style for everyone, and switching mid-conversation lands
+too late: the NPC-led opener, and the LLM's next completion drawing on the previous turn, still use the
+previously selected style (a peasant "speaks like a brave knight" because Dumas was last picked).
+
+Design notes (not ratified):
+- Bind a style to a character (by hero id / name, like ChatPortraits and character_overrides), resolved at
+  conversation OPEN so the opener already uses it, not mid-turn. Falls back to the global picked style, then the
+  default, when a character has no assigned style.
+- A tier below the character: a per-STATION or per-CULTURE default (a wanderer plain, a gang leader terse, a
+  Battanian a given voice), so a whole class of NPCs reads right without naming each one. Resolution order:
+  character override > station/culture default > global picked style > shipped default.
+- Editable like the rest of the prompt surface: a small mapping file (e.g. `character_styles.json`, Custom-first
+  so edits survive updates), plus a console command to set one live (`cr.style_for <name> <style>`), mirroring
+  `cr.orientation`. The player also asked whether post_history_instructions could do it: it substitutes
+  {{char}}/{{location}} as TEXT but cannot load a different style FILE, so it only affords weak inline guidance,
+  not a real per-character style; this feature is the proper answer.
+- Player-experience-first: purely a presentation layer (how the prose reads), never what a character knows or
+  would do, exactly like the existing narrative styles.
+
 ## SHIPPED v2.2.0 (Level 1; player report, 2026-08-20): a letter-borne agreement must survive into the in-person conversation
 
 A player negotiated a marriage over three letters with Desporion ("we agreed on the terms"), then met him in
