@@ -1,0 +1,9 @@
+Version 2.4.1
+
+A council that gathers who is actually near you, and a fix for scenes with more than one character. Your saves carry over untouched.
+
+Fixed
+- Characters no longer give each other the silent treatment. In a scene with more than one character, a character who was not the active speaker could react with only a wordless gesture (a smirk, a look), and the character you were speaking with would read that silence as a snub, turn cold, or end the conversation. Now a character who is actually part of what is being said answers in words, a bystander's quiet gesture is no longer mistaken for an insult, and the active character no longer sours over someone else's body language.
+
+Changed
+- Your council now gathers those who could realistically attend, rather than the whole realm at once. The table seats those riding with you (your party, and the lords of your army) and those close enough to reach you; distant lords no longer appear instantly from across the map. A war council in the field seats the lords campaigning at your side.
