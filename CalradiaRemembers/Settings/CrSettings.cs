@@ -332,7 +332,7 @@ namespace CalradiaRemembers.Settings
 
       [SettingPropertyDropdown("Reasoning Effort (NSFW)", RequireRestart = false, Order = 2,
          HintText = "Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less " +
-                    "prone to moralizing refusals, and speeds up scenes. OpenRouter only.")]
+                    "prone to moralizing refusals, and speeds up scenes. OpenRouter and NanoGPT.")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public Dropdown<string> NsfwReasoningEffort { get; set; } =
          new(new[] {ModelModePolicy.SameAsProse, "Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Same as roleplay
@@ -340,7 +340,7 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyDropdown("Reasoning Effort (PROSE)", RequireRestart = false, Order = 1,
          HintText = "How hard the PROSE model thinks before replying. Higher can mean finer dialogue but slower " +
                     "replies, more truncation, and MORE refusals on adult content - and in Enhanced mode the PROSE " +
-                    "model writes captivity scenes too, so keep it LOW or Medium. Default leaves it to the model. OpenRouter only.")]
+                    "model writes captivity scenes too, so keep it LOW or Medium. Default leaves it to the model. OpenRouter and NanoGPT.")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public Dropdown<string> ReasoningEffort { get; set; } =
          new(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 3); // default: Low
