@@ -319,6 +319,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("assembly_arrival", Severity.Light, "Mechanical (ASSEMBLY Inc 1 slice 2): convenes + sets two lords EnRoute, then drives the two runtime transitions: one reaches the host and seats Present, the deadline turns the other into an ambassador; cancels after (no map travel, no LLM)", TestAssemblyArrival),
          new SelfTest("assembly_revalidate", Severity.Light, "Mechanical (ASSEMBLY Inc 1 robustness): the daily re-validation reads the live host + traveller state and leaves a healthy assembly intact (host/traveller edge combinations are pinned by the pure policy tests)", TestAssemblyRevalidate),
          new SelfTest("council_parley_snapshot", Severity.Light, "Mechanical (Parley council): CouncilSessionSnapshot's additive ParleyTargetFactionId field round-trips through the exact JsonConvert path CouncilSessionBehavior.SyncData uses, both WITH a value set and WITHOUT one present in the JSON at all (an old pre-Parley snapshot) -> the missing-field case must deserialize to null rather than throw. No live campaign state touched", TestCouncilParleySnapshot),
+         new SelfTest("council_attendance", Severity.Light, "Mechanical (Convergence Inc 2): drives the REAL CouncilAttendanceResolver.Resolve against the live campaign for CouncilScope.Party -> every hero it seats is InParty (skips if the party carries no other hero); then, mechanically, feeds CouncilAttendancePolicy.Decide a constructed far own-faction fact directly -> asserts Absent/TooFar and never Ambassador (the 'your own house never sends a stand-in' guarantee); a live prisoner, if any exists, resolves to Absent/Prisoner. No world mutation", TestCouncilAttendance),
          new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate),
          new SelfTest("courtship_trial", Severity.Light, "Mechanical (COURTSHIP TRIAL): the pure override table proves a passed trial clears ONLY soft RegardTooLow and NEVER a hard blocker; a REAL hard-blocked hero force-marked passed still resolves to that hard reason (offer stays CLOSED); then a real soft-blocked prospect (regard forced low) is driven through the behavior's own daily-eval seam for the full term -> assert the trial passes, a MarriageProposal letter is queued FROM her, and MarriageBlockedBecause becomes None; a trial that STOPS accompanying before the term lapses (no completion). Restores regard + trial + letter; skips MANUAL when the player is already wed or no soft-blockable prospect exists", TestCourtshipTrial),
          new SelfTest("chat_captor_break", Severity.Light, "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?", TestChatCaptorBreak, true, 3),
@@ -2202,6 +2203,67 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("legacyShapeDoesNotThrow", thrown == null, true);
          t.Expect("legacyShapeYieldsNullParleyTarget", legacy?.ParleyTargetFactionId, null);
          t.Expect("legacyShapeScopeStillReads", legacy?.Scope, CouncilScope.ClanLords);
+
+         return t.Line();
+      }
+
+      // Convergence Inc 2: proves the ENGINE resolver (CouncilAttendanceResolver), which projects live campaign
+      // state into CouncilAttendanceFacts and runs the already-tested pure CouncilAttendancePolicy, actually
+      // agrees with the real world. Three checks: every hero the resolver seats for CouncilScope.Party out of
+      // the player's own party comes back InPerson/InParty; a manufactured far own-faction fact resolves
+      // Absent/TooFar and is NEVER Ambassador (the guarantee this whole convergence exists to keep: your own
+      // house never sends a stand-in to its own table, see CouncilAttendancePolicy's own header); a real
+      // prisoner, if this campaign happens to have one, resolves Absent/Prisoner through the resolver's own
+      // per-hero projection (DebugDecideFor), not just the pure policy called directly. No world mutation.
+      private static string TestCouncilAttendance(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("council_attendance");
+
+         List<Hero> inParty = MobileParty.MainParty?.MemberRoster?.GetTroopRoster()
+            .Select(el => el.Character?.HeroObject)
+            .Where(h => h is {IsAlive: true} && h != Hero.MainHero && CouncilRosterPolicy.IsOldEnoughToSit((int) h.Age))
+            .Distinct()
+            .ToList() ?? new List<Hero>();
+
+         if (t.Skip(inParty.Count == 0, "no non-player hero rides in the main party to prove InParty attendance")) return t.Line();
+
+         IReadOnlyList<CouncilAttendanceSeat> partySeats =
+            CouncilAttendanceResolver.Resolve(CouncilScope.Party, CouncilAttendanceResolver.DefaultThresholdDays);
+         List<CouncilAttendanceSeat> seatedPartyMembers = partySeats.Where(s => inParty.Contains(s.RepresentedHero)).ToList();
+
+         t.Note($"inPartyCount={inParty.Count}, resolverSeatedOfThem={seatedPartyMembers.Count}");
+         t.Expect("everyPartyMemberSeated", seatedPartyMembers.Count, inParty.Count);
+         t.Expect("allSeatedInPerson", seatedPartyMembers.All(s => s.Attendance == CouncilAttendance.InPerson), true);
+         t.Expect("allReasonInParty", seatedPartyMembers.All(s => s.Reason == CouncilAttendanceReason.InParty), true);
+
+         var farOwnFaction = new CouncilAttendanceFacts {
+            IsPrisoner = false,
+            IsInPlayerParty = false,
+            IsPlayerFaction = true,
+            IsParleyTarget = false,
+            EtaDays = CouncilAttendanceResolver.DefaultThresholdDays + 999.0,
+            RelationToPlayer = 50,
+            AtWarWithPlayer = false
+         };
+         CouncilAttendanceResult farVerdict = CouncilAttendancePolicy.Decide(farOwnFaction, CouncilAttendanceResolver.DefaultThresholdDays);
+         t.Note($"farOwnFaction: attendance={farVerdict.Attendance}, reason={farVerdict.Reason}");
+         t.Expect("farOwnFactionStaysHome", farVerdict.Attendance, CouncilAttendance.Absent);
+         t.Expect("farOwnFactionReasonIsTooFar", farVerdict.Reason, CouncilAttendanceReason.TooFar);
+         t.Expect("farOwnFactionNeverAmbassador", farVerdict.Attendance == CouncilAttendance.Ambassador, false);
+
+         Hero prisoner = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsPrisoner);
+         if (prisoner != null)
+         {
+            CouncilAttendanceResult prisonerVerdict =
+               CouncilAttendanceResolver.DebugDecideFor(prisoner, CouncilScope.ClanLords, CouncilAttendanceResolver.DefaultThresholdDays);
+            t.Note($"prisoner={prisoner.Name}: attendance={prisonerVerdict.Attendance}, reason={prisonerVerdict.Reason}");
+            t.Expect("prisonerIsAbsent", prisonerVerdict.Attendance, CouncilAttendance.Absent);
+            t.Expect("prisonerReasonIsPrisoner", prisonerVerdict.Reason, CouncilAttendanceReason.Prisoner);
+         }
+         else
+         {
+            t.Note("no live prisoner in this campaign (optional check skipped)");
+         }
 
          return t.Line();
       }
