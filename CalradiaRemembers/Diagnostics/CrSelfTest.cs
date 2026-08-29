@@ -200,6 +200,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("realm_tidings", Severity.Light, "Mechanical: drives the REAL RealmTidingsBehavior.DebugEvaluate end to end and proves per-NPC dedup. Seeds a dominant known event for a friendly landed lord (regard forced to 30), asserts a RealmTidings letter candidate is queued and the event id enters the dedup ledger, then re-evaluates and asserts the same event is never relayed twice. Restores the writer's regard, ledger and candidates and removes the seed", TestRealmTidings),
          new SelfTest("siege_tidings_participation", Severity.Light, "Mechanical (player report: told by letter of a siege they FOUGHT IN, days later, as if it were news): stamps the REAL WorldEventFeeders siege-participation marker for a live settlement, then drives the REAL RecordSiegeCapture construction with a NON-player taker (a mere participant, never the credited capturer) -> assert the recorded WorldEvent has InvolvesPlayer true (so realm-tidings' own InvolvesPlayer filter will never relay it back) while Type stays SettlementCaptured and Aggrieved* stay empty (the conquest's attribution is NOT stolen from the real taker). Removes the seeded event afterwards", TestSiegeTidingsParticipation),
          new SelfTest("companion_battle_memory", Severity.Light, "Mechanical: the companion 'fought together' memory (WorldEventFeeders' main-party companion loop), which a real MapEvent drives in game. Borrows a companion into the party if none rides along, calls the DebugRecordCompanionBattleMemories seam, and asserts the companion's profile gained a fresh 'Fought at your side' memory. Removes the memory it added and returns any borrowed companion", TestCompanionBattleMemory),
+         new SelfTest("query_relevant_facts", Severity.Light, "Modder report: asking a lord a POINTED question about a specific third party got a hallucinated answer because the real fact ranked too low on ambient awareness (the small WorldRumorsBlock top-N) to ever be injected. Seeds a fresh, high-magnitude, faction-tagged WorldEvent naming a real third-party lord (guaranteed KNOWN regardless of map position), then drives the REAL EncounterContextBuilder.ResolveQueryRelevantFacts (no LLM call) once with a message naming that lord -> assert the seeded fact surfaces, and once with an unrelated message -> assert it does NOT (the knowledge-then-relevance gate, never omniscience). Removes the seeded event afterwards", TestQueryRelevantFacts),
          new SelfTest("war_council_offer", Severity.Light, "Mechanical: the war-council OFFER trigger's arm + policy + persisted-cooldown decision (WarCouncilOfferBehavior.DebugWouldOffer), WITHOUT opening the council UI. Arms the flag and asserts a notable action while leading an army WOULD offer, that not-in-army / non-notable / disarmed all refuse, and that stamping an offer today blocks a fresh one (cooldown) while a stale stamp clears it. Restores the flag + the persisted last-offer day", TestWarCouncilOffer),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
          new SelfTest("retainer_spike", Severity.Heavy, "FEASIBILITY SPIKE: take a real OTHER-CLAN, partyless lord/lady into MobileParty.MainParty via AddHeroToPartyAction, assert (a) they are in the main member roster and (b) their Hero.Clan is UNCHANGED (still their own, NOT the player clan) with occupation still Lord; drive one RunDailyObservation (this behavior's daily handler) and assert they SURVIVED it at peace (reports honestly - this drives only the mod's own daily seam, not vanilla's full party-spawn tick); assert the pure RetainerLeavePolicy forces a leave on war; then release and assert they left the roster and are partyless again. Restores all borrowed state; skips MANUAL when no partyless other-clan lord exists (a party-leading lord's own party would be disbanded, which is not cleanly reversible in a live campaign)", TestRetainerSpike),
@@ -9926,6 +9927,62 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          return t.Line();
+      }
+
+      /// <summary>
+      ///   Query-relevant world facts (mechanical, no LLM): drives the REAL
+      ///   <see cref="EncounterContextBuilder.ResolveQueryRelevantFacts" /> end to end. Seeds a fresh, high-magnitude,
+      ///   faction-tagged WorldEvent naming a real third-party lord so it is guaranteed KNOWN (awareness) regardless
+      ///   of map position, proving relevance ranking rather than awareness itself; asks about that lord by name and
+      ///   asserts the fact surfaces, then asks an unrelated question and asserts it does not (knowledge gate first,
+      ///   relevance second, never omniscience). Removes the seeded event afterwards.
+      /// </summary>
+      private static string TestQueryRelevantFacts(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("query_relevant_facts");
+
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+         Hero npc = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+         Hero other = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != npc && h.IsLord);
+
+         if (t.Skip(npc == null || other == null, "need two live lords: the NPC and a third party to ask about")) return t.Line();
+
+         int today = (int) CampaignTime.Now.ToDays;
+
+         var factionIds = new List<string>();
+         if (npc.MapFaction?.StringId != null) factionIds.Add(npc.MapFaction.StringId);
+
+         // High magnitude + the NPC's own faction tagged, dated today: guarantees RumorAwareness.Knows passes
+         // regardless of map position, so a miss below proves the RELEVANCE scoring failed, not awareness.
+         var seeded = new WorldEvent {
+            Type = WorldEventType.Battle,
+            Day = today,
+            Magnitude = 80,
+            Summary = $"{other.Name} broke a raiding host near the eastern marches (selftest marker).",
+            ActorIds = new List<string> {other.StringId},
+            FactionIds = factionIds
+         };
+         WorldEventStore.Instance.Record(seeded);
+
+         try
+         {
+            string namedQuestion = $"Tell me, what do you know of {other.Name}?";
+            string unrelatedQuestion = "How fares the harvest this year?";
+
+            string namedBlock = EncounterContextBuilder.ResolveQueryRelevantFacts(npc, namedQuestion, today);
+            string unrelatedBlock = EncounterContextBuilder.ResolveQueryRelevantFacts(npc, unrelatedQuestion, today);
+
+            t.Note($"npc={npc.Name}, asked about {other.Name} -> {(namedBlock == null ? "null" : Show(namedBlock))}");
+            t.Expect("surfacesOnNamedEntity", namedBlock != null && namedBlock.Contains("selftest marker"), true);
+            t.Expect("silentOnUnrelatedMessage", unrelatedBlock == null || !unrelatedBlock.Contains("selftest marker"), true);
+
+            return t.Line();
+         }
+         finally
+         {
+            WorldEventStore.Instance.Remove(seeded.Id);
+         }
       }
 
       /// <summary>

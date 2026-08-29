@@ -61,6 +61,16 @@ namespace CalradiaRemembers.Mapping
       /// </summary>
       private const int RecentDefeatWindowDays = 21;
 
+      /// <summary>
+      ///   Candidate pool size for the message-relevant world-fact scan (<see cref="ResolveQueryRelevantFacts" />):
+      ///   generous on purpose, so a fact that is KNOWN but ranks below the small ambient top-N (the
+      ///   "WHAT YOU'VE HEARD" cap) stays a candidate here instead of being invisible to a pointed question.
+      /// </summary>
+      private const int QueryRelevantCandidatePool = 50;
+
+      /// <summary>Cap on how many message-relevant facts render in the new "WHAT YOU KNOW THAT TOUCHES ON THIS" block.</summary>
+      private const int QueryRelevantMaxLines = 3;
+
       /// <summary>Registration order of the court verbs taught AFTER pledge_against, in <see cref="VerbRegistry" />.</summary>
       private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner"};
 
@@ -513,6 +523,7 @@ namespace CalradiaRemembers.Mapping
             WorldRumorsBlock = ResolveWorldRumors(hero),
             RealmNewsLine = ResolveRealmNews(hero),
             PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
+            QueryRelevantFactsBlock = ResolveQueryRelevantFacts(hero, playerMessage, (int) CampaignTime.Now.ToDays),
             CompanionOnErrand = ResolveCompanionOnErrand(hero),
             CompanionNewsReport = CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
             CompanionMoodNote = ResolveCompanionMoodNote(hero),
@@ -2500,6 +2511,140 @@ namespace CalradiaRemembers.Mapping
                : null;
          }
          catch { return null; }
+      }
+
+      /// <summary>
+      ///   A SECOND, message-relevant world-fact block: known facts this NPC would plausibly know that bear
+      ///   specifically on what the player just said, deterministic (no LLM call anywhere in this path).
+      ///   Fixes a modder report: awareness alone (<see cref="ResolveWorldRumors" />'s small top-N by
+      ///   magnitude/faction/distance/recency) starves a fact the NPC DOES know but that never ranked high
+      ///   enough to make the ambient cut, so a pointed question about it got a hallucinated answer instead
+      ///   of the real one. Order is mandatory and never reversed: the KNOWLEDGE gate
+      ///   (<see cref="WorldEventStore.GetKnownEventsRated" />) runs FIRST over a generous candidate pool, THEN
+      ///   <see cref="WorldFactRelevancePolicy" /> ranks only the survivors against the message, so a fact the
+      ///   NPC would not plausibly know can never surface merely because the player asked about it. Best-effort
+      ///   de-dup against the ambient <see cref="ResolveWorldRumors" /> top-6 selection and
+      ///   <see cref="ResolveRealmNews" />'s own pick (both drawn from the identical rated query, so the same
+      ///   ids line up) so a fact is never shown twice under two headers; player-deed events are excluded here
+      ///   too, they are already covered, attributed, by <see cref="ResolvePlayerDeedsHeard" />. Null when
+      ///   nothing relevant surfaces.
+      /// </summary>
+      internal static string ResolveQueryRelevantFacts(Hero hero, string playerMessage, int today)
+      {
+         if (hero == null || string.IsNullOrWhiteSpace(playerMessage)) return null;
+
+         try
+         {
+            IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> known =
+               WorldEventStore.Instance?.GetKnownEventsRated(hero, today, QueryRelevantCandidatePool);
+
+            if (known == null || known.Count == 0) return null;
+
+            HashSet<string> messageKeywords = WorldFactRelevancePolicy.Tokenize(playerMessage);
+            HashSet<string> messageEntityIds = ExtractMessageEntityIds(messageKeywords);
+
+            if (messageKeywords.Count == 0 && messageEntityIds.Count == 0) return null;
+
+            // The ambient blocks (WorldRumorsBlock's top-6, RealmNewsLine's own pick) draw from this SAME
+            // rated query, so their exact event ids line up here: excluding them is a straight id compare,
+            // not a re-implementation of their selection rules.
+            var ambientIds = new HashSet<string>(known.Take(6)
+               .Where(t => !t.Event.InvolvesPlayer && t.Event.Type != WorldEventType.WarDeclared && t.Event.Type != WorldEventType.PeaceDeclared)
+               .Select(t => t.Event.Id)
+               .Where(id => id != null));
+
+            foreach ((WorldEvent e, RumorConfidence _) in known)
+               if (e.Type == WorldEventType.WarDeclared || e.Type == WorldEventType.PeaceDeclared)
+               {
+                  if (e.Id != null) ambientIds.Add(e.Id);
+                  break; // ResolveRealmNews takes only the first realm-level match
+               }
+
+            var scored = new List<(WorldEvent Event, RumorConfidence Confidence, WorldFactRelevance Relevance)>();
+            foreach ((WorldEvent e, RumorConfidence conf) in known)
+            {
+               if (e.InvolvesPlayer || string.IsNullOrWhiteSpace(e.Summary)) continue; // player deeds -> ResolvePlayerDeedsHeard
+               if (e.Id != null && ambientIds.Contains(e.Id)) continue;
+
+               var entityIds = new List<string>();
+               if (e.ActorIds != null) entityIds.AddRange(e.ActorIds);
+               if (e.FactionIds != null) entityIds.AddRange(e.FactionIds);
+
+               WorldFactRelevance relevance = WorldFactRelevancePolicy.Evaluate(entityIds, e.Summary, messageEntityIds, messageKeywords);
+               if (relevance.IsRelevant) scored.Add((e, conf, relevance));
+            }
+
+            if (scored.Count == 0) return null;
+
+            List<string> lines = scored
+               .OrderByDescending(s => s.Relevance.Score)
+               .Take(QueryRelevantMaxLines)
+               .Select(s =>
+               {
+                  string tag = s.Confidence == RumorConfidence.Distant ? "(a distant, unverified rumour) "
+                     : s.Confidence == RumorConfidence.Secondhand ? "(heard secondhand) "
+                     : "";
+                  return $"- {tag}{s.Event.Summary.TrimEnd('.', ' ')}.";
+               })
+               .ToList();
+
+            return lines.Count > 0
+               ? string.Join("\n", lines)
+               : null;
+         }
+         catch { return null; }
+      }
+
+      /// <summary>
+      ///   The hero/faction StringIds named in the player's message, found the same way
+      ///   <see cref="ContextualNameResolver" /> matches hero names against message tokens (diacritic-folded,
+      ///   name split on space/hyphen, short/stop-word parts ignored), mirrored here rather than shared so
+      ///   this project's message-signal extraction stays self-contained next to the policy it feeds.
+      /// </summary>
+      private static HashSet<string> ExtractMessageEntityIds(HashSet<string> messageKeywords)
+      {
+         var ids = new HashSet<string>();
+         if (messageKeywords == null || messageKeywords.Count == 0) return ids;
+
+         var folded = new HashSet<string>(messageKeywords.Select(NameNormalization.Fold));
+
+         try
+         {
+            foreach (Hero h in Hero.AllAliveHeroes)
+            {
+               if (h == null || h.IsHumanPlayerCharacter) continue;
+               string name = h.Name?.ToString();
+               if (!string.IsNullOrEmpty(name) && NameSharesFoldedToken(name, folded)) ids.Add(h.StringId);
+            }
+
+            if (Kingdom.All != null)
+               foreach (Kingdom k in Kingdom.All)
+               {
+                  string name = k?.Name?.ToString();
+                  if (!string.IsNullOrEmpty(name) && NameSharesFoldedToken(name, folded)) ids.Add(k.StringId);
+               }
+
+            if (Clan.All != null)
+               foreach (Clan c in Clan.All)
+               {
+                  string name = c?.Name?.ToString();
+                  if (!string.IsNullOrEmpty(name) && NameSharesFoldedToken(name, folded)) ids.Add(c.StringId);
+               }
+         }
+         catch { /* best effort: a partial id set still lets keyword overlap alone carry relevance */ }
+
+         return ids;
+      }
+
+      private static bool NameSharesFoldedToken(string name, HashSet<string> foldedMessageTokens)
+      {
+         foreach (string part in name.Split(new[] {' ', '-'}, StringSplitOptions.RemoveEmptyEntries))
+         {
+            if (part.Length < WorldFactRelevancePolicy.MinKeywordLength) continue;
+            if (foldedMessageTokens.Contains(NameNormalization.Fold(part))) return true;
+         }
+
+         return false;
       }
 
       private static int TraitLevel(Hero hero, TraitObject trait)
