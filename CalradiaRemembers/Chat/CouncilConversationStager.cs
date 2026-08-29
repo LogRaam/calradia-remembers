@@ -103,7 +103,7 @@ namespace CalradiaRemembers.Chat
          string blocked = ChatManager.PreCouncilBlockReason();
          if (blocked != null) return blocked;
 
-         List<Hero> seated = CouncilRosterResolver.Seated(scope, parleyTargetFactionId);
+         List<Hero> seated = CouncilAttendanceResolver.SeatedInPersonHeroes(scope, parleyTargetFactionId);
 
          if (seated.Count == 0)
             return $"Nobody is seated for a {scope} council right now (nobody available, or nobody of that house).";

@@ -103,6 +103,30 @@ namespace CalradiaRemembers.Assemblies
       }
 
       /// <summary>
+      ///   Convergence Inc 3a: the ONE seated-roster call both <c>ChatManager.OpenForCouncil</c> and
+      ///   <c>CouncilConversationStager</c> (StageCouncil + ResolveAnchor) now go through, so the anchor a
+      ///   staged conversation loads and the roster the council actually opens over can never diverge (they
+      ///   used to share <see cref="CouncilRosterResolver.Seated" /> directly; this is the same sharing, now
+      ///   pointed at the new policy). For the Parley scope, the seat is another faction's lord, which
+      ///   <see cref="CouncilAttendancePolicy" /> resolves to Ambassador rather than InPerson, and seating a
+      ///   generated ambassador stand-in is deliberately NOT built yet (Inc 3b), so Parley is left on the OLD
+      ///   <see cref="CouncilRosterResolver.Seated" /> path, completely unchanged, until that lands. Every other
+      ///   scope seats only InPerson verdicts (an own-faction lord too far away is now simply absent, the
+      ///   "war council felt magic" fix); Ambassador seats for those scopes are also Inc 3b's job, not this one's.
+      /// </summary>
+      public static List<Hero> SeatedInPersonHeroes(CouncilScope scope, string parleyTargetFactionId = null)
+      {
+         if (scope == CouncilScope.Parley) return CouncilRosterResolver.Seated(scope, parleyTargetFactionId);
+
+         return Resolve(scope, DefaultThresholdDays, parleyTargetFactionId)
+               .Where(s => s.Attendance == CouncilAttendance.InPerson)
+               .Select(s => s.RepresentedHero)
+               .Where(h => h != null)
+               .Distinct()
+               .ToList();
+      }
+
+      /// <summary>
       ///   Debug/self-test seam: projects ONE real hero's facts (see <see cref="BuildFacts" />) and runs the pure
       ///   policy, returning the RAW result INCLUDING Absent (<see cref="Resolve" /> filters Absent out of the
       ///   production seated list). Lets a self-test assert a specific candidate's verdict and reason, a live

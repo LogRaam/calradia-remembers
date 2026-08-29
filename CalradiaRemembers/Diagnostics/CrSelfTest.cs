@@ -320,6 +320,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("assembly_revalidate", Severity.Light, "Mechanical (ASSEMBLY Inc 1 robustness): the daily re-validation reads the live host + traveller state and leaves a healthy assembly intact (host/traveller edge combinations are pinned by the pure policy tests)", TestAssemblyRevalidate),
          new SelfTest("council_parley_snapshot", Severity.Light, "Mechanical (Parley council): CouncilSessionSnapshot's additive ParleyTargetFactionId field round-trips through the exact JsonConvert path CouncilSessionBehavior.SyncData uses, both WITH a value set and WITHOUT one present in the JSON at all (an old pre-Parley snapshot) -> the missing-field case must deserialize to null rather than throw. No live campaign state touched", TestCouncilParleySnapshot),
          new SelfTest("council_attendance", Severity.Light, "Mechanical (Convergence Inc 2): drives the REAL CouncilAttendanceResolver.Resolve against the live campaign for CouncilScope.Party -> every hero it seats is InParty (skips if the party carries no other hero); then, mechanically, feeds CouncilAttendancePolicy.Decide a constructed far own-faction fact directly -> asserts Absent/TooFar and never Ambassador (the 'your own house never sends a stand-in' guarantee); a live prisoner, if any exists, resolves to Absent/Prisoner. No world mutation", TestCouncilAttendance),
+         new SelfTest("council_roster_swap", Severity.Light, "Mechanical (Convergence Inc 3a): for a live NON-parley scope (ClanLords), every hero CouncilAttendanceResolver.SeatedInPersonHeroes seats is independently re-judged InPerson via DebugDecideFor, no seated hero is a prisoner, and no Absent-rated candidate from the scope's own pool got seated (the 'war council felt magic' fix: a far own-faction lord is now absent). For Parley, asserts the helper is still a pure pass-through to the OLD CouncilRosterResolver.Seated (identical set), proving this increment left that scope untouched. Skips MANUAL when the campaign has no ClanLords candidate. No world mutation", TestCouncilRosterSwap),
          new SelfTest("envoy_identity", Severity.Light, "Mechanical (Convergence Inc 4): picks any live OTHER-faction kingdom leader, drives the REAL EnvoyFactory.Create -> asserts a non-null synthetic profile whose Name is 'Herald of {faction}', whose persona names both the faction and the leader, whose Id starts with 'cr_envoy_', and which was NEVER written to the store (Store.Get right after Create is null). Skips MANUAL when no other-faction kingdom has a live leader. No world mutation, nothing to clean up (never persisted)", TestEnvoyIdentity),
          new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate),
          new SelfTest("courtship_trial", Severity.Light, "Mechanical (COURTSHIP TRIAL): the pure override table proves a passed trial clears ONLY soft RegardTooLow and NEVER a hard blocker; a REAL hard-blocked hero force-marked passed still resolves to that hard reason (offer stays CLOSED); then a real soft-blocked prospect (regard forced low) is driven through the behavior's own daily-eval seam for the full term -> assert the trial passes, a MarriageProposal letter is queued FROM her, and MarriageBlockedBecause becomes None; a trial that STOPS accompanying before the term lapses (no completion). Restores regard + trial + letter; skips MANUAL when the player is already wed or no soft-blockable prospect exists", TestCourtshipTrial),
@@ -2265,6 +2266,55 @@ namespace CalradiaRemembers.Diagnostics
          {
             t.Note("no live prisoner in this campaign (optional check skipped)");
          }
+
+         return t.Line();
+      }
+
+      // Convergence Inc 3a: proves the shared roster (CouncilAttendanceResolver.SeatedInPersonHeroes) that
+      // ChatManager.OpenForCouncil and CouncilConversationStager now BOTH walk actually reflects the new
+      // attendance policy for a live NON-parley scope, the wiring this increment exists for (a far own-faction
+      // lord no longer sits at the table, the "war council felt magic" fix). Every hero the helper returns is
+      // independently re-judged InPerson via DebugDecideFor (the only verdict Resolve keeps); a real live
+      // prisoner, and every Absent-rated candidate in the scope's own pool, must be missing from the helper's
+      // result. The Parley half proves this increment kept its promise to leave that scope untouched: the
+      // helper's own Parley branch is a straight pass-through to the OLD CouncilRosterResolver.Seated, so the
+      // two calls must return the identical set. No world mutation.
+      private static string TestCouncilRosterSwap(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("council_roster_swap");
+
+         CouncilScope scope = CouncilScope.ClanLords;
+         List<Hero> candidatePool = CouncilRosterResolver.Resolve(scope)
+            .Select(s => s.Hero)
+            .Where(h => h != null)
+            .Distinct()
+            .ToList();
+
+         if (t.Skip(candidatePool.Count == 0, $"no {scope} candidate exists in this campaign to prove the swap against")) return t.Line();
+
+         List<Hero> seatedInPerson = CouncilAttendanceResolver.SeatedInPersonHeroes(scope);
+
+         t.Note($"candidatePoolCount={candidatePool.Count}, seatedInPersonCount={seatedInPerson.Count}");
+         t.Expect("everyReturnedHeroIsRatedInPerson",
+            seatedInPerson.All(h =>
+               CouncilAttendanceResolver.DebugDecideFor(h, scope, CouncilAttendanceResolver.DefaultThresholdDays).Attendance
+               == CouncilAttendance.InPerson),
+            true);
+         t.Expect("noReturnedHeroIsAPrisoner", seatedInPerson.Any(h => h.IsPrisoner), false);
+
+         List<Hero> absentCandidates = candidatePool
+            .Where(h =>
+               CouncilAttendanceResolver.DebugDecideFor(h, scope, CouncilAttendanceResolver.DefaultThresholdDays).Attendance
+               == CouncilAttendance.Absent)
+            .ToList();
+         t.Note($"absentCandidateCount={absentCandidates.Count}");
+         t.Expect("noAbsentCandidateSeated", absentCandidates.Any(h => seatedInPerson.Contains(h)), false);
+
+         string parleyTargetFactionId = Kingdom.All?.FirstOrDefault(k => k != null)?.StringId;
+         List<Hero> parleyOld = CouncilRosterResolver.Seated(CouncilScope.Parley, parleyTargetFactionId);
+         List<Hero> parleyNew = CouncilAttendanceResolver.SeatedInPersonHeroes(CouncilScope.Parley, parleyTargetFactionId);
+         t.Note($"parleyTargetFactionId={parleyTargetFactionId ?? "(none)"}, parleyOldCount={parleyOld.Count}, parleyNewCount={parleyNew.Count}");
+         t.Expect("parleyScopeUntouched", parleyNew.SequenceEqual(parleyOld), true);
 
          return t.Line();
       }

@@ -555,7 +555,8 @@ namespace CalradiaRemembers.Chat
       ///   non-null by design there, unlike the ordinary map-overlay path (cr.council), which must still refuse
       ///   inside somebody else's scene. <paramref name="parleyTargetFactionId" /> is the Parley's own extra
       ///   parameter (null for every other scope): the StringId of the specific enemy faction this parley was
-      ///   convened against, carried into the roster (CouncilRosterResolver.Seated) and the view-model
+      ///   convened against, carried into the roster (<see cref="CouncilAttendanceResolver.SeatedInPersonHeroes" />,
+      ///   still <see cref="CouncilRosterResolver.Seated" /> itself for Parley) and the view-model
       ///   (ActivateCouncil), which in turn hands it to the save-safe session behavior.
       /// </summary>
       public static string OpenForCouncil(CouncilScope scope, bool allowInScene = false, string parleyTargetFactionId = null)
@@ -567,7 +568,7 @@ namespace CalradiaRemembers.Chat
          string blocked = CouncilOpenBlockedReason(allowInScene);
          if (blocked != null) return blocked;
 
-         List<Hero> seated = CouncilRosterResolver.Seated(scope, parleyTargetFactionId);
+         List<Hero> seated = CouncilAttendanceResolver.SeatedInPersonHeroes(scope, parleyTargetFactionId);
 
          if (seated.Count == 0)
             return $"Nobody is seated for a {scope} council right now (nobody available, or nobody of that house).";
