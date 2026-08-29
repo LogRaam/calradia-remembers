@@ -84,6 +84,13 @@ namespace CalradiaRemembers.WorldAlmanac
          }
       }
 
+      // The top three as three INDEPENDENT bindings, so the prefab can place each card absolutely over its own
+      // painted frame instead of flowing all three through one ListPanel (which cannot align each to a fixed
+      // frame). Null when fewer than three kingdoms exist; the card's widget then simply binds to nothing.
+      [DataSourceProperty] public PowerCardViewModel First => _podium.Count > 0 ? _podium[0] : null;
+      [DataSourceProperty] public PowerCardViewModel Second => _podium.Count > 1 ? _podium[1] : null;
+      [DataSourceProperty] public PowerCardViewModel Third => _podium.Count > 2 ? _podium[2] : null;
+
       [DataSourceProperty]
       public MBBindingList<PowerRowViewModel> Ranked
       {
