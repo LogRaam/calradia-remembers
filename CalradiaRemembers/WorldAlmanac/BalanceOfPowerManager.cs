@@ -1,15 +1,17 @@
 // Code written by Gabriel Mailhot, 27/08/2026.
-// World Almanac Inc 3, the show/hide lifecycle for the "Balance of Power" panel, mirroring ChronicleManager: it
-// gathers the live per-kingdom facts, scores them, and opens a Gauntlet layer with the prefab over the top
-// screen. Opened from cr.powerindex's sibling command cr.balanceofpower for now (quick visual iteration); the
-// leak-free campaign-bar entry (the council staged-scene recipe) is a later step, since a layer left open over
-// the LIVE map leaks VRAM (see project_council_hosting_leak). A read-and-close window opened briefly is fine.
+// World Almanac Inc 3, the show/hide lifecycle for the "Balance of Power" panel: gathers the live per-kingdom
+// facts, scores them, and opens the prefab. Hosted as a PUSHED SCREEN (BalanceOfPowerScreen), the same
+// leak-free recipe the council/chat window uses (see Chat/ChatScreen.cs): pushing a real screen makes the
+// engine suspend the live campaign map below, instead of layering the panel over the top screen (which leaks
+// VRAM the longer it stays open, see project_council_hosting_leak). Opened from cr.balanceofpower's sibling
+// command cr.powerindex for now (quick visual iteration).
+// 29/08/2026: converted from a TopScreen overlay layer to this pushed-screen host after Gabriel left the panel
+// open for several minutes and the game crashed (the documented map-overlay VRAM leak).
 
 #region
 
 using System.Collections.Generic;
 using CalradiaRemembers.Logic.WorldAlmanac;
-using TaleWorlds.Engine.GauntletUI;
 using TaleWorlds.ScreenSystem;
 
 #endregion
@@ -19,57 +21,47 @@ namespace CalradiaRemembers.WorldAlmanac
    /// <summary>Show/hide lifecycle for the Balance of Power window.</summary>
    public static class BalanceOfPowerManager
    {
-      private const string PrefabName = "CalradiaRemembersBalanceOfPower";
-      private static ScreenBase _host;
-
-      private static GauntletLayer _layer;
-      private static GauntletMovieIdentifier _movieId;
+      private static BalanceOfPowerScreen _screen;
       private static BalanceOfPowerViewModel _vm;
 
-      public static bool IsOpen => _layer != null;
+      public static bool IsOpen => _screen != null;
 
       public static void Close()
       {
          if (!IsOpen) return;
 
-         _layer.IsFocusLayer = false;
-         _layer.InputRestrictions.ResetInputRestrictions();
-         _layer.ReleaseMovie(_movieId);
-         _host?.RemoveLayer(_layer);
+         _screen.TearDown();
+         if (ScreenManager.TopScreen == _screen) ScreenManager.PopScreen();
+         else ModLog.Info("BalanceOfPowerManager.Close: our screen is not on top, leaving the pop to the engine.");
 
-         _layer = null;
-         _movieId = null;
-         _host = null;
-         _vm = null;
+         ResetState();
 
          ModLog.Info("Balance of Power window closed.");
+      }
+
+      // Nulls our references. Called both from Close and from the screen's OnClosed callback, so a pop by any
+      // path (our Close, an Escape, an engine pop) clears IsOpen; idempotent, so being called twice is harmless.
+      private static void ResetState()
+      {
+         _screen = null;
+         _vm = null;
       }
 
       public static void Open()
       {
          if (IsOpen) return;
 
-         _host = ScreenManager.TopScreen;
-         if (_host == null)
-         {
-            ModLog.Error("BalanceOfPowerManager.Open: no top screen available.");
-
-            return;
-         }
-
          List<KingdomPowerFacts> facts = KingdomPowerFactsBuilder.Build();
          PowerIndexResult result = PowerIndexPolicy.Compute(facts);
          _vm = new BalanceOfPowerViewModel(result, facts) {OnCloseRequested = Close};
 
-         _layer = new GauntletLayer("CalradiaRemembersBalanceOfPower", 11000);
-         _layer.InputRestrictions.SetInputRestrictions();
-         _movieId = _layer.LoadMovie(PrefabName, _vm);
+         // A pushed screen suspends the map below on its own (same as the council/chat pushed-screen mode), so
+         // no separate MapSceneSuspender call is needed here. OnClosed resets our state whatever pops the screen
+         // (our Close, an Escape, an engine pop), so a bypass of Close can never leave IsOpen stuck true.
+         _screen = new BalanceOfPowerScreen(_vm) {OnClosed = ResetState};
+         ScreenManager.PushScreen(_screen);
 
-         _host.AddLayer(_layer);
-         _layer.IsFocusLayer = true;
-         ScreenManager.TrySetFocus(_layer);
-
-         ModLog.Info($"Balance of Power window opened on {_host.GetType().Name} ({result.Ranked.Count} kingdoms).");
+         ModLog.Info($"Balance of Power window opened as a pushed screen ({result.Ranked.Count} kingdoms).");
       }
 
       /// <summary>
@@ -84,9 +76,7 @@ namespace CalradiaRemembers.WorldAlmanac
 
          try
          {
-            UIResourceManager.WidgetFactory?.CheckForUpdates();
-            _layer.ReleaseMovie(_movieId);
-            _movieId = _layer.LoadMovie(PrefabName, _vm);
+            _screen.ReloadMovie();
             ModLog.Info("[RELOAD_UI] Balance of Power rebuilt in place.");
          }
          catch (System.Exception ex)
