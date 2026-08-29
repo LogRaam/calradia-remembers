@@ -1,0 +1,10 @@
+Version 2.4.0
+
+A couple of conversation fixes, and a new supported way for other mods to build on Calradia Remembers. Your saves carry over untouched.
+
+Fixed
+- Memory compression no longer stalls on higher Reasoning settings. With Reasoning Effort set to Medium or High, the quiet background step that trims an old acquaintance's memories could spend its entire budget "thinking" and fail, leaving that character's memory untrimmed. Housekeeping steps like this now always run with reasoning off, so your Reasoning Effort still shapes the actual conversation while the background work runs clean.
+- Offering a gift in your own words now finds the right item. Tell a character you are giving them "a pendant" (or a necklace, a ring, and so on) and the game used to look for an item named exactly that, find none, and answer that you had nothing to give, even with jewelry in your bags. A freely narrated gift now matches a fitting item you actually carry (the least valuable one, so a flourish never hands over your finest piece), and only refuses when nothing plausible fits.
+
+For mod authors
+- A supported door to extend Calradia Remembers without patching its internals. CrActions.Register lets your mod define an action a character can take in a conversation (the model is taught it, and your mod runs it like a built-in verb); CrPrompt.RegisterVariable feeds a live value into the prompt. Text-to-speech and subtitle mods also get a stable per-conversation id and a line index on every spoken line, to group and order a conversation. See the Extension guides that ship with the mod (HOWTO_Actions, HOWTO_Voicing).
