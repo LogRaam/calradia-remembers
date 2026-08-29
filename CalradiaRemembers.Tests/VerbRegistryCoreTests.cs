@@ -229,5 +229,53 @@ namespace CalradiaRemembers.Tests
 
          registry.Execute("GIVE_INFLUENCE", "the-action", "ctx").Should().Be("OUTCOME");
       }
+
+      // ── Unregister ───────────────────────────────────────────────────────
+
+      // The coming public "register an external action" API needs a clean way to undo a registration (API
+      // hygiene, and an in-game self-test that must clean up after itself): once unregistered, the verb must be
+      // gone from both dispatch (Execute) and teaching (ComposeTeachings), not merely hidden from one of them.
+      [Test]
+      public void GIVEN_a_registered_verb_WHEN_unregistered_by_name_THEN_it_no_longer_executes_or_teaches()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         var verb = new FakeVerb("bc_bridge_summon_caravan", true, "TEACH\n", "OUTCOME");
+         registry.Register(verb);
+
+         bool result = registry.Unregister("bc_bridge_summon_caravan");
+
+         result.Should().BeTrue();
+         registry.Execute("bc_bridge_summon_caravan", "the-action", "ctx").Should().BeNull();
+         registry.ComposeTeachings("ctx").Should().BeNull();
+      }
+
+      // The LLM's/mod's own "type:"/name text is not guaranteed to be an exact-case literal, so Unregister must
+      // tolerate the same case mismatch Execute and FindByName already tolerate, or a legitimate teardown call
+      // silently fails to remove anything.
+      [Test]
+      public void GIVEN_a_registered_verb_WHEN_unregistered_with_a_differently_cased_name_THEN_it_still_removes_it()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeVerb("give_influence", true, "TEACH\n", "OUTCOME"));
+
+         bool result = registry.Unregister("GIVE_INFLUENCE");
+
+         result.Should().BeTrue();
+         registry.Execute("give_influence", "the-action", "ctx").Should().BeNull();
+      }
+
+      // An unknown name, or a null/empty one, must be a safe no-op, never an exception that could take down a
+      // mod's own teardown path (an in-game self-test cleaning up after itself).
+      [Test]
+      public void GIVEN_an_unknown_or_blank_name_WHEN_Unregister_is_called_THEN_it_returns_false_without_throwing()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeVerb("give_influence", true, "TEACH\n", "OUTCOME"));
+
+         registry.Unregister("no_such_verb").Should().BeFalse();
+         registry.Unregister(null).Should().BeFalse();
+         registry.Unregister("").Should().BeFalse();
+         registry.Execute("give_influence", "the-action", "ctx").Should().Be("OUTCOME");
+      }
    }
 }

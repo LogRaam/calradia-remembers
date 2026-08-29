@@ -64,6 +64,21 @@ namespace CalradiaRemembers.Logic.Verbs
          if (verb != null) _verbs.Add(verb);
       }
 
+      /// <summary>
+      ///   Removes the verb whose Name matches (ordinal, case-insensitive, the same match FindByName/Execute use),
+      ///   so a registration can be cleanly undone. Returns false, as a no-op, when <paramref name="name" /> is
+      ///   null or empty, or when nothing is registered under that name. When, somehow, more than one verb shares
+      ///   the name, every matching verb is removed.
+      /// </summary>
+      public bool Unregister(string name)
+      {
+         if (string.IsNullOrEmpty(name)) return false;
+
+         int removed = _verbs.RemoveAll(v => string.Equals(v.Name, name, StringComparison.OrdinalIgnoreCase));
+
+         return removed > 0;
+      }
+
       #region private
 
       /// <summary>

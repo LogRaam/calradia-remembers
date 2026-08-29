@@ -55,6 +55,9 @@ namespace CalradiaRemembers.Verbs
       /// <summary>Adds a verb, in the order its teaching should appear when composed without an explicit order.</summary>
       public void Register(IConversationVerb verb) => _core.Register(verb);
 
+      /// <summary>Removes the verb registered under this name, so a registration can be cleanly undone.</summary>
+      public bool Unregister(string name) => _core.Unregister(name);
+
       #region private
 
       private static VerbRegistry BuildDefault()
