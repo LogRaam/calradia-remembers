@@ -1,0 +1,6 @@
+Version 2.4.2
+
+Reasoning Effort now reaches NanoGPT. Your saves carry over untouched.
+
+Fixed
+- NanoGPT now honors the Reasoning Effort setting. If you run NanoGPT (for example with GLM models), the mod was not sending a reasoning signal, so reasoning stayed on the model's own default. It is now sent the way NanoGPT expects, driven by the same Reasoning Effort (and NSFW Reasoning Effort) dials as the other providers, so you can turn reasoning up or down there too. The action interpreter deliberately stays reasoning-off, so it never spends its reply budget thinking instead of reading the scene.
