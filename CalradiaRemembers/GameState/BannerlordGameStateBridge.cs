@@ -363,6 +363,13 @@ namespace CalradiaRemembers.GameState
             case "teach_skill":
                return ExecuteTeachSkill(action, npcHero, context);
             default:
+               // Extension Surface (CrActions.Register): a type that matches none of the cases above may
+               // still be a THIRD-PARTY action a mod registered at runtime, not a hallucination. Try the
+               // shared VerbRegistry first; only a genuinely unknown/invented type falls through to the
+               // refusal below.
+               ActionOutcome external = VerbRegistry.Instance.Execute(action, new VerbContext(npcHero, context?.Profile, this, null, context));
+               if (external != null) return external;
+
                // Safety net: an unknown / hallucinated verb must SURFACE a refusal (player line + transcript
                // OOC note), never vanish as a silent null, or the model's invented deed goes uncorrected.
                ModLog.Info($"[ACTION] Unknown type '{action.Type}' refused (no executor).");

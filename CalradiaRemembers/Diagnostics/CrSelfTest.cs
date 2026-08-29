@@ -51,6 +51,7 @@ using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Actions;
 using NpcMemoryService.Core.Captivity;
+using NpcMemoryService.Core.Extension;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Services;
@@ -220,6 +221,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("letter_leak_consequences", Severity.Light, "Mechanical (Inc 2): apply a fired leak's lasting consequences via CourierService.DebugApplyLeakConsequences on a grudge-free lord -> assert a LeakedLetter grudge against the player was planted AND the player lost renown, then clear the planted grudge and restore the renown. Skips if no grudge-free lord exists. No LLM.", TestLetterLeakConsequences),
          new SelfTest("letter_offer_prisoner_ransom", Severity.Light, "Mechanical (PrisonerOffer accept): capture an in-party lord into the player's prison, make a buyer solvent, run the shared PrisonerRansomExecutor -> assert the sale succeeds, the captive leaves the player's prison, and the player is paid. Restores everything (frees the captive, reverts both purses). Skips if no capturable lord / no buyer. No LLM.", TestLetterOfferPrisonerRansom),
          new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
+         new SelfTest("external_action_registration", Severity.Light, "Extension Surface (CrActions.Register): a third-party mod's one-call registration door. Registers a dummy external action -> asserts it appears in GameActionCatalog.Types, BannerlordGameStateBridge.HandledActionTypes, and LlmServices.DebugActionVocabulary (the 1:1 prose prompt); drives it through the REAL bridge (ExecuteAction with an unmatched type falls through to VerbRegistry.Instance.Execute) and asserts the dummy Execute callback's own message/success came back; asserts a duplicate Name, a reserved chat-flow-control Name (end_conversation), and a null-Execute spec are all rejected. Unregisters in a finally so nothing registered here can leak into a later test or a real prompt", TestExternalActionRegistration),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
          new SelfTest("stance_letter", Severity.Heavy, "hostile stance -> weekly eval -> assert a cold StanceHostility letter is queued", TestStanceLetter),
@@ -8050,6 +8052,93 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("extraInCatalog", extraInCatalog.Count == 0
             ? "(none)"
             : string.Join(", ", extraInCatalog), "(none)");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   external_action_registration (Extension Surface, 28/08/2026): CrActions.Register is the PUBLIC,
+      ///   supported door a third-party mod uses to give the LLM one of its own executable deeds, replacing
+      ///   the fragile pattern of casting GameActionCatalog.All to a List and mutating it by reflection. This
+      ///   proves the WHOLE chain a registered action must actually complete: taught to the interpreter
+      ///   catalog, kept in lockstep with the bridge's own dispatch table, taught to the 1:1 prose
+      ///   vocabulary, and genuinely EXECUTED when the real bridge dispatches an [ACTION] type it does not
+      ///   itself recognise through VerbRegistry. Also pins the three rejection paths (duplicate Name, a
+      ///   reserved chat-flow-control Name, an invalid spec) so a mod cannot silently shadow a built-in verb
+      ///   or a control CR's own chat window depends on. Cleans up in a finally: a leaked registration would
+      ///   pollute every later prompt AND action_catalog_parity for the rest of the session.
+      /// </summary>
+      private static string TestExternalActionRegistration(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("external_action_registration");
+
+         const string name = "crselftest_ext_action";
+         const string execMessage = "self-test external action ran";
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC to drive the real dispatch through")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         var executed = false;
+
+         var spec = new ExternalActionSpec {
+            Name = name,
+            Description = "[SELFTEST] a dummy external action, never a real deed.",
+            WhenToEmit = new List<string> {"never genuinely emitted: self-test only"},
+            SourceMod = "CrSelfTest",
+            Execute = request =>
+            {
+               executed = true;
+
+               return new ActionResult {Success = true, Message = execMessage};
+            }
+         };
+
+         try
+         {
+            ActionRegistrationResult first = CrActions.Register(spec);
+            t.Expect("firstRegistrationSucceeds", first, ActionRegistrationResult.Registered);
+            t.Expect("appearsInCatalog", GameActionCatalog.Types.Contains(name), true);
+            t.Expect("appearsInHandledActionTypes", BannerlordGameStateBridge.HandledActionTypes.Contains(name), true);
+
+            bool inProseVocabulary = LlmServices.DebugActionVocabulary(RelationWarmth.Normal).Any(d => d.Type == name);
+            t.Expect("appearsInProseVocabulary", inProseVocabulary, true);
+
+            // Drive the REAL bridge: "crselftest_ext_action" matches none of ExecuteAction's own cases, so
+            // the default branch's VerbRegistry.Instance.Execute call is the one actually dispatching it,
+            // proving the whole adapter + registry chain runs the spec's own Execute callback.
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = name}, npc, new ActionContext(profile, null));
+
+            t.Expect("dispatchedTheRealExecuteCallback", executed, true);
+            t.Expect("outcomeCarriesTheDummyMessage", outcome?.Message, execMessage);
+            t.Expect("outcomeIsFavourable", outcome?.IsPositive, true);
+
+            var duplicate = new ExternalActionSpec {
+               Name = name,
+               Execute = _ => new ActionResult {Success = true, Message = "should never register"}
+            };
+            t.Expect("duplicateNameRejected", CrActions.Register(duplicate), ActionRegistrationResult.RejectedDuplicate);
+
+            var reserved = new ExternalActionSpec {
+               Name = "end_conversation",
+               Execute = _ => new ActionResult {Success = true, Message = "should never register"}
+            };
+            t.Expect("reservedChatFlowNameRejected", CrActions.Register(reserved), ActionRegistrationResult.RejectedDuplicate);
+
+            var noExecute = new ExternalActionSpec {Name = "crselftest_ext_action_no_exec", Execute = null};
+            t.Expect("nullExecuteRejected", CrActions.Register(noExecute), ActionRegistrationResult.RejectedInvalid);
+         }
+         finally
+         {
+            // Critical: this self-test must leave NOTHING registered, or it would pollute every real prompt
+            // (catalog + prose vocabulary) and break action_catalog_parity for the rest of the session.
+            bool removed = CrActions.Unregister(name);
+            t.Expect("cleanupActuallyRemovedIt", removed, true);
+            t.Expect("goneFromCatalogAfterCleanup", GameActionCatalog.Types.Contains(name), false);
+            t.Expect("goneFromHandledActionTypesAfterCleanup", BannerlordGameStateBridge.HandledActionTypes.Contains(name), false);
+         }
 
          return t.Line();
       }

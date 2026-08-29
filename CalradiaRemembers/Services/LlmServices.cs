@@ -4,11 +4,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Settings;
+using NpcMemoryService.Core.Actions;
 using NpcMemoryService.Core.LlmClient;
 using NpcMemoryService.Core.LlmClient.OpenRouter;
 using NpcMemoryService.Core.Models;
@@ -356,8 +358,9 @@ namespace CalradiaRemembers.Services
       internal static IReadOnlyList<GameActionDefinition> DebugActionVocabulary(RelationWarmth warmth)
          => BuildActionVocabulary(warmth);
 
-      private static IReadOnlyList<GameActionDefinition> BuildActionVocabulary(RelationWarmth warmth) =>
-         new List<GameActionDefinition> {
+      private static IReadOnlyList<GameActionDefinition> BuildActionVocabulary(RelationWarmth warmth)
+      {
+         var vocabulary = new List<GameActionDefinition> {
             new() {
                Type = "change_relation",
                Description = ChangeRelationDescription(warmth),
@@ -414,6 +417,24 @@ namespace CalradiaRemembers.Services
                Parameters = new List<string> {"amount"}
             }
          };
+
+         // Extension Surface (CrActions.Register): teach the 1:1 prose prompt any externally-registered
+         // action too, so a third-party mod's verb is not only visible to the Action Interpreter path.
+         // Built-ins are skipped (already hand-authored above, with tuned wording) so none is taught twice.
+         // In normal play nothing is registered, so this adds nothing and the vocabulary stays unchanged.
+         foreach (GameActionSpec spec in GameActionCatalog.All)
+         {
+            if (GameActionCatalog.BuiltInTypes.Contains(spec.Type)) continue;
+
+            vocabulary.Add(new GameActionDefinition {
+               Type = spec.Type,
+               Description = spec.Description,
+               Parameters = spec.Parameters.Select(p => p.Name).ToList()
+            });
+         }
+
+         return vocabulary;
+      }
 
       /// <summary>
       ///   Assembles the change_relation instruction. The opening, the negative scale,

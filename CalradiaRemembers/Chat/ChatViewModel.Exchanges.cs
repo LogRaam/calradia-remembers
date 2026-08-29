@@ -25,6 +25,7 @@ using CalradiaRemembers.Services;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Styles;
 using CalradiaRemembers.WorldEvents;
+using NpcMemoryService.Core.Actions;
 using NpcMemoryService.Core.Compression;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Parsing;
@@ -610,7 +611,18 @@ namespace CalradiaRemembers.Chat
                CourtVerbsOffered = !string.IsNullOrWhiteSpace(context.ExtraActionTeachings)
             };
 
-            return TaughtActionSet.ForTurn(facts);
+            ISet<string> taught = TaughtActionSet.ForTurn(facts);
+
+            // Extension Surface (CrActions.Register): union in every externally-registered action still
+            // eligible/taught this way is out of this audit's reach, so unioning the whole registered set
+            // in avoids a false "executed but never taught" flag on a real, registered third-party verb.
+            // Built-ins are excluded: they are already covered above by TaughtActionFacts. In normal play
+            // nothing is registered, so this loop adds nothing and the set is unchanged.
+            foreach (string type in GameActionCatalog.Types)
+               if (!GameActionCatalog.BuiltInTypes.Contains(type))
+                  taught.Add(type);
+
+            return taught;
          }
          catch (Exception ex)
          {
