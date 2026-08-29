@@ -1627,7 +1627,15 @@ namespace CalradiaRemembers.Chat
             // up to 3 extra captor turns per player message — walls of text, the player rarely
             // getting to reply, and the Continue/Try-something pause never reached. Captive scenes
             // use the continuation pause below instead.
-            if (!suppressGroupTail && witnessReactions.Count > 0 && speaker.IsMain && !IsCaptiveEncounter
+            // A gesture-only reaction (a wordless *smirk*, silence) must never trigger this on its own:
+            // player report showed the main NPC treating a bystander's mute gesture as being blown off
+            // and escalating ("silent treatment") against a silence the same model just invented. So the
+            // auto counter-reply requires at least one witness who actually SPOKE (WitnessSpeechDetector);
+            // a purely wordless reaction still renders above and still reaches the transcript below,
+            // it just never drives this loop.
+            bool anyWitnessSpoke = witnessReactions.Exists(r => WitnessSpeechDetector.HasSpokenWords(r.text));
+
+            if (!suppressGroupTail && anyWitnessSpoke && speaker.IsMain && !IsCaptiveEncounter
                 && _witnessExchangesThisRound < WitnessExchangeCap && !_conversationEnded)
             {
                _witnessExchangesThisRound++;
@@ -1870,12 +1878,30 @@ namespace CalradiaRemembers.Chat
             {
                bool isLast = _witnessExchangesThisRound >= WitnessExchangeCap;
 
+               // A gesture-only reaction (wordless *smirk*, silence) must never be the thing the main NPC
+               // is made to answer: that is exactly the reported "silent treatment" bug, where the model
+               // escalates against a bystander's silence it invented itself. If NONE of this iteration's
+               // reactions actually spoke, there is nothing to reply to: commit them (same as the no-15C
+               // path would) and end the exchange quietly rather than firing a counter-reply against silence.
+               List<(string name, string heroId, string text)> spokenReactions =
+                  currentReactions.Where(r => WitnessSpeechDetector.HasSpokenWords(r.text)).ToList();
+
+               if (spokenReactions.Count == 0)
+               {
+                  foreach (var (n, h, t) in currentReactions) RecordTranscript(false, n, h, t);
+
+                  break;
+               }
+
                // Session built WITHOUT currentReactions — they are not committed yet.
                // They travel as the stimulus so the LLM sees them as the final user turn.
                await EnsureTranscriptCompressedAsync();
                ChatSession session = BuildSessionFor(mainSpeaker);
+               // Stimulus is built ONLY from reactions that actually spoke: a gesture-only reaction
+               // mixed in with a spoken one is still committed to the transcript further down, it just
+               // never becomes part of what the main NPC is prompted to answer.
                string stimulus = string.Join("\n",
-                  currentReactions.Select(r => $"[{r.name}]: {r.text}"));
+                  spokenReactions.Select(r => $"[{r.name}]: {r.text}"));
 
                EncounterContext context = EncounterContextBuilder.Build(
                   mainSpeaker.Hero, profile, behavior.GameStateBridge,
