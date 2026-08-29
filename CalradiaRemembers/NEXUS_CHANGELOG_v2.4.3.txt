@@ -1,0 +1,8 @@
+Version 2.4.3
+
+Characters answer with what they actually know, in their own words. Your saves carry over untouched.
+
+Fixed
+- Ask a character about a specific lord or war and you get an answer grounded in what they know, not invention. Until now a character only offered the few rumours highest on their mind, chosen without regard to your question, so asking about something specific could draw a made-up reply. Now, alongside that ambient news, a character also raises what they genuinely know that bears on what you just said (matched to the people and subjects you mention), and only what they could plausibly have heard.
+- Characters relay news in their own voice instead of word for word. A piece of news phrased as a tidy sentence could be recited verbatim by some models; a character now treats it as something they know and tells it in their own words.
+- NanoGPT now honors the Reasoning Effort setting. It was not being sent a reasoning signal, so reasoning stayed on the model's own default; it is now driven by the same Reasoning Effort (and NSFW Reasoning Effort) dials as the other providers.
