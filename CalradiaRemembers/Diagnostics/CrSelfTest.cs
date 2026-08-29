@@ -320,6 +320,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("assembly_revalidate", Severity.Light, "Mechanical (ASSEMBLY Inc 1 robustness): the daily re-validation reads the live host + traveller state and leaves a healthy assembly intact (host/traveller edge combinations are pinned by the pure policy tests)", TestAssemblyRevalidate),
          new SelfTest("council_parley_snapshot", Severity.Light, "Mechanical (Parley council): CouncilSessionSnapshot's additive ParleyTargetFactionId field round-trips through the exact JsonConvert path CouncilSessionBehavior.SyncData uses, both WITH a value set and WITHOUT one present in the JSON at all (an old pre-Parley snapshot) -> the missing-field case must deserialize to null rather than throw. No live campaign state touched", TestCouncilParleySnapshot),
          new SelfTest("council_attendance", Severity.Light, "Mechanical (Convergence Inc 2): drives the REAL CouncilAttendanceResolver.Resolve against the live campaign for CouncilScope.Party -> every hero it seats is InParty (skips if the party carries no other hero); then, mechanically, feeds CouncilAttendancePolicy.Decide a constructed far own-faction fact directly -> asserts Absent/TooFar and never Ambassador (the 'your own house never sends a stand-in' guarantee); a live prisoner, if any exists, resolves to Absent/Prisoner. No world mutation", TestCouncilAttendance),
+         new SelfTest("envoy_identity", Severity.Light, "Mechanical (Convergence Inc 4): picks any live OTHER-faction kingdom leader, drives the REAL EnvoyFactory.Create -> asserts a non-null synthetic profile whose Name is 'Herald of {faction}', whose persona names both the faction and the leader, whose Id starts with 'cr_envoy_', and which was NEVER written to the store (Store.Get right after Create is null). Skips MANUAL when no other-faction kingdom has a live leader. No world mutation, nothing to clean up (never persisted)", TestEnvoyIdentity),
          new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate),
          new SelfTest("courtship_trial", Severity.Light, "Mechanical (COURTSHIP TRIAL): the pure override table proves a passed trial clears ONLY soft RegardTooLow and NEVER a hard blocker; a REAL hard-blocked hero force-marked passed still resolves to that hard reason (offer stays CLOSED); then a real soft-blocked prospect (regard forced low) is driven through the behavior's own daily-eval seam for the full term -> assert the trial passes, a MarriageProposal letter is queued FROM her, and MarriageBlockedBecause becomes None; a trial that STOPS accompanying before the term lapses (no completion). Restores regard + trial + letter; skips MANUAL when the player is already wed or no soft-blockable prospect exists", TestCourtshipTrial),
          new SelfTest("chat_captor_break", Severity.Light, "LLM: the captor scene on a CRAVEN prisoner -> does the coward crack / plead far sooner (contrast)?", TestChatCaptorBreak, true, 3),
@@ -2264,6 +2265,41 @@ namespace CalradiaRemembers.Diagnostics
          {
             t.Note("no live prisoner in this campaign (optional check skipped)");
          }
+
+         return t.Line();
+      }
+
+      // Convergence Inc 4: proves the SYNTHETIC ENVOY identity (EnvoyFactory + the pure EnvoyIdentityPolicy it
+      // wraps) against a real other-faction kingdom leader, without wiring an ambassador into any live session
+      // (that is Inc 3's job). Ambassadors are ONLY ever for other factions, so the subject is deliberately drawn
+      // from a kingdom that is NOT the player's own; picks any live one with a resolvable leader and skips MANUAL
+      // when the campaign happens to have none (a fully eliminated world, or every other realm in an
+      // interregnum). Asserts the profile reads unmistakably as a herald (name + persona), carries a synthetic id
+      // that cannot collide with a real hero, and above all was never written to the store: an ambassador is
+      // ephemeral by design, and a leaked persistence here would be the first sign it silently stopped being so.
+      private static string TestEnvoyIdentity(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("envoy_identity");
+
+         Kingdom otherKingdom = Kingdom.All?.FirstOrDefault(k =>
+            k is {IsEliminated: false} && k != Clan.PlayerClan?.Kingdom && k.Leader is {IsAlive: true});
+
+         if (t.Skip(otherKingdom == null, "no live other-faction kingdom has a live leader in this campaign")) return t.Line();
+
+         Hero leader = otherKingdom.Leader;
+         NpcProfile profile = EnvoyFactory.Create(leader, leader.MapFaction);
+
+         t.Note($"faction={otherKingdom.Name}, leader={leader.Name}");
+         t.Expect("profileIsNotNull", profile != null, true);
+         if (profile == null) return t.Line();
+
+         t.Expect("nameReadsHeraldOfFaction", profile.Name, $"Herald of {otherKingdom.Name}");
+         t.Expect("personaNamesFaction", profile.Personality?.Contains(otherKingdom.Name.ToString()) == true, true);
+         t.Expect("personaNamesLeader", profile.Personality?.Contains(leader.Name.ToString()) == true, true);
+         t.Expect("idHasEnvoyPrefix", profile.Id?.StartsWith("cr_envoy_") == true, true);
+
+         NpcProfile stored = behavior?.Store?.Get(profile.Id);
+         t.Expect("neverPersisted", stored == null, true);
 
          return t.Line();
       }
