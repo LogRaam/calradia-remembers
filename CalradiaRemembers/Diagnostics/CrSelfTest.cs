@@ -222,6 +222,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("letter_offer_prisoner_ransom", Severity.Light, "Mechanical (PrisonerOffer accept): capture an in-party lord into the player's prison, make a buyer solvent, run the shared PrisonerRansomExecutor -> assert the sale succeeds, the captive leaves the player's prison, and the player is paid. Restores everything (frees the captive, reverts both purses). Skips if no capturable lord / no buyer. No LLM.", TestLetterOfferPrisonerRansom),
          new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
          new SelfTest("external_action_registration", Severity.Light, "Extension Surface (CrActions.Register): a third-party mod's one-call registration door. Registers a dummy external action -> asserts it appears in GameActionCatalog.Types, BannerlordGameStateBridge.HandledActionTypes, and LlmServices.DebugActionVocabulary (the 1:1 prose prompt); drives it through the REAL bridge (ExecuteAction with an unmatched type falls through to VerbRegistry.Instance.Execute) and asserts the dummy Execute callback's own message/success came back; asserts a duplicate Name, a reserved chat-flow-control Name (end_conversation), and a null-Execute spec are all rejected. Unregisters in a finally so nothing registered here can leak into a later test or a real prompt", TestExternalActionRegistration),
+         new SelfTest("prompt_variable_registration", Severity.Light, "Extension Surface, Prompt Variables volet (increment 4): CrPrompt.RegisterVariable is the PUBLIC door a third-party mod uses to contribute a LIVE {{name}} prompt variable, replacing a Harmony patch on the SDK's own PromptBuilder.BuildPromptVariables. Since PromptVariableRegistry.Compose is SDK-internal (like Clear, visible only to the SDK's own test project), drives the REAL public surface instead: builds a live system prompt (BuildSystemPrompt, the same call the chat pipeline uses) for a real NPC with PostHistoryInstructions referencing a registered token -> asserts the provider's value, keyed off the real NpcId, lands in the actual prompt text; registers a SECOND provider that THROWS in the same prompt build -> asserts building never throws, the other token still resolves, and the throwing token's own {{name}} is left literal (Compose skipped it, never smuggled a stray value in); registers a third provider under a BUILT-IN name (user) -> asserts the real player name still wins and the impostor value never appears, the exact merge guard BuildPromptVariables enforces. Unregisters all three in a finally via CrPrompt.Unregister, the only cleanup surface the mod assembly has", TestPromptVariableRegistration),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
          new SelfTest("stance_letter", Severity.Heavy, "hostile stance -> weekly eval -> assert a cold StanceHostility letter is queued", TestStanceLetter),
@@ -8138,6 +8139,101 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("cleanupActuallyRemovedIt", removed, true);
             t.Expect("goneFromCatalogAfterCleanup", GameActionCatalog.Types.Contains(name), false);
             t.Expect("goneFromHandledActionTypesAfterCleanup", BannerlordGameStateBridge.HandledActionTypes.Contains(name), false);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   prompt_variable_registration (Extension Surface, Prompt Variables volet, 28/08/2026): CrPrompt is
+      ///   the PUBLIC door a third-party mod uses to contribute a live <c>{{name}}</c> prompt variable
+      ///   without patching PromptBuilder. PromptVariableRegistry.Compose itself is SDK-internal (visible
+      ///   only to the SDK's own test project, mirroring PromptVariableRegistry.Clear), so this drives the
+      ///   REAL public surface instead: a fresh PromptBuilder with PostHistoryInstructions referencing the
+      ///   registered token, built via the same BuildSystemPrompt call the live chat pipeline uses. Proves a
+      ///   registered provider's value actually lands in the live prompt text, keyed off the real NPC's id;
+      ///   that a provider which THROWS is isolated rather than breaking the OTHER registered variable's
+      ///   expansion in the same prompt (a third-party addon's bug must never brick every conversation); and
+      ///   that a name colliding with a built-in ("user") never lets the third-party value override the real
+      ///   one CR itself supplies, the exact guard BuildPromptVariables' own merge enforces. Cleans up in a
+      ///   finally via CrPrompt.Unregister of each name this test registered, the only cleanup surface the
+      ///   mod assembly has.
+      /// </summary>
+      private static string TestPromptVariableRegistration(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("prompt_variable_registration");
+
+         const string name = "crselftest_var";
+         const string throwingName = "crselftest_var_throws";
+         const string builtInName = "user";
+
+         Hero npc = ConversationNpc();
+
+         if (t.Skip(npc == null, "no NPC to build a real prompt for")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         var world = new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()};
+         EncounterContext ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, "hello");
+
+         try
+         {
+            // A registered provider's value must actually surface in the live prompt text, keyed off the
+            // real profile's own id, exactly what BuildPromptVariables hands a provider (NpcId, never a
+            // captured constant), since a real provider (e.g. bc_court_state) depends on which NPC the
+            // prompt is being built for.
+            CrPrompt.RegisterVariable(name, facts => $"selftest-marker-{facts.NpcId}");
+            CrPrompt.RegisterVariable(throwingName, _ => throw new InvalidOperationException("[SELFTEST] deliberate throw"));
+
+            string prompt = null;
+            Exception thrown = null;
+            try
+            {
+               var builder = new PromptBuilder {
+                  PostHistoryInstructions = $"[[{{{{{name}}}}}]] [[{{{{{throwingName}}}}}]]"
+               };
+               prompt = builder.BuildSystemPrompt(profile, world, ctx);
+            }
+            catch (Exception ex)
+            {
+               thrown = ex;
+            }
+
+            // A throwing provider must never be allowed to break prompt building itself: one buggy
+            // third-party addon must not brick every conversation in the game.
+            t.Expect("buildingThePromptNeverThrowsOnAThrowingProvider", thrown, null);
+            t.Expect("registeredValueLandsInTheLivePrompt",
+               prompt != null && prompt.Contains($"selftest-marker-{profile.Id}"), true);
+            // PromptVariableExpander leaves an UNKNOWN token exactly as written: since Compose skipped the
+            // throwing provider, its token was never added to vars, so it must still read literally here,
+            // proving the throw did not silently smuggle some other value into its place either.
+            t.Expect("throwingProviderLeavesItsOwnTokenLiteral",
+               prompt != null && prompt.Contains($"{{{{{throwingName}}}}}"), true);
+
+            // A name that collides with a BUILT-IN ("user") must never let the third-party value win: the
+            // real player name CR itself supplies always takes precedence, so a third-party mod can never
+            // shadow a core token.
+            CrPrompt.RegisterVariable(builtInName, _ => "IMPOSTOR-VALUE-SHOULD-NEVER-APPEAR");
+
+            const string playerName = "SelfTestPlayer";
+            var collisionBuilder = new PromptBuilder {
+               PlayerName = playerName,
+               PostHistoryInstructions = "[[{{user}}]]"
+            };
+            string collisionPrompt = collisionBuilder.BuildSystemPrompt(profile, world, ctx);
+
+            t.Expect("builtInWinsOverAThirdPartyProviderOfTheSameName",
+               collisionPrompt != null && collisionPrompt.Contains($"[[{playerName}]]"), true);
+            t.Expect("theImpostorValueNeverAppears",
+               collisionPrompt != null && collisionPrompt.Contains("IMPOSTOR-VALUE-SHOULD-NEVER-APPEAR"), false);
+         }
+         finally
+         {
+            bool removedName = CrPrompt.Unregister(name);
+            bool removedThrowing = CrPrompt.Unregister(throwingName);
+            bool removedBuiltIn = CrPrompt.Unregister(builtInName);
+            t.Expect("cleanupRemovedTheMainProvider", removedName, true);
+            t.Expect("cleanupRemovedTheThrowingProvider", removedThrowing, true);
+            t.Expect("cleanupRemovedTheBuiltInCollisionProvider", removedBuiltIn, true);
          }
 
          return t.Line();

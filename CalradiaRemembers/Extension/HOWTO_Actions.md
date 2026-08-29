@@ -150,15 +150,52 @@ without throwing, for a null/blank name or one nothing was registered under.
 
 ---
 
-## 6. The other doors
+## 6. Live prompt variables
 
-`CrActions` is the door for an executable deed. Two others cover different needs:
+`CrPrompt.RegisterVariable` is the public door for a third-party mod to contribute one LIVE
+`{{name}}` prompt variable, computed per conversation, that the post-history prompt can reference.
+This replaces a Harmony patch on the SDK's own `PromptBuilder.BuildPromptVariables` to splice a
+value in after the fact.
+
+```csharp
+using CalradiaRemembers;
+using NpcMemoryService.Core.Extension;
+
+CrPrompt.RegisterVariable("bc_court_state", facts =>
+{
+    // facts.NpcId is a plain Hero StringId: re-resolve YOUR OWN Hero from it, exactly like an
+    // ExternalActionSpec.Execute callback does. CR never hands you a live Hero here.
+    Hero npc = Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == facts.NpcId);
+    if (npc == null) return "";
+
+    return MyCourtService.DescribeState(npc);
+});
+```
+
+The provider is called once per prompt build, with an engine-agnostic `PromptVarFacts` (`NpcId` and
+`RelationToPlayer`, the same personal regard `VerbFacts` carries). It gets no live `Hero`, kingdom,
+or other CR type: `BuildPromptVariables` only has the NPC's profile and the current encounter on
+hand at that point, so re-resolve whatever engine state you need from `NpcId` yourself.
+
+A built-in variable (`{{user}}`, `{{char}}`, `{{location}}`, and so on) ALWAYS wins a name
+collision: a third-party name can never shadow a core token. Register the same name again to
+replace your own provider (the last registration wins); call `CrPrompt.Unregister("bc_court_state")`
+to remove it. Neither call throws on a bad input (null/blank name, null provider): they are
+silently ignored.
+
+---
+
+## 7. The other doors
+
+`CrActions` is the door for an executable deed. Three others cover different needs:
 
 - **World events**: `Feed.Record` lets you push a fact into CR's world (a battle, a marriage, a
   political shift) for NPCs to know about, without an executable verb.
 - **Conversation lifecycle**: `CrConversation` (see `HOWTO_Voicing.md`) lets you listen to when a
   conversation opens, closes, and each line as it is spoken, for a voice-over, subtitle, or logging
   addon.
+- **Live prompt variables**: `CrPrompt.RegisterVariable` (section 6 above) lets you contribute a
+  `{{name}}` token the prompt can reference, without an executable verb.
 
-None of the three require a hard reference: you can reach any of them by reflection instead, if you
+None of the four require a hard reference: you can reach any of them by reflection instead, if you
 would rather your mod still load when Calradia Remembers is absent.
