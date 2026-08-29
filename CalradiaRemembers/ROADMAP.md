@@ -600,6 +600,13 @@ participant a deterministic turn (they may address one another), told to speak a
 chat it caps at 3 turns per burst; the ASSEMBLY lifts that cap (full round of present participants). Ship this
 as v1.31.0 (a shippable feature on its own, and the assembly's engine).
 
+### CONVERGENCE RATIFIED 2026-08-29 (supersedes parts of the 2026-07-10 decisions below)
+Triggered by player feedback that the war council felt "too magic" (distant kingdom nobility appearing in person when the player is not the ruler, no distance). Council (cr.council, shipped, instant/abstract) and Assembly (this section, real cross-map travel + RSVP + ambassador, dormant) are two parallel implementations of one concept: CONVERGE them into a single council driven by ONE pure attendance policy + one session engine, and RETIRE the Assembly's real cross-map travel.
+- Attendance decided per candidate as InPerson / Ambassador / Absent: prisoner -> Absent; in the player's PARTY -> InPerson; own-faction lord -> InPerson if travel-time <= an MCM threshold (~1 day) and not declining (war / hostile regard), else Absent (NEVER an ambassador for your own faction); other-faction lord (parley only) -> Ambassador; else Absent. Instant model (no simulated travel); a war council with your Army falls out for free (army allies are at distance 0).
+- Ambassador = ALWAYS a light generated synthetic envoy (rankless herald: historically you did not risk sending a capturable Lord). NOT a clan member or companion (that part of decision 2 below is dropped). One generic herald portrait for now, faction carried by the name/title "Herald of {Faction}"; ephemeral; speaks in the lord's name (provisional / "subject to his lord's seal").
+- Retire: real party movement (SetMoveGoToSettlement), the separate "Summon an assembly" menu, deadline/EnRoute, AssemblyRecord persistence. Keep: campaign-bar entry, book UI, round-table engine, resolutions/EngagementLedger, EnableCouncil MCM; fold the RSVP/distance logic into the attendance policy.
+- Increments (test-first): (1) pure CouncilAttendancePolicy (.Logic, consolidates CouncilRosterPolicy + AssemblyRsvpPolicy + arrival) -> (2) mod projection/roster (ETA) -> (3) session unification (seat InPerson + Ambassador) -> (4) synthetic envoy identity -> (5) entry consolidation + retire Assembly + MCM proximity threshold. Full design in memory [[project_assembly_vision]].
+
 ### Locked design decisions (Gabriel 2026-07-10)
 1. **Host = ANY town or castle.** RSVP refuses an ENEMY-owned host; accepts a host that is the invitee's own,
    an ally's, or neutral. Emergent constraint: a parley with an enemy therefore requires NEUTRAL ground.
