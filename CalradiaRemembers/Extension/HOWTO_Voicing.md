@@ -50,7 +50,9 @@ public static event Action<CrConversationLog>  Ended;     // a conversation clos
 ## 3. `CrSpeechLine`
 
 ```csharp
-string ConversationId; // the main NPC's hero StringId: groups all lines of one conversation
+string ConversationId; // the main NPC's hero StringId: repeats across every meeting with that NPC
+string SessionId;      // unique per conversation (a fresh GUID each time one opens); (SessionId and LineIndex added after 2.3.1)
+int    LineIndex;      // 0-based position of this line within SessionId, in display order; (SessionId and LineIndex added after 2.3.1)
 string SpeakerId;      // the speaker's hero StringId (null for narration / synthetic speakers)
 string SpeakerName;    // display name, for subtitles or logging
 bool   IsPlayer;       // the player's own line, OR an out-of-character note
@@ -67,6 +69,14 @@ string Text;           // the clean, player-visible words to voice (CR control t
   conversations. Fall back to a fixed "narrator" voice when it is null.
 - Everything a voice-over should normally skip (the player's line, the occasional
   out-of-character note) arrives with **`IsPlayer == true`**, so one check filters them out.
+- **`SessionId`** and **`LineIndex`** let you group and order the lines of ONE exchange. Unlike
+  `ConversationId` (the main NPC's hero id, which repeats every time you meet them again),
+  `SessionId` is unique per conversation: it is also carried on `CrConversationInfo` (`Started`)
+  and `CrConversationLog` (`Ended`), so all three line up for the same exchange. `LineIndex` counts
+  up from 0 within that session, in display order, so you can sort or de-duplicate lines instead
+  of relying on arrival timing. This is what makes the 2.3.1 multi-participant (SPOTLIGHT ensemble)
+  conversations tractable: several voices can speak within the same session, and `SessionId` is
+  what ties their lines back together.
 
 ---
 
@@ -147,3 +157,8 @@ Ended(log)             -> the conversation closed (stop / flush; log carries the
 
 That is the whole surface. Subscribe, read `Text`, pick a voice from `SpeakerId` / `IsFemale` /
 `CultureId`, and play it off the main thread.
+
+`Started.SessionId`, every `LineSpoken.SessionId` in between, and `Ended.SessionId` are all the
+same value for one exchange, and `LineSpoken.LineIndex` counts up from 0 within it. Use them to
+group and order the lines of one conversation (SessionId and LineIndex added after 2.3.1); do not
+rely on `ConversationId` for this, since it repeats across separate conversations with the same NPC.

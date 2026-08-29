@@ -9,6 +9,7 @@
 
 using System;
 using System.Collections.Generic;
+using CalradiaRemembers.Logic.Extension;
 using TaleWorlds.CampaignSystem;
 
 #endregion
@@ -18,6 +19,10 @@ namespace CalradiaRemembers
    /// <summary>The public conversation-lifecycle events other mods subscribe to. CR is the only raiser.</summary>
    public static class CrConversation
    {
+      // Hands out the per-session SessionId's line ordering (LineIndex). Pure logic; see
+      // CalradiaRemembers.Logic.Extension.ConversationLineSequencer for the WHY (Heroes Voices grouping/ordering).
+      private static readonly ConversationLineSequencer _sequencer = new ConversationLineSequencer();
+
       /// <summary>
       ///   Fired when a conversation OPENS, once the NPC is known and before the first exchange, so a listener
       ///   can inject relevant memories (via <see cref="CrNpcMemory.AddMemory" />) in time for the first prompt.
@@ -44,19 +49,25 @@ namespace CalradiaRemembers
       {
          if (string.IsNullOrWhiteSpace(npcId)) return;
 
-         Invoke(Started, new CrConversationInfo(npcId, CurrentSaveId(), gameDay));
+         string sessionId = Guid.NewGuid().ToString("N");
+         _sequencer.StartSession(sessionId);
+
+         Invoke(Started, new CrConversationInfo(npcId, CurrentSaveId(), gameDay, sessionId));
       }
 
       internal static void RaiseEnded(string npcId, int gameDay, IReadOnlyList<CrTranscriptLine> lines)
       {
          if (string.IsNullOrWhiteSpace(npcId)) return;
 
-         Invoke(Ended, new CrConversationLog(npcId, CurrentSaveId(), gameDay, lines ?? new List<CrTranscriptLine>()));
+         Invoke(Ended, new CrConversationLog(npcId, CurrentSaveId(), gameDay, lines ?? new List<CrTranscriptLine>(), _sequencer.SessionId));
       }
 
       internal static void RaiseLineSpoken(CrSpeechLine line)
       {
          if (line == null || string.IsNullOrWhiteSpace(line.Text)) return;
+
+         line.SessionId = _sequencer.SessionId;
+         line.LineIndex = _sequencer.NextIndex();
 
          Invoke(LineSpoken, line);
       }

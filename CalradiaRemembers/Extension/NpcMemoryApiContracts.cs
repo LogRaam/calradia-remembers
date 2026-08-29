@@ -153,16 +153,34 @@ namespace CalradiaRemembers
 
       /// <summary>The clean, player-visible words to voice (CR's control tags already stripped).</summary>
       public string Text { get; }
+
+      /// <summary>
+      ///   A unique id for THIS conversation: a fresh GUID minted each time a conversation opens. Unlike
+      ///   <see cref="ConversationId" /> (the main NPC's hero id, which repeats across every meeting with that
+      ///   NPC), this value is shared only by the <see cref="CrConversation.Started" />, LineSpoken, and
+      ///   <see cref="CrConversation.Ended" /> of the SAME exchange, so a listener can group lines that belong
+      ///   together even across the multi-participant conversations introduced in 2.3.1. Stamped by CR after
+      ///   construction; never set by a caller.
+      /// </summary>
+      public string SessionId { get; internal set; }
+
+      /// <summary>
+      ///   The 0-based position of this line within its <see cref="SessionId" />, in display order (0, 1, 2, ...).
+      ///   Lets a listener order and de-duplicate lines of one session without relying on arrival timing.
+      ///   Stamped by CR after construction; never set by a caller.
+      /// </summary>
+      public int LineIndex { get; internal set; }
    }
 
    /// <summary>The identity of a conversation as it OPENS, delivered by <see cref="CrConversation.Started" />.</summary>
    public sealed class CrConversationInfo
    {
-      public CrConversationInfo(string npcId, string saveId, int gameDay)
+      public CrConversationInfo(string npcId, string saveId, int gameDay, string sessionId)
       {
          NpcId = npcId;
          SaveId = saveId;
          GameDay = gameDay;
+         SessionId = sessionId;
       }
 
       /// <summary>The NPC's hero StringId.</summary>
@@ -173,17 +191,24 @@ namespace CalradiaRemembers
 
       /// <summary>The in-game day the conversation takes place.</summary>
       public int GameDay { get; }
+
+      /// <summary>
+      ///   A unique id for this conversation, matching the <see cref="CrSpeechLine.SessionId" /> of every
+      ///   line spoken in it and the <see cref="CrConversationLog.SessionId" /> it closes with.
+      /// </summary>
+      public string SessionId { get; }
    }
 
    /// <summary>A whole conversation as it CLOSES, delivered by <see cref="CrConversation.Ended" />.</summary>
    public sealed class CrConversationLog
    {
-      public CrConversationLog(string npcId, string saveId, int gameDay, IReadOnlyList<CrTranscriptLine> lines)
+      public CrConversationLog(string npcId, string saveId, int gameDay, IReadOnlyList<CrTranscriptLine> lines, string sessionId)
       {
          NpcId = npcId;
          SaveId = saveId;
          GameDay = gameDay;
          Lines = lines;
+         SessionId = sessionId;
       }
 
       /// <summary>The main NPC's hero StringId.</summary>
@@ -197,5 +222,11 @@ namespace CalradiaRemembers
 
       /// <summary>Every attributed line, oldest first, including witness (third-party) lines and narration.</summary>
       public IReadOnlyList<CrTranscriptLine> Lines { get; }
+
+      /// <summary>
+      ///   The same unique id carried by <see cref="CrConversationInfo.SessionId" /> and every
+      ///   <see cref="CrSpeechLine.SessionId" /> of this conversation.
+      /// </summary>
+      public string SessionId { get; }
    }
 }

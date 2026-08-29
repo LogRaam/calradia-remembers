@@ -234,6 +234,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("bastard_scandal_culture", Severity.Heavy, "discover a bastard -> assert the scandal magnitude is culture-scaled", TestBastardScandalCulture),
          new SelfTest("feed_ingest", Severity.Light, "Feed.Record an external event -> assert stored + a re-send is deduped", TestFeedIngest),
          new SelfTest("feed_update", Severity.Light, "Feed.Update upserts a fed fact by id, Feed.Retract removes it (mutable entries)", TestFeedUpdate),
+         new SelfTest("conversation_session_sequencing", Severity.Light, "Mechanical (Heroes Voices TTS request): drive the REAL internal CrConversation.RaiseStarted/RaiseLineSpoken/RaiseEnded twice in a row -> assert Started/LineSpoken/Ended of one session share the same non-empty SessionId, LineIndex runs 0 then 1, and a second RaiseStarted mints a DIFFERENT SessionId with LineIndex reset to 0. Unsubscribes its handlers afterwards. No LLM, mutates nothing persistent.", TestConversationSessionSequencing),
          new SelfTest("mission_register", Severity.Heavy, "MissionBoard.Register an external mission -> assert issued + dedup + Complete stamps it", TestMissionRegister),
          new SelfTest("mission_reward", Severity.Heavy, "MissionBoard FULL LOOP -> register -> Complete -> player reports to giver -> assert reward PAID + quest Completed", TestMissionRewardLoop),
          new SelfTest("rp_influence", Severity.Light, "eligible lord -> give_influence -> assert clan influence moved + marker + cooldown refuses repeat", TestRpInfluence),
@@ -3632,6 +3633,71 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("retracted", ret, FeedResult.Retracted);
          t.Expect("goneAfterRetract", goneAfterRetract, true);
          t.Expect("retractMissingIsNotFound", retAgain, FeedResult.NotFound);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Heroes Voices (TTS addon) request: drives the REAL internal CrConversation raisers directly (this
+      ///   file lives in the same assembly, so it may call them) rather than the engine chat path, so the test
+      ///   runs with no campaign, no LLM, and nothing to clean up. Asserts the whole point of the sequencer:
+      ///   one session's Started/LineSpoken/Ended share a SessionId and LineIndex counts up from 0, and a
+      ///   fresh session never reuses either.
+      /// </summary>
+      private static string TestConversationSessionSequencing(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("conversation_session_sequencing");
+
+         string startedSessionId = null;
+         string endedSessionId = null;
+         var lineSessionIds = new List<string>();
+         var lineIndices = new List<int>();
+
+         void OnStarted(CrConversationInfo info) => startedSessionId = info.SessionId;
+         void OnLineSpoken(CrSpeechLine line)
+         {
+            lineSessionIds.Add(line.SessionId);
+            lineIndices.Add(line.LineIndex);
+         }
+         void OnEnded(CrConversationLog log) => endedSessionId = log.SessionId;
+
+         CrConversation.Started += OnStarted;
+         CrConversation.LineSpoken += OnLineSpoken;
+         CrConversation.Ended += OnEnded;
+
+         try
+         {
+            CrConversation.RaiseStarted("selftest_npc", 1);
+            CrConversation.RaiseLineSpoken(new CrSpeechLine(null, "selftest_npc", "Selftest NPC", false, false, false, false, null, "[SELFTEST] first line"));
+            CrConversation.RaiseLineSpoken(new CrSpeechLine(null, "selftest_npc", "Selftest NPC", false, false, false, false, null, "[SELFTEST] second line"));
+            CrConversation.RaiseEnded("selftest_npc", 1, new List<CrTranscriptLine>());
+
+            string firstSessionId = startedSessionId;
+
+            t.Expect("startedSessionIdNotEmpty", string.IsNullOrEmpty(startedSessionId), false);
+            t.Expect("lineCount", lineSessionIds.Count, 2);
+            t.Expect("line1SharesSession", lineSessionIds.Count > 0 && lineSessionIds[0] == firstSessionId, true);
+            t.Expect("line2SharesSession", lineSessionIds.Count > 1 && lineSessionIds[1] == firstSessionId, true);
+            t.Expect("endedSharesSession", endedSessionId, firstSessionId);
+            t.Expect("lineIndex0", lineIndices.Count > 0 ? lineIndices[0] : -1, 0);
+            t.Expect("lineIndex1", lineIndices.Count > 1 ? lineIndices[1] : -1, 1);
+
+            // A second conversation must get a fresh id and its own count from 0, or two exchanges could
+            // collide on the same (SessionId, LineIndex) pair.
+            CrConversation.RaiseStarted("selftest_npc", 2);
+            string secondSessionId = startedSessionId;
+            CrConversation.RaiseLineSpoken(new CrSpeechLine(null, "selftest_npc", "Selftest NPC", false, false, false, false, null, "[SELFTEST] second session first line"));
+
+            t.Expect("secondSessionDiffers", secondSessionId != firstSessionId, true);
+            t.Expect("secondSessionLineIndexReset", lineIndices.Count > 2 ? lineIndices[2] : -1, 0);
+            t.Note($"session1={firstSessionId}, session2={secondSessionId}");
+         }
+         finally
+         {
+            CrConversation.Started -= OnStarted;
+            CrConversation.LineSpoken -= OnLineSpoken;
+            CrConversation.Ended -= OnEnded;
+         }
 
          return t.Line();
       }
