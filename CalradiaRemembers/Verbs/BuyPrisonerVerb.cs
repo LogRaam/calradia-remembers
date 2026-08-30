@@ -47,7 +47,8 @@ namespace CalradiaRemembers.Verbs
 
             var sb = new StringBuilder();
             sb.AppendLine("BUY_PRISONER, PURCHASING A CAPTIVE THE PLAYER HOLDS:");
-            sb.AppendLine("The player travels with these hero captives, and you may offer to BUY one for gold,");
+            sb.AppendLine("The player holds these hero captives (in their party, or behind bars in their own town),");
+            sb.AppendLine("and you may offer to BUY one for gold,");
             sb.AppendLine("if the man or woman is worth something to you (an enemy of your realm to lock away,");
             sb.AppendLine("kin to ransom home, leverage over a rival house):");
             foreach (Hero captive in held.Take(3))
@@ -114,7 +115,11 @@ namespace CalradiaRemembers.Verbs
                 GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, payment);
                 try
                 {
-                    TransferPrisonerAction.Apply(captiveChar, MobileParty.MainParty.Party, dest);
+                    // Source from where the captive is ACTUALLY held (the main party OR a settlement dungeon of the
+                    // player's), not a hardcoded main party: a captive left behind bars in the player's own town is
+                    // still theirs to sell, and transferring from the wrong roster would move nothing.
+                    PartyBase source = captive.PartyBelongedToAsPrisoner ?? MobileParty.MainParty?.Party;
+                    TransferPrisonerAction.Apply(captiveChar, source, dest);
                 }
                 catch (Exception transferEx)
                 {
@@ -192,19 +197,39 @@ namespace CalradiaRemembers.Verbs
         // ── Shared with the teaching: the player's hero captives, and the game's own valuation ──
 
         /// <summary>Hero captives riding in the player's party (the sellable pool).</summary>
+        /// <summary>
+        ///   Every alive hero captive the player currently holds: those travelling in the main party AND those
+        ///   left behind bars in a settlement the player's clan owns (a town or castle dungeon). Player report: a
+        ///   ransom-offer letter's Accept button vanished after the captured lord was moved from the party to the
+        ///   player's own city prison, though the player plainly still held him; the same blind spot also kept a
+        ///   dungeon captive from ever being offered for sale in conversation or triggering a ransom letter.
+        ///   Deduped by StringId so a hero is counted once.
+        /// </summary>
         internal static List<Hero> PlayerHeldHeroPrisoners()
         {
             var result = new List<Hero>();
-            TroopRoster prison = MobileParty.MainParty?.PrisonRoster;
-            if (prison == null) return result;
+            var seen = new HashSet<string>();
+
+            AddHeroPrisoners(MobileParty.MainParty?.PrisonRoster, result, seen);
+
+            Clan playerClan = Clan.PlayerClan;
+            if (playerClan?.Settlements != null)
+                foreach (Settlement s in playerClan.Settlements)
+                    AddHeroPrisoners(s?.Party?.PrisonRoster, result, seen);
+
+            return result;
+        }
+
+        /// <summary>Adds each alive hero in a prison roster to the accumulator once (deduped by StringId). Null-safe.</summary>
+        private static void AddHeroPrisoners(TroopRoster prison, List<Hero> into, HashSet<string> seen)
+        {
+            if (prison == null) return;
 
             foreach (TroopRosterElement el in prison.GetTroopRoster())
             {
                 Hero h = el.Character?.HeroObject;
-                if (h is {IsAlive: true}) result.Add(h);
+                if (h is {IsAlive: true} && seen.Add(h.StringId)) into.Add(h);
             }
-
-            return result;
         }
 
         /// <summary>Tolerant name match among the player's held hero captives.</summary>

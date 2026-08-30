@@ -80,7 +80,11 @@ namespace CalradiaRemembers.Verbs
                 GiveGoldAction.ApplyBetweenCharacters(buyer, Hero.MainHero, payment);
                 try
                 {
-                    TransferPrisonerAction.Apply(captiveChar, MobileParty.MainParty.Party, dest);
+                    // Source from where the captive is ACTUALLY held (the main party OR a settlement dungeon of the
+                    // player's), not a hardcoded main party: a captive left behind bars in the player's own town is
+                    // still theirs to sell, and transferring from the wrong roster would move nothing.
+                    PartyBase source = captive.PartyBelongedToAsPrisoner ?? MobileParty.MainParty?.Party;
+                    TransferPrisonerAction.Apply(captiveChar, source, dest);
                 }
                 catch (Exception transferEx)
                 {
