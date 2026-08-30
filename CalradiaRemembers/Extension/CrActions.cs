@@ -71,7 +71,8 @@ namespace CalradiaRemembers
                Name = trimmed,
                IsEligible = spec.IsEligible,
                TeachingText = spec.TeachingText,
-               Execute = spec.Execute
+               Execute = spec.Execute,
+               Guidance = spec.Guidance
             };
 
             VerbRegistry.Instance.Register(new ExternalVerbAdapter(contract, ProjectFacts));

@@ -108,6 +108,18 @@ namespace CalradiaRemembers
       public Func<VerbFacts, string> TeachingText { get; set; }
 
       /// <summary>
+      ///   Optional. Runs EVERY turn, regardless of <see cref="IsEligible" />: lets this action tell the LLM,
+      ///   PRE-response, whether it should be accepted or declined right now, positive or negative guidance
+      ///   either way. This is the fix for the case <see cref="IsEligible" />/<see cref="TeachingText" />
+      ///   alone cannot cover: an ineligible action the NPC would otherwise roleplay agreeing to in its
+      ///   prose, only for it to fail its own eligibility check once the player's turn actually dispatches
+      ///   it. Receives CR's own pre-response resolution of the heroes, factions, and settlements the PLAYER
+      ///   named in their message, so the callback never needs to reimplement natural-language matching of
+      ///   its own. Leave null when this action needs no such guidance.
+      /// </summary>
+      public Func<ActionGuidanceContext, string> Guidance { get; set; }
+
+      /// <summary>
       ///   REQUIRED. Does the mod's own engine work for this deed: re-resolves a live Hero (or whatever it
       ///   needs) from <see cref="VerbFacts.NpcId" /> in the request, applies whatever effect the mod owns,
       ///   and reports back whether it succeeded and a short chat-visible message. CR never performs this

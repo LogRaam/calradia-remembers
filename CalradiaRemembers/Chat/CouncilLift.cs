@@ -2447,6 +2447,38 @@ namespace CalradiaRemembers.Chat
             c.Kingdom == null && string.Equals(c.Name?.ToString(), trimmed, StringComparison.OrdinalIgnoreCase));
       }
 
+      /// <summary>
+      ///   Every faction named in <paramref name="playerMessage" />, scanned over the SAME pool
+      ///   <see cref="ResolveFactionByName" /> draws from (live Kingdoms and independent Clans): a substring
+      ///   containment test suffices here (unlike a hero or settlement's multi-part name) because a faction's
+      ///   name is a single distinctive proper noun. Exposed for <c>ExternalVerbAdapter</c>'s pre-response
+      ///   entity resolution (Extension Surface actions guidance). Never null; empty when nothing matches.
+      /// </summary>
+      internal static IReadOnlyList<IFaction> ResolveFactionsMentioned(string playerMessage)
+      {
+         var result = new List<IFaction>();
+
+         if (string.IsNullOrWhiteSpace(playerMessage)) return result;
+
+         foreach (Kingdom kingdom in Kingdom.All ?? Enumerable.Empty<Kingdom>())
+         {
+            string name = kingdom?.Name?.ToString();
+            if (!string.IsNullOrWhiteSpace(name) && playerMessage.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
+               result.Add(kingdom);
+         }
+
+         foreach (Clan clan in Clan.All ?? Enumerable.Empty<Clan>())
+         {
+            if (clan?.Kingdom != null) continue;
+
+            string name = clan?.Name?.ToString();
+            if (!string.IsNullOrWhiteSpace(name) && playerMessage.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
+               result.Add(clan);
+         }
+
+         return result;
+      }
+
       private static string DescribeUnavailability(CouncilExclusionReason reason, bool heroGone)
       {
          if (heroGone) return "they could not be found.";

@@ -116,8 +116,12 @@ namespace CalradiaRemembers.Mapping
          return GeographyDescriber.Bearing(to.X - from.X, to.Y - from.Y, from.Distance(to));
       }
 
-      /// <summary>Settlements whose name shares a token with the player's message (capped, deduped).</summary>
-      private static List<Settlement> MatchMentioned(string playerMessage, Settlement exclude)
+      /// <summary>
+      ///   Settlements whose name shares a token with the player's message (capped, deduped). Internal (not
+      ///   private) so <c>ExternalVerbAdapter</c>'s pre-response entity resolution (Extension Surface actions
+      ///   guidance) reuses this exact matching instead of reimplementing it.
+      /// </summary>
+      internal static List<Settlement> MatchMentioned(string playerMessage, Settlement exclude)
       {
          var result = new List<Settlement>();
 

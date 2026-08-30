@@ -5,9 +5,15 @@
 #region
 
 using System;
+using System.Collections.Generic;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Logic.Verbs;
+using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.Extension;
 using NpcMemoryService.Core.Models;
+using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Settlements;
 
 #endregion
 
@@ -19,9 +25,11 @@ namespace CalradiaRemembers.Verbs
    ///   projecting the live <see cref="VerbContext" /> down to the engine-agnostic <see cref="VerbFacts" />
    ///   the contract's callbacks expect (a Hero and a profile become plain ids and flags, via the injected
    ///   <see cref="_factsProjector" />); the external mod's own callbacks do whatever engine work THEY need
-   ///   from those ids, entirely on their own side.
+   ///   from those ids, entirely on their own side. Also implements <see cref="IProvidesGuidance{TContext}" />
+   ///   (Extension Surface actions guidance, 30/08/2026) so a registered action can tell the LLM, PRE-response
+   ///   and regardless of eligibility, to decline or accept in-character.
    /// </summary>
-   public sealed class ExternalVerbAdapter : IConversationVerb
+   public sealed class ExternalVerbAdapter : IConversationVerb, IProvidesGuidance<VerbContext>
    {
       private readonly ExternalVerbContract _contract;
       private readonly Func<VerbContext, VerbFacts> _factsProjector;
@@ -63,5 +71,87 @@ namespace CalradiaRemembers.Verbs
          => _contract?.TeachingText != null && _factsProjector != null
             ? _contract.TeachingText(_factsProjector(ctx))
             : null;
+
+      /// <summary>
+      ///   Runs the contract's <see cref="ExternalVerbContract.Guidance" /> callback, if any, EVERY turn
+      ///   regardless of <see cref="IsEligible" />. Entity resolution (heroes/factions/settlements the
+      ///   player named) is skipped entirely when the contract has no Guidance callback: no point paying for
+      ///   matching a modder never asked for.
+      /// </summary>
+      public string Guidance(VerbContext ctx)
+      {
+         if (_contract?.Guidance == null || _factsProjector == null) return null;
+
+         var context = new ActionGuidanceContext(
+            _factsProjector(ctx),
+            ctx?.PlayerMessage,
+            IsEligible(ctx),
+            ResolveMentionedHeroes(ctx),
+            ResolveMentionedFactions(ctx),
+            ResolveMentionedSettlements(ctx));
+
+         return _contract.Guidance(context);
+      }
+
+      #region private
+
+      /// <summary>Heroes the player named, via <see cref="ContextualNameResolver" />'s own matching. Never throws.</summary>
+      private static IReadOnlyList<ResolvedEntity> ResolveMentionedHeroes(VerbContext ctx)
+      {
+         try
+         {
+            var result = new List<ResolvedEntity>();
+
+            foreach (var (hero, fullName, relationship) in ContextualNameResolver.ResolveMentionedHeroes(ctx?.Npc, ctx?.PlayerMessage))
+               result.Add(new ResolvedEntity(hero.StringId, fullName, relationship));
+
+            return result;
+         }
+         catch
+         {
+            return Array.Empty<ResolvedEntity>();
+         }
+      }
+
+      /// <summary>Factions the player named, via <see cref="CouncilLift" />'s own faction pool/matching. Never throws.</summary>
+      private static IReadOnlyList<ResolvedEntity> ResolveMentionedFactions(VerbContext ctx)
+      {
+         try
+         {
+            var result = new List<ResolvedEntity>();
+
+            foreach (IFaction faction in CouncilLift.ResolveFactionsMentioned(ctx?.PlayerMessage))
+               result.Add(new ResolvedEntity(faction.StringId, faction.Name?.ToString(), faction is Kingdom ? "kingdom" : "clan"));
+
+            return result;
+         }
+         catch
+         {
+            return Array.Empty<ResolvedEntity>();
+         }
+      }
+
+      /// <summary>Settlements the player named, via <see cref="SettlementContextResolver" />'s own matching. Never throws.</summary>
+      private static IReadOnlyList<ResolvedEntity> ResolveMentionedSettlements(VerbContext ctx)
+      {
+         try
+         {
+            var result = new List<ResolvedEntity>();
+
+            foreach (Settlement settlement in SettlementContextResolver.MatchMentioned(ctx?.PlayerMessage, ctx?.Npc?.CurrentSettlement))
+               result.Add(new ResolvedEntity(settlement.StringId, settlement.Name?.ToString(), SettlementKind(settlement)));
+
+            return result;
+         }
+         catch
+         {
+            return Array.Empty<ResolvedEntity>();
+         }
+      }
+
+      private static string SettlementKind(Settlement s)
+         => s.IsTown ? "town" : s.IsCastle ? "castle" : s.IsVillage ? "village" : "holding";
+
+      #endregion
    }
 }

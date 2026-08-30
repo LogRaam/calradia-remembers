@@ -145,6 +145,95 @@ namespace CalradiaRemembers.Tests
          result.Should().Be("KNOWN\n");
       }
 
+      // ── ComposeGuidance ──────────────────────────────────────────────────
+      // Extension Surface actions guidance (30/08/2026): a modder registers an ExternalActionSpec.Guidance
+      // callback so an action that is currently ineligible can still tell the LLM, PRE-response, to decline
+      // in-character, instead of the NPC roleplaying agreement to a deed that then fails at execution.
+
+      private sealed class FakeGuidanceVerb : IVerb<string, string, string>, IProvidesGuidance<string>
+      {
+         private readonly bool _eligible;
+         private readonly string _guidance;
+
+         public FakeGuidanceVerb(string name, bool eligible, string guidance)
+         {
+            Name = name;
+            _eligible = eligible;
+            _guidance = guidance;
+         }
+
+         public string Name { get; }
+
+         public bool IsEligible(string ctx) => _eligible;
+
+         public string TeachingText(string ctx) => _eligible ? "TEACH\n" : null!;
+
+         public string Execute(string action, string ctx) => null!;
+
+         public string Guidance(string ctx) => _guidance;
+      }
+
+      private sealed class ThrowingGuidanceVerb : IVerb<string, string, string>, IProvidesGuidance<string>
+      {
+         public ThrowingGuidanceVerb(string name) => Name = name;
+         public string Name { get; }
+         public bool IsEligible(string ctx) => true;
+         public string TeachingText(string ctx) => null!;
+         public string Execute(string action, string ctx) => null!;
+         public string Guidance(string ctx) => throw new InvalidOperationException("simulates a modder's Guidance callback throwing");
+      }
+
+      // The whole point ComposeGuidance exists for (modder report): an action's own eligibility check fails
+      // this turn, but the NPC still needs to be told to decline in-character, so guidance must ride AHEAD of
+      // eligibility while ComposeTeachings' catalog-entry gate keeps hiding the action itself from the LLM.
+      [Test]
+      public void GIVEN_an_ineligible_verb_with_guidance_text_WHEN_composing_guidance_THEN_it_is_included_though_composing_teachings_excludes_it()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeGuidanceVerb("summon_caravan", false, "DECLINE: no caravan available right now.\n"));
+
+         registry.ComposeGuidance("ctx").Should().Be("DECLINE: no caravan available right now.\n");
+         registry.ComposeTeachings("ctx").Should().BeNull();
+      }
+
+      // Every built-in verb (give_influence, lend_troops, ...) predates this contract and must keep compiling
+      // and behaving unchanged: ComposeGuidance must skip a verb that never opted into IProvidesGuidance
+      // silently, not throw a cast error or treat it as "guidance: null" some other way.
+      [Test]
+      public void GIVEN_a_verb_not_implementing_IProvidesGuidance_WHEN_composing_guidance_THEN_it_contributes_nothing()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeVerb("give_influence", true, "TEACH\n"));
+
+         registry.ComposeGuidance("ctx").Should().BeNull();
+      }
+
+      // A third-party mod's Guidance callback is arbitrary code CR does not control, the same risk class as
+      // the v1.21.0 IsEligible crash: one throwing callback must degrade to "no guidance this turn" for that
+      // verb alone, never blank out (or crash) every other verb's guidance in the same prompt.
+      [Test]
+      public void GIVEN_a_guidance_callback_that_throws_WHEN_composing_guidance_THEN_it_is_skipped_and_others_still_compose()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeGuidanceVerb("healthy_before", false, "BEFORE\n"));
+         registry.Register(new ThrowingGuidanceVerb("faulty_verb"));
+         registry.Register(new FakeGuidanceVerb("healthy_after", false, "AFTER\n"));
+
+         registry.ComposeGuidance("ctx").Should().Be("BEFORE\nAFTER\n");
+      }
+
+      // Null, not empty string, is the "nothing composed" sentinel EncounterContextBuilder's ExtraActionTeachings
+      // StringBuilder relies on to skip appending anything at all, the same discipline ComposeTeachings keeps.
+      [Test]
+      public void GIVEN_no_verb_offers_guidance_text_WHEN_composing_guidance_THEN_the_result_is_null()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeGuidanceVerb("silent_verb", true, null!));
+         registry.Register(new FakeGuidanceVerb("also_silent", false, ""));
+
+         registry.ComposeGuidance("ctx").Should().BeNull();
+      }
+
       private sealed class ThrowingVerb : IVerb<string, string, string>
       {
          public ThrowingVerb(string name) => Name = name;

@@ -55,14 +55,36 @@ namespace CalradiaRemembers.Mapping
       /// </summary>
       public static string Resolve(Hero npc, string playerMessage, IGameStateBridge bridge = null)
       {
-         if (npc == null || string.IsNullOrWhiteSpace(playerMessage)) return null;
+         List<(Hero Hero, string FullName, string Relationship)> mentioned = ResolveMentionedHeroes(npc, playerMessage);
+
+         if (mentioned.Count == 0) return null;
+
+         var matches = new List<(string FullName, string Gender, string Relationship, string Whereabouts, string Prisoner)>();
+
+         foreach (var (other, fullName, relationship) in mentioned)
+            matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(other.IsFemale),
+               relationship, ResolveWhereabouts(npc, other, bridge), PrisonerStatusClause(npc, other, fullName)));
+
+         return BuildHint(matches);
+      }
+
+      /// <summary>
+      ///   The heroes named in <paramref name="playerMessage" />, each paired with the display name and
+      ///   relation category <see cref="Resolve" /> itself uses. Exposed so <c>ExternalVerbAdapter</c>'s
+      ///   pre-response entity resolution (Extension Surface actions guidance) reuses the SAME
+      ///   tokenisation/matching this class already does, rather than reimplementing it. Never null; empty
+      ///   when <paramref name="npc" /> is null, the message is blank, or nothing matches.
+      /// </summary>
+      internal static List<(Hero Hero, string FullName, string Relationship)> ResolveMentionedHeroes(Hero npc, string playerMessage)
+      {
+         var result = new List<(Hero Hero, string FullName, string Relationship)>();
+
+         if (npc == null || string.IsNullOrWhiteSpace(playerMessage)) return result;
 
          HashSet<string> messageTokens = ExtractTokens(playerMessage);
-
-         if (messageTokens.Count == 0) return null;
+         if (messageTokens.Count == 0) return result;
 
          var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-         var matches = new List<(string FullName, string Gender, string Relationship, string Whereabouts, string Prisoner)>();
 
          foreach (Hero other in Hero.AllAliveHeroes)
          {
@@ -72,16 +94,13 @@ namespace CalradiaRemembers.Mapping
 
             if (string.IsNullOrEmpty(fullName)) continue;
             if (seen.Contains(other.StringId)) continue;
-
             if (!NameSharesTokenWithMessage(fullName, messageTokens)) continue;
+
             seen.Add(other.StringId);
-            matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(other.IsFemale),
-               Categorize(npc, other), ResolveWhereabouts(npc, other, bridge), PrisonerStatusClause(npc, other, fullName)));
+            result.Add((other, fullName, Categorize(npc, other)));
          }
 
-         return matches.Count == 0
-            ? null
-            : BuildHint(matches);
+         return result;
       }
 
       #region private

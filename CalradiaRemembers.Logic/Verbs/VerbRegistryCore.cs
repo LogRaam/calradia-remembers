@@ -48,6 +48,34 @@ namespace CalradiaRemembers.Logic.Verbs
       }
 
       /// <summary>
+      ///   Composes the guidance text of EVERY registered verb that implements
+      ///   <see cref="IProvidesGuidance{TContext}" />, in registration order, regardless of eligibility: a
+      ///   verb whose eligibility currently fails still gets a chance to tell the LLM to decline in-character
+      ///   this turn (Extension Surface actions guidance, 30/08/2026), the opposite gate from
+      ///   <see cref="ComposeTeachings(TContext, System.Action{System.Exception})" />, which hides an
+      ///   ineligible verb's teaching entirely. A verb not implementing the interface contributes nothing.
+      ///   Fault-safe, mirroring <see cref="SafeTeachingFor" />: a throwing Guidance callback is skipped,
+      ///   never allowed to escape (a third-party mod's callback is arbitrary code CR does not control).
+      ///   Null when nothing was composed.
+      /// </summary>
+      public string ComposeGuidance(TContext ctx, Action<Exception> onFault = null)
+      {
+         var sb = new StringBuilder();
+
+         foreach (IVerb<TContext, TAction, TResult> verb in _verbs)
+         {
+            if (!(verb is IProvidesGuidance<TContext> provider)) continue;
+
+            string text = SafeGuidanceFor(provider, ctx, onFault);
+            if (!string.IsNullOrEmpty(text)) sb.Append(text);
+         }
+
+         return sb.Length == 0
+            ? null
+            : sb.ToString();
+      }
+
+      /// <summary>
       ///   Routes to the verb whose Name matches (ordinal, case-insensitive), or null when none is registered under that
       ///   name.
       /// </summary>
@@ -100,6 +128,24 @@ namespace CalradiaRemembers.Logic.Verbs
          {
             // A verb that faults (e.g. touches a game API absent on this build) is treated as simply
             // unavailable this turn, rather than crashing the whole conversation.
+            onFault?.Invoke(ex);
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   A verb's guidance text, or null when it throws. Reported to <paramref name="onFault" /> the same
+      ///   way a faulting eligibility/teaching check is (see <see cref="SafeTeachingFor" />).
+      /// </summary>
+      private static string SafeGuidanceFor(IProvidesGuidance<TContext> provider, TContext ctx, Action<Exception> onFault)
+      {
+         try
+         {
+            return provider.Guidance(ctx);
+         }
+         catch (Exception ex)
+         {
             onFault?.Invoke(ex);
 
             return null;

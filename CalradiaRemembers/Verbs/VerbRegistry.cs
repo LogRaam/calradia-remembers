@@ -42,6 +42,13 @@ namespace CalradiaRemembers.Verbs
       public string ComposeTeachings(VerbContext ctx, IEnumerable<string> order) => _core.ComposeTeachings(ctx, order, FaultSink);
 
       /// <summary>
+      ///   Composes the guidance text of every registered verb that implements <see cref="IProvidesGuidance{TContext}" />
+      ///   (in practice, an <see cref="ExternalVerbAdapter" /> whose contract supplied a Guidance callback),
+      ///   run UNCONDITIONALLY regardless of eligibility (Extension Surface actions guidance, 30/08/2026).
+      /// </summary>
+      public string ComposeGuidance(VerbContext ctx) => _core.ComposeGuidance(ctx, FaultSink);
+
+      /// <summary>
       ///   Routes the action to the verb whose Name matches <see cref="GameAction.Type" />, or null when none is
       ///   registered under that name.
       /// </summary>
