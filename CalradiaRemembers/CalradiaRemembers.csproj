@@ -182,15 +182,28 @@
     </ItemGroup>
 
     <MakeDir Directories="$(BannerlordBinaryDir)" />
+    <!-- Assemblies keep SkipUnchangedFiles: a recompile always changes their size/timestamp so the check is
+         reliable, and skipping an UNCHANGED dll avoids a build failure when the game holds it locked. -->
     <Copy SourceFiles="@(ModAssemblies)"            DestinationFolder="$(BannerlordBinaryDir)"             SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(ProjectDir)..\SubModule.xml" DestinationFolder="$(BannerlordModuleDir)"           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(GuiPrefabFiles)"           DestinationFolder="$(BannerlordModuleDir)\GUI\Prefabs" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(GuiBrushFiles)"            DestinationFolder="$(BannerlordModuleDir)\GUI\Brushes" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(GuiImageFiles)"            DestinationFolder="$(BannerlordModuleDir)\GUI\Images"  SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(ModuleDataFiles)"          DestinationFolder="$(BannerlordModuleDir)\ModuleData\%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(SoundFiles)"               DestinationFolder="$(BannerlordModuleDir)\Sounds\%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <!-- Content files are FORCE-copied (SkipUnchangedFiles=false). MSBuild's up-to-date check compares only
+         size + timestamp, never content, so a same-size text edit (e.g. bumping SubModule.xml from v2.4.0 to
+         v2.4.3, an identical byte length) was judged "unchanged" and skipped, leaving a stale version label
+         deployed while the dlls updated. These files are small and never locked by the running game, so a
+         forced overwrite every build is cheap and keeps the module folder truthful. OverwriteReadOnlyFiles
+         guards against OneDrive marking a synced file read-only. Copy never deletes extras, so a player's own
+         deployed ModuleData\character_overrides.json (absent from the repo) is left untouched. -->
+    <Copy SourceFiles="$(ProjectDir)..\SubModule.xml" DestinationFolder="$(BannerlordModuleDir)"           SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
+    <Copy SourceFiles="@(GuiPrefabFiles)"           DestinationFolder="$(BannerlordModuleDir)\GUI\Prefabs" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
+    <Copy SourceFiles="@(GuiBrushFiles)"            DestinationFolder="$(BannerlordModuleDir)\GUI\Brushes" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
+    <Copy SourceFiles="@(GuiImageFiles)"            DestinationFolder="$(BannerlordModuleDir)\GUI\Images"  SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
+    <Copy SourceFiles="@(ModuleDataFiles)"          DestinationFolder="$(BannerlordModuleDir)\ModuleData\%(RecursiveDir)" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
+    <Copy SourceFiles="@(SoundFiles)"               DestinationFolder="$(BannerlordModuleDir)\Sounds\%(RecursiveDir)" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
 
-    <Message Text="[CalradiaRemembers] Deployed to $(BannerlordModuleDir)" Importance="high" />
+    <ReadLinesFromFile File="$(ProjectDir)..\SubModule.xml">
+      <Output TaskParameter="Lines" ItemName="SubModuleXmlLine" />
+    </ReadLinesFromFile>
+    <Message Text="[CalradiaRemembers] Deployed to $(BannerlordModuleDir)  (%(SubModuleXmlLine.Identity))"
+             Importance="high" Condition="$([System.String]::Copy('%(SubModuleXmlLine.Identity)').Contains('Version value'))" />
   </Target>
 
 </Project>
