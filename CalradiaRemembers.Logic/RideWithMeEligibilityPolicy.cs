@@ -12,7 +12,9 @@
 // advice, the bridge is law"): whether ride_with_me is even taught this turn (EncounterContextBuilder ->
 // EncounterContext.NpcCanRideWithPlayer -> SDK PromptBuilder.AppendRideWithMe) and again whether it really
 // executes (BannerlordGameStateBridge.ExecuteRideWithMe). Pure and unit-tested so the two call sites share one
-// decision and can never drift.
+// decision and can never drift. The factionAtWar guard (added 29/08/2026) mirrors EscortEligibilityPolicy's own:
+// a lord whose realm is at war with anyone stays home and available for his liege's muster call, rather than
+// riding off with the player and quietly weakening his faction.
 
 #region
 
@@ -41,12 +43,16 @@ namespace CalradiaRemembers.Logic
       ///   makes this the exact complement of follow_me: a party-leader is follow_me's job, taking them here
       ///   would orphan their command), is not already of the player's own clan (a clan member rides with you by
       ///   default; this is for an OTHER clan's lord), is not at war with the player (an enemy lord does not ride
-      ///   inside the very army they may soon fight), is not already riding as a retainer (one at a time), and
-      ///   holds the player in at least <see cref="RegardFloor" /> personal regard.
+      ///   inside the very army they may soon fight), their OWN FACTION is not at war with anyone (author's
+      ///   concern: a lord riding along while his realm fights a war stops answering his liege's muster call,
+      ///   quietly weakening the faction, so he stays home and available regardless of his personal regard for
+      ///   the player - distinct from <paramref name="atWar" />, which is only the player's own war), is not
+      ///   already riding as a retainer (one at a time), and holds the player in at least
+      ///   <see cref="RegardFloor" /> personal regard.
       /// </summary>
       public static bool CanRideWithPlayer(
          bool isLord, bool isAlive, bool isPrisoner, bool leadsParty,
-         bool isPlayerClan, bool atWar, bool alreadyRiding, int regard)
+         bool isPlayerClan, bool atWar, bool alreadyRiding, int regard, bool factionAtWar)
       {
          if (!isLord) return false;
          if (!isAlive) return false;
@@ -56,6 +62,7 @@ namespace CalradiaRemembers.Logic
          if (atWar) return false;
          if (alreadyRiding) return false;
          if (regard < RegardFloor) return false;
+         if (factionAtWar) return false;
 
          return true;
       }

@@ -93,7 +93,8 @@ namespace CalradiaRemembers.Escort
                    leadsParty: party != null && party.LeaderHero == lord,
                    atWar: IsAtWarWithPlayer(lord),
                    inArmy: party?.Army != null || party?.SiegeEvent != null,
-                   alreadyEscorting: IsEscorting(lord.StringId)))
+                   alreadyEscorting: IsEscorting(lord.StringId),
+                   factionAtWar: FactionIsAtWarWithAnyone(lord.MapFaction)))
             {
                 failReason = "they cannot ride with you right now.";
 
@@ -225,6 +226,33 @@ namespace CalradiaRemembers.Escort
         private static bool IsAtWarWithPlayer(Hero lord)
             => lord.MapFaction != null && Hero.MainHero?.MapFaction != null &&
                FactionManager.IsAtWarAgainstFaction(lord.MapFaction, Hero.MainHero.MapFaction);
+
+        /// <summary>
+        ///   True when <paramref name="faction" /> holds a live war against ANY other faction, not only the
+        ///   player's own (the author's C-guard concern: a lord whose realm is at war must stay home for his
+        ///   liege's muster call, not ride off escorting the player and quietly weaken his faction). Walks the
+        ///   same Kingdoms + independent-Clans pool EncounterContextBuilder's own peace-mediation teaching draws
+        ///   from, so the teaching gate and this re-check can never disagree. Guarded so a missing engine
+        ///   snapshot never throws mid-tick.
+        /// </summary>
+        private static bool FactionIsAtWarWithAnyone(IFaction faction)
+        {
+            try
+            {
+                if (faction == null) return false;
+
+                if (Kingdom.All != null)
+                    foreach (Kingdom k in Kingdom.All)
+                        if (k != faction && FactionManager.IsAtWarAgainstFaction(faction, k)) return true;
+
+                if (Clan.All != null)
+                    foreach (Clan c in Clan.All)
+                        if (c.Kingdom == null && c != faction && FactionManager.IsAtWarAgainstFaction(faction, c)) return true;
+
+                return false;
+            }
+            catch { return false; }
+        }
 
         private void OnDailyTick()
         {

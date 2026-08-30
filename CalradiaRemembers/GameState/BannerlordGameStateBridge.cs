@@ -3266,7 +3266,8 @@ namespace CalradiaRemembers.GameState
                    isPlayerClan: npcHero.Clan == Clan.PlayerClan,
                    atWar: atWar,
                    alreadyRiding: behavior.IsRetainer(npcHero.StringId),
-                   regard: regard))
+                   regard: regard,
+                   factionAtWar: FactionIsAtWarWithAnyone(npcHero.MapFaction)))
             {
                // The one refusal worth naming precisely: a lord who leads their own party belongs to follow_me,
                // not this verb. Every other block is a plain "not right now" so the model never narrates it done.
@@ -3294,6 +3295,33 @@ namespace CalradiaRemembers.GameState
 
             return null;
          }
+      }
+
+      /// <summary>
+      ///   True when <paramref name="faction" /> holds a live war against ANY other faction, not only the
+      ///   player's own (the author's C-guard concern: a lord whose realm is at war must stay home for his
+      ///   liege's muster call, not ride off in the player's own party and quietly weaken his faction). Walks the
+      ///   same Kingdoms + independent-Clans pool EncounterContextBuilder's own peace-mediation teaching draws
+      ///   from, so the teaching gate and this bridge re-check can never disagree. Guarded so a missing engine
+      ///   snapshot never throws mid-turn.
+      /// </summary>
+      private static bool FactionIsAtWarWithAnyone(IFaction faction)
+      {
+         try
+         {
+            if (faction == null) return false;
+
+            if (Kingdom.All != null)
+               foreach (Kingdom k in Kingdom.All)
+                  if (k != faction && FactionManager.IsAtWarAgainstFaction(faction, k)) return true;
+
+            if (Clan.All != null)
+               foreach (Clan c in Clan.All)
+                  if (c.Kingdom == null && c != faction && FactionManager.IsAtWarAgainstFaction(faction, c)) return true;
+
+            return false;
+         }
+         catch { return false; }
       }
 
       /// <summary>

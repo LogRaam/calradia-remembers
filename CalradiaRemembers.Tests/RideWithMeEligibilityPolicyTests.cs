@@ -6,7 +6,9 @@
 // yours), ride_with_me demands leadsParty == false (they ride IN your party, staying in their own clan). These
 // tests pin every guard, and above all the MUTUAL EXCLUSIVITY: a party-leading lord must be refused here (they
 // are follow_me's job), so the two verbs can never both fire for one hero and a lord's own command is never
-// orphaned by taking them into the player's roster.
+// orphaned by taking them into the player's roster. The factionAtWar guard (added 29/08/2026) mirrors
+// EscortEligibilityPolicy's own: the author's key concern is a lord who rides along while his own realm fights a
+// war, stopping him from answering his liege's muster call and quietly weakening his faction.
 
 #region
 
@@ -32,7 +34,7 @@ namespace CalradiaRemembers.Tests
         {
             RideWithMeEligibilityPolicy.CanRideWithPlayer(
                     isLord: true, isAlive: true, isPrisoner: false, leadsParty: false,
-                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: FriendlyRegard)
+                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: FriendlyRegard, factionAtWar: false)
                 .Should().BeTrue();
         }
 
@@ -44,7 +46,7 @@ namespace CalradiaRemembers.Tests
         {
             RideWithMeEligibilityPolicy.CanRideWithPlayer(
                     isLord: true, isAlive: true, isPrisoner: false, leadsParty: true,
-                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: FriendlyRegard)
+                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: FriendlyRegard, factionAtWar: false)
                 .Should().BeFalse();
         }
 
@@ -55,7 +57,7 @@ namespace CalradiaRemembers.Tests
         {
             RideWithMeEligibilityPolicy.CanRideWithPlayer(
                     isLord: false, isAlive: true, isPrisoner: false, leadsParty: false,
-                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: FriendlyRegard)
+                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: FriendlyRegard, factionAtWar: false)
                 .Should().BeFalse();
         }
 
@@ -66,7 +68,7 @@ namespace CalradiaRemembers.Tests
         {
             RideWithMeEligibilityPolicy.CanRideWithPlayer(
                     isLord: true, isAlive: true, isPrisoner: true, leadsParty: false,
-                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: FriendlyRegard)
+                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: FriendlyRegard, factionAtWar: false)
                 .Should().BeFalse();
         }
 
@@ -77,7 +79,7 @@ namespace CalradiaRemembers.Tests
         {
             RideWithMeEligibilityPolicy.CanRideWithPlayer(
                     isLord: true, isAlive: true, isPrisoner: false, leadsParty: false,
-                    isPlayerClan: true, atWar: false, alreadyRiding: false, regard: FriendlyRegard)
+                    isPlayerClan: true, atWar: false, alreadyRiding: false, regard: FriendlyRegard, factionAtWar: false)
                 .Should().BeFalse();
         }
 
@@ -89,7 +91,7 @@ namespace CalradiaRemembers.Tests
         {
             RideWithMeEligibilityPolicy.CanRideWithPlayer(
                     isLord: true, isAlive: true, isPrisoner: false, leadsParty: false,
-                    isPlayerClan: false, atWar: true, alreadyRiding: false, regard: FriendlyRegard)
+                    isPlayerClan: false, atWar: true, alreadyRiding: false, regard: FriendlyRegard, factionAtWar: false)
                 .Should().BeFalse();
         }
 
@@ -100,7 +102,7 @@ namespace CalradiaRemembers.Tests
         {
             RideWithMeEligibilityPolicy.CanRideWithPlayer(
                     isLord: true, isAlive: true, isPrisoner: false, leadsParty: false,
-                    isPlayerClan: false, atWar: false, alreadyRiding: true, regard: FriendlyRegard)
+                    isPlayerClan: false, atWar: false, alreadyRiding: true, regard: FriendlyRegard, factionAtWar: false)
                 .Should().BeFalse();
         }
 
@@ -111,7 +113,7 @@ namespace CalradiaRemembers.Tests
         {
             RideWithMeEligibilityPolicy.CanRideWithPlayer(
                     isLord: true, isAlive: true, isPrisoner: false, leadsParty: false,
-                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: RideWithMeEligibilityPolicy.RegardFloor - 1)
+                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: RideWithMeEligibilityPolicy.RegardFloor - 1, factionAtWar: false)
                 .Should().BeFalse();
         }
 
@@ -122,8 +124,20 @@ namespace CalradiaRemembers.Tests
         {
             RideWithMeEligibilityPolicy.CanRideWithPlayer(
                     isLord: true, isAlive: true, isPrisoner: false, leadsParty: false,
-                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: RideWithMeEligibilityPolicy.RegardFloor)
+                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: RideWithMeEligibilityPolicy.RegardFloor, factionAtWar: false)
                 .Should().BeTrue();
+        }
+
+        // The author's key concern behind this guard: a lord whose OWN FACTION is at war (even at peace with the
+        // player personally, and holding them in high regard) must be refused, or he rides off with the player
+        // and stops answering his liege's muster call, quietly weakening his faction mid-war.
+        [Test]
+        public void GIVEN_the_lords_own_faction_is_at_war_with_anyone_WHEN_checked_THEN_riding_along_is_refused()
+        {
+            RideWithMeEligibilityPolicy.CanRideWithPlayer(
+                    isLord: true, isAlive: true, isPrisoner: false, leadsParty: false,
+                    isPlayerClan: false, atWar: false, alreadyRiding: false, regard: FriendlyRegard, factionAtWar: true)
+                .Should().BeFalse();
         }
     }
 }

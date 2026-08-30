@@ -318,8 +318,9 @@ namespace CalradiaRemembers
          // clan rides IN the player's own party (MobileParty.MainParty member roster) for a time WITHOUT marriage
          // and WITHOUT joining the player's clan, staying affiliated to their OWN clan, and breaks off when their
          // faction goes to war with the player. Additive, save-safe StringId track; every read guarded. The
-         // player-facing verb is GATED OFF by default (RetainerBehavior.Enabled) pending an in-game UI check; the
-         // console cr.retainer and the self-test drive the raw mechanism regardless. Idle otherwise.
+         // player-facing verb is ON by default (RetainerBehavior.Enabled, backed by the MCM "Lords can ride in
+         // your party" toggle), turned off from the menu or a cr.retainer enable override; the console cr.retainer
+         // and the self-test drive the raw mechanism regardless. Idle otherwise.
          campaignStarter.AddBehavior(new CalradiaRemembers.Retainer.RetainerBehavior());
          // Courtship trial (author's story): a marriage prospect who agrees to wed BUT first rides at the player's
          // side to test him. Records the day a valid, not-hard-blocked prospect BEGINS accompanying (follow_me or

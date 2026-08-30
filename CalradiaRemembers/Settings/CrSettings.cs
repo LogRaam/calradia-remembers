@@ -104,6 +104,14 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public bool AllowProviderFallbacks { get; set; } = false;
 
+      [SettingPropertyBool("Lords can ride in your party", RequireRestart = false, Order = 2,
+         HintText = "On (default): an idle lord/lady of ANOTHER clan may agree, in conversation, to ride IN your " +
+                    "party for a time (ride_with_me), keeping their own house. Off: only the follow_me escort " +
+                    "(a lord's OWN party riding alongside yours) remains offered. Console cr.retainer enable " +
+                    "overrides this for the rest of the session.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool EnableRideWithMe { get; set; } = true;
+
       [SettingPropertyBool("Enable Council", RequireRestart = false, Order = 3,
          HintText = "When ON, you can convene a council of your companions, kin, clan lords, or a war council from a " +
                     "town, castle, or village menu, and from a button on the campaign map while on land. Turn OFF to " +

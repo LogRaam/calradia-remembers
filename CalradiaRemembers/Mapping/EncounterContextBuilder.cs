@@ -171,8 +171,8 @@ namespace CalradiaRemembers.Mapping
          bool npcCanEscortPlayer = ResolveNpcCanEscortPlayer(hero, npcIsEscortingPlayer);
 
          // ride_with_me / part_ways: the idle-lord complement of follow_me, gated behind RetainerBehavior.Enabled
-         // (default OFF) so neither the teaching nor the executor lights up until the party-screen feel is
-         // validated in-game. RideWithMeEligibilityPolicy.CanRideWithPlayer is the ONE shared gate the bridge
+         // (ON by default via the MCM "Lords can ride in your party" toggle, the party-screen feel having been
+         // validated in-game). RideWithMeEligibilityPolicy.CanRideWithPlayer is the ONE shared gate the bridge
          // re-checks at commit time, and it is the exact complement of EscortEligibilityPolicy (inverted on the
          // leads-a-party fact), so a hero is ever offered follow_me OR ride_with_me, never both.
          bool npcIsRidingWithPlayer = ResolveNpcIsRidingWithPlayer(hero);
@@ -1983,8 +1983,36 @@ namespace CalradiaRemembers.Mapping
          bool atWar = hero.MapFaction != null && Hero.MainHero?.MapFaction != null &&
                       FactionManager.IsAtWarAgainstFaction(hero.MapFaction, Hero.MainHero.MapFaction);
          bool inArmy = party?.Army != null || party?.SiegeEvent != null;
+         bool factionAtWar = FactionIsAtWarWithAnyone(hero.MapFaction);
 
-         return EscortEligibilityPolicy.CanEscort(leadsParty, atWar, inArmy, alreadyEscorting);
+         return EscortEligibilityPolicy.CanEscort(leadsParty, atWar, inArmy, alreadyEscorting, factionAtWar);
+      }
+
+      /// <summary>
+      ///   True when <paramref name="faction" /> holds a live war against ANY other faction, not only the player's
+      ///   own (the author's C-guard concern: a lord whose realm is at war must stay home for his liege's muster
+      ///   call, not ride off with the player and quietly weaken his faction). Walks the SAME faction pool
+      ///   <see cref="ResolveMediatablePeaceFactions" /> already draws from (live Kingdoms plus independent Clans,
+      ///   a Clan holding a Kingdom being represented by that Kingdom already), so this answer can never disagree
+      ///   with that list. Guarded so a missing engine snapshot never throws mid-turn.
+      /// </summary>
+      private static bool FactionIsAtWarWithAnyone(IFaction faction)
+      {
+         try
+         {
+            if (faction == null) return false;
+
+            if (Kingdom.All != null)
+               foreach (Kingdom k in Kingdom.All)
+                  if (k != faction && FactionManager.IsAtWarAgainstFaction(faction, k)) return true;
+
+            if (Clan.All != null)
+               foreach (Clan c in Clan.All)
+                  if (c.Kingdom == null && c != faction && FactionManager.IsAtWarAgainstFaction(faction, c)) return true;
+
+            return false;
+         }
+         catch { return false; }
       }
 
       /// <summary>True while THIS lord's own party is genuinely escorting the player right now (drives dismiss_escort).</summary>
@@ -2016,7 +2044,8 @@ namespace CalradiaRemembers.Mapping
             isPlayerClan: hero.Clan == Clan.PlayerClan,
             atWar: atWar,
             alreadyRiding: alreadyRiding,
-            regard: profile?.ReputationWithPlayer ?? 0);
+            regard: profile?.ReputationWithPlayer ?? 0,
+            factionAtWar: FactionIsAtWarWithAnyone(hero.MapFaction));
       }
 
       /// <summary>

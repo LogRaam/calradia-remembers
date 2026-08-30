@@ -8682,7 +8682,7 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             // Restore every borrowed piece of state whichever assertion bailed: release if still tracked, put the
-            // regard back, and return the feature switch to how it was found (default off).
+            // regard back, and return the feature switch to how it was found.
             if (retainer.IsRetainer(idle.StringId)) retainer.TryRelease(idle, out string _);
             idleProfile.ReputationWithPlayer = originalRegard;
             behavior.Store.Set(idleProfile);

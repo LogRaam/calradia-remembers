@@ -5,7 +5,10 @@
 // combination: a lord who does not lead his own party (a companion already riding IN the player's party) has
 // nothing further for follow_me to do; a lord at war with the player is not about to ride alongside the very
 // army he may soon fight; a lord bound to an army or a siege would have his party reclaimed by his own AI the
-// moment the escort began, making it an unkeepable promise; and a lord already escorting cannot be double-booked.
+// moment the escort began, making it an unkeepable promise; a lord already escorting cannot be double-booked;
+// and (added 29/08/2026) a lord whose OWN FACTION is at war with anyone is refused regardless of his personal
+// relation to the player, the author's key concern: an escorting lord stops answering his liege's muster call,
+// quietly weakening his faction mid-war.
 
 #region
 
@@ -25,7 +28,7 @@ namespace CalradiaRemembers.Tests.Escort
         [Test]
         public void GIVEN_every_guard_clear_WHEN_checked_THEN_the_escort_is_allowed()
         {
-            EscortEligibilityPolicy.CanEscort(leadsParty: true, atWar: false, inArmy: false, alreadyEscorting: false)
+            EscortEligibilityPolicy.CanEscort(leadsParty: true, atWar: false, inArmy: false, alreadyEscorting: false, factionAtWar: false)
                 .Should().BeTrue();
         }
 
@@ -34,7 +37,7 @@ namespace CalradiaRemembers.Tests.Escort
         [Test]
         public void GIVEN_the_npc_does_not_lead_their_own_party_WHEN_checked_THEN_the_escort_is_refused()
         {
-            EscortEligibilityPolicy.CanEscort(leadsParty: false, atWar: false, inArmy: false, alreadyEscorting: false)
+            EscortEligibilityPolicy.CanEscort(leadsParty: false, atWar: false, inArmy: false, alreadyEscorting: false, factionAtWar: false)
                 .Should().BeFalse();
         }
 
@@ -43,7 +46,7 @@ namespace CalradiaRemembers.Tests.Escort
         [Test]
         public void GIVEN_the_npc_is_at_war_with_the_player_WHEN_checked_THEN_the_escort_is_refused()
         {
-            EscortEligibilityPolicy.CanEscort(leadsParty: true, atWar: true, inArmy: false, alreadyEscorting: false)
+            EscortEligibilityPolicy.CanEscort(leadsParty: true, atWar: true, inArmy: false, alreadyEscorting: false, factionAtWar: false)
                 .Should().BeFalse();
         }
 
@@ -52,7 +55,7 @@ namespace CalradiaRemembers.Tests.Escort
         [Test]
         public void GIVEN_the_npc_is_bound_to_an_army_or_a_siege_WHEN_checked_THEN_the_escort_is_refused()
         {
-            EscortEligibilityPolicy.CanEscort(leadsParty: true, atWar: false, inArmy: true, alreadyEscorting: false)
+            EscortEligibilityPolicy.CanEscort(leadsParty: true, atWar: false, inArmy: true, alreadyEscorting: false, factionAtWar: false)
                 .Should().BeFalse();
         }
 
@@ -61,7 +64,18 @@ namespace CalradiaRemembers.Tests.Escort
         [Test]
         public void GIVEN_the_npc_is_already_escorting_WHEN_checked_THEN_the_escort_is_refused()
         {
-            EscortEligibilityPolicy.CanEscort(leadsParty: true, atWar: false, inArmy: false, alreadyEscorting: true)
+            EscortEligibilityPolicy.CanEscort(leadsParty: true, atWar: false, inArmy: false, alreadyEscorting: true, factionAtWar: false)
+                .Should().BeFalse();
+        }
+
+        // The author's key concern behind this whole guard: a lord whose OWN FACTION is at war (even if the lord
+        // personally holds no grudge against the player, and the player is not the enemy) must refuse, or he
+        // rides off with the player and stops answering his liege's muster call, quietly weakening his faction
+        // mid-war.
+        [Test]
+        public void GIVEN_the_npcs_own_faction_is_at_war_with_anyone_WHEN_checked_THEN_the_escort_is_refused()
+        {
+            EscortEligibilityPolicy.CanEscort(leadsParty: true, atWar: false, inArmy: false, alreadyEscorting: false, factionAtWar: true)
                 .Should().BeFalse();
         }
     }

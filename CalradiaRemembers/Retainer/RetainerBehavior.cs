@@ -5,10 +5,11 @@
 // forces them to leave). This behavior is the persisted mechanism plus the observation/safety seam behind the
 // player-facing ride_with_me / part_ways verbs (BannerlordGameStateBridge.ExecuteRideWithMe / ExecutePartWays).
 //
-// ON by default (<see cref="Enabled" />, default true): the party-screen/UI feel of an other-clan lord riding in
-// the player's roster was validated in-game 2026-08-11 (he shows as a party member and leaves cleanly). The flag
-// is kept so a player can still turn the path off with cr.retainer enable off; while disabled, the verbs are
-// neither taught (EncounterContextBuilder never sets NpcCanRideWithPlayer) nor executed.
+// ON by default (<see cref="Enabled" />, backed by the MCM "Lords can ride in your party" toggle, itself default
+// true): the party-screen/UI feel of an other-clan lord riding in the player's roster was validated in-game
+// 2026-08-11 (he shows as a party member and leaves cleanly). A player can turn the path off from the MCM menu,
+// or override it for the rest of the session with cr.retainer enable off; while disabled, the verbs are neither
+// taught (EncounterContextBuilder never sets NpcCanRideWithPlayer) nor executed.
 //
 // TAKE / RELEASE (decompile-confirmed against the shipped TaleWorlds.CampaignSystem.dll):
 //   * AddHeroToPartyAction.Apply(hero, MobileParty.MainParty) is the correct primitive: it removes the hero
@@ -56,14 +57,23 @@ namespace CalradiaRemembers.Retainer
         private const string SaveKey = "CalradiaRemembers_Retainers_v1bytes";
 
         /// <summary>
-        ///   Master switch for the whole ride_with_me / part_ways player-facing path, DEFAULT false. When off, the
-        ///   verb is neither taught (EncounterContextBuilder leaves NpcCanRideWithPlayer/NpcIsRidingWithPlayer
-        ///   false) nor executed by the bridge; the raw take/release mechanism the console and self-test drive is
-        ///   deliberately NOT gated by this, so the mechanism stays verifiable while the player path is held back
-        ///   pending the author's in-game party-screen/UI check. Toggled via cr.retainer enable [on|off]. A plain
-        ///   static (not persisted): an unusual, experimental path defaults off on every boot until switched on.
+        ///   Master switch for the whole ride_with_me / part_ways player-facing path. When off, the verb is
+        ///   neither taught (EncounterContextBuilder leaves NpcCanRideWithPlayer/NpcIsRidingWithPlayer false) nor
+        ///   executed by the bridge; the raw take/release mechanism the console and self-test drive is
+        ///   deliberately NOT gated by this, so the mechanism stays verifiable regardless of the player-facing
+        ///   switch. Defaults to the live MCM "Lords can ride in your party" toggle (<see cref="ModSettings.EnableRideWithMe" />,
+        ///   itself ON by default: the party-screen/UI feel was validated in-game 2026-08-11), so a player can
+        ///   turn the path off from the menu without touching the console. <c>cr.retainer enable [on|off]</c>
+        ///   sets a session-only override that wins over MCM until the next boot (a plain in-memory override, not
+        ///   persisted) - the same escape hatch the dev console always had.
         /// </summary>
-        public static bool Enabled = true;
+        public static bool Enabled
+        {
+            get => _enabledOverride ?? ModSettings.EnableRideWithMe;
+            set => _enabledOverride = value;
+        }
+
+        private static bool? _enabledOverride;
 
         /// <summary>
         ///   Shows the player a brief on-screen line when a retainer joins or leaves. Both are things the player

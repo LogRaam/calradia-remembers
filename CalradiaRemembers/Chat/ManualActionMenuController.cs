@@ -364,13 +364,16 @@ namespace CalradiaRemembers.Chat
                         && FactionManager.IsAtWarAgainstFaction(npc.MapFaction, Hero.MainHero.MapFaction);
             bool inArmy = party?.Army != null || party?.SiegeEvent != null;
 
+            bool factionAtWar = FactionIsAtWarWithAnyone(npc.MapFaction);
+
             bool npcIsEscortingPlayer = FollowMeBehavior.Instance?.IsEscorting(npc.StringId) == true;
-            bool npcCanEscortPlayer = npc.IsLord && EscortEligibilityPolicy.CanEscort(leadsParty, atWar, inArmy, npcIsEscortingPlayer);
+            bool npcCanEscortPlayer = npc.IsLord && EscortEligibilityPolicy.CanEscort(leadsParty, atWar, inArmy, npcIsEscortingPlayer, factionAtWar);
 
             bool npcIsRidingWithPlayer = RetainerBehavior.Enabled && RetainerBehavior.Instance?.IsRetainer(npc.StringId) == true;
             bool npcCanRideWithPlayer = RetainerBehavior.Enabled && RideWithMeEligibilityPolicy.CanRideWithPlayer(
                isLord: npc.IsLord, isAlive: npc.IsAlive, isPrisoner: npc.IsPrisoner, leadsParty: leadsParty,
-               isPlayerClan: npc.Clan == Clan.PlayerClan, atWar: atWar, alreadyRiding: npcIsRidingWithPlayer, regard: regard);
+               isPlayerClan: npc.Clan == Clan.PlayerClan, atWar: atWar, alreadyRiding: npcIsRidingWithPlayer, regard: regard,
+               factionAtWar: factionAtWar);
 
             bool playerIsKingdomLeader = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
             bool npcIsVassalInPlayerKingdom = npc.Clan != null && npc.Clan != Clan.PlayerClan
@@ -515,6 +518,32 @@ namespace CalradiaRemembers.Chat
          }
 
          return names;
+      }
+
+      /// <summary>
+      ///   True when <paramref name="faction" /> holds a live war against ANY other faction, not only the
+      ///   player's own (the author's C-guard concern: a lord whose realm is at war must stay home for his
+      ///   liege's muster call, not ride off with the player and quietly weaken his faction). Walks the same
+      ///   Kingdoms + independent-Clans pool <see cref="MediatableFactionsOf" /> already draws from, so this
+      ///   answer can never disagree with that list. Guarded so a missing engine snapshot never throws.
+      /// </summary>
+      private static bool FactionIsAtWarWithAnyone(IFaction faction)
+      {
+         try
+         {
+            if (faction == null) return false;
+
+            if (Kingdom.All != null)
+               foreach (Kingdom k in Kingdom.All)
+                  if (k != faction && FactionManager.IsAtWarAgainstFaction(faction, k)) return true;
+
+            if (Clan.All != null)
+               foreach (Clan c in Clan.All)
+                  if (c.Kingdom == null && c != faction && FactionManager.IsAtWarAgainstFaction(faction, c)) return true;
+
+            return false;
+         }
+         catch { return false; }
       }
    }
 }

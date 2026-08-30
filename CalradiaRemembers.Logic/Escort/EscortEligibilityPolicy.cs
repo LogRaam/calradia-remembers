@@ -3,10 +3,12 @@
 // version of that is roadmapped separately, this is the map-escort that is doable now): a lord's OWN party
 // escorts the player's MobileParty.MainParty for a bounded term, distinct from join_party (the lord keeps
 // their own troops and command, never joining the player's party or clan, never swearing to their clan).
-// Four independent facts gate BOTH the conditional teaching (EncounterContextBuilder.Build ->
+// Five independent facts gate BOTH the conditional teaching (EncounterContextBuilder.Build ->
 // EncounterContext.NpcCanEscortPlayer -> SDK PromptBuilder.AppendFollowMe) and the mod's own bridge re-check at
 // execution (BannerlordGameStateBridge.ExecuteFollowMe / FollowMeBehavior.TryStart), so the two can never
-// quietly diverge ("the prompt is advice, the bridge is law").
+// quietly diverge ("the prompt is advice, the bridge is law"). The fifth (factionAtWar, added 29/08/2026) keeps a
+// lord home while his own realm is at war with anyone, so he stays available for his liege's muster call instead
+// of riding off with the player and quietly weakening his faction.
 namespace CalradiaRemembers.Logic.Escort
 {
     /// <summary>Pure eligibility gate for follow_me: every guard the teaching and the bridge share.</summary>
@@ -26,15 +28,19 @@ namespace CalradiaRemembers.Logic.Escort
         ///   further for follow_me to do for them), is not at war with the player (an enemy lord does not
         ///   pledge to ride alongside the very army it may soon fight), is not currently bound to an army or a
         ///   siege (their own AI would immediately reclaim the party for that duty, making the escort an
-        ///   unkeepable promise the moment it started), and is not already escorting (one escort at a time per
-        ///   lord).
+        ///   unkeepable promise the moment it started), is not already escorting (one escort at a time per
+        ///   lord), and their OWN FACTION is not at war with anyone (author's concern: a lord riding off with
+        ///   the player while his realm fights a war stops answering his liege's muster call, quietly weakening
+        ///   the faction - so a lord whose faction is at war stays home and available, whatever his own personal
+        ///   relation to the player, distinct from <paramref name="atWar" /> which is only the player's own war).
         /// </summary>
-        public static bool CanEscort(bool leadsParty, bool atWar, bool inArmy, bool alreadyEscorting)
+        public static bool CanEscort(bool leadsParty, bool atWar, bool inArmy, bool alreadyEscorting, bool factionAtWar)
         {
             if (!leadsParty) return false;
             if (atWar) return false;
             if (inArmy) return false;
             if (alreadyEscorting) return false;
+            if (factionAtWar) return false;
 
             return true;
         }

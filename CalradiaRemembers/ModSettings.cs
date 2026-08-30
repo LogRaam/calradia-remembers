@@ -102,6 +102,15 @@ namespace CalradiaRemembers
       public static bool EnableCouncil => CrSettings.Instance?.EnableCouncil ?? true;
 
       /// <summary>
+      ///   Whether an idle other-clan lord may ride IN the player's own party as a retainer (ride_with_me). Read
+      ///   live from the MCM menu ("Lords can ride in your party"); ON by default (the party-screen/UI feel was
+      ///   validated in-game 2026-08-11) and default-safe (treated as ON) when MCM has not loaded. See
+      ///   <see cref="Retainer.RetainerBehavior.Enabled" />, which layers a session-only console override
+      ///   (cr.retainer enable [on|off]) on top of this live default.
+      /// </summary>
+      public static bool EnableRideWithMe => CrSettings.Instance?.EnableRideWithMe ?? true;
+
+      /// <summary>
       ///   When ON (default), a fought duel reopens as a conversation resuming what led to it (the loser concedes,
       ///   the victor presses their point); OFF ends a fought duel silently with only its consequences applied.
       ///   Read live from MCM, default-safe (treated as ON) when MCM has not loaded.

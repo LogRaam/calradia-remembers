@@ -21,7 +21,8 @@ namespace CalradiaRemembers
       ///   WITHOUT marriage and WITHOUT joining the player's clan (their Hero.Clan stays their own), and have a
       ///   war with their faction force them to leave.
       ///   - enable [on|off]: toggle the PLAYER-FACING ride_with_me / part_ways path (RetainerBehavior.Enabled,
-      ///                      default OFF pending an in-game UI check). With no argument, prints the current state.
+      ///                      ON by default via the MCM "Lords can ride in your party" toggle; this sets a
+      ///                      session-only override on top of it). With no argument, prints the current state.
       ///   - take [name]:     add the named other-clan lord to MobileParty.MainParty; reports roster/clan/occupation.
       ///   - release [name]:  remove a tracked retainer from the party; reports the resulting partyless state.
       ///   - status:          list every tracked retainer with clan + whether they are ACTUALLY still in MainParty.
