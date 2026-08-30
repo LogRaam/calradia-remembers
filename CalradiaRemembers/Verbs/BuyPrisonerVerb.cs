@@ -14,6 +14,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Prisoners;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -207,29 +208,44 @@ namespace CalradiaRemembers.Verbs
         /// </summary>
         internal static List<Hero> PlayerHeldHeroPrisoners()
         {
-            var result = new List<Hero>();
-            var seen = new HashSet<string>();
-
-            AddHeroPrisoners(MobileParty.MainParty?.PrisonRoster, result, seen);
+            var byId = new Dictionary<string, Hero>();
+            var prisons = new List<PrisonHolding>
+            {
+                BuildHolding(MobileParty.MainParty?.PrisonRoster, isPlayerMainParty: true, ownedByPlayer: false, byId)
+            };
 
             Clan playerClan = Clan.PlayerClan;
             if (playerClan?.Settlements != null)
                 foreach (Settlement s in playerClan.Settlements)
-                    AddHeroPrisoners(s?.Party?.PrisonRoster, result, seen);
+                    prisons.Add(BuildHolding(s?.Party?.PrisonRoster, isPlayerMainParty: false,
+                        ownedByPlayer: s?.OwnerClan == playerClan, byId));
+
+            // The pure PrisonerCustodyPolicy owns the rule (which prisons count) and the dedup; the engine here
+            // only reads rosters and maps the surviving ids back to their Hero.
+            var result = new List<Hero>();
+            foreach (string id in PrisonerCustodyPolicy.HeldByPlayer(prisons))
+                if (byId.TryGetValue(id, out Hero h)) result.Add(h);
 
             return result;
         }
 
-        /// <summary>Adds each alive hero in a prison roster to the accumulator once (deduped by StringId). Null-safe.</summary>
-        private static void AddHeroPrisoners(TroopRoster prison, List<Hero> into, HashSet<string> seen)
+        /// <summary>Reads a prison roster into a pure <see cref="PrisonHolding" />, recording each alive hero's id -&gt; Hero for later mapping. Null-safe.</summary>
+        private static PrisonHolding BuildHolding(
+            TroopRoster prison, bool isPlayerMainParty, bool ownedByPlayer, Dictionary<string, Hero> byId)
         {
-            if (prison == null) return;
+            var ids = new List<string>();
+            if (prison != null)
+                foreach (TroopRosterElement el in prison.GetTroopRoster())
+                {
+                    Hero h = el.Character?.HeroObject;
+                    if (h is {IsAlive: true})
+                    {
+                        ids.Add(h.StringId);
+                        byId[h.StringId] = h;
+                    }
+                }
 
-            foreach (TroopRosterElement el in prison.GetTroopRoster())
-            {
-                Hero h = el.Character?.HeroObject;
-                if (h is {IsAlive: true} && seen.Add(h.StringId)) into.Add(h);
-            }
+            return new PrisonHolding(isPlayerMainParty, ownedByPlayer, ids);
         }
 
         /// <summary>Tolerant name match among the player's held hero captives.</summary>

@@ -277,6 +277,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster", TestSupplyQuest),
          new SelfTest("courier_waylay", Severity.Heavy, "waylaid-letter resend: a waylaid letter keeps its typed text, and the Resend path re-queues a FRESH non-lost letter carrying the SAME content, so a waylaid letter never has to be retyped. Cleans up its test letters + courier (no popup)", TestCourierWaylayResend),
          new SelfTest("prisoner_trade", Severity.Heavy, "prisoner trade: take a real lord captive into the player's party -> real buy_prisoner via the bridge (an NPC lord buys him) -> assert the player was PAID (price clamped around the ransom anchor) and the captive left the player's custody -> cleanup frees him", TestPrisonerTrade),
+         new SelfTest("prisoner_custody_settlement", Severity.Heavy, "prisoner custody in a settlement (ransom-letter Accept-button fix): capture a real lord into the party, transfer him into a player-owned town/castle dungeon, and assert BuyPrisonerVerb.PlayerHeldHeroPrisoners still counts him there though he is no longer in the party -> cleanup frees him", TestPrisonerCustodySettlement),
          new SelfTest("appreciation_flow", Severity.Light, "plant a kindness -> assert it lives -> plant a strong grudge on the same holder -> assert the tarnished effective magnitude drops -> force backfill twice -> assert the second pass is a no-op", TestAppreciationFlow),
          new SelfTest("duel_cooldown", Severity.Light, "the duel COOLDOWN stamp (2026-07-22), unreachable by unit test since it writes to the live profile: drive the REAL applier on a FORFEITED duel (the case the anti-farm rule exists for, since a balked NPC pays the player RenownForCalledBluff) -> assert LastDuelDay closed on a DUCKED duel exactly as on a fought one, and that the policy reads the cooldown in the right direction (today blocked, the window's end clear, never-dueled never blocked). Restores the previous stamp", TestDuelCooldownStamp),
          new SelfTest("appreciation_repeat", Severity.Light, "repetition (2026-07-22 fix): plant the SAME kindness on two different days -> assert it deepened ONE record instead of adding a twin, the tally reads twice, and the warmth actually ROSE (counting must weigh, not just show) -> assert a third plant the same day is still refused by the anti-noise rule -> run the migration twice and assert a reload cannot inflate the tally or split the record", TestAppreciationRepeat),
@@ -6103,6 +6104,59 @@ namespace CalradiaRemembers.Diagnostics
             try
             {
                if (captive.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(captive, buyer);
+            }
+            catch
+            {
+               /* best-effort cleanup */
+            }
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Player report: a ransom-offer letter showed only a Close button (no Accept) for a captured lord who had
+      ///   NOT escaped, because he sat in the player's own town dungeon and the held-prisoner enumeration only
+      ///   looked at the travelling party. Captures a real in-party lord, moves him into a player-owned settlement's
+      ///   prison, and asserts BuyPrisonerVerb.PlayerHeldHeroPrisoners still counts him there. Frees him in cleanup.
+      /// </summary>
+      private static string TestPrisonerCustodySettlement(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("prisoner_custody_settlement");
+
+         if (t.Abort(Hero.MainHero == null || MobileParty.MainParty == null, "no player party")) return t.Line();
+
+         Settlement prison = Clan.PlayerClan?.Settlements?.FirstOrDefault(s =>
+            s != null && (s.IsTown || s.IsCastle) && s.Party != null);
+
+         if (t.Skip(prison == null, "the player owns no town or castle to hold a prisoner in")) return t.Line();
+
+         Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != null && h.Clan?.Leader != h);
+
+         if (t.Skip(captive == null, "no free in-party lord to capture")) return t.Line();
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, captive);
+
+         if (t.Abort(!captive.IsPrisoner, $"could not take {captive.Name} captive")) return t.Line();
+
+         try
+         {
+            TransferPrisonerAction.Apply(captive.CharacterObject, PartyBase.MainParty, prison.Party);
+
+            bool inSettlement = captive.PartyBelongedToAsPrisoner == prison.Party;
+            bool counted = BuyPrisonerVerb.PlayerHeldHeroPrisoners().Contains(captive);
+
+            t.Note($"captive={captive.Name}, dungeon={prison.Name}, heldInSettlement={inSettlement}, counted={counted}");
+            t.Expect("movedToSettlementDungeon", inSettlement, true);
+            t.Expect("countedAsPlayerHeldFromTheDungeon", counted, true);
+         }
+         finally
+         {
+            // Whatever happened, the test lord goes free so the campaign is left unharmed.
+            try
+            {
+               if (captive.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(captive, Hero.MainHero);
             }
             catch
             {
