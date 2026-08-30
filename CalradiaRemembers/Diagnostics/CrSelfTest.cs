@@ -269,6 +269,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("grudge_sway", Severity.Light, "NPC + 3rd hero -> real sway_opinion(against) via the bridge -> assert SwayExposureBehavior queued a pending watch -> DebugForceReveal -> assert a hidden SwayExposed grudge lands on the target", TestGrudgeSway),
          new SelfTest("companion_revenge", Severity.Light, "companion-victim Phase 3: plant a CaptiveAbuse grudge (companion vs PLAYER) AND a CaptorCruelty grudge (companion vs CAPTOR) on the SAME holder the SAME day -> assert BOTH survive, since they use distinct sources so the holder+source+day dedup does not collapse them", TestCompanionRevenge),
          new SelfTest("appearance", Severity.Light, "extract the player's body facts -> compose the appearance block in Subject (3rd person, read by an NPC) and Self (2nd person) voices, with authored prose -> assert the facts extract, the authored prose is carried, and the Self voice reads in the second person", TestAppearance),
+         new SelfTest("equipment_gear", Severity.Light, "equipment-awareness pillar: extract the player's LIVE equipped items via the real EquipmentFactsExtractor -> compose the notable-gear clause in Subject (3rd person, read by an NPC) and Self (2nd person) voices via the real EquipmentNotabilityPolicy -> assert extraction never throws and the Self voice reads in the second person. Read-only, no persisted state, nothing to clean up", TestEquipmentGear),
          new SelfTest("quest_menu", Severity.Light, "viable-quest referential: scan a live lord's grounded quest menu -> assert it is non-empty (there is always something to do), every line carries a known type token, and a named settlement target truly resolves (so QuestFactory will ground the offer by construction)", TestQuestMenu),
          new SelfTest("bandit_clear_gate", Severity.Light, "increment 2b (player report: a village sent me after bandits that were not there, then turned hostile when I reported none): read the LIVE world, count bandit parties within the completion radius of a lord's anchor via the scanner's own counter, build the grounded menu, and assert bandit_clear is offered IFF at least one bandit party roams nearby. Seeds nothing", TestBanditClearGate),
          new SelfTest("provide_gold", Severity.Heavy, "child-support fix: seed a ProvideGold quest -> real take_gold via the bridge (player pays the giver) -> assert the quest is CLOSED (Completed, not stuck 'awaiting reward') and the goodwill regard was paid, since the payment IS the completion (no [QUEST_COMPLETE] needed). Restores gold so the economy is unchanged", TestProvideGoldCompletes),
@@ -1442,6 +1443,29 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("factsExtracted", facts != null, true);
          t.Expect("authoredProseCarried", subject.Contains("limp"), true);
          t.Expect("selfVoiceSecondPerson", self.Length == 0 || self.StartsWith("You are"), true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Equipment-awareness pillar: proves the real engine extraction + pure notability policy compose a
+      ///   usable, never-throwing clause for a live hero, in both voices. Does not assert exact wording (the
+      ///   player's own live gear varies session to session), only that the path holds together end to end and
+      ///   the Self voice reads in the second person.
+      /// </summary>
+      private static string TestEquipmentGear(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("equipment_gear");
+
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         List<EquipmentPieceFacts> pieces = EquipmentFactsExtractor.Extract(Hero.MainHero);
+         string subject = EquipmentNotabilityPolicy.Compose(pieces, Hero.MainHero.IsFemale, AppearanceVoice.Subject);
+         string self = EquipmentNotabilityPolicy.Compose(pieces, Hero.MainHero.IsFemale, AppearanceVoice.Self);
+
+         t.Note($"pieces={pieces.Count} | subject=\"{subject}\" | self=\"{self}\"");
+         t.Expect("extractionDidNotThrow", pieces != null, true);
+         t.Expect("selfVoiceSecondPerson", self.Length == 0 || self.StartsWith("You "), true);
 
          return t.Line();
       }

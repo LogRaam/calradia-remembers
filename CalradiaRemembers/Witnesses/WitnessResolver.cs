@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
@@ -248,7 +249,8 @@ namespace CalradiaRemembers.Witnesses
                   Name = h.Name.ToString(),
                   RelationToNpc = "the player's companion",
                   IsPlayerCompanion = true,
-                  HeroStringId = h.StringId
+                  HeroStringId = h.StringId,
+                  Gear = ComposeGear(h)
                });
             }
 
@@ -339,7 +341,8 @@ namespace CalradiaRemembers.Witnesses
                            Name = companion.Name.ToString(),
                            RelationToNpc = "the player's companion",
                            IsPlayerCompanion = true,
-                           HeroStringId = companion.StringId
+                           HeroStringId = companion.StringId,
+                           Gear = ComposeGear(companion)
                         });
                         ModLog.Info($"[WitnessResolver] Companion joined: {companion.Name}.");
                      }
@@ -413,7 +416,8 @@ namespace CalradiaRemembers.Witnesses
                            Name = captive.Name.ToString(),
                            RelationToNpc = "another of the player's prisoners",
                            IsBroughtCaptive = true,
-                           HeroStringId = captive.StringId
+                           HeroStringId = captive.StringId,
+                           Gear = ComposeGear(captive)
                         });
                         ModLog.Info($"[WitnessResolver] Brought captive joined: {captive.Name}.");
                      }
@@ -526,6 +530,8 @@ namespace CalradiaRemembers.Witnesses
                IsPlayerCompanion = entry.IsPlayerCompanion,
                IsCaptiveVictim = entry.IsCaptiveVictim,
                Persona = entry.Persona,
+               // Gear does not change with the observer: carried over rather than recomposed.
+               Gear = entry.Gear,
                RelationToNpc = DescribeWitnessRelation(observer, subject)
             };
          }
@@ -551,7 +557,8 @@ namespace CalradiaRemembers.Witnesses
             HeroStringId = host.StringId,
             RelationToNpc = relation,
             IsPlayerCompanion = false,
-            Persona = ResolvePersona(host, store)
+            Persona = ResolvePersona(host, store),
+            Gear = ComposeGear(host)
          };
       }
 
@@ -559,8 +566,26 @@ namespace CalradiaRemembers.Witnesses
          Name = h.Name.ToString(),
          RelationToNpc = DescribeWitnessRelation(npcHero, h),
          HeroStringId = h.StringId,
-         Persona = ResolvePersona(h, store)
+         Persona = ResolvePersona(h, store),
+         Gear = ComposeGear(h)
       };
+
+      /// <summary>
+      ///   Equipment-awareness pillar: a witness's notable equipped gear (Subject voice), so the speaking NPC
+      ///   can react to a companion's mastercraft blade or a bystander's shabby rags. Null when nothing about
+      ///   their gear stands out or the hero cannot be read. Never throws: called for every witness, every turn.
+      /// </summary>
+      private static string ComposeGear(Hero hero)
+      {
+         try
+         {
+            string composed = EquipmentNotabilityPolicy.Compose(
+               EquipmentFactsExtractor.Extract(hero), hero.IsFemale, AppearanceVoice.Subject);
+
+            return string.IsNullOrWhiteSpace(composed) ? null : composed;
+         }
+         catch { return null; }
+      }
 
       /// <summary>
       ///   The LocationComplex location a hero is assigned to ("lordshall", "tavern",

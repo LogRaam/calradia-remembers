@@ -387,6 +387,12 @@ namespace CalradiaRemembers.Mapping
             // contradictory looks. Derived body facts + any player-authored prose, both may be empty (renders none).
             PlayerAppearance = ComposeAppearance(Hero.MainHero, AppearanceVoice.Subject),
             NpcSelfAppearance = ComposeAppearance(hero, AppearanceVoice.Self),
+            // Equipment-awareness pillar (2026-08-29): a modder reported CR feeds NO equipment to the prompt at
+            // all, so an NPC's reaction to fine or shabby gear is pure guesswork. Same Subject/Self split as
+            // appearance just above: the PLAYER's notable gear read in the third person, the SPEAKING NPC's own
+            // gear (a gift now worn) read in the second person so it can reference it in its own words.
+            PlayerGear = ComposeGear(Hero.MainHero, AppearanceVoice.Subject),
+            NpcSelfGear = ComposeGear(hero, AppearanceVoice.Self),
             PlayerLooksWealthy = captorIsBandit && PlayerLooksWealthy(),
             PlayerLooksImportant = captorIsBandit && PlayerLooksImportant(),
             CompanionAskingPrice = ResolveCompanionAskingPrice(hero),
@@ -650,6 +656,23 @@ namespace CalradiaRemembers.Mapping
             AppearanceFactsExtractor.Extract(hero),
             AppearanceProseBehavior.Instance?.Get(hero.StringId),
             voice);
+
+         return string.IsNullOrWhiteSpace(composed)
+            ? null
+            : composed;
+      }
+
+      /// <summary>
+      ///   Equipment-awareness pillar: composes a hero's notable-gear clause from their equipped items (both
+      ///   loadouts, battle and civilian), in the given voice. Returns null (renders nothing) for a null hero
+      ///   or when nothing about their gear stands out (an ordinary loadout is deliberately left unvoiced).
+      /// </summary>
+      private static string ComposeGear(Hero hero, AppearanceVoice voice)
+      {
+         if (hero == null) return null;
+
+         string composed = EquipmentNotabilityPolicy.Compose(
+            EquipmentFactsExtractor.Extract(hero), hero.IsFemale, voice);
 
          return string.IsNullOrWhiteSpace(composed)
             ? null
