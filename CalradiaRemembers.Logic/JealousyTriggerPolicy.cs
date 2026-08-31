@@ -15,9 +15,11 @@ namespace CalradiaRemembers.Logic
     {
         /// <summary>
         ///   TUNE: how many flirt/intimacy events (including today's) the pair must have before spoken
-        ///   flirtation reads as a courtship pattern rather than a one-off pleasantry.
+        ///   flirtation reads as a courtship pattern rather than a one-off pleasantry. Raised 2 -&gt; 3
+        ///   (player report): the model stamps warm small talk as [EVENT] flirt so readily that two
+        ///   stamps still did not discriminate a real courtship from an innocent conversation.
         /// </summary>
-        public const int FlirtPatternMinimum = 2;
+        public const int FlirtPatternMinimum = 3;
 
         /// <summary>
         ///   True when the act should provoke a staked third party. <paramref name="isPlausiblePair" /> is

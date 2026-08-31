@@ -55,5 +55,41 @@ namespace CalradiaRemembers.Tests
          JealousyReactionPolicy.WitnessedActReacts(RomanticActTier.Flirt, roll: 0.75f, witnessedChance: 0.75f)
             .Should().BeTrue();
       }
+
+      // A private act gets the same marriage exemption as a witnessed one: a wedding is telegraphed whether or
+      // not the jealous party had eyes on it, so even the worst possible roll cannot hush it up.
+      [Test]
+      public void GIVEN_a_private_marriage_tier_act_WHEN_the_roll_would_fail_THEN_it_still_reacts()
+      {
+         JealousyReactionPolicy.PrivateActReacts(RomanticActTier.Marriage, roll: 1.0f, chance: 0.5f)
+            .Should().BeTrue();
+      }
+
+      // A private flirt leaves no witnesses to carry the tale: it reacts only when the roll lands within the
+      // (lower) private chance — word got out despite the discretion.
+      [Test]
+      public void GIVEN_a_private_flirt_WHEN_the_roll_lands_within_the_chance_THEN_it_reacts()
+      {
+         JealousyReactionPolicy.PrivateActReacts(RomanticActTier.Flirt, roll: 0.4f, chance: 0.5f)
+            .Should().BeTrue();
+      }
+
+      // The flip side: a private flirt whose roll fails leaves no rumour at all, so the host must not react —
+      // and must not consume the pairing cooldown either (same M-J1 property as the witnessed gate).
+      [Test]
+      public void GIVEN_a_private_flirt_WHEN_the_roll_exceeds_the_chance_THEN_it_does_not_react()
+      {
+         JealousyReactionPolicy.PrivateActReacts(RomanticActTier.Flirt, roll: 0.6f, chance: 0.5f)
+            .Should().BeFalse();
+      }
+
+      // Boundary: the private gate is EXCLUSIVE (a roll exactly at the chance does not react), unlike the
+      // witnessed one — pinned so the two boundaries cannot silently drift into each other.
+      [Test]
+      public void GIVEN_a_private_flirt_WHEN_the_roll_equals_the_chance_THEN_it_does_not_react()
+      {
+         JealousyReactionPolicy.PrivateActReacts(RomanticActTier.Intimacy, roll: 0.5f, chance: 0.5f)
+            .Should().BeFalse();
+      }
    }
 }

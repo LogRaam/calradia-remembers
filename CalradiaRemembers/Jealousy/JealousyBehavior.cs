@@ -22,6 +22,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 
 #endregion
 
@@ -61,6 +62,11 @@ namespace CalradiaRemembers.Jealousy
 
       // A witnessed act is telegraphed — high chance the jealous party hears and reacts.
       private const float WitnessedReactionChance = 0.75f;
+
+      // A private flirt leaves no witnesses to carry the tale, so it does not always leave a rumour
+      // behind at all — a coin toss whether word gets out (player report: the spouse reacted to EVERY
+      // private conversation, however innocent).
+      private const float PrivateReactionChance = 0.5f;
 
       // M-J6: how far/fast the liaison rumour spreads (WorldEventStore.IsAwareOf reads Magnitude). A PRIVATE act
       // leaves a faint rumour that travels slowly; a WITNESSED one spreads far faster and more surely, because
@@ -223,10 +229,15 @@ namespace CalradiaRemembers.Jealousy
                _state.RivalLocks[courted.StringId] = res.Party.StringId; // keep the same rival across the arc
 
             // M-J2: a marriage-tier act (public wedding, consort openly taken) ALWAYS wakes the jealous party;
-            // only lesser WITNESSED acts are probabilistic ("not every flirt travels"). M-J1: consume the pairing
-            // cooldown ONLY when the act actually reacts, so a failed flirt roll no longer swallows a real
-            // marriage that happens days later within the cooldown window.
-            if (hadWitnesses && !JealousyReactionPolicy.WitnessedActReacts(tier, MBRandom.RandomFloat, WitnessedReactionChance)) return;
+            // only lesser acts are probabilistic ("not every flirt travels") — witnessed or not. A witnessed act
+            // is telegraphed (WitnessedReactionChance); a PRIVATE one has no witnesses to carry the tale, so it
+            // gets its own, lower roll (PrivateReactionChance) instead of bypassing the probability gate entirely.
+            // M-J1: consume the pairing cooldown ONLY when the act actually reacts, so a failed flirt roll no
+            // longer swallows a real marriage that happens days later within the cooldown window.
+            bool reacts = hadWitnesses
+               ? JealousyReactionPolicy.WitnessedActReacts(tier, MBRandom.RandomFloat, WitnessedReactionChance)
+               : JealousyReactionPolicy.PrivateActReacts(tier, MBRandom.RandomFloat, PrivateReactionChance);
+            if (!reacts) return;
 
             _state.LastReactionDay[pairKey] = today;
 
@@ -371,7 +382,11 @@ namespace CalradiaRemembers.Jealousy
          // primary partner, or their secret lover) sees their romantic status fall to Estranged (recoverable),
          // instead of staying "Intimate"/"Committed" as if nothing happened. A third-party jealousy (the courted
          // NPC's spouse, a rival, a spurned admirer) has no player-bond to wound, so it is left untouched.
-         if ((stake == JealousStake.PlayerPartner || stake == JealousStake.SecretLover) && profile.Romantic != null)
+         // But a reported FLIRT is not a betrayal: it makes the partner doubt (the regard hit and the grievance
+         // memory above still apply at every tier) without breaking the bond — only an intimacy or a marriage
+         // is the betrayal that wounds it (player report: the wife turned Estranged over mere small talk).
+         if (tier >= RomanticActTier.Intimacy
+             && (stake == JealousStake.PlayerPartner || stake == JealousStake.SecretLover) && profile.Romantic != null)
          {
             RomanticStatus woundedFrom = profile.Romantic.Status;
             profile.Romantic.Status = RomanticWoundPolicy.AfterJealousyWound(woundedFrom);
@@ -389,8 +404,10 @@ namespace CalradiaRemembers.Jealousy
          // Grudges pillar: the reference tier-1 source. Adds RESOLVABILITY on top of the relation hit
          // already applied above — never a second penalty (the relation delta is untouched).
          // EXCEPT the secret lover: their hurt stays private and the bond absorbs it (quiet regard loss and
-         // a discreet letter, never a grudge that hardens into a grievance arc).
-         if (stake != JealousStake.SecretLover)
+         // a discreet letter, never a grudge that hardens into a grievance arc). And no lasting grudge for a
+         // mere reported FLIRT either: warm words breed doubt (regard + letter), not a grudge that hardens —
+         // only an intimacy or a marriage is betrayal enough to be nursed.
+         if (stake != JealousStake.SecretLover && tier >= RomanticActTier.Intimacy)
             GrudgeBehavior.Instance?.TryPlant(party, Hero.MainHero, GrudgeSource.Jealousy, grievance,
                GrudgeBackfillRules.JealousyMagnitude, true, today);
 
@@ -528,7 +545,30 @@ namespace CalradiaRemembers.Jealousy
                continue;
             }
 
-            if (store.IsAwareOf(party, liaison, today)) ready.Add(pa);
+            if (!store.IsAwareOf(party, liaison, today)) continue;
+
+            // Anti-"psychic spouse" (player report): IsAwareOf's faction bonus can push a witnessed flirt rumour
+            // over the awareness threshold at ANY map distance, so a same-faction wife used to learn of the
+            // liaison INSTANTLY from the far end of Calradia. On top of the shared rumour scoring, jealousy adds
+            // its own earshot gate: the jealous party must be close enough to the liaison's location to plausibly
+            // have heard the tale (or be riding beside the player). The watch is NOT dropped when only the
+            // distance fails — they may draw near before the rumour dies of old age (AwarenessMaxDays).
+            Vec2? partyPos = party.PartyBelongedTo?.GetPosition2D ?? party.CurrentSettlement?.GetPosition2D;
+            Vec2? rumorPos = string.IsNullOrEmpty(liaison.PlaceId)
+               ? null
+               : Settlement.Find(liaison.PlaceId)?.GetPosition2D;
+            float? distance = partyPos.HasValue && rumorPos.HasValue
+               ? partyPos.Value.Distance(rumorPos.Value)
+               : (float?) null; // an unreadable position fails safe toward NOT hearing
+
+            if (!JealousyHearingPolicy.WithinEarshot(distance, PlayerPresenceResolver.IsBeside(party)))
+            {
+               ModLog.Info($"[JEALOUSY] word of {pa.CourtedName}'s liaison reached {party.Name}'s faction, but they are too far to have heard it yet.");
+
+               continue;
+            }
+
+            ready.Add(pa);
          }
 
          foreach (PendingAwareness pa in ready)

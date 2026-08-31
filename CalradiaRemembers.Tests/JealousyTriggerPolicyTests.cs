@@ -57,14 +57,24 @@ namespace CalradiaRemembers.Tests
                                  .Should().BeFalse("one warm word is a pleasantry, not courtship");
         }
 
-        // Pins the exact boundary of FlirtPatternMinimum (2): once flirtation repeats, it stops
-        // reading as a pleasantry and becomes the pattern that makes it real courtship worth a
-        // jealous reaction.
+        // Pins the exact boundary of FlirtPatternMinimum (3): a second flirt is still only an echo of
+        // the first, but once flirtation repeats a third time it stops reading as pleasantries and
+        // becomes the pattern that makes it real courtship worth a jealous reaction.
         [Test]
         public void GIVEN_a_repeated_flirtation_pattern_WHEN_evaluating_THEN_jealousy_may_fire()
         {
-            JealousyTriggerPolicy.IsPlausibleCourtship(RomanticActTier.Flirt, isPlausiblePair: true, romanticEventCount: 2, completedQuestThisTurn: false)
+            JealousyTriggerPolicy.IsPlausibleCourtship(RomanticActTier.Flirt, isPlausiblePair: true, romanticEventCount: 3, completedQuestThisTurn: false)
                                  .Should().BeTrue();
+        }
+
+        // The lower half of the FlirtPatternMinimum (3) boundary: two recorded flirts must NOT yet
+        // count — the model mislabels warm small talk as flirtation readily enough that a pair of
+        // stamps is still not a courtship pattern.
+        [Test]
+        public void GIVEN_only_two_flirts_WHEN_evaluating_THEN_no_jealousy_fires_yet()
+        {
+            JealousyTriggerPolicy.IsPlausibleCourtship(RomanticActTier.Flirt, isPlausiblePair: true, romanticEventCount: 2, completedQuestThisTurn: false)
+                                 .Should().BeFalse("two warm conversations are not yet a courtship pattern");
         }
 
         // The other half of the v1.29.0 root cause: the model sometimes stamps warm thanks at a
