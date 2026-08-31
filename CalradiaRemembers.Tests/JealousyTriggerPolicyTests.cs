@@ -68,7 +68,7 @@ namespace CalradiaRemembers.Tests
         }
 
         // The lower half of the FlirtPatternMinimum (3) boundary: two recorded flirts must NOT yet
-        // count — the model mislabels warm small talk as flirtation readily enough that a pair of
+        // count, the model mislabels warm small talk as flirtation readily enough that a pair of
         // stamps is still not a courtship pattern.
         [Test]
         public void GIVEN_only_two_flirts_WHEN_evaluating_THEN_no_jealousy_fires_yet()

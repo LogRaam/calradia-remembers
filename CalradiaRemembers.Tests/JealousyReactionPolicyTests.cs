@@ -66,7 +66,7 @@ namespace CalradiaRemembers.Tests
       }
 
       // A private flirt leaves no witnesses to carry the tale: it reacts only when the roll lands within the
-      // (lower) private chance — word got out despite the discretion.
+      // (lower) private chance, word got out despite the discretion.
       [Test]
       public void GIVEN_a_private_flirt_WHEN_the_roll_lands_within_the_chance_THEN_it_reacts()
       {
@@ -74,7 +74,7 @@ namespace CalradiaRemembers.Tests
             .Should().BeTrue();
       }
 
-      // The flip side: a private flirt whose roll fails leaves no rumour at all, so the host must not react —
+      // The flip side: a private flirt whose roll fails leaves no rumour at all, so the host must not react, 
       // and must not consume the pairing cooldown either (same M-J1 property as the witnessed gate).
       [Test]
       public void GIVEN_a_private_flirt_WHEN_the_roll_exceeds_the_chance_THEN_it_does_not_react()
@@ -84,7 +84,7 @@ namespace CalradiaRemembers.Tests
       }
 
       // Boundary: the private gate is EXCLUSIVE (a roll exactly at the chance does not react), unlike the
-      // witnessed one — pinned so the two boundaries cannot silently drift into each other.
+      // witnessed one, pinned so the two boundaries cannot silently drift into each other.
       [Test]
       public void GIVEN_a_private_flirt_WHEN_the_roll_equals_the_chance_THEN_it_does_not_react()
       {

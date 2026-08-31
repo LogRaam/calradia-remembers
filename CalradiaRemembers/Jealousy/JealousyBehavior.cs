@@ -64,7 +64,7 @@ namespace CalradiaRemembers.Jealousy
       private const float WitnessedReactionChance = 0.75f;
 
       // A private flirt leaves no witnesses to carry the tale, so it does not always leave a rumour
-      // behind at all — a coin toss whether word gets out (player report: the spouse reacted to EVERY
+      // behind at all, a coin toss whether word gets out (player report: the spouse reacted to EVERY
       // private conversation, however innocent).
       private const float PrivateReactionChance = 0.5f;
 
@@ -229,7 +229,7 @@ namespace CalradiaRemembers.Jealousy
                _state.RivalLocks[courted.StringId] = res.Party.StringId; // keep the same rival across the arc
 
             // M-J2: a marriage-tier act (public wedding, consort openly taken) ALWAYS wakes the jealous party;
-            // only lesser acts are probabilistic ("not every flirt travels") — witnessed or not. A witnessed act
+            // only lesser acts are probabilistic ("not every flirt travels"), witnessed or not. A witnessed act
             // is telegraphed (WitnessedReactionChance); a PRIVATE one has no witnesses to carry the tale, so it
             // gets its own, lower roll (PrivateReactionChance) instead of bypassing the probability gate entirely.
             // M-J1: consume the pairing cooldown ONLY when the act actually reacts, so a failed flirt roll no
@@ -383,7 +383,7 @@ namespace CalradiaRemembers.Jealousy
          // instead of staying "Intimate"/"Committed" as if nothing happened. A third-party jealousy (the courted
          // NPC's spouse, a rival, a spurned admirer) has no player-bond to wound, so it is left untouched.
          // But a reported FLIRT is not a betrayal: it makes the partner doubt (the regard hit and the grievance
-         // memory above still apply at every tier) without breaking the bond — only an intimacy or a marriage
+         // memory above still apply at every tier) without breaking the bond, only an intimacy or a marriage
          // is the betrayal that wounds it (player report: the wife turned Estranged over mere small talk).
          if (tier >= RomanticActTier.Intimacy
              && (stake == JealousStake.PlayerPartner || stake == JealousStake.SecretLover) && profile.Romantic != null)
@@ -405,7 +405,7 @@ namespace CalradiaRemembers.Jealousy
          // already applied above — never a second penalty (the relation delta is untouched).
          // EXCEPT the secret lover: their hurt stays private and the bond absorbs it (quiet regard loss and
          // a discreet letter, never a grudge that hardens into a grievance arc). And no lasting grudge for a
-         // mere reported FLIRT either: warm words breed doubt (regard + letter), not a grudge that hardens —
+         // mere reported FLIRT either: warm words breed doubt (regard + letter), not a grudge that hardens, 
          // only an intimacy or a marriage is betrayal enough to be nursed.
          if (stake != JealousStake.SecretLover && tier >= RomanticActTier.Intimacy)
             GrudgeBehavior.Instance?.TryPlant(party, Hero.MainHero, GrudgeSource.Jealousy, grievance,
@@ -552,7 +552,7 @@ namespace CalradiaRemembers.Jealousy
             // liaison INSTANTLY from the far end of Calradia. On top of the shared rumour scoring, jealousy adds
             // its own earshot gate: the jealous party must be close enough to the liaison's location to plausibly
             // have heard the tale (or be riding beside the player). The watch is NOT dropped when only the
-            // distance fails — they may draw near before the rumour dies of old age (AwarenessMaxDays).
+            // distance fails, they may draw near before the rumour dies of old age (AwarenessMaxDays).
             Vec2? partyPos = party.PartyBelongedTo?.GetPosition2D ?? party.CurrentSettlement?.GetPosition2D;
             Vec2? rumorPos = string.IsNullOrEmpty(liaison.PlaceId)
                ? null

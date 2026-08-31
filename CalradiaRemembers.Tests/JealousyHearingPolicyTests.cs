@@ -3,7 +3,7 @@
 // ON TOP of WorldEventStore.IsAwareOf. Player report: the spouse seemed "psychic", learning of a
 // liaison instantly from the far end of the map because the shared rumour scoring's same-faction
 // bonus ignores distance. This gate pins the jealousy-specific truth: word must have reached their
-// circles AND they must be close enough to where it happened — or be riding beside the player, in
+// circles AND they must be close enough to where it happened, or be riding beside the player, in
 // which case the affair happens under their nose and no distance argument applies.
 
 #region

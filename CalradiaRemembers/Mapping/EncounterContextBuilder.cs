@@ -2187,7 +2187,7 @@ namespace CalradiaRemembers.Mapping
       /// <summary>
       ///   The NPC's OWN party troop count (player report: a lord asked about his command could not
       ///   say how many men rode with him). A lord knows his own strength intimately, so unlike the
-      ///   player's count this needs no visibility judgement — but the SHAPE of the answer is the
+      ///   player's count this needs no visibility judgement, but the SHAPE of the answer is the
       ///   same judgement (a captive commands no one; a lord who LEADS an army answers for the whole
       ///   army), so this reuses the pure <see cref="PlayerForcePolicy" /> rather than forking it.
       ///   0 when the NPC leads no field party (a governor keeping to a settlement): the prompt

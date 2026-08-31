@@ -13,7 +13,7 @@
 
 namespace CalradiaRemembers.Logic
 {
-    /// <summary>Decides whether a romantic act — witnessed or private — draws a jealous reaction this time.</summary>
+    /// <summary>Decides whether a romantic act, witnessed or private, draws a jealous reaction this time.</summary>
     public static class JealousyReactionPolicy
     {
         /// <summary>
@@ -29,7 +29,7 @@ namespace CalradiaRemembers.Logic
         /// <summary>
         ///   True when a PRIVATE (unwitnessed) act reacts. A <see cref="RomanticActTier.Marriage" /> act ALWAYS
         ///   does, exactly as a witnessed one: a marriage is telegraphed whether or not anyone watched. Any lesser
-        ///   act reacts only when <paramref name="roll" /> lands within <paramref name="chance" /> — a private
+        ///   act reacts only when <paramref name="roll" /> lands within <paramref name="chance" />, a private
         ///   flirt has no witnesses to carry the tale, so it does not always leave a rumour behind at all. As
         ///   above, the host must consume the pairing cooldown only when this returns true.
         /// </summary>
