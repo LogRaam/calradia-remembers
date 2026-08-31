@@ -2325,7 +2325,13 @@ namespace CalradiaRemembers.Chat
          // grudges, but could still be a chronicle-worthy conquest of a highborn captive).
          RecordCaptiveConquestChronicleIfNeeded(prisoner);
 
-         int severity = CaptiveIntentRules.CaptiveAbuseSeverity(_captorSceneIntent);
+         // Conduct-gated (player report, Mimo/Standard: keeping a captive SAFE still planted an abuse grudge).
+         // The opening intent is only the CEILING; the grudge forms on what the player actually DID. With no
+         // reliable per-scene conduct read yet, ResolveCaptorSceneAbuseVerdict returns null and the policy falls
+         // back to its conservative rule (only Torture, abuse by its nature, forms), so a merciful scene resents
+         // nothing.
+         int intentSeverity = CaptiveIntentRules.CaptiveAbuseSeverity(_captorSceneIntent);
+         int severity = CaptorSceneGrudgePolicy.GrudgeSeverity(intentSeverity, ResolveCaptorSceneAbuseVerdict());
          var facts = new CaptiveAbuseFacts {Severity = severity, PlayerWasThePerpetrator = true};
          GrudgeProposal proposal = Tier2GrudgeRules.CaptiveAbuseGrudge(facts);
 
@@ -2338,6 +2344,16 @@ namespace CalradiaRemembers.Chat
          GrudgeBehavior.Instance?.TryPlant(prisoner, Hero.MainHero, GrudgeSource.CaptiveAbuse, cause,
             proposal.Magnitude, proposal.KnownToPlayer, today);
       }
+
+      /// <summary>
+      ///   The seam for a conduct read of the captor scene: whether the player ACTUALLY abused their captive
+      ///   (true), showed restraint or mercy (false), or the scene cannot be read reliably (null). Returns null
+      ///   today: there is no deterministic captor-side harm signal, and judging the scene's prose needs the
+      ///   interpreter (Enhanced mode), a separate opt-in build. Null makes <see cref="CaptorSceneGrudgePolicy" />
+      ///   take its conservative fallback (only an inherently-abusive Torture intent forms a grudge). Feeding a
+      ///   real verdict here later needs no change to the policy or its callers.
+      /// </summary>
+      private bool? ResolveCaptorSceneAbuseVerdict() => null;
 
       /// <summary>
       ///   Records a light "I was present" memory into each HERO witness's own profile when a group

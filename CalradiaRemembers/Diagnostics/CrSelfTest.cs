@@ -269,6 +269,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("grudge_unblessed_marriage", Severity.Heavy, "marry the player (test spouse, no blessing seeded) via the real MarriageApprovalBehavior wedding hook -> assert an UnblessedMarriage grudge lands on a disapproving kinsman -> end_own_marriage -> assert the grudge resolves (cleared, not merely decayed)", TestGrudgeUnblessedMarriage),
          new SelfTest("grudge_sway", Severity.Light, "NPC + 3rd hero -> real sway_opinion(against) via the bridge -> assert SwayExposureBehavior queued a pending watch -> DebugForceReveal -> assert a hidden SwayExposed grudge lands on the target", TestGrudgeSway),
          new SelfTest("companion_revenge", Severity.Light, "companion-victim Phase 3: plant a CaptiveAbuse grudge (companion vs PLAYER) AND a CaptorCruelty grudge (companion vs CAPTOR) on the SAME holder the SAME day -> assert BOTH survive, since they use distinct sources so the holder+source+day dedup does not collapse them", TestCompanionRevenge),
+         new SelfTest("captor_grudge_conduct", Severity.Light, "player report (Mimo/Standard): keeping a captive SAFE still planted an abuse grudge. Drives the REAL grudge-decision chain (CaptiveIntentRules.CaptiveAbuseSeverity -> CaptorSceneGrudgePolicy.GrudgeSeverity with no conduct read -> Tier2GrudgeRules.CaptiveAbuseGrudge) for each captor intent and asserts a merciful Interrogation/Domination/PersonalDesire forms NO grudge, while Torture (abuse by nature) still does. Pure decision, plants nothing", TestCaptorGrudgeConduct),
          new SelfTest("appearance", Severity.Light, "extract the player's body facts -> compose the appearance block in Subject (3rd person, read by an NPC) and Self (2nd person) voices, with authored prose -> assert the facts extract, the authored prose is carried, and the Self voice reads in the second person", TestAppearance),
          new SelfTest("equipment_gear", Severity.Light, "equipment-awareness pillar: extract the player's LIVE equipped items via the real EquipmentFactsExtractor -> compose the notable-gear clause in Subject (3rd person, read by an NPC) and Self (2nd person) voices via the real EquipmentNotabilityPolicy -> assert extraction never throws and the Self voice reads in the second person. Read-only, no persisted state, nothing to clean up", TestEquipmentGear),
          new SelfTest("quest_menu", Severity.Light, "viable-quest referential: scan a live lord's grounded quest menu -> assert it is non-empty (there is always something to do), every line carries a known type token, and a named settlement target truly resolves (so QuestFactory will ground the offer by construction)", TestQuestMenu),
@@ -6166,6 +6167,39 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          return t.Line();
+      }
+
+      /// <summary>
+      ///   Player report (Mimo, Standard/Roleplay mode): holding a captive and ordering them kept safe still
+      ///   planted a CaptiveAbuse grudge. Drives the REAL grudge-decision chain the closed captor scene now uses
+      ///   (intent severity -> CaptorSceneGrudgePolicy with no conduct read -> Tier2GrudgeRules) and asserts a
+      ///   merciful lesser intent forms nothing while Torture still forms. Pure, plants no grudge, needs no setup.
+      /// </summary>
+      private static string TestCaptorGrudgeConduct(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("captor_grudge_conduct");
+
+         bool interrogation = CaptorGrudgeFormsWithoutRead(CaptiveSceneIntent.Interrogation);
+         bool domination = CaptorGrudgeFormsWithoutRead(CaptiveSceneIntent.Domination);
+         bool personalDesire = CaptorGrudgeFormsWithoutRead(CaptiveSceneIntent.PersonalDesire);
+         bool torture = CaptorGrudgeFormsWithoutRead(CaptiveSceneIntent.Torture);
+
+         t.Note($"no-read grudge forms: interrogation={interrogation}, domination={domination}, personalDesire={personalDesire}, torture={torture}");
+         t.Expect("mercifulInterrogationFormsNoGrudge", interrogation, false);
+         t.Expect("mercifulDominationFormsNoGrudge", domination, false);
+         t.Expect("mercifulPersonalDesireFormsNoGrudge", personalDesire, false);
+         t.Expect("tortureStillForms", torture, true);
+
+         return t.Line();
+      }
+
+      /// <summary>Whether a closed captor scene of this intent would plant a grudge with NO conduct read, via the real production chain.</summary>
+      private static bool CaptorGrudgeFormsWithoutRead(CaptiveSceneIntent intent)
+      {
+         int severity = CaptorSceneGrudgePolicy.GrudgeSeverity(CaptiveIntentRules.CaptiveAbuseSeverity(intent), null);
+
+         return Tier2GrudgeRules.CaptiveAbuseGrudge(
+            new CaptiveAbuseFacts {Severity = severity, PlayerWasThePerpetrator = true}).Forms;
       }
 
       // ── Tests ─────────────────────────────────────────────────────────────
