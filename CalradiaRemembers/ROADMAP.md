@@ -32,6 +32,28 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## WISHED (player request 2026-08-30, roadmapped by Gabriel; NOT built): an IN-GAME NPC CONFIGURATION / PERSONA editor screen
+
+A player who tried AI Influence came back preferring CR for roleplay, but missed one thing: AI Influence's in-game configuration screen, where you can add details to an NPC and GENERATE an AI personality for them, and edit world/culture files, all DURING play. CR can already do the equivalent by editing files by hand (`character_overrides.json`, `world.txt`, `setting.json`, `cultural_traditions.json`), but it means a lot of file manipulation and cannot be done mid-session. This pillar brings that editing in-game, which fits CR's roleplay focus squarely and lands the older "bespoke UI identity" wish at the same time.
+
+**The machinery already largely exists (de-risked):**
+- An in-game Gauntlet EDITOR screen already ships: `cr.appearance` opens `AppearanceEditorManager` (GauntletLayer + `AppearanceEditorViewModel` + prefab). This is the pattern to generalize.
+- Live override + hot apply already exist: `CharacterOverrideLoader.InjectRuntimeOverride` (a runtime override without touching the file) + `CharacterLoreBehavior.ApplyAll` / `cr.reload_lore`.
+- The `character_overrides` schema is already there (5 traits, Backstory, Conviction, Orientation, Kinks).
+- The LLM plumbing for a "generate a personality" button already exists (the chat/summarizer path).
+- Custom pushed screens + named brushes + runtime-image widget are all owned.
+
+**Increment breakdown (proposed):**
+- **Inc 1:** a persona-editor screen for the CURRENT NPC: edit their `character_overrides` fields (trait sliders, backstory, conviction, orientation, kinks) live via `InjectRuntimeOverride` + `ApplyAll`, and SAVE to disk. Generalizes the appearance editor.
+- **Inc 2:** a "GENERATE a personality" button: one LLM call drafts backstory/conviction/traits from the NPC's engine data (culture/traits/clan), populated into the editable fields before the player saves.
+- **Inc 3:** a world/culture editor tab (`setting.json` worldName/worldAdjective/patriarchalCultures, `world.txt`, `cultural_traditions.json`), hot-reloaded via the existing `cr.reload_lore` / `cr.reload_prompts` seams.
+
+**Must pair with a persistence fix (BLOCKER for Inc 1's SAVE):** `character_overrides.json` currently lives in `<game>\Modules\CalradiaRemembers\ModuleData\`, which a CR update overwrites, and the loader reads a single fixed file with no merge. An in-game editor that saves must write to a CUSTOM folder that survives updates (the "Custom-first" loading change first raised for the RotR compatibility pack, 2026-08-29). Do that fix as Inc 0.
+
+**Related (same player, same comment):** they also wanted a Brothel "bridge" (a modder built one for AI Influence, not CR). This is exactly what the `CrActions` extension surface is for, now that the pre-response `Guidance` hook (shipped 2026-08-30) lets such a bridge decline gracefully. A CR brothel bridge is buildable by any modder, or as a first-party optional module. Not part of this pillar, but worth naming as an ecosystem opportunity.
+
+---
+
 ## STOLEN LOVE pillar (ratified 2026-08-26, player request; NOT built)
 
 Seduce a MARRIED NPC, break their marriage over time, then either marry them yourself or leave them divorced to
