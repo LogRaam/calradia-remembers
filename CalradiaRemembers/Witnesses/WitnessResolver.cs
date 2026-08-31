@@ -250,6 +250,7 @@ namespace CalradiaRemembers.Witnesses
                   RelationToNpc = "the player's companion",
                   IsPlayerCompanion = true,
                   HeroStringId = h.StringId,
+                  IsFemale = h.IsFemale,
                   Gear = ComposeGear(h)
                });
             }
@@ -342,6 +343,7 @@ namespace CalradiaRemembers.Witnesses
                            RelationToNpc = "the player's companion",
                            IsPlayerCompanion = true,
                            HeroStringId = companion.StringId,
+                           IsFemale = companion.IsFemale,
                            Gear = ComposeGear(companion)
                         });
                         ModLog.Info($"[WitnessResolver] Companion joined: {companion.Name}.");
@@ -417,6 +419,7 @@ namespace CalradiaRemembers.Witnesses
                            RelationToNpc = "another of the player's prisoners",
                            IsBroughtCaptive = true,
                            HeroStringId = captive.StringId,
+                           IsFemale = captive.IsFemale,
                            Gear = ComposeGear(captive)
                         });
                         ModLog.Info($"[WitnessResolver] Brought captive joined: {captive.Name}.");
@@ -530,6 +533,9 @@ namespace CalradiaRemembers.Witnesses
                IsPlayerCompanion = entry.IsPlayerCompanion,
                IsCaptiveVictim = entry.IsCaptiveVictim,
                Persona = entry.Persona,
+               // Sex does not change with the observer either: carried over, with the live hero as fallback
+               // for an entry built before it was recorded.
+               IsFemale = entry.IsFemale ?? subject.IsFemale,
                // Gear does not change with the observer: carried over rather than recomposed.
                Gear = entry.Gear,
                RelationToNpc = DescribeWitnessRelation(observer, subject)
@@ -558,6 +564,7 @@ namespace CalradiaRemembers.Witnesses
             RelationToNpc = relation,
             IsPlayerCompanion = false,
             Persona = ResolvePersona(host, store),
+            IsFemale = host.IsFemale,
             Gear = ComposeGear(host)
          };
       }
@@ -567,6 +574,7 @@ namespace CalradiaRemembers.Witnesses
          RelationToNpc = DescribeWitnessRelation(npcHero, h),
          HeroStringId = h.StringId,
          Persona = ResolvePersona(h, store),
+         IsFemale = h.IsFemale,
          Gear = ComposeGear(h)
       };
 
@@ -619,16 +627,20 @@ namespace CalradiaRemembers.Witnesses
                return "your clan member";
             int rel = witness.GetRelation(npcHero);
 
-            if (rel >= 30) return "a lord you trust deeply";
-            if (rel >= 10) return "a lord you regard favorably";
-            if (rel <= -30) return "a rival lord (deep enmity)";
-            if (rel <= -10) return "a lord you distrust";
+            // "lord" is gendered in the prompt's ear (player report 2026-08-31: a lady witness read as male);
+            // "your liege" / "your vassal" / "your clan member" already read either way.
+            string title = witness.IsFemale ? "lady" : "lord";
 
-            return "a lord you know";
+            if (rel >= 30) return $"a {title} you trust deeply";
+            if (rel >= 10) return $"a {title} you regard favorably";
+            if (rel <= -30) return $"a rival {title} (deep enmity)";
+            if (rel <= -10) return $"a {title} you distrust";
+
+            return $"a {title} you know";
          }
          catch
          {
-            return "a lord present";
+            return witness?.IsFemale == true ? "a lady present" : "a lord present";
          }
       }
 

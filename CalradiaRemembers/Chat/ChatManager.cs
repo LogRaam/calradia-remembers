@@ -433,7 +433,8 @@ namespace CalradiaRemembers.Chat
                RelationToNpc = "the player's captive companion, bound and at your mercy",
                HeroStringId = victimCompanionHero.StringId,
                IsPlayerCompanion = true,
-               IsCaptiveVictim = true
+               IsCaptiveVictim = true,
+               IsFemale = victimIsFemale
             });
             witnesses = withVictim;
          }
@@ -601,7 +602,8 @@ namespace CalradiaRemembers.Chat
                IsPlayerCompanion = member.IsPlayerCompanion,
                RelationToNpc = DescribeCouncilSeat(scope),
                Persona = DescribeCouncilMemberPersona(member, behavior),
-               PresenceStatus = CouncilRosterResolver.DescribePresence(member)
+               PresenceStatus = CouncilRosterResolver.DescribePresence(member),
+               IsFemale = member.IsFemale
             });
 
          ActiveViewModel.ActivateCouncil(scope, parleyTargetFactionId);
@@ -738,7 +740,8 @@ namespace CalradiaRemembers.Chat
                HeroStringId = member.StringId,
                IsPlayerCompanion = member.IsPlayerCompanion,
                RelationToNpc = "seated at the player's assembly, present in person",
-               Persona = DescribeCouncilMemberPersona(member, behavior)
+               Persona = DescribeCouncilMemberPersona(member, behavior),
+               IsFemale = member.IsFemale
             });
 
          foreach (Hero lord in envoys.Where(h => h != anchor))
@@ -747,7 +750,8 @@ namespace CalradiaRemembers.Chat
                HeroStringId = lord.StringId,
                IsPlayerCompanion = false,
                RelationToNpc = $"an envoy speaking in the name of {lord.Name}, who could not attend in person",
-               Persona = DescribeCouncilMemberPersona(lord, behavior)
+               Persona = DescribeCouncilMemberPersona(lord, behavior),
+               IsFemale = lord.IsFemale
             });
 
          ActiveViewModel.ActivateCouncil(CouncilScope.Assembly);

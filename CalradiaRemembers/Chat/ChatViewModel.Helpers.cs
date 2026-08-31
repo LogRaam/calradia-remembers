@@ -203,6 +203,7 @@ namespace CalradiaRemembers.Chat
             HeroStringId = e.HeroStringId,
             Persona = e.Persona,
             PresenceStatus = e.PresenceStatus,
+            IsFemale = e.IsFemale,
             Memory = memory
          };
       }

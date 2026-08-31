@@ -597,7 +597,8 @@ namespace CalradiaRemembers.Letters
                HeroStringId = hero.StringId,
                RelationToNpc = "a companion of your captor",
                IsPlayerCompanion = false,
-               Persona = p.Trait ?? "Aloof"
+               Persona = p.Trait ?? "Aloof",
+               IsFemale = hero.IsFemale
             });
          }
 

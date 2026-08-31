@@ -196,7 +196,7 @@ namespace CalradiaRemembers
                         .OrderByDescending(h => h.Clan?.Tier ?? 0)
                         .Take(count))
             {
-               vm.AddWitness(new WitnessEntry {Name = hero.Name.ToString(), RelationToNpc = "a fellow member of this council"});
+               vm.AddWitness(new WitnessEntry {Name = hero.Name.ToString(), RelationToNpc = "a fellow member of this council", IsFemale = hero.IsFemale});
                added.Add(hero.Name.ToString());
             }
 
