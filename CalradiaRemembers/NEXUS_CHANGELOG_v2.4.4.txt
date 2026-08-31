@@ -1,0 +1,16 @@
+Version 2.4.4
+
+Characters notice more of what stands in front of them, and a few relationship rough edges are smoothed. Your saves carry over untouched.
+
+New
+- Characters now notice standout equipment. A mastercraft or legendary weapon, fine armour, or conspicuously shabby gear, on you, on a companion at your side, or on the character themselves, is now something they can see and react to instead of guessing. A fine blade you gifted a companion is now something they can actually mention.
+- A lord can agree to ride along in your party as a retainer, with a new Mod Options toggle for it (on by default). A lord whose own realm is at war now stays home to answer his liege's call to arms instead of riding off with you, so lending you his company never quietly weakens his faction.
+
+Fixed
+- You can now ransom a prisoner you are keeping in your own town or castle dungeon, not only one travelling in your party. A lord's letter offering to buy back such a captive now shows its Accept button, and the handover actually goes through.
+- Companions are no longer misgendered in group scenes (a woman at your side voiced as "he").
+- A lord can now tell you how many soldiers ride under his command when you ask him.
+- Your spouse is no longer uncannily aware of ordinary small talk: a warm word to another noble no longer reads at once as an affair. A mere flirt is no longer enough to wound a marriage, and word of a private moment does not always find its way home.
+
+For mod authors
+- An action registered through the CrActions extension API can now supply pre-response guidance, so a character can decline an action that is currently unavailable, in their own voice, instead of agreeing to something that then quietly fails.
