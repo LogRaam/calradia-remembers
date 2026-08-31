@@ -322,6 +322,7 @@ namespace CalradiaRemembers.Mapping
             PlayerMotherName = FormatParent(Hero.MainHero?.Mother),
             PlayerClanTier = Hero.MainHero?.Clan?.Tier ?? 0,
             PlayerPartyTroopCount = ResolvePlayerPartyTroopCount(hero),
+            NpcPartyTroopCount = ResolveNpcPartyTroopCount(hero),
             PlayerArenaRank = ResolveArenaRank(),
             PlayerArenaWins = ResolveArenaWins(),
             Witnesses = witnesses,
@@ -2179,6 +2180,35 @@ namespace CalradiaRemembers.Mapping
                main.MemberRoster?.TotalManCount ?? 0,
                leadsArmy,
                leadsArmy ? main.Army.Parties.Sum(p => p?.MemberRoster?.TotalManCount ?? 0) : 0);
+         }
+         catch { return 0; }
+      }
+
+      /// <summary>
+      ///   The NPC's OWN party troop count (player report: a lord asked about his command could not
+      ///   say how many men rode with him). A lord knows his own strength intimately, so unlike the
+      ///   player's count this needs no visibility judgement — but the SHAPE of the answer is the
+      ///   same judgement (a captive commands no one; a lord who LEADS an army answers for the whole
+      ///   army), so this reuses the pure <see cref="PlayerForcePolicy" /> rather than forking it.
+      ///   0 when the NPC leads no field party (a governor keeping to a settlement): the prompt
+      ///   stays silent rather than calling him troop-poor.
+      /// </summary>
+      private static int ResolveNpcPartyTroopCount(Hero hero)
+      {
+         try
+         {
+            if (hero == null || hero == Hero.MainHero || !hero.IsAlive) return 0;
+
+            MobileParty party = hero.PartyBelongedTo;
+            if (party == null) return 0;
+
+            bool leadsArmy = party.Army != null && party.Army.LeaderParty == party;
+
+            return PlayerForcePolicy.Resolve(
+               hero.IsPrisoner,
+               party.MemberRoster?.TotalManCount ?? 0,
+               leadsArmy,
+               leadsArmy ? party.Army.Parties.Sum(p => p?.MemberRoster?.TotalManCount ?? 0) : 0);
          }
          catch { return 0; }
       }
