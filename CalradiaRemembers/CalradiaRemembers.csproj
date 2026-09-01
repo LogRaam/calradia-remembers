@@ -10,11 +10,14 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 
     <!--
-      OutputPath: where the build puts the DLLs (workspace folder, versionable in git).
+      OutputPath: where the build puts the DLLs, RELATIVE to this project so it always lands inside the repo
+      (the old absolute path was missing the "Bannerlord LLM project" segment and wrote to a stray folder
+      OUTSIDE the repo, producing a second divergent build the deploy then shipped stale, v2.4.4 SubModule
+      mismatch, 2026-08-31). $(TargetDir) follows this, so DeployToBannerlord now copies the SAME build it just made.
       AppendTargetFrameworkToOutputPath: prevents MSBuild from appending net472\ subdirectory.
       AppendRuntimeIdentifierToOutputPath: prevents platform subfolder (x64\, etc.).
     -->
-    <OutputPath>V:\OneDrive\Programmation\GIT Workspace\Calradia Remembers\CalradiaRemembers\bin\Win64_Shipping_Client\</OutputPath>
+    <OutputPath>bin\Win64_Shipping_Client\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 
