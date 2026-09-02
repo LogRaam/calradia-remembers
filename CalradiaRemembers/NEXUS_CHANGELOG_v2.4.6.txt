@@ -1,0 +1,9 @@
+Version 2.4.6
+
+Stuck war quests clean themselves up when peace is made, plus a console tool to clear any stuck task. Your saves carry over untouched.
+
+Fixed
+- A task to capture, attack, or execute an enemy lord now cancels itself, with no penalty, the moment your realm makes peace with that lord's realm. Before, such a task could outlive the treaty and become impossible to complete or to drop, since carrying it out would have been a fresh act of war (thank you to the player who reported this, with exactly that reasoning).
+
+New
+- Two console commands to recover a stuck quest. Type cr.quests_all to list every outstanding task with a number, then cr.quest_void followed by that number to cancel it with no relation penalty. This is for any task that has become impossible, where cr.quest_abandon (which reads as you breaking your word) would be unfair.
