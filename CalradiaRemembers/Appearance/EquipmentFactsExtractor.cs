@@ -42,6 +42,31 @@ namespace CalradiaRemembers.Appearance
             return result;
         }
 
+        /// <summary>
+        ///   Reads only the SCENE-APPROPRIATE loadout (player report: a battle sword read in a tavern where the
+        ///   player had narrated no armour). In a settlement the game shows the civilian outfit; in the field, the
+        ///   battle harness; EquipmentLoadoutPolicy picks which from the scene and this reads that set. Falls back
+        ///   to the other set ONLY when the chosen one is unset (a hero with no civilian outfit assigned), so a
+        ///   real civilian outfit never lets the battle plate leak into a town scene.
+        /// </summary>
+        public static List<EquipmentPieceFacts> Extract(Hero hero, bool preferCivilian)
+        {
+            var result = new List<EquipmentPieceFacts>();
+            if (hero == null) return result;
+
+            Equipment primary = preferCivilian ? hero.CivilianEquipment : hero.BattleEquipment;
+            Equipment fallback = preferCivilian ? hero.BattleEquipment : hero.CivilianEquipment;
+
+            try { ExtractInto(primary, result); }
+            catch { /* never throw: called per hero per turn */ }
+
+            if (result.Count == 0)
+                try { ExtractInto(fallback, result); }
+                catch { /* never throw */ }
+
+            return result;
+        }
+
         #region private
 
         private static void ExtractInto(Equipment eq, List<EquipmentPieceFacts> into)

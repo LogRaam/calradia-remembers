@@ -392,8 +392,8 @@ namespace CalradiaRemembers.Mapping
             // all, so an NPC's reaction to fine or shabby gear is pure guesswork. Same Subject/Self split as
             // appearance just above: the PLAYER's notable gear read in the third person, the SPEAKING NPC's own
             // gear (a gift now worn) read in the second person so it can reference it in its own words.
-            PlayerGear = ComposeGear(Hero.MainHero, AppearanceVoice.Subject),
-            NpcSelfGear = ComposeGear(hero, AppearanceVoice.Self),
+            PlayerGear = ComposeGear(Hero.MainHero, AppearanceVoice.Subject, EquipmentLoadoutPolicy.PreferCivilianLoadout(bridge.GetCurrentScene())),
+            NpcSelfGear = ComposeGear(hero, AppearanceVoice.Self, EquipmentLoadoutPolicy.PreferCivilianLoadout(bridge.GetCurrentScene())),
             PlayerLooksWealthy = captorIsBandit && PlayerLooksWealthy(),
             PlayerLooksImportant = captorIsBandit && PlayerLooksImportant(),
             CompanionAskingPrice = ResolveCompanionAskingPrice(hero),
@@ -664,16 +664,17 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
-      ///   Equipment-awareness pillar: composes a hero's notable-gear clause from their equipped items (both
-      ///   loadouts, battle and civilian), in the given voice. Returns null (renders nothing) for a null hero
-      ///   or when nothing about their gear stands out (an ordinary loadout is deliberately left unvoiced).
+      ///   Equipment-awareness pillar: composes a hero's notable-gear clause from the SCENE-APPROPRIATE loadout
+      ///   (civilian inside a settlement, battle in the field: <paramref name="preferCivilian" />, from
+      ///   <see cref="EquipmentLoadoutPolicy" />), in the given voice. Returns null (renders nothing) for a null
+      ///   hero or when nothing about their gear stands out (an ordinary loadout is deliberately left unvoiced).
       /// </summary>
-      private static string ComposeGear(Hero hero, AppearanceVoice voice)
+      private static string ComposeGear(Hero hero, AppearanceVoice voice, bool preferCivilian)
       {
          if (hero == null) return null;
 
          string composed = EquipmentNotabilityPolicy.Compose(
-            EquipmentFactsExtractor.Extract(hero), hero.IsFemale, voice);
+            EquipmentFactsExtractor.Extract(hero, preferCivilian), hero.IsFemale, voice);
 
          return string.IsNullOrWhiteSpace(composed)
             ? null

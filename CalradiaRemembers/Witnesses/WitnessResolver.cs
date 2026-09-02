@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Appearance;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
@@ -587,8 +588,14 @@ namespace CalradiaRemembers.Witnesses
       {
          try
          {
+            // Scene-appropriate loadout, the same rule as the player and the speaking NPC (EquipmentLoadoutPolicy):
+            // civilian inside a settlement, battle in the field, so a companion at the player's side is not
+            // described in plate in a tavern. Resolved off the live bridge; an unresolved scene keeps battle.
+            SceneType scene = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentScene() ?? SceneType.Unknown;
+            bool preferCivilian = EquipmentLoadoutPolicy.PreferCivilianLoadout(scene);
+
             string composed = EquipmentNotabilityPolicy.Compose(
-               EquipmentFactsExtractor.Extract(hero), hero.IsFemale, AppearanceVoice.Subject);
+               EquipmentFactsExtractor.Extract(hero, preferCivilian), hero.IsFemale, AppearanceVoice.Subject);
 
             return string.IsNullOrWhiteSpace(composed) ? null : composed;
          }
