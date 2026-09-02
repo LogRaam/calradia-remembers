@@ -1,0 +1,14 @@
+Version 2.4.5
+
+A way to recover if the mod ever gets stuck, gentler captors, and companions who sound like they belong at your side. Your saves carry over untouched.
+
+New
+- A new console command, cr.reset, restores Calradia Remembers if a conversation ever stops working (for example after a council scene misbehaves and leaves things stuck). Open the console, type cr.reset, and speak with someone again. It stands down any stuck window or council state and never touches your characters' memories.
+- If the mod ever fails to open a conversation, it now says so on screen and points you to cr.reset, instead of silently dropping you to the plain "continue" with no explanation.
+
+Changed
+- Keeping a prisoner safe and well treated no longer makes them resent you. Only real mistreatment now leaves a captive holding a grudge against you; showing restraint is remembered as restraint.
+- A wanderer who has sworn to you now speaks like a companion at your side, with the familiarity of someone who marches and fights with you, rather than a stranger passing through a tavern. Should they later be granted lands, they carry themselves as a lord.
+
+For mod authors
+- The prompt is reordered so a large custom world description is shared more efficiently across different characters, a real gain for total-conversion setups with a big world file, lowering cost and latency without changing what characters know.
