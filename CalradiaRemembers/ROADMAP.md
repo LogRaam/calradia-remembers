@@ -32,6 +32,31 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## WISHED (player request 2026-09-02, roadmapped; NOT built): write a WORLD EVENT from the map screen, no console
+
+A player running CR alongside a total-conversion (Calradia Old Gods) wants to funnel that mod's many in-fiction
+events to the AI, but the only way to inject one today is the console (`cr.world_event`). The wish: a shortcut or
+a small option from the MAP screen to write a world event by hand during play, so a player who is not console-savvy
+can feed the world's happenings into what NPCs know and talk about. This fits CR's "amplify what is already
+there" axis squarely: the World Event store already exists, is injectable, and already feeds rumours/knowledge and
+the Chronicle.
+
+**Largely de-risked:**
+- The write path already exists end to end: `cr.world_event` (`ModCheats.WorldEvents.cs`) records a `WorldEvent`
+  into the store, which already flows to rumour/knowledge/Chronicle. The feature is a UI front-end over that same
+  seam, not new domain logic.
+- Custom pushed Gauntlet screens + named brushes + a text-input widget are all owned (chat window, letter composer,
+  appearance editor). A small "compose a world event" panel is the same pattern as the letter composer.
+- A map-screen entry point: a hotkey, or a menu/button, reachable while not in a settlement (the point is to log an
+  event happening out in the world).
+
+**Open design questions:** what fields the player fills (a free-text line vs. a few structured fields: who/where/
+what/recency); how far the event spreads (faction/region/everyone) and how that maps onto the store's existing
+relevance gating; whether to expose event "kind" or keep it a plain happening. Pairs naturally with the in-game
+persona/world editor pillar below (same "edit CR's world during play" theme, same screen machinery).
+
+---
+
 ## WISHED (player request 2026-08-30, roadmapped by Gabriel; NOT built): an IN-GAME NPC CONFIGURATION / PERSONA editor screen
 
 A player who tried AI Influence came back preferring CR for roleplay, but missed one thing: AI Influence's in-game configuration screen, where you can add details to an NPC and GENERATE an AI personality for them, and edit world/culture files, all DURING play. CR can already do the equivalent by editing files by hand (`character_overrides.json`, `world.txt`, `setting.json`, `cultural_traditions.json`), but it means a lot of file manipulation and cannot be done mid-session. This pillar brings that editing in-game, which fits CR's roleplay focus squarely and lands the older "bespoke UI identity" wish at the same time.
