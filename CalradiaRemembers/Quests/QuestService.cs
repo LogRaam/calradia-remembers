@@ -213,6 +213,21 @@ namespace CalradiaRemembers.Quests
                   continue;
                }
 
+               // Player report: a "capture an enemy lord" task keyed on a specific hero (so PremiseGone above,
+               // which needs a target FACTION, never saw it) outlived the peace treaty and could not be dropped.
+               // Carrying it out would be a fresh act of war against a realm the giver just signed a treaty with,
+               // so once peace holds, void it as a clean NEUTRAL cancel, exactly like the other no-fault voids.
+               if (quest.IsOutstanding && WarPremiseGoneForTargetHero(quest, giverHero))
+               {
+                  quest.Status = QuestStatus.Cancelled;
+                  AddEvent(profile, gameDay, NotableEventType.Other,
+                     $"Set aside the task to {Describe(quest)}: our realms are no longer at war.");
+                  QuestJournalBridge.CloseAsCancelled(quest, giverHero, "Our realms have made peace; striking their lord now would break the treaty. This task is set aside.");
+                  changed = true;
+
+                  continue;
+               }
+
                if (!quest.IsOutstanding || !quest.DeadlineDay.HasValue || gameDay <= quest.DeadlineDay.Value) continue;
 
                quest.Status = QuestStatus.Expired;
@@ -714,6 +729,28 @@ namespace CalradiaRemembers.Quests
          if (target == null) return false;
 
          return !FactionManager.IsAtWarAgainstFaction(giverHero.MapFaction, target);
+      }
+
+      /// <summary>
+      ///   True when a war-hostile hero quest (capture/attack/execute a specific enemy lord) has lost its premise
+      ///   because the giver's realm made PEACE with the target hero's realm, so carrying it out would break the
+      ///   fresh treaty (player report). The pure choice lives in
+      ///   <see cref="CalradiaRemembers.Logic.QuestTargetVoidPolicy.ShouldVoidOnPeace" />; this only resolves the
+      ///   live faction war state. A target that has LEFT the world (dead/vanished/factionless) is not our case:
+      ///   <see cref="TargetLostToVoid" /> owns that, and we bail so the two rules never double-handle a quest.
+      /// </summary>
+      private static bool WarPremiseGoneForTargetHero(InformalQuest quest, Hero giverHero)
+      {
+         if (string.IsNullOrEmpty(quest.TargetHeroId)) return false;
+         if (giverHero?.MapFaction == null) return false;
+
+         Hero target = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+         if (target?.MapFaction == null) return false;
+
+         bool giverAtWar = FactionManager.IsAtWarAgainstFaction(giverHero.MapFaction, target.MapFaction);
+
+         return CalradiaRemembers.Logic.QuestTargetVoidPolicy.ShouldVoidOnPeace(
+            quest.Type, hasTargetHero: true, giverAtWarWithTargetFaction: giverAtWar);
       }
 
       /// <summary>

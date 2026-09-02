@@ -66,5 +66,39 @@ namespace CalradiaRemembers.Logic
 
             return false;
         }
+
+        /// <summary>
+        ///   The narrower set of hero-bound quests whose whole point is to STRIKE a specific enemy lord (capture,
+        ///   attack, or execute). Their premise is the war between the giver's realm and the target's: once peace
+        ///   is made, carrying the task out would be a fresh act of war against a realm the giver just signed a
+        ///   treaty with (player report: a capture-a-lord task survived the peace and could not be dropped).
+        ///   Rescue and deliver kinds are deliberately NOT here: peace does not make rescuing your own man or
+        ///   delivering a letter impossible, so a treaty must never silently void them.
+        /// </summary>
+        public static bool IsWarHostileHeroQuest(QuestType type)
+        {
+            switch (type)
+            {
+                case QuestType.CapturePrisoner:
+                case QuestType.AttackLord:
+                case QuestType.ExecuteEnemy:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        ///   Whether a war-hostile hero quest should be VOIDED (neutral: no penalty, no grudge, no fail banner)
+        ///   because the giver's realm is no longer at war with the target hero's realm. Only a hero-bound war
+        ///   quest (<see cref="IsWarHostileHeroQuest" />) qualifies, and only once peace holds; while the war is
+        ///   still on, the task stands. Faction-bound war quests are voided separately by QuestService.PremiseGone;
+        ///   this fills the gap for the ones keyed on a specific enemy lord (which carry a target hero, not a
+        ///   target faction, so PremiseGone never saw them).
+        /// </summary>
+        public static bool ShouldVoidOnPeace(QuestType type, bool hasTargetHero, bool giverAtWarWithTargetFaction)
+        {
+            return hasTargetHero && IsWarHostileHeroQuest(type) && !giverAtWarWithTargetFaction;
+        }
     }
 }

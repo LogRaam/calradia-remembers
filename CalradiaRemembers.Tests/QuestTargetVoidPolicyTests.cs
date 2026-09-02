@@ -116,5 +116,63 @@ namespace CalradiaRemembers.Tests
         {
             QuestTargetVoidPolicy.IsTargetHeroBound(type).Should().Be(expected);
         }
+
+        // THE PLAYER REPORT: a "capture an enemy lord" task that outlived the peace treaty. Once the giver's realm
+        // is no longer at war with the target's, carrying it out would break the fresh treaty, so a war-hostile
+        // hero quest must void the moment peace holds. Capture/attack/execute all share this premise.
+        [TestCase(QuestType.CapturePrisoner)]
+        [TestCase(QuestType.AttackLord)]
+        [TestCase(QuestType.ExecuteEnemy)]
+        public void GIVEN_a_war_hostile_hero_quest_WHEN_peace_is_made_THEN_it_voids(QuestType type)
+        {
+            QuestTargetVoidPolicy.ShouldVoidOnPeace(type, hasTargetHero: true, giverAtWarWithTargetFaction: false)
+                .Should().BeTrue();
+        }
+
+        // The guard against over-voiding: while the war is still ON, the task genuinely stands. Voiding a live
+        // war quest would throw away a valid, completable task.
+        [TestCase(QuestType.CapturePrisoner)]
+        [TestCase(QuestType.AttackLord)]
+        [TestCase(QuestType.ExecuteEnemy)]
+        public void GIVEN_a_war_hostile_hero_quest_WHEN_the_war_is_still_on_THEN_it_does_NOT_void(QuestType type)
+        {
+            QuestTargetVoidPolicy.ShouldVoidOnPeace(type, hasTargetHero: true, giverAtWarWithTargetFaction: true)
+                .Should().BeFalse();
+        }
+
+        // STAKE: peace must NOT silently drop a rescue or a delivery. Rescuing your own man or delivering a letter
+        // is not an act of war, so a treaty leaves those tasks perfectly answerable, they only void via the
+        // target-left-the-board rule above, never on peace.
+        [TestCase(QuestType.RescuePrisoner)]
+        [TestCase(QuestType.DeliverLetter)]
+        [TestCase(QuestType.DeliverPrisoner)]
+        public void GIVEN_a_non_hostile_hero_quest_WHEN_peace_is_made_THEN_it_does_NOT_void(QuestType type)
+        {
+            QuestTargetVoidPolicy.ShouldVoidOnPeace(type, hasTargetHero: true, giverAtWarWithTargetFaction: false)
+                .Should().BeFalse();
+        }
+
+        // STAKE: a war quest keyed on a faction rather than a named lord (hasTargetHero=false) is PremiseGone's
+        // job, not this one; passing it here must not double-void, so it returns false regardless of peace.
+        [Test]
+        public void GIVEN_a_war_quest_with_no_named_target_hero_WHEN_peace_is_made_THEN_this_rule_does_NOT_void()
+        {
+            QuestTargetVoidPolicy.ShouldVoidOnPeace(QuestType.CapturePrisoner, hasTargetHero: false, giverAtWarWithTargetFaction: false)
+                .Should().BeFalse();
+        }
+
+        // Pins the exact war-hostile set, so a future quest kind cannot silently start (or stop) voiding on peace.
+        [TestCase(QuestType.CapturePrisoner, true)]
+        [TestCase(QuestType.AttackLord, true)]
+        [TestCase(QuestType.ExecuteEnemy, true)]
+        [TestCase(QuestType.RescuePrisoner, false)]
+        [TestCase(QuestType.DeliverLetter, false)]
+        [TestCase(QuestType.DeliverPrisoner, false)]
+        [TestCase(QuestType.BanditClear, false)]
+        [TestCase(QuestType.DeclareWar, false)]
+        public void GIVEN_a_quest_type_WHEN_asked_if_war_hostile_THEN_only_the_strike_an_enemy_kinds_qualify(QuestType type, bool expected)
+        {
+            QuestTargetVoidPolicy.IsWarHostileHeroQuest(type).Should().Be(expected);
+        }
     }
 }
