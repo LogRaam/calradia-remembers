@@ -16,6 +16,7 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.Core;
+using TaleWorlds.Localization;
 
 #endregion
 
@@ -503,6 +504,11 @@ namespace CalradiaRemembers.Dialogue
          {
             ModLog.Error($"OnPlayerSelectedChat CRASHED: {ex.GetType().Name} - {ex.Message}");
             ModLog.Error($"StackTrace: {ex.StackTrace}");
+            // Never let a broken persisted record silently kill EVERY conversation (player report: after a
+            // soft-locked council scene, "A word with you" only ever gave the vanilla continue). Tell the player
+            // it was CR that failed and hand them the recovery command, instead of a mute dead-end with no clue.
+            MBInformationManager.AddQuickInformation(new TextObject(
+               "Calradia Remembers could not open this conversation. Type 'cr.reset' in the console, then try again. See CalradiaRemembers.log."));
          }
       }
 
