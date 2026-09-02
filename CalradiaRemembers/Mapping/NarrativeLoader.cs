@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Mapping
          PostHistoryInstructions = ReadFile("post_history_instructions.txt", "post-history instructions");
 
          _stationGuidelines.Clear();
-         foreach (string station in new[] {"gangleader", "notable", "wanderer"})
+         foreach (string station in new[] {"gangleader", "notable", "wanderer", "companion"})
             _stationGuidelines[station] = ReadFile($"behavior_guidelines_{station}.txt", $"{station} guidelines");
       }
 

@@ -64,6 +64,37 @@ namespace CalradiaRemembers.Tests
             StationGuidelinesPolicy.ResolveStationKey(null).Should().BeNull();
         }
 
+        // A recruited companion keeps the raw "Wanderer" occupation, so occupation alone would voice a sworn
+        // shieldmate at the player's side as a loose tavern free blade (the mismatch fkasad/TOR reported). The
+        // companion signal lifts them out of the wanderer register into their own.
+        [Test]
+        public void GIVEN_a_wanderer_who_joined_the_player_WHEN_resolving_the_station_THEN_the_companion_register_applies()
+        {
+            StationGuidelinesPolicy.ResolveStationKey("Wanderer", isPlayerCompanion: true, holdsFief: false)
+                .Should().Be(StationGuidelinesPolicy.CompanionKey);
+        }
+
+        // The top rung of the ladder: a companion granted a fief is landed, and a landed hero carries
+        // themselves as a lord, so the fief signal outranks the companion one and returns the base register.
+        [Test]
+        public void GIVEN_a_companion_granted_a_fief_WHEN_resolving_the_station_THEN_it_rises_to_the_lordly_base()
+        {
+            StationGuidelinesPolicy.ResolveStationKey("Wanderer", isPlayerCompanion: true, holdsFief: true)
+                .Should().BeNull();
+        }
+
+        // With no promotion signals the overload must be exactly the plain occupation mapping: a loose
+        // wanderer stays a free blade, a merchant stays a notable. This pins that the ladder never disturbs
+        // an NPC who has not risen in the player's service.
+        [Test]
+        public void GIVEN_no_promotion_signals_WHEN_resolving_the_station_THEN_it_matches_the_plain_occupation_mapping()
+        {
+            StationGuidelinesPolicy.ResolveStationKey("Wanderer", isPlayerCompanion: false, holdsFief: false)
+                .Should().Be(StationGuidelinesPolicy.WandererKey);
+            StationGuidelinesPolicy.ResolveStationKey("Merchant", isPlayerCompanion: false, holdsFief: false)
+                .Should().Be(StationGuidelinesPolicy.NotableKey);
+        }
+
         // The straightforward path: a station file that genuinely exists with real text is used as-is,
         // the baseline the fallback-chain tests below all depart from.
         [Test]
@@ -83,6 +114,31 @@ namespace CalradiaRemembers.Tests
 
             StationGuidelinesPolicy.SelectStationText(StationGuidelinesPolicy.GangLeaderKey, k => Lookup(files, k))
                 .Should().Be("notable text");
+        }
+
+        // A modder who has not written a companion file yet must not drop a sworn companion all the way back
+        // to the lordly base: the register they rose FROM (wanderer) is the nearest fit, so a companion falls
+        // to the wanderer file before the base default.
+        [Test]
+        public void GIVEN_the_companion_file_is_missing_WHEN_selecting_the_text_THEN_it_falls_back_to_the_wanderer_register()
+        {
+            var files = new Dictionary<string, string> {{StationGuidelinesPolicy.WandererKey, "wanderer text"}};
+
+            StationGuidelinesPolicy.SelectStationText(StationGuidelinesPolicy.CompanionKey, k => Lookup(files, k))
+                .Should().Be("wanderer text");
+        }
+
+        // When the companion file DOES exist it is used as-is, never overridden by the wanderer fallback below it.
+        [Test]
+        public void GIVEN_the_companion_file_exists_WHEN_selecting_the_text_THEN_it_is_used()
+        {
+            var files = new Dictionary<string, string> {
+                {StationGuidelinesPolicy.CompanionKey, "companion text"},
+                {StationGuidelinesPolicy.WandererKey, "wanderer text"}
+            };
+
+            StationGuidelinesPolicy.SelectStationText(StationGuidelinesPolicy.CompanionKey, k => Lookup(files, k))
+                .Should().Be("companion text");
         }
 
         // A modder who ships the mod without any station files (or hasn't written them yet) must fall

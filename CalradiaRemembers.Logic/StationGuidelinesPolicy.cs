@@ -27,8 +27,27 @@ namespace CalradiaRemembers.Logic
         /// <summary>Station key for town and village notables: merchants, artisans, rural notables, headmen, preachers.</summary>
         public const string NotableKey = "notable";
 
-        /// <summary>Station key for wanderers (potential companions, free blades).</summary>
+        /// <summary>Station key for wanderers (loose free blades, potential companions not yet recruited).</summary>
         public const string WandererKey = "wanderer";
+
+        /// <summary>Station key for a wanderer who has taken service with the player: risen from a free blade, sworn to the banner, not yet landed.</summary>
+        public const string CompanionKey = "companion";
+
+        /// <summary>
+        ///   The station register for a hero, honoring the wanderer, companion, lord ladder: a wanderer who
+        ///   has joined the player rises out of the free-blade register into the companion one, and a
+        ///   companion granted a fief rises again into the lordly base register (a landed hero carries
+        ///   themselves as a lord). The two signals are read FIRST because a recruited companion and a fresh
+        ///   tavern wanderer share the same raw Occupation ("Wanderer"), so occupation alone cannot tell them
+        ///   apart. With both false this is exactly the plain occupation mapping.
+        /// </summary>
+        public static string ResolveStationKey(string occupationName, bool isPlayerCompanion, bool holdsFief)
+        {
+            if (holdsFief) return null;
+            if (isPlayerCompanion) return CompanionKey;
+
+            return ResolveStationKey(occupationName);
+        }
 
         /// <summary>
         ///   The station register for an occupation name (a Bannerlord <c>Occupation</c> enum value's
@@ -56,10 +75,10 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
-        ///   The guidelines text for a station, through the fallback chain: the station's own file, then
-        ///   (for a gang leader) the notable file as the nearest civilian register, then null meaning
-        ///   "fall back to the base guidelines". Missing or blank files simply fall through, so shipping
-        ///   without a station file can never break a conversation.
+        ///   The guidelines text for a station, through the fallback chain: the station's own file, then a
+        ///   nearest-neighbour register (a gang leader falls to the notable file, a companion falls to the
+        ///   wanderer file they rose from), then null meaning "fall back to the base guidelines". Missing or
+        ///   blank files simply fall through, so shipping without a station file can never break a conversation.
         /// </summary>
         public static string SelectStationText(string stationKey, Func<string, string> textForKey)
         {
@@ -71,6 +90,12 @@ namespace CalradiaRemembers.Logic
             if (stationKey == GangLeaderKey)
             {
                 text = textForKey(NotableKey);
+                if (!string.IsNullOrWhiteSpace(text)) return text;
+            }
+
+            if (stationKey == CompanionKey)
+            {
+                text = textForKey(WandererKey);
                 if (!string.IsNullOrWhiteSpace(text)) return text;
             }
 

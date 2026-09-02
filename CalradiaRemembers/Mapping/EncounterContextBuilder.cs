@@ -2560,7 +2560,15 @@ namespace CalradiaRemembers.Mapping
       {
          if (hero == null) return null;
 
-         string key = StationGuidelinesPolicy.ResolveStationKey(hero.Occupation.ToString());
+         // The wanderer, companion, lord ladder: a recruited companion keeps the raw "Wanderer" occupation,
+         // so a sworn shieldmate at the player's side would otherwise be voiced as a loose tavern free blade.
+         // The real standing is read from who they serve and whether they are landed, not occupation alone.
+         // (In CR a fief is granted across houses only, so a player companion can never hold one WHILE a
+         // companion: the fief rung fires once they are ennobled into their own landed clan, which the base
+         // register already fits. It is kept explicit here so the ladder is complete and future-proof.)
+         bool isPlayerCompanion = hero.CompanionOf == Clan.PlayerClan;
+         bool holdsFief = hero.IsClanLeader && (hero.Clan?.Settlements?.Any(s => s != null && (s.IsTown || s.IsCastle)) ?? false);
+         string key = StationGuidelinesPolicy.ResolveStationKey(hero.Occupation.ToString(), isPlayerCompanion, holdsFief);
 
          return StationGuidelinesPolicy.SelectStationText(key, NarrativeLoader.StationGuidelines);
       }
