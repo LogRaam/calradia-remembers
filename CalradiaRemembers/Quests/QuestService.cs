@@ -754,6 +754,27 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>
+      ///   Console recovery (cr.quest_void): cancels ONE outstanding quest as a clean NEUTRAL void, the exact
+      ///   shape the daily sweep uses for a no-fault cancel (Cancelled status, journal closed, a neutral memory
+      ///   line), with NO relation penalty, NO grudge, and NO broken-word. It is for unsticking a quest that has
+      ///   become impossible or bugged, where cr.quest_abandon's broken-word penalty would be unjust. Returns a
+      ///   short report line for the console.
+      /// </summary>
+      public static string VoidQuestNeutral(NpcProfile profile, Hero giverHero, InformalQuest quest, int gameDay, BannerlordNpcMemoryStore store)
+      {
+         if (profile == null || quest == null) return "No quest to void.";
+
+         quest.Status = QuestStatus.Cancelled;
+         AddEvent(profile, gameDay, NotableEventType.Other, $"Set aside the task to {Describe(quest)}.");
+         QuestJournalBridge.CloseAsCancelled(quest, giverHero, "This task has been set aside.");
+         store?.Set(profile);
+
+         ModLog.Info($"[QUEST] neutral void (cr.quest_void): {Describe(quest)} from {giverHero?.Name?.ToString() ?? profile.Name}.");
+
+         return $"Voided: {Describe(quest)} (from {giverHero?.Name?.ToString() ?? profile.Name}). No penalty applied.";
+      }
+
+      /// <summary>
       ///   v1.34.2 fault/no-fault hardening (audit Pattern 2): true when a hero-bound quest's TARGET has left
       ///   the board (died, vanished, or, for a rescue, is no longer a prisoner), so the task is impossible
       ///   through no fault of the player. The pure rule lives in
