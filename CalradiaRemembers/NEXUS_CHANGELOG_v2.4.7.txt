@@ -1,0 +1,7 @@
+Version 2.4.7
+
+Characters read the outfit that fits the scene, and your own narration of a scene wins. Your saves carry over untouched.
+
+Fixed
+- Characters now notice the outfit that suits where you are. Inside a town, a keep, or a tavern they read your civilian dress rather than the battle armour packed away for the road, so a fine weapon or a suit of plate no longer comes up while you are lounging in a hall or slipping through town. On the road or in a fight, your war gear is what they see. This applies to you, to whoever you are speaking with, and to a companion at your side.
+- Your own narration of a scene now takes priority over the gear. If you describe being out of armour, in plain clothes, or unarmed for the moment, characters follow your words instead of assuming you are in full kit. This also curbs the older tendency for everyone to be imagined in armour.
