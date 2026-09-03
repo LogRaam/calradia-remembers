@@ -7,11 +7,17 @@
 // command cr.powerindex for now (quick visual iteration).
 // 29/08/2026: converted from a TopScreen overlay layer to this pushed-screen host after Gabriel left the panel
 // open for several minutes and the game crashed (the documented map-overlay VRAM leak).
+// 03/09/2026: freeze the campaign clock while the panel is open (the chat's PauseCampaignMap recipe). A pushed
+// screen suspends the map's RENDERING but not its SIMULATION: the map game-state keeps ticking underneath, and
+// its siege-bombardment visual tick (SettlementVisual.Tick -> GameEntity.SetGlobalFrame) crashed natively three
+// times in one day (same 0xC0000005 offset each time) while Gabriel iterated on the layout with a siege in
+// progress. Stopping the clock freezes the bombardment timeline, so that vanilla code path stays quiet.
 
 #region
 
 using System.Collections.Generic;
 using CalradiaRemembers.Logic.WorldAlmanac;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.ScreenSystem;
 
 #endregion
@@ -23,6 +29,10 @@ namespace CalradiaRemembers.WorldAlmanac
    {
       private static BalanceOfPowerScreen _screen;
       private static BalanceOfPowerViewModel _vm;
+
+      private static CampaignTimeControlMode _previousTimeControlMode;
+      private static bool _previousTimeControlModeLock;
+      private static bool _timeControlModeSaved;
 
       public static bool IsOpen => _screen != null;
 
@@ -39,10 +49,12 @@ namespace CalradiaRemembers.WorldAlmanac
          ModLog.Info("Balance of Power window closed.");
       }
 
-      // Nulls our references. Called both from Close and from the screen's OnClosed callback, so a pop by any
-      // path (our Close, an Escape, an engine pop) clears IsOpen; idempotent, so being called twice is harmless.
+      // Nulls our references and resumes the campaign clock. Called both from Close and from the screen's
+      // OnClosed callback, so a pop by any path (our Close, an Escape, an engine pop) clears IsOpen and never
+      // leaves the campaign frozen; idempotent, so being called twice is harmless.
       private static void ResetState()
       {
+         ResumeCampaignMap();
          _screen = null;
          _vm = null;
       }
@@ -60,8 +72,36 @@ namespace CalradiaRemembers.WorldAlmanac
          // (our Close, an Escape, an engine pop), so a bypass of Close can never leave IsOpen stuck true.
          _screen = new BalanceOfPowerScreen(_vm) {OnClosed = ResetState};
          ScreenManager.PushScreen(_screen);
+         PauseCampaignMap();
 
          ModLog.Info($"Balance of Power window opened as a pushed screen ({result.Ranked.Count} kingdoms).");
+      }
+
+      // Mirrors ChatManager.PauseCampaignMap: a LOCKED clock ignores a mode change, so release the lock first.
+      private static void PauseCampaignMap()
+      {
+         if (Campaign.Current == null) return;
+
+         _previousTimeControlMode = Campaign.Current.TimeControlMode;
+         _previousTimeControlModeLock = Campaign.Current.TimeControlModeLock;
+         _timeControlModeSaved = true;
+         Campaign.Current.SetTimeControlModeLock(false);
+         Campaign.Current.TimeControlMode = CampaignTimeControlMode.Stop;
+         ModLog.Info($"Balance of Power: campaign time paused (was {_previousTimeControlMode}, lock {_previousTimeControlModeLock}).");
+      }
+
+      // Idempotent: ResetState runs on every pop path, sometimes twice for one close. Restores both the mode
+      // and the lock, so a forced state we interrupted resumes (mirrors ChatManager.RestoreTime).
+      private static void ResumeCampaignMap()
+      {
+         if (!_timeControlModeSaved) return;
+         _timeControlModeSaved = false;
+
+         if (Campaign.Current == null) return;
+
+         Campaign.Current.TimeControlMode = _previousTimeControlMode;
+         Campaign.Current.SetTimeControlModeLock(_previousTimeControlModeLock);
+         ModLog.Info("Balance of Power: campaign time resumed.");
       }
 
       /// <summary>
