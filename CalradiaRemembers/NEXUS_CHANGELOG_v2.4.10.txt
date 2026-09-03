@@ -1,0 +1,4 @@
+Version 2.4.10
+
+New
+- A new option, "NPCs can end conversations." On by default (a character deciding a chat is over closes it, as before). Turn it off and their goodbye no longer closes the conversation: the text box stays open so you can have the last word or keep talking, and you close the conversation yourself with the button when you are done. Captivity scenes are unaffected.
