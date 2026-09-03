@@ -26,6 +26,10 @@
 // one-shot fact to consume: the SAME underlying condition (landless+high-standing, no party role, etc.) can
 // still be true after a refusal, so this is throttled by TIME instead, a per-companion "last asked" day
 // (_ambitionAskedDays), stamped ONLY on a real grant, exactly like the spend-once keys are only marked on grant.
+// 03/09/2026: hostility gate on the entry (player report: the popup fired while entering a HOSTILE village or an
+// enemy castle, and answering inside that hostile flow closed the window and dumped the player into the
+// location's encounter). EntryIsPeaceful feeds SettlementAudienceSafetyPolicy — a private word waits for a
+// peaceful visit, and the fief-audience pass (which only runs from here) is gated with it.
 
 #region
 
@@ -401,7 +405,8 @@ namespace CalradiaRemembers.Missions
       ///   The player's own party arriving somewhere is the offer moment (player feedback): a companion does
       ///   not pull the player aside mid-march, but a settlement is a natural pause for a private word.
       ///   SettlementEntered fires for EVERY party entering EVERY settlement, so this filters to the player's
-      ///   own party first (the firehose filter used elsewhere in the mod, e.g. TownAmbushBehavior).
+      ///   own party first (the firehose filter used elsewhere in the mod, e.g. TownAmbushBehavior), then to
+      ///   a PEACEFUL entry (<see cref="EntryIsPeaceful" /> — never mid-siege, mid-raid, or in enemy territory).
       ///   COORDINATION with FiefAudienceBehavior (fief lords/ladies/notables with no field party asking for a
       ///   word): at most ONE audience popup may appear per entry, so the fief pass only runs when a companion
       ///   audience was NOT itself raised this entry (see FiefAudienceBehavior's own class header).
@@ -410,9 +415,47 @@ namespace CalradiaRemembers.Missions
       {
          if (party != MobileParty.MainParty || settlement == null) return;
 
+         // Hostility gate (player report, 2026-09: the popup fired while entering a HOSTILE village or an
+         // enemy castle, and answering inside that hostile entry flow closed the window and dumped the player
+         // into the location's encounter). A private word is a social pause — it waits for a peaceful visit.
+         // Gates the fief-audience pass too: it only ever runs from here.
+         if (!EntryIsPeaceful(settlement)) return;
+
          if (TryOfferAudience()) return; // one popup per entry: a companion audience already claimed it
 
          FiefAudienceBehavior.Instance?.TryOfferOnSettlementEntry();
+      }
+
+      /// <summary>
+      ///   Gathers the engine facts for <see cref="SettlementAudienceSafetyPolicy.IsSafeForPrivateWord" />:
+      ///   a siege in progress, the village being raided, or the owner's faction at war with the player's all
+      ///   make this entry a hostile moment where no audience may pop. Fails OPEN on a read error: the gate
+      ///   guards a rare hostile corner, and a broken read must not silently kill the feature everywhere.
+      /// </summary>
+      private static bool EntryIsPeaceful(Settlement settlement)
+      {
+         try
+         {
+            bool underSiege = settlement.IsUnderSiege;
+            bool raidInProgress = settlement.IsVillage && settlement.Village?.VillageState == Village.VillageStates.BeingRaided;
+            bool atWar = settlement.MapFaction != null
+                         && Hero.MainHero?.MapFaction != null
+                         && settlement.MapFaction.IsAtWarWith(Hero.MainHero.MapFaction);
+
+            bool peaceful = SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(underSiege, raidInProgress, atWar);
+
+            if (!peaceful)
+               ModLog.Info($"[AUDIENCE_TOPIC] entry into {settlement.Name} is not peaceful " +
+                           $"(siege={underSiege}, raid={raidInProgress}, atWar={atWar}) — no audience this entry.");
+
+            return peaceful;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[AUDIENCE_TOPIC] hostility check failed, allowing the offer: {ex.GetType().Name}: {ex.Message}");
+
+            return true;
+         }
       }
 
       /// <summary>
