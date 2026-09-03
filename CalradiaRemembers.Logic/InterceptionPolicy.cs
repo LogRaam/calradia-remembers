@@ -5,6 +5,25 @@
 
 namespace CalradiaRemembers.Logic
 {
+    /// <summary>
+    ///   Why an abandoned pursuit ended. Pure (moved out of the host behavior so the letter/rememberance
+    ///   gates can be pinned by tests): the host maps its engine facts onto this and the policy decides.
+    /// </summary>
+    public enum AbandonReason
+    {
+        /// <summary>The chase went to sea, where no meeting can physically be staged.</summary>
+        WentToSea,
+
+        /// <summary>The pursuer vanished from the chase (died, lost their party) or the player is now inside an army.</summary>
+        OtherBusiness,
+
+        /// <summary>The pursuit ran past <see cref="InterceptionPolicy.MaxPursuitDays" /> without connecting.</summary>
+        GaveUp,
+
+        /// <summary>The player was clearly faster and pulled well clear (the outrun branch of ShouldAbandonChase).</summary>
+        LostTrail
+    }
+
     /// <summary>Why a lord rides out to the player — <see cref="None"/> means they do not.</summary>
     public enum InterceptionTrigger
     {
@@ -100,6 +119,14 @@ namespace CalradiaRemembers.Logic
         /// <summary>A chase that has run this many days without connecting is given up.</summary>
         public const int MaxPursuitDays = 4;
 
+        /// <summary>
+        ///   How many days a lord whose chase came to nothing still remembers he meant to speak with the
+        ///   player: if the player seeks HIM out within this window, he raises his matter in person (player
+        ///   report, 2026-09-03: "if I go and meet them they don't remember they wanted to tell me
+        ///   something"). Short, so a stale errand does not ambush a conversation a week later.
+        /// </summary>
+        public const int RememberedIntentWindowDays = 2;
+
         /// <summary>The player must be at least this much faster than the pursuer to be deemed uncatchable.</summary>
         public const float OutrunSpeedRatio = 1.15f;
 
@@ -149,6 +176,26 @@ namespace CalradiaRemembers.Logic
             if (daysPursuing >= MaxPursuitDays) return true;
             return pursuerSpeed > 0f && playerSpeed >= pursuerSpeed * OutrunSpeedRatio;
         }
+
+        /// <summary>
+        ///   Whether a lord who abandoned a chase on <paramref name="abandonedDay" /> still remembers his
+        ///   errand today — inside the <see cref="RememberedIntentWindowDays" /> grace window. An unset
+        ///   slot (-1) is never active.
+        /// </summary>
+        public static bool IsRememberedIntentActive(int abandonedDay, int today)
+            => abandonedDay >= 0 && today - abandonedDay <= RememberedIntentWindowDays;
+
+        /// <summary>
+        ///   Whether an abandoned chase ends in a missed-meeting letter. An ordinary give-up (outrun or
+        ///   timeout) always does; being drawn into other business (a battle, the player vanishing into an
+        ///   army) does too, but only while the pursuer is alive to write — a dead man sends no letter.
+        ///   A genuinely impossible chase (out to sea) never does: nothing was ever going to connect, and
+        ///   the grace window (<see cref="IsRememberedIntentActive" />) already covers the player who comes
+        ///   back ashore and seeks the lord out.
+        /// </summary>
+        public static bool ShouldWriteMissedMeetingLetter(AbandonReason reason, bool pursuerAlive)
+            => reason is AbandonReason.GaveUp or AbandonReason.LostTrail
+               || (reason == AbandonReason.OtherBusiness && pursuerAlive);
 
         /// <summary>
         ///   The reason this lord would intercept the player now, or <see cref="InterceptionTrigger.None"/>.

@@ -36,11 +36,18 @@ namespace CalradiaRemembers.Interception
    ///   <see cref="InterceptionPolicy" /> says a trigger fires (a hostile territorial challenge, or a
    ///   reaction to fresh news of the player). The lord's party engages the player's; the meeting
    ///   itself opens the ordinary "We need to talk" CR conversation. Guards (one pursuer at a time,
-   ///   a per-lord cooldown, a pursuit timeout) keep it from becoming harassment. State is transient.
+   ///   a per-lord cooldown, a pursuit timeout) keep it from becoming harassment. The pursuit and the
+   ///   remembered intent persist across saves (2026-09-03), so a mid-pursuit reload no longer wipes
+   ///   the lord's errand.
    /// </summary>
    public sealed class InterceptionBehavior : CampaignBehaviorBase
    {
       private const string CooldownSaveKey = "CalradiaRemembers_Intercept_v1bytes";
+
+      // The live pursuit + remembered intent, persisted under their OWN key (added 2026-09-03) so a save written
+      // before this key existed still loads: the old key alone comes back, and no pursuit is restored — exactly
+      // the old transient behaviour.
+      private const string PursuitSaveKey = "CalradiaRemembers_InterceptPursuit_v1bytes";
 
       // How often lords ride out is the PLAYER's taste, not ours to fix (Fakade asked for the dial, and named
       // both reasons in one breath: he likes being approached, and he does not want to be forced into a string of
@@ -89,6 +96,15 @@ namespace CalradiaRemembers.Interception
       // frame. Reset when a pursuit begins, is consumed by the chat, or is released.
       private bool _meetingOpened;
 
+      // The REMEMBERED INTENT (player report, 2026-09-03: "if I go and meet them they don't remember they
+      // wanted to tell me something"): when a road pursuit is abandoned, a living lord keeps his errand in
+      // mind for InterceptionPolicy.RememberedIntentWindowDays, so a player who seeks HIM out still gets the
+      // matter raised in person (ConsumeInterceptionReason checks this slot when no pursuit is active).
+      private string _rememberedIntentLordId;
+      private InterceptionTrigger _rememberedIntentTrigger = InterceptionTrigger.None;
+      private string _rememberedIntentDetail;
+      private int _rememberedIntentAbandonedDay = -1;
+
       public InterceptionBehavior()
       {
          Instance = this;
@@ -99,9 +115,17 @@ namespace CalradiaRemembers.Interception
       ///   one-shot opening directive for the conversation (consuming it so it only colours the
       ///   first turn) and ends the pursuit. Null otherwise. Called as the CR chat context is built.
       /// </summary>
+      /// <summary>
+      ///   If <paramref name="npc" /> is the lord currently intercepting the player, returns a
+      ///   one-shot opening directive for the conversation (consuming it so it only colours the
+      ///   first turn) and ends the pursuit. Failing that, if <paramref name="npc" /> is a lord whose
+      ///   abandoned chase is still inside the remembered-intent window, returns that directive instead
+      ///   (same one-shot consumption). Null otherwise. Called as the CR chat context is built.
+      /// </summary>
       public string ConsumeInterceptionReason(Hero npc)
       {
-         if (npc == null || _activePursuerId == null || npc.StringId != _activePursuerId) return null;
+         if (npc == null || _activePursuerId == null || npc.StringId != _activePursuerId)
+            return ConsumeRememberedIntent(npc);
 
          InterceptionTrigger trigger = _activePursuerTrigger;
          bool isFiefAudience = _activePursuerIsFiefAudience;
@@ -162,6 +186,63 @@ namespace CalradiaRemembers.Interception
               "lands. Open on that footing — demand their business here, wary and territorial — rather than waiting on them."
             : "It is YOU who sought this meeting: word of the player's recent deeds reached you and you rode out to " +
               "see them while it was fresh. Open by raising what you heard — be it admiration, alarm, or a reckoning.";
+      }
+
+      /// <summary>
+      ///   The remembered-intent half of <see cref="ConsumeInterceptionReason" />: a lord whose chase was
+      ///   abandoned inside the grace window still raises his matter when the player seeks him out, framed
+      ///   honestly — HE set out, the chase came to nothing, and now the player has come to him. One-shot,
+      ///   like the active slot; an expired slot is cleared silently. Only road pursuits ever land here (a
+      ///   fief audience is cleared silently on the daily tick, per its own player report).
+      /// </summary>
+      private string ConsumeRememberedIntent(Hero npc)
+      {
+         if (npc == null || _rememberedIntentLordId == null || npc.StringId != _rememberedIntentLordId) return null;
+
+         InterceptionTrigger trigger = _rememberedIntentTrigger;
+         string detail = _rememberedIntentDetail;
+
+         if (!InterceptionPolicy.IsRememberedIntentActive(_rememberedIntentAbandonedDay, (int) CampaignTime.Now.ToDays))
+         {
+            ClearRememberedIntent();
+
+            return null;
+         }
+
+         ClearRememberedIntent();
+
+         return trigger switch
+         {
+            InterceptionTrigger.TerritorialPatrol =>
+               "You rode out to challenge the player for crossing your realm's lands, but the chase came to " +
+               "nothing — and now they have come to YOU. Raise it now as you meant to then: demand their " +
+               "business here, wary and territorial.",
+            InterceptionTrigger.Grudge =>
+               "You rode out to confront the player over a grievance you hold against them, but the chase came " +
+               "to nothing — and now they have come to YOU. Air it now, plainly and in your own voice, as you " +
+               $"meant to then.{DetailClause(detail)}",
+            InterceptionTrigger.AppreciationOwed =>
+               "You rode out to seek the player and acknowledge a kindness they showed you, but the chase came " +
+               "to nothing — and now they have come to YOU. Acknowledge it warmly now, in your own voice, as " +
+               $"you meant to then.{DetailClause(detail)}",
+            InterceptionTrigger.NemesisBounty =>
+               "You rode out to find the player and warn them of a nemesis plaguing your region, but the chase " +
+               "came to nothing — and now they have come to YOU. Name him now and where he operates, urgent " +
+               $"but not a call to arms here and now.{DetailClause(detail)} Point them to the bounty you would " +
+               "pay, but do not settle it in this exchange -- that is raised and taken up the ordinary way, not here.",
+            _ =>
+               "Word of the player's recent deeds reached you and you rode out to see them, but the chase came " +
+               "to nothing — and now they have come to YOU. Raise what you heard, be it admiration, alarm, or " +
+               "a reckoning."
+         };
+      }
+
+      private void ClearRememberedIntent()
+      {
+         _rememberedIntentLordId = null;
+         _rememberedIntentTrigger = InterceptionTrigger.None;
+         _rememberedIntentDetail = null;
+         _rememberedIntentAbandonedDay = -1;
       }
 
       /// <summary>
@@ -356,7 +437,7 @@ namespace CalradiaRemembers.Interception
       }
 
       /// <summary>
-      ///   Self-heal on every load, and it now heals something real. Two passes:
+      ///   Self-heal on every load, and it now heals something real. Three passes:
       ///   <list type="number">
       ///     <item>
       ///       RESCUE parties frozen by the old bug. Any lord party standing on <c>Hold</c> out on the open map
@@ -367,6 +448,10 @@ namespace CalradiaRemembers.Interception
       ///     <item>
       ///       The original guard: if the player is a SUBORDINATE inside an army (the state the game cannot
       ///       resolve an encounter in, and crashes on), stand down anything still bearing on their party.
+      ///     </item>
+      ///     <item>
+      ///       Restore a pursuit that crossed the save (re-issue the engage order), or fold it into the
+      ///       remembered intent when the world no longer allows it.
       ///     </item>
       ///   </list>
       /// </summary>
@@ -398,14 +483,69 @@ namespace CalradiaRemembers.Interception
 
             if (stood > 0)
                ModLog.Info($"[INTERCEPT] on load, stood down {stood} party(ies) bearing on the player: the player is inside an army and cannot be safely encountered.");
+
+            // Pass 3: put a pursuit that survived the save back on the player's trail (the engage order itself
+            // never crosses a save). Runs AFTER the two heals, so a load with the player inside an army has
+            // already been stood down and this restore's own army guard then refuses to re-engage.
+            RestorePersistedPursuit();
          }
          catch (Exception ex) { ModLog.Error($"[INTERCEPT] on-load heal failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
       /// <summary>
-      ///   Persists only the per-lord cooldowns (as a UTF-8 byte[], like the other CR stores), so a
-      ///   lord cannot intercept the player again right after a reload. The active pursuit itself is
-      ///   transient by design — a mid-pursuit reload simply lets the lord's AI return to its plans.
+      ///   Re-issues the engage order for a pursuit restored from the save, under the same guards
+      ///   <see cref="BeginPursuit" /> enforces (alive, has a party, both ashore, the player not wrapped in an
+      ///   army). A restored FIEF AUDIENCE has no party to re-engage — the stashed reason alone crossing the
+      ///   save is the whole point. A pursuit the world no longer allows is not simply dropped: a living lord
+      ///   falls back to the remembered intent, so the player who seeks him out still gets the matter.
+      /// </summary>
+      private void RestorePersistedPursuit()
+      {
+         if (_activePursuerId == null || _activePursuerIsFiefAudience) return;
+
+         Hero pursuer = FindHero(_activePursuerId);
+         MobileParty pursuerParty = pursuer?.PartyBelongedTo;
+         MobileParty main = MobileParty.MainParty;
+
+         var pursuerAlive = pursuer is {IsAlive: true};
+         bool invalid = !pursuerAlive || pursuerParty == null || main == null
+                        || PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(pursuerParty)
+                        || !InterceptionPolicy.CanMeetOnLand(main.IsCurrentlyAtSea, pursuerParty.IsCurrentlyAtSea);
+
+         if (invalid)
+         {
+            if (pursuerAlive)
+            {
+               _rememberedIntentLordId = pursuer.StringId;
+               _rememberedIntentTrigger = _activePursuerTrigger;
+               _rememberedIntentDetail = _activePursuerDetail;
+               _rememberedIntentAbandonedDay = (int) CampaignTime.Now.ToDays;
+            }
+
+            ModLog.Info($"[INTERCEPT] saved pursuit of {pursuer?.Name} not restored (no longer possible); " +
+                        "the remembered intent carries it.");
+
+            _activePursuerId = null;
+            _activePursuerSince = -1;
+            _activePursuerTrigger = InterceptionTrigger.None;
+            _activePursuerIsFiefAudience = false;
+            _activePursuerDetail = null;
+            _meetingOpened = false;
+            _lastPursuitDistance = -1f;
+
+            return;
+         }
+
+         pursuerParty.SetMoveEngageParty(main, MobileParty.NavigationType.Default);
+         ModLog.Info($"[INTERCEPT] {pursuer.Name}'s pursuit restored after load ({_activePursuerTrigger}).");
+      }
+
+      /// <summary>
+      ///   Persists the per-lord cooldowns (as a UTF-8 byte[], like the other CR stores), so a lord cannot
+      ///   intercept the player again right after a reload, and — since 2026-09-03 — the live pursuit and the
+      ///   remembered intent too, under their own key (player report: "if I go and meet them they don't
+      ///   remember they wanted to tell me something"; a mid-pursuit reload used to wipe the errand outright).
+      ///   The two keys stay independent so an older save, which has only the cooldown key, loads cleanly.
       /// </summary>
       public override void SyncData(IDataStore dataStore)
       {
@@ -421,6 +561,30 @@ namespace CalradiaRemembers.Interception
 
             try { dataStore.SyncData(CooldownSaveKey, ref bytes); }
             catch (Exception ex) { ModLog.Error($"[INTERCEPT] byte[] save failed: {ex.GetType().Name}: {ex.Message}"); }
+
+            var pursuit = new PursuitSaveData
+            {
+               PursuerId = _activePursuerId,
+               Since = _activePursuerSince,
+               Trigger = (int) _activePursuerTrigger,
+               Detail = _activePursuerDetail,
+               IsFiefAudience = _activePursuerIsFiefAudience,
+               RememberedLordId = _rememberedIntentLordId,
+               RememberedTrigger = (int) _rememberedIntentTrigger,
+               RememberedDetail = _rememberedIntentDetail,
+               RememberedAbandonedDay = _rememberedIntentAbandonedDay
+            };
+
+            byte[] pursuitBytes;
+            try { pursuitBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(pursuit, Formatting.None)); }
+            catch (Exception ex)
+            {
+               ModLog.Error($"[INTERCEPT] pursuit serialize failed — persisting none this save. {ex.GetType().Name}: {ex.Message}");
+               pursuitBytes = Encoding.UTF8.GetBytes("{}");
+            }
+
+            try { dataStore.SyncData(PursuitSaveKey, ref pursuitBytes); }
+            catch (Exception ex) { ModLog.Error($"[INTERCEPT] pursuit save failed: {ex.GetType().Name}: {ex.Message}"); }
          }
          else
          {
@@ -431,22 +595,68 @@ namespace CalradiaRemembers.Interception
                /* key absent in older saves */
             }
 
-            if (bytes is not {Length: > 0}) return;
+            if (bytes is {Length: > 0})
+            {
+               try
+               {
+                  var loaded = JsonConvert.DeserializeObject<Dictionary<string, int>>(Encoding.UTF8.GetString(bytes));
+                  _cooldown.Clear();
+
+                  if (loaded != null)
+                     foreach (KeyValuePair<string, int> kv in loaded)
+                        _cooldown[kv.Key] = kv.Value;
+               }
+               catch (Exception ex)
+               {
+                  _cooldown.Clear();
+                  ModLog.Error($"[INTERCEPT] load failed — cooldowns dropped for this load. {ex.GetType().Name}: {ex.Message}");
+               }
+            }
+
+            byte[] pursuitBytes = null;
+            try { dataStore.SyncData(PursuitSaveKey, ref pursuitBytes); }
+            catch
+            {
+               /* key absent in older saves — no pursuit to restore, which is exactly the old behaviour */
+            }
+
+            if (pursuitBytes is not {Length: > 0}) return;
             try
             {
-               var loaded = JsonConvert.DeserializeObject<Dictionary<string, int>>(Encoding.UTF8.GetString(bytes));
-               _cooldown.Clear();
-
+               PursuitSaveData loaded = JsonConvert.DeserializeObject<PursuitSaveData>(Encoding.UTF8.GetString(pursuitBytes));
                if (loaded == null) return;
-               foreach (KeyValuePair<string, int> kv in loaded)
-                  _cooldown[kv.Key] = kv.Value;
+
+               _activePursuerId = loaded.PursuerId;
+               _activePursuerSince = loaded.Since;
+               _activePursuerTrigger = (InterceptionTrigger) loaded.Trigger;
+               _activePursuerDetail = loaded.Detail;
+               _activePursuerIsFiefAudience = loaded.IsFiefAudience;
+               _meetingOpened = _activePursuerIsFiefAudience; // an audience has no party to force a meeting for
+               _lastPursuitDistance = -1f;
+               _rememberedIntentLordId = loaded.RememberedLordId;
+               _rememberedIntentTrigger = (InterceptionTrigger) loaded.RememberedTrigger;
+               _rememberedIntentDetail = loaded.RememberedDetail;
+               _rememberedIntentAbandonedDay = loaded.RememberedAbandonedDay;
             }
             catch (Exception ex)
             {
-               _cooldown.Clear();
-               ModLog.Error($"[INTERCEPT] load failed — cooldowns dropped for this load. {ex.GetType().Name}: {ex.Message}");
+               ModLog.Error($"[INTERCEPT] pursuit load failed — dropped for this load. {ex.GetType().Name}: {ex.Message}");
             }
          }
+      }
+
+      /// <summary>The save shape for the live pursuit and the remembered intent (both transient before 2026-09-03).</summary>
+      private sealed class PursuitSaveData
+      {
+         public string PursuerId { get; set; }
+         public int Since { get; set; } = -1;
+         public int Trigger { get; set; }
+         public string Detail { get; set; }
+         public bool IsFiefAudience { get; set; }
+         public string RememberedLordId { get; set; }
+         public int RememberedTrigger { get; set; }
+         public string RememberedDetail { get; set; }
+         public int RememberedAbandonedDay { get; set; } = -1;
       }
 
       #region private
@@ -817,17 +1027,30 @@ namespace CalradiaRemembers.Interception
          InterceptionTrigger trigger = _activePursuerTrigger; // read before the fields below are cleared
          string detail = _activePursuerDetail;                // ditto
          AbandonReason reason = DetermineAbandonReason(atSea, invalid, today - _activePursuerSince);
+         var pursuerAlive = pursuer is {IsAlive: true};
 
          ModLog.Info($"[INTERCEPT] {pursuer?.Name} stands down ({reason}, distance {distance:0.0}, " +
                      $"{today - _activePursuerSince} day(s) pursued, closing={isClosing}).");
 
          NotifyPursuitAbandoned(pursuer, reason);
 
-         // Only an ORDINARY give-up (outrun or timeout) gets the letter, never a genuinely impossible
-         // situation (sea, army, death): mirrors the assembly's ambassador fallback (narration covers the
-         // gap instead of a broken feature) rather than papering over a pursuit that could never have
-         // succeeded regardless.
-         if (reason is AbandonReason.GaveUp or AbandonReason.LostTrail) TryWriteMissedMeetingLetter(pursuer, trigger, detail, today);
+         // A LIVING lord keeps his errand in mind for a few days however the chase ended: if the player seeks
+         // him out within the window, he raises it in person (player report, 2026-09-03: "if I go and meet
+         // them they don't remember they wanted to tell me something"). A dead man remembers nothing.
+         if (pursuerAlive)
+         {
+            _rememberedIntentLordId = pursuer.StringId;
+            _rememberedIntentTrigger = trigger;
+            _rememberedIntentDetail = detail;
+            _rememberedIntentAbandonedDay = today;
+         }
+
+         // The letter gate is the policy's call: an ordinary give-up always writes; drawn into other business
+         // writes too, but only while the pursuer is alive to hold a pen; a chase lost at sea never does
+         // (nothing was ever going to connect, and the remembered-intent window above already covers the
+         // player who comes back ashore and seeks the lord out).
+         if (InterceptionPolicy.ShouldWriteMissedMeetingLetter(reason, pursuerAlive))
+            TryWriteMissedMeetingLetter(pursuer, trigger, detail, today);
 
          // End the engage on any abandoned chase too, so a lord who timed out or was outrun stops bearing on the
          // player instead of trailing them indefinitely, and RESUMES his own plans rather than standing in the
@@ -842,22 +1065,7 @@ namespace CalradiaRemembers.Interception
          _lastPursuitDistance = -1f;
       }
 
-      /// <summary>Why an abandoned pursuit ended, purely to pick the player-facing wording and the letter gate.</summary>
-      private enum AbandonReason
-      {
-         /// <summary>The chase went to sea, where no meeting can physically be staged.</summary>
-         WentToSea,
-
-         /// <summary>The pursuer vanished from the chase (died, lost their party) or the player is now inside an army.</summary>
-         OtherBusiness,
-
-         /// <summary>The pursuit ran past <see cref="InterceptionPolicy.MaxPursuitDays" /> without connecting.</summary>
-         GaveUp,
-
-         /// <summary>The player was clearly faster and pulled well clear (the outrun branch of ShouldAbandonChase).</summary>
-         LostTrail
-      }
-
+      /// <summary>Why an abandoned pursuit ended lives in <see cref="AbandonReason" /> (Logic) so the gates below stay pure and tested.</summary>
       private static AbandonReason DetermineAbandonReason(bool atSea, bool invalid, int daysPursuing)
       {
          if (atSea) return AbandonReason.WentToSea;
@@ -892,12 +1100,13 @@ namespace CalradiaRemembers.Interception
       }
 
       /// <summary>
-      ///   When a chase is abandoned for an ORDINARY reason (never an impossible one), the lord who wanted a
-      ///   word writes instead, through the existing letter pipeline, rather than the whole thing simply
-      ///   evaporating. Reuses <see cref="InterceptionTrigger" /> for WHY he set out, exactly as the in-person
-      ///   opener does. A lord the player has never actually met has no profile to write from and is silently
-      ///   skipped; the LLM pipeline itself (checked inside <see cref="LetterGenerationService.QueueInitialLetter" />)
-      ///   is the rest of "can actually deliver". Called at most once per abandoned chase.
+      ///   When a chase is abandoned for a reason the letter gate (<see cref="InterceptionPolicy.ShouldWriteMissedMeetingLetter" />)
+      ///   allows, the lord who wanted a word writes instead, through the existing letter pipeline, rather than
+      ///   the whole thing simply evaporating. Reuses <see cref="InterceptionTrigger" /> for WHY he set out,
+      ///   exactly as the in-person opener does. A lord the player has never actually met has no profile to
+      ///   write from and is silently skipped; the LLM pipeline itself (checked inside
+      ///   <see cref="LetterGenerationService.QueueInitialLetter" />) is the rest of "can actually deliver".
+      ///   Called at most once per abandoned chase.
       /// </summary>
       private static void TryWriteMissedMeetingLetter(Hero pursuer, InterceptionTrigger trigger, string detail, int today)
       {

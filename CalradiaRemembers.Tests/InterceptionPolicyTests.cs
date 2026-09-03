@@ -390,6 +390,72 @@ namespace CalradiaRemembers.Tests
                            .Should().Be(InterceptionTrigger.None);
       }
 
+      // ── IsRememberedIntentActive (player report, 2026-09-03: a lord met right after his failed chase
+      // "doesn't remember" he wanted a word) ─────────────────────────────────────────────────────────
+
+      // The whole point of the window: the day the chase is abandoned, and the days right after, the lord
+      // still raises his matter when the player seeks him out.
+      [Test]
+      public void GIVEN_a_chase_abandoned_today_WHEN_judging_the_grace_window_THEN_the_intent_is_active()
+      {
+         InterceptionPolicy.IsRememberedIntentActive(abandonedDay: 100, today: 100).Should().BeTrue();
+      }
+
+      [Test]
+      public void GIVEN_a_chase_abandoned_within_the_window_WHEN_judging_THEN_the_intent_is_active()
+      {
+         InterceptionPolicy.IsRememberedIntentActive(100, 100 + InterceptionPolicy.RememberedIntentWindowDays)
+            .Should().BeTrue();
+      }
+
+      // The window's far edge: a stale errand must NOT ambush a conversation days later.
+      [Test]
+      public void GIVEN_a_chase_abandoned_past_the_window_WHEN_judging_THEN_the_intent_is_gone()
+      {
+         InterceptionPolicy.IsRememberedIntentActive(100, 100 + InterceptionPolicy.RememberedIntentWindowDays + 1)
+            .Should().BeFalse();
+      }
+
+      // An unset slot (-1) is never active — no lord, no memory.
+      [Test]
+      public void GIVEN_no_remembered_intent_WHEN_judging_THEN_it_is_never_active()
+      {
+         InterceptionPolicy.IsRememberedIntentActive(-1, 100).Should().BeFalse();
+      }
+
+      // ── ShouldWriteMissedMeetingLetter ─────────────────────────────────────────────────────────────
+
+      // The standing behaviour: an ordinary give-up (timeout or outrun) always converts to a letter.
+      [Test]
+      public void GIVEN_an_ordinary_give_up_WHEN_judging_the_letter_THEN_the_lord_writes()
+      {
+         InterceptionPolicy.ShouldWriteMissedMeetingLetter(AbandonReason.GaveUp, pursuerAlive: true).Should().BeTrue();
+         InterceptionPolicy.ShouldWriteMissedMeetingLetter(AbandonReason.LostTrail, pursuerAlive: true).Should().BeTrue();
+      }
+
+      // The 2026-09-03 gap the player hit: drawn into a battle mid-chase used to evaporate the whole thing,
+      // message included. A living lord now writes instead.
+      [Test]
+      public void GIVEN_a_living_pursuer_drawn_into_other_business_WHEN_judging_the_letter_THEN_he_writes()
+      {
+         InterceptionPolicy.ShouldWriteMissedMeetingLetter(AbandonReason.OtherBusiness, pursuerAlive: true).Should().BeTrue();
+      }
+
+      // But a dead man sends no letter: OtherBusiness also covers the pursuer dying mid-chase.
+      [Test]
+      public void GIVEN_a_dead_pursuer_WHEN_judging_the_letter_THEN_no_letter_is_written()
+      {
+         InterceptionPolicy.ShouldWriteMissedMeetingLetter(AbandonReason.OtherBusiness, pursuerAlive: false).Should().BeFalse();
+      }
+
+      // A chase lost at sea never writes: nothing was ever going to connect, and the remembered-intent
+      // window already covers the player who comes back ashore and seeks the lord out.
+      [Test]
+      public void GIVEN_a_chase_lost_at_sea_WHEN_judging_the_letter_THEN_no_letter_is_written()
+      {
+         InterceptionPolicy.ShouldWriteMissedMeetingLetter(AbandonReason.WentToSea, pursuerAlive: true).Should().BeFalse();
+      }
+
       #region private
 
       private static InterceptionFacts Facts(
