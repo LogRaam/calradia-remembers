@@ -117,8 +117,12 @@ namespace CalradiaRemembers.Chat
             (itemId, name, value) =>
             {
                _offeredItemId = itemId;
-               host.SetInputText($"I would like to offer you {name} (worth {value:N0} denars).");
-               ModLog.Info($"[OFFER] player pre-filled offer: {name} ({value} denars, id={itemId}).");
+               // Frame it as a COMPLETED handover (a stage direction), not a tentative "I would like to offer":
+               // the offer wording read as a proposal, so the NPC reacted to the OFFER and the gift needed a
+               // second turn to land (player report: two reactions for one gift). Handing it over now makes the
+               // NPC react ONCE, to receiving it, and the give_item action fires in the same turn.
+               host.SetInputText($"*I hand you {name} (worth {value:N0} denars).*");
+               ModLog.Info($"[OFFER] player pre-filled gift: {name} ({value} denars, id={itemId}).");
             },
             () => PromptGoldOffer(host));
       }
