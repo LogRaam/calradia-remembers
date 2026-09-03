@@ -1,0 +1,4 @@
+Version 2.4.9
+
+Fixed
+- Giving several of something now hands over the amount you name. "I give you 10 ingots" moves ten (or the whole stack if you have fewer), instead of a single one. A single-item gift is unchanged.
