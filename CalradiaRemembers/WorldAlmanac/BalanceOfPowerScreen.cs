@@ -7,6 +7,7 @@
 
 #region
 
+using CalradiaRemembers.Portraits;
 using TaleWorlds.Engine.GauntletUI;
 using TaleWorlds.ScreenSystem;
 
@@ -64,6 +65,9 @@ namespace CalradiaRemembers.WorldAlmanac
 
          UIResourceManager.WidgetFactory?.CheckForUpdates();
          _layer.ReleaseMovie(_movieId);
+         // Free the old background texture before reloading, so tuning the panel across many cr.reload_ui calls
+         // never accumulates 25+ MB textures, and a re-exported background image is picked up fresh from disk.
+         RuntimePortraitFactory.Evict(_vm.BackgroundPath);
          _movieId = _layer.LoadMovie(PrefabName, _vm);
       }
 
@@ -97,6 +101,10 @@ namespace CalradiaRemembers.WorldAlmanac
 
          _layer = null;
          _movieId = null;
+
+         // Free the panel's large leather background (~25-32 MB at 3312x1900) on close, so it is not held for the
+         // whole session between opens: the player may open this panel often, and it reloads lazily on next open.
+         RuntimePortraitFactory.Evict(_vm?.BackgroundPath);
       }
    }
 }

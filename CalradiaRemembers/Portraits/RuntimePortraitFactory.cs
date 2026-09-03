@@ -40,8 +40,11 @@ namespace CalradiaRemembers.Portraits
         private static readonly MethodInfo IsLoadedSetter =
             typeof(SpriteCategory).GetProperty("IsLoaded")?.GetSetMethod(true);
 
-        private static readonly Dictionary<string, (Sprite sprite, int width, int height)> Cache =
-            new Dictionary<string, (Sprite, int, int)>();
+        // The engine texture is kept alongside the sprite so it can be RELEASED on eviction: the cache used to
+        // store only width/height, so the native VRAM (a UI background can be 25+ MB) could never be freed and
+        // sat for the whole session. Evict(path)/ClearCache release it (see below).
+        private static readonly Dictionary<string, (Sprite sprite, EngTex texture, int width, int height)> Cache =
+            new Dictionary<string, (Sprite, EngTex, int, int)>();
 
         private static FieldInfo Backing(string name)
             => typeof(SpritePart).GetField($"<{name}>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -102,9 +105,52 @@ namespace CalradiaRemembers.Portraits
             if (Cache.TryGetValue(key, out var cached)) return cached.sprite;
 
             Sprite sprite = TryCreate(fullPath, correctRedBlue, ninePatch, out Sprite s, out EngTex tex, out _) ? s : null;
-            Cache[key] = (sprite, tex?.Width ?? 0, tex?.Height ?? 0);
+            Cache[key] = (sprite, tex, tex?.Width ?? 0, tex?.Height ?? 0);
 
             return sprite;
+        }
+
+        /// <summary>
+        ///   Releases the cached texture(s) for ONE image path (every keyed variant of it) and drops them from
+        ///   the cache, freeing the native VRAM the entry held. The Balance of Power background alone is ~25-32 MB,
+        ///   so the panel evicts it on close (and on cr.reload_ui) rather than hold it for the whole session, which
+        ///   matters because the player may open that panel often. A path not cached is a no-op. Returns the count.
+        /// </summary>
+        public static int Evict(string fullPath)
+        {
+            if (string.IsNullOrEmpty(fullPath)) return 0;
+
+            string prefix = fullPath + "|";
+            var toRemove = new List<string>();
+            foreach (KeyValuePair<string, (Sprite sprite, EngTex texture, int width, int height)> kv in Cache)
+                if (kv.Key.StartsWith(prefix, StringComparison.Ordinal))
+                    toRemove.Add(kv.Key);
+
+            var freed = 0;
+            foreach (string key in toRemove)
+            {
+                try { Cache[key].texture?.Release(); freed++; }
+                catch (Exception ex) { ModLog.Error($"[PORTRAIT] evict release failed for {key}: {ex.Message}"); }
+                Cache.Remove(key);
+            }
+
+            if (freed > 0) ModLog.Info($"[PORTRAIT] evicted {freed} cached texture(s) for {Path.GetFileName(fullPath)}.");
+
+            return freed;
+        }
+
+        /// <summary>Releases and drops EVERY cached texture (dev hot-reload, or a hard reset). Everything reloads lazily on next use. Returns the count.</summary>
+        public static int ClearCache()
+        {
+            var freed = 0;
+            foreach ((Sprite _, EngTex texture, int _, int _) in Cache.Values)
+                try { texture?.Release(); freed++; }
+                catch (Exception ex) { ModLog.Error($"[PORTRAIT] clear release failed: {ex.Message}"); }
+
+            Cache.Clear();
+            if (freed > 0) ModLog.Info($"[PORTRAIT] cleared {freed} cached texture(s).");
+
+            return freed;
         }
 
         /// <summary>The pixel dimensions of the (cached) image at <paramref name="fullPath" />, false if it will not load.</summary>
@@ -114,7 +160,7 @@ namespace CalradiaRemembers.Portraits
             height = 0;
             if (GetOrCreateCached(fullPath) == null) return false;
 
-            (Sprite _, int w, int h) = Cache[KeyFor(fullPath, true, default)];
+            (Sprite _, EngTex _, int w, int h) = Cache[KeyFor(fullPath, true, default)];
             width = w;
             height = h;
 
