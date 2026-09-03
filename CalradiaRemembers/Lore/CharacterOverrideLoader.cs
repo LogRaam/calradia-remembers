@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Mapping;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
@@ -122,9 +123,12 @@ namespace CalradiaRemembers.Lore
 
       public static void Load()
       {
-         string path = Path.Combine(
-            BasePath.Name, "Modules", "CalradiaRemembers",
-            "ModuleData", "character_overrides.json");
+         // Custom-first (player report): character_overrides.json was the ONE lore file not read from
+         // ModuleData/Custom, so a copy there was ignored and only the shipped ModuleData copy worked, which is
+         // exactly the one a mod update overwrites. Route it through the same shared resolver every other lore
+         // file (world.txt, the guideline files, cultural_traditions.json) already uses, so an authored file in
+         // Custom is honoured AND survives updates.
+         string path = NarrativeLoader.ResolveCustomFirst("character_overrides.json");
 
          LastLoadPath = path;
 
