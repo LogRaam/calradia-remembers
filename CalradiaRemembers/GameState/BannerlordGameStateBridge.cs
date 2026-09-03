@@ -1579,22 +1579,31 @@ namespace CalradiaRemembers.GameState
             if (fuzzyMatch.HasValue)
                ModLog.Info($"[ACTION] give_item: fuzzy-resolved '{itemName}' -> '{found.EquipmentElement.Item.Name}'");
 
-            MobileParty.MainParty.ItemRoster.AddToCounts(found.EquipmentElement, -1);
+            // Honour the STATED quantity, clamped to what the player holds (player report: "I give you 10 ingots"
+            // moved a single one). The pure GiftQuantityPolicy decides; a missing count is one item.
+            action.Parameters.TryGetValue("count", out string countStr);
+            int.TryParse(countStr?.Trim(), out int requestedCount);
+            int count = GiftQuantityPolicy.Resolve(requestedCount, found.Amount);
+            if (count <= 0) return ActionOutcome.Refused("(You don't seem to have any of that left to give.)");
+
+            MobileParty.MainParty.ItemRoster.AddToCounts(found.EquipmentElement, -count);
             var actualName = found.EquipmentElement.Item.Name.ToString();
-            int value = found.EquipmentElement.Item.Value;
+            int unitValue = found.EquipmentElement.Item.Value;
+            int totalValue = unitValue * count;
+            string gaveDesc = count > 1 ? $"{count} {actualName}" : actualName;
 
             StanceService.OnGiftReceived(npcHero); // a freely given gift builds a little trust
-            ModLog.Info($"[ACTION] give_item: player gave '{actualName}' (value {value}) to {npcHero?.Name}");
+            ModLog.Info($"[ACTION] give_item: player gave '{gaveDesc}' (value {totalValue}) to {npcHero?.Name}");
 
             // Appreciations pillar: a freely given gift is also a remembered kindness, a channel separate
-            // from the trust bump above and from the grudge-softening tail below.
+            // from the trust bump above and from the grudge-softening tail below. The whole stack's worth counts.
             if (npcHero != null)
-               TryPlantValueAppreciation(npcHero, AppreciationSource.GiftReceived, value, $"The player gave me {actualName}.");
+               TryPlantValueAppreciation(npcHero, AppreciationSource.GiftReceived, totalValue, $"The player gave me {gaveDesc}.");
 
-            // Grudges pillar (Gift gesture): the same item may also soften or mend a grudge npcHero holds
+            // Grudges pillar (Gift gesture): the same gift may also soften or mend a grudge npcHero holds
             // against the player, a channel separate from the trust bump above.
             string grudgeTail = npcHero != null
-               ? TryGrudgeGiftTail(npcHero, value)
+               ? TryGrudgeGiftTail(npcHero, totalValue)
                : "";
 
             // If the gift is something they can wear or wield, they may put it on then and there: an empty slot
@@ -1603,7 +1612,7 @@ namespace CalradiaRemembers.GameState
             // equip actually happened.
             string equipTail = TryEquipGift(npcHero, found.EquipmentElement.Item);
 
-            return new ActionOutcome($"You give {actualName} to {npcHero?.Name}.{grudgeTail}{equipTail}", false);
+            return new ActionOutcome($"You give {gaveDesc} to {npcHero?.Name}.{grudgeTail}{equipTail}", false);
          }
          catch (Exception ex)
          {
