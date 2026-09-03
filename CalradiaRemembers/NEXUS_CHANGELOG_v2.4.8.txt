@@ -1,0 +1,11 @@
+Version 2.4.8
+
+Characters know what you and your companions actually wear, gifting is one smooth handover, authored characters no longer accuse you on sight, and your custom lore survives updates. Your saves carry over untouched.
+
+Changed
+- Characters now go by the actual gear a person is wearing, ordinary kit included, instead of guessing. A plainly dressed companion is no longer imagined in chainmail, and an archer is not handed a shield and a pick they never carried. It reads the outfit that fits the scene (civilian dress in a town, battle harness in the field) and still remarks on a genuinely fine or shabby piece.
+- Giving an item is now a single smooth handover: the character reacts once, to receiving it, rather than once to the offer and again to the gift. You can also just give something in conversation ("here, take my old blade"), with or without the item picker.
+
+Fixed
+- An authored character whose written conviction is about past enemies or betrayers no longer casts you as one of them on a first meeting. Who you are to them comes from their actual memory of you, so a stranger starts with no quarrel.
+- Your character_overrides.json is now read from the ModuleData/Custom folder like the other lore files, so your authored characters survive a mod update instead of being overwritten. (Authored lore requires "Use custom traits" on in the mod options.)
