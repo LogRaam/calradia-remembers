@@ -172,5 +172,88 @@ namespace CalradiaRemembers.Tests.Equipment
             EquipmentNotabilityPolicy.Compose(null, isFemale: false).Should().BeEmpty();
             EquipmentNotabilityPolicy.Compose(new List<EquipmentPieceFacts>(), isFemale: true).Should().BeEmpty();
         }
+
+        // ── ComposeWorn (full gear, chosen 2026-09-02 to end the model's guessing) ──────────────────────────
+
+        // THE PLAYER REPORT (fkasad/TOR): ordinary gear left the model guessing (a lady read as in chainmail, an
+        // archer as bearing a shield and pick). ComposeWorn states the plain fact instead: ORDINARY pieces are
+        // named with no quality adjective, so nothing is invented and nothing is silently dropped.
+        [Test]
+        public void GIVEN_ordinary_armor_and_weapon_WHEN_composing_worn_THEN_it_states_the_plain_gear()
+        {
+            var pieces = new List<EquipmentPieceFacts>
+            {
+                Piece(GearKind.Armor, "mail", GearQuality.Common),
+                Piece(GearKind.Weapon, "bow", GearQuality.Common)
+            };
+
+            EquipmentNotabilityPolicy.ComposeWorn(pieces, isFemale: false)
+                .Should().Be("He wears mail and bears a bow.");
+        }
+
+        // STAKE: a notable piece keeps its quality adjective even in the full-gear clause, so a legendary blade
+        // still reads as legendary, not flattened to "a sword". Quality survives the switch to full gear.
+        [Test]
+        public void GIVEN_a_mix_of_ordinary_and_notable_WHEN_composing_worn_THEN_only_the_notable_piece_is_adjectived()
+        {
+            var pieces = new List<EquipmentPieceFacts>
+            {
+                Piece(GearKind.Armor, "mail", GearQuality.Common),
+                Piece(GearKind.Weapon, "sword", GearQuality.Legendary)
+            };
+
+            EquipmentNotabilityPolicy.ComposeWorn(pieces, isFemale: false)
+                .Should().Be("He wears mail and bears a legendary sword.");
+        }
+
+        // STAKE: all three kinds present read in order (worn, carried, ridden) with a natural comma-and join, so
+        // the scene has the full picture in one terse clause. The civilian-loadout split upstream keeps the horse
+        // out of a tavern scene; here we just pin the phrasing when a mount is in the set.
+        [Test]
+        public void GIVEN_armor_weapon_and_mount_WHEN_composing_worn_THEN_all_three_read_in_order()
+        {
+            var pieces = new List<EquipmentPieceFacts>
+            {
+                Piece(GearKind.Mount, "horse", GearQuality.Common),
+                Piece(GearKind.Weapon, "sword", GearQuality.Common),
+                Piece(GearKind.Armor, "mail", GearQuality.Common)
+            };
+
+            EquipmentNotabilityPolicy.ComposeWorn(pieces, isFemale: false)
+                .Should().Be("He wears mail, bears a sword, and rides a horse.");
+        }
+
+        // STAKE: the Self voice, second person, so the speaking NPC can reference their own kit ("You wear...").
+        [Test]
+        public void GIVEN_gear_WHEN_composing_worn_in_self_voice_THEN_it_is_second_person()
+        {
+            var pieces = new List<EquipmentPieceFacts> {Piece(GearKind.Armor, "attire", GearQuality.Fine)};
+
+            EquipmentNotabilityPolicy.ComposeWorn(pieces, isFemale: true, AppearanceVoice.Self)
+                .Should().Be("You wear fine attire.");
+        }
+
+        // STAKE: fkasad's exact confabulation, an archer read as "shield and pick". With two weapons in the set,
+        // best-per-kind names ONE (the more valuable), so the clause states a single true weapon, not a pile.
+        [Test]
+        public void GIVEN_two_weapons_WHEN_composing_worn_THEN_the_more_valuable_one_is_named()
+        {
+            var pieces = new List<EquipmentPieceFacts>
+            {
+                Piece(GearKind.Weapon, "shield", GearQuality.Common, value: 200),
+                Piece(GearKind.Weapon, "bow", GearQuality.Common, value: 900)
+            };
+
+            EquipmentNotabilityPolicy.ComposeWorn(pieces, isFemale: false)
+                .Should().Be("He bears a bow.");
+        }
+
+        // STAKE: same null/empty safety as Compose, since the host calls this per hero per turn.
+        [Test]
+        public void GIVEN_null_or_empty_pieces_WHEN_composing_worn_THEN_it_is_empty_and_does_not_throw()
+        {
+            EquipmentNotabilityPolicy.ComposeWorn(null, isFemale: false).Should().BeEmpty();
+            EquipmentNotabilityPolicy.ComposeWorn(new List<EquipmentPieceFacts>(), isFemale: true).Should().BeEmpty();
+        }
     }
 }

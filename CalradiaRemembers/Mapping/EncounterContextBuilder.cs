@@ -664,16 +664,17 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
-      ///   Equipment-awareness pillar: composes a hero's notable-gear clause from the SCENE-APPROPRIATE loadout
-      ///   (civilian inside a settlement, battle in the field: <paramref name="preferCivilian" />, from
-      ///   <see cref="EquipmentLoadoutPolicy" />), in the given voice. Returns null (renders nothing) for a null
-      ///   hero or when nothing about their gear stands out (an ordinary loadout is deliberately left unvoiced).
+      ///   Equipment-awareness pillar: composes a hero's FACTUAL worn-gear clause from the SCENE-APPROPRIATE
+      ///   loadout (civilian inside a settlement, battle in the field: <paramref name="preferCivilian" />, from
+      ///   <see cref="EquipmentLoadoutPolicy" />), in the given voice. Full gear, not standouts only (chosen
+      ///   2026-09-02, fkasad/TOR report): the model is handed what the hero actually wears so it never guesses
+      ///   the wrong kit. Returns null (renders nothing) for a null hero or when nothing at all is equipped.
       /// </summary>
       private static string ComposeGear(Hero hero, AppearanceVoice voice, bool preferCivilian)
       {
          if (hero == null) return null;
 
-         string composed = EquipmentNotabilityPolicy.Compose(
+         string composed = EquipmentNotabilityPolicy.ComposeWorn(
             EquipmentFactsExtractor.Extract(hero, preferCivilian), hero.IsFemale, voice);
 
          return string.IsNullOrWhiteSpace(composed)

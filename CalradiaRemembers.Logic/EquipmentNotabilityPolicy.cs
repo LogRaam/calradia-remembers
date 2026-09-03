@@ -68,6 +68,35 @@ namespace CalradiaRemembers.Logic
             return subject + " " + JoinClauses(clauses) + ".";
         }
 
+        /// <summary>
+        ///   Composes a FACTUAL "what they are wearing and carrying" clause from ALL their equipped pieces, not
+        ///   only the notable ones, so the model has the fact and never guesses the wrong kit (player report,
+        ///   fkasad/TOR: a lady read as in chainmail, an archer as bearing a shield and pick, because ordinary
+        ///   gear was left unvoiced). One piece per kind in reading order (worn, carried, ridden); a notable
+        ///   piece keeps its quality adjective, an ordinary one reads as the plain gear it is. Returns "" (never
+        ///   null) when nothing is equipped. The SCENE-appropriate loadout (civilian in a settlement, battle in
+        ///   the field) is chosen upstream by the host via <see cref="EquipmentLoadoutPolicy" />; this simply
+        ///   voices whatever set it was handed.
+        /// </summary>
+        public static string ComposeWorn(IEnumerable<EquipmentPieceFacts> pieces, bool isFemale, AppearanceVoice voice = AppearanceVoice.Subject)
+        {
+            if (pieces == null) return "";
+
+            List<EquipmentPieceFacts> chosen = pieces
+                .Where(p => p != null)
+                .GroupBy(p => p.Kind)
+                .Select(g => g.OrderByDescending(Rank).ThenByDescending(p => p.Value).First())
+                .OrderBy(p => DisplayOrder(p.Kind))
+                .ToList();
+
+            if (chosen.Count == 0) return "";
+
+            List<string> clauses = chosen.Select(p => FactualClause(p, voice)).ToList();
+            string subject = voice == AppearanceVoice.Self ? "You" : (isFemale ? "She" : "He");
+
+            return subject + " " + JoinFactualClauses(clauses) + ".";
+        }
+
         #region private
 
         /// <summary>An unmarked but very costly piece reads as Fine; otherwise the piece's own band stands.</summary>
@@ -163,6 +192,52 @@ namespace CalradiaRemembers.Logic
         /// <summary>Joins one or two clauses with "and"; capped at <see cref="MaxPieces" /> so no comma list is needed.</summary>
         private static string JoinClauses(List<string> clauses)
             => clauses.Count == 1 ? clauses[0] : clauses[0] + " and " + clauses[1];
+
+        /// <summary>
+        ///   A factual clause for a piece (for <see cref="ComposeWorn" />): the same verb per kind as
+        ///   <see cref="Clause" />, but the quality adjective is DROPPED for an ordinary (Common) piece so it
+        ///   reads as the plain gear it is ("wears mail", "bears a sword") rather than being omitted entirely.
+        /// </summary>
+        private static string FactualClause(EquipmentPieceFacts p, AppearanceVoice voice)
+        {
+            bool self = voice == AppearanceVoice.Self;
+            string adj = Adjective(EffectiveQuality(p), p.Kind); // "" for Common
+
+            switch (p.Kind)
+            {
+                case GearKind.Armor:
+                    string armorNoun = Noun(p, "armor");
+
+                    return (self ? "wear " : "wears ") + DescribeThing(adj, armorNoun, MassArmorNouns.Contains(armorNoun));
+                case GearKind.Weapon:
+                    return (self ? "bear " : "bears ") + DescribeThing(adj, Noun(p, "weapon"), false);
+                default:
+                    return (self ? "ride " : "rides ") + DescribeThing(adj, Noun(p, "horse"), false);
+            }
+        }
+
+        /// <summary>
+        ///   A thing with an OPTIONAL quality adjective: a mass noun takes no article ("fine mail", or plain
+        ///   "mail"); a countable one takes an article ("a fine sword", or plain "a sword"). An empty adjective
+        ///   drops cleanly, which is how an ordinary piece reads.
+        /// </summary>
+        private static string DescribeThing(string adj, string noun, bool isMass)
+        {
+            string head = string.IsNullOrEmpty(adj) ? noun : adj + " " + noun;
+
+            return isMass ? head : Article(head) + " " + head;
+        }
+
+        /// <summary>Joins one to three clauses naturally: "a"; "a and b"; "a, b, and c".</summary>
+        private static string JoinFactualClauses(List<string> clauses)
+        {
+            switch (clauses.Count)
+            {
+                case 1:  return clauses[0];
+                case 2:  return clauses[0] + " and " + clauses[1];
+                default: return string.Join(", ", clauses.Take(clauses.Count - 1)) + ", and " + clauses[clauses.Count - 1];
+            }
+        }
 
         #endregion
     }

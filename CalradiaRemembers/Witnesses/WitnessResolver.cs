@@ -594,7 +594,7 @@ namespace CalradiaRemembers.Witnesses
             SceneType scene = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentScene() ?? SceneType.Unknown;
             bool preferCivilian = EquipmentLoadoutPolicy.PreferCivilianLoadout(scene);
 
-            string composed = EquipmentNotabilityPolicy.Compose(
+            string composed = EquipmentNotabilityPolicy.ComposeWorn(
                EquipmentFactsExtractor.Extract(hero, preferCivilian), hero.IsFemale, AppearanceVoice.Subject);
 
             return string.IsNullOrWhiteSpace(composed) ? null : composed;
