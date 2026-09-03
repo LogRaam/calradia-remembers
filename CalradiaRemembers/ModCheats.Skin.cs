@@ -73,7 +73,7 @@ namespace CalradiaRemembers
          BalanceOfPowerManager.ReloadActiveMovie();
 
          if (BalanceOfPowerManager.IsOpen)
-            return "Prefabs re-read and the open Balance of Power panel rebuilt in place.";
+            return "Prefabs re-read and the open Balance of Power panel reopened on the fresh prefab.";
 
          if (LetterWindowManager.IsOpen)
             return "Prefabs re-read and the open letter book rebuilt in place.";

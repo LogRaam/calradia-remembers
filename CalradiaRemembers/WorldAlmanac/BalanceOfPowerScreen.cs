@@ -54,20 +54,6 @@ namespace CalradiaRemembers.WorldAlmanac
       }
 
       /// <summary>
-      ///   Dev hot-reload (cr.reload_ui): re-reads the changed prefab XML and rebuilds the widget tree in place
-      ///   against the SAME view-model, so panel positions can be tuned without restarting the game or popping
-      ///   this screen. XML only: a view-model change still needs a build.
-      /// </summary>
-      public void ReloadMovie()
-      {
-         if (_layer == null) return;
-
-         UIResourceManager.WidgetFactory?.CheckForUpdates();
-         _layer.ReleaseMovie(_movieId);
-         _movieId = _layer.LoadMovie(PrefabName, _vm);
-      }
-
-      /// <summary>
       ///   Releases the movie and drops the layer before the screen is popped. Mirrors
       ///   <c>ChatManager.KillChatWindow</c>'s teardown order: the caller pops this screen only AFTER calling
       ///   this, and only while it is still the top screen, so nothing is double-released.

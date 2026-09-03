@@ -65,10 +65,18 @@ namespace CalradiaRemembers.WorldAlmanac
       }
 
       /// <summary>
-      ///   Dev hot-reload (cr.reload_ui): re-reads the changed prefab XML and, if the panel is open, rebuilds its
-      ///   widget tree in place against the SAME view-model, so panel positions can be tuned without restarting
-      ///   the game. Edit the prefab under the game's own Modules\CalradiaRemembers\GUI\Prefabs (a dotnet build
-      ///   overwrites it from source), then run cr.reload_ui. XML only: a view-model change still needs a build.
+      ///   Dev hot-reload (cr.reload_ui): re-reads the changed prefab XML and, if the panel is open, reopens it —
+      ///   so panel positions can be tuned without restarting the game. Edit the prefab under the game's own
+      ///   Modules\CalradiaRemembers\GUI\Prefabs (a dotnet build overwrites it from source), then run cr.reload_ui.
+      ///   XML only: a view-model change still needs a build.
+      ///   <para>
+      ///     CLOSE + REOPEN, not an in-place ReleaseMovie/LoadMovie: repeated in-place rebuilds of this pushed
+      ///     screen's movie ended in a native access violation (Gabriel, 2026-09-03 — seven cr.reload_ui cycles
+      ///     while iterating on the panel's layout, then a 0xC0000005 inside TaleWorlds.Native during render).
+      ///     The open/close lifecycle is the proven path: a fresh VM, layer and movie carry no dangling state
+      ///     from the rebuild, and the facts are re-gathered as a bonus. The chat and letter overlays keep their
+      ///     in-place rebuild, which has never crashed.
+      ///   </para>
       /// </summary>
       public static void ReloadActiveMovie()
       {
@@ -76,8 +84,11 @@ namespace CalradiaRemembers.WorldAlmanac
 
          try
          {
-            _screen.ReloadMovie();
-            ModLog.Info("[RELOAD_UI] Balance of Power rebuilt in place.");
+            // CheckForUpdates already ran at the start of cr.reload_ui (ChatManager.ReloadActiveMovie), so the
+            // reopened movie loads against the refreshed prefab.
+            Close();
+            Open();
+            ModLog.Info("[RELOAD_UI] Balance of Power reopened on the refreshed prefab.");
          }
          catch (System.Exception ex)
          {
