@@ -9,6 +9,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Logic;
 using TaleWorlds.Engine.GauntletUI;
 using TaleWorlds.Library;
 using TaleWorlds.ScreenSystem;
@@ -52,7 +53,16 @@ namespace CalradiaRemembers.UI
 
          _layer = new GauntletLayer(_prefabName, _layerPriority);
          _layer.InputRestrictions.SetInputRestrictions();
-         _movieId = _layer.LoadMovie(_prefabName, _dataSource);
+
+         // A broken/missing prefab can throw here. Unlike the old overlay hosting, a pushed screen is NOT a
+         // soft-lock if the movie is blank (Escape still pops it), so we log and carry on with an empty focused
+         // layer rather than trapping the player: the host's Close/Escape path tears it down cleanly.
+         try { _movieId = _layer.LoadMovie(_prefabName, _dataSource); }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[PANEL] {_prefabName}: LoadMovie failed (empty layer shown, Escape closes it): {ex.GetType().Name}: {ex.Message}");
+            _movieId = null;
+         }
 
          AddLayer(_layer);
          _layer.IsFocusLayer = true;
@@ -76,17 +86,31 @@ namespace CalradiaRemembers.UI
          OnClosed = null;
       }
 
+      // Defensive: after a save-load or campaign-end the engine objects behind these fields may already be dead, so
+      // every step is guarded and the fields are ALWAYS nulled (finally), so a failed teardown never leaves a zombie
+      // layer that blocks every future open. A data source that owns a portrait render-target (IManagedPortrait) has
+      // it freed BEFORE the movie is released, so the tableau's GPU render-target is not orphaned.
       private void ReleaseResources()
       {
          if (_layer == null) return;
 
-         _layer.IsFocusLayer = false;
-         _layer.InputRestrictions.ResetInputRestrictions();
-         _layer.ReleaseMovie(_movieId);
-         RemoveLayer(_layer);
-
-         _layer = null;
-         _movieId = null;
+         try
+         {
+            _layer.IsFocusLayer = false;
+            _layer.InputRestrictions.ResetInputRestrictions();
+            (_dataSource as IManagedPortrait)?.ReleasePortrait();
+            _layer.ReleaseMovie(_movieId);
+            RemoveLayer(_layer);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[PANEL] {_prefabName}: teardown failed (non-fatal, fields cleared anyway): {ex.GetType().Name}: {ex.Message}");
+         }
+         finally
+         {
+            _layer = null;
+            _movieId = null;
+         }
       }
    }
 }

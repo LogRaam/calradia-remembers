@@ -106,6 +106,18 @@ namespace CalradiaRemembers.UI
          }
       }
 
+      /// <summary>
+      ///   Session-launch reset: drops our reference to any screen from a PRIOR session WITHOUT touching the engine
+      ///   object (it belongs to a screen torn down by that session or by the load), so a dead reference can never
+      ///   leave <see cref="IsOpen" /> stuck true and block every open this session. Never restores the clock (there
+      ///   is no live freeze to undo at launch), it only clears our own flags.
+      /// </summary>
+      public void ResetForSession()
+      {
+         _screen = null;
+         _timeControlModeSaved = false;
+      }
+
       // Nulls our reference and resumes the clock. Called from Close AND from the screen's OnClosed, so a pop by
       // any path (Close, Escape, engine) clears IsOpen and never leaves the campaign frozen; idempotent.
       private void ResetState()
