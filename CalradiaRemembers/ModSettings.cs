@@ -111,6 +111,13 @@ namespace CalradiaRemembers
       public static bool EnableRideWithMe => CrSettings.Instance?.EnableRideWithMe ?? true;
 
       /// <summary>
+      ///   When ON (default), an NPC's end_conversation closes an ordinary Chatroom conversation (input locks,
+      ///   Leave button). OFF leaves the chat open so the player keeps the last word and closes it themselves.
+      ///   Captive/captor scenes ignore this: they always end on their own Continue/resume flow.
+      /// </summary>
+      public static bool NpcCanEndConversation => CrSettings.Instance?.NpcCanEndConversation ?? true;
+
+      /// <summary>
       ///   When ON (default), a fought duel reopens as a conversation resuming what led to it (the loser concedes,
       ///   the victor presses their point); OFF ends a fought duel silently with only its consequences applied.
       ///   Read live from MCM, default-safe (treated as ON) when MCM has not loaded.

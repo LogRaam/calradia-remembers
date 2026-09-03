@@ -112,6 +112,14 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool EnableRideWithMe { get; set; } = true;
 
+      [SettingPropertyBool("NPCs can end conversations", RequireRestart = false, Order = 5,
+         HintText = "On (default): when a character decides a conversation is over, the chat closes and you click " +
+                    "Leave. Off: a character's goodbye no longer closes the chat, the text box stays open so you " +
+                    "can have the last word or keep talking, and you close the conversation yourself with the " +
+                    "button. Captivity scenes are unaffected (they have their own flow).")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool NpcCanEndConversation { get; set; } = true;
+
       [SettingPropertyBool("Enable Council", RequireRestart = false, Order = 3,
          HintText = "When ON, you can convene a council of your companions, kin, clan lords, or a war council from a " +
                     "town, castle, or village menu, and from a button on the campaign map while on land. Turn OFF to " +

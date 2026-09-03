@@ -1548,6 +1548,15 @@ namespace CalradiaRemembers.Chat
                      continue;
                   }
 
+                  if (!NpcEndLocksConversation())
+                  {
+                     // MCM "NPCs can end conversations" is off: the NPC's parting is advisory, the player keeps
+                     // the last word and closes the chat themselves. Captive/captor scenes never reach here.
+                     ModLog.Info($"[CONVERSATION] {profile.Name} tried to end; kept open (MCM: NPCs may not end).");
+
+                     break;
+                  }
+
                   _conversationEnded = true;
                   IsSendEnabled = false;
                   IsPrivateRequestVisible = false;
@@ -1560,7 +1569,13 @@ namespace CalradiaRemembers.Chat
                   break;
                }
 
-            if (!_conversationEnded && response.NewEventData?.Type == NotableEventType.Farewell)
+            if (!_conversationEnded && response.NewEventData?.Type == NotableEventType.Farewell
+                && !NpcEndLocksConversation())
+            {
+               // MCM off: a farewell no longer closes the chat; the player replies or leaves on their own.
+               ModLog.Info("[CONVERSATION] farewell event; kept open (MCM: NPCs may not end).");
+            }
+            else if (!_conversationEnded && response.NewEventData?.Type == NotableEventType.Farewell)
             {
                _conversationEnded = true;
                IsSendEnabled = false;
@@ -1984,6 +1999,14 @@ namespace CalradiaRemembers.Chat
                   {
                      if (!string.Equals(action.Type, "end_conversation",
                             StringComparison.OrdinalIgnoreCase)) continue;
+                     if (!NpcEndLocksConversation())
+                     {
+                        // MCM off: the NPC's end is advisory even in a witness exchange; the player keeps control.
+                        ModLog.Info($"[15C] {profile.Name} tried to end; kept open (MCM: NPCs may not end).");
+
+                        break;
+                     }
+
                      _conversationEnded = true;
                      IsPrivateRequestVisible = false;
                      CloseButtonText = "Leave";

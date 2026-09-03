@@ -633,6 +633,15 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Whether an NPC's end_conversation (or farewell) should LOCK this ordinary conversation shut. A captive
+      ///   or captor scene always locks (their own Continue/resume flow owns the pacing, never this toggle); the
+      ///   ordinary Chatroom obeys the MCM "NPCs can end conversations" choice, so a player who turned it off keeps
+      ///   the last word and closes the chat themselves via the ever-present button. The one seam every end site reads.
+      /// </summary>
+      private bool NpcEndLocksConversation()
+         => ConversationEndPolicy.NpcEndLocks(ModSettings.NpcCanEndConversation, IsCaptiveEncounter || _captorScene);
+
+      /// <summary>
       ///   True once a captive scene has ended (other than by escape): shows a "Please continue"
       ///   button beside Leave so the player can relaunch a fresh cycle of the encounter if they
       ///   want more — and as a safety net when a weaker model ended a scene abruptly.
