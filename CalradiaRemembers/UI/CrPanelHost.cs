@@ -3,9 +3,12 @@
 // guaranteed BY CONSTRUCTION and no panel (present or future) can forget one. It exists because the Balance of
 // Power panel re-implemented the hosting and missed a step: it pushed a screen (which suspends the map's
 // RENDERING, the VRAM-leak-free recipe) but did NOT stop the map's SIMULATION, so the vanilla siege-bombardment
-// tick kept running underneath and crashed natively three times in one day. This host does BOTH, always:
-//   1. pushes a real ScreenBase (CrPanelScreen)  -> suspends the map render (no render-texture VRAM leak), and
-//   2. freezes the campaign clock while open      -> stops the map simulation (no vanilla map code crashing under us).
+// tick kept running underneath and crashed natively. This host guarantees THREE conditions, always:
+//   1. pushes a real ScreenBase (CrPanelScreen)  -> suspends the map render (no render-texture VRAM leak),
+//   2. freezes the campaign clock while open      -> stops the map SIMULATION advancing under the panel, and
+//   3. suppresses the settlement-visual tick      -> that tick runs on the FRAME loop (not the clock), so the freeze
+//      cannot stop its siege-bombardment SetGlobalFrame, which crashes natively under a pushed screen; the
+//      SettlementVisualTickGuard Harmony prefix skips it while SuppressSettlementVisualTick is set (see that file).
 // A panel becomes a thin composition: a prefab name and a data-source factory. Reload is close+reopen (the proven
 // path: repeated in-place movie rebuilds ended in a native access violation). The time freeze is on by default and
 // only skipped by an explicit opt-out, so it can never be lost by omission.
@@ -13,6 +16,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
 using TaleWorlds.ScreenSystem;
@@ -35,10 +39,21 @@ namespace CalradiaRemembers.UI
       private readonly int _layerPriority;
 
       private CrPanelScreen _screen;
+      private bool _reloading;
 
       private CampaignTimeControlMode _previousTimeControlMode;
       private bool _previousTimeControlModeLock;
       private bool _timeControlModeSaved;
+
+      // While ANY CR panel owns the screen, the vanilla settlement-visual tick must be suppressed. That tick
+      // (SettlementVisualManager.OnTick -> SettlementVisual.Tick -> the siege-bombardment SetGlobalFrame) runs on
+      // the FRAME loop, not the campaign clock, so freezing time cannot stop it; a projectile frozen mid-flight
+      // keeps the condition true and crashes natively under a pushed screen (four crashes, offset IL_0aa7). The
+      // Harmony prefix in SettlementVisualTickGuard reads the flag below. A reference COUNT, not a bool, so
+      // overlapping panels AND the close->reopen reload gap all keep suppression > 0 (a tick slipping through the
+      // reload gap is exactly the repeated-cr.reload_ui crash). Its transitions are the pure, unit-tested
+      // PanelTickSuppressionCounter.
+      private static readonly PanelTickSuppressionCounter VisualTick = new PanelTickSuppressionCounter();
 
       /// <param name="prefabName">The GauntletUI prefab to host.</param>
       /// <param name="dataSourceFactory">
@@ -60,6 +75,13 @@ namespace CalradiaRemembers.UI
 
       public bool IsOpen => _screen != null;
 
+      /// <summary>
+      ///   True while at least one CR panel owns the screen (open, or mid-reload). The SettlementVisualTickGuard
+      ///   Harmony prefix reads this to skip the vanilla siege-visual tick that crashes natively under a pushed
+      ///   panel. Static because the guard patches one engine method for all panels, not per instance.
+      /// </summary>
+      public static bool SuppressSettlementVisualTick => VisualTick.IsSuppressed;
+
       public void Open()
       {
          if (IsOpen) return;
@@ -67,6 +89,7 @@ namespace CalradiaRemembers.UI
          ViewModel dataSource = _dataSourceFactory(Close);
          _screen = new CrPanelScreen(_prefabName, dataSource, _layerPriority) {OnClosed = ResetState};
          ScreenManager.PushScreen(_screen);
+         VisualTick.Enter(); // this panel now owns the screen: suppress the crashing siege-visual tick
          if (_pauseCampaignTime) PauseCampaignTime();
 
          ModLog.Info($"[PANEL] {_prefabName} opened (pushed screen{(_pauseCampaignTime ? ", clock frozen" : "")}).");
@@ -94,6 +117,12 @@ namespace CalradiaRemembers.UI
       {
          if (!IsOpen) return;
 
+         // Hold suppression and the clock freeze ACROSS the close->reopen gap: the extra suppressor keeps the
+         // siege-visual tick skipped even in the instant Close has dropped the panel and Open has not yet re-added
+         // it (a tick slipping through that gap is the repeated-cr.reload_ui crash), and _reloading tells ResetState
+         // not to resume the clock so the reopen re-freezes without a one-frame catch-up burst.
+         _reloading = true;
+         VisualTick.Enter();
          try
          {
             Close();
@@ -103,6 +132,11 @@ namespace CalradiaRemembers.UI
          catch (Exception ex)
          {
             ModLog.Error($"[RELOAD_UI] {_prefabName} reload failed: {ex.GetType().Name}: {ex.Message}");
+         }
+         finally
+         {
+            VisualTick.Exit();
+            _reloading = false;
          }
       }
 
@@ -116,13 +150,16 @@ namespace CalradiaRemembers.UI
       {
          _screen = null;
          _timeControlModeSaved = false;
+         _reloading = false;
+         VisualTick.Reset(); // no panel can be open at launch: clear any residue so the siege visuals are not frozen forever
       }
 
       // Nulls our reference and resumes the clock. Called from Close AND from the screen's OnClosed, so a pop by
       // any path (Close, Escape, engine) clears IsOpen and never leaves the campaign frozen; idempotent.
       private void ResetState()
       {
-         ResumeCampaignTime();
+         if (!_reloading) ResumeCampaignTime(); // during a reload keep the clock frozen across close->reopen
+         if (_screen != null) VisualTick.Exit(); // exactly once per open (an idempotent second call sees a null screen)
          _screen = null;
       }
 
@@ -132,9 +169,16 @@ namespace CalradiaRemembers.UI
       {
          if (Campaign.Current == null) return;
 
-         _previousTimeControlMode = Campaign.Current.TimeControlMode;
-         _previousTimeControlModeLock = Campaign.Current.TimeControlModeLock;
-         _timeControlModeSaved = true;
+         // Guard the save: on a reload the resume was skipped, so the clock is still our Stop and the ORIGINAL
+         // pre-panel mode is what must be restored on the eventual real close. Re-saving here would record Stop as
+         // the "previous" mode and strand the player at paused time after a reload.
+         if (!_timeControlModeSaved)
+         {
+            _previousTimeControlMode = Campaign.Current.TimeControlMode;
+            _previousTimeControlModeLock = Campaign.Current.TimeControlModeLock;
+            _timeControlModeSaved = true;
+         }
+
          Campaign.Current.SetTimeControlModeLock(false);
          Campaign.Current.TimeControlMode = CampaignTimeControlMode.Stop;
       }

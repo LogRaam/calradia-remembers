@@ -82,6 +82,10 @@ namespace CalradiaRemembers
       protected override void OnBeforeInitialModuleScreenSetAsRoot()
       {
          base.OnBeforeInitialModuleScreenSetAsRoot();
+         // Attach the siege-visual tick guard now that every module (incl. SandBox.View, which owns the target type)
+         // is loaded: while a CR panel owns the screen, its Harmony prefix skips the vanilla settlement-visual tick
+         // that otherwise crashes natively under a pushed panel. Self-guarded, so a version mismatch is a no-op.
+         UI.SettlementVisualTickGuard.EnsurePatched();
          Log($"{ModName} ready (main menu reached).");
       }
 

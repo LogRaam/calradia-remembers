@@ -209,6 +209,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("reasoning_scrub", Severity.Light, "Mechanical: the inline <think> leak (tthheerroocckk, nemotron on High reasoning). The save/load itself is STUBBED: corrupted memories are written straight into the store as an old save would carry them (a trace before real prose, a memory that is ONLY a truncated trace, a corrupted background paragraph) -> the REAL session-launch scrub runs -> assert the prose is recovered, the all-trace memory becomes the honest 'faded' line (never invented content), the background returns to null, and a second pass is a no-op. Removes its seeds afterwards", TestReasoningScrub),
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
+         new SelfTest("panel_siege_guard", Severity.Light, "Mechanical: the full-map panel crash guard. Asserts the Harmony prefix that skips SettlementVisualManager.OnTick (the vanilla siege-bombardment visual tick, which runs on the frame loop and access-violates natively under a pushed CR panel: four confirmed 0xC0000005 crashes) is actually attached to the LIVE engine method. It resolves the target BY NAME, so a game update that renamed the type/method would silently stop protecting; this fires if that ever happens. Also asserts that with no panel open nothing is suppressed (siege visuals tick normally). No LLM, mutates nothing", TestPanelSiegeVisualGuard),
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
@@ -6950,6 +6951,23 @@ namespace CalradiaRemembers.Diagnostics
       // request, leaving no room to reply. The end_conversation teaching now forbids closing on a turn that awaits
       // a reply (a rhetorical outburst as the NPC dismisses the player still ends; a genuine awaited question does
       // not). Pins that guard in the taught vocabulary so a later prompt edit cannot silently drop it. No LLM.
+      // Full-map panel crash guard (2026-09-03): the Harmony prefix that skips SettlementVisualManager.OnTick while a
+      // CR panel owns the screen is what stops the vanilla siege-bombardment visual tick crashing natively under a
+      // pushed panel (it runs on the frame loop, so the campaign-clock freeze cannot stop it). It is resolved BY NAME,
+      // so a game update that renamed the type/method degrades to "not attached" silently; this asserts it is actually
+      // attached to the live engine method, and that with no panel open nothing is suppressed.
+      private static string TestPanelSiegeVisualGuard(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("panel_siege_guard");
+
+         UI.SettlementVisualTickGuard.EnsurePatched(); // idempotent: already attached at startup
+         t.Note($"IsPatched={UI.SettlementVisualTickGuard.IsPatched}, SuppressAtRest={UI.CrPanelHost.SuppressSettlementVisualTick}");
+         t.Expect("guardAttachedToLiveOnTick", UI.SettlementVisualTickGuard.IsPatched, true);
+         t.Expect("noSuppressionAtRest", UI.CrPanelHost.SuppressSettlementVisualTick, false);
+
+         return t.Line();
+      }
+
       private static string TestEndConversationGuardsAwaitingReply(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("end_conversation_guards_open_question");
