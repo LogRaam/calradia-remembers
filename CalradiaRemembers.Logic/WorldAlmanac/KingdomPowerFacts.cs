@@ -108,6 +108,13 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
 
       /// <summary>The ruler's portrait additional args.</summary>
       public string LeaderPortraitArgs { get; set; } = "";
+
+      /// <summary>
+      ///   Full path to a player-dropped custom portrait for the ruler (ModuleData/ChatPortraits, the same source the
+      ///   chat uses), or empty when none. When set, the card shows this image (aspect-preserved) instead of the 3D
+      ///   render.
+      /// </summary>
+      public string LeaderCustomPortraitPath { get; set; } = "";
    }
 
    /// <summary>One kingdom's scored standing: each pillar on 0..100 and the weighted, normalized Power Index.</summary>

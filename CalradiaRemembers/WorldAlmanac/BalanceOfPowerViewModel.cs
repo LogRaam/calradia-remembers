@@ -11,6 +11,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Logic.WorldAlmanac;
+using CalradiaRemembers.Portraits;
 using TaleWorlds.Library;
 
 #endregion
@@ -190,6 +191,19 @@ namespace CalradiaRemembers.WorldAlmanac
             LeaderPortraitId = f.LeaderPortraitId ?? "";
             LeaderPortraitTextureProvider = f.LeaderPortraitTextureProvider ?? "";
             LeaderPortraitArgs = f.LeaderPortraitArgs ?? "";
+
+            // A player-dropped custom portrait (if any) replaces the 3D render, shown at the image's own aspect (the
+            // chat's recipe): fit the real pixel dimensions inside the portrait box so a non-square image is never
+            // stretched. Unknown dimensions fall back to a square, centred in the box.
+            LeaderCustomPortraitPath = f.LeaderCustomPortraitPath ?? "";
+            if (HasCustomLeaderPortrait
+                && RuntimePortraitFactory.TryGetDimensions(LeaderCustomPortraitPath, out int pw, out int ph)
+                && pw > 0 && ph > 0)
+            {
+               float scale = System.Math.Min(PortraitBoxWidth / pw, PortraitBoxHeight / ph);
+               CustomPortraitWidth = pw * scale;
+               CustomPortraitHeight = ph * scale;
+            }
          }
       }
 
@@ -225,6 +239,25 @@ namespace CalradiaRemembers.WorldAlmanac
       [DataSourceProperty] public string LeaderPortraitTextureProvider { get; } = "";
       [DataSourceProperty] public string LeaderPortraitArgs { get; } = "";
       [DataSourceProperty] public bool HasLeaderPortrait => !string.IsNullOrEmpty(LeaderPortraitId);
+
+      // A player-dropped custom portrait wins over the 3D render (the chat's recipe). PortraitBox* is the slot the
+      // image is fitted into; keep it in sync with the prefab's portrait widget size.
+      private const float PortraitBoxWidth = 265f;
+      private const float PortraitBoxHeight = 165f;
+
+      /// <summary>Full path to the ruler's custom portrait, or empty; when set it replaces the 3D render.</summary>
+      [DataSourceProperty] public string LeaderCustomPortraitPath { get; } = "";
+
+      /// <summary>True when a custom portrait was found, so the card shows the image instead of the render.</summary>
+      [DataSourceProperty] public bool HasCustomLeaderPortrait => !string.IsNullOrEmpty(LeaderCustomPortraitPath);
+
+      /// <summary>Show the 3D render only when there is one AND no custom portrait overrides it (mirrors the chat's ShowVanillaPortrait).</summary>
+      [DataSourceProperty] public bool ShowLeaderTableau => HasLeaderPortrait && !HasCustomLeaderPortrait;
+
+      // The custom portrait's on-screen size, fitted to PortraitBox* at the image's own aspect so it is never
+      // stretched (defaults to a square when the image dimensions are unknown).
+      [DataSourceProperty] public float CustomPortraitWidth { get; } = PortraitBoxHeight;
+      [DataSourceProperty] public float CustomPortraitHeight { get; } = PortraitBoxHeight;
 
       [DataSourceProperty] public string Troops { get; } = "0";
       [DataSourceProperty] public string Armies { get; } = "0";

@@ -13,6 +13,7 @@ using System.Linq;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic.WorldAlmanac;
+using CalradiaRemembers.Portraits;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
@@ -72,6 +73,11 @@ namespace CalradiaRemembers.WorldAlmanac
          f.LeaderPortraitId = portrait.Id;
          f.LeaderPortraitTextureProvider = portrait.TextureProviderName;
          f.LeaderPortraitArgs = portrait.AdditionalArgs;
+
+         // A player-dropped custom portrait for the ruler (same source + resolver the chat uses) wins over the 3D
+         // render when present; the card shows it aspect-preserved. Defensive: a lookup failure just keeps the render.
+         try { f.LeaderCustomPortraitPath = ChatPortraitResolver.ResolveForHero(k.Leader?.StringId, k.Leader?.Name?.ToString()) ?? ""; }
+         catch (Exception ex) { ModLog.Error($"KingdomPowerFactsBuilder({k.Name}) custom portrait lookup failed: {ex.GetType().Name}: {ex.Message}"); }
 
          List<Clan> clans = Clan.All?.Where(c => c != null && !c.IsEliminated && c.Kingdom == k).ToList() ?? new List<Clan>();
          f.ClanCount = clans.Count;
