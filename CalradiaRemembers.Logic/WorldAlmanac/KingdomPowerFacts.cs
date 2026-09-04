@@ -86,6 +86,28 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
 
       /// <summary>Total settlements (towns + castles + villages), the Largest Territory indicator and the card strip.</summary>
       public int TotalSettlements => Towns + Castles + Villages;
+
+      // ── Display bindings (flat strings the prefab's ImageIdentifierWidgets render from) ──
+      // The engine seams (BannerImageIdentifierVM, PortraitTextureGuard) are crossed once in the builder, so
+      // the UI never re-derives from the engine, the same reason every other display field lives here.
+
+      /// <summary>The kingdom banner's image id (empty when it could not be resolved).</summary>
+      public string BannerId { get; set; } = "";
+
+      /// <summary>The kingdom banner's texture provider name.</summary>
+      public string BannerTextureProvider { get; set; } = "";
+
+      /// <summary>The kingdom banner's additional args.</summary>
+      public string BannerArgs { get; set; } = "";
+
+      /// <summary>The ruler's portrait image id (empty when the ruler has none, so the card hides the widget).</summary>
+      public string LeaderPortraitId { get; set; } = "";
+
+      /// <summary>The ruler's portrait texture provider name.</summary>
+      public string LeaderPortraitTextureProvider { get; set; } = "";
+
+      /// <summary>The ruler's portrait additional args.</summary>
+      public string LeaderPortraitArgs { get; set; } = "";
    }
 
    /// <summary>One kingdom's scored standing: each pillar on 0..100 and the weighted, normalized Power Index.</summary>

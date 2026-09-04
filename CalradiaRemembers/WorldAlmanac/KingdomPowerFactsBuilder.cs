@@ -11,12 +11,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic.WorldAlmanac;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ViewModelCollection.ImageIdentifiers;
 
 #endregion
 
@@ -53,6 +55,23 @@ namespace CalradiaRemembers.WorldAlmanac
             LeaderName = k.Leader?.Name?.ToString() ?? "",
             LeaderInfluence = (int) (k.RulingClan?.Influence ?? k.Leader?.Clan?.Influence ?? 0f)
          };
+
+         // The card's display bindings: the kingdom banner and the ruler's portrait, as the flat
+         // id/provider/args triples an ImageIdentifierWidget renders from (the chat's portrait recipe).
+         // Defensive like every other field: one failure must not lose the whole kingdom.
+         try
+         {
+            var banner = new BannerImageIdentifierVM(k.Banner);
+            f.BannerId = banner.Id ?? "";
+            f.BannerTextureProvider = banner.TextureProviderName ?? "";
+            f.BannerArgs = banner.AdditionalArgs ?? "";
+         }
+         catch (Exception ex) { ModLog.Error($"KingdomPowerFactsBuilder({k.Name}) banner failed: {ex.GetType().Name}: {ex.Message}"); }
+
+         PortraitData portrait = PortraitTextureGuard.Create(k.Leader?.CharacterObject);
+         f.LeaderPortraitId = portrait.Id;
+         f.LeaderPortraitTextureProvider = portrait.TextureProviderName;
+         f.LeaderPortraitArgs = portrait.AdditionalArgs;
 
          List<Clan> clans = Clan.All?.Where(c => c != null && !c.IsEliminated && c.Kingdom == k).ToList() ?? new List<Clan>();
          f.ClanCount = clans.Count;

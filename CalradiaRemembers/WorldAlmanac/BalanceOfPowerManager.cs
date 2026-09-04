@@ -14,6 +14,7 @@
 using System.Collections.Generic;
 using CalradiaRemembers.Logic.WorldAlmanac;
 using CalradiaRemembers.UI;
+using TaleWorlds.CampaignSystem;
 
 #endregion
 
@@ -33,7 +34,7 @@ namespace CalradiaRemembers.WorldAlmanac
             PowerIndexResult result = PowerIndexPolicy.Compute(facts);
             ModLog.Info($"Balance of Power: {result.Ranked.Count} kingdoms scored.");
 
-            return new BalanceOfPowerViewModel(result, facts) {OnCloseRequested = close};
+            return new BalanceOfPowerViewModel(result, facts, InGameDateText()) {OnCloseRequested = close};
          });
 
       public static bool IsOpen => Host.IsOpen;
@@ -44,5 +45,13 @@ namespace CalradiaRemembers.WorldAlmanac
 
       /// <summary>Dev hot-reload (cr.reload_ui): close+reopen on the refreshed prefab. See CrPanelHost.Reload.</summary>
       public static void ReloadActiveMovie() => Host.Reload();
+
+      /// <summary>The in-game date line under the painted title: "Day 12 of Spring, 1092".</summary>
+      private static string InGameDateText()
+      {
+         CampaignTime now = CampaignTime.Now;
+
+         return $"Day {now.GetDayOfSeason} of {now.GetSeasonOfYear}, {now.GetYear}";
+      }
    }
 }

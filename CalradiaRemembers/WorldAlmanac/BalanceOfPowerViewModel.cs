@@ -23,12 +23,17 @@ namespace CalradiaRemembers.WorldAlmanac
       private MBBindingList<PowerCardViewModel> _podium;
       private MBBindingList<PowerRowViewModel> _ranked;
 
-      public BalanceOfPowerViewModel(PowerIndexResult result, IReadOnlyList<KingdomPowerFacts> facts)
+      public BalanceOfPowerViewModel(PowerIndexResult result, IReadOnlyList<KingdomPowerFacts> facts, string dateText = "")
       {
          _podium = new MBBindingList<PowerCardViewModel>();
          _ranked = new MBBindingList<PowerRowViewModel>();
 
          result ??= new PowerIndexResult();
+         DateText = dateText ?? "";
+         KingdomPowerScore leader = result.Ranked.FirstOrDefault();
+         LeaderText = leader == null
+            ? ""
+            : $"The {leader.KingdomName} currently holds the strongest position in Calradia.";
          Dictionary<string, KingdomPowerFacts> byId = (facts ?? new List<KingdomPowerFacts>())
                                                      .Where(f => f?.KingdomId != null)
                                                      .GroupBy(f => f.KingdomId)
@@ -61,6 +66,13 @@ namespace CalradiaRemembers.WorldAlmanac
       public System.Action OnCloseRequested { get; set; }
 
       [DataSourceProperty] public string Title => "BALANCE OF POWER";
+
+      /// <summary>The in-game date line under the painted title ("Day 12 of Spring, 1092"). Gathered by the manager (this view model makes no engine calls of its own).</summary>
+      [DataSourceProperty] public string DateText { get; }
+
+      /// <summary>The line under the date naming the faction in first place; empty when no kingdom was scored.</summary>
+      [DataSourceProperty] public string LeaderText { get; }
+
       [DataSourceProperty] public string Tagline => "Power is not given. It is remembered.";
 
       /// <summary>Full path to the panel's leather background, for the prefab's CrRuntimeImageWidget (same recipe as the council book).</summary>
@@ -141,12 +153,12 @@ namespace CalradiaRemembers.WorldAlmanac
          WarPerformance = System.Math.Round(s.WarPerformance).ToString("0");
          Diplomacy = System.Math.Round(s.Diplomatic).ToString("0");
 
-         MilitaryFill = s.Military / 100.0;
-         TerritoryFill = s.Territory / 100.0;
-         EconomyFill = s.Economy / 100.0;
-         PoliticalFill = s.Political / 100.0;
-         WarFill = s.WarPerformance / 100.0;
-         DiplomacyFill = s.Diplomatic / 100.0;
+         MilitaryFill = (float) (s.Military / 100.0);
+         TerritoryFill = (float) (s.Territory / 100.0);
+         EconomyFill = (float) (s.Economy / 100.0);
+         PoliticalFill = (float) (s.Political / 100.0);
+         WarFill = (float) (s.WarPerformance / 100.0);
+         DiplomacyFill = (float) (s.Diplomatic / 100.0);
 
          if (f != null)
          {
@@ -160,6 +172,13 @@ namespace CalradiaRemembers.WorldAlmanac
             Wealth = f.EstimatedWealth.ToString("N0");
             LeaderName = f.LeaderName;
             LeaderInfluence = f.LeaderInfluence.ToString();
+
+            BannerId = f.BannerId ?? "";
+            BannerTextureProvider = f.BannerTextureProvider ?? "";
+            BannerArgs = f.BannerArgs ?? "";
+            LeaderPortraitId = f.LeaderPortraitId ?? "";
+            LeaderPortraitTextureProvider = f.LeaderPortraitTextureProvider ?? "";
+            LeaderPortraitArgs = f.LeaderPortraitArgs ?? "";
          }
       }
 
@@ -174,12 +193,27 @@ namespace CalradiaRemembers.WorldAlmanac
       [DataSourceProperty] public string WarPerformance { get; }
       [DataSourceProperty] public string Diplomacy { get; }
 
-      [DataSourceProperty] public double MilitaryFill { get; }
-      [DataSourceProperty] public double TerritoryFill { get; }
-      [DataSourceProperty] public double EconomyFill { get; }
-      [DataSourceProperty] public double PoliticalFill { get; }
-      [DataSourceProperty] public double WarFill { get; }
-      [DataSourceProperty] public double DiplomacyFill { get; }
+      // 0..1 fills for the pillar bars (FillBarWidget.InitialAmountAsFloat binds a float; a double would not
+      // convert). The readable 0..100 scores stay in the string properties above.
+      [DataSourceProperty] public float MilitaryFill { get; }
+      [DataSourceProperty] public float TerritoryFill { get; }
+      [DataSourceProperty] public float EconomyFill { get; }
+      [DataSourceProperty] public float PoliticalFill { get; }
+      [DataSourceProperty] public float WarFill { get; }
+      [DataSourceProperty] public float DiplomacyFill { get; }
+
+      // The kingdom banner, left of the name (flat id/provider/args, the chat's portrait recipe).
+      [DataSourceProperty] public string BannerId { get; } = "";
+      [DataSourceProperty] public string BannerTextureProvider { get; } = "";
+      [DataSourceProperty] public string BannerArgs { get; } = "";
+      [DataSourceProperty] public bool HasBanner => !string.IsNullOrEmpty(BannerId);
+
+      // The ruler's portrait, right of the PowerIndex. Three tableaus total (one per podium card), created at
+      // movie load and freed with it on close (bounded), so no portrait-guard bookkeeping is needed here.
+      [DataSourceProperty] public string LeaderPortraitId { get; } = "";
+      [DataSourceProperty] public string LeaderPortraitTextureProvider { get; } = "";
+      [DataSourceProperty] public string LeaderPortraitArgs { get; } = "";
+      [DataSourceProperty] public bool HasLeaderPortrait => !string.IsNullOrEmpty(LeaderPortraitId);
 
       [DataSourceProperty] public string Troops { get; } = "0";
       [DataSourceProperty] public string Armies { get; } = "0";
@@ -201,7 +235,7 @@ namespace CalradiaRemembers.WorldAlmanac
          Rank = s.Rank;
          KingdomName = s.KingdomName;
          PowerIndex = System.Math.Round(s.PowerIndex).ToString("0"); // string: a Text binding to an int throws
-         PowerFill = s.PowerIndex / 100.0;
+         PowerFill = (float) (s.PowerIndex / 100.0); // FillBarWidget.InitialAmountAsFloat binds a float; a double would not bind
          MomentumText = "";       // filled once the persisted Power Index history lands
          MomentumIsUp = false;
       }
@@ -209,7 +243,7 @@ namespace CalradiaRemembers.WorldAlmanac
       [DataSourceProperty] public int Rank { get; }
       [DataSourceProperty] public string KingdomName { get; }
       [DataSourceProperty] public string PowerIndex { get; }
-      [DataSourceProperty] public double PowerFill { get; }
+      [DataSourceProperty] public float PowerFill { get; }
       [DataSourceProperty] public string MomentumText { get; }
       [DataSourceProperty] public bool MomentumIsUp { get; }
    }
