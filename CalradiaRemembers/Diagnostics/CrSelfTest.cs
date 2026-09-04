@@ -210,6 +210,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("panel_siege_guard", Severity.Light, "Mechanical: the full-map panel crash guard. Asserts the Harmony prefix that skips SettlementVisualManager.OnTick (the vanilla siege-bombardment visual tick, which runs on the frame loop and access-violates natively under a pushed CR panel: four confirmed 0xC0000005 crashes) is actually attached to the LIVE engine method. It resolves the target BY NAME, so a game update that renamed the type/method would silently stop protecting; this fires if that ever happens. Also asserts that with no panel open nothing is suppressed (siege visuals tick normally). No LLM, mutates nothing", TestPanelSiegeVisualGuard),
+         new SelfTest("political_map", Severity.Light, "Mechanical: the political-map gather + grid (World Almanac minimap, Inc B). Gathers one anchor per kingdom-held settlement (position + Kingdom.Color) from the live campaign and builds the pure PoliticalMapPolicy colour grid at a small resolution, then asserts the grid is the requested size and at least some cells are painted (territory), i.e. the gather + water-mask + Voronoi produced a real map, not an empty/all-sea one. Catches a renamed settlement/terrain API that would silently yield an empty map. MANUAL when the world has no kingdom-held settlement. No LLM, mutates nothing", TestPoliticalMap),
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
@@ -6956,6 +6957,33 @@ namespace CalradiaRemembers.Diagnostics
       // pushed panel (it runs on the frame loop, so the campaign-clock freeze cannot stop it). It is resolved BY NAME,
       // so a game update that renamed the type/method degrades to "not attached" silently; this asserts it is actually
       // attached to the live engine method, and that with no panel open nothing is suppressed.
+      // World Almanac political minimap (Inc B, 2026-09-03): the engine gather + grid build. A dotnet test cannot
+      // read Campaign.Settlements or the map scene's terrain, so this drives the REAL PoliticalMapFactsBuilder
+      // against the live world and asserts it produced a real coloured map (right size, some territory painted),
+      // catching a renamed settlement/terrain API that would silently yield an empty map. The pure Voronoi
+      // assignment is unit-tested separately (PoliticalMapPolicyTests).
+      private static string TestPoliticalMap(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("political_map");
+
+         var anchors = WorldAlmanac.PoliticalMapFactsBuilder.GatherAnchors();
+         if (t.Skip(anchors.Count == 0, "no kingdom-held settlement in this world")) return t.Line();
+
+         const int res = 64;
+         uint[,] grid = WorldAlmanac.PoliticalMapFactsBuilder.BuildColorGrid(res);
+
+         var painted = 0;
+         for (var c = 0; c < grid.GetLength(0); c++)
+            for (var r = 0; r < grid.GetLength(1); r++)
+               if (grid[c, r] != CalradiaRemembers.Logic.WorldAlmanac.PoliticalMapPolicy.NoTerritory) painted++;
+
+         t.Note($"anchors={anchors.Count}, grid={grid.GetLength(0)}x{grid.GetLength(1)}, painted={painted}");
+         t.Expect("gridSized", grid.GetLength(0) == res && grid.GetLength(1) == res, true);
+         t.Expect("someTerritoryPainted", painted > 0, true);
+
+         return t.Line();
+      }
+
       private static string TestPanelSiegeVisualGuard(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("panel_siege_guard");
