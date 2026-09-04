@@ -41,6 +41,44 @@ namespace CalradiaRemembers.Tests
             levels[AuthoredTrait.Mercy].Should().Be(1);
         }
 
+        // ── Authored-content gate (cr.reload_lore skips only truly-empty entries) ──
+
+        // THE player report: a character defined with ONLY a backstory (no traits, no "kinks" entry) was skipped by
+        // cr.reload_lore because its apply loop counted only traits and kinks as "content". A backstory is authored
+        // content; the loop must visit the character.
+        [Test]
+        public void GIVEN_only_a_backstory_WHEN_checking_content_THEN_it_counts_as_authored()
+        {
+            new CharacterOverride { Hero = "X", Backstory = "A quiet cooper's son." }
+                .HasAnyAuthoredContent.Should().BeTrue();
+        }
+
+        // A conviction is authored content too (it reaches the prompt as a motive), so a conviction-only override is
+        // likewise never treated as empty.
+        [Test]
+        public void GIVEN_only_a_conviction_WHEN_checking_content_THEN_it_counts_as_authored()
+        {
+            new CharacterOverride { Hero = "X", Conviction = "He believes he pulls the realm's strings." }
+                .HasAnyAuthoredContent.Should().BeTrue();
+        }
+
+        // Traits-only and an explicit kink lock (even the empty-list lock) stay content, so the reload loop keeps
+        // visiting them exactly as before this fix.
+        [Test]
+        public void GIVEN_only_traits_or_a_kink_lock_WHEN_checking_content_THEN_it_counts_as_authored()
+        {
+            new CharacterOverride { Hero = "X", Honor = 2 }.HasAnyAuthoredContent.Should().BeTrue();
+            new CharacterOverride { Hero = "X", Kinks = new List<string>() }.HasAnyAuthoredContent.Should().BeTrue();
+        }
+
+        // A truly-empty entry (a name and nothing authored) is NOT content: the reload loop still skips it, so this
+        // fix never turns a blank entry into a processed character.
+        [Test]
+        public void GIVEN_an_entry_with_no_authored_fields_WHEN_checking_content_THEN_it_is_not_authored()
+        {
+            new CharacterOverride { Hero = "X" }.HasAnyAuthoredContent.Should().BeFalse();
+        }
+
         // Only traits the author actually set may reach Hero.SetTraitLevel. If an unset (null) trait were
         // listed anyway, every authored NPC would have their untouched, vanilla-rolled traits silently forced
         // to a default, erasing personality diversity the player never asked to touch.

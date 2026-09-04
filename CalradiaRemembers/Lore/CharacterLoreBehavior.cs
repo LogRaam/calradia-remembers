@@ -37,10 +37,11 @@ namespace CalradiaRemembers.Lore
          {
             CharacterOverride ov = CharacterOverrideLoader.Set.Resolve(hero.StringId, hero.Name?.ToString());
 
-            // An override with ONLY a kinks lock (no trait fields) must still be processed here: this is the
-            // seam cr.reload_lore runs through, and skipping it would mean an authored-only kink lock never
-            // survives a reload at all.
-            if (ov == null || (!ov.HasTraits && ov.ParsedKinks == null)) continue;
+            // Skip only a truly-empty entry: ANY authored content (traits, a kink lock, a backstory, a conviction,
+            // or an orientation) makes this a character cr.reload_lore should process. Earlier this counted only
+            // traits and kinks as content, so a backstory/conviction/orientation-only character was skipped here
+            // (player report: no "kinks" entry meant the character was not processed until kinks was added).
+            if (ov == null || !ov.HasAnyAuthoredContent) continue;
 
             if (ov.HasTraits)
                foreach ((AuthoredTrait trait, int level) in ov.ClampedTraitLevels())
@@ -49,7 +50,10 @@ namespace CalradiaRemembers.Lore
                   if (to != null) hero.SetTraitLevel(to, level);
                }
 
-            RederiveKinks(hero); // frozen kinks on an already-met NPC follow the new personality, or an authored lock
+            // Re-derive kinks only when this override actually drives them (authored traits, or an authored kink
+            // lock); a backstory/conviction/orientation-only override must not re-roll and wipe an NPC's kinks.
+            if (ov.HasTraits || ov.ParsedKinks != null)
+               RederiveKinks(hero); // frozen kinks on an already-met NPC follow the new personality, or an authored lock
             n++;
          }
 
@@ -78,21 +82,22 @@ namespace CalradiaRemembers.Lore
          {
             CharacterOverride ov = CharacterOverrideLoader.Set.Resolve(hero.StringId, hero.Name?.ToString());
 
-            // Same widened gate as ApplyAll: a kinks-only override must still be visited here, so turning
-            // "Use custom traits" OFF actually releases its kink lock (RederiveKinks below checks the toggle
-            // itself via CharacterOverrideLoader.KinksFor and no-ops the lock while it is off).
-            if (ov == null || (!ov.HasTraits && ov.ParsedKinks == null)) continue;
+            // Same content gate as ApplyAll: visit any authored character. A traits/kink-lock override must be
+            // visited so turning "Use custom traits" OFF actually releases its kink lock (RederiveKinks below
+            // checks the toggle itself via CharacterOverrideLoader.KinksFor and no-ops the lock while it is off).
+            if (ov == null || !ov.HasAnyAuthoredContent) continue;
 
             if (ov.HasTraits)
                foreach ((AuthoredTrait trait, int _) in ov.ClampedTraitLevels())
                {
                   TraitObject to = Map(trait);
-                  // The template (CharacterObject) keeps the original level — Hero.SetTraitLevel only
+                  // The template (CharacterObject) keeps the original level; Hero.SetTraitLevel only
                   // ever wrote the hero's own trait store, never the template.
                   if (to != null) hero.SetTraitLevel(to, hero.CharacterObject.GetTraitLevel(to));
                }
 
-            RederiveKinks(hero); // back to the kinks the vanilla traits imply (lock is inert while the toggle is off)
+            if (ov.HasTraits || ov.ParsedKinks != null)
+               RederiveKinks(hero); // back to the kinks the vanilla traits imply (lock is inert while the toggle is off)
             n++;
          }
 

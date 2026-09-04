@@ -85,6 +85,19 @@ namespace CalradiaRemembers.Logic
         /// <summary>True when the author gave this character something they hold to be true.</summary>
         public bool HasConviction => !string.IsNullOrWhiteSpace(Conviction);
 
+        /// <summary>True when the author pinned a sexual orientation.</summary>
+        public bool HasOrientation => ParsedOrientation.HasValue;
+
+        /// <summary>
+        ///   True when the override carries ANY field the mod acts on: traits, a kink lock, a backstory, a
+        ///   conviction, or an orientation. A character defined with ONLY a backstory (or conviction, or
+        ///   orientation) is still authored content and must not be skipped as if the entry were empty (player
+        ///   report: a character with no "kinks" entry was not processed by cr.reload_lore until kinks was added,
+        ///   because the reload loop counted only traits and kinks as content).
+        /// </summary>
+        public bool HasAnyAuthoredContent =>
+            HasTraits || ParsedKinks != null || HasBackstory || HasConviction || HasOrientation;
+
         /// <summary>The authored orientation parsed to an enum, or null when unset/unrecognized.</summary>
         public SexualOrientation? ParsedOrientation => OrientationParser.Parse(Orientation);
 
