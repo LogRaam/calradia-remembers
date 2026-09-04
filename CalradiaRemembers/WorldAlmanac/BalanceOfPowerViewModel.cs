@@ -23,13 +23,14 @@ namespace CalradiaRemembers.WorldAlmanac
       private MBBindingList<PowerCardViewModel> _podium;
       private MBBindingList<PowerRowViewModel> _ranked;
 
-      public BalanceOfPowerViewModel(PowerIndexResult result, IReadOnlyList<KingdomPowerFacts> facts, string dateText = "")
+      public BalanceOfPowerViewModel(PowerIndexResult result, IReadOnlyList<KingdomPowerFacts> facts, string dateText = "", string politicalMapPath = "")
       {
          _podium = new MBBindingList<PowerCardViewModel>();
          _ranked = new MBBindingList<PowerRowViewModel>();
 
          result ??= new PowerIndexResult();
          DateText = dateText ?? "";
+         PoliticalMapImagePath = politicalMapPath ?? "";
          KingdomPowerScore leader = result.Ranked.FirstOrDefault();
          LeaderText = leader == null
             ? ""
@@ -79,6 +80,16 @@ namespace CalradiaRemembers.WorldAlmanac
       [DataSourceProperty]
       public string BackgroundPath => System.IO.Path.Combine(
          BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_BalanceOfPower.jpg");
+
+      /// <summary>
+      ///   Full path to the political minimap PNG rendered for THIS open (empty when it could not be built). The
+      ///   manager renders it and passes the path in, so the view model makes no engine calls; the prefab's central
+      ///   CrRuntimeImageWidget binds it and hides itself via <see cref="HasPoliticalMap" /> when it is empty.
+      /// </summary>
+      [DataSourceProperty] public string PoliticalMapImagePath { get; }
+
+      /// <summary>True when a political map was rendered, so the central image widget shows only when there is one.</summary>
+      [DataSourceProperty] public bool HasPoliticalMap => !string.IsNullOrEmpty(PoliticalMapImagePath);
 
       [DataSourceProperty] public string BalanceHeader => "Balance of Power";
       [DataSourceProperty] public string AssessmentHeader => "Strategic Assessment";

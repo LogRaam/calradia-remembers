@@ -11,7 +11,9 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
+using System.IO;
 using CalradiaRemembers.Logic.WorldAlmanac;
 using CalradiaRemembers.UI;
 using TaleWorlds.CampaignSystem;
@@ -34,7 +36,7 @@ namespace CalradiaRemembers.WorldAlmanac
             PowerIndexResult result = PowerIndexPolicy.Compute(facts);
             ModLog.Info($"Balance of Power: {result.Ranked.Count} kingdoms scored.");
 
-            return new BalanceOfPowerViewModel(result, facts, InGameDateText()) {OnCloseRequested = close};
+            return new BalanceOfPowerViewModel(result, facts, InGameDateText(), BuildPoliticalMapPath()) {OnCloseRequested = close};
          });
 
       public static bool IsOpen => Host.IsOpen;
@@ -52,6 +54,37 @@ namespace CalradiaRemembers.WorldAlmanac
          CampaignTime now = CampaignTime.Now;
 
          return $"Day {now.GetDayOfSeason} of {now.GetSeasonOfYear}, {now.GetYear}";
+      }
+
+      // Builds the political minimap for the current world and returns the path to its cached PNG (empty on failure,
+      // so the panel simply shows no map rather than breaking). Cached by a content signature: the same world state
+      // reuses the file it already wrote, and a conquest that changes the map writes a new one. Written under the OS
+      // temp dir (writable, unlike the game's Program Files module folder).
+      private static string BuildPoliticalMapPath()
+      {
+         try
+         {
+            uint[,] grid = PoliticalMapFactsBuilder.BuildColorGrid();
+            byte[] png = PoliticalMapImageRenderer.RenderPng(grid);
+            if (png == null) return "";
+
+            uint signature = PoliticalMapImageRenderer.ComputeSignature(grid);
+            string path = Path.Combine(Path.GetTempPath(), "CalradiaRemembers", $"politicalmap_{signature:x8}.png");
+
+            if (!File.Exists(path))
+            {
+               Directory.CreateDirectory(Path.GetDirectoryName(path));
+               File.WriteAllBytes(path, png);
+            }
+
+            return path;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[POLITICAL_MAP] failed to build/cache the map image (panel shows no map): {ex.GetType().Name}: {ex.Message}");
+
+            return "";
+         }
       }
    }
 }
