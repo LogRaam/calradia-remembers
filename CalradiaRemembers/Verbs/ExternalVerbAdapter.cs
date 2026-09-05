@@ -57,11 +57,13 @@ namespace CalradiaRemembers.Verbs
          // A third-party verb reporting failure did NOT do the thing, so it is a refusal, not merely bad
          // news: the chat owes the model an out-of-character note saying so, or it will build the next
          // turns on a deed the host mod declined to perform.
+         // Carry the optional Recap through on BOTH paths: a REFUSED deed is exactly a case the NPC should voice
+         // ("I will not rule on your claim..."), not only a successful one, so the follow-up fires either way.
          return result == null
             ? null
             : result.Success
-               ? new ActionOutcome(result.Message, true)
-               : ActionOutcome.Refused(result.Message);
+               ? new ActionOutcome(result.Message, true, recap: result.Recap)
+               : ActionOutcome.Refused(result.Message, result.Recap);
       }
 
       public bool IsEligible(VerbContext ctx)

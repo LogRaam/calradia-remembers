@@ -171,6 +171,7 @@ namespace CalradiaRemembers.Diagnostics
       private static readonly List<SelfTest> Tests = new() {
          new SelfTest("providegold", Severity.Light, "seed ProvideGold -> take_gold -> assert stamped", TestProvideGold),
          new SelfTest("unknown_action_notice", Severity.Light, "feedback funnel: drive the REAL bridge with an invented [ACTION] type (no executor) against a live lord -> assert the outcome is refused AND flagged WasUnknownVerb, with the deed-scoped base message (the old '(That cannot be done here. Nothing happened.)' contradicted a scene where real effects also landed). A refusal mutates nothing, so no cleanup", TestUnknownActionNotice),
+         new SelfTest("extension_recap", Severity.Light, "Extension Surface (ActionResult.Recap / CrConversation.PromptReply): register a throwaway external action, drive the REAL dispatch (CrActions -> VerbRegistry -> ExternalVerbAdapter -> bridge) against a live lord, and assert its Recap reaches ActionOutcome on BOTH a success and a refusal; also assert CrConversation.PromptReply is a safe no-op (false) with no conversation open. Unregisters the probe afterwards", TestExtensionRecap),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
          new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
@@ -6232,6 +6233,62 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("refused", outcome.WasRefused, true);
          t.Expect("unknownVerb", outcome.WasUnknownVerb, true);
          t.Expect("message", outcome.Message, UnknownActionNotice.BaseMessage);
+
+         return t.Line();
+      }
+
+      private static string TestExtensionRecap(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("extension_recap");
+
+         Hero npc = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         if (t.Abort(npc == null, "no live lord to address")) return t.Line();
+
+         const string verb = "cr_selftest_recap_probe";
+
+         // A throwaway external action whose Execute returns a Recap on BOTH a success and a refusal, keyed off a
+         // parameter, so the real dispatch path a third-party mod relies on is exercised end to end.
+         ActionRegistrationResult reg = CrActions.Register(new ExternalActionSpec {
+            Name = verb,
+            Description = "self-test probe",
+            SourceMod = "CrSelfTest",
+            IsEligible = _ => true,
+            Execute = req =>
+            {
+               bool ok = req.Parameters != null && req.Parameters.TryGetValue("ok", out string v) && v == "1";
+
+               return new ActionResult {
+                  Message = ok ? "probe upheld" : "probe refused",
+                  Success = ok,
+                  Recap = ok ? "recap-success" : "recap-refused"
+               };
+            }
+         });
+
+         if (t.Abort(reg != ActionRegistrationResult.Registered, $"registration failed: {reg}")) return t.Line();
+
+         try
+         {
+            ActionOutcome ok = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = verb, Parameters = new Dictionary<string, string> {["ok"] = "1"}}, npc, null);
+            ActionOutcome refused = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = verb, Parameters = new Dictionary<string, string> {["ok"] = "0"}}, npc, null);
+
+            if (t.Abort(ok == null || refused == null, "the bridge returned null instead of an outcome")) return t.Line();
+
+            t.Note($"npc={npc.Name}");
+            t.Expect("success.recap", ok.Recap, "recap-success");
+            t.Expect("success.positive", ok.IsPositive, true);
+            t.Expect("refused.recap", refused.Recap, "recap-refused");
+            t.Expect("refused.wasRefused", refused.WasRefused, true);
+
+            // PromptReply must be a safe no-op (false) with no conversation open (the self-test runs on the map).
+            t.Expect("promptReply_noop", CrConversation.PromptReply("anything"), false);
+         }
+         finally
+         {
+            CrActions.Unregister(verb);
+         }
 
          return t.Line();
       }

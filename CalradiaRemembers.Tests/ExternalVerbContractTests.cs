@@ -94,6 +94,49 @@ namespace CalradiaRemembers.Tests
          result.Message.Should().Be("external_verb executed for hero_3.");
       }
 
+      // Extension Surface (ActionResult.Recap): an external mod can ask the NPC to VOICE the deed's outcome in the
+      // same beat by setting Recap on the result. The adapter (engine-coupled, tested via cr.testall) forwards this
+      // to the chat, but the CONTRACT must carry it round-trip first; if the field were dropped or renamed, a mod's
+      // "the NPC should now say the ruling" hint would silently never reach the host. Round-trips on refusal too, so
+      // the NPC can voice a declined deed ("I will not rule on your claim"), which is exactly a case worth voicing.
+      [Test]
+      public void GIVEN_an_execute_callback_setting_a_recap_WHEN_invoking_it_THEN_the_recap_round_trips_on_success_and_refusal()
+      {
+         var contract = new ExternalVerbContract {
+            Name = "judge_claim",
+            Execute = req => new ActionResult {
+               Message = "The court is convened.",
+               Success = req.Facts.RelationToPlayer >= 0,
+               Recap = req.Facts.RelationToPlayer >= 0
+                  ? "the claim to Ostican was upheld"
+                  : "the claim to Ostican was denied: too weak"
+            }
+         };
+
+         ActionResult upheld = contract.Execute!(new ActionRequest {VerbName = "judge_claim", Facts = new VerbFacts {RelationToPlayer = 10}});
+         ActionResult denied = contract.Execute!(new ActionRequest {VerbName = "judge_claim", Facts = new VerbFacts {RelationToPlayer = -10}});
+
+         upheld.Success.Should().BeTrue();
+         upheld.Recap.Should().Be("the claim to Ostican was upheld");
+         denied.Success.Should().BeFalse();
+         denied.Recap.Should().Be("the claim to Ostican was denied: too weak");
+      }
+
+      // A mod that does not want a follow-up simply leaves Recap unset: it must read back as null (the host's "no
+      // recap turn" default), never empty-string ceremony a caller has to know about.
+      [Test]
+      public void GIVEN_an_execute_callback_that_sets_no_recap_WHEN_invoking_it_THEN_the_recap_is_null()
+      {
+         var contract = new ExternalVerbContract {
+            Name = "quiet_deed",
+            Execute = _ => new ActionResult {Message = "Done.", Success = true}
+         };
+
+         ActionResult result = contract.Execute!(new ActionRequest {VerbName = "quiet_deed", Facts = new VerbFacts()});
+
+         result.Recap.Should().BeNull();
+      }
+
       // An external mod is free to implement only some hooks (a teaching-only verb with no side effect, say):
       // ExternalVerbAdapter null-checks each Func before invoking it, so an unset callback must read back as
       // plain null, never throw, or a partially-implemented third-party verb would crash the registry the

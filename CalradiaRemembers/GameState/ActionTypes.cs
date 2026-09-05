@@ -38,20 +38,22 @@ namespace CalradiaRemembers.GameState
     /// </summary>
     public sealed class ActionOutcome
     {
-        public ActionOutcome(string message, bool isPositive, int? appliedRelationDelta = null, int? appliedGoldAmount = null)
+        public ActionOutcome(string message, bool isPositive, int? appliedRelationDelta = null, int? appliedGoldAmount = null, string recap = null)
         {
             Message = message;
             IsPositive = isPositive;
             AppliedRelationDelta = appliedRelationDelta;
             AppliedGoldAmount = appliedGoldAmount;
+            Recap = recap;
         }
 
-        private ActionOutcome(string message, bool unknownVerb = false)
+        private ActionOutcome(string message, bool unknownVerb = false, string recap = null)
         {
             Message = message;
             IsPositive = false;
             WasRefused = true;
             WasUnknownVerb = unknownVerb;
+            Recap = recap;
         }
 
         /// <summary>
@@ -68,7 +70,7 @@ namespace CalradiaRemembers.GameState
         ///     lie the transcript note exists to prevent.
         ///   </para>
         /// </summary>
-        public static ActionOutcome Refused(string message) => new(message);
+        public static ActionOutcome Refused(string message, string recap = null) => new(message, unknownVerb: false, recap: recap);
 
         /// <summary>
         ///   The bridge refused this action because its type is not a real mod verb (the model invented one,
@@ -77,10 +79,18 @@ namespace CalradiaRemembers.GameState
         ///   can (a) always log the invented verb with its context for the author and (b) show a deed-scoped
         ///   base message plus, when the player opts in, a report hint, instead of the raw refusal line.
         /// </summary>
-        public static ActionOutcome RefusedUnknownVerb(string message) => new(message, true);
+        public static ActionOutcome RefusedUnknownVerb(string message) => new(message, unknownVerb: true);
 
         /// <summary>Short, in-character-adjacent description, e.g. "Martira regards you more warmly. (+1)".</summary>
         public string Message { get; }
+
+        /// <summary>
+        ///   Optional plain-fact recap an EXTERNAL action asked the NPC to voice in the same beat (from
+        ///   <see cref="NpcMemoryService.Core.Extension.ActionResult.Recap" />). Null for every built-in action and
+        ///   for any external action that did not set it. When present and a conversation is open, the chat fires
+        ///   one voice-only NPC follow-up turn so the NPC speaks the outcome its pre-execution reply could not know.
+        /// </summary>
+        public string Recap { get; }
 
         /// <summary>True if the outcome is favorable to the player (drives the chat line color).</summary>
         public bool IsPositive { get; }

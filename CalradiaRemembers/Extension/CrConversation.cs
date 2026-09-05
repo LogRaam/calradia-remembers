@@ -44,6 +44,37 @@ namespace CalradiaRemembers
       /// </summary>
       public static event Action<CrSpeechLine> LineSpoken;
 
+      /// <summary>
+      ///   Makes the NPC in the CURRENTLY OPEN conversation voice a reaction to an outcome that resolved OUTSIDE a
+      ///   player message, in its own words, without the player having to announce it. Use it when a decision the
+      ///   player made through your own UI (a popup, a menu) should draw an in-character response, or when a deed
+      ///   you executed resolved after the NPC had already spoken. Give the raw fact ("the player chose to spare the
+      ///   prisoner"); CR frames it in character. This is one extra LLM turn.
+      ///   <para>
+      ///     Returns false, doing nothing, when no conversation is open, the conversation has ended, or a turn is
+      ///     already in flight (you may retry when the player next has the floor). Call on the main (UI) thread, like
+      ///     every other conversation interaction. For a deed dispatched through <see cref="CrActions" />, prefer
+      ///     setting <c>ActionResult.Recap</c> instead, which fires this same follow-up automatically in the same beat.
+      ///   </para>
+      /// </summary>
+      public static bool PromptReply(string outcomeHint)
+      {
+         try
+         {
+            if (string.IsNullOrWhiteSpace(outcomeHint)) return false;
+
+            Chat.ChatViewModel vm = Chat.ChatManager.ActiveViewModel;
+
+            return vm != null && vm.TryPromptReply(outcomeHint);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[CONV] PromptReply threw and was isolated: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
+      }
+
       // Raised by CR (internal). A caller only subscribes; it never raises.
       internal static void RaiseStarted(string npcId, int gameDay)
       {

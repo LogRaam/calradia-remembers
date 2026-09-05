@@ -658,12 +658,23 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      // The plain-fact recap an external ActionResult (or CrConversation.PromptReply) asked the NPC to voice this
+      // turn, captured during the action loop and consumed once at turn end to fire ONE voice-only follow-up. Only
+      // ever set on a normal top-level turn (never a recap turn, never an ensemble voice), and cleared at the start
+      // of every top-level turn so a recap stranded by an early return can never fire stale on a later turn.
+      private string _pendingOutcomeRecap;
+
       private async Task RunLlmExchangeAsync(string playerMessage,
                                              ChatSpeaker speaker,
                                              ChatMessageViewModel placeholder,
                                              bool suppressPlayerLine = false,
-                                             bool suppressGroupTail = false)
+                                             bool suppressGroupTail = false,
+                                             bool isOutcomeReaction = false)
       {
+         // A recap follow-up is itself a turn; clear any prior capture so THIS top-level turn starts clean and a
+         // recap left dangling by an early return (a witness exchange, a scene pause) never fires on a later turn.
+         if (!isOutcomeReaction && !suppressGroupTail) _pendingOutcomeRecap = null;
+
          // suppressGroupTail: this turn is ONE voice inside an ensemble turn (RunEnsembleTurnAsync). It still
          // renders its reply and applies its own actions/events/memory (a full participant), but skips the group
          // machinery that must run ONCE per player turn, not once per active voice: passive-witness reactions,
@@ -1390,6 +1401,15 @@ namespace CalradiaRemembers.Chat
                      }
                   }
 
+                  // Extension Surface (ActionResult.Recap): an external deed resolved to a fact the NPC's
+                  // already-spoken reply this turn could not know (a ruling upheld or denied, a decision taken).
+                  // Capture the first one; a voice-only follow-up turn fired at turn end has the NPC speak it in
+                  // its own words. Never on a recap turn itself (isOutcomeReaction) or an ensemble voice, so it can
+                  // neither chain into another recap nor fire from a partial group voice.
+                  if (!isOutcomeReaction && !suppressGroupTail && outcome != null
+                      && string.IsNullOrEmpty(_pendingOutcomeRecap) && !string.IsNullOrWhiteSpace(outcome.Recap))
+                     _pendingOutcomeRecap = outcome.Recap;
+
                   // The bridge REFUSED the action (an active war, a captivity, a gate the prompt let
                   // through): the refusal must reach the TRANSCRIPT, not only the UI line — otherwise the
                   // model never learns the marriage/transfer it just celebrated never happened, believes
@@ -1770,10 +1790,26 @@ namespace CalradiaRemembers.Chat
             // input in its own finally when it terminates.
             if (!suppressGroupTail && !_npcWitnessExchangePending && !_sceneContinuationPending && !_isScenePaused)
             {
-               IsSendEnabled = !_conversationEnded;
-               // Reply delivered and control is back with the player: raise any queued action confirmation now
-               // (PromptNext drops them instead if the conversation just ended).
-               if (_confirmation.HasPending && !_confirmation.IsAwaiting) _confirmation.PromptNext(this);
+               // Extension Surface: a deed resolved to an outcome AFTER the NPC's spoken reply this turn (an
+               // external ActionResult.Recap). Fire ONE voice-only follow-up so the NPC speaks it, and leave input
+               // LOCKED (that follow-up turn re-enables it in its own finally, exactly like a witness exchange).
+               // Never chains off a recap turn (isOutcomeReaction) and only from a live, unfinished conversation.
+               var firedRecap = false;
+               if (!isOutcomeReaction && !_conversationEnded && !string.IsNullOrWhiteSpace(_pendingOutcomeRecap))
+               {
+                  string recap = _pendingOutcomeRecap;
+                  _pendingOutcomeRecap = null;
+                  firedRecap = BeginOutcomeReactionTurn(recap);
+               }
+
+               if (!firedRecap)
+               {
+                  _pendingOutcomeRecap = null;
+                  IsSendEnabled = !_conversationEnded;
+                  // Reply delivered and control is back with the player: raise any queued action confirmation now
+                  // (PromptNext drops them instead if the conversation just ended).
+                  if (_confirmation.HasPending && !_confirmation.IsAwaiting) _confirmation.PromptNext(this);
+               }
             }
          }
       }
@@ -2204,6 +2240,44 @@ namespace CalradiaRemembers.Chat
          IsSendEnabled = false;
          _ = RunLlmExchangeAsync(stimulus, speaker, placeholder, true);
       }
+
+      /// <summary>
+      ///   Fires ONE voice-only NPC reaction turn from an outcome hint (an external <c>ActionResult.Recap</c>, or a
+      ///   <see cref="CrConversation.PromptReply" /> from an out-of-band decision): no player line is shown, and the
+      ///   NPC speaks the outcome its previous reply could not yet know. Returns false when there is no live
+      ///   conversation to speak into. The raw fact is wrapped here as an out-of-character "voice this now"
+      ///   directive; the model speaks it in the NPC's own words. Does NOT itself check whether a turn is already in
+      ///   flight (the auto-recap path calls it precisely while input is still locked); the manual entry
+      ///   <see cref="TryPromptReply" /> guards that.
+      /// </summary>
+      public bool BeginOutcomeReactionTurn(string hint)
+      {
+         if (string.IsNullOrWhiteSpace(hint) || _mode != ChatMode.Conversation || _conversationEnded) return false;
+
+         ChatSpeaker speaker = MainSpeaker();
+         if (speaker?.Hero == null) return false;
+
+         ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+         _messages.Add(placeholder);
+         IsSendEnabled = false;
+         _ = RunLlmExchangeAsync(OutcomeReactionStimulus(hint), speaker, placeholder, suppressPlayerLine: true, isOutcomeReaction: true);
+
+         return true;
+      }
+
+      /// <summary>
+      ///   Public entry for <see cref="CrConversation.PromptReply" />: make the NPC voice a reaction to an outcome
+      ///   that resolved outside a player message, but only when the conversation is idle (no turn in flight). Call
+      ///   on the main thread. Returns false when a turn is already running, the conversation ended, or none is open.
+      /// </summary>
+      public bool TryPromptReply(string hint)
+         => IsSendEnabled && BeginOutcomeReactionTurn(hint);
+
+      /// <summary>Wraps a plain outcome fact as the synthetic, out-of-character user stimulus that drives a voice-only recap turn.</summary>
+      private static string OutcomeReactionStimulus(string hint)
+         => "[OUT OF CHARACTER, not spoken by anyone: the matter is now settled. " + hint.Trim() +
+            " Voice this outcome to your conversation partner now, in your own words and fully in character, as the "
+          + "person who has just learned or decided it. Do not wait for them to speak, and do not quote this note.]";
 
       #endregion
 

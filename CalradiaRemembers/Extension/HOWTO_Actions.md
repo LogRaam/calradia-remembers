@@ -185,6 +185,43 @@ silently ignored.
 
 ---
 
+## 6b. Make the NPC voice the outcome (ActionResult.Recap / CrConversation.PromptReply)
+
+Your `Execute` runs AFTER the NPC has already spoken this turn: the model wrote its reply before your
+deed resolved, so it cannot yet know the result. If the outcome is worth an in-character reaction
+("I will not rule on your claim to Ostican, it is too weak"), set `ActionResult.Recap` to the plain
+fact:
+
+```csharp
+Execute = req =>
+{
+    var upheld = JudgeClaim(req);            // your own engine work
+    return new ActionResult
+    {
+        Success = upheld,
+        Message = upheld ? "The court upholds the claim." : "The court denies the claim.",
+        Recap   = upheld
+            ? "the claim to Ostican was upheld"
+            : "the claim to Ostican was denied: the claim is too weak"
+    };
+};
+```
+
+When `Recap` is set AND the conversation is still open, CR fires ONE extra, voice-only NPC turn in the
+same beat: the NPC speaks that outcome in its own words, with no new player message. Give the raw fact,
+not a scripted line, CR frames it as "voice this now, in character". It fires on a **refusal** too
+(`Success = false`), which is often exactly the case worth voicing. Leave `Recap` null (the default)
+for no follow-up. Each recap is one more LLM turn, so use it only when the outcome genuinely warrants a
+reaction. A recap turn never chains into another (an action it might emit does not spawn a second recap).
+
+For an outcome that resolves **outside** a player message, e.g. the player clicks a decision in your own
+UI popup, call `CrConversation.PromptReply("the player chose to spare the prisoner")` from your handler.
+It makes the NPC in the currently open conversation react in character, no player line needed. It returns
+`false` (doing nothing) when no conversation is open, the conversation ended, or a turn is already in
+flight, so you may retry when the player next has the floor. Call it on the main thread.
+
+---
+
 ## 7. The other doors
 
 `CrActions` is the door for an executable deed. Three others cover different needs:
