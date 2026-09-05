@@ -1,12 +1,15 @@
 // Code written by Gabriel Mailhot, 05/09/2026.
-// A player entry point for the Balance of Power panel: a button on the Clan screen, added PROGRAMMATICALLY.
+// A player entry point for the Balance of Power panel: a button on the Clan screen.
 //
-// Why not UIExtenderEx (as the encyclopedia buttons use): on this game build (War Sails 1.4.8) neither the
-// ViewModelMixin nor the PrefabExtension applied to the ClanScreen movie, confirmed in game with on-screen logging
-// (the mixin constructor never ran on clan open, and no button was injected), while the same UIExtenderEx shapes
-// work on EncyclopediaHeroPage. So we mirror the mod's other non-UIExtenderEx UI injection (the council map-bar
-// button, MapNavigationCouncilItemPatch): a Harmony postfix that builds the button in C# and adds it to the loaded
-// movie's widget tree. No mixin, no bound prefab: the click is wired straight to BalanceOfPowerManager.Open().
+// Two earlier attempts failed on this game build (War Sails 1.4.8): UIExtenderEx (neither the ViewModelMixin nor
+// the PrefabExtension applied to the ClanScreen movie, confirmed in game with on-screen logging), and a hand-built
+// ButtonWidget added to the movie's root (it rendered but received NO input at all, not even hover, because the
+// clan screen's custom root widget does not route input to widgets added under it that way).
+//
+// This works instead: a Harmony postfix loads our button as a SECOND GauntletMovie on the clan screen's own layer.
+// A real movie participates in the native input pipeline, so the button hovers and clicks normally; its full-screen
+// root does not accept events, so every click outside the button falls through to the clan screen below. The button
+// binds to ClanBalanceOfPowerButtonVM, whose command opens the World Almanac.
 
 #region
 
@@ -14,23 +17,19 @@ using System;
 using HarmonyLib;
 using SandBox.GauntletUI;
 using TaleWorlds.Engine.GauntletUI;
-using TaleWorlds.GauntletUI;
-using TaleWorlds.GauntletUI.BaseTypes;
 
 #endregion
 
 namespace CalradiaRemembers.WorldAlmanac
 {
    /// <summary>
-   ///   Adds a "Balance of Power" button to the Clan screen by hand (UIExtenderEx does not apply to this movie on
-   ///   the current build). A per-frame postfix on <c>GauntletClanScreen.OnFrameTick</c> injects the button once
-   ///   into the loaded movie's root, above the Finance panel, and wires its click to open the World Almanac.
+   ///   Loads the "Balance of Power" button as an overlay movie on the Clan screen's layer (UIExtenderEx and a
+   ///   hand-built widget both failed to receive input on this build). A per-frame postfix loads it once per open.
    /// </summary>
    [HarmonyPatch(typeof(GauntletClanScreen), "OnFrameTick")]
    internal static class ClanScreenBalanceOfPowerButton
    {
-      private const string ButtonId = "CR_BalanceOfPowerButton";
-      private const string MovieName = "ClanScreen";
+      private const string OverlayMovie = "CR_ClanBalanceOfPowerButton";
 
       private static readonly AccessTools.FieldRef<GauntletClanScreen, GauntletLayer> LayerRef =
          AccessTools.FieldRefAccess<GauntletClanScreen, GauntletLayer>("_gauntletLayer");
@@ -40,51 +39,18 @@ namespace CalradiaRemembers.WorldAlmanac
          try
          {
             GauntletLayer layer = LayerRef(__instance);
-            GauntletMovieIdentifier movie = layer?.GetMovieIdentifier(MovieName);
-            Widget root = movie?.Movie?.RootWidget;
-            if (root == null) return;
+            if (layer == null) return;
 
-            // Idempotent: the postfix runs every frame, so add the button only once per loaded movie.
-            if (root.FindChild(ButtonId, true) != null) return;
+            // Idempotent: OnFrameTick runs every frame, and each clan-open builds a fresh layer, so load the overlay
+            // once whenever this layer does not already carry it.
+            if (layer.GetMovieIdentifier(OverlayMovie) != null) return;
 
-            UIContext ctx = layer.UIContext;
-
-            // Prefer to hang the button on the Finance panel so it tracks that column (and its slide-in); fall back
-            // to the movie root if the panel is not found, so the button still appears.
-            Widget host = root.FindChild("FinancePanelWidget", true) ?? root;
-
-            var button = new ButtonWidget(ctx)
-            {
-               Id = ButtonId,
-               WidthSizePolicy = SizePolicy.Fixed,
-               HeightSizePolicy = SizePolicy.Fixed,
-               SuggestedWidth = 245f,
-               SuggestedHeight = 42f,
-               HorizontalAlignment = HorizontalAlignment.Center,
-               VerticalAlignment = VerticalAlignment.Top,
-               PositionYOffset = -54f,
-               Brush = ctx.BrushFactory.GetBrush("ButtonBrush1")
-            };
-
-            var label = new TextWidget(ctx)
-            {
-               WidthSizePolicy = SizePolicy.StretchToParent,
-               HeightSizePolicy = SizePolicy.StretchToParent,
-               HorizontalAlignment = HorizontalAlignment.Center,
-               VerticalAlignment = VerticalAlignment.Center,
-               Brush = ctx.BrushFactory.GetBrush("Popup.Button.Text"),
-               Text = "Balance of Power"
-            };
-
-            button.AddChild(label);
-            button.ClickEventHandlers.Add(_ => BalanceOfPowerManager.Open());
-            host.AddChild(button);
-
-            ModLog.Info("[BOP-CLAN] button added to the Clan screen.");
+            layer.LoadMovie(OverlayMovie, new ClanBalanceOfPowerButtonVM());
+            ModLog.Info("[BOP-CLAN] overlay button movie loaded on the Clan screen.");
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[BOP-CLAN] failed to add the Clan-screen button: {ex.GetType().Name}: {ex.Message}");
+            ModLog.Error($"[BOP-CLAN] failed to load the Clan-screen button movie: {ex.GetType().Name}: {ex.Message}");
          }
       }
    }

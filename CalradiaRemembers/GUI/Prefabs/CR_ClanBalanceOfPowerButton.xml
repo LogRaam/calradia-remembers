@@ -1,0 +1,28 @@
+<Prefab>
+  <Window>
+    <!-- Loaded as a SECOND movie on the Clan screen's layer (see ClanScreenBalanceOfPowerButton). The full-screen
+         root does NOT accept events (DoNotAcceptEvents), so every click outside the button falls through to the clan
+         screen below; only the button itself is hit-tested. This is why it works where a hand-built widget added to
+         the custom ClanScreenWidget root received no input at all. Positioned on the right, above the Finance panel;
+         tune MarginRight / PositionYOffset here (cr.reload_ui does not reload this movie, restart to re-read). -->
+    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" DoNotAcceptEvents="true">
+      <Children>
+        <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                      SuggestedWidth="265" SuggestedHeight="42"
+                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                      MarginRight="10" PositionYOffset="-118"
+                      Brush="ButtonBrush1"
+                      DoNotPassEventsToChildren="true"
+                      UpdateChildrenStates="true"
+                      Command.Click="ExecuteOpenBalanceOfPower">
+          <Children>
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Brush="Popup.Button.Text" Brush.FontSize="20"
+                        Text="@BalanceOfPowerButtonText" />
+          </Children>
+        </ButtonWidget>
+      </Children>
+    </Widget>
+  </Window>
+</Prefab>
