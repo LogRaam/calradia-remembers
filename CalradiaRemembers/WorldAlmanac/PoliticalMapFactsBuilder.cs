@@ -44,7 +44,9 @@ namespace CalradiaRemembers.WorldAlmanac
                if (k == null) continue;
 
                Vec2 p = s.GetPosition2D;
-               anchors.Add(new PoliticalMapAnchor(p.X, p.Y, k.Color));
+               // The banner's primary colour, not Kingdom.Color: the latter is a light UI-text shade (reads pastel
+               // on the map), the former is the saturated colour players actually associate with the faction.
+               anchors.Add(new PoliticalMapAnchor(p.X, p.Y, k.PrimaryBannerColor));
             }
             catch (Exception ex)
             {
