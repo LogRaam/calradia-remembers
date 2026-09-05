@@ -211,6 +211,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("panel_siege_guard", Severity.Light, "Mechanical: the full-map panel crash guard. Asserts the Harmony prefix that skips SettlementVisualManager.OnTick (the vanilla siege-bombardment visual tick, which runs on the frame loop and access-violates natively under a pushed CR panel: four confirmed 0xC0000005 crashes) is actually attached to the LIVE engine method. It resolves the target BY NAME, so a game update that renamed the type/method would silently stop protecting; this fires if that ever happens. Also asserts that with no panel open nothing is suppressed (siege visuals tick normally). No LLM, mutates nothing", TestPanelSiegeVisualGuard),
          new SelfTest("political_map", Severity.Light, "Mechanical: the political-map gather + grid + rasterise (World Almanac minimap, Inc B+C). Gathers one anchor per kingdom-held settlement (position + Kingdom.Color) from the live campaign, builds the pure PoliticalMapPolicy colour grid, and rasterises it to PNG; asserts the grid is the requested size, some cells are painted (territory), and the PNG carries a real PNG signature. Catches a renamed settlement/terrain API that would silently yield an empty map, or a broken rasteriser. MANUAL when the world has no kingdom-held settlement. No LLM, mutates nothing", TestPoliticalMap),
+         new SelfTest("strategic_assessment", Severity.Light, "Mechanical: the Strategic Assessment gather (World Almanac). Builds the live PowerIndexResult, picks the advisor (highest-Tactics companion, else a warband soldier, else none when the player is alone), gathers the player's realm/rank/wars, and composes the OFFLINE factual summary; asserts the summary is non-empty and, when an advisor exists, the LLM prompt grounds on a real kingdom and forbids invention. The real async LLM counsel is Lane C (real LLM), not run here. No LLM, mutates nothing", TestStrategicAssessment),
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
@@ -6962,6 +6963,35 @@ namespace CalradiaRemembers.Diagnostics
       // against the live world and asserts it produced a real coloured map (right size, some territory painted),
       // catching a renamed settlement/terrain API that would silently yield an empty map. The pure Voronoi
       // assignment is unit-tested separately (PoliticalMapPolicyTests).
+      // World Almanac Strategic Assessment (Inc B, 2026-09-04): the engine gather that feeds the counsel. A dotnet
+      // test cannot read the live clan/party/wars, so this drives the REAL context builder + offline summary and
+      // asserts they produce a grounded result; the async LLM counsel itself is Lane C (real LLM), out of testall.
+      private static string TestStrategicAssessment(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("strategic_assessment");
+
+         var facts = WorldAlmanac.KingdomPowerFactsBuilder.Build();
+         CalradiaRemembers.Logic.WorldAlmanac.PowerIndexResult result = CalradiaRemembers.Logic.WorldAlmanac.PowerIndexPolicy.Compute(facts);
+         if (t.Skip(result.Ranked.Count == 0, "no kingdoms scored in this world")) return t.Line();
+
+         CalradiaRemembers.WorldAlmanac.StrategicAssessmentContext ctx = WorldAlmanac.StrategicAssessmentContextBuilder.Build(result);
+         string offline = CalradiaRemembers.Logic.WorldAlmanac.StrategicAssessmentSummary.Compose(result, ctx.Player);
+
+         string advisor = ctx.HasAdvisor ? $"{ctx.Advisor.Kind}:{ctx.Advisor.Tier}" : "none (alone)";
+         string realm = ctx.Player.HasRealm ? $"{ctx.Player.PlayerKingdomName} rank {ctx.Player.PlayerKingdomRank}" : "landless";
+         t.Note($"advisor={advisor}, player={realm}, wars={ctx.Player.AtWarWith.Count}");
+         t.Expect("offlineSummaryNonEmpty", !string.IsNullOrWhiteSpace(offline), true);
+
+         if (ctx.HasAdvisor)
+         {
+            string prompt = CalradiaRemembers.Logic.WorldAlmanac.StrategicAssessmentPromptBuilder.Build(result, ctx.Player, ctx.Advisor);
+            t.Expect("promptGroundedOnRealKingdom", prompt.Contains(result.Ranked[0].KingdomName), true);
+            t.Expect("promptForbidsInvention", prompt.Contains("never invent"), true);
+         }
+
+         return t.Line();
+      }
+
       private static string TestPoliticalMap(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("political_map");

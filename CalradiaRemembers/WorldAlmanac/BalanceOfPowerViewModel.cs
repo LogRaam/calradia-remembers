@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Logic.WorldAlmanac;
 using CalradiaRemembers.Portraits;
+using TaleWorlds.Core;
 using TaleWorlds.Library;
 
 #endregion
@@ -138,10 +139,50 @@ namespace CalradiaRemembers.WorldAlmanac
       [DataSourceProperty] public string TotalClans { get; }
       [DataSourceProperty] public string TotalWealth { get; }
 
-      // Placeholder until the persisted battle ledger lands (Strategic Assessment is LLM-written, cached).
-      [DataSourceProperty] public string StrategicAssessment => "The realms of Calradia hold their ground; no chronicler's assessment has been drawn up yet.";
+      // The companion strategist's counsel. Settable so the manager can drop in a "the council debates.." line at
+      // open and swap in the real assessment when the async LLM call lands (or set an offline summary directly when
+      // the player travels alone). Fires OnPropertyChanged so the open panel updates live.
+      private string _strategicAssessment = "";
+
+      [DataSourceProperty]
+      public string StrategicAssessment
+      {
+         get => _strategicAssessment;
+         set
+         {
+            if (value == _strategicAssessment) return;
+            _strategicAssessment = value ?? "";
+            OnPropertyChangedWithValue(_strategicAssessment);
+         }
+      }
 
       public void ExecuteClose() => OnCloseRequested?.Invoke();
+
+      // The four painted buttons along the bottom-left (Detailed View / Diplomacy / History / Rumors & Events). Each
+      // is a future screen; for now every one raises the same "Available Soon" popup, named per button so filling one
+      // in later is just replacing its body.
+      public void ExecuteDetailedView() => ShowComingSoon("Detailed View");
+      public void ExecuteDiplomacy() => ShowComingSoon("Diplomacy");
+      public void ExecuteHistory() => ShowComingSoon("History");
+      public void ExecuteRumors() => ShowComingSoon("Rumors & Events");
+
+      // A simple modal popup. Works over this pushed panel the same way the chat window's own inquiries do. Guarded so
+      // a popup failure can never take the panel down.
+      private static void ShowComingSoon(string feature)
+      {
+         try
+         {
+            InformationManager.ShowInquiry(new InquiryData(
+               feature, "Available Soon.",
+               true, false,
+               "OK", null,
+               () => { }, null), false);
+         }
+         catch (System.Exception ex)
+         {
+            ModLog.Error($"BalanceOfPower ShowComingSoon({feature}) threw {ex.GetType().Name}: {ex.Message}");
+         }
+      }
 
       private static string NameOf(IReadOnlyDictionary<string, KingdomPowerFacts> byId, string id)
          => id != null && byId.TryGetValue(id, out KingdomPowerFacts f) ? f.KingdomName : id ?? "(none)";
@@ -188,14 +229,23 @@ namespace CalradiaRemembers.WorldAlmanac
             BannerId = f.BannerId ?? "";
             BannerTextureProvider = f.BannerTextureProvider ?? "";
             BannerArgs = f.BannerArgs ?? "";
-            LeaderPortraitId = f.LeaderPortraitId ?? "";
-            LeaderPortraitTextureProvider = f.LeaderPortraitTextureProvider ?? "";
-            LeaderPortraitArgs = f.LeaderPortraitArgs ?? "";
-
-            // A player-dropped custom portrait (if any) replaces the 3D render, shown at the image's own aspect (the
-            // chat's recipe): fit the real pixel dimensions inside the portrait box so a non-square image is never
-            // stretched. Unknown dimensions fall back to a square, centred in the box.
+            // A player-dropped custom portrait (if any) REPLACES the 3D render. When one exists, the render fields
+            // are left EMPTY so the tableau widget has no character to draw at all: that is what actually stops the
+            // two portraits overlapping (the tableau is a render-target widget that kept drawing even with its
+            // IsVisible bound false). Its aspect is fitted inside the portrait box so a non-square image is never
+            // stretched; unknown dimensions fall back to a square.
             LeaderCustomPortraitPath = f.LeaderCustomPortraitPath ?? "";
+            HasCustomLeaderPortrait = !string.IsNullOrEmpty(LeaderCustomPortraitPath);
+
+            if (!HasCustomLeaderPortrait)
+            {
+               LeaderPortraitId = f.LeaderPortraitId ?? "";
+               LeaderPortraitTextureProvider = f.LeaderPortraitTextureProvider ?? "";
+               LeaderPortraitArgs = f.LeaderPortraitArgs ?? "";
+            }
+
+            ShowLeaderTableau = !string.IsNullOrEmpty(LeaderPortraitId) && !HasCustomLeaderPortrait;
+
             if (HasCustomLeaderPortrait
                 && RuntimePortraitFactory.TryGetDimensions(LeaderCustomPortraitPath, out int pw, out int ph)
                 && pw > 0 && ph > 0)
@@ -248,11 +298,11 @@ namespace CalradiaRemembers.WorldAlmanac
       /// <summary>Full path to the ruler's custom portrait, or empty; when set it replaces the 3D render.</summary>
       [DataSourceProperty] public string LeaderCustomPortraitPath { get; } = "";
 
-      /// <summary>True when a custom portrait was found, so the card shows the image instead of the render.</summary>
-      [DataSourceProperty] public bool HasCustomLeaderPortrait => !string.IsNullOrEmpty(LeaderCustomPortraitPath);
+      /// <summary>True when a custom portrait was found, so the card shows the image instead of the render (set in the ctor).</summary>
+      [DataSourceProperty] public bool HasCustomLeaderPortrait { get; }
 
-      /// <summary>Show the 3D render only when there is one AND no custom portrait overrides it (mirrors the chat's ShowVanillaPortrait).</summary>
-      [DataSourceProperty] public bool ShowLeaderTableau => HasLeaderPortrait && !HasCustomLeaderPortrait;
+      /// <summary>Show the 3D render only when there is one AND no custom portrait overrides it, so the two never overlap (set in the ctor; mirrors the chat's ShowVanillaPortrait).</summary>
+      [DataSourceProperty] public bool ShowLeaderTableau { get; }
 
       // The custom portrait's on-screen size, fitted to PortraitBox* at the image's own aspect so it is never
       // stretched (defaults to a square when the image dimensions are unknown).

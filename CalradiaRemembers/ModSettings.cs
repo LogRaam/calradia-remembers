@@ -101,6 +101,9 @@ namespace CalradiaRemembers
       /// <summary>When ON (default), the player can convene a council from a settlement menu and the campaign-map button; OFF hides those entry points (console still works).</summary>
       public static bool EnableCouncil => CrSettings.Instance?.EnableCouncil ?? true;
 
+      /// <summary>When ON (default), the Balance of Power Strategic Assessment is an AI counsel from a companion/soldier; OFF (or alone) uses an offline summary.</summary>
+      public static bool EnableStrategicAssessment => CrSettings.Instance?.EnableStrategicAssessment ?? true;
+
       /// <summary>
       ///   Whether an idle other-clan lord may ride IN the player's own party as a retainer (ride_with_me). Read
       ///   live from the MCM menu ("Lords can ride in your party"); ON by default (the party-screen/UI feel was

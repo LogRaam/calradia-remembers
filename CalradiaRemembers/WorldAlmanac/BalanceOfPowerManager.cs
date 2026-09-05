@@ -36,7 +36,12 @@ namespace CalradiaRemembers.WorldAlmanac
             PowerIndexResult result = PowerIndexPolicy.Compute(facts);
             ModLog.Info($"Balance of Power: {result.Ranked.Count} kingdoms scored.");
 
-            return new BalanceOfPowerViewModel(result, facts, InGameDateText(), BuildPoliticalMapPath()) {OnCloseRequested = close};
+            var vm = new BalanceOfPowerViewModel(result, facts, InGameDateText(), BuildPoliticalMapPath()) {OnCloseRequested = close};
+            // Fills the Strategic Assessment: a companion/soldier's async LLM counsel, or an offline summary when the
+            // player is alone or the feature is off. Sets a "the council debates.." line now and swaps in the counsel.
+            StrategicAssessmentService.Populate(vm, result);
+
+            return vm;
          });
 
       public static bool IsOpen => Host.IsOpen;
@@ -69,7 +74,10 @@ namespace CalradiaRemembers.WorldAlmanac
             if (png == null) return "";
 
             uint signature = PoliticalMapImageRenderer.ComputeSignature(grid);
-            string path = Path.Combine(Path.GetTempPath(), "CalradiaRemembers", $"politicalmap_{signature:x8}.png");
+            // The renderer version rides in the filename: a restyled map must not be masked by a stale PNG an older
+            // renderer wrote for the same world state (the signature only hashes the grid, not the paint).
+            string path = Path.Combine(Path.GetTempPath(), "CalradiaRemembers",
+               $"politicalmap_v{PoliticalMapImageRenderer.RenderVersion}_{signature:x8}.png");
 
             if (!File.Exists(path))
             {

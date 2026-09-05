@@ -127,6 +127,14 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool EnableCouncil { get; set; } = true;
 
+      [SettingPropertyBool("Strategic Assessment (AI)", RequireRestart = false, Order = 6,
+         HintText = "On (default): the Balance of Power panel's Strategic Assessment is written by your highest-Tactics " +
+                    "companion (or, with no companion, a soldier of your warband), an AI counsel on how the realms stand " +
+                    "and what to do; the higher their Tactics, the sharper the advice. Off, or when you travel alone: a " +
+                    "plain offline summary of the standings, with no AI call.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool EnableStrategicAssessment { get; set; } = true;
+
       [SettingPropertyDropdown("Council Voices", RequireRestart = false, Order = 4,
          HintText = "Default for a NEWLY opened council (flip it anytime with the button in the council window " +
                     "itself). One call for the table keeps the scene cohesive, everyone reacts inside the same " +
