@@ -22,8 +22,6 @@ namespace CalradiaRemembers.WorldAlmanac
       // is a UIExtenderEx mixin attribute, not required on a plain ViewModel.
       public void ExecuteOpenBalanceOfPower()
       {
-         ModLog.Info("[BOP-CLAN] button clicked (overlay movie).");
-
          // Close the Clan screen FIRST, then open BoP over the map. Opening BoP directly over the clan screen crashed
          // natively in the map-bar global layer's panel-switching input (ArgumentOutOfRangeException): pushing a screen
          // while the clan game state is active leaves the still-ticking global map bar indexing a stale input state.
@@ -41,7 +39,6 @@ namespace CalradiaRemembers.WorldAlmanac
          try
          {
             BalanceOfPowerManager.Open();
-            ModLog.Info("[BOP-CLAN] Open() returned (IsOpen=" + BalanceOfPowerManager.IsOpen + ").");
          }
          catch (Exception ex)
          {

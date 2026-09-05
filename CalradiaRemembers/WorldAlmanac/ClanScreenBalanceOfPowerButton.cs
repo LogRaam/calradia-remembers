@@ -46,7 +46,6 @@ namespace CalradiaRemembers.WorldAlmanac
             if (layer.GetMovieIdentifier(OverlayMovie) != null) return;
 
             layer.LoadMovie(OverlayMovie, new ClanBalanceOfPowerButtonVM());
-            ModLog.Info("[BOP-CLAN] overlay button movie loaded on the Clan screen.");
          }
          catch (Exception ex)
          {
