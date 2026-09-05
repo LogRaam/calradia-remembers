@@ -135,6 +135,10 @@
       <HintPath>$(BannerlordModulesDir)\SandBox\bin\Win64_Shipping_Client\SandBox.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="SandBox.GauntletUI">
+      <HintPath>$(BannerlordModulesDir)\SandBox\bin\Win64_Shipping_Client\SandBox.GauntletUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="TaleWorlds.ObjectSystem">
       <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.ObjectSystem.dll</HintPath>
       <Private>false</Private>
