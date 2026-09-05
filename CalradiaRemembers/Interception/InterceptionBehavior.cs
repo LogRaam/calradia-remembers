@@ -373,6 +373,7 @@ namespace CalradiaRemembers.Interception
       {
          if (lord?.PartyBelongedTo == null || MobileParty.MainParty == null) return false;
          if (_activePursuerId != null) return false; // one interception at a time, same as the organic daily roll
+         if (!CanRideOutToIntercept(lord.PartyBelongedTo)) return false; // in an army or a fight: cannot break off to chase
 
          var today = (int) CampaignTime.Now.ToDays;
          if (_cooldown.TryGetValue(lord.StringId, out int last) && today - last < CooldownDays) return false;
@@ -1161,6 +1162,7 @@ namespace CalradiaRemembers.Interception
             if (lord is not {IsLord: true} || lord == Hero.MainHero) continue;
             if (p == main || p.IsBandit || p.MapFaction == null) continue;
             if (PlayerSharesArmyOrAttached(p)) continue; // player leads an army holding this party, or is attached to it
+            if (!CanRideOutToIntercept(p)) continue;     // committed to an army or locked in a fight: cannot break off to chase
             if (p.GetPosition2D.Distance(playerPos) > InterceptRange) continue;
 
             scanned++;
@@ -1225,6 +1227,17 @@ namespace CalradiaRemembers.Interception
 
          return main.AttachedTo == party || party.AttachedTo == main;
       }
+
+      /// <summary>
+      ///   True only when <paramref name="party" /> is actually FREE to break off and ride a personal road chase of
+      ///   the player. A party committed to an army (a member follows the army; even the leader is bound to keep it
+      ///   together) or already locked in a battle cannot, so choosing one only spawns a pursuit that can never
+      ///   connect and, worse, a heavy, consequence-free "missed meeting" LLM letter (player report 2026-09-05:
+      ///   lords gathering into an army by the player kept "riding out" and writing such letters day after day).
+      ///   Checked BEFORE a pursuit begins, so the useless work is never started rather than abandoned later.
+      /// </summary>
+      private static bool CanRideOutToIntercept(MobileParty party)
+         => party != null && party.Army == null && party.MapEvent == null;
 
       #endregion
    }
