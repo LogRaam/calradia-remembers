@@ -27,6 +27,9 @@ namespace CalradiaRemembers.WorldAlmanac
       /// <summary>The companion Hero voicing the counsel (for their portrait), or null for a soldier / alone.</summary>
       public Hero AdvisorHero { get; set; }
 
+      /// <summary>The representative troop voicing the counsel (its portrait + class name stand in for the anonymous soldier), or null for a companion / alone.</summary>
+      public CharacterObject AdvisorCharacter { get; set; }
+
       /// <summary>True when an advisor (companion or soldier) will voice an LLM counsel; false when alone (offline summary).</summary>
       public bool HasAdvisor => Advisor != null;
 
@@ -58,7 +61,9 @@ namespace CalradiaRemembers.WorldAlmanac
             }
             else
             {
-               ctx.Advisor = PickSoldierAdvisor(); // no hero portrait: a soldier is anonymous
+               CharacterObject troop = PickBestTroop();
+               ctx.AdvisorCharacter = troop; // the anonymous soldier's face + class name (its counsel voice stays nameless)
+               ctx.Advisor = BuildSoldierAdvisor(troop);
             }
          }
          catch (Exception ex)
@@ -95,26 +100,31 @@ namespace CalradiaRemembers.WorldAlmanac
          return best;
       }
 
-      // No companion, but the party carries soldiers: an anonymous veteran stands in, their keenness scaled modestly
-      // by the best troop tier. Null when the player rides with no soldiers at all (then the caller goes offline).
-      private static StrategicAdvisor PickSoldierAdvisor()
+      // The highest-tier ordinary troop in the player's party, whose face and class name stand in for the anonymous
+      // soldier advisor. Null when the player rides with no soldiers at all (then the caller goes offline).
+      private static CharacterObject PickBestTroop()
       {
          MobileParty party = MobileParty.MainParty;
          if (party?.MemberRoster == null) return null;
 
-         var bestTier = 0;
-         var hasTroop = false;
+         CharacterObject best = null;
          foreach (TaleWorlds.CampaignSystem.Roster.TroopRosterElement e in party.MemberRoster.GetTroopRoster())
          {
             if (e.Character == null || e.Character.IsHero || e.Number <= 0) continue;
-            hasTroop = true;
-            if (e.Character.Tier > bestTier) bestTier = e.Character.Tier;
+            if (best == null || e.Character.Tier > best.Tier) best = e.Character;
          }
 
-         if (!hasTroop) return null; // the player travels alone
+         return best;
+      }
 
-         int skill = Math.Min(bestTier * SoldierSkillPerTier, SoldierSkillCap);
-         string culture = Hero.MainHero?.Culture?.Name?.ToString() ?? "";
+      // The anonymous veteran who stands in when no companion is at hand: their keenness scaled modestly by the troop
+      // tier. Name stays blank so the counsel voice reads as a nameless soldier; the panel shows the class + portrait.
+      private static StrategicAdvisor BuildSoldierAdvisor(CharacterObject troop)
+      {
+         if (troop == null) return null; // the player travels alone
+
+         int skill = Math.Min(troop.Tier * SoldierSkillPerTier, SoldierSkillCap);
+         string culture = troop.Culture?.Name?.ToString() ?? Hero.MainHero?.Culture?.Name?.ToString() ?? "";
 
          return new StrategicAdvisor("", culture, skill, AdvisorKind.CommonSoldier);
       }

@@ -59,9 +59,9 @@ namespace CalradiaRemembers.WorldAlmanac
                return;
             }
 
-            // The counsel is voiced by a real companion: show their face beside it (the chat's recipe). A soldier is
-            // anonymous and the alone path never gets here, so both leave the block hidden.
-            ApplyAdvisorPortrait(vm, ctx.AdvisorHero);
+            // Show the speaker's face beside the counsel (the chat's recipe): a companion's, or the party's veteran
+            // troop for the anonymous soldier. The alone path never reaches here, so it leaves the block hidden.
+            ApplyAdvisorPortrait(vm, ctx);
 
             string signature = Signature(result, ctx);
             if (Cache.TryGetValue(signature, out string cached) && !string.IsNullOrWhiteSpace(cached))
@@ -87,20 +87,43 @@ namespace CalradiaRemembers.WorldAlmanac
       private const float AdvisorBoxWidth = 120f;
       private const float AdvisorBoxHeight = 120f;
 
-      // Resolves the companion's portrait the same way the chat and the leader card do: a player-dropped custom image
-      // wins over the 3D render (aspect-preserved), else the live character tableau. Defensive: any failure just
-      // leaves the block hidden, the counsel still reads. A null hero (soldier / alone) shows no portrait.
-      private static void ApplyAdvisorPortrait(BalanceOfPowerViewModel vm, Hero advisor)
+      // Resolves the speaker's portrait the same way the chat and the leader card do. A companion: a player-dropped
+      // custom image wins over the 3D render (aspect-preserved), else the live character tableau. A soldier: the
+      // troop's render + its class name, no custom lookup (a troop type is not a named hero). Defensive: any failure
+      // just leaves the block hidden, the counsel still reads. Alone shows no portrait.
+      private static void ApplyAdvisorPortrait(BalanceOfPowerViewModel vm, StrategicAssessmentContext ctx)
       {
-         if (advisor == null) return;
+         CharacterObject character;
+         string name;
+         string customStringId = null, customName = null;
+
+         if (ctx.AdvisorHero != null)
+         {
+            character = ctx.AdvisorHero.CharacterObject;
+            name = ctx.AdvisorHero.Name?.ToString() ?? "";
+            customStringId = ctx.AdvisorHero.StringId;
+            customName = ctx.AdvisorHero.Name?.ToString();
+         }
+         else if (ctx.AdvisorCharacter != null)
+         {
+            character = ctx.AdvisorCharacter;
+            name = ctx.AdvisorCharacter.Name?.ToString() ?? "";
+         }
+         else
+         {
+            return; // alone: no speaker, no portrait
+         }
 
          try
          {
-            PortraitData portrait = PortraitTextureGuard.Create(advisor.CharacterObject);
+            PortraitData portrait = PortraitTextureGuard.Create(character);
 
             string customPath = "";
-            try { customPath = ChatPortraitResolver.ResolveForHero(advisor.StringId, advisor.Name?.ToString()) ?? ""; }
-            catch (Exception ex) { ModLog.Error($"[STRAT_ASSESS] advisor custom portrait lookup failed: {ex.GetType().Name}: {ex.Message}"); }
+            if (customStringId != null)
+            {
+               try { customPath = ChatPortraitResolver.ResolveForHero(customStringId, customName) ?? ""; }
+               catch (Exception ex) { ModLog.Error($"[STRAT_ASSESS] advisor custom portrait lookup failed: {ex.GetType().Name}: {ex.Message}"); }
+            }
 
             float w = AdvisorBoxHeight, h = AdvisorBoxHeight;
             if (!string.IsNullOrEmpty(customPath)
@@ -112,7 +135,7 @@ namespace CalradiaRemembers.WorldAlmanac
                h = ph * scale;
             }
 
-            vm.ApplyAdvisorPortrait(advisor.Name?.ToString() ?? "", portrait.Id, portrait.TextureProviderName, portrait.AdditionalArgs, customPath, w, h);
+            vm.ApplyAdvisorPortrait(name, portrait.Id, portrait.TextureProviderName, portrait.AdditionalArgs, customPath, w, h);
          }
          catch (Exception ex)
          {
