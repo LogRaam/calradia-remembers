@@ -50,6 +50,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
+using TaleWorlds.MountAndBlade;
 
 #endregion
 
@@ -420,6 +421,18 @@ namespace CalradiaRemembers.Missions
          // into the location's encounter). A private word is a social pause — it waits for a peaceful visit.
          // Gates the fief-audience pass too: it only ever runs from here.
          if (!EntryIsPeaceful(settlement)) return;
+
+         // Timing guard (player report, 2026-09-05): entering a settlement can coincide with a VANILLA conversation
+         // (some settlements, and total-conversion mods like TOR, auto-open one on entry). Raising our inquiry then
+         // simply queues it behind the vanilla dialogue, so it surfaces seconds later and reads as "nothing happened
+         // when I responded". Skip the offer this entry while a conversation or mission is active; the global
+         // cooldown is left untouched, so a companion (or a fief NPC) just asks on the next clean entry.
+         if (Hero.OneToOneConversationHero != null || Mission.Current != null)
+         {
+            ModLog.Info($"[AUDIENCE_TOPIC] entry into {settlement.Name} coincided with a conversation/mission, deferring to a clean entry.");
+
+            return;
+         }
 
          if (TryOfferAudience()) return; // one popup per entry: a companion audience already claimed it
 
