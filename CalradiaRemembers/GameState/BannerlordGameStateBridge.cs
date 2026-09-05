@@ -4552,11 +4552,11 @@ namespace CalradiaRemembers.GameState
 
          int delta = RelationGate.Resolve(
             proposed, context.Profile, context.EmittedEvent, CampaignTime.Now.ToHours, captive,
-            intimacyAllowed, ModSettings.RelationWarmth);
+            intimacyAllowed, ModSettings.RelationWarmth, ModSettings.RegardDecayDays);
 
          if (delta == 0)
          {
-            ModLog.Info($"[ACTION] change_relation: proposed {proposed:+#;-#;0} gated to 0 (cooldown/clamp).");
+            ModLog.Info($"[ACTION] change_relation: proposed {proposed:+#;-#;0} gated to 0 (progressive-regard: banked a warm moment, not enough for a point yet).");
 
             return null;
          }

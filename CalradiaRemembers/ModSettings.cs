@@ -204,6 +204,23 @@ namespace CalradiaRemembers
          }
       }
 
+      /// <summary>
+      ///   Progressive-regard model: in-game days for one step of a character's warmth resistance to relax (see
+      ///   <see cref="RelationGate" />). Defaults to the shipped 7 when MCM has not loaded; clamped to a sane band so
+      ///   a hand-edited config cannot disable or absurdly stretch it.
+      /// </summary>
+      public static int RegardDecayDays
+      {
+         get
+         {
+            int v = CrSettings.Instance?.RegardDecayDays ?? (int) RelationGate.DefaultDecayDays;
+            if (v < 1) v = 1;
+            if (v > 30) v = 30;
+
+            return v;
+         }
+      }
+
 
       /// <summary>
       ///   How large the chat DIALOGUE TEXT is drawn, independently of the window size: since the window scale

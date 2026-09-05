@@ -149,15 +149,16 @@ namespace CalradiaRemembers
          double now = CampaignTime.Now.ToHours;
          bool captive = behavior.GameStateBridge.GetPlayerStatus(hero) == PlayerStatusVsNpc.NpcIsCaptive;
 
-         double cooldownHours = RelationGate.CooldownHoursFor(ModSettings.RelationWarmth);
-         string lastGain = profile.LastRelationGainHour.HasValue
-            ? $"{profile.LastRelationGainHour.Value:F1}h"
-            : "never";
-         string cooldown = profile.LastRelationGainHour.HasValue
-            ? $"{Math.Max(0.0, cooldownHours - (now - profile.LastRelationGainHour.Value)):F1}h remaining"
-            : "ready";
+         // Progressive-regard state (2026-09-05): the next +1 of personal regard costs (tier + 1) warm moments, and
+         // each tier relaxes by one every RegardDecayDays in-game days. Show the live tier, moments banked, and how
+         // many more moments the next point needs.
+         int required = RelationGate.MomentsRequiredForTier(profile.RegardResistanceTier);
+         int remaining = Math.Max(0, required - profile.RegardWarmthAccrued);
 
-         return $"{hero.Name}: relation={behavior.GameStateBridge.GetPlayerRelation(hero)}, " + $"captive={captive}, pacing={ModSettings.RelationWarmth}, lastGain={lastGain}, cooldown={cooldown} (now {now:F1}h).";
+         return $"{hero.Name}: relation={behavior.GameStateBridge.GetPlayerRelation(hero)}, " +
+                $"captive={captive}, pacing={ModSettings.RelationWarmth}, regard-tier={profile.RegardResistanceTier} " +
+                $"(next +1 needs {required} warm moment(s), {profile.RegardWarmthAccrued} banked, {remaining} to go), " +
+                $"decay={ModSettings.RegardDecayDays}d/step (now {now:F1}h).";
       }
 
       /// <summary>

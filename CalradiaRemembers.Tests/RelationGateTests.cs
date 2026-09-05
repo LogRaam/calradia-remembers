@@ -1,13 +1,16 @@
-// Code written by Gabriel Mailhot, 20/06/2026.
+// Code written by Gabriel Mailhot, 20/06/2026. Rewritten 05/09/2026 for the progressive-regard model.
 // This is CalradiaRemembers.Logic's core anti-exploit rule: the LLM proposes a relation delta after every
 // exchange, and RelationGate is the only thing standing between that proposal and the number
-// BannerlordGameStateBridge actually applies to Hero relation. Get the caps or cooldown wrong and players can
-// talk their way to max relation in a single sitting, the exact failure this mod was built to avoid in the
-// genre. The knobs it pins: routine warmth capped to +1 per cooldown window (widened or removed by the
-// RelationWarmth MCM setting), a self-evident intimacy beat allowed to bypass the ROUTINE cooldown for a bigger,
-// one-off gain (but only when the caller vouches it is legitimate AND its own dedicated cooldown has elapsed,
-// regard audit C1), and negatives left uncapped except for a floor (deeper still when the NPC is a verified
-// captive). These tests are the only protection this silently-breaking rule has.
+// BannerlordGameStateBridge actually applies to Hero relation. Get it wrong and players can talk their way to max
+// relation, the exact failure this mod exists to avoid.
+//
+// The model (player request 2026-09-05, replacing the flat one-gain-per-8h routine throttle): earning a point of
+// personal regard RAISES the bar. Tier 0 grants a +1 for ONE genuine warm moment; tier 1 needs TWO moments; tier 2
+// needs THREE; and so on. Each tier relaxes by one only after RegardDecayDays in-game days, so a long real
+// conversation can earn several points (its moments accrue while game time is frozen), a drive-by earns one then
+// hits the wall, and the wall cannot be farmed by skipping 8 hours and returning. Intimacy stays a separate,
+// guarded +3 (its own 24h cooldown); negatives stay uncapped except a floor, deeper for a verified captive. These
+// tests are the only protection this silently-breaking rule has.
 
 #region
 
@@ -23,218 +26,223 @@ namespace CalradiaRemembers.Tests
    [TestFixture]
    public sealed class RelationGateTests
    {
-      // The core exploit this whole gate exists to close: an LLM asked to play along can propose double-digit
-      // gains from ordinary flattery. Capping to +1 (not merely "less than proposed") is what keeps trust
-      // "gained slowly" instead of a single warm exchange buying real regard.
+      private const double Day = 24.0;
+      private const double DecayDays = 7.0; // the shipped default per-tier decay period
+
+      // ── The magnitude clamp (unchanged pillar) ──────────────────────────
+
+      // The exploit the gate exists to close: an LLM asked to play along proposes double-digit gains from ordinary
+      // flattery. A routine grant is ALWAYS +1 (never the proposed size), so trust is gained slowly whatever the
+      // model asks for. The first warm moment on a fresh NPC lands it and raises the bar to tier 1.
       [Test]
-      public void GIVEN_a_generous_positive_proposal_WHEN_resolving_THEN_a_routine_gain_is_capped_to_one()
+      public void GIVEN_a_generous_positive_proposal_on_a_fresh_npc_WHEN_resolving_THEN_a_routine_gain_is_capped_to_one_and_the_tier_rises()
       {
-         //Arrange: the LLM asks for +10; routine warmth never grants more than +1.
          NpcProfile p = Profile();
 
-         //Act
          int granted = RelationGate.Resolve(10, p, null, 100.0, false, false);
 
-         //Assert
-         granted.Should().Be(1);
-         p.LastRelationGainHour.Should().Be(100.0, "a granted gain stamps the cooldown clock");
+         granted.Should().Be(1, "a routine gain is +1 no matter how large the proposal");
+         p.RegardResistanceTier.Should().Be(1, "granting a point raises the bar for the next one");
+         p.RegardWarmthAccrued.Should().Be(0);
+         p.RegardResistanceStampHour.Should().Be(100.0, "the tier's decay window is anchored at the moment it rose");
       }
 
-      // Negatives are the mirror design pillar: trust lost quickly means no rate limiting and no discount, an
-      // insult costs its full value the instant it happens, unlike a compliment which is throttled and clamped.
+      // ── The progression itself (the whole point of the redesign) ─────────
+
+      // A/B/C, evaluated within a single conversation (game time is frozen, so nothing decays mid-talk): tier 0 takes
+      // one moment, tier 1 two, tier 2 three. A long, genuinely warm sitting earns several points; a shallow one
+      // earns one and stalls. Without this rising cost, +1-per-message would let a patient player climb without limit.
       [Test]
-      public void GIVEN_a_moderate_insult_WHEN_resolving_THEN_the_full_negative_applies_with_no_cooldown()
+      public void GIVEN_repeated_warm_moments_in_one_conversation_WHEN_resolving_THEN_each_tier_costs_one_more_moment()
       {
-         //Arrange: negatives are never rate-limited.
-         NpcProfile p = Profile(100.0);
+         NpcProfile p = Profile();
 
-         //Act/Assert
-         RelationGate.Resolve(-7, p, null, 100.5, false, false).Should().Be(-7);
+         RelationGate.Resolve(1, p, null, 100.0, false, false).Should().Be(1, "tier 0: one moment lands a point");
+         RelationGate.Resolve(1, p, null, 100.0, false, false).Should().Be(0, "tier 1: the first of two moments only banks");
+         p.RegardWarmthAccrued.Should().Be(1);
+         RelationGate.Resolve(1, p, null, 100.0, false, false).Should().Be(1, "tier 1: the second moment lands the point");
+         p.RegardResistanceTier.Should().Be(2);
+         RelationGate.Resolve(1, p, null, 100.0, false, false).Should().Be(0, "tier 2: needs three");
+         RelationGate.Resolve(1, p, null, 100.0, false, false).Should().Be(0);
+         RelationGate.Resolve(1, p, null, 100.0, false, false).Should().Be(1, "tier 2: the third moment lands it");
+         p.RegardResistanceTier.Should().Be(3);
       }
 
-      // Fail-safe path: if the profile lookup ever misses (unknown or not-yet-tracked NPC), the gate must
-      // return 0 rather than throw or let an unclamped delta through, since ExecuteChangeRelation calls this
-      // on every single proposal.
+      // The exposed curve helper the UI and the above rely on: tier N demands N+1 moments, and a nonsensical
+      // negative tier never asks for fewer than one.
+      [Test]
+      public void GIVEN_a_tier_WHEN_asking_the_moments_required_THEN_it_is_that_tier_plus_one()
+      {
+         RelationGate.MomentsRequiredForTier(0).Should().Be(1);
+         RelationGate.MomentsRequiredForTier(1).Should().Be(2);
+         RelationGate.MomentsRequiredForTier(4).Should().Be(5);
+         RelationGate.MomentsRequiredForTier(-3).Should().Be(1);
+      }
+
+      // ── The anti-farm guarantee ──────────────────────────────────────────
+
+      // The exact cheese the redesign kills: earn a point, leave, skip a few hours, come back for another. At tier 1
+      // the bar is TWO moments and it has barely relaxed after 8 hours, so the drive-by return banks a moment and
+      // grants nothing. Time-skipping no longer prints regard.
+      [Test]
+      public void GIVEN_a_single_moment_a_few_hours_after_the_tier_rose_WHEN_resolving_THEN_it_is_still_gated()
+      {
+         NpcProfile p = Profile(tier: 1, stampHour: 100.0);
+
+         RelationGate.Resolve(1, p, null, 108.0, false, false).Should().Be(0, "8h is nowhere near a decay step");
+         p.RegardResistanceTier.Should().Be(1, "the tier did not relax");
+      }
+
+      // ── The decay (what makes neglected warmth cool) ─────────────────────
+
+      // Left alone long enough, a bar relaxes: two full decay windows walk a tier-2 resistance all the way back to 0,
+      // so a returning player's first warm moment lands a point again (and re-raises the bar to 1). This is what keeps
+      // the wall from being permanent, and what "warmth settles over time" means mechanically.
+      [Test]
+      public void GIVEN_two_full_decay_windows_of_absence_WHEN_resolving_THEN_the_resistance_has_cooled_and_a_moment_lands()
+      {
+         NpcProfile p = Profile(tier: 2, stampHour: 100.0);
+
+         int granted = RelationGate.Resolve(1, p, null, 100.0 + 2 * DecayDays * Day, false, false);
+
+         granted.Should().Be(1, "the bar decayed to 0, so one moment suffices again");
+         p.RegardResistanceTier.Should().Be(1, "and the fresh point raised it back to 1");
+      }
+
+      // Partial time is not enough: just under one decay window later, the tier is unchanged, so the moment still
+      // banks. Pins that decay is measured in whole windows, not a smooth trickle that would soften the anti-farm.
+      [Test]
+      public void GIVEN_almost_but_not_quite_a_decay_window_WHEN_resolving_THEN_the_tier_has_not_relaxed_yet()
+      {
+         NpcProfile p = Profile(tier: 1, stampHour: 100.0);
+
+         RelationGate.Resolve(1, p, null, 100.0 + (DecayDays * Day - 1.0), false, false).Should().Be(0);
+         p.RegardResistanceTier.Should().Be(1);
+      }
+
+      // The player's dial, at its extreme: a decay of 0 days DISABLES cooling (a deliberate "make bonds permanent"
+      // choice), so however long they wait, a tier-1 bar still demands two moments. Guards the windowHours<=0 branch.
+      [Test]
+      public void GIVEN_decay_disabled_WHEN_resolving_far_later_THEN_the_tier_never_relaxes()
+      {
+         NpcProfile p = Profile(tier: 1, stampHour: 100.0);
+
+         RelationGate.Resolve(1, p, null, 100.0 + 10000.0, false, false, RelationWarmth.Normal, 0.0).Should().Be(0);
+         p.RegardResistanceTier.Should().Be(1);
+      }
+
+      // ── The unchanged pillars ────────────────────────────────────────────
+
+      // Negatives are the mirror pillar: trust lost quickly, so no throttle and no discount, an insult costs its full
+      // value the instant it happens, unlike a compliment which must clear the rising bar.
+      [Test]
+      public void GIVEN_a_moderate_insult_WHEN_resolving_THEN_the_full_negative_applies_immediately()
+         => RelationGate.Resolve(-7, Profile(), null, 100.5, false, false).Should().Be(-7);
+
+      // Fail-safe: an unknown/not-yet-tracked NPC (null profile) must return 0, never throw, since this runs on every
+      // single proposal.
       [Test]
       public void GIVEN_a_null_profile_WHEN_resolving_THEN_nothing_moves()
-      {
-         //Act/Assert: fail safe rather than throw.
-         RelationGate.Resolve(5, null, null, 100.0, false, false).Should().Be(0);
-      }
+         => RelationGate.Resolve(5, null, null, 100.0, false, false).Should().Be(0);
 
-      // Confirms the cooldown is a WINDOW, not a permanent block: once 8h+ have passed, warmth is allowed to
-      // register again, so an NPC does not cap out at +1 forever after a single early compliment.
+      // A zero proposal is a no-op: it must not accrue a moment or move the tier, or an empty exchange would nudge
+      // the progression on its own.
       [Test]
-      public void GIVEN_a_routine_gain_after_the_cooldown_window_WHEN_resolving_THEN_it_lands()
+      public void GIVEN_a_zero_delta_WHEN_resolving_THEN_nothing_moves_and_no_moment_accrues()
       {
-         //Arrange: 9h after the last gain, past the 8h Normal window.
-         NpcProfile p = Profile(100.0);
+         NpcProfile p = Profile();
 
-         //Act/Assert
-         RelationGate.Resolve(1, p, null, 109.0, false, false).Should().Be(1);
+         RelationGate.Resolve(0, p, null, 100.0, false, false).Should().Be(0);
+         p.RegardWarmthAccrued.Should().Be(0);
       }
 
-      // The throttle at the heart of the exploit fix: without it, a proposer could still get +1 every single
-      // message and climb steadily, just slower. Gating repeat gains to 0 inside the window is what makes
-      // "slowly" mean hours of game time, not seconds of chat.
+      // The ordinary floor at -15: one ugly exchange can sour things badly but not annihilate the relation; the
+      // deeper collapse is reserved for a verified captive.
       [Test]
-      public void GIVEN_a_routine_gain_within_the_cooldown_window_WHEN_resolving_THEN_it_is_gated_to_zero()
-      {
-         //Arrange: last gain at hour 100; another routine gain 3h later is still inside the 8h window.
-         NpcProfile p = Profile(100.0);
+      public void GIVEN_a_savage_insult_in_ordinary_conversation_WHEN_resolving_THEN_it_stops_at_the_conversational_floor()
+         => RelationGate.Resolve(-40, Profile(), null, 100.0, false, false).Should().Be(-15);
 
-         //Act/Assert
-         RelationGate.Resolve(1, p, null, 103.0, false, false).Should().Be(0);
-      }
-
-      // Pins the ordinary floor at -15: a single ugly exchange can sour things badly but not annihilate the
-      // relation outright, that deeper collapse is reserved for a verified extreme (see the captive-floor
-      // tests below).
+      // The same cruelty lands in full against a captive: the deeper floor is gated on the ENGINE's captive status,
+      // never on anything the LLM narrates.
       [Test]
-      public void GIVEN_a_savage_insult_in_ordinary_conversation_WHEN_resolving_THEN_it_is_bounded_at_the_conversational_floor()
-      {
-         //Arrange: a -40 proposal cannot exceed the -15 conversational floor when the NPC is free.
-         //Act/Assert
-         RelationGate.Resolve(-40, Profile(), null, 100.0, false, false).Should().Be(-15);
-      }
+      public void GIVEN_the_same_cruelty_toward_a_captive_WHEN_resolving_THEN_the_deeper_captive_floor_is_unlocked()
+         => RelationGate.Resolve(-40, Profile(), null, 100.0, true, false).Should().Be(-40);
 
-      // Guards the early return: a zero proposal must not stamp LastRelationGainHour, or a no-op exchange
-      // would needlessly start the cooldown clock and block the NPC's next real gain.
-      [Test]
-      public void GIVEN_a_zero_delta_WHEN_resolving_THEN_nothing_moves()
-      {
-         //Act/Assert
-         RelationGate.Resolve(0, Profile(), null, 100.0, false, false).Should().Be(0);
-      }
-
-      // Even the widened captive floor has a ceiling on cruelty: a wild -500 proposal must still stop at -100,
-      // not pass through unclamped, or the LLM's arbitrary magnitude would leak straight into the relation
-      // number.
+      // Even the captive floor caps a wild proposal at -100 rather than passing the raw magnitude through.
       [Test]
       public void GIVEN_an_extreme_proposal_against_a_captive_WHEN_resolving_THEN_it_still_stops_at_the_captive_floor()
-      {
-         //Act/Assert
-         RelationGate.Resolve(-500, Profile(), null, 100.0, true, false).Should().Be(-100);
-      }
+         => RelationGate.Resolve(-500, Profile(), null, 100.0, true, false).Should().Be(-100);
 
-      // The one deliberate exception, now GUARDED (regard audit C1): an intimacy beat the caller has vouched as
-      // legitimate (intimacyAllowed) bypasses the routine cooldown and lands a bigger +3, even seconds after a
-      // routine gain. Also stamps BOTH clocks, so it neither opens a loophole for the next routine gain nor for
-      // a second immediate intimacy bonus.
+      // ── Intimacy: the guarded, separate +3 (unchanged, outside the progression) ──
+
+      // An allowed intimacy beat bypasses the progressive bar entirely for a one-off +3, and stamps BOTH clocks so it
+      // opens no loophole for a second immediate bonus. It does NOT touch the routine tier.
       [Test]
-      public void GIVEN_an_allowed_intimacy_moment_inside_the_cooldown_WHEN_resolving_THEN_it_bypasses_the_throttle_and_grants_three()
+      public void GIVEN_an_allowed_intimacy_moment_WHEN_resolving_THEN_it_grants_three_and_leaves_the_routine_tier_untouched()
       {
-         //Arrange: a significant, allowed beat always counts, even right after a routine gain.
-         NpcProfile p = Profile(100.0);
+         NpcProfile p = Profile();
 
-         //Act
-         int granted = RelationGate.Resolve(10, p, NotableEventType.Intimacy, 101.0, false, intimacyAllowed: true);
+         int granted = RelationGate.Resolve(10, p, NotableEventType.Intimacy, 100.0, false, intimacyAllowed: true);
 
-         //Assert: capped at the intimacy cap (3), and both clocks re-stamped.
          granted.Should().Be(3);
-         p.LastRelationGainHour.Should().Be(101.0);
-         p.LastIntimacyGainHour.Should().Be(101.0, "a granted intimacy bonus stamps its own dedicated cooldown");
+         p.LastIntimacyGainHour.Should().Be(100.0, "a granted intimacy bonus stamps its own dedicated cooldown");
+         p.RegardResistanceTier.Should().Be(0, "the intimacy path never moves the routine progression");
       }
 
-      // C1, the exploit itself: an intimacy [EVENT] the caller did NOT vouch (adult content off, no romance, or
-      // an orientation-incompatible pair) must be demoted to a routine gain, never the +3 bypass. Here, demoted
-      // and inside the routine window, it is gated to 0, so a model tagging every reply "intimacy" cannot farm.
+      // C1: a disallowed intimacy tag (adult off, no romance, incompatible pair) is demoted to an ordinary warm
+      // moment, never the +3. On a fresh NPC that lands a routine +1, so the +3 can never be reached without vouch.
       [Test]
-      public void GIVEN_a_disallowed_intimacy_tag_inside_the_routine_window_WHEN_resolving_THEN_it_is_demoted_and_gated_to_zero()
+      public void GIVEN_a_disallowed_intimacy_tag_on_a_fresh_npc_WHEN_resolving_THEN_it_lands_only_the_routine_point()
       {
-         //Arrange: intimacy tag but intimacyAllowed=false; 1h after a routine gain, still inside the 8h window.
-         NpcProfile p = Profile(100.0);
+         NpcProfile p = Profile();
 
-         //Act/Assert: treated as a routine gain, which the cooldown then blocks.
-         RelationGate.Resolve(10, p, NotableEventType.Intimacy, 101.0, false, intimacyAllowed: false).Should().Be(0);
+         RelationGate.Resolve(10, p, NotableEventType.Intimacy, 100.0, false, intimacyAllowed: false).Should().Be(1);
          p.LastIntimacyGainHour.Should().BeNull("a demoted tag never stamps the intimacy clock");
       }
 
-      // C1: a disallowed intimacy tag with no routine cooldown pending still lands only the routine +1, never
-      // the +3, so the bonus can never be reached without the caller's vouch.
+      // C1 against the progression: a demoted intimacy tag at a raised tier is just one warm moment, so it banks
+      // toward the (tier + 1) requirement rather than jumping the bar, and still never stamps the intimacy clock.
       [Test]
-      public void GIVEN_a_disallowed_intimacy_tag_with_no_cooldown_WHEN_resolving_THEN_it_lands_only_the_routine_cap()
+      public void GIVEN_a_disallowed_intimacy_tag_at_a_raised_tier_WHEN_resolving_THEN_it_only_banks_a_moment()
       {
-         //Arrange: fresh profile, no prior gain; intimacy tag but not allowed.
-         NpcProfile p = Profile();
+         NpcProfile p = Profile(tier: 1, stampHour: 100.0);
 
-         //Act/Assert
-         RelationGate.Resolve(10, p, NotableEventType.Intimacy, 100.0, false, intimacyAllowed: false).Should().Be(1);
+         RelationGate.Resolve(10, p, NotableEventType.Intimacy, 100.0, false, intimacyAllowed: false).Should().Be(0);
+         p.RegardWarmthAccrued.Should().Be(1);
+         p.LastIntimacyGainHour.Should().BeNull();
       }
 
-      // C1, the dedicated cooldown: even a legitimate, allowed intimacy beat cannot land a SECOND +3 within its
-      // own 24h window. This is what caps the exploit's throughput, a genuine scene grants +3 at most once a day,
-      // not +3 every turn. The second, still inside the intimacy window and the routine window, gates to 0.
+      // C1's dedicated 24h window: a second allowed intimacy inside it is demoted to routine (here it banks against a
+      // raised tier), so a genuine scene grants +3 at most once a day, never every turn.
       [Test]
-      public void GIVEN_a_second_allowed_intimacy_within_its_own_cooldown_WHEN_resolving_THEN_it_is_demoted()
+      public void GIVEN_a_second_allowed_intimacy_within_its_own_cooldown_WHEN_resolving_THEN_it_is_demoted_to_a_routine_moment()
       {
-         //Arrange: an intimacy bonus was granted at hour 100; another allowed one 5h later is inside the 24h window.
-         NpcProfile p = Profile(100.0, lastIntimacyHour: 100.0);
+         NpcProfile p = Profile(tier: 1, stampHour: 100.0, lastIntimacyHour: 100.0);
 
-         //Act/Assert: demoted to routine, and the routine window (8h) also still blocks it.
          RelationGate.Resolve(10, p, NotableEventType.Intimacy, 105.0, false, intimacyAllowed: true).Should().Be(0);
+         p.RegardWarmthAccrued.Should().Be(1, "demoted to a routine moment, banked against the tier-1 bar");
       }
 
-      // C1: once the dedicated 24h intimacy window has elapsed, an allowed beat lands the full +3 again, so the
-      // cooldown is a real window and not a one-time-ever gate.
+      // Once the 24h intimacy window has elapsed, an allowed beat lands the full +3 again: the cooldown is a real
+      // window, not a one-time gate.
       [Test]
       public void GIVEN_an_allowed_intimacy_after_its_own_cooldown_WHEN_resolving_THEN_it_grants_three_again()
       {
-         //Arrange: last intimacy bonus 25h ago, past the 24h window; routine clock long clear too.
-         NpcProfile p = Profile(100.0, lastIntimacyHour: 100.0);
+         NpcProfile p = Profile(lastIntimacyHour: 100.0);
 
-         //Act/Assert
          RelationGate.Resolve(10, p, NotableEventType.Intimacy, 125.0, false, intimacyAllowed: true).Should().Be(3);
-      }
-
-      // Pins the "Warm" MCM difficulty setting's actual effect: the cooldown window must genuinely shrink to
-      // 3h, not just cosmetically relabel the same behaviour, so players who want faster-building
-      // relationships get a real, measurable change.
-      [Test]
-      public void GIVEN_easier_warmth_WHEN_resolving_THEN_the_window_shortens_to_three_hours()
-      {
-         //Arrange: Easier uses a 3h window: 2h is too soon, 4h lands.
-         NpcProfile tooSoon = Profile(100.0);
-         NpcProfile longEnough = Profile(100.0);
-
-         //Act/Assert
-         RelationGate.Resolve(1, tooSoon, null, 102.0, false, false, RelationWarmth.Easier).Should().Be(0);
-         RelationGate.Resolve(1, longEnough, null, 104.0, false, false, RelationWarmth.Easier).Should().Be(1);
-      }
-
-      // The same -40 that gets clamped to -15 in ordinary conversation lands in full here: the deeper floor
-      // is gated on the ENGINE's captive status (GetPlayerStatus), not anything the LLM narrates, so a
-      // proposal cannot unlock this by merely claiming the NPC is at the player's mercy.
-      [Test]
-      public void GIVEN_the_same_cruelty_toward_a_captive_WHEN_resolving_THEN_the_deeper_captive_floor_is_unlocked()
-      {
-         //Arrange: captivity is the verifiable extreme that lets regard collapse far further.
-         //Act/Assert
-         RelationGate.Resolve(-40, Profile(), null, 100.0, true, false).Should().Be(-40);
-      }
-
-      // Pins the most permissive difficulty rung ("Storyteller"): the cooldown is removed entirely, but even
-      // here a cap still exists, +2 rather than the proposed +5, so the mod never lets a raw LLM delta through
-      // completely unclamped, no matter how loosely the player has tuned relation warmth.
-      [Test]
-      public void GIVEN_very_easy_warmth_WHEN_resolving_a_routine_gain_THEN_the_cap_rises_to_two_and_the_throttle_is_gone()
-      {
-         //Arrange: Very Easy removes the cooldown entirely and allows a +2 routine beat.
-         NpcProfile p = Profile(100.0);
-
-         //Act/Assert: even 0.5h after the last gain, a +2 lands.
-         RelationGate.Resolve(5, p, null, 100.5, false, false, RelationWarmth.VeryEasy).Should().Be(2);
       }
 
       #region private
 
-      private static NpcProfile Profile(double? lastGainHour = null, double? lastIntimacyHour = null)
+      private static NpcProfile Profile(int tier = 0, double? stampHour = null, double? lastIntimacyHour = null)
          => new() {
             Id = "test_npc",
             Name = "Test Npc",
             Clan = "Test Clan",
             Faction = "Test Faction",
-            LastRelationGainHour = lastGainHour,
+            RegardResistanceTier = tier,
+            RegardResistanceStampHour = stampHour,
             LastIntimacyGainHour = lastIntimacyHour
          };
 

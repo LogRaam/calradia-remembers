@@ -77,6 +77,15 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public int MarriageRegardNeeded { get; set; } = 50;
 
+      [SettingPropertyInteger("Regard Warmth Cooldown (days)", 1, 30, "0 'days'", RequireRestart = false, Order = 11,
+         HintText = "How long a character's warmth 'settles' before it can deepen again. Winning a point of personal " +
+                    "regard raises the bar: the first point takes one warm moment, the next takes two, the next three, " +
+                    "and so on. Each raised step relaxes by one after this many in-game days, so trust cannot be farmed " +
+                    "by leaving and returning every few hours. Lower it for faster-warming characters, higher for a " +
+                    "slower, harder-won bond. 7 is the shipped default. Applies immediately.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public int RegardDecayDays { get; set; } = 7;
+
       [SettingPropertyText("OpenRouter API Key", RequireRestart = false, Order = 0,
          HintText = "Paste your key from openrouter.ai/keys. Stored locally on this machine only. NEVER share your " +
                     "config file or a screenshot of this field. Applies immediately.")]

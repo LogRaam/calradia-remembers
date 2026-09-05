@@ -92,6 +92,9 @@ namespace CalradiaRemembers.Logic
         ///   earn the larger, cooldown-bypassing bonus; otherwise it is treated as a routine gain, so the tag can
         ///   never be spammed to farm regard. The prompt is advice, this gate is the law.
         /// </param>
+        /// <summary>Default per-tier decay period (in-game DAYS) for the progressive-regard model; the MCM setting overrides it.</summary>
+        public const double DefaultDecayDays = 7.0;
+
         public static int Resolve(
             int proposed,
             NpcProfile profile,
@@ -99,18 +102,31 @@ namespace CalradiaRemembers.Logic
             double currentHour,
             bool npcIsCaptive,
             bool intimacyAllowed,
-            RelationWarmth warmth = RelationWarmth.Normal)
+            RelationWarmth warmth = RelationWarmth.Normal,
+            double decayDays = DefaultDecayDays)
         {
             if (proposed == 0 || profile == null) return 0;
 
             if (proposed > 0)
-                return ResolvePositive(proposed, profile, emittedEvent, currentHour, warmth, intimacyAllowed);
+                return ResolvePositive(proposed, profile, emittedEvent, currentHour, intimacyAllowed, decayDays);
 
             // ── Negative: not rate-limited; depth bounded by verifiable context ──
             // Warmth never softens negatives — insults and betrayals cost the same at every level.
             int floor = npcIsCaptive ? CaptiveFloor : ConversationalFloor;
             return proposed > floor ? proposed : floor;
         }
+
+        /// <summary>
+        ///   Progressive-regard model (2026-09-05, replacing the flat one-gain-per-8h routine throttle): the moments
+        ///   the NPC demands for the NEXT +1 rise by one each time one is granted (tier 0 -> 1 moment, tier 1 -> 2,
+        ///   tier 2 -> 3, ...), and a tier decays back down after <paramref name="decayDays" /> in-game days. So a
+        ///   long, genuinely warm conversation can earn several points (its moments accrue while game time is frozen),
+        ///   a drive-by earns one then hits the wall, and the wall cannot be farmed by skipping 8 hours and returning
+        ///   (the tier persists for days). Pure so the curve is unit-tested; the engine only supplies the clock, the
+        ///   profile's carried tier/accrual, and the player's chosen decay period.
+        ///   <para>Returns the moments-required for the next +1 at the given tier (tier + 1); exposed for tests/UI.</para>
+        /// </summary>
+        public static int MomentsRequiredForTier(int tier) => (tier < 0 ? 0 : tier) + 1;
 
         #region private
 
@@ -119,34 +135,84 @@ namespace CalradiaRemembers.Logic
             NpcProfile profile,
             NotableEventType? emittedEvent,
             double currentHour,
-            RelationWarmth warmth,
-            bool intimacyAllowed)
+            bool intimacyAllowed,
+            double decayDays)
         {
-            // C1: the intimacy bonus is a GUARDED door. It counts as significant (bigger cap, routine cooldown
-            // bypassed) ONLY when the caller vouched the moment is legitimate AND its own dedicated cooldown has
-            // elapsed. A tag that fails either test is demoted to a routine gain, so it can never farm +3 per turn.
+            // C1: the intimacy bonus is a GUARDED door, unchanged and OUTSIDE the progressive model. It counts as a
+            // significant moment (bigger cap, its own dedicated cooldown) ONLY when the caller vouched the moment is
+            // legitimate AND its own cooldown has elapsed; a tag failing either test falls through to the routine
+            // progressive path below, so it can never farm +3 per turn.
             bool isSignificant = emittedEvent == NotableEventType.Intimacy
                                  && intimacyAllowed
                                  && (!profile.LastIntimacyGainHour.HasValue
                                      || currentHour - profile.LastIntimacyGainHour.Value >= IntimacyCooldownHours);
 
-            // Routine gains are rate-limited (window depends on warmth); a significant
-            // moment bypasses that routine cooldown entirely.
-            if (!isSignificant
-                && profile.LastRelationGainHour.HasValue
-                && currentHour - profile.LastRelationGainHour.Value < CooldownHoursFor(warmth))
-                return 0;
-
-            int cap = isSignificant ? IntimacyCap : RoutineCapFor(warmth);
-            int granted = proposed < cap ? proposed : cap;
-
-            if (granted > 0)
+            if (isSignificant)
             {
-                profile.LastRelationGainHour = currentHour;
-                if (isSignificant) profile.LastIntimacyGainHour = currentHour;
+                int grantedIntimacy = proposed < IntimacyCap ? proposed : IntimacyCap;
+                if (grantedIntimacy > 0)
+                {
+                    profile.LastIntimacyGainHour = currentHour;
+                    profile.LastRelationGainHour = currentHour;
+                }
+
+                return grantedIntimacy;
             }
 
-            return granted;
+            // ── Routine progressive path ──────────────────────────────────────
+            // First let the resistance cool for any time elapsed since it last moved (leaving and returning does not
+            // reset it; only real time does). Then this exchange is one warm moment: grant a +1 only once the
+            // accrued moments reach the current tier's requirement, and raising the tier makes the NEXT +1 dearer.
+            DecayResistance(profile, currentHour, decayDays);
+
+            profile.RegardWarmthAccrued += 1;
+            if (profile.RegardWarmthAccrued < MomentsRequiredForTier(profile.RegardResistanceTier))
+                return 0; // progress banked toward the next +1, but not enough of it yet
+
+            profile.RegardWarmthAccrued = 0;
+            profile.RegardResistanceTier += 1;      // deep bonds get harder to deepen
+            profile.RegardResistanceStampHour = currentHour; // the new, higher tier starts its decay window now
+            profile.LastRelationGainHour = currentHour;      // keep the legacy stamp fresh (diagnostics / save-compat)
+
+            // The grant is a conservative +1 per cleared tier: the LLM's proposed magnitude is never trusted to
+            // size a routine gain (the "talk your way to max" exploit the whole gate exists to prevent).
+            return 1;
+        }
+
+        /// <summary>
+        ///   Cools the resistance for the whole in-game days elapsed since it last moved: one tier down per
+        ///   <paramref name="decayDays" /> days, carrying the remainder so a long absence walks it all the way back
+        ///   down. Drops any partial accrual once a tier falls (a neglected bond does not keep half-progress). A
+        ///   decayDays of 0 or less disables decay (a tier then never falls on its own), for a player who wants it.
+        /// </summary>
+        private static void DecayResistance(NpcProfile profile, double currentHour, double decayDays)
+        {
+            if (profile.RegardResistanceTier <= 0 || !profile.RegardResistanceStampHour.HasValue)
+            {
+                if (profile.RegardResistanceTier <= 0)
+                {
+                    profile.RegardResistanceTier = 0;
+                    profile.RegardResistanceStampHour = null; // nothing built up: measure the first tier from when it forms
+                }
+
+                return;
+            }
+
+            double windowHours = decayDays * 24.0;
+            if (windowHours <= 0.0) return; // decay disabled by the player's setting
+
+            double elapsed = currentHour - profile.RegardResistanceStampHour.Value;
+            if (elapsed < windowHours) return;
+
+            var tiersDown = (int) (elapsed / windowHours);
+            int newTier = profile.RegardResistanceTier - tiersDown;
+            if (newTier < 0) newTier = 0;
+
+            profile.RegardResistanceTier = newTier;
+            profile.RegardWarmthAccrued = 0;
+            profile.RegardResistanceStampHour = newTier > 0
+                ? profile.RegardResistanceStampHour.Value + tiersDown * windowHours
+                : (double?) null;
         }
 
         #endregion
