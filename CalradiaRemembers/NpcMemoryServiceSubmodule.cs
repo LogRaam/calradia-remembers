@@ -407,10 +407,34 @@ namespace CalradiaRemembers
             extender.Register(typeof(NpcMemoryServiceSubmodule).Assembly);
             extender.Enable();
             Log("UIExtender enabled (encyclopedia personal-relation extension).");
+            ModLog.Info("[UIEXTENDER] Register+Enable completed.");
+            VerifyClanScreenMixinPatch();
          }
          catch (Exception ex)
          {
             Log($"UIExtender init failed: {ex.GetType().Name}: {ex.Message}");
+            ModLog.Error($"[UIEXTENDER] Register/Enable FAILED: {ex}");
+         }
+      }
+
+      // DIAGNOSTIC (2026-09-05, clan-screen BoP button missing): proves whether UIExtenderEx's constructor
+      // transpiler actually landed on ClanManagementVM. If the ctor lists a transpiler, the mixin MUST attach when
+      // the Clan screen builds its VM (look for "[BOP-CLAN] mixin attached"); if it lists none, the registration
+      // never reached the patch stage and the problem is upstream. Remove once the button ships.
+      private static void VerifyClanScreenMixinPatch()
+      {
+         try
+         {
+            foreach (ConstructorInfo ctor in typeof(TaleWorlds.CampaignSystem.ViewModelCollection.ClanManagement.ClanManagementVM).GetConstructors())
+            {
+               var info = Harmony.GetPatchInfo(ctor);
+               ModLog.Info($"[BOP-CLAN] ClanManagementVM ctor Harmony state: transpilers={info?.Transpilers?.Count ?? -1}, "
+                           + $"prefixes={info?.Prefixes?.Count ?? -1}, postfixes={info?.Postfixes?.Count ?? -1}.");
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[BOP-CLAN] ctor patch verification failed: {ex.GetType().Name}: {ex.Message}");
          }
       }
 
