@@ -87,17 +87,22 @@ namespace CalradiaRemembers.WorldAlmanac
 
       #region private
 
-      // The player's living companion with the highest Tactics, or null when the clan has none.
+      // The highest-Tactics companion who actually RIDES WITH the player, or null when none travel with them. A
+      // companion stationed in a town (or away on their own errand) cannot counsel over the war table before the
+      // player, so they are skipped even if their Tactics is higher (player report 2026-09-04: the advisor was one
+      // "staying at Diathma"). PartyBelongedTo == MainParty is the "in my party right now" test.
       private static Hero PickBestCompanion()
       {
          IReadOnlyList<Hero> companions = Clan.PlayerClan?.Companions;
          if (companions == null || companions.Count == 0) return null;
 
+         MobileParty main = MobileParty.MainParty;
          Hero best = null;
          var bestTactics = int.MinValue;
          foreach (Hero h in companions)
          {
             if (h == null || !h.IsAlive) continue;
+            if (h.PartyBelongedTo != main) continue; // must be travelling with the player, not stationed elsewhere
             int tactics = h.GetSkillValue(DefaultSkills.Tactics);
             if (tactics > bestTactics)
             {
