@@ -1,0 +1,21 @@
+<DummyRoot>
+  <!-- Sits on the right column, just above the Finance panel (which is HorizontalAlignment=Right, VerticalAlignment=
+       Center, height 280, PositionYOffset=55). PositionYOffset lifts this above the panel's top edge; MarginRight and
+       width match the Finance panel so the two read as one column. Tune with cr.reload_ui if the anchor drifts. -->
+  <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                SuggestedWidth="265" SuggestedHeight="42"
+                HorizontalAlignment="Right" VerticalAlignment="Center"
+                MarginRight="10" PositionYOffset="-110"
+                Brush="ButtonBrush1"
+                DoNotPassEventsToChildren="true"
+                UpdateChildrenStates="true"
+                Command.Click="ExecuteOpenBalanceOfPower">
+    <Children>
+      <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                  Brush="Popup.Button.Text"
+                  Brush.FontSize="20"
+                  Text="@BalanceOfPowerButtonText" />
+    </Children>
+  </ButtonWidget>
+</DummyRoot>
