@@ -10,11 +10,12 @@ using Bannerlord.UIExtenderEx.Prefabs2;
 namespace CalradiaRemembers.WorldAlmanac
 {
    /// <summary>
-   ///   Inserts the "Balance of Power" button into the Clan screen, as a sibling of the Finance panel. Content lives
+   ///   Inserts the "Balance of Power" button into the Clan screen, appended into the Finance panel and lifted just
+   ///   above it (the same append-into-a-Widget-by-Id shape as the proven encyclopedia Letters button). Content lives
    ///   in GUI/Prefabs/CR_ClanBalanceOfPowerButton.xml and binds to <c>@BalanceOfPowerButtonText</c> /
    ///   <c>@ExecuteOpenBalanceOfPower</c> from <see cref="ClanScreenBalanceOfPowerMixin" />.
    /// </summary>
-   [PrefabExtension("ClanScreen", "descendant::ClanScreenWidget[@Id='ClanScreenWidget']")]
+   [PrefabExtension("ClanScreen", "descendant::Widget[@Id='FinancePanelWidget']")]
    internal sealed class ClanScreenBalanceOfPowerPatch : PrefabExtensionInsertPatch
    {
       [PrefabExtensionFileName(true)]

@@ -1,11 +1,11 @@
 <DummyRoot>
-  <!-- Sits on the right column, just above the Finance panel (which is HorizontalAlignment=Right, VerticalAlignment=
-       Center, height 280, PositionYOffset=55). PositionYOffset lifts this above the panel's top edge; MarginRight and
-       width match the Finance panel so the two read as one column. Tune with cr.reload_ui if the anchor drifts. -->
+  <!-- Appended into FinancePanelWidget (265 wide) and lifted above its top edge via a negative PositionYOffset, so it
+       reads as a header over the Finance column. The panel does not clip its children, so the lift is visible. Tune
+       PositionYOffset / width with cr.reload_ui if the anchor drifts. -->
   <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                SuggestedWidth="265" SuggestedHeight="42"
-                HorizontalAlignment="Right" VerticalAlignment="Center"
-                MarginRight="10" PositionYOffset="-110"
+                SuggestedWidth="245" SuggestedHeight="42"
+                HorizontalAlignment="Center" VerticalAlignment="Top"
+                PositionYOffset="-54"
                 Brush="ButtonBrush1"
                 DoNotPassEventsToChildren="true"
                 UpdateChildrenStates="true"
