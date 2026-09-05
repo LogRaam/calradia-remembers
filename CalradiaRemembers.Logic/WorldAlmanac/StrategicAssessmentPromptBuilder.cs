@@ -10,19 +10,30 @@ using System.Text;
 
 namespace CalradiaRemembers.Logic.WorldAlmanac
 {
-    /// <summary>The companion who voices the Strategic Assessment: their name, culture, and Tactics skill (which sets the quality of the counsel).</summary>
+    /// <summary>Who is voicing the assessment: a trained companion strategist, or a common soldier standing in when no companion is at hand.</summary>
+    public enum AdvisorKind
+    {
+        CompanionStrategist,
+        CommonSoldier
+    }
+
+    /// <summary>The voice of the Strategic Assessment: their name, culture, Tactics skill (which sets the counsel's quality), and whether they are a trained strategist or a plain soldier.</summary>
     public sealed class StrategicAdvisor
     {
-        public StrategicAdvisor(string name, string culture, int tacticsSkill)
+        public StrategicAdvisor(string name, string culture, int tacticsSkill, AdvisorKind kind = AdvisorKind.CompanionStrategist)
         {
-            Name = string.IsNullOrWhiteSpace(name) ? "your war council" : name.Trim();
+            Name = string.IsNullOrWhiteSpace(name)
+                ? kind == AdvisorKind.CommonSoldier ? "a grizzled veteran of your warband" : "your war council"
+                : name.Trim();
             Culture = culture?.Trim() ?? "";
             TacticsSkill = tacticsSkill;
+            Kind = kind;
         }
 
         public string Name { get; }
         public string Culture { get; }
         public int TacticsSkill { get; }
+        public AdvisorKind Kind { get; }
 
         public AdvisorTacticsTier Tier => TacticsAdvicePolicy.TierFor(TacticsSkill);
     }
@@ -70,9 +81,19 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
 
             var sb = new StringBuilder();
 
-            // Persona + the quality dial: WHO is speaking and how keen their counsel is.
-            string cultureClause = string.IsNullOrEmpty(advisor.Culture) ? "" : $" a {advisor.Culture} officer,";
-            sb.Append($"You are {advisor.Name},{cultureClause} the strategist counselling your lord. You are {TacticsAdvicePolicy.LabelFor(advisor.Tier)}. ");
+            // Persona + the quality dial: WHO is speaking and how keen their counsel is. A companion is a trained
+            // strategist; a common soldier stands in when no companion is at hand, and speaks plainly, without a
+            // strategist's polish. Either way the Tactics tier sets how keen the counsel is.
+            if (advisor.Kind == AdvisorKind.CommonSoldier)
+            {
+                sb.Append($"You are {advisor.Name}, a common soldier in your lord's warband, no trained strategist, but you have marched and fought across Calradia. Speak plainly, as a soldier would, not with an officer's polish. ");
+            }
+            else
+            {
+                string cultureClause = string.IsNullOrEmpty(advisor.Culture) ? "" : $" a {advisor.Culture} officer,";
+                sb.Append($"You are {advisor.Name},{cultureClause} the strategist counselling your lord. You are {TacticsAdvicePolicy.LabelFor(advisor.Tier)}. ");
+            }
+
             sb.Append(TacticsAdvicePolicy.GuidanceFor(advisor.Tier));
             sb.AppendLine();
             sb.AppendLine();

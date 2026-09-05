@@ -154,6 +154,45 @@ namespace CalradiaRemembers.Tests
             prompt.Should().Contain("war council");
         }
 
+        // No companion, but soldiers in the party: a plain soldier stands in, and the prompt must voice them AS a
+        // soldier (humble, no strategist's polish), not as an officer, or the fallback reads wrong.
+        [Test]
+        public void GIVEN_a_common_soldier_advisor_WHEN_building_THEN_it_voices_a_plain_soldier_not_a_strategist()
+        {
+            string prompt = StrategicAssessmentPromptBuilder.Build(SampleWorld(), SampleRealmPlayer(),
+                new StrategicAdvisor("a grizzled sergeant", "Vlandian", 30, AdvisorKind.CommonSoldier));
+
+            prompt.Should().Contain("common soldier");
+            prompt.Should().Contain("no trained strategist");
+            prompt.Should().NotContain("the strategist counselling your lord");
+        }
+
+        // ── The alone case: a factual summary with NO LLM call ──────────────
+
+        // A player travelling alone gets a plain factual summary, composed offline: it must state the leading realm
+        // and standings but carry NO advisor voice and NO "give counsel" task (there is no advisor), so it can never
+        // be mistaken for the LLM prompt or trigger a call.
+        [Test]
+        public void GIVEN_the_standings_WHEN_summarising_offline_THEN_it_states_facts_with_no_advisor_or_task()
+        {
+            string summary = StrategicAssessmentSummary.Compose(SampleWorld(), SampleRealmPlayer());
+
+            summary.Should().Contain("Southern Empire"); // the leader
+            summary.Should().Contain("Vlandia");         // the player's own realm line
+            summary.Should().NotContain("second person"); // not the LLM task
+            summary.ToLowerInvariant().Should().NotContain("you are"); // no persona
+        }
+
+        // The offline summary must also survive a world between reigns without throwing.
+        [Test]
+        public void GIVEN_an_empty_world_WHEN_summarising_offline_THEN_it_reports_no_reigning_power()
+        {
+            string summary = StrategicAssessmentSummary.Compose(new PowerIndexResult(),
+                new PlayerStrategicContext("", 0, null));
+
+            summary.Should().Contain("without a reigning power");
+        }
+
         #region fixtures
 
         private static PowerIndexResult SampleWorld()
