@@ -2,6 +2,34 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.0.. 2026-09-05
+
+The World Almanac arrives: a Balance of Power war-room panel, opened from the Clan screen, plus a companion
+strategist who counsels you from it. Saves from 2.4.x carry over untouched. (Per-version notes for 2.4.0 through
+2.4.10 live in their NEXUS_CHANGELOG files.)
+
+### New
+- **Balance of Power (World Almanac).** A new panel, opened from a "Balance of Power" button on the Clan screen.
+  It ranks every kingdom by power (armies, lands, wealth, political weight, war record, diplomacy) with a top-three
+  podium of rulers and banners, lists the age's key figures (largest army, richest treasury, most influential
+  ruler, and more), and draws a map of Calradia coloured by faction.
+- **Strategic Assessment.** On that panel, one of your own people reads the situation and counsels you. A companion
+  riding with you gives the counsel, and the higher their Tactics the sharper it is; with no companion, a warband
+  veteran gives a plainer read; alone, a factual summary with no advisor. Grounded in the real standings and the
+  wars actually under way, it gives genuine advice (press an advantage, seek an ally, or leave a failing banner),
+  not just a recital. A companion counsels in their own character and in your chosen narrative style.
+
+### Fixed
+- **Panel crashes.** Eliminated a native crash when a siege was being fought while a full-screen panel was open, a
+  crash on opening a panel, and a crash when entering a hostile settlement while a companion's private-word popup
+  was open.
+- **A lord no longer forgets a failed approach.** A lord who tries to reach you and fails keeps his errand in mind
+  for a couple of days, still sends the missed-meeting letter, and this now survives saving and loading.
+- **Novelistic style respects the scene.** The Novelistic narrative style no longer speaks for other characters
+  inside your own reply; the room reads as inhabited through their reactions instead.
+- **Backstory-only authored characters apply.** A character in character_overrides.json defined with only a
+  backstory, conviction, or orientation (no traits or kinks) is now picked up by cr.reload_lore.
+
 ## v2.3.1.. 2026-08-27
 
 Scenes with more than one character present feel more alive, and the mod's logging is tidier. Your saves from

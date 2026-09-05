@@ -1,0 +1,13 @@
+Version 2.5.0
+
+Your saves from 2.4.x carry over untouched.
+
+New
+- Balance of Power, a new war-room panel for the whole of Calradia. Open it from the "Balance of Power" button on the Clan screen. It ranks every kingdom by power (armies, lands, wealth, political weight, war record, and diplomacy), with a top-three podium showing each ruler and their banner; it lists the key figures of the age (the largest army, the richest treasury, the most influential ruler, and more); and it draws a map of Calradia coloured by who holds what.
+- A Strategic Assessment on that panel, spoken by one of your own people. A companion riding with you reads the situation and counsels you on what is likely to come and what to do about it, and the higher their Tactics skill, the sharper the counsel. With no companion in your party, a veteran of your warband gives a plainer read; travelling alone, you get a factual summary with no advisor. The counsel is grounded in the real standings and the wars actually under way, and it gives genuine advice (press an advantage, seek a strong ally against a shared enemy, or leave a failing banner before it falls) rather than just restating what you can already see. A companion counsels in their own character, in your chosen narrative style.
+
+Fixed
+- Several crashes around full-screen panels are gone: a game-closing crash when a siege was being fought somewhere while a panel was open, a crash on opening a panel, and a crash when entering a hostile village or enemy castle while a companion was waiting on a private word.
+- A lord who tries to reach you and fails no longer forgets why he came. He remembers his errand for a couple of days, still sends the letter about the meeting you missed, and now keeps all of this across saving and loading.
+- The Novelistic narrative style no longer puts words in other characters' mouths inside your own reply; the room feels lived-in through their own reactions instead.
+- A character you defined in character_overrides.json with only a backstory, a conviction, or an orientation (and no traits or kinks) is now applied by cr.reload_lore.
