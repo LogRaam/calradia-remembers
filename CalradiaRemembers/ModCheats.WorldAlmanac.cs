@@ -143,8 +143,9 @@ namespace CalradiaRemembers
          if (field.Count == 0) return "No living kingdoms found.";
 
          PowerIndexResult r = PowerIndexPolicy.Compute(field);
-         PlayerStrategicContext player = StrategicAssessmentContextBuilder.Build(r).Player;
-         string prompt = StrategicAssessmentPromptBuilder.Build(r, player, advisor);
+         WorldAlmanac.StrategicAssessmentContext ctx = StrategicAssessmentContextBuilder.Build(r);
+         PlayerStrategicContext player = ctx.Player;
+         string prompt = StrategicAssessmentPromptBuilder.Build(r, player, advisor, ctx.Wars, CalradiaRemembers.Styles.StyleService.CurrentRules());
 
          ILlmClient client = NpcMemoryCampaignBehavior.Instance?.LlmServices?.LlmClient;
          if (client == null)

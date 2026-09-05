@@ -119,16 +119,101 @@ namespace CalradiaRemembers.Tests
             prompt.Should().Contain("no realm");
         }
 
-        // The task framing must survive: second person, a few sentences, and the describe/predict/advise arc.
+        // The task framing must survive: second person, a few sentences, and the ADVICE-not-recital arc. The numbers
+        // are already on the panel, so the counsel's whole worth is the judgment on top; if the prompt slid back to
+        // "describe the standings", the feature would just narrate the table the player is looking at (Gabriel,
+        // 2026-09-04: "j'ai plus besoin de conseils strategiques que de constats").
         [Test]
-        public void GIVEN_any_inputs_WHEN_building_THEN_it_asks_for_in_character_counsel_of_a_few_sentences()
+        public void GIVEN_any_inputs_WHEN_building_THEN_it_asks_for_advice_not_a_recital_in_a_few_sentences()
         {
             string prompt = StrategicAssessmentPromptBuilder.Build(SampleWorld(), SampleRealmPlayer(),
                 new StrategicAdvisor("Ira", "Battanian", 210));
 
             prompt.Should().Contain("second person");
             prompt.Should().Contain("three to five sentences");
-            prompt.ToLowerInvariant().Should().Contain("advise");
+            prompt.ToLowerInvariant().Should().Contain("counsel");
+            prompt.Should().Contain("do NOT merely recite"); // advice, not a read-out of the visible numbers
+        }
+
+        // ── A: the real wars frame the reading ──────────────────────────────
+
+        // The single richest input for a strategic reading is who is actually at war with whom, and it is the fact the
+        // model most wants to invent when absent (an early counsel imagined a "clash between X and Y" from nothing).
+        // Given the real wars, they must reach the prompt verbatim so the advisor reasons about real fronts.
+        [Test]
+        public void GIVEN_active_wars_WHEN_building_THEN_the_real_belligerents_are_named()
+        {
+            var wars = new CalradiaWarState(new List<WarPair>
+            {
+                new WarPair("Sturgia", "Vlandia"),
+                new WarPair("Aserai", "Khuzait Khanate")
+            });
+
+            string prompt = StrategicAssessmentPromptBuilder.Build(SampleWorld(), SampleRealmPlayer(),
+                new StrategicAdvisor("Ira", "Battanian", 210), wars);
+
+            prompt.Should().Contain("Sturgia is at war with Vlandia");
+            prompt.Should().Contain("Aserai is at war with Khuzait Khanate");
+        }
+
+        // A world at peace must SAY so, so the advisor cannot invent a war to explain the map.
+        [Test]
+        public void GIVEN_no_wars_WHEN_building_THEN_it_states_the_realms_are_at_peace()
+        {
+            string prompt = StrategicAssessmentPromptBuilder.Build(SampleWorld(), SampleRealmPlayer(),
+                new StrategicAdvisor("Ira", "Battanian", 210), new CalradiaWarState(null));
+
+            prompt.Should().Contain("No realms are presently at war");
+        }
+
+        // ── B: no invented war history (there is no battle ledger yet) ──────
+
+        // War performance is neutral in V1 (no persisted battle ledger), so the advisor has NO basis to call a realm
+        // "war-weary" or "bled dry" and did exactly that from nothing. The prompt must fence that off explicitly.
+        [Test]
+        public void GIVEN_no_battle_ledger_WHEN_building_THEN_the_advisor_is_forbidden_to_invent_a_war_history()
+        {
+            string prompt = StrategicAssessmentPromptBuilder.Build(SampleWorld(), SampleRealmPlayer(),
+                new StrategicAdvisor("Ira", "Battanian", 210));
+
+            prompt.Should().Contain("record of past battles"); // it is told what it does NOT know
+            prompt.Should().Contain("war-weary");                 // named so the model cannot claim it
+            prompt.Should().Contain("bled dry");
+        }
+
+        // ── Persona + narrative style: the companion's own voice ────────────
+
+        // A companion counsels as THEMSELVES, so their authored character (trait archetype, backstory, conviction) must
+        // reach the prompt and the flat "the strategist counselling your lord" line must give way to it. Without this
+        // the counsel reads like a faceless oracle instead of the person the player knows from the chatroom.
+        [Test]
+        public void GIVEN_a_companion_with_a_persona_WHEN_building_THEN_it_speaks_in_their_character()
+        {
+            string prompt = StrategicAssessmentPromptBuilder.Build(SampleWorld(), SampleRealmPlayer(),
+                new StrategicAdvisor("Ira", "Battanian", 210, AdvisorKind.CompanionStrategist,
+                    "The Spider. No virtue but cleverness."));
+
+            prompt.Should().Contain("The Spider. No virtue but cleverness.");
+            prompt.Should().Contain("in your own voice");
+            prompt.Should().NotContain("the strategist counselling your lord");
+        }
+
+        // The active narrative style is part of the voice (the same style the chatroom uses), so it must reach the
+        // prompt when set, and be trimmed so a long style file cannot crowd out the facts.
+        [Test]
+        public void GIVEN_a_narrative_style_WHEN_building_THEN_it_is_injected_and_capped()
+        {
+            string prompt = StrategicAssessmentPromptBuilder.Build(SampleWorld(), SampleRealmPlayer(),
+                new StrategicAdvisor("Ira", "Battanian", 210), new CalradiaWarState(null), "Speak in a grim, laconic register.");
+
+            prompt.Should().Contain("narrative style");
+            prompt.Should().Contain("grim, laconic register");
+
+            string huge = new string('x', StrategicAssessmentPromptBuilder.MaxNarrativeStyleChars + 500);
+            string capped = StrategicAssessmentPromptBuilder.Build(SampleWorld(), SampleRealmPlayer(),
+                new StrategicAdvisor("Ira", "Battanian", 210), new CalradiaWarState(null), huge);
+
+            capped.Should().NotContain(huge); // the full over-cap style never lands whole
         }
 
         // Defensive: an empty world (no kingdoms scored) must still yield a prompt, not throw, so the panel never

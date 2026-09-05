@@ -20,7 +20,7 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
     /// <summary>The voice of the Strategic Assessment: their name, culture, Tactics skill (which sets the counsel's quality), and whether they are a trained strategist or a plain soldier.</summary>
     public sealed class StrategicAdvisor
     {
-        public StrategicAdvisor(string name, string culture, int tacticsSkill, AdvisorKind kind = AdvisorKind.CompanionStrategist)
+        public StrategicAdvisor(string name, string culture, int tacticsSkill, AdvisorKind kind = AdvisorKind.CompanionStrategist, string persona = "")
         {
             Name = string.IsNullOrWhiteSpace(name)
                 ? kind == AdvisorKind.CommonSoldier ? "a grizzled veteran of your warband" : "your war council"
@@ -28,6 +28,7 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             Culture = culture?.Trim() ?? "";
             TacticsSkill = tacticsSkill;
             Kind = kind;
+            Persona = persona?.Trim() ?? "";
         }
 
         public string Name { get; }
@@ -35,7 +36,39 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
         public int TacticsSkill { get; }
         public AdvisorKind Kind { get; }
 
+        /// <summary>
+        ///   The companion's own character in their own words (their trait archetype, culture/rank, and any authored
+        ///   backstory / conviction), so the counsel is voiced as THAT person, not a faceless oracle. Empty for a
+        ///   common soldier, who speaks only as a plain veteran.
+        /// </summary>
+        public string Persona { get; }
+
+        public bool HasPersona => !string.IsNullOrWhiteSpace(Persona);
+
         public AdvisorTacticsTier Tier => TacticsAdvicePolicy.TierFor(TacticsSkill);
+    }
+
+    /// <summary>One war under way between two realms, named, so the advisor can reason about the actual conflicts rather than inventing them.</summary>
+    public sealed class WarPair
+    {
+        public WarPair(string a, string b)
+        {
+            A = a?.Trim() ?? "";
+            B = b?.Trim() ?? "";
+        }
+
+        public string A { get; }
+        public string B { get; }
+    }
+
+    /// <summary>The wars presently under way across Calradia (who fights whom): the ONLY conflicts the advisor may speak of.</summary>
+    public sealed class CalradiaWarState
+    {
+        public CalradiaWarState(IReadOnlyList<WarPair> wars) => Wars = wars ?? new List<WarPair>();
+
+        public IReadOnlyList<WarPair> Wars { get; }
+
+        public bool Any => Wars.Count > 0;
     }
 
     /// <summary>The player's own standing, so the advisor counsels FOR the player's realm rather than describing the world neutrally.</summary>
@@ -73,20 +106,30 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
         /// <summary>How many kingdoms to lay before the advisor: enough to judge the field, not so many the prompt bloats.</summary>
         public const int MaxKingdomsListed = 8;
 
-        public static string Build(PowerIndexResult result, PlayerStrategicContext player, StrategicAdvisor advisor)
+        /// <summary>The global narrative style is trimmed to this in the counsel prompt, so a long style file cannot crowd out the facts.</summary>
+        public const int MaxNarrativeStyleChars = 1200;
+
+        public static string Build(PowerIndexResult result, PlayerStrategicContext player, StrategicAdvisor advisor,
+            CalradiaWarState wars = null, string narrativeStyle = null)
         {
             result ??= new PowerIndexResult();
             player ??= new PlayerStrategicContext("", 0, null);
             advisor ??= new StrategicAdvisor("", "", 0);
+            wars ??= new CalradiaWarState(null);
 
             var sb = new StringBuilder();
 
-            // Persona + the quality dial: WHO is speaking and how keen their counsel is. A companion is a trained
-            // strategist; a common soldier stands in when no companion is at hand, and speaks plainly, without a
-            // strategist's polish. Either way the Tactics tier sets how keen the counsel is.
+            // Persona + the quality dial: WHO is speaking and how keen their counsel is. A companion counsels as
+            // THEMSELVES, in their own character (their trait archetype + any authored backstory/conviction), so the
+            // voice matches how they speak in the chatroom; a common soldier stands in when no companion is at hand,
+            // and speaks plainly, without a strategist's polish. Either way the Tactics tier sets how keen the counsel is.
             if (advisor.Kind == AdvisorKind.CommonSoldier)
             {
                 sb.Append($"You are {advisor.Name}, a common soldier in your lord's warband, no trained strategist, but you have marched and fought across Calradia. Speak plainly, as a soldier would, not with an officer's polish. ");
+            }
+            else if (advisor.HasPersona)
+            {
+                sb.Append($"You are {advisor.Name}, the companion your lord trusts to read the war. This is who you are: {advisor.Persona} Counsel in your own voice, true to that character. You are {TacticsAdvicePolicy.LabelFor(advisor.Tier)}. ");
             }
             else
             {
@@ -95,6 +138,7 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             }
 
             sb.Append(TacticsAdvicePolicy.GuidanceFor(advisor.Tier));
+            AppendNarrativeStyle(sb, narrativeStyle);
             sb.AppendLine();
             sb.AppendLine();
 
@@ -103,6 +147,7 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             AppendStandings(sb, result);
             AppendKeyIndicators(sb, result.Indicators);
             AppendTotals(sb, result.Totals);
+            AppendWars(sb, wars);
             sb.AppendLine();
 
             // The player's own position, so the counsel is FOR them.
@@ -110,9 +155,23 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             AppendPlayerPosition(sb, player, result);
             sb.AppendLine();
 
-            // The task: describe, predict, advise, in character, grounded.
-            sb.Append("Counsel your lord directly, in the second person and in character, in three to five sentences: describe how the realms stand, judge what is most likely to come, and advise what your lord should do. ");
-            sb.Append("Your reading and your predictions are YOUR judgment, not fact: be as incisive as your skill allows and no more. ");
+            // What the advisor DOES NOT know: there is no battle ledger yet, so any talk of a realm being "war-weary"
+            // or "bled dry" would be pure invention. Fence it off explicitly, or the model fills the silence with a war
+            // history it has no basis for (an early counsel claimed a realm's "wars have bled them dry" from nothing).
+            sb.AppendLine("WHAT YOU DO NOT KNOW: you keep NO record of past battles, casualties, or who has been winning. "
+                        + "Never claim a realm is war-weary, bled dry, exhausted, or has won or lost a war. The active wars "
+                        + "listed above are the only conflicts you know of; whether one goes well is yours to GUESS from the "
+                        + "forces and holdings, and you must voice it as a guess, not a fact.");
+            sb.AppendLine();
+
+            // The task: COUNSEL, not a recital. The player can already read the figures off this very panel, so the
+            // advisor must add judgment they could not: the danger, the opening, the move, weighed for the player's own
+            // realm, including the hard options (find a strong ally, or leave a failing banner). Grounded throughout.
+            sb.Append("Your lord can already SEE these figures on the table before them, so do NOT merely recite the rankings or numbers. ");
+            sb.Append("Give COUNSEL they could not read off the panel themselves: name the real danger, the opening, and the move to make. ");
+            sb.Append("Weigh your lord's OWN realm honestly: if it is strong, how to press the advantage; if it is weak or losing ground, say so plainly and offer real choices, whether to seek a powerful ally against a shared enemy, or to leave for a stronger banner before this one falls. ");
+            sb.Append("Speak in three to five sentences, in the second person and in character. ");
+            sb.Append("Every judgment and recommendation must rest on a force, holding, or active war listed above; your reading of them is YOUR judgment, be as incisive as your skill allows and no more. ");
             sb.Append("Never state a number, war, or event that is not written above.");
 
             return sb.ToString();
@@ -169,6 +228,38 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             sb.AppendLine(
                 $"- Across all realms: {totals.TotalTroops:N0} soldiers, {totals.TotalSettlements} settlements, " +
                 $"{totals.TotalClans} clans.");
+        }
+
+        // The wars actually under way: the single most decisive fact for a strategic reading, and the one the model
+        // most wants to invent when it is absent. Naming them lets the advisor reason about real fronts and shared
+        // enemies instead of imagining a "clash between X and Y" from nothing.
+        private static void AppendWars(StringBuilder sb, CalradiaWarState wars)
+        {
+            if (!wars.Any)
+            {
+                sb.AppendLine("- No realms are presently at war with one another.");
+
+                return;
+            }
+
+            sb.AppendLine("- Wars under way (the ONLY wars there are):");
+            foreach (WarPair w in wars.Wars)
+            {
+                if (w == null || string.IsNullOrWhiteSpace(w.A) || string.IsNullOrWhiteSpace(w.B)) continue;
+                sb.AppendLine($"    {w.A} is at war with {w.B}.");
+            }
+        }
+
+        // The player's chosen narrative style (global, the same voice the chatroom uses), so the counsel reads in the
+        // world's register rather than a flat report. Trimmed so a long style file cannot crowd out the facts.
+        private static void AppendNarrativeStyle(StringBuilder sb, string narrativeStyle)
+        {
+            if (string.IsNullOrWhiteSpace(narrativeStyle)) return;
+
+            string style = narrativeStyle.Trim();
+            if (style.Length > MaxNarrativeStyleChars) style = style.Substring(0, MaxNarrativeStyleChars);
+
+            sb.Append(" Speak in this narrative style: ").Append(style);
         }
 
         private static void AppendPlayerPosition(StringBuilder sb, PlayerStrategicContext player, PowerIndexResult result)

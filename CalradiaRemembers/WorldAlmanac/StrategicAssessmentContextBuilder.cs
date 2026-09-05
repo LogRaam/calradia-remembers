@@ -9,7 +9,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.WorldAlmanac;
+using CalradiaRemembers.Lore;
+using CalradiaRemembers.Mapping;
+using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
@@ -30,6 +35,9 @@ namespace CalradiaRemembers.WorldAlmanac
       /// <summary>The representative troop voicing the counsel (its portrait + class name stand in for the anonymous soldier), or null for a companion / alone.</summary>
       public CharacterObject AdvisorCharacter { get; set; }
 
+      /// <summary>The wars presently under way across Calradia (who fights whom), so the counsel reasons about real fronts.</summary>
+      public CalradiaWarState Wars { get; set; } = new CalradiaWarState(null);
+
       /// <summary>True when an advisor (companion or soldier) will voice an LLM counsel; false when alone (offline summary).</summary>
       public bool HasAdvisor => Advisor != null;
 
@@ -47,7 +55,7 @@ namespace CalradiaRemembers.WorldAlmanac
 
       public static StrategicAssessmentContext Build(PowerIndexResult result)
       {
-         var ctx = new StrategicAssessmentContext {Player = BuildPlayerContext(result)};
+         var ctx = new StrategicAssessmentContext {Player = BuildPlayerContext(result), Wars = BuildWarState()};
 
          try
          {
@@ -57,7 +65,8 @@ namespace CalradiaRemembers.WorldAlmanac
                ctx.AdvisorHero = companion;
                ctx.Advisor = new StrategicAdvisor(
                   companion.Name?.ToString(), companion.Culture?.Name?.ToString(),
-                  companion.GetSkillValue(DefaultSkills.Tactics), AdvisorKind.CompanionStrategist);
+                  companion.GetSkillValue(DefaultSkills.Tactics), AdvisorKind.CompanionStrategist,
+                  BuildAdvisorPersona(companion));
             }
             else
             {
@@ -98,6 +107,71 @@ namespace CalradiaRemembers.WorldAlmanac
          }
 
          return best;
+      }
+
+      // The companion's own character, in their own words, so the counsel is voiced as THAT person (the same voice
+      // the chatroom gives them), not a faceless oracle: the vivid trait archetype (which already reflects any
+      // authored traits), their culture/rank, and any authored backstory / conviction. Defensive: any failure just
+      // yields an empty persona, and the advisor falls back to the plain strategist line.
+      private static string BuildAdvisorPersona(Hero companion)
+      {
+         var parts = new List<string>();
+
+         try
+         {
+            NpcProfile profile = HeroProfileMapper.FromHero(companion);
+            if (!string.IsNullOrWhiteSpace(profile.Trait)) parts.Add(profile.Trait.Trim());
+            if (!string.IsNullOrWhiteSpace(profile.Personality)) parts.Add(profile.Personality.Trim());
+         }
+         catch (Exception ex) { ModLog.Error($"[STRAT_ASSESS] advisor archetype failed: {ex.GetType().Name}: {ex.Message}"); }
+
+         try
+         {
+            CharacterOverride ov = CharacterOverrideLoader.Set?.Resolve(companion.StringId, companion.Name?.ToString());
+            if (ov != null)
+            {
+               if (ov.HasBackstory) parts.Add(ov.Backstory.Trim());
+               if (ov.HasConviction) parts.Add($"They hold this to be true: {ov.Conviction.Trim()}");
+            }
+         }
+         catch (Exception ex) { ModLog.Error($"[STRAT_ASSESS] advisor authored lore failed: {ex.GetType().Name}: {ex.Message}"); }
+
+         var sb = new StringBuilder();
+         foreach (string p in parts)
+         {
+            if (string.IsNullOrWhiteSpace(p)) continue;
+            sb.Append(p.Trim());
+            if (!p.TrimEnd().EndsWith(".")) sb.Append('.');
+            sb.Append(' ');
+         }
+
+         return sb.ToString().Trim();
+      }
+
+      // Every war presently under way between two living kingdoms, named. This is the single richest input for a real
+      // strategic reading (fronts, shared enemies) and the fact the model most wants to invent when it is missing.
+      private static CalradiaWarState BuildWarState()
+      {
+         try
+         {
+            List<Kingdom> kingdoms = Kingdom.All?.Where(k => k != null && !k.IsEliminated).ToList() ?? new List<Kingdom>();
+            var pairs = new List<WarPair>();
+
+            for (var i = 0; i < kingdoms.Count; i++)
+            for (int j = i + 1; j < kingdoms.Count; j++)
+               if (kingdoms[i].IsAtWarWith(kingdoms[j]))
+                  pairs.Add(new WarPair(
+                     kingdoms[i].Name?.ToString() ?? kingdoms[i].StringId,
+                     kingdoms[j].Name?.ToString() ?? kingdoms[j].StringId));
+
+            return new CalradiaWarState(pairs);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[STRAT_ASSESS] war state failed: {ex.GetType().Name}: {ex.Message}");
+
+            return new CalradiaWarState(null);
+         }
       }
 
       // The highest-tier ordinary troop in the player's party, whose face and class name stand in for the anonymous

@@ -16,6 +16,7 @@ using CalradiaRemembers.Chat;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic.WorldAlmanac;
 using CalradiaRemembers.Portraits;
+using CalradiaRemembers.Styles;
 using NpcMemoryService.Core.LlmClient;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -145,7 +146,7 @@ namespace CalradiaRemembers.WorldAlmanac
 
       private static void FireAsync(BalanceOfPowerViewModel vm, PowerIndexResult result, StrategicAssessmentContext ctx, ILlmClient client, string signature)
       {
-         string prompt = StrategicAssessmentPromptBuilder.Build(result, ctx.Player, ctx.Advisor);
+         string prompt = StrategicAssessmentPromptBuilder.Build(result, ctx.Player, ctx.Advisor, ctx.Wars, StyleService.CurrentRules());
 
          var request = new LlmRequest
          {
@@ -198,6 +199,16 @@ namespace CalradiaRemembers.WorldAlmanac
          sb.Append("P=").Append(ctx.Player.PlayerKingdomName).Append(':').Append(ctx.Player.PlayerKingdomRank);
          sb.Append(";W=").Append(string.Join(",", ctx.Player.AtWarWith));
          sb.Append(";A=").Append(ctx.Advisor?.Kind).Append(':').Append(ctx.Advisor?.Tier).Append(':').Append(ctx.Advisor?.Name);
+
+         // The wars decide the reading, so a new front (or a peace) must mint a fresh counsel, not reuse the old one.
+         IReadOnlyList<WarPair> wars = ctx.Wars?.Wars ?? new List<WarPair>();
+         sb.Append(";Wars=");
+         foreach (WarPair w in wars)
+            if (w != null)
+               sb.Append(w.A).Append('~').Append(w.B).Append('|');
+
+         // The active narrative style is part of the voice, so a style change should also refresh the counsel.
+         sb.Append(";S=").Append(StyleService.ActiveName);
 
          return sb.ToString();
       }
