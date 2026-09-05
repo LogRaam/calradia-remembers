@@ -155,7 +155,7 @@ namespace CalradiaRemembers
          {
             SystemPrompt = prompt,
             Messages = new List<LlmMessage> {new LlmMessage(MessageRole.User, "Give your counsel now.")},
-            Parameters = new LlmParameters {MaxTokens = 220, Creativity = 0.6f, ReasoningOverride = "off"}
+            Parameters = new LlmParameters {MaxTokens = 480, Creativity = 0.6f, ReasoningOverride = "off"}
          };
 
          string counsel;

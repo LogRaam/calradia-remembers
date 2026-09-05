@@ -32,7 +32,10 @@ namespace CalradiaRemembers.WorldAlmanac
 
       private static readonly LlmParameters CounselParameters = new LlmParameters
       {
-         MaxTokens = 220,
+         // Room to FINISH: the narrative style adds stage directions that lengthen the counsel, and a tight cap cut
+         // it off mid-sentence ("...Or,") just as it reached the alternative option (player report 2026-09-04). The
+         // scrollable frame handles the length; the model still aims for three to five sentences.
+         MaxTokens = 480,
          Creativity = 0.6f,
          ReasoningOverride = "off" // a few sentences of prose counsel, never chain-of-thought
       };

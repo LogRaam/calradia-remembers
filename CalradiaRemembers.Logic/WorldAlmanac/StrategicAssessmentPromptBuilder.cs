@@ -171,6 +171,9 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             sb.Append("Give COUNSEL they could not read off the panel themselves: name the real danger, the opening, and the move to make. ");
             sb.Append("Weigh your lord's OWN realm honestly: if it is strong, how to press the advantage; if it is weak or losing ground, say so plainly and offer real choices, whether to seek a powerful ally against a shared enemy, or to leave for a stronger banner before this one falls. ");
             sb.Append("Speak in three to five sentences, in the second person and in character. ");
+            // The narrative style may add *stage directions*; keep the grammatical person straight, or the model
+            // writes "*You tap the map*" about ITSELF and addresses the advisor (player report 2026-09-04).
+            sb.Append("The word 'you' always means your lord and no one else. Any stage direction or description of your OWN gesture or expression must be written in the THIRD PERSON (name yourself, or use he or she), never 'you' about yourself. ");
             sb.Append("Every judgment and recommendation must rest on a force, holding, or active war listed above; your reading of them is YOUR judgment, be as incisive as your skill allows and no more. ");
             sb.Append("Never state a number, war, or event that is not written above.");
 

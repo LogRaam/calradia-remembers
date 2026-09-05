@@ -135,6 +135,19 @@ namespace CalradiaRemembers.Tests
             prompt.Should().Contain("do NOT merely recite"); // advice, not a read-out of the visible numbers
         }
 
+        // The narrative style adds *stage directions*, and without a person rule the model wrote "*You tap the map*"
+        // about ITSELF and addressed the advisor instead of the lord (player report 2026-09-04). The prompt must pin
+        // "you" to the lord and force the advisor's own actions into the third person.
+        [Test]
+        public void GIVEN_any_inputs_WHEN_building_THEN_it_pins_second_person_to_the_lord_and_self_actions_to_third()
+        {
+            string prompt = StrategicAssessmentPromptBuilder.Build(SampleWorld(), SampleRealmPlayer(),
+                new StrategicAdvisor("Ira", "Battanian", 210));
+
+            prompt.Should().Contain("'you' always means your lord");
+            prompt.Should().Contain("THIRD PERSON");
+        }
+
         // ── A: the real wars frame the reading ──────────────────────────────
 
         // The single richest input for a strategic reading is who is actually at war with whom, and it is the fact the
