@@ -156,6 +156,57 @@ namespace CalradiaRemembers.WorldAlmanac
          }
       }
 
+      // The strategist voicing the assessment, shown beside their counsel (like the chat avatar). Set once by the
+      // manager at open via ApplyAdvisorPortrait, before the movie binds, so plain fields suffice. Only a COMPANION
+      // has a portrait; a soldier or the alone/offline path leaves HasAdvisor false and the block hides.
+      private string _advisorName = "";
+      private string _advisorPortraitId = "";
+      private string _advisorPortraitProvider = "";
+      private string _advisorPortraitArgs = "";
+      private string _advisorCustomPortraitPath = "";
+      private bool _hasAdvisorCustomPortrait;
+      private bool _showAdvisorTableau;
+      private bool _hasAdvisor;
+      private float _advisorPortraitWidth = 120f;
+      private float _advisorPortraitHeight = 120f;
+
+      [DataSourceProperty] public string AdvisorName => _advisorName;
+      [DataSourceProperty] public string AdvisorPortraitId => _advisorPortraitId;
+      [DataSourceProperty] public string AdvisorPortraitTextureProvider => _advisorPortraitProvider;
+      [DataSourceProperty] public string AdvisorPortraitArgs => _advisorPortraitArgs;
+      [DataSourceProperty] public string AdvisorCustomPortraitPath => _advisorCustomPortraitPath;
+      [DataSourceProperty] public bool HasAdvisorCustomPortrait => _hasAdvisorCustomPortrait;
+      [DataSourceProperty] public bool ShowAdvisorTableau => _showAdvisorTableau;
+      [DataSourceProperty] public bool HasAdvisor => _hasAdvisor;
+      [DataSourceProperty] public float AdvisorPortraitWidth => _advisorPortraitWidth;
+      [DataSourceProperty] public float AdvisorPortraitHeight => _advisorPortraitHeight;
+
+      /// <summary>
+      ///   Sets the strategist's portrait beside the assessment (the chat's recipe): a custom image if the hero has
+      ///   one, else the 3D render, never both (the tableau fields are left empty when a custom exists, so only one
+      ///   draws). Called by the manager at open; a soldier / alone path never calls it, so no portrait shows.
+      /// </summary>
+      public void ApplyAdvisorPortrait(string name, string tableauId, string tableauProvider, string tableauArgs, string customPath, float customWidth, float customHeight)
+      {
+         _advisorName = name ?? "";
+
+         bool hasCustom = !string.IsNullOrEmpty(customPath);
+         _advisorCustomPortraitPath = hasCustom ? customPath : "";
+         _advisorPortraitId = hasCustom ? "" : tableauId ?? "";
+         _advisorPortraitProvider = hasCustom ? "" : tableauProvider ?? "";
+         _advisorPortraitArgs = hasCustom ? "" : tableauArgs ?? "";
+
+         _hasAdvisorCustomPortrait = hasCustom;
+         _showAdvisorTableau = !hasCustom && !string.IsNullOrEmpty(_advisorPortraitId);
+         _hasAdvisor = hasCustom || _showAdvisorTableau || !string.IsNullOrEmpty(_advisorName);
+
+         if (hasCustom && customWidth > 0 && customHeight > 0)
+         {
+            _advisorPortraitWidth = customWidth;
+            _advisorPortraitHeight = customHeight;
+         }
+      }
+
       public void ExecuteClose() => OnCloseRequested?.Invoke();
 
       // The four painted buttons along the bottom-left (Detailed View / Diplomacy / History / Rumors & Events). Each

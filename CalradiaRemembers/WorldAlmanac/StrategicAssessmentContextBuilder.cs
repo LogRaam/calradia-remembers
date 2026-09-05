@@ -24,6 +24,9 @@ namespace CalradiaRemembers.WorldAlmanac
       /// <summary>The voice of the counsel, or null when the player travels alone (then the caller uses the offline summary).</summary>
       public StrategicAdvisor Advisor { get; set; }
 
+      /// <summary>The companion Hero voicing the counsel (for their portrait), or null for a soldier / alone.</summary>
+      public Hero AdvisorHero { get; set; }
+
       /// <summary>True when an advisor (companion or soldier) will voice an LLM counsel; false when alone (offline summary).</summary>
       public bool HasAdvisor => Advisor != null;
 
@@ -45,12 +48,24 @@ namespace CalradiaRemembers.WorldAlmanac
 
          try
          {
-            ctx.Advisor = PickCompanionAdvisor() ?? PickSoldierAdvisor();
+            Hero companion = PickBestCompanion();
+            if (companion != null)
+            {
+               ctx.AdvisorHero = companion;
+               ctx.Advisor = new StrategicAdvisor(
+                  companion.Name?.ToString(), companion.Culture?.Name?.ToString(),
+                  companion.GetSkillValue(DefaultSkills.Tactics), AdvisorKind.CompanionStrategist);
+            }
+            else
+            {
+               ctx.Advisor = PickSoldierAdvisor(); // no hero portrait: a soldier is anonymous
+            }
          }
          catch (Exception ex)
          {
             ModLog.Error($"[STRAT_ASSESS] advisor selection failed (falling back to the offline summary): {ex.GetType().Name}: {ex.Message}");
             ctx.Advisor = null;
+            ctx.AdvisorHero = null;
          }
 
          return ctx;
@@ -59,7 +74,7 @@ namespace CalradiaRemembers.WorldAlmanac
       #region private
 
       // The player's living companion with the highest Tactics, or null when the clan has none.
-      private static StrategicAdvisor PickCompanionAdvisor()
+      private static Hero PickBestCompanion()
       {
          IReadOnlyList<Hero> companions = Clan.PlayerClan?.Companions;
          if (companions == null || companions.Count == 0) return null;
@@ -77,9 +92,7 @@ namespace CalradiaRemembers.WorldAlmanac
             }
          }
 
-         if (best == null) return null;
-
-         return new StrategicAdvisor(best.Name?.ToString(), best.Culture?.Name?.ToString(), bestTactics, AdvisorKind.CompanionStrategist);
+         return best;
       }
 
       // No companion, but the party carries soldiers: an anonymous veteran stands in, their keenness scaled modestly

@@ -13,9 +13,12 @@ using System.Text;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic.WorldAlmanac;
+using CalradiaRemembers.Portraits;
 using NpcMemoryService.Core.LlmClient;
 using NpcMemoryService.Core.Models;
+using TaleWorlds.CampaignSystem;
 
 #endregion
 
@@ -56,6 +59,10 @@ namespace CalradiaRemembers.WorldAlmanac
                return;
             }
 
+            // The counsel is voiced by a real companion: show their face beside it (the chat's recipe). A soldier is
+            // anonymous and the alone path never gets here, so both leave the block hidden.
+            ApplyAdvisorPortrait(vm, ctx.AdvisorHero);
+
             string signature = Signature(result, ctx);
             if (Cache.TryGetValue(signature, out string cached) && !string.IsNullOrWhiteSpace(cached))
             {
@@ -75,6 +82,43 @@ namespace CalradiaRemembers.WorldAlmanac
       }
 
       #region private
+
+      // The portrait box the advisor's face is fitted into, beside the counsel (kept modest, it sits in a text panel).
+      private const float AdvisorBoxWidth = 120f;
+      private const float AdvisorBoxHeight = 120f;
+
+      // Resolves the companion's portrait the same way the chat and the leader card do: a player-dropped custom image
+      // wins over the 3D render (aspect-preserved), else the live character tableau. Defensive: any failure just
+      // leaves the block hidden, the counsel still reads. A null hero (soldier / alone) shows no portrait.
+      private static void ApplyAdvisorPortrait(BalanceOfPowerViewModel vm, Hero advisor)
+      {
+         if (advisor == null) return;
+
+         try
+         {
+            PortraitData portrait = PortraitTextureGuard.Create(advisor.CharacterObject);
+
+            string customPath = "";
+            try { customPath = ChatPortraitResolver.ResolveForHero(advisor.StringId, advisor.Name?.ToString()) ?? ""; }
+            catch (Exception ex) { ModLog.Error($"[STRAT_ASSESS] advisor custom portrait lookup failed: {ex.GetType().Name}: {ex.Message}"); }
+
+            float w = AdvisorBoxHeight, h = AdvisorBoxHeight;
+            if (!string.IsNullOrEmpty(customPath)
+                && RuntimePortraitFactory.TryGetDimensions(customPath, out int pw, out int ph)
+                && pw > 0 && ph > 0)
+            {
+               float scale = Math.Min(AdvisorBoxWidth / pw, AdvisorBoxHeight / ph);
+               w = pw * scale;
+               h = ph * scale;
+            }
+
+            vm.ApplyAdvisorPortrait(advisor.Name?.ToString() ?? "", portrait.Id, portrait.TextureProviderName, portrait.AdditionalArgs, customPath, w, h);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[STRAT_ASSESS] advisor portrait failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
 
       private static void FireAsync(BalanceOfPowerViewModel vm, PowerIndexResult result, StrategicAssessmentContext ctx, ILlmClient client, string signature)
       {
