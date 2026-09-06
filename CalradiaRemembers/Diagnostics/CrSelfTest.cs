@@ -179,6 +179,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("held_secret", Severity.Light, "Mystery-lover (phase 3b payoff): mark a player-clan companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL EncounterContextBuilder.Build for that lord and assert the held-secret subject surfaces on the context (naming the companion) when adult content is on, or is suppressed when the adult gate is off. Restores the flag and forgets the ledger entry afterwards", TestHeldSecret),
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
+         new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
          new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
@@ -6296,6 +6297,7 @@ namespace CalradiaRemembers.Diagnostics
          NpcProfile subjectProfile = GetOrCreate(behavior, subject);
          if (subjectProfile.Romantic == null) subjectProfile.Romantic = new RomanticProfile();
          bool prevFlag = subjectProfile.Romantic.IsSecretLover;
+         RomanticStatus prevStatus = subjectProfile.Romantic.Status;
 
          NpcProfile npcProfile = GetOrCreate(behavior, npc);
          int memoryCountBefore = npcProfile.Events?.Count ?? 0;
@@ -6303,6 +6305,7 @@ namespace CalradiaRemembers.Diagnostics
          try
          {
             subjectProfile.Romantic.IsSecretLover = true;
+            subjectProfile.Romantic.Status = RomanticStatus.SecretLover;
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(npc, subject.StringId); // clean slate
 
@@ -6321,6 +6324,7 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             subjectProfile.Romantic.IsSecretLover = prevFlag;
+            subjectProfile.Romantic.Status = prevStatus;
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(npc, subject.StringId);
             if (npcProfile.Events != null)
@@ -6348,11 +6352,13 @@ namespace CalradiaRemembers.Diagnostics
          NpcProfile subjectProfile = GetOrCreate(behavior, subject);
          if (subjectProfile.Romantic == null) subjectProfile.Romantic = new RomanticProfile();
          bool prevFlag = subjectProfile.Romantic.IsSecretLover;
+         RomanticStatus prevStatus = subjectProfile.Romantic.Status;
          NpcProfile npcProfile = GetOrCreate(behavior, npc);
 
          try
          {
             subjectProfile.Romantic.IsSecretLover = true;
+            subjectProfile.Romantic.Status = RomanticStatus.SecretLover;
             behavior.Store.Set(subjectProfile);
             gossip.RecordKnows(npc, subject.StringId);
 
@@ -6375,6 +6381,7 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             subjectProfile.Romantic.IsSecretLover = prevFlag;
+            subjectProfile.Romantic.Status = prevStatus;
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(npc, subject.StringId);
          }
@@ -6459,6 +6466,7 @@ namespace CalradiaRemembers.Diagnostics
          NpcProfile subjectProfile = GetOrCreate(behavior, subject);
          if (subjectProfile.Romantic == null) subjectProfile.Romantic = new RomanticProfile();
          bool prevFlag = subjectProfile.Romantic.IsSecretLover;
+         RomanticStatus prevStatus = subjectProfile.Romantic.Status;
          NpcProfile npcProfile = GetOrCreate(behavior, npc);
          int memoryCountBefore = npcProfile.Events?.Count ?? 0;
 
@@ -6469,6 +6477,7 @@ namespace CalradiaRemembers.Diagnostics
          try
          {
             subjectProfile.Romantic.IsSecretLover = true;
+            subjectProfile.Romantic.Status = RomanticStatus.SecretLover;
             behavior.Store.Set(subjectProfile);
             gossip.RecordKnows(npc, subject.StringId);
             gossip.ForgetHushPaid(npc, subject.StringId);
@@ -6494,6 +6503,7 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             subjectProfile.Romantic.IsSecretLover = prevFlag;
+            subjectProfile.Romantic.Status = prevStatus;
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(npc, subject.StringId);
             gossip.ForgetHushPaid(npc, subject.StringId);
@@ -6502,6 +6512,61 @@ namespace CalradiaRemembers.Diagnostics
             behavior.Store.Set(npcProfile);
             Hero.MainHero.ChangeHeroGold(playerGold0 - Hero.MainHero.Gold);
             npc.ChangeHeroGold(npcGold0 - npc.Gold);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestLordSecretLover(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("lord_secret_lover");
+
+         WorldEvents.SecretLoverGossipBehavior gossip = WorldEvents.SecretLoverGossipBehavior.Instance;
+         if (t.Abort(gossip == null || behavior?.Store == null || behavior.GameStateBridge == null,
+                "secret-lover behavior / store / bridge not initialized")) return t.Line();
+
+         // A NON-companion lord standing in as the married lord the player is secretly the lover of (Stolen Love /
+         // infidelity marks the SDK Status SecretLover, not the companion-only IsSecretLover flag).
+         Hero subject = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && !h.IsPlayerCompanion);
+         if (t.Abort(subject == null, "no non-companion lord to stand in as the secret-lover subject")) return t.Line();
+
+         Hero holder = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h != subject && h.IsLord && !h.IsPrisoner);
+         if (t.Abort(holder == null, "no second lord to hold the secret")) return t.Line();
+
+         NpcProfile subjectProfile = GetOrCreate(behavior, subject);
+         if (subjectProfile.Romantic == null) subjectProfile.Romantic = new RomanticProfile();
+         RomanticStatus prevStatus = subjectProfile.Romantic.Status;
+         NpcProfile holderProfile = GetOrCreate(behavior, holder);
+
+         try
+         {
+            // Only Status is set (no IsSecretLover), exactly as a seduced married lord's profile looks.
+            subjectProfile.Romantic.Status = RomanticStatus.SecretLover;
+            behavior.Store.Set(subjectProfile);
+
+            t.Note($"subject(lord)={subject.Name} holder={holder.Name} adultLevel={ModSettings.AdultContentLevel}");
+            t.Expect("a lord affair is detected as a secret-lover bond",
+               gossip.PlayerSecretLoverSubjectIds().Contains(subject.StringId), true);
+
+            gossip.RecordKnows(holder, subject.StringId);
+            EncounterContext ctx = EncounterContextBuilder.Build(holder, holderProfile, behavior.GameStateBridge, "hello");
+
+            if (ModSettings.AdultContentLevel != AdultContentLevel.Off)
+            {
+               string subjectName = subject.Name?.ToString() ?? "";
+               t.Expect("the held-secret payoff names the lord subject",
+                  !string.IsNullOrEmpty(ctx.HeldSecretLoverSubject) && ctx.HeldSecretLoverSubject.Contains(subjectName), true);
+            }
+            else
+            {
+               t.Expect("the adult gate suppresses the held secret", string.IsNullOrEmpty(ctx.HeldSecretLoverSubject), true);
+            }
+         }
+         finally
+         {
+            subjectProfile.Romantic.Status = prevStatus;
+            behavior.Store.Set(subjectProfile);
+            gossip.ForgetKnows(holder, subject.StringId);
          }
 
          return t.Line();

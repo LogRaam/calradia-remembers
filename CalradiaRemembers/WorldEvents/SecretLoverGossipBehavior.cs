@@ -165,8 +165,19 @@ namespace CalradiaRemembers.WorldEvents
             {
                if (h == null || h == Hero.MainHero) continue;
 
-               RomanticProfile r = behavior.Store.Get(h.StringId)?.Romantic;
-               if (r == null || !r.IsSecretLover) continue;
+               NpcProfile p = behavior.Store.Get(h.StringId);
+               RomanticProfile r = p?.Romantic;
+               if (r == null || r.Status != RomanticStatus.SecretLover) continue;
+
+               // A secret bond reached through a MARRIED-NPC affair (Stolen Love / infidelity) carries no onset
+               // stamp the way a companion's take_as_secret_lover does. Stamp it on first sighting so the leak
+               // delay runs for a lord's hidden affair exactly as it does for a companion.
+               if (r.SecretLoverSinceDay == null)
+               {
+                  r.SecretLoverSinceDay = today;
+                  behavior.Store.Set(p);
+               }
+
                if (!SecretLoverLeakPolicy.IsEligibleToLeak(r.SecretLoverSinceDay, today, _leaked.Contains(h.StringId))) continue;
                if (MBRandom.RandomInt(100) >= SecretLoverLeakPolicy.DailyLeakChancePercent) continue;
 
@@ -316,23 +327,24 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       /// <summary>
-      ///   StringIds of the heroes the player is currently a secret lover of (companion-only, by construction of
-      ///   take_as_secret_lover). Feeds admit_secret_lover eligibility and the knowledge ledger: the player can only
-      ///   confess a bond that actually exists.
+      ///   StringIds of everyone the player is currently a secret lover of: a companion (via take_as_secret_lover,
+      ///   IsSecretLover) OR a MARRIED lord the player is having a clandestine affair with (Stolen Love / infidelity,
+      ///   which the SDK marks Status == SecretLover). Both reduce to Status == SecretLover, so one store scan covers
+      ///   the pair. Feeds admit_secret_lover eligibility, the knowledge ledger, the held-secret payoff, and the
+      ///   hush lever: the player can only confess, and a lord can only hold, a bond that actually exists.
       /// </summary>
       public List<string> PlayerSecretLoverSubjectIds()
       {
          var subjects = new List<string>();
          NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
-         Clan clan = Clan.PlayerClan;
-         if (behavior?.Store == null || clan == null) return subjects;
+         if (behavior?.Store == null) return subjects;
 
-         foreach (Hero h in clan.Companions)
+         foreach (string id in behavior.Store.ListIds())
          {
-            if (h == null || h == Hero.MainHero) continue;
+            if (string.IsNullOrEmpty(id)) continue;
 
-            RomanticProfile r = behavior.Store.Get(h.StringId)?.Romantic;
-            if (r != null && r.IsSecretLover) subjects.Add(h.StringId);
+            RomanticProfile r = behavior.Store.Get(id)?.Romantic;
+            if (r != null && r.Status == RomanticStatus.SecretLover) subjects.Add(id);
          }
 
          return subjects;
