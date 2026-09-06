@@ -2,6 +2,34 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.2.. 2026-09-06
+
+Tournaments become memory: the lords who shared the lists remember how it went between you, and repeated meetings
+build into rivalries. Saves from 2.5.1 carry over untouched.
+
+### New
+- **Tournament memory (player suggestion).** The arena bracket is read from the mission itself (rounds, matches,
+  participants, winners), so each lord who faced the player carries a first-hand memory of the real result: who
+  beat whom, in which round, and who took the crown. The recent-matter interception then has them approach about
+  it, and the tone follows their character (Valor/Honor/Mercy): a proud low-honour victor brags, an honourable one
+  is gracious, a hard bout is met with respect. A champion who beat the player also becomes realm gossip for the
+  lords who were not there.
+- **Grounded tournament letters.** A lord with something to say may write instead of waiting to meet: a braggart
+  crows, a gracious one congratulates or is magnanimous. Capped at a couple per tournament, and never from a lord
+  travelling with the player. New neutral `LetterReason.TournamentResult` (TournamentVictory presumes a player win,
+  so it cannot frame a brag after a loss).
+- **Tournament rivalries.** A persisted per-lord tally of arena head-to-heads; at the threshold a standing rivalry
+  crystallizes once, planting a worthy-opponent appreciation (honourable) or a light grudge (low honour), so both
+  a friendly rival and a sore one fall out of the same matches by character.
+
+### Fixed
+- **An authored character is never skipped in silence.** Follow-up to the 2.5.0 fix for the "no kinks entry"
+  report: an entry whose ONLY field was a misspelled orientation parsed to nothing, so it counted as empty and was
+  passed over. Orientation TEXT now counts as authored content, and unreadable values are reported rather than
+  ignored (`CharacterOverride.AuthoringProblems`, `KinkParser.Unrecognized`): cr.lore_status shows them per entry
+  and cr.reload_lore logs them plus any entry it had nothing to apply from. Parsing stays forgiving; a typo never
+  throws, it is simply no longer invisible.
+
 ## v2.5.1.. 2026-09-06
 
 Living lords who seek you out now raise the right matter, a secret-affair drama threads through the world, and
