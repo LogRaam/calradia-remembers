@@ -2,6 +2,40 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.1.. 2026-09-06
+
+Living lords who seek you out now raise the right matter, a secret-affair drama threads through the world, and
+regard is earned rather than farmed. Saves from 2.5.0 carry over untouched.
+
+### New
+- **Lords raise the freshest matter they truly know.** A lord who rides out to find you now leads with the most
+  recent thing he knows, framed by how he knows it: a battle he fought at your side (first person), a rumour of
+  your deed (hedged hearsay), or realm gossip he cannot vouch for and asks YOU about. Each matter is raised only
+  once, and a chase that ends in a letter names that same matter instead of a generic "your recent deeds".
+- **A secret-affair drama.** Take a secret lover (a devoted companion, or a married lord drawn into an affair) and
+  whispers of the bond's existence, never the identity, begin to circulate after a delay; other lords probe you
+  about it. The identity is never deduced, only learned if you confess it. A knowing friend keeps the confidence,
+  a rival lets it slip among his own friends over time, and an enemy holds it over you and presses you to pay for
+  his silence.
+- **Progressive regard.** Warmth is earned, not farmed: each point raises the bar for the next, so a long warm
+  conversation advances it where a drive-by stalls, and skipping a few hours no longer farms +1s. The difficulty
+  eases with real time, on a pace set by a new MCM setting "Regard Warmth Cooldown (days)" (default 7, 0 = off).
+  Intimacy and negatives are unchanged.
+
+### Fixed
+- **No interception from a lord who is not free.** A lord committed to an army, or already caught in a battle, no
+  longer breaks off to ride after you (and no longer sends the useless "entering your lands" letters).
+- **Companion private-word no longer collides with vanilla.** A companion's private-word offer is not raised over
+  top of a vanilla conversation on settlement entry.
+- **Narrative style actually reshapes the prose.** Switching your chosen voice now changes length, rhythm, and
+  interiority instead of barely changing anything (a prose-vs-structure split lets the voice win on how it reads).
+- **BoP and letter book fit the screen.** The Balance of Power panel and the letter book scale to the screen's
+  aspect ratio instead of being cropped or mis-zoomed when the ratio changes.
+
+### For mod authors
+- **ActionResult.Recap / CrConversation.PromptReply.** An external action can carry a short recap the NPC voices in
+  the same beat, and a mod can prompt an NPC to answer a line.
+
 ## v2.5.0.. 2026-09-05
 
 The World Almanac arrives: a Balance of Power war-room panel, opened from the Clan screen, plus a companion
