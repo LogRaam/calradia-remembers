@@ -6615,6 +6615,29 @@ namespace CalradiaRemembers.Diagnostics
          string bested = BattleFeatText.WitnessedFeat(lords[0].Name?.ToString(), CombatFeatOutcome.Bested, "open battle");
          t.Expect("a bested lord is not called killed", bested.Contains("kill"), false);
 
+         // Inc 2, end to end on the REAL reporter. The DOWNING line always survives; the deed line only when the
+         // foe was worth beating, so pick a lord the ruling actually rates (any campaign has stronger lords than
+         // the player early on, but never assume it: fall back and assert only what holds).
+         Hero ratedFoe = lords.FirstOrDefault(h =>
+            CombatProwessPolicy.Rate(player, CalradiaRemembers.Battles.BattleFeatFacts.For(h)) != CombatFeatTier.Unremarkable);
+
+         var endToEnd = new CalradiaRemembers.Battles.BattleFeatJournal();
+         endToEnd.DebugRecord(ratedFoe?.StringId, lords[0].StringId, 0);
+
+         IReadOnlyList<string> lines = CalradiaRemembers.Battles.BattleFeatReporter.BuildLines(endToEnd, "open battle");
+         string joined = string.Join(" | ", lines);
+
+         t.Note($"ratedFoe={(ratedFoe == null ? "(none stronger)" : ratedFoe.Name.ToString())}; lines={lines.Count}: {joined}");
+         t.Expect("who downed the player always survives distillation", lines.Count >= 1, true);
+         t.Expect("every witness line is first-hand", lines.All(l => l.StartsWith("I saw")), true);
+         t.Expect("the foe who downed the player is named", joined.Contains(lords[0].Name?.ToString() ?? "??"), true);
+
+         if (ratedFoe != null && !ratedFoe.IsDead)
+         {
+            t.Expect("a worthy foe yields a deed line too", lines.Count >= 2, true);
+            t.Expect("a living lord is never mourned", joined.Contains("cut"), false);
+         }
+
          return t.Line();
       }
 

@@ -26,8 +26,14 @@ namespace CalradiaRemembers.Battles
    /// <summary>Mission-scoped ledger of what the player actually did, and suffered, in this engagement.</summary>
    public sealed class BattleFeatJournal : MissionLogic
    {
-      /// <summary>The live journal for the mission in progress, or null outside one. Read by the feeder at battle end.</summary>
+      /// <summary>The live journal for the mission in progress, or null outside one.</summary>
       public static BattleFeatJournal Current { get; private set; }
+
+      // The mission ENDS before the map event resolves, so a journal that cleared itself on OnEndMission would be
+      // gone by the time the battle feeder runs. The finished ledger is parked here instead, and consumed exactly
+      // once (see ConsumeCompleted): that also stops an auto-resolved battle, which has no mission at all, from
+      // picking up the deeds of an earlier fight.
+      private static BattleFeatJournal _completed;
 
       // Hero StringIds the player personally put out of the fight, in the order it happened, without duplicates.
       private readonly List<string> _heroesDowned = new List<string>();
@@ -49,14 +55,29 @@ namespace CalradiaRemembers.Battles
       {
          base.OnBehaviorInitialize();
          Current = this;
+         _completed = null; // a new fight invalidates any ledger nobody consumed
       }
 
       protected override void OnEndMission()
       {
-         // The feeder reads the journal at battle end; clearing here would race it, so only drop the static hook.
+         // Park the finished ledger for the battle feeder, which runs AFTER the mission is gone.
+         _completed = this;
          if (Current == this) Current = null;
 
          base.OnEndMission();
+      }
+
+      /// <summary>
+      ///   The ledger of the fight that just ended, or null when there was none (an auto-resolved battle has no
+      ///   mission, so it has no deeds to report). Consumed once: a second read returns null, so one fight's deeds
+      ///   can never be attributed to a later battle.
+      /// </summary>
+      public static BattleFeatJournal ConsumeCompleted()
+      {
+         BattleFeatJournal completed = _completed;
+         _completed = null;
+
+         return completed;
       }
 
       public override void OnAgentRemoved(Agent affectedAgent, Agent affectorAgent, AgentState agentState, KillingBlow killingBlow)
