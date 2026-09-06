@@ -466,6 +466,14 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      /// <summary>
+      ///   The hero ids of the witnesses standing in this conversation, for systems that must record what these
+      ///   people SAW (player violence Inc 4). Skips the synthetic flavour witnesses, who have no hero behind them
+      ///   and so can carry no memory. Never null.
+      /// </summary>
+      public IEnumerable<string> WitnessHeroIds
+         => _witnesses.Where(w => !string.IsNullOrEmpty(w?.HeroStringId)).Select(w => w.HeroStringId);
+
       /// <summary>True when at least one witness is present — drives IsVisible on the witnesses line.</summary>
       [DataSourceProperty]
       public bool HasWitnesses

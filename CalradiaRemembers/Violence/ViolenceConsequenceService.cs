@@ -47,6 +47,7 @@ namespace CalradiaRemembers.Violence
             LoseStanding(cost.RenownLoss);
             CollapseRegard(victim, cost.RelationHit);
             RouseKin(victim, act, cost.KinGrudgeMagnitude);
+            Circulate(victim, act, cost.RumorMagnitude);
 
             ModLog.Info($"[VIOLENCE] {act}/{verdict} on {victim.Name} ({exposure}): crime={cost.CrimeRating}, " +
                         $"regard={cost.RelationHit}, renown=-{cost.RenownLoss}, kinGrudge={cost.KinGrudgeMagnitude}.");
@@ -55,6 +56,55 @@ namespace CalradiaRemembers.Violence
 
          return cost;
       }
+
+      /// <summary>
+      ///   Lets word of the deed leave the room, when the policy says it becomes news. Shaped exactly like the
+      ///   battle pillar's exploit event, and for the same reason: <c>InvolvesPlayer</c> is true, so a lord raises
+      ///   it as a RUMOUR about the player rather than as impersonal gossip, and only the two who were in it are
+      ///   named as actors, because tagging the victim's faction would let every lord of it claim to have been
+      ///   there. This is the dark mirror of an exploit, on the same rails.
+      /// </summary>
+      private static void Circulate(Hero victim, ViolentAct act, int magnitude)
+      {
+         if (magnitude <= 0 || WorldEvents.WorldEventStore.Instance == null) return;
+
+         var day = (int) CampaignTime.Now.ToDays;
+         string playerName = Named(Hero.MainHero);
+         string victimName = Named(victim);
+         string place = victim.CurrentSettlement?.Name?.ToString() ?? "";
+
+         WorldEvents.WorldEventStore.Instance.Record(new WorldEvents.WorldEvent {
+            Id = $"cr_violence_{victim.StringId}_{day}",
+            Type = WorldEvents.WorldEventType.Scandal,
+            Day = day,
+            Magnitude = magnitude,
+            InvolvesPlayer = true,
+            ActorIds = new List<string> {Hero.MainHero.StringId, victim.StringId},
+            Summary = ViolenceRumorText.Gossiped(playerName, victimName, act, place),
+            ChronicleLine = ViolenceRumorText.Chronicled(playerName, victimName, act, place)
+         });
+
+         RememberAmongWitnesses(playerName, victimName, act, day);
+         ModLog.Info($"[VIOLENCE] word spreads: {ViolenceRumorText.Chronicled(playerName, victimName, act, place)}");
+      }
+
+      // Those who actually stood there carry it first-hand, not as something they were told.
+      private static void RememberAmongWitnesses(string playerName, string victimName, ViolentAct act, int day)
+      {
+         string line = ViolenceRumorText.Witnessed(playerName, victimName, act);
+
+         foreach (string witnessId in Chat.ChatManager.ActiveViewModel?.WitnessHeroIds ?? Enumerable.Empty<string>())
+         {
+            NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(witnessId);
+            if (profile == null) continue;
+
+            profile.Events.Add(new NotableEvent(day, NotableEventType.Confrontation, line));
+            NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
+         }
+      }
+
+      private static string Named(Hero hero)
+         => Logic.HeroLabel.Describe(hero?.Name?.ToString(), hero?.Clan?.Name?.ToString(), hero?.Culture?.Name?.ToString());
 
       // The engine's own crime rating against the victim's realm: this is what actually turns guards hostile.
       private static void ChargeCrime(Hero victim, int crime)

@@ -19,12 +19,13 @@ namespace CalradiaRemembers.Logic.Violence
     /// <summary>What one act of violence costs the player: with the law, with the victim, with their kin, and with the player's own name.</summary>
     public sealed class ViolenceConsequence
     {
-        public ViolenceConsequence(int crimeRating, int relationHit, int renownLoss, int kinGrudgeMagnitude)
+        public ViolenceConsequence(int crimeRating, int relationHit, int renownLoss, int kinGrudgeMagnitude, int rumorMagnitude)
         {
             CrimeRating = crimeRating;
             RelationHit = relationHit;
             RenownLoss = renownLoss;
             KinGrudgeMagnitude = kinGrudgeMagnitude;
+            RumorMagnitude = rumorMagnitude;
         }
 
         /// <summary>Crime the victim's realm charges the player with (the engine's own MainHeroCrimeRating, which drives guards and bounties).</summary>
@@ -38,6 +39,9 @@ namespace CalradiaRemembers.Logic.Violence
 
         /// <summary>The grudge the victim's kin carry, or 0 when the deed is not the sort that makes enemies of a family.</summary>
         public int KinGrudgeMagnitude { get; }
+
+        /// <summary>How loudly word of this travels, or 0 when the realm never hears of it as news at all.</summary>
+        public int RumorMagnitude { get; }
     }
 
     /// <summary>Prices an act of violence: what the law, the victim, their kin, and the player's name make of it.</summary>
@@ -85,6 +89,15 @@ namespace CalradiaRemembers.Logic.Violence
         /// <summary>The grudge a family carries for a beaten kinsman. Tuning.</summary>
         public const int AssaultKinGrudge = 25;
 
+        /// <summary>How loudly a murder travels. Above a battlefield exploit (55): a killing is the graver news. Tuning.</summary>
+        public const int KillRumor = 65;
+
+        /// <summary>How loudly a beating travels, once it has been seen. Tuning.</summary>
+        public const int AssaultRumor = 40;
+
+        /// <summary>How loudly a robbery travels, once it has been seen. Tuning.</summary>
+        public const int RobRumor = 30;
+
         /// <summary>
         ///   What this act costs. A forbidden act costs nothing, because nothing happened. Otherwise the law always
         ///   hears something (an living victim accuses, a body is found), scaled by who was watching; renown is
@@ -93,7 +106,7 @@ namespace CalradiaRemembers.Logic.Violence
         /// </summary>
         public static ViolenceConsequence Resolve(ViolentAct act, ViolenceVerdict verdict, ViolenceExposure exposure)
         {
-            if (verdict == ViolenceVerdict.Forbidden) return new ViolenceConsequence(0, 0, 0, 0);
+            if (verdict == ViolenceVerdict.Forbidden) return new ViolenceConsequence(0, 0, 0, 0, 0);
 
             bool succeeded = verdict == ViolenceVerdict.Succeeded;
             bool seen = exposure != ViolenceExposure.Alone;
@@ -104,7 +117,22 @@ namespace CalradiaRemembers.Logic.Violence
             int relation = RelationHitFor(act, succeeded);
             var kin = (int) Math.Round(BaseKinGrudge(act) * share);
 
-            return new ViolenceConsequence(crime, relation, renown, kin);
+            return new ViolenceConsequence(crime, relation, renown, kin, RumorFor(act, succeeded, seen));
+        }
+
+        /// <summary>
+        ///   How loudly word travels, or 0 when this never becomes news. A completed KILLING always circulates, seen
+        ///   or not, because a body is found and a name is missed; everything else becomes news only when someone
+        ///   actually SAW it. A failed attempt is talk rather than news, and does not circulate on its own: it has
+        ///   already cost the player with the law and with the victim.
+        /// </summary>
+        private static int RumorFor(ViolentAct act, bool succeeded, bool seen)
+        {
+            if (!succeeded) return 0;
+            if (act == ViolentAct.Kill) return KillRumor;
+            if (!seen) return 0;
+
+            return act == ViolentAct.Assault ? AssaultRumor : RobRumor;
         }
 
         // A dead victim has no regard left to lose; a survivor of an attempt on their life has every reason to hate.
