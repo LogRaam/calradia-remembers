@@ -11,6 +11,7 @@ using Bannerlord.UIExtenderEx;
 using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Bastards;
+using CalradiaRemembers.Battles;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Chronicle;
@@ -350,6 +351,27 @@ namespace CalradiaRemembers
          // campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.AssemblyBehavior());
          // campaignStarter.AddBehavior(new CalradiaRemembers.Assemblies.AssemblyMenuBehavior());
          Log($"{ModName} campaign behavior registered.");
+      }
+
+      /// <summary>
+      ///   Attaches the battle-feat journal to every fight the player can be part of, so a battle leaves REAL facts
+      ///   (whom the player bested, who put them down) instead of one generic line. Arena combat is included on
+      ///   purpose: it is how a tournament bout yields the same named deeds. Non-combat missions (conversations,
+      ///   town walks) get nothing. The journal is mission-scoped and persists nothing by itself.
+      /// </summary>
+      public override void OnMissionBehaviorInitialize(Mission mission)
+      {
+         base.OnMissionBehaviorInitialize(mission);
+
+         try
+         {
+            if (mission == null) return;
+            if (mission.CombatType != Mission.MissionCombatType.Combat
+                && mission.CombatType != Mission.MissionCombatType.ArenaCombat) return;
+
+            mission.AddMissionBehavior(new BattleFeatJournal());
+         }
+         catch (Exception ex) { ModLog.Error($"[BATTLEFEAT] could not attach the journal: {ex.GetType().Name}: {ex.Message}"); }
       }
 
       /// <summary>

@@ -25,6 +25,7 @@ using CalradiaRemembers.Items;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Battles;
 using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Appreciations;
@@ -180,6 +181,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("held_secret", Severity.Light, "Mystery-lover (phase 3b payoff): mark a player-clan companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL EncounterContextBuilder.Build for that lord and assert the held-secret subject surfaces on the context (naming the companion) when adult content is on, or is suppressed when the adult gate is off. Restores the flag and forgets the ledger entry afterwards", TestHeldSecret),
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
+         new SelfTest("battle_feat", Severity.Light, "Battle-memory enrichment (Gabriel 2026-09-06, Inc 1): reads LIVE hero fighting facts through the real BattleFeatFacts bridge and asserts they yield a real prowess score; then pins the exploit ruling on synthetic extremes (besting a champion is an Exploit and travels as gossip, stomping a weakling is Unremarkable and never travels); then drives the REAL mission journal through its debug seam and asserts it keeps the felled hero (deduplicated), who downed the player, and the troop tally apart; and asserts a bested lord is never called killed (the truth rule). Mutates nothing", TestBattleFeat),
          new SelfTest("tournament_memory", Severity.Light, "Tournament memory (player suggestion, Inc 2): build a synthetic arena result (the player bested one lord, another beat the player and took the crown) and drive the REAL feeder (TournamentMemoryFeeder.Apply). Asserts a first-hand LIVED memory lands on each lord's profile (the loser recalls losing, the champion recalls besting the player and taking the crown) so the recent-matter interception makes them approach, and a champion gossip world event is recorded (player not involved). Trims the memories and removes the event afterwards", TestTournamentMemory),
          new SelfTest("tournament_rivalry", Severity.Light, "Tournament memory (player suggestion, Inc 4): force a low-honour lord and record three arena head-to-heads via the REAL rivalry behavior; asserts no rivalry forms before the threshold, it crystallizes at the threshold, the tally is right, and a BITTER rivalry plants a light grudge. Clears the grudge, forgets the tally, and restores the trait afterwards", TestTournamentRivalry),
          new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
@@ -6571,6 +6573,47 @@ namespace CalradiaRemembers.Diagnostics
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(holder, subject.StringId);
          }
+
+         return t.Line();
+      }
+
+      private static string TestBattleFeat(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("battle_feat");
+
+         if (t.Abort(Hero.MainHero == null, "no main hero")) return t.Line();
+
+         // A weak foe and a strong one, so both ends of the exploit ruling are exercised on LIVE hero facts.
+         List<Hero> lords = Hero.AllAliveHeroes?.Where(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner).ToList();
+         if (t.Abort(lords == null || lords.Count == 0, "no live lord to stand in as a foe")) return t.Line();
+
+         CombatantFacts player = CalradiaRemembers.Battles.BattleFeatFacts.For(Hero.MainHero);
+         CombatantFacts foe = CalradiaRemembers.Battles.BattleFeatFacts.For(lords[0]);
+
+         // Synthetic extremes: the ruling itself must not depend on who happens to be alive in this campaign.
+         var weakling = new CombatantFacts(20, 0, 0, 2, 0);
+         var champion = new CombatantFacts(300, 200, 200, 35, CombatProwessPolicy.FamousClanTier);
+
+         t.Note($"player prowess={CombatProwessPolicy.Prowess(player)}, {lords[0].Name} prowess={CombatProwessPolicy.Prowess(foe)}");
+         t.Expect("live hero facts yield a real prowess score", CombatProwessPolicy.Prowess(foe) > 1, true);
+         t.Expect("besting a champion is an exploit", CombatProwessPolicy.Rate(weakling, champion), CombatFeatTier.Exploit);
+         t.Expect("an exploit travels as gossip", CombatProwessPolicy.TravelsAsGossip(CombatFeatTier.Exploit), true);
+         t.Expect("stomping a weakling is unremarkable", CombatProwessPolicy.Rate(champion, weakling), CombatFeatTier.Unremarkable);
+         t.Expect("an unremarkable win never travels", CombatProwessPolicy.TravelsAsGossip(CombatFeatTier.Unremarkable), false);
+
+         // The journal itself: drive the REAL ledger through its debug seam (no battle needed) and assert it keeps
+         // the deed, the mirror deed, and the troop tally apart.
+         var journal = new CalradiaRemembers.Battles.BattleFeatJournal();
+         journal.DebugRecord(lords[0].StringId, lords[0].StringId, 3);
+         journal.DebugRecord(lords[0].StringId, null, 2); // duplicates must not pile up
+
+         t.Expect("the felled hero is journaled once", journal.HeroesDowned.Count, 1);
+         t.Expect("who downed the player is journaled", journal.DownedThePlayer.Count, 1);
+         t.Expect("the troop tally accumulates", journal.TroopsFelled, 5);
+
+         // A lord is BESTED, never called dead unless he truly died (Gabriel's truth rule).
+         string bested = BattleFeatText.WitnessedFeat(lords[0].Name?.ToString(), CombatFeatOutcome.Bested, "open battle");
+         t.Expect("a bested lord is not called killed", bested.Contains("kill"), false);
 
          return t.Line();
       }
