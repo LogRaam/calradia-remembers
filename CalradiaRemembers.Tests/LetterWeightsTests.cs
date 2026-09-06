@@ -53,6 +53,7 @@ namespace CalradiaRemembers.Tests
 
             { LetterReason.BirthAnnouncement, LetterWeights.WeightBirthAnnouncement },
             { LetterReason.TournamentVictory, LetterWeights.WeightTournamentVictory },
+            { LetterReason.TournamentResult, LetterWeights.WeightTournamentResult },
             { LetterReason.BattleVictory, LetterWeights.BattleBaseWeight },
 
             { LetterReason.ChildSupportRequest, LetterWeights.WeightGuaranteedBypassSentinel },

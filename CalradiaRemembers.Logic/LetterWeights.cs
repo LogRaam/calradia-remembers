@@ -97,6 +97,9 @@ namespace CalradiaRemembers.Logic
         /// <summary>Tournament congratulations: pure flavor.</summary>
         public const int WeightTournamentVictory = 30;
 
+        /// <summary>A grounded per-opponent tournament note (brag / gracious / congrats): flavor, same tier as a victory acclaim.</summary>
+        public const int WeightTournamentResult = 30;
+
         /// <summary>
         ///   A battle congratulation's FLOOR before <see cref="BattleVictoryWeight" /> adds the underdog
         ///   bonus: an even fight is still just flavor, so it starts no higher than a tournament win.
@@ -180,6 +183,7 @@ namespace CalradiaRemembers.Logic
 
                 case LetterReason.BirthAnnouncement: return WeightBirthAnnouncement;
                 case LetterReason.TournamentVictory: return WeightTournamentVictory;
+                case LetterReason.TournamentResult: return WeightTournamentResult;
                 case LetterReason.BattleVictory: return BattleBaseWeight;
 
                 case LetterReason.ChildSupportRequest:

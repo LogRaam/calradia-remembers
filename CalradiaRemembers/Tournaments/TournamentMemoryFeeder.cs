@@ -18,6 +18,8 @@ using CalradiaRemembers.Mapping;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using TaleWorlds.CampaignSystem.Party;
 
 #endregion
 
@@ -27,40 +29,74 @@ namespace CalradiaRemembers.Tournaments
    public static class TournamentMemoryFeeder
    {
       private const int ChampionGossipMagnitude = 55; // clears the recent-matter WorldGossip threshold (55)
+      private const int MaxTournamentLetters = 2;      // a couple of grounded notes at most, so a tourney never floods the mailbox
 
-      /// <summary>Records a first-hand tournament memory on every hero the player had a decisive result against, plus a gossip event for a champion who beat the player.</summary>
+      /// <summary>Records a first-hand tournament memory on every hero the player had a decisive result against, queues up to a couple of grounded letters (brag / gracious), and seeds a gossip event for a champion who beat the player.</summary>
       public static void Apply(TournamentResult result)
       {
          NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
          if (result == null || behavior?.Store == null) return;
 
          var seen = new HashSet<string>();
+         var lettersLeft = MaxTournamentLetters;
 
          foreach (TournamentBout bout in result.Bouts)
             foreach (string heroId in bout.OpponentHeroIds)
-               if (!string.IsNullOrEmpty(heroId) && seen.Add(heroId))
-                  RecordMemoryFor(behavior, result, heroId);
+               if (!string.IsNullOrEmpty(heroId) && seen.Add(heroId) && RecordMemoryFor(behavior, result, heroId, lettersLeft > 0))
+                  lettersLeft--;
 
-         if (!string.IsNullOrEmpty(result.ChampionHeroId) && seen.Add(result.ChampionHeroId))
-            RecordMemoryFor(behavior, result, result.ChampionHeroId);
+         if (!string.IsNullOrEmpty(result.ChampionHeroId) && seen.Add(result.ChampionHeroId) && RecordMemoryFor(behavior, result, result.ChampionHeroId, lettersLeft > 0))
+            lettersLeft--;
 
          RecordChampionGossip(result);
       }
 
-      private static void RecordMemoryFor(NpcMemoryCampaignBehavior behavior, TournamentResult result, string heroId)
+      // Writes the LIVED memory and, when allowed, may queue a grounded letter (brag/gracious). Returns true only
+      // when a letter was actually queued, so the caller can hold the tournament to a small letter budget.
+      private static bool RecordMemoryFor(NpcMemoryCampaignBehavior behavior, TournamentResult result, string heroId, bool mayQueueLetter)
       {
          TournamentStanding standing = TournamentMemoryPolicy.Classify(result, heroId);
-         if (standing.Relation == TournamentRelation.None) return;
+         if (standing.Relation == TournamentRelation.None) return false;
 
          Hero hero = Hero.AllAliveHeroes?.FirstOrDefault(h => h != null && h.StringId == heroId);
-         if (hero == null) return;
+         if (hero == null) return false;
 
          NpcProfile profile = behavior.Store.Get(heroId) ?? HeroProfileMapper.FromHero(hero);
-         if (profile == null) return;
+         if (profile == null) return false;
 
          profile.Events.Add(new NotableEvent(result.Day, NotableEventType.Other, ComposeMemory(result, standing)));
+
+         bool letterQueued = mayQueueLetter && TryQueueLetter(profile, hero, result, standing);
          behavior.Store.Set(profile);
+
+         return letterQueued;
       }
+
+      // A lord who came away with something to SAY writes a grounded note: a braggart crows, a gracious soul
+      // congratulates or is magnanimous. A measured or sore lord says nothing by letter (in person, or a rivalry,
+      // carries that). A lord travelling with the player never writes; they would just speak.
+      private static bool TryQueueLetter(NpcProfile profile, Hero hero, TournamentResult result, TournamentStanding standing)
+      {
+         if (hero.PartyBelongedTo == MobileParty.MainParty) return false;
+
+         TournamentMemoryTone tone = TournamentMemoryPolicy.Tone(standing, TraitsOf(hero));
+         if (tone != TournamentMemoryTone.Brag && tone != TournamentMemoryTone.Gracious) return false;
+
+         profile.LetterCandidates.Add(new LetterCandidateIntent {
+            Reason = LetterReason.TournamentResult,
+            Context = ComposeLetterContext(result, standing, tone),
+            EligibleSinceDay = result.Day,
+            BaseWeightOverride = 0 // derive from LetterWeights.BaseWeight(TournamentResult)
+         });
+
+         return true;
+      }
+
+      private static TournamentTraitFacts TraitsOf(Hero hero)
+         => new TournamentTraitFacts(
+            hero.GetTraitLevel(DefaultTraits.Valor),
+            hero.GetTraitLevel(DefaultTraits.Honor),
+            hero.GetTraitLevel(DefaultTraits.Mercy));
 
       // A concise, first-person FACT the recent-matter opener will name; the lord's own character supplies the tone.
       internal static string ComposeMemory(TournamentResult result, TournamentStanding standing)
@@ -79,6 +115,37 @@ namespace CalradiaRemembers.Tournaments
             default: // CoCompetitor champion (never faced the player directly)
                return $"I won the crown at {atTown}, where the player also competed.";
          }
+      }
+
+      // The letter's instruction to the writer: the bracket fact in second person, plus the spirit their tone gives.
+      internal static string ComposeLetterContext(TournamentResult result, TournamentStanding standing, TournamentMemoryTone tone)
+      {
+         string atTown = string.IsNullOrEmpty(result.TownName) ? "the tourney" : $"the tourney at {result.TownName}";
+         string round = RoundName(standing.Round);
+
+         string fact;
+         switch (standing.Relation)
+         {
+            case TournamentRelation.BeatThePlayer:
+               fact = standing.IsChampion
+                  ? $"You bested the player in {round} of {atTown} and went on to take the crown."
+                  : $"You bested the player in {round} of {atTown}.";
+               break;
+            case TournamentRelation.LostToThePlayer:
+               fact = $"The player bested you in {round} of {atTown}.";
+               break;
+            default:
+               fact = $"You took the crown at {atTown}, where the player also competed.";
+               break;
+         }
+
+         string spirit = tone == TournamentMemoryTone.Brag
+            ? "You write to crow over it, rubbing the victory in as your nature dictates."
+            : standing.Relation == TournamentRelation.LostToThePlayer
+               ? "You write to congratulate them, gracious in defeat."
+               : "You write a magnanimous note, praising how they fought.";
+
+         return fact + " " + spirit;
       }
 
       private static string RoundName(int round)

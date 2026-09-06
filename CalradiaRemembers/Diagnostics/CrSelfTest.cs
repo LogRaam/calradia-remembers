@@ -6590,6 +6590,8 @@ namespace CalradiaRemembers.Diagnostics
          NpcProfile champP = GetOrCreate(behavior, champion);
          int beatenBefore = beatenP.Events?.Count ?? 0;
          int champBefore = champP.Events?.Count ?? 0;
+         int champLettersBefore = champP.LetterCandidates?.Count ?? 0;
+         int champHonor0 = champion.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor);
 
          var today = (int) CampaignTime.Now.ToDays;
          const string town = "SelfTestArena";
@@ -6606,11 +6608,17 @@ namespace CalradiaRemembers.Diagnostics
 
          try
          {
+            // Force the champion gracious so the grounded-letter path is exercised (default traits yield a measured
+            // tone that writes no letter).
+            champion.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor, 2);
+
             CalradiaRemembers.Tournaments.TournamentMemoryFeeder.Apply(result);
 
             string beatenLast = beatenP.Events != null && beatenP.Events.Count > beatenBefore ? beatenP.Events[beatenP.Events.Count - 1].summary : "";
             string champLast = champP.Events != null && champP.Events.Count > champBefore ? champP.Events[champP.Events.Count - 1].summary : "";
             WorldEvents.WorldEvent gossip = WorldEvents.WorldEventStore.Instance.GetById(gossipId);
+            bool letterQueued = champP.LetterCandidates != null
+                                && champP.LetterCandidates.Any(c => c.Reason == NpcMemoryService.Core.Models.LetterReason.TournamentResult);
 
             t.Note($"beaten={beaten.Name} champion={champion.Name}");
             t.Expect("the player-beaten lord remembers losing", beatenLast.Contains("bested me"), true);
@@ -6618,11 +6626,14 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("the champion recalls the crown", champLast.Contains("crown"), true);
             t.Expect("a champion gossip event is recorded", gossip != null, true);
             t.Expect("the gossip does not involve the player", gossip?.InvolvesPlayer, false);
+            t.Expect("a grounded tournament letter is queued", letterQueued, true);
          }
          finally
          {
+            champion.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor, champHonor0);
             if (beatenP.Events != null) while (beatenP.Events.Count > beatenBefore) beatenP.Events.RemoveAt(beatenP.Events.Count - 1);
             if (champP.Events != null) while (champP.Events.Count > champBefore) champP.Events.RemoveAt(champP.Events.Count - 1);
+            if (champP.LetterCandidates != null) while (champP.LetterCandidates.Count > champLettersBefore) champP.LetterCandidates.RemoveAt(champP.LetterCandidates.Count - 1);
             behavior.Store.Set(beatenP);
             behavior.Store.Set(champP);
             WorldEvents.WorldEventStore.Instance.Remove(gossipId);
