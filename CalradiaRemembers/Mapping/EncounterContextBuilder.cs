@@ -520,6 +520,7 @@ namespace CalradiaRemembers.Mapping
             PartnerLoverKnown = ResolvePartnerLoverKnown(profile),
             PartnerLoverName = ResolvePartnerLoverName(profile),
             PartnerLoverIsSecret = profile?.Romantic?.LoverIsSecret ?? false,
+            HeldSecretLoverSubject = ResolveHeldSecretLoverSubject(hero),
             ConceptionRisk = ResolveConceptionRisk(hero),
             PowerBalanceNote = ResolvePowerBalanceNote(hero, profile),
             MarriageProspects = MarriageProspectResolver.Build(hero),
@@ -2349,6 +2350,34 @@ namespace CalradiaRemembers.Mapping
       ///   the comrade bond is what makes the confession plausible. The adult-content gate is applied in the
       ///   prompt (AppendSecretLoverProposal) and at the audience trigger, not here.
       /// </summary>
+      /// <summary>
+      ///   Mystery-lover pillar (phase 3b): the subject label to name in the prompt when THIS NPC is recorded in
+      ///   the knowledge ledger as knowing the player is that subject's secret lover (learned only because the
+      ///   player confessed it, or because it propagated from one who was told). Adult-gated here, alongside the
+      ///   secret-lover eligibility gate. Null when this NPC holds no such secret. The subject is naturally never
+      ///   the NPC themselves: the confession verb excludes the listener from the ledger.
+      /// </summary>
+      private static string ResolveHeldSecretLoverSubject(Hero hero)
+      {
+         if (ModSettings.AdultContentLevel == AdultContentLevel.Off) return null; // adult-content gate lives here
+         if (hero == null || Hero.MainHero == null) return null;
+
+         SecretLoverGossipBehavior gossip = SecretLoverGossipBehavior.Instance;
+         if (gossip == null) return null;
+
+         foreach (string subjectId in gossip.PlayerSecretLoverSubjectIds())
+         {
+            if (!gossip.Knows(hero.StringId, subjectId)) continue;
+
+            Hero subject = Hero.AllAliveHeroes?.FirstOrDefault(h => h != null && h.StringId == subjectId);
+            if (subject == null) continue;
+
+            return HeroLabel.Describe(subject.Name?.ToString(), subject.Clan?.Name?.ToString(), subject.Culture?.Name?.ToString());
+         }
+
+         return null;
+      }
+
       private static bool ResolveSecretLoverEligible(Hero hero, NpcProfile profile)
       {
          if (ModSettings.AdultContentLevel == AdultContentLevel.Off) return false; // adult-content gate lives here
