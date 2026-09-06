@@ -92,7 +92,15 @@ namespace CalradiaRemembers.UI
       ///   Harmony prefix reads this to skip the vanilla siege-visual tick that crashes natively under a pushed
       ///   panel. Static because the guard patches one engine method for all panels, not per instance.
       /// </summary>
-      public static bool SuppressSettlementVisualTick => VisualTick.IsSuppressed;
+      public static bool SuppressSettlementVisualTick => AnyPanelOwnsScreen;
+
+      /// <summary>
+      ///   True while at least one CR panel owns the screen (open, or mid-reload): the one fact every guard around a
+      ///   pushed panel needs. Read by <see cref="SettlementVisualTickGuard" /> (skip the siege-visual tick that
+      ///   crashes natively) and by <see cref="MapNavigationInputGuard" /> (skip the map's own hotkeys, so the face
+      ///   generator no longer opens under a letter the player is typing into).
+      /// </summary>
+      public static bool AnyPanelOwnsScreen => VisualTick.IsSuppressed;
 
       public void Open()
       {

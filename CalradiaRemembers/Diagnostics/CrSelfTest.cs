@@ -7836,6 +7836,14 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("guardAttachedToLiveOnTick", UI.SettlementVisualTickGuard.IsPatched, true);
          t.Expect("noSuppressionAtRest", UI.CrPanelHost.SuppressSettlementVisualTick, false);
 
+         // The map-navigation guard rides the same "a panel owns the screen" fact. Resolved by NAME against the live
+         // engine, so this assertion is what catches a game update renaming MapScreen.TickNavigationInput: without
+         // it the guard silently detaches and a map hotkey opens the face generator under a letter again.
+         UI.MapNavigationInputGuard.EnsurePatched(); // idempotent: already attached at startup
+         t.Note($"navGuardPatched={UI.MapNavigationInputGuard.IsPatched}, panelOwnsScreenAtRest={UI.CrPanelHost.AnyPanelOwnsScreen}");
+         t.Expect("navGuardAttachedToLiveTickNavigationInput", UI.MapNavigationInputGuard.IsPatched, true);
+         t.Expect("mapHotkeysLeftAloneAtRest", UI.CrPanelHost.AnyPanelOwnsScreen, false);
+
          return t.Line();
       }
 
