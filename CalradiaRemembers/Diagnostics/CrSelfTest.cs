@@ -177,6 +177,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_lover_leak", Severity.Light, "Mystery-lover (phase 3a): force the secret-lover existence-whisper for a live hero (DebugForceLeak) and assert it records a Scandal world event that names the SUBJECT but hides the lover (InvolvesPlayer=false, the subject in ActorIds, gossip-worthy magnitude), so lords probe the player about it while the identity stays secret. Retracts the seeded event afterwards", TestSecretLoverLeak),
          new SelfTest("admit_secret_lover", Severity.Light, "Mystery-lover (phase 3b): temporarily mark a player-clan companion the player's secret lover, then drive the REAL bridge dispatch of admit_secret_lover against a live lord and assert the lord's knowledge ledger now records the identity (the fact learned ONLY because the player confessed, never deduced), a confession memory is planted on the lord, and a lord who was not told stays ignorant. Restores the flag, forgets the ledger entry, and trims the planted memory afterwards", TestAdmitSecretLover),
          new SelfTest("held_secret", Severity.Light, "Mystery-lover (phase 3b payoff): mark a player-clan companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL EncounterContextBuilder.Build for that lord and assert the held-secret subject surfaces on the context (naming the companion) when adult content is on, or is suppressed when the adult gate is off. Restores the flag and forgets the ledger entry afterwards", TestHeldSecret),
+         new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
          new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
@@ -6375,6 +6376,66 @@ namespace CalradiaRemembers.Diagnostics
             subjectProfile.Romantic.IsSecretLover = prevFlag;
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(npc, subject.StringId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestSecretPropagation(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("secret_propagation");
+
+         WorldEvents.SecretLoverGossipBehavior gossip = WorldEvents.SecretLoverGossipBehavior.Instance;
+         if (t.Abort(gossip == null || behavior?.Store == null, "secret-lover behavior / store not initialized")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no main hero")) return t.Line();
+
+         // A teller who actually has a friend (relation >= the propagation floor) to confide in.
+         Hero teller = null;
+         foreach (Hero cand in Hero.AllAliveHeroes.Where(h => h != null && h != Hero.MainHero && h.IsLord && !h.IsPrisoner))
+         {
+            if (Hero.AllAliveHeroes.Any(f => f != null && f != cand && f != Hero.MainHero && !f.IsPrisoner
+                   && CalradiaRemembers.Logic.SecretPropagationPolicy.IsFriend(cand.GetRelation(f))))
+            {
+               teller = cand;
+               break;
+            }
+         }
+
+         if (t.Abort(teller == null, "no lord with a friend to propagate to")) return t.Line();
+
+         Hero subject = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h != teller && h.IsAlive);
+         if (t.Abort(subject == null, "no hero to stand in as the secret-lover subject")) return t.Line();
+
+         // Force the teller to a neutral personal regard so the "a friend of the player guards it" gate does not skip.
+         NpcProfile tellerProfile = GetOrCreate(behavior, teller);
+         int prevRegard = tellerProfile.ReputationWithPlayer;
+
+         string told = null;
+         try
+         {
+            tellerProfile.ReputationWithPlayer = 0;
+            behavior.Store.Set(tellerProfile);
+            gossip.ForgetKnows(teller, subject.StringId);
+            gossip.RecordKnows(teller, subject.StringId);
+
+            told = gossip.DebugSpreadOnce(teller, subject.StringId);
+
+            t.Note($"teller={teller.Name} subject={subject.Name} told={(told == null ? "(none)" : told)}");
+            t.Expect("the secret reached a friend", !string.IsNullOrEmpty(told), true);
+            t.Expect("that friend now knows", told != null && gossip.Knows(told, subject.StringId), true);
+            t.Expect("the friend is not the player", told != Hero.MainHero.StringId, true);
+         }
+         finally
+         {
+            gossip.ForgetKnows(teller, subject.StringId);
+            if (told != null)
+            {
+               Hero friend = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h.StringId == told);
+               if (friend != null) gossip.ForgetKnows(friend, subject.StringId);
+            }
+
+            tellerProfile.ReputationWithPlayer = prevRegard;
+            behavior.Store.Set(tellerProfile);
          }
 
          return t.Line();

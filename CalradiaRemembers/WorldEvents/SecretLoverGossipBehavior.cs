@@ -12,6 +12,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
@@ -124,8 +125,71 @@ namespace CalradiaRemembers.WorldEvents
 
                LeakExistence(h, today);
             }
+
+            PropagateKnownSecrets(today);
          }
          catch (Exception ex) { ModLog.Error($"[SECRETLOVER] daily tick failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      // Phase 3b-2: a lord who KNOWS the player's secret-lover identity may let it slip to one of his own friends,
+      // so the secret spreads gradually. Iterates a SNAPSHOT of the ledger, so a friend told today is not itself a
+      // teller until a later tick (the trickle, never a same-day cascade).
+      private void PropagateKnownSecrets(int today)
+      {
+         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         if (behavior?.Store == null || Hero.MainHero == null) return;
+
+         foreach (string key in _known.ToList())
+         {
+            int bar = key.IndexOf('|');
+            if (bar <= 0 || bar >= key.Length - 1) continue;
+
+            if (MBRandom.RandomInt(100) >= SecretPropagationPolicy.DailySpreadChancePercent) continue;
+
+            TrySpreadOnce(behavior, key.Substring(0, bar), key.Substring(bar + 1));
+         }
+      }
+
+      // Runs the real spread gate for one (teller, subject) pair MINUS the daily chance roll: a true friend of the
+      // PLAYER guards the secret and never spreads it (HeldSecretPolicy Confidant), otherwise the teller confides it
+      // to one random friend of his own who does not already know. Returns the friend told, or null.
+      private string TrySpreadOnce(NpcMemoryCampaignBehavior behavior, string tellerId, string subjectId)
+      {
+         Hero teller = Hero.AllAliveHeroes?.FirstOrDefault(h => h != null && h.StringId == tellerId);
+         if (teller == null || teller == Hero.MainHero) return null;
+
+         int regard = behavior.Store.Get(tellerId)?.ReputationWithPlayer ?? 0;
+         bool hostile = teller.MapFaction != null && Hero.MainHero.MapFaction != null && teller.MapFaction.IsAtWarWith(Hero.MainHero.MapFaction);
+         if (HeldSecretPolicy.Decide(regard, hostile) == HeldSecretDisposition.Confidant) return null; // a friend of the player guards it
+
+         Hero friend = PickFriendToTell(teller, subjectId);
+         if (friend == null) return null;
+
+         RecordKnows(friend, subjectId);
+         ModLog.Info($"[SECRETLOVER] {teller.Name} let slip to {friend.Name} what they know of the player's secret bond.");
+
+         return friend.StringId;
+      }
+
+      private Hero PickFriendToTell(Hero teller, string subjectId)
+      {
+         List<Hero> friends = Hero.AllAliveHeroes?.Where(h => h != null && h != teller && h != Hero.MainHero
+               && h.StringId != subjectId && !h.IsPrisoner
+               && SecretPropagationPolicy.IsFriend(teller.GetRelation(h))
+               && !Knows(h.StringId, subjectId)).ToList();
+
+         if (friends == null || friends.Count == 0) return null;
+
+         return friends[MBRandom.RandomInt(friends.Count)];
+      }
+
+      /// <summary>cr.testall seam: run one propagation from this teller (bypassing the daily chance) and return the friend told, or null when the teller guards it or has no eligible friend.</summary>
+      internal string DebugSpreadOnce(Hero teller, string subjectId)
+      {
+         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         if (teller == null || behavior?.Store == null) return null;
+
+         return TrySpreadOnce(behavior, teller.StringId, subjectId);
       }
 
       // Leaks the existence AND marks it so the daily roll never re-emits it.
