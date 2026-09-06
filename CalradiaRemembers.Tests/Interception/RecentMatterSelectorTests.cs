@@ -113,6 +113,38 @@ namespace CalradiaRemembers.Tests.Interception
          RecentMatterSelector.PickFreshest(new[] {b, a}, new HashSet<string>(), Today, Window).Key.Should().Be("we:aaa");
       }
 
+      // Phase 2: a matter BETWEEN the two of them always beats impersonal world gossip, even when the gossip is
+      // FRESHER, so a lord raises the shared battle before he reaches for hearsay about the king's war. Preserves
+      // the fkasad fix against the new gossip source.
+      [Test]
+      public void GIVEN_a_fresher_world_gossip_and_an_older_personal_matter_WHEN_picking_THEN_the_personal_matter_wins()
+      {
+         var matters = new[]
+         {
+            new RecentMatter("mem:battle", 97, "we broke the enemy together", RecentMatterRegister.LivedMemory),
+            new RecentMatter("we:war", 100, "the Sturgian king readies for war", RecentMatterRegister.WorldGossip)
+         };
+
+         RecentMatterSelector.PickFreshest(matters, new HashSet<string>(), Today, Window)
+            .Key.Should().Be("mem:battle");
+      }
+
+      // But world gossip IS raised when nothing personal is fresh (all personal matters raised or aged out): the
+      // lord, with nothing between them to bring up, probes the player about the noteworthy happening instead.
+      [Test]
+      public void GIVEN_only_world_gossip_left_WHEN_picking_THEN_the_gossip_is_raised()
+      {
+         var matters = new[]
+         {
+            new RecentMatter("mem:done", 100, "already spoken of", RecentMatterRegister.LivedMemory),
+            new RecentMatter("we:scandal", 99, "a court scandal at Rhagaea's palace", RecentMatterRegister.WorldGossip)
+         };
+         var raised = new HashSet<string> {"mem:done"};
+
+         RecentMatterSelector.PickFreshest(matters, raised, Today, Window)
+            .Register.Should().Be(RecentMatterRegister.WorldGossip);
+      }
+
       // An empty or null candidate set is a safe no-op.
       [Test]
       public void GIVEN_no_candidates_WHEN_picking_THEN_nothing_is_returned()

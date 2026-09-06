@@ -21,7 +21,15 @@ namespace CalradiaRemembers.Logic.Interception
       LivedMemory,
 
       /// <summary>He only heard of it: a world event about the PLAYER's deeds he did not take part in. Spoken as hearsay.</summary>
-      RumorAboutPlayer
+      RumorAboutPlayer,
+
+      /// <summary>
+      ///   World gossip that does NOT involve the player and that he did not take part in: a noteworthy happening
+      ///   (a realm readying for war, a court scandal) he only heard of. He does not comment on it, he ASKS the
+      ///   player what THEY know. Always yields to a matter that involves the player (below), so a lord raises
+      ///   something between the two of them first, and only reaches for gossip when nothing personal is fresh.
+      /// </summary>
+      WorldGossip
    }
 
    /// <summary>One recent matter a lord could raise with the player: what it is, when it happened, its register, and a stable key for the once-per-NPC guard.</summary>
@@ -79,12 +87,18 @@ namespace CalradiaRemembers.Logic.Interception
          return best;
       }
 
-      // Freshest wins; on an exact-day tie a lived memory beats a rumor; on a further tie the smaller key wins so
-      // the choice is stable regardless of enumeration order.
+      // A matter that involves the player (a lived memory or a rumor about their deeds) ALWAYS beats impersonal
+      // world gossip, so a lord raises something between the two of them before reaching for hearsay about others.
+      // Within the same tier: freshest wins; on an exact-day tie the lower register wins (lived before rumor before
+      // gossip); on a further tie the smaller key wins, so the choice is stable regardless of enumeration order.
       private static bool IsBetter(RecentMatter a, RecentMatter b)
       {
+         bool aPersonal = a.Register != RecentMatterRegister.WorldGossip;
+         bool bPersonal = b.Register != RecentMatterRegister.WorldGossip;
+         if (aPersonal != bPersonal) return aPersonal;
+
          if (a.Day != b.Day) return a.Day > b.Day;
-         if (a.Register != b.Register) return a.Register == RecentMatterRegister.LivedMemory;
+         if (a.Register != b.Register) return a.Register < b.Register;
 
          return string.CompareOrdinal(a.Key, b.Key) < 0;
       }

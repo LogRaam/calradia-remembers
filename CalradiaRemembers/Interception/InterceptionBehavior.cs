@@ -60,6 +60,11 @@ namespace CalradiaRemembers.Interception
       // rumor window so a lived memory and a rumor are weighed over the same recent horizon.
       private const int RecentMatterWindowDays = RecentDeedWindowDays;
 
+      // How noteworthy a NON-player world event must be before a lord bothers to probe the player about it (phase 2
+      // gossip). On the world-event magnitude scale (~30 a town's hardship, 60 war looming, 75 war declared, 65-85
+      // captures/executions), this keeps gossip to realm-shaking news, never idle village chatter.
+      private const int GossipMagnitudeThreshold = 55;
+
       // Which profile memories are worth a lord riding out to speak of: shared/dramatic experiences, not a bare
       // first meeting, a farewell, or a private romantic/captive beat that a roadside challenge should never raise.
       private static readonly HashSet<NotableEventType> RaisableMemoryTypes = new()
@@ -775,14 +780,24 @@ namespace CalradiaRemembers.Interception
          if (store != null)
             foreach (WorldEvent we in store.GetKnownEvents(lord, today, 4))
             {
-               if (we == null || !we.InvolvesPlayer || string.IsNullOrEmpty(we.Id)) continue;
+               if (we == null || string.IsNullOrEmpty(we.Id)) continue;
                if (we.Day > today || today - we.Day > RecentMatterWindowDays) continue;
 
-               RecentMatterRegister register = LordTookPartIn(we, lord)
-                  ? RecentMatterRegister.LivedMemory
-                  : RecentMatterRegister.RumorAboutPlayer;
+               bool tookPart = LordTookPartIn(we, lord);
 
-               matters.Add(new RecentMatter("we:" + we.Id, we.Day, we.Summary, register));
+               if (we.InvolvesPlayer)
+               {
+                  // A matter about the PLAYER: lived if he was there, else a rumor of the player's deeds.
+                  matters.Add(new RecentMatter("we:" + we.Id, we.Day, we.Summary,
+                     tookPart ? RecentMatterRegister.LivedMemory : RecentMatterRegister.RumorAboutPlayer));
+               }
+               else if (!tookPart && we.Magnitude >= GossipMagnitudeThreshold)
+               {
+                  // World GOSSIP (phase 2): a noteworthy happening the lord only heard of and had no part in, so he
+                  // probes the player about it. The tookPart guard is also what stops a lord gossiping about
+                  // himself ("Lucon asks who Lucon's secret lover is") -- if he is a participant it is never gossip.
+                  matters.Add(new RecentMatter("we:" + we.Id, we.Day, we.Summary, RecentMatterRegister.WorldGossip));
+               }
             }
 
          return matters;
@@ -849,16 +864,30 @@ namespace CalradiaRemembers.Interception
 
          MarkMatterRaised(npc, m);
 
+         bool gossip = m.Register == RecentMatterRegister.WorldGossip;
+
          string approachClause = approach switch
          {
-            RecentMatterApproach.FiefAudience => "It is YOU who sought this meeting: rather than ride out, you drew the player aside where you already stood to raise a recent matter.",
-            RecentMatterApproach.RememberedIntent => "You set out to raise a recent matter with the player, but the chase came to nothing, and now they have come to YOU.",
-            _ => "It is YOU who sought this meeting: you rode out to raise a recent matter with the player while it was fresh."
+            RecentMatterApproach.FiefAudience => gossip
+               ? "It is YOU who sought this meeting: rather than ride out, you drew the player aside where you already stood to ask about a recent happening."
+               : "It is YOU who sought this meeting: rather than ride out, you drew the player aside where you already stood to raise a recent matter.",
+            RecentMatterApproach.RememberedIntent => gossip
+               ? "You set out to ask the player about a recent happening, but the chase came to nothing, and now they have come to YOU."
+               : "You set out to raise a recent matter with the player, but the chase came to nothing, and now they have come to YOU.",
+            _ => gossip
+               ? "It is YOU who sought this meeting: you rode out to ask the player about a recent happening while it is the talk of the realm."
+               : "It is YOU who sought this meeting: you rode out to raise a recent matter with the player while it was fresh."
          };
 
-         string registerClause = m.Register == RecentMatterRegister.LivedMemory
-            ? " You TOOK PART in this yourself, so speak of it in the FIRST PERSON, as your own recollection of what you lived, never as distant rumor."
-            : " You did not witness this; you only HEARD of it, so speak of it as hearsay, hedged, not as something you saw firsthand.";
+         string registerClause = m.Register switch
+         {
+            RecentMatterRegister.LivedMemory =>
+               " You TOOK PART in this yourself, so speak of it in the FIRST PERSON, as your own recollection of what you lived, never as distant rumor.",
+            RecentMatterRegister.RumorAboutPlayer =>
+               " You did not witness this; you only HEARD of it, so speak of it as hearsay, hedged, not as something you saw firsthand.",
+            _ =>
+               " This concerns neither you nor the player directly; you only heard of it and do not know the whole of it. Do NOT state it as fact or pretend to know more than you do: raise it and ASK the player what THEY know, curious."
+         };
 
          return $"{approachClause}{registerClause} The matter: {m.Summary}.";
       }
