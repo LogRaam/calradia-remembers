@@ -39,5 +39,28 @@ namespace CalradiaRemembers.Logic
 
             return result;
         }
+
+        /// <summary>
+        ///   The author-written names <see cref="Parse" /> could NOT match to a real <see cref="Kink" />, in the
+        ///   order they were written. Parsing stays forgiving (a typo must never crash a campaign), but silence is
+        ///   its own failure: an authored lock of nothing but typos quietly pins the NPC to ZERO kinks, and the
+        ///   author has no way to tell that from a deliberate empty lock. Diagnostics report these so a hand-edited
+        ///   file can be corrected. Blank entries are ignored, never reported as typos.
+        /// </summary>
+        public static List<string> Unrecognized(IEnumerable<string> names)
+        {
+            var bad = new List<string>();
+            if (names == null) return bad;
+
+            foreach (string name in names)
+            {
+                if (string.IsNullOrWhiteSpace(name)) continue;
+                if (Enum.TryParse(name.Trim(), true, out Kink _)) continue;
+
+                bad.Add(name.Trim());
+            }
+
+            return bad;
+        }
     }
 }

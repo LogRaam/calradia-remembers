@@ -84,5 +84,33 @@ namespace CalradiaRemembers.Tests
         {
             KinkParser.Parse(new string[0]).Should().BeEmpty();
         }
+
+        // ── Unrecognized names (forgiving parse, but never silent) ──
+
+        // Parsing stays forgiving so a typo cannot crash a campaign, but the author must be able to LEARN of the
+        // typo: an authored lock of nothing but misspellings quietly pins the NPC to zero kinks, indistinguishable
+        // from a deliberate empty lock. Unrecognized reports exactly the names that were dropped, trimmed.
+        [Test]
+        public void GIVEN_typos_among_valid_names_WHEN_listing_unrecognized_THEN_only_the_typos_are_reported()
+        {
+            KinkParser.Unrecognized(new[] {"Praise", " Dominence ", "NotAKink"})
+                .Should().Equal("Dominence", "NotAKink");
+        }
+
+        // A clean list reports nothing, so a warning shown to the player always means a real problem.
+        [Test]
+        public void GIVEN_only_valid_names_WHEN_listing_unrecognized_THEN_none_are_reported()
+        {
+            KinkParser.Unrecognized(new[] {"Praise", "dominance"}).Should().BeEmpty();
+        }
+
+        // Blank entries are formatting noise, not typos: reporting them would train the author to ignore warnings.
+        // Null input yields an empty list, never null, mirroring Parse.
+        [Test]
+        public void GIVEN_blank_or_null_input_WHEN_listing_unrecognized_THEN_nothing_is_reported()
+        {
+            KinkParser.Unrecognized(new[] {"", "   "}).Should().BeEmpty();
+            KinkParser.Unrecognized(null).Should().BeEmpty();
+        }
     }
 }

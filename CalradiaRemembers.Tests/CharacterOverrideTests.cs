@@ -79,6 +79,51 @@ namespace CalradiaRemembers.Tests
             new CharacterOverride { Hero = "X" }.HasAnyAuthoredContent.Should().BeFalse();
         }
 
+        // The remaining hole behind the same player report: an entry whose ONLY field is a MISSPELLED orientation
+        // parsed to nothing, so the entry counted as empty and was skipped in silence, which reads to the author
+        // exactly like the original bug ("my character is ignored until I add kinks"). Orientation TEXT is authored
+        // content whether or not the parser knows the word.
+        [Test]
+        public void GIVEN_only_a_misspelled_orientation_WHEN_checking_content_THEN_it_still_counts_as_authored()
+        {
+            new CharacterOverride { Hero = "X", Orientation = "lesbain" }.HasAnyAuthoredContent.Should().BeTrue();
+        }
+
+        // ── Authoring problems (never fail silently on a hand-edited file) ──
+
+        // The misspelled orientation must be REPORTED, not just counted: the author needs to know the word was
+        // ignored, or they will keep believing the file is broken rather than the spelling.
+        [Test]
+        public void GIVEN_a_misspelled_orientation_WHEN_listing_problems_THEN_the_offending_word_is_named()
+        {
+            var o = new CharacterOverride { Hero = "X", Orientation = "lesbain" };
+
+            o.HasUnrecognizedOrientation.Should().BeTrue();
+            string.Join(" ", o.AuthoringProblems()).Should().Contain("lesbain");
+        }
+
+        // A mistyped kink is silently dropped by the forgiving parser, which means an authored lock of nothing but
+        // typos pins the NPC to ZERO kinks while looking deliberate. The typo must be named.
+        [Test]
+        public void GIVEN_a_mistyped_kink_WHEN_listing_problems_THEN_the_offending_name_is_reported()
+        {
+            var o = new CharacterOverride { Hero = "X", Kinks = new List<string> { "Bondge" } };
+
+            o.UnrecognizedKinkNames.Should().ContainSingle().Which.Should().Be("Bondge");
+            string.Join(" ", o.AuthoringProblems()).Should().Contain("Bondge");
+        }
+
+        // A clean entry reports nothing, so the diagnostic stays quiet for a correct file and a warning always
+        // means something real.
+        [Test]
+        public void GIVEN_a_clean_entry_WHEN_listing_problems_THEN_there_are_none()
+        {
+            var o = new CharacterOverride { Hero = "X", Orientation = "bi", Backstory = "A cooper's son." };
+
+            o.AuthoringProblems().Should().BeEmpty();
+            o.HasUnrecognizedOrientation.Should().BeFalse();
+        }
+
         // Only traits the author actually set may reach Hero.SetTraitLevel. If an unset (null) trait were
         // listed anyway, every authored NPC would have their untouched, vanilla-rolled traits silently forced
         // to a default, erasing personality diversity the player never asked to touch.

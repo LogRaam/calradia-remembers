@@ -433,6 +433,16 @@ namespace CalradiaRemembers
             sb.AppendLine(matched
                ? $"  {label} -> matched"
                : $"  {label} -> NO MATCH (check the exact in-game name, or add an \"id\")");
+
+            // A matched entry can still do nothing, and that silence is what a player reads as "my character is
+            // ignored": an entry with no authored field at all, or one whose only values nothing recognizes.
+            if (entry == null) continue;
+
+            if (!entry.HasAnyAuthoredContent)
+               sb.AppendLine("      (no authored field: add traits, a backstory, a conviction, an orientation, or kinks)");
+
+            foreach (string problem in entry.AuthoringProblems())
+               sb.AppendLine($"      WARNING: {problem}");
          }
 
          return sb.ToString().TrimEnd();

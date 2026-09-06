@@ -38,10 +38,24 @@ namespace CalradiaRemembers.Lore
             CharacterOverride ov = CharacterOverrideLoader.Set.Resolve(hero.StringId, hero.Name?.ToString());
 
             // Skip only a truly-empty entry: ANY authored content (traits, a kink lock, a backstory, a conviction,
-            // or an orientation) makes this a character cr.reload_lore should process. Earlier this counted only
+            // or orientation text) makes this a character cr.reload_lore should process. Earlier this counted only
             // traits and kinks as content, so a backstory/conviction/orientation-only character was skipped here
             // (player report: no "kinks" entry meant the character was not processed until kinks was added).
-            if (ov == null || !ov.HasAnyAuthoredContent) continue;
+            if (ov == null) continue;
+
+            if (!ov.HasAnyAuthoredContent)
+            {
+               // Never skip in SILENCE: the original report read as "my character is ignored" precisely because
+               // nothing said so. Name the entry, so cr.lore_status / the log tell the author what was passed over.
+               ModLog.Info($"[LORE] entry for '{ov.Hero ?? ov.Id ?? hero.Name?.ToString()}' has no authored field to apply, skipped.");
+
+               continue;
+            }
+
+            // A value the author WROTE but nothing recognizes (a misspelled orientation, a mistyped kink) is
+            // applied as nothing. Say so rather than letting the edit vanish without a word.
+            foreach (string problem in ov.AuthoringProblems())
+               ModLog.Info($"[LORE] {hero.Name}: {problem}");
 
             if (ov.HasTraits)
                foreach ((AuthoredTrait trait, int level) in ov.ClampedTraitLevels())

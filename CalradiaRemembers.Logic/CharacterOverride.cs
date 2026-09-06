@@ -85,18 +85,50 @@ namespace CalradiaRemembers.Logic
         /// <summary>True when the author gave this character something they hold to be true.</summary>
         public bool HasConviction => !string.IsNullOrWhiteSpace(Conviction);
 
-        /// <summary>True when the author pinned a sexual orientation.</summary>
+        /// <summary>True when the author pinned a RECOGNIZED sexual orientation.</summary>
         public bool HasOrientation => ParsedOrientation.HasValue;
 
+        /// <summary>True when the author WROTE something in the orientation field, recognized or not.</summary>
+        public bool HasOrientationText => !string.IsNullOrWhiteSpace(Orientation);
+
         /// <summary>
-        ///   True when the override carries ANY field the mod acts on: traits, a kink lock, a backstory, a
-        ///   conviction, or an orientation. A character defined with ONLY a backstory (or conviction, or
-        ///   orientation) is still authored content and must not be skipped as if the entry were empty (player
-        ///   report: a character with no "kinks" entry was not processed by cr.reload_lore until kinks was added,
-        ///   because the reload loop counted only traits and kinks as content).
+        ///   True when the author wrote an orientation the parser does not recognize (a typo, or a word
+        ///   <see cref="OrientationParser" /> has no mapping for). The value is ignored, but the ENTRY still
+        ///   counts as authored content (see <see cref="HasAnyAuthoredContent" />) so it is never skipped in
+        ///   silence, and diagnostics can name the offending word.
+        /// </summary>
+        public bool HasUnrecognizedOrientation => HasOrientationText && !ParsedOrientation.HasValue;
+
+        /// <summary>The author-written kink names that match no real kink (typos), in written order; empty when there are none.</summary>
+        public IReadOnlyList<string> UnrecognizedKinkNames => KinkParser.Unrecognized(Kinks);
+
+        /// <summary>
+        ///   True when the override carries ANY field the author actually filled in: traits, a kink lock, a
+        ///   backstory, a conviction, or orientation TEXT (recognized or not). A character defined with ONLY a
+        ///   backstory (or conviction, or orientation) is still authored content and must not be skipped as if the
+        ///   entry were empty (player report: a character with no "kinks" entry was not processed by
+        ///   cr.reload_lore until kinks was added, because the reload loop counted only traits and kinks as
+        ///   content). Orientation counts as TEXT rather than as a parsed value on purpose: an entry whose only
+        ///   field is a MISSPELLED orientation was still being skipped in silence, which reads to the author
+        ///   exactly like the original bug.
         /// </summary>
         public bool HasAnyAuthoredContent =>
-            HasTraits || ParsedKinks != null || HasBackstory || HasConviction || HasOrientation;
+            HasTraits || ParsedKinks != null || HasBackstory || HasConviction || HasOrientationText;
+
+        /// <summary>
+        ///   Human-readable problems with what the author wrote: values that are present but will be ignored
+        ///   because nothing recognizes them. Empty when the entry is clean. Surfaced by cr.lore_status and the
+        ///   reload log so a hand-edited file never fails silently.
+        /// </summary>
+        public IEnumerable<string> AuthoringProblems()
+        {
+            if (HasUnrecognizedOrientation)
+                yield return $"orientation \"{Orientation.Trim()}\" is not recognized and will be ignored (try: straight, bi, gay/lesbian, pan, asexual)";
+
+            IReadOnlyList<string> badKinks = UnrecognizedKinkNames;
+            if (badKinks.Count > 0)
+                yield return $"kink name(s) not recognized and ignored: {string.Join(", ", badKinks)} (see cr.kinks for the valid names)";
+        }
 
         /// <summary>The authored orientation parsed to an enum, or null when unset/unrecognized.</summary>
         public SexualOrientation? ParsedOrientation => OrientationParser.Parse(Orientation);
