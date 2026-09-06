@@ -37,6 +37,8 @@ namespace CalradiaRemembers.UI
       private readonly Func<Action, ViewModel> _dataSourceFactory;
       private readonly bool _pauseCampaignTime;
       private readonly int _layerPriority;
+      private readonly float _designUnitsWidth;
+      private readonly float _designUnitsHeight;
 
       private CrPanelScreen _screen;
       private bool _reloading;
@@ -65,12 +67,22 @@ namespace CalradiaRemembers.UI
       ///   must let the map keep simulating should pass false, and it does so explicitly, never by omission.
       /// </param>
       /// <param name="layerPriority">The GauntletLayer priority (default 11000, above the map UI).</param>
-      public CrPanelHost(string prefabName, Func<Action, ViewModel> dataSourceFactory, bool pauseCampaignTime = true, int layerPriority = 11000)
+      /// <param name="designUnitsWidth">
+      ///   Unit-space size the prefab's absolute layout was tuned in (the author's own screen — e.g. 2560x1440
+      ///   units for a 4K display at UI-Scale 75%). 0 (default) lays out unscaled. Panels with
+      ///   absolutely-positioned data over painted art pass their design size so the layer fit-zooms to the
+      ///   player's real layout space (fully visible, never cropped) instead of the data drifting off the art
+      ///   (see CrPanelScreen).
+      /// </param>
+      /// <param name="designUnitsHeight">The height half of the design space; required when designUnitsWidth is set.</param>
+      public CrPanelHost(string prefabName, Func<Action, ViewModel> dataSourceFactory, bool pauseCampaignTime = true, int layerPriority = 11000, float designUnitsWidth = 0f, float designUnitsHeight = 0f)
       {
          _prefabName = prefabName;
          _dataSourceFactory = dataSourceFactory;
          _pauseCampaignTime = pauseCampaignTime;
          _layerPriority = layerPriority;
+         _designUnitsWidth = designUnitsWidth;
+         _designUnitsHeight = designUnitsHeight;
       }
 
       public bool IsOpen => _screen != null;
@@ -87,7 +99,7 @@ namespace CalradiaRemembers.UI
          if (IsOpen) return;
 
          ViewModel dataSource = _dataSourceFactory(Close);
-         _screen = new CrPanelScreen(_prefabName, dataSource, _layerPriority) {OnClosed = ResetState};
+         _screen = new CrPanelScreen(_prefabName, dataSource, _layerPriority, _designUnitsWidth, _designUnitsHeight) {OnClosed = ResetState};
          ScreenManager.PushScreen(_screen);
          VisualTick.Enter(); // this panel now owns the screen: suppress the crashing siege-visual tick
          if (_pauseCampaignTime) PauseCampaignTime();

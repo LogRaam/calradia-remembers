@@ -12,7 +12,30 @@
             HeightSizePolicy="StretchToParent">
       <Children>
 
-        <!-- Leather background art (aspect ~1.743; stretched for the first pass, aspect-fit is a polish step). -->
+        <!-- Band fill: on a non-16:9 screen the design canvas below no longer covers the whole screen; this dark
+             backing keeps the uncovered bands intentional-looking instead of showing the frozen map. -->
+        <Widget Id="LetterboxBacking"
+                WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                Sprite="BlankWhiteSquare_9" Color="#14100CF2"
+                IsDisabled="true" />
+
+        <!-- Design canvas: the WHOLE panel (art + data) lives in a fixed 2560x1440-unit centred box — the exact
+             layout space the panel was tuned in (author's 4K screen at UI-Scale 75%: on-screen px = units x
+             (resolution scale x UI scale), so that space is 3840/(2x0.75) x 2160/(2x0.75) = 2560x1440 units).
+             CrPanelScreen fit-zooms the layer (min over both axes, capped at 1) so the box is always FULLY
+             VISIBLE, never cropped: smaller layout spaces shrink it (the backing above fills the bands), bigger
+             ones keep it design-sized and centred. Because art and data live in the SAME box, the data stays
+             glued to its painted slots at any ratio AND any UI-Scale setting. Do not re-indent the legacy
+             children: their margins are relative to this canvas, identical to the old full-screen root on the
+             author's screen. -->
+        <Widget Id="DesignCanvas"
+                WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                SuggestedWidth="2560" SuggestedHeight="1440"
+                HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Children>
+
+        <!-- Leather background art (aspect ~1.743), stretched to the 2560x1440 design canvas — exactly the
+             full screen on the author's 16:9 display, fit-zoomed with everything else elsewhere. -->
         <CrRuntimeImageWidget Id="Background"
                               WidthSizePolicy="StretchToParent"
                               HeightSizePolicy="StretchToParent"
@@ -612,7 +635,10 @@
           </Children>
         </ListPanel>
 
+        </Children>
+        </Widget> <!-- /DesignCanvas -->
+
       </Children>
-    </Widget>
+    </Widget> <!-- /Root -->
   </Window>
 </Prefab>

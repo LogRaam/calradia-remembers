@@ -28,6 +28,10 @@ namespace CalradiaRemembers.WorldAlmanac
       // The panel's identity: its prefab, and a factory that builds a FRESH view model each open (so a reopen
       // re-gathers live facts). The host owns everything else, the pushed screen, the campaign-clock freeze, the
       // input restrictions and focus, teardown on any pop, and the close+reopen hot-reload.
+      // designUnits: the layout is absolutely positioned over the painted art, tuned on the author's 4K screen at
+      // UI-Scale 75% — i.e. a 2560x1440-unit layout space (realPx / (resolution scale x UI scale)). Players with a
+      // different resolution/UI-Scale get a smaller unit space, so the whole layer fit-zooms down to keep the
+      // panel fully visible and the data glued to the painted slots.
       private static readonly CrPanelHost Host = new CrPanelHost(
          "CalradiaRemembersBalanceOfPower",
          close =>
@@ -42,7 +46,8 @@ namespace CalradiaRemembers.WorldAlmanac
             StrategicAssessmentService.Populate(vm, result);
 
             return vm;
-         });
+         },
+         designUnitsWidth: 2560f, designUnitsHeight: 1440f);
 
       public static bool IsOpen => Host.IsOpen;
 

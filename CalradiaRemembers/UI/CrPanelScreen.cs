@@ -29,15 +29,28 @@ namespace CalradiaRemembers.UI
       private readonly string _prefabName;
       private readonly ViewModel _dataSource;
       private readonly int _layerPriority;
+      private readonly float _designUnitsWidth;  // 0 = no fit zoom (panel handles its own sizing)
+      private readonly float _designUnitsHeight;
 
       private GauntletLayer _layer;
       private GauntletMovieIdentifier _movieId;
+      private bool _zoomLogged;
 
-      public CrPanelScreen(string prefabName, ViewModel dataSource, int layerPriority)
+      /// <param name="designUnitsWidth">
+      ///   The unit-space size the prefab's absolute layout was tuned in (the author's screen: realPx /
+      ///   (UIContext.Scale x UI-Scale option) — 2560x1440 units for a 4K author at UI-Scale 75%). 0 disables the
+      ///   fit zoom. Otherwise the whole layer is zoomed so the design canvas is always FULLY VISIBLE, never
+      ///   cropped (shrunk to fit whichever axis binds), keeping data glued to the painted art (player report
+      ///   2026-09-05: bound data sliding off its slots for players with a different UI scale / ratio).
+      /// </param>
+      /// <param name="designUnitsHeight">The height half of the design space; required when designUnitsWidth is set.</param>
+      public CrPanelScreen(string prefabName, ViewModel dataSource, int layerPriority, float designUnitsWidth = 0f, float designUnitsHeight = 0f)
       {
          _prefabName = prefabName;
          _dataSource = dataSource;
          _layerPriority = layerPriority;
+         _designUnitsWidth = designUnitsWidth;
+         _designUnitsHeight = designUnitsHeight;
       }
 
       /// <summary>
@@ -74,6 +87,47 @@ namespace CalradiaRemembers.UI
       ///   AFTER calling this and only while it is still the top screen, so nothing is double-released.
       /// </summary>
       public void TearDown() => ReleaseResources();
+
+      protected override void OnFrameTick(float dt)
+      {
+         base.OnFrameTick(dt);
+         ApplyFitZoom();
+      }
+
+      // GauntletLayer.UpdateLayout resets UIContext.ScaleModifier to the base UI scale every pass (the same reset
+      // ChatManager's skin zoom works around), so the zoom is RE-applied every frame. ABSOLUTE (set from
+      // ScreenManager.Scale, never read-multiply) so a missed reset can never compound. FIT (Gabriel's spec,
+      // 2026-09-05): the whole panel must always be fully visible, never cropped.
+      // The available layout space is computed, not guessed: a widget's on-screen size is units x CustomScale,
+      // where CustomScale = UIContext.Scale (resolution + the engine's own narrow-aspect shrink) x ScaleModifier
+      // (the player's UI-Scale option, reset to ScreenManager.Scale each pass). The space a panel can lay out in
+      // is therefore realPx / (Scale x baseScale) units — the panel's author had 2560x1440 units (4K at UI-Scale
+      // 75%), a 1080p player at UI-Scale 100% has only 1920x1080, so the design canvas zooms down to fit BOTH
+      // axes. Data lives inside the same canvas as the art, so it stays glued to its painted slots; on the
+      // author's own screen zoom is exactly 1 (the tuned look). ScreenManager.UsableArea looked like the obvious
+      // source for this but is never populated (reads 1x1 — measured 2026-09-05).
+      private void ApplyFitZoom()
+      {
+         if (_designUnitsWidth <= 0f || _designUnitsHeight <= 0f || _layer?.UIContext == null) return;
+
+         float realW = ScreenManager.EngineInterface.RealScreenResolutionWidth;
+         float realH = ScreenManager.EngineInterface.RealScreenResolutionHeight;
+         float basePxPerUnit = _layer.UIContext.Scale * ScreenManager.Scale;
+         if (realW <= 0f || realH <= 0f || basePxPerUnit <= 0f) return;
+
+         float unitW = realW / basePxPerUnit;
+         float unitH = realH / basePxPerUnit;
+         float zoom = Math.Min(unitW / _designUnitsWidth, unitH / _designUnitsHeight);
+         if (zoom > 1f) zoom = 1f;
+         _layer.UIContext.ScaleModifier = ScreenManager.Scale * zoom;
+
+         if (!_zoomLogged)
+         {
+            _zoomLogged = true; // once per open: the numbers behind any "the layout shifted" report
+            ModLog.Info($"[PANEL] {_prefabName} fit-zoom: real={realW:0}x{realH:0}, contextScale={_layer.UIContext.Scale:0.###}, "
+                        + $"uiScale={ScreenManager.Scale:0.###}, space={unitW:0}x{unitH:0}, design={_designUnitsWidth:0}x{_designUnitsHeight:0}, zoom={zoom:0.###}.");
+         }
+      }
 
       // Safety net: whatever pops this screen still releases the movie and drops the layer, so a pop that bypassed
       // TearDown cannot leak the render texture. Guarded, so the explicit TearDown-then-pop path does not
