@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Letters;
@@ -275,6 +276,67 @@ namespace CalradiaRemembers
          LetterPopupManager.Show(BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay()), profile);
 
          return $"Delivered a test letter from {hero.Name} to the parchment window (read mode).";
+      }
+
+      /// <summary>
+      ///   cr.letter_long [paragraphs] [name]
+      ///   Delivers a test letter whose body is long enough to actually SCROLL (default 12 paragraphs), through the
+      ///   same real delivery path as cr.letter_read. Written for the crash report of 2026-09-06 (a player crashed
+      ///   as soon as they scrolled a letter): an ordinary test letter is one line, so the scroll path was never
+      ///   exercised. Pair it with a high UI Scale, which is what engages the parchment's fit zoom.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("letter_long", "cr")]
+      public static string OpenLetterLong(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         var paragraphs = 12;
+         var nameArgs = new List<string>(args ?? new List<string>());
+
+         if (nameArgs.Count > 0 && int.TryParse(nameArgs[0], out int requested))
+         {
+            paragraphs = requested < 1 ? 1 : requested > 60 ? 60 : requested;
+            nameArgs.RemoveAt(0);
+         }
+
+         Hero hero = ResolveHero(nameArgs);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         PendingLetter letter = BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay());
+         letter.Content = BuildLongBody(hero, paragraphs);
+         LetterPopupManager.Show(letter, profile);
+
+         return $"Delivered a {paragraphs}-paragraph letter from {hero.Name}. Scroll it (raise UI Scale first to engage the fit zoom).";
+      }
+
+      // Deliberately verbose and varied: enough real sentences that the parchment must scroll, rather than one long
+      // unbroken word that would only exercise wrapping.
+      private static string BuildLongBody(Hero hero, int paragraphs)
+      {
+         string[] lines = {
+            "The roads south are worse than the season should allow, and every ford we tried had risen past the horses' knees.",
+            "I have had word from the coast, though I cannot vouch for the man who carried it, and less for the man who paid him.",
+            "There is talk in the market of levies being raised again, which the elders here greet the way they greet a hard winter.",
+            "My steward insists the granary will hold until spring. My steward has been wrong before, and cheerfully so.",
+            "You will remember the miller's daughter. She has married, and to a man with more sense than the last one, or so it is said.",
+            "I think often of the last time we spoke, and of how little of what mattered actually got said aloud.",
+            "The garrison captain asks after you by name whenever he is drunk, which is oftener than his rank permits.",
+            "Two of my riders have not come back. I am told not to read anything into it yet, and I am trying to obey."
+         };
+
+         var sb = new StringBuilder();
+         for (var i = 0; i < paragraphs; i++)
+         {
+            sb.AppendLine(lines[i % lines.Length]);
+            sb.AppendLine();
+         }
+
+         sb.Append($"Write when you are able. Until then, I remain as I was. {hero.Name}");
+
+         return sb.ToString();
       }
 
       /// <summary>
