@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Behaviors;
@@ -13,6 +14,7 @@ using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Interception;
 using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
@@ -48,6 +50,26 @@ namespace CalradiaRemembers.Interception
       // before this key existed still loads: the old key alone comes back, and no pursuit is restored — exactly
       // the old transient behaviour.
       private const string PursuitSaveKey = "CalradiaRemembers_InterceptPursuit_v1bytes";
+
+      // The once-per-NPC "recent matter" ledger (2026-09-05, [[project_npc_recent_matter]] phase 1): a set of
+      // "lordId|matterKey" a lord has already raised, so he never brings the same event up twice. Its OWN additive
+      // key so an older save (which lacks it) loads clean with an empty ledger.
+      private const string MatterSaveKey = "CalradiaRemembers_InterceptMatters_v1bytes";
+
+      // How many days back a lord may reach for a matter to raise (a fresh thing, not ancient history); matches the
+      // rumor window so a lived memory and a rumor are weighed over the same recent horizon.
+      private const int RecentMatterWindowDays = RecentDeedWindowDays;
+
+      // Which profile memories are worth a lord riding out to speak of: shared/dramatic experiences, not a bare
+      // first meeting, a farewell, or a private romantic/captive beat that a roadside challenge should never raise.
+      private static readonly HashSet<NotableEventType> RaisableMemoryTypes = new()
+      {
+         NotableEventType.Other, NotableEventType.Collaboration, NotableEventType.Confrontation,
+         NotableEventType.Agreement, NotableEventType.Betrayal, NotableEventType.Conflict
+      };
+
+      // "lordId|matterKey" of every recent matter already raised, so it is never raised again by that lord.
+      private HashSet<string> _raisedMatterKeys = new();
 
       // How often lords ride out is the PLAYER's taste, not ours to fix (Fakade asked for the dial, and named
       // both reasons in one breath: he likes being approached, and he does not want to be forced into a string of
@@ -160,9 +182,7 @@ namespace CalradiaRemembers.Interception
                       "Point them to the bounty you would pay, but do not settle it in this exchange -- that is " +
                       "raised and taken up the ordinary way, not here.";
 
-            return "It is YOU who sought this meeting: word of the player's recent deeds reached you, and rather " +
-                   "than ride out you simply asked them for a private word where you already stood. Open by " +
-                   "raising what you heard, be it admiration, alarm, or a reckoning.";
+            return ComposeRecentMatterOpener(npc, RecentMatterApproach.FiefAudience);
          }
 
          if (trigger == InterceptionTrigger.Grudge)
@@ -181,11 +201,11 @@ namespace CalradiaRemembers.Interception
                    $"not a call to arms here and now.{DetailClause(detail)} Point them to the bounty you would " +
                    "pay, but do not settle it in this exchange -- that is raised and taken up the ordinary way, not here.";
 
-         return trigger == InterceptionTrigger.TerritorialPatrol
-            ? "It is YOU who sought this meeting: you rode out to challenge the player for crossing your realm's " +
-              "lands. Open on that footing — demand their business here, wary and territorial — rather than waiting on them."
-            : "It is YOU who sought this meeting: word of the player's recent deeds reached you and you rode out to " +
-              "see them while it was fresh. Open by raising what you heard — be it admiration, alarm, or a reckoning.";
+         if (trigger == InterceptionTrigger.TerritorialPatrol)
+            return "It is YOU who sought this meeting: you rode out to challenge the player for crossing your realm's " +
+                   "lands. Open on that footing, demand their business here, wary and territorial, rather than waiting on them.";
+
+         return ComposeRecentMatterOpener(npc, RecentMatterApproach.RoadPursuit);
       }
 
       /// <summary>
@@ -230,10 +250,7 @@ namespace CalradiaRemembers.Interception
                "came to nothing — and now they have come to YOU. Name him now and where he operates, urgent " +
                $"but not a call to arms here and now.{DetailClause(detail)} Point them to the bounty you would " +
                "pay, but do not settle it in this exchange -- that is raised and taken up the ordinary way, not here.",
-            _ =>
-               "Word of the player's recent deeds reached you and you rode out to see them, but the chase came " +
-               "to nothing — and now they have come to YOU. Raise what you heard, be it admiration, alarm, or " +
-               "a reckoning."
+            _ => ComposeRecentMatterOpener(npc, RecentMatterApproach.RememberedIntent)
          };
       }
 
@@ -586,6 +603,17 @@ namespace CalradiaRemembers.Interception
 
             try { dataStore.SyncData(PursuitSaveKey, ref pursuitBytes); }
             catch (Exception ex) { ModLog.Error($"[INTERCEPT] pursuit save failed: {ex.GetType().Name}: {ex.Message}"); }
+
+            byte[] matterBytes;
+            try { matterBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new List<string>(_raisedMatterKeys), Formatting.None)); }
+            catch (Exception ex)
+            {
+               ModLog.Error($"[INTERCEPT] matter ledger serialize failed, persisting none this save. {ex.GetType().Name}: {ex.Message}");
+               matterBytes = Encoding.UTF8.GetBytes("[]");
+            }
+
+            try { dataStore.SyncData(MatterSaveKey, ref matterBytes); }
+            catch (Exception ex) { ModLog.Error($"[INTERCEPT] matter ledger save failed: {ex.GetType().Name}: {ex.Message}"); }
          }
          else
          {
@@ -611,6 +639,29 @@ namespace CalradiaRemembers.Interception
                {
                   _cooldown.Clear();
                   ModLog.Error($"[INTERCEPT] load failed — cooldowns dropped for this load. {ex.GetType().Name}: {ex.Message}");
+               }
+            }
+
+            // The recent-matter ledger loads BEFORE the pursuit's early-return below, so an older save (pursuit key
+            // present, empty) never skips it; absent on a pre-2026-09-05 save, degrading to an empty ledger.
+            byte[] matterBytes = null;
+            try { dataStore.SyncData(MatterSaveKey, ref matterBytes); }
+            catch
+            {
+               /* key absent in older saves, start with an empty raised-matter ledger */
+            }
+
+            if (matterBytes is {Length: > 0})
+            {
+               try
+               {
+                  var loaded = JsonConvert.DeserializeObject<List<string>>(Encoding.UTF8.GetString(matterBytes));
+                  _raisedMatterKeys = new HashSet<string>(loaded ?? new List<string>());
+               }
+               catch (Exception ex)
+               {
+                  _raisedMatterKeys = new HashSet<string>();
+                  ModLog.Error($"[INTERCEPT] matter ledger load failed, dropped for this load. {ex.GetType().Name}: {ex.Message}");
                }
             }
 
@@ -668,25 +719,159 @@ namespace CalradiaRemembers.Interception
             : Hero.FindFirst(h => h.StringId == id);
 
       /// <summary>
-      ///   Internal (not private) so FiefAudienceBehavior can reuse the SAME "has this NPC plausibly heard of a
-      ///   recent deed" fact-building the road interception uses, rather than a diverging copy.
+      ///   Internal (not private) so FiefAudienceBehavior can reuse the SAME "has this NPC a fresh, unraised matter
+      ///   to raise with the player" fact the road interception uses. As of 2026-09-05 ([[project_npc_recent_matter]]
+      ///   phase 1) a "matter" is the freshest thing the lord could bring up: a first-hand LIVED memory (a profile
+      ///   event about the player, or a world event he took part in) OR a RUMOR about the player's deeds he only
+      ///   heard of, that he has not already raised. So a lord who just fought BESIDE the player now approaches about
+      ///   THAT (fkasad's report), not only about distant hearsay.
       /// </summary>
       internal static bool HeardRecentPlayerDeed(Hero lord, int today)
+         => Instance != null && Instance.PickRecentMatter(lord, today) != null;
+
+      /// <summary>
+      ///   The single matter this lord would raise right now: the freshest unraised one from his own profile
+      ///   memories of the player (LIVED) and the world events he knows of involving the player (LIVED if he took
+      ///   part, else RUMOR), or null when he has nothing fresh left. Pure selection lives in the tested
+      ///   <see cref="RecentMatterSelector" />; this only gathers and classifies the live candidates.
+      /// </summary>
+      private RecentMatter PickRecentMatter(Hero lord, int today)
       {
          try
          {
-            var store = WorldEventStore.Instance;
+            if (lord == null) return null;
 
-            if (store == null) return false;
+            var raisedForLord = new HashSet<string>();
+            string prefix = lord.StringId + "|";
+            foreach (string entry in _raisedMatterKeys)
+               if (entry != null && entry.StartsWith(prefix, StringComparison.Ordinal))
+                  raisedForLord.Add(entry.Substring(prefix.Length));
 
-            foreach (WorldEvent e in store.GetKnownEvents(lord, today, 4))
-               if (e.InvolvesPlayer && today - e.Day <= RecentDeedWindowDays)
-                  return true;
-
-            return false;
+            return RecentMatterSelector.PickFreshest(BuildRecentMatters(lord, today), raisedForLord, today, RecentMatterWindowDays);
          }
-         catch { return false; }
+         catch { return null; }
       }
+
+      // Gathers the lord's live candidate matters: his own recent profile memories about the player (first-hand by
+      // construction, so LIVED), and the recent world events he knows of that involve the player (LIVED when his id
+      // or faction is among the actors, else a RUMOR he merely heard). The window + type filter keep it to fresh,
+      // fitting matters; the tested selector then picks the freshest unraised one.
+      private static IEnumerable<RecentMatter> BuildRecentMatters(Hero lord, int today)
+      {
+         var matters = new List<RecentMatter>();
+
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(lord.StringId);
+         if (profile?.Events != null)
+            foreach (NotableEvent e in profile.Events)
+            {
+               if (e == null || string.IsNullOrWhiteSpace(e.summary)) continue;
+               if (!RaisableMemoryTypes.Contains(e.type)) continue;
+               if (e.gameDay > today || today - e.gameDay > RecentMatterWindowDays) continue;
+
+               matters.Add(new RecentMatter(MemoryKey(e), e.gameDay, e.summary, RecentMatterRegister.LivedMemory));
+            }
+
+         WorldEventStore store = WorldEventStore.Instance;
+         if (store != null)
+            foreach (WorldEvent we in store.GetKnownEvents(lord, today, 4))
+            {
+               if (we == null || !we.InvolvesPlayer || string.IsNullOrEmpty(we.Id)) continue;
+               if (we.Day > today || today - we.Day > RecentMatterWindowDays) continue;
+
+               RecentMatterRegister register = LordTookPartIn(we, lord)
+                  ? RecentMatterRegister.LivedMemory
+                  : RecentMatterRegister.RumorAboutPlayer;
+
+               matters.Add(new RecentMatter("we:" + we.Id, we.Day, we.Summary, register));
+            }
+
+         return matters;
+      }
+
+      // A deterministic key for a profile memory (NotableEvent has no id): day + type + a bounded summary prefix, so
+      // the once-per-NPC ledger recognises the same memory across saves without a process-randomised hash.
+      private static string MemoryKey(NotableEvent e)
+      {
+         string s = e.summary ?? "";
+         if (s.Length > 40) s = s.Substring(0, 40);
+
+         return $"mem:{e.gameDay}:{(int) e.type}:{s}";
+      }
+
+      // The "he lived it" test for a world event: his own id, or his faction, is among the event's actors (either
+      // side). This is also the guard that a lord never speaks of himself as rumor (he is a participant -> LIVED).
+      private static bool LordTookPartIn(WorldEvent we, Hero lord)
+      {
+         if (we == null || lord == null) return false;
+         if (we.ActorIds != null && we.ActorIds.Contains(lord.StringId)) return true;
+         if (we.AggrievedActorIds != null && we.AggrievedActorIds.Contains(lord.StringId)) return true;
+
+         string factionId = lord.MapFaction?.StringId;
+         if (string.IsNullOrEmpty(factionId)) return false;
+
+         return (we.FactionIds != null && we.FactionIds.Contains(factionId))
+                || (we.AggrievedFactionIds != null && we.AggrievedFactionIds.Contains(factionId));
+      }
+
+      // How the lord came to raise the matter, which colours the opener's frame (the register colours its tone).
+      private enum RecentMatterApproach
+      {
+         RoadPursuit,
+         FiefAudience,
+         RememberedIntent
+      }
+
+      /// <summary>
+      ///   Builds the one-shot opener for a "recent matter" approach (the former generic HeardOfDeed line): picks
+      ///   the freshest unraised matter for <paramref name="npc" />, marks it raised (so he never repeats it), and
+      ///   frames it by REGISTER (a lived memory spoken in the first person, a rumor spoken as hearsay) and by how
+      ///   he came to raise it (<paramref name="approach" />). Falls back to the old generic line when he somehow
+      ///   has nothing fresh left (the approach was already committed to on a fact that has since aged out or been
+      ///   raised), so the conversation never opens on nothing.
+      /// </summary>
+      private string ComposeRecentMatterOpener(Hero npc, RecentMatterApproach approach)
+      {
+         RecentMatter m = npc == null ? null : PickRecentMatter(npc, (int) CampaignTime.Now.ToDays);
+
+         if (m == null)
+            return approach switch
+            {
+               RecentMatterApproach.FiefAudience =>
+                  "It is YOU who sought this meeting: word of the player's recent deeds reached you, and rather than " +
+                  "ride out you drew them aside where you already stood. Open by raising what you heard.",
+               RecentMatterApproach.RememberedIntent =>
+                  "Word of the player's recent deeds reached you and you set out to raise it, but the chase came to " +
+                  "nothing, and now they have come to YOU. Raise what you heard, be it admiration, alarm, or a reckoning.",
+               _ =>
+                  "It is YOU who sought this meeting: word of the player's recent deeds reached you and you rode out " +
+                  "to see them while it was fresh. Open by raising what you heard."
+            };
+
+         MarkMatterRaised(npc, m);
+
+         string approachClause = approach switch
+         {
+            RecentMatterApproach.FiefAudience => "It is YOU who sought this meeting: rather than ride out, you drew the player aside where you already stood to raise a recent matter.",
+            RecentMatterApproach.RememberedIntent => "You set out to raise a recent matter with the player, but the chase came to nothing, and now they have come to YOU.",
+            _ => "It is YOU who sought this meeting: you rode out to raise a recent matter with the player while it was fresh."
+         };
+
+         string registerClause = m.Register == RecentMatterRegister.LivedMemory
+            ? " You TOOK PART in this yourself, so speak of it in the FIRST PERSON, as your own recollection of what you lived, never as distant rumor."
+            : " You did not witness this; you only HEARD of it, so speak of it as hearsay, hedged, not as something you saw firsthand.";
+
+         return $"{approachClause}{registerClause} The matter: {m.Summary}.";
+      }
+
+      private void MarkMatterRaised(Hero npc, RecentMatter m)
+      {
+         if (npc == null || m == null || string.IsNullOrEmpty(m.Key)) return;
+         _raisedMatterKeys.Add(npc.StringId + "|" + m.Key);
+      }
+
+      /// <summary>cr.testall seam: the classified candidate matters this lord could raise right now (no mutation, no dedup marking).</summary>
+      internal IReadOnlyList<RecentMatter> DebugBuildRecentMatters(Hero lord)
+         => BuildRecentMatters(lord, (int) CampaignTime.Now.ToDays).ToList();
 
       /// <summary>
       ///   Internal (not private) so FiefAudienceBehavior can reuse the SAME "does this NPC hold a live,
