@@ -178,6 +178,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("admit_secret_lover", Severity.Light, "Mystery-lover (phase 3b): temporarily mark a player-clan companion the player's secret lover, then drive the REAL bridge dispatch of admit_secret_lover against a live lord and assert the lord's knowledge ledger now records the identity (the fact learned ONLY because the player confessed, never deduced), a confession memory is planted on the lord, and a lord who was not told stays ignorant. Restores the flag, forgets the ledger entry, and trims the planted memory afterwards", TestAdmitSecretLover),
          new SelfTest("held_secret", Severity.Light, "Mystery-lover (phase 3b payoff): mark a player-clan companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL EncounterContextBuilder.Build for that lord and assert the held-secret subject surfaces on the context (naming the companion) when adult content is on, or is suppressed when the adult gate is off. Restores the flag and forgets the ledger entry afterwards", TestHeldSecret),
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
+         new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
          new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
@@ -6436,6 +6437,71 @@ namespace CalradiaRemembers.Diagnostics
 
             tellerProfile.ReputationWithPlayer = prevRegard;
             behavior.Store.Set(tellerProfile);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestPayForSilence(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("pay_for_silence");
+
+         WorldEvents.SecretLoverGossipBehavior gossip = WorldEvents.SecretLoverGossipBehavior.Instance;
+         if (t.Abort(gossip == null || behavior?.Store == null || behavior.GameStateBridge == null,
+                "secret-lover behavior / store / bridge not initialized")) return t.Line();
+
+         Hero npc = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         if (t.Abort(npc == null, "no live lord to hold the secret")) return t.Line();
+
+         Hero subject = Clan.PlayerClan?.Companions?.FirstOrDefault(h => h != null && h != Hero.MainHero && h != npc);
+         if (t.Abort(subject == null, "no player-clan companion to stand in as the secret-lover subject")) return t.Line();
+
+         NpcProfile subjectProfile = GetOrCreate(behavior, subject);
+         if (subjectProfile.Romantic == null) subjectProfile.Romantic = new RomanticProfile();
+         bool prevFlag = subjectProfile.Romantic.IsSecretLover;
+         NpcProfile npcProfile = GetOrCreate(behavior, npc);
+         int memoryCountBefore = npcProfile.Events?.Count ?? 0;
+
+         int playerGold0 = Hero.MainHero.Gold;
+         int npcGold0 = npc.Gold;
+         int price = CalradiaRemembers.Logic.HushMoneyPolicy.MinPayment;
+
+         try
+         {
+            subjectProfile.Romantic.IsSecretLover = true;
+            behavior.Store.Set(subjectProfile);
+            gossip.RecordKnows(npc, subject.StringId);
+            gossip.ForgetHushPaid(npc, subject.StringId);
+
+            if (Hero.MainHero.Gold < price) Hero.MainHero.ChangeHeroGold(price - Hero.MainHero.Gold); // make the player solvent
+            int playerBefore = Hero.MainHero.Gold;
+            int npcBefore = npc.Gold;
+
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "pay_for_silence", Parameters = new Dictionary<string, string> {["price"] = price.ToString()}},
+               npc, new ActionContext(npcProfile, null));
+
+            if (t.Abort(outcome == null, "the bridge returned null instead of an outcome")) return t.Line();
+
+            var today = (int) CampaignTime.Now.ToDays;
+            t.Note($"npc={npc.Name} subject={subject.Name} price={price}");
+            t.Expect("the player paid the price", Hero.MainHero.Gold, playerBefore - price);
+            t.Expect("the lord received the price", npc.Gold, npcBefore + price);
+            t.Expect("the hush is recorded as recent",
+               CalradiaRemembers.Logic.HushMoneyPolicy.IsRecentlyPaid(gossip.HushPaidDay(npc.StringId, subject.StringId), today), true);
+            t.Expect("a memory of the payment is kept", (npcProfile.Events?.Count ?? 0) > memoryCountBefore, true);
+         }
+         finally
+         {
+            subjectProfile.Romantic.IsSecretLover = prevFlag;
+            behavior.Store.Set(subjectProfile);
+            gossip.ForgetKnows(npc, subject.StringId);
+            gossip.ForgetHushPaid(npc, subject.StringId);
+            if (npcProfile.Events != null)
+               while (npcProfile.Events.Count > memoryCountBefore) npcProfile.Events.RemoveAt(npcProfile.Events.Count - 1);
+            behavior.Store.Set(npcProfile);
+            Hero.MainHero.ChangeHeroGold(playerGold0 - Hero.MainHero.Gold);
+            npc.ChangeHeroGold(npcGold0 - npc.Gold);
          }
 
          return t.Line();

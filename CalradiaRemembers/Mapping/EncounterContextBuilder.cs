@@ -521,6 +521,7 @@ namespace CalradiaRemembers.Mapping
             PartnerLoverName = ResolvePartnerLoverName(profile),
             PartnerLoverIsSecret = profile?.Romantic?.LoverIsSecret ?? false,
             HeldSecretLoverSubject = ResolveHeldSecretLoverSubject(hero),
+            HeldSecretHushRecentlyPaid = ResolveHeldSecretHushRecentlyPaid(hero),
             ConceptionRisk = ResolveConceptionRisk(hero),
             PowerBalanceNote = ResolvePowerBalanceNote(hero, profile),
             MarriageProspects = MarriageProspectResolver.Build(hero),
@@ -2376,6 +2377,28 @@ namespace CalradiaRemembers.Mapping
          }
 
          return null;
+      }
+
+      /// <summary>
+      ///   Mystery-lover pillar (phase 3b-3): true when the player has recently paid THIS NPC to hush a secret this
+      ///   NPC holds (via <see cref="HushMoneyPolicy.IsRecentlyPaid" />), so the leverage prompt eases off. Adult-
+      ///   gated alongside the held-secret resolver. False when no such secret or no recent payment.
+      /// </summary>
+      private static bool ResolveHeldSecretHushRecentlyPaid(Hero hero)
+      {
+         if (ModSettings.AdultContentLevel == AdultContentLevel.Off) return false;
+         if (hero == null || Hero.MainHero == null) return false;
+
+         SecretLoverGossipBehavior gossip = SecretLoverGossipBehavior.Instance;
+         if (gossip == null) return false;
+
+         var today = (int) CampaignTime.Now.ToDays;
+
+         foreach (string subjectId in gossip.PlayerSecretLoverSubjectIds())
+            if (gossip.Knows(hero.StringId, subjectId) && HushMoneyPolicy.IsRecentlyPaid(gossip.HushPaidDay(hero.StringId, subjectId), today))
+               return true;
+
+         return false;
       }
 
       private static bool ResolveSecretLoverEligible(Hero hero, NpcProfile profile)

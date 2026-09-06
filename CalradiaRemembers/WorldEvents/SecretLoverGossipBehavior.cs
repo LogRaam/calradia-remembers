@@ -31,6 +31,7 @@ namespace CalradiaRemembers.WorldEvents
    {
       private const string SaveKey = "CalradiaRemembers_SecretLoverLeaks_v1bytes";
       private const string KnownSaveKey = "CalradiaRemembers_SecretLoverKnown_v1bytes";
+      private const string HushSaveKey = "CalradiaRemembers_SecretLoverHush_v1bytes";
       private const int ScandalMagnitude = 60; // realm-shaking enough to travel and clear the gossip threshold
 
       public static SecretLoverGossipBehavior Instance;
@@ -44,6 +45,11 @@ namespace CalradiaRemembers.WorldEvents
       // an enemy lord's use of it against the player. Persisted; additive key, empty on older saves.
       private HashSet<string> _known = new();
 
+      // "lordId|subjectId" -> game day the player last paid this lord to keep that secret quiet (phase 3b-3). Lets
+      // the leverage prompt ease off for a cooldown so a paid-off player is not shaken down every single visit.
+      // Persisted; additive key, empty on older saves.
+      private Dictionary<string, int> _hushPaid = new();
+
       public SecretLoverGossipBehavior() => Instance = this;
 
       public override void RegisterEvents()
@@ -55,11 +61,52 @@ namespace CalradiaRemembers.WorldEvents
          {
             SaveLedger(dataStore, SaveKey, _leaked);
             SaveLedger(dataStore, KnownSaveKey, _known);
+            SaveDict(dataStore, HushSaveKey, _hushPaid);
          }
          else
          {
             _leaked = LoadLedger(dataStore, SaveKey);
             _known = LoadLedger(dataStore, KnownSaveKey);
+            _hushPaid = LoadDict(dataStore, HushSaveKey);
+         }
+      }
+
+      // byte[]-JSON persistence of the day-stamped hush ledger; a serialize failure persists an empty map.
+      private static void SaveDict(IDataStore dataStore, string key, Dictionary<string, int> map)
+      {
+         byte[] bytes;
+         try { bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(map, Formatting.None)); }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SECRETLOVER] serialize failed for {key}, persisting none this save. {ex.GetType().Name}: {ex.Message}");
+            bytes = Encoding.UTF8.GetBytes("{}");
+         }
+
+         try { dataStore.SyncData(key, ref bytes); }
+         catch (Exception ex) { ModLog.Error($"[SECRETLOVER] save failed for {key}: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      // Additive load: a key absent in an older save (or a corrupt payload) yields an empty map, never a throw.
+      private static Dictionary<string, int> LoadDict(IDataStore dataStore, string key)
+      {
+         byte[] bytes = null;
+         try { dataStore.SyncData(key, ref bytes); }
+         catch
+         {
+            /* key absent in older saves, start empty */
+         }
+
+         if (bytes is not {Length: > 0}) return new Dictionary<string, int>();
+
+         try
+         {
+            return JsonConvert.DeserializeObject<Dictionary<string, int>>(Encoding.UTF8.GetString(bytes)) ?? new Dictionary<string, int>();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SECRETLOVER] load failed for {key}, dropped for this load. {ex.GetType().Name}: {ex.Message}");
+
+            return new Dictionary<string, int>();
          }
       }
 
@@ -242,6 +289,30 @@ namespace CalradiaRemembers.WorldEvents
          if (lord == null || string.IsNullOrEmpty(lord.StringId) || string.IsNullOrEmpty(subjectId)) return;
 
          _known.Remove(KnownKey(lord.StringId, subjectId));
+      }
+
+      /// <summary>Records that the player paid <paramref name="lord" /> on <paramref name="day" /> to keep <paramref name="subjectId" />'s secret quiet (phase 3b-3), so the leverage prompt eases for a cooldown.</summary>
+      public void RecordHushPaid(Hero lord, string subjectId, int day)
+      {
+         if (lord == null || string.IsNullOrEmpty(lord.StringId) || string.IsNullOrEmpty(subjectId)) return;
+
+         _hushPaid[KnownKey(lord.StringId, subjectId)] = day;
+      }
+
+      /// <summary>The game day the player last paid this lord to hush that secret, or null if never.</summary>
+      public int? HushPaidDay(string lordId, string subjectId)
+      {
+         if (string.IsNullOrEmpty(lordId) || string.IsNullOrEmpty(subjectId)) return null;
+
+         return _hushPaid.TryGetValue(KnownKey(lordId, subjectId), out int day) ? day : (int?) null;
+      }
+
+      /// <summary>Clears a recorded hush payment (cr.testall cleanup).</summary>
+      public void ForgetHushPaid(Hero lord, string subjectId)
+      {
+         if (lord == null || string.IsNullOrEmpty(lord.StringId) || string.IsNullOrEmpty(subjectId)) return;
+
+         _hushPaid.Remove(KnownKey(lord.StringId, subjectId));
       }
 
       /// <summary>

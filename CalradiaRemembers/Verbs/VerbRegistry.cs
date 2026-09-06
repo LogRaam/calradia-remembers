@@ -82,6 +82,7 @@ namespace CalradiaRemembers.Verbs
          registry.Register(new MakeAmendsVerb());
          registry.Register(new GrudgeTermsVerb());
          registry.Register(new AdmitSecretLoverVerb());
+         registry.Register(new PayForSilenceVerb());
 
          return registry;
       }
