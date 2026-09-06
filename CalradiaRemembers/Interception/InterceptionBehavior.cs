@@ -898,6 +898,43 @@ namespace CalradiaRemembers.Interception
          _raisedMatterKeys.Add(npc.StringId + "|" + m.Key);
       }
 
+      private const string GenericMissedMeetingContext =
+         "You rode out because word of the player's recent deeds reached you and you meant to speak with them about it, but the chase came to nothing before you could catch them.";
+
+      // The missed-meeting LETTER counterpart of ComposeRecentMatterOpener: pick the freshest unraised matter this
+      // lord would have raised in person and frame the letter by its register, so a chase that ended in a letter
+      // still speaks of the SAME specific thing rather than a generic "your recent deeds". Marks it raised (a letter
+      // is a consumption, so a later in-person meeting moves on to the next matter). Falls back to the generic note
+      // when the lord holds no fresh matter.
+      private string ComposeRecentMatterLetterContext(Hero npc)
+      {
+         RecentMatter m = npc == null ? null : PickRecentMatter(npc, (int) CampaignTime.Now.ToDays);
+         if (m == null) return GenericMissedMeetingContext;
+
+         MarkMatterRaised(npc, m);
+
+         return RecentMatterLetterText(m);
+      }
+
+      private static string RecentMatterLetterText(RecentMatter m)
+         => m.Register switch
+         {
+            RecentMatterRegister.LivedMemory =>
+               $"You rode out to speak with the player of something you took part in yourself and remember firsthand ({m.Summary}), but the chase came to nothing before you could reach them. Write of it in the FIRST PERSON, as your own recollection of what you lived, never as distant rumor.",
+            RecentMatterRegister.RumorAboutPlayer =>
+               $"You rode out because word reached you of the player's own doing ({m.Summary}) and you meant to raise it, but the chase came to nothing before you could reach them. You only HEARD of it, so write of it as hearsay, hedged, not as something you witnessed firsthand.",
+            _ =>
+               $"You rode out to ask the player about a recent happening that is the talk of the realm ({m.Summary}), but the chase came to nothing before you could reach them. You only heard of it and do not know the whole of it: do NOT state it as fact, but write to ASK what they know, curious."
+         };
+
+      /// <summary>cr.testall seam: the register-framed missed-meeting letter context this lord would write now, WITHOUT marking the matter raised. Null when the lord holds no fresh matter.</summary>
+      internal string DebugRecentMatterLetterContext(Hero lord)
+      {
+         RecentMatter m = lord == null ? null : PickRecentMatter(lord, (int) CampaignTime.Now.ToDays);
+
+         return m == null ? null : RecentMatterLetterText(m);
+      }
+
       /// <summary>cr.testall seam: the classified candidate matters this lord could raise right now (no mutation, no dedup marking).</summary>
       internal IReadOnlyList<RecentMatter> DebugBuildRecentMatters(Hero lord)
          => BuildRecentMatters(lord, (int) CampaignTime.Now.ToDays).ToList();
@@ -1323,7 +1360,7 @@ namespace CalradiaRemembers.Interception
       ///   <see cref="LetterGenerationService.QueueInitialLetter" />) is the rest of "can actually deliver".
       ///   Called at most once per abandoned chase.
       /// </summary>
-      private static void TryWriteMissedMeetingLetter(Hero pursuer, InterceptionTrigger trigger, string detail, int today)
+      private void TryWriteMissedMeetingLetter(Hero pursuer, InterceptionTrigger trigger, string detail, int today)
       {
          try
          {
@@ -1342,8 +1379,10 @@ namespace CalradiaRemembers.Interception
                   $"You rode out to seek the player and acknowledge a kindness they showed you{InlineDetail(detail)}, but the chase came to nothing before you could catch them.",
                InterceptionTrigger.NemesisBounty =>
                   $"You rode out to find the player and warn them of a nemesis plaguing your region{InlineDetail(detail)}, but the chase came to nothing before you could catch them.",
-               _ =>
-                  "You rode out because word of the player's recent deeds reached you and you meant to speak with them about it, but the chase came to nothing before you could catch them."
+               // Recent-matter chase: name the SAME specific matter the in-person opener would have raised, framed
+               // by its register (a memory you lived, a rumor of the player's deed, or realm gossip you would ask
+               // about), rather than a generic "your recent deeds". Consumes it (once per lord), like the opener.
+               _ => ComposeRecentMatterLetterContext(pursuer)
             };
 
             LetterGenerationService.QueueInitialLetter(

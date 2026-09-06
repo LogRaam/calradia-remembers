@@ -174,6 +174,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("extension_recap", Severity.Light, "Extension Surface (ActionResult.Recap / CrConversation.PromptReply): register a throwaway external action, drive the REAL dispatch (CrActions -> VerbRegistry -> ExternalVerbAdapter -> bridge) against a live lord, and assert its Recap reaches ActionOutcome on BOTH a success and a refusal; also assert CrConversation.PromptReply is a safe no-op (false) with no conversation open. Unregisters the probe afterwards", TestExtensionRecap),
          new SelfTest("regard_progression", Severity.Light, "Progressive regard (player request): reset a live lord's regard tier, then drive the REAL bridge change_relation(+1) three times in one frame -> assert the rising bar (tier 0 lands a point, tier 1 banks then lands, tier ends at 2), so a long conversation earns several points but each costs one more warm moment. Restores the profile's regard state and personal score afterwards", TestRegardProgression),
          new SelfTest("recent_matter", Severity.Light, "Recent-matter approach (fkasad report, phase 1): seed a fresh 'fought at your side' memory on a live lord, then drive the REAL candidate builder (InterceptionBehavior.DebugBuildRecentMatters) and assert the seeded memory surfaces classified as a LIVED (first-hand) matter, so a lord who fought beside you approaches about THAT rather than distant rumor. Removes the seeded memory afterwards", TestRecentMatter),
+         new SelfTest("recent_matter_letter", Severity.Light, "Recent-matter approach (loose end): when a chase ends in a missed-meeting LETTER instead of a face-to-face, the letter now names the SAME specific matter the in-person opener would raise, framed by register, not a generic 'your recent deeds'. Seeds a lived 'fought at your side' memory, drives the compose-only seam (DebugRecentMatterLetterContext) and asserts the composed letter context names that matter and frames it first-person. Removes the seeded memory afterwards", TestRecentMatterLetter),
          new SelfTest("secret_lover_leak", Severity.Light, "Mystery-lover (phase 3a): force the secret-lover existence-whisper for a live hero (DebugForceLeak) and assert it records a Scandal world event that names the SUBJECT but hides the lover (InvolvesPlayer=false, the subject in ActorIds, gossip-worthy magnitude), so lords probe the player about it while the identity stays secret. Retracts the seeded event afterwards", TestSecretLoverLeak),
          new SelfTest("admit_secret_lover", Severity.Light, "Mystery-lover (phase 3b): temporarily mark a player-clan companion the player's secret lover, then drive the REAL bridge dispatch of admit_secret_lover against a live lord and assert the lord's knowledge ledger now records the identity (the fact learned ONLY because the player confessed, never deduced), a confession memory is planted on the lord, and a lord who was not told stays ignorant. Restores the flag, forgets the ledger entry, and trims the planted memory afterwards", TestAdmitSecretLover),
          new SelfTest("held_secret", Severity.Light, "Mystery-lover (phase 3b payoff): mark a player-clan companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL EncounterContextBuilder.Build for that lord and assert the held-secret subject surfaces on the context (naming the companion) when adult content is on, or is suppressed when the adult gate is off. Restores the flag and forgets the ledger entry afterwards", TestHeldSecret),
@@ -6598,6 +6599,42 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"npc={npc.Name}, candidates={candidates.Count}");
             t.Expect("seeded memory is a candidate", mine != null, true);
             t.Expect("classified as a lived memory", mine?.Register, Logic.Interception.RecentMatterRegister.LivedMemory);
+         }
+         finally
+         {
+            p.Events.Remove(seededEvent);
+            behavior.Store.Set(p);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestRecentMatterLetter(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("recent_matter_letter");
+
+         if (t.Abort(Interception.InterceptionBehavior.Instance == null, "interception behavior not initialized")) return t.Line();
+
+         Hero npc = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         if (t.Abort(npc == null, "no live lord to write from")) return t.Line();
+
+         NpcProfile p = GetOrCreate(behavior, npc);
+         var today = (int) CampaignTime.Now.ToDays;
+         const string seed = "[SELFTEST] We broke the enemy together near the proving walls.";
+         var seededEvent = new NotableEvent(today, NotableEventType.Other, seed);
+
+         p.Events.Add(seededEvent);
+         behavior.Store.Set(p);
+
+         try
+         {
+            // Compose-only seam: does NOT mark the matter raised, so re-runs stay deterministic.
+            string context = Interception.InterceptionBehavior.Instance.DebugRecentMatterLetterContext(npc);
+
+            t.Note($"npc={npc.Name}");
+            t.Expect("a missed-meeting letter context is composed", !string.IsNullOrEmpty(context), true);
+            t.Expect("it names the specific matter, not a generic deed", context != null && context.Contains(seed), true);
+            t.Expect("a lived matter is framed first-person", context != null && context.Contains("FIRST PERSON"), true);
          }
          finally
          {
