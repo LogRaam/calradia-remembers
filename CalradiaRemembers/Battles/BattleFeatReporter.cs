@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Battles;
+using CalradiaRemembers.WorldEvents;
 using TaleWorlds.CampaignSystem;
 
 #endregion
@@ -22,6 +23,9 @@ namespace CalradiaRemembers.Battles
    /// <summary>Builds the distilled, first-hand deed lines for the battle that just ended.</summary>
    public static class BattleFeatReporter
    {
+      /// <summary>How loudly an exploit travels. Above a tournament win (40), below a realm-shaking scandal. Tuning.</summary>
+      private const int ExploitMagnitude = 55;
+
       /// <summary>
       ///   The lines to append to every profile that witnessed this battle, or an empty list when the fight left
       ///   nothing worth adding. Consumes the finished journal, so it yields deeds exactly once per battle.
@@ -54,7 +58,57 @@ namespace CalradiaRemembers.Battles
          if (digest.TollToMention > 0)
             lines.Add(BattleFeatText.WitnessedToll(digest.TollToMention, engagement));
 
+         // Inc 3: only an EXPLOIT leaves the field (Gabriel's rule). Everything else stays with those who saw it.
+         if (digest.BestFeat != null && CombatProwessPolicy.TravelsAsGossip(digest.BestFeat.Tier))
+            RecordExploitEvent(digest.BestFeat, engagement);
+
          return lines;
+      }
+
+      /// <summary>
+      ///   Rates one victory and, when it is an EXPLOIT, lets word of it leave the field. Shared with the arena so
+      ///   a tournament win travels the same way. Returns true when an event was actually recorded.
+      /// </summary>
+      public static bool TryRecordExploit(Hero foe, CombatFeatOutcome outcome, string engagement)
+      {
+         if (foe == null || Hero.MainHero == null) return false;
+
+         CombatFeatTier tier = CombatProwessPolicy.Rate(BattleFeatFacts.For(Hero.MainHero), BattleFeatFacts.For(foe));
+         if (!CombatProwessPolicy.TravelsAsGossip(tier)) return false;
+
+         string name = HeroLabel.Describe(foe.Name?.ToString(), foe.Clan?.Name?.ToString(), foe.Culture?.Name?.ToString());
+         RecordExploitEvent(new CombatFeat(foe.StringId, name, outcome, tier), engagement);
+
+         return true;
+      }
+
+      /// <summary>
+      ///   Records the exploit as a PLAYER FEAT the realm may speak of. Deliberately shaped so the recent-matter
+      ///   registers classify it correctly: <c>InvolvesPlayer</c> is true (it is the player's own deed, so a lord
+      ///   raises it as a RUMOUR about them, not as impersonal gossip), and only the two who were actually in it
+      ///   are named as actors. No faction is tagged on purpose: tagging one would let every lord of that faction
+      ///   read it as something they took part in, and claim first-hand knowledge of a fight they never saw.
+      /// </summary>
+      private static void RecordExploitEvent(CombatFeat feat, string engagement)
+      {
+         if (WorldEventStore.Instance == null || Hero.MainHero == null) return;
+
+         var day = (int) CampaignTime.Now.ToDays;
+         string playerName = HeroLabel.Describe(Hero.MainHero.Name?.ToString(), Hero.MainHero.Clan?.Name?.ToString(),
+            Hero.MainHero.Culture?.Name?.ToString());
+
+         WorldEventStore.Instance.Record(new WorldEvent {
+            Id = $"cr_feat_{feat.FoeId}_{day}",
+            Type = WorldEventType.PlayerFeat,
+            Day = day,
+            Magnitude = ExploitMagnitude,
+            InvolvesPlayer = true,
+            ActorIds = new List<string> {Hero.MainHero.StringId, feat.FoeId},
+            Summary = BattleFeatText.GossipedExploit(playerName, feat.FoeName, feat.Outcome, engagement),
+            ChronicleLine = BattleFeatText.GossipedExploit(playerName, feat.FoeName, feat.Outcome, engagement)
+         });
+
+         ModLog.Info($"[BATTLEFEAT] word spreads: the player bested {feat.FoeName}.");
       }
 
       /// <summary>

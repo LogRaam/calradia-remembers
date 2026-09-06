@@ -11,8 +11,10 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Battles;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Battles;
 using CalradiaRemembers.Logic.Tournaments;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.WorldEvents;
@@ -69,6 +71,12 @@ namespace CalradiaRemembers.Tournaments
          // A face-to-face result (not a champion who never met the player) is a head-to-head that builds a rivalry.
          if (standing.Relation == TournamentRelation.BeatThePlayer || standing.Relation == TournamentRelation.LostToThePlayer)
             TournamentRivalryBehavior.Instance?.RecordEncounter(hero, standing.Relation == TournamentRelation.LostToThePlayer);
+
+         // Battle-memory Inc 3: beating a lord in the lists who was well above the player, or a name the realm
+         // knows, is an EXPLOIT, so word of it leaves the arena and lords who never attended may raise it. Nobody
+         // is "slain" in a tournament, hence Bested.
+         if (standing.Relation == TournamentRelation.LostToThePlayer)
+            BattleFeatReporter.TryRecordExploit(hero, CombatFeatOutcome.Bested, TourneyEngagement(result));
 
          bool letterQueued = mayQueueLetter && TryQueueLetter(profile, hero, result, standing);
          behavior.Store.Set(profile);
@@ -151,6 +159,9 @@ namespace CalradiaRemembers.Tournaments
 
          return fact + " " + spirit;
       }
+
+      private static string TourneyEngagement(TournamentResult result)
+         => string.IsNullOrEmpty(result.TownName) ? "the tourney" : $"the tourney at {result.TownName}";
 
       private static string RoundName(int round)
       {

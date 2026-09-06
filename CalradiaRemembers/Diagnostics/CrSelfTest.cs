@@ -6638,6 +6638,43 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("a living lord is never mourned", joined.Contains("cut"), false);
          }
 
+         // Inc 3 (circulation): only an EXPLOIT leaves the field. Drive the REAL recorder both ways and check the
+         // world-event store, then retract whatever was seeded so the campaign is left untouched.
+         Hero exploitFoe = lords.FirstOrDefault(h =>
+            CombatProwessPolicy.Rate(player, CalradiaRemembers.Battles.BattleFeatFacts.For(h)) == CombatFeatTier.Exploit);
+         Hero pushoverFoe = lords.FirstOrDefault(h =>
+            CombatProwessPolicy.Rate(player, CalradiaRemembers.Battles.BattleFeatFacts.For(h)) == CombatFeatTier.Unremarkable);
+         var today = (int) CampaignTime.Now.ToDays;
+
+         try
+         {
+            if (pushoverFoe != null)
+            {
+               bool travelled = CalradiaRemembers.Battles.BattleFeatReporter.TryRecordExploit(
+                  pushoverFoe, CombatFeatOutcome.Bested, "open battle");
+               t.Expect("an unremarkable win never leaves the field", travelled, false);
+            }
+
+            if (exploitFoe != null)
+            {
+               bool travelled = CalradiaRemembers.Battles.BattleFeatReporter.TryRecordExploit(
+                  exploitFoe, CombatFeatOutcome.Bested, "open battle");
+               WorldEvents.WorldEvent we = WorldEvents.WorldEventStore.Instance?.GetById($"cr_feat_{exploitFoe.StringId}_{today}");
+
+               t.Note($"exploitFoe={exploitFoe.Name}");
+               t.Expect("an exploit leaves the field", travelled, true);
+               t.Expect("it is recorded as a player feat", we?.Type, WorldEvents.WorldEventType.PlayerFeat);
+               t.Expect("it is the player's own deed (a rumour ABOUT them)", we?.InvolvesPlayer, true);
+               t.Expect("no faction is tagged, so no lord claims to have been there", (we?.FactionIds?.Count ?? 0), 0);
+               t.Expect("the gossip line is hearsay", we != null && we.Summary.StartsWith("They say"), true);
+            }
+         }
+         finally
+         {
+            if (exploitFoe != null) WorldEvents.WorldEventStore.Instance?.Remove($"cr_feat_{exploitFoe.StringId}_{today}");
+            if (pushoverFoe != null) WorldEvents.WorldEventStore.Instance?.Remove($"cr_feat_{pushoverFoe.StringId}_{today}");
+         }
+
          return t.Line();
       }
 
