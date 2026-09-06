@@ -130,7 +130,9 @@ namespace CalradiaRemembers.WorldEvents
          // first-hand lines. Consumed ONCE here and appended to everyone who witnessed the battle, so the generic
          // "we fought together" line above is joined by what actually happened. Empty for an auto-resolved battle
          // (no mission, so no per-combatant truth to report) and for a fight that left nothing of note.
-         IReadOnlyList<string> deedLines = BattleFeatReporter.ConsumeWitnessLines(placeClause);
+         // Rendered PER RECIPIENT: the man a deed is ABOUT lived it, and must not read "I saw you best Lucon" in
+         // Lucon's own memory.
+         BattleFeatReport deeds = BattleFeatReporter.ConsumeReport(placeClause);
 
          foreach (BattleSideEnum side in new[] {BattleSideEnum.Attacker, BattleSideEnum.Defender})
          {
@@ -165,7 +167,7 @@ namespace CalradiaRemembers.WorldEvents
                profile.Events.Add(new NotableEvent(day, NotableEventType.Other, summary));
 
                // They were there, so they speak of the deeds first-hand (the LIVED register).
-               foreach (string deed in deedLines)
+               foreach (string deed in deeds.LinesFor(h.StringId))
                   profile.Events.Add(new NotableEvent(day, NotableEventType.Other, deed));
 
                // Stance: a victory the player won earns respect (and, from a beaten foe, fear).
@@ -183,7 +185,7 @@ namespace CalradiaRemembers.WorldEvents
          // above (which reads each party's leader) never visits them. A player asked for the "fought
          // together" memory to reach them too, so this is its own seam a self-test can drive directly
          // (see DebugRecordCompanionBattleMemories) without staging a real battle.
-         RecordCompanionBattleMemories(day, playerWon, placeClause, sharedEffort, deedLines);
+         RecordCompanionBattleMemories(day, playerWon, placeClause, sharedEffort, deeds);
       }
 
       /// <summary>
@@ -195,7 +197,7 @@ namespace CalradiaRemembers.WorldEvents
       ///   exactly this path against a real party without a staged <see cref="MapEvent" />.
       /// </summary>
       private static void RecordCompanionBattleMemories(int day, bool playerWon, string placeClause, bool sharedEffort,
-         IReadOnlyList<string> deedLines = null)
+         BattleFeatReport deeds = null)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
@@ -217,8 +219,8 @@ namespace CalradiaRemembers.WorldEvents
             companion.Events.Add(new NotableEvent(day, NotableEventType.Other, BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort)));
 
             // A companion rode at the player's shoulder, so they witnessed the deeds too.
-            if (deedLines != null)
-               foreach (string deed in deedLines)
+            if (deeds != null)
+               foreach (string deed in deeds.LinesFor(h.StringId))
                   companion.Events.Add(new NotableEvent(day, NotableEventType.Other, deed));
 
             // A victory earns the same respect a lord who fought beside the player would feel.

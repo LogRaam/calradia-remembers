@@ -39,6 +39,9 @@ namespace CalradiaRemembers.Tournaments
    {
       private const string SaveKey = "CalradiaRemembers_TournamentRivalry_v1bytes";
 
+      /// <summary>Where a rivalry was forged, when the caller does not say: the arena, which is where this ledger began.</summary>
+      public const string DefaultVenue = "the tournament grounds";
+
       public static TournamentRivalryBehavior Instance;
 
       private Dictionary<string, RivalryTally> _tallies = new();
@@ -93,7 +96,7 @@ namespace CalradiaRemembers.Tournaments
       }
 
       /// <summary>Records one arena head-to-head with the player and, on crossing the threshold, crystallizes the rivalry once.</summary>
-      public void RecordEncounter(Hero hero, bool playerWon)
+      public void RecordEncounter(Hero hero, bool playerWon, string venue = DefaultVenue)
       {
          if (hero == null || string.IsNullOrEmpty(hero.StringId) || Hero.MainHero == null) return;
 
@@ -111,24 +114,24 @@ namespace CalradiaRemembers.Tournaments
          TournamentRivalryFlavor flavor = TournamentRivalryPolicy.Evaluate(tally.PlayerWins, tally.HeroWins, TraitsOf(hero));
          if (flavor == TournamentRivalryFlavor.None) return;
 
-         CrystallizeRivalry(hero, flavor);
+         CrystallizeRivalry(hero, flavor, venue);
          tally.Formed = true;
       }
 
-      private static void CrystallizeRivalry(Hero hero, TournamentRivalryFlavor flavor)
+      private static void CrystallizeRivalry(Hero hero, TournamentRivalryFlavor flavor, string venue)
       {
          var today = (int) CampaignTime.Now.ToDays;
 
          if (flavor == TournamentRivalryFlavor.Bitter)
          {
             GrudgeBehavior.Instance?.TryPlant(hero, Hero.MainHero, GrudgeSource.External,
-               "A bitter rivalry forged in the tournament grounds.", TournamentRivalryPolicy.BitterMagnitude, knownToPlayer: true, today);
+               $"A bitter rivalry forged in {venue}.", TournamentRivalryPolicy.BitterMagnitude, knownToPlayer: true, today);
             ModLog.Info($"[TOURNEY] {hero.Name} nurses a bitter arena rivalry with the player.");
          }
          else
          {
             AppreciationBehavior.Instance?.TryPlant(hero, Hero.MainHero, AppreciationSource.External,
-               "A worthy rivalry forged in the tournament grounds.", TournamentRivalryPolicy.FriendlyMagnitude, knownToPlayer: true, today);
+               $"A worthy rivalry forged in {venue}.", TournamentRivalryPolicy.FriendlyMagnitude, knownToPlayer: true, today);
             ModLog.Info($"[TOURNEY] {hero.Name} and the player are worthy arena rivals now.");
          }
       }

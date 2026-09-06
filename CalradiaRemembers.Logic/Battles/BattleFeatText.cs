@@ -48,6 +48,34 @@ namespace CalradiaRemembers.Logic.Battles
         }
 
         /// <summary>
+        ///   The same deed as the FOE himself remembers it. A witness line handed to the very man it is about would
+        ///   read "I saw you best Lucon" in Lucon's own memory, which is nonsense: the subject of a deed speaks of
+        ///   it in his own voice, as something done TO him.
+        /// </summary>
+        public static string SubjectBestedByPlayer(CombatFeatOutcome outcome, string engagement)
+        {
+            string place = string.IsNullOrWhiteSpace(engagement) ? "" : $" at {engagement.Trim()}";
+
+            switch (outcome)
+            {
+                case CombatFeatOutcome.TakenAlive:
+                    return $"You beat me down and took me alive{place}.";
+                case CombatFeatOutcome.Slain:
+                    return $"You cut me down{place}."; // a dead hero keeps no memory; kept for completeness
+                default:
+                    return $"You bested me in the fighting{place}.";
+            }
+        }
+
+        /// <summary>The mirror, as the man who did it remembers it: he did not WATCH someone put the player down, he did it himself.</summary>
+        public static string SubjectDownedThePlayer(string engagement)
+        {
+            string place = string.IsNullOrWhiteSpace(engagement) ? "" : $" at {engagement.Trim()}";
+
+            return $"I put you down myself in the fighting{place}.";
+        }
+
+        /// <summary>
         ///   The EXPLOIT as the realm hears it: third person, no witness voice, because this is the version that
         ///   circulates to lords who were never there (only ever built for
         ///   <see cref="CombatFeatTier.Exploit" />). <paramref name="playerName" /> is the player as the world

@@ -6624,7 +6624,7 @@ namespace CalradiaRemembers.Diagnostics
          var endToEnd = new CalradiaRemembers.Battles.BattleFeatJournal();
          endToEnd.DebugRecord(ratedFoe?.StringId, lords[0].StringId, 0);
 
-         IReadOnlyList<string> lines = CalradiaRemembers.Battles.BattleFeatReporter.BuildLines(endToEnd, "open battle");
+         IReadOnlyList<string> lines = CalradiaRemembers.Battles.BattleFeatReporter.BuildReport(endToEnd, "open battle").LinesFor("some_bystander");
          string joined = string.Join(" | ", lines);
 
          t.Note($"ratedFoe={(ratedFoe == null ? "(none stronger)" : ratedFoe.Name.ToString())}; lines={lines.Count}: {joined}");
@@ -6637,6 +6637,17 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("a worthy foe yields a deed line too", lines.Count >= 2, true);
             t.Expect("a living lord is never mourned", joined.Contains("cut"), false);
          }
+
+         // Inc 4 (voice): the man a deed is ABOUT must not read it as a bystander's report. The lord who downed the
+         // player says so himself; a bystander is told who did it.
+         CalradiaRemembers.Battles.BattleFeatReport report =
+            CalradiaRemembers.Battles.BattleFeatReporter.BuildReport(endToEnd, "open battle");
+         string subjectLines = string.Join(" | ", report.LinesFor(lords[0].StringId));
+
+         t.Note($"subjectLines={subjectLines}");
+         t.Expect("the man who downed the player says so himself", subjectLines.Contains("I put you down myself"), true);
+         t.Expect("he does not report himself in the third person",
+            subjectLines.Contains($"I saw {lords[0].Name}"), false);
 
          // Inc 3 (circulation): only an EXPLOIT leaves the field. Drive the REAL recorder both ways and check the
          // world-event store, then retract whatever was seeded so the campaign is left untouched.

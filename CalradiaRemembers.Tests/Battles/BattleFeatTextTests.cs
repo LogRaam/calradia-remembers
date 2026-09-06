@@ -93,5 +93,36 @@ namespace CalradiaRemembers.Tests.Battles
         {
             BattleFeatText.WitnessedFeat("", CombatFeatOutcome.Bested, "").Should().Contain("a foe");
         }
+
+        // Inc 4: a deed handed to the very man it is about must be in HIS voice. Without this, the profile of the
+        // lord the player bested would read "I saw you best Lucon" when he IS Lucon, which is exactly the kind of
+        // nonsense a memory mod cannot afford.
+        [Test]
+        public void GIVEN_the_bested_foe_himself_WHEN_written_THEN_he_speaks_of_his_own_defeat()
+        {
+            string line = BattleFeatText.SubjectBestedByPlayer(CombatFeatOutcome.Bested, "the siege of Poros");
+
+            line.Should().StartWith("You bested me");
+            line.Should().NotContain("I saw");
+        }
+
+        // The truth rule holds in the subject's voice too: a beaten lord recounts a defeat, never his own death.
+        [Test]
+        public void GIVEN_the_bested_foe_himself_WHEN_written_THEN_no_death_is_claimed()
+        {
+            BattleFeatText.SubjectBestedByPlayer(CombatFeatOutcome.TakenAlive, "").Should().NotContain("cut");
+            BattleFeatText.SubjectBestedByPlayer(CombatFeatOutcome.Bested, "").Should().NotContain("cut");
+        }
+
+        // The mirror, from the man who did it: he did not WATCH someone put the player down, so his memory must own
+        // the deed, which is what makes him a credible rival afterwards.
+        [Test]
+        public void GIVEN_the_man_who_downed_the_player_WHEN_written_THEN_he_owns_the_deed()
+        {
+            string line = BattleFeatText.SubjectDownedThePlayer("open battle");
+
+            line.Should().Contain("I put you down myself");
+            line.Should().NotContain("I saw");
+        }
     }
 }

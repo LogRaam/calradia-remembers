@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Battles;
+using CalradiaRemembers.Tournaments;
 using CalradiaRemembers.WorldEvents;
 using TaleWorlds.CampaignSystem;
 
@@ -26,43 +27,53 @@ namespace CalradiaRemembers.Battles
       /// <summary>How loudly an exploit travels. Above a tournament win (40), below a realm-shaking scandal. Tuning.</summary>
       private const int ExploitMagnitude = 55;
 
+      /// <summary>How a battlefield rivalry is described when it crystallizes, as against the arena wording.</summary>
+      private const string RivalryVenue = "the field of battle";
+
       /// <summary>
-      ///   The lines to append to every profile that witnessed this battle, or an empty list when the fight left
-      ///   nothing worth adding. Consumes the finished journal, so it yields deeds exactly once per battle.
+      ///   What this battle leaves in the memory of those who saw it, rendered PER RECIPIENT (see
+      ///   <see cref="BattleFeatReport.LinesFor" />). Consumes the finished journal, so a battle yields its deeds
+      ///   exactly once; never null.
       /// </summary>
-      public static IReadOnlyList<string> ConsumeWitnessLines(string engagement)
+      public static BattleFeatReport ConsumeReport(string engagement)
       {
          BattleFeatJournal journal = BattleFeatJournal.ConsumeCompleted();
 
-         return journal == null ? new List<string>() : BuildLines(journal, engagement);
+         return journal == null ? BattleFeatReport.Empty : BuildReport(journal, engagement);
       }
 
-      /// <summary>cr.testall seam: build the lines from a journal directly, without consuming the live one.</summary>
-      internal static IReadOnlyList<string> BuildLines(BattleFeatJournal journal, string engagement)
+      /// <summary>cr.testall seam: the per-recipient report for a journal, without consuming the live one.</summary>
+      internal static BattleFeatReport BuildReport(BattleFeatJournal journal, string engagement)
       {
-         var lines = new List<string>();
-         if (journal == null) return lines;
+         if (journal == null) return BattleFeatReport.Empty;
 
          List<CombatFeat> feats = journal.HeroesDowned.Select(ResolveFeat).Where(f => f != null).ToList();
-         string downedBy = NameOf(journal.DownedThePlayer.FirstOrDefault());
+         string downedById = journal.DownedThePlayer.FirstOrDefault();
 
-         BattleFeatDigest digest = BattleFeatDistiller.Distil(feats, downedBy, journal.TroopsFelled);
-         if (digest.IsEmpty) return lines;
+         BattleFeatDigest digest = BattleFeatDistiller.Distil(feats, NameOf(downedById), journal.TroopsFelled);
+         if (digest.IsEmpty) return BattleFeatReport.Empty;
 
-         if (digest.BestFeat != null)
-            lines.Add(BattleFeatText.WitnessedFeat(digest.BestFeat.FoeName, digest.BestFeat.Outcome, engagement));
-
-         if (!string.IsNullOrEmpty(digest.DownedThePlayer))
-            lines.Add(BattleFeatText.WitnessedPlayerDowned(digest.DownedThePlayer, engagement));
-
-         if (digest.TollToMention > 0)
-            lines.Add(BattleFeatText.WitnessedToll(digest.TollToMention, engagement));
-
-         // Inc 3: only an EXPLOIT leaves the field (Gabriel's rule). Everything else stays with those who saw it.
+         // Only an EXPLOIT leaves the field (Gabriel's rule); everything else stays with those who saw it.
          if (digest.BestFeat != null && CombatProwessPolicy.TravelsAsGossip(digest.BestFeat.Tier))
             RecordExploitEvent(digest.BestFeat, engagement);
 
-         return lines;
+         // A named head-to-head is what a rivalry is made of, and at most two per battle keeps it a trickle.
+         if (digest.BestFeat != null) RecordRivalryEncounter(digest.BestFeat.FoeId, playerWon: true);
+         if (!string.IsNullOrEmpty(downedById)) RecordRivalryEncounter(downedById, playerWon: false);
+
+         return new BattleFeatReport(digest, downedById, engagement);
+      }
+
+      // A battlefield head-to-head feeds the same standing-rivalry ledger the arena uses, so a lord the player keeps
+      // meeting sword to sword becomes a worthy rival or a bitter one by his own character.
+      private static void RecordRivalryEncounter(string heroId, bool playerWon)
+      {
+         if (string.IsNullOrEmpty(heroId)) return;
+
+         Hero hero = Hero.AllAliveHeroes?.FirstOrDefault(h => h != null && h.StringId == heroId);
+         if (hero == null) return;
+
+         TournamentRivalryBehavior.Instance?.RecordEncounter(hero, playerWon, RivalryVenue);
       }
 
       /// <summary>
@@ -148,6 +159,60 @@ namespace CalradiaRemembers.Battles
          return hero == null
             ? null
             : HeroLabel.Describe(hero.Name?.ToString(), hero.Clan?.Name?.ToString(), hero.Culture?.Name?.ToString());
+      }
+   }
+
+   /// <summary>
+   ///   What one battle left behind, rendered PER RECIPIENT. A witness saw the deeds; the man a deed is ABOUT
+   ///   lived them, and must speak of them in his own voice, or his memory would read "I saw you best Lucon" when
+   ///   he IS Lucon.
+   /// </summary>
+   public sealed class BattleFeatReport
+   {
+      /// <summary>A battle that left nothing worth adding beyond the ordinary "we fought together" line.</summary>
+      public static readonly BattleFeatReport Empty = new BattleFeatReport(null, null, null);
+
+      private readonly BattleFeatDigest _digest;
+      private readonly string _downedThePlayerId;
+      private readonly string _engagement;
+
+      internal BattleFeatReport(BattleFeatDigest digest, string downedThePlayerId, string engagement)
+      {
+         _digest = digest;
+         _downedThePlayerId = downedThePlayerId;
+         _engagement = engagement;
+      }
+
+      /// <summary>True when there is nothing to append to anyone.</summary>
+      public bool IsEmpty => _digest == null || _digest.IsEmpty;
+
+      /// <summary>
+      ///   The lines this particular hero would remember. A bystander witnessed them; the foe the player bested
+      ///   speaks of his own defeat; the man who put the player down says so himself rather than reporting it.
+      /// </summary>
+      public IReadOnlyList<string> LinesFor(string recipientHeroId)
+      {
+         var lines = new List<string>();
+         if (IsEmpty) return lines;
+
+         bool isTheBestedFoe = _digest.BestFeat != null && !string.IsNullOrEmpty(recipientHeroId)
+                                                        && _digest.BestFeat.FoeId == recipientHeroId;
+         bool isTheOneWhoDownedThePlayer = !string.IsNullOrEmpty(_downedThePlayerId) && _downedThePlayerId == recipientHeroId;
+
+         if (_digest.BestFeat != null)
+            lines.Add(isTheBestedFoe
+               ? BattleFeatText.SubjectBestedByPlayer(_digest.BestFeat.Outcome, _engagement)
+               : BattleFeatText.WitnessedFeat(_digest.BestFeat.FoeName, _digest.BestFeat.Outcome, _engagement));
+
+         if (!string.IsNullOrEmpty(_digest.DownedThePlayer))
+            lines.Add(isTheOneWhoDownedThePlayer
+               ? BattleFeatText.SubjectDownedThePlayer(_engagement)
+               : BattleFeatText.WitnessedPlayerDowned(_digest.DownedThePlayer, _engagement));
+
+         if (_digest.TollToMention > 0)
+            lines.Add(BattleFeatText.WitnessedToll(_digest.TollToMention, _engagement));
+
+         return lines;
       }
    }
 }
