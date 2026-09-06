@@ -142,6 +142,15 @@ namespace CalradiaRemembers
       public static bool EnableStolenLove => CrSettings.Instance?.EnableStolenLove ?? false;
 
       /// <summary>
+      ///   Player violence (player request 2026-09-06): OFF by default, and it governs KILLING ONLY. Robbery and
+      ///   assault are always available; while this is off, no exchange can end a character's life, whatever the
+      ///   model narrates. Read by <see cref="Logic.Violence.ViolencePolicy.IsPermitted" /> at BOTH teaching and
+      ///   execution time, so the prompt never dangles a deed the bridge would refuse. Defaults to false when MCM
+      ///   is unavailable, which keeps the safe answer the safe one.
+      /// </summary>
+      public static bool AllowKillingCharacters => CrSettings.Instance?.AllowKillingCharacters ?? false;
+
+      /// <summary>
       ///   The player-chosen base folder for prompt/style overrides (MCM), or "" for the default ModuleData/Custom.
       ///   Read by <see cref="Mapping.NarrativeLoader.CustomBaseFolder" /> so a player can keep their edits outside
       ///   the module and survive an update that replaces it (player report v1.33.5).

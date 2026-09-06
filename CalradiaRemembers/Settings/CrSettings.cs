@@ -251,6 +251,15 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool EnableStolenLove { get; set; } = false;
 
+      [SettingPropertyBool("Allow killing characters", RequireRestart = false, Order = 2,
+         HintText = "Off (default): you may rob or beat a character in conversation, but you can never take a life " +
+                    "this way, whatever is said. On: a killing attempt becomes possible. It is never a formality: " +
+                    "how it ends depends on how you two compare as fighters and on whether they are alone, and a " +
+                    "victim who is guarded is far harder to reach. Either way the world answers, with a crime " +
+                    "against their realm, ruined standing, and kin who remember.")]
+      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      public bool AllowKillingCharacters { get; set; } = false;
+
       [SettingPropertyBool("Post-duel conversation", RequireRestart = false, Order = 0,
          HintText = "On (default): after a duel is fought, the conversation reopens over the scene and resumes what " +
                     "led to it. The loser concedes (a beaten character of honour may grant a favour you ask, such as " +
