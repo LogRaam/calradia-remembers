@@ -66,6 +66,10 @@ namespace CalradiaRemembers.Tournaments
 
          profile.Events.Add(new NotableEvent(result.Day, NotableEventType.Other, ComposeMemory(result, standing)));
 
+         // A face-to-face result (not a champion who never met the player) is a head-to-head that builds a rivalry.
+         if (standing.Relation == TournamentRelation.BeatThePlayer || standing.Relation == TournamentRelation.LostToThePlayer)
+            TournamentRivalryBehavior.Instance?.RecordEncounter(hero, standing.Relation == TournamentRelation.LostToThePlayer);
+
          bool letterQueued = mayQueueLetter && TryQueueLetter(profile, hero, result, standing);
          behavior.Store.Set(profile);
 

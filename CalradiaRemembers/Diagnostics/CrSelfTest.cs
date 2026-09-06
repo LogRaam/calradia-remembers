@@ -181,6 +181,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
          new SelfTest("tournament_memory", Severity.Light, "Tournament memory (player suggestion, Inc 2): build a synthetic arena result (the player bested one lord, another beat the player and took the crown) and drive the REAL feeder (TournamentMemoryFeeder.Apply). Asserts a first-hand LIVED memory lands on each lord's profile (the loser recalls losing, the champion recalls besting the player and taking the crown) so the recent-matter interception makes them approach, and a champion gossip world event is recorded (player not involved). Trims the memories and removes the event afterwards", TestTournamentMemory),
+         new SelfTest("tournament_rivalry", Severity.Light, "Tournament memory (player suggestion, Inc 4): force a low-honour lord and record three arena head-to-heads via the REAL rivalry behavior; asserts no rivalry forms before the threshold, it crystallizes at the threshold, the tally is right, and a BITTER rivalry plants a light grudge. Clears the grudge, forgets the tally, and restores the trait afterwards", TestTournamentRivalry),
          new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
          new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
@@ -6637,6 +6638,49 @@ namespace CalradiaRemembers.Diagnostics
             behavior.Store.Set(beatenP);
             behavior.Store.Set(champP);
             WorldEvents.WorldEventStore.Instance.Remove(gossipId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestTournamentRivalry(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tournament_rivalry");
+
+         CalradiaRemembers.Tournaments.TournamentRivalryBehavior rb = CalradiaRemembers.Tournaments.TournamentRivalryBehavior.Instance;
+         CalradiaRemembers.Grudges.GrudgeBehavior grudges = CalradiaRemembers.Grudges.GrudgeBehavior.Instance;
+         if (t.Abort(rb == null || grudges == null || Hero.MainHero == null, "rivalry / grudge behavior not initialized")) return t.Line();
+
+         // A lord with NO existing grudge and no tally, so the cleanup (ClearGrudgesFor) removes exactly what we plant.
+         Hero rival = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner
+            && (grudges.GrudgesFor(h.StringId)?.Count ?? 0) == 0 && rb.Tally(h.StringId) == null);
+         if (t.Abort(rival == null, "no grudge-free lord to stand in as an arena rival")) return t.Line();
+
+         int honor0 = rival.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor);
+
+         try
+         {
+            rival.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor, -2); // force a BITTER rivalry (a grudge we can cleanly clear)
+
+            rb.RecordEncounter(rival, playerWon: true);
+            rb.RecordEncounter(rival, playerWon: true);
+            bool formedEarly = rb.Tally(rival.StringId)?.Formed ?? false;
+
+            rb.RecordEncounter(rival, playerWon: false); // crosses the threshold (3 total head-to-heads)
+            CalradiaRemembers.Tournaments.RivalryTally tally = rb.Tally(rival.StringId);
+            bool grudgePlanted = (grudges.GrudgesFor(rival.StringId)?.Count ?? 0) > 0;
+
+            t.Note($"rival={rival.Name} pw={tally?.PlayerWins} hw={tally?.HeroWins}");
+            t.Expect("no rivalry before the threshold", formedEarly, false);
+            t.Expect("the rivalry forms at the threshold", tally?.Formed, true);
+            t.Expect("three head-to-heads tallied", (tally?.PlayerWins ?? 0) + (tally?.HeroWins ?? 0), 3);
+            t.Expect("a bitter rivalry plants a grudge", grudgePlanted, true);
+         }
+         finally
+         {
+            grudges.ClearGrudgesFor(rival.StringId);
+            rb.ForgetTally(rival.StringId);
+            rival.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor, honor0);
          }
 
          return t.Line();

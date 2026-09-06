@@ -136,6 +136,7 @@ namespace CalradiaRemembers
          // (never the player's identity) may begin to circulate, which lords then probe the player about via the
          // world-gossip register. Instance set in the constructor, so load order is harmless.
          campaignStarter.AddBehavior(new WorldEvents.SecretLoverGossipBehavior());
+         campaignStarter.AddBehavior(new Tournaments.TournamentRivalryBehavior());
          // Rescue awareness: freeing a captive lord by force makes the lord, their family and a few close
          // friends grateful (memory + regard), and the captor may trace it back and hold a grudge. Registered
          // after GrudgeBehavior below? No: it reads GrudgeBehavior.Instance at runtime, so order is harmless.
