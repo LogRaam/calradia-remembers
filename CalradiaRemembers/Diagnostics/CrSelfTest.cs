@@ -6614,6 +6614,36 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("robbery is never barred by the lethal toggle",
             CalradiaRemembers.Logic.Violence.ViolencePolicy.IsPermitted(CalradiaRemembers.Logic.Violence.ViolentAct.Rob, false), true);
 
+         // Inc 3: the world really answers. Drive the REAL consequence service for a FAILED assault (nothing is
+         // wounded, nobody dies) and assert the engine's own crime rating actually moved, then undo it.
+         Hero kin = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != target && h.Clan == target.Clan && !h.IsChild);
+         IFaction realm = target.MapFaction;
+         float crimeBefore = realm?.MainHeroCrimeRating ?? 0f;
+         int kinGrudgesBefore = kin == null ? 0 : CalradiaRemembers.Grudges.GrudgeBehavior.Instance?.GrudgesFor(kin.StringId)?.Count ?? 0;
+
+         try
+         {
+            CalradiaRemembers.Logic.Violence.ViolenceConsequence cost =
+               CalradiaRemembers.Violence.ViolenceConsequenceService.Apply(target,
+                  CalradiaRemembers.Logic.Violence.ViolentAct.Assault,
+                  CalradiaRemembers.Logic.Violence.ViolenceVerdict.Failed,
+                  CalradiaRemembers.Logic.Violence.ViolenceExposure.Onlookers);
+
+            t.Note($"cost: crime={cost.CrimeRating} regard={cost.RelationHit} renown=-{cost.RenownLoss} kin={cost.KinGrudgeMagnitude}");
+            t.Expect("a failed attempt still costs with the law", cost.CrimeRating > 0, true);
+            t.Expect("the engine's own crime rating actually moved",
+               realm != null && realm.MainHeroCrimeRating > crimeBefore, true);
+
+            if (kin != null)
+               t.Expect("kin of the victim take it up",
+                  (CalradiaRemembers.Grudges.GrudgeBehavior.Instance?.GrudgesFor(kin.StringId)?.Count ?? 0) > kinGrudgesBefore, true);
+         }
+         finally
+         {
+            if (realm != null) realm.MainHeroCrimeRating = crimeBefore;
+            if (kin != null && kinGrudgesBefore == 0) CalradiaRemembers.Grudges.GrudgeBehavior.Instance?.ClearGrudgesFor(kin.StringId);
+         }
+
          return t.Line();
       }
 

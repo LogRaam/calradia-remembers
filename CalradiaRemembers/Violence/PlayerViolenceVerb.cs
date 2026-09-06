@@ -74,10 +74,15 @@ namespace CalradiaRemembers.Violence
 
             ModLog.Info($"[VIOLENCE] {Name} on {target.Name}: exposure={facts.Exposure}, chance={chance}%, roll={roll} -> {verdict}.");
 
-            if (verdict != ViolenceVerdict.Succeeded)
-               return Failed(target, facts.Exposure);
+            // The deed is done (or botched) BEFORE the world answers: a killing must land before its kin can mourn,
+            // and the victim's regard must be charged while they are still there to lose it.
+            ActionOutcome outcome = verdict == ViolenceVerdict.Succeeded
+               ? Succeeded(target, ctx)
+               : Failed(target, facts.Exposure);
 
-            return Succeeded(target, ctx);
+            ViolenceConsequenceService.Apply(target, _act, verdict, facts.Exposure);
+
+            return outcome;
          }
          catch (Exception ex)
          {
