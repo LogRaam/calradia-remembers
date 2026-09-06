@@ -175,6 +175,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("regard_progression", Severity.Light, "Progressive regard (player request): reset a live lord's regard tier, then drive the REAL bridge change_relation(+1) three times in one frame -> assert the rising bar (tier 0 lands a point, tier 1 banks then lands, tier ends at 2), so a long conversation earns several points but each costs one more warm moment. Restores the profile's regard state and personal score afterwards", TestRegardProgression),
          new SelfTest("recent_matter", Severity.Light, "Recent-matter approach (fkasad report, phase 1): seed a fresh 'fought at your side' memory on a live lord, then drive the REAL candidate builder (InterceptionBehavior.DebugBuildRecentMatters) and assert the seeded memory surfaces classified as a LIVED (first-hand) matter, so a lord who fought beside you approaches about THAT rather than distant rumor. Removes the seeded memory afterwards", TestRecentMatter),
          new SelfTest("secret_lover_leak", Severity.Light, "Mystery-lover (phase 3a): force the secret-lover existence-whisper for a live hero (DebugForceLeak) and assert it records a Scandal world event that names the SUBJECT but hides the lover (InvolvesPlayer=false, the subject in ActorIds, gossip-worthy magnitude), so lords probe the player about it while the identity stays secret. Retracts the seeded event afterwards", TestSecretLoverLeak),
+         new SelfTest("admit_secret_lover", Severity.Light, "Mystery-lover (phase 3b): temporarily mark a player-clan companion the player's secret lover, then drive the REAL bridge dispatch of admit_secret_lover against a live lord and assert the lord's knowledge ledger now records the identity (the fact learned ONLY because the player confessed, never deduced), a confession memory is planted on the lord, and a lord who was not told stays ignorant. Restores the flag, forgets the ledger entry, and trims the planted memory afterwards", TestAdmitSecretLover),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
          new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
@@ -6269,6 +6270,59 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             WorldEvents.WorldEventStore.Instance.Remove(id);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestAdmitSecretLover(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("admit_secret_lover");
+
+         WorldEvents.SecretLoverGossipBehavior gossip = WorldEvents.SecretLoverGossipBehavior.Instance;
+         if (t.Abort(gossip == null || behavior?.Store == null || behavior.GameStateBridge == null,
+                "secret-lover behavior / store / bridge not initialized")) return t.Line();
+
+         Hero npc = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         if (t.Abort(npc == null, "no live lord to confess to")) return t.Line();
+
+         // A player-clan companion stands in as the hidden lover: PlayerSecretLoverSubjectIds only counts companions.
+         Hero subject = Clan.PlayerClan?.Companions?.FirstOrDefault(h => h != null && h != Hero.MainHero && h != npc);
+         if (t.Abort(subject == null, "no player-clan companion to stand in as the secret-lover subject")) return t.Line();
+
+         NpcProfile subjectProfile = GetOrCreate(behavior, subject);
+         if (subjectProfile.Romantic == null) subjectProfile.Romantic = new RomanticProfile();
+         bool prevFlag = subjectProfile.Romantic.IsSecretLover;
+
+         NpcProfile npcProfile = GetOrCreate(behavior, npc);
+         int memoryCountBefore = npcProfile.Events?.Count ?? 0;
+
+         try
+         {
+            subjectProfile.Romantic.IsSecretLover = true;
+            behavior.Store.Set(subjectProfile);
+            gossip.ForgetKnows(npc, subject.StringId); // clean slate
+
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "admit_secret_lover"}, npc, new ActionContext(npcProfile, null));
+
+            if (t.Abort(outcome == null, "the bridge returned null instead of an outcome")) return t.Line();
+
+            t.Note($"npc={npc.Name} subject={subject.Name}");
+            t.Expect("confession upheld", outcome.IsPositive, true);
+            t.Expect("the lord now knows the identity", gossip.Knows(npc.StringId, subject.StringId), true);
+            t.Expect("the confession is remembered", (npcProfile.Events?.Count ?? 0) > memoryCountBefore, true);
+            // The identity is never deduced, only confessed: a lord who was NOT told stays ignorant.
+            t.Expect("an untold lord stays ignorant", gossip.Knows("cr_never_told_lord", subject.StringId), false);
+         }
+         finally
+         {
+            subjectProfile.Romantic.IsSecretLover = prevFlag;
+            behavior.Store.Set(subjectProfile);
+            gossip.ForgetKnows(npc, subject.StringId);
+            if (npcProfile.Events != null)
+               while (npcProfile.Events.Count > memoryCountBefore) npcProfile.Events.RemoveAt(npcProfile.Events.Count - 1);
+            behavior.Store.Set(npcProfile);
          }
 
          return t.Line();

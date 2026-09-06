@@ -227,7 +227,7 @@ namespace CalradiaRemembers.GameState
          "gather_news", "reassure_companion", "recall_companion", "follow_me", "dismiss_escort", "ride_with_me",
          "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
          "release_prisoner", "buy_prisoner", "sell_prisoner", "end_marriage", "make_amends", "pledge_against",
-         "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill",
+         "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill", "admit_secret_lover",
          // ChatViewModel chat-flow controls: real LLM-emittable actions, never dispatched by the switch below.
          "witness_leaves", "request_privacy", "retire"
       };
@@ -351,6 +351,9 @@ namespace CalradiaRemembers.GameState
             // identically to the four above.
             case "end_marriage":
             case "make_amends":
+            // admit_secret_lover (mystery-lover pillar phase 3b): the player confesses a hidden bond; the verb
+            // records that this NPC now privately knows the identity. Routed identically to the group above.
+            case "admit_secret_lover":
                return VerbRegistry.Instance.Execute(action, new VerbContext(npcHero, context?.Profile, this, null, context));
             case "pledge_against":
                return ExecutePledgeAgainst(action, npcHero, context);

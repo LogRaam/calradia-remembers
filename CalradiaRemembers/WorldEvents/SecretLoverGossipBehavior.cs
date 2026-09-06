@@ -29,6 +29,7 @@ namespace CalradiaRemembers.WorldEvents
    public sealed class SecretLoverGossipBehavior : CampaignBehaviorBase
    {
       private const string SaveKey = "CalradiaRemembers_SecretLoverLeaks_v1bytes";
+      private const string KnownSaveKey = "CalradiaRemembers_SecretLoverKnown_v1bytes";
       private const int ScandalMagnitude = 60; // realm-shaking enough to travel and clear the gossip threshold
 
       public static SecretLoverGossipBehavior Instance;
@@ -36,6 +37,11 @@ namespace CalradiaRemembers.WorldEvents
       // StringIds of the secret-lover NPCs whose EXISTENCE-whisper has already been born, so it is emitted once, not
       // re-rolled daily. Persisted; additive key, empty on older saves.
       private HashSet<string> _leaked = new();
+
+      // "lordId|subjectId": that lord PRIVATELY knows the player is subjectId's secret lover, a fact no one ever
+      // deduces, learned ONLY because the player told him (phase 3b). Seeds later propagation among his friends and
+      // an enemy lord's use of it against the player. Persisted; additive key, empty on older saves.
+      private HashSet<string> _known = new();
 
       public SecretLoverGossipBehavior() => Instance = this;
 
@@ -46,38 +52,55 @@ namespace CalradiaRemembers.WorldEvents
       {
          if (dataStore.IsSaving)
          {
-            byte[] bytes;
-            try { bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new List<string>(_leaked), Formatting.None)); }
-            catch (Exception ex)
-            {
-               ModLog.Error($"[SECRETLOVER] serialize failed, persisting none this save. {ex.GetType().Name}: {ex.Message}");
-               bytes = Encoding.UTF8.GetBytes("[]");
-            }
-
-            try { dataStore.SyncData(SaveKey, ref bytes); }
-            catch (Exception ex) { ModLog.Error($"[SECRETLOVER] save failed: {ex.GetType().Name}: {ex.Message}"); }
+            SaveLedger(dataStore, SaveKey, _leaked);
+            SaveLedger(dataStore, KnownSaveKey, _known);
          }
          else
          {
-            byte[] bytes = null;
-            try { dataStore.SyncData(SaveKey, ref bytes); }
-            catch
-            {
-               /* key absent in older saves, start with an empty leaked ledger */
-            }
+            _leaked = LoadLedger(dataStore, SaveKey);
+            _known = LoadLedger(dataStore, KnownSaveKey);
+         }
+      }
 
-            if (bytes is not {Length: > 0}) return;
+      // byte[]-JSON persistence (the ~65535 native-string cap makes a raw string list unsafe); a serialize failure
+      // persists an empty list rather than aborting the whole save.
+      private static void SaveLedger(IDataStore dataStore, string key, HashSet<string> ledger)
+      {
+         byte[] bytes;
+         try { bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new List<string>(ledger), Formatting.None)); }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SECRETLOVER] serialize failed for {key}, persisting none this save. {ex.GetType().Name}: {ex.Message}");
+            bytes = Encoding.UTF8.GetBytes("[]");
+         }
 
-            try
-            {
-               var loaded = JsonConvert.DeserializeObject<List<string>>(Encoding.UTF8.GetString(bytes));
-               _leaked = new HashSet<string>(loaded ?? new List<string>());
-            }
-            catch (Exception ex)
-            {
-               _leaked = new HashSet<string>();
-               ModLog.Error($"[SECRETLOVER] load failed, dropped for this load. {ex.GetType().Name}: {ex.Message}");
-            }
+         try { dataStore.SyncData(key, ref bytes); }
+         catch (Exception ex) { ModLog.Error($"[SECRETLOVER] save failed for {key}: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      // Additive load: a key absent in an older save (or a corrupt payload) yields an empty ledger, never a throw.
+      private static HashSet<string> LoadLedger(IDataStore dataStore, string key)
+      {
+         byte[] bytes = null;
+         try { dataStore.SyncData(key, ref bytes); }
+         catch
+         {
+            /* key absent in older saves, start empty */
+         }
+
+         if (bytes is not {Length: > 0}) return new HashSet<string>();
+
+         try
+         {
+            var loaded = JsonConvert.DeserializeObject<List<string>>(Encoding.UTF8.GetString(bytes));
+
+            return new HashSet<string>(loaded ?? new List<string>());
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SECRETLOVER] load failed for {key}, dropped for this load. {ex.GetType().Name}: {ex.Message}");
+
+            return new HashSet<string>();
          }
       }
 
@@ -132,6 +155,52 @@ namespace CalradiaRemembers.WorldEvents
             Summary = $"Whispers hold that {name} has taken a secret lover, though none can say who.",
             ChronicleLine = $"It was whispered that {name} had taken a secret lover, their identity known to no one."
          });
+      }
+
+      private static string KnownKey(string lordId, string subjectId) => lordId + "|" + subjectId;
+
+      /// <summary>Records that <paramref name="lord" /> now privately knows the player is the secret lover of <paramref name="subjectId" /> (phase 3b: learned only because the player told him). Idempotent.</summary>
+      public void RecordKnows(Hero lord, string subjectId)
+      {
+         if (lord == null || string.IsNullOrEmpty(lord.StringId) || string.IsNullOrEmpty(subjectId)) return;
+
+         if (_known.Add(KnownKey(lord.StringId, subjectId)))
+            ModLog.Info($"[SECRETLOVER] {lord.Name} now knows the player is the secret lover of {subjectId} (the player told him).");
+      }
+
+      /// <summary>True when <paramref name="lordId" /> privately knows the player is <paramref name="subjectId" />'s secret lover.</summary>
+      public bool Knows(string lordId, string subjectId)
+         => !string.IsNullOrEmpty(lordId) && !string.IsNullOrEmpty(subjectId) && _known.Contains(KnownKey(lordId, subjectId));
+
+      /// <summary>Retracts a recorded knowledge entry (cr.testall cleanup so a self-test leaves nothing persisted).</summary>
+      public void ForgetKnows(Hero lord, string subjectId)
+      {
+         if (lord == null || string.IsNullOrEmpty(lord.StringId) || string.IsNullOrEmpty(subjectId)) return;
+
+         _known.Remove(KnownKey(lord.StringId, subjectId));
+      }
+
+      /// <summary>
+      ///   StringIds of the heroes the player is currently a secret lover of (companion-only, by construction of
+      ///   take_as_secret_lover). Feeds admit_secret_lover eligibility and the knowledge ledger: the player can only
+      ///   confess a bond that actually exists.
+      /// </summary>
+      public List<string> PlayerSecretLoverSubjectIds()
+      {
+         var subjects = new List<string>();
+         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         Clan clan = Clan.PlayerClan;
+         if (behavior?.Store == null || clan == null) return subjects;
+
+         foreach (Hero h in clan.Companions)
+         {
+            if (h == null || h == Hero.MainHero) continue;
+
+            RomanticProfile r = behavior.Store.Get(h.StringId)?.Romantic;
+            if (r != null && r.IsSecretLover) subjects.Add(h.StringId);
+         }
+
+         return subjects;
       }
 
       /// <summary>cr.testall seam: record the existence-whisper now (bypassing the delay/roll) WITHOUT marking it, so a test can assert then retract it. Returns false when the hero is null.</summary>
