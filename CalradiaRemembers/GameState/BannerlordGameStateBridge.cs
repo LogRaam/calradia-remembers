@@ -3001,6 +3001,7 @@ namespace CalradiaRemembers.GameState
             {
                marriedProfile.Romantic.Status = RomanticStatus.Committed;
                marriedProfile.Romantic.IsSecretLover = false;
+               marriedProfile.Romantic.SecretLoverSinceDay = null; // the bond is open now: no hidden secret left to leak
             }
 
             ModLog.Info($"[ACTION] marry: player wed {npcHero.Name}.");
@@ -3523,8 +3524,11 @@ namespace CalradiaRemembers.GameState
 
             profile.Romantic.Status = RomanticStatus.SecretLover;
             profile.Romantic.IsSecretLover = true;
+            // Stamp the onset so the mystery-lover pillar can keep it genuinely secret for a while before whispers
+            // of the bond's EXISTENCE (never the player's identity) may begin to circulate.
+            profile.Romantic.SecretLoverSinceDay = (int) CampaignTime.Now.ToDays;
 
-            ModLog.Info($"[ACTION] take_as_secret_lover: {npcHero.Name} is now the player's secret lover (kept discreet, no world-event).");
+            ModLog.Info($"[ACTION] take_as_secret_lover: {npcHero.Name} is now the player's secret lover (its existence may, after a while, leak as an anonymous whisper).");
 
             return new ActionOutcome(
                $"You and {npcHero.Name} share something now, quiet and yours alone, kept from every other eye.", true);

@@ -174,6 +174,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("extension_recap", Severity.Light, "Extension Surface (ActionResult.Recap / CrConversation.PromptReply): register a throwaway external action, drive the REAL dispatch (CrActions -> VerbRegistry -> ExternalVerbAdapter -> bridge) against a live lord, and assert its Recap reaches ActionOutcome on BOTH a success and a refusal; also assert CrConversation.PromptReply is a safe no-op (false) with no conversation open. Unregisters the probe afterwards", TestExtensionRecap),
          new SelfTest("regard_progression", Severity.Light, "Progressive regard (player request): reset a live lord's regard tier, then drive the REAL bridge change_relation(+1) three times in one frame -> assert the rising bar (tier 0 lands a point, tier 1 banks then lands, tier ends at 2), so a long conversation earns several points but each costs one more warm moment. Restores the profile's regard state and personal score afterwards", TestRegardProgression),
          new SelfTest("recent_matter", Severity.Light, "Recent-matter approach (fkasad report, phase 1): seed a fresh 'fought at your side' memory on a live lord, then drive the REAL candidate builder (InterceptionBehavior.DebugBuildRecentMatters) and assert the seeded memory surfaces classified as a LIVED (first-hand) matter, so a lord who fought beside you approaches about THAT rather than distant rumor. Removes the seeded memory afterwards", TestRecentMatter),
+         new SelfTest("secret_lover_leak", Severity.Light, "Mystery-lover (phase 3a): force the secret-lover existence-whisper for a live hero (DebugForceLeak) and assert it records a Scandal world event that names the SUBJECT but hides the lover (InvolvesPlayer=false, the subject in ActorIds, gossip-worthy magnitude), so lords probe the player about it while the identity stays secret. Retracts the seeded event afterwards", TestSecretLoverLeak),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
          new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
@@ -6235,6 +6236,40 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("refused", outcome.WasRefused, true);
          t.Expect("unknownVerb", outcome.WasUnknownVerb, true);
          t.Expect("message", outcome.Message, UnknownActionNotice.BaseMessage);
+
+         return t.Line();
+      }
+
+      private static string TestSecretLoverLeak(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("secret_lover_leak");
+
+         if (t.Abort(WorldEvents.SecretLoverGossipBehavior.Instance == null || WorldEvents.WorldEventStore.Instance == null,
+                "secret-lover / world-event behavior not initialized")) return t.Line();
+
+         Hero subject = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsAlive && !h.IsPrisoner);
+         if (t.Abort(subject == null, "no live hero to stand in as the secret-lover subject")) return t.Line();
+
+         string id = "cr_secretlover_" + subject.StringId;
+         WorldEvents.WorldEventStore.Instance.Remove(id); // clear any prior residue so the assertion is clean
+
+         try
+         {
+            bool forced = WorldEvents.SecretLoverGossipBehavior.Instance.DebugForceLeak(subject);
+            if (t.Abort(!forced, "DebugForceLeak returned false")) return t.Line();
+
+            WorldEvents.WorldEvent we = WorldEvents.WorldEventStore.Instance.GetById(id);
+
+            t.Note($"subject={subject.Name}");
+            t.Expect("whisper recorded", we != null, true);
+            t.Expect("identity hidden (InvolvesPlayer)", we?.InvolvesPlayer, false);
+            t.Expect("subject is the actor", we != null && we.ActorIds != null && we.ActorIds.Contains(subject.StringId), true);
+            t.Expect("gossip-worthy magnitude", we != null && we.Magnitude >= 55, true);
+         }
+         finally
+         {
+            WorldEvents.WorldEventStore.Instance.Remove(id);
+         }
 
          return t.Line();
       }
