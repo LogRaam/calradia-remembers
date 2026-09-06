@@ -83,6 +83,9 @@ namespace CalradiaRemembers.Verbs
          registry.Register(new GrudgeTermsVerb());
          registry.Register(new AdmitSecretLoverVerb());
          registry.Register(new PayForSilenceVerb());
+         registry.Register(new CalradiaRemembers.Violence.PlayerViolenceVerb(CalradiaRemembers.Logic.Violence.ViolentAct.Rob));
+         registry.Register(new CalradiaRemembers.Violence.PlayerViolenceVerb(CalradiaRemembers.Logic.Violence.ViolentAct.Assault));
+         registry.Register(new CalradiaRemembers.Violence.PlayerViolenceVerb(CalradiaRemembers.Logic.Violence.ViolentAct.Kill));
 
          return registry;
       }

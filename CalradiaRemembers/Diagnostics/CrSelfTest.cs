@@ -181,6 +181,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("held_secret", Severity.Light, "Mystery-lover (phase 3b payoff): mark a player-clan companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL EncounterContextBuilder.Build for that lord and assert the held-secret subject surfaces on the context (naming the companion) when adult content is on, or is suppressed when the adult gate is off. Restores the flag and forgets the ledger entry afterwards", TestHeldSecret),
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
+         new SelfTest("player_violence", Severity.Light, "Player violence (player request, Inc 2): drives the REAL bridge dispatch of kill_npc against a live lord and asserts THE guarantee, that with the MCM lethal toggle off (its default) the attempt is refused and the victim is still alive. Also checks the scene reader measures both fighters and that robbery is never barred by the lethal toggle. Mutates nothing while the toggle is off", TestPlayerViolence),
          new SelfTest("battle_feat", Severity.Light, "Battle-memory enrichment (Gabriel 2026-09-06, Inc 1): reads LIVE hero fighting facts through the real BattleFeatFacts bridge and asserts they yield a real prowess score; then pins the exploit ruling on synthetic extremes (besting a champion is an Exploit and travels as gossip, stomping a weakling is Unremarkable and never travels); then drives the REAL mission journal through its debug seam and asserts it keeps the felled hero (deduplicated), who downed the player, and the troop tally apart; and asserts a bested lord is never called killed (the truth rule). Mutates nothing", TestBattleFeat),
          new SelfTest("tournament_memory", Severity.Light, "Tournament memory (player suggestion, Inc 2): build a synthetic arena result (the player bested one lord, another beat the player and took the crown) and drive the REAL feeder (TournamentMemoryFeeder.Apply). Asserts a first-hand LIVED memory lands on each lord's profile (the loser recalls losing, the champion recalls besting the player and taking the crown) so the recent-matter interception makes them approach, and a champion gossip world event is recorded (player not involved). Trims the memories and removes the event afterwards", TestTournamentMemory),
          new SelfTest("tournament_rivalry", Severity.Light, "Tournament memory (player suggestion, Inc 4): force a low-honour lord and record three arena head-to-heads via the REAL rivalry behavior; asserts no rivalry forms before the threshold, it crystallizes at the threshold, the tally is right, and a BITTER rivalry plants a light grudge. Clears the grudge, forgets the tally, and restores the trait afterwards", TestTournamentRivalry),
@@ -6573,6 +6574,45 @@ namespace CalradiaRemembers.Diagnostics
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(holder, subject.StringId);
          }
+
+         return t.Line();
+      }
+
+      private static string TestPlayerViolence(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("player_violence");
+
+         if (t.Abort(behavior?.GameStateBridge == null || Hero.MainHero == null, "no bridge / main hero")) return t.Line();
+
+         Hero target = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         if (t.Abort(target == null, "no live lord to stand in as a victim")) return t.Line();
+
+         // THE guarantee: with the MCM toggle off (its default), a narrated murder must change nothing at all.
+         // Driven through the REAL bridge dispatch, and asserted on the victim still being alive.
+         bool lethalEnabled = ModSettings.AllowKillingCharacters;
+         bool aliveBefore = target.IsAlive;
+
+         ActionOutcome killed = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {Type = "kill_npc"}, target, new ActionContext(behavior.Store?.Get(target.StringId), null));
+
+         t.Note($"target={target.Name}, lethalToggle={(lethalEnabled ? "ON" : "OFF")}, exposure={CalradiaRemembers.Violence.ViolenceSceneReader.ExposureOf(target)}");
+
+         if (!lethalEnabled)
+         {
+            t.Expect("a kill is refused while the toggle is off", killed?.WasRefused, true);
+            t.Expect("and the victim is still alive", target.IsAlive, aliveBefore);
+         }
+         else
+         {
+            t.Note("lethal violence is ENABLED in MCM, so the kill path was live; only the refusal case is asserted when off.");
+         }
+
+         // The scene reader must place a lord who leads soldiers, or stands in a town, out of easy reach; a victim
+         // alone is the reporter's case and must read as such.
+         CalradiaRemembers.Logic.Violence.ViolenceFacts facts = CalradiaRemembers.Violence.ViolenceSceneReader.FactsFor(target);
+         t.Expect("both fighters are measured", facts.PlayerProwess > 0 && facts.TargetProwess > 0, true);
+         t.Expect("robbery is never barred by the lethal toggle",
+            CalradiaRemembers.Logic.Violence.ViolencePolicy.IsPermitted(CalradiaRemembers.Logic.Violence.ViolentAct.Rob, false), true);
 
          return t.Line();
       }

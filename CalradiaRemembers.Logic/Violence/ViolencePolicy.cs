@@ -47,6 +47,13 @@ namespace CalradiaRemembers.Logic.Violence
         /// <summary>The most Roguery alone can add, so craft never replaces the odds entirely. Tuning.</summary>
         public const int RogueryBonusCap = 20;
 
+        /// <summary>How much of a robbed victim purse the player takes: enough to hurt, never so total that a mugging is a fortune. Tuning.</summary>
+        public const int RobberySharePercent = 60;
+
+        /// <summary>What a successful robbery actually takes from a purse of <paramref name="targetGold" />, never negative.</summary>
+        public static int RobberyTake(int targetGold)
+            => targetGold <= 0 ? 0 : (int) Math.Round(targetGold * (RobberySharePercent / 100.0));
+
         /// <summary>
         ///   Whether the act may be attempted at all. Only killing is gated: Gabriel's MCM toggle governs LETHAL
         ///   violence only (default off), so robbery and assault are always available. The prompt is advice and the

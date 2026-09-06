@@ -228,6 +228,7 @@ namespace CalradiaRemembers.GameState
          "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
          "release_prisoner", "buy_prisoner", "sell_prisoner", "end_marriage", "make_amends", "pledge_against",
          "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill", "admit_secret_lover", "pay_for_silence",
+         "rob_npc", "assault_npc", "kill_npc",
          // ChatViewModel chat-flow controls: real LLM-emittable actions, never dispatched by the switch below.
          "witness_leaves", "request_privacy", "retire"
       };
@@ -356,6 +357,12 @@ namespace CalradiaRemembers.GameState
             // a lord who holds that secret for his silence. Routed identically to the group above.
             case "admit_secret_lover":
             case "pay_for_silence":
+            // Player violence (player request 2026-09-06): the PLAYER robbing, beating, or killing this NPC. The
+            // verb re-reads the lethal MCM toggle and rolls the odds itself, so a narrated murder in a campaign
+            // with killing switched off changes nothing.
+            case "rob_npc":
+            case "assault_npc":
+            case "kill_npc":
                return VerbRegistry.Instance.Execute(action, new VerbContext(npcHero, context?.Profile, this, null, context));
             case "pledge_against":
                return ExecutePledgeAgainst(action, npcHero, context);
