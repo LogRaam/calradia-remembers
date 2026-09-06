@@ -29,6 +29,9 @@ namespace CalradiaRemembers.Letters
       // pending mode setup to it before the movie loads (so the parchment binds already populated). The host owns
       // everything else: the pushed screen, the campaign-clock freeze, input restrictions and focus, teardown on any
       // pop (including the view model's portrait release, since LetterViewModel is an IManagedPortrait), and reload.
+      // designUnits: the prefab is a fixed 1180x944-unit centred book (BookRoot) over the painted leather art. The
+      // fit zoom only engages when the player's real layout space is SMALLER than the book itself (high UI-Scale,
+      // tiny window), shrinking art and contents together so the book stays whole instead of overflowing.
       private static readonly CrPanelHost Host = new CrPanelHost(
          "CalradiaRemembersLetter",
          close =>
@@ -37,7 +40,8 @@ namespace CalradiaRemembers.Letters
             _pendingSetup?.Invoke(vm);
 
             return vm;
-         });
+         },
+         designUnitsWidth: 1180f, designUnitsHeight: 944f);
 
       public static bool IsOpen => Host.IsOpen;
 

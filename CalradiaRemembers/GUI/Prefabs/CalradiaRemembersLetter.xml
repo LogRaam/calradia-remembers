@@ -254,13 +254,15 @@
                   </Children>
                 </Widget>
 
-                <!-- Small context line (From / To / Reply to …) -->
+                <!-- Small context line (From / To / Reply to …), UNDER the parchment's painted decorative line
+                     (the line sits at ~book-y 344), as the header of the letter body (ReceivedArea starts at 306).
+                     Tune MarginTop with cr.reload_ui if it should hug the line closer. -->
                 <TextWidget Id="LetterHeading"
                             WidthSizePolicy="StretchToParent"
                             HeightSizePolicy="Fixed"
                             SuggestedHeight="28"
                             VerticalAlignment="Top"
-                            MarginTop="250"
+                            MarginTop="270"
                             MarginLeft="40"
                             MarginRight="40"
                             Brush="@HeadingBrush"
