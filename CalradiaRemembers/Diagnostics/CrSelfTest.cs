@@ -180,6 +180,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("held_secret", Severity.Light, "Mystery-lover (phase 3b payoff): mark a player-clan companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL EncounterContextBuilder.Build for that lord and assert the held-secret subject surfaces on the context (naming the companion) when adult content is on, or is suppressed when the adult gate is off. Restores the flag and forgets the ledger entry afterwards", TestHeldSecret),
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
+         new SelfTest("tournament_memory", Severity.Light, "Tournament memory (player suggestion, Inc 2): build a synthetic arena result (the player bested one lord, another beat the player and took the crown) and drive the REAL feeder (TournamentMemoryFeeder.Apply). Asserts a first-hand LIVED memory lands on each lord's profile (the loser recalls losing, the champion recalls besting the player and taking the crown) so the recent-matter interception makes them approach, and a champion gossip world event is recorded (player not involved). Trims the memories and removes the event afterwards", TestTournamentMemory),
          new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
          new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
@@ -6568,6 +6569,63 @@ namespace CalradiaRemembers.Diagnostics
             subjectProfile.Romantic.Status = prevStatus;
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(holder, subject.StringId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestTournamentMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tournament_memory");
+
+         if (t.Abort(behavior?.Store == null || WorldEvents.WorldEventStore.Instance == null, "store / world-event store not initialized")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes?.Where(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner).Take(2).ToList();
+         if (t.Abort(lords == null || lords.Count < 2, "need two live lords to stand in as tournament rivals")) return t.Line();
+
+         Hero beaten = lords[0];   // the player bested them
+         Hero champion = lords[1]; // they beat the player and took the crown
+
+         NpcProfile beatenP = GetOrCreate(behavior, beaten);
+         NpcProfile champP = GetOrCreate(behavior, champion);
+         int beatenBefore = beatenP.Events?.Count ?? 0;
+         int champBefore = champP.Events?.Count ?? 0;
+
+         var today = (int) CampaignTime.Now.ToDays;
+         const string town = "SelfTestArena";
+         string gossipId = $"cr_tourney_{town}_{today}";
+         WorldEvents.WorldEventStore.Instance.Remove(gossipId); // clear residue
+
+         var result = new CalradiaRemembers.Logic.Tournaments.TournamentResult(
+            town, today, playerWonTournament: false, playerEliminatedRound: 4, championHeroId: champion.StringId,
+            bouts: new List<CalradiaRemembers.Logic.Tournaments.TournamentBout>
+            {
+               new(2, new List<string> {beaten.StringId}, playerAdvanced: true),
+               new(4, new List<string> {champion.StringId}, playerAdvanced: false)
+            });
+
+         try
+         {
+            CalradiaRemembers.Tournaments.TournamentMemoryFeeder.Apply(result);
+
+            string beatenLast = beatenP.Events != null && beatenP.Events.Count > beatenBefore ? beatenP.Events[beatenP.Events.Count - 1].summary : "";
+            string champLast = champP.Events != null && champP.Events.Count > champBefore ? champP.Events[champP.Events.Count - 1].summary : "";
+            WorldEvents.WorldEvent gossip = WorldEvents.WorldEventStore.Instance.GetById(gossipId);
+
+            t.Note($"beaten={beaten.Name} champion={champion.Name}");
+            t.Expect("the player-beaten lord remembers losing", beatenLast.Contains("bested me"), true);
+            t.Expect("the champion remembers besting the player", champLast.Contains("bested the player"), true);
+            t.Expect("the champion recalls the crown", champLast.Contains("crown"), true);
+            t.Expect("a champion gossip event is recorded", gossip != null, true);
+            t.Expect("the gossip does not involve the player", gossip?.InvolvesPlayer, false);
+         }
+         finally
+         {
+            if (beatenP.Events != null) while (beatenP.Events.Count > beatenBefore) beatenP.Events.RemoveAt(beatenP.Events.Count - 1);
+            if (champP.Events != null) while (champP.Events.Count > champBefore) champP.Events.RemoveAt(champP.Events.Count - 1);
+            behavior.Store.Set(beatenP);
+            behavior.Store.Set(champP);
+            WorldEvents.WorldEventStore.Instance.Remove(gossipId);
          }
 
          return t.Line();
