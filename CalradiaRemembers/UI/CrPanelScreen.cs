@@ -23,8 +23,13 @@ namespace CalradiaRemembers.UI
    ///   <see cref="OnInitialize" />), the same recipe as the old per-panel screens, now shared so every panel is
    ///   hosted identically. Pushing a real screen suspends the map's RENDERING below (the leak-free recipe); the
    ///   simulation freeze is <see cref="CrPanelHost" />'s job.
+   ///   <para>
+   ///     Not sealed: <see cref="CrPanelStateScreen" /> inherits this build/teardown recipe unchanged rather than
+   ///     duplicating it, adding only the state-binding constructor and the IGameStateListener interface the engine
+   ///     requires of a state-bound screen.
+   ///   </para>
    /// </summary>
-   internal sealed class CrPanelScreen : ScreenBase
+   internal class CrPanelScreen : ScreenBase
    {
       private readonly string _prefabName;
       private readonly ViewModel _dataSource;

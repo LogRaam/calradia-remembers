@@ -12,12 +12,23 @@
 // A panel becomes a thin composition: a prefab name and a data-source factory. Reload is close+reopen (the proven
 // path: repeated in-place movie rebuilds ended in a native access violation). The time freeze is on by default and
 // only skipped by an explicit opt-out, so it can never be lost by omission.
+//
+// 07/09/2026: two-strategy facade. Measured with cr.tick_probe (4s windows): pushing a SCREEN (the recipe above)
+// never actually slows MapScreen down (settlement-visual + map-input ticks identical to nothing pushed at all, 481
+// vs 481): the three guarantees above exist entirely to compensate for that. Pushing a STATE instead (what vanilla
+// does for ClanState/KingdomState) measured ZERO ticks on both counters, because GameStateManager deactivates
+// MapState before the new screen is even constructed. PanelHostStrategy below selects which one Open/Close/Reload
+// use; every caller (BalanceOfPowerManager, LetterWindowManager) is untouched, since this class's public API did
+// not change. The clock freeze and both Harmony guards stay ACTIVE under either strategy (harmless under the new
+// one, load-bearing under the old); only a proven release earns their removal (a later increment, deliberately not
+// this one).
 
 #region
 
 using System;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.ScreenSystem;
 
@@ -33,6 +44,24 @@ namespace CalradiaRemembers.UI
    /// </summary>
    internal sealed class CrPanelHost
    {
+      /// <summary>
+      ///   The one switch between the two hosting mechanisms (see this file's 07/09/2026 header note for the
+      ///   measured case for PushState). Flip to <see cref="PushScreen" /> to fall back to the old recipe for every
+      ///   CR panel at once, with no other code change, while the state path is still unproven in the wild.
+      /// </summary>
+      private enum PanelHostStrategy
+      {
+         /// <summary>ScreenManager.PushScreen only. MapState stays active the whole time the panel is open.</summary>
+         PushScreen,
+
+         /// <summary>Game.Current.GameStateManager.PushState. MapState is deactivated before the panel's screen is even constructed.</summary>
+         PushState
+      }
+
+      // static readonly, NOT const: a const would fold the strategy checks below to compile-time constants and the
+      // compiler would flag the untaken branch as unreachable code (CS0162) on every build.
+      private static readonly PanelHostStrategy Strategy = PanelHostStrategy.PushState;
+
       private readonly string _prefabName;
       private readonly Func<Action, ViewModel> _dataSourceFactory;
       private readonly bool _pauseCampaignTime;
@@ -41,6 +70,7 @@ namespace CalradiaRemembers.UI
       private readonly float _designUnitsHeight;
 
       private CrPanelScreen _screen;
+      private CrPanelState _state; // set only under the PushState strategy; PopState needs it to confirm this host still owns the active state
       private bool _reloading;
 
       private CampaignTimeControlMode _previousTimeControlMode;
@@ -107,24 +137,65 @@ namespace CalradiaRemembers.UI
          if (IsOpen) return;
 
          ViewModel dataSource = _dataSourceFactory(Close);
-         _screen = new CrPanelScreen(_prefabName, dataSource, _layerPriority, _designUnitsWidth, _designUnitsHeight) {OnClosed = ResetState};
-         ScreenManager.PushScreen(_screen);
+         if (Strategy == PanelHostStrategy.PushState) OpenViaState(dataSource);
+         else OpenViaScreen(dataSource);
+
          VisualTick.Enter(); // this panel now owns the screen: suppress the crashing siege-visual tick
          if (_pauseCampaignTime) PauseCampaignTime();
 
-         ModLog.Info($"[PANEL] {_prefabName} opened (pushed screen{(_pauseCampaignTime ? ", clock frozen" : "")}).");
+         string via = Strategy == PanelHostStrategy.PushState ? "pushed state" : "pushed screen";
+         ModLog.Info($"[PANEL] {_prefabName} opened ({via}{(_pauseCampaignTime ? ", clock frozen" : "")}).");
+      }
+
+      // The old recipe: push a bare screen. MapState is never told, so it stays active underneath (the whole reason
+      // the clock freeze and the two tick guards exist). Kept only as the escape hatch behind Strategy.
+      private void OpenViaScreen(ViewModel dataSource)
+      {
+         _screen = new CrPanelScreen(_prefabName, dataSource, _layerPriority, _designUnitsWidth, _designUnitsHeight) {OnClosed = ResetState};
+         ScreenManager.PushScreen(_screen);
+      }
+
+      // CreateState<CrPanelState>(params) must be used (not "new CrPanelState(...)"): only CreateState<T> notifies
+      // GameStateManager's listeners, which is where GameStateScreenManager.OnCreateState actually constructs and
+      // registers CrPanelStateScreen (see CrPanelState's header). The screen already exists by the time this method
+      // returns, so it can be read straight off the state via GetListenerOfType.
+      private void OpenViaState(ViewModel dataSource)
+      {
+         _state = Game.Current.GameStateManager.CreateState<CrPanelState>(_prefabName, dataSource, _layerPriority, _designUnitsWidth, _designUnitsHeight, (Action) ResetState);
+         _screen = _state.GetListenerOfType<CrPanelScreen>();
+         Game.Current.GameStateManager.PushState(_state, 0); // level 0: the same level every vanilla full-screen state (Clan, Kingdom...) pushes at
       }
 
       public void Close()
       {
          if (!IsOpen) return;
 
+         if (Strategy == PanelHostStrategy.PushState) CloseViaState();
+         else CloseViaScreen();
+
+         ResetState(); // idempotent: ResetState may already have run once via the screen's OnClosed during the pop above
+         ModLog.Info($"[PANEL] {_prefabName} closed.");
+      }
+
+      // The old recipe: TearDown by hand THEN pop the bare screen. Nothing else in the stack reacts to a screen pop
+      // on its own, so this host has always had to do both steps itself.
+      private void CloseViaScreen()
+      {
          _screen.TearDown();
          if (ScreenManager.TopScreen == _screen) ScreenManager.PopScreen();
          else ModLog.Info($"[PANEL] {_prefabName}: not the top screen, leaving the pop to the engine.");
+      }
 
-         ResetState();
-         ModLog.Info($"[PANEL] {_prefabName} closed.");
+      // No manual TearDown here: popping the state runs gameState.HandleDeactivate/HandleFinalize, then the engine
+      // pops the screen it built for that state, which triggers the INHERITED CrPanelScreen.OnFinalize (layer,
+      // movie, portrait release, OnClosed) automatically, the same safety net the PushScreen strategy has always
+      // leaned on as a backstop. Calling TearDown by hand here too would just be that safety net's own job, done
+      // twice, by two different code paths, which is exactly the parallel copy this migration means to remove.
+      private void CloseViaState()
+      {
+         GameStateManager manager = Game.Current?.GameStateManager;
+         if (manager != null && manager.ActiveState == _state) manager.PopState(0);
+         else ModLog.Info($"[PANEL] {_prefabName}: not the active state (or no live game), leaving the pop to the engine.");
       }
 
       /// <summary>
@@ -132,6 +203,18 @@ namespace CalradiaRemembers.UI
       ///   rebuilds of a pushed screen's movie ended in a native access violation; a fresh screen, layer, movie
       ///   and data source carry no dangling state (and re-gather live facts as a bonus). CheckForUpdates has
       ///   already re-read the prefab XML by the time this runs, so the reopen loads against the refreshed prefab.
+      ///   <para>
+      ///     07/09/2026: needs NO change for the PushState strategy. Close()/Open() already branch on Strategy, so
+      ///     this becomes pop-state-then-push-state automatically. Its own gap-holding trick below (VisualTick.Enter
+      ///     around the pair) is redundant under PushState specifically, not merely smaller: GameStateManager
+      ///     deactivates MapState (HandleDeactivate) BEFORE the new screen is even constructed, and reactivates it
+      ///     only AFTER the old one is fully torn down, both synchronously inside one PushState/PopState call with
+      ///     no engine frame in between, so there is no window left for MapState's own OnTick (which is what
+      ///     ultimately drives SettlementVisualManager/TickNavigationInput; see CrMapTickSpike's measurements) to
+      ///     fire while a panel is transitioning, independent of how long the new movie takes to load. It is kept
+      ///     ACTIVE anyway (harmless, and still load-bearing for the PushScreen fallback): removing it is
+      ///     increment 4, after a release has proven PushState in the wild.
+      ///   </para>
       /// </summary>
       public void Reload()
       {
@@ -169,18 +252,21 @@ namespace CalradiaRemembers.UI
       public void ResetForSession()
       {
          _screen = null;
+         _state = null;
          _timeControlModeSaved = false;
          _reloading = false;
          VisualTick.Reset(); // no panel can be open at launch: clear any residue so the siege visuals are not frozen forever
       }
 
-      // Nulls our reference and resumes the clock. Called from Close AND from the screen's OnClosed, so a pop by
+      // Nulls our references and resumes the clock. Called from Close AND from the screen's OnClosed (itself reached
+      // either from ScreenManager.PopScreen directly, or from a state pop's automatic screen teardown), so a pop by
       // any path (Close, Escape, engine) clears IsOpen and never leaves the campaign frozen; idempotent.
       private void ResetState()
       {
          if (!_reloading) ResumeCampaignTime(); // during a reload keep the clock frozen across close->reopen
          if (_screen != null) VisualTick.Exit(); // exactly once per open (an idempotent second call sees a null screen)
          _screen = null;
+         _state = null;
       }
 
       // Mirrors ChatManager.PauseCampaignMap: a LOCKED clock ignores a mode change, so release the lock first,
