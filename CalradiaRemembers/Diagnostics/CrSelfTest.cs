@@ -6627,6 +6627,11 @@ namespace CalradiaRemembers.Diagnostics
          IFaction realm = target.MapFaction;
          float crimeBefore = realm?.MainHeroCrimeRating ?? 0f;
          int kinGrudgesBefore = kin == null ? 0 : CalradiaRemembers.Grudges.GrudgeBehavior.Instance?.GrudgesFor(kin.StringId)?.Count ?? 0;
+         // The consequence service really spends renown and really collapses the victim's regard, so BOTH must be
+         // captured and put back: a diagnostic that leaves a lord hating the player by 50 is worse than no test.
+         float renownBefore = Clan.PlayerClan?.Renown ?? 0f;
+         NpcProfile victimProfile = behavior.Store?.Get(target.StringId);
+         int victimRegardBefore = victimProfile?.ReputationWithPlayer ?? 0;
 
          try
          {
@@ -6649,6 +6654,16 @@ namespace CalradiaRemembers.Diagnostics
          {
             if (realm != null) realm.MainHeroCrimeRating = crimeBefore;
             if (kin != null && kinGrudgesBefore == 0) CalradiaRemembers.Grudges.GrudgeBehavior.Instance?.ClearGrudgesFor(kin.StringId);
+
+            float renownNow = Clan.PlayerClan?.Renown ?? renownBefore;
+            if (Clan.PlayerClan != null && Math.Abs(renownNow - renownBefore) > 0.01f)
+               GainRenownAction.Apply(Hero.MainHero, renownBefore - renownNow, false);
+
+            if (victimProfile != null)
+            {
+               victimProfile.ReputationWithPlayer = victimRegardBefore;
+               behavior.Store.Set(victimProfile);
+            }
          }
 
          return t.Line();
