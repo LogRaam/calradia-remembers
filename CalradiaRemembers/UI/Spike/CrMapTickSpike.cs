@@ -45,7 +45,7 @@ namespace CalradiaRemembers.UI.Spike
    ///   input, not a transparent no-op the engine might treat as not covering the map.
    /// </summary>
    [GameStateScreen(typeof(CrSpikeState))]
-   internal sealed class CrSpikeScreen : ScreenBase
+   internal sealed class CrSpikeScreen : ScreenBase, IGameStateListener
    {
       private const int LayerPriority = 200;
 
@@ -75,6 +75,18 @@ namespace CalradiaRemembers.UI.Spike
 
          base.OnFinalize();
       }
+
+      // IGameStateListener is NOT optional for a state-bound screen. GameStateScreenManager.OnCreateState ends with
+      // RegisterListener((val is IGameStateListener) ? val : null), so a screen that omits the interface hands the
+      // engine a null and the push dies with a NullReferenceException (measured here, first run, 2026-09-07).
+      // The spike needs no behaviour of its own in them; the real panels will put their setup and teardown here.
+      void IGameStateListener.OnActivate() { }
+
+      void IGameStateListener.OnDeactivate() { }
+
+      void IGameStateListener.OnInitialize() { }
+
+      void IGameStateListener.OnFinalize() { }
    }
 
    /// <summary>
@@ -142,7 +154,7 @@ namespace CalradiaRemembers.UI.Spike
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[TICKPROBE] could not open the {_mode} host: {ex.GetType().Name}: {ex.Message}");
+            ModLog.Error($"[TICKPROBE] could not open the {_mode} host: {ex}");
 
             return $"Could not open the {_mode} host: {ex.Message}";
          }
