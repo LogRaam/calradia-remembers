@@ -339,6 +339,93 @@ namespace CalradiaRemembers
          return sb.ToString();
       }
 
+      /// <summary>The tag every seeded archive letter carries, so cr.letter_history clear removes exactly those and never a real one.</summary>
+      private const string ArchiveSeedTag = "(archive test)";
+
+      /// <summary>
+      ///   cr.letter_history [exchanges|clear] [name]
+      ///   Seeds a long correspondence ARCHIVE with an NPC and opens the letter book on it, so the LEFT page's
+      ///   scrollbar (the thread of past letters) can actually be exercised. The letter body has its own scrollbar,
+      ///   tested by cr.letter_long; this is the other one, and the crash report of 2026-09-06 does not say which.
+      ///   Each exchange is an incoming letter plus the player's reply, so it yields two thread entries.
+      ///   WRITES TO THE SAVE: every seeded letter is tagged, and "cr.letter_history clear" removes exactly those.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("letter_history", "cr")]
+      public static string SeedLetterHistory(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         var exchanges = 15;
+         var clearing = false;
+         var nameArgs = new List<string>(args ?? new List<string>());
+
+         if (nameArgs.Count > 0)
+         {
+            if (string.Equals(nameArgs[0], "clear", StringComparison.OrdinalIgnoreCase))
+            {
+               clearing = true;
+               nameArgs.RemoveAt(0);
+            }
+            else if (int.TryParse(nameArgs[0], out int requested))
+            {
+               exchanges = requested < 1 ? 1 : requested > 100 ? 100 : requested;
+               nameArgs.RemoveAt(0);
+            }
+         }
+
+         Hero hero = ResolveHero(nameArgs);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+
+         if (clearing)
+         {
+            int removed = profile.SentLetters.RemoveAll(l => l?.Content != null && l.Content.Contains(ArchiveSeedTag))
+                          + profile.ReceivedPlayerLetters.RemoveAll(l => l?.Content != null && l.Content.Contains(ArchiveSeedTag));
+            behavior.Store.Set(profile);
+
+            return $"Removed {removed} seeded archive letter(s) from {hero.Name}. Real correspondence is untouched.";
+         }
+
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+
+         for (var i = 0; i < exchanges; i++)
+         {
+            int day = today - (exchanges - i) * 3; // spread back through the past, oldest first
+
+            profile.SentLetters.Add(new PendingLetter {
+               SenderId = hero.StringId,
+               SenderName = hero.Name?.ToString(),
+               Reason = LetterReason.RomanticCorrespondence,
+               Content = $"Letter {i + 1} of our correspondence. The season turns, the roads worsen, and still I write. {ArchiveSeedTag}",
+               SentOnDay = day,
+               DeliveryDay = day,
+               IsDelivered = true,
+               PlayerReply = $"My answer to your letter {i + 1}: briefly, and with more affection than the words carry. {ArchiveSeedTag}"
+            });
+
+            // Every third exchange, an unprompted letter from the player too, so both directions are represented.
+            if (i % 3 != 0) continue;
+
+            profile.ReceivedPlayerLetters.Add(new PlayerLetter {
+               RecipientId = hero.StringId,
+               RecipientName = hero.Name?.ToString(),
+               Content = $"An unbidden note, the {i + 1}th, sent without waiting for your reply. {ArchiveSeedTag}",
+               SentOnDay = day + 1,
+               DeliveryDay = day + 1,
+               IsDelivered = true
+            });
+         }
+
+         behavior.Store.Set(profile);
+         LetterPopupManager.Show(BuildTestLetter(hero, today), profile);
+
+         return $"Seeded {exchanges} exchange(s) with {hero.Name} and opened the book. Scroll the LEFT page. " +
+                "Undo with: cr.letter_history clear";
+      }
+
       /// <summary>
       ///   cr.letter_reply [name]
       ///   Opens the parchment courier window straight in REPLY mode with a synthetic received letter —
