@@ -339,8 +339,75 @@ namespace CalradiaRemembers
          return sb.ToString();
       }
 
+      /// <summary>
+      ///   The scripts an LLM-written letter can really contain, one block per line, hardest last. Written as \u
+      ///   ESCAPES on purpose: the source file stays pure ASCII, so no re-encoding of this .cs can quietly turn the
+      ///   test data back into question marks and make a passing test meaningless. Block 1 is the exact Chinese
+      ///   sentence the model returned in Gabriel's own log on 2026-09-06, which is what put us onto glyphs at all.
+      /// </summary>
+      private static readonly string[] GlyphBlocks = {
+         "\u6211\u5199\u4fe1\u7ed9Arwa\uff0c\u544a\u8bc9\u5979\u6211\u6bd4\u9884\u60f3\u7684\u66f4\u5e38\u60f3\u8d77\u5979\u3002", // Chinese (the exact sentence the model returned in the live log)
+         "\u0417\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439\u0442\u0435, \u0434\u0440\u0443\u0433 \u043c\u043e\u0439.", // Cyrillic
+         "\u039a\u03b1\u03bb\u03b7\u03bc\u03ad\u03c1\u03b1, \u03c6\u03af\u03bb\u03b5 \u03bc\u03bf\u03c5.", // Greek
+         "\u00c0 la v\u00e9rit\u00e9, je n'\u00e9tais gu\u00e8re s\u00fbr de moi, ni de l'h\u00f4te.", // accented Latin
+         "She said \u201cwrite to me\u201d, and I did\u2026 though it cost me \u2014 more than I admit \u2013 my pride.", // curly quotes, ellipsis, em and en dash
+         "\u0645\u0631\u062d\u0628\u0627 \u064a\u0627 \u0635\u062f\u064a\u0642\u064a.", // Arabic (right-to-left)
+         "Marks in the margin: \u2020 \u00a7 \u00b6 \u2665 \u00bd \u00d7 \u221e", // dagger, section, pilcrow, symbols
+         "\ud83d\udde1 \ud83d\udcdc \ud83d\udc0e" // emoji: astral-plane surrogate pairs, the nastiest case
+      };
+
       /// <summary>The tag every seeded archive letter carries, so cr.letter_history clear removes exactly those and never a real one.</summary>
       private const string ArchiveSeedTag = "(archive test)";
+
+      /// <summary>
+      ///   cr.letter_glyphs [blocks] [name]
+      ///   Delivers a letter loaded with the characters a real LLM letter can contain, which an ASCII test letter
+      ///   never exercises: CJK, Cyrillic, Greek, accents, curly quotes and dashes, right-to-left Arabic, symbols,
+      ///   and emoji (astral-plane surrogate pairs). Written for the crash report of 2026-09-06, after Gabriel's own
+      ///   log showed the model returning a whole letter summary in Chinese: a glyph missing from the font atlas
+      ///   would explain BOTH reported symptoms, the crash while scrolling and the campaign font turning bolder
+      ///   (a fallback face). Blocks are added hardest-last, so passing a count BISECTS which script is fatal:
+      ///   cr.letter_glyphs 1 is Chinese only, 8 is everything.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("letter_glyphs", "cr")]
+      public static string OpenLetterGlyphs(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         int blocks = GlyphBlocks.Length;
+         var nameArgs = new List<string>(args ?? new List<string>());
+
+         if (nameArgs.Count > 0 && int.TryParse(nameArgs[0], out int requested))
+         {
+            blocks = requested < 1 ? 1 : requested > GlyphBlocks.Length ? GlyphBlocks.Length : requested;
+            nameArgs.RemoveAt(0);
+         }
+
+         Hero hero = ResolveHero(nameArgs);
+
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         var body = new StringBuilder();
+         body.AppendLine("A letter in the many hands the model actually writes in:");
+         body.AppendLine();
+
+         for (var i = 0; i < blocks; i++)
+         {
+            body.AppendLine(GlyphBlocks[i]);
+            body.AppendLine();
+         }
+
+         body.Append($"Yours, whatever alphabet finds you. {hero.Name}");
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         PendingLetter letter = BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay());
+         letter.Content = body.ToString();
+         LetterPopupManager.Show(letter, profile);
+
+         return $"Delivered a letter with {blocks} of {GlyphBlocks.Length} glyph block(s) from {hero.Name}. " +
+                "Scroll it. If it crashes, halve the count to find the script that does it.";
+      }
 
       /// <summary>
       ///   cr.letter_history [exchanges|clear] [name]
