@@ -5359,7 +5359,10 @@ namespace CalradiaRemembers.Diagnostics
          if (giverProfile != null) behavior.Store.Set(giverProfile);
 
          string id = "selftest_missionreward_" + Guid.NewGuid().ToString("N");
-         const int rewardGold = 5000;
+         // 4000, not 5000: GiveGoldAction pays only what the GIVER's purse actually holds, so a reward larger
+         // than a typical lord carries measures his wealth rather than the reward pipeline (Arcor paid 4894 of
+         // 5000 on 2026-09-06). Gabriel's call: keep the assertion exact and pick a sum a giver can meet.
+         const int rewardGold = 4000;
          const int rewardRelation = 4;
          var mission = new ExternalMission {
             Id = id, SourceMod = "SelfTest", GiverHeroId = giver.StringId,
