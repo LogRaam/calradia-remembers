@@ -2,6 +2,35 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.4.. 2026-09-07
+
+One fix, at its cause. Two players crashed a few seconds after opening a letter, one of them on the Balance of Power
+panel too, and not on every letter. Both panels are now hosted the way the game hosts its own screens. Saves from
+2.5.3 carry over untouched.
+
+### Fixed
+- **The map no longer keeps running underneath a panel.** CR opened its full-map panels by pushing a SCREEN, while
+  the game opens Clan, Kingdom and Inventory by pushing a game STATE. A screen push is purely visual: the state
+  machine is never told, so the map state stays active and the map keeps frame-ticking under the panel. Measured in
+  game over four seconds: 481 settlement-visual ticks under a pushed screen, exactly the same as with nothing open at
+  all, and ZERO under a pushed state. Among the things that kept running was the vanilla siege-visual tick, whose
+  bombardment branch moves projectiles in flight through native calls, which is what crashed. It also explains why
+  the crash was intermittent (it needed a siege actually bombarding somewhere) and why it never reproduced here.
+  The letter book and the Balance of Power are now hosted as a game state, so the map is genuinely suspended.
+  **Honest caveat:** neither report could be reproduced here, so this repairs the mechanism rather than a
+  reproduction. If a panel still crashes, the log now records, on every open, whether the map went quiet underneath.
+- **Two internal guards can no longer fail in silence.** The Harmony guards that protect panels report a failed
+  attach on the channel that is always recorded, instead of the one the Nexus default switches off. The one fact
+  that would explain a crash was unobtainable from a default install.
+
+### Changed
+- Closing the Balance of Power returns to the clan screen it was opened from, rather than to the map. It now opens
+  over the clan screen the way any game screen opens over another, instead of closing it first.
+
+### Diagnostics
+- The mod records, once per conversation, whether the chat entry option was offered and which dialogue hubs the
+  conversation passed through, for the reports of NPCs who cannot be spoken to. Only when logging is enabled.
+
 ## v2.5.3.. 2026-09-06
 
 Battles and quarrels leave real marks. What you did in the fighting is remembered by the people who were there, a
