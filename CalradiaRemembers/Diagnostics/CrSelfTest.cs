@@ -9671,6 +9671,19 @@ namespace CalradiaRemembers.Diagnostics
       ///   and restores regard + the feature switch in a finally. Skips MANUAL when no partyless other-clan lord
       ///   exists to borrow.
       /// </summary>
+      // Mirrors the bridge's own private FactionIsAtWarWithAnyone, which ride_with_me consults: a lord whose realm
+      // is at war with ANY faction is unavailable, so a self-test that borrows one is testing nothing.
+      private static bool RealmIsAtWarWithAnyone(IFaction faction)
+      {
+         if (faction == null) return false;
+
+         if (Kingdom.All != null)
+            foreach (Kingdom k in Kingdom.All)
+               if (k != faction && FactionManager.IsAtWarAgainstFaction(faction, k)) return true;
+
+         return false;
+      }
+
       private static string TestRideWithMe(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("ride_with_me");
@@ -9685,14 +9698,19 @@ namespace CalradiaRemembers.Diagnostics
 
          // Borrow an idle (partyless) other-clan lord AT PEACE with the player: taking one never disbands a party,
          // and peace means ride_with_me will actually be honoured rather than refused on the war guard.
+         // The realm must also be at peace with EVERYONE, not merely with the player: RideWithMeEligibilityPolicy
+         // gained a factionAtWar guard on 29/08/2026 (a lord whose realm is at war stays home for his liege's
+         // muster) and this picker was never updated, so on a save with any war running it borrowed a lord the
+         // bridge then rightly refused, and the test failed on a rule that was working exactly as designed.
          Hero idle = Hero.AllAliveHeroes.FirstOrDefault(
             h => h != Hero.MainHero && h.IsAlive && h.IsLord && !h.IsPrisoner
                  && h.Clan != null && h.Clan != Clan.PlayerClan
                  && h.PartyBelongedTo == null && !retainer.IsRetainer(h.StringId)
                  && !(h.MapFaction != null && Hero.MainHero?.MapFaction != null
-                      && FactionManager.IsAtWarAgainstFaction(h.MapFaction, Hero.MainHero.MapFaction)));
+                      && FactionManager.IsAtWarAgainstFaction(h.MapFaction, Hero.MainHero.MapFaction))
+                 && !RealmIsAtWarWithAnyone(h.MapFaction));
 
-         if (t.Skip(idle == null, "no partyless, at-peace other-clan lord exists to borrow without disbanding a live party")) return t.Line();
+         if (t.Skip(idle == null, "no partyless other-clan lord whose realm is at peace with everyone exists to borrow")) return t.Line();
 
          // A party-LEADING other-clan lord for the mutual-exclusivity half. They are only ever REFUSED here, so
          // their party is never disbanded and nothing about them needs restoring beyond their forced regard.
@@ -11078,6 +11096,17 @@ namespace CalradiaRemembers.Diagnostics
          {
             string namedQuestion = $"Tell me, what do you know of {other.Name}?";
             string unrelatedQuestion = "How fares the harvest this year?";
+
+            // The query block deliberately SKIPS whatever is already ambient (ResolveQueryRelevantFacts drops the
+            // top few known events, since those are injected as ambient rumour elsewhere). A fresh magnitude-80
+            // seed can land in that top slice on a quiet save, and then the correct behaviour is to say nothing
+            // here, which used to read as a failure. Detect that and SKIP: a test that cannot run is not a bug.
+            IReadOnlyList<(WorldEvents.WorldEvent Event, Logic.RumorConfidence Confidence)> knownNow =
+               WorldEvents.WorldEventStore.Instance?.GetKnownEventsRated(npc, today, 6);
+            bool seededIsAlreadyAmbient = knownNow != null && knownNow.Any(k => k.Event?.Id == seeded.Id);
+
+            if (t.Skip(seededIsAlreadyAmbient,
+                   "the seeded fact is already in this NPC's ambient top slice, which the query block skips by design")) return t.Line();
 
             string namedBlock = EncounterContextBuilder.ResolveQueryRelevantFacts(npc, namedQuestion, today);
             string unrelatedBlock = EncounterContextBuilder.ResolveQueryRelevantFacts(npc, unrelatedQuestion, today);
