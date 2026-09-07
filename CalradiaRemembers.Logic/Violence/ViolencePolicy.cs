@@ -63,6 +63,14 @@ namespace CalradiaRemembers.Logic.Violence
             => act != ViolentAct.Kill || lethalViolenceEnabled;
 
         /// <summary>
+        ///   Whether the player must CONFIRM before this act is carried out. Only a killing does: it is the one
+        ///   irreversible thing here, and the model decides when it happened, so a false positive would end a life
+        ///   because the player merely raised their voice. Robbery and a beating are recoverable and are not worth
+        ///   a modal interrupting every scene (Gabriel, 2026-09-06).
+        /// </summary>
+        public static bool RequiresConfirmation(ViolentAct act) => act == ViolentAct.Kill;
+
+        /// <summary>
         ///   The odds this attempt comes off, as a percentage. An even match is
         ///   <see cref="EvenMatchChancePercent" />; being outmatched drags it down and outclassing them lifts it,
         ///   while the victim's company (<see cref="ViolenceExposure" />) and the severity of the act both make the

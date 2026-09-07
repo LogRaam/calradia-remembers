@@ -132,6 +132,18 @@ namespace CalradiaRemembers.Tests.Violence
             ViolencePolicy.Resolve(ViolentAct.Rob, f, true, chance).Should().Be(ViolenceVerdict.Failed);
         }
 
+        // Gabriel, 2026-09-06: the MODEL decides a killing happened, so a false positive would end a life because
+        // the player merely raised their voice at someone. Only the irreversible act asks the player first; a purse
+        // or a beating is recoverable and must not put a modal in front of every scene, or the feature becomes a
+        // nuisance and players learn to click through it, which is worse than not asking at all.
+        [Test]
+        public void GIVEN_the_three_acts_WHEN_asking_who_needs_confirming_THEN_only_killing_does()
+        {
+            ViolencePolicy.RequiresConfirmation(ViolentAct.Kill).Should().BeTrue();
+            ViolencePolicy.RequiresConfirmation(ViolentAct.Assault).Should().BeFalse();
+            ViolencePolicy.RequiresConfirmation(ViolentAct.Rob).Should().BeFalse();
+        }
+
         // Null facts must degrade to the floor rather than throw: this runs off live campaign data on every attempt.
         [Test]
         public void GIVEN_missing_facts_WHEN_asking_the_odds_THEN_it_floors_and_does_not_throw()

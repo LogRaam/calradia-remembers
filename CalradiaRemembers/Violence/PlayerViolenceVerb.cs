@@ -67,6 +67,12 @@ namespace CalradiaRemembers.Violence
             if (!ViolencePolicy.IsPermitted(_act, ModSettings.AllowKillingCharacters))
                return ActionOutcome.Refused($"(You could not bring yourself to end {target.Name}. Nothing happened.)");
 
+            // A killing is the one irreversible act here, and the MODEL decides it happened. So the player, not the
+            // model, has the last word: ask, and only then strike. The inquiry is asynchronous while Execute must
+            // answer now, so the deed resolves in the callback and reports itself; this turn only says the blade is
+            // raised. Anything recoverable (a purse, a beating) proceeds without interrupting the scene.
+            if (ViolencePolicy.RequiresConfirmation(_act)) return AskBeforeKilling(target, ctx);
+
             ViolenceFacts facts = ViolenceSceneReader.FactsFor(target);
             int chance = ViolencePolicy.SuccessChance(_act, facts);
             int roll = MBRandom.RandomInt(100);
@@ -90,6 +96,63 @@ namespace CalradiaRemembers.Violence
 
             return null;
          }
+      }
+
+      /// <summary>
+      ///   Puts the killing to the PLAYER before it happens. Nothing is resolved here: no roll, no death, no crime.
+      ///   On "Yes" the deed runs exactly as any other act would, and reports itself through a notification, since
+      ///   the chat line for this turn has already been returned by then. On "No" nothing whatsoever occurred, which
+      ///   is the point: an LLM that over-read a threat can no longer cost a life.
+      /// </summary>
+      private ActionOutcome AskBeforeKilling(Hero target, VerbContext ctx)
+      {
+         string name = target.Name?.ToString() ?? "them";
+
+         InformationManager.ShowInquiry(new InquiryData(
+            "Take a life?",
+            $"You are about to kill {name}. This cannot be undone, and the realm will answer for it.",
+            true, true,
+            "Kill", "Stay your hand",
+            () => ResolveConfirmedKill(target, ctx), () => DeclineKill(name)), true);
+
+         return new ActionOutcome($"Your blade is raised against {name}, and the moment waits on your word.", false);
+      }
+
+      // The player said yes: from here it is an ordinary act of violence, odds and consequences included.
+      private void ResolveConfirmedKill(Hero target, VerbContext ctx)
+      {
+         try
+         {
+            if (target == null || !target.IsAlive) return;
+
+            // Re-read the toggle even now: the player could have changed it while the prompt sat open.
+            if (!ViolencePolicy.IsPermitted(ViolentAct.Kill, ModSettings.AllowKillingCharacters)) return;
+
+            ViolenceFacts facts = ViolenceSceneReader.FactsFor(target);
+            int roll = MBRandom.RandomInt(100);
+            ViolenceVerdict verdict = ViolencePolicy.Resolve(ViolentAct.Kill, facts, ModSettings.AllowKillingCharacters, roll);
+
+            ModLog.Info($"[VIOLENCE] kill_npc CONFIRMED on {target.Name}: exposure={facts.Exposure}, roll={roll} -> {verdict}.");
+
+            ActionOutcome outcome = verdict == ViolenceVerdict.Succeeded
+               ? Succeeded(target, ctx)
+               : Failed(target, facts.Exposure);
+
+            ViolenceConsequenceService.Apply(target, ViolentAct.Kill, verdict, facts.Exposure);
+
+            // The chat line for this turn is already gone, so the result has to announce itself.
+            if (!string.IsNullOrEmpty(outcome?.Message)) InformationManager.DisplayMessage(new InformationMessage(outcome.Message));
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[VIOLENCE] confirmed kill failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      private static void DeclineKill(string name)
+      {
+         ModLog.Info($"[VIOLENCE] kill_npc declined by the player; {name} lives and nothing was recorded.");
+         InformationManager.DisplayMessage(new InformationMessage($"You stay your hand. {name} lives."));
       }
 
       // A failed attempt is a real event, not a refusal: it happened, and it changed nothing but the air between

@@ -6614,6 +6614,13 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("robbery is never barred by the lethal toggle",
             CalradiaRemembers.Logic.Violence.ViolencePolicy.IsPermitted(CalradiaRemembers.Logic.Violence.ViolentAct.Rob, false), true);
 
+         // A killing asks the PLAYER first (Gabriel 2026-09-06), so the model over-reading a threat can never end a
+         // life on its own; nothing recoverable interrupts the scene with a modal.
+         t.Expect("only a killing asks the player first",
+            CalradiaRemembers.Logic.Violence.ViolencePolicy.RequiresConfirmation(CalradiaRemembers.Logic.Violence.ViolentAct.Kill), true);
+         t.Expect("a beating never interrupts with a modal",
+            CalradiaRemembers.Logic.Violence.ViolencePolicy.RequiresConfirmation(CalradiaRemembers.Logic.Violence.ViolentAct.Assault), false);
+
          // Inc 3: the world really answers. Drive the REAL consequence service for a FAILED assault (nothing is
          // wounded, nobody dies) and assert the engine's own crime rating actually moved, then undo it.
          Hero kin = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != target && h.Clan == target.Clan && !h.IsChild);
