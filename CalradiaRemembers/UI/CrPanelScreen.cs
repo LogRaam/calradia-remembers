@@ -119,7 +119,17 @@ namespace CalradiaRemembers.UI
          float unitH = realH / basePxPerUnit;
          float zoom = Math.Min(unitW / _designUnitsWidth, unitH / _designUnitsHeight);
          if (zoom > 1f) zoom = 1f;
-         _layer.UIContext.ScaleModifier = ScreenManager.Scale * zoom;
+
+         // Write ONLY when the value actually changes. On a screen roomier than the book, zoom is 1 and the target
+         // equals the base the engine resets to each pass, so the old unconditional assignment rewrote the same
+         // number every frame for nothing. A player report of 2026-09-06 (crash on scrolling a letter, plus the
+         // campaign notification font turning subtly bolder) came from a 1920x1080 screen at UI Scale 1, where the
+         // zoom is 1 and cannot itself resize anything: a per-frame write that dirties the UI context is the only
+         // way this path could touch them. Guarded, the whole thing is inert for those players, and still re-applies
+         // every frame for the ones it is actually for (GauntletLayer.UpdateLayout resets the modifier each pass, so
+         // a real zoom differs from the base and is written back immediately).
+         float target = ScreenManager.Scale * zoom;
+         if (Math.Abs(_layer.UIContext.ScaleModifier - target) > 0.0001f) _layer.UIContext.ScaleModifier = target;
 
          if (!_zoomLogged)
          {
