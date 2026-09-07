@@ -224,6 +224,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("panel_siege_guard", Severity.Light, "Mechanical: the full-map panel crash guard. Asserts the Harmony prefix that skips SettlementVisualManager.OnTick (the vanilla siege-bombardment visual tick, which runs on the frame loop and access-violates natively under a pushed CR panel: four confirmed 0xC0000005 crashes) is actually attached to the LIVE engine method. It resolves the target BY NAME, so a game update that renamed the type/method would silently stop protecting; this fires if that ever happens. Also asserts that with no panel open nothing is suppressed (siege visuals tick normally). No LLM, mutates nothing", TestPanelSiegeVisualGuard),
+         new SelfTest("dialogue_entry_trace", Severity.Light, "Mechanical (missing-CR-option player reports): DialogueEntryTraceCollector resolves ConversationManager.ActiveToken to a name via reflection on the private stateMap field. Forward-resolves 'hero_main_options' (a token that certainly exists, registered by LlmDialogFlow) to its live index, then reverse-resolves that same index back, driving the real reflection path both ways rather than a parallel copy; asserts the round-trip returns the original name, so a future game update renaming stateMap is caught here instead of silently degrading the diagnostic to raw indices. Also asserts DialogueEntryTracePolicy renders the expected YES/NO verdict for an offered and a not-offered trace. Read-only: touches no live conversation state, nothing to restore", TestDialogueEntryTrace),
          new SelfTest("political_map", Severity.Light, "Mechanical: the political-map gather + grid + rasterise (World Almanac minimap, Inc B+C). Gathers one anchor per kingdom-held settlement (position + Kingdom.Color) from the live campaign, builds the pure PoliticalMapPolicy colour grid, and rasterises it to PNG; asserts the grid is the requested size, some cells are painted (territory), and the PNG carries a real PNG signature. Catches a renamed settlement/terrain API that would silently yield an empty map, or a broken rasteriser. MANUAL when the world has no kingdom-held settlement. No LLM, mutates nothing", TestPoliticalMap),
          new SelfTest("strategic_assessment", Severity.Light, "Mechanical: the Strategic Assessment gather (World Almanac). Builds the live PowerIndexResult, picks the advisor (highest-Tactics companion, else a warband soldier, else none when the player is alone), gathers the player's realm/rank/wars, and composes the OFFLINE factual summary; asserts the summary is non-empty and, when an advisor exists, the LLM prompt grounds on a real kingdom and forbids invention. The real async LLM counsel is Lane C (real LLM), not run here. No LLM, mutates nothing", TestStrategicAssessment),
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
@@ -7885,6 +7886,38 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"navGuardPatched={UI.MapNavigationInputGuard.IsPatched}, panelOwnsScreenAtRest={UI.CrPanelHost.AnyPanelOwnsScreen}");
          t.Expect("navGuardAttachedToLiveTickNavigationInput", UI.MapNavigationInputGuard.IsPatched, true);
          t.Expect("mapHotkeysLeftAloneAtRest", UI.CrPanelHost.AnyPanelOwnsScreen, false);
+
+         return t.Line();
+      }
+
+      private static string TestDialogueEntryTrace(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("dialogue_entry_trace");
+
+         TaleWorlds.CampaignSystem.Conversation.ConversationManager mgr = Campaign.Current?.ConversationManager;
+         if (t.Abort(mgr == null, "no live ConversationManager to read stateMap from")) return t.Line();
+
+         // hero_main_options is registered by LlmDialogFlow.Register at every session launch (see
+         // LlmDialogFlow.EntryHubTokens), so it certainly exists whenever a campaign is live.
+         const string knownToken = "hero_main_options";
+         int? index = Dialogue.DialogueEntryTraceCollector.DebugResolveTokenIndex(mgr, knownToken);
+         if (t.Abort(index == null, $"'{knownToken}' not found in stateMap (reflection unavailable, or the hub was renamed)")) return t.Line();
+
+         string reverseName = Dialogue.DialogueEntryTraceCollector.DebugResolveTokenName(mgr, index.Value);
+         t.Note($"knownToken={knownToken}, index={index}, reverseName={reverseName}");
+         t.Expect("tokenRoundTrips", reverseName, knownToken);
+
+         // Policy verdict, both directions: reporter A's shape (offered, overlay never opened) and
+         // reporter B's shape (not offered, a foreign hub ends the trail).
+         string offeredLine = DialogueEntryTracePolicy.ComposeLine(
+            "Test Hero", "wanderer", entryOffered: true,
+            tokenTrail: new List<string> {"start", knownToken}, registeredHubTokens: Dialogue.LlmDialogFlow.EntryHubTokens);
+         string notOfferedLine = DialogueEntryTracePolicy.ComposeLine(
+            "Test Hero", "wanderer", entryOffered: false,
+            tokenTrail: new List<string> {"start", "some_foreign_hub"}, registeredHubTokens: Dialogue.LlmDialogFlow.EntryHubTokens);
+
+         t.Expect("offeredVerdictReadsYes", offeredLine.Contains("CR entry offered = YES"), true);
+         t.Expect("notOfferedVerdictReadsNo", notOfferedLine.Contains("CR entry offered = NO"), true);
 
          return t.Line();
       }

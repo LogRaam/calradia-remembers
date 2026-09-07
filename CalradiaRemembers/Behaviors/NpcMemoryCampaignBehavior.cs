@@ -48,6 +48,9 @@ namespace CalradiaRemembers.Behaviors
    ///   - <see cref="LlmDialogFlow" /> registration on session launch.
    ///   Sprint 7.6.F adds:
    ///   - <see cref="VanillaDialogueRecorder" /> subscription on session launch.
+   ///   06/09/2026 adds:
+   ///   - <see cref="DialogueEntryTraceCollector" /> subscription on session launch (missing-CR-option
+   ///   player reports).
    /// </summary>
    public sealed class NpcMemoryCampaignBehavior : CampaignBehaviorBase
    {
@@ -59,6 +62,12 @@ namespace CalradiaRemembers.Behaviors
       // ONE VanillaDialogueRecorder, owned by the behavior. Holds a real reference
       // so the instance survives as long as the behavior does.
       public readonly VanillaDialogueRecorder DialogueRecorder = new();
+
+      // ONE DialogueEntryTraceCollector, owned by the behavior for the same reason as DialogueRecorder
+      // above. Diagnoses player reports of the CR chat option going missing or the overlay never opening
+      // (see the collector's file header): logs one line per hero conversation naming whether the CR
+      // entry option was offered and which dialogue tokens were actually traversed.
+      public readonly DialogueEntryTraceCollector EntryTraceCollector = new();
       public readonly IGameStateBridge GameStateBridge = new BannerlordGameStateBridge();
 
       // ONE LetterTriggerEvaluator, owned by the behavior. Handles tournament/battle
@@ -299,6 +308,7 @@ namespace CalradiaRemembers.Behaviors
          ModLog.Info("Dialog flow registered.");
 
          SafeRun.Step("OnSessionLaunched.DialogueRecorder.Subscribe", DialogueRecorder.Subscribe);
+         SafeRun.Step("OnSessionLaunched.EntryTraceCollector.Subscribe", EntryTraceCollector.Subscribe);
          SafeRun.Step("OnSessionLaunched.QuestTracker.Subscribe", QuestTracker.Subscribe);
          // Save-repair: credit any outstanding capture/attack quest whose target the player already holds
          // prisoner (e.g. a save from a build that did not stamp AttackLord on capture). See the method's doc.

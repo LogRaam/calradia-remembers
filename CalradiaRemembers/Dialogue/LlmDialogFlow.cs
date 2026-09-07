@@ -85,7 +85,9 @@ namespace CalradiaRemembers.Dialogue
       // "start" and never passes through hero_main_options — so without this a player reported the
       // "A word with you." option was missing when speaking with the clan member running an alley
       // (SandBox AlleyCampaignBehavior; the alley management options share this input token).
-      private static readonly string[] EntryHubTokens =
+      // Internal (not private): DialogueEntryTraceCollector reads this same array rather than keeping a
+      // second copy, so there is exactly one place naming the hubs CR is registered on.
+      internal static readonly string[] EntryHubTokens =
          {"hero_main_options", "alley_player_owned_start"};
 
       public void Register(CampaignGameStarter starter)
@@ -369,6 +371,12 @@ namespace CalradiaRemembers.Dialogue
 
       private bool IsHeroEligible()
       {
+         // This method's own EXECUTION proves the engine evaluated CR's player line while sitting at one
+         // of EntryHubTokens (see the field's remarks): the "CR entry offered" diagnostic (player reports
+         // of the option going missing or the overlay never opening) hooks in here, not on the return
+         // value, since reaching this point is the fact worth recording either way.
+         NpcMemoryCampaignBehavior.Instance?.EntryTraceCollector?.NoteEntryOffered();
+
          var hero = Hero.OneToOneConversationHero;
 
          if (hero == null) return false;

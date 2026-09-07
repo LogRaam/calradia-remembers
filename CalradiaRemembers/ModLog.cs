@@ -84,6 +84,14 @@ namespace CalradiaRemembers
       private static bool ScreenLoggingEnabled => CrSettings.Instance?.EnableScreenLogging ?? false;
 
       /// <summary>
+      ///   True when either channel would actually record a message. Logging is OFF by default for Nexus, so a
+      ///   caller that does real work (reflection, string building) once per game tick or per dialogue state
+      ///   change should check this FIRST and skip that work entirely rather than build a message only for
+      ///   <see cref="Info" />/<see cref="Error" /> to throw it away.
+      /// </summary>
+      internal static bool AnyChannelEnabled => FileLoggingEnabled || ScreenLoggingEnabled;
+
+      /// <summary>
       ///   A compatibility notice that is ALWAYS recorded, even when the MCM logging switch is off (its
       ///   default on Nexus). Use ONLY for the "the installed game build does not expose an API this mod
       ///   calls" case: without an always-on trace the mod could quietly degrade after a TaleWorlds change
