@@ -32,6 +32,24 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## RATIFIED (Gabriel 2026-09-07), NOT built: two hosts to revisit once panels are state-hosted
+
+Settling where a panel lives (see CLAUDE.md, "Where a panel lives") reopens two decisions that were made under a
+constraint that no longer holds. A pushed GameState genuinely suspends the map (measured: 0 ticks against 481), so
+"it has to be a Mission or the map keeps running underneath" is no longer a reason for anything.
+
+**The COUNCIL can come back to the map as a state.** It was made a Mission because a Gauntlet layer over the LIVE map
+leaks by design, and a Mission was the only way to stop the map. That reason is spent. Note the council is also a
+conversation with characters, so a Mission remains defensible on its own merits: the point is that the OLD
+justification must not be cited any more, and the choice should be made on whether the scene is wanted.
+
+**CAPTIVITY EVENTS should split by WHO holds you.** With the Nemesis or a lord, the encounter deserves a real scene,
+so a Mission: these are named characters the player has history with, and the scene is the payoff. With a generic
+bandit there is no character worth staging, so it stays on the map in a state, which is also far cheaper (no scene
+load for a nameless captor). This is a design ruling about when an encounter earns a scene, not only about hosting.
+
+---
+
 ## SHIPPED v2.5.3 (player request 2026-09-06): the player can ROB, BEAT or KILL the character they are talking to
 
 A player on a beggar playthrough stabbed an NPC in conversation and the AI reached for `execute_player`, which means

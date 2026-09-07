@@ -22,7 +22,7 @@ Module ID: `CalradiaRemembers`. Targets: `.NET Framework 4.7.2` (mod) / `netstan
 
 LLM: OpenRouter, model `x-ai/grok-4.20`. API key: env var `OPENROUTER_API_KEY`.
 
-Bannerlord: v1.3.15, Default Public (Mar 2026).
+Bannerlord: **v1.4.8 (War Sails)** since 2026-08-10. (This line said v1.3.15 until 2026-09-07; it was wrong.)
 
 ---
 
@@ -144,6 +144,43 @@ internal sealed class MyPatchA : PrefabExtensionInsertPatch
 **UIExtenderEx ordering**: with two Append patches on the same container, **PatchB runs FIRST** (appears on top), PatchA appears below. Assign label/header to PatchB, data to PatchA.
 
 **Mixin pattern**: `[ViewModelMixin]` on a class inheriting nothing; read `_hero` via reflection (see `EncyclopediaHeroPagePersonalRelationMixin` as reference).
+
+---
+
+## Where a panel lives: the one rule (measured 2026-09-07, do not relitigate)
+
+**Never `ScreenManager.PushScreen`, and never a Gauntlet layer over the live map.** Both leave `MapState` active, so
+`MapScreen` keeps frame-ticking underneath. Measured with `cr.tick_probe`, 4-second windows:
+
+| host | settlement-visual ticks | map-input ticks |
+|---|---|---|
+| nothing pushed | 481 | 481 |
+| `PushScreen` (what CR used to do) | 481 | 481 |
+| `PushState` (what vanilla does) | **0** | **0** |
+
+A pushed screen does not slow the map by any amount. A pushed state genuinely suspends it. Three separate defects
+came from that one mistake: the siege-bombardment native crash under panels, the map stealing hotkeys while the
+player typed a letter reply, and the fact that we froze the campaign clock by hand at all. Vanilla needs none of
+those compensations.
+
+**Choose by whether the thing needs a live 3D scene:**
+
+| what you are building | host it as | examples |
+|---|---|---|
+| characters in a scene | a **Mission** | chat, council, duels |
+| full-screen UI, no scene | a **GameState** with a bound screen, through `CrPanelHost` | letter book, Balance of Power |
+| decoration of someone else's screen | an **overlay** layer (not hosting) | the BoP button on the vanilla clan screen |
+
+`CrPanelHost` stays the single door for the second row. What changed is what it guarantees: it used to stack
+compensations, it now suspends the map by the engine's own contract.
+
+**Two hard requirements for a state-bound screen** (each cost a spike run to learn):
+1. The screen MUST implement `TaleWorlds.Core.IGameStateListener`. `GameStateScreenManager.OnCreateState` ends with
+   `RegisterListener((val is IGameStateListener) ? val : null)`, so omitting it hands the engine a null and the push
+   dies with a `NullReferenceException`.
+2. `[GameStateScreen(typeof(TState))]` comes from `TaleWorlds.MountAndBlade.View`, which ships in
+   **`Modules/Native/bin/...`**, not in the game binaries. The engine constructs the screen and passes it the state,
+   so **the STATE carries the payload** (prefab, ViewModel factory, layer priority).
 
 ---
 
