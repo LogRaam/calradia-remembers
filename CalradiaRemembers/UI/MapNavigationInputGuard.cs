@@ -14,6 +14,10 @@
 // pushed panel): resolved BY NAME so a game update that renames it degrades to "guard not attached" (logged) rather
 // than breaking the build, with its own try/catch so a patch failure never disturbs boot or the mod's other patches.
 
+// The NOT-attached notices go through ModLog.Compat, never Info: logging is OFF by default on Nexus, so a
+// player whose game build silently defeats this guard would leave no trace of it anywhere, which is exactly
+// the case where the fact matters most (two crash reports, 2026-09-07, that hinge on whether it attached).
+
 #region
 
 using System;
@@ -55,7 +59,7 @@ namespace CalradiaRemembers.UI
             Type mapScreenType = AccessTools.TypeByName(TargetType);
             if (mapScreenType == null)
             {
-               ModLog.Info($"[PANEL] map-navigation input guard NOT attached: type {TargetType} not found (game version change?). A map hotkey may still fire under a panel.");
+               ModLog.Compat($"[PANEL] map-navigation input guard NOT attached: type {TargetType} not found (game version change?). A map hotkey may still fire under a panel.");
 
                return;
             }
@@ -63,7 +67,7 @@ namespace CalradiaRemembers.UI
             MethodInfo target = AccessTools.Method(mapScreenType, TargetMethod);
             if (target == null)
             {
-               ModLog.Info($"[PANEL] map-navigation input guard NOT attached: {TargetType}.{TargetMethod} not found (game version change?). A map hotkey may still fire under a panel.");
+               ModLog.Compat($"[PANEL] map-navigation input guard NOT attached: {TargetType}.{TargetMethod} not found (game version change?). A map hotkey may still fire under a panel.");
 
                return;
             }
@@ -75,7 +79,7 @@ namespace CalradiaRemembers.UI
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[PANEL] map-navigation input guard failed to attach (non-fatal): {ex.GetType().Name}: {ex.Message}");
+            ModLog.Compat($"[PANEL] map-navigation input guard failed to attach (non-fatal): {ex.GetType().Name}: {ex.Message}");
          }
       }
 

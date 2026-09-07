@@ -9,6 +9,10 @@
 // attached" (logged) rather than breaking the build, and its own try/catch never lets a patch failure crash the boot
 // or disturb the mod's other Harmony patches.
 
+// The NOT-attached notices go through ModLog.Compat, never Info: logging is OFF by default on Nexus, so a
+// player whose game build silently defeats this guard would leave no trace of it anywhere, which is exactly
+// the case where the fact matters most (two crash reports, 2026-09-07, that hinge on whether it attached).
+
 #region
 
 using System;
@@ -50,7 +54,7 @@ namespace CalradiaRemembers.UI
             Type managerType = AccessTools.TypeByName(TargetType);
             if (managerType == null)
             {
-               ModLog.Info($"[PANEL] siege-visual tick guard NOT attached: type {TargetType} not found (game version change?). Panels stay safe via pushed screen + clock freeze.");
+               ModLog.Compat($"[PANEL] siege-visual tick guard NOT attached: type {TargetType} not found (game version change?). Panels stay safe via pushed screen + clock freeze.");
 
                return;
             }
@@ -58,7 +62,7 @@ namespace CalradiaRemembers.UI
             MethodInfo target = AccessTools.Method(managerType, TargetMethod);
             if (target == null)
             {
-               ModLog.Info($"[PANEL] siege-visual tick guard NOT attached: {TargetType}.{TargetMethod} not found (game version change?). Panels stay safe via pushed screen + clock freeze.");
+               ModLog.Compat($"[PANEL] siege-visual tick guard NOT attached: {TargetType}.{TargetMethod} not found (game version change?). Panels stay safe via pushed screen + clock freeze.");
 
                return;
             }
@@ -70,7 +74,7 @@ namespace CalradiaRemembers.UI
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[PANEL] siege-visual tick guard failed to attach (non-fatal): {ex.GetType().Name}: {ex.Message}");
+            ModLog.Compat($"[PANEL] siege-visual tick guard failed to attach (non-fatal): {ex.GetType().Name}: {ex.Message}");
          }
       }
 
