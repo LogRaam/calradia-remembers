@@ -2,6 +2,56 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.3.. 2026-09-06
+
+Battles and quarrels leave real marks. What you did in the fighting is remembered by the people who were there, a
+great feat travels the realm on its own, and for those who want it, the sandbox opens a darker door: you can turn on
+the person in front of you. Saves from 2.5.2 carry over untouched.
+
+### New
+- **Battle memory.** A fight no longer leaves one generic line. The characters who were there remember what the
+  player actually did, distilled to a few first-hand facts: the standout deed, whoever put the player down, and a
+  rank-and-file toll only when it was heavy enough to be worth saying. Each outcome is read from the CAMPAIGN, never
+  from the mission's verdict, because Bannerlord routinely spares a hero the mission reported as killed, so nobody
+  mourns a lord the player can visit in his own dungeon. Deeds are rendered per recipient: the bested foe speaks of
+  his own defeat, the man who downed the player owns the blow, everyone else witnessed it. A named head-to-head also
+  feeds the same standing-rivalry ledger the arena uses, so a lord met sword to sword often enough becomes a worthy
+  rival or a bitter one by his own character.
+- **A great feat travels.** Besting someone well above your weight, or a name the realm knows, becomes a world event,
+  so a lord who was never there can raise it as something he has heard. Ordinary wins stay with those who saw them.
+  A rated victory in the lists records the same, which is what finally lets a third lord praise an arena win instead
+  of only the men who fought it.
+- **Turning on a character (player request).** You can rob, beat, or kill the character you are speaking to.
+  **Killing is gated by a mod option, off by default**; robbery and a beating are always available. Nothing is a
+  formality: how it ends depends on how the two of you compare as fighters and on whether they are alone, so a
+  guarded victim is far harder to reach, and you can fail. A killing always asks you to confirm first, because the
+  AI is what decides a killing was narrated and no bench tuning makes that judgement safe enough to spend a
+  character on. Declining records nothing at all.
+- **And the world answers.** The law is the game's OWN crime rating against the victim's realm, which is what brings
+  the guards in the engine's own time. The law hears something even when nobody watched, so getting someone alone
+  stays an advantage and never becomes a free pass, and a failed attempt still costs, so attempted murder is not a
+  free roll to retry. Kin carry a grudge, the victim's regard collapses, standing is lost only when the deed was
+  seen, and infamy circulates: a killing always becomes news, a robbery or beating only when someone saw it.
+
+### Fixed
+- **Asking a lord to ride with you worked again.** It had been refused for every lord since v2.4.4: bandit clans
+  counted as realms at war, and Calradia is always at war with bandits, so the guard meant to keep lords in their
+  faction's army pool during a war rejected everyone, always.
+- **Renown penalties actually take renown.** Every penalty in the mod had been doing nothing at all: the engine's
+  own GainRenownAction silently discards a negative amount, and so does Clan.AddRenown, so five systems (the bastard
+  scandal, a lost duel, the captive humiliation, a leaked letter, and now violence) had never moved a single point
+  despite reading as working code.
+- **Hotkeys no longer reach the map from under a panel.** Typing a letter reply and pressing the face-generator key
+  opened the character editor underneath. The letter book and the Balance of Power sit over the live map, which
+  kept reading its own hotkeys through them.
+- **The AI no longer reverses who is attacking whom.** A player who struck at a character could have the exchange
+  reach for the verb meaning the NPC kills the PLAYER. The direction is pinned, and the catalog now names the verbs
+  that actually exist for a player's violence.
+- **A per-character voice no longer fades.** A voice written into a character's backstory ("in the voice of Homer")
+  held for an exchange or two and then drifted, because it sat in the cached opening of the prompt and the closing
+  instructions drowned it. It is now restated at the end, the same anchor the narrative style already had.
+- **Panel zoom is only rewritten when it actually changes**, a follow-up to the aspect-ratio fit fix.
+
 ## v2.5.2.. 2026-09-06
 
 Tournaments become memory: the lords who shared the lists remember how it went between you, and repeated meetings

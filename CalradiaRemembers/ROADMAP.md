@@ -32,6 +32,39 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## SHIPPED v2.5.3 (player request 2026-09-06): the player can ROB, BEAT or KILL the character they are talking to
+
+A player on a beggar playthrough stabbed an NPC in conversation and the AI reached for `execute_player`, which means
+the NPC killing the PLAYER: the bridge refused it, so nobody was ever at risk, but the mod had no verb at all for
+the player's own violence. He asked for mugging, robbery, assault and attempted murder.
+
+**Gabriel's ruling:** the MCM toggle gates KILLING ONLY (`AllowKillingCharacters`, default off); robbery and assault
+are always available. The player CAN fail. It is possible everywhere, but harder when the victim is not isolated.
+Later addition: a killing asks the player to confirm first, because the MODEL is what decides a killing happened.
+
+**Shipped:** `ViolencePolicy` + `ViolenceConsequencePolicy` (pure), `PlayerViolenceVerb` (rob_npc / assault_npc /
+kill_npc), `ViolenceSceneReader`, `ViolenceConsequenceService`. The law is the ENGINE'S own crime rating. Two
+anti-exploit rules do the load-bearing work: the law hears something even unwitnessed, and a failed attempt still
+costs. `cr.testall player_violence`. **Deliberately NOT done:** being seized or arrested on a failed attempt, since
+Bannerlord has no clean path for it and faking one would strand the player in a scene the engine does not own.
+
+---
+
+## SHIPPED v2.5.3 (Gabriel 2026-09-06): a BATTLE leaves real facts, not one generic line
+
+A battle should leave the people who fought it real memories (whom you bested, who downed you), an EXPLOIT should
+circulate as gossip, and a LORD must never be called killed unless he truly died, because soldiers die and lords
+usually do not.
+
+**Shipped:** `CombatProwessPolicy` + `BattleFeatDistiller` (pure), `BattleFeatJournal` (MissionLogic),
+`BattleFeatReporter`. Outcomes are resolved from the CAMPAIGN, never the mission's verdict. Deeds are rendered per
+recipient, so the bested foe speaks of his own defeat. An exploit becomes a `PlayerFeat` world event, so a lord who
+was never there can raise it as hearsay. Named head-to-heads feed the tournament rivalry ledger. **Nemesis was
+deliberately not wired:** it mints recurring BANDIT villains, and an enemy commander who unhorsed the player is not
+that.
+
+---
+
 ## WISHED (player request 2026-09-02, roadmapped; NOT built): write a WORLD EVENT from the map screen, no console
 
 A player running CR alongside a total-conversion (Calradia Old Gods) wants to funnel that mod's many in-fiction

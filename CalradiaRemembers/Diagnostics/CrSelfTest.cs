@@ -47,7 +47,6 @@ using CalradiaRemembers.Settings;
 using CalradiaRemembers.Social;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Travel;
-using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Actions;
