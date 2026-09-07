@@ -139,23 +139,7 @@ namespace CalradiaRemembers.Chat
       private IReadOnlyList<WitnessEntry> BuildContextWitnesses(ChatSpeaker speaker)
       {
          if (speaker.IsMain)
-         {
-            if (_witnesses.Count == 0) return null;
-
-            // Give each witness their OWN memory this turn (player report 2026-08-23): the single call that voices
-            // their [WITNESS_REACTION] otherwise sees only their name/persona/relation, so a companion forgot an
-            // agreement struck one-on-one. Their profile events are already compression-folded (durable + compact).
-            var memoryStore = NpcMemoryCampaignBehavior.Instance?.Store;
-            var enriched = new List<WitnessEntry>(_witnesses.Count);
-
-            foreach (WitnessEntry w in _witnesses)
-            {
-               NpcProfile p = memoryStore != null && !string.IsNullOrEmpty(w.HeroStringId) ? memoryStore.Get(w.HeroStringId) : null;
-               enriched.Add(WithWitnessMemory(w, BuildWitnessMemory(p, WitnessMemoryEventCap)));
-            }
-
-            return enriched;
-         }
+            return _witnesses.Count == 0 ? null : WithMemories(_witnesses);
 
          // Round-table audit D2: entries were built once from the HOST's angle and handed unchanged to every
          // other speaker, so a participant read the room through someone else's eyes ("Aldric (your vassal)"
@@ -172,8 +156,36 @@ namespace CalradiaRemembers.Chat
          if (host != null) list.Add(host);
 
          return list.Count > 0
-            ? list
+            ? WithMemories(list)
             : null;
+      }
+
+      /// <summary>
+      ///   Gives every person in the room their OWN memory (player report 2026-08-23: the call that voices a
+      ///   [WITNESS_REACTION] otherwise sees only a name, a persona and a relation, so a companion forgot an
+      ///   agreement struck one-on-one). Their profile events are already compression-folded, durable and compact.
+      ///   <para>
+      ///     This is the SINGLE exit path of <see cref="BuildContextWitnesses" /> on purpose. The enrichment used to
+      ///     live inside the main-speaker branch alone, so the moment the player addressed a witness DIRECTLY, that
+      ///     speaker saw a room full of people with no past (player report 2026-09-07: "one or both NPCs may lose
+      ///     the necessary context of the conversation"). A group conversation is precisely the act of addressing
+      ///     one person and then another, so the branch that forgot was the one a group scene leans on.
+      ///   </para>
+      /// </summary>
+      internal static IReadOnlyList<WitnessEntry> WithMemories(IReadOnlyList<WitnessEntry> entries)
+      {
+         if (entries == null || entries.Count == 0) return entries;
+
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         var enriched = new List<WitnessEntry>(entries.Count);
+
+         foreach (WitnessEntry w in entries)
+         {
+            NpcProfile profile = store != null && !string.IsNullOrEmpty(w.HeroStringId) ? store.Get(w.HeroStringId) : null;
+            enriched.Add(WithWitnessMemory(w, BuildWitnessMemory(profile, WitnessMemoryEventCap)));
+         }
+
+         return enriched;
       }
 
       /// <summary>

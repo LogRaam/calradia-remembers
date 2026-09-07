@@ -539,6 +539,9 @@ namespace CalradiaRemembers.Witnesses
                IsFemale = entry.IsFemale ?? subject.IsFemale,
                // Gear does not change with the observer: carried over rather than recomposed.
                Gear = entry.Gear,
+               // Neither does what they REMEMBER. This was silently dropped while Gear beside it was kept, so
+               // re-describing the room for another speaker quietly emptied everyone's past (2026-09-07).
+               Memory = entry.Memory,
                RelationToNpc = DescribeWitnessRelation(observer, subject)
             };
          }

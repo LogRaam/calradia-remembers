@@ -7758,6 +7758,21 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"{hero.Name} witness memory: {Show(memory ?? "(null)")}");
             t.Expect("witnessMemoryBuilt", !string.IsNullOrWhiteSpace(memory), true);
             t.Expect("recallsTheAgreement", memory != null && memory.Contains(marker), true);
+
+            // The 2026-09-07 hole: the enrichment lived in the main-speaker branch alone, so addressing a witness
+            // DIRECTLY described a room full of people with no past, and re-describing an entry for another
+            // observer dropped the memory while carrying the gear beside it. A group conversation IS the act of
+            // turning from one person to another, so both paths must carry it or the feature loses its thread.
+            var seeded = new WitnessEntry {Name = hero.Name?.ToString(), HeroStringId = hero.StringId, RelationToNpc = "a bystander"};
+            System.Collections.Generic.IReadOnlyList<WitnessEntry> enriched =
+               Chat.ChatViewModel.WithMemories(new System.Collections.Generic.List<WitnessEntry> {seeded});
+            string carried = enriched != null && enriched.Count > 0 ? enriched[0].Memory : null;
+
+            WitnessEntry reDescribed = Witnesses.WitnessResolver.ForObserver(
+               enriched?[0], Hero.MainHero, behavior.Store);
+
+            t.Expect("everyEntryIsGivenItsMemory", carried != null && carried.Contains(marker), true);
+            t.Expect("reDescribingForAnotherSpeakerKeepsIt", reDescribed?.Memory != null && reDescribed.Memory.Contains(marker), true);
          }
          finally
          {
