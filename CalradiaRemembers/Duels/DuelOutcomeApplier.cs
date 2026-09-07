@@ -73,8 +73,11 @@ namespace CalradiaRemembers.Duels
          };
          DuelOutcomeResult generic = DuelOutcomePolicy.Resolve(ctx);
 
-         if (generic.PlayerRenownDelta != 0)
+         // A gain goes through the engine action; a LOSS cannot, because GainRenownAction discards negatives.
+         if (generic.PlayerRenownDelta > 0)
             GainRenownAction.Apply(Hero.MainHero, generic.PlayerRenownDelta, true);
+         else if (generic.PlayerRenownDelta < 0)
+            GameState.RenownPenalty.Apply(Hero.MainHero, -generic.PlayerRenownDelta);
 
          // A duel lost in single combat costs the loser's HOUSE standing (Gabriel 2026-08-26). The policy sets
          // this only for a fought duel; the loser is the NPC when the player won and the player when the NPC won

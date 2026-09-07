@@ -134,7 +134,7 @@ namespace CalradiaRemembers.GameState
          bool real = Hero.MainHero.IsPrisoner;
          if (real)
          {
-            GainRenownAction.Apply(Hero.MainHero, -renownLoss, true);
+            RenownPenalty.Apply(Hero.MainHero, renownLoss); // a negative GainRenownAction is a no-op
             ChangeClanInfluenceAction.Apply(Hero.MainHero.Clan, -influenceLoss);
          }
 

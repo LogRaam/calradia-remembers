@@ -119,7 +119,7 @@ namespace CalradiaRemembers.Violence
 
       private static void LoseStanding(int renownLoss)
       {
-         if (renownLoss > 0) GainRenownAction.Apply(Hero.MainHero, -renownLoss, true);
+         if (renownLoss > 0) GameState.RenownPenalty.Apply(Hero.MainHero, renownLoss); // a negative GainRenownAction is a no-op
       }
 
       // The mod's OWN regard ledger, the one every conversation is judged on. A dead victim is charged nothing.

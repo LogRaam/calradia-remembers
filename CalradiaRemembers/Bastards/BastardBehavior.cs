@@ -167,7 +167,7 @@ namespace CalradiaRemembers.Bastards
 
          if (Hero.MainHero?.Clan != null)
          {
-            GainRenownAction.Apply(Hero.MainHero, -renown, true);
+            GameState.RenownPenalty.Apply(Hero.MainHero, renown); // a negative GainRenownAction is a no-op
             ChangeClanInfluenceAction.Apply(Hero.MainHero.Clan, -influence);
          }
 

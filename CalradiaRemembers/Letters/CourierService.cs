@@ -1397,7 +1397,7 @@ namespace CalradiaRemembers.Letters
 
             int renownHit = LetterLeakConsequencePolicy.RenownPenalty(alreadyHeldGrudge);
             if (renownHit > 0 && player.Clan != null)
-               GainRenownAction.Apply(player, -renownHit, doNotNotify: false);
+               GameState.RenownPenalty.Apply(player, renownHit); // a negative GainRenownAction is a no-op
          }
          catch (Exception ex) { ModLog.Error($"[COURIER] leak consequences failed: {ex.GetType().Name}: {ex.Message}"); }
       }
