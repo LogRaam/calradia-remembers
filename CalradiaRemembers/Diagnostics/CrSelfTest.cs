@@ -6852,6 +6852,21 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      /// <summary>
+      ///   A grudge-free lord whose OWN character actually lets a grievance of this weight take hold. The grudge
+      ///   system's formation floor is trait-modulated (MagnitudeFloor + Mercy*5 - Calculating*5), so a merciful
+      ///   lord silently refuses a light grievance, exactly as designed. Picking "the first grudge-free lord" made
+      ///   these tests a coin flip on who happened to come first in the campaign's list: they passed on one save and
+      ///   failed on the next without a line of code changing (found 2026-09-06, two tests failing at once on the
+      ///   same merciful lord). Asks the real policy, through the very facts TryPlant will build.
+      /// </summary>
+      private static Hero GrudgeCapableLord(GrudgeSource source, int magnitude, int today, Func<Hero, bool> also = null)
+         => Hero.AllAliveHeroes?.FirstOrDefault(h =>
+            h != null && h != Hero.MainHero && h.IsAlive && h.IsLord && !h.IsPrisoner
+            && (GrudgeBehavior.Instance?.LiveGrudgesFor(h, today)?.Count ?? 0) == 0
+            && GrudgePolicy.ShouldForm(GrudgeBridge.BuildCandidateFacts(h, source, magnitude, false))
+            && (also == null || also(h)));
+
       private static string TestTournamentRivalry(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("tournament_rivalry");
@@ -6860,10 +6875,13 @@ namespace CalradiaRemembers.Diagnostics
          CalradiaRemembers.Grudges.GrudgeBehavior grudges = CalradiaRemembers.Grudges.GrudgeBehavior.Instance;
          if (t.Abort(rb == null || grudges == null || Hero.MainHero == null, "rivalry / grudge behavior not initialized")) return t.Line();
 
-         // A lord with NO existing grudge and no tally, so the cleanup (ClearGrudgesFor) removes exactly what we plant.
-         Hero rival = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner
-            && (grudges.GrudgesFor(h.StringId)?.Count ?? 0) == 0 && rb.Tally(h.StringId) == null);
-         if (t.Abort(rival == null, "no grudge-free lord to stand in as an arena rival")) return t.Line();
+         // No existing grudge and no tally, so the cleanup removes exactly what we plant, AND a character that lets
+         // a grudge this light form at all: BitterMagnitude (18) sits just above the base floor (15), so a merciful
+         // lord legitimately shrugs off a sporting sourness and no grudge is planted.
+         var today0 = (int) CampaignTime.Now.ToDays;
+         Hero rival = GrudgeCapableLord(GrudgeSource.External, Logic.Tournaments.TournamentRivalryPolicy.BitterMagnitude,
+            today0, h => rb.Tally(h.StringId) == null);
+         if (t.Abort(rival == null, "no grudge-free, unforgiving lord to stand in as a bitter arena rival")) return t.Line();
 
          int honor0 = rival.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor);
 
@@ -7976,11 +7994,12 @@ namespace CalradiaRemembers.Diagnostics
          Hero player = Hero.MainHero;
          var today = (int) CampaignTime.Now.ToDays;
 
-         Hero antagonist = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != null && h != player && h.IsAlive && h.IsLord && !h.IsPrisoner
-            && (GrudgeBehavior.Instance?.LiveGrudgesFor(h, today)?.Count ?? 0) == 0);
+         // A first leak plants magnitude 15, which is EXACTLY the base formation floor, so any lord with Mercy at
+         // all forgives it outright. The consequence is real, the test just has to ask it of someone who grudges.
+         Hero antagonist = GrudgeCapableLord(GrudgeSource.LeakedLetter,
+            Logic.LetterLeakConsequencePolicy.GrudgeMagnitude(false), today);
 
-         if (t.Skip(antagonist == null || player?.Clan == null, "no grudge-free lord (or no player clan) to test the leak consequences on")) return t.Line();
+         if (t.Skip(antagonist == null || player?.Clan == null, "no grudge-free, unforgiving lord (or no player clan) to test the leak consequences on")) return t.Line();
 
          float renownBefore = player.Clan.Renown;
 
@@ -8381,26 +8400,48 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Abort(SchemeStore.Instance == null, "SchemeStore not active")) return t.Line();
 
+         // Nobody already entangled: ForcePlot refuses to lay a plot over a live one, so a pair left over from an
+         // earlier run would leave nothing warnable and fail on a world this test itself made. The plotter must
+         // also be grudge-free, so the cleanup below clears exactly the grudge that warning the target plants.
+         var today = (int) CampaignTime.Now.ToDays;
          Hero plotter = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsLord && h.Clan != Clan.PlayerClan);
+            h != Hero.MainHero && h.IsLord && h.Clan != Clan.PlayerClan
+            && !SchemeStore.Instance.Active.Any(sc => sc.PlotterId == h.StringId)
+            && (GrudgeBehavior.Instance?.LiveGrudgesFor(h, today)?.Count ?? 0) == 0);
          Hero target = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != plotter && h != Hero.MainHero && h.IsLord && h.Clan != null && h.Clan != plotter?.Clan && h.Clan != Clan.PlayerClan);
+            h != plotter && h != Hero.MainHero && h.IsLord && h.Clan != null && h.Clan != plotter?.Clan && h.Clan != Clan.PlayerClan
+            && !SchemeStore.Instance.Active.Any(sc => sc.TargetId == h.StringId));
 
-         if (t.Skip(plotter == null || target == null, "need 2+ lords from distinct non-player clans")) return t.Line();
+         if (t.Skip(plotter == null || target == null, "need 2+ unentangled lords from distinct non-player clans")) return t.Line();
 
-         SchemeStore.Instance.ForcePlot(plotter, target, SchemeKind.Slander);
          int plotterBefore = behavior.GameStateBridge.GetPlayerRelation(plotter);
          int targetBefore = behavior.GameStateBridge.GetPlayerRelation(target);
 
-         string msg = SchemeStore.Instance.TargetHeeds(target);
+         try
+         {
+            SchemeStore.Instance.ForcePlot(plotter, target, SchemeKind.Slander);
 
-         if (t.Abort(msg == null, $"TargetHeeds({target.Name}) returned null — no eligible scheme after ForcePlot")) return t.Line();
+            string msg = SchemeStore.Instance.TargetHeeds(target);
 
-         int plotterDelta = behavior.GameStateBridge.GetPlayerRelation(plotter) - plotterBefore;
-         int targetDelta = behavior.GameStateBridge.GetPlayerRelation(target) - targetBefore;
-         t.Note($"plotter={plotter.Name} delta={plotterDelta} | target={target.Name} delta={targetDelta}");
-         t.Expect("plotterResents(<=-20)", plotterDelta <= -20, true);
-         t.Expect("targetGrateful(>=16)", targetDelta >= 16, true);
+            if (t.Abort(msg == null, $"TargetHeeds({target.Name}) returned null: no eligible scheme after ForcePlot")) return t.Line();
+
+            int plotterDelta = behavior.GameStateBridge.GetPlayerRelation(plotter) - plotterBefore;
+            int targetDelta = behavior.GameStateBridge.GetPlayerRelation(target) - targetBefore;
+            t.Note($"plotter={plotter.Name} delta={plotterDelta} | target={target.Name} delta={targetDelta}");
+            t.Expect("plotterResents(<=-20)", plotterDelta <= -20, true);
+            t.Expect("targetGrateful(>=16)", targetDelta >= 16, true);
+         }
+         finally
+         {
+            // Warning a target moves REAL vanilla relations and plants a real grudge. Left standing, a diagnostic
+            // sweep would quietly turn a lord against the player in a campaign that never played the scene.
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(plotter, Hero.MainHero,
+               plotterBefore - behavior.GameStateBridge.GetPlayerRelation(plotter), false);
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(target, Hero.MainHero,
+               targetBefore - behavior.GameStateBridge.GetPlayerRelation(target), false);
+            GrudgeBehavior.Instance?.ClearGrudgesFor(plotter.StringId);
+            SchemeStore.Instance.DebugForgetSchemesBetween(plotter, target);
+         }
 
          return t.Line();
       }

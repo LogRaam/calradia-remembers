@@ -71,6 +71,19 @@ namespace CalradiaRemembers.WorldEvents
       public void DebugAdvance() => AdvanceActive((int) CampaignTime.Now.ToDays);
 
       /// <summary>
+      ///   Test seam: drops every scheme between these two and reports how many went. A self-test that forces a plot
+      ///   must be able to put the campaign back as it found it, or the SECOND run finds the pair still entangled,
+      ///   ForcePlot refuses to lay a new plot over the old one, and the test fails on a world its own first run
+      ///   left behind (cr.testall, 2026-09-06).
+      /// </summary>
+      public int DebugForgetSchemesBetween(Hero plotter, Hero target)
+      {
+         if (plotter == null || target == null) return 0;
+
+         return _schemes.RemoveAll(s => s.PlotterId == plotter.StringId && s.TargetId == target.StringId);
+      }
+
+      /// <summary>
       ///   Launches a scheme through the ONE shared launch path (console testing forces it, pledge_against
       ///   drives it, and the Living World autonomous generator drives it): it uses the real
       ///   advance/effect/rumour pipeline from the next daily tick. Returns a short status line.

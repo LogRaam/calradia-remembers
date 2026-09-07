@@ -30,7 +30,16 @@ namespace CalradiaRemembers.Logic.Tournaments
       /// <summary>The warmth a worthy-opponent rivalry plants (a light appreciation). Tuning.</summary>
       public const int FriendlyMagnitude = 20;
 
-      /// <summary>The cold edge a bitter rivalry plants: a LIGHT grudge, a sporting sourness, never a blood feud. Tuning.</summary>
+      /// <summary>
+      ///   The cold edge a bitter rivalry plants: a LIGHT grudge, a sporting sourness, never a blood feud. Tuning.
+      ///   <para>
+      ///     Read this against <c>GrudgePolicy.MagnitudeFloor</c> (15) before changing it. That floor is
+      ///     trait-modulated (+5 per Mercy level, -5 per Calculating level), so 18 forms a grudge on an unforgiving
+      ///     or scheming lord and is deliberately forgiven by a merciful one. That is the intended reading: the
+      ///     rivalry itself still crystallizes and colours what they say, mercy only declines to nurse it as a
+      ///     grievance. Lower this and a bitter rivalry stops leaving any mark at all.
+      ///   </para>
+      /// </summary>
       public const int BitterMagnitude = 18;
 
       /// <summary>

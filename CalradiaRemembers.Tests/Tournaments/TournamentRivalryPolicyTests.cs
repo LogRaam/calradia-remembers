@@ -7,6 +7,7 @@
 
 #region
 
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Tournaments;
 using FluentAssertions;
 using NUnit.Framework;
@@ -52,5 +53,37 @@ namespace CalradiaRemembers.Tests.Tournaments
       [Test]
       public void GIVEN_null_traits_at_threshold_WHEN_evaluated_THEN_it_is_friendly_and_does_not_throw()
          => TournamentRivalryPolicy.Evaluate(2, 1, null).Should().Be(TournamentRivalryFlavor.Friendly);
+      // The number 18 is not free: a bitter rivalry only leaves a mark if it clears the grudge system's OWN
+      // formation floor, which is trait-modulated. cr.testall failed on 2026-09-06 because the campaign happened to
+      // offer a merciful lord first, and the same silent refusal was swallowing the leaked-letter consequence too.
+      // This pins the reading: an unforgiving rival carries the grudge.
+      [Test]
+      public void GIVEN_an_unforgiving_rival_WHEN_a_bitter_rivalry_plants_its_grudge_THEN_it_clears_the_formation_floor()
+      {
+         var facts = new GrudgeCandidateFacts {
+            IsAttributable = true,
+            Magnitude = TournamentRivalryPolicy.BitterMagnitude,
+            Traits = new TraitFacts {Mercy = 0, Honor = -2}
+         };
+
+         GrudgePolicy.ShouldForm(facts).Should().BeTrue();
+      }
+
+      // The other half of the same reading, deliberately: mercy declines to nurse an arena sourness as a grievance.
+      // The rivalry still forms and still colours what they say; only the grudge is forgiven. If this ever flips,
+      // every merciful lord in Calradia starts carrying tournament grudges, which is not what was designed.
+      [Test]
+      public void GIVEN_a_merciful_rival_WHEN_a_bitter_rivalry_plants_its_grudge_THEN_mercy_forgives_it()
+      {
+         var facts = new GrudgeCandidateFacts {
+            IsAttributable = true,
+            Magnitude = TournamentRivalryPolicy.BitterMagnitude,
+            Traits = new TraitFacts {Mercy = 1, Honor = -2}
+         };
+
+         GrudgePolicy.ShouldForm(facts).Should().BeFalse();
+         TournamentRivalryPolicy.Evaluate(2, 1, new TournamentTraitFacts(0, -2, 1))
+            .Should().Be(TournamentRivalryFlavor.Bitter); // the rivalry itself is unaffected
+      }
    }
 }
