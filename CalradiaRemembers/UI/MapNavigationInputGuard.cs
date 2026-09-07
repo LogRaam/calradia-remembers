@@ -38,6 +38,13 @@ namespace CalradiaRemembers.UI
       private const string TargetType = "SandBox.View.Map.MapScreen";
       private const string TargetMethod = "TickNavigationInput";
 
+      /// <summary>
+      ///   How many times the engine has called the guarded map input tick this session, counted BEFORE the skip
+      ///   decision. The map-tick probe's second, independent signal: navigation input and settlement visuals are
+      ///   driven from the same MapScreen frame tick, so they should fall silent together or not at all.
+      /// </summary>
+      public static long CallCount;
+
       private static Harmony _harmony;
       private static bool _patched;
 
@@ -90,6 +97,8 @@ namespace CalradiaRemembers.UI
       /// </summary>
       public static bool Prefix(ref bool __result)
       {
+         CallCount++;
+
          if (!CrPanelHost.AnyPanelOwnsScreen) return true;
 
          __result = false;

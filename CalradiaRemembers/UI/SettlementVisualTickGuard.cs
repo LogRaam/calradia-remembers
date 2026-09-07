@@ -33,6 +33,13 @@ namespace CalradiaRemembers.UI
       private const string TargetType = "SandBox.View.Map.Managers.SettlementVisualManager";
       private const string TargetMethod = "OnTick";
 
+      /// <summary>
+      ///   How many times the engine has called the guarded tick this session, counted BEFORE the skip decision.
+      ///   Read by the map-tick probe (cr.tick_probe) to measure whether a given way of hosting a panel actually
+      ///   silences the map underneath it. Counting is a single increment on a method the engine already calls.
+      /// </summary>
+      public static long CallCount;
+
       private static Harmony _harmony;
       private static bool _patched;
 
@@ -84,6 +91,11 @@ namespace CalradiaRemembers.UI
       ///   the next tick after the panel closes catches the visuals up in one frame. Parameterless bool prefix, so it
       ///   matches the target whatever its signature.
       /// </summary>
-      public static bool Prefix() => !CrPanelHost.SuppressSettlementVisualTick;
+      public static bool Prefix()
+      {
+         CallCount++;
+
+         return !CrPanelHost.SuppressSettlementVisualTick;
+      }
    }
 }

@@ -131,6 +131,10 @@
       <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.MountAndBlade.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="TaleWorlds.MountAndBlade.View">
+      <HintPath>$(BannerlordModulesDir)\Native\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.View.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="SandBox">
       <HintPath>$(BannerlordModulesDir)\SandBox\bin\Win64_Shipping_Client\SandBox.dll</HintPath>
       <Private>false</Private>
