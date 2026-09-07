@@ -9671,19 +9671,6 @@ namespace CalradiaRemembers.Diagnostics
       ///   and restores regard + the feature switch in a finally. Skips MANUAL when no partyless other-clan lord
       ///   exists to borrow.
       /// </summary>
-      // Mirrors the bridge's own private FactionIsAtWarWithAnyone, which ride_with_me consults: a lord whose realm
-      // is at war with ANY faction is unavailable, so a self-test that borrows one is testing nothing.
-      private static bool RealmIsAtWarWithAnyone(IFaction faction)
-      {
-         if (faction == null) return false;
-
-         if (Kingdom.All != null)
-            foreach (Kingdom k in Kingdom.All)
-               if (k != faction && FactionManager.IsAtWarAgainstFaction(faction, k)) return true;
-
-         return false;
-      }
-
       private static string TestRideWithMe(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("ride_with_me");
@@ -9698,17 +9685,16 @@ namespace CalradiaRemembers.Diagnostics
 
          // Borrow an idle (partyless) other-clan lord AT PEACE with the player: taking one never disbands a party,
          // and peace means ride_with_me will actually be honoured rather than refused on the war guard.
-         // The realm must also be at peace with EVERYONE, not merely with the player: RideWithMeEligibilityPolicy
-         // gained a factionAtWar guard on 29/08/2026 (a lord whose realm is at war stays home for his liege's
-         // muster) and this picker was never updated, so on a save with any war running it borrowed a lord the
-         // bridge then rightly refused, and the test failed on a rule that was working exactly as designed.
+         // The realm must also be at peace, the same sense the bridge means: this asks the bridge's OWN
+         // FactionIsAtWarWithAnyone rather than a copy, because a copy is precisely what hid the real bug here (a
+         // duplicated version that forgot bandit clans agreed with a picker that was also wrong).
          Hero idle = Hero.AllAliveHeroes.FirstOrDefault(
             h => h != Hero.MainHero && h.IsAlive && h.IsLord && !h.IsPrisoner
                  && h.Clan != null && h.Clan != Clan.PlayerClan
                  && h.PartyBelongedTo == null && !retainer.IsRetainer(h.StringId)
                  && !(h.MapFaction != null && Hero.MainHero?.MapFaction != null
                       && FactionManager.IsAtWarAgainstFaction(h.MapFaction, Hero.MainHero.MapFaction))
-                 && !RealmIsAtWarWithAnyone(h.MapFaction));
+                 && !BannerlordGameStateBridge.FactionIsAtWarWithAnyone(h.MapFaction));
 
          if (t.Skip(idle == null, "no partyless other-clan lord whose realm is at peace with everyone exists to borrow")) return t.Line();
 

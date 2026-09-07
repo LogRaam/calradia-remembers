@@ -3327,7 +3327,19 @@ namespace CalradiaRemembers.GameState
       ///   from, so the teaching gate and this bridge re-check can never disagree. Guarded so a missing engine
       ///   snapshot never throws mid-turn.
       /// </summary>
-      private static bool FactionIsAtWarWithAnyone(IFaction faction)
+      /// <summary>
+      ///   True when this realm is at war with another REAL faction, the sense ride_with_me needs: a lord whose
+      ///   realm is fighting a war stays home for his liege's muster instead of riding off with the player.
+      ///   <para>
+      ///     BANDIT factions are excluded, and that exclusion is the whole point. Every kingdom in Bannerlord is
+      ///     permanently at war with the looters and sea raiders, so counting them made this return true for
+      ///     everyone, always, and ride_with_me (shipped v2.4.4) could never accept a single lord. The cr.testall
+      ///     failure that surfaced it read as a picker problem for two rounds before the real cause showed.
+      ///   </para>
+      ///   Internal rather than private so the self-test asserts the SAME code the bridge consults, instead of a
+      ///   copy that can drift out of step with it (which is exactly how this hid).
+      /// </summary>
+      internal static bool FactionIsAtWarWithAnyone(IFaction faction)
       {
          try
          {
@@ -3335,11 +3347,12 @@ namespace CalradiaRemembers.GameState
 
             if (Kingdom.All != null)
                foreach (Kingdom k in Kingdom.All)
-                  if (k != faction && FactionManager.IsAtWarAgainstFaction(faction, k)) return true;
+                  if (k != faction && !k.IsBanditFaction && FactionManager.IsAtWarAgainstFaction(faction, k)) return true;
 
             if (Clan.All != null)
                foreach (Clan c in Clan.All)
-                  if (c.Kingdom == null && c != faction && FactionManager.IsAtWarAgainstFaction(faction, c)) return true;
+                  if (c.Kingdom == null && c != faction && !c.IsBanditFaction
+                      && FactionManager.IsAtWarAgainstFaction(faction, c)) return true;
 
             return false;
          }
