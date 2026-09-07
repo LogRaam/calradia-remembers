@@ -73,6 +73,10 @@ namespace CalradiaRemembers.UI
       private CrPanelState _state; // set only under the PushState strategy; PopState needs it to confirm this host still owns the active state
       private bool _reloading;
 
+      // Counters sampled at open, so every real panel use reports whether the map actually went quiet underneath it.
+      private long _visualTicksAtOpen;
+      private long _navTicksAtOpen;
+
       private CampaignTimeControlMode _previousTimeControlMode;
       private bool _previousTimeControlModeLock;
       private bool _timeControlModeSaved;
@@ -142,6 +146,9 @@ namespace CalradiaRemembers.UI
 
          VisualTick.Enter(); // this panel now owns the screen: suppress the crashing siege-visual tick
          if (_pauseCampaignTime) PauseCampaignTime();
+
+         _visualTicksAtOpen = SettlementVisualTickGuard.CallCount;
+         _navTicksAtOpen = MapNavigationInputGuard.CallCount;
 
          string via = Strategy == PanelHostStrategy.PushState ? "pushed state" : "pushed screen";
          ModLog.Info($"[PANEL] {_prefabName} opened ({via}{(_pauseCampaignTime ? ", clock frozen" : "")}).");
@@ -249,6 +256,22 @@ namespace CalradiaRemembers.UI
       ///   leave <see cref="IsOpen" /> stuck true and block every open this session. Never restores the clock (there
       ///   is no live freeze to undo at launch), it only clears our own flags.
       /// </summary>
+      /// <summary>
+      ///   Reports how much the live map ticked WHILE this panel was open, measured on the real panel rather than on
+      ///   the throwaway spike (cr.tick_probe cannot do it: its own window closes on a timer, and the player cannot
+      ///   reach the console while a panel owns the input). Under the state strategy both numbers must be zero. This
+      ///   is the gate for retiring the clock freeze and the two Harmony guards: when players' logs read zero, the
+      ///   compensations have nothing left to compensate for.
+      /// </summary>
+      private void ReportMapTicksUnderPanel()
+      {
+         long visual = SettlementVisualTickGuard.CallCount - _visualTicksAtOpen;
+         long nav = MapNavigationInputGuard.CallCount - _navTicksAtOpen;
+         string verdict = visual == 0 && nav == 0 ? "the map was SILENT underneath" : "the map KEPT TICKING underneath";
+
+         ModLog.Info($"[PANEL] {_prefabName}: while open, settlement-visual ticks={visual}, map-input ticks={nav}. {verdict}.");
+      }
+
       public void ResetForSession()
       {
          _screen = null;
@@ -264,7 +287,11 @@ namespace CalradiaRemembers.UI
       private void ResetState()
       {
          if (!_reloading) ResumeCampaignTime(); // during a reload keep the clock frozen across close->reopen
-         if (_screen != null) VisualTick.Exit(); // exactly once per open (an idempotent second call sees a null screen)
+         if (_screen != null)
+         {
+            VisualTick.Exit(); // exactly once per open (an idempotent second call sees a null screen)
+            ReportMapTicksUnderPanel();
+         }
          _screen = null;
          _state = null;
       }
