@@ -63,7 +63,12 @@ namespace CalradiaRemembers.Mapping
                 IntimateSketch   = intimate,
                 Orientation      = RomanticProfilePolicy.DetermineOrientation(rng),
                 IsFemale         = hero.IsFemale,
-                Preferences      = RomanticProfilePolicy.DeterminePreferences(rng, traits),
+                // The hero's OWN culture decides whether shared partners are normal for them, read from
+                // jealousy_cultures.json rather than guessed from a trait (Gabriel's ruling 2026-09-07).
+                Preferences      = RomanticProfilePolicy.DeterminePreferences(
+                    rng, traits,
+                    Jealousy.JealousyCultureLoader.GetCulture(hero.Culture?.Name?.ToString()),
+                    hero.Clan?.Tier ?? 0),
                 Kinks            = RomanticProfilePolicy.DetermineKinks(rng, traits)
             };
         }

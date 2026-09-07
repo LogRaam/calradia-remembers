@@ -113,21 +113,41 @@ namespace CalradiaRemembers.Logic
 
         // ── Preferences ───────────────────────────────────────────────────────
 
-        /// <summary>Rolls 1-2 distinct preferences from the trait-derived pool.</summary>
-        public static List<RomanticPreference> DeterminePreferences(Random rng, RomanticTraits traits)
+        /// <summary>
+        ///   Rolls 1-2 distinct preferences from the pool this character's traits and CULTURE make plausible.
+        ///   <paramref name="culture" /> is the hero's own jealousy norm (null for an unknown culture, which falls
+        ///   back to monogamy exactly as jealousy_cultures.json documents), and <paramref name="clanTier" /> is
+        ///   their standing, which that norm's own elite gate reads.
+        /// </summary>
+        public static List<RomanticPreference> DeterminePreferences(
+            Random rng, RomanticTraits traits, JealousyCulture culture = null, int clanTier = 0)
         {
-            HashSet<RomanticPreference> pool = BuildPreferencePool(traits);
+            HashSet<RomanticPreference> pool = BuildPreferencePool(traits, culture, clanTier);
             int count = rng.Next(1, 3);
             return PickDistinct(pool, count, rng);
         }
 
-        /// <summary>The candidate preferences a hero's traits make plausible. Switch is always eligible.</summary>
-        public static HashSet<RomanticPreference> BuildPreferencePool(RomanticTraits t)
+        /// <summary>
+        ///   The candidate preferences a hero's traits and culture make plausible. Switch is always eligible.
+        ///   <para>
+        ///     Polyamory hangs on the CULTURE, never on honour (Gabriel's ruling, 2026-09-07, after a player asked
+        ///     why it took a dishonourable trait to reach it). Honour decides INFIDELITY, the betrayal of an
+        ///     exclusivity that was actually promised, which is a different thing and is already governed where it
+        ///     genuinely happens. Keeping both on one trait meant the mod declared in jealousy_cultures.json that
+        ///     some cultures hold shared partners normal, then generated strictly monogamous nobles from them.
+        ///   </para>
+        /// </summary>
+        public static HashSet<RomanticPreference> BuildPreferencePool(
+            RomanticTraits t, JealousyCulture culture = null, int clanTier = 0)
         {
             HashSet<RomanticPreference> pool = new() {RomanticPreference.Switch};
 
             if (t.Honor >= 1) { pool.Add(RomanticPreference.MonogamousStrict); pool.Add(RomanticPreference.Devoted); }
-            if (t.Honor <= -1) { pool.Add(RomanticPreference.MonogamousFlexible); pool.Add(RomanticPreference.Polyamorous); pool.Add(RomanticPreference.Casual); }
+            if (t.Honor <= -1) { pool.Add(RomanticPreference.MonogamousFlexible); pool.Add(RomanticPreference.Casual); }
+
+            // The culture's OWN definition of tolerating shared partners, reused rather than a second one invented
+            // here, so the elite gate and the exclusivity stance stay in one place: jealousy_cultures.json.
+            if (culture != null && culture.ToleratesSharedPartners(clanTier)) pool.Add(RomanticPreference.Polyamorous);
             if (t.Honor == 0) pool.Add(RomanticPreference.MonogamousFlexible);
             if (t.Mercy <= -1) pool.Add(RomanticPreference.Dominant);
             if (t.Mercy >= 1) { pool.Add(RomanticPreference.Submissive); pool.Add(RomanticPreference.Devoted); }
