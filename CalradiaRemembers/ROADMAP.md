@@ -32,6 +32,46 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## BUILT 2026-09-07, UNTESTED IN GAME (player request + Gabriel): take your own people aside and BRIEF them
+
+A player asked whether a specific NPC could LEAD a group conversation (a cruel companion interrogating a prisoner,
+a charming one working a village notable). Gabriel named the blocker: choosing the right speaker needs the
+conversation's INTENT, and the intent exists only in the player's head.
+
+Two designs were rejected, and the reasons are worth keeping. An in-chat ASIDE fails on fiction, since the lord
+sees you whisper and asks what you said, breeding the very suspicion the player wanted to avoid (it also needs the
+transcript to know who heard each line, which it does not model). A briefing at the companion picker fails the same
+way, because the picker fires once the vanilla conversation has already begun.
+
+**Gabriel's design, shipped:** a vanilla dialogue line asks the lord's leave, openly, for a private word with your
+own people. Nothing is hidden, so nothing is suspicious. You brief the companions YOU pick, in a real conversation
+where they can question the plan or say they are ill-suited, and what you told them rides with them into "A word
+with you...". Briefs stack, capped and trimmed from the oldest end, and expire with the conversation.
+
+**NOT VALIDATED BY ANYONE YET.** Gabriel tests before anything is built on top.
+
+---
+
+## DESIGNED, NOT BUILT, gated on the briefing being tested: a companion ACTS on your order
+
+Gabriel asked whether he could tell a companion to stab the target on the word "GO". The briefing half works; the
+deed does not. There is no verb for a companion harming anyone (every violence verb is the PLAYER acting), and the
+anti-empty-promise rule names the case verbatim, so the companion refuses. **The bad failure mode is that the
+player cannot tell a character's moral choice from a missing feature.**
+
+So the gap is structural rather than cosmetic: the briefing is a command post with no troops, and players will feel
+it. Open questions Gabriel has not ruled on: whose crime it is when the order was unheard (deniability, and a
+companion who could denounce you); whether the POLICY decides compliance while the model merely voices it (the
+house split, and the alternative is unlearnable refusals); how a conditional trigger avoids the fuzziness that
+forced the kill confirmation; and what the companion himself risks.
+
+**Recommended scope when it comes:** the NON-LETHAL half first (seize, block the exit, rob, intimidate). It serves
+far more scenes than a murder, reuses ViolencePolicy and ViolenceConsequenceService wholesale, and stakes no
+character's life. The lethal half then inherits those rules plus the existing MCM gate and confirmation. Do not
+ship a violent, irreversible, engine-bound pillar that no human has watched run.
+
+---
+
 ## RATIFIED (Gabriel 2026-09-07), NOT built: two hosts to revisit once panels are state-hosted
 
 Settling where a panel lives (see CLAUDE.md, "Where a panel lives") reopens two decisions that were made under a
