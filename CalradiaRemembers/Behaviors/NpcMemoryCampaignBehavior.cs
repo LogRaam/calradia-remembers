@@ -277,6 +277,7 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.StoryLog.WriteSessionHeader", StoryLog.WriteSessionHeader);
          SafeRun.Step("OnSessionLaunched.CaptiveEncounterService.ResetOnSessionLaunch", CaptiveEncounterService.ResetOnSessionLaunch);
          SafeRun.Step("OnSessionLaunched.LetterWindowManager.ResetForSession", Letters.LetterWindowManager.ResetForSession); // C4: never inherit a dead window from a prior session
+         SafeRun.Step("OnSessionLaunched.ChatManager.ResetForSession", Chat.ChatManager.ResetForSession); // same reason, and the chat had no such reset until a player lost every conversation to a ghost (2026-09-08)
          SafeRun.Step("OnSessionLaunched.LetterMutationQueue.Clear", Letters.LetterMutationQueue.Clear); // 3.1: drop closures captured against a prior campaign's objects
          SafeRun.Step("OnSessionLaunched.DisplayLoadedProfiles", DisplayLoadedProfiles);
          SafeRun.Step("OnSessionLaunched.UpgradeLegacyProfiles", UpgradeLegacyProfiles);

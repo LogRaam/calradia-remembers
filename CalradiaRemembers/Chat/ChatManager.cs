@@ -148,6 +148,38 @@ namespace CalradiaRemembers.Chat
       public static bool IsOpen => _activeLayer != null;
 
       /// <summary>
+      ///   Whether the recorded layer is still attached to the screen it was opened on. False means the screen
+      ///   went away without our close ever running, which is what turns a single failure into a dead feature.
+      ///   Fails SAFE: an unreadable screen counts as gone, so the worst case is one extra teardown, never a
+      ///   session with no conversations in it.
+      /// </summary>
+      private static bool LayerIsOnHostScreen
+      {
+         get
+         {
+            try { return _activeLayer != null && _hostScreen?.Layers != null && _hostScreen.Layers.Contains(_activeLayer); }
+            catch { return false; }
+         }
+      }
+
+      /// <summary>
+      ///   Session-launch reset, mirroring LetterWindowManager.ResetForSession: never inherit a window from a
+      ///   prior session. Drops our own references WITHOUT touching the engine objects, which belong to a screen
+      ///   that session or the load already tore down.
+      /// </summary>
+      public static void ResetForSession()
+      {
+         if (IsOpen) ModLog.Compat("ChatManager: a chat was still recorded as open at session launch; clearing it.");
+
+         _activeLayer = null;
+         _activeMovieId = null;
+         ActiveViewModel = null;
+         _hostScreen = null;
+         _chatScreen = null;
+         _timeControlModeSaved = false;
+      }
+
+      /// <summary>
       ///   Keeps the chat from starving any game screen that opens over it of input. The chat is a high-order
       ///   modal focus layer; without this, the alt-tab pause menu, the encyclopedia, or a native popup would
       ///   appear but not respond, because the chat holds an exclusive focus + input grab. Pumped every frame
@@ -309,11 +341,25 @@ namespace CalradiaRemembers.Chat
 
       public static void Open(string npcName = null, bool forceClassicSkin = false)
       {
-         if (IsOpen)
+         // "Already open" must mean a window that is actually THERE. A layer recorded against a screen that has
+         // since gone is a ghost, and refusing on its account cost a player every conversation for the rest of
+         // his session (Nexus report 2026-09-08: a companion approached in a village, no window came, and from
+         // then on "no CR chat windows with anyone work unless I fully quit and restart the game").
+         if (ChatWindowLivenessPolicy.ShouldRefuseOpen(IsOpen, LayerIsOnHostScreen))
          {
             ModLog.Info("ChatManager.Open called but chat is already open.");
 
             return;
+         }
+
+         if (ChatWindowLivenessPolicy.IsGhost(IsOpen, LayerIsOnHostScreen))
+         {
+            // Always recorded, even with logging off: this is the fingerprint of the bug above, and the next
+            // report of it should arrive with the evidence already in hand.
+            ModLog.Compat("ChatManager.Open: a chat layer was recorded but is no longer on its host screen. "
+                          + "Clearing the stale state and opening anew, rather than refusing every conversation until restart.");
+            SafeStep(RestoreTime, "RestoreTime (ghost cleanup)"); // a ghosted open may have left the clock paused
+            FreeResources();
          }
 
          _hostScreen = ScreenManager.TopScreen;
