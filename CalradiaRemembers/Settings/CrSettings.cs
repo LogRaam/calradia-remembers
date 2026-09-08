@@ -169,6 +169,15 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> ContentmentPacing { get; set; } =
          new(new[] {"Forgiving", "Balanced", "Exacting"}, 1); // default: Balanced
 
+      [SettingPropertyDropdown("Companions Asking For A Word", RequireRestart = false, Order = 2,
+         HintText = "How often a travelling companion asks for a private word when they have something worth " +
+                    "raising (a rumour, a grievance, an old memory...): both on entering a settlement AND, new, " +
+                    "while simply on the road. Never switches it off entirely, road and settlement alike. " +
+                    "Occasionally is the shipped feel, now with an added modest chance on the road.")]
+      [SettingPropertyGroup("Companions", GroupOrder = 6)]
+      public Dropdown<string> CompanionAudiencePacing { get; set; } =
+         new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's settlement feel, plus a road chance)
+
       [SettingPropertyText("API Key (optional)", RequireRestart = false, Order = 0,
          HintText = "Leave blank for keyless local servers like LM Studio or Ollama. Fill it in only if your server " +
                     "requires one. Applies immediately.")]

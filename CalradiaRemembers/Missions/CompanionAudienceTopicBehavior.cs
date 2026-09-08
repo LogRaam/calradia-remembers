@@ -30,6 +30,20 @@
 // enemy castle, and answering inside that hostile flow closed the window and dumped the player into the
 // location's encounter). EntryIsPeaceful feeds SettlementAudienceSafetyPolicy — a private word waits for a
 // peaceful visit, and the fief-audience pass (which only runs from here) is gated with it.
+// 08/09/2026: player report (Nexus): "unless I remember to routinely engage with my travel buddies, they never
+// say anything on their own." SettlementEntered alone starves a player who travels for long stretches without
+// visiting a town. Gabriel's ruling adds a ROAD trigger on the daily tick (OnDailyTick), gated by the SAME
+// shared cooldown and topic-found requirement as the settlement path (both now flow through
+// FindEligibleAudience, so there is one source of truth for "may a popup fire", not two diverging copies), plus
+// its own RoadIsSafeForPrivateWord safety read (RoadAudienceSafetyPolicy) for hazards a scheduled daily check
+// can land in that a deliberate settlement arrival never could: mid-battle, mid-siege, inside a menu, a
+// prisoner's cell. Both the shared cooldown and the road's own daily chance are now player-tunable
+// (CompanionAudiencePacingRules, read live via ModSettings.CompanionAudienceCadence), mirroring
+// InterceptionPacingRules for lords approaching on the road; Occasionally keeps the shipped 14-day cooldown
+// unchanged (CompanionAudiencePacingRules.DefaultCooldownDays), so an existing player's settlement feel does
+// not shift, only gains a modest new road chance. Two things player feedback raised but Gabriel did NOT ratify
+// stay out of scope here: a "no particular reason" small-talk topic, and a per-companion (rather than global)
+// cooldown.
 
 #region
 
@@ -46,8 +60,10 @@ using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
@@ -57,10 +73,11 @@ using TaleWorlds.MountAndBlade;
 namespace CalradiaRemembers.Missions
 {
    /// <summary>
-   ///   On the player's party ENTERING A SETTLEMENT, scans the roster for a found-topic audience, gated by
-   ///   ONE global cooldown, and opens the popup for the single strongest topic found anywhere in the party.
-   ///   Refusing costs nothing beyond the shared cooldown already starting the moment the popup is raised,
-   ///   never a grudge, never a happiness hit.
+   ///   On the player's party ENTERING A SETTLEMENT, or (since 08/09/2026) on a plain daily tick while simply
+   ///   TRAVELLING, scans the roster for a found-topic audience, gated by ONE shared cooldown (scaled by the
+   ///   player's own pacing dial, <see cref="CompanionAudiencePacingRules" />), and opens the popup for the
+   ///   single strongest topic found anywhere in the party. Refusing costs nothing beyond the shared cooldown
+   ///   already starting the moment the popup is raised, never a grudge, never a happiness hit.
    /// </summary>
    public sealed class CompanionAudienceTopicBehavior : CampaignBehaviorBase
    {
@@ -99,7 +116,10 @@ namespace CalradiaRemembers.Missions
       private static int Today => (int) CampaignTime.Now.ToDays;
 
       public override void RegisterEvents()
-         => CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
+      {
+         CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
+         CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+      }
 
       /// <summary>Runs the offer pass on demand (console test path), as if the player had just entered a settlement. Still respects the global cooldown.</summary>
       public void RunTick() => TryOfferAudience();
@@ -325,7 +345,7 @@ namespace CalradiaRemembers.Missions
       private int CooldownDaysRemaining()
          => _lastAskedDay == NeverAsked
             ? 0
-            : Math.Max(0, CompanionAudienceTopicPolicy.GlobalCooldownDays - (Today - _lastAskedDay));
+            : Math.Max(0, CompanionAudiencePacingRules.CooldownDays(ModSettings.CompanionAudienceCadence) - (Today - _lastAskedDay));
 
       /// <summary>The strongest (companion, topic) anywhere in the party, or null when nothing qualifies.</summary>
       private (Hero Companion, CompanionAudienceTopicScan Scan)? FindBestAcrossRoster()
@@ -392,7 +412,7 @@ namespace CalradiaRemembers.Missions
          });
       }
 
-      private bool InCooldown() => _lastAskedDay != NeverAsked && Today - _lastAskedDay < CompanionAudienceTopicPolicy.GlobalCooldownDays;
+      private bool InCooldown() => _lastAskedDay != NeverAsked && Today - _lastAskedDay < CompanionAudiencePacingRules.CooldownDays(ModSettings.CompanionAudienceCadence);
 
       private void ClearPending()
       {
@@ -472,23 +492,107 @@ namespace CalradiaRemembers.Missions
       }
 
       /// <summary>
-      ///   The shared offer logic behind both the real trigger (OnSettlementEntered) and the console test
-      ///   path (RunTick): gated by contentment + the GLOBAL cooldown only, no second random roll on top,
-      ///   the cooldown already keeps repeated settlement visits inside its window from offering anything twice.
-      ///   Returns true only when a popup was actually raised, so OnSettlementEntered knows whether the
-      ///   fief-audience pass may still run this same entry.
+      ///   08/09/2026: the daily ROAD trigger (player report: companions never speak up unless the player
+      ///   enters a settlement). Off entirely at <see cref="CompanionAudiencePacing.Never" />; otherwise rolls
+      ///   the pacing dial's own daily chance (<see cref="CompanionAudiencePacingRules.DailyChancePercent" />)
+      ///   and, only on a hit, checks <see cref="RoadIsSafeForPrivateWord" /> before falling into the SAME
+      ///   <see cref="FindEligibleAudience" /> gate the settlement trigger uses (contentment, the shared
+      ///   cooldown, a real topic found). One source of truth for "may a popup fire" either way.
+      /// </summary>
+      private void OnDailyTick()
+      {
+         try
+         {
+            if (CompanionAudiencePacingRules.IsOff(ModSettings.CompanionAudienceCadence)) return; // the road is the player's own
+            if (MBRandom.RandomInt(100) >= CompanionAudiencePacingRules.DailyChancePercent(ModSettings.CompanionAudienceCadence)) return;
+            if (!RoadIsSafeForPrivateWord()) return;
+
+            TryOfferAudience();
+         }
+         catch (Exception ex) { ModLog.Error($"[AUDIENCE_TOPIC] road daily tick failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Gathers the engine facts for <see cref="RoadAudienceSafetyPolicy.IsSafeForPrivateWord" />, the road
+      ///   trigger's own hazard read (deliberately separate from <see cref="EntryIsPeaceful" />, which answers a
+      ///   different question: whether a SETTLEMENT being entered is hostile). A scheduled daily check can land
+      ///   in far more states than a deliberate arrival ever could, so this mirrors InterceptionBehavior's own
+      ///   "PlayerIsFreeOnMap" reasoning (the analogous "is it safe to raise something with the player right now"
+      ///   read for a lord's road pursuit). Fails CLOSED on a read error, the opposite of EntryIsPeaceful: this
+      ///   check runs unattended, every single day, so a broken read costs at most one quiet day, whereas failing
+      ///   open here risks popping an inquiry mid-battle or mid-conversation on the one day the read breaks.
+      /// </summary>
+      private static bool RoadIsSafeForPrivateWord()
+      {
+         try
+         {
+            MobileParty main = MobileParty.MainParty;
+
+            return RoadAudienceSafetyPolicy.IsSafeForPrivateWord(
+               inMission: Mission.Current != null,
+               inConversation: Hero.OneToOneConversationHero != null,
+               playerIsPrisoner: Hero.MainHero?.IsPrisoner ?? true,
+               inSettlement: Hero.MainHero?.CurrentSettlement != null,
+               inMapEvent: main?.MapEvent != null,
+               inSiegeEvent: main?.SiegeEvent != null,
+               inEncounter: PlayerEncounter.Current != null,
+               inMenu: Campaign.Current?.CurrentMenuContext != null,
+               chatOpen: ChatManager.IsOpen,
+               chatStaging: ChatSceneStager.IsStaging || CouncilConversationStager.IsStaging);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[AUDIENCE_TOPIC] road safety check failed, skipping the road offer this tick: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
+      }
+
+      /// <summary>
+      ///   The shared offer logic behind the real settlement trigger (OnSettlementEntered), the real road
+      ///   trigger (OnDailyTick), and the console test path (RunTick): gated by contentment + the shared
+      ///   cooldown only, no second random roll on top for the settlement path (the cooldown already keeps
+      ///   repeated visits inside its window from offering anything twice); the road path adds its own daily
+      ///   dice roll and safety read BEFORE ever reaching here. Returns true only when a popup was actually
+      ///   raised, so OnSettlementEntered knows whether the fief-audience pass may still run this same entry.
       /// </summary>
       private bool TryOfferAudience()
       {
-         if (!ModSettings.CompanionContentment) return false;
-         if (InCooldown()) return false;
-
-         (Hero Companion, CompanionAudienceTopicScan Scan)? found = FindBestAcrossRoster();
+         (Hero Companion, CompanionAudienceTopicScan Scan)? found = FindEligibleAudience();
          if (found == null) return false; // silence is the default: nothing worth saying was found anywhere in the roster
 
          RequestAudience(found.Value.Companion, found.Value.Scan);
 
          return true;
+      }
+
+      /// <summary>
+      ///   cr.testall seam: the SAME contentment + shared-cooldown + topic-found decision <see cref="TryOfferAudience" />
+      ///   makes, without ever opening the popup or starting the cooldown clock, so a test can prove the gates
+      ///   without a live UI side effect.
+      /// </summary>
+      internal bool DebugWouldOfferAudience() => FindEligibleAudience() != null;
+
+      /// <summary>
+      ///   cr.testall seam: replays the road trigger's own safety gate PLUS the shared offer decision, exactly
+      ///   what <see cref="OnDailyTick" /> checks after its dice roll lands, without ever rolling that die and
+      ///   without opening the popup (see <see cref="DebugWouldOfferAudience" />). Proves the road trigger's
+      ///   wiring reaches the real gates without depending on RNG or a live inquiry.
+      /// </summary>
+      internal bool DebugRoadTriggerWouldFire() => RoadIsSafeForPrivateWord() && DebugWouldOfferAudience();
+
+      /// <summary>The contentment + shared-cooldown + topic-found gate common to every offer path (settlement, road, console test).</summary>
+      private (Hero Companion, CompanionAudienceTopicScan Scan)? FindEligibleAudience()
+      {
+         // "Never" must mean never, on EVERY path. The dial's own documentation promises silence "on the road or
+         // entering a settlement", but the check lived only in the road tick, so a player who switched the
+         // feature off kept being asked for a word in towns: the one place the setting was meant to reach.
+         // Guarded here, in the single decision all three callers (settlement, road, console) share.
+         if (CompanionAudiencePacingRules.IsOff(ModSettings.CompanionAudienceCadence)) return null;
+         if (!ModSettings.CompanionContentment) return null;
+         if (InCooldown()) return null;
+
+         return FindBestAcrossRoster();
       }
 
       private void RequestAudience(Hero h, CompanionAudienceTopicScan scan)

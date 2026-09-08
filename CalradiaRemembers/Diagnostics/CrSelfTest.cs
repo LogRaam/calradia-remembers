@@ -206,6 +206,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("companion_gratitude", Severity.Light, "New sixth found-topic (design brief 2026-08-20): a content companion thanking the player for a specific kindness, purely warm, never a request/bargain. Seeds a real Appreciation via the real TryPlant gate on a content companion, drives the REAL CompanionAudienceTopicResolver.Scan, and asserts it HOLDS with the seeded detail; asserts the SAME appreciation's own key, once marked spent, WITHHOLDS it (spend-once); and asserts an otherwise-identical but unhappy (Disgruntled) companion never holds it either (the happiness gate). Restores the companion's original happiness afterwards; does not remove the seeded appreciation (mirrors appreciation_flow/appreciation_repeat, which have no removal API to call)", TestCompanionGratitude),
          new SelfTest("companion_scheme_warning", Severity.Light, "New seventh found-topic (design brief 2026-08-20 follow-up): a loyal companion warning the player of a secret plot against them, purely a warning, never a request/bargain, and never a live LLM call. Seeds a real Scheme against Hero.MainHero via the real ForcePlot launch path on a content companion, drives the REAL CompanionAudienceTopicResolver.Scan, and asserts it HOLDS with the plotter named in the detail; asserts the SAME plot's own key, once marked spent, WITHHOLDS it (spend-once); and asserts an otherwise-identical but unhappy (Disgruntled) companion never holds it either (the happiness gate). Restores the companion's original happiness AND removes the seeded scheme from the live ledger afterwards (unlike an appreciation, a live scheme carries real feud/rumour machinery, so none may survive this test)", TestCompanionSchemeWarning),
          new SelfTest("companion_ambition", Severity.Light, "New eighth found-topic (design brief 2026-08-20 follow-up 2): a content, ambitious companion voicing ONE of four bound ambitions, each resolved by an EXISTING action verb, so a granted ambition executes nothing itself, unlike Gratitude/SchemeWarning. Drives the REAL CompanionAudienceTopicResolver.Scan against a real companion already riding in the main party (made comfortably Content), and asserts it HOLDS with a non-empty detail (the Command ambition holds trivially for any main-party companion, so no extra engine-state seeding is needed); asserts the SAME companion, asked again within CompanionAmbitionPolicy.CooldownDays, WITHHOLDS it (the per-companion cooldown); and asserts the identical companion, made Disgruntled, never holds one either (the happiness gate). Restores the companion's original happiness afterwards", TestCompanionAmbition),
+         new SelfTest("companion_road_audience", Severity.Light, "Mechanical: the ROAD trigger (player report 2026-09-08: 'unless I remember to routinely engage with my travel buddies, they never say anything on their own', since the found-topic audience only ever offered on SettlementEntered). Asserts the pacing dial's Never setting switches the road trigger's own gate (DebugRoadTriggerWouldFire) off deterministically, whatever the live roster/cooldown state; asserts Occasionally's shared cooldown still equals the shipped CompanionAudienceTopicPolicy.GlobalCooldownDays (the 'default reproduces today's feel' requirement); and, with the dial restored, drives the REAL RoadIsSafeForPrivateWord + DebugWouldOfferAudience chain OnDailyTick itself calls (no dice roll, no popup, no mutation), reporting whatever the live map state answers. Restores the MCM dial's prior index afterwards", TestCompanionRoadAudience),
          new SelfTest("fief_audience", Severity.Light, "Player wish (Fakade, roadmap): road-only InterceptionBehavior needs a field party to move, so anyone without one (ladies, notables, a garrisoned lord standing around in a fief) never got a turn. Finds a real partyless hero standing in a live settlement; asserts the pure gate (FiefAudiencePolicy.ChooseFiefValid) raises nothing for a no-reason fact set; seeds a fresh, high-reach, player-involving WorldEvent so the SAME live fact HeardRecentPlayerDeed the road path reads is real, not fabricated; drives the REAL candidate scan (FiefAudienceBehavior.DebugScanAndStamp, never the live UI inquiry, never an LLM call) and asserts it offers that NPC with a fief-valid trigger; then asserts the SAME NPC asked again is WITHHELD by the per-NPC cooldown the offer itself just stamped. Removes the seeded WorldEvent and clears the stamped cooldown afterwards", TestFiefAudience),
          new SelfTest("interception_grudge_appreciation", Severity.Light, "Two new proactive channels for the mod's two signature event-anchored affect ledgers (design brief 2026-08-20): a lord who holds a live, significant grudge against the PLAYER rides out/asks for a word to air it (Grudge), and one who holds a significant, recent appreciation of the player does likewise to acknowledge it (AppreciationOwed), on BOTH the road (InterceptionBehavior) and the fief-audience channel (FiefAudienceBehavior), since both reuse the SAME InterceptionPolicy.Choose. Seeds a real Grudge (TryPlant) on a clean-slate lord and asserts InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer finds it (false before planting), the pure InterceptionPolicy.Choose surfaces Grudge, and Grudge is fief-valid; does the same for a real Appreciation and AppreciationOwed; then asserts the priority pin (Grudge outranks AppreciationOwed when both hold on the same facts, mirroring InterceptionPolicyTests). Removes the seeded grudge afterwards (mirrors appreciation_flow/companion_gratitude: no removal API exists for an appreciation, so it is left, exactly like every other appreciation-seeding self-test)", TestInterceptionGrudgeAppreciation),
          new SelfTest("interception_nemesis_bounty", Severity.Light, "A third proactive channel, the announcement/discoverability layer on top of the EXISTING scripted hero_main_options nemesis bounty offer (roadmap piece 2, player wish, subsumes the 'tavern rumour: Coll raids near X' wish since the lord tells the player directly): a lord whose region is plagued by a nemesis he is eligible to bounty seeks the player out to name him and where he operates, never settling the bounty itself in this channel. Mints a nemesis anchored to a REAL lord's own region (MintBountyEligibleNemesis) and asserts InterceptionBehavior.HasNemesisBountyToOffer reuses the SAME NemesisBountyDialogFlow.FindEligibleNemesisFor gate the scripted offer uses (never a re-derived one), that the Detail names the nemesis, that the pure InterceptionPolicy.Choose surfaces NemesisBounty, that it is fief-valid, and the priority pin (a live grudge against the PLAYER still outranks it, mirroring InterceptionPolicyTests). Marks the minted identity dead afterwards", TestInterceptionNemesisBounty),
@@ -10576,6 +10577,65 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             CompanionHappinessService.Set(subject, originalHappiness);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   MECHANICAL (no LLM, no live UI inquiry): the ROAD trigger (player report, 2026-09-08: "unless I
+      ///   remember to routinely engage with my travel buddies, they never say anything on their own", since the
+      ///   found-topic audience only ever offered on SettlementEntered). Drives CompanionAudienceTopicBehavior's
+      ///   real <c>DebugRoadTriggerWouldFire</c>/<c>DebugWouldOfferAudience</c> seams, the exact private methods
+      ///   OnDailyTick calls after its own dice roll lands, so the test proves the real wiring without ever
+      ///   rolling that die or popping a live inquiry. Asserts the pacing dial's Never setting switches the
+      ///   gate off deterministically (Gabriel's ruling: "Never must switch the whole thing off, road and
+      ///   settlement alike"), whatever the live roster or cooldown state; asserts Occasionally's shared
+      ///   cooldown still equals the shipped CompanionAudienceTopicPolicy.GlobalCooldownDays (the "default
+      ///   reproduces today's feel" requirement, guarding against the dial's numbers drifting apart from the
+      ///   constant they are meant to scale); then, with the dial restored to its prior value, reports whatever
+      ///   the live map state answers for the real safety-gated offer decision (informational only: cr.testall
+      ///   can run from a state the road trigger would correctly refuse, e.g. mid-mission, so this is a NOTE,
+      ///   never a hard assertion). Restores the MCM dial's prior index in a finally.
+      /// </summary>
+      private static string TestCompanionRoadAudience(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("companion_road_audience");
+
+         CompanionAudienceTopicBehavior audience = CompanionAudienceTopicBehavior.Instance;
+         if (t.Abort(audience == null, "CompanionAudienceTopicBehavior.Instance is not wired")) return t.Line();
+
+         CrSettings settings = CrSettings.Instance;
+         if (t.Skip(settings?.CompanionAudiencePacing == null, "MCM settings not loaded")) return t.Line();
+
+         int priorIndex = settings.CompanionAudiencePacing.SelectedIndex;
+
+         try
+         {
+            // Gabriel's ruling: "Never must switch the whole thing off, road and settlement alike." Index 0 is
+            // Never (CrSettings.CompanionAudiencePacing's own declared order); this must refuse the road offer
+            // no matter what the live roster or cooldown holds, since CompanionAudiencePacingRules.IsOff short-
+            // circuits before either is ever read.
+            settings.CompanionAudiencePacing.SelectedIndex = 0;
+            t.Expect("neverSwitchesTheRoadTriggerOffToo", audience.DebugRoadTriggerWouldFire(), false);
+
+            // Index 2 is Occasionally. The load-bearing regression guard for "the default reproduces today's
+            // feel": if this ever drifts from the shipped constant, every existing player's companions would go
+            // quiet for a different stretch than the one they already know, for a dial they never touched.
+            settings.CompanionAudiencePacing.SelectedIndex = 2;
+            t.Expect("occasionallyKeepsTheShippedFourteenDayCooldown",
+               CompanionAudiencePacingRules.CooldownDays(ModSettings.CompanionAudienceCadence),
+               CompanionAudienceTopicPolicy.GlobalCooldownDays);
+
+            // Informational only: proves the wiring reaches RoadIsSafeForPrivateWord + the shared offer gate
+            // without asserting a specific answer, since cr.testall's own live state (mid-mission, a stray
+            // conversation, etc.) is outside this test's control.
+            bool wouldFireNow = audience.DebugRoadTriggerWouldFire();
+            t.Note($"road offer right now (Occasionally, live map state): {(wouldFireNow ? "would fire" : "would not fire")}");
+         }
+         finally
+         {
+            settings.CompanionAudiencePacing.SelectedIndex = priorIndex;
          }
 
          return t.Line();

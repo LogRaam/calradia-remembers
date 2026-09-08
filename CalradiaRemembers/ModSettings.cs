@@ -381,6 +381,31 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   How often a travelling companion asks for a private word, on the road as well as entering a
+      ///   settlement (player report, 2026-09-08: "unless I remember to routinely engage with my travel
+      ///   buddies, they never say anything on their own"). Named distinctly from the
+      ///   <see cref="CompanionAudiencePacing" /> enum it returns (same reason <see cref="LordsApproaching" />
+      ///   is not called InterceptionPacing) so the getter body never has to fight its own name for the type.
+      ///   Read live from the MCM menu; Occasionally (the shipped settlement feel, plus a road chance) when MCM
+      ///   has not loaded, so nothing changes for a player who never touches it.
+      /// </summary>
+      public static CompanionAudiencePacing CompanionAudienceCadence
+      {
+         get
+         {
+            string v = CrSettings.Instance?.CompanionAudiencePacing?.SelectedValue;
+
+            switch (v)
+            {
+               case "Never": return CompanionAudiencePacing.Never;
+               case "Rarely": return CompanionAudiencePacing.Rarely;
+               case "Often": return CompanionAudiencePacing.Often;
+               default: return CompanionAudiencePacing.Occasionally;
+            }
+         }
+      }
+
+      /// <summary>
       ///   How the OpenAI-Compatible endpoint shapes its sampling parameters. Read live from the MCM menu;
       ///   falls back to <c>Auto</c> (detect reasoning models from the id) when MCM has not loaded. Lets a
       ///   player force the classic or reasoning contract for a strict endpoint (e.g. api.openai.com on a

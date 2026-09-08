@@ -52,6 +52,9 @@ namespace CalradiaRemembers.Logic
         // their own timer would still produce a popup every few days from SOMEONE, exactly the "oh no, not
         // him again" failure mode the design rule exists to avoid. One shared clock means the roster as a
         // whole asks for a private word at a human pace, however many companions are in the party.
+        // 08/09/2026: this is now also the "Occasionally" value CompanionAudiencePacingRules.CooldownDays
+        // returns, and the source CompanionAudiencePacingRules.DefaultCooldownDays reads from, so the player's
+        // pacing dial scales this number rather than replacing it with an unrelated one.
         public const int GlobalCooldownDays = 14;
 
         /// <summary>
