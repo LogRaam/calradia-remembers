@@ -75,6 +75,20 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public List<string> Kinks { get; set; }
 
+        /// <summary>
+        ///   Optional authored romantic-preference lock (the RomanticPreference names: MonogamousStrict,
+        ///   MonogamousFlexible, Polyamorous, Casual, Devoted, Possessive, Independent, Reserved, SlowBurn,
+        ///   Intense, Dominant, Submissive, Switch). When present it REPLACES the rolled preferences.
+        ///   <para>
+        ///     Player request, 2026-09-07. Preferences are rolled once from a pool the author could not reach,
+        ///     and the only lever was to lie about a trait. Since polyamory was then decoupled from honour and
+        ///     bound to the culture, even that crooked lever is gone, so an author who wants ONE polyamorous
+        ///     character in a strict culture has no other way. Null means the field was left out (keep the
+        ///     rolled preferences); an empty list is a deliberate lock to none.
+        ///   </para>
+        /// </summary>
+        public List<string> Preferences { get; set; }
+
         /// <summary>True when this override sets at least one trait.</summary>
         public bool HasTraits =>
             Valor.HasValue || Honor.HasValue || Mercy.HasValue || Generosity.HasValue || Calculating.HasValue;
@@ -102,6 +116,9 @@ namespace CalradiaRemembers.Logic
         /// <summary>The author-written kink names that match no real kink (typos), in written order; empty when there are none.</summary>
         public IReadOnlyList<string> UnrecognizedKinkNames => KinkParser.Unrecognized(Kinks);
 
+        /// <summary>The author-written preference names that name no usable preference, in written order; empty when there are none.</summary>
+        public IReadOnlyList<string> UnrecognizedPreferenceNames => RomanticPreferenceParser.Unrecognized(Preferences);
+
         /// <summary>
         ///   True when the override carries ANY field the author actually filled in: traits, a kink lock, a
         ///   backstory, a conviction, or orientation TEXT (recognized or not). A character defined with ONLY a
@@ -113,7 +130,7 @@ namespace CalradiaRemembers.Logic
         ///   exactly like the original bug.
         /// </summary>
         public bool HasAnyAuthoredContent =>
-            HasTraits || ParsedKinks != null || HasBackstory || HasConviction || HasOrientationText;
+            HasTraits || ParsedKinks != null || ParsedPreferences != null || HasBackstory || HasConviction || HasOrientationText;
 
         /// <summary>
         ///   Human-readable problems with what the author wrote: values that are present but will be ignored
@@ -128,6 +145,10 @@ namespace CalradiaRemembers.Logic
             IReadOnlyList<string> badKinks = UnrecognizedKinkNames;
             if (badKinks.Count > 0)
                 yield return $"kink name(s) not recognized and ignored: {string.Join(", ", badKinks)} (see cr.kinks for the valid names)";
+
+            IReadOnlyList<string> badPreferences = UnrecognizedPreferenceNames;
+            if (badPreferences.Count > 0)
+                yield return $"romantic preference(s) not recognized and ignored: {string.Join(", ", badPreferences)} (try: MonogamousStrict, MonogamousFlexible, Polyamorous, Casual, Devoted, Possessive, Independent, Reserved, SlowBurn, Intense, Dominant, Submissive, Switch)";
         }
 
         /// <summary>The authored orientation parsed to an enum, or null when unset/unrecognized.</summary>
@@ -139,6 +160,14 @@ namespace CalradiaRemembers.Logic
         ///   deliberate lock to no kinks at all, and callers must tell the two apart.
         /// </summary>
         public IReadOnlyList<Kink> ParsedKinks => Kinks == null ? null : KinkParser.Parse(Kinks);
+
+        /// <summary>
+        ///   The authored preference lock, parsed. Null ONLY when <see cref="Preferences" /> itself is null (the
+        ///   author omitted the field): a present-but-empty list parses to an empty (non-null) list, a deliberate
+        ///   lock to none, and callers must tell the two apart, exactly as with <see cref="ParsedKinks" />.
+        /// </summary>
+        public IReadOnlyList<RomanticPreference> ParsedPreferences =>
+            Preferences == null ? null : RomanticPreferenceParser.Parse(Preferences);
 
         /// <summary>
         ///   The authored trait levels that are actually set, each clamped to the engine band, in a

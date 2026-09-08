@@ -41,6 +41,15 @@
 //                 Objectification, PetPlay, Praise, ImpactPlay, SensoryDeprivation, FearPlay, MasterSlave,
 //                 Breeding, Training, CorruptionKink, Prize. (Also listed live by the cr.kinks console command.)
 //
+//   "preferences" OPTIONAL. A list of romantic-preference names that LOCKS how this character loves, instead of
+//                 the usual roll. This is how you write ONE polyamorous character into a strictly monogamous
+//                 culture, or one devoted romantic into a worldly one. An empty list ("preferences": []) is a
+//                 deliberate lock to none; omit the field to leave the rolled preferences alone.
+//                 Valid names (case-insensitive): MonogamousStrict, MonogamousFlexible, Polyamorous, Casual,
+//                 Devoted, Possessive, Independent, Reserved, SlowBurn, Intense, Dominant, Submissive, Switch.
+//                 NOTE: whether a character MAY be polyamorous by default comes from their culture, in
+//                 jealousy_cultures.json, not from their Honor trait. This field overrides that for one person.
+//
 [
   // {
   //   "hero": "Derthert",
@@ -49,6 +58,7 @@
   //   "calculating": 2,
   //   "backstory": "A Vlandian king who trusts ledgers more than men, and remembers every debt.",
   //   "conviction": "He is convinced the player's clan is quietly plotting to unseat him, and reads every kindness as a move in that game.",
-  //   "kinks": ["Dominance", "Praise"]
+  //   "kinks": ["Dominance", "Praise"],
+  //   "preferences": ["MonogamousStrict", "Possessive"]
   // }
 ]

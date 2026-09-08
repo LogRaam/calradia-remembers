@@ -169,6 +169,17 @@ namespace CalradiaRemembers.Lore
             ModLog.Info($"[OVERRIDE] {profile.Name} kinks locked to [{string.Join(", ", authoredKinks)}] by authored char data.");
          }
 
+         // Same lock, same reason as the kinks above: the reload re-derives the profile from current traits, so
+         // an authored preference has to be re-applied here or it is wiped on the next cr.reload_lore.
+         IReadOnlyList<NpcMemoryService.Core.Models.RomanticPreference> authoredPreferences =
+            CharacterOverrideLoader.PreferencesFor(hero);
+         if (authoredPreferences != null)
+         {
+            profile.Romantic.Preferences.Clear();
+            profile.Romantic.Preferences.AddRange(authoredPreferences);
+            ModLog.Info($"[OVERRIDE] {profile.Name} romantic preferences locked to [{string.Join(", ", authoredPreferences)}] by authored char data.");
+         }
+
          store.Set(profile);
       }
 

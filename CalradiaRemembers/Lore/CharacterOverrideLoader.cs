@@ -104,6 +104,14 @@ namespace CalradiaRemembers.Lore
       public static IReadOnlyList<NpcMemoryService.Core.Models.Kink> KinksFor(Hero hero)
          => ModSettings.UseCustomTraits ? For(hero)?.ParsedKinks : null;
 
+      /// <summary>
+      ///   The authored romantic-preference lock for this hero, or null when unset or the custom-traits toggle
+      ///   is off. Mirrors <see cref="KinksFor" />, and like it survives cr.reload_lore, which otherwise
+      ///   re-derives a profile from current traits and would wipe the author's choice.
+      /// </summary>
+      public static IReadOnlyList<NpcMemoryService.Core.Models.RomanticPreference> PreferencesFor(Hero hero)
+         => ModSettings.UseCustomTraits ? For(hero)?.ParsedPreferences : null;
+
       /// <summary>The override that applies to <paramref name="hero" />, or null.</summary>
       public static CharacterOverride For(Hero hero)
          => hero == null
