@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Companions;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
@@ -43,6 +44,19 @@ namespace CalradiaRemembers.Dialogue
    /// </summary>
    public sealed class LlmDialogFlow
    {
+      // Companion-briefing pillar (2026-09-07): the input token for the fixed NPC reply that follows the
+      // player's request for a private word with his own people. Its own token, distinct from GreetingToken,
+      // since its reply is a single fixed line (no relation-gated mood variants) and its output closes the
+      // vanilla window outright (see Register) rather than opening the main chat.
+      private const string BriefCompanionsToken = "calradia_remembers_brief_companions";
+
+      // Deliberately courteous and ordinary: asking to step aside with one's own people is socially normal, so
+      // it breeds no suspicion (the design property the whole feature rests on, see LlmDialogFlow's own
+      // header for the two rejected designs this replaces). The lord's reaction is the vanilla reply below,
+      // never a bespoke NPC penalty (Gabriel's ruling #1).
+      private const string BriefCompanionsOptionText = "Grant me a moment first, to speak with my own people.";
+      private const string BriefCompanionsReplyText = "Of course. Take what time you need.";
+
       private const string GreetColdText = "You. State your business, and be brief about it.";
 
       // Dialogue token for the relation-gated greeting that sets the NPC's
@@ -108,6 +122,18 @@ namespace CalradiaRemembers.Dialogue
                DeliverLetterAndOpenChat,
                115); // above the open-chat option
 
+            // 0.5. Companion-briefing pillar: ask openly for a moment with one's own people, BEFORE "A word
+            //      with you...", gated so it never appears as dead noise when the player has no companion to
+            //      draw aside (ruling #4). Sits above the open-chat option so the player reads it first.
+            starter.AddPlayerLine(
+               $"calradia_remembers_brief_companions_{i}", // ID unique per hub
+               hub,
+               BriefCompanionsToken,
+               BriefCompanionsOptionText,
+               CanBriefCompanions,
+               null,
+               112);
+
             // 1. Player opens the interaction → routes to the greeting token so the
             //    NPC can react with an expression matching the current relation.
             starter.AddPlayerLine(
@@ -119,6 +145,17 @@ namespace CalradiaRemembers.Dialogue
                null,
                110); // priorité haute pour apparaître en haut
          }
+
+         // 1.5. Companion-briefing pillar: the lord's fixed, courteous reply. Output is the real vanilla
+         //      "close_window" token (not a dead-end placeholder): the conversation ends cleanly HERE, whatever
+         //      the companion picker the consequence opens goes on to do (including the player picking nobody),
+         //      so there is never a hung dialogue window waiting on a popup that may not open a chat at all.
+         starter.AddDialogLine(
+            "calradia_remembers_brief_companions_reply",
+            BriefCompanionsToken, "close_window",
+            BriefCompanionsReplyText,
+            null,
+            OnPlayerRequestedCompanionBriefing);
 
          // 2. NPC greeting, gated by relation. The trailing [if:convo_*] tag is a
          //    native facial-animation directive — the engine applies it to the
@@ -286,6 +323,35 @@ namespace CalradiaRemembers.Dialogue
       {
          try { return hero.GetTraitLevel(trait); }
          catch { return 0; }
+      }
+
+      /// <summary>
+      ///   Ruling #4 gate: the option shows only when the player has a companion physically able to be drawn
+      ///   aside for this word (the same pool the follow-up conversation's own witness picker offers). Does NOT
+      ///   call <see cref="IsHeroEligible" />'s own entry-trace side effect: that diagnostic is scoped to the
+      ///   MAIN "A word with you" option, and double-recording it here under a different meaning would muddy it.
+      /// </summary>
+      private bool CanBriefCompanions()
+      {
+         var hero = Hero.OneToOneConversationHero;
+
+         if (hero == null || !hero.IsAlive || hero == Hero.MainHero) return false;
+
+         return CompanionBriefingCoordinator.HasBriefableCompanions(hero);
+      }
+
+      /// <summary>
+      ///   Consequence of the fixed courteous reply: the vanilla conversation has already closed cleanly
+      ///   (BriefCompanionsToken's output is "close_window"), so this only needs to hand the still-live
+      ///   <see cref="Hero.OneToOneConversationHero" /> to the picker. Captured here, by value, rather than
+      ///   trusted to still read live once the picker's own async confirmation callback runs later.
+      /// </summary>
+      private void OnPlayerRequestedCompanionBriefing()
+      {
+         Hero target = Hero.OneToOneConversationHero;
+         if (target == null) return;
+
+         CompanionBriefingCoordinator.OfferPicker(target);
       }
 
       /// <summary>

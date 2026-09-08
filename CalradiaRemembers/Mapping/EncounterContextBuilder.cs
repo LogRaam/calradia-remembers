@@ -11,6 +11,7 @@ using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Commitments;
+using CalradiaRemembers.Companions;
 using CalradiaRemembers.Duels;
 using CalradiaRemembers.Escort;
 using CalradiaRemembers.GameState;
@@ -537,6 +538,11 @@ namespace CalradiaRemembers.Mapping
             CompanionNewsReport = CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
             CompanionMoodNote = ResolveCompanionMoodNote(hero),
             CompanionCampNote = ResolveCompanionCampNote(hero),
+            // Companion-briefing pillar: resolved by the SPEAKING hero's own id, so it is present ONLY when
+            // building THIS hero's own turn context and simply absent for anyone else's, including the target
+            // of the conversation this companion was brought into (see EncounterContext.CompanionBrief's own
+            // doc for why an absent field, rather than a present-but-secret one, is the whole mechanism).
+            CompanionBrief = ResolveCompanionBrief(hero),
             IntimacyBargainEligible = IntimacyBargainEligibility.IsEligible(hero),
             IntimacyLeverageActive = IntimacyBargainEligibility.IsEligible(hero) && profile?.IntimacyLeverageHeld == true,
             BastardMotherTone = ResolveBastardMotherTone(hero),
@@ -1255,6 +1261,17 @@ namespace CalradiaRemembers.Mapping
             ? $"You think highly of your fellow companion {other.Name} — you value riding at their side."
             : $"You cannot abide your fellow companion {other.Name} — they grate on you, and you would as soon not share a camp.";
       }
+
+      /// <summary>
+      ///   Companion-briefing pillar: the player's standing instruction to THIS hero, resolved by looking up
+      ///   the in-memory store keyed on their own id. No extra eligibility gate is needed: the store only ever
+      ///   holds an entry for a hero the player actually chose in the companion-briefing picker (see
+      ///   CompanionBriefingCoordinator/CompanionBriefingStore), so a lookup miss (the ordinary case, and always
+      ///   the case for the conversation's TARGET, whose id was never handed a brief) already means "was never
+      ///   briefed" and needs no further reasoning here.
+      /// </summary>
+      private static string ResolveCompanionBrief(Hero hero)
+         => hero == null ? null : CompanionBriefingStore.Peek(hero.StringId);
 
       /// <summary>
       ///   A directive for an unhappy OWN-companion to voice their discontent — scaled to the happiness

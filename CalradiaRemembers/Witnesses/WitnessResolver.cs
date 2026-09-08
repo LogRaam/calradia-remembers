@@ -40,8 +40,10 @@ namespace CalradiaRemembers.Witnesses
       // them into the meeting — they're idling at the gate or across the courtyard.
       private const float FollowRadiusMeters = 15f;
 
-      // The companion picker and the scene scan share this cap.
-      private const int MaxCompanions = 2;
+      // The companion picker and the scene scan share this cap. Internal (not private): the companion-briefing
+      // picker (CompanionBriefingCoordinator) reuses the SAME cap, so a briefing can never offer more companions
+      // than the follow-up conversation's own witness picker could ever seat.
+      internal const int MaxCompanions = 2;
       private const int MaxLordWitnesses = 4;
 
       /// <summary>
@@ -671,7 +673,9 @@ namespace CalradiaRemembers.Witnesses
          }
       }
 
-      private static List<Hero> GetPlayerCompanions(Hero conversationNpc = null)
+      // Internal (not private): the companion-briefing picker (CompanionBriefingCoordinator) reuses this exact
+      // candidate list, so it can never offer a hero the ordinary witness picker would refuse to seat.
+      internal static List<Hero> GetPlayerCompanions(Hero conversationNpc = null)
       {
          var companions = new List<Hero>();
          try

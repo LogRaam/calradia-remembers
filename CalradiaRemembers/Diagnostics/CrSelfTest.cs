@@ -16,6 +16,7 @@ using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Commitments;
+using CalradiaRemembers.Companions;
 using CalradiaRemembers.Duels;
 using CalradiaRemembers.Dynasty;
 using CalradiaRemembers.GameState;
@@ -214,6 +215,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("realm_tidings", Severity.Light, "Mechanical: drives the REAL RealmTidingsBehavior.DebugEvaluate end to end and proves per-NPC dedup. Seeds a dominant known event for a friendly landed lord (regard forced to 30), asserts a RealmTidings letter candidate is queued and the event id enters the dedup ledger, then re-evaluates and asserts the same event is never relayed twice. Restores the writer's regard, ledger and candidates and removes the seed", TestRealmTidings),
          new SelfTest("siege_tidings_participation", Severity.Light, "Mechanical (player report: told by letter of a siege they FOUGHT IN, days later, as if it were news): stamps the REAL WorldEventFeeders siege-participation marker for a live settlement, then drives the REAL RecordSiegeCapture construction with a NON-player taker (a mere participant, never the credited capturer) -> assert the recorded WorldEvent has InvolvesPlayer true (so realm-tidings' own InvolvesPlayer filter will never relay it back) while Type stays SettlementCaptured and Aggrieved* stay empty (the conquest's attribution is NOT stolen from the real taker). Removes the seeded event afterwards", TestSiegeTidingsParticipation),
          new SelfTest("companion_battle_memory", Severity.Light, "Mechanical: the companion 'fought together' memory (WorldEventFeeders' main-party companion loop), which a real MapEvent drives in game. Borrows a companion into the party if none rides along, calls the DebugRecordCompanionBattleMemories seam, and asserts the companion's profile gained a fresh 'Fought at your side' memory. Removes the memory it added and returns any borrowed companion", TestCompanionBattleMemory),
+         new SelfTest("companion_briefing", Severity.Light, "Companion-briefing pillar (player request 2026-09-07: a specific NPC taking the lead in a group conversation needs the player's own, unspoken intent to reach them). Borrows a companion into the party if none rides along; picks a second, distinct living hero to stand in as the conversation's TARGET. Drives the REAL CompanionBriefingStore.AddInstruction and the REAL EncounterContextBuilder.Build (no LLM call) for both heroes: asserts the brief reaches the briefed companion's own context, and (the load-bearing assertion of the whole feature) is ABSENT from the target's context; asserts a second briefing STACKS rather than replaces; then drives the REAL CompanionBriefingStore.ExpireForConversationClose (the same call ChatViewModel.FinalizeCompanionBriefs makes on an ordinary conversation's close) and asserts the brief is gone afterwards. Clears any brief it planted and returns the borrowed companion in a finally", TestCompanionBriefing),
          new SelfTest("query_relevant_facts", Severity.Light, "Modder report: asking a lord a POINTED question about a specific third party got a hallucinated answer because the real fact ranked too low on ambient awareness (the small WorldRumorsBlock top-N) to ever be injected. Seeds a fresh, high-magnitude, faction-tagged WorldEvent naming a real third-party lord (guaranteed KNOWN regardless of map position), then drives the REAL EncounterContextBuilder.ResolveQueryRelevantFacts (no LLM call) once with a message naming that lord -> assert the seeded fact surfaces, and once with an unrelated message -> assert it does NOT (the knowledge-then-relevance gate, never omniscience). Removes the seeded event afterwards", TestQueryRelevantFacts),
          new SelfTest("war_council_offer", Severity.Light, "Mechanical: the war-council OFFER trigger's arm + policy + persisted-cooldown decision (WarCouncilOfferBehavior.DebugWouldOffer), WITHOUT opening the council UI. Arms the flag and asserts a notable action while leading an army WOULD offer, that not-in-army / non-notable / disarmed all refuse, and that stamping an offer today blocks a fresh one (cooldown) while a stale stamp clears it. Restores the flag + the persisted last-offer day", TestWarCouncilOffer),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
@@ -11169,6 +11171,118 @@ namespace CalradiaRemembers.Diagnostics
                t.Note($"(returned {companion.Name} to their party)");
             }
             else t.Note($"(NOTE: {companion.Name} had no party to return to and remains in yours; reload to discard)");
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Companion-briefing pillar: the player asks a lord, in the vanilla dialogue, for a moment to speak
+      ///   with his own people, briefs whichever companion he drew aside, then brings that companion into the
+      ///   conversation with the lord. Drives the REAL <see cref="CompanionBriefingStore" /> and the REAL
+      ///   <see cref="EncounterContextBuilder.Build" /> (no LLM call) for two DISTINCT heroes: the briefed
+      ///   companion, and a second, unrelated hero standing in for the conversation's TARGET. Asserts the brief
+      ///   reaches the companion's own context, is ABSENT from the target's (the load-bearing property the whole
+      ///   design rests on: the target was never present for the briefing and must never see it), stacks on a
+      ///   second briefing, and is gone once <see cref="CompanionBriefingStore.ExpireForConversationClose" /> (the
+      ///   exact call <see cref="Chat.ChatViewModel.FinalizeCompanionBriefs" /> makes on an ordinary conversation's
+      ///   close) has run. Borrows a companion into the party if none rides along, the same way
+      ///   companion_battle_memory does; the "target" is picked by a hero PROPERTY (alive, not the player, not
+      ///   the companion), never by list position, so the test never depends on which hero the campaign happens
+      ///   to list first.
+      /// </summary>
+      private static string TestCompanionBriefing(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("companion_briefing");
+
+         if (t.Abort(behavior.Store == null, "memory store not active")) return t.Line();
+         if (t.Abort(MobileParty.MainParty == null, "no main party to hold a companion")) return t.Line();
+
+         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(
+            h => h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && h.PartyBelongedTo == MobileParty.MainParty);
+
+         MobileParty borrowedFrom = null;
+         var borrowed = false;
+
+         if (companion == null)
+         {
+            Hero spare = Hero.AllAliveHeroes.FirstOrDefault(
+               h => h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner);
+
+            if (t.Skip(spare == null, "the player has no companion at all to brief")) return t.Line();
+
+            borrowedFrom = spare.PartyBelongedTo;
+            borrowed = true;
+            AddHeroToPartyAction.Apply(spare, MobileParty.MainParty, false);
+            companion = spare;
+            t.Note($"(borrowed {spare.Name} into the player's party for this test)");
+         }
+
+         // The stand-in TARGET: any other living hero, chosen by exclusion (not the player, not the companion
+         // just resolved above), never by position in a list.
+         Hero target = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != companion && h.IsAlive);
+
+         if (t.Skip(target == null, "no second distinct living hero available to stand in as the conversation's target")) return t.Line();
+
+         NpcProfile companionProfile = GetOrCreate(behavior, companion);
+         NpcProfile targetProfile = GetOrCreate(behavior, target);
+
+         const string firstInstruction = "press him gently on the matter of the unpaid debt";
+         const string secondInstruction = "and remind him of his promise to your father";
+
+         try
+         {
+            EncounterContext beforeAnyBrief = EncounterContextBuilder.Build(
+               companion, companionProfile, behavior.GameStateBridge, resolveInterception: false);
+            t.Expect("noBriefBeforeAnyGiven", string.IsNullOrEmpty(beforeAnyBrief.CompanionBrief), true);
+
+            CompanionBriefingStore.AddInstruction(companion.StringId, firstInstruction);
+
+            EncounterContext companionContext = EncounterContextBuilder.Build(
+               companion, companionProfile, behavior.GameStateBridge, resolveInterception: false);
+            EncounterContext targetContext = EncounterContextBuilder.Build(
+               target, targetProfile, behavior.GameStateBridge, resolveInterception: false);
+
+            t.Note($"companion={companion.Name}, target={target.Name}");
+            t.Expect("briefReachesTheBriefedCompanion",
+               companionContext.CompanionBrief != null && companionContext.CompanionBrief.Contains("unpaid debt"), true);
+            // The load-bearing assertion of the whole feature: the conversation's TARGET was never present for
+            // the briefing, so their own context must carry no trace of it.
+            t.Expect("briefAbsentFromTheTarget", string.IsNullOrEmpty(targetContext.CompanionBrief), true);
+
+            CompanionBriefingStore.AddInstruction(companion.StringId, secondInstruction);
+
+            EncounterContext stackedContext = EncounterContextBuilder.Build(
+               companion, companionProfile, behavior.GameStateBridge, resolveInterception: false);
+            t.Expect("secondBriefingStacksRatherThanReplaces",
+               stackedContext.CompanionBrief != null
+               && stackedContext.CompanionBrief.Contains("unpaid debt")
+               && stackedContext.CompanionBrief.Contains("promise to your father"), true);
+
+            // The ordinary conversation the brief was carried into has closed: the exact production call
+            // ChatViewModel.FinalizeCompanionBriefs makes (isBriefingChat: false).
+            CompanionBriefingStore.ExpireForConversationClose(new[] {target.StringId, companion.StringId}, false);
+
+            EncounterContext afterExpiry = EncounterContextBuilder.Build(
+               companion, companionProfile, behavior.GameStateBridge, resolveInterception: false);
+            t.Expect("briefGoneAfterTheConversationItRodeIntoCloses", string.IsNullOrEmpty(afterExpiry.CompanionBrief), true);
+         }
+         finally
+         {
+            // Never leave a brief outstanding regardless of assertion outcome, and never conscript a companion
+            // this test borrowed.
+            CompanionBriefingStore.Clear(companion.StringId);
+            CompanionBriefingStore.Clear(target.StringId);
+
+            if (borrowed)
+            {
+               if (borrowedFrom != null && borrowedFrom != MobileParty.MainParty)
+               {
+                  AddHeroToPartyAction.Apply(companion, borrowedFrom, false);
+                  t.Note($"(returned {companion.Name} to their party)");
+               }
+               else t.Note($"(NOTE: {companion.Name} had no party to return to and remains in yours; reload to discard)");
+            }
          }
 
          return t.Line();

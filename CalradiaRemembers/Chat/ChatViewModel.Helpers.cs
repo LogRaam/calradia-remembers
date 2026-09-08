@@ -679,8 +679,11 @@ namespace CalradiaRemembers.Chat
          IsPrivateRequestVisible = any && !_privacyRequestUsed && AllowsPrivacyRequest;
 
          // The round-table button is offered whenever there is a group to go round (witnesses present),
-         // outside captive scenes and once the conversation has not been ended.
-         IsRoundTableVisible = _roundTable.ComputeVisible(_witnesses.Count, IsCaptiveEncounter, _conversationEnded);
+         // outside captive scenes and once the conversation has not been ended. Never in the companion-briefing
+         // chat: a "round table" going round to speak invites the LLM turn machinery this deliberately
+         // LLM-free scene never runs (see ChatViewModel.CompanionBriefing.cs).
+         IsRoundTableVisible = !IsCompanionBriefingChat
+                             && _roundTable.ComputeVisible(_witnesses.Count, IsCaptiveEncounter, _conversationEnded);
       }
 
       /// <summary>A ChatSpeaker for a present witness (resolved Hero + stored profile + colour), or null if gone.</summary>

@@ -234,6 +234,10 @@ namespace CalradiaRemembers.Chat
             SafeStep(() => ActiveViewModel?.FinalizeCaptiveSceneMemory(), "FinalizeCaptiveSceneMemory");
             SafeStep(() => ActiveViewModel?.FinalizeCaptorSceneMemory(), "FinalizeCaptorSceneMemory");
             SafeStep(() => ActiveViewModel?.FinalizeCompanionAudience(), "FinalizeCompanionAudience");
+            // Companion-briefing pillar: sweep the standing-brief store on EVERY close (cheap no-op when the
+            // feature is unused). Never before the briefing chat's OWN close (see the method's own doc), so a
+            // brief always survives to reach the conversation it was actually given for.
+            SafeStep(() => ActiveViewModel?.FinalizeCompanionBriefs(), "FinalizeCompanionBriefs");
             SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
             SafeStep(() => ActiveViewModel?.NoteCompanionHeard(), "NoteCompanionHeard");
             SafeStep(() => ActiveViewModel?.FinalizeWitnessMemories(), "FinalizeWitnessMemories");
@@ -544,6 +548,56 @@ namespace CalradiaRemembers.Chat
 
          ActiveViewModel.SetNpcHero(companion);
          ActiveViewModel.ActivateCompanionAudience(profile, reason, landed, topicDetail);
+      }
+
+      /// <summary>
+      ///   Companion-briefing pillar (2026-09-07): opens the PRIVATE chat the player asked for in the vanilla
+      ///   dialogue ("grant me a moment to speak with my own people"), seating only the <paramref name="chosen" />
+      ///   roster, never <paramref name="target" /> (the whole design property: this is a SEPARATE conversation
+      ///   the target was never part of, so there is nothing to filter and nothing to hide). Picks an anchor by
+      ///   the same regard-based rule OpenForCouncil uses when more than one companion was chosen; a lone
+      ///   companion is simply their own anchor. <paramref name="target" /> rides through only so the closed
+      ///   chat can tell <see cref="ChatViewModel.FinalizeCompanionBriefs" /> this was the briefing chat itself,
+      ///   never so it can be shown to anyone in this conversation.
+      /// </summary>
+      public static void OpenForCompanionBriefing(Hero target, List<Hero> chosen)
+      {
+         if (target == null || chosen == null || chosen.Count == 0) return;
+
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+         if (behavior == null) return;
+
+         // A companion never yet spoken with in the ordinary chat has no profile yet: ensure one exists for
+         // every chosen hero before the window opens, mirroring OpenForAssembly's own SeatedByStatus guard.
+         foreach (Hero h in chosen)
+            if (behavior.Store.Get(h.StringId) == null)
+               behavior.Store.Set(HeroProfileMapper.FromHero(h));
+
+         Hero anchor = chosen[0];
+         if (chosen.Count > 1)
+         {
+            var facts = chosen
+               .Select(h => new CouncilSeatFacts(h.StringId, behavior.Store.Get(h.StringId)?.ReputationWithPlayer ?? 0))
+               .ToList();
+            int anchorIndex = CouncilAnchorPolicy.SelectAnchor(facts);
+            if (anchorIndex >= 0) anchor = chosen[anchorIndex];
+         }
+
+         Open(anchor.Name?.ToString());
+         if (ActiveViewModel == null) return;
+
+         ActiveViewModel.SetNpcHero(anchor);
+         foreach (Hero h in chosen.Where(h => h != anchor))
+            ActiveViewModel.AddWitness(new WitnessEntry {
+               Name = h.Name?.ToString(),
+               HeroStringId = h.StringId,
+               IsPlayerCompanion = true,
+               RelationToNpc = "a fellow companion, drawn aside for this private word",
+               IsFemale = h.IsFemale
+            });
+
+         ActiveViewModel.ActivateCompanionBriefing(target.StringId);
+         ModLog.Info($"[BRIEFING] opened with {chosen.Count} companion(s), anchor {anchor.Name}, for the conversation with {target.Name}.");
       }
 
       /// <summary>

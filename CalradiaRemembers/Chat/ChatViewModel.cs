@@ -567,7 +567,7 @@ namespace CalradiaRemembers.Chat
       ///   the map escape menu is not the right target.
       /// </summary>
       [DataSourceProperty]
-      public bool IsGameMenuButtonVisible => _mode == ChatMode.Conversation && !_captorScene;
+      public bool IsGameMenuButtonVisible => _mode == ChatMode.Conversation && !_captorScene && !IsCompanionBriefingChat;
 
       /// <summary>True while the left "shared memories" panel is open (a read-only view of what this NPC remembers).</summary>
       [DataSourceProperty]
@@ -616,7 +616,7 @@ namespace CalradiaRemembers.Chat
       ///   the "Offer item" button in letter/captive modes and after the NPC says goodbye.
       /// </summary>
       [DataSourceProperty]
-      public bool IsOfferItemVisible => _mode == ChatMode.Conversation && !_conversationEnded;
+      public bool IsOfferItemVisible => _mode == ChatMode.Conversation && !_conversationEnded && !IsCompanionBriefingChat;
 
       /// <summary>
       ///   True in plain Conversation mode while the exchange is still open: shows the manual action-injection
@@ -624,7 +624,7 @@ namespace CalradiaRemembers.Chat
       ///   the interpreter missed, or to drive an action directly with the interpreter turned off.
       /// </summary>
       [DataSourceProperty]
-      public bool IsActionMenuVisible => _mode == ChatMode.Conversation && !_conversationEnded;
+      public bool IsActionMenuVisible => _mode == ChatMode.Conversation && !_conversationEnded && !IsCompanionBriefingChat;
 
       /// <summary>
       ///   Raises every binding that reads <see cref="_conversationEnded" /> (a plain field, not a property, so
@@ -1052,7 +1052,7 @@ namespace CalradiaRemembers.Chat
 
       // A captive does not command the room — the captor's soldiers leave only if
       // the captor wills it. Commoners have no room to clear.
-      private bool AllowsPrivacyRequest => _mode == ChatMode.Conversation;
+      private bool AllowsPrivacyRequest => _mode == ChatMode.Conversation && !IsCompanionBriefingChat;
       private bool IsCaptiveEncounter => _mode == ChatMode.CaptiveEncounter;
 
       // A spoken exchange happening "now" — transcript and story log apply. Every chat mode is now
@@ -2121,6 +2121,16 @@ namespace CalradiaRemembers.Chat
 
          if (string.IsNullOrEmpty(text)) return;
          if (!IsSendEnabled) return;
+
+         // Companion-briefing pillar: the private briefing chat has its own deliberately LLM-free send path
+         // (see ChatViewModel.CompanionBriefing.cs's own header for why), checked first so nothing below ever
+         // treats a briefing instruction as an ordinary conversational turn.
+         if (IsCompanionBriefingChat)
+         {
+            ExecuteSendCompanionBriefingMessage(text);
+
+            return;
+         }
 
          // Council narrator model (2026-08-02): a real council never routes to a per-witness speaker (that
          // whole-conversation retargeting is the 15B one-on-one pivot, wrong for a narrator call that must stay
