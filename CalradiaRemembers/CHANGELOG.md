@@ -2,6 +2,42 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.5.. 2026-09-07
+
+Group conversations keep their thread, and how a character loves is no longer decided by whether they are honourable.
+All from player reports this week. Saves from 2.5.4 carry over untouched.
+
+### Fixed
+- **A group conversation stopped remembering the moment you turned to someone else.** The enrichment that gives
+  each person in the room their own recall lived in the main speaker's branch alone, so addressing a witness
+  DIRECTLY described a room full of people with no past, and re-describing an entry for another observer dropped
+  the memory while carefully carrying the gear beside it. A group conversation is precisely the act of turning from
+  one person to another, so the branch that forgot was the one a group scene leans on entirely. It is now the
+  single exit path, so no future branch can forget it again.
+- **On a small local model, nobody in the room remembered anything.** The Lean prompt dropped every witness's
+  recall line outright, which silently undid the same fix for exactly the players the mod's own setting tells to
+  enable Lean. Two people now get a short recall, trimmed to 90 characters, companions first: bounded, so the cost
+  does not grow with the size of the party.
+
+### Changed
+- **Polyamory is decided by CULTURE, not by a dishonourable trait.** It was reachable only through negative Honor,
+  which modelled a way of loving as a moral failing, and it ignored `jealousy_cultures.json` entirely, the very
+  file the mod already consults to decide which cultures tolerate shared partners and which keep harems. So a
+  noble of a harem culture came out strictly monogamous unless he happened to be dishonourable. The preference now
+  asks that file's own rule. Honour keeps what actually belongs to it: INFIDELITY, the betrayal of an exclusivity
+  that was promised, which it already governs where that happens.
+- **Nor is a taste for brief attachments.** `Casual` moves onto the axis this model already uses for attachment
+  (Generosity: Devoted when high, Independent when low), so an honourable character who simply does not give of
+  themselves can exist, which the old rule made impossible. A dead rule went with it, one that had never added
+  anything to the pool.
+
+### New
+- **`character_overrides.json` can set a character's romantic preferences.** `"preferences": ["Polyamorous"]`, and
+  the whole vocabulary is documented in the file's own header. It is the way to write one character against the
+  grain of their culture, and it behaves like the orientation and kink locks beside it: omit the field and the
+  roll stands, an empty list is a deliberate lock to none, and it survives `cr.reload_lore`. A mistyped name is
+  skipped rather than thrown, then NAMED by `cr.lore_status` and the reload log, so it never fails in silence.
+
 ## v2.5.4.. 2026-09-07
 
 One fix, at its cause. Two players crashed a few seconds after opening a letter, one of them on the Balance of Power
