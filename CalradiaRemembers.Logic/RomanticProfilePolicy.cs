@@ -143,7 +143,7 @@ namespace CalradiaRemembers.Logic
             HashSet<RomanticPreference> pool = new() {RomanticPreference.Switch};
 
             if (t.Honor >= 1) { pool.Add(RomanticPreference.MonogamousStrict); pool.Add(RomanticPreference.Devoted); }
-            if (t.Honor <= -1) { pool.Add(RomanticPreference.MonogamousFlexible); pool.Add(RomanticPreference.Casual); }
+            if (t.Honor <= -1) pool.Add(RomanticPreference.MonogamousFlexible);
 
             // The culture's OWN definition of tolerating shared partners, reused rather than a second one invented
             // here, so the elite gate and the exclusivity stance stay in one place: jealousy_cultures.json.
@@ -156,9 +156,17 @@ namespace CalradiaRemembers.Logic
             if (t.Valor >= 1) pool.Add(RomanticPreference.Intense);
             if (t.Valor <= -1) pool.Add(RomanticPreference.Reserved);
             if (t.Generosity >= 1) pool.Add(RomanticPreference.Devoted);
-            if (t.Generosity <= -1) { pool.Add(RomanticPreference.Independent); pool.Add(RomanticPreference.Possessive); }
+            // Generosity is this pool's ATTACHMENT axis (Devoted when high, Independent when low), so wanting
+            // nothing lasting belongs here beside valuing your own space, not on Honor. Gabriel's ruling
+            // 2026-09-07, the same one that freed polyamory: honour answers for INFIDELITY, the betrayal of an
+            // exclusivity that was promised, and seeking nothing lasting promises nothing to betray.
+            if (t.Generosity <= -1)
+            {
+               pool.Add(RomanticPreference.Independent);
+               pool.Add(RomanticPreference.Possessive);
+               pool.Add(RomanticPreference.Casual);
+            }
             if (t.Mercy <= -1 && t.Calculating >= 1) pool.Add(RomanticPreference.Possessive);
-            if (t.Valor >= 1 && t.Honor <= -1) pool.Add(RomanticPreference.Casual);
 
             return pool;
         }

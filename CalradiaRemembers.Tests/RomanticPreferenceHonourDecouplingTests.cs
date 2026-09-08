@@ -82,6 +82,26 @@ namespace CalradiaRemembers.Tests
                 .Should().NotContain(RomanticPreference.Polyamorous);
         }
 
+        // The same ruling extended to Casual (Gabriel, 2026-09-07): preferring brief, unattached entanglements is
+        // not a betrayal, because nothing lasting was ever promised to betray. A dishonourable character of an
+        // ordinary temperament must no longer be pushed toward it just for being dishonourable.
+        [Test]
+        public void GIVEN_a_dishonourable_character_WHEN_they_are_otherwise_giving_THEN_casual_is_not_offered()
+        {
+            RomanticProfilePolicy.BuildPreferencePool(new RomanticTraits {Honor = -2, Generosity = 1}, Strict(), EliteTier)
+                .Should().NotContain(RomanticPreference.Casual);
+        }
+
+        // Where it belongs instead: Generosity is this pool's attachment axis, high for Devoted and low for
+        // Independent, so wanting nothing lasting sits beside valuing your own space. An honourable character who
+        // simply does not give of themselves can now be written, which the old rule made impossible.
+        [Test]
+        public void GIVEN_a_character_who_keeps_their_distance_WHEN_they_are_honourable_THEN_casual_is_still_plausible()
+        {
+            RomanticProfilePolicy.BuildPreferencePool(new RomanticTraits {Honor = 2, Generosity = -1}, Strict(), EliteTier)
+                .Should().Contain(RomanticPreference.Casual);
+        }
+
         // What honour DOES still decide here is unchanged, and must stay: an honourable character is drawn toward
         // strict exclusivity, a dishonourable one toward tolerating discretion. Removing polyamory from the honour
         // branch must not quietly empty that branch of its real meaning.
