@@ -433,6 +433,11 @@ namespace CalradiaRemembers.Mapping
             // ending a contract that is currently real. See EncounterContext.PlayerIsMercenary.
             PlayerIsMercenary = Clan.PlayerClan?.IsUnderMercenaryService ?? false,
             VassalOfferKingdom = ResolveVassalOfferKingdom(hero),
+            // Station, unconditionally: see the EncounterContext docs. A ruler used to learn his own rank only
+            // through the vassal offer above, which is gated, so he denied the crown everywhere else.
+            RuledRealmName = ResolveRuledRealmName(hero),
+            RuledRealmRulerTitle = ResolveRuledRealmRulerTitle(hero),
+            LeadsOwnClan = hero?.Clan?.Leader == hero && hero?.Clan != null,
             // follow_me: taught only when EscortEligibilityPolicy.CanEscort says the game can truly honour it
             // right now (see the computation just above the object initializer). dismiss_escort is the mirror,
             // taught only while THIS lord's own party is genuinely escorting the player.
@@ -1989,6 +1994,17 @@ namespace CalradiaRemembers.Mapping
       ///   <see cref="VassalageOfferPolicy.CanJoin" />, the same pure gate <c>ExecuteJoinAsVassal</c> re-checks
       ///   at commit time). Null otherwise, the vassalage-offer section is then not taught at all.
       /// </summary>
+      /// <summary>The realm this hero actually rules, or null. No further condition: it states who they are.</summary>
+      private static string ResolveRuledRealmName(Hero hero)
+         => hero?.MapFaction is Kingdom k && k.Leader == hero ? k.Name?.ToString() : null;
+
+      /// <summary>
+      ///   That realm's own word for its ruler, from the engine (King, Emperor, Khan, Sultan...). Read rather than
+      ///   assumed: the player who reported this wrote "Kings AND Emperors", and one word cannot serve both.
+      /// </summary>
+      private static string ResolveRuledRealmRulerTitle(Hero hero)
+         => hero?.MapFaction is Kingdom k && k.Leader == hero ? k.EncyclopediaRulerTitle?.ToString() : null;
+
       private static string ResolveVassalOfferKingdom(Hero hero)
       {
          if (hero is not {IsLord: true}) return null;
