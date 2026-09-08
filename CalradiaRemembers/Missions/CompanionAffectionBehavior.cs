@@ -104,7 +104,7 @@ namespace CalradiaRemembers.Missions
          bool attached = profile.Romantic.IsConsort || profile.Romantic.IsSecretLover
                          || profile.Romantic.Status == RomanticStatus.Committed || h == Hero.MainHero?.Spouse;
 
-         if (CompanionSecretAffectionPolicy.IsEligible(true, compatible, adult, content, attached, profile.ReputationWithPlayer))
+         if (CompanionSecretAffectionPolicy.IsEligible(true, compatible, adult, content, attached, profile.ReputationWithPlayer, ModSettings.RelationWarmth))
             return (true, "");
 
          if (!adult) return (false, "adult content is Off");
@@ -112,7 +112,7 @@ namespace CalradiaRemembers.Missions
          if (!content) return (false, "the companion is not content");
          if (attached) return (false, "already bound to you");
 
-         return (false, $"regard {profile.ReputationWithPlayer} is below {CompanionSecretAffectionPolicy.MinRegard}");
+         return (false, $"regard {profile.ReputationWithPlayer} is below {CompanionSecretAffectionPolicy.MinRegardFor(ModSettings.RelationWarmth)} at the {ModSettings.RelationWarmth} pacing");
       }
 
       private void GrantAudience(Hero h)
@@ -145,7 +145,7 @@ namespace CalradiaRemembers.Missions
                NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(companion.StringId);
                if (profile == null) return;
 
-               if (!CompanionSecretAffectionPolicy.ShouldConfideThisWeek(profile.ReputationWithPlayer, MBRandom.RandomInt(100)))
+               if (!CompanionSecretAffectionPolicy.ShouldConfideThisWeek(profile.ReputationWithPlayer, MBRandom.RandomInt(100), ModSettings.RelationWarmth))
                   return;
 
                RequestAudience(companion);
