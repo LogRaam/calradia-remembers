@@ -567,7 +567,7 @@ namespace CalradiaRemembers.Chat
       ///   the map escape menu is not the right target.
       /// </summary>
       [DataSourceProperty]
-      public bool IsGameMenuButtonVisible => _mode == ChatMode.Conversation && !_captorScene && !IsCompanionBriefingChat;
+      public bool IsGameMenuButtonVisible => _mode == ChatMode.Conversation && !_captorScene;
 
       /// <summary>True while the left "shared memories" panel is open (a read-only view of what this NPC remembers).</summary>
       [DataSourceProperty]
@@ -616,7 +616,7 @@ namespace CalradiaRemembers.Chat
       ///   the "Offer item" button in letter/captive modes and after the NPC says goodbye.
       /// </summary>
       [DataSourceProperty]
-      public bool IsOfferItemVisible => _mode == ChatMode.Conversation && !_conversationEnded && !IsCompanionBriefingChat;
+      public bool IsOfferItemVisible => _mode == ChatMode.Conversation && !_conversationEnded;
 
       /// <summary>
       ///   True in plain Conversation mode while the exchange is still open: shows the manual action-injection
@@ -624,7 +624,7 @@ namespace CalradiaRemembers.Chat
       ///   the interpreter missed, or to drive an action directly with the interpreter turned off.
       /// </summary>
       [DataSourceProperty]
-      public bool IsActionMenuVisible => _mode == ChatMode.Conversation && !_conversationEnded && !IsCompanionBriefingChat;
+      public bool IsActionMenuVisible => _mode == ChatMode.Conversation && !_conversationEnded;
 
       /// <summary>
       ///   Raises every binding that reads <see cref="_conversationEnded" /> (a plain field, not a property, so
@@ -1052,6 +1052,9 @@ namespace CalradiaRemembers.Chat
 
       // A captive does not command the room — the captor's soldiers leave only if
       // the captor wills it. Commoners have no room to clear.
+      // Companion-briefing chat: kept gated off (unlike the other UI this scene re-enabled) because there is
+      // nobody left to dismiss for privacy: every witness present is a companion the player deliberately drew
+      // aside, out of the target's hearing, and the room is already as private as this scene ever gets.
       private bool AllowsPrivacyRequest => _mode == ChatMode.Conversation && !IsCompanionBriefingChat;
       private bool IsCaptiveEncounter => _mode == ChatMode.CaptiveEncounter;
 
@@ -2122,15 +2125,11 @@ namespace CalradiaRemembers.Chat
          if (string.IsNullOrEmpty(text)) return;
          if (!IsSendEnabled) return;
 
-         // Companion-briefing pillar: the private briefing chat has its own deliberately LLM-free send path
-         // (see ChatViewModel.CompanionBriefing.cs's own header for why), checked first so nothing below ever
-         // treats a briefing instruction as an ordinary conversational turn.
-         if (IsCompanionBriefingChat)
-         {
-            ExecuteSendCompanionBriefingMessage(text);
-
-            return;
-         }
+         // Companion-briefing pillar, revised per Gabriel's ruling (2026-09-07): this must be a REAL
+         // conversation, so the player's own words are captured as a pure side effect, THEN the ordinary
+         // pipeline below runs unchanged, letting the anchor (or whichever chosen companion the player
+         // addresses) answer through the real LLM path like any other multi-participant scene.
+         if (IsCompanionBriefingChat) RecordCompanionBriefingInstruction(text);
 
          // Council narrator model (2026-08-02): a real council never routes to a per-witness speaker (that
          // whole-conversation retargeting is the 15B one-on-one pivot, wrong for a narrator call that must stay
@@ -2454,7 +2453,13 @@ namespace CalradiaRemembers.Chat
 
       public void FinalizeConversationMemory()
       {
-         if (_conversationMemoryFinalized || _mode != ChatMode.Conversation) return;
+         // Companion-briefing pillar: never persist a memory event from the private briefing chat itself. Now
+         // that it runs a REAL exchange, an ordinary conversation summary would land on the anchor's own
+         // profile.Events, and a LATER conversation where this same companion is a WITNESS reads recent events
+         // straight into whoever is currently speaking's context (BuildWitnessMemory/WithMemories), which would
+         // hand the private briefing's content to the very target it must stay blind to. The standing brief
+         // (CompanionBriefingStore) already carries what needs to survive; nothing else may.
+         if (_conversationMemoryFinalized || _mode != ChatMode.Conversation || IsCompanionBriefingChat) return;
          _conversationMemoryFinalized = true;
 
          if (!ConversationMemoryRules.DeservesFallbackMemory(_playerTurnsThisSession, _playerCharsThisSession)) return;
@@ -2553,7 +2558,10 @@ namespace CalradiaRemembers.Chat
 
       public void FinalizeWitnessMemories()
       {
-         if (_witnessMemoryFinalized || _mode != ChatMode.Conversation) return;
+         // Companion-briefing pillar: same leak guard as FinalizeConversationMemory above, for the OTHER
+         // present companions. A witness memory event recorded here would resurface through the exact same
+         // BuildWitnessMemory path the moment that companion is later a witness to the target conversation.
+         if (_witnessMemoryFinalized || _mode != ChatMode.Conversation || IsCompanionBriefingChat) return;
          _witnessMemoryFinalized = true;
 
          if (_playerTurnsThisSession < 2 || _witnesses == null || _witnesses.Count == 0) return;

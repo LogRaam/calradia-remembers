@@ -786,7 +786,12 @@ namespace CalradiaRemembers.Chat
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic
                // scene cue has no attempt to judge.
-               playerAttemptSucceeds: RollCaptiveAttemptVerdict(suppressPlayerLine));
+               playerAttemptSucceeds: RollCaptiveAttemptVerdict(suppressPlayerLine),
+               // Companion-briefing pillar, revised per Gabriel's ruling: every turn built inside the private
+               // briefing chat itself (main speaker or a promoted/addressed witness alike) must carry the scene
+               // framing, or a companion answers as though the named target were standing right there.
+               isCompanionBriefingScene: IsCompanionBriefingChat,
+               companionBriefingTargetName: _companionBriefingTargetName);
 
             if (behavior.LlmServices is not {IsAvailable: true})
             {
@@ -1133,6 +1138,20 @@ namespace CalradiaRemembers.Chat
             if (CoerciveSceneEventPolicy.ShouldDropRomanticEvent(response.NewEventData?.Type, IsCaptiveEncounter || _captorScene))
             {
                ModLog.Info($"[SCENE] dropped a {response.NewEventData.Type} [EVENT] in a coercive scene (coercion is not intimacy).");
+               response = WithoutEventData(response);
+            }
+
+            // Companion-briefing pillar: the private briefing chat must never write ANY persisted memory event,
+            // on the anchor's profile or a witness companion's. Not a content filter like the coercive-scene
+            // drop above: a stored event here would resurface through the exact same witness-memory recall
+            // (BuildWitnessMemory/WithMemories) the instant this companion is later a witness in the target
+            // conversation the standing brief actually rides into, handing the private word to the very person
+            // it must stay blind to (the load-bearing property of the whole pillar). Dropped unconditionally,
+            // whatever type the model tagged it, on EVERY turn of the scene (main speaker or an addressed/
+            // ensemble witness alike, since IsCompanionBriefingChat is a whole-scene flag).
+            if (IsCompanionBriefingChat && response.NewEventData != null)
+            {
+               ModLog.Info($"[BRIEFING] dropped a {response.NewEventData.Type} [EVENT] inside the private briefing chat (never persisted).");
                response = WithoutEventData(response);
             }
 
@@ -1971,7 +1990,11 @@ namespace CalradiaRemembers.Chat
                   captiveSceneFocus: IsCaptiveEncounter
                      ? _captiveSceneFocus
                      : null,
-                  captiveSceneStyle: _captiveSceneStyle);
+                  captiveSceneStyle: _captiveSceneStyle,
+                  // Companion-briefing pillar, revised per Gabriel's ruling: this auto-exchange (the anchor
+                  // replying to another present companion's reaction) is still inside the same private chat.
+                  isCompanionBriefingScene: IsCompanionBriefingChat,
+                  companionBriefingTargetName: _companionBriefingTargetName);
                // (15C witness exchange is gated off for captive scenes, so no stage is fed here.)
 
                ChatMessageViewModel placeholder = MakeSpeakerMessage(mainSpeaker, PlaceholderText);

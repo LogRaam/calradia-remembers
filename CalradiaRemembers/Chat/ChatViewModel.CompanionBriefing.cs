@@ -1,12 +1,17 @@
 // Code written by Gabriel Mailhot, 07/09/2026.
 // Companion-briefing pillar: the PRIVATE chat opened when the player asks, in the vanilla dialogue, for a
 // moment to speak with his own people before "A word with you..." continues (see Dialogue/LlmDialogFlow.cs
-// and Companions/CompanionBriefingCoordinator.cs for how the player gets here). Deliberate simplification,
-// documented rather than forced: this is a private planning aside between the player and his own people, never
-// a scene for the model to judge in character, so no LLM call opens or drives it. The player's own words are
-// what matters (captured verbatim into each present companion's brief, see CalradiaRemembers.Logic.
-// CompanionBriefPolicy and CompanionBriefingStore); a short canned acknowledgment from the anchor confirms it
-// was heard, at zero API cost and with no risk of a refusal or derailment on what is really a utility screen.
+// and Companions/CompanionBriefingCoordinator.cs for how the player gets here).
+// Revised per Gabriel's ruling (2026-09-07, after review of a first, LLM-free cut of this scene): "Ca doit
+// etre une vraie conversation entre le joueur et son/ses compagnons" (this must be a REAL conversation between
+// the player and his companion(s)). The chosen roster (never widened) answers through the ordinary LLM
+// pipeline exactly like any other multi-participant scene: the anchor replies, every other chosen companion
+// may react as a witness, and the player may address any of them by name. EncounterContext.IsCompanionBriefingScene
+// (see EncounterContextBuilder/PromptBuilder) tells the model what kind of scene this is, so a companion knows
+// the named target cannot hear this and is free to answer honestly, including pushing back or pleading
+// unsuited, never a bare acknowledgment. This file only owns the capture side effect (the player's own words,
+// verbatim, into every present companion's brief) and the session bookkeeping; the actual exchange runs
+// through the SAME ExecuteSendMessage/RunLlmExchangeAsync path every other conversation uses.
 
 #region
 
@@ -14,6 +19,7 @@ using System.Collections.Generic;
 using CalradiaRemembers.Companions;
 using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
+using TaleWorlds.CampaignSystem;
 
 #endregion
 
@@ -21,40 +27,41 @@ namespace CalradiaRemembers.Chat
 {
    public sealed partial class ChatViewModel
    {
-      // Canned acknowledgments only: see the file header for why this scene deliberately never calls the LLM.
-      private static readonly string[] CompanionBriefingAcknowledgments = {
-         "Understood. We'll see it done.",
-         "As you say. We'll mind it.",
-         "Consider it done.",
-         "We hear you. It will be as you ask.",
-         "Understood, leave it to us."
-      };
-
       // Set ONLY for this private briefing chat itself, to the hero StringId of the lord the FOLLOWING
       // conversation is for. Never shown to anyone in this conversation: it exists purely so
       // FinalizeCompanionBriefs can tell this chat's own close apart from an ordinary conversation's close (see
       // CompanionBriefPolicy.HeroesToExpireOnClose's isBriefingChat parameter). Null for every other chat.
       private string _companionBriefingTargetId;
 
+      // The absent target's display name, fed to EncounterContext.CompanionBriefingTargetName every turn of
+      // this scene so the prompt framing can name WHO cannot hear this, rather than an abstract "someone".
+      private string _companionBriefingTargetName;
+
       /// <summary>True while THIS chat is the private briefing chat itself, never the ordinary conversation the brief rides into.</summary>
       private bool IsCompanionBriefingChat => _companionBriefingTargetId != null;
 
       /// <summary>
       ///   Opens the private briefing chat. <see cref="ChatManager.OpenForCompanionBriefing" /> has already set
-      ///   the anchor (<see cref="_npcHero" />) and seated the rest of the chosen roster as witnesses; this only
-      ///   marks the session and greets the player in the anchor's own voice.
+      ///   the anchor (<see cref="_npcHero" />) and seated the rest of the CHOSEN roster as witnesses (never the
+      ///   whole party, see the coordinator's own picker); this marks the session, remembers the absent target's
+      ///   name for the prompt framing, and greets the player in the anchor's own voice. From the player's first
+      ///   message on, the exchange runs through the ordinary LLM pipeline like any other conversation.
       /// </summary>
-      public void ActivateCompanionBriefing(string targetHeroId)
+      public void ActivateCompanionBriefing(Hero target)
       {
          _mode = ChatMode.Conversation;
-         _companionBriefingTargetId = targetHeroId;
+         _companionBriefingTargetId = target?.StringId;
+         _companionBriefingTargetName = target?.Name?.ToString();
 
          TitleText = "Calradia Remembers: A private word";
          CloseButtonText = "Done";
          SendButtonText = "Say";
 
-         RefreshWitnessUi(); // now that IsCompanionBriefingChat reads true, hide the round-table/privacy buttons
-         AppendNpcMessage("We're listening. What would you have us do?");
+         // ChatManager.OpenForCompanionBriefing already called AddWitness for the non-anchor roster, which ran
+         // its own RefreshWitnessUi while IsCompanionBriefingChat still read false (set just above): recompute
+         // now so AllowsPrivacyRequest's gate (see its own doc) actually hides the privacy-request button.
+         RefreshWitnessUi();
+         AppendNpcMessage("We're listening. What is it?");
       }
 
       /// <summary>
@@ -81,24 +88,19 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   The briefing chat's own send path, routed here from <see cref="ExecuteSendMessage" /> while
-      ///   <see cref="IsCompanionBriefingChat" /> is true: captures the player's OWN words, trimmed, into EVERY
-      ///   present companion's brief (the anchor and every witness all heard it, ruling #2 attaches the brief to
-      ///   each companion who was there). Never an LLM summary: cheaper, and truer to what the player actually
-      ///   asked for than a paraphrase would be.
+      ///   Called from <see cref="ExecuteSendMessage" /> as a side effect BEFORE the ordinary pipeline runs,
+      ///   while <see cref="IsCompanionBriefingChat" /> is true: captures the player's OWN words, trimmed, into
+      ///   EVERY present companion's brief (the anchor and every chosen witness all heard it, ruling #2 attaches
+      ///   the brief to each companion who was there). Never an LLM summary: cheaper, and truer to what the
+      ///   player actually asked for than a paraphrase would be. Ordinary send processing continues unchanged
+      ///   after this returns, so the anchor (or whichever companion the player addresses) answers for real.
       /// </summary>
-      private void ExecuteSendCompanionBriefingMessage(string text)
+      private void RecordCompanionBriefingInstruction(string text)
       {
-         AppendPlayerMessage(text);
-         InputText = "";
-         if (_isComposeOpen) IsComposeOpen = false;
-
          if (_npcHero != null) CompanionBriefingStore.AddInstruction(_npcHero.StringId, text);
          foreach (WitnessEntry w in _witnesses)
             if (!string.IsNullOrEmpty(w.HeroStringId))
                CompanionBriefingStore.AddInstruction(w.HeroStringId, text);
-
-         AppendNpcMessage(Pick(CompanionBriefingAcknowledgments));
       }
    }
 }

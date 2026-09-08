@@ -678,12 +678,11 @@ namespace CalradiaRemembers.Chat
          HasWitnesses = any;
          IsPrivateRequestVisible = any && !_privacyRequestUsed && AllowsPrivacyRequest;
 
-         // The round-table button is offered whenever there is a group to go round (witnesses present),
-         // outside captive scenes and once the conversation has not been ended. Never in the companion-briefing
-         // chat: a "round table" going round to speak invites the LLM turn machinery this deliberately
-         // LLM-free scene never runs (see ChatViewModel.CompanionBriefing.cs).
-         IsRoundTableVisible = !IsCompanionBriefingChat
-                             && _roundTable.ComputeVisible(_witnesses.Count, IsCaptiveEncounter, _conversationEnded);
+         // The round-table button is offered whenever there is a group to go round (witnesses present), outside
+         // captive scenes and once the conversation has not been ended. Left AVAILABLE in the companion-briefing
+         // chat, revised per Gabriel's ruling: this is now a real multi-participant scene like any other, so the
+         // player may open the floor to every chosen companion at once, exactly as elsewhere.
+         IsRoundTableVisible = _roundTable.ComputeVisible(_witnesses.Count, IsCaptiveEncounter, _conversationEnded);
       }
 
       /// <summary>A ChatSpeaker for a present witness (resolved Hero + stored profile + colour), or null if gone.</summary>

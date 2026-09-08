@@ -596,7 +596,7 @@ namespace CalradiaRemembers.Chat
                IsFemale = h.IsFemale
             });
 
-         ActiveViewModel.ActivateCompanionBriefing(target.StringId);
+         ActiveViewModel.ActivateCompanionBriefing(target);
          ModLog.Info($"[BRIEFING] opened with {chosen.Count} companion(s), anchor {anchor.Name}, for the conversation with {target.Name}.");
       }
 

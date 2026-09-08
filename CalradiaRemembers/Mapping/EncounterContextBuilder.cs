@@ -136,7 +136,13 @@ namespace CalradiaRemembers.Mapping
          bool isPostDuel = false,
          bool postDuelPlayerWon = false,
          string postDuelCourtedHeroName = null,
-         bool? playerAttemptSucceeds = null)
+         bool? playerAttemptSucceeds = null,
+         // Companion-briefing pillar, revised per Gabriel's ruling (2026-09-07): true for every turn of the
+         // PRIVATE briefing chat itself, so the prompt can tell the model what kind of scene this is (the
+         // target is absent and cannot hear it) instead of letting a companion answer as though they were
+         // standing right there. companionBriefingTargetName names that absent person for the framing.
+         bool isCompanionBriefingScene = false,
+         string companionBriefingTargetName = null)
       {
          int daysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge);
          bool npcIsPrisonerOfAnother = IsPrisonerOfAnother(hero);
@@ -542,7 +548,14 @@ namespace CalradiaRemembers.Mapping
             // building THIS hero's own turn context and simply absent for anyone else's, including the target
             // of the conversation this companion was brought into (see EncounterContext.CompanionBrief's own
             // doc for why an absent field, rather than a present-but-secret one, is the whole mechanism).
-            CompanionBrief = ResolveCompanionBrief(hero),
+            // Suppressed INSIDE the briefing scene itself: the store is being written live, turn by turn, by
+            // this very conversation, so re-injecting it as "what the player told you BEFORE this meeting"
+            // would just echo the message the model is already reading as the live player turn.
+            CompanionBrief = isCompanionBriefingScene ? null : ResolveCompanionBrief(hero),
+            // Companion-briefing pillar, revised per Gabriel's ruling: the model needs to know it is IN that
+            // private word right now, not merely holding one's standing result (CompanionBrief, above).
+            IsCompanionBriefingScene = isCompanionBriefingScene,
+            CompanionBriefingTargetName = companionBriefingTargetName,
             IntimacyBargainEligible = IntimacyBargainEligibility.IsEligible(hero),
             IntimacyLeverageActive = IntimacyBargainEligibility.IsEligible(hero) && profile?.IntimacyLeverageHeld == true,
             BastardMotherTone = ResolveBastardMotherTone(hero),
