@@ -2876,15 +2876,18 @@ namespace CalradiaRemembers.GameState
                                  .GetCompanionHiringPrice(npcHero);
             if (asking <= 0) asking = 1;
 
+            // The deal is the deal (Gabriel's ruling 2026-09-08). The price agreed in conversation is charged
+            // exactly, never renegotiated afterwards into a band: that band is what charged a player 446 while
+            // his companion was saying 595 aloud. An unaffordable bargain is not quietly made cheaper either, it
+            // simply does not happen. See CalradiaRemembers.Logic.HireAgreementPolicy.
             TryGetInt(action.Parameters, "price", out int proposed);
-            if (proposed <= 0) proposed = asking;
-            int price = ClampInt(proposed, (int) (asking * 0.75f), Math.Max(1, (int) (asking * 1.25f)));
+            int price = HireAgreementPolicy.AgreedPrice(proposed, asking);
 
-            if (Hero.MainHero.Gold < price)
+            if (!HireAgreementPolicy.CanAfford(Hero.MainHero.Gold, price))
                return ActionOutcome.Refused($"(You cannot afford the agreed {price} denars.)");
 
             return DoJoin(npcHero, price,
-               $"hired for {price} denars (proposed {proposed}, vanilla asking {asking})");
+               $"hired for {price} denars (agreed {proposed}, vanilla asking {asking})");
          }
          catch (Exception ex)
          {
