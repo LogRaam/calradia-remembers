@@ -118,6 +118,19 @@ namespace CalradiaRemembers.Logic.Actions
       ///   quieter, never louder, matching the "when in doubt, log less" rule.
       /// </summary>
       public bool CourtVerbsOffered;
+
+      /// <summary>
+      ///   True when the SDK offered <c>teach_skill</c> this turn, which it does when the NPC has genuine mastery
+      ///   to pass on (<c>EncounterContext.TeachableSkills</c> is non-empty) and the scene allows a lesson.
+      ///   <para>
+      ///     This verb was simply MISSING from the mirror, so every legitimate lesson was flagged as untaught. A
+      ///     player granted a real skill point saw "[ACTION-AUDIT] 'teach_skill' executed but was not taught this
+      ///     turn" in his log beside it (2026-09-08), which sent us looking for a violation that was never there.
+      ///     An audit that cries wolf on correct behaviour is worse than none, because it trains the reader to
+      ///     skip the line on the day it is right.
+      ///   </para>
+      /// </summary>
+      public bool TeachSkillOffered;
    }
 
    /// <summary>
@@ -258,6 +271,8 @@ namespace CalradiaRemembers.Logic.Actions
          if (facts.CourtVerbsOffered)
             foreach (string v in CourtVerbs)
                set.Add(v);
+
+         if (facts.TeachSkillOffered) set.Add("teach_skill");
 
          return set;
       }

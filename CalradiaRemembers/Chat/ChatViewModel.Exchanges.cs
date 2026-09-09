@@ -608,7 +608,9 @@ namespace CalradiaRemembers.Chat
                SpouseDivorceDemandActive = !string.IsNullOrWhiteSpace(context.SpouseDivorceDemandNote),
                PlayerEndOwnMarriageOffered = !string.IsNullOrWhiteSpace(context.PlayerEndOwnMarriageNote),
                SpouseEstrangementActive = !string.IsNullOrWhiteSpace(context.SpouseEstrangementNote),
-               CourtVerbsOffered = !string.IsNullOrWhiteSpace(context.ExtraActionTeachings)
+               CourtVerbsOffered = !string.IsNullOrWhiteSpace(context.ExtraActionTeachings),
+               // Mirrors AppendTeachSkill's own gate: the SDK offers the verb when the NPC has mastery to pass on.
+               TeachSkillOffered = context.TeachableSkills is {Count: > 0}
             };
 
             ISet<string> taught = TaughtActionSet.ForTurn(facts);
