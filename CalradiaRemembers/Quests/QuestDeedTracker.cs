@@ -49,9 +49,21 @@ namespace CalradiaRemembers.Quests
          CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
          CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
          CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
-         // Rescue is detected from the player's own victory (OnMapEventEnded), NOT from
-         // HeroPrisonerReleased: that event carries no rescuer, so it cannot tell a
-         // player rescue from an AI one — crediting it would break the player-link rule.
+         // v2.5.3 REVERSAL of a deliberate v1.x decision (player report: freed a captive via the vanilla
+         // PRISON BREAK mission, then days later read "so and so is lost, they are no longer on the map" as
+         // the rescue quest voided). Rescue used to be detected ONLY from the player's own field-battle
+         // victory (OnMapEventEnded), never from HeroPrisonerReleased, because that event carries no rescuer
+         // and cannot tell a player rescue from an AI one, crediting it was judged to break the player-link
+         // rule, and that reasoning was correct as far as it went. It did not go far enough: a staged prison
+         // break (SandBox's PrisonBreakCampaignBehavior calling EndCaptivityAction.ApplyByEscape, reported as
+         // ReleasedAfterEscape) raises no MapEvent, so the deed went uncredited, and the daily void sweep
+         // later read the freed target as proof the task was impossible, cancelling a quest the player had
+         // just completed themselves. Gabriel's ruling reverses the old decision: credit a release HOWEVER it
+         // happened, except a ransom or one bundled with a peace treaty (ApplyByRansom/ApplyByPeace; death
+         // frees nobody either), see QuestRescueCreditPolicy. Benefit of the doubt goes to the player
+         // everywhere else, including a captive who slips free entirely unaided (the engine reports that the
+         // same way as a staged break, naming no facilitator either way).
+         CampaignEvents.HeroPrisonerReleased.AddNonSerializedListener(this, OnHeroPrisonerReleased);
          CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
          CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
          ModLog.Info("QuestDeedTracker subscribed to campaign events.");
@@ -397,6 +409,54 @@ namespace CalradiaRemembers.Quests
          if (!byPlayer) return;
 
          StampCaptureQuests(prisoner);
+      }
+
+      /// <summary>
+      ///   v2.5.3 (player report, see the comment on <see cref="Subscribe" />): stamps an outstanding
+      ///   RescuePrisoner quest targeting a hero whose captivity just ended, PROVIDED the way it ended
+      ///   credits the player per <see cref="QuestRescueCreditPolicy" />. Fires for every captivity end
+      ///   (battle, escape, mercy release, ...), not only the free_prisoner bridge action, so a rescue is
+      ///   credited exactly once regardless of which detection path sees it first: OnMapEventEnded's own
+      ///   battle-evidence stamp and this hook both target the same outstanding-only quest, so whichever
+      ///   fires first satisfies it and the other finds nothing left to stamp.
+      /// </summary>
+      private void OnHeroPrisonerReleased(Hero prisoner, PartyBase party, IFaction faction, EndCaptivityDetail detail, bool showNotification)
+      {
+         if (prisoner == null) return;
+
+         CaptivityEndReason reason = MapCaptivityEndReason(detail);
+         if (!QuestRescueCreditPolicy.CreditsPlayerRescue(reason)) return;
+
+         int day = CurrentDay();
+         ForEachOutstandingQuest((profile, quest) =>
+         {
+            if (quest.Type != QuestType.RescuePrisoner) return;
+            if (!string.Equals(quest.TargetHeroId, prisoner.StringId, StringComparison.Ordinal)) return;
+
+            Stamp(profile, quest, $"Freed {quest.TargetHeroName} from captivity on day {day}", day);
+         });
+      }
+
+      /// <summary>
+      ///   Maps the engine's own <see cref="EndCaptivityDetail" /> onto the engine-free
+      ///   <see cref="CaptivityEndReason" /> QuestRescueCreditPolicy judges. A value this switch does not
+      ///   recognise (an engine addition made after this was written) maps to <see cref="CaptivityEndReason.Other" />,
+      ///   which the policy resolves to a defined, deliberate answer rather than this mapping silently
+      ///   dropping it.
+      /// </summary>
+      private static CaptivityEndReason MapCaptivityEndReason(EndCaptivityDetail detail)
+      {
+         switch (detail)
+         {
+            case EndCaptivityDetail.Ransom: return CaptivityEndReason.Ransom;
+            case EndCaptivityDetail.ReleasedAfterPeace: return CaptivityEndReason.Peace;
+            case EndCaptivityDetail.ReleasedAfterBattle: return CaptivityEndReason.Battle;
+            case EndCaptivityDetail.ReleasedAfterEscape: return CaptivityEndReason.Escape;
+            case EndCaptivityDetail.ReleasedByChoice: return CaptivityEndReason.ByChoice;
+            case EndCaptivityDetail.Death: return CaptivityEndReason.Death;
+            case EndCaptivityDetail.ReleasedByCompensation: return CaptivityEndReason.Compensation;
+            default: return CaptivityEndReason.Other;
+         }
       }
 
       /// <summary>

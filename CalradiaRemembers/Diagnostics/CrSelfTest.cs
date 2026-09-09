@@ -196,6 +196,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("captive_lord_withheld_from_defection", Severity.Heavy, "player report: a held captive lord below the recruit_prisoner regard floor could still narrate accepting the player's offer to defect, though nothing happened (an empty promise). Really captures a capturable in-party lord who is not their own clan's leader, drives EncounterContextBuilder.Build with regard just BELOW PrisonerRecruitmentPolicy.RegardFloor -> assert CanRecruitPrisoner is false and the new CaptiveLordWithheldFromDefection flag is true, then raises regard to the floor -> assert they FLIP (CanRecruitPrisoner true, the new flag false), proving the two are mutually exclusive on live engine facts. Releases the captive and restores regard afterwards", TestCaptiveLordWithheldFromDefection),
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
          new SelfTest("free_prisoner", Severity.Heavy, "capture -> free_prisoner -> assert released", TestFreePrisoner),
+         new SelfTest("quest_rescue_release_credit", Severity.Heavy, "v2.5.3 player report ('his success cancelled his quest'): capture a real in-party lord bound to a real outstanding RescuePrisoner quest, free them through the REAL free_prisoner bridge action (not a battle, not a Debug seam) so the REAL CampaignEvents.HeroPrisonerReleased dispatch reaches QuestDeedTracker's new hook, and assert the quest is stamped SATISFIED, not left outstanding; then runs the REAL daily maintenance sweep and asserts it still does not CANCEL the now-satisfied quest (the exact bug: the void sweep used to read the freed target as proof the task was impossible). Releases the captive and drops the seeded quest afterwards", TestRescueCreditedOnRelease),
          new SelfTest("captive_kin", Severity.Heavy, "capture an in-party enemy lord who has a living parent -> build that parent's RELATIONSHIPS -> assert the captured child is marked as held by the player (the 'you are a liar, my child is safe' denial bug), then release", TestCaptiveKinAwareness),
          new SelfTest("give_item", Severity.Light, "pick a player item -> give_item -> assert it left the inventory", TestGiveItem),
          new SelfTest("gift_equip", Severity.Light, "gift an equippable weapon to a companion/spouse -> assert they equipped it", TestGiftEquip),
@@ -3926,6 +3927,105 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Note($"{captive.Name}");
          t.Expect("freed", !captive.IsPrisoner, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   v2.5.3 player report (2026-09-07): "npc gave me a quest to rescue a clan member from a prison. i
+      ///   got the person out of prison but then a couple days later i get 'so and so is lost, they are no
+      ///   longer on the map' and the quest is failed." His success cancelled his quest: freeing someone from
+      ///   a dungeon raises no battle, so QuestDeedTracker never credited the rescue, and the daily void sweep
+      ///   then read the freed target as proof the task was impossible. Drives the REAL free_prisoner bridge
+      ///   action (the same action ExecuteFreePrisoner/free_prisoner tests above use, standing in for "got the
+      ///   person out of prison") on a real captured lord bound to a real outstanding RescuePrisoner quest, so
+      ///   the REAL CampaignEvents.HeroPrisonerReleased dispatch reaches QuestDeedTracker.OnHeroPrisonerReleased
+      ///   with no Debug seam involved. THE LOAD-BEARING ASSERTION: after the release, the quest is SATISFIED
+      ///   (awaiting reward), and running the REAL daily maintenance sweep afterward must not undo that by
+      ///   cancelling it, which is exactly what the reporter saw.
+      /// </summary>
+      private static string TestRescueCreditedOnRelease(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("quest_rescue_release_credit");
+
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         // Same in-party-lord filter TestFreePrisoner/TestCaptiveKinAwareness use (off-map lords are not
+         // reliably capturable by the raw action on this build); the choice of WHICH lord must not matter to
+         // the outcome, so the predicate names only what is required, never a specific hero.
+         Hero target = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != null && h.Clan?.Leader != h);
+
+         if (t.Skip(target == null, "no capturable in-party lord to stand as the rescue target")) return t.Line();
+
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != target && h.IsLord && !h.IsPrisoner);
+
+         if (t.Skip(giver == null, "no other live lord to stand as the quest giver")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         const string marker = "[SELFTEST] free my kinsman from captivity.";
+
+         try
+         {
+            TakePrisonerAction.Apply(PartyBase.MainParty, target);
+            bool captured = target.IsPrisoner && target.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+
+            if (t.Abort(!captured, $"capture failed for {target.Name} (party={target.PartyBelongedTo?.StringId ?? "none"})")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, giver);
+            var quest = new InformalQuest {
+               Type = QuestType.RescuePrisoner,
+               Description = marker,
+               TargetHeroId = target.StringId,
+               TargetHeroName = target.Name?.ToString(),
+               IssuedOnDay = today,
+               Status = QuestStatus.Active
+            };
+            profile.ActiveQuests.Add(quest);
+            QuestJournalBridge.OpenMirror(quest, giver);
+            behavior.Store.Set(profile);
+
+            // THE PLAYER'S OWN DEED: free them through the real bridge action, not a battle, so the credit
+            // must come from QuestDeedTracker's new HeroPrisonerReleased hook, not the pre-existing battle path.
+            behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "free_prisoner"}, target, null);
+
+            InformalQuest afterRelease = behavior.Store.Get(giver.StringId)?.ActiveQuests
+                                                  .FirstOrDefault(q => q.Description == marker);
+
+            t.Expect("targetFreedByRealAction", !target.IsPrisoner, true);
+            t.Expect("stillActiveNotCancelledAfterRelease", afterRelease?.Status, QuestStatus.Active);
+            t.Expect("awaitingRewardAfterRelease", afterRelease?.IsAwaitingReward, true);
+
+            // THE LOAD-BEARING ASSERTION: the daily safety-net sweep, run for real, must not undo the credit
+            // the release just earned. Before this fix, this exact call is what cancelled the reporter's quest.
+            QuestService.RunDailyMaintenance(behavior.Store, today);
+
+            InformalQuest afterSweep = behavior.Store.Get(giver.StringId)?.ActiveQuests
+                                               .FirstOrDefault(q => q.Description == marker);
+
+            t.Note($"{giver.Name} -> free {target.Name}: afterRelease.status={afterRelease?.Status}, evidence={afterRelease?.Evidence}, afterSweep.status={afterSweep?.Status}");
+            t.Expect("survivesDailySweepSatisfiedNotCancelled", afterSweep?.Status, QuestStatus.Active);
+            t.Expect("stillAwaitingRewardAfterSweep", afterSweep?.IsAwaitingReward, true);
+         }
+         finally
+         {
+            try
+            {
+               NpcProfile clean = behavior.Store.Get(giver.StringId);
+               InformalQuest leftover = clean?.ActiveQuests.FirstOrDefault(q => q.Description == marker);
+
+               if (leftover != null)
+               {
+                  QuestJournalBridge.CloseAsCancelled(leftover, giver, "[SELFTEST] cleanup.");
+                  clean.ActiveQuests.Remove(leftover);
+                  behavior.Store.Set(clean);
+               }
+            }
+            catch (Exception ex) { ModLog.Error($"[SELFTEST] quest_rescue_release_credit quest cleanup failed: {ex.Message}"); }
+
+            try { if (target.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(target); }
+            catch (Exception ex) { ModLog.Error($"[SELFTEST] quest_rescue_release_credit release cleanup failed: {ex.Message}"); }
+         }
 
          return t.Line();
       }

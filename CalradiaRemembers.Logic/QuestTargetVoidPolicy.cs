@@ -16,6 +16,36 @@ using NpcMemoryService.Core.Models;
 
 namespace CalradiaRemembers.Logic
 {
+    /// <summary>
+    ///   Why <see cref="QuestTargetVoidPolicy.ReasonToVoid" /> would cancel a hero-bound quest, or
+    ///   <see cref="None" /> when it stands. Split out from a plain bool (v2.5.3, player report) because a
+    ///   rescue's target being free is NOT the same fact as the target having left the world: the wording a
+    ///   player reads must tell those apart, or a rescue the player just completed themselves reads as their
+    ///   target having vanished.
+    /// </summary>
+    public enum QuestVoidReason
+    {
+        /// <summary>The target has not left the board (or is not held-captive-relevant); the quest stands.</summary>
+        None,
+
+        /// <summary>The target hero's StringId no longer resolves to anyone in the world.</summary>
+        TargetVanished,
+
+        /// <summary>The target hero resolves, but is dead.</summary>
+        TargetDead,
+
+        /// <summary>
+        ///   A rescue's target is alive and present but no longer held captive. This is the safety-net path
+        ///   only: QuestDeedTracker.OnHeroPrisonerReleased now credits a qualifying release BEFORE the daily
+        ///   sweep ever runs (see QuestRescueCreditPolicy), so a quest reaching here has already survived that
+        ///   credit and is either a release the hook never observed (an old save, a missed event) or one of
+        ///   the ruling's own exclusions (ransom, peace, death is TargetDead above). Distinct from
+        ///   TargetVanished/TargetDead because the target is NOT gone from the world; the closure wording
+        ///   must say so honestly, never that the target vanished.
+        /// </summary>
+        RescueTargetFreed
+    }
+
     /// <summary>Decides whether a hero-bound quest should be voided because its target hero has left the world.</summary>
     public static class QuestTargetVoidPolicy
     {
@@ -54,17 +84,27 @@ namespace CalradiaRemembers.Logic
         ///   keeps the quest standing.
         /// </summary>
         public static bool ShouldVoid(QuestType type, bool hasTargetHero, bool targetResolved, bool targetAlive, bool targetIsPrisoner)
+            => ReasonToVoid(type, hasTargetHero, targetResolved, targetAlive, targetIsPrisoner) != QuestVoidReason.None;
+
+        /// <summary>
+        ///   The same decision as <see cref="ShouldVoid" />, but naming WHY, so the host can give the player an
+        ///   honest closure line instead of one blanket "gone from the world" wording for every case. See
+        ///   <see cref="QuestVoidReason" /> for what each answer means and why <see cref="QuestVoidReason.RescueTargetFreed" />
+        ///   is kept apart from the other two.
+        /// </summary>
+        public static QuestVoidReason ReasonToVoid(QuestType type, bool hasTargetHero, bool targetResolved, bool targetAlive, bool targetIsPrisoner)
         {
-            if (!hasTargetHero) return false;
-            if (!IsTargetHeroBound(type)) return false;
+            if (!hasTargetHero) return QuestVoidReason.None;
+            if (!IsTargetHeroBound(type)) return QuestVoidReason.None;
 
-            if (!targetResolved) return true; // the hero has vanished from the world entirely
-            if (!targetAlive) return true;     // the hero is dead: capture/attack/execute/deliver/rescue are all moot
+            if (!targetResolved) return QuestVoidReason.TargetVanished; // the hero has vanished from the world entirely
+            if (!targetAlive) return QuestVoidReason.TargetDead;         // capture/attack/execute/deliver/rescue are all moot
 
-            // A rescue needs the captive still held; freed or escaped, there is no longer anyone to free.
-            if (type == QuestType.RescuePrisoner && !targetIsPrisoner) return true;
+            // A rescue needs the captive still held; freed or escaped, there is no longer anyone to free, but
+            // they are not GONE, so this gets its own reason (see QuestVoidReason.RescueTargetFreed).
+            if (type == QuestType.RescuePrisoner && !targetIsPrisoner) return QuestVoidReason.RescueTargetFreed;
 
-            return false;
+            return QuestVoidReason.None;
         }
 
         /// <summary>

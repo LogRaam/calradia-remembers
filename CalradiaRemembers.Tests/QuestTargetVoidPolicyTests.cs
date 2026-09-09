@@ -174,5 +174,60 @@ namespace CalradiaRemembers.Tests
         {
             QuestTargetVoidPolicy.IsWarHostileHeroQuest(type).Should().Be(expected);
         }
+
+        // v2.5.3 (player report, "his success cancelled his quest"): ShouldVoid alone cannot tell the two apart,
+        // but the wording the player reads must. A vanished target IS gone from the world; both must keep
+        // resolving to their own distinct reason so QuestService can compose an honest closure line for each.
+        [Test]
+        public void GIVEN_a_vanished_target_WHEN_asked_the_void_reason_THEN_it_is_TargetVanished()
+        {
+            QuestTargetVoidPolicy.ReasonToVoid(QuestType.CapturePrisoner, hasTargetHero: true, targetResolved: false, targetAlive: false, targetIsPrisoner: false)
+                .Should().Be(QuestVoidReason.TargetVanished);
+        }
+
+        // Same as above, for a resolved-but-dead target: still genuinely gone from the world, distinct from a
+        // rescue's target simply having been freed (see the next test).
+        [Test]
+        public void GIVEN_a_dead_target_WHEN_asked_the_void_reason_THEN_it_is_TargetDead()
+        {
+            QuestTargetVoidPolicy.ReasonToVoid(QuestType.AttackLord, hasTargetHero: true, targetResolved: true, targetAlive: false, targetIsPrisoner: false)
+                .Should().Be(QuestVoidReason.TargetDead);
+        }
+
+        // THE FIX ITSELF: a rescue's target being alive, present, and simply no longer a prisoner must NOT
+        // resolve to the same reason as a vanished or dead target. The old single "gone from the world" wording
+        // is exactly what told a player who had just freed someone that their target had vanished.
+        [Test]
+        public void GIVEN_a_rescue_target_alive_but_freed_WHEN_asked_the_void_reason_THEN_it_is_RescueTargetFreed()
+        {
+            QuestTargetVoidPolicy.ReasonToVoid(QuestType.RescuePrisoner, hasTargetHero: true, targetResolved: true, targetAlive: true, targetIsPrisoner: false)
+                .Should().Be(QuestVoidReason.RescueTargetFreed);
+        }
+
+        // Guard against over-voiding, same case as ShouldVoid's own equivalent test: a live, present, still-held
+        // target genuinely stands, so the reason must be None, never any of the three void reasons.
+        [Test]
+        public void GIVEN_a_live_reachable_target_WHEN_asked_the_void_reason_THEN_it_is_None()
+        {
+            QuestTargetVoidPolicy.ReasonToVoid(QuestType.RescuePrisoner, hasTargetHero: true, targetResolved: true, targetAlive: true, targetIsPrisoner: true)
+                .Should().Be(QuestVoidReason.None);
+        }
+
+        // ShouldVoid is kept as a thin bool projection of ReasonToVoid for its existing callers/tests; this pins
+        // that the two can never silently disagree (ShouldVoid true iff the reason is not None) across every
+        // case this fixture already exercises for ShouldVoid directly.
+        [TestCase(QuestType.RescuePrisoner, true, true, true, false)]
+        [TestCase(QuestType.RescuePrisoner, true, true, true, true)]
+        [TestCase(QuestType.CapturePrisoner, true, true, false, false)]
+        [TestCase(QuestType.CapturePrisoner, true, false, false, false)]
+        [TestCase(QuestType.BanditClear, true, false, false, false)]
+        public void GIVEN_any_case_WHEN_comparing_ShouldVoid_and_ReasonToVoid_THEN_they_agree(
+            QuestType type, bool hasTargetHero, bool targetResolved, bool targetAlive, bool targetIsPrisoner)
+        {
+            bool shouldVoid = QuestTargetVoidPolicy.ShouldVoid(type, hasTargetHero, targetResolved, targetAlive, targetIsPrisoner);
+            QuestVoidReason reason = QuestTargetVoidPolicy.ReasonToVoid(type, hasTargetHero, targetResolved, targetAlive, targetIsPrisoner);
+
+            shouldVoid.Should().Be(reason != QuestVoidReason.None);
+        }
     }
 }

@@ -197,17 +197,27 @@ namespace CalradiaRemembers.Quests
                   continue;
                }
 
-               // v1.34.2 fault/no-fault hardening (audit Pattern 2): a capture/attack/execute/rescue/deliver
-               // quest whose TARGET hero died or vanished (or, for a rescue, is no longer held) between the
-               // promise and now can never be answered through any fault of the player. Cancel it as a clean
-               // NEUTRAL VOID (no penalty, no grudge, no fail banner), exactly like a dead giver's quest above,
-               // instead of letting the deadline lapse into an unjust breach with a lasting grudge.
-               if (quest.IsOutstanding && TargetLostToVoid(quest))
+               // v1.34.2 fault/no-fault hardening (audit Pattern 2), reworded v2.5.3 after a player report: a
+               // capture/attack/execute/rescue/deliver quest whose TARGET hero died or vanished (or, for a
+               // rescue, is still not held by the time the daily sweep sees it) can never be answered through
+               // any fault of the player. Cancel it as a clean NEUTRAL VOID (no penalty, no grudge, no fail
+               // banner), exactly like a dead giver's quest above, instead of letting the deadline lapse into
+               // an unjust breach with a lasting grudge. QuestDeedTracker.OnHeroPrisonerReleased now credits a
+               // qualifying rescue BEFORE this sweep ever runs, so this branch only still fires for a release
+               // that hook never observed (an old save, a missed event) or one of the ruling's own exclusions.
+               // The wording must say what is TRUE for each reason: a rescue's target being free is not proof
+               // they vanished, and telling a player who just freed someone that their target is "gone from
+               // the world" is exactly the bug being fixed here.
+               CalradiaRemembers.Logic.QuestVoidReason voidReason = quest.IsOutstanding
+                  ? TargetLostToVoid(quest)
+                  : CalradiaRemembers.Logic.QuestVoidReason.None;
+
+               if (voidReason != CalradiaRemembers.Logic.QuestVoidReason.None)
                {
                   quest.Status = QuestStatus.Cancelled;
                   AddEvent(profile, gameDay, NotableEventType.Other,
                      $"Set aside the task to {Describe(quest)}: it can no longer be answered.");
-                  QuestJournalBridge.CloseAsCancelled(quest, giverHero, "The mark of this task is gone from the world. It can no longer be answered.");
+                  QuestJournalBridge.CloseAsCancelled(quest, giverHero, VoidClosureReason(voidReason));
                   changed = true;
 
                   continue;
@@ -775,23 +785,39 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>
-      ///   v1.34.2 fault/no-fault hardening (audit Pattern 2): true when a hero-bound quest's TARGET has left
-      ///   the board (died, vanished, or, for a rescue, is no longer a prisoner), so the task is impossible
-      ///   through no fault of the player. The pure rule lives in
-      ///   <see cref="CalradiaRemembers.Logic.QuestTargetVoidPolicy" />; this only resolves the live hero state.
+      ///   v1.34.2 fault/no-fault hardening (audit Pattern 2): why a hero-bound quest's TARGET has left the
+      ///   board (died, vanished, or, for a rescue, is no longer a prisoner), or <c>None</c> when it stands.
+      ///   The pure rule lives in <see cref="CalradiaRemembers.Logic.QuestTargetVoidPolicy" />; this only
+      ///   resolves the live hero state. Returns the REASON (not a plain bool) since v2.5.3, so the caller can
+      ///   give the player an honest closure line instead of one wording for every case.
       /// </summary>
-      private static bool TargetLostToVoid(InformalQuest quest)
+      private static CalradiaRemembers.Logic.QuestVoidReason TargetLostToVoid(InformalQuest quest)
       {
-         if (string.IsNullOrEmpty(quest.TargetHeroId)) return false;
+         if (string.IsNullOrEmpty(quest.TargetHeroId)) return CalradiaRemembers.Logic.QuestVoidReason.None;
 
          Hero target = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
 
-         return CalradiaRemembers.Logic.QuestTargetVoidPolicy.ShouldVoid(
+         return CalradiaRemembers.Logic.QuestTargetVoidPolicy.ReasonToVoid(
             quest.Type,
             hasTargetHero: true,
             targetResolved: target != null,
             targetAlive: target is {IsAlive: true},
             targetIsPrisoner: target is {IsPrisoner: true});
+      }
+
+      /// <summary>
+      ///   The closure line the player reads when <see cref="TargetLostToVoid" /> voids a quest. v2.5.3 player
+      ///   report ("his success cancelled his quest"): a rescue's target being free is not proof they left the
+      ///   world, it may be the player's OWN success reaching this safety net late (an old save, or a release
+      ///   this build's hook never observed), so that one reason gets its own honest wording, never the old
+      ///   blanket "gone from the world" line, which read as the target having vanished the moment the player
+      ///   had personally freed them.
+      /// </summary>
+      private static string VoidClosureReason(CalradiaRemembers.Logic.QuestVoidReason reason)
+      {
+         return reason == CalradiaRemembers.Logic.QuestVoidReason.RescueTargetFreed
+            ? "The one you were to free is already out of captivity, however that came to pass. This task is set aside."
+            : "The mark of this task is gone from the world. It can no longer be answered.";
       }
 
       private static bool Prune(NpcProfile profile)
