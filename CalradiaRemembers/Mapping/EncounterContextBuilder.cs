@@ -2461,7 +2461,13 @@ namespace CalradiaRemembers.Mapping
 
          if (status == RomanticStatus.Committed || status == RomanticStatus.Estranged || status == RomanticStatus.Broken) return false;
 
-         return profile.ReputationWithPlayer >= 50;
+         // ONE bar for the whole arc. This used to be a literal 50 in three places: here, the bridge's own
+         // guard, and CompanionSecretAffectionPolicy. When the confession threshold began following the
+         // Relationship Pacing dial (2026-09-08) the other two stayed at 50, opening a window where a companion
+         // could declare their feelings and the game would then refuse the bond, which is exactly what a player
+         // reported: "the NPC is expressing affection, yet the system displays a message stating that intimacy is
+         // insufficient" (2026-09-09).
+         return profile.ReputationWithPlayer >= CompanionSecretAffectionPolicy.MinRegardFor(ModSettings.RelationWarmth);
       }
 
       /// <summary>

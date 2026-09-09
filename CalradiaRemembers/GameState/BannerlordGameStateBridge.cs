@@ -3547,7 +3547,9 @@ namespace CalradiaRemembers.GameState
                return ActionOutcome.Refused($"(There is no such spark between you and {npcHero.Name}.)");
             if (profile.Romantic.IsConsort || profile.Romantic.IsSecretLover || npcHero == Hero.MainHero.Spouse)
                return ActionOutcome.Refused($"(You and {npcHero.Name} are already bound.)");
-            if (profile.ReputationWithPlayer < 50)
+            // The SAME bar the confession and the teaching gate use, never a second literal: see
+            // ResolveSecretLoverEligible's comment for what a disagreement between them cost a player.
+            if (profile.ReputationWithPlayer < CompanionSecretAffectionPolicy.MinRegardFor(ModSettings.RelationWarmth))
                return ActionOutcome.Refused($"({npcHero.Name} is not yet close enough to you for this.)");
 
             profile.Romantic.Status = RomanticStatus.SecretLover;

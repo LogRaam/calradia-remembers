@@ -97,5 +97,25 @@ namespace CalradiaRemembers.Tests
             CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, 10, RelationWarmth.VeryEasy)
                 .Should().BeFalse();
         }
+
+        // The regression this file's own change caused, pinned so it cannot come back. The confession bar moved
+        // onto the pacing dial while TWO other copies of the same number stayed at a literal 50: the gate that
+        // decides whether the model is even taught the bond verb, and the bridge guard that executes it. On Warm
+        // or Storyteller that opened a window where a companion declares their feelings and the game then refuses
+        // the bond, which a player reported almost word for word: "the NPC is expressing affection, yet the system
+        // displays a message stating that intimacy is insufficient". One bar for the whole arc, at every pacing.
+        [TestCase(RelationWarmth.Normal)]
+        [TestCase(RelationWarmth.Easier)]
+        [TestCase(RelationWarmth.VeryEasy)]
+        public void GIVEN_any_pacing_WHEN_a_companion_may_confess_THEN_the_bond_they_offer_can_also_be_formed(RelationWarmth warmth)
+        {
+            int bar = CompanionSecretAffectionPolicy.MinRegardFor(warmth);
+
+            // Regard exactly at the bar: the confession is allowed, so every gate behind it must allow it too.
+            // Both engine gates (the teaching gate and the bridge guard) now read this very call, so agreeing
+            // here IS agreeing there, and a future literal reintroduced beside them fails this by drifting.
+            CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, bar, warmth).Should().BeTrue();
+            CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, bar - 1, warmth).Should().BeFalse();
+        }
     }
 }
