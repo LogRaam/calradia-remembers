@@ -193,6 +193,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("recruit", Severity.Heavy, "eligible lord -> join_clan -> assert he moved into your clan", TestRecruit),
          new SelfTest("teach_skill", Severity.Light, "find a live NPC with a skill at or above TeachSkillPolicy.TeacherSkillFloor -> drive the REAL bridge teach_skill once (clean cooldown) -> assert real skill XP landed on the player, a second immediate lesson from the same NPC is refused by the cooldown, and an unrecognised skill name is refused rather than faked. Restores the player's skill level and the NPC's cooldown stamp afterwards", TestTeachSkill),
          new SelfTest("recruit_notable", Severity.Heavy, "find a settlement NOTABLE (gang leader/headman/merchant...) that has an eligible successor in its town, force regard to the floor, run the REAL bridge recruit_notable -> assert the notable is now a companion in your CLAN and PARTY, a starting relation bonus was applied, and the chosen successor holds the vacated notable post (settlement.Notables). Best-effort restore afterwards (recruit_notable is not cleanly reversible: the alley transfer cannot be undone). Skips when no disposable notable+successor pair exists rather than wreck a real campaign", TestRecruitNotable),
+         new SelfTest("secret_bond_bar_agrees", Severity.Light, "player report 2026-09-09 ('the NPC is expressing affection, yet the system displays a message stating that intimacy is insufficient'), caused by ONE regard bar living as a literal 50 in three places while only the confession moved onto the Relationship Pacing dial. Drives the REAL EncounterContextBuilder.Build and the REAL bridge action take_as_secret_lover against a compatible companion at exactly MinRegardFor(current pacing) and one point below it, and asserts BOTH engine gates flip on the SAME number the confession uses. A pure test cannot catch this (it would compare the policy with itself); only driving the live sites can. Restores the regard and undoes any bond formed", TestSecretBondBarAgrees),
          new SelfTest("captive_lord_withheld_from_defection", Severity.Heavy, "player report: a held captive lord below the recruit_prisoner regard floor could still narrate accepting the player's offer to defect, though nothing happened (an empty promise). Really captures a capturable in-party lord who is not their own clan's leader, drives EncounterContextBuilder.Build with regard just BELOW PrisonerRecruitmentPolicy.RegardFloor -> assert CanRecruitPrisoner is false and the new CaptiveLordWithheldFromDefection flag is true, then raises regard to the floor -> assert they FLIP (CanRecruitPrisoner true, the new flag false), proving the two are mutually exclusive on live engine facts. Releases the captive and restores regard afterwards", TestCaptiveLordWithheldFromDefection),
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
          new SelfTest("free_prisoner", Severity.Heavy, "capture -> free_prisoner -> assert released", TestFreePrisoner),
@@ -7749,6 +7750,84 @@ namespace CalradiaRemembers.Diagnostics
       ///   lord (not a raw policy call) so the assertion covers the whole engine-bound path: below the
       ///   regard floor, only the negative flag is set; once regard clears the floor, they flip.
       /// </summary>
+      /// <summary>
+      ///   The regression guard the pure tests cannot be: one regard bar governs this whole arc, and it is read
+      ///   in three places (the confession policy, the teaching gate inside EncounterContextBuilder, and the
+      ///   bridge's own guard on take_as_secret_lover). On 2026-09-08 only the first moved onto the pacing dial,
+      ///   so on Warm or Storyteller a companion declared their feelings and the game then refused the bond. A
+      ///   .Logic test cannot see that: it would only compare the policy against itself. This drives the LIVE
+      ///   sites at the bar and one point below, so a literal reintroduced beside either of them fails here.
+      /// </summary>
+      private static string TestSecretBondBarAgrees(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("secret_bond_bar_agrees");
+
+         if (t.Skip(ModSettings.AdultContentLevel == AdultContentLevel.Off,
+                    "adult content is off, which gates this whole arc before any regard is read")) return t.Line();
+
+         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsPlayerCompanion && h.IsAlive && h != Hero.MainHero.Spouse);
+
+         if (t.Skip(companion == null, "no living companion in the player's own party")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, companion);
+
+         if (t.Skip(profile.Romantic == null, $"{companion.Name} has no romantic profile to judge")) return t.Line();
+         if (t.Skip(!profile.Romantic.IsCompatibleWith(Hero.MainHero.IsFemale),
+                    $"{companion.Name}'s orientation makes the player no object of affection, so the bar is never reached"))
+            return t.Line();
+
+         int regardBefore = profile.ReputationWithPlayer;
+         bool secretBefore = profile.Romantic.IsSecretLover;
+         RomanticStatus statusBefore = profile.Romantic.Status;
+         int bar = CompanionSecretAffectionPolicy.MinRegardFor(ModSettings.RelationWarmth);
+
+         try
+         {
+            profile.Romantic.IsSecretLover = false;
+            profile.Romantic.Status = RomanticStatus.None;
+
+            profile.ReputationWithPlayer = bar - 1;
+            behavior.Store.Set(profile);
+            EncounterContext below = EncounterContextBuilder.Build(companion, profile, behavior.GameStateBridge, "hello");
+            ActionOutcome refusedBelow = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "take_as_secret_lover"}, companion, new ActionContext(profile, null));
+
+            profile.ReputationWithPlayer = bar;
+            behavior.Store.Set(profile);
+            EncounterContext atBar = EncounterContextBuilder.Build(companion, profile, behavior.GameStateBridge, "hello");
+            ActionOutcome allowedAtBar = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "take_as_secret_lover"}, companion, new ActionContext(profile, null));
+
+            t.Note($"{companion.Name}: pacing={ModSettings.RelationWarmth}, bar={bar}; below taught={below.SecretLoverEligible} " +
+                   $"bridge={(refusedBelow?.WasRefused == true ? "refused" : "allowed")}; at-bar taught={atBar.SecretLoverEligible} " +
+                   $"bridge={(allowedAtBar?.WasRefused == true ? "refused" : "allowed")}");
+
+            // The confession is the thing that moved; these two must agree with it, at whatever pacing is set.
+            t.Expect("theConfessionIsAllowedAtTheBar",
+               CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, bar, ModSettings.RelationWarmth), true);
+            t.Expect("belowTheBarTheVerbIsNotEvenTaught", below.SecretLoverEligible, false);
+            t.Expect("belowTheBarTheBridgeRefuses", refusedBelow?.WasRefused, true);
+            t.Expect("atTheBarTheVerbIsTaught", atBar.SecretLoverEligible, true);
+            t.Expect("atTheBarTheBridgeDoesNotRefuse", allowedAtBar?.WasRefused == true, false);
+         }
+         finally
+         {
+            NpcProfile fresh = behavior.Store.Get(companion.StringId) ?? profile;
+            fresh.ReputationWithPlayer = regardBefore;
+
+            if (fresh.Romantic != null)
+            {
+               fresh.Romantic.IsSecretLover = secretBefore;
+               fresh.Romantic.Status = statusBefore;
+            }
+
+            behavior.Store.Set(fresh);
+         }
+
+         return t.Line();
+      }
+
       private static string TestCaptiveLordWithheldFromDefection(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("captive_lord_withheld_from_defection");

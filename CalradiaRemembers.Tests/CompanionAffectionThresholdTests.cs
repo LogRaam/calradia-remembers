@@ -112,8 +112,10 @@ namespace CalradiaRemembers.Tests
             int bar = CompanionSecretAffectionPolicy.MinRegardFor(warmth);
 
             // Regard exactly at the bar: the confession is allowed, so every gate behind it must allow it too.
-            // Both engine gates (the teaching gate and the bridge guard) now read this very call, so agreeing
-            // here IS agreeing there, and a future literal reintroduced beside them fails this by drifting.
+            // NOTE what this test can and cannot do. It pins the policy, and nothing more: a literal 50 put back
+            // into the bridge tomorrow would leave it green, because a pure test can only compare the policy with
+            // itself. The guard that would actually catch that is cr.testall's secret_bond_bar_agrees, which
+            // drives the LIVE teaching gate and the LIVE bridge action at this same bar.
             CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, bar, warmth).Should().BeTrue();
             CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, bar - 1, warmth).Should().BeFalse();
         }
