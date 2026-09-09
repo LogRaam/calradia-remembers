@@ -439,6 +439,15 @@
                   </Children>
                 </ButtonWidget>
 
+                <!-- Why a prisoner offer cannot be taken. Sits beside the buttons rather than in the letter body:
+                     it is the mod speaking to the player, not the lord (player report 2026-09-08, a good sum
+                     offered with only a Decline button and nothing said as to why). -->
+                <TextWidget Id="OfferLapsedNote" WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren"
+                            SuggestedWidth="520" MarginRight="14" VerticalAlignment="Center"
+                            IsVisible="@ShowOfferLapsedNote"
+                            Brush="Popup.Button.Text" Brush.FontSize="16" Brush.TextHorizontalAlignment="Left"
+                            Text="@OfferLapsedNote" />
+
                 <!-- Offer letters (ServiceOffer / PrisonerOffer): Accept / Decline in place of Acknowledge / Reply -->
                 <ButtonWidget Id="AcceptOfferButton" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
                               SuggestedWidth="260" SuggestedHeight="44" MarginRight="14"

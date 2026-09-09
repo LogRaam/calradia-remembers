@@ -6,8 +6,11 @@
 
 #region
 
+using System;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic;
+using CalradiaRemembers.Verbs;
 using CalradiaRemembers.Quests;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -53,6 +56,37 @@ namespace CalradiaRemembers.Letters
             return true;
         }
 
+        /// <summary>
+        ///   Records, on arrival, whether a lord's prisoner offer can still be taken. A player reported reading a
+        ///   generous offer with nothing but a Decline button (2026-09-08); the Accept is withheld when the
+        ///   captive has left his prison, which is correct but was silent. Neither Gabriel nor I know yet how
+        ///   OFTEN these letters arrive too late to matter, and a handful of these lines across players' logs
+        ///   will say. If it turns out to be most of them, the answer is to speed this kind of letter, NOT to
+        ///   interfere with the vanilla ransom offer, which the player answers themselves on the map.
+        /// </summary>
+        private static void LogPrisonerOfferArrival(PendingLetter letter)
+        {
+            try
+            {
+                if (letter?.Reason != LetterReason.PrisonerOffer) return;
+
+                Hero captive = string.IsNullOrEmpty(letter.OfferTargetId)
+                    ? null
+                    : Hero.FindFirst(h => h.StringId == letter.OfferTargetId);
+
+                PrisonerOfferBlock block = PrisonerOfferAvailabilityPolicy.Evaluate(
+                    hasTargetId: !string.IsNullOrEmpty(letter.OfferTargetId),
+                    hasAmount: letter.OfferAmount > 0,
+                    captiveResolved: captive != null,
+                    stillHeld: captive != null && BuyPrisonerVerb.PlayerHeldHeroPrisoners().Contains(captive));
+
+                ModLog.Info($"[LETTER] prisoner offer arrived from {letter.SenderName} for "
+                            + $"{captive?.Name?.ToString() ?? letter.OfferTargetId ?? "(nobody named)"} "
+                            + $"({letter.OfferAmount} denars): {(block == PrisonerOfferBlock.None ? "acceptable" : "CANNOT be accepted, " + block)}.");
+            }
+            catch (Exception ex) { ModLog.Error($"[LETTER] prisoner-offer arrival log failed: {ex.GetType().Name}: {ex.Message}"); }
+        }
+
         // ── Bookkeeping ────────────────────────────────────────────────────
 
         /// <summary>
@@ -64,6 +98,8 @@ namespace CalradiaRemembers.Letters
         {
             letter.IsDelivered = true;
             letter.DeliveredOnDay = today; // 2.3: anchor the romantic follow-up on the REAL arrival, not the frozen due day.
+
+            LogPrisonerOfferArrival(letter);
 
             NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
 

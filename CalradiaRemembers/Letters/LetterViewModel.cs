@@ -295,6 +295,21 @@ namespace CalradiaRemembers.Letters
       [DataSourceProperty]
       public bool ShowDeclineOffer => IsOfferLetter;
 
+      /// <summary>
+      ///   The line explaining why a prisoner offer cannot be taken, shown in place of nothing at all. A player
+      ///   who reads a good sum and finds only a Decline button cannot tell a lapsed offer from a broken mod, and
+      ///   said so almost in those words (2026-09-08).
+      /// </summary>
+      [DataSourceProperty]
+      public string OfferLapsedNote
+         => IsOfferLetter && _letter.Reason == LetterReason.PrisonerOffer
+            ? PrisonerOfferAvailabilityPolicy.Describe(PrisonerOfferBlocker(), OfferCaptiveName())
+            : "";
+
+      /// <summary>True when there is a reason to show, so the note's row stays out of the way otherwise.</summary>
+      [DataSourceProperty]
+      public bool ShowOfferLapsedNote => !string.IsNullOrEmpty(OfferLapsedNote);
+
       [DataSourceProperty]
       public string AcceptOfferButtonText => _letter?.Reason == LetterReason.PrisonerOffer
          ? "Accept the trade"
@@ -398,13 +413,34 @@ namespace CalradiaRemembers.Letters
       }
 
       /// <summary>True while the PrisonerOffer's named captive is still in the player's prison (Accept is otherwise hidden).</summary>
-      private bool OfferPrisonerStillHeld()
+      private bool OfferPrisonerStillHeld() => PrisonerOfferBlocker() == PrisonerOfferBlock.None;
+
+      /// <summary>
+      ///   Why this prisoner offer cannot be settled, or None when it can. Reads the live campaign and lets the
+      ///   pure policy judge, so the window's note and the delivery log give the player and us the SAME reason
+      ///   (player report 2026-09-08: a generous offer with only a Decline button and no word as to why).
+      /// </summary>
+      private PrisonerOfferBlock PrisonerOfferBlocker()
       {
-         if (string.IsNullOrEmpty(_letter?.OfferTargetId) || _letter.OfferAmount <= 0) return false;
+         Hero captive = string.IsNullOrEmpty(_letter?.OfferTargetId)
+            ? null
+            : Hero.FindFirst(h => h.StringId == _letter.OfferTargetId);
 
-         Hero captive = Hero.FindFirst(h => h.StringId == _letter.OfferTargetId);
+         return PrisonerOfferAvailabilityPolicy.Evaluate(
+            hasTargetId: !string.IsNullOrEmpty(_letter?.OfferTargetId),
+            hasAmount: _letter?.OfferAmount > 0,
+            captiveResolved: captive != null,
+            stillHeld: captive != null && BuyPrisonerVerb.PlayerHeldHeroPrisoners().Contains(captive));
+      }
 
-         return captive != null && BuyPrisonerVerb.PlayerHeldHeroPrisoners().Contains(captive);
+      /// <summary>The captive's own name for the note, falling back to nothing rather than to an id.</summary>
+      private string OfferCaptiveName()
+      {
+         Hero captive = string.IsNullOrEmpty(_letter?.OfferTargetId)
+            ? null
+            : Hero.FindFirst(h => h.StringId == _letter.OfferTargetId);
+
+         return captive?.Name?.ToString();
       }
 
       /// <summary>Settles the prisoner ransom the letter named, through the shared executor, then closes.</summary>
@@ -606,6 +642,8 @@ namespace CalradiaRemembers.Letters
          OnPropertyChanged(nameof(ShowAcknowledge));
          OnPropertyChanged(nameof(ShowReplyButton));
          OnPropertyChanged(nameof(ShowAcceptOffer));
+         OnPropertyChanged(nameof(ShowOfferLapsedNote));
+         OnPropertyChanged(nameof(OfferLapsedNote));
          OnPropertyChanged(nameof(ShowDeclineOffer));
          OnPropertyChanged(nameof(AcceptOfferButtonText));
          OnPropertyChanged(nameof(DeclineOfferButtonText));
