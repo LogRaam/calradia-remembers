@@ -2,6 +2,49 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.6.. 2026-09-08
+
+A bug-fix release, and every fix in it came from a player's own log. Two of them unblock a campaign rather than
+polish one. Saves from 2.5.5 carry over untouched.
+
+### Fixed
+- **A chat that failed to open no longer kills every conversation until you restart the game.** Reported on 2.5.5:
+  "first time everything works, then if I select A word with you the panel closes on its own straight away... the
+  conversation never starts". The mod decided "a chat is already open" from a single field holding the live layer,
+  so an open whose close never came left it recorded against a screen that had gone, and from then on every entry
+  silently did nothing while the vanilla dialogue, with nowhere to route, simply ended. "Already open" now means a
+  window still attached to its screen; a leftover is cleared and the chat opens.
+- **Succeeding at a rescue no longer cancels the quest to rescue.** Reported on 2.5.3: the player broke someone out
+  of a prison, then days later read that they were "lost, no longer on the map" and the task had failed. A rescue
+  was only ever credited from a won field battle, so a dungeon breakout raised nothing the mod could see, and the
+  daily sweep then read the freed captive as proof the task was impossible. It is now credited however the captive
+  was freed, and a task set aside because they are already free says so instead of claiming they vanished.
+- **Kings and Emperors know they rule.** Reported: "I tried to address Derthert and Garios as kings but they deny
+  the fact and claim that they are just a lord serving the throne." They were never told. The only rulership fact
+  in the prompt was gated behind an oath being available, so a monarch learned his own rank in exactly one kind of
+  conversation. It now sits in his identity, with the realm's own word for its ruler, so an Emperor is an Emperor.
+- **A character no longer restarts the conversation at every reply.** The vanilla exchange that precedes the chat
+  was fed to the AI as turns awaiting an answer, and a wanderer's backstory ritual opens with the player
+  introducing themselves, so the AI kept answering the introduction. It now arrives as history, which is all it
+  ever was: a bridge between the two conversations.
+- **You pay the price that was named.** A companion who said "five hundred and ninety-five denars" counted it
+  aloud as "five... ninety-five", and 95 reached the game, where a rule pulled it into a band and charged 446. The
+  agreed price is now charged exactly, and a purse that cannot cover it does not buy a cheaper version of the deal.
+- **Nineteen mod options no longer explain themselves off the edge of the screen.** These read "On (default): ...
+  Off: ...", so the part that fell off the top was usually the half describing the other position.
+
+### New
+- **Take your own people aside.** Ask a lord for a moment, in the vanilla dialogue, to speak privately with the
+  companions you choose. Tell them what you want from the meeting to come, and they answer as themselves: they may
+  question the plan or say they are ill-suited to it. What you told them travels with them into the conversation
+  that follows, and the lord never learns of it. Briefs stack, so you can go back for what you forgot.
+- **Companions ask for a word on the road.** They only ever did so on entering a settlement, so a player who
+  travels never saw it. New mod option, Companions Asking For A Word, from Never to Often.
+
+### Changed
+- **A companion confides sooner if you asked for a warmer game.** How deep a bond it takes before they confess
+  feelings now follows your Relationship Pacing: unchanged at Grounded, nearer at Warm and Storyteller.
+
 ## v2.5.5.. 2026-09-07
 
 Group conversations keep their thread, and how a character loves is no longer decided by whether they are honourable.
