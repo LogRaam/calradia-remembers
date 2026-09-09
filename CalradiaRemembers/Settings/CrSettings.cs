@@ -57,9 +57,9 @@ namespace CalradiaRemembers.Settings
       public int DarkLeatherZoomPercent { get; set; } = 100;
 
       [SettingPropertyInteger("Council Size (%)", 60, 140, "0 '%'", RequireRestart = false, Order = 8,
-         HintText = "Scales the council (round-table) window, INDEPENDENTLY of the chat size above. The council book " +
-                    "is wider than a chat window, so on a 1440p+ screen it can feel too big at the default: lower this " +
-                    "if it overflows, raise it if it feels small. 100 is the shipped size. Applies to the next council.")]
+         HintText = "Scales the council window independently of the chat size above. The council book is wider, so on a 1440p " +
+                    "or larger screen it can feel too big: lower it if it overflows, raise it if it feels small. 100 is the " +
+                    "shipped size.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public int CouncilZoomPercent { get; set; } = 100;
 
@@ -70,19 +70,16 @@ namespace CalradiaRemembers.Settings
       public int CouncilTextSizePercent { get; set; } = 100;
 
       [SettingPropertyInteger("Marriage Regard Needed", 10, 50, "0", RequireRestart = false, Order = 10,
-         HintText = "How much regard a lord or lady must hold for you before they will accept a LOVE-MATCH marriage " +
-                    "(their own personal regard, OR your vanilla clan relation, whichever is higher). 50 is the " +
-                    "shipped bar; lower it for a gentler courtship. Their FAMILY'S BLESSING can still open a match " +
-                    "below this bar. Applies immediately.")]
+         HintText = "Regard a lord or lady must hold for you before accepting a LOVE-MATCH marriage (their personal regard or " +
+                    "your clan relation, whichever is higher). 50 is the shipped bar. Their family's blessing can still open " +
+                    "a match below it. Applies immediately.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public int MarriageRegardNeeded { get; set; } = 50;
 
       [SettingPropertyInteger("Regard Warmth Cooldown (days)", 1, 30, "0 'days'", RequireRestart = false, Order = 11,
-         HintText = "How long a character's warmth 'settles' before it can deepen again. Winning a point of personal " +
-                    "regard raises the bar: the first point takes one warm moment, the next takes two, the next three, " +
-                    "and so on. Each raised step relaxes by one after this many in-game days, so trust cannot be farmed " +
-                    "by leaving and returning every few hours. Lower it for faster-warming characters, higher for a " +
-                    "slower, harder-won bond. 7 is the shipped default. Applies immediately.")]
+         HintText = "How long warmth settles before it can deepen again. Each point of personal regard costs one more warm " +
+                    "moment than the last, and a step relaxes after this many days, so trust cannot be farmed by leaving and " +
+                    "returning. 7 is the default. Applies immediately.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public int RegardDecayDays { get; set; } = 7;
 
@@ -114,51 +111,45 @@ namespace CalradiaRemembers.Settings
       public bool AllowProviderFallbacks { get; set; } = false;
 
       [SettingPropertyBool("Lords can ride in your party", RequireRestart = false, Order = 2,
-         HintText = "On (default): an idle lord/lady of ANOTHER clan may agree, in conversation, to ride IN your " +
-                    "party for a time (ride_with_me), keeping their own house. Off: only the follow_me escort " +
-                    "(a lord's OWN party riding alongside yours) remains offered. Console cr.retainer enable " +
-                    "overrides this for the rest of the session.")]
+         HintText = "On (default): an idle lord or lady of another clan may agree to ride IN your party for a time, keeping " +
+                    "their own house. Off: only the follow_me escort (their own party riding alongside yours) remains. " +
+                    "cr.retainer enable overrides for the session.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool EnableRideWithMe { get; set; } = true;
 
       [SettingPropertyBool("NPCs can end conversations", RequireRestart = false, Order = 5,
-         HintText = "On (default): when a character decides a conversation is over, the chat closes and you click " +
-                    "Leave. Off: a character's goodbye no longer closes the chat, the text box stays open so you " +
-                    "can have the last word or keep talking, and you close the conversation yourself with the " +
-                    "button. Captivity scenes are unaffected (they have their own flow).")]
+         HintText = "On (default): when a character ends a conversation the chat closes and you click Leave. Off: their " +
+                    "goodbye no longer closes it, so you can have the last word and close it yourself. Captivity scenes keep " +
+                    "their own flow.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool NpcCanEndConversation { get; set; } = true;
 
       [SettingPropertyBool("Enable Council", RequireRestart = false, Order = 3,
-         HintText = "When ON, you can convene a council of your companions, kin, clan lords, or a war council from a " +
-                    "town, castle, or village menu, and from a button on the campaign map while on land. Turn OFF to " +
-                    "hide those entry points; the council can still be opened from the console.")]
+         HintText = "When ON, you can convene a council of companions, kin, clan lords or a war council from a town, castle " +
+                    "or village menu, and from a button on the campaign map while on land. OFF hides those entry points; the " +
+                    "console can still open it.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool EnableCouncil { get; set; } = true;
 
       [SettingPropertyBool("Strategic Assessment (AI)", RequireRestart = false, Order = 6,
          HintText = "On (default): the Balance of Power panel's Strategic Assessment is written by your highest-Tactics " +
-                    "companion (or, with no companion, a soldier of your warband), an AI counsel on how the realms stand " +
-                    "and what to do; the higher their Tactics, the sharper the advice. Off, or when you travel alone: a " +
-                    "plain offline summary of the standings, with no AI call.")]
+                    "companion (a warband soldier if you have none), and the sharper their Tactics the better the counsel. " +
+                    "Off, or travelling alone: a plain summary, no AI call.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool EnableStrategicAssessment { get; set; } = true;
 
       [SettingPropertyDropdown("Council Voices", RequireRestart = false, Order = 4,
-         HintText = "Default for a NEWLY opened council (flip it anytime with the button in the council window " +
-                    "itself). One call for the table keeps the scene cohesive, everyone reacts inside the same " +
-                    "completion, but the other members are voiced from little more than a name. One call per " +
-                    "member gives each their real memory, quests, and regard, at the cost of one round-trip per " +
-                    "member and no shared view of the same instant.")]
+         HintText = "Default for a newly opened council (flip it in the council window). One call for the table keeps the " +
+                    "scene cohesive but voices the others from little more than a name. One call per member gives each their " +
+                    "real memory and regard, at one round-trip apiece.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public Dropdown<string> CouncilVoices { get; set; } =
          new(new[] {"One call for the table", "One call per member"}, 0); // default: whole table
 
       [SettingPropertyBool("Companion contentment", RequireRestart = false, Order = 0,
-         HintText = "When ON, a neglected companion grows restless, asks for an audience, and if you keep refusing " +
-                    "it, eventually leaves by letter (never silently). Also gates the occasional found-topic " +
-                    "audience (a mission report, a party grudge, practical counsel, an old memory, or news of " +
-                    "the world). OFF disables both entirely.")]
+         HintText = "When ON, a neglected companion grows restless, asks for an audience, and if you keep refusing eventually " +
+                    "leaves by letter, never silently. Also gates the occasional found-topic audience. OFF disables both " +
+                    "entirely.")]
       [SettingPropertyGroup("Companions", GroupOrder = 6)]
       public bool CompanionContentment { get; set; } = true;
 
@@ -170,10 +161,9 @@ namespace CalradiaRemembers.Settings
          new(new[] {"Forgiving", "Balanced", "Exacting"}, 1); // default: Balanced
 
       [SettingPropertyDropdown("Companions Asking For A Word", RequireRestart = false, Order = 2,
-         HintText = "How often a travelling companion asks for a private word when they have something worth " +
-                    "raising (a rumour, a grievance, an old memory...): both on entering a settlement AND, new, " +
-                    "while simply on the road. Never switches it off entirely, road and settlement alike. " +
-                    "Occasionally is the shipped feel, now with an added modest chance on the road.")]
+         HintText = "How often a travelling companion asks for a private word when they have something worth raising: on " +
+                    "entering a settlement AND, new, while on the road. Never switches it off entirely. Occasionally is the " +
+                    "shipped feel.")]
       [SettingPropertyGroup("Companions", GroupOrder = 6)]
       public Dropdown<string> CompanionAudiencePacing { get; set; } =
          new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's settlement feel, plus a road chance)
@@ -210,10 +200,9 @@ namespace CalradiaRemembers.Settings
          new(new[] {"Auto", "Standard", "Reasoning"}, 0); // default: Auto
 
       [SettingPropertyDropdown("Reasoning Effort", RequireRestart = false, Order = 6,
-         HintText = "Controls thinking on a local/OpenAI-Compatible endpoint by sending reasoning_effort on the wire. " +
-                    "Set Off (reasoning_effort=none) if a reasoning model like Qwen wastes the whole reply budget " +
-                    "thinking and stalls. Default sends nothing, so an untouched setup is unchanged. Some local servers " +
-                    "(e.g. vLLM) ignore this and need their own flag; turn on Verbose Logging to see what is sent.")]
+         HintText = "Sends reasoning_effort to a local or OpenAI-compatible endpoint. Set Off if a reasoning model spends the " +
+                    "whole reply budget thinking and stalls. Default sends nothing. Some servers (vLLM) ignore it; Verbose " +
+                    "Logging shows what was sent.")]
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
       public Dropdown<string> CustomReasoningEffort { get; set; } =
          new(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Default (send nothing)
@@ -253,27 +242,23 @@ namespace CalradiaRemembers.Settings
       public bool EnableJealousy { get; set; } = true;
 
       [SettingPropertyBool("Enable Stolen Love", RequireRestart = false, Order = 1,
-         HintText = "Off (default): a married character resists an affair as before (deep trust alone can open one). " +
-                    "On: seducing a MARRIED character becomes a gated, personality-true path (an honourable or " +
-                    "happily married one holds firm however high your standing), the groundwork for luring them away " +
-                    "from their spouse. Explicit content still follows the Adult Content Level.")]
+         HintText = "Off (default): a married character resists an affair as before. On: seducing a MARRIED character becomes " +
+                    "a gated, personality-true path (an honourable or content one holds firm however high your standing). " +
+                    "Explicit content follows Adult Content Level.")]
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool EnableStolenLove { get; set; } = false;
 
       [SettingPropertyBool("Allow killing characters", RequireRestart = false, Order = 2,
-         HintText = "Off (default): you may rob or beat a character in conversation, but you can never take a life " +
-                    "this way, whatever is said. On: a killing attempt becomes possible. It is never a formality: " +
-                    "how it ends depends on how you two compare as fighters and on whether they are alone, and a " +
-                    "victim who is guarded is far harder to reach. Either way the world answers, with a crime " +
-                    "against their realm, ruined standing, and kin who remember.")]
+         HintText = "Off (default): you may rob or beat someone in conversation, never kill. On: a killing attempt becomes " +
+                    "possible, never a formality (it turns on how you two compare and whether they are alone). The world " +
+                    "answers: a crime, lost standing, kin who remember.")]
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool AllowKillingCharacters { get; set; } = false;
 
       [SettingPropertyBool("Post-duel conversation", RequireRestart = false, Order = 0,
-         HintText = "On (default): after a duel is fought, the conversation reopens over the scene and resumes what " +
-                    "led to it. The loser concedes (a beaten character of honour may grant a favour you ask, such as " +
-                    "keeping away from someone); the victor makes plain what they now expect. Off: a fought duel ends " +
-                    "with only its consequences applied, no conversation.")]
+         HintText = "On (default): after a duel the conversation reopens and resumes what led to it. The loser concedes (a " +
+                    "beaten character of honour may grant a favour you ask); the victor says what they now expect. Off: only " +
+                    "the duel's consequences apply.")]
       [SettingPropertyGroup("Duels", GroupOrder = 9)]
       public bool EnablePostDuelConversation { get; set; } = true;
 
@@ -288,10 +273,9 @@ namespace CalradiaRemembers.Settings
       public bool LeanPrompt { get; set; } = false;
 
       [SettingPropertyBool("Compress old memories", RequireRestart = false, Order = 13,
-         HintText = "Lets characters fold old, superseded memories into a short background outline, so a long " +
-                    "campaign stops inflating every prompt (the usual cause of slow replies on a local model). " +
-                    "First meetings, recent events, and grave moments are never dropped. Turn OFF if another mod " +
-                    "manages this character's memory for you.")]
+         HintText = "Lets characters fold old, superseded memories into a short outline, so a long campaign stops inflating " +
+                    "every prompt (the usual cause of slow replies on a local model). First meetings, recent events and grave " +
+                    "moments are never dropped.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public bool MemoryCompression { get; set; } = true;
 
@@ -330,12 +314,9 @@ namespace CalradiaRemembers.Settings
       public string NanoGptApiKey { get; set; } = "";
 
       [SettingPropertyDropdown("Chat Composition", RequireRestart = false, Order = 1,
-         HintText = "The DEFAULT for the in-chat Enhanced/Roleplay/NSFW switch (always visible above the chat " +
-                    "input): Enhanced (default) seeds the switch on Enhanced - the PROSE model writes, the " +
-                    "INTERPRET model tags, the NSFW model is a hard-failure fallback - richest, but more tokens " +
-                    "and slower. Standard seeds it on Roleplay - one integrated call on the PROSE model, no " +
-                    "interpret, no fallback - cheapest and fastest. Cycling the in-chat switch overrides this for " +
-                    "the rest of the session; this dropdown only sets where a fresh session starts.")]
+         HintText = "Where a fresh session's in-chat Enhanced/Roleplay switch starts. Enhanced (default): the prose model " +
+                    "writes and the interpret model tags, richest but slower. Standard: one call, cheapest and fastest. The " +
+                    "in-chat switch overrides it for the session.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public Dropdown<string> ChatCompositionModeSetting { get; set; } =
          new(new[] {ChatCompositionModePolicy.StandardLabel, ChatCompositionModePolicy.EnhancedLabel}, 1); // default: Enhanced
@@ -389,9 +370,9 @@ namespace CalradiaRemembers.Settings
          new(new[] {ModelModePolicy.SameAsProse, "Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Same as roleplay
 
       [SettingPropertyDropdown("Reasoning Effort (PROSE)", RequireRestart = false, Order = 1,
-         HintText = "How hard the PROSE model thinks before replying. Higher can mean finer dialogue but slower " +
-                    "replies, more truncation, and MORE refusals on adult content - and in Enhanced mode the PROSE " +
-                    "model writes captivity scenes too, so keep it LOW or Medium. Default leaves it to the model. OpenRouter and NanoGPT.")]
+         HintText = "How hard the PROSE model thinks before replying. Higher can mean finer dialogue but slower replies, more " +
+                    "truncation and more refusals on adult content; in Enhanced mode it writes captivity scenes too, so keep " +
+                    "it Low or Medium. OpenRouter and NanoGPT.")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public Dropdown<string> ReasoningEffort { get; set; } =
          new(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 3); // default: Low
@@ -482,10 +463,9 @@ namespace CalradiaRemembers.Settings
       public bool StoryLogging { get; set; } = false;
 
       [SettingPropertyBool("Report unsupported actions", RequireRestart = false, Order = 4,
-         HintText = "When on, shows a note in chat when the AI attempts an action the mod does not support yet. " +
-                    "Every such attempt is logged to CalradiaRemembers_unknown_actions.log regardless of this " +
-                    "setting. Send that log to the mod author (LogRaam) on Nexus to request that the action be " +
-                    "supported in a future update.")]
+         HintText = "Shows a note in chat when the AI attempts an action the mod does not support yet. Every attempt is " +
+                    "logged to CalradiaRemembers_unknown_actions.log regardless of this setting. Send that log to LogRaam on " +
+                    "Nexus to request support.")]
       [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
       public bool ReportUnsupportedActions { get; set; } = false;
 
@@ -516,10 +496,9 @@ namespace CalradiaRemembers.Settings
       public bool UseCustomTraits { get; set; } = false;
 
       [SettingPropertyText("Custom Folder Path", RequireRestart = false, Order = 2,
-         HintText = "Where your edited prompts and styles are read from. BLANK = the default (the mod's own " +
-                    "ModuleData/Custom). Set an absolute folder path to keep them OUTSIDE the mod so an update " +
-                    "never wipes them (just re-enter it after an update); also lets you keep several prompt sets " +
-                    "and switch. Applies on the next campaign or cr.reload_lore.")]
+         HintText = "Where your edited prompts and styles are read from. Blank = the mod's own ModuleData/Custom. An absolute " +
+                    "path keeps them outside the mod so an update never wipes them (re-enter it afterwards). Applies on the " +
+                    "next campaign or cr.reload_lore.")]
       [SettingPropertyGroup("Character", GroupOrder = 5)]
       public string CustomFolderPath { get; set; } = "";
 
