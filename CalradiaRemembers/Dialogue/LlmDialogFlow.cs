@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Companions;
@@ -629,6 +630,17 @@ namespace CalradiaRemembers.Dialogue
 
          ModLog.Info($"Seeding {captured.Count} vanilla lines into chat");
 
+         // The two channels are deliberately NOT the same any more. The player still SEES the vanilla exchange
+         // in the window, which is the visible bridge between the two conversations. The MODEL gets it as one
+         // block of history instead of as turns (Session.AddPriorExchange), because seeding it as turns is what
+         // made a wanderer restart the conversation at every reply: his nine-line vanilla backstory ritual opens
+         // with the player saying "My name is X, tell me about yourself", so the exchange the model saw began
+         // with an introduction and it spent the rest of the conversation answering it (player report and log,
+         // 2026-09-08). Gabriel's ruling: the vanilla conversation is history, and its only value is to bridge.
+         var history = new StringBuilder();
+         string npcName = Hero.OneToOneConversationHero?.Name?.ToString() ?? "They";
+         string playerName = Hero.MainHero?.Name?.ToString() ?? "You";
+
          foreach (VanillaDialogueRecorder.CapturedLine line in captured)
          {
             // Skip the CR-opener menu line: it is a UI trigger (the player chose to start a
@@ -637,17 +649,14 @@ namespace CalradiaRemembers.Dialogue
             if (line.IsPlayer && string.Equals(line.Text?.Trim(), OpenChatOptionText, StringComparison.Ordinal))
                continue;
 
-            if (line.IsPlayer)
-            {
-               vm.AppendPlayerMessage(line.Text);
-               Session.AddPlayerMessage(line.Text);
-            }
-            else
-            {
-               vm.AppendNpcMessage(line.Text);
-               Session.AddNpcMessage(line.Text);
-            }
+            if (line.IsPlayer) vm.AppendPlayerMessage(line.Text);
+            else vm.AppendNpcMessage(line.Text);
+
+            if (!string.IsNullOrWhiteSpace(line.Text))
+               history.AppendLine($"{(line.IsPlayer ? playerName : npcName)}: {line.Text.Trim()}");
          }
+
+         Session.AddPriorExchange(history.ToString());
 
          behavior.DialogueRecorder.Clear();
 
