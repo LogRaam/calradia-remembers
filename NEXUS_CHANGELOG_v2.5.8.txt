@@ -1,0 +1,12 @@
+Version 2.5.8
+
+Your saves from 2.5.7 carry over untouched. One fix, from one player's report, and it reaches further than it first appears.
+
+Fixed
+- Characters remember in the language you are playing in. Reported by a player running a total conversion whose lords and holdings carry German names: "CR starts generating memory in german... Elector Count Theoderic Gausser has 3 memories, 2 first in english, the last one in german. Most probably because german names are piling up in the NPC memory. Still, the letter is ok, in english." That last sentence is what solved it. When you have not chosen a Reply Language in the mod options, the mod asked the AI to write each memory "in the same language as the letter below", which invites it to weigh the whole passage, names and all. In a world where every lord, house and holding is named in German, the names outvote the prose, and a perfectly English letter is remembered in German. The letter itself never drifted, because the conversation prompt has always judged the language from one thing only: what you yourself last wrote. The memory prompts had quietly grown apart from it. They now judge from whole sentences alone, and are told outright that the names of people, places, titles and realms prove nothing about what language a passage is in.
+- The same slip could reach your conversations, and that was one step away rather than a theory. The same player warned it "could ultimately create dialogs using different languages", and he was right about the route. Two further places write text that is read back to the AI later: the one that folds an NPC's older memories into a short background, which is then part of every conversation you have with them, and the one that keeps a running recap of a long conversation while it is happening. Neither had ever been told anything about language at all. Both now follow the same rule as everything else.
+
+Notes
+- If you have set a Reply Language in the mod options, none of this applied to you, and nothing changes.
+- Memories already written in the wrong language stay as they are. Only new ones follow the corrected rule.
+- This is not only a total conversion problem. Calradia is already full of Aserai, Sturgian, Khuzait and Battanian names, so the same drift was reachable in a vanilla game; a total conversion simply makes it certain.
