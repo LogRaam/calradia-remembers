@@ -8221,6 +8221,12 @@ namespace CalradiaRemembers.Diagnostics
          // from the player during the test; and no frame passes between adding and removing them.
          var vanillaConversation = new GauntletLayer("MissionConversation", 49);
          var realModal = new GauntletLayer("MissionEscapeMenu", 50);
+         // A SECOND modal instance, and not a reuse of the first. ScreenBase.RemoveLayer calls
+         // layer.HandleFinalize(), and AddLayer refuses a finalized layer outright ("Trying to add a null or
+         // finalized layer"), so a removed layer can NEVER go back on a screen. Reusing it made the last
+         // assertion below read Hold on 2026-09-09, reporting a policy failure where the layer had simply never
+         // been re-added. An engine gotcha worth the two lines it costs to avoid.
+         var modalOverTheBackdrop = new GauntletLayer("MissionEscapeMenu", 50);
          GauntletLayer settlementMenu = null;
 
          try
@@ -8296,13 +8302,13 @@ namespace CalradiaRemembers.Diagnostics
                      ChatFocusArbitrationPolicy.Decide(true, inATavern), ChatFocusVerdict.Yield);
 
             // And the backdrop must not become an amnesty: a genuine modal opening over that menu still wins.
-            top.AddLayer(realModal);
-            realModal.IsFocusLayer = true;
+            top.AddLayer(modalOverTheBackdrop);
+            modalOverTheBackdrop.IsFocusLayer = true;
             t.Expect("aModalOverTheBackdropStillTakesTheScreen",
                      ChatFocusArbitrationPolicy.Decide(true, ChatManager.LayerFactsFor(top, null), backdrop),
                      ChatFocusVerdict.Yield);
 
-            SafeRemoveLayer(top, realModal);
+            SafeRemoveLayer(top, modalOverTheBackdrop);
             SafeRemoveLayer(top, settlementMenu);
          }
          finally
@@ -8310,6 +8316,7 @@ namespace CalradiaRemembers.Diagnostics
             // Never leave a stray layer on a player's screen, whatever went wrong above. SafeRemoveLayer is a
             // no-op for a layer already gone, so the tidy-up inside the body costs nothing here.
             SafeRemoveLayer(top, realModal);
+            SafeRemoveLayer(top, modalOverTheBackdrop);
             SafeRemoveLayer(top, settlementMenu);
             SafeRemoveLayer(top, vanillaConversation);
          }
