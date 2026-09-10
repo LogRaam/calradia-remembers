@@ -120,15 +120,62 @@ namespace CalradiaRemembers.Tests
          p.RegardResistanceTier.Should().Be(1);
       }
 
-      // The player's dial, at its extreme: a decay of 0 days DISABLES cooling (a deliberate "make bonds permanent"
-      // choice), so however long they wait, a tier-1 bar still demands two moments. Guards the windowHours<=0 branch.
+      // The player's dial at zero, REVERSED on 2026-09-10, and the reversal is the point of the test.
+      //
+      // It used to mean "cooling disabled", so a tier froze wherever it stood and warmth became permanently
+      // dearer. That is the exact opposite of what the v2.5.1 changelog told players the control does: "set it to
+      // 0 to turn the cooldown off". Nobody was ever bitten, because the MCM control clamped its own minimum to 1
+      // and the value was unreachable; the promise had simply never been kept. FloatingMammal asked for the zero
+      // he had been promised (Nexus, 2026-09-10: "The changelog said it was supposed to be able to be set to 0 so
+      // there is no cooldown"), which is what sent anyone to read this code at all.
+      //
+      // Zero now means what the label says: the cooldown is off, the resistance never accumulates, and a warm
+      // exchange is worth the same on the hundredth conversation as on the first. It is not unlimited, because a
+      // tier-0 grant still costs one banked moment, so the ceiling is +1 per warm exchange: the flat behaviour
+      // the progressive model replaced, offered back to a player who wants it. When a control and its changelog
+      // disagree, the changelog is the promise the player actually read.
+      // The behaviour that matters is what a player feels across a conversation, not the bookkeeping between two
+      // calls: the tier is still bumped as part of granting, and relaxed again the next time it is consulted.
+      // So this asserts the thing worth asserting, that warmth never becomes dearer however long it goes on.
       [Test]
-      public void GIVEN_decay_disabled_WHEN_resolving_far_later_THEN_the_tier_never_relaxes()
+      public void GIVEN_the_cooldown_turned_off_WHEN_resolving_THEN_warmth_never_becomes_dearer()
       {
          NpcProfile p = Profile(tier: 1, stampHour: 100.0);
 
-         RelationGate.Resolve(1, p, null, 100.0 + 10000.0, false, false, RelationWarmth.Normal, 0.0).Should().Be(0);
-         p.RegardResistanceTier.Should().Be(1);
+         for (var exchange = 0; exchange < 6; exchange++)
+            RelationGate.Resolve(1, p, null, 100.0 + exchange, false, false, RelationWarmth.Normal, 0.0)
+                        .Should().Be(1, "every warm exchange is worth the same when the cooldown is off");
+      }
+
+      // And it is off immediately, not after a wait: that is the whole difference between "no cooldown" and "a
+      // very short one", and it is what a player who set 0 will notice on their very next line. A deep bond that
+      // had climbed to tier 4 deepens at once rather than demanding five moments first.
+      [Test]
+      public void GIVEN_the_cooldown_turned_off_WHEN_resolving_at_once_THEN_a_deep_bond_still_deepens()
+      {
+         NpcProfile p = Profile(tier: 4, stampHour: 100.0);
+
+         RelationGate.Resolve(1, p, null, 100.0, false, false, RelationWarmth.Normal, 0.0).Should().Be(1);
+      }
+
+      // The default is untouched, which is the promise to everyone who never opens the menu: at 7 days a deep
+      // bond still resists, exactly as it did before zero meant anything.
+      [Test]
+      public void GIVEN_the_default_cooldown_WHEN_a_deep_bond_resolves_THEN_it_still_resists_as_it_always_did()
+      {
+         NpcProfile p = Profile(tier: 4, stampHour: 100.0);
+
+         RelationGate.Resolve(1, p, null, 100.0, false, false, RelationWarmth.Normal, DecayDays).Should().Be(0);
+      }
+
+      // But off is not a licence: one warm exchange still buys at most one point, so a player cannot walk in and
+      // out of a conversation to run a bond up in a single afternoon.
+      [Test]
+      public void GIVEN_the_cooldown_turned_off_WHEN_a_single_exchange_resolves_THEN_it_is_still_only_one_point()
+      {
+         NpcProfile p = Profile(tier: 0, stampHour: null);
+
+         RelationGate.Resolve(5, p, null, 100.0, false, false, RelationWarmth.Normal, 0.0).Should().Be(1);
       }
 
       // ── The unchanged pillars ────────────────────────────────────────────

@@ -182,8 +182,22 @@ namespace CalradiaRemembers.Logic
         /// <summary>
         ///   Cools the resistance for the whole in-game days elapsed since it last moved: one tier down per
         ///   <paramref name="decayDays" /> days, carrying the remainder so a long absence walks it all the way back
-        ///   down. Drops any partial accrual once a tier falls (a neglected bond does not keep half-progress). A
-        ///   decayDays of 0 or less disables decay (a tier then never falls on its own), for a player who wants it.
+        ///   down. Drops any partial accrual once a tier falls (a neglected bond does not keep half-progress).
+        ///   <para>
+        ///     A decayDays of 0 means the player turned the cooldown OFF, and the resistance relaxes completely
+        ///     every time it is consulted: warmth never becomes dearer, so a warm exchange is worth its +1 today
+        ///     as much as it was on the first day. It does NOT mean the tier freezes where it stands, which is
+        ///     what this used to do (2026-09-10). That reading made the setting the exact opposite of what the
+        ///     v2.5.1 changelog promised a player it would do, "set it to 0 to turn the cooldown off": frozen
+        ///     resistance makes affection permanently HARDER, not free. Nobody was ever bitten by it only because
+        ///     the MCM control clamped its own minimum to 1, so the value was unreachable. FloatingMammal asked
+        ///     for the 0 he had been promised (2026-09-10), which is what sent anyone to read this line at all.
+        ///   </para>
+        ///   <para>
+        ///     Off is not unlimited: an exchange still has to bank one warm moment for a tier-0 grant, so the
+        ///     ceiling is +1 per warm exchange, which is exactly the flat behaviour the progressive model
+        ///     replaced. That is a pacing choice a player may want, not an exploit they can run away with.
+        ///   </para>
         /// </summary>
         private static void DecayResistance(NpcProfile profile, double currentHour, double decayDays)
         {
@@ -199,7 +213,17 @@ namespace CalradiaRemembers.Logic
             }
 
             double windowHours = decayDays * 24.0;
-            if (windowHours <= 0.0) return; // decay disabled by the player's setting
+
+            // The player turned the cooldown off: relax it entirely rather than freezing it. See this method's
+            // own note for why the old "return" here was the opposite of the promise on the tin.
+            if (windowHours <= 0.0)
+            {
+                profile.RegardResistanceTier = 0;
+                profile.RegardWarmthAccrued = 0;
+                profile.RegardResistanceStampHour = null;
+
+                return;
+            }
 
             double elapsed = currentHour - profile.RegardResistanceStampHour.Value;
             if (elapsed < windowHours) return;

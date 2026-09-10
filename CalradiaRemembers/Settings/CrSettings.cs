@@ -76,10 +76,10 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public int MarriageRegardNeeded { get; set; } = 50;
 
-      [SettingPropertyInteger("Regard Warmth Cooldown (days)", 1, 30, "0 'days'", RequireRestart = false, Order = 11,
-         HintText = "How long warmth settles before it can deepen again. Each point of personal regard costs one more warm " +
-                    "moment than the last, and a step relaxes after this many days, so trust cannot be farmed by leaving and " +
-                    "returning. 7 is the default. Applies immediately.")]
+      [SettingPropertyInteger("Regard Warmth Cooldown (days)", 0, 30, "0 'days'", RequireRestart = false, Order = 11,
+         HintText = "How long warmth settles before it can deepen again. Each point of regard costs one more warm moment " +
+                    "than the last, and a step relaxes after this many days. 0 turns it off: warmth never gets dearer. " +
+                    "7 is the default. Applies immediately.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public int RegardDecayDays { get; set; } = 7;
 

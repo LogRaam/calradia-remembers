@@ -215,15 +215,18 @@ namespace CalradiaRemembers
 
       /// <summary>
       ///   Progressive-regard model: in-game days for one step of a character's warmth resistance to relax (see
-      ///   <see cref="RelationGate" />). Defaults to the shipped 7 when MCM has not loaded; clamped to a sane band so
-      ///   a hand-edited config cannot disable or absurdly stretch it.
+      ///   <see cref="RelationGate" />). Defaults to the shipped 7 when MCM has not loaded; clamped to a sane band
+      ///   so a hand-edited config cannot absurdly stretch it. ZERO IS ALLOWED and means the cooldown is off: the
+      ///   resistance never builds, so warmth costs the same on the hundredth conversation as on the first.
       /// </summary>
       public static int RegardDecayDays
       {
          get
          {
             int v = CrSettings.Instance?.RegardDecayDays ?? (int) RelationGate.DefaultDecayDays;
-            if (v < 1) v = 1;
+            // 0 is a real choice, not a broken config: it is the "cooldown off" the v2.5.1 changelog promised,
+            // and clamping it to 1 is why no player could ever take it (FloatingMammal, 2026-09-10).
+            if (v < 0) v = 0;
             if (v > 30) v = 30;
 
             return v;
