@@ -76,6 +76,33 @@ namespace CalradiaRemembers.Logic.Verbs
       }
 
       /// <summary>
+      ///   The closed door named by EVERY registered verb that implements
+      ///   <see cref="IStatesUnavailability{TContext}" />, in registration order, regardless of eligibility. The
+      ///   inward twin of <see cref="ComposeGuidance" />: same gate (asked always), same fault safety, but a
+      ///   STRUCTURED answer, so <see cref="DeedUnavailabilityPolicy" /> can render every verb's refusal in one
+      ///   voice and inside one budget rather than fourteen verbs each inventing a paragraph.
+      ///   <para>
+      ///     Returns the refusals a verb chose to state, NOT every verb that happens to be ineligible: staying
+      ///     silent is the default, and each verb decides when its deed is plausibly in play (see the interface).
+      ///   </para>
+      ///   Never null; empty when nothing is shut, or nothing worth saying.
+      /// </summary>
+      public List<DeedRefusal> ComposeUnavailability(TContext ctx, Action<Exception> onFault = null)
+      {
+         var refusals = new List<DeedRefusal>();
+
+         foreach (IVerb<TContext, TAction, TResult> verb in _verbs)
+         {
+            if (!(verb is IStatesUnavailability<TContext> stater)) continue;
+
+            DeedRefusal refusal = SafeUnavailabilityFor(stater, ctx, onFault);
+            if (refusal != null) refusals.Add(refusal);
+         }
+
+         return refusals;
+      }
+
+      /// <summary>
       ///   Routes to the verb whose Name matches (ordinal, case-insensitive), or null when none is registered under that
       ///   name.
       /// </summary>
@@ -143,6 +170,25 @@ namespace CalradiaRemembers.Logic.Verbs
          try
          {
             return provider.Guidance(ctx);
+         }
+         catch (Exception ex)
+         {
+            onFault?.Invoke(ex);
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   A verb's stated closed door, or null when it throws. Reported to <paramref name="onFault" /> the same
+      ///   way a faulting eligibility/teaching/guidance check is: this runs on every conversation open, and one
+      ///   verb misreading the campaign must never cost the player the conversation.
+      /// </summary>
+      private static DeedRefusal SafeUnavailabilityFor(IStatesUnavailability<TContext> stater, TContext ctx, Action<Exception> onFault)
+      {
+         try
+         {
+            return stater.Unavailable(ctx);
          }
          catch (Exception ex)
          {

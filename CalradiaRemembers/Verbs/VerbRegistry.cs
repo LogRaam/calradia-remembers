@@ -49,6 +49,14 @@ namespace CalradiaRemembers.Verbs
       public string ComposeGuidance(VerbContext ctx) => _core.ComposeGuidance(ctx, FaultSink);
 
       /// <summary>
+      ///   The closed doors CR's OWN verbs choose to name this turn (<see cref="IStatesUnavailability{TContext}" />),
+      ///   asked regardless of eligibility, so the model knows the gating BEFORE it declares anything rather than
+      ///   being refused after (Gabriel's ruling, 09/09/2026). Rendered by
+      ///   <see cref="DeedUnavailabilityPolicy.Compose" />; never null.
+      /// </summary>
+      public List<DeedRefusal> ComposeUnavailability(VerbContext ctx) => _core.ComposeUnavailability(ctx, FaultSink);
+
+      /// <summary>
       ///   Routes the action to the verb whose Name matches <see cref="GameAction.Type" />, or null when none is
       ///   registered under that name.
       /// </summary>

@@ -6,6 +6,7 @@ using System;
 using System.Text;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Verbs;
 using CalradiaRemembers.Stance;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -25,13 +26,49 @@ namespace CalradiaRemembers.Verbs
     ///   so it is additionally gated on <see cref="StanceGatePolicy.WillDelegateRisk" /> reading the NPC's
     ///   live Trust — re-checked both here and at execution, the same discipline as the Fear-1 coercion gate.
     /// </summary>
-    public sealed class GiveInfluenceVerb : IConversationVerb
+    public sealed class GiveInfluenceVerb : IConversationVerb, IStatesUnavailability<VerbContext>
     {
         public string Name => "give_influence";
 
         public bool IsEligible(VerbContext ctx)
             => ctx?.Npc != null && ctx.Profile != null && CourtActionResolver.TryGiveInfluence(ctx.Npc, ctx.Profile, out _)
                && StanceGatePolicy.WillDelegateRisk(StanceService.ToStance(ctx.Profile).Trust, ctx.Profile.ClanRelationWithPlayer ?? 0, ctx.Profile.ReputationWithPlayer);
+
+        /// <summary>
+        ///   The closed door this verb names BEFORE the model speaks (Gabriel's ruling, 09/09/2026: the LLM must
+        ///   declare already knowing the gating, rather than declare and be refuted afterwards). Until today this
+        ///   verb's reason for saying no existed only inside Execute, which is to say only AFTER the NPC had
+        ///   already promised influence.
+        ///   <para>
+        ///     ONE door is named, and deliberately only one: the TRUST gate, because it is the only refusal this
+        ///     verb can attribute with certainty. CourtActionResolver.TryGiveInfluence answers a single bool over
+        ///     several distinct doors (rank, the relation floor, the amount, affordability, the cooldown), so
+        ///     naming a reason on its say-so would risk putting a FALSE sentence in the NPC's mouth, which is the
+        ///     very incoherence this whole mechanism exists to end. Giving that resolver a named verdict, the way
+        ///     SecretBondEligibility got one, is the next increment; until then it stays silent.
+        ///   </para>
+        ///   <para>
+        ///     Silent too when the deed is not in play: this speaks only on the NEAR MISS, where the NPC plainly
+        ///     COULD do it and simply will not. That is the case a player finds arbitrary, because the means are
+        ///     visible and the refusal is not, and it is the case where an NPC would otherwise have promised
+        ///     influence and left the player waiting.
+        ///   </para>
+        /// </summary>
+        public DeedRefusal Unavailable(VerbContext ctx)
+        {
+            if (ctx?.Npc == null || ctx.Profile == null) return null;
+            if (!CourtActionResolver.TryGiveInfluence(ctx.Npc, ctx.Profile, out _)) return null; // not in play, or the means are the door: say nothing
+
+            if (StanceGatePolicy.WillDelegateRisk(StanceService.ToStance(ctx.Profile).Trust,
+                                                  ctx.Profile.ClanRelationWithPlayer ?? 0,
+                                                  ctx.Profile.ReputationWithPlayer))
+                return null; // eligible: it is being taught in full a few paragraphs above
+
+            return new DeedRefusal {
+                Deed = "lend them your voice at court",
+                Reason = "you do not trust them enough yet to risk your own house's standing on their word"
+            };
+        }
 
         public string TeachingText(VerbContext ctx)
         {

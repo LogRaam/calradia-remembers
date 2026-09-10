@@ -11,6 +11,8 @@
 #region
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using CalradiaRemembers.Logic.Verbs;
 using FluentAssertions;
 using NUnit.Framework;
@@ -181,6 +183,105 @@ namespace CalradiaRemembers.Tests
          public string TeachingText(string ctx) => null!;
          public string Execute(string action, string ctx) => null!;
          public string Guidance(string ctx) => throw new InvalidOperationException("simulates a modder's Guidance callback throwing");
+      }
+
+      private sealed class FakeStatingVerb : IVerb<string, string, string>, IStatesUnavailability<string>
+      {
+         private readonly DeedRefusal _refusal;
+
+         public FakeStatingVerb(string name, bool eligible, DeedRefusal refusal)
+         {
+            Name = name;
+            IsEligibleValue = eligible;
+            _refusal = refusal;
+         }
+
+         public bool IsEligibleValue { get; }
+         public string Name { get; }
+
+         public bool IsEligible(string ctx) => IsEligibleValue;
+         public string TeachingText(string ctx) => "TEACH";
+         public string Execute(string action, string ctx) => null!;
+         public DeedRefusal Unavailable(string ctx) => _refusal;
+      }
+
+      private sealed class FakeThrowingStatingVerb : IVerb<string, string, string>, IStatesUnavailability<string>
+      {
+         public string Name => "explodes";
+         public bool IsEligible(string ctx) => false;
+         public string TeachingText(string ctx) => null!;
+         public string Execute(string action, string ctx) => null!;
+
+         public DeedRefusal Unavailable(string ctx)
+            => throw new InvalidOperationException("simulates a verb misreading the campaign while stating its door");
+      }
+
+      // ── ComposeUnavailability ────────────────────────────────────────────
+
+      // Gabriel's ruling, 09/09/2026: the model must declare already knowing the gating rather than declare and
+      // be refuted afterwards. So this composition rides AHEAD of eligibility exactly as ComposeGuidance does,
+      // which is the whole difference from ComposeTeachings: the verb hidden from the LLM is precisely the one
+      // that needs to explain itself.
+      [Test]
+      public void GIVEN_an_ineligible_verb_that_states_its_door_WHEN_composing_THEN_it_speaks_though_its_teaching_is_hidden()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeStatingVerb("lend_troops", false,
+                                               new DeedRefusal {Deed = "lend them soldiers", Reason = "you do not trust them"}));
+
+         registry.ComposeUnavailability("ctx").Should().ContainSingle().Which.Deed.Should().Be("lend them soldiers");
+         registry.ComposeTeachings("ctx").Should().BeNull();
+      }
+
+      // A verb free to stay silent is what keeps the prompt from filling with the fourteen things a conversation
+      // was never about. Null means "nothing worth saying", and it must simply not appear.
+      [Test]
+      public void GIVEN_a_verb_that_chooses_silence_WHEN_composing_THEN_nothing_is_contributed()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeStatingVerb("give_influence", true, null));
+
+         registry.ComposeUnavailability("ctx").Should().BeEmpty();
+      }
+
+      // Every verb written before this contract must keep behaving unchanged, the same promise IProvidesGuidance
+      // made: a verb that never opted in is skipped silently, never cast-checked into a crash.
+      [Test]
+      public void GIVEN_a_verb_not_implementing_IStatesUnavailability_WHEN_composing_THEN_it_contributes_nothing()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeVerb("sway_opinion", false, "TEACH"));
+
+         registry.ComposeUnavailability("ctx").Should().BeEmpty();
+      }
+
+      // Same containment as the v1.21.0 regression this class exists for: one verb misreading the campaign while
+      // stating its door costs its own line, never the conversation and never the other verbs' refusals.
+      [Test]
+      public void GIVEN_a_verb_that_throws_stating_its_door_WHEN_composing_THEN_it_is_skipped_and_the_others_still_speak()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeThrowingStatingVerb());
+         registry.Register(new FakeStatingVerb("give_influence", false,
+                                               new DeedRefusal {Deed = "lend them your voice", Reason = "your clan cannot"}));
+
+         Exception seen = null!;
+         List<DeedRefusal> refusals = registry.ComposeUnavailability("ctx", ex => seen = ex);
+
+         refusals.Should().ContainSingle().Which.Deed.Should().Be("lend them your voice");
+         seen.Should().BeOfType<InvalidOperationException>();
+      }
+
+      // Registration order is what the rendered block reads in, so it must be preserved here rather than left to
+      // whatever order the registry happens to enumerate.
+      [Test]
+      public void GIVEN_several_verbs_stating_doors_WHEN_composing_THEN_they_come_back_in_registration_order()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeStatingVerb("a", false, new DeedRefusal {Deed = "first", Reason = "r"}));
+         registry.Register(new FakeStatingVerb("b", false, new DeedRefusal {Deed = "second", Reason = "r"}));
+
+         registry.ComposeUnavailability("ctx").Select(r => r.Deed).Should().ContainInOrder("first", "second");
       }
 
       // The whole point ComposeGuidance exists for (modder report): an action's own eligibility check fails

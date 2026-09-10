@@ -18,6 +18,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Verbs;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Duels;
@@ -568,7 +569,8 @@ namespace CalradiaRemembers.Mapping
             // Fixes a player report: a pregnant NPC woman denied being with child in chat because her
             // pregnancy state was never injected into the prompt. See ResolvePregnancyNote.
             PregnancyNote = ResolvePregnancyNote(hero),
-            ExtraActionTeachings = ResolveExtraActionTeachings(hero, profile, playerStatus, bridge, playerMessage)
+            ExtraActionTeachings = ResolveExtraActionTeachings(hero, profile, playerStatus, bridge, playerMessage),
+            UnavailableDeeds = ResolveUnavailableDeeds(hero, profile, playerStatus, bridge, playerMessage)
             // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
             // coin, and naming the exact sum broke immersion. Affordability is enforced by the
             // bridge when the hire is executed, not foreseen in the prompt.
@@ -1528,6 +1530,36 @@ namespace CalradiaRemembers.Mapping
          return sb.Length == 0
             ? null
             : sb.ToString();
+      }
+
+      /// <summary>
+      ///   The other half of <see cref="ResolveExtraActionTeachings" />, and the one that was missing: the deeds
+      ///   this conversation CANNOT deliver, named before the model speaks rather than refused after it has
+      ///   spoken (Gabriel's ruling, 09/09/2026). A verb had two states until today, taught in full or absent,
+      ///   and absence does not read to a language model as "forbidden" but as "not mentioned", so it supplied
+      ///   the permission itself and the player met the contradiction one deed later.
+      ///   <para>
+      ///     Costs no extra LLM call, which is the point worth keeping in view: a gate is a function of world
+      ///     state, never of what the model is about to say, so it is always knowable in advance. Only a deed's
+      ///     PARAMETER (which price, which item, which person) depends on the utterance.
+      ///   </para>
+      ///   Null when nothing is shut worth saying, which is most turns: each verb decides for itself when its
+      ///   deed is plausibly in play (see <see cref="IStatesUnavailability{TContext}" />), and silence is the
+      ///   default. Skipped for a captive player for the same reason the teachings are.
+      /// </summary>
+      private static string ResolveUnavailableDeeds(Hero hero,
+                                                    NpcProfile profile,
+                                                    PlayerStatusVsNpc playerStatus,
+                                                    IGameStateBridge bridge,
+                                                    string playerMessage)
+      {
+         if (hero == null || profile == null) return null;
+         if (playerStatus == PlayerStatusVsNpc.Captive) return null;
+
+         var verbCtx = new VerbContext(hero, profile, bridge, playerMessage, null);
+         string block = DeedUnavailabilityPolicy.Compose(VerbRegistry.Instance.ComposeUnavailability(verbCtx));
+
+         return string.IsNullOrWhiteSpace(block) ? null : block;
       }
 
       /// <summary>
