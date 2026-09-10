@@ -7810,6 +7810,22 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("belowTheBarTheBridgeRefuses", refusedBelow?.WasRefused, true);
             t.Expect("atTheBarTheVerbIsTaught", atBar.SecretLoverEligible, true);
             t.Expect("atTheBarTheBridgeDoesNotRefuse", allowedAtBar?.WasRefused == true, false);
+
+            // The OTHER drift, the one sharing a constant could never have caught: the teaching gate refused an
+            // ended romance and the bridge did not even look, so a dead romance could be raised as a secret bond
+            // by an untaught emission. Deep regard on purpose, so only the status can be doing the refusing.
+            profile.Romantic.IsSecretLover = false;
+            profile.Romantic.Status = RomanticStatus.Broken;
+            profile.ReputationWithPlayer = bar + 20;
+            behavior.Store.Set(profile);
+            EncounterContext ended = EncounterContextBuilder.Build(companion, profile, behavior.GameStateBridge, "hello");
+            ActionOutcome refusedEnded = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "take_as_secret_lover"}, companion, new ActionContext(profile, null));
+
+            t.Note($"ended romance at regard {bar + 20}: taught={ended.SecretLoverEligible}, " +
+                   $"bridge={(refusedEnded?.WasRefused == true ? "refused" : "ALLOWED")}");
+            t.Expect("anEndedRomanceIsNotTaught", ended.SecretLoverEligible, false);
+            t.Expect("anEndedRomanceIsRefusedByTheBridgeToo", refusedEnded?.WasRefused, true);
          }
          finally
          {

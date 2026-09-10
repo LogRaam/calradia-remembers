@@ -2448,27 +2448,28 @@ namespace CalradiaRemembers.Mapping
       }
 
       private static bool ResolveSecretLoverEligible(Hero hero, NpcProfile profile)
-      {
-         if (ModSettings.AdultContentLevel == AdultContentLevel.Off) return false; // adult-content gate lives here
-         if (hero == null || Hero.MainHero == null) return false;
-         if (!hero.IsPlayerCompanion) return false; // brotherhood/sisterhood: the player's own companions only
-         if (profile?.Romantic == null) return false;
-         if (!profile.Romantic.IsCompatibleWith(Hero.MainHero.IsFemale)) return false;
-         if (profile.Romantic.IsConsort || profile.Romantic.IsSecretLover) return false;
-         if (hero == Hero.MainHero.Spouse) return false;
+         => SecretBondEligibility.IsEligible(SecretBondFactsFor(hero, profile));
 
-         RomanticStatus status = profile.Romantic.Status;
-
-         if (status == RomanticStatus.Committed || status == RomanticStatus.Estranged || status == RomanticStatus.Broken) return false;
-
-         // ONE bar for the whole arc. This used to be a literal 50 in three places: here, the bridge's own
-         // guard, and CompanionSecretAffectionPolicy. When the confession threshold began following the
-         // Relationship Pacing dial (2026-09-08) the other two stayed at 50, opening a window where a companion
-         // could declare their feelings and the game would then refuse the bond, which is exactly what a player
-         // reported: "the NPC is expressing affection, yet the system displays a message stating that intimacy is
-         // insufficient" (2026-09-09).
-         return profile.ReputationWithPlayer >= CompanionSecretAffectionPolicy.MinRegardFor(ModSettings.RelationWarmth);
-      }
+      /// <summary>
+      ///   Reads the live campaign into the facts <see cref="SecretBondEligibility" /> judges. Every consumer of
+      ///   that decision (this teaching gate, the bridge's take_as_secret_lover guard, the confession policy)
+      ///   goes through the ONE rule rather than keeping its own list of conditions, because keeping their own
+      ///   is precisely how they drifted: the two gates had quietly stopped agreeing about an ended romance and
+      ///   about the adult-content switch, on top of the regard bar a player reported (2026-09-09).
+      /// </summary>
+      internal static SecretBondFacts SecretBondFactsFor(Hero hero, NpcProfile profile)
+         => new() {
+            AdultContentEnabled = ModSettings.AdultContentLevel != AdultContentLevel.Off,
+            IsPlayerCompanion = hero != null && hero.IsPlayerCompanion,
+            HasRomanticProfile = profile?.Romantic != null,
+            OrientationCompatible = Hero.MainHero != null && profile?.Romantic?.IsCompatibleWith(Hero.MainHero.IsFemale) == true,
+            AlreadyBoundToPlayer = profile?.Romantic?.IsConsort == true
+                                   || profile?.Romantic?.IsSecretLover == true
+                                   || (hero != null && hero == Hero.MainHero?.Spouse),
+            Status = profile?.Romantic?.Status ?? RomanticStatus.None,
+            Regard = profile?.ReputationWithPlayer ?? 0,
+            Warmth = ModSettings.RelationWarmth
+         };
 
       /// <summary>
       ///   Divorce, Phase 2b: set when THIS NPC is the player's own spouse and currently has a pending

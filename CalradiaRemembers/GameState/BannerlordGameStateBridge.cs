@@ -3539,18 +3539,16 @@ namespace CalradiaRemembers.GameState
 
             NpcProfile profile = context.Profile;
 
-            if (profile.Romantic == null)
-               return ActionOutcome.Refused($"({npcHero.Name} has no romantic connection to build upon.)");
-            if (!npcHero.IsPlayerCompanion)
-               return ActionOutcome.Refused($"({npcHero.Name} is not one of your own companions.)");
-            if (!profile.Romantic.IsCompatibleWith(Hero.MainHero.IsFemale))
-               return ActionOutcome.Refused($"(There is no such spark between you and {npcHero.Name}.)");
-            if (profile.Romantic.IsConsort || profile.Romantic.IsSecretLover || npcHero == Hero.MainHero.Spouse)
-               return ActionOutcome.Refused($"(You and {npcHero.Name} are already bound.)");
-            // The SAME bar the confession and the teaching gate use, never a second literal: see
-            // ResolveSecretLoverEligible's comment for what a disagreement between them cost a player.
-            if (profile.ReputationWithPlayer < CompanionSecretAffectionPolicy.MinRegardFor(ModSettings.RelationWarmth))
-               return ActionOutcome.Refused($"({npcHero.Name} is not yet close enough to you for this.)");
+            // The bridge asks the SAME rule the prompt's teaching gate asks, rather than keeping its own list.
+            // It used to keep one, and the two had drifted: this guard checked neither the adult-content switch
+            // nor an ended romance, so a verb the prompt refused to teach would still execute if the model
+            // emitted it untaught. The doctrine here is that the prompt proposes and the bridge is law, which
+            // only holds while the law is the stricter of the two. See CalradiaRemembers.Logic.SecretBondEligibility.
+            SecretBondVerdict verdict = SecretBondEligibility.Evaluate(
+               EncounterContextBuilder.SecretBondFactsFor(npcHero, profile));
+
+            if (verdict != SecretBondVerdict.Eligible)
+               return ActionOutcome.Refused(SecretBondEligibility.Describe(verdict, npcHero.Name?.ToString()));
 
             profile.Romantic.Status = RomanticStatus.SecretLover;
             profile.Romantic.IsSecretLover = true;

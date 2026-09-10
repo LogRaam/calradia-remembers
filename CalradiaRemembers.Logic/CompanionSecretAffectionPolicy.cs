@@ -52,8 +52,24 @@ namespace CalradiaRemembers.Logic
         public static bool IsEligible(bool isCompanion, bool orientationCompatible, bool adultEnabled,
                                       bool isContent, bool alreadyAttached, int regard,
                                       RelationWarmth warmth = RelationWarmth.Normal)
-            => isCompanion && orientationCompatible && adultEnabled && isContent && !alreadyAttached
-               && regard >= MinRegardFor(warmth);
+        {
+            // Everything this shares with the bond itself is asked of the ONE rule, so a companion can never
+            // confide a bond the game would then refuse to form. Only contentment is judged here, because it
+            // belongs to the confession alone: an unhappy companion does not open their heart, but unhappiness
+            // is no reason the bond could not exist if they did.
+            if (!isContent) return false;
+
+            return SecretBondEligibility.IsEligible(new SecretBondFacts {
+                AdultContentEnabled = adultEnabled,
+                IsPlayerCompanion = isCompanion,
+                HasRomanticProfile = true, // the caller has already read a romantic profile to get here
+                OrientationCompatible = orientationCompatible,
+                AlreadyBoundToPlayer = alreadyAttached,
+                Status = NpcMemoryService.Core.Models.RomanticStatus.None, // "attached" above already carries it
+                Regard = regard,
+                Warmth = warmth
+            });
+        }
 
         /// <summary>
         ///   Given eligibility, the weekly chance (percent) this companion finally confides, scaling with how far
