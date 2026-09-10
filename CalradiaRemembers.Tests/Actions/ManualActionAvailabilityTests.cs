@@ -313,5 +313,26 @@ namespace CalradiaRemembers.Tests.Actions
 
             ManualActionAvailability.GetAvailable(facts).Should().NotContain(ManualActionCatalog.JoinParty);
         }
+
+        // FloatingMammal (Nexus, 2026-09-10): "none of the lords I 'challenged' to a duel went anywhere other
+        // than a dialogue driven event... I just want to beat up some lords in single combat." Until now the only
+        // road to a duel was the MODEL emitting challenge_duel, so a player saying it plainly, again and again,
+        // could be heard as banter and nothing would happen. The menu is the player saying it in a way that
+        // cannot be missed.
+        [Test]
+        public void GIVEN_a_lord_who_may_be_called_out_WHEN_the_menu_is_built_THEN_the_duel_is_offered()
+        {
+            ManualActionAvailability.GetAvailable(new ManualActionFacts {NpcCanBeChallengedToDuel = true})
+                                    .Should().Contain(ManualActionCatalog.ChallengeDuel);
+        }
+
+        // And it opens a door rather than walking anyone through it: with no venue and no admissibility, the
+        // entry is simply absent, exactly as every other gated entry is.
+        [Test]
+        public void GIVEN_no_venue_or_no_admissibility_WHEN_the_menu_is_built_THEN_the_duel_is_not_offered()
+        {
+            ManualActionAvailability.GetAvailable(new ManualActionFacts {NpcCanBeChallengedToDuel = false})
+                                    .Should().NotContain(ManualActionCatalog.ChallengeDuel);
+        }
     }
 }

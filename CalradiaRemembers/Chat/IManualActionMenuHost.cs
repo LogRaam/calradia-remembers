@@ -28,5 +28,13 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>True while the menu may be opened: a plain live conversation that has not yet ended.</summary>
       bool CanOpenActionMenu { get; }
+
+      /// <summary>
+      ///   Calls this character out to a duel on the player's own initiative. Its own seam because a duel is not
+      ///   a world mutation the bridge can execute like the rest of the menu: it is chat flow control, it needs
+      ///   the room's witnesses and the live transcript, and it ends the conversation. Added 2026-09-10 so a
+      ///   player who wants to fight a lord does not have to hope the model notices they said so.
+      /// </summary>
+      void ChallengeToDuel();
    }
 }

@@ -24,6 +24,7 @@ using System.Linq;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Escort;
+using CalradiaRemembers.Duels;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Items;
 using CalradiaRemembers.Logic;
@@ -293,6 +294,16 @@ namespace CalradiaRemembers.Chat
                // by injecting directly rather than dropping the player's pick silently).
             }
 
+            // A duel is not a world mutation the bridge executes, it is chat flow control: it needs the room's
+            // witnesses and the live transcript, and it ends the conversation. So it goes to the host, which
+            // hands it to the SAME acceptance and arming road an LLM-emitted challenge takes.
+            if (string.Equals(entry?.Type, ManualActionCatalog.ChallengeDuel.Type, StringComparison.OrdinalIgnoreCase))
+            {
+               host.ChallengeToDuel();
+
+               return;
+            }
+
             InjectDirect(host, action, context);
          }
          catch (Exception ex)
@@ -431,6 +442,7 @@ namespace CalradiaRemembers.Chat
                NpcIsEscortingPlayer = npcIsEscortingPlayer,
                NpcCanRideWithPlayer = npcCanRideWithPlayer,
                NpcIsRidingWithPlayer = npcIsRidingWithPlayer,
+               NpcCanBeChallengedToDuel = DuelEligibilityResolver.CanDuelNow(npc, profile, out _),
                NpcCanBeGrantedFief = npcCanBeGrantedFief,
                GrantableFiefs = grantableFiefs,
                NpcCanHaveFiefRevoked = npcCanHaveFiefRevoked,

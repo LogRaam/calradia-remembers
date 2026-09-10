@@ -1009,6 +1009,47 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         ArmOrRefuseDuel(opponent, profile, speaker.Name, ChallengerIsPlayer(response));
+      }
+
+      /// <summary>
+      ///   Everything that happens once a duel has been CALLED FOR, whoever called for it and however it
+      ///   reached us: the admissibility re-check, the NPC's own answer, and either the refusal or the arming.
+      ///   <para>
+      ///     Factored out of the LLM path on 2026-09-10 so the manual action menu can walk the SAME road. A
+      ///     player told us (FloatingMammal, Nexus): "none of the lords I 'challenged' to a duel went anywhere
+      ///     other than a dialogue driven event... I just want to beat up some lords in single combat." Until
+      ///     then the only way to reach a duel was for the MODEL to emit challenge_duel, so a player saying it
+      ///     plainly, over and over, could be heard as banter and nothing would happen. A player's stated
+      ///     intent should not depend on a model noticing it.
+      ///   </para>
+      ///   <para>
+      ///     Deliberately the same method for both routes rather than a second copy: the acceptance policy, the
+      ///     station gap, the witnesses and the refusal's cost are the parts that make a duel mean something,
+      ///     and a manual path that skipped them would be a different feature wearing the same name.
+      ///   </para>
+      /// </summary>
+      /// <summary>
+      ///   The player calls this character out, from the action menu rather than through the model. Their own
+      ///   words go into the transcript first, so the NPC's next line is spoken by someone who was challenged,
+      ///   and then the SAME road every LLM-emitted challenge takes: admissibility, the NPC's answer, and either
+      ///   a refusal that costs them or a duel armed for the moment the chat closes.
+      /// </summary>
+      void IManualActionMenuHost.ChallengeToDuel()
+      {
+         Hero opponent = _npcHero;
+         if (opponent == null) return;
+
+         const string spoken = "I call you out. Draw your steel and answer me.";
+
+         AppendPlayerMessage(spoken);
+         RecordTranscript(true, "You", Hero.MainHero?.StringId, spoken);
+
+         ArmOrRefuseDuel(opponent, ((IManualActionMenuHost) this).Profile, opponent.Name?.ToString(), playerIssued: true);
+      }
+
+      private void ArmOrRefuseDuel(Hero opponent, NpcProfile profile, string speakerName, bool playerIssued)
+      {
          // The prompt is advice, the bridge is law. The verb was taught from a context built at the START of
          // the turn, and a model can reach for it several turns later, by which time the two may have moved
          // apart, one may have been taken prisoner, or the cooldown may have closed. An inadmissible challenge
@@ -1017,14 +1058,12 @@ namespace CalradiaRemembers.Chat
          if (!DuelEligibilityResolver.CanDuelNow(opponent, profile, out DuelVenue venue))
          {
             IsSendEnabled = !_conversationEnded;
-            ModLog.Info($"[DUEL] {speaker.Name} called for steel, but the duel is no longer admissible at commit time; nothing armed.");
+            ModLog.Info($"[DUEL] {speakerName} called for steel, but the duel is no longer admissible at commit time; nothing armed.");
 
             return;
          }
 
-         bool playerIssued = ChallengerIsPlayer(response);
-
-         // The player called them out, so the NPC's answer is the policy's, not the model's. An NPC who balks
+                  // The player called them out, so the NPC's answer is the policy's, not the model's. An NPC who balks
          // does not simply go quiet: the refusal is a deed, it costs them (contempt, and renown to the player
          // who called a bluff), and the conversation carries on from there.
          if (playerIssued
@@ -1038,10 +1077,10 @@ namespace CalradiaRemembers.Chat
          {
             // Recorded as scene narration rather than a bare system line, so it enters the transcript and the
             // NPC's very next reply is spoken by someone who knows they refused.
-            AppendNarration($"{profile?.Name ?? speaker.Name} lets the challenge hang, and will not take it up.");
+            AppendNarration($"{profile?.Name ?? speakerName} lets the challenge hang, and will not take it up.");
             DuelOutcomeApplier.Apply(DuelReason.HonourAffront, DuelResolution.NpcForfeited, opponent, null, _witnesses.Count);
             IsSendEnabled = !_conversationEnded;
-            ModLog.Info($"[DUEL] {speaker.Name} refused the player's challenge (acceptance score below the threshold).");
+            ModLog.Info($"[DUEL] {speakerName} refused the player's challenge (acceptance score below the threshold).");
 
             return;
          }
@@ -1063,9 +1102,9 @@ namespace CalradiaRemembers.Chat
          CloseButtonText = playerIssued ? "Take the field" : "Answer him";
          NotifyConversationEndedChanged();
          AppendSystemMessage(playerIssued
-            ? $"{profile?.Name ?? speaker.Name} takes up your challenge. Close this conversation to take the field."
-            : $"{profile?.Name ?? speaker.Name} demands satisfaction of you. Close this conversation to take the field.", false);
-         ModLog.Info($"[DUEL] armed from chat against {speaker.Name}: venue={venue}, "
+            ? $"{profile?.Name ?? speakerName} takes up your challenge. Close this conversation to take the field."
+            : $"{profile?.Name ?? speakerName} demands satisfaction of you. Close this conversation to take the field.", false);
+         ModLog.Info($"[DUEL] armed from chat against {speakerName}: venue={venue}, "
                    + $"challenger={(playerIssued ? "player" : "npc")}, {_witnesses.Count} witness(es).");
       }
 

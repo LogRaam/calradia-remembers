@@ -56,6 +56,15 @@ namespace CalradiaRemembers.Logic.Actions
       /// <summary>RideWithMeEligibilityPolicy.CanRideWithPlayer: this lord could ride inside the player's own party.</summary>
       public bool NpcCanRideWithPlayer { get; set; }
 
+      /// <summary>
+      ///   DuelEligibilityResolver.CanDuelNow: there is a venue and this character may be called out right now.
+      ///   Offered so a player who wants to fight a lord does not depend on the model hearing them say it
+      ///   (FloatingMammal, 2026-09-10: "I just want to beat up some lords in single combat"). Whether the lord
+      ///   ACCEPTS is still DuelAcceptancePolicy's answer, unchanged: this opens the door, it does not walk
+      ///   anybody through it.
+      /// </summary>
+      public bool NpcCanBeChallengedToDuel { get; set; }
+
       /// <summary>This lord genuinely rides in the player's own party right now (ride_with_me already in force).</summary>
       public bool NpcIsRidingWithPlayer { get; set; }
 
@@ -140,6 +149,7 @@ namespace CalradiaRemembers.Logic.Actions
          if (facts.NpcIsEscortingPlayer) result.Add(ManualActionCatalog.DismissEscort);
          if (facts.NpcCanRideWithPlayer) result.Add(ManualActionCatalog.RideWithMe);
          if (facts.NpcIsRidingWithPlayer) result.Add(ManualActionCatalog.PartWays);
+         if (facts.NpcCanBeChallengedToDuel) result.Add(ManualActionCatalog.ChallengeDuel);
          if (facts.NpcIsPlayerCompanion && facts.CompanionIsDiscontented) result.Add(ManualActionCatalog.ReassureCompanion);
 
          // Governance.

@@ -140,6 +140,9 @@ namespace CalradiaRemembers.Logic.Actions
       public static readonly ManualActionEntry PartWays = new(
          "part_ways", "Part ways with them", ManualActionGroup.Companion, ManualActionParameterKind.None, null, false);
 
+      public static readonly ManualActionEntry ChallengeDuel = new(
+         "challenge_duel", "Call them out to a duel", ManualActionGroup.Companion, ManualActionParameterKind.None, null, false);
+
       public static readonly ManualActionEntry ReassureCompanion = new(
          "reassure_companion", "Reassure them", ManualActionGroup.Companion, ManualActionParameterKind.None, null, false);
 
@@ -171,7 +174,7 @@ namespace CalradiaRemembers.Logic.Actions
       public static readonly IReadOnlyList<ManualActionEntry> All = new List<ManualActionEntry> {
          TakeGold, GiveItem, SpendInfluence,
          ExecutePrisoner, FreePrisoner, RecruitPrisoner,
-         DispatchMission, AssignPartyRole, RecallCompanion, RejoinParty, FollowMe, DismissEscort, RideWithMe, PartWays, ReassureCompanion,
+         DispatchMission, AssignPartyRole, RecallCompanion, RejoinParty, FollowMe, DismissEscort, RideWithMe, PartWays, ChallengeDuel, ReassureCompanion,
          GrantFief, RevokeFief, AppointGovernor, GrantStipend, GiveTroops,
          MediatePeace, RecruitNotable, JoinParty
       };

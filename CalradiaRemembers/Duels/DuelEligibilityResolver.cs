@@ -51,7 +51,7 @@ namespace CalradiaRemembers.Duels
             // recipe), and only a TOWN has one: a village or a castle would send the player into a location
             // that does not exist. The pure policy cannot know that (it is engine truth, not design), so the
             // narrowing belongs here, in the engine adapter, rather than in DuelVenuePolicy's contract.
-            if (venue == DuelVenue.TownGates && here?.IsTown != true) venue = DuelVenue.NotNow;
+            if (venue == DuelVenue.TownGates && !SettlementCanHostADuel(here)) venue = DuelVenue.NotNow;
 
             var ctx = new DuelChallengeContext {
                Challenger = DuelChallenger.Player,
@@ -94,12 +94,38 @@ namespace CalradiaRemembers.Duels
       ///   the fight is actually staged in the town-centre scene: the NPC must not promise the player a place
       ///   the game will not take them to.
       /// </summary>
+      /// <summary>
+      ///   Whether this settlement has somewhere two people can actually cross blades: a walkable "center"
+      ///   location, which the engine itself answers for.
+      ///   <para>
+      ///     This used to read <c>here.IsTown</c>, and a player found what that cost (FloatingMammal, Nexus,
+      ///     2026-09-10): "none of the lords I 'challenged' to a duel went anywhere other than a dialogue driven
+      ///     event... I think now they're assuming its a sort spar, even when the wording 'duel' is being said by
+      ///     me continuously." Lords are met in CASTLES more often than anywhere else, and a castle courtyard is
+      ///     as good a place to fight as a town square, but the type check refused it, so challenge_duel was
+      ///     never taught and the model improvised a sparring fiction. The same silence-reads-as-permission
+      ///     failure as follow_me, one verb over.
+      ///   </para>
+      ///   <para>
+      ///     Asking the engine for a center rather than naming settlement types means a castle works, a village
+      ///     works if this build gives one a walkable centre, and a future settlement kind works without anyone
+      ///     remembering this line. Fails CLOSED: an unreadable settlement is not a duelling ground.
+      ///   </para>
+      /// </summary>
+      private static bool SettlementCanHostADuel(Settlement here)
+      {
+         try { return here?.LocationComplex?.GetLocationWithId("center") != null; }
+         catch { return false; }
+      }
+
       public static string VenueLabel(DuelVenue venue)
       {
          switch (venue)
          {
             case DuelVenue.Wilderness: return "on the open field";
-            case DuelVenue.TownGates: return "in the streets of this town";
+            // "here" rather than "in the streets of this town": the same venue now covers a castle courtyard,
+            // and telling a player they will fight in the streets of a castle reads as a bug.
+            case DuelVenue.TownGates: return "here, within these walls";
             default: return string.Empty;
          }
       }
