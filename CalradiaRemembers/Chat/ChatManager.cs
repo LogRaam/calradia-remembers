@@ -111,7 +111,6 @@ namespace CalradiaRemembers.Chat
       // of input while the chat holds focus. Every frame (ArbitrateFocus, pumped from the chat panel) we
       // compare the host screen's layer count to the baseline taken when the chat opened: an extra layer means
       // something modal is up, so the chat yields its focus + input grab; back to baseline, the chat reclaims.
-      private static int _baselineLayerCount;
       private static bool _chatHoldsFocus;
       private static ChatScreen _chatScreen;
       private static ScreenBase _hostScreen;
@@ -163,6 +162,21 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Whether the screen holding our layer is itself still alive. The engine FINALIZES a screen without
+      ///   emptying its layer list, so a chat stranded on a mission that has since ended still reads as attached
+      ///   (tashmetu, 2026-09-09: the overlay yielded, could never be closed, and every later conversation was
+      ///   refused for the rest of the session). Fails SAFE the same way: unreadable counts as dead.
+      /// </summary>
+      private static bool HostScreenIsAlive
+      {
+         get
+         {
+            try { return _hostScreen != null && !_hostScreen.IsFinalized; }
+            catch { return false; }
+         }
+      }
+
+      /// <summary>
       ///   Session-launch reset, mirroring LetterWindowManager.ResetForSession: never inherit a window from a
       ///   prior session. Drops our own references WITHOUT touching the engine objects, which belong to a screen
       ///   that session or the load already tore down.
@@ -184,9 +198,10 @@ namespace CalradiaRemembers.Chat
       ///   modal focus layer; without this, the alt-tab pause menu, the encyclopedia, or a native popup would
       ///   appear but not respond, because the chat holds an exclusive focus + input grab. Pumped every frame
       ///   from <see cref="ChatScrollablePanel" />'s late update (the reliable per-frame main-thread hook).
-      ///   When the host screen has MORE layers than when the chat opened, something modal is up, so the chat
-      ///   yields (IsFocusLayer off, input restrictions reset); once the layers return to the baseline, the
-      ///   chat reclaims focus. Acts only on the transition, so it never fights a screen frame after frame.
+      ///   The decision itself lives in <see cref="ChatFocusArbitrationPolicy" /> and is made fresh from what is
+      ///   on the screen NOW: it holds no memory of what the screen looked like when the chat opened, because
+      ///   the layer COUNT it used to compare against a baseline cost a player every conversation in his session
+      ///   (see that file's header). Acts only on the transition, so it never fights a screen frame after frame.
       /// </summary>
       public static void ArbitrateFocus()
       {
@@ -217,8 +232,10 @@ namespace CalradiaRemembers.Chat
 
          try
          {
-            int layers = _hostScreen.Layers?.Count ?? _baselineLayerCount;
-            bool somethingModalOnTop = layers > _baselineLayerCount;
+            bool hostIsOnTop = ReferenceEquals(ScreenManager.TopScreen, _hostScreen);
+            List<OverlayNeighbour> neighbours = hostIsOnTop ? NeighbouringLayers() : null;
+            bool somethingModalOnTop =
+               ChatFocusArbitrationPolicy.Decide(hostIsOnTop, neighbours) == ChatFocusVerdict.Yield;
 
             if (somethingModalOnTop && _chatHoldsFocus)
             {
@@ -229,7 +246,8 @@ namespace CalradiaRemembers.Chat
                // keeps pumping LLM turns and running this arbiter), so nothing hangs; only the visual moves.
                ActiveViewModel?.SetVisualOffscreen(true);
                _chatHoldsFocus = false;
-               ModLog.Info("Chat overlay yielded focus and slid aside for a screen above it (pause menu / encyclopedia / popup).");
+               ModLog.Info("Chat overlay yielded focus and slid aside for: "
+                           + ChatFocusArbitrationPolicy.ReasonFor(hostIsOnTop, neighbours));
                LogScreenState("yield"); // exactly when the new layer exists — identifies WHAT appeared and at what order
             }
             else if (!somethingModalOnTop && !_chatHoldsFocus)
@@ -246,6 +264,50 @@ namespace CalradiaRemembers.Chat
          {
             ModLog.Error($"ArbitrateFocus failed: {ex.GetType().Name}: {ex.Message}");
          }
+      }
+
+      /// <summary>
+      ///   The host screen's layers as the arbiter needs to see them: a name, whether it is ours, whether it is
+      ///   on its way out, and whether it means to take the input. Reading IsFocusLayer rather than counting is
+      ///   the whole fix; verified against the game's binaries, no always-on mission HUD layer sets it, and the
+      ///   only non-modals that do are the two vanilla conversation windows this chat is drawn over.
+      /// </summary>
+      private static List<OverlayNeighbour> NeighbouringLayers() => LayerFactsFor(_hostScreen, _activeLayer);
+
+      /// <summary>
+      ///   The same reading, against any screen, so cr.testall's chat_focus_arbiter can drive it over REAL engine
+      ///   layers instead of a parallel copy. That matters for one assumption a pure test cannot check: that
+      ///   ScreenLayer.Name really does hand back the name a GauntletLayer was built with, which is the whole
+      ///   basis for telling vanilla's conversation window from a modal.
+      /// </summary>
+      internal static List<OverlayNeighbour> LayerFactsFor(ScreenBase screen, ScreenLayer chatLayer)
+      {
+         var facts = new List<OverlayNeighbour>();
+
+         try
+         {
+            if (screen?.Layers == null) return facts;
+
+            foreach (ScreenLayer layer in screen.Layers)
+            {
+               if (layer == null) continue;
+
+               facts.Add(new OverlayNeighbour {
+                  Name = layer.Name,
+                  IsTheChat = chatLayer != null && ReferenceEquals(layer, chatLayer),
+                  IsFinalized = layer.IsFinalized,
+                  WantsFocus = layer.IsFocusLayer
+               });
+            }
+         }
+         catch (Exception ex)
+         {
+            // An unreadable screen must not decide anything: an empty list holds focus, which is the state the
+            // chat is already in, rather than a yield nothing would ever undo.
+            ModLog.Error($"LayerFactsFor failed: {ex.GetType().Name}: {ex.Message}");
+         }
+
+         return facts;
       }
 
       public static void Close()
@@ -345,14 +407,14 @@ namespace CalradiaRemembers.Chat
          // since gone is a ghost, and refusing on its account cost a player every conversation for the rest of
          // his session (Nexus report 2026-09-08: a companion approached in a village, no window came, and from
          // then on "no CR chat windows with anyone work unless I fully quit and restart the game").
-         if (ChatWindowLivenessPolicy.ShouldRefuseOpen(IsOpen, LayerIsOnHostScreen))
+         if (ChatWindowLivenessPolicy.ShouldRefuseOpen(IsOpen, LayerIsOnHostScreen, HostScreenIsAlive))
          {
             ModLog.Info("ChatManager.Open called but chat is already open.");
 
             return;
          }
 
-         if (ChatWindowLivenessPolicy.IsGhost(IsOpen, LayerIsOnHostScreen))
+         if (ChatWindowLivenessPolicy.IsGhost(IsOpen, LayerIsOnHostScreen, HostScreenIsAlive))
          {
             // Always recorded, even with logging off: this is the fingerprint of the bug above, and the next
             // report of it should arrive with the evidence already in hand.
@@ -998,8 +1060,10 @@ namespace CalradiaRemembers.Chat
             ActiveViewModel.SetNpcName(npcName);
 
 
-         // GauntletLayer ctor: (int localOrder, string categoryId, bool shouldClear)
-         // shouldClear=false keeps the host screen's rendering visible behind us.
+         // GauntletLayer ctor: (string name, int localOrder, bool shouldClear), the same shape vanilla uses
+         // ("MissionEscapeMenu", "MissionConversation"). shouldClear defaults false, which keeps the host
+         // screen's rendering visible behind us. The NAME is not decoration: ArbitrateFocus reads every
+         // neighbouring layer's name to tell a real modal from the vanilla conversation window.
          _activeLayer = new GauntletLayer(
             "CalradiaRemembers",
             ChatLayerOrder);
@@ -1054,9 +1118,8 @@ namespace CalradiaRemembers.Chat
             _activeLayer.IsFocusLayer = true;
             ScreenManager.TrySetFocus(_activeLayer);
 
-            // Baseline for ArbitrateFocus: any later growth in the host screen's layer count means a game
-            // screen (pause menu, encyclopedia, popup) opened over the chat, and the chat should yield to it.
-            _baselineLayerCount = _hostScreen.Layers?.Count ?? 0;
+            // No baseline is taken. ArbitrateFocus judges each frame from what is on the screen then, so the
+            // order in which vanilla's own conversation layer arrives can no longer decide anything.
             _chatHoldsFocus = true;
          }
       }
