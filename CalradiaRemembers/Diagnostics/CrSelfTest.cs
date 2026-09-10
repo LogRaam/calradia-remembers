@@ -233,7 +233,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("panel_siege_guard", Severity.Light, "Mechanical: the full-map panel crash guard. Asserts the Harmony prefix that skips SettlementVisualManager.OnTick (the vanilla siege-bombardment visual tick, which runs on the frame loop and access-violates natively under a pushed CR panel: four confirmed 0xC0000005 crashes) is actually attached to the LIVE engine method. It resolves the target BY NAME, so a game update that renamed the type/method would silently stop protecting; this fires if that ever happens. Also asserts that with no panel open nothing is suppressed (siege visuals tick normally). No LLM, mutates nothing", TestPanelSiegeVisualGuard),
          new SelfTest("unavailable_deeds", Severity.Light, "Mechanical (Gabriel's ruling 09/09/2026: \"il faudrait que le LLM declare en connaissant deja le gating\"): a verb used to have TWO states in the prompt, taught in full or ABSENT, and absence does not read to a language model as forbidden, it reads as not mentioned, so the model supplied the permission itself and the player met the contradiction one deed later as a system message refusing what the NPC had just promised. Verbs now state their own closed door BEFORE the model speaks (IStatesUnavailability, the inward twin of the IProvidesGuidance channel built for modders on 30/08/2026 and never turned inward). Sweeps up to 60 real living foreign lords, driving the LIVE VerbRegistry.ComposeUnavailability and ComposeTeachings against each, and asserts: no refusal ever leaks a verb id or an [ACTION] block (which would teach the model the very token it must not emit), and no verb is ever taught and refused in the same prompt. Then takes the first lord the world supplied who has the means but not the trust and drives the REAL EncounterContextBuilder.Build, asserting the block reaches the live EncounterContext.UnavailableDeeds and forbids the PROMISE, not merely the deed (a deferred promise being the same failure). MANUAL when no lord in this world is currently in that state. Read-only: builds contexts, mutates nothing", TestUnavailableDeeds),
-         new SelfTest("chat_focus_arbiter", Severity.Light, "Mechanical (tashmetu, 2026-09-09): the chat overlay slid off screen on NPC-initiated conversations and never came back, killing every later conversation until a restart. The old arbiter decided \"a screen is above us\" by COUNTING the host screen's layers against the count taken when the chat opened, and vanilla's own MissionGauntletConversationView adds a layer to that SAME screen while the conversation starts: click an NPC and it is already counted, be approached BY one and it arrives after, so the count grows and the chat yields to the very window it exists to replace, forever, because that layer stays for the whole conversation. The rule is now the engine's own IsFocusLayer, with the two vanilla conversation windows named and exempt. Builds REAL GauntletLayers on the live top screen exactly as vanilla builds them (\"MissionConversation\" order 49, \"MissionEscapeMenu\" order 50, IsFocusLayer set, no input restrictions taken) and asserts: ScreenLayer.Name really hands back the name the layer was built with (the one assumption a pure test cannot check), the vanilla conversation layer changes the verdict by nothing at all, a real modal still takes the screen and is NAMED in the log, and removing it reclaims the screen. Removes both layers in a finally, so a failed assertion can never leave one on the player's screen. No LLM, mutates nothing", TestChatFocusArbiter),
+         new SelfTest("chat_focus_arbiter", Severity.Light, "Mechanical (tashmetu, 2026-09-09): the chat overlay slid off screen on NPC-initiated conversations and never came back, killing every later conversation until a restart. The old arbiter decided \"a screen is above us\" by COUNTING the host screen's layers against the count taken when the chat opened, and vanilla's own MissionGauntletConversationView adds a layer to that SAME screen while the conversation starts: click an NPC and it is already counted, be approached BY one and it arrives after, so the count grows and the chat yields to the very window it exists to replace, forever, because that layer stays for the whole conversation. The rule is now the engine's own IsFocusLayer, with the two vanilla conversation windows named and exempt. Builds REAL GauntletLayers on the live top screen exactly as vanilla builds them (\"MissionConversation\" order 49, \"MissionEscapeMenu\" order 50, IsFocusLayer set, no input restrictions taken) and asserts: ScreenLayer.Name really hands back the name the layer was built with (the one assumption a pure test cannot check), the vanilla conversation layer changes the verdict by nothing at all, a real modal still takes the screen and is NAMED in the log, and removing it reclaims the screen. EXTENDED after Gabriel's play-test (2026-09-09) proved a name list cannot be complete: he opened a chat in a TAVERN, where vanilla's settlement menu \"MapMenuOverlay\" holds focus for the whole conversation, and the chat yielded to the very backdrop it had been drawn over, never appeared, and let the vanilla dialogue run on underneath. Whatever already claims focus when the chat OPENS is scenery, whatever it is called; only what arrives afterwards can be a screen above. Now also builds a real \"MapMenuOverlay\" layer and asserts it is held through when recorded as backdrop, yields when it is not (the exact bug), and that a genuine modal opening OVER that backdrop still takes the screen. Removes every layer in a finally, so a failed assertion can never leave one on the player's screen. No LLM, mutates nothing", TestChatFocusArbiter),
          new SelfTest("panel_state_hosting", Severity.Light, "Mechanical: the panel-hosting migration (PushScreen -> PushState). cr.tick_probe measured a pushed SCREEN leaving MapState ticking at exactly the same rate as nothing pushed at all (481 settlement-visual + 481 map-input ticks per 4s window), while a pushed STATE silenced both to zero, because GameStateManager deactivates MapState before the new screen even exists. Drives a REAL open/close cycle through LetterWindowManager.OpenCompose/Close (the shared CrPanelHost, defaulted to the state strategy) on a borrowed lord's profile, and asserts: the live GameState becomes CrPanelState while open, CrPanelHost.AnyPanelOwnsScreen (the tick-suppression flag every guard reads) engages then fully clears, and the state stack returns to EXACTLY the state that was active before, never left substituted or stuck. Force-closes the window in a finally even if an assertion throws, so a broken assertion can never leave a panel open or the map muted. No LLM", TestPanelStateHosting),
          new SelfTest("dialogue_entry_trace", Severity.Light, "Mechanical (missing-CR-option player reports): DialogueEntryTraceCollector resolves ConversationManager.ActiveToken to a name via reflection on the private stateMap field. Forward-resolves 'hero_main_options' (a token that certainly exists, registered by LlmDialogFlow) to its live index, then reverse-resolves that same index back, driving the real reflection path both ways rather than a parallel copy; asserts the round-trip returns the original name, so a future game update renaming stateMap is caught here instead of silently degrading the diagnostic to raw indices. Also asserts DialogueEntryTracePolicy renders the expected YES/NO verdict for an offered and a not-offered trace. Read-only: touches no live conversation state, nothing to restore", TestDialogueEntryTrace),
          new SelfTest("political_map", Severity.Light, "Mechanical: the political-map gather + grid + rasterise (World Almanac minimap, Inc B+C). Gathers one anchor per kingdom-held settlement (position + Kingdom.Color) from the live campaign, builds the pure PoliticalMapPolicy colour grid, and rasterises it to PNG; asserts the grid is the requested size, some cells are painted (territory), and the PNG carries a real PNG signature. Catches a renamed settlement/terrain API that would silently yield an empty map, or a broken rasteriser. MANUAL when the world has no kingdom-held settlement. No LLM, mutates nothing", TestPoliticalMap),
@@ -8221,6 +8221,7 @@ namespace CalradiaRemembers.Diagnostics
          // from the player during the test; and no frame passes between adding and removing them.
          var vanillaConversation = new GauntletLayer("MissionConversation", 49);
          var realModal = new GauntletLayer("MissionEscapeMenu", 50);
+         GauntletLayer settlementMenu = null;
 
          try
          {
@@ -8275,11 +8276,41 @@ namespace CalradiaRemembers.Diagnostics
             top.RemoveLayer(realModal);
             t.Expect("reclaimsTheScreenWhenTheModalGoes",
                      ChatFocusArbitrationPolicy.Decide(true, ChatManager.LayerFactsFor(top, null)), ChatFocusVerdict.Hold);
+
+            // Gabriel's play-test, 2026-09-09, and the second proof that a NAME LIST cannot be complete. He
+            // opened a chat in a TAVERN, where vanilla's settlement menu ("MapMenuOverlay") holds focus for the
+            // whole conversation: the chat yielded to the very backdrop it had been drawn over, never appeared,
+            // and the vanilla dialogue ran on underneath until he left the menu. What is already claiming focus
+            // when the chat opens is scenery, whatever it is called, and only what arrives afterwards can be a
+            // screen above. Driven here on a REAL layer with vanilla's own name and order (205).
+            settlementMenu = new GauntletLayer("MapMenuOverlay", 205);
+            top.AddLayer(settlementMenu);
+            settlementMenu.IsFocusLayer = true;
+
+            List<OverlayNeighbour> inATavern = ChatManager.LayerFactsFor(top, null);
+            var backdrop = new HashSet<string>(StringComparer.Ordinal) {"MapMenuOverlay"};
+
+            t.Expect("scenerySeenAtOpenNeverTakesTheScreenLater",
+                     ChatFocusArbitrationPolicy.Decide(true, inATavern, backdrop), ChatFocusVerdict.Hold);
+            t.Expect("theSameLayerUnrecordedIsExactlyTheBugHeSaw",
+                     ChatFocusArbitrationPolicy.Decide(true, inATavern), ChatFocusVerdict.Yield);
+
+            // And the backdrop must not become an amnesty: a genuine modal opening over that menu still wins.
+            top.AddLayer(realModal);
+            realModal.IsFocusLayer = true;
+            t.Expect("aModalOverTheBackdropStillTakesTheScreen",
+                     ChatFocusArbitrationPolicy.Decide(true, ChatManager.LayerFactsFor(top, null), backdrop),
+                     ChatFocusVerdict.Yield);
+
+            SafeRemoveLayer(top, realModal);
+            SafeRemoveLayer(top, settlementMenu);
          }
          finally
          {
-            // Never leave a stray layer on a player's screen, whatever went wrong above.
+            // Never leave a stray layer on a player's screen, whatever went wrong above. SafeRemoveLayer is a
+            // no-op for a layer already gone, so the tidy-up inside the body costs nothing here.
             SafeRemoveLayer(top, realModal);
+            SafeRemoveLayer(top, settlementMenu);
             SafeRemoveLayer(top, vanillaConversation);
          }
 

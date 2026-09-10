@@ -27,18 +27,30 @@
 // screens) plus exactly two exceptions: "MissionConversation" and "MapConversation", the vanilla conversation
 // windows this mod exists to replace. Those two are named here and never yielded to.
 //
-// AND ONE MORE, WHICH THAT SWEEP MISSED AND cr.testall CAUGHT ON ITS FIRST RUN (2026-09-09). The sweep looked at
-// `new GauntletLayer("name", ...)` sites, and the layer that matters most is not a GauntletLayer at all:
-// TaleWorlds.Engine.Screens.SceneLayer is the 3D world itself, its constructor reads
+// A NAME LIST CANNOT BE COMPLETE, AND TWO RUNS PROVED IT. cr.testall caught the first miss:
+// TaleWorlds.Engine.Screens.SceneLayer, the 3D world, is not a GauntletLayer at all and its constructor reads
 //
 //      : base("SceneLayer", -100) { ... base.IsFocusLayer = true; }
 //
-// so it is ALWAYS claiming focus, on every screen that has a scene, which is every screen a conversation ever
-// happens on. Without the exemption below, this arbiter would have answered Yield on the very first frame of
-// EVERY conversation, slid the chat off the right edge, and never brought it back: categorically worse than
-// tashmetu's bug, which at least spared the conversations the player started. The self-test reported
-// "screen=NavalMapScreen, layers=7, atRest=Yield" and that one word is the whole finding. It is read from the
-// TYPE rather than the name, because a string is a poor guard on the one mistake that costs the entire feature.
+// so it claims focus on every screen a conversation can happen on, and unexempted it took the chat off screen on
+// the first frame of every conversation. Gabriel's own play-test then caught the second: opening a chat from a
+// TAVERN, where the vanilla settlement menu "MapMenuOverlay" is up and holding focus for the whole conversation.
+// The chat yielded to the very backdrop it had just been opened over, so it never appeared, the vanilla dialogue
+// ran on underneath, and the window only slid into view once the player left the menu.
+//
+// So the rule is no longer only "does anything here want the input". It is:
+//
+//      WHATEVER WAS ALREADY CLAIMING FOCUS WHEN THE CHAT OPENED IS THE BACKDROP, NOT A SCREEN ABOVE US.
+//
+// That is structural rather than enumerated, and it is what the failed layer-COUNT baseline was reaching for
+// without getting right: the question was never how MANY layers there are, it is WHICH of them the chat was
+// deliberately drawn over. A backdrop can now be anything, named or unnamed, in this game build or the next.
+// Only two things remain by name, and both are unavoidable:
+//
+//   - the vanilla conversation windows, because they arrive AFTER the chat when the NPC starts the conversation
+//     (tashmetu's report), so no baseline can contain them;
+//   - SceneLayer, kept as a TYPE check by the caller purely as a second lock on the one mistake that would cost
+//     every conversation in the game. The baseline already covers it.
 //
 // Gabriel's rule, 2026-09-09: a proven regression sensitivity earns a MECHANISM. There are two here. The decision
 // is a pure function of named facts, so it can be tested without a game. And the decision is now the exact
@@ -118,40 +130,65 @@ namespace CalradiaRemembers.Logic
         ///   behind a state), which the engine already treats as above us. Everything else is decided by whether
         ///   any neighbouring layer means to take the input.
         /// </summary>
-        public static ChatFocusVerdict Decide(bool hostScreenIsOnTop, IEnumerable<OverlayNeighbour> neighbours)
+        public static ChatFocusVerdict Decide(bool hostScreenIsOnTop,
+                                              IEnumerable<OverlayNeighbour> neighbours,
+                                              ICollection<string> backdropAtOpen = null)
         {
             if (!hostScreenIsOnTop) return ChatFocusVerdict.Yield;
             if (neighbours == null) return ChatFocusVerdict.Hold;
 
             foreach (OverlayNeighbour layer in neighbours)
-            {
-                if (layer == null || layer.IsTheChat || layer.IsTheWorldBeneath) continue;
-                if (layer.IsFinalized || !layer.WantsFocus) continue;
-                if (IsVanillaConversationLayer(layer.Name)) continue;
-
-                return ChatFocusVerdict.Yield;
-            }
+                if (TakesTheScreen(layer, backdropAtOpen))
+                    return ChatFocusVerdict.Yield;
 
             return ChatFocusVerdict.Hold;
+        }
+
+        /// <summary>
+        ///   Whether this one layer is genuinely a screen above the chat. Every exclusion here is a way of
+        ///   saying "this was already part of the picture the chat was drawn over".
+        /// </summary>
+        private static bool TakesTheScreen(OverlayNeighbour layer, ICollection<string> backdropAtOpen)
+        {
+            if (layer == null || layer.IsTheChat || layer.IsTheWorldBeneath) return false;
+            if (layer.IsFinalized || !layer.WantsFocus) return false;
+            if (IsVanillaConversationLayer(layer.Name)) return false;
+
+            return !WasPartOfTheBackdrop(layer.Name, backdropAtOpen);
+        }
+
+        /// <summary>
+        ///   True when this layer was already claiming focus at the moment the chat opened. A nameless layer can
+        ///   never be matched against the backdrop, so it is treated as new: yielding to an unknown claimant is
+        ///   recoverable (it goes away and the chat returns), while ignoring a real modal strands the player in
+        ///   a menu that does not answer the mouse.
+        /// </summary>
+        public static bool WasPartOfTheBackdrop(string layerName, ICollection<string> backdropAtOpen)
+        {
+            if (backdropAtOpen == null || backdropAtOpen.Count == 0) return false;
+            if (string.IsNullOrEmpty(layerName)) return false;
+
+            foreach (string known in backdropAtOpen)
+                if (string.Equals(layerName, known, System.StringComparison.Ordinal))
+                    return true;
+
+            return false;
         }
 
         /// <summary>
         ///   The name of the layer the verdict was reached on, for the log. Empty when holding. Knowing WHICH
         ///   modal took the screen is what turned tashmetu's report into a diagnosis instead of a guess.
         /// </summary>
-        public static string ReasonFor(bool hostScreenIsOnTop, IEnumerable<OverlayNeighbour> neighbours)
+        public static string ReasonFor(bool hostScreenIsOnTop,
+                                       IEnumerable<OverlayNeighbour> neighbours,
+                                       ICollection<string> backdropAtOpen = null)
         {
             if (!hostScreenIsOnTop) return "a screen was pushed over the chat's host";
             if (neighbours == null) return "";
 
             foreach (OverlayNeighbour layer in neighbours)
-            {
-                if (layer == null || layer.IsTheChat || layer.IsTheWorldBeneath) continue;
-                if (layer.IsFinalized || !layer.WantsFocus) continue;
-                if (IsVanillaConversationLayer(layer.Name)) continue;
-
-                return string.IsNullOrEmpty(layer.Name) ? "an unnamed layer claimed focus" : layer.Name;
-            }
+                if (TakesTheScreen(layer, backdropAtOpen))
+                    return string.IsNullOrEmpty(layer.Name) ? "an unnamed layer claimed focus" : layer.Name;
 
             return "";
         }

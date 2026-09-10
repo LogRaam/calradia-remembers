@@ -113,6 +113,16 @@ namespace CalradiaRemembers.Chat
       // compare the host screen's layer count to the baseline taken when the chat opened: an extra layer means
       // something modal is up, so the chat yields its focus + input grab; back to baseline, the chat reclaims.
       private static bool _chatHoldsFocus;
+
+      /// <summary>
+      ///   The names of every layer already claiming focus on the host screen when the chat opened. That is the
+      ///   BACKDROP the chat was deliberately drawn over (the settlement menu in a tavern, the world itself, the
+      ///   vanilla conversation window), and the arbiter must never mistake any of it for a screen above us.
+      ///   Gabriel's play-test, 2026-09-09: a tavern chat yielded to "MapMenuOverlay" and never appeared until
+      ///   the player left the menu. Names rather than references, so a layer torn down and rebuilt under the
+      ///   same name is still recognised as the backdrop it is.
+      /// </summary>
+      private static readonly HashSet<string> _backdropFocusClaimers = new(StringComparer.Ordinal);
       private static ChatScreen _chatScreen;
       private static ScreenBase _hostScreen;
 
@@ -192,6 +202,7 @@ namespace CalradiaRemembers.Chat
          _hostScreen = null;
          _chatScreen = null;
          _timeControlModeSaved = false;
+         _backdropFocusClaimers.Clear();
       }
 
       /// <summary>
@@ -236,7 +247,7 @@ namespace CalradiaRemembers.Chat
             bool hostIsOnTop = ReferenceEquals(ScreenManager.TopScreen, _hostScreen);
             List<OverlayNeighbour> neighbours = hostIsOnTop ? NeighbouringLayers() : null;
             bool somethingModalOnTop =
-               ChatFocusArbitrationPolicy.Decide(hostIsOnTop, neighbours) == ChatFocusVerdict.Yield;
+               ChatFocusArbitrationPolicy.Decide(hostIsOnTop, neighbours, _backdropFocusClaimers) == ChatFocusVerdict.Yield;
 
             if (somethingModalOnTop && _chatHoldsFocus)
             {
@@ -248,7 +259,7 @@ namespace CalradiaRemembers.Chat
                ActiveViewModel?.SetVisualOffscreen(true);
                _chatHoldsFocus = false;
                ModLog.Info("Chat overlay yielded focus and slid aside for: "
-                           + ChatFocusArbitrationPolicy.ReasonFor(hostIsOnTop, neighbours));
+                           + ChatFocusArbitrationPolicy.ReasonFor(hostIsOnTop, neighbours, _backdropFocusClaimers));
                LogScreenState("yield"); // exactly when the new layer exists — identifies WHAT appeared and at what order
             }
             else if (!somethingModalOnTop && !_chatHoldsFocus)
@@ -274,6 +285,27 @@ namespace CalradiaRemembers.Chat
       ///   only non-modals that do are the two vanilla conversation windows this chat is drawn over.
       /// </summary>
       private static List<OverlayNeighbour> NeighbouringLayers() => LayerFactsFor(_hostScreen, _activeLayer);
+
+      /// <summary>
+      ///   Snapshots which layers are already claiming focus on the host screen, at the moment the chat is added
+      ///   to it. Everything named here is scenery for this conversation. Cleared by <see cref="FreeResources" />
+      ///   and <see cref="ResetForSession" /> so one conversation's scenery never excuses the next one's modal.
+      /// </summary>
+      private static void RecordBackdropFocusClaimers()
+      {
+         _backdropFocusClaimers.Clear();
+
+         foreach (OverlayNeighbour layer in NeighbouringLayers())
+         {
+            if (layer == null || layer.IsTheChat || !layer.WantsFocus) continue;
+            if (string.IsNullOrEmpty(layer.Name)) continue;
+
+            _backdropFocusClaimers.Add(layer.Name);
+         }
+
+         ModLog.Info("Chat overlay backdrop (already holding focus when it opened): "
+                     + (_backdropFocusClaimers.Count == 0 ? "none" : string.Join(", ", _backdropFocusClaimers)));
+      }
 
       /// <summary>
       ///   The same reading, against any screen, so cr.testall's chat_focus_arbiter can drive it over REAL engine
@@ -1051,6 +1083,8 @@ namespace CalradiaRemembers.Chat
          _chatScreen = null;
          _timeControlModeSaved = false;
          _chatHoldsFocus = false;
+         // One conversation's scenery must never excuse the next one's modal.
+         _backdropFocusClaimers.Clear();
       }
 
       private static void GenerateChatWindow(string npcName, bool forceClassicSkin = false)
@@ -1122,8 +1156,11 @@ namespace CalradiaRemembers.Chat
             _activeLayer.IsFocusLayer = true;
             ScreenManager.TrySetFocus(_activeLayer);
 
-            // No baseline is taken. ArbitrateFocus judges each frame from what is on the screen then, so the
-            // order in which vanilla's own conversation layer arrives can no longer decide anything.
+            // The backdrop, captured ONCE: whatever already holds focus here is what the chat is being drawn
+            // OVER, never something above it. This is not the layer COUNT baseline that caused tashmetu's bug
+            // (a late arrival changed the count and the chat fled the screen); it is the set of names, so a
+            // layer arriving later is judged on WHAT it is rather than on the fact that it arrived.
+            RecordBackdropFocusClaimers();
             _chatHoldsFocus = true;
          }
       }

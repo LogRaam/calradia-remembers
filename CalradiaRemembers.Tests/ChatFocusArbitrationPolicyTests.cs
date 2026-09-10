@@ -21,12 +21,18 @@
 // do are the two vanilla conversation windows this mod draws over. Those two are named and exempt; everything else
 // that claims focus gets the screen.
 //
-// That sweep was INCOMPLETE, and cr.testall said so on its very first run. It looked at `new GauntletLayer(...)`
-// sites, and the layer that matters most is not a GauntletLayer: TaleWorlds.Engine.Screens.SceneLayer, the 3D
-// world, sets IsFocusLayer in its own constructor and therefore claims focus on every screen a conversation can
-// happen on. Unexempted, this arbiter yielded on the first frame of EVERY conversation, forever, which is worse
-// than the bug it replaced. Decompiling all 58 game assemblies afterwards showed SceneLayer is the only layer in
-// the game claiming focus from a constructor rather than when it opens, so the exemption list is now closed.
+// A NAME LIST CANNOT BE COMPLETE, AND TWO RUNS PROVED IT. cr.testall caught the first miss: SceneLayer, the 3D
+// world, is not a GauntletLayer at all and sets IsFocusLayer in its own constructor, so it claims focus on every
+// screen a conversation can happen on; unexempted, the arbiter yielded on the first frame of EVERY conversation.
+// Gabriel's play-test caught the second: a chat opened in a TAVERN, where the vanilla settlement menu
+// "MapMenuOverlay" holds focus for the whole conversation. The chat yielded to the very backdrop it had just
+// been drawn over, never appeared, and slid into view only once the player left the menu.
+//
+// So the rule gained the part it was missing: WHATEVER WAS ALREADY CLAIMING FOCUS WHEN THE CHAT OPENED IS THE
+// BACKDROP, NOT A SCREEN ABOVE US. That is structural instead of enumerated, and it is what the failed layer
+// COUNT baseline was reaching for without getting right: the question was never how MANY layers there are, it is
+// WHICH of them the chat was deliberately drawn over. Only the vanilla conversation windows stay named, because
+// they arrive AFTER the chat when the NPC opens the conversation and so can never be in any baseline.
 //
 // If these tests fail, either a real modal is about to be starved of input behind an unresponsive chat window, or
 // the chat is about to slide off screen for something it was built to replace.
@@ -62,6 +68,77 @@ namespace CalradiaRemembers.Tests
             TheWorld(), Layer("MissionCrosshair"), Layer("MissionNameMarker"),
             Layer("MissionSPKillFeed"), Layer("MissionObjective"), Layer("MissionOrder"), Chat()
         };
+
+        // Gabriel's play-test, 2026-09-09: a chat opened from a tavern, with the vanilla settlement menu up and
+        // holding focus behind it for the whole conversation. It is scenery, not a screen above, and treating it
+        // as a modal meant the chat never appeared at all while the vanilla dialogue ran on underneath.
+        [Test]
+        public void GIVEN_a_settlement_menu_that_was_already_up_WHEN_arbitrating_THEN_the_chat_holds_its_own_backdrop()
+        {
+            var tavern = new List<OverlayNeighbour> {
+                TheWorld(), Layer("MapMenuOverlay", wantsFocus: true), Layer("MapBar"), Chat()
+            };
+            var backdrop = new HashSet<string> {"MapMenuOverlay"};
+
+            ChatFocusArbitrationPolicy.Decide(true, tavern, backdrop).Should().Be(ChatFocusVerdict.Hold);
+            ChatFocusArbitrationPolicy.ReasonFor(true, tavern, backdrop).Should().BeEmpty();
+
+            // And without the backdrop recorded, it is exactly the bug he saw.
+            ChatFocusArbitrationPolicy.Decide(true, tavern).Should().Be(ChatFocusVerdict.Yield);
+        }
+
+        // The backdrop must not become a blanket amnesty: a real modal opening over that same tavern menu still
+        // takes the screen, because it was not part of the picture when the chat opened.
+        [Test]
+        public void GIVEN_a_modal_opening_over_the_backdrop_WHEN_arbitrating_THEN_it_still_takes_the_screen()
+        {
+            var tavern = new List<OverlayNeighbour> {
+                TheWorld(), Layer("MapMenuOverlay", wantsFocus: true), Chat(), Layer("MapEscapeMenu", wantsFocus: true)
+            };
+            var backdrop = new HashSet<string> {"MapMenuOverlay"};
+
+            ChatFocusArbitrationPolicy.Decide(true, tavern, backdrop).Should().Be(ChatFocusVerdict.Yield);
+            ChatFocusArbitrationPolicy.ReasonFor(true, tavern, backdrop).Should().Be("MapEscapeMenu");
+        }
+
+        // The backdrop belongs to ONE conversation. Carrying it over would let the tavern menu of a chat that
+        // has closed excuse a genuine modal in the next one, and the caller clears it on every close for that
+        // reason; this pins that an empty backdrop restores the strict rule.
+        [Test]
+        public void GIVEN_no_backdrop_recorded_WHEN_arbitrating_THEN_every_focus_claim_is_judged_on_its_own_merits()
+        {
+            var layers = new List<OverlayNeighbour> {Chat(), Layer("MapMenuOverlay", wantsFocus: true)};
+
+            ChatFocusArbitrationPolicy.Decide(true, layers, new HashSet<string>()).Should().Be(ChatFocusVerdict.Yield);
+            ChatFocusArbitrationPolicy.Decide(true, layers, null).Should().Be(ChatFocusVerdict.Yield);
+        }
+
+        // A nameless layer can never be matched against a backdrop of names, so it counts as new. That is the
+        // safe way round: yielding to an unknown claimant undoes itself when the claimant goes, while ignoring a
+        // real modal leaves the player in a menu that does not answer the mouse.
+        [Test]
+        public void GIVEN_an_unnamed_claimant_WHEN_a_backdrop_is_recorded_THEN_it_is_treated_as_new_rather_than_scenery()
+        {
+            var layers = new List<OverlayNeighbour> {Chat(), Layer(null, wantsFocus: true)};
+
+            ChatFocusArbitrationPolicy.Decide(true, layers, new HashSet<string> {"MapMenuOverlay"})
+                                      .Should().Be(ChatFocusVerdict.Yield);
+            ChatFocusArbitrationPolicy.WasPartOfTheBackdrop(null, new HashSet<string> {"MapMenuOverlay"}).Should().BeFalse();
+            ChatFocusArbitrationPolicy.WasPartOfTheBackdrop("MapMenuOverlay", null).Should().BeFalse();
+            ChatFocusArbitrationPolicy.WasPartOfTheBackdrop("MapMenuOverlay", new HashSet<string> {"MapMenuOverlay"}).Should().BeTrue();
+        }
+
+        // The one thing no backdrop can cover, which is why the two vanilla conversation windows stay named: they
+        // arrive AFTER the chat when the NPC starts the conversation, so they are never in the snapshot.
+        [Test]
+        public void GIVEN_a_backdrop_was_recorded_WHEN_the_vanilla_conversation_window_arrives_late_THEN_it_is_still_exempt()
+        {
+            var mission = AQuietMission();
+            mission.Add(Layer("MissionConversation", wantsFocus: true));
+
+            ChatFocusArbitrationPolicy.Decide(true, mission, new HashSet<string> {"SceneLayer"})
+                                      .Should().Be(ChatFocusVerdict.Hold);
+        }
 
         // The reported bug, and the only case that matters. The vanilla conversation layer arrives AFTER the chat
         // because the NPC started the conversation, and the chat must not read its own understudy as a modal.
