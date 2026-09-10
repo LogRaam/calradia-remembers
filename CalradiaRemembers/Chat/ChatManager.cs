@@ -21,6 +21,7 @@ using NpcMemoryService.Core.Prompts;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.Engine.GauntletUI;
+using TaleWorlds.Engine.Screens;
 using TaleWorlds.GauntletUI.Data;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.ScreenSystem;
@@ -295,6 +296,9 @@ namespace CalradiaRemembers.Chat
                facts.Add(new OverlayNeighbour {
                   Name = layer.Name,
                   IsTheChat = chatLayer != null && ReferenceEquals(layer, chatLayer),
+                  // The 3D world beneath us, which claims focus from its own constructor on every screen that
+                  // has a scene. By TYPE, not by name: mistaking it for a modal costs every conversation.
+                  IsTheWorldBeneath = layer is SceneLayer,
                   IsFinalized = layer.IsFinalized,
                   WantsFocus = layer.IsFocusLayer
                });

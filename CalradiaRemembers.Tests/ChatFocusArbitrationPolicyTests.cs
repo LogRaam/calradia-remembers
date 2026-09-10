@@ -21,6 +21,13 @@
 // do are the two vanilla conversation windows this mod draws over. Those two are named and exempt; everything else
 // that claims focus gets the screen.
 //
+// That sweep was INCOMPLETE, and cr.testall said so on its very first run. It looked at `new GauntletLayer(...)`
+// sites, and the layer that matters most is not a GauntletLayer: TaleWorlds.Engine.Screens.SceneLayer, the 3D
+// world, sets IsFocusLayer in its own constructor and therefore claims focus on every screen a conversation can
+// happen on. Unexempted, this arbiter yielded on the first frame of EVERY conversation, forever, which is worse
+// than the bug it replaced. Decompiling all 58 game assemblies afterwards showed SceneLayer is the only layer in
+// the game claiming focus from a constructor rather than when it opens, so the exemption list is now closed.
+//
 // If these tests fail, either a real modal is about to be starved of input behind an unresponsive chat window, or
 // the chat is about to slide off screen for something it was built to replace.
 
@@ -44,10 +51,15 @@ namespace CalradiaRemembers.Tests
         private static OverlayNeighbour Layer(string name, bool wantsFocus = false, bool finalized = false)
             => new() {Name = name, WantsFocus = wantsFocus, IsFinalized = finalized};
 
-        // The mission a conversation actually happens in, as the engine reports it: a scene layer, a pile of HUD
-        // layers, none of which claim focus, and the chat. Nothing here is above anything.
+        // The 3D world, exactly as the engine builds it: TaleWorlds.Engine.Screens.SceneLayer sets IsFocusLayer
+        // in its own CONSTRUCTOR, so it is claiming focus on every screen that has a scene, forever.
+        private static OverlayNeighbour TheWorld()
+            => new() {Name = "SceneLayer", WantsFocus = true, IsTheWorldBeneath = true};
+
+        // The mission a conversation actually happens in, as the engine reports it: the world, a pile of HUD
+        // layers none of which claim focus, and the chat. Nothing here is a screen above anything.
         private static List<OverlayNeighbour> AQuietMission() => new() {
-            Layer("SceneLayer"), Layer("MissionCrosshair"), Layer("MissionNameMarker"),
+            TheWorld(), Layer("MissionCrosshair"), Layer("MissionNameMarker"),
             Layer("MissionSPKillFeed"), Layer("MissionObjective"), Layer("MissionOrder"), Chat()
         };
 
@@ -124,6 +136,31 @@ namespace CalradiaRemembers.Tests
             ChatFocusArbitrationPolicy.Decide(true, mission).Should().Be(ChatFocusVerdict.Hold);
         }
 
+        // The finding cr.testall returned on its first run, and the reason it was worth writing. The engine's
+        // SceneLayer claims focus from its constructor on EVERY screen with a scene, which is every screen a
+        // conversation happens on. Read as a modal, it would have slid the chat off the right edge on the first
+        // frame of every conversation in the game and never brought it back: worse than the bug being fixed.
+        // Decompiling all 58 game assemblies confirmed it is the ONLY layer claiming focus from a constructor
+        // rather than when it opens, so this exemption is complete rather than the first of a growing list.
+        [Test]
+        public void GIVEN_the_world_beneath_the_chat_WHEN_arbitrating_THEN_it_is_never_read_as_a_screen_above()
+        {
+            ChatFocusArbitrationPolicy.Decide(true, new List<OverlayNeighbour> {TheWorld(), Chat()})
+                                      .Should().Be(ChatFocusVerdict.Hold);
+            ChatFocusArbitrationPolicy.ReasonFor(true, new List<OverlayNeighbour> {TheWorld(), Chat()})
+                                      .Should().BeEmpty();
+        }
+
+        // And the exemption must not become a blanket: a real modal over the same scene still takes the screen.
+        [Test]
+        public void GIVEN_a_modal_over_the_world_WHEN_arbitrating_THEN_the_modal_is_still_honoured()
+        {
+            var layers = new List<OverlayNeighbour> {TheWorld(), Chat(), Layer("MissionEscapeMenu", wantsFocus: true)};
+
+            ChatFocusArbitrationPolicy.Decide(true, layers).Should().Be(ChatFocusVerdict.Yield);
+            ChatFocusArbitrationPolicy.ReasonFor(true, layers).Should().Be("MissionEscapeMenu");
+        }
+
         // The chat's own layer claims focus, by design, every frame it holds the screen. Reading itself as a
         // reason to yield would strand it the instant it opened.
         [Test]
@@ -139,7 +176,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_the_ordinary_mission_hud_WHEN_arbitrating_THEN_none_of_it_counts_as_a_screen_above()
         {
             ChatFocusArbitrationPolicy.Decide(true, AQuietMission()).Should().Be(ChatFocusVerdict.Hold);
-            AQuietMission().Where(l => !l.IsTheChat).Should().OnlyContain(l => !l.WantsFocus);
+            AQuietMission().Where(l => !l.IsTheChat && !l.IsTheWorldBeneath).Should().OnlyContain(l => !l.WantsFocus);
         }
 
         // Nothing readable must never be read as "something is above us", because that yield is the one nobody

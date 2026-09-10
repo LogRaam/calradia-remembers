@@ -27,6 +27,19 @@
 // screens) plus exactly two exceptions: "MissionConversation" and "MapConversation", the vanilla conversation
 // windows this mod exists to replace. Those two are named here and never yielded to.
 //
+// AND ONE MORE, WHICH THAT SWEEP MISSED AND cr.testall CAUGHT ON ITS FIRST RUN (2026-09-09). The sweep looked at
+// `new GauntletLayer("name", ...)` sites, and the layer that matters most is not a GauntletLayer at all:
+// TaleWorlds.Engine.Screens.SceneLayer is the 3D world itself, its constructor reads
+//
+//      : base("SceneLayer", -100) { ... base.IsFocusLayer = true; }
+//
+// so it is ALWAYS claiming focus, on every screen that has a scene, which is every screen a conversation ever
+// happens on. Without the exemption below, this arbiter would have answered Yield on the very first frame of
+// EVERY conversation, slid the chat off the right edge, and never brought it back: categorically worse than
+// tashmetu's bug, which at least spared the conversations the player started. The self-test reported
+// "screen=NavalMapScreen, layers=7, atRest=Yield" and that one word is the whole finding. It is read from the
+// TYPE rather than the name, because a string is a poor guard on the one mistake that costs the entire feature.
+//
 // Gabriel's rule, 2026-09-09: a proven regression sensitivity earns a MECHANISM. There are two here. The decision
 // is a pure function of named facts, so it can be tested without a game. And the decision is now the exact
 // negation of its own reclaim, evaluated fresh every frame from the world as it stands, holding no memory of what
@@ -65,6 +78,15 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>The engine's IsFocusLayer: the vanilla contract for "I mean to take the input".</summary>
         public bool WantsFocus { get; set; }
+
+        /// <summary>
+        ///   The 3D world the chat is drawn over: TaleWorlds.Engine.Screens.SceneLayer, which every screen with
+        ///   a scene carries (a mission, the campaign map, the naval map). Its constructor sets IsFocusLayer
+        ///   unconditionally and gives it order -100, so it is ALWAYS claiming focus and always at the bottom.
+        ///   Read from the layer's TYPE by the caller rather than from its name, because getting this one wrong
+        ///   costs every conversation in the game (see the policy header).
+        /// </summary>
+        public bool IsTheWorldBeneath { get; set; }
     }
 
     /// <summary>Whether the chat overlay should hold the input this frame, or stand aside for something that wants it.</summary>
@@ -103,7 +125,7 @@ namespace CalradiaRemembers.Logic
 
             foreach (OverlayNeighbour layer in neighbours)
             {
-                if (layer == null || layer.IsTheChat) continue;
+                if (layer == null || layer.IsTheChat || layer.IsTheWorldBeneath) continue;
                 if (layer.IsFinalized || !layer.WantsFocus) continue;
                 if (IsVanillaConversationLayer(layer.Name)) continue;
 
@@ -124,7 +146,7 @@ namespace CalradiaRemembers.Logic
 
             foreach (OverlayNeighbour layer in neighbours)
             {
-                if (layer == null || layer.IsTheChat) continue;
+                if (layer == null || layer.IsTheChat || layer.IsTheWorldBeneath) continue;
                 if (layer.IsFinalized || !layer.WantsFocus) continue;
                 if (IsVanillaConversationLayer(layer.Name)) continue;
 

@@ -6121,6 +6121,20 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          t.Note($"marry outcome={(outcome != null ? outcome.IsPositive.ToString() : "null")}");
+
+         // Same escape the four other marriage scenarios already take, and for the same reason: on some
+         // campaigns the native MarriageAction simply does not take (2026-09-09: spouse_divorce, player_divorce,
+         // spouse_estrangement and grudge_unblessed_marriage all reported MANUAL for exactly this while THIS
+         // test reported FAIL, which reads as a product regression and is not one). Nothing below can be judged
+         // once the wedding itself never happened, so say so plainly instead of failing every assertion after it.
+         if (t.Skip(Hero.MainHero.Spouse != companion && outcome?.IsPositive != true,
+                "could not wed the companion on this campaign (native MarriageAction did not take); divorce path unexercised"))
+         {
+            ArrangeCleanNpc(behavior, profile, companion);
+
+            return t.Line();
+         }
+
          t.Expect("playerWedCompanion", Hero.MainHero.Spouse == companion, true);
          t.Expect("exCompanionNowLord", companion.Occupation == Occupation.Lord, true);
          t.Expect("exCompanionNotPlayerCompanion", companion.IsPlayerCompanion, false);
@@ -6197,10 +6211,21 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Skip(captive == null, "no free lord to take captive")) return t.Line();
 
-         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h != captive && h.IsLord && !h.IsPrisoner && h.Clan != captive.Clan);
+         // The buyer must be able to raise the CEILING, not merely the floor. PrisonerRansomExecutor pays
+         // Math.Min(clampedPrice, buyer.Gold) by design (a broke buyer must not be handed a hostage for a
+         // pittance, and GiveGoldAction self-clamps to the purse anyway), so a poorer buyer legitimately pays
+         // less than the clamp and this test's whole assertion is about the clamp. Picking the first lord in
+         // the list made the result turn on how rich that lord happened to be: it FAILED on 2026-09-09 with
+         // "paid=4550 (expected 7650)" against a solvent-but-not-wealthy Arion, reporting a product bug where
+         // there was none. A self-test must never depend on which hero the campaign lists first.
+         int ceilingForCaptive = PrisonerTradePolicy.ClampPrice(999999, BuyPrisonerVerb.RansomAnchor(captive));
 
-         if (t.Skip(buyer == null, "no second lord to stand as the buyer")) return t.Line();
+         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h != captive && h.IsLord && !h.IsPrisoner && h.Clan != captive.Clan
+            && h.Gold >= ceilingForCaptive);
+
+         if (t.Skip(buyer == null, $"no lord solvent enough ({ceilingForCaptive}g) to prove the price clamp rather than their purse"))
+            return t.Line();
 
          NpcProfile profile = GetOrCreate(behavior, buyer);
 
@@ -8199,11 +8224,28 @@ namespace CalradiaRemembers.Diagnostics
 
          try
          {
-            // Whatever the console's own screen looks like, that verdict is the reference. Asserting a RELATIVE
-            // change keeps this honest on any screen the player happens to run cr.testall from.
+            // THE invariant, and the one this test was too lenient to assert on its first version: on a screen
+            // with no modal up, the chat must HOLD. Reading the resting verdict as a mere reference is what let
+            // the first run report only a mismatched reason string, when the finding was far larger than that.
+            //
+            // What it found (2026-09-09, screen=NavalMapScreen, layers=7, atRest=Yield): the sweep behind this
+            // arbiter looked at `new GauntletLayer("name", ...)` sites and therefore missed the one layer that
+            // is not a GauntletLayer at all. TaleWorlds.Engine.Screens.SceneLayer is the 3D world, and its
+            // constructor sets IsFocusLayer unconditionally, so it claims focus on EVERY screen a conversation
+            // can happen on. Unexempted, this arbiter would have yielded on the first frame of every single
+            // conversation and never come back: worse than the bug it was written to fix. Decompiling all 58
+            // game assemblies afterwards confirmed SceneLayer is the ONLY layer in the game that claims focus
+            // from a constructor rather than when it opens, so the exemption list is complete, and this line is
+            // what keeps it complete.
             ChatFocusVerdict atRest =
                ChatFocusArbitrationPolicy.Decide(true, ChatManager.LayerFactsFor(top, null));
-            t.Note($"screen={top.GetType().Name}, layers={top.Layers.Count}, atRest={atRest}");
+            var resting = ChatManager.LayerFactsFor(top, null);
+            string claimers = string.Join(", ", resting.Where(l => l != null && l.WantsFocus && !l.IsTheWorldBeneath)
+                                                       .Select(l => l.Name ?? "(unnamed)"));
+            t.Note($"screen={top.GetType().Name}, layers={top.Layers.Count}, atRest={atRest}, " +
+                   $"restingFocusClaimers=[{(claimers.Length == 0 ? "none" : claimers)}]");
+            t.Expect("aRestingScreenNeverTakesTheChatOffTheScreen", atRest, ChatFocusVerdict.Hold);
+            t.Expect("theWorldBeneathIsRecognisedByType", resting.Any(l => l != null && l.IsTheWorldBeneath), true);
 
             // tashmetu's bug (2026-09-09): vanilla's conversation layer lands on the SAME screen a moment after
             // the chat opened, and the old arbiter, which only counted layers, read it as a screen above and slid
@@ -8217,7 +8259,7 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("vanillaLayerNameReadsBackFromTheEngine",
                      withConversation.Any(l => l != null && l.Name == "MissionConversation" && l.WantsFocus), true);
             t.Expect("vanillaConversationLayerChangesNothing",
-                     ChatFocusArbitrationPolicy.Decide(true, withConversation), atRest);
+                     ChatFocusArbitrationPolicy.Decide(true, withConversation), ChatFocusVerdict.Hold);
 
             // The other half: a genuine modal must still get the screen, or the chat starves a pause menu of
             // input and the player cannot click Resume.
@@ -8232,7 +8274,7 @@ namespace CalradiaRemembers.Diagnostics
             // The reclaim that never came in his session. A yield must never outlive the thing it yielded to.
             top.RemoveLayer(realModal);
             t.Expect("reclaimsTheScreenWhenTheModalGoes",
-                     ChatFocusArbitrationPolicy.Decide(true, ChatManager.LayerFactsFor(top, null)), atRest);
+                     ChatFocusArbitrationPolicy.Decide(true, ChatManager.LayerFactsFor(top, null)), ChatFocusVerdict.Hold);
          }
          finally
          {
