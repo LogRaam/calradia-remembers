@@ -2343,7 +2343,7 @@ namespace CalradiaRemembers.Chat
             if (string.IsNullOrWhiteSpace(newLines)) return;
 
             string existing = _transcript.RunningSummary;
-            var compressor = new ConversationHistoryCompressor(behavior.LlmServices.LlmClient);
+            var compressor = new ConversationHistoryCompressor(behavior.LlmServices.LlmClient, ModSettings.ReplyLanguage);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(ConversationCompressTimeoutSeconds));
 
             string updated = null;

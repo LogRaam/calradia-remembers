@@ -118,7 +118,7 @@ namespace CalradiaRemembers.Memory
 
             try
             {
-                var compressor = new LlmMemoryCompressor(behavior.LlmServices.LlmClient);
+                var compressor = new LlmMemoryCompressor(behavior.LlmServices.LlmClient, ModSettings.ReplyLanguage);
 
                 CompressionResult result;
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(TimeoutSeconds)))
