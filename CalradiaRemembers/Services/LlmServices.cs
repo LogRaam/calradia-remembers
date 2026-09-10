@@ -858,9 +858,27 @@ namespace CalradiaRemembers.Services
       // together (LlmParameterPolicy), so this only bites on ordinary sampled models.
       private const float ScenePresencePenalty = 0.5f;
 
+      /// <summary>
+      ///   The REAL PromptBuilder the chat runs on, built exactly as <see cref="BuildChatService" /> builds it.
+      ///   Extracted so cr.testall can read the live construction rather than a copy of it: a self-test that
+      ///   rebuilt these fields itself would agree with itself forever, which is precisely how the 2026-09-08
+      ///   affection-bar drift went unseen for a release.
+      /// </summary>
+      internal PromptBuilder DebugBuildPromptBuilder() => BuildPromptBuilder();
+
       private NpcChatService BuildChatService()
       {
-         var promptBuilder = new PromptBuilder {
+         PromptBuilder promptBuilder = BuildPromptBuilder();
+
+         ModLog.Info($"PromptBuilder built (AdultLevel={ModSettings.AdultContentLevel}, " +
+                     $"Warmth={ModSettings.RelationWarmth}, PlayerIsFemale={promptBuilder.PlayerIsFemale}).");
+
+         return BuildChatService(promptBuilder);
+      }
+
+      private PromptBuilder BuildPromptBuilder()
+      {
+         return new PromptBuilder {
             AdultLevel = ModSettings.AdultContentLevel,
             PlayerIsFemale = TestPlayerGenderOverride ?? Hero.MainHero?.IsFemale ?? false,
             // Name and clan are injected from the live Hero so NPCs can address the player by
@@ -880,6 +898,13 @@ namespace CalradiaRemembers.Services
             // The intimacy consent bar follows the same Relationship Pacing dial as every other gate; the
             // SDK owns the bar, the mod owns how far the player's dial lowers it (audit M3).
             IntimacyThresholdRelief = IntimacyPacingRules.Relief(ModSettings.RelationWarmth),
+            // The EMOTIONAL twin of that bar, and the reason it is passed RESOLVED rather than as a relief:
+            // this is the very number CompanionSecretAffectionPolicy measures the confession roll from, so the
+            // words an NPC is allowed to say and the moment they are allowed to say them cannot drift apart.
+            // That drift is not hypothetical: on 2026-09-08 this bar lived as a literal 50 in three places, one
+            // of them moved onto the pacing dial, and a companion declared their feelings while the game refused
+            // the bond (yozakura12, Nexus).
+            DeclaredAffectionBar = CompanionSecretAffectionPolicy.MinRegardFor(ModSettings.RelationWarmth),
             // The NPC's standing is the live game relation (synced each turn),
             // moved only through the gated change_relation action — so the LLM
             // does not write a parallel reputation score.
@@ -891,10 +916,10 @@ namespace CalradiaRemembers.Services
             // NPC is allowed to offer and resolve informal quests.
             EnableQuests = true
          };
+      }
 
-         ModLog.Info($"PromptBuilder built (AdultLevel={ModSettings.AdultContentLevel}, " +
-                     $"Warmth={ModSettings.RelationWarmth}, PlayerIsFemale={promptBuilder.PlayerIsFemale}).");
-
+      private NpcChatService BuildChatService(PromptBuilder promptBuilder)
+      {
          return new NpcChatService(
             LlmClient,
             new SectionResponseParser(),

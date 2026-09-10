@@ -196,7 +196,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("recruit", Severity.Heavy, "eligible lord -> join_clan -> assert he moved into your clan", TestRecruit),
          new SelfTest("teach_skill", Severity.Light, "find a live NPC with a skill at or above TeachSkillPolicy.TeacherSkillFloor -> drive the REAL bridge teach_skill once (clean cooldown) -> assert real skill XP landed on the player, a second immediate lesson from the same NPC is refused by the cooldown, and an unrecognised skill name is refused rather than faked. Restores the player's skill level and the NPC's cooldown stamp afterwards", TestTeachSkill),
          new SelfTest("recruit_notable", Severity.Heavy, "find a settlement NOTABLE (gang leader/headman/merchant...) that has an eligible successor in its town, force regard to the floor, run the REAL bridge recruit_notable -> assert the notable is now a companion in your CLAN and PARTY, a starting relation bonus was applied, and the chosen successor holds the vacated notable post (settlement.Notables). Best-effort restore afterwards (recruit_notable is not cleanly reversible: the alley transfer cannot be undone). Skips when no disposable notable+successor pair exists rather than wreck a real campaign", TestRecruitNotable),
-         new SelfTest("secret_bond_bar_agrees", Severity.Light, "player report 2026-09-09 ('the NPC is expressing affection, yet the system displays a message stating that intimacy is insufficient'), caused by ONE regard bar living as a literal 50 in three places while only the confession moved onto the Relationship Pacing dial. Drives the REAL EncounterContextBuilder.Build and the REAL bridge action take_as_secret_lover against a compatible companion at exactly MinRegardFor(current pacing) and one point below it, and asserts BOTH engine gates flip on the SAME number the confession uses. A pure test cannot catch this (it would compare the policy with itself); only driving the live sites can. Restores the regard and undoes any bond formed", TestSecretBondBarAgrees),
+         new SelfTest("secret_bond_bar_agrees", Severity.Light, "player report 2026-09-09 ('the NPC is expressing affection, yet the system displays a message stating that intimacy is insufficient'), caused by ONE regard bar living as a literal 50 in three places while only the confession moved onto the Relationship Pacing dial. Drives the REAL EncounterContextBuilder.Build and the REAL bridge action take_as_secret_lover against a compatible companion at exactly MinRegardFor(current pacing) and one point below it, and asserts BOTH engine gates flip on the SAME number the confession uses. A pure test cannot catch this (it would compare the policy with itself); only driving the live sites can. EXTENDED 2026-09-09 with the THIRD site of that same bar, what the NPC may SAY: asserts the LIVE PromptBuilder the chat uses declares from the very number the confession roll measures from, and that the register reads Attachment at the bar and Interest one below it, where an NPC may flirt but must never speak of love nor open a courtship on standing alone. Restores the regard and undoes any bond formed", TestSecretBondBarAgrees),
          new SelfTest("captive_lord_withheld_from_defection", Severity.Heavy, "player report: a held captive lord below the recruit_prisoner regard floor could still narrate accepting the player's offer to defect, though nothing happened (an empty promise). Really captures a capturable in-party lord who is not their own clan's leader, drives EncounterContextBuilder.Build with regard just BELOW PrisonerRecruitmentPolicy.RegardFloor -> assert CanRecruitPrisoner is false and the new CaptiveLordWithheldFromDefection flag is true, then raises regard to the floor -> assert they FLIP (CanRecruitPrisoner true, the new flag false), proving the two are mutually exclusive on live engine facts. Releases the captive and restores regard afterwards", TestCaptiveLordWithheldFromDefection),
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
          new SelfTest("free_prisoner", Severity.Heavy, "capture -> free_prisoner -> assert released", TestFreePrisoner),
@@ -7831,6 +7831,36 @@ namespace CalradiaRemembers.Diagnostics
                    $"bridge={(refusedEnded?.WasRefused == true ? "refused" : "ALLOWED")}");
             t.Expect("anEndedRomanceIsNotTaught", ended.SecretLoverEligible, false);
             t.Expect("anEndedRomanceIsRefusedByTheBridgeToo", refusedEnded?.WasRefused, true);
+
+            // The THIRD site of the same bar, added 2026-09-09: what the NPC is allowed to SAY. The two gates
+            // above decide whether the deed may be done; neither has ever governed the words, which is why a
+            // companion could declare their feelings at a regard of ten and be refused a moment later. The
+            // prompt now carries a register, and it must read the bar off the SAME policy rather than a copy.
+            // Driven through the LIVE PromptBuilder the chat itself uses, because a pure test can only compare
+            // the policy with itself, which is exactly how the first drift went unseen.
+            PromptBuilder livePrompt = behavior.LlmServices?.DebugBuildPromptBuilder();
+            t.Note($"live prompt bar={livePrompt?.DeclaredAffectionBar}, policy bar={bar}, pacing={ModSettings.RelationWarmth}");
+            t.Expect("thePromptDeclaresFromTheSameBarTheConfessionUses", livePrompt?.DeclaredAffectionBar, bar);
+
+            // And the register itself, at the two points that matter, on this same real companion.
+            var atBarFacts = new RomanticRegisterFacts {
+               AdultContentEnabled = ModSettings.AdultContentLevel != AdultContentLevel.Off,
+               PlayerIsCompatible = true,
+               RegardWithPlayer = bar,
+               Status = RomanticStatus.None,
+               DeclaredAffectionBar = bar
+            };
+            var belowFacts = new RomanticRegisterFacts {
+               AdultContentEnabled = atBarFacts.AdultContentEnabled,
+               PlayerIsCompatible = true,
+               RegardWithPlayer = bar - 1,
+               Status = RomanticStatus.None,
+               DeclaredAffectionBar = bar
+            };
+
+            t.Expect("atTheBarTheNpcMayNameTheirFeelings", RomanticRegisterPolicy.Resolve(atBarFacts), RomanticRegister.Attachment);
+            t.Expect("belowTheBarTheNpcMayFlirtButNeverDeclare", RomanticRegisterPolicy.Resolve(belowFacts), RomanticRegister.Interest);
+            t.Expect("belowTheBarStandingAloneCannotOpenACourtship", RomanticRegisterPolicy.MayInitiateCourtship(belowFacts), false);
          }
          finally
          {
