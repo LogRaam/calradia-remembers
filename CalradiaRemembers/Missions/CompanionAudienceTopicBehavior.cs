@@ -538,7 +538,10 @@ namespace CalradiaRemembers.Missions
                inEncounter: PlayerEncounter.Current != null,
                inMenu: Campaign.Current?.CurrentMenuContext != null,
                chatOpen: ChatManager.IsOpen,
-               chatStaging: ChatSceneStager.IsStaging || CouncilConversationStager.IsStaging);
+               chatStaging: ChatSceneStager.IsStaging || CouncilConversationStager.IsStaging,
+               // Open water is not the road. Crash report, 2026-09-10: a companion asked for a word at sea, the
+               // popup and the chat window came up together, and ending the conversation crashed the game.
+               atSea: main?.IsCurrentlyAtSea ?? false);
          }
          catch (Exception ex)
          {

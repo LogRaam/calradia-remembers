@@ -25,10 +25,21 @@ namespace CalradiaRemembers.Logic
         /// <param name="inMenu">A campaign menu is open (village/town/prisoner/quest menus and the like).</param>
         /// <param name="chatOpen">The CR chat overlay is already open.</param>
         /// <param name="chatStaging">A CR conversation scene (or the council's own) is in the middle of staging.</param>
+        /// <param name="atSea">
+        ///   The player is sailing (War Sails: MobileParty.IsCurrentlyAtSea). Added 2026-09-10 after a crash
+        ///   report: "My companion wanted a word at sea and it kept open the window to choose not now or have a
+        ///   word while simultaneously opening the chat window. When we had our conversation, i ended it, and it
+        ///   caused a crash." Nothing in the list above is true on open water, so the offer sailed straight
+        ///   through every guard and staged a conversation on a screen no CR conversation has ever been staged
+        ///   on. This does not claim to explain the crash, which still wants a log; it stops the mod walking
+        ///   unbidden into the place the crash was found, which is a different and smaller claim.
+        /// </param>
         public static bool IsSafeForPrivateWord(
             bool inMission, bool inConversation, bool playerIsPrisoner, bool inSettlement,
-            bool inMapEvent, bool inSiegeEvent, bool inEncounter, bool inMenu, bool chatOpen, bool chatStaging)
+            bool inMapEvent, bool inSiegeEvent, bool inEncounter, bool inMenu, bool chatOpen, bool chatStaging,
+            bool atSea = false)
             => !inMission && !inConversation && !playerIsPrisoner && !inSettlement
-               && !inMapEvent && !inSiegeEvent && !inEncounter && !inMenu && !chatOpen && !chatStaging;
+               && !inMapEvent && !inSiegeEvent && !inEncounter && !inMenu && !chatOpen && !chatStaging
+               && !atSea;
     }
 }

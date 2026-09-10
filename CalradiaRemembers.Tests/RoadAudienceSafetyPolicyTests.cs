@@ -147,5 +147,28 @@ namespace CalradiaRemembers.Tests
                     chatOpen: true, chatStaging: true)
                 .Should().BeFalse();
         }
+
+        // Crash report, 2026-09-10: "My companion wanted a word at sea and it kept open the window to choose not
+        // now or have a word while simultaneously opening the chat window. When we had our conversation, i ended
+        // it, and it caused a crash." Not one fact in the list above is true on open water, so the offer sailed
+        // through every guard the road path had and staged a conversation on a screen no CR conversation has ever
+        // been staged on. This does not claim to explain the crash; it stops the mod walking unbidden into it.
+        [Test]
+        public void GIVEN_the_player_is_sailing_WHEN_asked_THEN_no_companion_asks_for_a_private_word()
+        {
+            RoadAudienceSafetyPolicy.IsSafeForPrivateWord(
+                false, false, false, false, false, false, false, false, false, false, atSea: true)
+                .Should().BeFalse();
+        }
+
+        // And the sea is the ONLY thing it adds: an otherwise clear moment on dry land is still a good moment,
+        // or the road audiences players asked for in 2.5.6 would go quiet again.
+        [Test]
+        public void GIVEN_a_clear_moment_on_dry_land_WHEN_asked_THEN_the_private_word_is_still_offered()
+        {
+            RoadAudienceSafetyPolicy.IsSafeForPrivateWord(
+                false, false, false, false, false, false, false, false, false, false, atSea: false)
+                .Should().BeTrue();
+        }
     }
 }
