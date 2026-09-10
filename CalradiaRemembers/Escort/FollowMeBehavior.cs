@@ -27,6 +27,8 @@ using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic.Escort;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
+using TaleWorlds.Library;
 using TaleWorlds.CampaignSystem.Party;
 
 #endregion
@@ -89,12 +91,15 @@ namespace CalradiaRemembers.Escort
 
             MobileParty party = lord.PartyBelongedTo;
 
+            // COMMITTED to a war, not merely at war (2026-09-10). The old blanket "his realm fights someone"
+            // refused nearly every lord in an ordinary campaign, so the verb was almost never taught and the
+            // model, told nothing, agreed to escorts that never happened. His party is spoken for by an army, a
+            // siege or a battle; a war on the far side of Calradia does not spend it.
             if (!EscortEligibilityPolicy.CanEscort(
                    leadsParty: party != null && party.LeaderHero == lord,
                    atWar: IsAtWarWithPlayer(lord),
-                   inArmy: party?.Army != null || party?.SiegeEvent != null,
-                   alreadyEscorting: IsEscorting(lord.StringId),
-                   factionAtWar: FactionIsAtWarWithAnyone(lord.MapFaction)))
+                   committedToWar: party?.Army != null || party?.SiegeEvent != null || party?.MapEvent != null,
+                   alreadyEscorting: IsEscorting(lord.StringId)))
             {
                 failReason = "they cannot ride with you right now.";
 
@@ -187,17 +192,32 @@ namespace CalradiaRemembers.Escort
         private void Advance(EscortRecord r)
         {
             Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == r.LordId);
-            bool isDead = lord == null;
-            bool isCaptured = lord != null && lord.IsPrisoner;
-            bool isAtWar = lord != null && IsAtWarWithPlayer(lord);
+            MobileParty party = lord?.PartyBelongedTo;
 
             r.DaysRemaining--;
 
-            if (EscortContinuationPolicy.ShouldEnd(r.DaysRemaining, isDead, isCaptured, isAtWar))
+            var facts = new EscortStandingFacts {
+                DaysRemaining = r.DaysRemaining,
+                IsDead = lord == null,
+                IsCaptured = lord != null && lord.IsPrisoner,
+                IsAtWarWithPlayer = lord != null && IsAtWarWithPlayer(lord),
+                // Gabriel's condition on letting a lord of a warring realm ride at all (2026-09-10): when that
+                // war actually calls him, he leaves, and he SAYS SO. An army, a siege or a battle is the call.
+                SummonedToWar = party != null && (party.Army != null || party.SiegeEvent != null || party.MapEvent != null)
+            };
+
+            EscortEndReason reason = EscortContinuationPolicy.Resolve(facts);
+
+            if (reason != EscortEndReason.None)
             {
                 EndEscort(r, lord);
-                ModLog.Info($"[ESCORT] escort ended for {lord?.Name?.ToString() ?? r.LordId} " +
-                            $"(daysRemaining={r.DaysRemaining}, dead={isDead}, captured={isCaptured}, atWar={isAtWar}).");
+                ModLog.Info($"[ESCORT] escort ended for {lord?.Name?.ToString() ?? r.LordId}: {reason} " +
+                            $"(daysRemaining={r.DaysRemaining}).");
+
+                // Every ending is spoken now. All four of the old ones were silent, visible only in a log no
+                // player reads, which is the same complaint as the promise that never happened: something was
+                // agreed, something else occurred, and nobody said a word about it.
+                Notify(EscortContinuationPolicy.Describe(reason, lord?.Name?.ToString()));
 
                 return;
             }
@@ -221,6 +241,18 @@ namespace CalradiaRemembers.Escort
                     lord.PartyBelongedTo.SetMoveModeHold();
                 }
                 catch (Exception ex) { ModLog.Error($"[ESCORT] release failed for {lord.Name}: {ex.Message}"); }
+        }
+
+        /// <summary>
+        ///   Tells the player, in the message log, what became of an escort. Never throws: an escort that ends
+        ///   must end, whatever the UI is doing at that moment.
+        /// </summary>
+        private static void Notify(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message)) return;
+
+            try { InformationManager.DisplayMessage(new InformationMessage(message)); }
+            catch (Exception ex) { ModLog.Error($"[ESCORT] could not announce the ending: {ex.Message}"); }
         }
 
         private static bool IsAtWarWithPlayer(Hero lord)

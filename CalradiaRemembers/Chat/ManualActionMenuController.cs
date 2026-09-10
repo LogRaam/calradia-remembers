@@ -367,7 +367,9 @@ namespace CalradiaRemembers.Chat
             bool factionAtWar = FactionIsAtWarWithAnyone(npc.MapFaction);
 
             bool npcIsEscortingPlayer = FollowMeBehavior.Instance?.IsEscorting(npc.StringId) == true;
-            bool npcCanEscortPlayer = npc.IsLord && EscortEligibilityPolicy.CanEscort(leadsParty, atWar, inArmy, npcIsEscortingPlayer, factionAtWar);
+            // committedToWar (an army, a siege or a live battle) replaced the blanket "his realm is at war"
+            // on 2026-09-10; see EscortEligibilityPolicy for the player report that forced it.
+            bool npcCanEscortPlayer = npc.IsLord && EscortEligibilityPolicy.CanEscort(leadsParty, atWar, inArmy, npcIsEscortingPlayer);
 
             bool npcIsRidingWithPlayer = RetainerBehavior.Enabled && RetainerBehavior.Instance?.IsRetainer(npc.StringId) == true;
             bool npcCanRideWithPlayer = RetainerBehavior.Enabled && RideWithMeEligibilityPolicy.CanRideWithPlayer(

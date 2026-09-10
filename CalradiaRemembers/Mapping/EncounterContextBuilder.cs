@@ -443,6 +443,10 @@ namespace CalradiaRemembers.Mapping
             // right now (see the computation just above the object initializer). dismiss_escort is the mirror,
             // taught only while THIS lord's own party is genuinely escorting the player.
             NpcCanEscortPlayer = npcCanEscortPlayer,
+            // He may ride, but his realm is at war, so the muster may call him away. He is told to say so
+            // as he agrees rather than leaving the player to find out when he goes (Gabriel, 2026-09-10).
+            NpcMayBeCalledToMuster = npcCanEscortPlayer
+                                     && EscortEligibilityPolicy.ShouldWarnOfMuster(FactionIsAtWarWithAnyone(hero?.MapFaction)),
             NpcIsEscortingPlayer = npcIsEscortingPlayer,
             // ride_with_me / part_ways: the idle-lord complement of follow_me, taught only when
             // RideWithMeEligibilityPolicy says the game can honour it right now AND RetainerBehavior.Enabled is on
@@ -1557,9 +1561,43 @@ namespace CalradiaRemembers.Mapping
          if (playerStatus == PlayerStatusVsNpc.Captive) return null;
 
          var verbCtx = new VerbContext(hero, profile, bridge, playerMessage, null);
-         string block = DeedUnavailabilityPolicy.Compose(VerbRegistry.Instance.ComposeUnavailability(verbCtx));
+         List<DeedRefusal> refusals = VerbRegistry.Instance.ComposeUnavailability(verbCtx);
+
+         // follow_me is taught inline rather than through the registry, so it contributes here. It is the deed a
+         // player actually complained about (Nexus, 2026-09-10: "never follows me despite it agreeing to"), and
+         // for the usual reason: an ineligible verb was simply absent, and absence reads to a model as "nobody
+         // mentioned it" rather than as "you cannot". Named only on the NEAR MISS, where he leads a party and
+         // could plainly do it, which is exactly when a player finds the silence arbitrary.
+         DeedRefusal escort = EscortRefusalNote(hero, profile);
+         if (escort != null) refusals.Add(escort);
+
+         string block = DeedUnavailabilityPolicy.Compose(refusals);
 
          return string.IsNullOrWhiteSpace(block) ? null : block;
+      }
+
+      /// <summary>
+      ///   The closed door on riding escort, or null to stay silent. Silent when the escort is available (it is
+      ///   being taught in full), and silent when the lord leads no party of his own, since "he cannot escort
+      ///   you" is not worth a line about a wanderer in a tavern who never could.
+      /// </summary>
+      private static DeedRefusal EscortRefusalNote(Hero hero, NpcProfile profile)
+      {
+         if (hero is not {IsLord: true}) return null;
+
+         EscortRefusal refusal = EscortRefusalFor(hero, ResolveNpcIsEscortingPlayer(hero));
+
+         if (refusal == EscortRefusal.None || refusal == EscortRefusal.NoPartyOfHisOwn) return null;
+
+         return new DeedRefusal {
+            Deed = "have your party ride escort to theirs",
+            Reason = refusal switch {
+               EscortRefusal.AtWarWithPlayer => "your realm and theirs are at war, and you will not ride beside an army you may soon fight",
+               EscortRefusal.CommittedToWar => "your men are already committed, to an army or a siege or a field you cannot leave",
+               EscortRefusal.AlreadyEscorting => "you are already riding escort to someone, and you will not promise it twice",
+               _ => ""
+            }
+         };
       }
 
       /// <summary>
@@ -2067,14 +2105,31 @@ namespace CalradiaRemembers.Mapping
       {
          if (hero is not {IsLord: true}) return false;
 
+         return EscortRefusalFor(hero, alreadyEscorting) == EscortRefusal.None;
+      }
+
+      /// <summary>
+      ///   Which door is shut on a follow_me escort, or None. Split out so the verb can NAME its refusal rather
+      ///   than merely vanish from the prompt: a player reported (2026-09-10) that lords "never follow me despite
+      ///   agreeing to", which is what an untaught verb produces every time.
+      ///   <para>
+      ///     COMMITTED to a war, not merely at war. Until today a lord was refused whenever his realm fought
+      ///     anyone at all, and in an ordinary campaign that is nearly always, so the feature was very nearly
+      ///     unreachable. An army, a siege or a live battle means his party is genuinely spoken for; a war on the
+      ///     far side of Calradia does not.
+      ///   </para>
+      /// </summary>
+      private static EscortRefusal EscortRefusalFor(Hero hero, bool alreadyEscorting)
+      {
+         if (hero is not {IsLord: true}) return EscortRefusal.NoPartyOfHisOwn;
+
          MobileParty party = hero.PartyBelongedTo;
          bool leadsParty = party != null && party.LeaderHero == hero;
          bool atWar = hero.MapFaction != null && Hero.MainHero?.MapFaction != null &&
                       FactionManager.IsAtWarAgainstFaction(hero.MapFaction, Hero.MainHero.MapFaction);
-         bool inArmy = party?.Army != null || party?.SiegeEvent != null;
-         bool factionAtWar = FactionIsAtWarWithAnyone(hero.MapFaction);
+         bool committedToWar = party?.Army != null || party?.SiegeEvent != null || party?.MapEvent != null;
 
-         return EscortEligibilityPolicy.CanEscort(leadsParty, atWar, inArmy, alreadyEscorting, factionAtWar);
+         return EscortEligibilityPolicy.Refusal(leadsParty, atWar, committedToWar, alreadyEscorting);
       }
 
       /// <summary>
