@@ -1,8 +1,0 @@
-[size=4]v1.31.14[/size]
-
-A conversation fix, from a player report. Saves carry over untouched.
-
-[size=3][b]Fixed[/b][/size]
-[list]
-[*][b]Mentioning another character no longer hijacks the conversation.[/b] With several NPCs present, referring to one of the others in a comma-separated phrase ("I wanted to ask about your friend, Manteos", "Do you know my sister, Aitheen?") wrongly switched the active speaker to the mentioned character, who then often answered oddly for a line before recovering. That phrasing is a reference, not an address: the current NPC now keeps the floor, and a name is treated as a direct address only when you actually address them ("Manteos, what say you?"). (Report: a player on Nexus.)[/*]
-[/list]

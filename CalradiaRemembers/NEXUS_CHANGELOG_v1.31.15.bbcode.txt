@@ -1,9 +1,0 @@
-[size=4]v1.31.15[/size]
-
-Two fixes, from a player report. Saves carry over untouched.
-
-[size=3][b]Fixed[/b][/size]
-[list]
-[*][b]The chronicle now follows your chosen Reply Language.[/b] With Reply Language set to a language (say Spanish), conversations, letters, and memories obeyed it, but the illuminated chronicle kept coming out in English: it is a separate piece of writing that was never told the language. Now it is, so the illuminated chronicle reads in your language too. (The plain, non-illuminated chronicle still uses fixed English date headings; it is the illuminated version that follows the setting.) If you want it without waiting for a rewrite, you can also name the language in [i]chronicle_style.txt[/i]. (Report: a player on Nexus.)[/*]
-[*][b]A failed AI reply now tells you why.[/b] When a reply fails, the on-screen notice used to give the same generic "check your model and endpoint" no matter the cause. It now shows the actual reason when there is one, so a timeout on a long prompt (raise "LLM Response Timeout" in the mod options) reads differently from an endpoint or model mistake, and you are not left guessing.[/*]
-[/list]

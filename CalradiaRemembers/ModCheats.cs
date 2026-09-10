@@ -44,10 +44,12 @@ namespace CalradiaRemembers
       /// <summary>
       ///   cr.help, cr.help all, cr.help &lt;text&gt;.
       ///   <para>
-      ///     The curated sections below are hand-written and always will be, but they are no longer the whole
-      ///     answer: what EXISTS comes from the registry (ConsoleCommandIndex), so a command added tomorrow is
-      ///     reachable through cr.help all without anyone having remembered to write it down. On 2026-09-10
-      ///     this list described 70 of 259 commands and advertised one, cr.compose, renamed away long before.
+      ///     Three layers, and only one of them is written by hand. What EXISTS comes from the registry
+      ///     (ConsoleCommandIndex, the same attributes the console dispatches on). What each one DOES comes
+      ///     from ConsoleCommandHelp, which cr.testall refuses to let go incomplete. The curated sections
+      ///     below are the editorial layer: the commands worth grouping and explaining at length, in the
+      ///     order a reader wants them. On 2026-09-10 the hand-written list was the ONLY layer, and it
+      ///     described 70 of 259 commands while advertising one, cr.compose, renamed away long before.
       ///   </para>
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("help", "cr")]
@@ -57,11 +59,13 @@ namespace CalradiaRemembers
          string query = args == null ? "" : string.Join(" ", args).Trim();
 
          if (string.Equals(query, "all", StringComparison.OrdinalIgnoreCase))
-            return ConsoleHelpPolicy.RenderAll(registered, CuratedSections);
+            return ConsoleHelpPolicy.RenderAll(registered, ConsoleCommandHelp.All);
 
-         if (query.Length > 0) return ConsoleHelpPolicy.Search(registered, CuratedSections, query);
+         // A name answers in full, a fragment answers with a line each. Both go through Search, which knows
+         // the difference, so a player never has to learn which of the two they just typed.
+         if (query.Length > 0) return ConsoleHelpPolicy.Search(registered, ConsoleCommandHelp.All, query);
 
-         return CuratedSections + "\n\n" + ConsoleHelpPolicy.Footer(registered, CuratedSections);
+         return CuratedSections + "\n\n" + ConsoleHelpPolicy.Footer(registered);
       }
 
       /// <summary>The hand-written half: the commands worth a sentence, in the order a reader wants them.</summary>

@@ -5,18 +5,21 @@
 // help still advertised the old name, so the single command a reader was most likely to copy verbatim was the one
 // that would fail.
 //
-// The cause is not carelessness, it is the shape. A hand-written list of every command in a project that gains
-// commands weekly can only drift, and it drifts silently, because nothing ever compares it with anything. So the
-// list stops being authored: the REGISTRY is the source of truth (every [CommandLineArgumentFunction] the
-// assembly actually carries), the curated prose is an OVERLAY on top of it, and a command with no prose still
-// appears rather than vanishing.
+// Then, on being told the size of it: "les joueurs utilisent beaucoup les commandes consoles. Ce serait bien
+// qu'elles soient bien documentees." So all 259 are described now, and this decides how those descriptions are
+// answered without burying anyone.
 //
-// Gabriel's rule, 2026-09-09: a proven drift earns a MECHANISM, not a one-time correction. The mechanism is that
-// cr.help can no longer omit anything, by construction, and cr.testall's console_help_complete fails the moment a
-// described command stops existing.
+// The cause of the drift was the shape, not carelessness. A hand-written list of every command in a project that
+// gains commands weekly can only fall behind, and it falls behind in silence, because nothing ever compares it
+// with anything. So what EXISTS is read from the registry, what each one DOES comes from a table that
+// cr.testall refuses to let go incomplete, and the curated sections are an editorial layer on top: the twenty or
+// so commands worth grouping and explaining at length, in the order a reader wants them.
 //
-// The other half is that 259 lines is not help, it is a wall. So the curated sections stay the default answer,
-// and the full list and the search are asked for.
+// Gabriel's rule, 2026-09-09: a proven drift earns a MECHANISM, not a one-time correction.
+//
+// The other half is that 259 entries is a wall rather than help. So the curated page stays the default answer,
+// and everything else is asked for: cr.help all to see the whole list, cr.help <text> to search it, and
+// cr.help <command> to read one in full.
 
 #region
 
@@ -31,95 +34,107 @@ using System.Text.RegularExpressions;
 namespace CalradiaRemembers.Logic
 {
     /// <summary>
-    ///   How cr.help answers, given what is actually registered and what the curated text happens to describe.
-    ///   Pure: the caller reads the registry off the live assembly and hands it in.
+    ///   How cr.help answers, given what is actually registered and what each command is documented to do.
+    ///   Pure: the caller reads the registry off the live assembly and hands both in.
     /// </summary>
     public static class ConsoleHelpPolicy
     {
-        /// <summary>Above this many matches a search is answered as names only, without the prose.</summary>
+        /// <summary>How much of a description a one-line listing shows before it stops at a sentence end.</summary>
+        public const int ShortDescriptionChars = 120;
+
+        /// <summary>Above this many matches a search answers with names alone, or it stops being readable.</summary>
         public const int CompactSearchThreshold = 12;
 
         /// <summary>
-        ///   Every command the curated prose mentions, as bare names ("testall", not "cr.testall"). Parsed from
-        ///   the text rather than kept in a second list beside it, because a second list is one more thing that
-        ///   can disagree with the first, which is the whole failure being fixed here.
+        ///   Registered commands with no entry in the description table. This is the omission that made
+        ///   cr.testall itself invisible, and the self-test treats any of it as a failure: adding a command now
+        ///   means writing its line, which is the only thing that keeps a help complete.
         /// </summary>
-        public static HashSet<string> DescribedIn(string curatedText)
-        {
-            var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            if (string.IsNullOrEmpty(curatedText)) return found;
-
-            foreach (Match m in Regex.Matches(curatedText, @"\bcr\.([a-zA-Z_0-9]+)"))
-                found.Add(m.Groups[1].Value);
-
-            return found;
-        }
+        public static List<string> Undocumented(IEnumerable<string> registered, IReadOnlyDictionary<string, ConsoleCommandDoc> docs)
+            => Sorted(registered).Where(c => Doc(c, docs) == null).ToList();
 
         /// <summary>
-        ///   Registered commands the curated prose says nothing about. Not an error: most of these are dev
-        ///   probes nobody needs a paragraph for. They must simply still be REACHABLE, which is what
-        ///   <see cref="RenderAll" /> is for.
+        ///   Documented commands that NO LONGER EXIST. The error that actively misleads, rather than merely
+        ///   omitting: a reader copies a name out of the help and it fails (cr.compose, 2026-09-10).
         /// </summary>
-        public static List<string> Undescribed(IEnumerable<string> registered, string curatedText)
+        public static List<string> Dead(IEnumerable<string> registered, IReadOnlyDictionary<string, ConsoleCommandDoc> docs)
         {
-            HashSet<string> described = DescribedIn(curatedText);
+            if (docs == null) return new List<string>();
 
-            return Sorted(registered).Where(c => !described.Contains(c)).ToList();
-        }
-
-        /// <summary>
-        ///   Commands the curated prose describes that NO LONGER EXIST. This one IS an error, and the reason the
-        ///   self-test exists: a reader copies a name from the help, and a renamed command turns the help itself
-        ///   into the thing that misleads them (cr.compose, 2026-09-10).
-        /// </summary>
-        public static List<string> Dead(IEnumerable<string> registered, string curatedText)
-        {
             var live = new HashSet<string>(Sorted(registered), StringComparer.OrdinalIgnoreCase);
 
-            return DescribedIn(curatedText).Where(c => !live.Contains(c)).OrderBy(c => c, StringComparer.Ordinal).ToList();
+            return docs.Keys.Where(c => !live.Contains(c)).OrderBy(c => c, StringComparer.Ordinal).ToList();
+        }
+
+        /// <summary>Commands the CURATED prose mentions that no longer exist. Same error, in the hand-written half.</summary>
+        public static List<string> DeadInCuratedText(IEnumerable<string> registered, string curatedText)
+        {
+            var live = new HashSet<string>(Sorted(registered), StringComparer.OrdinalIgnoreCase);
+            var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (Match m in Regex.Matches(curatedText ?? "", @"\bcr\.([a-zA-Z_0-9]+)"))
+                named.Add(m.Groups[1].Value);
+
+            return named.Where(c => !live.Contains(c)).OrderBy(c => c, StringComparer.Ordinal).ToList();
         }
 
         /// <summary>
-        ///   The line that closes the curated help: how much of the whole it covers, and how to reach the rest.
-        ///   Without it a reader has no way to know that what they just read is a quarter of what exists.
+        ///   The line that closes the curated help. Without it a reader has no way to know that what they just
+        ///   read is a fraction of what exists, which is how 189 commands stayed unknown.
         /// </summary>
-        public static string Footer(IEnumerable<string> registered, string curatedText)
-        {
-            List<string> all = Sorted(registered);
-            int described = all.Count - Undescribed(all, curatedText).Count;
+        public static string Footer(IEnumerable<string> registered)
+            => $"{Sorted(registered).Count} commands in all. cr.help all lists them, "
+             + "cr.help <text> searches by name, cr.help <command> explains one in full.";
 
-            return $"{described} of {all.Count} commands are described above. "
-                 + "cr.help all lists every one of them; cr.help <text> searches by name.";
-        }
-
-        /// <summary>Every registered command, alphabetical, marking the ones the curated help explains.</summary>
-        public static string RenderAll(IEnumerable<string> registered, string curatedText)
+        /// <summary>Every registered command, alphabetical, names only: the whole map on one screen.</summary>
+        public static string RenderAll(IEnumerable<string> registered, IReadOnlyDictionary<string, ConsoleCommandDoc> docs)
         {
             List<string> all = Sorted(registered);
             if (all.Count == 0) return "No cr commands are registered, which should be impossible.";
 
-            HashSet<string> described = DescribedIn(curatedText);
             var sb = new StringBuilder();
-            sb.AppendLine($"All {all.Count} cr commands. A dot marks one that cr.help describes in full.");
+            sb.AppendLine($"All {all.Count} cr commands. cr.help <name> explains any one of them.");
 
             foreach (string c in all)
-                sb.AppendLine($"  {(described.Contains(c) ? "." : " ")} cr.{c}");
+            {
+                ConsoleCommandDoc doc = Doc(c, docs);
+                string usage = doc == null || doc.Usage.Length == 0 ? "" : " " + doc.Usage;
+                sb.AppendLine($"  cr.{c}{usage}");
+            }
 
             return sb.ToString().TrimEnd();
         }
 
         /// <summary>
-        ///   Commands whose name contains <paramref name="fragment" />, which is how anyone actually looks for a
-        ///   command they half remember. A long result collapses to names only so the console stays readable.
+        ///   One command in full: what it takes and everything written about it. This is the answer to
+        ///   cr.help &lt;exact name&gt;, and the reason the table keeps the whole description rather than a summary.
         /// </summary>
-        public static string Search(IEnumerable<string> registered, string curatedText, string fragment)
+        public static string Explain(string command, IReadOnlyDictionary<string, ConsoleCommandDoc> docs)
+        {
+            ConsoleCommandDoc doc = Doc(command, docs);
+            if (doc == null) return "";
+
+            string usage = doc.Usage.Length == 0 ? "" : " " + doc.Usage;
+
+            return $"cr.{command.Trim()}{usage}\n  {doc.Text}";
+        }
+
+        /// <summary>
+        ///   Commands whose name contains <paramref name="fragment" />, which is how anyone actually looks for one
+        ///   they half remember. An exact name answers in full; a few matches get a line each; a long list gets
+        ///   names alone, or the console stops being readable.
+        /// </summary>
+        public static string Search(IEnumerable<string> registered, IReadOnlyDictionary<string, ConsoleCommandDoc> docs, string fragment)
         {
             string needle = (fragment ?? "").Trim();
-            if (needle.Length == 0) return RenderAll(registered, curatedText);
+            if (needle.Length == 0) return RenderAll(registered, docs);
 
-            List<string> hits = Sorted(registered)
-                                .Where(c => c.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0)
-                                .ToList();
+            List<string> all = Sorted(registered);
+
+            string exact = all.FirstOrDefault(c => string.Equals(c, needle, StringComparison.OrdinalIgnoreCase));
+            if (exact != null && Doc(exact, docs) != null) return Explain(exact, docs);
+
+            List<string> hits = all.Where(c => c.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
 
             if (hits.Count == 0)
                 return $"No cr command's name contains '{needle}'. cr.help all lists every one.";
@@ -127,12 +142,48 @@ namespace CalradiaRemembers.Logic
             var sb = new StringBuilder();
             sb.AppendLine($"{hits.Count} command(s) matching '{needle}':");
 
-            foreach (string c in hits) sb.AppendLine($"  cr.{c}");
+            bool compact = hits.Count > CompactSearchThreshold;
 
-            if (hits.Count > CompactSearchThreshold)
-                sb.AppendLine("Narrow the search for a shorter list.");
+            foreach (string c in hits)
+            {
+                ConsoleCommandDoc doc = Doc(c, docs);
+                string usage = doc == null || doc.Usage.Length == 0 ? "" : " " + doc.Usage;
+
+                if (compact || doc == null) sb.AppendLine($"  cr.{c}{usage}");
+                else sb.AppendLine($"  cr.{c}{usage}\n      {Shorten(doc.Text)}");
+            }
+
+            if (compact) sb.AppendLine("Narrow the search, or cr.help <name>, to read what they do.");
 
             return sb.ToString().TrimEnd();
+        }
+
+        /// <summary>
+        ///   The first sentence of a description, or a clean truncation when the first sentence runs long. Cuts
+        ///   at a word, never mid-word, so a listing never ends in half a name.
+        /// </summary>
+        public static string Shorten(string text)
+        {
+            string t = (text ?? "").Trim();
+            if (t.Length == 0) return "";
+
+            int stop = t.IndexOf(". ", StringComparison.Ordinal);
+            if (stop > 0 && stop + 1 <= ShortDescriptionChars) return t.Substring(0, stop + 1);
+            if (t.Length <= ShortDescriptionChars) return t;
+
+            int cut = t.LastIndexOf(' ', Math.Min(ShortDescriptionChars, t.Length - 1));
+            if (cut <= 0) cut = Math.Min(ShortDescriptionChars, t.Length);
+
+            return t.Substring(0, cut).TrimEnd(',', ';', ':', ' ') + "...";
+        }
+
+        private static ConsoleCommandDoc Doc(string command, IReadOnlyDictionary<string, ConsoleCommandDoc> docs)
+        {
+            if (docs == null || string.IsNullOrWhiteSpace(command)) return null;
+
+            return docs.TryGetValue(command.Trim(), out ConsoleCommandDoc doc) && doc != null && doc.Text.Length > 0
+                ? doc
+                : null;
         }
 
         private static List<string> Sorted(IEnumerable<string> registered)

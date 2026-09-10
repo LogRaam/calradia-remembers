@@ -8155,31 +8155,44 @@ namespace CalradiaRemembers.Diagnostics
          string curated = ModCheats.Help(new List<string>());
          string all = ModCheats.Help(new List<string> {"all"});
 
-         List<string> dead = ConsoleHelpPolicy.Dead(registered, curated);
-         List<string> undescribed = ConsoleHelpPolicy.Undescribed(registered, curated);
+         List<string> dead = ConsoleHelpPolicy.Dead(registered, ConsoleCommandHelp.All);
+         List<string> deadInProse = ConsoleHelpPolicy.DeadInCuratedText(registered, curated);
+         List<string> undocumented = ConsoleHelpPolicy.Undocumented(registered, ConsoleCommandHelp.All);
 
-         t.Note($"{registered.Count} registered, {registered.Count - undescribed.Count} described"
-                + (dead.Count == 0 ? "" : $", DEAD: {string.Join(", ", dead)}"));
+         t.Note($"{registered.Count} registered, {ConsoleCommandHelp.All.Count} documented"
+                + (undocumented.Count == 0 ? "" : $", UNDOCUMENTED: {string.Join(", ", undocumented.Take(8))}")
+                + (dead.Count + deadInProse.Count == 0 ? "" : $", DEAD: {string.Join(", ", dead.Concat(deadInProse).Take(8))}"));
 
-         // The error that made this test necessary. cr.compose sat in the help for months after being renamed
-         // cr.letter_compose, so the one name a reader was most likely to copy verbatim was the one that failed.
-         // A help that lies is worse than a help that is merely short.
-         t.Expect("theHelpNeverNamesACommandThatDoesNotExist", dead.Count, 0);
+         // Gabriel, 2026-09-10: "les joueurs utilisent beaucoup les commandes consoles. Ce serait bien qu'elles
+         // soient bien documentees." This is what makes that stick. A command added tomorrow without a line in
+         // ConsoleCommandHelp fails here, so the help cannot fall behind in silence, which is the only way it has
+         // ever fallen behind: 70 of 259 described, cr.testall itself among the missing.
+         t.Expect("everyRegisteredCommandIsDocumented", undocumented.Count, 0);
 
-         // And the omission: 70 of 259 described on 2026-09-10, so cr.testall itself was invisible. Being
-         // undescribed is fine, plenty of these are dev probes; being UNREACHABLE is not.
+         // The error that actively misleads rather than merely omitting. cr.compose sat in the help for months
+         // after being renamed cr.letter_compose, so the one name a reader was most likely to copy verbatim was
+         // the one that would fail. Checked in BOTH halves: the table and the hand-written sections.
+         t.Expect("nothingDocumentedHasCeasedToExist", dead.Count, 0);
+         t.Expect("theCuratedProseNamesNoDeadCommand", deadInProse.Count, 0);
+
+         // Reachability, which is what the omission actually cost: undescribed or not, every command must be
+         // findable from cr.help all.
          var unreachable = registered.Where(c => all.IndexOf("cr." + c, StringComparison.Ordinal) < 0).ToList();
          if (unreachable.Count > 0) t.Note($"unreachable: {string.Join(", ", unreachable.Take(8))}");
          t.Expect("everyRegisteredCommandIsReachableThroughHelpAll", unreachable.Count, 0);
 
-         // The curated page must say how much of the whole it covers, or a reader has no way to know that what
-         // they just read is a quarter of what exists.
+         // The curated page must say where the rest are, or a reader has no way to know it is a fraction.
          t.Expect("theCuratedPageSaysWhereTheRestIs",
                   curated.IndexOf("cr.help all", StringComparison.OrdinalIgnoreCase) >= 0, true);
 
-         // And the search has to actually find something a player would type.
-         string found = ModCheats.Help(new List<string> {"testall"});
-         t.Expect("searchFindsACommandByFragment", found.IndexOf("cr.testall", StringComparison.Ordinal) >= 0, true);
+         // And the two lookups a player actually uses: an exact name explains itself, a fragment finds its family.
+         string exact = ModCheats.Help(new List<string> {"testall"});
+         string family = ModCheats.Help(new List<string> {"duel"});
+
+         t.Expect("anExactNameExplainsItself",
+                  exact.IndexOf("cr.testall", StringComparison.Ordinal) >= 0 && exact.Length > 80, true);
+         t.Expect("aFragmentFindsItsFamily",
+                  family.IndexOf("cr.duel_challenge", StringComparison.Ordinal) >= 0, true);
 
          return t.Line();
       }

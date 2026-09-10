@@ -1,8 +1,0 @@
-[size=4]v1.32.3[/size]
-
-A hotfix for the Dark Leather window. Saves carry over untouched.
-
-[size=3][b]Fixed[/b][/size]
-[list]
-[*][b]Dark Leather is no longer oversized on high-resolution screens.[/b] The v1.32.2 fill-the-screen change scaled by the display's resolution, so on a 1440p or 4K screen the illuminated book grew far too large and spilled off the edges. It now fills a fixed share of the screen height on every resolution. (Report: a player on Nexus.)[/*]
-[/list]
