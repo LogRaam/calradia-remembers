@@ -203,9 +203,47 @@ Both were demonstrated here on 2026-09-10, hours apart:
 
 **The structural cure, which is already the house style.** Give a policy a named FACTS OBJECT rather than a row of
 positional booleans, so a test names the facts it cares about and says nothing about the others. Then adding,
-removing or reordering a fact costs nothing to any test that did not depend on it. As of 2026-09-10 there are 8
-dedicated `*Facts` types and 39 files in `CalradiaRemembers.Logic` taking one; `EscortEligibilityPolicy` was one
-of the older positional ones, which is exactly why it was the one that cost seven rewrites.
+removing or reordering a fact costs nothing to any test that did not depend on it. `EscortEligibilityPolicy` was
+one of the older positional ones, which is exactly why it was the one that cost seven rewrites.
+
+**Done, and now measurable (2026-09-10).** `Tools/Find-SwapRisk.ps1` reports every public member in
+`CalradiaRemembers.Logic` that takes a run of consecutive same-typed parameters, which is the only place a silent
+argument swap can hide (anywhere else the compiler catches it). It went from **99** public static methods with a
+run of three or more, plus **29** more once constructors were counted, to **zero**. Run it after adding a policy.
+A non-zero report is not a style complaint: it is a signature that will one day be called with two arguments the
+wrong way round, compile, run, and give a plausible wrong answer.
+
+Three fixes, in order of preference:
+
+1. **Ask for the type that already exists.** Most of the worst cases were a caller unpacking a record into loose
+   arguments to pass them straight back in. `CompanionRapport.Compatibility` took TEN ints that were two
+   `RomanticTraits`; `AutonomousSchemePolicy.IsGroundedTarget` took four facts its only caller was reading off a
+   `SchemeTargetCandidate`; `ConversationTranscript.Record` took five values it then assembled into a
+   `TranscriptLine`; `AssemblyLedger.Propose` took five that were the fields of an `AssemblyResolutionEntry`.
+2. **Give it a named facts object**, one field per fact, each doc line saying what the fact means AND what goes
+   wrong when it is false. Two methods that ask about the same thing share one type, so they cannot drift.
+3. **A facts object with a positional CONSTRUCTOR undoes itself.** `ResolutionWorldFacts` took twenty-six
+   booleans. Use `{ get; init; }` and an object initializer; where the constructor normalised on the way in
+   (a clamp, a `?? ""`), move that onto the `init` accessor rather than losing it with the constructor.
+
+Two runs are left on purpose and say so in their own docs: `MapPoint(x, y)`, because every mapping API ever
+written orders a point that way, and any pair whose operation is SYMMETRIC (`Compatibility(a, b)`,
+`WithinRegion(anchor, party)`, `FactionPair.Matches`), where a swap cannot change the answer.
+
+### A test of a signature is not a test
+
+The same campaign turned up two tests that were guarding a SHAPE, and both were removed:
+
+- `GIVEN_the_older_four_fact_call_WHEN_used_THEN_it_answers_exactly_as_it_always_did` — pinning an overload kept
+  "so nothing that already calls this changes behaviour". Nothing called it. The overload also reintroduced the
+  exact swap the facts object had removed.
+- `GIVEN_the_two_argument_overload_WHEN_compared_to_the_three_argument_form_THEN_they_agree` — pinning a
+  delegation whose real rule was already pinned by the tests directly above it.
+
+Both re-checked that two spellings of one thing agree. Neither could finish the sentence "if this fails, a player
+...". Convenience overloads that exist only to supply defaults are the same smell one level down: put the defaults
+on the facts object as property initialisers and there is one method, one place the defaults are written, and
+nothing left to disagree.
 
 ### The three checks, in order of how much they catch
 
