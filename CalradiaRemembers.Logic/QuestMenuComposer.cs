@@ -18,25 +18,29 @@ namespace CalradiaRemembers.Logic
     /// <summary>One task a giver can truly offer right now: its type token, its REAL target, and a short cue.</summary>
     public sealed class QuestMenuEntry
     {
-        public QuestMenuEntry(string typeToken, string targetField, string targetName, string cue)
+        /// <summary>The exact type token the LLM must emit (e.g. "bandit_hideout").</summary>
+        private readonly string _typeToken;
+
+        public string TypeToken
         {
-            TypeToken = typeToken ?? "";
-            TargetField = targetField;
-            TargetName = targetName;
-            Cue = cue ?? "";
+            get => _typeToken;
+            init => _typeToken = value ?? "";
         }
 
-        /// <summary>The exact type token the LLM must emit (e.g. "bandit_hideout").</summary>
-        public string TypeToken { get; }
-
         /// <summary>The target field this type needs ("target_settlement" / "target_hero" / "target_faction"), or null when none.</summary>
-        public string TargetField { get; }
+        public string TargetField { get; init; }
 
         /// <summary>The REAL, resolvable target name the LLM must use verbatim, or null when the type needs none.</summary>
-        public string TargetName { get; }
+        public string TargetName { get; init; }
 
         /// <summary>A short in-fiction cue for why this task exists (e.g. "a lair infests the hills nearby").</summary>
-        public string Cue { get; }
+        private readonly string _cue;
+
+        public string Cue
+        {
+            get => _cue;
+            init => _cue = value ?? "";
+        }
     }
 
     /// <summary>

@@ -23,30 +23,12 @@ namespace CalradiaRemembers.Logic
       // master, …). Whitelisting these two occupations, rather than blacklisting roles one at a time,
       // is what stops the recurring "X got hijacked" regressions.
       private static readonly HashSet<string> GenericTownsperson = new(StringComparer.OrdinalIgnoreCase) {"Townsfolk", "Villager"};
-      private readonly bool _hasConversationPartner;
-      private readonly bool _isCivilianSettlement;
-
-      private readonly bool _isHeroConversation;
-      private readonly bool _llmAvailable;
-      private readonly string _partnerOccupation;
-      private readonly bool _townsfolkQuestActive;
-
-      public CommonerChatContext(
-         bool isHeroConversation,
-         bool isCivilianSettlement,
-         bool hasConversationPartner,
-         string partnerOccupation,
-         bool llmAvailable,
-         bool townsfolkQuestActive)
-      {
-         _isHeroConversation = isHeroConversation;
-         _isCivilianSettlement = isCivilianSettlement;
-         _hasConversationPartner = hasConversationPartner;
-         _partnerOccupation = partnerOccupation;
-         _llmAvailable = llmAvailable;
-         _townsfolkQuestActive = townsfolkQuestActive;
-      }
-
+      public bool HasConversationPartner { get; init; }
+      public bool IsCivilianSettlement { get; init; }
+      public bool IsHeroConversation { get; init; }
+      public bool LlmAvailable { get; init; }
+      public string PartnerOccupation { get; init; }
+      public bool TownsfolkQuestActive { get; init; }
       /// <summary>
       ///   True only when ALL hold: it is not a named-Hero conversation, the place is a civilian
       ///   settlement (town/village/castle, never a hideout), there is a conversation partner, that
@@ -55,6 +37,6 @@ namespace CalradiaRemembers.Logic
       ///   is ongoing so it does not divert vanilla quest dialogue).
       /// </summary>
       public bool ShouldOfferIdleChat()
-         => !_isHeroConversation && _isCivilianSettlement && _hasConversationPartner && GenericTownsperson.Contains(_partnerOccupation ?? string.Empty) && _llmAvailable && !_townsfolkQuestActive;
+         => !IsHeroConversation && IsCivilianSettlement && HasConversationPartner && GenericTownsperson.Contains(PartnerOccupation ?? string.Empty) && LlmAvailable && !TownsfolkQuestActive;
    }
 }

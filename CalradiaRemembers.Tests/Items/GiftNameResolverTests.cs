@@ -29,9 +29,9 @@ namespace CalradiaRemembers.Tests.Items
         {
             var candidates = new List<GiftCandidate>
             {
-                new GiftCandidate("jewelry", "Jewelry", "jewelry", 675),
-                new GiftCandidate("grain", "Grain", "grain", 40),
-                new GiftCandidate("sword", "Arming Sword", null, 120)
+                new GiftCandidate {Id = "jewelry", Name = "Jewelry", Category = "jewelry", Value = 675},
+                new GiftCandidate {Id = "grain", Name = "Grain", Category = "grain", Value = 40},
+                new GiftCandidate {Id = "sword", Name = "Arming Sword", Category = null, Value = 120}
             };
 
             GiftCandidate? result = GiftNameResolver.Resolve("pendant", candidates);
@@ -47,8 +47,8 @@ namespace CalradiaRemembers.Tests.Items
         {
             var candidates = new List<GiftCandidate>
             {
-                new GiftCandidate("jewelry", "Jewelry", "jewelry", 675),
-                new GiftCandidate("trinket_box", "Trinket Box", "furniture", 30)
+                new GiftCandidate {Id = "jewelry", Name = "Jewelry", Category = "jewelry", Value = 675},
+                new GiftCandidate {Id = "trinket_box", Name = "Trinket Box", Category = "furniture", Value = 30}
             };
 
             GiftCandidate? result = GiftNameResolver.Resolve("Jewelry", candidates);
@@ -65,8 +65,8 @@ namespace CalradiaRemembers.Tests.Items
         {
             var candidates = new List<GiftCandidate>
             {
-                new GiftCandidate("silver_necklace", "Silver Necklace", "jewelry", 300),
-                new GiftCandidate("grain", "Grain", "grain", 40)
+                new GiftCandidate {Id = "silver_necklace", Name = "Silver Necklace", Category = "jewelry", Value = 300},
+                new GiftCandidate {Id = "grain", Name = "Grain", Category = "grain", Value = 40}
             };
 
             GiftNameResolver.Resolve("silver necklace", candidates).Value.Id.Should().Be("silver_necklace");
@@ -84,8 +84,8 @@ namespace CalradiaRemembers.Tests.Items
             // rather than tier b (shared word) - a "Fine Golden Ring" would match "ring" on the name alone.
             var candidates = new List<GiftCandidate>
             {
-                new GiftCandidate("fine_bracelet", "Fine Golden Bracelet", "jewelry", 900),
-                new GiftCandidate("plain_jewelry", "Jewelry", "jewelry", 675)
+                new GiftCandidate {Id = "fine_bracelet", Name = "Fine Golden Bracelet", Category = "jewelry", Value = 900},
+                new GiftCandidate {Id = "plain_jewelry", Name = "Jewelry", Category = "jewelry", Value = 675}
             };
 
             GiftCandidate? result = GiftNameResolver.Resolve("ring", candidates);
@@ -102,8 +102,8 @@ namespace CalradiaRemembers.Tests.Items
         {
             var candidates = new List<GiftCandidate>
             {
-                new GiftCandidate("gold_necklace", "Gold Necklace", "jewelry", 800),
-                new GiftCandidate("bead_necklace", "Bead Necklace", "jewelry", 60)
+                new GiftCandidate {Id = "gold_necklace", Name = "Gold Necklace", Category = "jewelry", Value = 800},
+                new GiftCandidate {Id = "bead_necklace", Name = "Bead Necklace", Category = "jewelry", Value = 60}
             };
 
             GiftCandidate? result = GiftNameResolver.Resolve("necklace", candidates);
@@ -120,7 +120,7 @@ namespace CalradiaRemembers.Tests.Items
         {
             var candidates = new List<GiftCandidate>
             {
-                new GiftCandidate("jewelry", "Jewelry", "jewelry", 675)
+                new GiftCandidate {Id = "jewelry", Name = "Jewelry", Category = "jewelry", Value = 675}
             };
 
             GiftNameResolver.Resolve("a", candidates).Should().BeNull();
@@ -134,8 +134,8 @@ namespace CalradiaRemembers.Tests.Items
         {
             var candidates = new List<GiftCandidate>
             {
-                new GiftCandidate("jewelry", "Jewelry", "jewelry", 675),
-                new GiftCandidate("grain", "Grain", "grain", 40)
+                new GiftCandidate {Id = "jewelry", Name = "Jewelry", Category = "jewelry", Value = 675},
+                new GiftCandidate {Id = "grain", Name = "Grain", Category = "grain", Value = 40}
             };
 
             GiftNameResolver.Resolve("warhorse", candidates).Should().BeNull();
@@ -146,7 +146,7 @@ namespace CalradiaRemembers.Tests.Items
         [Test]
         public void GIVEN_a_blank_request_or_an_empty_or_null_candidate_list_WHEN_resolving_THEN_it_is_safe_and_returns_none()
         {
-            var candidates = new List<GiftCandidate> {new GiftCandidate("jewelry", "Jewelry", "jewelry", 675)};
+            var candidates = new List<GiftCandidate> {new GiftCandidate {Id = "jewelry", Name = "Jewelry", Category = "jewelry", Value = 675}};
 
             GiftNameResolver.Resolve(null, candidates).Should().BeNull();
             GiftNameResolver.Resolve("", candidates).Should().BeNull();

@@ -19,7 +19,7 @@ namespace CalradiaRemembers.Tests.Assemblies
     [TestFixture]
     public sealed class HostageEligibilityPolicyTests
     {
-        private static HostageCandidateFacts Eligible() => new(isAlive: true, isFree: true, isAdult: true, isClanChief: false, isSoleHeir: false);
+        private static HostageCandidateFacts Eligible() => new() {IsAlive = true, IsFree = true, IsAdult = true, IsClanChief = false, IsSoleHeir = false};
 
         // Baseline: every condition met must pass, or the policy would refuse a textbook-eligible relative
         // (an adult, free, living, non-chief, non-sole-heir kinsman) for no documented reason.
@@ -33,7 +33,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_relative_is_dead_WHEN_asked_if_eligible_THEN_it_is_refused()
         {
-            var facts = new HostageCandidateFacts(isAlive: false, isFree: true, isAdult: true, isClanChief: false, isSoleHeir: false);
+            var facts = new HostageCandidateFacts {IsAlive = false, IsFree = true, IsAdult = true, IsClanChief = false, IsSoleHeir = false};
 
             HostageEligibilityPolicy.IsEligible(facts).Should().BeFalse();
         }
@@ -43,7 +43,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_relative_is_not_free_WHEN_asked_if_eligible_THEN_it_is_refused()
         {
-            var facts = new HostageCandidateFacts(isAlive: true, isFree: false, isAdult: true, isClanChief: false, isSoleHeir: false);
+            var facts = new HostageCandidateFacts {IsAlive = true, IsFree = false, IsAdult = true, IsClanChief = false, IsSoleHeir = false};
 
             HostageEligibilityPolicy.IsEligible(facts).Should().BeFalse();
         }
@@ -53,7 +53,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_relative_is_a_minor_WHEN_asked_if_eligible_THEN_it_is_refused()
         {
-            var facts = new HostageCandidateFacts(isAlive: true, isFree: true, isAdult: false, isClanChief: false, isSoleHeir: false);
+            var facts = new HostageCandidateFacts {IsAlive = true, IsFree = true, IsAdult = false, IsClanChief = false, IsSoleHeir = false};
 
             HostageEligibilityPolicy.IsEligible(facts).Should().BeFalse();
         }
@@ -63,7 +63,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_relative_is_a_clan_chief_WHEN_asked_if_eligible_THEN_it_is_refused()
         {
-            var facts = new HostageCandidateFacts(isAlive: true, isFree: true, isAdult: true, isClanChief: true, isSoleHeir: false);
+            var facts = new HostageCandidateFacts {IsAlive = true, IsFree = true, IsAdult = true, IsClanChief = true, IsSoleHeir = false};
 
             HostageEligibilityPolicy.IsEligible(facts).Should().BeFalse();
         }
@@ -74,7 +74,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_relative_is_the_clans_sole_heir_WHEN_asked_if_eligible_THEN_it_is_refused()
         {
-            var facts = new HostageCandidateFacts(isAlive: true, isFree: true, isAdult: true, isClanChief: false, isSoleHeir: true);
+            var facts = new HostageCandidateFacts {IsAlive = true, IsFree = true, IsAdult = true, IsClanChief = false, IsSoleHeir = true};
 
             HostageEligibilityPolicy.IsEligible(facts).Should().BeFalse();
         }
@@ -84,7 +84,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_multiple_conditions_fail_at_once_WHEN_asked_if_eligible_THEN_it_is_still_refused()
         {
-            var facts = new HostageCandidateFacts(isAlive: false, isFree: true, isAdult: false, isClanChief: false, isSoleHeir: false);
+            var facts = new HostageCandidateFacts {IsAlive = false, IsFree = true, IsAdult = false, IsClanChief = false, IsSoleHeir = false};
 
             HostageEligibilityPolicy.IsEligible(facts).Should().BeFalse();
         }

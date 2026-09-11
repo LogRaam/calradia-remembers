@@ -99,7 +99,7 @@ namespace CalradiaRemembers.Tests
       {
          IReadOnlyList<SessionTurn> turns = Compose(
             Own("Kneel."),
-            new TranscriptLine(false, Other, "Olaf", "Olaf looks away.", true));
+            new TranscriptLine {IsPlayer = false, SpeakerHeroId = Other, SpeakerName = "Olaf", Text = "Olaf looks away.", IsNarration = true});
 
          turns.Should().HaveCount(2);
          turns[0].Text.Should().Be("Kneel.");
@@ -168,14 +168,14 @@ namespace CalradiaRemembers.Tests
       private static IReadOnlyList<SessionTurn> Compose(TranscriptLine[] lines, int excludeLastN)
          => SessionHistoryComposer.Compose(lines, Speaker, excludeLastN);
 
-      private static TranscriptLine Player(string text) => new TranscriptLine(true, "player", "You", text);
+      private static TranscriptLine Player(string text) => new TranscriptLine {IsPlayer = true, SpeakerHeroId = "player", SpeakerName = "You", Text = text};
 
-      private static TranscriptLine Own(string text) => new TranscriptLine(false, Speaker, "Derthert", text);
+      private static TranscriptLine Own(string text) => new TranscriptLine {IsPlayer = false, SpeakerHeroId = Speaker, SpeakerName = "Derthert", Text = text};
 
-      private static TranscriptLine Narration(string text) => new TranscriptLine(false, Speaker, "Derthert", text, true);
+      private static TranscriptLine Narration(string text) => new TranscriptLine {IsPlayer = false, SpeakerHeroId = Speaker, SpeakerName = "Derthert", Text = text, IsNarration = true};
 
       private static TranscriptLine Line(string heroId, string name, string text)
-         => new TranscriptLine(false, heroId, name, text);
+         => new TranscriptLine {IsPlayer = false, SpeakerHeroId = heroId, SpeakerName = name, Text = text};
 
       #endregion
    }

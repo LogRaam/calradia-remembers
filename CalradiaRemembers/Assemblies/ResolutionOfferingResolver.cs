@@ -157,33 +157,28 @@ namespace CalradiaRemembers.Assemblies
       {
          try
          {
-            var facts = new ResolutionWorldFacts(
-               targetInPlayerParty: anySeatedMemberInPlayerParty,
-               targetAvailable: anySeatedMemberAvailable,
-               playerHasVacantFief: HasVacantGovernableFief(),
-               playerCanAffordStipend: playerCanAffordStipend,
-               missionAvailable: false,
-               targetOutOfPlayerParty: anySeatedCompanionOutOfPlayerParty,
-               playerCanDeclareWar: playerCanDeclareWar,
-               playerCanMakePeace: playerCanMakePeace,
-               memberHasGold: anySeatedMemberHasGold,
-               memberCanGrantInfluence: anySeatedMemberCanGrantInfluence,
-               playerIsKingdomLeader: PlayerIsKingdomLeader(),
-               playerHasGiveableFief: HasGiveableFief(),
-               seatedVassalOwnsFief: anySeatedVassalOwnsFief,
-               anySeatedCompanionExpellable: anySeatedCompanionExpellable,
-               anySeatedMemberCanPledgeAgainst: anySeatedMemberCanPledgeAgainst,
-               anySeatedAllyHasMarriageableKin: anySeatedAllyHasMarriageableKin,
-               anySeatedTributePayerAvailable: anySeatedTributePayerAvailable,
-               anySeatedPrisonerAvailableToRelease: anySeatedPrisonerAvailableToRelease,
-               anySeatedMemberCanLendTroops: anySeatedMemberCanLendTroops,
-               anySeatedMemberCanSwearOath: anySeatedMemberCanSwearOath,
-               anySeatedHostageEligibleRelativeAvailable: anySeatedHostageEligibleRelativeAvailable,
-               anySeatedLordCanReceiveTroops: anySeatedLordCanReceiveTroops,
-               anySeatedPactPartnerAvailable: anySeatedPactPartnerAvailable,
-               anySeatedMemberCanSponsorWard: anySeatedMemberCanSponsorWard,
-               anySeatedLordHasGiveableItem: anySeatedLordHasGiveableItem,
-               anySeatedMemberCanSupportClaimant: anySeatedMemberCanSupportClaimant);
+            var facts = new ResolutionWorldFacts {
+               TargetInPlayerParty = anySeatedMemberInPlayerParty, TargetAvailable = anySeatedMemberAvailable,
+               PlayerHasVacantFief = HasVacantGovernableFief(), PlayerCanAffordStipend = playerCanAffordStipend,
+               MissionAvailable = false, TargetOutOfPlayerParty = anySeatedCompanionOutOfPlayerParty,
+               PlayerCanDeclareWar = playerCanDeclareWar, PlayerCanMakePeace = playerCanMakePeace,
+               MemberHasGold = anySeatedMemberHasGold, MemberCanGrantInfluence = anySeatedMemberCanGrantInfluence,
+               PlayerIsKingdomLeader = PlayerIsKingdomLeader(), PlayerHasGiveableFief = HasGiveableFief(),
+               SeatedVassalOwnsFief = anySeatedVassalOwnsFief,
+               AnySeatedCompanionExpellable = anySeatedCompanionExpellable,
+               AnySeatedMemberCanPledgeAgainst = anySeatedMemberCanPledgeAgainst,
+               AnySeatedAllyHasMarriageableKin = anySeatedAllyHasMarriageableKin,
+               AnySeatedTributePayerAvailable = anySeatedTributePayerAvailable,
+               AnySeatedPrisonerAvailableToRelease = anySeatedPrisonerAvailableToRelease,
+               AnySeatedMemberCanLendTroops = anySeatedMemberCanLendTroops,
+               AnySeatedMemberCanSwearOath = anySeatedMemberCanSwearOath,
+               AnySeatedHostageEligibleRelativeAvailable = anySeatedHostageEligibleRelativeAvailable,
+               AnySeatedLordCanReceiveTroops = anySeatedLordCanReceiveTroops,
+               AnySeatedPactPartnerAvailable = anySeatedPactPartnerAvailable,
+               AnySeatedMemberCanSponsorWard = anySeatedMemberCanSponsorWard,
+               AnySeatedLordHasGiveableItem = anySeatedLordHasGiveableItem,
+               AnySeatedMemberCanSupportClaimant = anySeatedMemberCanSupportClaimant
+            };
 
             return ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(scope, facts).ToList();
          }

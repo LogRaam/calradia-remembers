@@ -68,8 +68,7 @@ namespace CalradiaRemembers.Quests
             {
                Vec2 a = anchor.GetPosition2D, h = lair.GetPosition2D;
                string bearing = CardinalDirectionPolicy.Describe(new MapPoint(a.x, a.y).StepTo(new MapPoint(h.x, h.y)));
-               entries.Add(new QuestMenuEntry("bandit_hideout", "target_settlement", anchor.Name?.ToString(),
-                  $"a bandit lair infests the country {bearing} of {anchor.Name}"));
+               entries.Add(new QuestMenuEntry {TypeToken = "bandit_hideout", TargetField = "target_settlement", TargetName = anchor.Name?.ToString(), Cue = $"a bandit lair infests the country {bearing} of {anchor.Name}"});
             }
 
             // 2. Open-field bandit clearing near the same anchor: offered ONLY when a bandit party actually roams
@@ -77,8 +76,7 @@ namespace CalradiaRemembers.Quests
             // completable by construction (player report: a village sent me after bandits that were not there,
             // then turned hostile when I reported none). No roaming bandits nearby means no such task to give.
             if (BanditClearOfferPolicy.ShouldOffer(CountBanditPartiesNear(anchor)))
-               entries.Add(new QuestMenuEntry("bandit_clear", "target_settlement", anchor.Name?.ToString(),
-                  $"bandits prey on travellers around {anchor.Name}"));
+               entries.Add(new QuestMenuEntry {TypeToken = "bandit_clear", TargetField = "target_settlement", TargetName = anchor.Name?.ToString(), Cue = $"bandits prey on travellers around {anchor.Name}"});
          }
 
          // 3. Wartime deeds: only when the giver's realm truly wars, targets pulled from the live enemy.
@@ -92,8 +90,7 @@ namespace CalradiaRemembers.Quests
 
          // 6. A lord always needs supplies: horses for the cavalry, livestock or grain for the host. Always
          // groundable (the player can bring goods), so this personal task is always on the menu.
-         entries.Add(new QuestMenuEntry("provide_goods", null, null,
-            "have the player bring you a supply of horses, livestock, or grain (set category + required_count)"));
+         entries.Add(new QuestMenuEntry {TypeToken = "provide_goods", TargetField = null, TargetName = null, Cue = "have the player bring you a supply of horses, livestock, or grain (set category + required_count)"});
 
          return entries;
       }
@@ -139,19 +136,15 @@ namespace CalradiaRemembers.Quests
                                 .Take(MaxEnemyLordEntries)
                                 .ToList();
          if (lords.Count > 0)
-            entries.Add(new QuestMenuEntry("attack_lord", "target_hero", lords[0].Name?.ToString(),
-               $"an enemy of your realm rides for {enemyName}"));
+            entries.Add(new QuestMenuEntry {TypeToken = "attack_lord", TargetField = "target_hero", TargetName = lords[0].Name?.ToString(), Cue = $"an enemy of your realm rides for {enemyName}"});
          if (lords.Count > 1)
-            entries.Add(new QuestMenuEntry("capture_prisoner", "target_hero", lords[1].Name?.ToString(),
-               "bring this enemy back in chains"));
+            entries.Add(new QuestMenuEntry {TypeToken = "capture_prisoner", TargetField = "target_hero", TargetName = lords[1].Name?.ToString(), Cue = "bring this enemy back in chains"});
 
-         entries.Add(new QuestMenuEntry("attack_faction", "target_faction", enemyName,
-            "strike their parties in the field"));
+         entries.Add(new QuestMenuEntry {TypeToken = "attack_faction", TargetField = "target_faction", TargetName = enemyName, Cue = "strike their parties in the field"});
 
          Settlement village = Settlement.All?.FirstOrDefault(s => s?.IsVillage == true && s.MapFaction == enemy);
          if (village != null)
-            entries.Add(new QuestMenuEntry("raid_village", "target_settlement", village.Name?.ToString(),
-               $"put one of {enemyName}'s villages to the torch"));
+            entries.Add(new QuestMenuEntry {TypeToken = "raid_village", TargetField = "target_settlement", TargetName = village.Name?.ToString(), Cue = $"put one of {enemyName}'s villages to the torch"});
 
          // The "come take a castle with us" errand, absent from the grounded menu before (player report
          // 2026-07-17: a lord substituted a generic attack-faction quest for a siege the player asked for).
@@ -161,17 +154,14 @@ namespace CalradiaRemembers.Quests
             Settlement.All?.FirstOrDefault(s => (s?.IsTown == true || s?.IsCastle == true) && s.MapFaction == enemy && s.SiegeEvent != null)
             ?? Settlement.All?.FirstOrDefault(s => (s?.IsTown == true || s?.IsCastle == true) && s.MapFaction == enemy);
          if (fortress != null)
-            entries.Add(new QuestMenuEntry("siege", "target_settlement", fortress.Name?.ToString(),
-               $"help take one of {enemyName}'s strongholds"));
+            entries.Add(new QuestMenuEntry {TypeToken = "siege", TargetField = "target_settlement", TargetName = fortress.Name?.ToString(), Cue = $"help take one of {enemyName}'s strongholds"});
 
          // The bounty-hunting loop: any enemy lord brought to the giver in chains, for a promised price.
-         entries.Add(new QuestMenuEntry("deliver_prisoner", "target_faction", enemyName,
-            "bring me any of their lords in chains and be paid for the man"));
+         entries.Add(new QuestMenuEntry {TypeToken = "deliver_prisoner", TargetField = "target_faction", TargetName = enemyName, Cue = "bring me any of their lords in chains and be paid for the man"});
 
          // An army to scout: only when the enemy truly fields one, so the deed is achievable today.
          if (enemy.Armies is {Count: > 0})
-            entries.Add(new QuestMenuEntry("scout_army", "target_faction", enemyName,
-               "find their army, gauge its strength, and report back"));
+            entries.Add(new QuestMenuEntry {TypeToken = "scout_army", TargetField = "target_faction", TargetName = enemyName, Cue = "find their army, gauge its strength, and report back"});
       }
 
       private static void AddRescueEntry(List<QuestMenuEntry> entries, Hero giver)
@@ -182,8 +172,7 @@ namespace CalradiaRemembers.Quests
             h.MapFaction == giver.MapFaction && h.IsLord && h.IsPrisoner && h != giver && h != Hero.MainHero);
          if (captive == null) return;
 
-         entries.Add(new QuestMenuEntry("rescue_prisoner", "target_hero", captive.Name?.ToString(),
-            $"{captive.Name} of your realm languishes in enemy hands"));
+         entries.Add(new QuestMenuEntry {TypeToken = "rescue_prisoner", TargetField = "target_hero", TargetName = captive.Name?.ToString(), Cue = $"{captive.Name} of your realm languishes in enemy hands"});
       }
 
       private static void AddLetterEntry(List<QuestMenuEntry> entries, Hero giver)
@@ -198,8 +187,7 @@ namespace CalradiaRemembers.Quests
                              && h.MapFaction == giver?.MapFaction && h.CurrentSettlement != giver?.CurrentSettlement);
          if (recipient == null) return;
 
-         entries.Add(new QuestMenuEntry("deliver_letter", "target_hero", recipient.Name?.ToString(),
-            $"a letter must reach {recipient.Name}"));
+         entries.Add(new QuestMenuEntry {TypeToken = "deliver_letter", TargetField = "target_hero", TargetName = recipient.Name?.ToString(), Cue = $"a letter must reach {recipient.Name}"});
       }
 
       #endregion

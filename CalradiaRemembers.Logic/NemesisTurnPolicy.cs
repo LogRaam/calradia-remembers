@@ -38,33 +38,23 @@ namespace CalradiaRemembers.Logic
    /// <summary>The facts the turn gate reasons over: the nemesis's stance toward the player, his grudge, his traits.</summary>
    public readonly struct NemesisTurnFacts
    {
-      public NemesisTurnFacts(int fear, int respect, int grudgeMagnitude, int honor, int valor, int calculating)
-      {
-         Fear = fear;
-         Respect = respect;
-         GrudgeMagnitude = grudgeMagnitude;
-         Honor = honor;
-         Valor = valor;
-         Calculating = calculating;
-      }
-
       /// <summary>0..100 stance: how much the nemesis fears the player (death feels real).</summary>
-      public int Fear { get; }
+      public int Fear { get; init; }
 
       /// <summary>0..100 stance: how much the nemesis respects the player (serving is not shameful).</summary>
-      public int Respect { get; }
+      public int Respect { get; init; }
 
       /// <summary>0..100: the nemesis's own grudge against the player (his hatred).</summary>
-      public int GrudgeMagnitude { get; }
+      public int GrudgeMagnitude { get; init; }
 
       /// <summary>Vanilla trait level (-2..+2). High Honor: he dies free rather than serve his captor.</summary>
-      public int Honor { get; }
+      public int Honor { get; init; }
 
       /// <summary>Vanilla trait level (-2..+2). High Valor: defiant, would rather die than bend.</summary>
-      public int Valor { get; }
+      public int Valor { get; init; }
 
       /// <summary>Vanilla trait level (-2..+2). High Calculating: a survivor who switches sides on the arithmetic.</summary>
-      public int Calculating { get; }
+      public int Calculating { get; init; }
    }
 
    /// <summary>The gate's verdict: whether the nemesis turns, and if not, why.</summary>

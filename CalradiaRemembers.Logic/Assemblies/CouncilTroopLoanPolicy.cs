@@ -26,16 +26,30 @@ namespace CalradiaRemembers.Logic.Assemblies
     /// </summary>
     public readonly struct TierTroopCounts
     {
-        public TierTroopCounts(int low, int medium, int high)
+        private readonly int _low;
+
+        public int Low
         {
-            Low = Math.Max(0, low);
-            Medium = Math.Max(0, medium);
-            High = Math.Max(0, high);
+            get => _low;
+            init => _low = Math.Max(0, value);
         }
 
-        public int Low { get; }
-        public int Medium { get; }
-        public int High { get; }
+        private readonly int _medium;
+
+        public int Medium
+        {
+            get => _medium;
+            init => _medium = Math.Max(0, value);
+        }
+
+        private readonly int _high;
+
+        public int High
+        {
+            get => _high;
+            init => _high = Math.Max(0, value);
+        }
+
         public int Total => Low + Medium + High;
     }
 
@@ -61,10 +75,10 @@ namespace CalradiaRemembers.Logic.Assemblies
         public static TierTroopCounts ComputeLoan(TierTroopCounts party)
         {
             int total = party.Total;
-            if (total <= 0) return new TierTroopCounts(0, 0, 0);
+            if (total <= 0) return new TierTroopCounts {Low = 0, Medium = 0, High = 0};
 
             var cap = (int) Math.Floor(total * MaxLoanFraction);
-            if (cap <= 0) return new TierTroopCounts(0, 0, 0);
+            if (cap <= 0) return new TierTroopCounts {Low = 0, Medium = 0, High = 0};
 
             int[] counts = {party.Low, party.Medium, party.High};
             var shares = new int[3];
@@ -132,7 +146,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 }
             }
 
-            return new TierTroopCounts(shares[0], shares[1], shares[2]);
+            return new TierTroopCounts {Low = shares[0], Medium = shares[1], High = shares[2]};
         }
     }
 }

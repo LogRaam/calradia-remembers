@@ -105,10 +105,7 @@ namespace CalradiaRemembers.Tournaments
       }
 
       private static TournamentTraitFacts TraitsOf(Hero hero)
-         => new TournamentTraitFacts(
-            hero.GetTraitLevel(DefaultTraits.Valor),
-            hero.GetTraitLevel(DefaultTraits.Honor),
-            hero.GetTraitLevel(DefaultTraits.Mercy));
+         => new TournamentTraitFacts {Valor = hero.GetTraitLevel(DefaultTraits.Valor), Honor = hero.GetTraitLevel(DefaultTraits.Honor), Mercy = hero.GetTraitLevel(DefaultTraits.Mercy)};
 
       // A concise, first-person FACT the recent-matter opener will name; the lord's own character supplies the tone.
       internal static string ComposeMemory(TournamentResult result, TournamentStanding standing)

@@ -38,52 +38,23 @@ namespace CalradiaRemembers.Logic.Assemblies
     /// </summary>
     public readonly struct CouncilMembershipFacts
     {
-        public CouncilMembershipFacts(bool isAlive,
-                                      bool isPrisoner,
-                                      bool isInBattle,
-                                      bool isCompanion,
-                                      bool isImmediateFamily,
-                                      bool isClanLord,
-                                      bool isInArmy,
-                                      bool isOnMission,
-                                      bool isAlliedLeader = false,
-                                      bool isParleyCounterpart = false,
-                                      bool isPartyMember = false)
-        {
-            IsAlive = isAlive;
-            IsPrisoner = isPrisoner;
-            IsInBattle = isInBattle;
-            IsCompanion = isCompanion;
-            IsImmediateFamily = isImmediateFamily;
-            IsClanLord = isClanLord;
-            IsInArmy = isInArmy;
-            IsOnMission = isOnMission;
-            IsAlliedLeader = isAlliedLeader;
-            IsParleyCounterpart = isParleyCounterpart;
-            IsPartyMember = isPartyMember;
-        }
+        /// <summary>Every fact defaults to the refusing answer, so a caller names only what it actually knows.</summary>
+        public CouncilMembershipFacts() { }
 
-        public bool IsAlive { get; }
-        public bool IsPrisoner { get; }
-
+        public bool IsAlive { get; init; } = false;
+        public bool IsPrisoner { get; init; } = false;
         /// <summary>The hero's party is in a MapEvent (a battle) right now.</summary>
-        public bool IsInBattle { get; }
-
+        public bool IsInBattle { get; init; } = false;
         /// <summary>A hired companion (non-noble wanderer) of the player's clan.</summary>
-        public bool IsCompanion { get; }
-
+        public bool IsCompanion { get; init; } = false;
         /// <summary>The player's spouse, a sibling, or an adult child.</summary>
-        public bool IsImmediateFamily { get; }
-
+        public bool IsImmediateFamily { get; init; } = false;
         /// <summary>A hero-lord who belongs to the player's clan.</summary>
-        public bool IsClanLord { get; }
-
+        public bool IsClanLord { get; init; } = false;
         /// <summary>The hero's party is attached to an army right now; cannot break away to attend.</summary>
-        public bool IsInArmy { get; }
-
+        public bool IsInArmy { get; init; } = false;
         /// <summary>The hero is away on a companion errand (CompanionMissionBehavior.IsAway); cannot attend until they return.</summary>
-        public bool IsOnMission { get; }
-
+        public bool IsOnMission { get; init; } = false;
         /// <summary>
         ///   The WarCouncil's own roster fact: a clan LEADER allied to the player (a fellow clan's leader within
         ///   the player's kingdom), or, for an independent player clan (no kingdom), one of the player's own clan
@@ -91,7 +62,7 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   exclusive with the others: a sibling who leads his own clan could in principle also be an allied
         ///   leader, though the common case is disjoint from IsClanLord (a DIFFERENT clan's leader).
         /// </summary>
-        public bool IsAlliedLeader { get; }
+        public bool IsAlliedLeader { get; init; } = false;
 
         /// <summary>
         ///   The Parley's own roster fact: the LEADER of the specific enemy faction the parley was convened
@@ -101,14 +72,14 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   (InBattle/InArmy/OnMission) do not apply to them (see CouncilRosterPolicy.Evaluate's own carve-out);
         ///   only alive and not a prisoner are checked.
         /// </summary>
-        public bool IsParleyCounterpart { get; }
+        public bool IsParleyCounterpart { get; init; } = false;
 
         /// <summary>
         ///   The Party council's own roster fact: a hero riding in the player's main party right now (a companion,
         ///   or any kin or lord travelling along), old enough to sit. Gathered from PRESENCE, not house or realm,
         ///   so it can overlap every other flag; the ordinary availability gates (battle/army/mission) still apply.
         /// </summary>
-        public bool IsPartyMember { get; }
+        public bool IsPartyMember { get; init; } = false;
     }
 
     /// <summary>Whether a hero is seated at a council, and if not, the reason to show on the roster.</summary>

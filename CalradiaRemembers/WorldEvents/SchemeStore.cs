@@ -663,8 +663,7 @@ namespace CalradiaRemembers.WorldEvents
             bool isKin = CourtActionResolver.IsCloseKin(instigator, other);
             bool isFactionLeader = other.MapFaction?.Leader == other;
 
-            candidates.Add(new AutonomousSchemePolicy.SchemeTargetCandidate(
-               other.StringId, instigator.GetRelation(other), isKin, isPlayerSide, isFactionLeader));
+            candidates.Add(new AutonomousSchemePolicy.SchemeTargetCandidate {Id = other.StringId, Relation = instigator.GetRelation(other), IsKin = isKin, IsPlayerSide = isPlayerSide, IsFactionLeader = isFactionLeader});
          }
 
          return AutonomousSchemePolicy.SelectAutonomousTarget(candidates);

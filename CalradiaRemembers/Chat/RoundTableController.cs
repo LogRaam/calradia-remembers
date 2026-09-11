@@ -61,8 +61,8 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>Consumes a pending "open the floor" request once, after the main NPC's reply.</summary>
-      public bool TryConsumeForMainReply(bool speakerIsMain, bool isCaptiveEncounter, bool conversationEnded)
-         => _gate.TryConsumeForMainReply(speakerIsMain, isCaptiveEncounter, conversationEnded);
+      public bool TryConsumeForMainReply(RoundTableGate.FloorTurnFacts turn)
+         => _gate.TryConsumeForMainReply(turn);
 
       /// <summary>
       ///   True while an "open the floor" request is pending, without consuming it: the host reads it to drop

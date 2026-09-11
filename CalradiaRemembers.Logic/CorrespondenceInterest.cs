@@ -91,22 +91,14 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public readonly struct InterestDeltas
     {
-        /// <summary>Constructs a delta for all three interest channels.</summary>
-        public InterestDeltas(int senderDelta, int subjectDelta, int globalDelta)
-        {
-            SenderDelta = senderDelta;
-            SubjectDelta = subjectDelta;
-            GlobalDelta = globalDelta;
-        }
-
         /// <summary>The change to apply to this one sender's running interest.</summary>
-        public int SenderDelta { get; }
+        public int SenderDelta { get; init; }
 
         /// <summary>The change to apply to this one subject's running interest.</summary>
-        public int SubjectDelta { get; }
+        public int SubjectDelta { get; init; }
 
         /// <summary>The change to apply to the player's overall correspondence interest.</summary>
-        public int GlobalDelta { get; }
+        public int GlobalDelta { get; init; }
     }
 
     /// <summary>
@@ -151,7 +143,7 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public static InterestDeltas OnAcknowledge()
         {
-            return new InterestDeltas(AcknowledgeSenderPenalty, AcknowledgeSubjectPenalty, 0);
+            return new InterestDeltas {SenderDelta = AcknowledgeSenderPenalty, SubjectDelta = AcknowledgeSubjectPenalty, GlobalDelta = 0};
         }
 
         // ── Implicit signal: the player actually wrote back ─────────────────────────────────────────────
@@ -170,7 +162,7 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public static InterestDeltas OnReply()
         {
-            return new InterestDeltas(ReplySenderBonus, ReplySubjectBonus, 0);
+            return new InterestDeltas {SenderDelta = ReplySenderBonus, SubjectDelta = ReplySubjectBonus, GlobalDelta = 0};
         }
 
         // ── Explicit signal: the player stated a preference outright ────────────────────────────────────
@@ -208,18 +200,18 @@ namespace CalradiaRemembers.Logic
             {
                 case PreferenceScope.Sender:
                     int senderMagnitude = pref.Strength == PreferenceStrength.Strong ? SenderStrongMagnitude : SenderMildMagnitude;
-                    return new InterestDeltas(sign * senderMagnitude, 0, 0);
+                    return new InterestDeltas {SenderDelta = sign * senderMagnitude, SubjectDelta = 0, GlobalDelta = 0};
 
                 case PreferenceScope.Subject:
                     int subjectMagnitude = pref.Strength == PreferenceStrength.Strong ? SubjectStrongMagnitude : SubjectMildMagnitude;
-                    return new InterestDeltas(0, sign * subjectMagnitude, 0);
+                    return new InterestDeltas {SenderDelta = 0, SubjectDelta = sign * subjectMagnitude, GlobalDelta = 0};
 
                 case PreferenceScope.All:
                     int allMagnitude = pref.Strength == PreferenceStrength.Strong ? AllStrongMagnitude : AllMildMagnitude;
-                    return new InterestDeltas(0, 0, sign * allMagnitude);
+                    return new InterestDeltas {SenderDelta = 0, SubjectDelta = 0, GlobalDelta = sign * allMagnitude};
 
                 default: // None
-                    return new InterestDeltas(0, 0, 0);
+                    return new InterestDeltas {SenderDelta = 0, SubjectDelta = 0, GlobalDelta = 0};
             }
         }
 

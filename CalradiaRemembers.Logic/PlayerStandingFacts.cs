@@ -17,42 +17,23 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public sealed class PlayerStandingFacts
     {
-        public PlayerStandingFacts(bool playerIsCaptiveOfNpc = false,
-                                   bool npcIsCaptiveOfPlayer = false,
-                                   bool sharesPlayerClan = false,
-                                   bool npcRulesPlayerRealm = false,
-                                   bool playerRulesNpcRealm = false,
-                                   bool playerIsMercenaryOfNpcRealm = false,
-                                   bool sharesRealm = false,
-                                   bool npcIsMercenaryOfSharedRealm = false)
-        {
-            NpcIsMercenaryOfSharedRealm = npcIsMercenaryOfSharedRealm;
-            PlayerIsCaptiveOfNpc = playerIsCaptiveOfNpc;
-            NpcIsCaptiveOfPlayer = npcIsCaptiveOfPlayer;
-            SharesPlayerClan = sharesPlayerClan;
-            NpcRulesPlayerRealm = npcRulesPlayerRealm;
-            PlayerRulesNpcRealm = playerRulesNpcRealm;
-            PlayerIsMercenaryOfNpcRealm = playerIsMercenaryOfNpcRealm;
-            SharesRealm = sharesRealm;
-        }
-
         /// <summary>The player is held prisoner by this NPC's party.</summary>
-        public bool PlayerIsCaptiveOfNpc { get; }
+        public bool PlayerIsCaptiveOfNpc { get; init; } = false;
 
         /// <summary>This NPC is held prisoner by the player's party.</summary>
-        public bool NpcIsCaptiveOfPlayer { get; }
+        public bool NpcIsCaptiveOfPlayer { get; init; } = false;
 
         /// <summary>This NPC belongs to the player's own clan.</summary>
-        public bool SharesPlayerClan { get; }
+        public bool SharesPlayerClan { get; init; } = false;
 
         /// <summary>
         ///   This NPC is the RULER of the kingdom the player's clan serves. Which makes the NPC the liege and
         ///   the PLAYER the vassal: the direction that shipped inverted.
         /// </summary>
-        public bool NpcRulesPlayerRealm { get; }
+        public bool NpcRulesPlayerRealm { get; init; } = false;
 
         /// <summary>The player rules the kingdom this NPC's clan serves, making the player the liege.</summary>
-        public bool PlayerRulesNpcRealm { get; }
+        public bool PlayerRulesNpcRealm { get; init; } = false;
 
         /// <summary>
         ///   The player's clan is under MERCENARY CONTRACT to the kingdom this NPC belongs to. This must be
@@ -61,13 +42,13 @@ namespace CalradiaRemembers.Logic
         ///   indistinguishable from an oath-bound one, and CR's own join_as_mercenary action creates that
         ///   state. Paid service is not fealty, and the distinction is the whole of the relationship.
         /// </summary>
-        public bool PlayerIsMercenaryOfNpcRealm { get; }
+        public bool PlayerIsMercenaryOfNpcRealm { get; init; } = false;
 
         /// <summary>
         ///   Both clans serve the same kingdom. On its own (neither ruling, no contract) this makes them
         ///   fellow vassals of one crown, which used to render as nothing at all.
         /// </summary>
-        public bool SharesRealm { get; }
+        public bool SharesRealm { get; init; } = false;
 
         /// <summary>
         ///   The mirror of <see cref="PlayerIsMercenaryOfNpcRealm" />: it is the NPC's OWN clan that is hired
@@ -75,6 +56,6 @@ namespace CalradiaRemembers.Logic
         ///   without it, a lord whose sword the player's crown merely rents is called a sworn subject, and a
         ///   hired band in a realm the player only serves is called a comrade of the same oath.
         /// </summary>
-        public bool NpcIsMercenaryOfSharedRealm { get; }
+        public bool NpcIsMercenaryOfSharedRealm { get; init; } = false;
     }
 }

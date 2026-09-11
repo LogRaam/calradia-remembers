@@ -29,13 +29,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_non_equippable_gift_WHEN_deciding_THEN_it_is_never_equipped_even_into_an_empty_slot_for_a_beloved_spouse()
         {
-            var facts = new GiftEquipFacts(
-                isEquippable: false,
-                slotEmpty: true,
-                giftValue: 500,
-                currentSlotValue: 0,
-                relation: 100,
-                isSentimental: true);
+            var facts = new GiftEquipFacts {IsEquippable = false, SlotEmpty = true, GiftValue = 500, CurrentSlotValue = 0, Relation = 100, IsSentimental = true};
 
             var decision = GiftEquipPolicy.Decide(facts);
 
@@ -48,13 +42,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_empty_target_slot_WHEN_deciding_THEN_the_gift_is_always_equipped_regardless_of_relation()
         {
-            var facts = new GiftEquipFacts(
-                isEquippable: true,
-                slotEmpty: true,
-                giftValue: 10,
-                currentSlotValue: 0,
-                relation: -50,
-                isSentimental: false);
+            var facts = new GiftEquipFacts {IsEquippable = true, SlotEmpty = true, GiftValue = 10, CurrentSlotValue = 0, Relation = -50, IsSentimental = false};
 
             var decision = GiftEquipPolicy.Decide(facts);
 
@@ -67,13 +55,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_strict_upgrade_WHEN_deciding_THEN_it_is_equipped_even_for_a_low_relation_npc()
         {
-            var facts = new GiftEquipFacts(
-                isEquippable: true,
-                slotEmpty: false,
-                giftValue: 200,
-                currentSlotValue: 100,
-                relation: -20,
-                isSentimental: false);
+            var facts = new GiftEquipFacts {IsEquippable = true, SlotEmpty = false, GiftValue = 200, CurrentSlotValue = 100, Relation = -20, IsSentimental = false};
 
             var decision = GiftEquipPolicy.Decide(facts);
 
@@ -86,13 +68,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_non_upgrade_gift_to_a_sentimental_npc_WHEN_deciding_THEN_it_is_worn_out_of_affection_even_at_low_relation()
         {
-            var facts = new GiftEquipFacts(
-                isEquippable: true,
-                slotEmpty: false,
-                giftValue: 50,
-                currentSlotValue: 120,
-                relation: 5,
-                isSentimental: true);
+            var facts = new GiftEquipFacts {IsEquippable = true, SlotEmpty = false, GiftValue = 50, CurrentSlotValue = 120, Relation = 5, IsSentimental = true};
 
             var decision = GiftEquipPolicy.Decide(facts);
 
@@ -105,13 +81,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_non_upgrade_gift_at_or_above_the_affection_threshold_WHEN_deciding_THEN_it_is_worn_without_being_sentimental()
         {
-            var facts = new GiftEquipFacts(
-                isEquippable: true,
-                slotEmpty: false,
-                giftValue: 50,
-                currentSlotValue: 120,
-                relation: GiftEquipPolicy.AffectionThreshold,
-                isSentimental: false);
+            var facts = new GiftEquipFacts {IsEquippable = true, SlotEmpty = false, GiftValue = 50, CurrentSlotValue = 120, Relation = GiftEquipPolicy.AffectionThreshold, IsSentimental = false};
 
             var decision = GiftEquipPolicy.Decide(facts);
 
@@ -124,13 +94,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_non_upgrade_gift_to_a_cold_non_sentimental_npc_WHEN_deciding_THEN_their_own_gear_is_kept()
         {
-            var facts = new GiftEquipFacts(
-                isEquippable: true,
-                slotEmpty: false,
-                giftValue: 50,
-                currentSlotValue: 120,
-                relation: GiftEquipPolicy.AffectionThreshold - 1,
-                isSentimental: false);
+            var facts = new GiftEquipFacts {IsEquippable = true, SlotEmpty = false, GiftValue = 50, CurrentSlotValue = 120, Relation = GiftEquipPolicy.AffectionThreshold - 1, IsSentimental = false};
 
             var decision = GiftEquipPolicy.Decide(facts);
 
@@ -143,13 +107,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_relation_exactly_one_below_the_affection_threshold_WHEN_deciding_THEN_it_does_not_equip()
         {
-            var facts = new GiftEquipFacts(
-                isEquippable: true,
-                slotEmpty: false,
-                giftValue: 50,
-                currentSlotValue: 120,
-                relation: GiftEquipPolicy.AffectionThreshold - 1,
-                isSentimental: false);
+            var facts = new GiftEquipFacts {IsEquippable = true, SlotEmpty = false, GiftValue = 50, CurrentSlotValue = 120, Relation = GiftEquipPolicy.AffectionThreshold - 1, IsSentimental = false};
 
             GiftEquipPolicy.Decide(facts).ShouldEquip.Should().BeFalse();
         }
@@ -159,21 +117,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_gift_worth_exactly_the_same_as_the_current_item_WHEN_deciding_THEN_it_is_not_treated_as_an_upgrade()
         {
-            var equalValueColdNpc = new GiftEquipFacts(
-                isEquippable: true,
-                slotEmpty: false,
-                giftValue: 100,
-                currentSlotValue: 100,
-                relation: 0,
-                isSentimental: false);
+            var equalValueColdNpc = new GiftEquipFacts {IsEquippable = true, SlotEmpty = false, GiftValue = 100, CurrentSlotValue = 100, Relation = 0, IsSentimental = false};
 
-            var equalValueSentimentalNpc = new GiftEquipFacts(
-                isEquippable: true,
-                slotEmpty: false,
-                giftValue: 100,
-                currentSlotValue: 100,
-                relation: 0,
-                isSentimental: true);
+            var equalValueSentimentalNpc = new GiftEquipFacts {IsEquippable = true, SlotEmpty = false, GiftValue = 100, CurrentSlotValue = 100, Relation = 0, IsSentimental = true};
 
             GiftEquipPolicy.Decide(equalValueColdNpc).Reason.Should().Be(GiftEquipReason.KeptOwnGear);
             GiftEquipPolicy.Decide(equalValueSentimentalNpc).Reason.Should().Be(GiftEquipReason.Affection);
@@ -187,14 +133,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_captor_dressing_a_held_prisoner_WHEN_deciding_THEN_the_garment_is_imposed_even_on_a_hostile_prisoner_over_finer_armour()
         {
-            var facts = new GiftEquipFacts(
-                isEquippable: true,
-                slotEmpty: false,
-                giftValue: 20,
-                currentSlotValue: 400,
-                relation: -80,
-                isSentimental: false,
-                isCaptiveDressing: true);
+            var facts = new GiftEquipFacts {IsEquippable = true, SlotEmpty = false, GiftValue = 20, CurrentSlotValue = 400, Relation = -80, IsSentimental = false, IsCaptiveDressing = true};
 
             var decision = GiftEquipPolicy.Decide(facts);
 
@@ -208,14 +147,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_non_equippable_gift_to_a_held_prisoner_WHEN_deciding_THEN_it_is_still_never_equipped()
         {
-            var facts = new GiftEquipFacts(
-                isEquippable: false,
-                slotEmpty: true,
-                giftValue: 5,
-                currentSlotValue: 0,
-                relation: 0,
-                isSentimental: false,
-                isCaptiveDressing: true);
+            var facts = new GiftEquipFacts {IsEquippable = false, SlotEmpty = true, GiftValue = 5, CurrentSlotValue = 0, Relation = 0, IsSentimental = false, IsCaptiveDressing = true};
 
             var decision = GiftEquipPolicy.Decide(facts);
 

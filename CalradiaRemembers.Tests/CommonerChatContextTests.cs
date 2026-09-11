@@ -199,8 +199,7 @@ namespace CalradiaRemembers.Tests
          string? partnerOccupation = "Townsfolk",
          bool llmAvailable = true,
          bool townsfolkQuestActive = false)
-         => new(
-            isHeroConversation, isCivilianSettlement, hasConversationPartner, partnerOccupation, llmAvailable, townsfolkQuestActive);
+         => new() {IsHeroConversation = isHeroConversation, IsCivilianSettlement = isCivilianSettlement, HasConversationPartner = hasConversationPartner, PartnerOccupation = partnerOccupation, LlmAvailable = llmAvailable, TownsfolkQuestActive = townsfolkQuestActive};
 
       #endregion
    }

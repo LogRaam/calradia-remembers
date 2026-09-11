@@ -24,7 +24,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             var ledger = new AssemblyLedger();
 
-            AssemblyResolutionEntry e = ledger.Propose("m1", "assign_role", "hero_1", "Scout role", "Scout ahead", turn: 1);
+            AssemblyResolutionEntry e = ledger.Propose(new AssemblyResolutionEntry {Id = "m1", Kind = "assign_role", TargetHeroId = "hero_1", Label = "Scout role", Detail = "Scout ahead", Turn = 1});
 
             e.Status.Should().Be(ResolutionStatus.Proposed);
             ledger.Entries.Should().ContainSingle().Which.Id.Should().Be("m1");
@@ -36,7 +36,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_an_agreed_motion_WHEN_reversed_before_the_lift_THEN_it_no_longer_commits()
         {
             var ledger = new AssemblyLedger();
-            ledger.Propose("m1", "give_gold", "hero_1", "Purse", "A purse of gold", turn: 1);
+            ledger.Propose(new AssemblyResolutionEntry {Id = "m1", Kind = "give_gold", TargetHeroId = "hero_1", Label = "Purse", Detail = "A purse of gold", Turn = 1});
             ledger.Agree("m1").Should().BeTrue();
 
             ledger.Reverse("m1").Should().BeTrue();
@@ -50,7 +50,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_a_merely_proposed_motion_WHEN_reversed_THEN_it_is_withdrawn_and_commits_nothing()
         {
             var ledger = new AssemblyLedger();
-            ledger.Propose("m1", "patrol", "hero_1", "Patrol", "Patrol the north", turn: 1);
+            ledger.Propose(new AssemblyResolutionEntry {Id = "m1", Kind = "patrol", TargetHeroId = "hero_1", Label = "Patrol", Detail = "Patrol the north", Turn = 1});
 
             ledger.Reverse("m1").Should().BeTrue();
 
@@ -63,7 +63,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_a_reversed_motion_WHEN_agreeing_it_again_THEN_the_ledger_refuses()
         {
             var ledger = new AssemblyLedger();
-            ledger.Propose("m1", "patrol", "hero_1", "Patrol", "Patrol the north", turn: 1);
+            ledger.Propose(new AssemblyResolutionEntry {Id = "m1", Kind = "patrol", TargetHeroId = "hero_1", Label = "Patrol", Detail = "Patrol the north", Turn = 1});
             ledger.Reverse("m1");
 
             ledger.Agree("m1").Should().BeFalse();
@@ -76,8 +76,8 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_a_mix_of_agreed_and_proposed_WHEN_asked_what_commits_THEN_only_the_agreed_is_offered()
         {
             var ledger = new AssemblyLedger();
-            ledger.Propose("m1", "give_gold", "hero_1", "Purse", "Gold", turn: 1);
-            ledger.Propose("m2", "patrol", "hero_2", "Patrol", "North", turn: 1);
+            ledger.Propose(new AssemblyResolutionEntry {Id = "m1", Kind = "give_gold", TargetHeroId = "hero_1", Label = "Purse", Detail = "Gold", Turn = 1});
+            ledger.Propose(new AssemblyResolutionEntry {Id = "m2", Kind = "patrol", TargetHeroId = "hero_2", Label = "Patrol", Detail = "North", Turn = 1});
             ledger.Agree("m1");
 
             ledger.PendingCommit().Select(e => e.Id).Should().ContainSingle().Which.Should().Be("m1");
@@ -89,7 +89,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_an_agreed_motion_WHEN_the_bridge_fails_at_the_lift_THEN_it_is_marked_failed_with_a_reason()
         {
             var ledger = new AssemblyLedger();
-            ledger.Propose("m1", "give_gold", "hero_1", "Purse", "Gold", turn: 1);
+            ledger.Propose(new AssemblyResolutionEntry {Id = "m1", Kind = "give_gold", TargetHeroId = "hero_1", Label = "Purse", Detail = "Gold", Turn = 1});
             ledger.Agree("m1");
 
             ledger.MarkFailed("m1", "not enough gold").Should().BeTrue();
@@ -105,7 +105,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_an_applied_motion_WHEN_asked_to_reverse_THEN_the_ledger_refuses()
         {
             var ledger = new AssemblyLedger();
-            ledger.Propose("m1", "give_gold", "hero_1", "Purse", "Gold", turn: 1);
+            ledger.Propose(new AssemblyResolutionEntry {Id = "m1", Kind = "give_gold", TargetHeroId = "hero_1", Label = "Purse", Detail = "Gold", Turn = 1});
             ledger.Agree("m1");
             ledger.MarkApplied("m1").Should().BeTrue();
 
@@ -119,9 +119,9 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_motions_on_several_heroes_WHEN_asked_for_one_hero_THEN_only_his_motions_return()
         {
             var ledger = new AssemblyLedger();
-            ledger.Propose("m1", "give_gold", "hero_1", "Purse", "Gold", turn: 1);
-            ledger.Propose("m2", "patrol", "hero_2", "Patrol", "North", turn: 1);
-            ledger.Propose("m3", "assign_role", "hero_1", "Scout", "Scout", turn: 2);
+            ledger.Propose(new AssemblyResolutionEntry {Id = "m1", Kind = "give_gold", TargetHeroId = "hero_1", Label = "Purse", Detail = "Gold", Turn = 1});
+            ledger.Propose(new AssemblyResolutionEntry {Id = "m2", Kind = "patrol", TargetHeroId = "hero_2", Label = "Patrol", Detail = "North", Turn = 1});
+            ledger.Propose(new AssemblyResolutionEntry {Id = "m3", Kind = "assign_role", TargetHeroId = "hero_1", Label = "Scout", Detail = "Scout", Turn = 2});
 
             ledger.EntriesFor("hero_1").Select(e => e.Id).Should().BeEquivalentTo(new[] {"m1", "m3"});
         }
@@ -145,9 +145,9 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_an_id_already_on_the_table_WHEN_proposing_it_again_THEN_the_ledger_refuses_and_keeps_the_first()
         {
             var ledger = new AssemblyLedger();
-            ledger.Propose("m1", "give_gold", "hero_1", "Purse", "First", turn: 1);
+            ledger.Propose(new AssemblyResolutionEntry {Id = "m1", Kind = "give_gold", TargetHeroId = "hero_1", Label = "Purse", Detail = "First", Turn = 1});
 
-            AssemblyResolutionEntry second = ledger.Propose("m1", "patrol", "hero_2", "Patrol", "Second", turn: 2);
+            AssemblyResolutionEntry second = ledger.Propose(new AssemblyResolutionEntry {Id = "m1", Kind = "patrol", TargetHeroId = "hero_2", Label = "Patrol", Detail = "Second", Turn = 2});
 
             second.Should().BeNull();
             ledger.Entries.Should().ContainSingle().Which.Detail.Should().Be("First");
@@ -160,8 +160,8 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             var ledger = new AssemblyLedger();
 
-            ledger.Propose("", "give_gold", "hero_1", "Purse", "Gold", turn: 1).Should().BeNull();
-            ledger.Propose("   ", "give_gold", "hero_1", "Purse", "Gold", turn: 1).Should().BeNull();
+            ledger.Propose(new AssemblyResolutionEntry {Id = "", Kind = "give_gold", TargetHeroId = "hero_1", Label = "Purse", Detail = "Gold", Turn = 1}).Should().BeNull();
+            ledger.Propose(new AssemblyResolutionEntry {Id = "   ", Kind = "give_gold", TargetHeroId = "hero_1", Label = "Purse", Detail = "Gold", Turn = 1}).Should().BeNull();
             ledger.Entries.Should().BeEmpty();
         }
 
@@ -172,7 +172,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             var ledger = new AssemblyLedger();
 
-            AssemblyResolutionEntry e = ledger.Propose("m1", "quest", "hero_1", "Clear bandits", "Ride to Pravend", turn: 1, targetHint: "Pravend");
+            AssemblyResolutionEntry e = ledger.Propose(new AssemblyResolutionEntry {Id = "m1", Kind = "quest", TargetHeroId = "hero_1", Label = "Clear bandits", Detail = "Ride to Pravend", Turn = 1, TargetHint = "Pravend"});
 
             e.TargetHint.Should().Be("Pravend");
         }

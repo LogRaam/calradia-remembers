@@ -140,20 +140,12 @@ namespace CalradiaRemembers.Logic
       /// </summary>
       public readonly struct SchemeTargetCandidate
       {
-         public string Id { get; }
-         public int Relation { get; }
-         public bool IsKin { get; }
-         public bool IsPlayerSide { get; }
-         public bool IsFactionLeader { get; }
+         public string Id { get; init; }
+         public int Relation { get; init; }
+         public bool IsKin { get; init; }
+         public bool IsPlayerSide { get; init; }
+         public bool IsFactionLeader { get; init; }
 
-         public SchemeTargetCandidate(string id, int relation, bool isKin, bool isPlayerSide, bool isFactionLeader)
-         {
-            Id = id;
-            Relation = relation;
-            IsKin = isKin;
-            IsPlayerSide = isPlayerSide;
-            IsFactionLeader = isFactionLeader;
-         }
       }
 
       /// <summary>

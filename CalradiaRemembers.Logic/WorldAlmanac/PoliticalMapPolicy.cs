@@ -29,30 +29,45 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
     /// <summary>The world-space rectangle the grid samples over. Grid indices map linearly onto this box.</summary>
     public readonly struct PoliticalMapBounds
     {
-        public PoliticalMapBounds(float minX, float maxX, float minY, float maxY)
-        {
-            MinX = minX;
-            MaxX = maxX;
-            MinY = minY;
-            MaxY = maxY;
-        }
+        public float MinX { get; init; }
+        public float MaxX { get; init; }
+        public float MinY { get; init; }
+        public float MaxY { get; init; }
 
-        public float MinX { get; }
-        public float MaxX { get; }
-        public float MinY { get; }
-        public float MaxY { get; }
+        /// <summary>
+        ///   Which cell of which grid is being sampled. FOUR INTS in a row, two coordinates and two extents,
+        ///   and the pairs are interleaved in the worst way: col is divided by width and row by height, so
+        ///   crossing the halves produces a perfectly valid fraction of the wrong axis and the political map
+        ///   comes out transposed. Named rather than positional (2026-09-10).
+        /// </summary>
+        public sealed class GridSample
+        {
+            /// <summary>The cell's column, 0-based.</summary>
+            public int Col { get; set; }
+
+            /// <summary>The cell's row, 0-based.</summary>
+            public int Row { get; set; }
+
+            /// <summary>How many columns the grid has. A single-column grid samples the min edge.</summary>
+            public int Width { get; set; }
+
+            /// <summary>How many rows the grid has. A single-row grid samples the min edge.</summary>
+            public int Height { get; set; }
+        }
 
         /// <summary>
         ///   The world point a grid cell samples. Column 0 maps to <see cref="MinX" />, column width-1 to
         ///   <see cref="MaxX" /> (inclusive endpoints), and likewise for rows. A single-cell axis samples the min
         ///   edge rather than dividing by zero.
         /// </summary>
-        public void CellToWorld(int col, int row, int width, int height, out float worldX, out float worldY)
+        public MapPoint CellToWorld(GridSample sample)
         {
-            float fx = width <= 1 ? 0f : (float) col / (width - 1);
-            float fy = height <= 1 ? 0f : (float) row / (height - 1);
-            worldX = MinX + fx * (MaxX - MinX);
-            worldY = MinY + fy * (MaxY - MinY);
+            if (sample == null) return new MapPoint(MinX, MinY);
+
+            float fx = sample.Width <= 1 ? 0f : (float) sample.Col / (sample.Width - 1);
+            float fy = sample.Height <= 1 ? 0f : (float) sample.Row / (sample.Height - 1);
+
+            return new MapPoint(MinX + fx * (MaxX - MinX), MinY + fy * (MaxY - MinY));
         }
     }
 
@@ -82,7 +97,7 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
         /// </summary>
         public static PoliticalMapBounds ComputeBounds(IReadOnlyList<PoliticalMapAnchor> anchors, float padding = DefaultBoundsPadding)
         {
-            if (anchors == null || anchors.Count == 0) return new PoliticalMapBounds(0f, 0f, 0f, 0f);
+            if (anchors == null || anchors.Count == 0) return new PoliticalMapBounds {MinX = 0f, MaxX = 0f, MinY = 0f, MaxY = 0f};
 
             float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
             for (var i = 0; i < anchors.Count; i++)
@@ -94,7 +109,7 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
                 if (a.Y > maxY) maxY = a.Y;
             }
 
-            return new PoliticalMapBounds(minX - padding, maxX + padding, minY - padding, maxY + padding);
+            return new PoliticalMapBounds {MinX = minX - padding, MaxX = maxX + padding, MinY = minY - padding, MaxY = maxY + padding};
         }
 
         /// <summary>
@@ -121,7 +136,9 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             {
                 for (var row = 0; row < height; row++)
                 {
-                    bounds.CellToWorld(col, row, width, height, out float wx, out float wy);
+                    MapPoint here = bounds.CellToWorld(new PoliticalMapBounds.GridSample
+                       {Col = col, Row = row, Width = width, Height = height});
+                    float wx = here.X, wy = here.Y;
 
                     if (isWater != null && isWater(wx, wy))
                     {

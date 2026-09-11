@@ -60,11 +60,7 @@ namespace CalradiaRemembers.Assemblies
 
       private static bool IsEligible(Hero candidate)
       {
-         var facts = new WardCandidateFacts(
-            isAlive: candidate.IsAlive,
-            isFree: !candidate.IsPrisoner,
-            isYoungAdult: WardPolicy.IsWithinAgeBand(candidate.Age),
-            isAlreadySponsored: CouncilWardBehavior.Instance?.IsProtege(candidate.StringId) ?? false);
+         var facts = new WardCandidateFacts {IsAlive = candidate.IsAlive, IsFree = !candidate.IsPrisoner, IsYoungAdult = WardPolicy.IsWithinAgeBand(candidate.Age), IsAlreadySponsored = CouncilWardBehavior.Instance?.IsProtege(candidate.StringId) ?? false};
 
          return WardEligibilityPolicy.IsEligible(facts);
       }

@@ -31,7 +31,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [TestCase(999)]
         public void GIVEN_a_pure_low_tier_party_of_various_sizes_WHEN_the_loan_is_computed_THEN_it_never_exceeds_25_percent(int size)
         {
-            var party = new TierTroopCounts(size, 0, 0);
+            var party = new TierTroopCounts {Low = size, Medium = 0, High = 0};
 
             TierTroopCounts loan = CouncilTroopLoanPolicy.ComputeLoan(party);
 
@@ -47,7 +47,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [TestCase(3)]
         public void GIVEN_a_party_too_small_to_spare_a_quarter_WHEN_the_loan_is_computed_THEN_it_lends_nothing(int size)
         {
-            TierTroopCounts loan = CouncilTroopLoanPolicy.ComputeLoan(new TierTroopCounts(size, 0, 0));
+            TierTroopCounts loan = CouncilTroopLoanPolicy.ComputeLoan(new TierTroopCounts {Low = size, Medium = 0, High = 0});
 
             loan.Total.Should().Be(0);
             loan.Low.Should().Be(0);
@@ -60,7 +60,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_an_empty_party_WHEN_the_loan_is_computed_THEN_it_lends_nothing()
         {
-            CouncilTroopLoanPolicy.ComputeLoan(new TierTroopCounts(0, 0, 0)).Total.Should().Be(0);
+            CouncilTroopLoanPolicy.ComputeLoan(new TierTroopCounts {Low = 0, Medium = 0, High = 0}).Total.Should().Be(0);
         }
 
         // Gabriel's condition C, the mix half: a party that fields medium troops too must not have them silently
@@ -69,7 +69,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_mostly_low_tier_party_with_a_thin_sliver_of_medium_WHEN_the_loan_is_computed_THEN_at_least_one_medium_troop_is_included()
         {
-            var party = new TierTroopCounts(100, 1, 0);
+            var party = new TierTroopCounts {Low = 100, Medium = 1, High = 0};
 
             TierTroopCounts loan = CouncilTroopLoanPolicy.ComputeLoan(party);
 
@@ -83,7 +83,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_mostly_low_tier_party_with_a_thin_sliver_of_high_tier_WHEN_the_loan_is_computed_THEN_at_least_one_high_tier_troop_is_included()
         {
-            var party = new TierTroopCounts(96, 2, 2);
+            var party = new TierTroopCounts {Low = 96, Medium = 2, High = 2};
 
             TierTroopCounts loan = CouncilTroopLoanPolicy.ComputeLoan(party);
 
@@ -97,7 +97,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         {
             // total 100, cap 25: 80 low / 15 medium / 5 high -> exact shares 20 / 3.75 / 1.25, remainder 1 goes
             // to medium (largest fractional remainder, .75 > .25).
-            var party = new TierTroopCounts(80, 15, 5);
+            var party = new TierTroopCounts {Low = 80, Medium = 15, High = 5};
 
             TierTroopCounts loan = CouncilTroopLoanPolicy.ComputeLoan(party);
 
@@ -113,7 +113,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_party_split_evenly_across_all_three_tiers_WHEN_the_loan_is_computed_THEN_the_loan_is_also_even()
         {
-            var party = new TierTroopCounts(4, 4, 4);
+            var party = new TierTroopCounts {Low = 4, Medium = 4, High = 4};
 
             TierTroopCounts loan = CouncilTroopLoanPolicy.ComputeLoan(party);
 
@@ -127,7 +127,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_party_dominated_by_its_high_tier_WHEN_the_loan_is_computed_THEN_the_dominant_tier_is_represented()
         {
-            var party = new TierTroopCounts(1, 1, 40);
+            var party = new TierTroopCounts {Low = 1, Medium = 1, High = 40};
 
             TierTroopCounts loan = CouncilTroopLoanPolicy.ComputeLoan(party);
 
@@ -139,7 +139,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_party_with_only_one_tier_present_WHEN_the_loan_is_computed_THEN_it_lends_only_from_that_tier_up_to_the_cap()
         {
-            TierTroopCounts loan = CouncilTroopLoanPolicy.ComputeLoan(new TierTroopCounts(0, 40, 0));
+            TierTroopCounts loan = CouncilTroopLoanPolicy.ComputeLoan(new TierTroopCounts {Low = 0, Medium = 40, High = 0});
 
             loan.Low.Should().Be(0);
             loan.Medium.Should().Be(10);
@@ -151,7 +151,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_bucket_constructed_with_a_negative_count_WHEN_read_back_THEN_it_clamps_to_zero()
         {
-            var counts = new TierTroopCounts(-5, 10, -1);
+            var counts = new TierTroopCounts {Low = -5, Medium = 10, High = -1};
 
             counts.Low.Should().Be(0);
             counts.Medium.Should().Be(10);
@@ -173,7 +173,7 @@ namespace CalradiaRemembers.Tests.Assemblies
             foreach (int medium in sizes)
             foreach (int high in sizes)
             {
-                var party = new TierTroopCounts(low, medium, high);
+                var party = new TierTroopCounts {Low = low, Medium = medium, High = high};
                 TierTroopCounts loan = CouncilTroopLoanPolicy.ComputeLoan(party);
 
                 loan.Low.Should().BeLessThanOrEqualTo(party.Low);

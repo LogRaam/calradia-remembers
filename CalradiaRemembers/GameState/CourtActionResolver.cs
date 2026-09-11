@@ -418,11 +418,7 @@ namespace CalradiaRemembers.GameState
          int regard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(authorizer.StringId)?.ReputationWithPlayer
                       ?? authorizer.GetRelation(Hero.MainHero);
 
-         ArrangedMatchConsent consent = ArrangedMatchPolicy.Decide(new ArrangedMatchFacts(
-            targetIsOfAnotherClan: b.Clan != Clan.PlayerClan,
-            targetFamilyRegard: regard,
-            playerClanTier: Clan.PlayerClan?.Tier ?? 0,
-            targetClanTier: b.Clan?.Tier ?? 0));
+         ArrangedMatchConsent consent = ArrangedMatchPolicy.Decide(new ArrangedMatchFacts {TargetIsOfAnotherClan = b.Clan != Clan.PlayerClan, TargetFamilyRegard = regard, PlayerClanTier = Clan.PlayerClan?.Tier ?? 0, TargetClanTier = b.Clan?.Tier ?? 0});
 
          if (consent == ArrangedMatchConsent.NotCrossClan)
             return new ArrangeMarriageVerdict(ArrangeMarriageResult.NotCrossClan, a, b, null, null);

@@ -72,13 +72,7 @@ namespace CalradiaRemembers.Commoners
          Settlement settlement = Hero.MainHero?.CurrentSettlement;
          CharacterObject partner = Campaign.Current?.ConversationManager?.OneToOneConversationCharacter;
 
-         var context = new CommonerChatContext(
-            Hero.OneToOneConversationHero != null,
-            settlement != null && (settlement.IsTown || settlement.IsVillage || settlement.IsCastle),
-            partner != null,
-            partner?.Occupation.ToString(),
-            NpcMemoryCampaignBehavior.Instance?.LlmServices?.IsAvailable == true,
-            TownsfolkDependentQuestActive());
+         var context = new CommonerChatContext {IsHeroConversation = Hero.OneToOneConversationHero != null, IsCivilianSettlement = settlement != null && (settlement.IsTown || settlement.IsVillage || settlement.IsCastle), HasConversationPartner = partner != null, PartnerOccupation = partner?.Occupation.ToString(), LlmAvailable = NpcMemoryCampaignBehavior.Instance?.LlmServices?.IsAvailable == true, TownsfolkQuestActive = TownsfolkDependentQuestActive()};
 
          return context.ShouldOfferIdleChat();
       }

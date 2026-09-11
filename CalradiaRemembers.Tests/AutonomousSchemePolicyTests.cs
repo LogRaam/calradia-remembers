@@ -109,7 +109,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_bitter_rival_who_is_no_ones_kin_WHEN_checking_the_target_THEN_they_are_grounded()
       {
-         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", AutonomousSchemePolicy.RivalryThreshold, isKin: false, isPlayerSide: false, isFactionLeader: false))
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate {Id = "rival", Relation = AutonomousSchemePolicy.RivalryThreshold, IsKin = false, IsPlayerSide = false, IsFactionLeader = false})
                                .Should().BeTrue();
       }
 
@@ -119,9 +119,9 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_friend_or_a_neutral_lord_WHEN_checking_the_target_THEN_they_are_never_grounded()
       {
-         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", 40, isKin: false, isPlayerSide: false, isFactionLeader: false)).Should().BeFalse();
-         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", 0, isKin: false, isPlayerSide: false, isFactionLeader: false)).Should().BeFalse();
-         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", AutonomousSchemePolicy.RivalryThreshold + 1, isKin: false, isPlayerSide: false, isFactionLeader: false)).Should().BeFalse();
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate {Id = "rival", Relation = 40, IsKin = false, IsPlayerSide = false, IsFactionLeader = false}).Should().BeFalse();
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate {Id = "rival", Relation = 0, IsKin = false, IsPlayerSide = false, IsFactionLeader = false}).Should().BeFalse();
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate {Id = "rival", Relation = AutonomousSchemePolicy.RivalryThreshold + 1, IsKin = false, IsPlayerSide = false, IsFactionLeader = false}).Should().BeFalse();
       }
 
       // Close kin are never a target no matter how bitter the relation: nobody autonomously plots against their own
@@ -130,7 +130,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_close_kin_however_hated_WHEN_checking_the_target_THEN_they_are_never_grounded()
       {
-         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", -80, isKin: true, isPlayerSide: false, isFactionLeader: false)).Should().BeFalse();
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate {Id = "rival", Relation = -80, IsKin = true, IsPlayerSide = false, IsFactionLeader = false}).Should().BeFalse();
       }
 
       // The player and the player's clan are never the VICTIM of an autonomous plot: hostility toward the player is
@@ -139,7 +139,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_player_side_however_hated_WHEN_checking_the_target_THEN_they_are_never_grounded()
       {
-         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", -80, isKin: false, isPlayerSide: true, isFactionLeader: false)).Should().BeFalse();
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate {Id = "rival", Relation = -80, IsKin = false, IsPlayerSide = true, IsFactionLeader = false}).Should().BeFalse();
       }
 
       // A faction leader is never a target: moving against a ruler is a war-scale act reserved for the leader-only
@@ -148,7 +148,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_faction_leader_however_hated_WHEN_checking_the_target_THEN_they_are_never_grounded()
       {
-         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", -80, isKin: false, isPlayerSide: false, isFactionLeader: true)).Should().BeFalse();
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate {Id = "rival", Relation = -80, IsKin = false, IsPlayerSide = false, IsFactionLeader = true}).Should().BeFalse();
       }
 
       // ── target selection ──────────────────────────────────────────────────
@@ -159,9 +159,9 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_several_rivals_WHEN_selecting_a_target_THEN_the_deepest_enmity_is_chosen()
       {
          var candidates = new List<AutonomousSchemePolicy.SchemeTargetCandidate> {
-            new("mild", -30, false, false, false),
-            new("worst", -70, false, false, false),
-            new("middling", -45, false, false, false)
+            new() {Id = "mild", Relation = -30, IsKin = false, IsPlayerSide = false, IsFactionLeader = false},
+            new() {Id = "worst", Relation = -70, IsKin = false, IsPlayerSide = false, IsFactionLeader = false},
+            new() {Id = "middling", Relation = -45, IsKin = false, IsPlayerSide = false, IsFactionLeader = false}
          };
 
          AutonomousSchemePolicy.SelectAutonomousTarget(candidates).Should().Be("worst");
@@ -174,10 +174,10 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_bitterest_candidates_are_all_excluded_WHEN_selecting_a_target_THEN_the_eligible_rival_is_chosen()
       {
          var candidates = new List<AutonomousSchemePolicy.SchemeTargetCandidate> {
-            new("player", -90, false, true, false),
-            new("kin", -85, true, false, false),
-            new("king", -80, false, false, true),
-            new("rival", -35, false, false, false)
+            new() {Id = "player", Relation = -90, IsKin = false, IsPlayerSide = true, IsFactionLeader = false},
+            new() {Id = "kin", Relation = -85, IsKin = true, IsPlayerSide = false, IsFactionLeader = false},
+            new() {Id = "king", Relation = -80, IsKin = false, IsPlayerSide = false, IsFactionLeader = true},
+            new() {Id = "rival", Relation = -35, IsKin = false, IsPlayerSide = false, IsFactionLeader = false}
          };
 
          AutonomousSchemePolicy.SelectAutonomousTarget(candidates).Should().Be("rival");
@@ -189,8 +189,8 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_no_genuine_rival_WHEN_selecting_a_target_THEN_nothing_is_chosen()
       {
          var candidates = new List<AutonomousSchemePolicy.SchemeTargetCandidate> {
-            new("friend", 25, false, false, false),
-            new("neutral", 0, false, false, false)
+            new() {Id = "friend", Relation = 25, IsKin = false, IsPlayerSide = false, IsFactionLeader = false},
+            new() {Id = "neutral", Relation = 0, IsKin = false, IsPlayerSide = false, IsFactionLeader = false}
          };
 
          AutonomousSchemePolicy.SelectAutonomousTarget(candidates).Should().BeNull();

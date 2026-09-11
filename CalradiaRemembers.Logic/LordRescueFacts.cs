@@ -22,78 +22,51 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public sealed class LordRescueFacts
     {
-        public LordRescueFacts(bool captivityWasExperienced = false,
-                               bool lordIsFreeToRide = false,
-                               bool withinRange = false,
-                               bool alreadyAttemptedThisCaptivity = false,
-                               bool captorIsBandit = false,
-                               bool sharesPlayerClan = false,
-                               bool hasRomanticBond = false,
-                               bool boundByOath = false,
-                               bool holdsGrudgeAgainstCaptor = false,
-                               int personalRegard = 0,
-                               int honor = 0,
-                               int mercy = 0)
-        {
-            CaptivityWasExperienced = captivityWasExperienced;
-            LordIsFreeToRide = lordIsFreeToRide;
-            WithinRange = withinRange;
-            AlreadyAttemptedThisCaptivity = alreadyAttemptedThisCaptivity;
-            CaptorIsBandit = captorIsBandit;
-            SharesPlayerClan = sharesPlayerClan;
-            HasRomanticBond = hasRomanticBond;
-            BoundByOath = boundByOath;
-            HoldsGrudgeAgainstCaptor = holdsGrudgeAgainstCaptor;
-            PersonalRegard = personalRegard;
-            Honor = honor;
-            Mercy = mercy;
-        }
-
         /// <summary>
         ///   The player has actually LIVED the captivity (its scene has played, or its equivalent has been
         ///   recorded). Gabriel's gate, and the reason it exists: a rescue that can fire immediately would
         ///   cancel the captivity instead of ending it, and being a prisoner would stop costing anything.
         /// </summary>
-        public bool CaptivityWasExperienced { get; }
+        public bool CaptivityWasExperienced { get; init; } = false;
 
         /// <summary>Alive, at liberty, and leading a party that can actually ride.</summary>
-        public bool LordIsFreeToRide { get; }
+        public bool LordIsFreeToRide { get; init; } = false;
 
         /// <summary>Close enough to plausibly reach the captors.</summary>
-        public bool WithinRange { get; }
+        public bool WithinRange { get; init; } = false;
 
         /// <summary>One attempt per capture, as the companion rescue already works. Rationing, not realism.</summary>
-        public bool AlreadyAttemptedThisCaptivity { get; }
+        public bool AlreadyAttemptedThisCaptivity { get; init; } = false;
 
         /// <summary>
         ///   The captors are a bandit band. Scope decision for the first increment: the engine forbids a
         ///   party attacking one it is not hostile to, so a LORD captor could only ever be assaulted where a
         ///   war already exists, which is a separate rule with separate consequences.
         /// </summary>
-        public bool CaptorIsBandit { get; }
+        public bool CaptorIsBandit { get; init; } = false;
 
         /// <summary>This lord belongs to the player's own clan: their own kin is in a cage.</summary>
-        public bool SharesPlayerClan { get; }
+        public bool SharesPlayerClan { get; init; } = false;
 
         /// <summary>Spouse, lover, or an acknowledged courtship.</summary>
-        public bool HasRomanticBond { get; }
+        public bool HasRomanticBond { get; init; } = false;
 
         /// <summary>One of them is sworn to the other's realm, in either direction.</summary>
-        public bool BoundByOath { get; }
+        public bool BoundByOath { get; init; } = false;
 
         /// <summary>
         ///   This lord already has a grievance against the party holding the player. He was arguably going to
         ///   ride at them anyway, and the rescue is the happy consequence rather than the motive.
         /// </summary>
-        public bool HoldsGrudgeAgainstCaptor { get; }
+        public bool HoldsGrudgeAgainstCaptor { get; init; } = false;
 
         /// <summary>The mod's OWN personal regard ledger, not the vanilla clan relation.</summary>
-        public int PersonalRegard { get; }
+        public int PersonalRegard { get; init; } = 0;
 
         /// <summary>Vanilla trait value, conventionally -2..2.</summary>
-        public int Honor { get; }
+        public int Honor { get; init; } = 0;
 
         /// <summary>Vanilla trait value, conventionally -2..2.</summary>
-        public int Mercy { get; }
+        public int Mercy { get; init; } = 0;
     }
 }

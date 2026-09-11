@@ -20,26 +20,17 @@ namespace CalradiaRemembers.Logic
     /// <summary>How a failed or abandoned quest is charged: whether it grudges, remembers a broken word, spends trust, and by how much regard.</summary>
     public sealed class QuestFailureLeniency
     {
-        /// <summary>Creates a leniency verdict.</summary>
-        public QuestFailureLeniency(bool plantGrudge, bool recordBrokenWordMemory, bool spendPromiseTrust, int regardPenalty)
-        {
-            PlantGrudge = plantGrudge;
-            RecordBrokenWordMemory = recordBrokenWordMemory;
-            SpendPromiseTrust = spendPromiseTrust;
-            RegardPenalty = regardPenalty;
-        }
-
         /// <summary>True to plant a resolvable FailedQuest grudge against the player (a lasting, known slight).</summary>
-        public bool PlantGrudge { get; }
+        public bool PlantGrudge { get; init; }
 
         /// <summary>True to record a "broken word" Conflict memory on the giver.</summary>
-        public bool RecordBrokenWordMemory { get; }
+        public bool RecordBrokenWordMemory { get; init; }
 
         /// <summary>True to spend promise-trust via the stance system (a broken promise). False when failing an unfindable target is not a broken promise.</summary>
-        public bool SpendPromiseTrust { get; }
+        public bool SpendPromiseTrust { get; init; }
 
         /// <summary>The personal-regard hit to apply (magnitude, the caller negates it).</summary>
-        public int RegardPenalty { get; }
+        public int RegardPenalty { get; init; }
     }
 
     /// <summary>Decides the leniency of a quest failure by kind: hard-to-find bandit deeds are forgiven, all else keeps full consequence.</summary>
@@ -68,9 +59,9 @@ namespace CalradiaRemembers.Logic
         public static QuestFailureLeniency Resolve(QuestType type, int defaultRegardPenalty)
         {
             if (IsHardToFindTarget(type))
-                return new QuestFailureLeniency(false, false, false, BanditFailureRegardPenalty);
+                return new QuestFailureLeniency {PlantGrudge = false, RecordBrokenWordMemory = false, SpendPromiseTrust = false, RegardPenalty = BanditFailureRegardPenalty};
 
-            return new QuestFailureLeniency(true, true, true, defaultRegardPenalty);
+            return new QuestFailureLeniency {PlantGrudge = true, RecordBrokenWordMemory = true, SpendPromiseTrust = true, RegardPenalty = defaultRegardPenalty};
         }
     }
 }

@@ -20,7 +20,7 @@ namespace CalradiaRemembers.Tests.Battles
     public sealed class CombatProwessPolicyTests
     {
         private static CombatantFacts Fighter(int weapon, int level = 10, int clanTier = 1, int riding = 0, int athletics = 0)
-            => new CombatantFacts(weapon, riding, athletics, level, clanTier);
+            => new CombatantFacts {BestWeaponSkill = weapon, Riding = riding, Athletics = athletics, Level = level, ClanTier = clanTier};
 
         // Weapon skill dominates, mobility counts for less, and a level still adds something: a veteran of equal
         // weapon skill must read as the harder fight, or an experienced lord would rate the same as a green one.

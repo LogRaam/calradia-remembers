@@ -274,7 +274,10 @@ namespace CalradiaRemembers.Chat
             targetHint = QuestGroundingCodec.Compose(proposal.QuestType, proposal.TargetSettlement);
          else
             targetHint = proposal.TargetSettlement;
-         AssemblyResolutionEntry entry = _councilLedger.Propose(id, proposal.Type, heroId, "Council pledge", proposal.Detail, _playerTurnsThisSession, targetHint);
+         AssemblyResolutionEntry entry = _councilLedger.Propose(new AssemblyResolutionEntry {
+            Id = id, Kind = proposal.Type, TargetHeroId = heroId, Label = "Council pledge",
+            Detail = proposal.Detail, Turn = _playerTurnsThisSession, TargetHint = targetHint
+         });
 
          if (entry == null)
          {

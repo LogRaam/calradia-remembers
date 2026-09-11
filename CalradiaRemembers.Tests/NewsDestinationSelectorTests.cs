@@ -109,7 +109,7 @@ namespace CalradiaRemembers.Tests
 
       #region private
 
-      private static NewsDestinationCandidate Town(string name, string faction, string culture) => new(name, faction, culture);
+      private static NewsDestinationCandidate Town(string name, string faction, string culture) => new() {SettlementName = name, FactionName = faction, CultureName = culture};
 
       #endregion
    }

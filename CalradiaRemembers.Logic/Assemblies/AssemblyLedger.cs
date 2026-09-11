@@ -69,22 +69,22 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   the roster panel. A refused proposal returns null; the caller must NOT proceed as if it recorded.
         ///   <paramref name="targetHint" /> (m2) is set here rather than after the fact, so an executor can
         ///   never read a half-built entry whose grounding the caller forgot to attach.
+        ///   <para>
+        ///     Takes the motion rather than its seven parts (2026-09-10). FIVE STRINGS in a row, an id, a kind,
+        ///     a hero id, a label and a detail, all free text and all interchangeable to the compiler: put the
+        ///     label where the id belongs and the motion is filed under a sentence, which Find/Agree/Reverse
+        ///     then never reach while it still shows in the roster panel, the exact failure the id guard on the
+        ///     next line exists to prevent. It builds no entry of its own any more either: the caller was
+        ///     handing over the fields of an AssemblyResolutionEntry, so it hands over the entry, and this
+        ///     method does the one thing that is actually its own, stamping it Proposed.
+        ///   </para>
         /// </summary>
-        public AssemblyResolutionEntry Propose(string id, string kind, string targetHeroId, string label, string detail, int turn, string targetHint = null)
+        public AssemblyResolutionEntry Propose(AssemblyResolutionEntry motion)
         {
-            if (string.IsNullOrWhiteSpace(id) || Find(id) != null) return null;
+            if (motion == null || string.IsNullOrWhiteSpace(motion.Id) || Find(motion.Id) != null) return null;
 
-            var entry = new AssemblyResolutionEntry
-            {
-                Id = id,
-                Kind = kind,
-                TargetHeroId = targetHeroId,
-                Label = label,
-                Detail = detail,
-                TargetHint = targetHint,
-                Status = ResolutionStatus.Proposed,
-                Turn = turn
-            };
+            AssemblyResolutionEntry entry = motion;
+            entry.Status = ResolutionStatus.Proposed;
             Entries.Add(entry);
             return entry;
         }

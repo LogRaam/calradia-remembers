@@ -28,7 +28,7 @@ namespace CalradiaRemembers.Tests
       {
          var transcript = new ConversationTranscript();
 
-         transcript.Record(false, "Derthert", "lord_derthert", "You may rise.");
+         transcript.Record(new TranscriptLine {IsPlayer = false, SpeakerName = "Derthert", SpeakerHeroId = "lord_derthert", Text = "You may rise."});
 
          transcript.Count.Should().Be(1);
          transcript.Lines[0].IsPlayer.Should().BeFalse();
@@ -49,7 +49,7 @@ namespace CalradiaRemembers.Tests
       {
          var transcript = new ConversationTranscript();
 
-         transcript.Record(false, "Derthert", "lord_derthert", text);
+         transcript.Record(new TranscriptLine {IsPlayer = false, SpeakerName = "Derthert", SpeakerHeroId = "lord_derthert", Text = text});
 
          transcript.Count.Should().Be(0);
       }
@@ -61,7 +61,7 @@ namespace CalradiaRemembers.Tests
       {
          var transcript = new ConversationTranscript();
 
-         transcript.Record(false, "Derthert", "lord_derthert", "He circles the prisoner slowly.", true);
+         transcript.Record(new TranscriptLine {IsPlayer = false, SpeakerName = "Derthert", SpeakerHeroId = "lord_derthert", Text = "He circles the prisoner slowly.", IsNarration = true});
 
          transcript.Lines[0].IsNarration.Should().BeTrue();
       }
@@ -126,11 +126,11 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_folded_summary_WHEN_composing_THEN_the_recap_leads_and_only_recent_lines_follow_raw()
       {
          var t = new ConversationTranscript();
-         t.Record(true, "You", "player", "one");
-         t.Record(false, "Derthert", "lord_derthert", "two");
-         t.Record(false, "Derthert", "lord_derthert", "three");
-         t.Record(true, "You", "player", "four");
-         t.Record(false, "Derthert", "lord_derthert", "five");
+         t.Record(new TranscriptLine {IsPlayer = true, SpeakerName = "You", SpeakerHeroId = "player", Text = "one"});
+         t.Record(new TranscriptLine {IsPlayer = false, SpeakerName = "Derthert", SpeakerHeroId = "lord_derthert", Text = "two"});
+         t.Record(new TranscriptLine {IsPlayer = false, SpeakerName = "Derthert", SpeakerHeroId = "lord_derthert", Text = "three"});
+         t.Record(new TranscriptLine {IsPlayer = true, SpeakerName = "You", SpeakerHeroId = "player", Text = "four"});
+         t.Record(new TranscriptLine {IsPlayer = false, SpeakerName = "Derthert", SpeakerHeroId = "lord_derthert", Text = "five"});
 
          t.ApplySummary("They spoke of the war.", 3); // lines [0,3) folded away
 
@@ -226,9 +226,9 @@ namespace CalradiaRemembers.Tests
       private static ConversationTranscript Exchange()
       {
          var transcript = new ConversationTranscript();
-         transcript.Record(true, "You", "player", "Are you with me?");
-         transcript.Record(false, "Derthert", "lord_derthert", "I am.");
-         transcript.Record(false, "Olaf", "lord_olaf", "And I.");
+         transcript.Record(new TranscriptLine {IsPlayer = true, SpeakerName = "You", SpeakerHeroId = "player", Text = "Are you with me?"});
+         transcript.Record(new TranscriptLine {IsPlayer = false, SpeakerName = "Derthert", SpeakerHeroId = "lord_derthert", Text = "I am."});
+         transcript.Record(new TranscriptLine {IsPlayer = false, SpeakerName = "Olaf", SpeakerHeroId = "lord_olaf", Text = "And I."});
 
          return transcript;
       }

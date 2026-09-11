@@ -27,24 +27,17 @@ namespace CalradiaRemembers.Logic.Items
     public readonly struct GiftCandidate
     {
         /// <summary>The item's engine StringId, so the caller can re-look it up in the live roster.</summary>
-        public string Id { get; }
+        public string Id { get; init; }
 
         /// <summary>The item's display name, matched against tiers a (exact) and b (token/substring).</summary>
-        public string Name { get; }
+        public string Name { get; init; }
 
         /// <summary>A normalized category token (lower-case), matched against tier c's synonym map. May be null/empty.</summary>
-        public string Category { get; }
+        public string Category { get; init; }
 
         /// <summary>The item's base value: the tie-break for tiers b and c (see <see cref="GiftNameResolver" />).</summary>
-        public int Value { get; }
+        public int Value { get; init; }
 
-        public GiftCandidate(string id, string name, string category, int value)
-        {
-            Id = id;
-            Name = name;
-            Category = category;
-            Value = value;
-        }
     }
 
     /// <summary>

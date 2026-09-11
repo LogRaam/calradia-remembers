@@ -261,18 +261,7 @@ namespace CalradiaRemembers.Assemblies
          bool isPartyMember = hero.PartyBelongedTo == MobileParty.MainParty && hero != player
                             && CouncilRosterPolicy.IsOldEnoughToSit((int) hero.Age);
 
-         return new CouncilMembershipFacts(
-            hero.IsAlive,
-            hero.IsPrisoner,
-            hero.PartyBelongedTo?.MapEvent != null,
-            hero.IsPlayerCompanion,
-            isFamily,
-            clan != null && hero.Clan == clan && hero.IsLord && hero != player && CouncilRosterPolicy.IsOldEnoughToSit((int) hero.Age),
-            hero.PartyBelongedTo?.Army != null,
-            CompanionMissionBehavior.Instance?.IsAway(hero.StringId) ?? false,
-            isAlliedLeader,
-            isParleyCounterpart,
-            isPartyMember);
+         return new CouncilMembershipFacts {IsAlive = hero.IsAlive, IsPrisoner = hero.IsPrisoner, IsInBattle = hero.PartyBelongedTo?.MapEvent != null, IsCompanion = hero.IsPlayerCompanion, IsImmediateFamily = isFamily, IsClanLord = clan != null && hero.Clan == clan && hero.IsLord && hero != player && CouncilRosterPolicy.IsOldEnoughToSit((int) hero.Age), IsInArmy = hero.PartyBelongedTo?.Army != null, IsOnMission = CompanionMissionBehavior.Instance?.IsAway(hero.StringId) ?? false, IsAlliedLeader = isAlliedLeader, IsParleyCounterpart = isParleyCounterpart, IsPartyMember = isPartyMember};
       }
 
       #endregion

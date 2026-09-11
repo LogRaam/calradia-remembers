@@ -32,30 +32,17 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public readonly struct ArrangedMatchFacts
     {
-        /// <summary>Creates the fact set the policy decides against.</summary>
-        public ArrangedMatchFacts(
-            bool targetIsOfAnotherClan,
-            int targetFamilyRegard,
-            int playerClanTier,
-            int targetClanTier)
-        {
-            TargetIsOfAnotherClan = targetIsOfAnotherClan;
-            TargetFamilyRegard = targetFamilyRegard;
-            PlayerClanTier = playerClanTier;
-            TargetClanTier = targetClanTier;
-        }
-
         /// <summary>True when the noble being married in is NOT of the player's own clan.</summary>
-        public bool TargetIsOfAnotherClan { get; }
+        public bool TargetIsOfAnotherClan { get; init; }
 
         /// <summary>The target clan head's PERSONAL regard for the player (CR's own ledger).</summary>
-        public int TargetFamilyRegard { get; }
+        public int TargetFamilyRegard { get; init; }
 
         /// <summary>The player's clan tier.</summary>
-        public int PlayerClanTier { get; }
+        public int PlayerClanTier { get; init; }
 
         /// <summary>The target noble's clan tier.</summary>
-        public int TargetClanTier { get; }
+        public int TargetClanTier { get; init; }
     }
 
     /// <summary>

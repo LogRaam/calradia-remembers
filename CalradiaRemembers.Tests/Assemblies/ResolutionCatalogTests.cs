@@ -701,7 +701,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_give_hostage_fact_is_false_WHEN_asking_what_is_offered_THEN_it_is_withheld()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedHostageEligibleRelativeAvailable: false);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts)
                 .Should().NotContain("give_hostage");
@@ -710,7 +710,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_give_hostage_fact_is_true_WHEN_asking_what_is_offered_THEN_it_is_included()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedHostageEligibleRelativeAvailable: true);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false, AnySeatedHostageEligibleRelativeAvailable = true};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts)
                 .Should().Contain("give_hostage");
@@ -721,7 +721,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_give_hostage_fact_is_true_but_the_scope_is_clan_lords_WHEN_asking_what_is_offered_THEN_it_is_still_withheld()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedHostageEligibleRelativeAvailable: true);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false, AnySeatedHostageEligibleRelativeAvailable = true};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
                 .Should().NotContain("give_hostage");
@@ -862,7 +862,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_swear_oath_fact_is_false_WHEN_asking_what_is_offered_THEN_it_is_withheld()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedMemberCanSwearOath: false);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
                 .Should().NotContain("swear_oath");
@@ -871,7 +871,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_swear_oath_fact_is_true_WHEN_asking_what_is_offered_THEN_it_is_included()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedMemberCanSwearOath: true);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false, AnySeatedMemberCanSwearOath = true};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
                 .Should().Contain("swear_oath");
@@ -882,7 +882,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_swear_oath_fact_is_true_but_the_scope_is_companions_WHEN_asking_what_is_offered_THEN_it_is_still_withheld()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedMemberCanSwearOath: true);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false, AnySeatedMemberCanSwearOath = true};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts)
                 .Should().NotContain("swear_oath");
@@ -937,7 +937,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_non_aggression_pact_fact_is_false_WHEN_asking_what_is_offered_THEN_it_is_withheld()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedPactPartnerAvailable: false);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts)
                 .Should().NotContain("non_aggression_pact");
@@ -946,7 +946,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_non_aggression_pact_fact_is_true_WHEN_asking_what_is_offered_THEN_it_is_included()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedPactPartnerAvailable: true);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false, AnySeatedPactPartnerAvailable = true};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Parley, facts)
                 .Should().Contain("non_aggression_pact");
@@ -958,7 +958,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_non_aggression_pact_fact_is_true_but_the_scope_is_war_council_WHEN_asking_what_is_offered_THEN_it_is_still_withheld()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedPactPartnerAvailable: true);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false, AnySeatedPactPartnerAvailable = true};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts)
                 .Should().NotContain("non_aggression_pact");
@@ -1016,7 +1016,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_sponsor_ward_fact_is_false_WHEN_asking_what_is_offered_THEN_it_is_withheld()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedMemberCanSponsorWard: false);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
                 .Should().NotContain("sponsor_ward");
@@ -1027,7 +1027,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_sponsor_ward_fact_is_true_WHEN_asking_what_is_offered_THEN_it_is_included()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedMemberCanSponsorWard: true);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false, AnySeatedMemberCanSponsorWard = true};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
                 .Should().Contain("sponsor_ward");
@@ -1041,7 +1041,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_sponsor_ward_fact_is_true_but_the_scope_is_companions_war_council_or_parley_WHEN_asking_what_is_offered_THEN_it_is_still_withheld()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedMemberCanSponsorWard: true);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false, AnySeatedMemberCanSponsorWard = true};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("sponsor_ward");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.WarCouncil, facts).Should().NotContain("sponsor_ward");
@@ -1098,7 +1098,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_give_item_fact_is_false_WHEN_asking_what_is_offered_THEN_it_is_withheld()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedLordHasGiveableItem: false);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
                 .Should().NotContain("give_item");
@@ -1109,7 +1109,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_give_item_fact_is_true_WHEN_asking_what_is_offered_THEN_it_is_included()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedLordHasGiveableItem: true);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false, AnySeatedLordHasGiveableItem = true};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.ClanLords, facts)
                 .Should().Contain("give_item");
@@ -1123,7 +1123,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_give_item_fact_is_true_but_the_scope_is_companions_family_or_parley_WHEN_asking_what_is_offered_THEN_it_is_still_withheld()
         {
-            var facts = new ResolutionWorldFacts(false, false, false, false, false, anySeatedLordHasGiveableItem: true);
+            var facts = new ResolutionWorldFacts {TargetInPlayerParty = false, TargetAvailable = false, PlayerHasVacantFief = false, PlayerCanAffordStipend = false, MissionAvailable = false, AnySeatedLordHasGiveableItem = true};
 
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Companions, facts).Should().NotContain("give_item");
             ResolutionEligibilityPolicy.OfferedExecutableKeysForScope(CouncilScope.Family, facts).Should().NotContain("give_item");

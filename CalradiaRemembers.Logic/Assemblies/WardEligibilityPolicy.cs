@@ -16,24 +16,16 @@ namespace CalradiaRemembers.Logic.Assemblies
     /// <summary>The flattened facts about one candidate companion needed to judge them ward-eligible.</summary>
     public readonly struct WardCandidateFacts
     {
-        public WardCandidateFacts(bool isAlive, bool isFree, bool isYoungAdult, bool isAlreadySponsored)
-        {
-            IsAlive = isAlive;
-            IsFree = isFree;
-            IsYoungAdult = isYoungAdult;
-            IsAlreadySponsored = isAlreadySponsored;
-        }
-
-        public bool IsAlive { get; }
+        public bool IsAlive { get; init; }
 
         /// <summary>Not held prisoner (by anyone) or otherwise unfree.</summary>
-        public bool IsFree { get; }
+        public bool IsFree { get; init; }
 
         /// <summary>Within WardPolicy's own ["MinAge", "MaxAge"] band: this task's own "young companion" gate.</summary>
-        public bool IsYoungAdult { get; }
+        public bool IsYoungAdult { get; init; }
 
         /// <summary>Already the protege of a live bond (CouncilWardBehavior.IsProtege): COUNCIL_ACTIONS.md's own "un protege n'a qu'un mentor a la fois".</summary>
-        public bool IsAlreadySponsored { get; }
+        public bool IsAlreadySponsored { get; init; }
     }
 
     /// <summary>Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward.</summary>

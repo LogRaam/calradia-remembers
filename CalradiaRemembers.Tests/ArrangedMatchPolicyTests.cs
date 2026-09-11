@@ -29,9 +29,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_the_target_is_of_the_players_own_clan_WHEN_deciding_THEN_it_is_not_cross_clan()
         {
             //Arrange — high regard and a big tier advantage, but the target is not another clan's noble.
-            var facts = new ArrangedMatchFacts(
-                targetIsOfAnotherClan: false, targetFamilyRegard: 90,
-                playerClanTier: 6, targetClanTier: 1);
+            var facts = new ArrangedMatchFacts {TargetIsOfAnotherClan = false, TargetFamilyRegard = 90, PlayerClanTier = 6, TargetClanTier = 1};
 
             ArrangedMatchPolicy.Decide(facts).Should().Be(ArrangedMatchConsent.NotCrossClan);
         }
@@ -42,9 +40,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_regard_at_or_above_the_threshold_WHEN_deciding_THEN_the_family_agrees()
         {
             //Arrange — high regard, but the player's clan is the lower tier.
-            var facts = new ArrangedMatchFacts(
-                targetIsOfAnotherClan: true, targetFamilyRegard: 50,
-                playerClanTier: 2, targetClanTier: 5);
+            var facts = new ArrangedMatchFacts {TargetIsOfAnotherClan = true, TargetFamilyRegard = 50, PlayerClanTier = 2, TargetClanTier = 5};
 
             ArrangedMatchPolicy.Decide(facts).Should().Be(ArrangedMatchConsent.Agreed);
         }
@@ -55,9 +51,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_low_regard_but_the_players_clan_outranks_the_target_WHEN_deciding_THEN_the_family_agrees()
         {
             //Arrange — cool regard, but the player's clan is strictly the higher tier.
-            var facts = new ArrangedMatchFacts(
-                targetIsOfAnotherClan: true, targetFamilyRegard: 5,
-                playerClanTier: 4, targetClanTier: 1);
+            var facts = new ArrangedMatchFacts {TargetIsOfAnotherClan = true, TargetFamilyRegard = 5, PlayerClanTier = 4, TargetClanTier = 1};
 
             ArrangedMatchPolicy.Decide(facts).Should().Be(ArrangedMatchConsent.Agreed);
         }
@@ -68,9 +62,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_low_regard_and_no_tier_advantage_WHEN_deciding_THEN_the_family_refuses()
         {
             //Arrange — cool regard and the player's clan is not the stronger house.
-            var facts = new ArrangedMatchFacts(
-                targetIsOfAnotherClan: true, targetFamilyRegard: 5,
-                playerClanTier: 2, targetClanTier: 3);
+            var facts = new ArrangedMatchFacts {TargetIsOfAnotherClan = true, TargetFamilyRegard = 5, PlayerClanTier = 2, TargetClanTier = 3};
 
             ArrangedMatchPolicy.Decide(facts).Should().Be(ArrangedMatchConsent.RefusedStanding);
         }
@@ -81,9 +73,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_regard_exactly_at_the_threshold_WHEN_deciding_THEN_the_family_agrees()
         {
             //Arrange — regard exactly at ConsentRegardThreshold, no tier advantage.
-            var facts = new ArrangedMatchFacts(
-                targetIsOfAnotherClan: true, targetFamilyRegard: ArrangedMatchPolicy.ConsentRegardThreshold,
-                playerClanTier: 3, targetClanTier: 3);
+            var facts = new ArrangedMatchFacts {TargetIsOfAnotherClan = true, TargetFamilyRegard = ArrangedMatchPolicy.ConsentRegardThreshold, PlayerClanTier = 3, TargetClanTier = 3};
 
             ArrangedMatchPolicy.Decide(facts).Should().Be(ArrangedMatchConsent.Agreed);
         }
@@ -94,10 +84,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_regard_one_below_the_threshold_and_no_tier_advantage_WHEN_deciding_THEN_the_family_refuses()
         {
             //Arrange — one below ConsentRegardThreshold, no tier advantage.
-            var facts = new ArrangedMatchFacts(
-                targetIsOfAnotherClan: true,
-                targetFamilyRegard: ArrangedMatchPolicy.ConsentRegardThreshold - 1,
-                playerClanTier: 3, targetClanTier: 3);
+            var facts = new ArrangedMatchFacts {TargetIsOfAnotherClan = true, TargetFamilyRegard = ArrangedMatchPolicy.ConsentRegardThreshold - 1, PlayerClanTier = 3, TargetClanTier = 3};
 
             ArrangedMatchPolicy.Decide(facts).Should().Be(ArrangedMatchConsent.RefusedStanding);
         }
@@ -108,9 +95,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_equal_clan_tiers_and_low_regard_WHEN_deciding_THEN_the_family_refuses()
         {
             //Arrange — equal tiers, cool regard.
-            var facts = new ArrangedMatchFacts(
-                targetIsOfAnotherClan: true, targetFamilyRegard: 10,
-                playerClanTier: 3, targetClanTier: 3);
+            var facts = new ArrangedMatchFacts {TargetIsOfAnotherClan = true, TargetFamilyRegard = 10, PlayerClanTier = 3, TargetClanTier = 3};
 
             ArrangedMatchPolicy.Decide(facts).Should().Be(ArrangedMatchConsent.RefusedStanding);
         }

@@ -12,6 +12,7 @@
 
 using System;
 using System.Collections.Generic;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.WorldAlmanac;
 using FluentAssertions;
 using NUnit.Framework;
@@ -32,7 +33,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_no_anchors_WHEN_building_THEN_the_grid_is_all_transparent()
         {
             uint[,] grid = PoliticalMapPolicy.BuildColorGrid(
-                new List<PoliticalMapAnchor>(), new PoliticalMapBounds(0f, 10f, 0f, 10f), 4, 4, null);
+                new List<PoliticalMapAnchor>(), new PoliticalMapBounds {MinX = 0f, MaxX = 10f, MinY = 0f, MaxY = 10f}, 4, 4, null);
 
             for (var c = 0; c < 4; c++)
                 for (var r = 0; r < 4; r++)
@@ -45,7 +46,7 @@ namespace CalradiaRemembers.Tests
         {
             var anchors = new List<PoliticalMapAnchor> {new PoliticalMapAnchor(5f, 5f, Red)};
 
-            uint[,] grid = PoliticalMapPolicy.BuildColorGrid(anchors, new PoliticalMapBounds(0f, 10f, 0f, 10f), 4, 4, null);
+            uint[,] grid = PoliticalMapPolicy.BuildColorGrid(anchors, new PoliticalMapBounds {MinX = 0f, MaxX = 10f, MinY = 0f, MaxY = 10f}, 4, 4, null);
 
             for (var c = 0; c < 4; c++)
                 for (var r = 0; r < 4; r++)
@@ -64,7 +65,7 @@ namespace CalradiaRemembers.Tests
             };
 
             // 11 columns across x = 0..10, one row: columns left of centre are nearer Red, right nearer Blue.
-            uint[,] grid = PoliticalMapPolicy.BuildColorGrid(anchors, new PoliticalMapBounds(0f, 10f, 0f, 0f), 11, 1, null);
+            uint[,] grid = PoliticalMapPolicy.BuildColorGrid(anchors, new PoliticalMapBounds {MinX = 0f, MaxX = 10f, MinY = 0f, MaxY = 0f}, 11, 1, null);
 
             grid[0, 0].Should().Be(Red);
             grid[2, 0].Should().Be(Red);
@@ -80,7 +81,7 @@ namespace CalradiaRemembers.Tests
             var anchors = new List<PoliticalMapAnchor> {new PoliticalMapAnchor(5f, 0f, Red)};
             Func<float, float, bool> isWater = (x, y) => x < 3f; // the western edge is sea
 
-            uint[,] grid = PoliticalMapPolicy.BuildColorGrid(anchors, new PoliticalMapBounds(0f, 9f, 0f, 0f), 10, 1, isWater);
+            uint[,] grid = PoliticalMapPolicy.BuildColorGrid(anchors, new PoliticalMapBounds {MinX = 0f, MaxX = 9f, MinY = 0f, MaxY = 0f}, 10, 1, isWater);
 
             grid[0, 0].Should().Be(PoliticalMapPolicy.NoTerritory); // x = 0, sea
             grid[9, 0].Should().Be(Red);                            // x = 9, land nearest Red
@@ -117,7 +118,7 @@ namespace CalradiaRemembers.Tests
             };
 
             // 3 columns across x = 0..2; the middle column at x = 1 is exactly equidistant from both.
-            uint[,] grid = PoliticalMapPolicy.BuildColorGrid(anchors, new PoliticalMapBounds(0f, 2f, 0f, 0f), 3, 1, null);
+            uint[,] grid = PoliticalMapPolicy.BuildColorGrid(anchors, new PoliticalMapBounds {MinX = 0f, MaxX = 2f, MinY = 0f, MaxY = 0f}, 3, 1, null);
 
             grid[1, 0].Should().Be(Red); // the first anchor, deterministically
         }
@@ -130,7 +131,7 @@ namespace CalradiaRemembers.Tests
             var anchors = new List<PoliticalMapAnchor> {new PoliticalMapAnchor(1f, 1f, Red)};
 
             uint[,] grid = null;
-            Action act = () => grid = PoliticalMapPolicy.BuildColorGrid(anchors, new PoliticalMapBounds(0f, 2f, 0f, 2f), 0, 4, null);
+            Action act = () => grid = PoliticalMapPolicy.BuildColorGrid(anchors, new PoliticalMapBounds {MinX = 0f, MaxX = 2f, MinY = 0f, MaxY = 2f}, 0, 4, null);
 
             act.Should().NotThrow();
             grid.Length.Should().Be(0);
@@ -141,11 +142,13 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_bounds_WHEN_mapping_cells_to_world_THEN_the_corners_and_centre_land_where_expected()
         {
-            var bounds = new PoliticalMapBounds(0f, 100f, 0f, 50f);
+            var bounds = new PoliticalMapBounds {MinX = 0f, MaxX = 100f, MinY = 0f, MaxY = 50f};
 
-            bounds.CellToWorld(0, 0, 11, 6, out float x0, out float y0);
-            bounds.CellToWorld(10, 5, 11, 6, out float x1, out float y1);
-            bounds.CellToWorld(5, 0, 11, 6, out float xMid, out float _);
+            MapPoint x0_y0 = bounds.CellToWorld(new PoliticalMapBounds.GridSample {Col = 0, Row = 0, Width = 11, Height = 6});
+            float x0 = x0_y0.X, y0 = x0_y0.Y;
+            MapPoint x1_y1 = bounds.CellToWorld(new PoliticalMapBounds.GridSample {Col = 10, Row = 5, Width = 11, Height = 6});
+            float x1 = x1_y1.X, y1 = x1_y1.Y;
+            float xMid = bounds.CellToWorld(new PoliticalMapBounds.GridSample {Col = 5, Row = 0, Width = 11, Height = 6}).X;
 
             x0.Should().Be(0f);
             y0.Should().Be(0f);
@@ -154,7 +157,7 @@ namespace CalradiaRemembers.Tests
             xMid.Should().Be(50f);
 
             // A single-column axis samples the min edge instead of dividing by (width - 1) = 0.
-            bounds.CellToWorld(0, 0, 1, 6, out float xSingle, out float _);
+            float xSingle = bounds.CellToWorld(new PoliticalMapBounds.GridSample {Col = 0, Row = 0, Width = 1, Height = 6}).X;
             xSingle.Should().Be(0f);
         }
     }

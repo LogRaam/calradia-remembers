@@ -27,7 +27,7 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                      bool alliedLeader = false,
                                                      bool parleyCounterpart = false,
                                                      bool partyMember = false)
-            => new CouncilMembershipFacts(alive, prisoner, inBattle, companion, family, clanLord, inArmy, onMission, alliedLeader, parleyCounterpart, partyMember);
+            => new CouncilMembershipFacts {IsAlive = alive, IsPrisoner = prisoner, IsInBattle = inBattle, IsCompanion = companion, IsImmediateFamily = family, IsClanLord = clanLord, IsInArmy = inArmy, IsOnMission = onMission, IsAlliedLeader = alliedLeader, IsParleyCounterpart = parleyCounterpart, IsPartyMember = partyMember};
 
         // The straight case: a companion is seated at a companions' council. If this failed the right-hand roster
         // would be empty and the player would have no one to address.

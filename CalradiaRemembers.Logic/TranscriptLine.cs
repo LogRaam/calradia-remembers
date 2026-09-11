@@ -11,22 +11,13 @@ namespace CalradiaRemembers.Logic
     /// <summary>One attributed line of conversation history, as it was recorded.</summary>
     public sealed class TranscriptLine
     {
-        public TranscriptLine(bool isPlayer, string speakerHeroId, string speakerName, string text, bool isNarration = false)
-        {
-            IsPlayer = isPlayer;
-            SpeakerHeroId = speakerHeroId;
-            SpeakerName = speakerName;
-            Text = text;
-            IsNarration = isNarration;
-        }
-
-        public bool IsPlayer { get; }
+        public bool IsPlayer { get; init; }
 
         /// <summary>A [NARRATION] block rather than a spoken line.</summary>
-        public bool IsNarration { get; }
+        public bool IsNarration { get; init; } = false;
 
-        public string SpeakerHeroId { get; }
-        public string SpeakerName { get; }
-        public string Text { get; }
+        public string SpeakerHeroId { get; init; }
+        public string SpeakerName { get; init; }
+        public string Text { get; init; }
     }
 }

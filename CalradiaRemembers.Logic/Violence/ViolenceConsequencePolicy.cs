@@ -19,29 +19,20 @@ namespace CalradiaRemembers.Logic.Violence
     /// <summary>What one act of violence costs the player: with the law, with the victim, with their kin, and with the player's own name.</summary>
     public sealed class ViolenceConsequence
     {
-        public ViolenceConsequence(int crimeRating, int relationHit, int renownLoss, int kinGrudgeMagnitude, int rumorMagnitude)
-        {
-            CrimeRating = crimeRating;
-            RelationHit = relationHit;
-            RenownLoss = renownLoss;
-            KinGrudgeMagnitude = kinGrudgeMagnitude;
-            RumorMagnitude = rumorMagnitude;
-        }
-
         /// <summary>Crime the victim's realm charges the player with (the engine's own MainHeroCrimeRating, which drives guards and bounties).</summary>
-        public int CrimeRating { get; }
+        public int CrimeRating { get; init; }
 
         /// <summary>How far the victim's own regard for the player falls. Meaningless when they are dead, and zero there.</summary>
-        public int RelationHit { get; }
+        public int RelationHit { get; init; }
 
         /// <summary>Standing lost. Only ever charged when someone SAW it: a secret deed shames no one publicly.</summary>
-        public int RenownLoss { get; }
+        public int RenownLoss { get; init; }
 
         /// <summary>The grudge the victim's kin carry, or 0 when the deed is not the sort that makes enemies of a family.</summary>
-        public int KinGrudgeMagnitude { get; }
+        public int KinGrudgeMagnitude { get; init; }
 
         /// <summary>How loudly word of this travels, or 0 when the realm never hears of it as news at all.</summary>
-        public int RumorMagnitude { get; }
+        public int RumorMagnitude { get; init; }
     }
 
     /// <summary>Prices an act of violence: what the law, the victim, their kin, and the player's name make of it.</summary>
@@ -106,7 +97,7 @@ namespace CalradiaRemembers.Logic.Violence
         /// </summary>
         public static ViolenceConsequence Resolve(ViolentAct act, ViolenceVerdict verdict, ViolenceExposure exposure)
         {
-            if (verdict == ViolenceVerdict.Forbidden) return new ViolenceConsequence(0, 0, 0, 0, 0);
+            if (verdict == ViolenceVerdict.Forbidden) return new ViolenceConsequence {CrimeRating = 0, RelationHit = 0, RenownLoss = 0, KinGrudgeMagnitude = 0, RumorMagnitude = 0};
 
             bool succeeded = verdict == ViolenceVerdict.Succeeded;
             bool seen = exposure != ViolenceExposure.Alone;
@@ -117,7 +108,7 @@ namespace CalradiaRemembers.Logic.Violence
             int relation = RelationHitFor(act, succeeded);
             var kin = (int) Math.Round(BaseKinGrudge(act) * share);
 
-            return new ViolenceConsequence(crime, relation, renown, kin, RumorFor(act, succeeded, seen));
+            return new ViolenceConsequence {CrimeRating = crime, RelationHit = relation, RenownLoss = renown, KinGrudgeMagnitude = kin, RumorMagnitude = RumorFor(act, succeeded, seen)};
         }
 
         /// <summary>

@@ -17,7 +17,7 @@ namespace CalradiaRemembers.Tests.Assemblies
     [TestFixture]
     public sealed class WardEligibilityPolicyTests
     {
-        private static WardCandidateFacts Eligible() => new(isAlive: true, isFree: true, isYoungAdult: true, isAlreadySponsored: false);
+        private static WardCandidateFacts Eligible() => new() {IsAlive = true, IsFree = true, IsYoungAdult = true, IsAlreadySponsored = false};
 
         // Baseline: every condition met must pass, or the policy would refuse a textbook-eligible companion for
         // no documented reason.
@@ -31,7 +31,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_companion_is_dead_WHEN_asked_if_eligible_THEN_it_is_refused()
         {
-            var facts = new WardCandidateFacts(isAlive: false, isFree: true, isYoungAdult: true, isAlreadySponsored: false);
+            var facts = new WardCandidateFacts {IsAlive = false, IsFree = true, IsYoungAdult = true, IsAlreadySponsored = false};
 
             WardEligibilityPolicy.IsEligible(facts).Should().BeFalse();
         }
@@ -41,7 +41,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_companion_is_not_free_WHEN_asked_if_eligible_THEN_it_is_refused()
         {
-            var facts = new WardCandidateFacts(isAlive: true, isFree: false, isYoungAdult: true, isAlreadySponsored: false);
+            var facts = new WardCandidateFacts {IsAlive = true, IsFree = false, IsYoungAdult = true, IsAlreadySponsored = false};
 
             WardEligibilityPolicy.IsEligible(facts).Should().BeFalse();
         }
@@ -51,7 +51,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_companion_is_outside_the_age_band_WHEN_asked_if_eligible_THEN_it_is_refused()
         {
-            var facts = new WardCandidateFacts(isAlive: true, isFree: true, isYoungAdult: false, isAlreadySponsored: false);
+            var facts = new WardCandidateFacts {IsAlive = true, IsFree = true, IsYoungAdult = false, IsAlreadySponsored = false};
 
             WardEligibilityPolicy.IsEligible(facts).Should().BeFalse();
         }
@@ -62,7 +62,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_companion_is_already_sponsored_WHEN_asked_if_eligible_THEN_it_is_refused()
         {
-            var facts = new WardCandidateFacts(isAlive: true, isFree: true, isYoungAdult: true, isAlreadySponsored: true);
+            var facts = new WardCandidateFacts {IsAlive = true, IsFree = true, IsYoungAdult = true, IsAlreadySponsored = true};
 
             WardEligibilityPolicy.IsEligible(facts).Should().BeFalse();
         }
@@ -72,7 +72,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_multiple_conditions_fail_at_once_WHEN_asked_if_eligible_THEN_it_is_still_refused()
         {
-            var facts = new WardCandidateFacts(isAlive: false, isFree: true, isYoungAdult: true, isAlreadySponsored: true);
+            var facts = new WardCandidateFacts {IsAlive = false, IsFree = true, IsYoungAdult = true, IsAlreadySponsored = true};
 
             WardEligibilityPolicy.IsEligible(facts).Should().BeFalse();
         }

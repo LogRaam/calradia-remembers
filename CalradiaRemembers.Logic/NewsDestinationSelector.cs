@@ -12,16 +12,9 @@ namespace CalradiaRemembers.Logic
    /// <summary>One candidate town the companion could gather news at, named for matching the request.</summary>
    public sealed class NewsDestinationCandidate
    {
-      public NewsDestinationCandidate(string settlementName, string factionName, string cultureName)
-      {
-         SettlementName = settlementName;
-         FactionName = factionName;
-         CultureName = cultureName;
-      }
-
-      public string CultureName { get; }
-      public string FactionName { get; }
-      public string SettlementName { get; }
+      public string CultureName { get; init; }
+      public string FactionName { get; init; }
+      public string SettlementName { get; init; }
    }
 
    /// <summary>

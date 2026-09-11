@@ -43,12 +43,42 @@ namespace CalradiaRemembers.Logic
         public bool IsRequestPending => _requested;
 
         /// <summary>
+        ///   What this turn is, as far as opening the floor is concerned. Three booleans in a row, one that
+        ///   must hold and two that must not, and the same three
+        ///   <see cref="VentriloquizedReactionPolicy" /> weighs for the mirror-image decision on the very same
+        ///   turn: whether to DROP the reactions this lap is about to replace. They are deliberately two types
+        ///   rather than one shared one, because the reaction gate reads a fourth fact this one owns instead of
+        ///   observing, the pending request itself.
+        ///   <para>
+        ///     Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///     practice.
+        ///   </para>
+        /// </summary>
+        public sealed class FloorTurnFacts
+        {
+            /// <summary>The conversation's host just spoke, which is when the lap may start.</summary>
+            public bool SpeakerIsMain { get; set; }
+
+            /// <summary>A captive scene, which never opens the floor.</summary>
+            public bool IsCaptiveEncounter { get; set; }
+
+            /// <summary>The conversation is over, so there is no lap left to run.</summary>
+            public bool ConversationEnded { get; set; }
+        }
+
+        /// <summary>
         ///   Consumes a pending "open the floor" request after the main NPC's reply: returns true (and clears the
         ///   request, so it fires at most once) when a request is pending, the main NPC just spoke, the scene is not
         ///   a captive encounter, and the conversation is still open; false otherwise.
         /// </summary>
-        public bool TryConsumeForMainReply(bool speakerIsMain, bool isCaptiveEncounter, bool conversationEnded)
+        public bool TryConsumeForMainReply(FloorTurnFacts turn)
         {
+            if (turn == null) return false;
+
+            bool speakerIsMain = turn.SpeakerIsMain;
+            bool isCaptiveEncounter = turn.IsCaptiveEncounter;
+            bool conversationEnded = turn.ConversationEnded;
+
             if (_requested && speakerIsMain && !isCaptiveEncounter && !conversationEnded)
             {
                 _requested = false;

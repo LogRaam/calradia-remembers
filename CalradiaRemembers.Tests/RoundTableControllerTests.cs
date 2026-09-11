@@ -56,8 +56,8 @@ namespace CalradiaRemembers.Tests
             gate.OnPlayerSend(GroupOpener, 2, false);
 
             // Consumed on the main NPC's reply, then never again for the same request.
-            gate.TryConsumeForMainReply(true, false, false).Should().BeTrue();
-            gate.TryConsumeForMainReply(true, false, false).Should().BeFalse();
+            gate.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = true, IsCaptiveEncounter = false, ConversationEnded = false}).Should().BeTrue();
+            gate.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = true, IsCaptiveEncounter = false, ConversationEnded = false}).Should().BeFalse();
         }
 
         // Only the main NPC's own reply can open the floor; a witness turn in between (speakerIsMain false)
@@ -68,7 +68,7 @@ namespace CalradiaRemembers.Tests
             var gate = new RoundTableGate();
             gate.OnPlayerSend(GroupOpener, 2, false);
 
-            gate.TryConsumeForMainReply(false, false, false).Should().BeFalse();
+            gate.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = false, IsCaptiveEncounter = false, ConversationEnded = false}).Should().BeFalse();
         }
 
         // The captive and ended-conversation guards are re-checked at consume time too, not only at send time:
@@ -78,11 +78,11 @@ namespace CalradiaRemembers.Tests
         {
             var captiveGate = new RoundTableGate();
             captiveGate.OnPlayerSend(GroupOpener, 2, false);
-            captiveGate.TryConsumeForMainReply(true, true, false).Should().BeFalse();
+            captiveGate.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = true, IsCaptiveEncounter = true, ConversationEnded = false}).Should().BeFalse();
 
             var endedGate = new RoundTableGate();
             endedGate.OnPlayerSend(GroupOpener, 2, false);
-            endedGate.TryConsumeForMainReply(true, false, true).Should().BeFalse();
+            endedGate.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = true, IsCaptiveEncounter = false, ConversationEnded = true}).Should().BeFalse();
         }
 
         // False-positive guard: an ordinary line must never accidentally spawn a group burst nobody asked for.
@@ -92,7 +92,7 @@ namespace CalradiaRemembers.Tests
             var gate = new RoundTableGate();
             gate.OnPlayerSend(PlainMessage, 2, false);
 
-            gate.TryConsumeForMainReply(true, false, false).Should().BeFalse();
+            gate.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = true, IsCaptiveEncounter = false, ConversationEnded = false}).Should().BeFalse();
         }
 
         // Opening the floor to an empty room is meaningless: with no witnesses present, OnPlayerSend must not
@@ -103,7 +103,7 @@ namespace CalradiaRemembers.Tests
             var gate = new RoundTableGate();
             gate.OnPlayerSend(GroupOpener, 0, false);
 
-            gate.TryConsumeForMainReply(true, false, false).Should().BeFalse();
+            gate.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = true, IsCaptiveEncounter = false, ConversationEnded = false}).Should().BeFalse();
         }
 
         // Defense in depth alongside the consume-time captive check above: OnPlayerSend itself must refuse to
@@ -114,7 +114,7 @@ namespace CalradiaRemembers.Tests
             var gate = new RoundTableGate();
             gate.OnPlayerSend(GroupOpener, 2, true); // captive at send time never arms the request
 
-            gate.TryConsumeForMainReply(true, false, false).Should().BeFalse();
+            gate.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = true, IsCaptiveEncounter = false, ConversationEnded = false}).Should().BeFalse();
         }
 
         // OnPlayerSend overwrites, it does not accumulate: only the player's LATEST message should decide
@@ -127,7 +127,7 @@ namespace CalradiaRemembers.Tests
             gate.OnPlayerSend(GroupOpener, 2, false); // armed
             gate.OnPlayerSend(PlainMessage, 2, false); // overwrites: no longer a group opener
 
-            gate.TryConsumeForMainReply(true, false, false).Should().BeFalse();
+            gate.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = true, IsCaptiveEncounter = false, ConversationEnded = false}).Should().BeFalse();
         }
 
         // Plain property behavior: Start is the round-robin cursor RoundTableController reads and advances each

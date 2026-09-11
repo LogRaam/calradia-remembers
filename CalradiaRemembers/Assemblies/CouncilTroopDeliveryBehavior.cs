@@ -85,7 +85,7 @@ namespace CalradiaRemembers.Assemblies
         /// </summary>
         public TroopDeliveryOutcome TryStart(Hero donor, TierTroopCounts loan, out TierTroopCounts moved, out string failReason)
         {
-            moved = new TierTroopCounts(0, 0, 0);
+            moved = new TierTroopCounts {Low = 0, Medium = 0, High = 0};
             failReason = null;
 
             if (donor is not {IsAlive: true} || donor.IsPrisoner)

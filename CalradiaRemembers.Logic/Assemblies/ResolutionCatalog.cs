@@ -601,127 +601,78 @@ namespace CalradiaRemembers.Logic.Assemblies
     /// </summary>
     public readonly struct ResolutionWorldFacts
     {
-        public ResolutionWorldFacts(bool targetInPlayerParty,
-                                    bool targetAvailable,
-                                    bool playerHasVacantFief,
-                                    bool playerCanAffordStipend,
-                                    bool missionAvailable,
-                                    bool targetOutOfPlayerParty = false,
-                                    bool playerCanDeclareWar = false,
-                                    bool playerCanMakePeace = false,
-                                    bool memberHasGold = false,
-                                    bool memberCanGrantInfluence = false,
-                                    bool playerIsKingdomLeader = false,
-                                    bool playerHasGiveableFief = false,
-                                    bool seatedVassalOwnsFief = false,
-                                    bool anySeatedCompanionExpellable = false,
-                                    bool anySeatedMemberCanPledgeAgainst = false,
-                                    bool anySeatedAllyHasMarriageableKin = false,
-                                    bool anySeatedTributePayerAvailable = false,
-                                    bool anySeatedPrisonerAvailableToRelease = false,
-                                    bool anySeatedMemberCanLendTroops = false,
-                                    bool anySeatedMemberCanSwearOath = false,
-                                    bool anySeatedHostageEligibleRelativeAvailable = false,
-                                    bool anySeatedLordCanReceiveTroops = false,
-                                    bool anySeatedPactPartnerAvailable = false,
-                                    bool anySeatedMemberCanSponsorWard = false,
-                                    bool anySeatedLordHasGiveableItem = false,
-                                    bool anySeatedMemberCanSupportClaimant = false)
-        {
-            TargetInPlayerParty = targetInPlayerParty;
-            TargetAvailable = targetAvailable;
-            PlayerHasVacantFief = playerHasVacantFief;
-            PlayerCanAffordStipend = playerCanAffordStipend;
-            MissionAvailable = missionAvailable;
-            TargetOutOfPlayerParty = targetOutOfPlayerParty;
-            PlayerCanDeclareWar = playerCanDeclareWar;
-            PlayerCanMakePeace = playerCanMakePeace;
-            MemberHasGold = memberHasGold;
-            MemberCanGrantInfluence = memberCanGrantInfluence;
-            PlayerIsKingdomLeader = playerIsKingdomLeader;
-            PlayerHasGiveableFief = playerHasGiveableFief;
-            SeatedVassalOwnsFief = seatedVassalOwnsFief;
-            AnySeatedCompanionExpellable = anySeatedCompanionExpellable;
-            AnySeatedMemberCanPledgeAgainst = anySeatedMemberCanPledgeAgainst;
-            AnySeatedAllyHasMarriageableKin = anySeatedAllyHasMarriageableKin;
-            AnySeatedTributePayerAvailable = anySeatedTributePayerAvailable;
-            AnySeatedPrisonerAvailableToRelease = anySeatedPrisonerAvailableToRelease;
-            AnySeatedMemberCanLendTroops = anySeatedMemberCanLendTroops;
-            AnySeatedMemberCanSwearOath = anySeatedMemberCanSwearOath;
-            AnySeatedHostageEligibleRelativeAvailable = anySeatedHostageEligibleRelativeAvailable;
-            AnySeatedLordCanReceiveTroops = anySeatedLordCanReceiveTroops;
-            AnySeatedPactPartnerAvailable = anySeatedPactPartnerAvailable;
-            AnySeatedMemberCanSponsorWard = anySeatedMemberCanSponsorWard;
-            AnySeatedLordHasGiveableItem = anySeatedLordHasGiveableItem;
-            AnySeatedMemberCanSupportClaimant = anySeatedMemberCanSupportClaimant;
-        }
+        /// <summary>
+        ///   Every fact defaults to false, so a caller names only the handful its case is about rather than
+        ///   spelling out all twenty-six.
+        /// </summary>
+        public ResolutionWorldFacts() { }
 
-        public bool TargetInPlayerParty { get; }
-        public bool TargetAvailable { get; }
-        public bool PlayerHasVacantFief { get; }
-        public bool PlayerCanAffordStipend { get; }
-        public bool MissionAvailable { get; }
-        public bool TargetOutOfPlayerParty { get; }
+        public bool TargetInPlayerParty { get; init; } = false;
+        public bool TargetAvailable { get; init; } = false;
+        public bool PlayerHasVacantFief { get; init; } = false;
+        public bool PlayerCanAffordStipend { get; init; } = false;
+        public bool MissionAvailable { get; init; } = false;
+        public bool TargetOutOfPlayerParty { get; init; } = false;
 
         /// <summary>The player leads a faction that could declare a new war (declare_war's own fact, see ResolutionRequirement.PlayerCanDeclareWar).</summary>
-        public bool PlayerCanDeclareWar { get; }
+        public bool PlayerCanDeclareWar { get; init; } = false;
 
         /// <summary>The player leads their faction and it is at war with the parley's target faction (make_peace's own fact, see ResolutionRequirement.PlayerCanMakePeace).</summary>
-        public bool PlayerCanMakePeace { get; }
+        public bool PlayerCanMakePeace { get; init; } = false;
 
         /// <summary>At least one seated member holds gold they could pledge to the player (give_gold's own fact, see ResolutionRequirement.MemberHasGold).</summary>
-        public bool MemberHasGold { get; }
+        public bool MemberHasGold { get; init; } = false;
 
         /// <summary>At least one seated allied clan leader's own clan could grant influence to the player's clan (give_influence's own fact, see ResolutionRequirement.MemberCanGrantInfluence).</summary>
-        public bool MemberCanGrantInfluence { get; }
+        public bool MemberCanGrantInfluence { get; init; } = false;
 
         /// <summary>The player actually rules a kingdom (Kingdom.Leader == the player). Both grant_fief's and revoke_fief's own fact, see ResolutionRequirement.PlayerIsKingdomLeader.</summary>
-        public bool PlayerIsKingdomLeader { get; }
+        public bool PlayerIsKingdomLeader { get; init; } = false;
 
         /// <summary>The player's own clan currently owns a town or castle it could give away. grant_fief's own fact, see ResolutionRequirement.PlayerHasGiveableFief.</summary>
-        public bool PlayerHasGiveableFief { get; }
+        public bool PlayerHasGiveableFief { get; init; } = false;
 
         /// <summary>At least one seated WarCouncil vassal's own clan currently owns a town or castle. revoke_fief's own fact, see ResolutionRequirement.SeatedVassalOwnsFief.</summary>
-        public bool SeatedVassalOwnsFief { get; }
+        public bool SeatedVassalOwnsFief { get; init; } = false;
 
         /// <summary>At least one seated companion is currently expellable. expel_from_clan's own fact, see ResolutionRequirement.AnySeatedCompanionExpellable.</summary>
-        public bool AnySeatedCompanionExpellable { get; }
+        public bool AnySeatedCompanionExpellable { get; init; } = false;
 
         /// <summary>At least one seated member holds no pledge already outstanding. pledge_against's own fact (an approximation, see ResolutionRequirement.AnySeatedMemberCanPledgeAgainst).</summary>
-        public bool AnySeatedMemberCanPledgeAgainst { get; }
+        public bool AnySeatedMemberCanPledgeAgainst { get; init; } = false;
 
         /// <summary>At least one seated ally's own house offers an unwed kin AND the player's own clan holds one too. arrange_marriage's own fact (an approximation, see ResolutionRequirement.AnySeatedAllyHasMarriageableKin).</summary>
-        public bool AnySeatedAllyHasMarriageableKin { get; }
+        public bool AnySeatedAllyHasMarriageableKin { get; init; } = false;
 
         /// <summary>At least one seated Parley counterpart is alive and leads a clan distinct from the player's own. tribute's own fact (an approximation, see ResolutionRequirement.AnySeatedTributePayerAvailable).</summary>
-        public bool AnySeatedTributePayerAvailable { get; }
+        public bool AnySeatedTributePayerAvailable { get; init; } = false;
 
         /// <summary>The player holds a hero prisoner of the parley enemy's own faction. release_prisoner's own fact, see ResolutionRequirement.AnySeatedPrisonerAvailableToRelease.</summary>
-        public bool AnySeatedPrisonerAvailableToRelease { get; }
+        public bool AnySeatedPrisonerAvailableToRelease { get; init; } = false;
 
         /// <summary>At least one seated lord currently leads a party with troops to spare and is not at war with the player. lend_troops' own fact, see ResolutionRequirement.AnySeatedMemberCanLendTroops.</summary>
-        public bool AnySeatedMemberCanLendTroops { get; }
+        public bool AnySeatedMemberCanLendTroops { get; init; } = false;
 
         /// <summary>At least one seated member holds no commitment already outstanding and plausibly qualifies for one whitelisted oath kind. swear_oath's own fact, see ResolutionRequirement.AnySeatedMemberCanSwearOath.</summary>
-        public bool AnySeatedMemberCanSwearOath { get; }
+        public bool AnySeatedMemberCanSwearOath { get; init; } = false;
 
         /// <summary>At least one seated Parley counterpart has at least one eligible relative to give as a hostage. give_hostage's own fact, see ResolutionRequirement.AnySeatedHostageEligibleRelativeAvailable.</summary>
-        public bool AnySeatedHostageEligibleRelativeAvailable { get; }
+        public bool AnySeatedHostageEligibleRelativeAvailable { get; init; } = false;
 
         /// <summary>At least one seated lord could receive troops from the PLAYER's own party, and the player's own party has troops to spare. give_troops' own fact, see ResolutionRequirement.AnySeatedLordCanReceiveTroops.</summary>
-        public bool AnySeatedLordCanReceiveTroops { get; }
+        public bool AnySeatedLordCanReceiveTroops { get; init; } = false;
 
         /// <summary>At least one seated Parley counterpart is alive, leads a clan distinct from the player's own, and is not already bound by a live pact. non_aggression_pact's own fact, see ResolutionRequirement.AnySeatedPactPartnerAvailable.</summary>
-        public bool AnySeatedPactPartnerAvailable { get; }
+        public bool AnySeatedPactPartnerAvailable { get; init; } = false;
 
         /// <summary>At least one seated member (ClanLords or Family) is alive/free and the player's own clan has an eligible companion to sponsor. sponsor_ward's own fact, see ResolutionRequirement.AnySeatedMemberCanSponsorWard.</summary>
-        public bool AnySeatedMemberCanSponsorWard { get; }
+        public bool AnySeatedMemberCanSponsorWard { get; init; } = false;
 
         /// <summary>At least one seated lord (ClanLords or WarCouncil) leads their own party whose ItemRoster carries a real (non-quest) item. give_item's own fact, see ResolutionRequirement.AnySeatedLordHasGiveableItem.</summary>
-        public bool AnySeatedLordHasGiveableItem { get; }
+        public bool AnySeatedLordHasGiveableItem { get; init; } = false;
 
         /// <summary>At least one seated WarCouncil vassal's own clan (a genuine OTHER clan of the player's OWN kingdom) could currently spare influence to back the player's own political standing. support_claimant's own fact, see ResolutionRequirement.AnySeatedMemberCanSupportClaimant.</summary>
-        public bool AnySeatedMemberCanSupportClaimant { get; }
+        public bool AnySeatedMemberCanSupportClaimant { get; init; } = false;
     }
 
     /// <summary>The static registry of resolution definitions and the queries over it.</summary>

@@ -47,21 +47,14 @@ namespace CalradiaRemembers.Logic.Tournaments
    /// <summary>The hero's own character traits that colour how they carry a tournament result (Bannerlord trait levels, roughly -2..2).</summary>
    public sealed class TournamentTraitFacts
    {
-      public TournamentTraitFacts(int valor, int honor, int mercy)
-      {
-         Valor = valor;
-         Honor = honor;
-         Mercy = mercy;
-      }
-
       /// <summary>Pride in martial prowess: high Valor leans toward crowing over a win and stewing over a loss.</summary>
-      public int Valor { get; }
+      public int Valor { get; init; }
 
       /// <summary>Fair-mindedness: high Honor leans toward grace in victory and defeat alike; low Honor toward gloating and sulking.</summary>
-      public int Honor { get; }
+      public int Honor { get; init; }
 
       /// <summary>Warmth: high Mercy softens the register toward grace.</summary>
-      public int Mercy { get; }
+      public int Mercy { get; init; }
    }
 
    /// <summary>Decides a hero's standing in a tournament relative to the player, and how they would carry it.</summary>
@@ -104,7 +97,7 @@ namespace CalradiaRemembers.Logic.Tournaments
       /// </summary>
       public static TournamentMemoryTone Tone(TournamentStanding standing, TournamentTraitFacts traits)
       {
-         if (traits == null) traits = new TournamentTraitFacts(0, 0, 0);
+         if (traits == null) traits = new TournamentTraitFacts {Valor = 0, Honor = 0, Mercy = 0};
 
          bool wonOverPlayer = standing != null
             && (standing.Relation == TournamentRelation.BeatThePlayer

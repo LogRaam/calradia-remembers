@@ -9,29 +9,20 @@ namespace CalradiaRemembers.Logic
    /// <summary>The computed aftermath of one companion-victim scene: how the bond scars, how deep the revenge, how loud the news.</summary>
    public readonly struct CompanionAbuseConsequence
    {
-      public CompanionAbuseConsequence(bool forms, int bondTrustCrater, int bondAffectionCrater, int captorRevengeMagnitude, int worldEventMagnitude)
-      {
-         Forms = forms;
-         BondTrustCrater = bondTrustCrater;
-         BondAffectionCrater = bondAffectionCrater;
-         CaptorRevengeMagnitude = captorRevengeMagnitude;
-         WorldEventMagnitude = worldEventMagnitude;
-      }
-
       /// <summary>False at severity 0 (nothing abusive happened): no consequence at all.</summary>
-      public bool Forms { get; }
+      public bool Forms { get; init; }
 
       /// <summary>Delta (negative) to apply to the companion's TRUST toward the player: the ordeal scars the bond with the one who could not save them.</summary>
-      public int BondTrustCrater { get; }
+      public int BondTrustCrater { get; init; }
 
       /// <summary>Delta (negative) to apply to the companion's AFFECTION toward the player.</summary>
-      public int BondAffectionCrater { get; }
+      public int BondAffectionCrater { get; init; }
 
       /// <summary>Magnitude of the REVENGE grudge the companion holds against a NAMED captor (0 for a faceless bandit who earns no lasting vendetta).</summary>
-      public int CaptorRevengeMagnitude { get; }
+      public int CaptorRevengeMagnitude { get; init; }
 
       /// <summary>Magnitude of the atrocity world-event (its news reach and chronicle weight).</summary>
-      public int WorldEventMagnitude { get; }
+      public int WorldEventMagnitude { get; init; }
    }
 
    /// <summary>
@@ -69,14 +60,14 @@ namespace CalradiaRemembers.Logic
       /// <summary>Computes the aftermath. Severity 0 (or less) forms nothing.</summary>
       public static CompanionAbuseConsequence Resolve(int severity, bool playerCoerced, bool captorIsNamed)
       {
-         if (severity <= 0) return new CompanionAbuseConsequence(false, 0, 0, 0, 0);
+         if (severity <= 0) return new CompanionAbuseConsequence {Forms = false, BondTrustCrater = 0, BondAffectionCrater = 0, CaptorRevengeMagnitude = 0, WorldEventMagnitude = 0};
 
          int trust = severity * TrustCraterPerSeverity + (playerCoerced ? CoercedTrustBonus : 0);
          int affection = severity * AffectionCraterPerSeverity + (playerCoerced ? CoercedAffectionBonus : 0);
          int revenge = captorIsNamed ? CaptorRevengeBase + severity * CaptorRevengePerSeverity : 0;
          int news = WorldEventBase + severity * WorldEventPerSeverity;
 
-         return new CompanionAbuseConsequence(true, -trust, -affection, revenge, news);
+         return new CompanionAbuseConsequence {Forms = true, BondTrustCrater = -trust, BondAffectionCrater = -affection, CaptorRevengeMagnitude = revenge, WorldEventMagnitude = news};
       }
    }
 }

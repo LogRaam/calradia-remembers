@@ -89,7 +89,7 @@ namespace CalradiaRemembers.Tests.Tournaments
       {
          var standing = new TournamentStanding(TournamentRelation.BeatThePlayer, false, 3);
 
-         TournamentMemoryPolicy.Tone(standing, new TournamentTraitFacts(valor: 2, honor: -1, mercy: 0))
+         TournamentMemoryPolicy.Tone(standing, new TournamentTraitFacts {Valor = 2, Honor = -1, Mercy = 0})
             .Should().Be(TournamentMemoryTone.Brag);
       }
 
@@ -100,7 +100,7 @@ namespace CalradiaRemembers.Tests.Tournaments
       {
          var standing = new TournamentStanding(TournamentRelation.BeatThePlayer, false, 3);
 
-         TournamentMemoryPolicy.Tone(standing, new TournamentTraitFacts(valor: 2, honor: 2, mercy: 0))
+         TournamentMemoryPolicy.Tone(standing, new TournamentTraitFacts {Valor = 2, Honor = 2, Mercy = 0})
             .Should().Be(TournamentMemoryTone.Gracious);
       }
 
@@ -111,7 +111,7 @@ namespace CalradiaRemembers.Tests.Tournaments
       {
          var standing = new TournamentStanding(TournamentRelation.LostToThePlayer, false, 2);
 
-         TournamentMemoryPolicy.Tone(standing, new TournamentTraitFacts(valor: 2, honor: -2, mercy: 0))
+         TournamentMemoryPolicy.Tone(standing, new TournamentTraitFacts {Valor = 2, Honor = -2, Mercy = 0})
             .Should().Be(TournamentMemoryTone.Sore);
       }
 
@@ -122,7 +122,7 @@ namespace CalradiaRemembers.Tests.Tournaments
       {
          var standing = new TournamentStanding(TournamentRelation.LostToThePlayer, false, 2);
 
-         TournamentMemoryPolicy.Tone(standing, new TournamentTraitFacts(valor: 0, honor: 2, mercy: 0))
+         TournamentMemoryPolicy.Tone(standing, new TournamentTraitFacts {Valor = 0, Honor = 2, Mercy = 0})
             .Should().Be(TournamentMemoryTone.Gracious);
       }
 
@@ -133,7 +133,7 @@ namespace CalradiaRemembers.Tests.Tournaments
       {
          var standing = new TournamentStanding(TournamentRelation.CoCompetitor, isChampion: true, 0);
 
-         TournamentMemoryPolicy.Tone(standing, new TournamentTraitFacts(valor: 2, honor: -1, mercy: 0))
+         TournamentMemoryPolicy.Tone(standing, new TournamentTraitFacts {Valor = 2, Honor = -1, Mercy = 0})
             .Should().Be(TournamentMemoryTone.Brag);
       }
 

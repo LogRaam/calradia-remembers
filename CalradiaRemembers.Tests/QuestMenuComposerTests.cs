@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_grounded_entry_WHEN_composing_THEN_the_line_names_the_type_the_target_field_and_the_real_target()
         {
             var entries = new List<QuestMenuEntry> {
-                new("bandit_hideout", "target_settlement", "Diathma", "a bandit lair infests the country nearby")
+                new() {TypeToken = "bandit_hideout", TargetField = "target_settlement", TargetName = "Diathma", Cue = "a bandit lair infests the country nearby"}
             };
 
             QuestMenuComposer.Compose(entries)
@@ -39,7 +39,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_targetless_entry_WHEN_composing_THEN_no_target_parenthesis_appears()
         {
             var entries = new List<QuestMenuEntry> {
-                new("deliver_items", null, null, "goods in payment, the game sets the value")
+                new() {TypeToken = "deliver_items", TargetField = null, TargetName = null, Cue = "goods in payment, the game sets the value"}
             };
 
             QuestMenuComposer.Compose(entries)
@@ -62,7 +62,7 @@ namespace CalradiaRemembers.Tests
         {
             var entries = new List<QuestMenuEntry>();
             for (var i = 0; i < QuestMenuComposer.MaxEntries + 3; i++)
-                entries.Add(new QuestMenuEntry($"type_{i}", null, null, "cue"));
+                entries.Add(new QuestMenuEntry {TypeToken = $"type_{i}", TargetField = null, TargetName = null, Cue = "cue"});
 
             string menu = QuestMenuComposer.Compose(entries);
 
@@ -76,8 +76,8 @@ namespace CalradiaRemembers.Tests
         {
             var entries = new List<QuestMenuEntry> {
                 null!,
-                new("", null, null, "no type token"),
-                new("attack_lord", "target_hero", "Caladog", "an enemy of your realm rides these lands")
+                new() {TypeToken = "", TargetField = null, TargetName = null, Cue = "no type token"},
+                new() {TypeToken = "attack_lord", TargetField = "target_hero", TargetName = "Caladog", Cue = "an enemy of your realm rides these lands"}
             };
 
             QuestMenuComposer.Compose(entries)

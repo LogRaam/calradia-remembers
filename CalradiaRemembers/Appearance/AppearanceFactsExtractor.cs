@@ -36,9 +36,7 @@ namespace CalradiaRemembers.Appearance
             // live in the static face key with no reliable reader, so they stay omitted.
             FaceColors colors = FaceColorReader.Read(hero);
 
-            return new AppearanceFacts(hero.IsFemale, SafeAge(hero), heightNormalized: 0.5,
-                buildNormalized: build, weightNormalized: weight, hairColorDescriptor: colors.Hair, hasBeard: false,
-                skinToneDescriptor: colors.Skin, eyeColorDescriptor: colors.Eye);
+            return new AppearanceFacts {IsFemale = hero.IsFemale, AgeYears = SafeAge(hero), HeightNormalized = 0.5, BuildNormalized = build, WeightNormalized = weight, HairColorDescriptor = colors.Hair, HasBeard = false, SkinToneDescriptor = colors.Skin, EyeColorDescriptor = colors.Eye};
         }
 
         private static int SafeAge(Hero hero)

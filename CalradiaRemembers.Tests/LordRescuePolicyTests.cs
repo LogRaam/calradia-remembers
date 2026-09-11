@@ -242,9 +242,7 @@ namespace CalradiaRemembers.Tests
                                            int personalRegard = 0,
                                            int honor = 0,
                                            int mercy = 0)
-         => new(captivityWasExperienced, lordIsFreeToRide, withinRange, alreadyAttemptedThisCaptivity,
-            captorIsBandit, sharesPlayerClan, hasRomanticBond, boundByOath, holdsGrudgeAgainstCaptor,
-            personalRegard, honor, mercy);
+         => new() {CaptivityWasExperienced = captivityWasExperienced, LordIsFreeToRide = lordIsFreeToRide, WithinRange = withinRange, AlreadyAttemptedThisCaptivity = alreadyAttemptedThisCaptivity, CaptorIsBandit = captorIsBandit, SharesPlayerClan = sharesPlayerClan, HasRomanticBond = hasRomanticBond, BoundByOath = boundByOath, HoldsGrudgeAgainstCaptor = holdsGrudgeAgainstCaptor, PersonalRegard = personalRegard, Honor = honor, Mercy = mercy};
 
       #endregion
    }

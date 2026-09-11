@@ -34,7 +34,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_npc_rules_the_realm_the_player_swore_to_WHEN_describing_THEN_the_player_is_the_vassal()
       {
-         string note = Describe(new PlayerStandingFacts(npcRulesPlayerRealm: true), "the Aserai");
+         string note = Describe(new PlayerStandingFacts {NpcRulesPlayerRealm = true}, "the Aserai");
 
          note.Should().Contain("You rule the Aserai");
          note.Should().Contain("they are your vassal");
@@ -46,7 +46,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_player_rules_the_realm_the_npc_serves_WHEN_describing_THEN_the_player_is_the_liege()
       {
-         string note = Describe(new PlayerStandingFacts(playerRulesNpcRealm: true), "Vlandia");
+         string note = Describe(new PlayerStandingFacts {PlayerRulesNpcRealm = true}, "Vlandia");
 
          note.Should().Contain("The player rules Vlandia");
          note.Should().Contain("your liege lord");
@@ -59,7 +59,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_realm_is_known_WHEN_describing_THEN_the_note_says_who_rules_it()
       {
-         Describe(new PlayerStandingFacts(npcRulesPlayerRealm: true), "the Aserai")
+         Describe(new PlayerStandingFacts {NpcRulesPlayerRealm = true}, "the Aserai")
             .Should().Contain("rule the Aserai");
       }
 
@@ -69,7 +69,7 @@ namespace CalradiaRemembers.Tests
       [TestCase("")]
       public void GIVEN_the_realm_is_unknown_WHEN_describing_THEN_the_bare_standing_is_still_stated(string realm)
       {
-         Describe(new PlayerStandingFacts(npcRulesPlayerRealm: true), realm)
+         Describe(new PlayerStandingFacts {NpcRulesPlayerRealm = true}, realm)
             .Should().Contain("The player is your sworn vassal.");
       }
 
@@ -78,7 +78,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_player_is_held_by_a_ruler_they_serve_WHEN_describing_THEN_captivity_wins()
       {
-         Describe(new PlayerStandingFacts(playerIsCaptiveOfNpc: true, npcRulesPlayerRealm: true), "the Aserai")
+         Describe(new PlayerStandingFacts {PlayerIsCaptiveOfNpc = true, NpcRulesPlayerRealm = true}, "the Aserai")
             .Should().Contain("The player is currently your captive.");
       }
 
@@ -87,7 +87,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_npc_is_of_the_players_own_clan_WHEN_describing_THEN_kinship_wins()
       {
-         Describe(new PlayerStandingFacts(sharesPlayerClan: true, playerRulesNpcRealm: true), "Vlandia")
+         Describe(new PlayerStandingFacts {SharesPlayerClan = true, PlayerRulesNpcRealm = true}, "Vlandia")
             .Should().Contain("The player belongs to your own clan.");
       }
 
@@ -99,7 +99,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_player_is_hired_by_the_realm_the_npc_rules_WHEN_describing_THEN_they_are_not_called_a_vassal()
       {
          string note = Describe(
-            new PlayerStandingFacts(npcRulesPlayerRealm: true, playerIsMercenaryOfNpcRealm: true, sharesRealm: true),
+            new PlayerStandingFacts {NpcRulesPlayerRealm = true, PlayerIsMercenaryOfNpcRealm = true, SharesRealm = true},
             "the Aserai");
 
          note.Should().Contain("hired to the Aserai");
@@ -115,7 +115,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_mercenary_contract_WHEN_describing_THEN_the_note_says_it_is_pay_and_not_fealty()
       {
-         Describe(new PlayerStandingFacts(playerIsMercenaryOfNpcRealm: true, sharesRealm: true), "Battania")
+         Describe(new PlayerStandingFacts {PlayerIsMercenaryOfNpcRealm = true, SharesRealm = true}, "Battania")
             .Should().Contain("mercenaries, not sworn vassals");
       }
 
@@ -124,7 +124,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_both_serve_the_same_crown_and_neither_rules_WHEN_describing_THEN_they_are_named_fellow_vassals()
       {
-         string note = Describe(new PlayerStandingFacts(sharesRealm: true), "Vlandia");
+         string note = Describe(new PlayerStandingFacts {SharesRealm = true}, "Vlandia");
 
          note.Should().Contain("both sworn to Vlandia");
          note.Should().Contain("fellow vassals");
@@ -135,7 +135,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_fellow_vassals_WHEN_describing_THEN_neither_is_placed_above_the_other()
       {
-         string note = Describe(new PlayerStandingFacts(sharesRealm: true), "Vlandia");
+         string note = Describe(new PlayerStandingFacts {SharesRealm = true}, "Vlandia");
 
          note.Should().Contain("neither commanding the other");
          note.Should().NotContain("liege lord");
@@ -147,7 +147,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_players_realm_hires_the_npcs_clan_WHEN_describing_THEN_the_player_is_paymaster_not_liege()
       {
          string note = Describe(
-            new PlayerStandingFacts(playerRulesNpcRealm: true, sharesRealm: true, npcIsMercenaryOfSharedRealm: true),
+            new PlayerStandingFacts {PlayerRulesNpcRealm = true, SharesRealm = true, NpcIsMercenaryOfSharedRealm = true},
             "Vlandia");
 
          note.Should().Contain("paymaster");
@@ -162,7 +162,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_hired_band_in_the_realm_the_player_serves_WHEN_describing_THEN_they_are_not_called_fellow_vassals()
       {
          string note = Describe(
-            new PlayerStandingFacts(sharesRealm: true, npcIsMercenaryOfSharedRealm: true), "Vlandia");
+            new PlayerStandingFacts {SharesRealm = true, NpcIsMercenaryOfSharedRealm = true}, "Vlandia");
 
          note.Should().NotContain("fellow vassals");
          note.Should().NotContain("both sworn to");

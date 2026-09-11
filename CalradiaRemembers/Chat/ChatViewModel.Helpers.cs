@@ -604,7 +604,7 @@ namespace CalradiaRemembers.Chat
 
       private void RecordTranscript(bool isPlayer, string name, string heroId, string text, bool isNarration = false)
       {
-         _transcript.Record(isPlayer, name, heroId, text, isNarration);
+         _transcript.Record(new TranscriptLine {IsPlayer = isPlayer, SpeakerName = name, SpeakerHeroId = heroId, Text = text, IsNarration = isNarration});
          RaiseSpeechLine(isPlayer, name, heroId, text, isNarration);
       }
 

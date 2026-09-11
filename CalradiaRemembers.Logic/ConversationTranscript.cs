@@ -88,12 +88,19 @@ namespace CalradiaRemembers.Logic
         ///   point of entry, because a blank line is not merely useless: it would take a slot in every prompt
         ///   rebuilt afterwards, and an empty assistant turn teaches the model that saying nothing is a valid
         ///   reply.
+        ///   <para>
+        ///     Takes the line rather than its five parts (2026-09-10). The old signature had
+        ///     <c>speakerName</c> and <c>speakerHeroId</c> side by side, two strings whose swap costs the whole
+        ///     transcript: every later prompt is rebuilt per speaker BY ID, so a name where an id belongs
+        ///     silently gives one participant nobody's history. It builds no <see cref="TranscriptLine" /> of
+        ///     its own any more either, because that is the type it was assembling from the arguments anyway.
+        ///   </para>
         /// </summary>
-        public void Record(bool isPlayer, string speakerName, string speakerHeroId, string text, bool isNarration = false)
+        public void Record(TranscriptLine line)
         {
-            if (string.IsNullOrWhiteSpace(text)) return;
+            if (line == null || string.IsNullOrWhiteSpace(line.Text)) return;
 
-            _lines.Add(new TranscriptLine(isPlayer, speakerHeroId, speakerName, text, isNarration));
+            _lines.Add(line);
         }
 
         /// <summary>

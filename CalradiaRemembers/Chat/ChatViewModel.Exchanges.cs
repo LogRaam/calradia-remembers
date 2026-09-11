@@ -1660,7 +1660,7 @@ namespace CalradiaRemembers.Chat
             // Takes precedence over the model-driven 15C auto-exchange: instead of hoping the model
             // volunteered [WITNESS_REACTION]s, give each present witness a deterministic turn (they may
             // address one another), capped, then return control to the player. Model-independent.
-            if (!suppressGroupTail && _roundTable.TryConsumeForMainReply(speaker.IsMain, IsCaptiveEncounter, _conversationEnded))
+            if (!suppressGroupTail && _roundTable.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = speaker.IsMain, IsCaptiveEncounter = IsCaptiveEncounter, ConversationEnded = _conversationEnded}))
             {
                foreach (var (wName, wHeroId, wText) in witnessReactions)
                   RecordTranscript(false, wName, wHeroId, wText); // preserve order: any reactions precede the lap

@@ -322,8 +322,8 @@ namespace CalradiaRemembers
 
          // A short synthetic pre-duel exchange so the replayed bubbles and the seeded LLM continuity are visible.
          var prior = new ConversationTranscript();
-         prior.Record(true, "You", Hero.MainHero?.StringId, "You have gone too far. Draw your blade and answer for it.");
-         prior.Record(false, opponent.Name?.ToString(), opponent.StringId, "Bold words. We shall see whose steel has the last of it.");
+         prior.Record(new TranscriptLine {IsPlayer = true, SpeakerName = "You", SpeakerHeroId = Hero.MainHero?.StringId, Text = "You have gone too far. Draw your blade and answer for it."});
+         prior.Record(new TranscriptLine {IsPlayer = false, SpeakerName = opponent.Name?.ToString(), SpeakerHeroId = opponent.StringId, Text = "Bold words. We shall see whose steel has the last of it."});
 
          NpcProfile profile = behavior.Store?.Get(opponent.StringId);
          ChatSceneStager.StagePostDuel(opponent, profile, playerWon, DuelReason.HonourAffront, null, prior);

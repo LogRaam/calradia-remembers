@@ -41,28 +41,19 @@ namespace CalradiaRemembers.Logic.Battles
     /// <summary>The fighting facts of one combatant, as the game itself knows them; the policy turns these into a prowess score.</summary>
     public sealed class CombatantFacts
     {
-        public CombatantFacts(int bestWeaponSkill, int riding, int athletics, int level, int clanTier)
-        {
-            BestWeaponSkill = bestWeaponSkill;
-            Riding = riding;
-            Athletics = athletics;
-            Level = level;
-            ClanTier = clanTier;
-        }
-
         /// <summary>The highest of their weapon skills: what they actually fight with.</summary>
-        public int BestWeaponSkill { get; }
+        public int BestWeaponSkill { get; init; }
 
-        public int Riding { get; }
-        public int Athletics { get; }
-        public int Level { get; }
+        public int Riding { get; init; }
+        public int Athletics { get; init; }
+        public int Level { get; init; }
 
         /// <summary>
         ///   Their clan's tier, the FAME axis. Bannerlord keeps renown on the clan, not the hero, so this is the
         ///   game's own measure of how known a name is. Beating a famous champion is a story whatever the skills
         ///   say, which is why fame is weighed apart from prowess.
         /// </summary>
-        public int ClanTier { get; }
+        public int ClanTier { get; init; }
     }
 
     /// <summary>One thing the player did to one named foe in one engagement.</summary>

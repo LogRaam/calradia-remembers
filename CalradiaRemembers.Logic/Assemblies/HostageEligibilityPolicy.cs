@@ -20,28 +20,19 @@ namespace CalradiaRemembers.Logic.Assemblies
     /// <summary>The flattened facts about one candidate relative needed to judge them hostage-eligible.</summary>
     public readonly struct HostageCandidateFacts
     {
-        public HostageCandidateFacts(bool isAlive, bool isFree, bool isAdult, bool isClanChief, bool isSoleHeir)
-        {
-            IsAlive = isAlive;
-            IsFree = isFree;
-            IsAdult = isAdult;
-            IsClanChief = isClanChief;
-            IsSoleHeir = isSoleHeir;
-        }
-
-        public bool IsAlive { get; }
+        public bool IsAlive { get; init; }
 
         /// <summary>Not already held prisoner (by anyone) or otherwise unfree.</summary>
-        public bool IsFree { get; }
+        public bool IsFree { get; init; }
 
         /// <summary>Not a vanilla child (Hero.IsChild): COUNCIL_ACTIONS.md's own "pas mineur".</summary>
-        public bool IsAdult { get; }
+        public bool IsAdult { get; init; }
 
         /// <summary>Leads a clan (their own, or any other) as its chief: COUNCIL_ACTIONS.md's own "pas chef de clan".</summary>
-        public bool IsClanChief { get; }
+        public bool IsClanChief { get; init; }
 
         /// <summary>The pledger's clan's own ONLY other alive adult member: COUNCIL_ACTIONS.md's own "pas heritier unique".</summary>
-        public bool IsSoleHeir { get; }
+        public bool IsSoleHeir { get; init; }
     }
 
     /// <summary>Pure policy: whether a candidate relative may ever be offered as a give_hostage.</summary>

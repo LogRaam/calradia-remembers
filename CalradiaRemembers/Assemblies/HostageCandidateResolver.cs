@@ -74,12 +74,7 @@ namespace CalradiaRemembers.Assemblies
       {
          bool isClanChief = candidate.Clan != null && candidate.Clan.Leader == candidate;
 
-         var facts = new HostageCandidateFacts(
-            isAlive: candidate.IsAlive,
-            isFree: !candidate.IsPrisoner,
-            isAdult: !candidate.IsChild,
-            isClanChief: isClanChief,
-            isSoleHeir: IsSoleHeir(pledger, candidate));
+         var facts = new HostageCandidateFacts {IsAlive = candidate.IsAlive, IsFree = !candidate.IsPrisoner, IsAdult = !candidate.IsChild, IsClanChief = isClanChief, IsSoleHeir = IsSoleHeir(pledger, candidate)};
 
          return HostageEligibilityPolicy.IsEligible(facts);
       }

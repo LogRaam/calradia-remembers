@@ -37,7 +37,7 @@ namespace CalradiaRemembers.GameState
       /// <summary>Sum of healthy (unwounded) rank-and-file troops in a roster, bucketed by tier. Heroes never count (mirrors CourtActionResolver.HealthyRegularTroopCount).</summary>
       public static TierTroopCounts BucketHealthyTroops(TroopRoster roster)
       {
-         if (roster == null) return new TierTroopCounts(0, 0, 0);
+         if (roster == null) return new TierTroopCounts {Low = 0, Medium = 0, High = 0};
 
          var low = 0;
          var medium = 0;
@@ -58,7 +58,7 @@ namespace CalradiaRemembers.GameState
             }
          }
 
-         return new TierTroopCounts(low, medium, high);
+         return new TierTroopCounts {Low = low, Medium = medium, High = high};
       }
 
       /// <summary>Which bucket a raw CharacterObject.Tier falls into (see this class's own header for the cutoffs).</summary>
@@ -78,13 +78,13 @@ namespace CalradiaRemembers.GameState
       /// </summary>
       public static TierTroopCounts MoveLoan(MobileParty from, MobileParty to, TierTroopCounts wanted)
       {
-         if (from?.MemberRoster == null || to?.MemberRoster == null) return new TierTroopCounts(0, 0, 0);
+         if (from?.MemberRoster == null || to?.MemberRoster == null) return new TierTroopCounts {Low = 0, Medium = 0, High = 0};
 
          int low = MoveBucket(from, to, TroopTierBucket.Low, wanted.Low);
          int medium = MoveBucket(from, to, TroopTierBucket.Medium, wanted.Medium);
          int high = MoveBucket(from, to, TroopTierBucket.High, wanted.High);
 
-         return new TierTroopCounts(low, medium, high);
+         return new TierTroopCounts {Low = low, Medium = medium, High = high};
       }
 
       #region private

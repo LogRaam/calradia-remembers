@@ -49,19 +49,11 @@ namespace CalradiaRemembers.Logic.Assemblies
     /// <summary>The tally of a council's stances on one motion, and whether it carries.</summary>
     public readonly struct ConsentResult
     {
-        public ConsentResult(bool carries, int favor, int oppose, int abstain)
-        {
-            Carries = carries;
-            Favor = favor;
-            Oppose = oppose;
-            Abstain = abstain;
-        }
-
         /// <summary>True when the motion may be staged as Agreed (advisory councils always carry).</summary>
-        public bool Carries { get; }
+        public bool Carries { get; init; }
 
-        public int Favor { get; }
-        public int Oppose { get; }
-        public int Abstain { get; }
+        public int Favor { get; init; }
+        public int Oppose { get; init; }
+        public int Abstain { get; init; }
     }
 }

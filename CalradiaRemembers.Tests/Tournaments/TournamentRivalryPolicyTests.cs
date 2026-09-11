@@ -23,19 +23,19 @@ namespace CalradiaRemembers.Tests.Tournaments
       // thick with "rivalries" from a single bout.
       [Test]
       public void GIVEN_too_few_meetings_WHEN_evaluated_THEN_there_is_no_rivalry()
-         => TournamentRivalryPolicy.Evaluate(1, 1, new TournamentTraitFacts(0, 0, 0)).Should().Be(TournamentRivalryFlavor.None);
+         => TournamentRivalryPolicy.Evaluate(1, 1, new TournamentTraitFacts {Valor = 0, Honor = 0, Mercy = 0}).Should().Be(TournamentRivalryFlavor.None);
 
       // At the threshold, an honourable competitor becomes a WORTHY (friendly) rival, whatever the win/loss split.
       [Test]
       public void GIVEN_enough_meetings_and_an_honourable_lord_WHEN_evaluated_THEN_the_rivalry_is_friendly()
-         => TournamentRivalryPolicy.Evaluate(2, 1, new TournamentTraitFacts(valor: 1, honor: 1, mercy: 0))
+         => TournamentRivalryPolicy.Evaluate(2, 1, new TournamentTraitFacts {Valor = 1, Honor = 1, Mercy = 0})
             .Should().Be(TournamentRivalryFlavor.Friendly);
 
       // At the threshold, a low-honour competitor turns the rivalry BITTER (a light grudge). Character, not the
       // scoreboard, decides: a lord who has WON more can still be bitter if his honour is low.
       [Test]
       public void GIVEN_enough_meetings_and_a_low_honour_lord_WHEN_evaluated_THEN_the_rivalry_is_bitter()
-         => TournamentRivalryPolicy.Evaluate(1, 2, new TournamentTraitFacts(valor: 2, honor: -1, mercy: 0))
+         => TournamentRivalryPolicy.Evaluate(1, 2, new TournamentTraitFacts {Valor = 2, Honor = -1, Mercy = 0})
             .Should().Be(TournamentRivalryFlavor.Bitter);
 
       // The threshold boundary is inclusive: exactly RivalryThreshold total meetings forms a rivalry, so an
@@ -45,7 +45,7 @@ namespace CalradiaRemembers.Tests.Tournaments
       {
          int total = TournamentRivalryPolicy.RivalryThreshold;
 
-         TournamentRivalryPolicy.Evaluate(total, 0, new TournamentTraitFacts(0, 0, 0))
+         TournamentRivalryPolicy.Evaluate(total, 0, new TournamentTraitFacts {Valor = 0, Honor = 0, Mercy = 0})
             .Should().NotBe(TournamentRivalryFlavor.None);
       }
 
@@ -82,7 +82,7 @@ namespace CalradiaRemembers.Tests.Tournaments
          };
 
          GrudgePolicy.ShouldForm(facts).Should().BeFalse();
-         TournamentRivalryPolicy.Evaluate(2, 1, new TournamentTraitFacts(0, -2, 1))
+         TournamentRivalryPolicy.Evaluate(2, 1, new TournamentTraitFacts {Valor = 0, Honor = -2, Mercy = 1})
             .Should().Be(TournamentRivalryFlavor.Bitter); // the rivalry itself is unaffected
       }
    }

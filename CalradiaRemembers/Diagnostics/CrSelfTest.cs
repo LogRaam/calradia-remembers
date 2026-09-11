@@ -6820,8 +6820,8 @@ namespace CalradiaRemembers.Diagnostics
          CombatantFacts foe = CalradiaRemembers.Battles.BattleFeatFacts.For(lords[0]);
 
          // Synthetic extremes: the ruling itself must not depend on who happens to be alive in this campaign.
-         var weakling = new CombatantFacts(20, 0, 0, 2, 0);
-         var champion = new CombatantFacts(300, 200, 200, 35, CombatProwessPolicy.FamousClanTier);
+         var weakling = new CombatantFacts {BestWeaponSkill = 20, Riding = 0, Athletics = 0, Level = 2, ClanTier = 0};
+         var champion = new CombatantFacts {BestWeaponSkill = 300, Riding = 200, Athletics = 200, Level = 35, ClanTier = CombatProwessPolicy.FamousClanTier};
 
          t.Note($"player prowess={CombatProwessPolicy.Prowess(player)}, {lords[0].Name} prowess={CombatProwessPolicy.Prowess(foe)}");
          t.Expect("live hero facts yield a real prowess score", CombatProwessPolicy.Prowess(foe) > 1, true);

@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Tests
     {
         // A cowed, respectful, pragmatic nemesis with only a modest grudge: the archetype that turns.
         private static NemesisTurnFacts Turnable()
-            => new NemesisTurnFacts(fear: 70, respect: 45, grudgeMagnitude: 30, honor: -1, valor: 0, calculating: 1);
+            => new NemesisTurnFacts {Fear = 70, Respect = 45, GrudgeMagnitude = 30, Honor = -1, Valor = 0, Calculating = 1};
 
         // The baseline positive case: the archetype the production header calls out as typically turnable
         // (low Honor, some Calculating, cowed and respectful). If this refuses, increment 4's core fantasy
@@ -45,7 +45,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_nemesis_who_does_not_fear_the_player_WHEN_resolving_THEN_he_refuses_for_too_little_fear()
         {
-            var facts = new NemesisTurnFacts(NemesisTurnPolicy.FearFloor - 1, 45, 30, -1, 0, 1);
+            var facts = new NemesisTurnFacts {Fear = NemesisTurnPolicy.FearFloor - 1, Respect = 45, GrudgeMagnitude = 30, Honor = -1, Valor = 0, Calculating = 1};
 
             NemesisTurnVerdict v = NemesisTurnPolicy.Resolve(facts);
 
@@ -58,7 +58,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_nemesis_who_does_not_respect_the_player_WHEN_resolving_THEN_he_refuses_for_too_little_respect()
         {
-            var facts = new NemesisTurnFacts(70, NemesisTurnPolicy.RespectFloor - 1, 30, -1, 0, 1);
+            var facts = new NemesisTurnFacts {Fear = 70, Respect = NemesisTurnPolicy.RespectFloor - 1, GrudgeMagnitude = 30, Honor = -1, Valor = 0, Calculating = 1};
 
             NemesisTurnVerdict v = NemesisTurnPolicy.Resolve(facts);
 
@@ -71,7 +71,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_brave_nemesis_who_is_no_calculator_WHEN_resolving_THEN_he_is_too_defiant_to_serve()
         {
-            var facts = new NemesisTurnFacts(70, 45, 30, honor: -1, valor: 2, calculating: 0);
+            var facts = new NemesisTurnFacts {Fear = 70, Respect = 45, GrudgeMagnitude = 30, Honor = -1, Valor = 2, Calculating = 0};
 
             NemesisTurnVerdict v = NemesisTurnPolicy.Resolve(facts);
 
@@ -84,7 +84,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_honorbound_nemesis_who_is_no_calculator_WHEN_resolving_THEN_he_is_too_defiant_to_serve()
         {
-            var facts = new NemesisTurnFacts(70, 45, 30, honor: 2, valor: 0, calculating: 0);
+            var facts = new NemesisTurnFacts {Fear = 70, Respect = 45, GrudgeMagnitude = 30, Honor = 2, Valor = 0, Calculating = 0};
 
             NemesisTurnVerdict v = NemesisTurnPolicy.Resolve(facts);
 
@@ -97,7 +97,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_brave_but_coldly_calculating_nemesis_WHEN_resolving_THEN_pragmatism_overrides_defiance_and_he_turns()
         {
-            var facts = new NemesisTurnFacts(70, 45, 30, honor: 0, valor: 2, calculating: 2);
+            var facts = new NemesisTurnFacts {Fear = 70, Respect = 45, GrudgeMagnitude = 30, Honor = 0, Valor = 2, Calculating = 2};
 
             NemesisTurnVerdict v = NemesisTurnPolicy.Resolve(facts);
 
@@ -111,8 +111,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_deep_grudge_with_only_ordinary_dominance_WHEN_resolving_THEN_his_hatred_blocks_the_turn()
         {
             // Fear/respect clear the floors, but not by the dominance margin that overcomes a vendetta.
-            var facts = new NemesisTurnFacts(NemesisTurnPolicy.FearFloor + 5, NemesisTurnPolicy.RespectFloor + 5,
-                grudgeMagnitude: NemesisTurnPolicy.GrudgeCeiling, honor: -1, valor: 0, calculating: 1);
+            var facts = new NemesisTurnFacts {Fear = NemesisTurnPolicy.FearFloor + 5, Respect = NemesisTurnPolicy.RespectFloor + 5, GrudgeMagnitude = NemesisTurnPolicy.GrudgeCeiling, Honor = -1, Valor = 0, Calculating = 1};
 
             NemesisTurnVerdict v = NemesisTurnPolicy.Resolve(facts);
 
@@ -126,8 +125,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_deep_grudge_but_overwhelming_dominance_WHEN_resolving_THEN_dominance_overcomes_his_hatred_and_he_turns()
         {
             // Same deep grudge, but fear and respect sit far above the floors: sheer dominance bends him anyway.
-            var facts = new NemesisTurnFacts(fear: 95, respect: 90, grudgeMagnitude: NemesisTurnPolicy.GrudgeCeiling + 20,
-                honor: -1, valor: 0, calculating: 1);
+            var facts = new NemesisTurnFacts {Fear = 95, Respect = 90, GrudgeMagnitude = NemesisTurnPolicy.GrudgeCeiling + 20, Honor = -1, Valor = 0, Calculating = 1};
 
             NemesisTurnVerdict v = NemesisTurnPolicy.Resolve(facts);
 
@@ -140,8 +138,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_facts_exactly_at_both_stance_floors_WHEN_resolving_THEN_the_floors_are_inclusive()
         {
-            var facts = new NemesisTurnFacts(NemesisTurnPolicy.FearFloor, NemesisTurnPolicy.RespectFloor,
-                grudgeMagnitude: 0, honor: -1, valor: 0, calculating: 1);
+            var facts = new NemesisTurnFacts {Fear = NemesisTurnPolicy.FearFloor, Respect = NemesisTurnPolicy.RespectFloor, GrudgeMagnitude = 0, Honor = -1, Valor = 0, Calculating = 1};
 
             NemesisTurnVerdict v = NemesisTurnPolicy.Resolve(facts);
 

@@ -424,8 +424,7 @@ namespace CalradiaRemembers.Missions
 
          if (towns.Count == 0) return null;
 
-         List<NewsDestinationCandidate> candidates = towns.Select(s => new NewsDestinationCandidate(
-            s.Name?.ToString(), s.MapFaction?.Name?.ToString(), s.Culture?.Name?.ToString())).ToList();
+         List<NewsDestinationCandidate> candidates = towns.Select(s => new NewsDestinationCandidate {SettlementName = s.Name?.ToString(), FactionName = s.MapFaction?.Name?.ToString(), CultureName = s.Culture?.Name?.ToString()}).ToList();
 
          int idx = NewsDestinationSelector.Choose(about, candidates);
 

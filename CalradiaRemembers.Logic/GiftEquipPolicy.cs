@@ -38,45 +38,31 @@ namespace CalradiaRemembers.Logic
     /// <summary>The facts <see cref="GiftEquipPolicy.Decide" /> needs to judge one gifted equipment item.</summary>
     public readonly struct GiftEquipFacts
     {
+        /// <summary>Every fact defaults to the refusing answer, so a caller names only what it actually knows.</summary>
+        public GiftEquipFacts() { }
+
         /// <summary>False for a non-wearable/wieldable gift (trade goods, etc.); such a gift is never equipped.</summary>
-        public bool IsEquippable { get; }
-
+        public bool IsEquippable { get; init; } = false;
         /// <summary>True when the target equipment slot currently holds nothing.</summary>
-        public bool SlotEmpty { get; }
-
+        public bool SlotEmpty { get; init; } = false;
         /// <summary>The gifted item's value.</summary>
-        public int GiftValue { get; }
-
+        public int GiftValue { get; init; } = 0;
         /// <summary>Value of the item currently in that slot (0 when <see cref="SlotEmpty" />).</summary>
-        public int CurrentSlotValue { get; }
-
+        public int CurrentSlotValue { get; init; } = 0;
         /// <summary>The NPC's PERSONAL regard for the player (CR's own ledger, not vanilla relation).</summary>
-        public int Relation { get; }
-
+        public int Relation { get; init; } = 0;
         /// <summary>
         ///   True for a spouse, or one of the player's OWN companions: such an NPC wears a gift fondly
         ///   regardless of <see cref="Relation" />.
         /// </summary>
-        public bool IsSentimental { get; }
-
+        public bool IsSentimental { get; init; } = false;
         /// <summary>
         ///   True when the recipient is the player's held PRISONER and the gift is a wearable GARMENT (never a
         ///   weapon): the captor is dressing them, so it is imposed regardless of fondness or value. The engine
         ///   half sets this only for garment slots, so a captive can never be handed a weapon this way.
         /// </summary>
-        public bool IsCaptiveDressing { get; }
+        public bool IsCaptiveDressing { get; init; } = false;
 
-        /// <summary>Builds the fact set the policy judges.</summary>
-        public GiftEquipFacts(bool isEquippable, bool slotEmpty, int giftValue, int currentSlotValue, int relation, bool isSentimental, bool isCaptiveDressing = false)
-        {
-            IsEquippable = isEquippable;
-            SlotEmpty = slotEmpty;
-            GiftValue = giftValue;
-            CurrentSlotValue = currentSlotValue;
-            Relation = relation;
-            IsSentimental = isSentimental;
-            IsCaptiveDressing = isCaptiveDressing;
-        }
     }
 
     /// <summary>The policy's verdict: whether to equip the gift, and why.</summary>

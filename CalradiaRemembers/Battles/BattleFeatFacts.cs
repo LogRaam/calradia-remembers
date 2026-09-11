@@ -20,17 +20,12 @@ namespace CalradiaRemembers.Battles
       /// <summary>The hero's fighting facts, or a harmless floor when the hero cannot be read.</summary>
       public static CombatantFacts For(Hero hero)
       {
-         if (hero == null) return new CombatantFacts(0, 0, 0, 0, 0);
+         if (hero == null) return new CombatantFacts {BestWeaponSkill = 0, Riding = 0, Athletics = 0, Level = 0, ClanTier = 0};
 
          int bestWeapon = Best(hero, DefaultSkills.OneHanded, DefaultSkills.TwoHanded, DefaultSkills.Polearm,
             DefaultSkills.Bow, DefaultSkills.Crossbow, DefaultSkills.Throwing);
 
-         return new CombatantFacts(
-            bestWeapon,
-            Skill(hero, DefaultSkills.Riding),
-            Skill(hero, DefaultSkills.Athletics),
-            hero.Level,
-            hero.Clan?.Tier ?? 0);
+         return new CombatantFacts {BestWeaponSkill = bestWeapon, Riding = Skill(hero, DefaultSkills.Riding), Athletics = Skill(hero, DefaultSkills.Athletics), Level = hero.Level, ClanTier = hero.Clan?.Tier ?? 0};
       }
 
       private static int Best(Hero hero, params SkillObject[] skills)

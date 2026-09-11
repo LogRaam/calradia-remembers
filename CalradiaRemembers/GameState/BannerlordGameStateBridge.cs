@@ -626,15 +626,7 @@ namespace CalradiaRemembers.GameState
          Kingdom playerRealm = Clan.PlayerClan?.Kingdom;
          bool sharesRealm = playerRealm != null && npc.Clan?.Kingdom == playerRealm;
 
-         return new PlayerStandingFacts(
-            Hero.MainHero.IsPrisoner && Hero.MainHero.PartyBelongedToAsPrisoner?.LeaderHero == npc,
-            npc.IsPrisoner && npc.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero,
-            npc.Clan != null && npc.Clan == Clan.PlayerClan,
-            Hero.MainHero.Clan?.Kingdom?.Leader == npc && npc != Hero.MainHero,
-            npc.Clan?.Kingdom?.Leader == Hero.MainHero && Hero.MainHero.Clan?.Kingdom != null,
-            sharesRealm && (Clan.PlayerClan?.IsUnderMercenaryService ?? false),
-            sharesRealm,
-            sharesRealm && (npc.Clan?.IsUnderMercenaryService ?? false));
+         return new PlayerStandingFacts {PlayerIsCaptiveOfNpc = Hero.MainHero.IsPrisoner && Hero.MainHero.PartyBelongedToAsPrisoner?.LeaderHero == npc, NpcIsCaptiveOfPlayer = npc.IsPrisoner && npc.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero, SharesPlayerClan = npc.Clan != null && npc.Clan == Clan.PlayerClan, NpcRulesPlayerRealm = Hero.MainHero.Clan?.Kingdom?.Leader == npc && npc != Hero.MainHero, PlayerRulesNpcRealm = npc.Clan?.Kingdom?.Leader == Hero.MainHero && Hero.MainHero.Clan?.Kingdom != null, PlayerIsMercenaryOfNpcRealm = sharesRealm && (Clan.PlayerClan?.IsUnderMercenaryService ?? false), SharesRealm = sharesRealm, NpcIsMercenaryOfSharedRealm = sharesRealm && (npc.Clan?.IsUnderMercenaryService ?? false)};
       }
 
       public string GetSeasonName()
@@ -1666,14 +1658,7 @@ namespace CalradiaRemembers.GameState
             int relation = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId)?.ReputationWithPlayer ?? 0;
             bool sentimental = hero.Spouse == Hero.MainHero || hero.IsPlayerCompanion;
 
-            GiftEquipDecision decision = GiftEquipPolicy.Decide(new GiftEquipFacts(
-               isEquippable: true,
-               slotEmpty: current.Item == null,
-               giftValue: item.Value,
-               currentSlotValue: current.Item?.Value ?? 0,
-               relation: relation,
-               isSentimental: sentimental,
-               isCaptiveDressing: isCaptiveDressing));
+            GiftEquipDecision decision = GiftEquipPolicy.Decide(new GiftEquipFacts {IsEquippable = true, SlotEmpty = current.Item == null, GiftValue = item.Value, CurrentSlotValue = current.Item?.Value ?? 0, Relation = relation, IsSentimental = sentimental, IsCaptiveDressing = isCaptiveDressing});
 
             if (!decision.ShouldEquip) return "";
 
@@ -3847,7 +3832,7 @@ namespace CalradiaRemembers.GameState
             int grudge = NemesisGrudgeAgainstPlayer(npcHero);
 
             NemesisTurnVerdict verdict = NemesisTurnPolicy.Resolve(
-               new NemesisTurnFacts(stance.Fear, stance.Respect, grudge, honor, valor, calculating));
+               new NemesisTurnFacts {Fear = stance.Fear, Respect = stance.Respect, GrudgeMagnitude = grudge, Honor = honor, Valor = valor, Calculating = calculating});
 
             if (!verdict.CanTurn)
                return ActionOutcome.Refused($"({npcHero.Name} refuses to bend: he {TurnRefusalPhrase(verdict.Refusal)}.)");
@@ -4136,7 +4121,7 @@ namespace CalradiaRemembers.GameState
             if (item == null || item.Value <= 0) continue;
 
             string category = item.ItemCategory?.StringId?.ToLowerInvariant();
-            list.Add(new GiftCandidate(item.StringId, item.Name.ToString(), category, item.Value));
+            list.Add(new GiftCandidate {Id = item.StringId, Name = item.Name.ToString(), Category = category, Value = item.Value});
          }
 
          return list;

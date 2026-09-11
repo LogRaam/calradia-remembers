@@ -68,7 +68,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                     }
 
             bool carries = AuthorityOf(scope) == ConsentAuthority.Advisory || favor >= oppose;
-            return new ConsentResult(carries, favor, oppose, abstain);
+            return new ConsentResult {Carries = carries, Favor = favor, Oppose = oppose, Abstain = abstain};
         }
     }
 }
