@@ -174,9 +174,10 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
       public string CustomApiKey { get; set; } = "";
 
-      [SettingPropertyText("Endpoint URL", RequireRestart = false, Order = 1,
-         HintText = "Base URL of your local server, including /v1 (e.g. http://localhost:1234/v1 for LM Studio, " +
-                    "http://localhost:11434/v1 for Ollama). Used only when Provider is OpenAI-Compatible.")]
+      [SettingPropertyText("Endpoint URL (Prose / shared)", RequireRestart = false, Order = 1,
+         HintText = "Base URL of your local server, with /v1 (e.g. http://localhost:1234/v1). Serves the Prose " +
+                    "role, and any role whose own Endpoint below is blank. Set that role's model under LLM " +
+                    "Provider too, or it sends an OpenRouter id to your server.")]
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
       public string CustomEndpointUrl { get; set; } = "";
 
@@ -290,9 +291,9 @@ namespace CalradiaRemembers.Settings
       public int LlmTimeoutSeconds { get; set; } = 120;
 
       [SettingPropertyText("PROSE model", RequireRestart = false, Order = 2,
-         HintText = "Model id for the everyday PROSE model, in the ACTIVE provider's own format (OpenRouter: " +
-                    "x-ai/grok-4.20; NanoGPT: deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). It writes ordinary chat " +
-                    "and, in Enhanced mode, the prose of every scene. Applies immediately.")]
+         HintText = "Model id in the ACTIVE provider's own format (OpenRouter: x-ai/grok-4.20; NanoGPT: " +
+                    "deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). Writes ordinary chat, and in Enhanced mode " +
+                    "the prose of every scene. Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string Model { get; set; } = "x-ai/grok-4.20";
 
@@ -330,9 +331,9 @@ namespace CalradiaRemembers.Settings
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
 
       [SettingPropertyText("NSFW model", RequireRestart = false, Order = 6,
-         HintText = "Model id for explicit content: captivity scenes in Standard mode, and the hard-failure fallback " +
-                    "in Enhanced mode (when the PROSE model truncates, empties, or refuses a beat). Default " +
-                    "x-ai/grok-4.20. Blank = use the PROSE model.")]
+         HintText = "Model id for explicit content: captivity in Standard mode, the fallback in Enhanced. Blank " +
+                    "uses the PROSE model - and so does the shipped OpenRouter id if you point this role at your " +
+                    "own server without naming ITS model.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string CncModel { get; set; } = "x-ai/grok-4.20";
 
@@ -343,8 +344,9 @@ namespace CalradiaRemembers.Settings
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
 
       [SettingPropertyText("Interpret model", RequireRestart = false, Order = 8,
-         HintText = "Enhanced mode only: the model that reads the structured actions out of the prose. Default " +
-                    "x-ai/grok-4.20. Blank = use the PROSE model.")]
+         HintText = "Enhanced mode only: the model that reads the structured actions out of the prose. Blank " +
+                    "uses the PROSE model - and so does the shipped OpenRouter id if you point this role at " +
+                    "your own server without naming ITS model.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string ActionInterpreterModel { get; set; } = "x-ai/grok-4.20";
 

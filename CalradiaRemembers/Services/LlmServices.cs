@@ -644,17 +644,31 @@ namespace CalradiaRemembers.Services
       /// </summary>
       private static string ResolveRoleplayModelForKind(ProviderKind kind)
       {
-         string mcmModel = CrSettings.Instance?.Model?.Trim() ?? string.Empty;
+         string configured = ConfiguredModelFor(CrSettings.Instance?.Model, kind);
 
-         if (kind == ProviderKind.OpenAiCompatible || kind == ProviderKind.NanoGpt)
-            // The untouched OpenRouter default means "never configured for this provider", not a
-            // choice: model namespaces differ, and a wrong id is worse than an explicit blank.
-            return mcmModel == DefaultModel ? string.Empty : mcmModel;
+         if (ProviderModelPolicy.OwnsItsOwnModelNamespace(kind)) return configured;
 
-         return string.IsNullOrWhiteSpace(mcmModel)
+         return string.IsNullOrWhiteSpace(configured)
             ? DefaultModel
-            : mcmModel;
+            : configured;
       }
+
+      /// <summary>
+      ///   One model field, read against the provider the role carrying it actually points at: the trimmed id
+      ///   when it is a real choice there, EMPTY when the field is blank or still holds the shipped OpenRouter
+      ///   default on a provider that names its own models.
+      ///   <para>
+      ///     This rule used to live inside <see cref="ResolveRoleplayModelForKind" /> and so protected the PROSE
+      ///     role alone. The interpret and NSFW fields sent their untouched default verbatim, which is how a
+      ///     player pointing the interpreter at his own LM Studio watched prose work and interpretation fail and
+      ///     reasonably concluded the mod had crossed the two (Nexus, 2026-09-11). Every role asks the same
+      ///     question now, and it is answered in one place.
+      ///   </para>
+      /// </summary>
+      private static string ConfiguredModelFor(string mcmField, ProviderKind kind)
+         => ProviderModelPolicy.Resolve(new ProviderModelPolicy.ModelChoice {
+            ConfiguredId = mcmField, Kind = kind, ShippedDefaultId = DefaultModel
+         });
 
       /// <summary>
       ///   Resolves the model id for the ACTIVE turn: the roleplay model for the active role's kind, then the
@@ -671,7 +685,16 @@ namespace CalradiaRemembers.Services
 
          // Phase 2: PROSE = the base model (per provider kind), NSFW = the CncModel storage (migrated from the old
          // CNC/NSFW slot), INTERPRET = the ActionInterpreterModel storage. The main call is only ever Prose or Nsfw.
-         return ModelModePolicy.ResolveModelId(new ModelModePolicy.RoleSettings {Role = ActiveMainRole(), Prose = proseModel, Nsfw = ModSettings.CncModel, Interpret = ModSettings.ActionInterpreterModel});
+         //
+         // Each field is read against ITS OWN role's provider, not the active one: a player may keep prose on
+         // OpenRouter and put the NSFW model on a local server. A field that says nothing for its provider
+         // resolves EMPTY, which is the signal ResolveModelId already treats as "fall back to prose".
+         return ModelModePolicy.ResolveModelId(new ModelModePolicy.RoleSettings {
+            Role = ActiveMainRole(),
+            Prose = proseModel,
+            Nsfw = ConfiguredModelFor(ModSettings.CncModel, ResolveKindForRole(ServiceRole.Nsfw)),
+            Interpret = ConfiguredModelFor(ModSettings.ActionInterpreterModel, ResolveKindForRole(ServiceRole.Interpret))
+         });
       }
 
       /// <summary>
@@ -682,7 +705,10 @@ namespace CalradiaRemembers.Services
       /// </summary>
       public string ResolveInterpreterModel()
       {
-         string configured = ModSettings.ActionInterpreterModel;
+         // Read against the INTERPRETER's own provider. An untouched field still holding the shipped OpenRouter
+         // id says nothing to a local server, so it counts as unset and the scene's own model is used instead:
+         // the same meaning a blank field has always had, now reached by the case that actually bit a player.
+         string configured = ConfiguredModelFor(ModSettings.ActionInterpreterModel, ResolveKindForRole(ServiceRole.Interpret));
 
          return string.IsNullOrWhiteSpace(configured)
             ? ResolveModel()
