@@ -3283,16 +3283,17 @@ namespace CalradiaRemembers.GameState
             bool atWar = npcHero.MapFaction != null && Hero.MainHero.MapFaction != null &&
                          FactionManager.IsAtWarAgainstFaction(npcHero.MapFaction, Hero.MainHero.MapFaction);
 
-            if (!RideWithMeEligibilityPolicy.CanRideWithPlayer(
-                   isLord: npcHero.IsLord,
-                   isAlive: npcHero.IsAlive,
-                   isPrisoner: npcHero.IsPrisoner,
-                   leadsParty: leadsParty,
-                   isPlayerClan: npcHero.Clan == Clan.PlayerClan,
-                   atWar: atWar,
-                   alreadyRiding: behavior.IsRetainer(npcHero.StringId),
-                   regard: regard,
-                   factionAtWar: FactionIsAtWarWithAnyone(npcHero.MapFaction)))
+            if (!RideWithMeEligibilityPolicy.CanRideWithPlayer(new RideWithMeEligibilityPolicy.RideWithMeFacts {
+                   IsLord = npcHero.IsLord,
+                   IsAlive = npcHero.IsAlive,
+                   IsPrisoner = npcHero.IsPrisoner,
+                   LeadsOwnParty = leadsParty,
+                   IsPlayerClan = npcHero.Clan == Clan.PlayerClan,
+                   AtWarWithPlayer = atWar,
+                   AlreadyRiding = behavior.IsRetainer(npcHero.StringId),
+                   Regard = regard,
+                   RealmAtWar = FactionIsAtWarWithAnyone(npcHero.MapFaction)
+                }))
             {
                // The one refusal worth naming precisely: a lord who leads their own party belongs to follow_me,
                // not this verb. Every other block is a plain "not right now" so the model never narrates it done.

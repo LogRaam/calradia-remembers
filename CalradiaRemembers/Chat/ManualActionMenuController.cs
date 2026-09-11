@@ -388,10 +388,18 @@ namespace CalradiaRemembers.Chat
             });
 
             bool npcIsRidingWithPlayer = RetainerBehavior.Enabled && RetainerBehavior.Instance?.IsRetainer(npc.StringId) == true;
-            bool npcCanRideWithPlayer = RetainerBehavior.Enabled && RideWithMeEligibilityPolicy.CanRideWithPlayer(
-               isLord: npc.IsLord, isAlive: npc.IsAlive, isPrisoner: npc.IsPrisoner, leadsParty: leadsParty,
-               isPlayerClan: npc.Clan == Clan.PlayerClan, atWar: atWar, alreadyRiding: npcIsRidingWithPlayer, regard: regard,
-               factionAtWar: factionAtWar);
+            bool npcCanRideWithPlayer = RetainerBehavior.Enabled
+                                        && RideWithMeEligibilityPolicy.CanRideWithPlayer(new RideWithMeEligibilityPolicy.RideWithMeFacts {
+                                           IsLord = npc.IsLord,
+                                           IsAlive = npc.IsAlive,
+                                           IsPrisoner = npc.IsPrisoner,
+                                           LeadsOwnParty = leadsParty,
+                                           IsPlayerClan = npc.Clan == Clan.PlayerClan,
+                                           AtWarWithPlayer = atWar,
+                                           AlreadyRiding = npcIsRidingWithPlayer,
+                                           Regard = regard,
+                                           RealmAtWar = factionAtWar
+                                        });
 
             bool playerIsKingdomLeader = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
             bool npcIsVassalInPlayerKingdom = npc.Clan != null && npc.Clan != Clan.PlayerClan

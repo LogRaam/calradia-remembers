@@ -38,31 +38,75 @@ namespace CalradiaRemembers.Logic
       public const int RegardFloor = 30;
 
       /// <summary>
-      ///   True only when this hero is a lord/lady (a wanderer or bandit is not who "ride with me for a while"
-      ///   is meant for), alive, not a prisoner, does NOT lead their own field party (the inverted fact that
-      ///   makes this the exact complement of follow_me: a party-leader is follow_me's job, taking them here
-      ///   would orphan their command), is not already of the player's own clan (a clan member rides with you by
-      ///   default; this is for an OTHER clan's lord), is not at war with the player (an enemy lord does not ride
-      ///   inside the very army they may soon fight), their OWN FACTION is not at war with anyone (author's
-      ///   concern: a lord riding along while his realm fights a war stops answering his liege's muster call,
-      ///   quietly weakening the faction, so he stays home and available regardless of his personal regard for
-      ///   the player - distinct from <paramref name="atWar" />, which is only the player's own war), is not
-      ///   already riding as a retainer (one at a time), and holds the player in at least
-      ///   <see cref="RegardFloor" /> personal regard.
+      ///   Everything the retainer question rests on, read off the live campaign by the caller. Named rather
+      ///   than positional: this used to be nine parameters in a row, eight of them booleans, and the compiler
+      ///   cannot tell "is at war with the player" from "is already riding" when both are just true.
       /// </summary>
-      public static bool CanRideWithPlayer(
-         bool isLord, bool isAlive, bool isPrisoner, bool leadsParty,
-         bool isPlayerClan, bool atWar, bool alreadyRiding, int regard, bool factionAtWar)
+      public sealed class RideWithMeFacts
       {
-         if (!isLord) return false;
-         if (!isAlive) return false;
-         if (isPrisoner) return false;
-         if (leadsParty) return false;
-         if (isPlayerClan) return false;
-         if (atWar) return false;
-         if (alreadyRiding) return false;
-         if (regard < RegardFloor) return false;
-         if (factionAtWar) return false;
+         /// <summary>A lord or lady. A wanderer or a bandit is not who "ride with me for a while" is meant for.</summary>
+         public bool IsLord { get; set; }
+
+         /// <summary>Alive.</summary>
+         public bool IsAlive { get; set; }
+
+         /// <summary>Somebody's prisoner, and so in no position to ride anywhere.</summary>
+         public bool IsPrisoner { get; set; }
+
+         /// <summary>
+         ///   Leads their own field party. THE INVERTED FACT that makes this the exact complement of follow_me:
+         ///   a party-leader is follow_me's business, and taking them here would orphan their command.
+         /// </summary>
+         public bool LeadsOwnParty { get; set; }
+
+         /// <summary>Already of the player's own clan, who ride along by default; this is for another clan's lord.</summary>
+         public bool IsPlayerClan { get; set; }
+
+         /// <summary>Their realm and the player's are at war with EACH OTHER.</summary>
+         public bool AtWarWithPlayer { get; set; }
+
+         /// <summary>Already riding as a retainer. One at a time.</summary>
+         public bool AlreadyRiding { get; set; }
+
+         /// <summary>The mod's own personal regard ledger, never the vanilla clan relation.</summary>
+         public int Regard { get; set; }
+
+         /// <summary>
+         ///   Their own realm is at war with somebody, anybody. STILL A REFUSAL HERE, unlike its twin.
+         ///   <para>
+         ///     EscortEligibilityPolicy dropped the same blanket gate on 2026-09-10, because it made follow_me
+         ///     nearly unreachable, and it was safe to drop there because a summoned lord's own party joins an
+         ///     army and the escort ENDS, with the lord saying why (EscortContinuationPolicy.SummonedByLiege).
+         ///     A retainer has no party of his own, by the very precondition above, so there is nothing for a
+         ///     muster to reclaim and no recall to end the arrangement. Dropping it here would let a lord ride
+         ///     inside the player's party for the whole term while his realm fights, with no way out, which is
+         ///     precisely what the 29/08/2026 gate was for. Same words, different situation, so it awaits its
+         ///     own ruling rather than inheriting the other one.
+         ///   </para>
+         /// </summary>
+         public bool RealmAtWar { get; set; }
+      }
+
+      /// <summary>
+      ///   True only when this hero is a lord or lady, alive, not a prisoner, does NOT lead their own field
+      ///   party, is not already of the player's clan, is not at war with the player, is not already riding,
+      ///   holds the player in at least <see cref="RegardFloor" /> personal regard, and their own realm is not
+      ///   at war (see <see cref="RideWithMeFacts.RealmAtWar" /> for why that last one still refuses here while
+      ///   its twin no longer does). Missing facts refuse: the safe answer to "I do not know" is no.
+      /// </summary>
+      public static bool CanRideWithPlayer(RideWithMeFacts facts)
+      {
+         if (facts == null) return false;
+
+         if (!facts.IsLord) return false;
+         if (!facts.IsAlive) return false;
+         if (facts.IsPrisoner) return false;
+         if (facts.LeadsOwnParty) return false;
+         if (facts.IsPlayerClan) return false;
+         if (facts.AtWarWithPlayer) return false;
+         if (facts.AlreadyRiding) return false;
+         if (facts.Regard < RegardFloor) return false;
+         if (facts.RealmAtWar) return false;
 
          return true;
       }

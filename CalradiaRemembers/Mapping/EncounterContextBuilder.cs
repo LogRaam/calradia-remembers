@@ -2190,16 +2190,17 @@ namespace CalradiaRemembers.Mapping
          bool atWar = hero.MapFaction != null && Hero.MainHero?.MapFaction != null &&
                       FactionManager.IsAtWarAgainstFaction(hero.MapFaction, Hero.MainHero.MapFaction);
 
-         return RideWithMeEligibilityPolicy.CanRideWithPlayer(
-            isLord: hero.IsLord,
-            isAlive: hero.IsAlive,
-            isPrisoner: hero.IsPrisoner,
-            leadsParty: leadsParty,
-            isPlayerClan: hero.Clan == Clan.PlayerClan,
-            atWar: atWar,
-            alreadyRiding: alreadyRiding,
-            regard: profile?.ReputationWithPlayer ?? 0,
-            factionAtWar: FactionIsAtWarWithAnyone(hero.MapFaction));
+         return RideWithMeEligibilityPolicy.CanRideWithPlayer(new RideWithMeEligibilityPolicy.RideWithMeFacts {
+            IsLord = hero.IsLord,
+            IsAlive = hero.IsAlive,
+            IsPrisoner = hero.IsPrisoner,
+            LeadsOwnParty = leadsParty,
+            IsPlayerClan = hero.Clan == Clan.PlayerClan,
+            AtWarWithPlayer = atWar,
+            AlreadyRiding = alreadyRiding,
+            Regard = profile?.ReputationWithPlayer ?? 0,
+            RealmAtWar = FactionIsAtWarWithAnyone(hero.MapFaction)
+         });
       }
 
       /// <summary>

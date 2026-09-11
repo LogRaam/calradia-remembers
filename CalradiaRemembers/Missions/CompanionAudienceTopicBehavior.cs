@@ -528,20 +528,21 @@ namespace CalradiaRemembers.Missions
          {
             MobileParty main = MobileParty.MainParty;
 
-            return RoadAudienceSafetyPolicy.IsSafeForPrivateWord(
-               inMission: Mission.Current != null,
-               inConversation: Hero.OneToOneConversationHero != null,
-               playerIsPrisoner: Hero.MainHero?.IsPrisoner ?? true,
-               inSettlement: Hero.MainHero?.CurrentSettlement != null,
-               inMapEvent: main?.MapEvent != null,
-               inSiegeEvent: main?.SiegeEvent != null,
-               inEncounter: PlayerEncounter.Current != null,
-               inMenu: Campaign.Current?.CurrentMenuContext != null,
-               chatOpen: ChatManager.IsOpen,
-               chatStaging: ChatSceneStager.IsStaging || CouncilConversationStager.IsStaging,
+            return RoadAudienceSafetyPolicy.IsSafeForPrivateWord(new RoadAudienceFacts {
+               InMission = Mission.Current != null,
+               InConversation = Hero.OneToOneConversationHero != null,
+               PlayerIsPrisoner = Hero.MainHero?.IsPrisoner ?? true,
+               InSettlement = Hero.MainHero?.CurrentSettlement != null,
+               InMapEvent = main?.MapEvent != null,
+               InSiegeEvent = main?.SiegeEvent != null,
+               InEncounter = PlayerEncounter.Current != null,
+               InMenu = Campaign.Current?.CurrentMenuContext != null,
+               ChatOpen = ChatManager.IsOpen,
+               ChatStaging = ChatSceneStager.IsStaging || CouncilConversationStager.IsStaging,
                // Open water is not the road. Crash report, 2026-09-10: a companion asked for a word at sea, the
                // popup and the chat window came up together, and ending the conversation crashed the game.
-               atSea: main?.IsCurrentlyAtSea ?? false);
+               AtSea = main?.IsCurrentlyAtSea ?? false
+            });
          }
          catch (Exception ex)
          {
