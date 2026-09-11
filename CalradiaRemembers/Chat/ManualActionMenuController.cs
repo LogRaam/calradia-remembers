@@ -413,13 +413,7 @@ namespace CalradiaRemembers.Chat
 
             bool npcCanBeGrantedFief = FiefTransferPolicy.CanOfferGrant(playerIsKingdomLeader, npcIsVassalInPlayerKingdom, grantableFiefs.Count > 0);
             bool npcCanHaveFiefRevoked = FiefTransferPolicy.CanOfferRevoke(playerIsKingdomLeader, npcIsVassalInPlayerKingdom, revocableFiefs.Count > 0);
-            bool npcCanBeAppointedGovernor = GovernorAppointmentPolicy.CanOfferAppointment(
-               playerLeadsClan: Clan.PlayerClan?.Leader == Hero.MainHero,
-               appointeeInPlayerClan: npc.Clan != null && npc.Clan == Clan.PlayerClan,
-               appointeeAvailable: npc.IsAlive && !npc.IsPrisoner && npc != Hero.MainHero,
-               hasVacantGovernableFief: appointableFiefs.Count > 0,
-               appointeeNotGoverningElsewhere: npc.GovernorOf == null,
-               appointeeNotAway: npcAvailableForErrand);
+            bool npcCanBeAppointedGovernor = GovernorAppointmentPolicy.CanOfferAppointment(new GovernorAppointmentPolicy.AppointmentOfferFacts {PlayerLeadsClan = Clan.PlayerClan?.Leader == Hero.MainHero, AppointeeInPlayerClan = npc.Clan != null && npc.Clan == Clan.PlayerClan, AppointeeAvailable = npc.IsAlive && !npc.IsPrisoner && npc != Hero.MainHero, HasVacantGovernableFief = appointableFiefs.Count > 0, AppointeeNotGoverningElsewhere = npc.GovernorOf == null, AppointeeNotAway = npcAvailableForErrand});
 
             bool npcHasActiveStipend = CouncilStipendBehavior.Instance?.HasActive(npc.StringId) == true;
             bool playerCanAffordMinTranche = Hero.MainHero != null && Hero.MainHero.Gold >= StipendPolicy.MinTrancheCost;
@@ -447,9 +441,9 @@ namespace CalradiaRemembers.Chat
                NpcIsPlayerCompanion = npcIsPlayerCompanion,
                NpcIsAwayOnErrand = !npcAvailableForErrand,
                CompanionIsDiscontented = IsDiscontented(npc),
-               NpcCanBeDispatchedOnMission = PartyCommandOfferPolicy.CanOfferDispatchMission(npcCanRideForPlayer, npcInMainParty, npcAvailableForErrand),
-               NpcCanBeAssignedPartyRole = PartyCommandOfferPolicy.CanOfferAssignRole(npcIsPlayerCompanion, npcInMainParty),
-               NpcCanRejoinParty = PartyCommandOfferPolicy.CanOfferRejoinParty(npcIsPlayerCompanion, npcAlive, npcIsPrisoner, npcInMainParty, npcLeadsOwnCompany),
+               NpcCanBeDispatchedOnMission = PartyCommandOfferPolicy.CanOfferDispatchMission(new PartyCommandOfferPolicy.DispatchMissionFacts {NpcCanRideForPlayer = npcCanRideForPlayer, NpcInMainParty = npcInMainParty, NpcAvailableForErrand = npcAvailableForErrand}),
+               NpcCanBeAssignedPartyRole = PartyCommandOfferPolicy.CanOfferAssignRole(new PartyCommandOfferPolicy.AssignRoleFacts {NpcIsPlayerCompanion = npcIsPlayerCompanion, NpcInMainParty = npcInMainParty}),
+               NpcCanRejoinParty = PartyCommandOfferPolicy.CanOfferRejoinParty(new PartyCommandOfferPolicy.RejoinPartyFacts {NpcIsPlayerCompanion = npcIsPlayerCompanion, NpcAlive = npcAlive, NpcIsPrisoner = npcIsPrisoner, NpcInMainParty = npcInMainParty, NpcLeadsOwnCompany = npcLeadsOwnCompany}),
                NpcCanEscortPlayer = npcCanEscortPlayer,
                NpcIsEscortingPlayer = npcIsEscortingPlayer,
                NpcCanRideWithPlayer = npcCanRideWithPlayer,

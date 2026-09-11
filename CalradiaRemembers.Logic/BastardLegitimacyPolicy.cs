@@ -17,18 +17,55 @@ namespace CalradiaRemembers.Logic
     public static class BastardLegitimacyPolicy
     {
         /// <summary>
+        ///   The marriage facts around one child's birth. FIVE booleans in a row, and the last two are the
+        ///   whole of the posthumous-heir rule: a former spouse who is DEAD means a widowing, a former
+        ///   spouse still alive means a divorce, and swapping them turns an heir into a scandal.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class ParentageFacts
+        {
+           /// <summary>The player is one of the child's parents.</summary>
+           public bool PlayerIsParent { get; set; }
+
+           /// <summary>The other parent is known at all.</summary>
+           public bool OtherParentExists { get; set; }
+
+           /// <summary>
+           ///   The other parent is the player's spouse today, so the child was born within the marriage.
+           /// </summary>
+           public bool OtherParentIsCurrentSpouse { get; set; }
+
+           /// <summary>
+           ///   The other parent is a former spouse. Whether that was a death or a divorce is the next fact.
+           /// </summary>
+           public bool OtherParentIsFormerSpouse { get; set; }
+
+           /// <summary>
+           ///   The other parent still lives. A former spouse now DEAD means the marriage ended by widowing and
+           ///   the child is a posthumous heir; a living ex means a divorce, and a child by them is a bastard.
+           /// </summary>
+           public bool OtherParentAlive { get; set; }
+        }
+
+        /// <summary>
         ///   A child is the player's BASTARD only when the player is a parent, the other parent exists, and that
         ///   other parent is NOT the marriage the child belongs to: not the current spouse, and not a former
         ///   spouse the player was WIDOWED from (a former spouse now dead, romance audit M-G2 posthumous heir). A
         ///   former spouse still ALIVE is a divorce, so a child by them IS a bastard (conceived outside a
         ///   marriage). Everything else, a stranger, a lover, a living ex, is a bastard.
         /// </summary>
-        public static bool IsPlayersBastard(bool playerIsParent,
-                                            bool otherParentExists,
-                                            bool otherParentIsCurrentSpouse,
-                                            bool otherParentIsFormerSpouse,
-                                            bool otherParentAlive)
+        public static bool IsPlayersBastard(ParentageFacts facts)
         {
+           if (facts == null) return false;
+
+           bool playerIsParent = facts.PlayerIsParent;
+           bool otherParentExists = facts.OtherParentExists;
+           bool otherParentIsCurrentSpouse = facts.OtherParentIsCurrentSpouse;
+           bool otherParentIsFormerSpouse = facts.OtherParentIsFormerSpouse;
+           bool otherParentAlive = facts.OtherParentAlive;
+
             if (!playerIsParent || !otherParentExists) return false;
 
             if (otherParentIsCurrentSpouse) return false; // born within the current marriage

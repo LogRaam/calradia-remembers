@@ -4251,8 +4251,7 @@ namespace CalradiaRemembers.GameState
          bool fiefStillOwned = fief != null && (fief.IsTown || fief.IsCastle) && fief.OwnerClan == npcHero.Clan;
          bool atWar = IsAtWarWithPlayer(npcHero);
 
-         QuestRewardPayoutVerdict verdict = QuestRewardGatePolicy.DecideFiefPayout(
-            ModSettings.AllowFiefAndMarriageQuestRewards, giverAlive, giverLeadsOwnClan, fiefStillOwned, atWar);
+         QuestRewardPayoutVerdict verdict = QuestRewardGatePolicy.DecideFiefPayout(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = ModSettings.AllowFiefAndMarriageQuestRewards, GiverAlive = giverAlive, GiverLeadsOwnClan = giverLeadsOwnClan, FiefStillOwnedByGiverClan = fiefStillOwned, PlayerAtWarWithGiverClan = atWar});
 
          if (verdict != QuestRewardPayoutVerdict.Deliver)
             return DegradeHeavyReward(npcHero, profile, $"the fief of {quest.PromisedSettlementName ?? "the promised land"}", atWar);
@@ -4287,8 +4286,7 @@ namespace CalradiaRemembers.GameState
          bool atWar = IsAtWarWithPlayer(npcHero);
          bool playerReigns = Clan.PlayerClan?.Kingdom != null && Clan.PlayerClan.Kingdom.Leader == Hero.MainHero;
 
-         QuestRewardPayoutVerdict verdict = QuestRewardGatePolicy.DecideMarriageRewardPayout(
-            ModSettings.AllowFiefAndMarriageQuestRewards, giverAlive, hasAuthority, marriageable, atWar, playerReigns);
+         QuestRewardPayoutVerdict verdict = QuestRewardGatePolicy.DecideMarriageRewardPayout(new QuestRewardGatePolicy.MarriageRewardFacts {ToggleOn = ModSettings.AllowFiefAndMarriageQuestRewards, GiverAlive = giverAlive, GiverHasAuthorityOverSpouse = hasAuthority, SpouseStillMarriageable = marriageable, PlayerAtWarWithGiverClan = atWar, PlayerIsReigningSovereign = playerReigns});
 
          if (verdict != QuestRewardPayoutVerdict.Deliver)
             return DegradeHeavyReward(npcHero, profile, $"a marriage with {quest.MarriageSpouseName ?? "the promised spouse"}", atWar);
@@ -4417,7 +4415,7 @@ namespace CalradiaRemembers.GameState
          int valor = TraitLevelOf(npcHero, DefaultTraits.Valor);
          int calculating = TraitLevelOf(npcHero, DefaultTraits.Calculating);
 
-         return StanceGatePolicy.ResolveCoercion(stance.Fear, stance.Respect, honor, valor, calculating);
+         return StanceGatePolicy.ResolveCoercion(new StanceGatePolicy.CoercionFacts {Fear = stance.Fear, Respect = stance.Respect, Honor = honor, Valor = valor, Calculating = calculating});
       }
 
       private static List<Kingdom> RetrieveAllKingdoms()

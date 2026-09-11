@@ -23,14 +23,17 @@ namespace CalradiaRemembers.Logic
         ///   True when the engaged band is close enough to the nemesis's region anchor to be his. Distance is
         ///   compared squared (no sqrt). A zero/negative radius never matches; callers with an UNRESOLVABLE
         ///   anchor (a culture-key or "wilds" region, not a real settlement) skip this and match on culture alone.
+        ///   <para>
+        ///     Takes two positions rather than four loose floats (2026-09-10). The two are safe to sit side by
+        ///     side, unlike the coordinates they replace, because the distance between them is the same either
+        ///     way round: this is the rare run a swap genuinely cannot hurt, and saying so is the point.
+        ///   </para>
         /// </summary>
-        public static bool WithinRegion(float anchorX, float anchorY, float partyX, float partyY, float radius)
+        public static bool WithinRegion(MapPoint anchor, MapPoint party, float radius)
         {
             if (radius <= 0f) return false;
 
-            float dx = partyX - anchorX, dy = partyY - anchorY;
-
-            return dx * dx + dy * dy <= radius * radius;
+            return anchor.SquaredDistanceTo(party) <= radius * radius;
         }
     }
 }

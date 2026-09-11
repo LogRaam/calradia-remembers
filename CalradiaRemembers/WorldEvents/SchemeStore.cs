@@ -631,7 +631,7 @@ namespace CalradiaRemembers.WorldEvents
          {
             bool isPlayerClan = h.Clan != null && h.Clan == Clan.PlayerClan;
 
-            if (!AutonomousSchemePolicy.IsEligibleInstigator(h.IsAlive, h.IsLord, h.IsPrisoner, h == Hero.MainHero, isPlayerClan)) continue;
+            if (!AutonomousSchemePolicy.IsEligibleInstigator(new AutonomousSchemePolicy.InstigatorFacts {IsAlive = h.IsAlive, IsLord = h.IsLord, IsPrisoner = h.IsPrisoner, IsPlayer = h == Hero.MainHero, IsPlayerClan = isPlayerClan})) continue;
             if (!AutonomousSchemePolicy.InstigatorCooldownElapsed(LastAutonomousDay(h.StringId), today)) continue;
 
             result.Add(h);

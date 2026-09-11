@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_party_inside_the_region_radius_WHEN_checking_THEN_it_can_be_his()
         {
-            NemesisMaterializePolicy.WithinRegion(100f, 100f, 150f, 100f, NemesisMaterializePolicy.RegionMatchRadius)
+            NemesisMaterializePolicy.WithinRegion(new MapPoint(100f, 100f), new MapPoint(150f, 100f), NemesisMaterializePolicy.RegionMatchRadius)
                 .Should().BeTrue();
         }
 
@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_party_beyond_the_region_radius_WHEN_checking_THEN_it_is_not_his()
         {
-            NemesisMaterializePolicy.WithinRegion(0f, 0f, 1000f, 1000f, NemesisMaterializePolicy.RegionMatchRadius)
+            NemesisMaterializePolicy.WithinRegion(new MapPoint(0f, 0f), new MapPoint(1000f, 1000f), NemesisMaterializePolicy.RegionMatchRadius)
                 .Should().BeFalse();
         }
 
@@ -45,7 +45,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_non_positive_radius_WHEN_checking_THEN_it_never_matches()
         {
-            NemesisMaterializePolicy.WithinRegion(0f, 0f, 0f, 0f, 0f).Should().BeFalse();
+            NemesisMaterializePolicy.WithinRegion(new MapPoint(0f, 0f), new MapPoint(0f, 0f), 0f).Should().BeFalse();
         }
 
         // Boundary inclusive at zero distance: the party standing exactly on the anchor is the most obvious
@@ -53,7 +53,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_party_exactly_on_the_anchor_WHEN_checking_THEN_it_matches()
         {
-            NemesisMaterializePolicy.WithinRegion(50f, 50f, 50f, 50f, NemesisMaterializePolicy.RegionMatchRadius)
+            NemesisMaterializePolicy.WithinRegion(new MapPoint(50f, 50f), new MapPoint(50f, 50f), NemesisMaterializePolicy.RegionMatchRadius)
                 .Should().BeTrue();
         }
     }

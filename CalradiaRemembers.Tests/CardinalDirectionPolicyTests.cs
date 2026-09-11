@@ -24,7 +24,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_point_due_east_WHEN_describing_THEN_it_reads_east()
         {
-            CardinalDirectionPolicy.Describe(0, 0, 10, 0).Should().Be("east");
+            CardinalDirectionPolicy.Describe(new MapPoint(0, 0).StepTo(new MapPoint(10, 0))).Should().Be("east");
         }
 
         // Pins the engine-dependent assumption named in the class doc (+Y is north). If a build ever
@@ -33,21 +33,21 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_point_due_north_WHEN_describing_THEN_it_reads_north()
         {
-            CardinalDirectionPolicy.Describe(0, 0, 0, 10).Should().Be("north");
+            CardinalDirectionPolicy.Describe(new MapPoint(0, 0).StepTo(new MapPoint(0, 10))).Should().Be("north");
         }
 
         // Pairs with the due-east case to pin the full east/west axis, not just its positive half.
         [Test]
         public void GIVEN_a_point_due_west_WHEN_describing_THEN_it_reads_west()
         {
-            CardinalDirectionPolicy.Describe(0, 0, -10, 0).Should().Be("west");
+            CardinalDirectionPolicy.Describe(new MapPoint(0, 0).StepTo(new MapPoint(-10, 0))).Should().Be("west");
         }
 
         // Pairs with the due-north case to pin the full north/south axis, not just its positive half.
         [Test]
         public void GIVEN_a_point_due_south_WHEN_describing_THEN_it_reads_south()
         {
-            CardinalDirectionPolicy.Describe(0, 0, 0, -10).Should().Be("south");
+            CardinalDirectionPolicy.Describe(new MapPoint(0, 0).StepTo(new MapPoint(0, -10))).Should().Be("south");
         }
 
         // Exercises the Math.Round(deg / 45) sector math at a 45-degree diagonal: a rounding slip here
@@ -55,7 +55,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_point_up_and_to_the_right_WHEN_describing_THEN_it_reads_north_east()
         {
-            CardinalDirectionPolicy.Describe(0, 0, 10, 10).Should().Be("north-east");
+            CardinalDirectionPolicy.Describe(new MapPoint(0, 0).StepTo(new MapPoint(10, 10))).Should().Be("north-east");
         }
 
         // Same diagonal-rounding concern as the north-east case, on the opposite sector, and from a
@@ -63,7 +63,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_point_down_and_to_the_left_WHEN_describing_THEN_it_reads_south_west()
         {
-            CardinalDirectionPolicy.Describe(5, 5, 0, 0).Should().Be("south-west");
+            CardinalDirectionPolicy.Describe(new MapPoint(5, 5).StepTo(new MapPoint(0, 0))).Should().Be("south-west");
         }
 
         // Without this special case, atan2(0, 0) is degenerate and would silently claim the hideout lies
@@ -72,7 +72,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_two_coincident_points_WHEN_describing_THEN_it_reads_nearby()
         {
-            CardinalDirectionPolicy.Describe(3, 3, 3, 3).Should().Be("nearby");
+            CardinalDirectionPolicy.Describe(new MapPoint(3, 3).StepTo(new MapPoint(3, 3))).Should().Be("nearby");
         }
 
         // Pins the actual call-site shape (anchor town -> hideout, not the other way round). The
@@ -82,7 +82,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_bearing_measured_from_an_offset_origin_WHEN_describing_THEN_it_is_relative_to_that_origin()
         {
             // The hideout is north-west of the town even though both have positive coordinates.
-            CardinalDirectionPolicy.Describe(100, 100, 90, 110).Should().Be("north-west");
+            CardinalDirectionPolicy.Describe(new MapPoint(100, 100).StepTo(new MapPoint(90, 110))).Should().Be("north-west");
         }
     }
 }

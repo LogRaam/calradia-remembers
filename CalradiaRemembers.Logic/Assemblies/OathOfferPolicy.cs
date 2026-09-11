@@ -16,15 +16,54 @@ namespace CalradiaRemembers.Logic.Assemblies
     public static class OathOfferPolicy
     {
         /// <summary>
+        ///   What the 1:1 path weighs before showing the LLM swear_oath. FIVE booleans in a row, two of
+        ///   them requirements and three of them exclusions, guarding the empty-promise class the whole
+        ///   conditional-teaching contract exists to prevent.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class OathOfferFacts
+        {
+           /// <summary>They are alive.</summary>
+           public bool NpcAlive { get; set; }
+
+           /// <summary>They are held prisoner, and a captive swears nothing.</summary>
+           public bool NpcIsPrisoner { get; set; }
+
+           /// <summary>They ARE the player, who does not swear to themselves.</summary>
+           public bool NpcIsPlayer { get; set; }
+
+           /// <summary>A vow is already outstanding. One at a time, the same gate pledge_against shares.</summary>
+           public bool NpcHasActiveCommitment { get; set; }
+
+           /// <summary>
+           ///   At least one whitelisted oath kind plausibly fits them: gold to pay, a party to protect with,
+           ///   or a faction of their own to keep peace for. WHICH kind is re-decided at the lift.
+           /// </summary>
+           public bool NpcQualifiesForSomeKind { get; set; }
+        }
+
+        /// <summary>
         ///   Whether the 1:1 path should teach the conversation NPC the swear_oath action this turn. True only when
         ///   they are alive, not held prisoner, not the player themselves, carry NO commitment already outstanding
-        ///   (<paramref name="npcHasActiveCommitment" />, one vow at a time), and plausibly qualify for at least one
-        ///   whitelisted oath kind (<paramref name="npcQualifiesForSomeKind" />: holds gold for pay_gold, leads a
+        ///   (<c>NpcHasActiveCommitment</c>, one vow at a time), and plausibly qualify for at least one
+        ///   whitelisted oath kind (<c>NpcQualifiesForSomeKind</c>: holds gold for pay_gold, leads a
         ///   party of their own for protect, or leads their own faction for keep_peace). WHICH kind actually fits,
         ///   and every other invariant, is re-validated at the lift/bridge regardless
         ///   (CourtActionResolver.TrySwearOath, CouncilLift.SettleSwearOath): this only decides whether to OFFER.
         /// </summary>
-        public static bool CanOfferOath(bool npcAlive, bool npcIsPrisoner, bool npcIsPlayer, bool npcHasActiveCommitment, bool npcQualifiesForSomeKind)
-            => npcAlive && !npcIsPrisoner && !npcIsPlayer && !npcHasActiveCommitment && npcQualifiesForSomeKind;
+        public static bool CanOfferOath(OathOfferFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool npcAlive = facts.NpcAlive;
+           bool npcIsPrisoner = facts.NpcIsPrisoner;
+           bool npcIsPlayer = facts.NpcIsPlayer;
+           bool npcHasActiveCommitment = facts.NpcHasActiveCommitment;
+           bool npcQualifiesForSomeKind = facts.NpcQualifiesForSomeKind;
+
+           return npcAlive && !npcIsPrisoner && !npcIsPlayer && !npcHasActiveCommitment && npcQualifiesForSomeKind;
+        }
     }
 }

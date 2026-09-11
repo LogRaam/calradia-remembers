@@ -289,7 +289,7 @@ namespace CalradiaRemembers.Quests
 
          Vec2 a = anchor.GetPosition2D,
               h = lair.GetPosition2D;
-         string bearing = CardinalDirectionPolicy.Describe(a.x, a.y, h.x, h.y);
+         string bearing = CardinalDirectionPolicy.Describe(new MapPoint(a.x, a.y).StepTo(new MapPoint(h.x, h.y)));
          quest.DirectionHint = $"{bearing} of {anchor.Name}";
 
          return true;
@@ -425,7 +425,7 @@ namespace CalradiaRemembers.Quests
                Settlement fief = ResolveSettlement(proposal.RewardSettlement);
                bool fiefOwnedByGiverClan = fief != null && (fief.IsTown || fief.IsCastle) && fief.OwnerClan == giver.Clan;
 
-               if (!QuestRewardGatePolicy.CanPromiseFief(true, giverLeadsOwnClan, fiefOwnedByGiverClan))
+               if (!QuestRewardGatePolicy.CanPromiseFief(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = true, GiverLeadsOwnClan = giverLeadsOwnClan, FiefStillOwnedByGiverClan = fiefOwnedByGiverClan}))
                {
                   ModLog.Info($"[QUEST] grant_fief refused, {giver.Name} cannot truly give '{proposal.RewardSettlement}' away.");
 
@@ -455,7 +455,7 @@ namespace CalradiaRemembers.Quests
                bool marriageable = spouse != null && MarriageProspectResolver.IsMarriageable(Hero.MainHero, spouse);
                bool playerReigns = Hero.MainHero?.Clan?.Kingdom != null && Hero.MainHero.Clan.Kingdom.Leader == Hero.MainHero;
 
-               if (!QuestRewardGatePolicy.CanPromiseMarriageReward(true, spouse != null, hasAuthority, marriageable, playerReigns))
+               if (!QuestRewardGatePolicy.CanPromiseMarriageReward(new QuestRewardGatePolicy.MarriageRewardFacts {ToggleOn = true, SpouseResolved = spouse != null, GiverHasAuthorityOverSpouse = hasAuthority, SpouseStillMarriageable = marriageable, PlayerIsReigningSovereign = playerReigns}))
                {
                   ModLog.Info($"[QUEST] marriage_reward refused, {giver.Name} cannot truly wed/give '{proposal.MarriageSpouse}'.");
 

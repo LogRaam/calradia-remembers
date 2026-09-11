@@ -67,7 +67,7 @@ namespace CalradiaRemembers.Quests
             if (lair != null)
             {
                Vec2 a = anchor.GetPosition2D, h = lair.GetPosition2D;
-               string bearing = CardinalDirectionPolicy.Describe(a.x, a.y, h.x, h.y);
+               string bearing = CardinalDirectionPolicy.Describe(new MapPoint(a.x, a.y).StepTo(new MapPoint(h.x, h.y)));
                entries.Add(new QuestMenuEntry("bandit_hideout", "target_settlement", anchor.Name?.ToString(),
                   $"a bandit lair infests the country {bearing} of {anchor.Name}"));
             }

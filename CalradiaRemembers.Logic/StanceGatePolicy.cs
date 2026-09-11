@@ -81,6 +81,36 @@ namespace CalradiaRemembers.Logic
         public const int CalculatingGrudgeBonusPerLevel = 5;
 
         /// <summary>
+        ///   What a captive's answer to a coercive bargain is weighed from. FIVE INTS in a row, and nothing
+        ///   but their order told fear from respect from three traits: swap honor and calculating and the
+        ///   captive breaks where he should have stiffened, with no test of the arithmetic any the wiser.
+        ///   Trait values are Bannerlord's own scale, roughly -2..+2; only their POSITIVE side is read here.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class CoercionFacts
+        {
+           /// <summary>How much the captive fears the player, 0..100. The bar the rest of these move.</summary>
+           public int Fear { get; set; }
+
+           /// <summary>How much the captive respects the player, 0..100.</summary>
+           public int Respect { get; set; }
+
+           /// <summary>Honor trait. Positive honor stiffens resolve; its negative side does not soften it.</summary>
+           public int Honor { get; set; }
+
+           /// <summary>Valor trait. Positive valor stiffens resolve, the same way honor does.</summary>
+           public int Valor { get; set; }
+
+           /// <summary>
+           ///   Calculating trait. Positive calculating makes a captive break sooner AND resent the yielding
+           ///   more; a schemer holds the grudge tighter.
+           /// </summary>
+           public int Calculating { get; set; }
+        }
+
+        /// <summary>
         ///   Resolves how a captive NPC answers a coercive freedom bargain. Trait params are standard
         ///   Bannerlord trait levels (roughly −2..+2): only POSITIVE Honor/Valor stiffen resolve, and
         ///   only POSITIVE Calculating softens it — a trait's negative side never works the opposite way
@@ -88,8 +118,16 @@ namespace CalradiaRemembers.Logic
         ///   beneath <see cref="RefuseFearCeiling"/> (a captive would otherwise "yield" at a fear level
         ///   the refusal rule already treats as unafraid).
         /// </summary>
-        public static CoercionResult ResolveCoercion(int fear, int respect, int honor, int valor, int calculating)
+        public static CoercionResult ResolveCoercion(CoercionFacts facts)
         {
+           facts ??= new CoercionFacts();
+
+           int fear = facts.Fear;
+           int respect = facts.Respect;
+           int honor = facts.Honor;
+           int valor = facts.Valor;
+           int calculating = facts.Calculating;
+
             int honorResist = honor > 0 ? honor * HonorValorResistPerLevel : 0;
             int valorResist = valor > 0 ? valor * HonorValorResistPerLevel : 0;
             int calculatingEase = calculating > 0 ? calculating * CalculatingYieldPerLevel : 0;
@@ -142,16 +180,47 @@ namespace CalradiaRemembers.Logic
         public const int AffectionLoyaltyFloor = 40;
 
         /// <summary>
+        ///   The three independent standings any one of which is enough for an NPC to risk something of
+        ///   their own on the player. Three ints in a row on three DIFFERENT ledgers, each with its own
+        ///   floor, so a swap silently measures loyalty against the wrong bar.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class DelegatedRiskFacts
+        {
+           /// <summary>Proven Trust: the "low trust, prove it first" path.</summary>
+           public int Trust { get; set; }
+
+           /// <summary>Vanilla CLAN relation: a long-cultivated ally has proof enough without personal warmth.</summary>
+           public int Relation { get; set; }
+
+           /// <summary>
+           ///   The mod's own personal regard: loyalty that cuts through a cold clan standing, because a lord
+           ///   who adores the player takes the risk on THEM.
+           /// </summary>
+           public int Affection { get; set; }
+        }
+
+        /// <summary>
         ///   True when this NPC would risk delegating something of their own to the player (lending their
         ///   own troops/influence, or a companion accepting a risky errand). Three independent paths, any
-        ///   one suffices: proven <paramref name="trust"/> ("low Trust, prove it first"); an established
-        ///   clan <paramref name="relation"/> (a long-cultivated ally has proof enough); or high personal
-        ///   <paramref name="affection"/> (personal loyalty that cuts through a cold clan standing).
+        ///   one suffices: proven <c>Trust</c> ("low Trust, prove it first"); an established
+        ///   clan <c>Relation</c> (a long-cultivated ally has proof enough); or high personal
+        ///   <c>Affection</c> (personal loyalty that cuts through a cold clan standing).
         /// </summary>
-        public static bool WillDelegateRisk(int trust, int relation, int affection)
-            => trust >= DelegatedRiskTrustFloor
-               || relation >= DelegatedRiskRelationBypass
-               || affection >= AffectionLoyaltyFloor;
+        public static bool WillDelegateRisk(DelegatedRiskFacts facts)
+        {
+           if (facts == null) return false;
+
+           int trust = facts.Trust;
+           int relation = facts.Relation;
+           int affection = facts.Affection;
+
+           return trust >= DelegatedRiskTrustFloor
+              || relation >= DelegatedRiskRelationBypass
+              || affection >= AffectionLoyaltyFloor;
+        }
 
         // ── Respect (POLITICAL WEIGHT), increment 3 ratified 2026-07-04 ─────────
         // Respect gates how much political weight the player carries with the NPC. Increment 1's concrete

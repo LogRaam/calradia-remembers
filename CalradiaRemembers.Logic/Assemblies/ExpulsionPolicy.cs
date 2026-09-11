@@ -53,21 +53,70 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   this build, see this file's own header), is not the player's own spouse (that bond has its own
         ///   dissolution channel, end_marriage/divorce, never this one), and is alive.
         /// </summary>
-        public static bool CanExpel(bool playerIsClanLeader, bool targetIsCompanion, bool targetIsSpouse, bool targetAlive)
-            => playerIsClanLeader && targetIsCompanion && !targetIsSpouse && targetAlive;
+        public static bool CanExpel(ExpulsionFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool playerIsClanLeader = facts.PlayerIsClanLeader;
+           bool targetIsCompanion = facts.TargetIsCompanion;
+           bool targetIsSpouse = facts.TargetIsSpouse;
+           bool targetAlive = facts.TargetAlive;
+
+           return playerIsClanLeader && targetIsCompanion && !targetIsSpouse && targetAlive;
+        }
+
+        /// <summary>
+        ///   What the gate on expel_from_clan weighs, read off the campaign by the caller. Shared by
+        ///   <see cref="CanExpel" /> (the deed's own legality) and <see cref="CanOfferExpel" /> (whether
+        ///   the LLM is even shown it), so the two can never drift into disagreeing about a fact.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class ExpulsionFacts
+        {
+           /// <summary>The player heads the clan. A companion's hire and fire is the head's decision.</summary>
+           public bool PlayerIsClanLeader { get; set; }
+
+           /// <summary>The target is a companion of that clan, never a family member or a fief-holding lord.</summary>
+           public bool TargetIsCompanion { get; set; }
+
+           /// <summary>
+           ///   The target is the player's own spouse. That bond dissolves through divorce, never through this.
+           /// </summary>
+           public bool TargetIsSpouse { get; set; }
+
+           /// <summary>The target is alive.</summary>
+           public bool TargetAlive { get; set; }
+
+           /// <summary>
+           ///   They are not away on an errand. A companion cannot be cast out from under an in-flight mission.
+           /// </summary>
+           public bool TargetAvailable { get; set; }
+        }
 
         /// <summary>
         ///   expel_from_clan's 1:1 conversation TEACHING gate (2026-08-05, the suzerain-command batch brought to BOTH
         ///   the council and 1:1 pipelines). It is the whole <see cref="CanExpel" /> conjunction (the player still
         ///   leads their clan, the conversation NPC is a live COMPANION of it, and is not the player's own spouse)
         ///   PLUS the one mechanical fact the council executor also re-checks before firing: the companion is not
-        ///   AWAY on a companion-mission errand (<paramref name="targetAvailable" />), since a companion cannot be
+        ///   AWAY on a companion-mission errand (<c>TargetAvailable</c>), since a companion cannot be
         ///   cast out from under an in-flight errand. Pure and total, mirroring
         ///   <see cref="GovernorAppointmentPolicy.CanOfferAppointment" />: the bridge re-checks every one of these
         ///   again at commit time (<c>CourtActionResolver.TryExpelFromClan</c>), so a true answer here only ever
         ///   OFFERS a teaching, it never seals a deed.
         /// </summary>
-        public static bool CanOfferExpel(bool playerIsClanLeader, bool targetIsCompanion, bool targetIsSpouse, bool targetAlive, bool targetAvailable)
-            => CanExpel(playerIsClanLeader, targetIsCompanion, targetIsSpouse, targetAlive) && targetAvailable;
+        public static bool CanOfferExpel(ExpulsionFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool playerIsClanLeader = facts.PlayerIsClanLeader;
+           bool targetIsCompanion = facts.TargetIsCompanion;
+           bool targetIsSpouse = facts.TargetIsSpouse;
+           bool targetAlive = facts.TargetAlive;
+           bool targetAvailable = facts.TargetAvailable;
+
+           return ExpulsionPolicy.CanExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = playerIsClanLeader, TargetIsCompanion = targetIsCompanion, TargetIsSpouse = targetIsSpouse, TargetAlive = targetAlive}) && targetAvailable;
+        }
     }
 }

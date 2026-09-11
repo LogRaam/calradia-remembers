@@ -29,7 +29,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_clan_leader_and_a_live_companion_WHEN_asked_to_expel_THEN_it_is_legal()
         {
-            ExpulsionPolicy.CanExpel(playerIsClanLeader: true, targetIsCompanion: true, targetIsSpouse: false, targetAlive: true)
+            ExpulsionPolicy.CanExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = true, TargetIsCompanion = true, TargetIsSpouse = false, TargetAlive = true})
                 .Should().BeTrue();
         }
 
@@ -39,7 +39,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_does_not_lead_the_clan_WHEN_asked_to_expel_THEN_it_is_refused()
         {
-            ExpulsionPolicy.CanExpel(playerIsClanLeader: false, targetIsCompanion: true, targetIsSpouse: false, targetAlive: true)
+            ExpulsionPolicy.CanExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = false, TargetIsCompanion = true, TargetIsSpouse = false, TargetAlive = true})
                 .Should().BeFalse();
         }
 
@@ -49,7 +49,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_target_is_not_a_companion_WHEN_asked_to_expel_THEN_it_is_refused()
         {
-            ExpulsionPolicy.CanExpel(playerIsClanLeader: true, targetIsCompanion: false, targetIsSpouse: false, targetAlive: true)
+            ExpulsionPolicy.CanExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = true, TargetIsCompanion = false, TargetIsSpouse = false, TargetAlive = true})
                 .Should().BeFalse();
         }
 
@@ -59,7 +59,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_target_is_the_players_own_spouse_WHEN_asked_to_expel_THEN_it_is_refused()
         {
-            ExpulsionPolicy.CanExpel(playerIsClanLeader: true, targetIsCompanion: true, targetIsSpouse: true, targetAlive: true)
+            ExpulsionPolicy.CanExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = true, TargetIsCompanion = true, TargetIsSpouse = true, TargetAlive = true})
                 .Should().BeFalse();
         }
 
@@ -67,7 +67,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_target_is_not_alive_WHEN_asked_to_expel_THEN_it_is_refused()
         {
-            ExpulsionPolicy.CanExpel(playerIsClanLeader: true, targetIsCompanion: true, targetIsSpouse: false, targetAlive: false)
+            ExpulsionPolicy.CanExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = true, TargetIsCompanion = true, TargetIsSpouse = false, TargetAlive = false})
                 .Should().BeFalse();
         }
 
@@ -75,7 +75,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_no_condition_holds_WHEN_asked_to_expel_THEN_it_is_refused()
         {
-            ExpulsionPolicy.CanExpel(playerIsClanLeader: false, targetIsCompanion: false, targetIsSpouse: true, targetAlive: false)
+            ExpulsionPolicy.CanExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = false, TargetIsCompanion = false, TargetIsSpouse = true, TargetAlive = false})
                 .Should().BeFalse();
         }
 
@@ -99,7 +99,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_every_teaching_fact_holds_WHEN_offering_expel_THEN_the_action_is_taught()
         {
-            ExpulsionPolicy.CanOfferExpel(playerIsClanLeader: true, targetIsCompanion: true, targetIsSpouse: false, targetAlive: true, targetAvailable: true)
+            ExpulsionPolicy.CanOfferExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = true, TargetIsCompanion = true, TargetIsSpouse = false, TargetAlive = true, TargetAvailable = true})
                 .Should().BeTrue();
         }
 
@@ -108,7 +108,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_does_not_lead_the_clan_WHEN_offering_expel_THEN_the_action_is_withheld()
         {
-            ExpulsionPolicy.CanOfferExpel(playerIsClanLeader: false, targetIsCompanion: true, targetIsSpouse: false, targetAlive: true, targetAvailable: true)
+            ExpulsionPolicy.CanOfferExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = false, TargetIsCompanion = true, TargetIsSpouse = false, TargetAlive = true, TargetAvailable = true})
                 .Should().BeFalse();
         }
 
@@ -117,7 +117,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_target_is_the_players_own_spouse_WHEN_offering_expel_THEN_the_action_is_withheld()
         {
-            ExpulsionPolicy.CanOfferExpel(playerIsClanLeader: true, targetIsCompanion: true, targetIsSpouse: true, targetAlive: true, targetAvailable: true)
+            ExpulsionPolicy.CanOfferExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = true, TargetIsCompanion = true, TargetIsSpouse = true, TargetAlive = true, TargetAvailable = true})
                 .Should().BeFalse();
         }
 
@@ -127,7 +127,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_companion_is_away_on_an_errand_WHEN_offering_expel_THEN_the_action_is_withheld()
         {
-            ExpulsionPolicy.CanOfferExpel(playerIsClanLeader: true, targetIsCompanion: true, targetIsSpouse: false, targetAlive: true, targetAvailable: false)
+            ExpulsionPolicy.CanOfferExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = true, TargetIsCompanion = true, TargetIsSpouse = false, TargetAlive = true, TargetAvailable = false})
                 .Should().BeFalse();
         }
     }

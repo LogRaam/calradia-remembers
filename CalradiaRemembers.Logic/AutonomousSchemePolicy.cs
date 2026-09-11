@@ -70,13 +70,49 @@ namespace CalradiaRemembers.Logic
          => lastLaunchDay == null || today - lastLaunchDay.Value >= InstigatorCooldownDays;
 
       /// <summary>
+      ///   What is known about a lord who might start a plot of their own. FIVE booleans in a row, two
+      ///   requirements then three exclusions, and the exclusions are what keep the player and the
+      ///   player's own house out of the autonomous path entirely.
+      ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+      ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+      ///   that names only what it is about reads as the rule it protects.
+      /// </summary>
+      public sealed class InstigatorFacts
+      {
+         /// <summary>They are alive.</summary>
+         public bool IsAlive { get; set; }
+
+         /// <summary>They are a lord, which is who has the standing to plot.</summary>
+         public bool IsLord { get; set; }
+
+         /// <summary>They are held prisoner, and a captive schemes nothing.</summary>
+         public bool IsPrisoner { get; set; }
+
+         /// <summary>They ARE the player, who only ever plots through the player-driven path.</summary>
+         public bool IsPlayer { get; set; }
+
+         /// <summary>They are of the player's own house, which likewise never acts on its own here.</summary>
+         public bool IsPlayerClan { get; set; }
+      }
+
+      /// <summary>
       ///   True when a hero has the standing to autonomously plot: a living, free lord who is NEITHER the player
       ///   NOR a member of the player's own clan. The player only ever plots through the existing player-driven
       ///   path (pledge_against / scheme_assist); they are never an autonomous instigator, and neither is their
       ///   house acting on its own.
       /// </summary>
-      public static bool IsEligibleInstigator(bool isAlive, bool isLord, bool isPrisoner, bool isPlayer, bool isPlayerClan)
-         => isAlive && isLord && !isPrisoner && !isPlayer && !isPlayerClan;
+      public static bool IsEligibleInstigator(InstigatorFacts facts)
+      {
+         if (facts == null) return false;
+
+         bool isAlive = facts.IsAlive;
+         bool isLord = facts.IsLord;
+         bool isPrisoner = facts.IsPrisoner;
+         bool isPlayer = facts.IsPlayer;
+         bool isPlayerClan = facts.IsPlayerClan;
+
+         return isAlive && isLord && !isPrisoner && !isPlayer && !isPlayerClan;
+      }
 
       /// <summary>
       ///   True when a hero is a grounded target for an autonomous plot: the instigator holds genuine enmity
@@ -84,9 +120,17 @@ namespace CalradiaRemembers.Logic
       ///   friend), and they are NEVER the instigator's close kin, NEVER the player or the player's own clan, and
       ///   NEVER a faction leader (moving against a ruler is a war-scale act reserved for the leader-only
       ///   war-decision system, never a lord's private feud (the same exclusion pledge_against applies).
+      ///   <para>
+      ///     Takes the candidate rather than four loose facts (2026-09-10). It invents no type to do it:
+      ///     <see cref="SchemeTargetCandidate" /> below already carries exactly this relation and these three
+      ///     exclusions, and <see cref="SelectAutonomousTarget" /> was already unpacking one into the four
+      ///     arguments at the only call site in the mod. Asking for the type that exists removes both the
+      ///     unpacking and the chance of unpacking it wrong.
+      ///   </para>
       /// </summary>
-      public static bool IsGroundedTarget(int instigatorRelationToTarget, bool targetIsKin, bool targetIsPlayerSide, bool targetIsFactionLeader)
-         => !targetIsKin && !targetIsPlayerSide && !targetIsFactionLeader && instigatorRelationToTarget <= RivalryThreshold;
+      public static bool IsGroundedTarget(SchemeTargetCandidate target)
+         => !target.IsKin && !target.IsPlayerSide && !target.IsFactionLeader
+            && target.Relation <= RivalryThreshold;
 
       /// <summary>
       ///   A candidate target for an autonomous plot: their id, the instigator's current relation to them, and
@@ -124,7 +168,7 @@ namespace CalradiaRemembers.Logic
          if (candidates == null) return null;
 
          List<SchemeTargetCandidate> eligible = candidates
-                                                .Where(c => IsGroundedTarget(c.Relation, c.IsKin, c.IsPlayerSide, c.IsFactionLeader))
+                                                .Where(IsGroundedTarget)
                                                 .ToList();
 
          if (eligible.Count == 0) return null;

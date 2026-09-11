@@ -177,12 +177,7 @@ namespace CalradiaRemembers.Marriage
 
          Hero leaving = DivorceEligibilityResolver.ResolveLeavingSpouse(npc, spouse);
 
-         return DivorceBlockPolicy.Classify(
-            npc.IsPregnant || spouse.IsPregnant,
-            npc.IsPrisoner || spouse.IsPrisoner,
-            leaving != null && leaving.IsClanLeader,
-            leaving?.PartyBelongedTo != null && leaving.PartyBelongedTo.LeaderHero == leaving,
-            leaving?.GovernorOf != null);
+         return DivorceBlockPolicy.Classify(new DivorceBlockPolicy.DivorceBlockFacts {EitherPregnant = npc.IsPregnant || spouse.IsPregnant, EitherCaptive = npc.IsPrisoner || spouse.IsPrisoner, LeavingIsClanLeader = leaving != null && leaving.IsClanLeader, LeavingLeadsParty = leaving?.PartyBelongedTo != null && leaving.PartyBelongedTo.LeaderHero == leaving, LeavingIsGovernor = leaving?.GovernorOf != null});
       }
 
       /// <summary>

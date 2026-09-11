@@ -138,7 +138,7 @@ namespace CalradiaRemembers.Rescue
 
             bool prisonerIsBandit = prisoner.Clan != null && prisoner.Clan.IsBanditFaction;
             bool inPlayerClan = prisoner.Clan == Hero.MainHero?.Clan;
-            if (!RescueEligibilityPolicy.IsPlayerRescue(true, true, prisoner.IsLord, prisonerIsBandit, inPlayerClan, prisoner == Hero.MainHero))
+            if (!RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {PlayerWonBattle = true, ReleasedAfterBattle = true, PrisonerIsLord = prisoner.IsLord, PrisonerIsBandit = prisonerIsBandit, PrisonerInPlayerClan = inPlayerClan, PrisonerIsPlayer = prisoner == Hero.MainHero}))
                 return;
 
             _credited.Add(prisoner.StringId);

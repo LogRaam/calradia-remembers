@@ -193,15 +193,17 @@ namespace CalradiaRemembers.Mapping
          // the vacant-fief list doubles as the target_fief grounding the prompt names verbatim.
          string appointableFiefs = ResolveAppointableGovernorFiefs();
          bool npcCanBeAppointedGovernor = GovernorAppointmentPolicy.CanOfferAppointment(
-            playerLeadsClan: Clan.PlayerClan?.Leader == Hero.MainHero,
-            appointeeInPlayerClan: hero?.Clan != null && hero.Clan == Clan.PlayerClan,
-            appointeeAvailable: hero is {IsAlive: true} && !hero.IsPrisoner && hero != Hero.MainHero,
-            hasVacantGovernableFief: !string.IsNullOrEmpty(appointableFiefs),
-            // v1.34.2 governance hardening (finding 2): withhold the offer for an appointee already governing
-            // another fief (one seat per governor) or away on an errand (cannot be seated in absentia). Both are
-            // re-checked at commit by CourtActionResolver.TryAppointGovernor, the same prompt-is-advice contract.
-            appointeeNotGoverningElsewhere: hero?.GovernorOf == null,
-            appointeeNotAway: hero != null && CompanionMissionBehavior.Instance?.IsAway(hero.StringId) != true);
+            new GovernorAppointmentPolicy.AppointmentOfferFacts {
+               PlayerLeadsClan = Clan.PlayerClan?.Leader == Hero.MainHero,
+               AppointeeInPlayerClan = hero?.Clan != null && hero.Clan == Clan.PlayerClan,
+               AppointeeAvailable = hero is {IsAlive: true} && !hero.IsPrisoner && hero != Hero.MainHero,
+               HasVacantGovernableFief = !string.IsNullOrEmpty(appointableFiefs),
+               // v1.34.2 governance hardening (finding 2): withhold the offer for an appointee already governing
+               // another fief (one seat per governor) or away on an errand (cannot be seated in absentia). Both are
+               // re-checked at commit by CourtActionResolver.TryAppointGovernor, the same prompt-is-advice contract.
+               AppointeeNotGoverningElsewhere = hero?.GovernorOf == null,
+               AppointeeNotAway = hero != null && CompanionMissionBehavior.Instance?.IsAway(hero.StringId) != true
+            });
 
          // assign_party_role / rejoin_party / dispatch_mission (2026-08-05, party-command batch): the 1:1 teaching
          // gates, the same "prompt is advice, bridge is law" conditional-teaching contract as appoint_governor above.
@@ -223,9 +225,9 @@ namespace CalradiaRemembers.Mapping
          // formerly be sent to gather news loses the offer. TryDispatchMission re-checks this same widened set.
          bool npcCanRideForPlayer = npcIsPlayerCompanion || hero != null && hero.Clan == Clan.PlayerClan;
 
-         bool npcCanBeAssignedPartyRole = PartyCommandOfferPolicy.CanOfferAssignRole(npcIsPlayerCompanion, npcInMainParty);
-         bool npcCanRejoinParty = PartyCommandOfferPolicy.CanOfferRejoinParty(npcIsPlayerCompanion, npcAlive, npcIsPrisoner, npcInMainParty, npcLeadsOwnCompany);
-         bool npcCanBeDispatchedOnMission = PartyCommandOfferPolicy.CanOfferDispatchMission(npcCanRideForPlayer, npcInMainParty, npcAvailableForErrand);
+         bool npcCanBeAssignedPartyRole = PartyCommandOfferPolicy.CanOfferAssignRole(new PartyCommandOfferPolicy.AssignRoleFacts {NpcIsPlayerCompanion = npcIsPlayerCompanion, NpcInMainParty = npcInMainParty});
+         bool npcCanRejoinParty = PartyCommandOfferPolicy.CanOfferRejoinParty(new PartyCommandOfferPolicy.RejoinPartyFacts {NpcIsPlayerCompanion = npcIsPlayerCompanion, NpcAlive = npcAlive, NpcIsPrisoner = npcIsPrisoner, NpcInMainParty = npcInMainParty, NpcLeadsOwnCompany = npcLeadsOwnCompany});
+         bool npcCanBeDispatchedOnMission = PartyCommandOfferPolicy.CanOfferDispatchMission(new PartyCommandOfferPolicy.DispatchMissionFacts {NpcCanRideForPlayer = npcCanRideForPlayer, NpcInMainParty = npcInMainParty, NpcAvailableForErrand = npcAvailableForErrand});
 
          // grant_fief / revoke_fief / expel_from_clan (2026-08-05, suzerain-command batch): the 1:1 teaching gates,
          // the same "prompt is advice, bridge is law" conditional-teaching contract as the verbs above. grant/revoke
@@ -245,7 +247,7 @@ namespace CalradiaRemembers.Mapping
 
          bool playerLeadsClan = Clan.PlayerClan?.Leader == Hero.MainHero;
          bool npcIsSpouse = hero != null && hero == Hero.MainHero?.Spouse;
-         bool npcCanBeExpelledFromClan = ExpulsionPolicy.CanOfferExpel(playerLeadsClan, npcIsPlayerCompanion, npcIsSpouse, npcAlive, npcAvailableForErrand);
+         bool npcCanBeExpelledFromClan = ExpulsionPolicy.CanOfferExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = playerLeadsClan, TargetIsCompanion = npcIsPlayerCompanion, TargetIsSpouse = npcIsSpouse, TargetAlive = npcAlive, TargetAvailable = npcAvailableForErrand});
 
          // grant_stipend / swear_oath (2026-08-05, the two personal-command verbs that touch PERSISTED save state):
          // the 1:1 teaching gates, the same "prompt is advice, bridge is law" conditional-teaching contract as the
@@ -267,7 +269,7 @@ namespace CalradiaRemembers.Mapping
             || hero.PartyBelongedTo != null && hero.PartyBelongedTo.LeaderHero == hero
             || hero.Clan?.Kingdom != null && hero.Clan.Kingdom.Leader == hero
             || hero.Clan != null && hero.Clan.Kingdom == null && hero.Clan.Leader == hero);
-         bool npcCanSwearOath = OathOfferPolicy.CanOfferOath(npcAlive, npcIsPrisoner, hero == Hero.MainHero, npcHasActiveCommitment, npcQualifiesForSomeOath);
+         bool npcCanSwearOath = OathOfferPolicy.CanOfferOath(new OathOfferPolicy.OathOfferFacts {NpcAlive = npcAlive, NpcIsPrisoner = npcIsPrisoner, NpcIsPlayer = hero == Hero.MainHero, NpcHasActiveCommitment = npcHasActiveCommitment, NpcQualifiesForSomeKind = npcQualifiesForSomeOath});
 
          // mediate_peace (2026-08-06, third-party war mediation): the 1:1 teaching gate, the same "prompt is advice,
          // bridge is law" conditional-teaching contract as the verbs above. The pure PeaceMediationPolicy.CanMediate
@@ -1172,7 +1174,7 @@ namespace CalradiaRemembers.Mapping
             int valor = TraitLevel(hero, DefaultTraits.Valor);
             int calculating = TraitLevel(hero, DefaultTraits.Calculating);
 
-            CoercionResult coercion = StanceGatePolicy.ResolveCoercion(stance.Fear, stance.Respect, honor, valor, calculating);
+            CoercionResult coercion = StanceGatePolicy.ResolveCoercion(new StanceGatePolicy.CoercionFacts {Fear = stance.Fear, Respect = stance.Respect, Honor = honor, Valor = valor, Calculating = calculating});
 
             return coercion.Outcome == CoercionOutcome.YieldsSofterTerms;
          }

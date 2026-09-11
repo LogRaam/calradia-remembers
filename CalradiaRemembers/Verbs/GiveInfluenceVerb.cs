@@ -32,7 +32,7 @@ namespace CalradiaRemembers.Verbs
 
         public bool IsEligible(VerbContext ctx)
             => ctx?.Npc != null && ctx.Profile != null && CourtActionResolver.TryGiveInfluence(ctx.Npc, ctx.Profile, out _)
-               && StanceGatePolicy.WillDelegateRisk(StanceService.ToStance(ctx.Profile).Trust, ctx.Profile.ClanRelationWithPlayer ?? 0, ctx.Profile.ReputationWithPlayer);
+               && StanceGatePolicy.WillDelegateRisk(new StanceGatePolicy.DelegatedRiskFacts {Trust = StanceService.ToStance(ctx.Profile).Trust, Relation = ctx.Profile.ClanRelationWithPlayer ?? 0, Affection = ctx.Profile.ReputationWithPlayer});
 
         /// <summary>
         ///   The closed door this verb names BEFORE the model speaks (Gabriel's ruling, 09/09/2026: the LLM must
@@ -59,9 +59,7 @@ namespace CalradiaRemembers.Verbs
             if (ctx?.Npc == null || ctx.Profile == null) return null;
             if (!CourtActionResolver.TryGiveInfluence(ctx.Npc, ctx.Profile, out _)) return null; // not in play, or the means are the door: say nothing
 
-            if (StanceGatePolicy.WillDelegateRisk(StanceService.ToStance(ctx.Profile).Trust,
-                                                  ctx.Profile.ClanRelationWithPlayer ?? 0,
-                                                  ctx.Profile.ReputationWithPlayer))
+            if (StanceGatePolicy.WillDelegateRisk(new StanceGatePolicy.DelegatedRiskFacts {Trust = StanceService.ToStance(ctx.Profile).Trust, Relation = ctx.Profile.ClanRelationWithPlayer ?? 0, Affection = ctx.Profile.ReputationWithPlayer}))
                 return null; // eligible: it is being taught in full a few paragraphs above
 
             return new DeedRefusal {
@@ -101,7 +99,7 @@ namespace CalradiaRemembers.Verbs
 
                 // Stance mechanical behaviour-gating (increment 2, Trust): re-validated here, never
                 // trusted from the LLM's own framing of the offer.
-                if (!StanceGatePolicy.WillDelegateRisk(StanceService.ToStance(profile).Trust, profile.ClanRelationWithPlayer ?? 0, profile.ReputationWithPlayer))
+                if (!StanceGatePolicy.WillDelegateRisk(new StanceGatePolicy.DelegatedRiskFacts {Trust = StanceService.ToStance(profile).Trust, Relation = profile.ClanRelationWithPlayer ?? 0, Affection = profile.ReputationWithPlayer}))
                     return ActionOutcome.Refused($"{npcHero.Name} does not yet trust you enough to risk their own standing on your word. Prove yourself first.");
 
                 if (!CourtActionResolver.TryGiveInfluence(npcHero, profile, out int amount))

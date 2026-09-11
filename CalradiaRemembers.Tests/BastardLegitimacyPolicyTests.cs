@@ -23,9 +23,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_child_by_the_current_spouse_WHEN_deciding_THEN_it_is_not_a_bastard()
       {
-         BastardLegitimacyPolicy.IsPlayersBastard(
-               playerIsParent: true, otherParentExists: true, otherParentIsCurrentSpouse: true,
-               otherParentIsFormerSpouse: false, otherParentAlive: true)
+         BastardLegitimacyPolicy.IsPlayersBastard(new BastardLegitimacyPolicy.ParentageFacts {PlayerIsParent = true, OtherParentExists = true, OtherParentIsCurrentSpouse = true, OtherParentIsFormerSpouse = false, OtherParentAlive = true})
             .Should().BeFalse();
       }
 
@@ -35,9 +33,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_posthumous_child_by_a_deceased_former_spouse_WHEN_deciding_THEN_it_is_not_a_bastard()
       {
-         BastardLegitimacyPolicy.IsPlayersBastard(
-               playerIsParent: true, otherParentExists: true, otherParentIsCurrentSpouse: false,
-               otherParentIsFormerSpouse: true, otherParentAlive: false)
+         BastardLegitimacyPolicy.IsPlayersBastard(new BastardLegitimacyPolicy.ParentageFacts {PlayerIsParent = true, OtherParentExists = true, OtherParentIsCurrentSpouse = false, OtherParentIsFormerSpouse = true, OtherParentAlive = false})
             .Should().BeFalse();
       }
 
@@ -46,9 +42,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_child_by_a_living_former_spouse_WHEN_deciding_THEN_it_is_a_bastard()
       {
-         BastardLegitimacyPolicy.IsPlayersBastard(
-               playerIsParent: true, otherParentExists: true, otherParentIsCurrentSpouse: false,
-               otherParentIsFormerSpouse: true, otherParentAlive: true)
+         BastardLegitimacyPolicy.IsPlayersBastard(new BastardLegitimacyPolicy.ParentageFacts {PlayerIsParent = true, OtherParentExists = true, OtherParentIsCurrentSpouse = false, OtherParentIsFormerSpouse = true, OtherParentAlive = true})
             .Should().BeTrue();
       }
 
@@ -56,9 +50,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_child_by_a_never_married_partner_WHEN_deciding_THEN_it_is_a_bastard()
       {
-         BastardLegitimacyPolicy.IsPlayersBastard(
-               playerIsParent: true, otherParentExists: true, otherParentIsCurrentSpouse: false,
-               otherParentIsFormerSpouse: false, otherParentAlive: true)
+         BastardLegitimacyPolicy.IsPlayersBastard(new BastardLegitimacyPolicy.ParentageFacts {PlayerIsParent = true, OtherParentExists = true, OtherParentIsCurrentSpouse = false, OtherParentIsFormerSpouse = false, OtherParentAlive = true})
             .Should().BeTrue();
       }
 
@@ -66,8 +58,8 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_no_player_parentage_or_no_other_parent_WHEN_deciding_THEN_it_is_not_a_bastard()
       {
-         BastardLegitimacyPolicy.IsPlayersBastard(false, true, false, false, true).Should().BeFalse();
-         BastardLegitimacyPolicy.IsPlayersBastard(true, false, false, false, true).Should().BeFalse();
+         BastardLegitimacyPolicy.IsPlayersBastard(new BastardLegitimacyPolicy.ParentageFacts {PlayerIsParent = false, OtherParentExists = true, OtherParentIsCurrentSpouse = false, OtherParentIsFormerSpouse = false, OtherParentAlive = true}).Should().BeFalse();
+         BastardLegitimacyPolicy.IsPlayersBastard(new BastardLegitimacyPolicy.ParentageFacts {PlayerIsParent = true, OtherParentExists = false, OtherParentIsCurrentSpouse = false, OtherParentIsFormerSpouse = false, OtherParentAlive = true}).Should().BeFalse();
       }
    }
 }

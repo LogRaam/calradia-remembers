@@ -567,7 +567,7 @@ namespace CalradiaRemembers.Chat
             if (hero == null) continue;
 
             bool isSpouse = hero == Hero.MainHero?.Spouse;
-            if (ExpulsionPolicy.CanExpel(playerIsClanLeader, hero.IsPlayerCompanion, isSpouse, hero.IsAlive))
+            if (ExpulsionPolicy.CanExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = playerIsClanLeader, TargetIsCompanion = hero.IsPlayerCompanion, TargetIsSpouse = isSpouse, TargetAlive = hero.IsAlive}))
                return true;
          }
 

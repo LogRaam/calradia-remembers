@@ -48,13 +48,7 @@ namespace CalradiaRemembers.Missions
          => Hero.AllAliveHeroes.Where(h => h != null && h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner);
 
       private static int Compatibility(Hero a, Hero b)
-         => CompanionRapport.Compatibility(
-            a.GetTraitLevel(DefaultTraits.Valor), a.GetTraitLevel(DefaultTraits.Honor),
-            a.GetTraitLevel(DefaultTraits.Mercy), a.GetTraitLevel(DefaultTraits.Generosity),
-            a.GetTraitLevel(DefaultTraits.Calculating),
-            b.GetTraitLevel(DefaultTraits.Valor), b.GetTraitLevel(DefaultTraits.Honor),
-            b.GetTraitLevel(DefaultTraits.Mercy), b.GetTraitLevel(DefaultTraits.Generosity),
-            b.GetTraitLevel(DefaultTraits.Calculating));
+         => CompanionRapport.Compatibility(new RomanticTraits {Valor = a.GetTraitLevel(DefaultTraits.Valor), Honor = a.GetTraitLevel(DefaultTraits.Honor), Mercy = a.GetTraitLevel(DefaultTraits.Mercy), Generosity = a.GetTraitLevel(DefaultTraits.Generosity), Calculating = a.GetTraitLevel(DefaultTraits.Calculating)}, new RomanticTraits {Valor = b.GetTraitLevel(DefaultTraits.Valor), Honor = b.GetTraitLevel(DefaultTraits.Honor), Mercy = b.GetTraitLevel(DefaultTraits.Mercy), Generosity = b.GetTraitLevel(DefaultTraits.Generosity), Calculating = b.GetTraitLevel(DefaultTraits.Calculating)});
 
       private static void NudgeRelation(Hero a, Hero b)
       {

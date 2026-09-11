@@ -78,7 +78,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_same_spot_WHEN_asking_the_bearing_THEN_it_is_right_here()
         {
-            GeographyDescriber.Bearing(3f, 4f, 5f).Should().Be("right here");
+            GeographyDescriber.Bearing(new MapOffset(3f, 4f), 5f).Should().Be("right here");
         }
 
         // Pins the exact concatenated phrase ("<band> to the <direction>") that ships into the prompt;
@@ -86,7 +86,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_mid_range_north_east_target_WHEN_asking_the_bearing_THEN_it_combines_band_and_direction()
         {
-            GeographyDescriber.Bearing(100f, 100f, 141f).Should().Be("a few days' ride to the north-east");
+            GeographyDescriber.Bearing(new MapOffset(100f, 100f), 141f).Should().Be("a few days' ride to the north-east");
         }
     }
 }

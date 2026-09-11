@@ -29,15 +29,14 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_toggle_is_off_WHEN_a_fief_promise_would_otherwise_qualify_THEN_it_is_still_refused()
         {
-            QuestRewardGatePolicy.CanPromiseFief(toggleOn: false, giverLeadsOwnClan: true, fiefOwnedByGiverClan: true)
+            QuestRewardGatePolicy.CanPromiseFief(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = false, GiverLeadsOwnClan = true, FiefStillOwnedByGiverClan = true})
                 .Should().BeFalse();
         }
 
         [Test]
         public void GIVEN_the_toggle_is_off_WHEN_a_marriage_reward_would_otherwise_qualify_THEN_it_is_still_refused()
         {
-            QuestRewardGatePolicy.CanPromiseMarriageReward(toggleOn: false, spouseResolved: true,
-                    giverHasAuthorityOverSpouse: true, spouseMarriageable: true, playerIsReigningSovereign: false)
+            QuestRewardGatePolicy.CanPromiseMarriageReward(new QuestRewardGatePolicy.MarriageRewardFacts {ToggleOn = false, SpouseResolved = true, GiverHasAuthorityOverSpouse = true, SpouseStillMarriageable = true, PlayerIsReigningSovereign = false})
                 .Should().BeFalse();
         }
 
@@ -46,17 +45,14 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_toggle_is_off_WHEN_a_fief_payout_would_otherwise_succeed_THEN_it_is_refused()
         {
-            QuestRewardGatePolicy.DecideFiefPayout(toggleOn: false, giverAlive: true, giverLeadsOwnClan: true,
-                    fiefStillOwnedByGiverClan: true, playerAtWarWithGiverClan: false)
+            QuestRewardGatePolicy.DecideFiefPayout(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = false, GiverAlive = true, GiverLeadsOwnClan = true, FiefStillOwnedByGiverClan = true, PlayerAtWarWithGiverClan = false})
                 .Should().Be(QuestRewardPayoutVerdict.Refuse);
         }
 
         [Test]
         public void GIVEN_the_toggle_is_off_WHEN_a_marriage_reward_payout_would_otherwise_succeed_THEN_it_is_refused()
         {
-            QuestRewardGatePolicy.DecideMarriageRewardPayout(toggleOn: false, giverAlive: true,
-                    giverHasAuthorityOverSpouse: true, spouseStillMarriageable: true, playerAtWarWithGiverClan: false,
-                    playerIsReigningSovereign: false)
+            QuestRewardGatePolicy.DecideMarriageRewardPayout(new QuestRewardGatePolicy.MarriageRewardFacts {ToggleOn = false, GiverAlive = true, GiverHasAuthorityOverSpouse = true, SpouseStillMarriageable = true, PlayerAtWarWithGiverClan = false, PlayerIsReigningSovereign = false})
                 .Should().Be(QuestRewardPayoutVerdict.Refuse);
         }
 
@@ -65,7 +61,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_giver_truly_leads_their_own_clan_and_owns_the_fief_WHEN_the_toggle_is_on_THEN_the_promise_is_allowed()
         {
-            QuestRewardGatePolicy.CanPromiseFief(toggleOn: true, giverLeadsOwnClan: true, fiefOwnedByGiverClan: true)
+            QuestRewardGatePolicy.CanPromiseFief(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = true, GiverLeadsOwnClan = true, FiefStillOwnedByGiverClan = true})
                 .Should().BeTrue();
         }
 
@@ -74,22 +70,21 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_giver_does_not_lead_their_own_clan_WHEN_promising_a_fief_THEN_it_is_refused()
         {
-            QuestRewardGatePolicy.CanPromiseFief(toggleOn: true, giverLeadsOwnClan: false, fiefOwnedByGiverClan: true)
+            QuestRewardGatePolicy.CanPromiseFief(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = true, GiverLeadsOwnClan = false, FiefStillOwnedByGiverClan = true})
                 .Should().BeFalse();
         }
 
         [Test]
         public void GIVEN_the_named_fief_is_not_owned_by_the_givers_clan_WHEN_promising_it_THEN_it_is_refused()
         {
-            QuestRewardGatePolicy.CanPromiseFief(toggleOn: true, giverLeadsOwnClan: true, fiefOwnedByGiverClan: false)
+            QuestRewardGatePolicy.CanPromiseFief(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = true, GiverLeadsOwnClan = true, FiefStillOwnedByGiverClan = false})
                 .Should().BeFalse();
         }
 
         [Test]
         public void GIVEN_every_marriage_condition_holds_WHEN_the_toggle_is_on_THEN_the_promise_is_allowed()
         {
-            QuestRewardGatePolicy.CanPromiseMarriageReward(toggleOn: true, spouseResolved: true,
-                    giverHasAuthorityOverSpouse: true, spouseMarriageable: true, playerIsReigningSovereign: false)
+            QuestRewardGatePolicy.CanPromiseMarriageReward(new QuestRewardGatePolicy.MarriageRewardFacts {ToggleOn = true, SpouseResolved = true, GiverHasAuthorityOverSpouse = true, SpouseStillMarriageable = true, PlayerIsReigningSovereign = false})
                 .Should().BeTrue();
         }
 
@@ -99,16 +94,14 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_player_already_reigns_over_a_realm_WHEN_promising_a_marriage_reward_THEN_it_is_refused()
         {
-            QuestRewardGatePolicy.CanPromiseMarriageReward(toggleOn: true, spouseResolved: true,
-                    giverHasAuthorityOverSpouse: true, spouseMarriageable: true, playerIsReigningSovereign: true)
+            QuestRewardGatePolicy.CanPromiseMarriageReward(new QuestRewardGatePolicy.MarriageRewardFacts {ToggleOn = true, SpouseResolved = true, GiverHasAuthorityOverSpouse = true, SpouseStillMarriageable = true, PlayerIsReigningSovereign = true})
                 .Should().BeFalse();
         }
 
         [Test]
         public void GIVEN_the_giver_has_no_authority_over_the_named_spouse_WHEN_promising_a_marriage_reward_THEN_it_is_refused()
         {
-            QuestRewardGatePolicy.CanPromiseMarriageReward(toggleOn: true, spouseResolved: true,
-                    giverHasAuthorityOverSpouse: false, spouseMarriageable: true, playerIsReigningSovereign: false)
+            QuestRewardGatePolicy.CanPromiseMarriageReward(new QuestRewardGatePolicy.MarriageRewardFacts {ToggleOn = true, SpouseResolved = true, GiverHasAuthorityOverSpouse = false, SpouseStillMarriageable = true, PlayerIsReigningSovereign = false})
                 .Should().BeFalse();
         }
 
@@ -117,8 +110,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_every_fief_precondition_still_holds_WHEN_deciding_the_payout_THEN_it_delivers()
         {
-            QuestRewardGatePolicy.DecideFiefPayout(toggleOn: true, giverAlive: true, giverLeadsOwnClan: true,
-                    fiefStillOwnedByGiverClan: true, playerAtWarWithGiverClan: false)
+            QuestRewardGatePolicy.DecideFiefPayout(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = true, GiverAlive = true, GiverLeadsOwnClan = true, FiefStillOwnedByGiverClan = true, PlayerAtWarWithGiverClan = false})
                 .Should().Be(QuestRewardPayoutVerdict.Deliver);
         }
 
@@ -129,16 +121,14 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_fief_no_longer_belongs_to_the_givers_clan_WHEN_deciding_the_payout_THEN_it_refuses()
         {
-            QuestRewardGatePolicy.DecideFiefPayout(toggleOn: true, giverAlive: true, giverLeadsOwnClan: true,
-                    fiefStillOwnedByGiverClan: false, playerAtWarWithGiverClan: false)
+            QuestRewardGatePolicy.DecideFiefPayout(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = true, GiverAlive = true, GiverLeadsOwnClan = true, FiefStillOwnedByGiverClan = false, PlayerAtWarWithGiverClan = false})
                 .Should().Be(QuestRewardPayoutVerdict.Refuse);
         }
 
         [Test]
         public void GIVEN_the_giver_died_before_completion_WHEN_deciding_the_fief_payout_THEN_it_refuses()
         {
-            QuestRewardGatePolicy.DecideFiefPayout(toggleOn: true, giverAlive: false, giverLeadsOwnClan: true,
-                    fiefStillOwnedByGiverClan: true, playerAtWarWithGiverClan: false)
+            QuestRewardGatePolicy.DecideFiefPayout(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = true, GiverAlive = false, GiverLeadsOwnClan = true, FiefStillOwnedByGiverClan = true, PlayerAtWarWithGiverClan = false})
                 .Should().Be(QuestRewardPayoutVerdict.Refuse);
         }
 
@@ -147,17 +137,14 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_player_is_now_at_war_with_the_givers_clan_WHEN_deciding_the_fief_payout_THEN_it_refuses()
         {
-            QuestRewardGatePolicy.DecideFiefPayout(toggleOn: true, giverAlive: true, giverLeadsOwnClan: true,
-                    fiefStillOwnedByGiverClan: true, playerAtWarWithGiverClan: true)
+            QuestRewardGatePolicy.DecideFiefPayout(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = true, GiverAlive = true, GiverLeadsOwnClan = true, FiefStillOwnedByGiverClan = true, PlayerAtWarWithGiverClan = true})
                 .Should().Be(QuestRewardPayoutVerdict.Refuse);
         }
 
         [Test]
         public void GIVEN_every_marriage_precondition_still_holds_WHEN_deciding_the_payout_THEN_it_delivers()
         {
-            QuestRewardGatePolicy.DecideMarriageRewardPayout(toggleOn: true, giverAlive: true,
-                    giverHasAuthorityOverSpouse: true, spouseStillMarriageable: true, playerAtWarWithGiverClan: false,
-                    playerIsReigningSovereign: false)
+            QuestRewardGatePolicy.DecideMarriageRewardPayout(new QuestRewardGatePolicy.MarriageRewardFacts {ToggleOn = true, GiverAlive = true, GiverHasAuthorityOverSpouse = true, SpouseStillMarriageable = true, PlayerAtWarWithGiverClan = false, PlayerIsReigningSovereign = false})
                 .Should().Be(QuestRewardPayoutVerdict.Deliver);
         }
 
@@ -167,9 +154,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_promised_spouse_is_no_longer_marriageable_WHEN_deciding_the_payout_THEN_it_refuses()
         {
-            QuestRewardGatePolicy.DecideMarriageRewardPayout(toggleOn: true, giverAlive: true,
-                    giverHasAuthorityOverSpouse: true, spouseStillMarriageable: false, playerAtWarWithGiverClan: false,
-                    playerIsReigningSovereign: false)
+            QuestRewardGatePolicy.DecideMarriageRewardPayout(new QuestRewardGatePolicy.MarriageRewardFacts {ToggleOn = true, GiverAlive = true, GiverHasAuthorityOverSpouse = true, SpouseStillMarriageable = false, PlayerAtWarWithGiverClan = false, PlayerIsReigningSovereign = false})
                 .Should().Be(QuestRewardPayoutVerdict.Refuse);
         }
 
@@ -178,9 +163,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_player_became_a_reigning_sovereign_since_the_promise_WHEN_deciding_the_marriage_payout_THEN_it_refuses()
         {
-            QuestRewardGatePolicy.DecideMarriageRewardPayout(toggleOn: true, giverAlive: true,
-                    giverHasAuthorityOverSpouse: true, spouseStillMarriageable: true, playerAtWarWithGiverClan: false,
-                    playerIsReigningSovereign: true)
+            QuestRewardGatePolicy.DecideMarriageRewardPayout(new QuestRewardGatePolicy.MarriageRewardFacts {ToggleOn = true, GiverAlive = true, GiverHasAuthorityOverSpouse = true, SpouseStillMarriageable = true, PlayerAtWarWithGiverClan = false, PlayerIsReigningSovereign = true})
                 .Should().Be(QuestRewardPayoutVerdict.Refuse);
         }
 

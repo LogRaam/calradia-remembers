@@ -68,7 +68,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_free_living_lord_of_another_house_WHEN_checking_eligibility_THEN_they_may_instigate()
       {
-         AutonomousSchemePolicy.IsEligibleInstigator(isAlive: true, isLord: true, isPrisoner: false, isPlayer: false, isPlayerClan: false)
+         AutonomousSchemePolicy.IsEligibleInstigator(new AutonomousSchemePolicy.InstigatorFacts {IsAlive = true, IsLord = true, IsPrisoner = false, IsPlayer = false, IsPlayerClan = false})
                                .Should().BeTrue();
       }
 
@@ -79,7 +79,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_player_WHEN_checking_eligibility_THEN_they_are_never_an_autonomous_instigator()
       {
-         AutonomousSchemePolicy.IsEligibleInstigator(isAlive: true, isLord: true, isPrisoner: false, isPlayer: true, isPlayerClan: false)
+         AutonomousSchemePolicy.IsEligibleInstigator(new AutonomousSchemePolicy.InstigatorFacts {IsAlive = true, IsLord = true, IsPrisoner = false, IsPlayer = true, IsPlayerClan = false})
                                .Should().BeFalse();
       }
 
@@ -88,7 +88,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_member_of_the_players_clan_WHEN_checking_eligibility_THEN_they_are_never_an_autonomous_instigator()
       {
-         AutonomousSchemePolicy.IsEligibleInstigator(isAlive: true, isLord: true, isPrisoner: false, isPlayer: false, isPlayerClan: true)
+         AutonomousSchemePolicy.IsEligibleInstigator(new AutonomousSchemePolicy.InstigatorFacts {IsAlive = true, IsLord = true, IsPrisoner = false, IsPlayer = false, IsPlayerClan = true})
                                .Should().BeFalse();
       }
 
@@ -97,8 +97,8 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_prisoner_or_a_non_lord_WHEN_checking_eligibility_THEN_they_may_not_instigate()
       {
-         AutonomousSchemePolicy.IsEligibleInstigator(isAlive: true, isLord: true, isPrisoner: true, isPlayer: false, isPlayerClan: false).Should().BeFalse();
-         AutonomousSchemePolicy.IsEligibleInstigator(isAlive: true, isLord: false, isPrisoner: false, isPlayer: false, isPlayerClan: false).Should().BeFalse();
+         AutonomousSchemePolicy.IsEligibleInstigator(new AutonomousSchemePolicy.InstigatorFacts {IsAlive = true, IsLord = true, IsPrisoner = true, IsPlayer = false, IsPlayerClan = false}).Should().BeFalse();
+         AutonomousSchemePolicy.IsEligibleInstigator(new AutonomousSchemePolicy.InstigatorFacts {IsAlive = true, IsLord = false, IsPrisoner = false, IsPlayer = false, IsPlayerClan = false}).Should().BeFalse();
       }
 
       // ── grounded target ───────────────────────────────────────────────────
@@ -109,7 +109,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_bitter_rival_who_is_no_ones_kin_WHEN_checking_the_target_THEN_they_are_grounded()
       {
-         AutonomousSchemePolicy.IsGroundedTarget(AutonomousSchemePolicy.RivalryThreshold, targetIsKin: false, targetIsPlayerSide: false, targetIsFactionLeader: false)
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", AutonomousSchemePolicy.RivalryThreshold, isKin: false, isPlayerSide: false, isFactionLeader: false))
                                .Should().BeTrue();
       }
 
@@ -119,9 +119,9 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_friend_or_a_neutral_lord_WHEN_checking_the_target_THEN_they_are_never_grounded()
       {
-         AutonomousSchemePolicy.IsGroundedTarget(40, targetIsKin: false, targetIsPlayerSide: false, targetIsFactionLeader: false).Should().BeFalse();
-         AutonomousSchemePolicy.IsGroundedTarget(0, targetIsKin: false, targetIsPlayerSide: false, targetIsFactionLeader: false).Should().BeFalse();
-         AutonomousSchemePolicy.IsGroundedTarget(AutonomousSchemePolicy.RivalryThreshold + 1, targetIsKin: false, targetIsPlayerSide: false, targetIsFactionLeader: false).Should().BeFalse();
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", 40, isKin: false, isPlayerSide: false, isFactionLeader: false)).Should().BeFalse();
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", 0, isKin: false, isPlayerSide: false, isFactionLeader: false)).Should().BeFalse();
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", AutonomousSchemePolicy.RivalryThreshold + 1, isKin: false, isPlayerSide: false, isFactionLeader: false)).Should().BeFalse();
       }
 
       // Close kin are never a target no matter how bitter the relation: nobody autonomously plots against their own
@@ -130,7 +130,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_close_kin_however_hated_WHEN_checking_the_target_THEN_they_are_never_grounded()
       {
-         AutonomousSchemePolicy.IsGroundedTarget(-80, targetIsKin: true, targetIsPlayerSide: false, targetIsFactionLeader: false).Should().BeFalse();
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", -80, isKin: true, isPlayerSide: false, isFactionLeader: false)).Should().BeFalse();
       }
 
       // The player and the player's clan are never the VICTIM of an autonomous plot: hostility toward the player is
@@ -139,7 +139,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_player_side_however_hated_WHEN_checking_the_target_THEN_they_are_never_grounded()
       {
-         AutonomousSchemePolicy.IsGroundedTarget(-80, targetIsKin: false, targetIsPlayerSide: true, targetIsFactionLeader: false).Should().BeFalse();
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", -80, isKin: false, isPlayerSide: true, isFactionLeader: false)).Should().BeFalse();
       }
 
       // A faction leader is never a target: moving against a ruler is a war-scale act reserved for the leader-only
@@ -148,7 +148,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_faction_leader_however_hated_WHEN_checking_the_target_THEN_they_are_never_grounded()
       {
-         AutonomousSchemePolicy.IsGroundedTarget(-80, targetIsKin: false, targetIsPlayerSide: false, targetIsFactionLeader: true).Should().BeFalse();
+         AutonomousSchemePolicy.IsGroundedTarget(new AutonomousSchemePolicy.SchemeTargetCandidate("rival", -80, isKin: false, isPlayerSide: false, isFactionLeader: true)).Should().BeFalse();
       }
 
       // ── target selection ──────────────────────────────────────────────────

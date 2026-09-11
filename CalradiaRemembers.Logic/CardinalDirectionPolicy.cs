@@ -12,15 +12,22 @@ namespace CalradiaRemembers.Logic
    {
       /// <summary>
       ///   Returns "east", "north-east", "north", "north-west", "west", "south-west", "south", "south-east",
-      ///   or "nearby" when the two points coincide. The result names where <paramref name="toX" />/<paramref
-      ///   name="toY" /> lies relative to <paramref name="fromX" />/<paramref name="fromY" />.
+      ///   or "nearby" when the two points coincide. The result names where the END of
+      ///   <paramref name="step" /> lies relative to its start.
+      ///   <para>
+      ///     Takes the STEP rather than four loose coordinates (2026-09-10). The old signature was
+      ///     <c>Describe(fromX, fromY, toX, toY)</c>: swap the pairs and it compiles, runs, and names the
+      ///     exact opposite compass point, which a quest hint would then print to the player as fact. A
+      ///     <see cref="MapOffset" /> is built by <see cref="MapPoint.StepTo" />, so the direction is fixed
+      ///     by the call that named it.
+      ///   </para>
       /// </summary>
-      public static string Describe(double fromX, double fromY, double toX, double toY)
+      public static string Describe(MapOffset step)
       {
-         double dx = toX - fromX;
-         double dy = toY - fromY;
+         if (step.IsNowhere) return "nearby";
 
-         if (dx == 0d && dy == 0d) return "nearby";
+         double dx = step.East;
+         double dy = step.North;
 
          // atan2 with east = 0 degrees and north = +90; fold into eight 45-degree sectors.
          double deg = System.Math.Atan2(dy, dx) * (180d / System.Math.PI);

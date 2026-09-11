@@ -58,6 +58,38 @@ namespace CalradiaRemembers.Logic.Assemblies
                 : new GovernorAppointmentVerdict(false, ResentfulRefusalReason);
 
         /// <summary>
+        ///   The six facts the 1:1 grounding reads before the LLM is even shown appoint_governor.
+        ///   SIX booleans in a row, of which three were about the appointee and three about the seat: a
+        ///   swap between "is of the player's clan" and "is not already governing elsewhere" reads the
+        ///   same to the compiler and double-posts a hero over two fiefs.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class AppointmentOfferFacts
+        {
+           /// <summary>The player still heads their own clan. Only its head hands out its governorships.</summary>
+           public bool PlayerLeadsClan { get; set; }
+
+           /// <summary>
+           ///   The prospective governor belongs to that same clan, since a governor holds one of its OWN fiefs.
+           /// </summary>
+           public bool AppointeeInPlayerClan { get; set; }
+
+           /// <summary>They are alive and free, not held prisoner somewhere.</summary>
+           public bool AppointeeAvailable { get; set; }
+
+           /// <summary>The clan actually holds a town or castle with no governor seated.</summary>
+           public bool HasVacantGovernableFief { get; set; }
+
+           /// <summary>They are not already seated over another fief. One governor, one seat.</summary>
+           public bool AppointeeNotGoverningElsewhere { get; set; }
+
+           /// <summary>They are not away on a companion errand, so they cannot be seated in absentia.</summary>
+           public bool AppointeeNotAway { get; set; }
+        }
+
+        /// <summary>
         ///   Whether the 1:1 conversation path should TEACH this NPC the appoint_governor action this turn
         ///   (2026-08-05, the reference personal-command verb brought to BOTH the council and 1:1 pipelines). It
         ///   reduces the SAME eligibility the council's own offering proves before teaching it there
@@ -71,16 +103,26 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   true answer here only ever OFFERS a teaching, it never seals a deed.
         ///   <para>
         ///   v1.34.2 governance hardening: two more appointee facts join the conjunction so the offer is withheld
-        ///   whenever the bridge would refuse for them. <paramref name="appointeeNotGoverningElsewhere" /> keeps a
+        ///   whenever the bridge would refuse for them. <c>AppointeeNotGoverningElsewhere</c> keeps a
         ///   hero already seated over one fief from being double-posted to a second (one governor, one seat), and
-        ///   <paramref name="appointeeNotAway" /> keeps a companion currently away on an errand from being seated
+        ///   <c>AppointeeNotAway</c> keeps a companion currently away on an errand from being seated
         ///   in absentia. Both are re-checked at commit (CourtActionResolver.TryAppointGovernor), the same
         ///   prompt-is-advice, executor-is-law discipline every other fact here follows.
         ///   </para>
         /// </summary>
-        public static bool CanOfferAppointment(bool playerLeadsClan, bool appointeeInPlayerClan, bool appointeeAvailable, bool hasVacantGovernableFief,
-            bool appointeeNotGoverningElsewhere, bool appointeeNotAway)
-            => playerLeadsClan && appointeeInPlayerClan && appointeeAvailable && hasVacantGovernableFief
-               && appointeeNotGoverningElsewhere && appointeeNotAway;
+        public static bool CanOfferAppointment(AppointmentOfferFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool playerLeadsClan = facts.PlayerLeadsClan;
+           bool appointeeInPlayerClan = facts.AppointeeInPlayerClan;
+           bool appointeeAvailable = facts.AppointeeAvailable;
+           bool hasVacantGovernableFief = facts.HasVacantGovernableFief;
+           bool appointeeNotGoverningElsewhere = facts.AppointeeNotGoverningElsewhere;
+           bool appointeeNotAway = facts.AppointeeNotAway;
+
+           return playerLeadsClan && appointeeInPlayerClan && appointeeAvailable && hasVacantGovernableFief
+              && appointeeNotGoverningElsewhere && appointeeNotAway;
+        }
     }
 }

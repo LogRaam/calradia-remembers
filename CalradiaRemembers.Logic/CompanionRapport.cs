@@ -42,16 +42,31 @@ namespace CalradiaRemembers.Logic
         ///   Trait compatibility between two companions (each trait −2..+2): positive = they bond, negative
         ///   = they grate. Each axis adds its weight when the two share a leaning, subtracts it when opposed,
         ///   and contributes nothing when either is neutral on that axis. Range about −9..+9.
+        ///   <para>
+        ///     Takes the two heroes' trait sets rather than TEN LOOSE INTS (2026-09-10). This was the longest
+        ///     unguarded run left anywhere in Logic: valorA, honorA, mercyA, generosityA, calculatingA, then
+        ///     the same five again for B, and nothing but their order told any of them apart. Slip one
+        ///     position anywhere in that line and every axis after it is weighed against the wrong trait, at
+        ///     the wrong weight, in silence.
+        ///   </para>
+        ///   <para>
+        ///     It invents no type to fix that: <see cref="RomanticTraits" /> already carries exactly these
+        ///     five values on exactly this scale, in this same namespace, built from a live Hero by the mod's
+        ///     own adapter. Asking for the type that exists is the whole of the change. The two arguments sit
+        ///     side by side without a name to separate them because the answer is SYMMETRIC: swapping the
+        ///     companions returns the same number, which is what a compatibility is.
+        ///   </para>
         /// </summary>
-        public static int Compatibility(
-            int valorA, int honorA, int mercyA, int generosityA, int calculatingA,
-            int valorB, int honorB, int mercyB, int generosityB, int calculatingB)
+        public static int Compatibility(RomanticTraits a, RomanticTraits b)
         {
-            return Axis(honorA, honorB, HonorWeight)
-                 + Axis(mercyA, mercyB, MercyWeight)
-                 + Axis(calculatingA, calculatingB, CalcWeight)
-                 + Axis(valorA, valorB, ValorWeight)
-                 + Axis(generosityA, generosityB, GenWeight);
+            a ??= new RomanticTraits();
+            b ??= new RomanticTraits();
+
+            return Axis(a.Honor, b.Honor, HonorWeight)
+                 + Axis(a.Mercy, b.Mercy, MercyWeight)
+                 + Axis(a.Calculating, b.Calculating, CalcWeight)
+                 + Axis(a.Valor, b.Valor, ValorWeight)
+                 + Axis(a.Generosity, b.Generosity, GenWeight);
         }
 
         private static int Axis(int a, int b, int weight)

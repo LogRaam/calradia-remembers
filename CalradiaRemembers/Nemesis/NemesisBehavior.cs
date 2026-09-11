@@ -366,7 +366,7 @@ namespace CalradiaRemembers.Nemesis
             if (n == null || !n.IsAlive || n.IsTurned || n.BandCultureKey != culture) continue;
 
             Settlement anchor = ResolveRegionSettlement(n.RegionId);
-            if (anchor != null && !NemesisMaterializePolicy.WithinRegion(anchor.GetPosition2D.x, anchor.GetPosition2D.y, pos.x, pos.y, NemesisMaterializePolicy.RegionMatchRadius))
+            if (anchor != null && !NemesisMaterializePolicy.WithinRegion(new MapPoint(anchor.GetPosition2D.x, anchor.GetPosition2D.y), new MapPoint(pos.x, pos.y), NemesisMaterializePolicy.RegionMatchRadius))
                continue; // he haunts a real region and this band is outside it
 
             if (n.TimesEncountered > bestEncounters)

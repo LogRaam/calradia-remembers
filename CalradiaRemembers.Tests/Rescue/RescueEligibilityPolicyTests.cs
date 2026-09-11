@@ -23,13 +23,7 @@ namespace CalradiaRemembers.Tests.Rescue
         [Test]
         public void GIVEN_a_lord_freed_after_a_battle_the_player_won_WHEN_evaluated_THEN_it_counts_as_a_rescue()
         {
-            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(
-                playerWonBattle: true,
-                releasedAfterBattle: true,
-                prisonerIsLord: true,
-                prisonerIsBandit: false,
-                prisonerInPlayerClan: false,
-                prisonerIsPlayer: false);
+            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {PlayerWonBattle = true, ReleasedAfterBattle = true, PrisonerIsLord = true, PrisonerIsBandit = false, PrisonerInPlayerClan = false, PrisonerIsPlayer = false});
 
             isRescue.Should().BeTrue();
         }
@@ -39,13 +33,7 @@ namespace CalradiaRemembers.Tests.Rescue
         [Test]
         public void GIVEN_the_player_did_not_win_the_battle_WHEN_evaluated_THEN_it_is_not_a_rescue()
         {
-            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(
-                playerWonBattle: false,
-                releasedAfterBattle: true,
-                prisonerIsLord: true,
-                prisonerIsBandit: false,
-                prisonerInPlayerClan: false,
-                prisonerIsPlayer: false);
+            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {PlayerWonBattle = false, ReleasedAfterBattle = true, PrisonerIsLord = true, PrisonerIsBandit = false, PrisonerInPlayerClan = false, PrisonerIsPlayer = false});
 
             isRescue.Should().BeFalse();
         }
@@ -55,13 +43,7 @@ namespace CalradiaRemembers.Tests.Rescue
         [Test]
         public void GIVEN_the_prisoner_was_not_released_after_the_battle_WHEN_evaluated_THEN_it_is_not_a_rescue()
         {
-            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(
-                playerWonBattle: true,
-                releasedAfterBattle: false,
-                prisonerIsLord: true,
-                prisonerIsBandit: false,
-                prisonerInPlayerClan: false,
-                prisonerIsPlayer: false);
+            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {PlayerWonBattle = true, ReleasedAfterBattle = false, PrisonerIsLord = true, PrisonerIsBandit = false, PrisonerInPlayerClan = false, PrisonerIsPlayer = false});
 
             isRescue.Should().BeFalse();
         }
@@ -72,13 +54,7 @@ namespace CalradiaRemembers.Tests.Rescue
         [Test]
         public void GIVEN_the_freed_prisoner_is_not_a_lord_WHEN_evaluated_THEN_it_is_not_a_rescue()
         {
-            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(
-                playerWonBattle: true,
-                releasedAfterBattle: true,
-                prisonerIsLord: false,
-                prisonerIsBandit: false,
-                prisonerInPlayerClan: false,
-                prisonerIsPlayer: false);
+            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {PlayerWonBattle = true, ReleasedAfterBattle = true, PrisonerIsLord = false, PrisonerIsBandit = false, PrisonerInPlayerClan = false, PrisonerIsPlayer = false});
 
             isRescue.Should().BeFalse();
         }
@@ -88,13 +64,7 @@ namespace CalradiaRemembers.Tests.Rescue
         [Test]
         public void GIVEN_the_freed_prisoner_is_a_bandit_WHEN_evaluated_THEN_it_is_not_a_rescue()
         {
-            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(
-                playerWonBattle: true,
-                releasedAfterBattle: true,
-                prisonerIsLord: true,
-                prisonerIsBandit: true,
-                prisonerInPlayerClan: false,
-                prisonerIsPlayer: false);
+            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {PlayerWonBattle = true, ReleasedAfterBattle = true, PrisonerIsLord = true, PrisonerIsBandit = true, PrisonerInPlayerClan = false, PrisonerIsPlayer = false});
 
             isRescue.Should().BeFalse();
         }
@@ -104,13 +74,7 @@ namespace CalradiaRemembers.Tests.Rescue
         [Test]
         public void GIVEN_the_freed_prisoner_is_in_the_players_own_clan_WHEN_evaluated_THEN_it_is_not_a_rescue()
         {
-            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(
-                playerWonBattle: true,
-                releasedAfterBattle: true,
-                prisonerIsLord: true,
-                prisonerIsBandit: false,
-                prisonerInPlayerClan: true,
-                prisonerIsPlayer: false);
+            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {PlayerWonBattle = true, ReleasedAfterBattle = true, PrisonerIsLord = true, PrisonerIsBandit = false, PrisonerInPlayerClan = true, PrisonerIsPlayer = false});
 
             isRescue.Should().BeFalse();
         }
@@ -120,13 +84,7 @@ namespace CalradiaRemembers.Tests.Rescue
         [Test]
         public void GIVEN_the_freed_prisoner_is_the_player_WHEN_evaluated_THEN_it_is_not_a_rescue()
         {
-            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(
-                playerWonBattle: true,
-                releasedAfterBattle: true,
-                prisonerIsLord: true,
-                prisonerIsBandit: false,
-                prisonerInPlayerClan: false,
-                prisonerIsPlayer: true);
+            bool isRescue = RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {PlayerWonBattle = true, ReleasedAfterBattle = true, PrisonerIsLord = true, PrisonerIsBandit = false, PrisonerInPlayerClan = false, PrisonerIsPlayer = true});
 
             isRescue.Should().BeFalse();
         }

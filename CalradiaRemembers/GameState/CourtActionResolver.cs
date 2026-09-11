@@ -854,7 +854,7 @@ namespace CalradiaRemembers.GameState
          bool playerIsClanLeader = Clan.PlayerClan?.Leader == Hero.MainHero;
          bool isSpouse = companion == Hero.MainHero?.Spouse;
 
-         if (!ExpulsionPolicy.CanExpel(playerIsClanLeader, companion.IsPlayerCompanion, isSpouse, companion.IsAlive))
+         if (!ExpulsionPolicy.CanExpel(new ExpulsionPolicy.ExpulsionFacts {PlayerIsClanLeader = playerIsClanLeader, TargetIsCompanion = companion.IsPlayerCompanion, TargetIsSpouse = isSpouse, TargetAlive = companion.IsAlive}))
             return new ExpelFromClanVerdict(
                !playerIsClanLeader ? ExpelFromClanResult.PlayerNotClanLeader
                   : !companion.IsPlayerCompanion ? ExpelFromClanResult.NotACompanion

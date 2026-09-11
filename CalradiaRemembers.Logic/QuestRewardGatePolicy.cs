@@ -42,8 +42,16 @@ namespace CalradiaRemembers.Logic
         ///   clan (a vassal has no fief of their own gift, mirroring the council's own grant_fief authority
         ///   rule), and the named town/castle is owned by that same clan right now.
         /// </summary>
-        public static bool CanPromiseFief(bool toggleOn, bool giverLeadsOwnClan, bool fiefOwnedByGiverClan)
-            => toggleOn && giverLeadsOwnClan && fiefOwnedByGiverClan;
+        public static bool CanPromiseFief(FiefRewardFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool toggleOn = facts.ToggleOn;
+           bool giverLeadsOwnClan = facts.GiverLeadsOwnClan;
+           bool fiefOwnedByGiverClan = facts.FiefStillOwnedByGiverClan;
+
+           return toggleOn && giverLeadsOwnClan && fiefOwnedByGiverClan;
+        }
 
         /// <summary>
         ///   ISSUANCE gate for marriage_reward: legal only when the toggle is on, a spouse candidate resolved
@@ -52,12 +60,49 @@ namespace CalradiaRemembers.Logic
         ///   reigning sovereign's marriage can move their own clan's crown as a side effect of MarriageAction,
         ///   COUNCIL_ACTIONS.md's Kimi review "Trou 3": never risked as a mere quest-reward side effect).
         /// </summary>
-        public static bool CanPromiseMarriageReward(bool toggleOn,
-                                                    bool spouseResolved,
-                                                    bool giverHasAuthorityOverSpouse,
-                                                    bool spouseMarriageable,
-                                                    bool playerIsReigningSovereign)
-            => toggleOn && spouseResolved && giverHasAuthorityOverSpouse && spouseMarriageable && !playerIsReigningSovereign;
+        public static bool CanPromiseMarriageReward(MarriageRewardFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool toggleOn = facts.ToggleOn;
+           bool spouseResolved = facts.SpouseResolved;
+           bool giverHasAuthorityOverSpouse = facts.GiverHasAuthorityOverSpouse;
+           bool spouseMarriageable = facts.SpouseStillMarriageable;
+           bool playerIsReigningSovereign = facts.PlayerIsReigningSovereign;
+
+           return toggleOn && spouseResolved && giverHasAuthorityOverSpouse && spouseMarriageable && !playerIsReigningSovereign;
+        }
+
+        /// <summary>
+        ///   What a promised fief is re-read against, live, at both ends of the promise: the ISSUANCE gate
+        ///   <see cref="CanPromiseFief" /> and the PAYOUT re-validation <see cref="DecideFiefPayout" />
+        ///   share this one type, so neither can quietly mean something different by the same fact.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class FiefRewardFacts
+        {
+           /// <summary>The heavy-reward feature is enabled at all.</summary>
+           public bool ToggleOn { get; set; }
+
+           /// <summary>The lord who promised the fief is still alive to hand it over.</summary>
+           public bool GiverAlive { get; set; }
+
+           /// <summary>The giver truly LEADS their own clan. A vassal has no fief of their own gift.</summary>
+           public bool GiverLeadsOwnClan { get; set; }
+
+           /// <summary>
+           ///   The named town or castle is owned by that clan RIGHT NOW. Weeks pass, and fiefs change hands.
+           /// </summary>
+           public bool FiefStillOwnedByGiverClan { get; set; }
+
+           /// <summary>
+           ///   The player has since gone to war with the giver's clan. Delivering a fief to a wartime enemy is
+           ///   absurd, and vanilla's own ChangeOwnerOfSettlementAction carries no such guard.
+           /// </summary>
+           public bool PlayerAtWarWithGiverClan { get; set; }
+        }
 
         /// <summary>
         ///   PAYOUT re-validation for grant_fief, mirroring the marriage_consent M-B4 pattern: everything the
@@ -66,12 +111,16 @@ namespace CalradiaRemembers.Logic
         ///   leadership, or the player may since have gone to war with the giver's clan (delivering a fief to
         ///   a wartime enemy is absurd, and vanilla's own ChangeOwnerOfSettlementAction carries no such guard).
         /// </summary>
-        public static QuestRewardPayoutVerdict DecideFiefPayout(bool toggleOn,
-                                                                bool giverAlive,
-                                                                bool giverLeadsOwnClan,
-                                                                bool fiefStillOwnedByGiverClan,
-                                                                bool playerAtWarWithGiverClan)
+        public static QuestRewardPayoutVerdict DecideFiefPayout(FiefRewardFacts facts)
         {
+           if (facts == null) return QuestRewardPayoutVerdict.Refuse;
+
+           bool toggleOn = facts.ToggleOn;
+           bool giverAlive = facts.GiverAlive;
+           bool giverLeadsOwnClan = facts.GiverLeadsOwnClan;
+           bool fiefStillOwnedByGiverClan = facts.FiefStillOwnedByGiverClan;
+           bool playerAtWarWithGiverClan = facts.PlayerAtWarWithGiverClan;
+
             if (!toggleOn) return QuestRewardPayoutVerdict.Refuse;
             if (!giverAlive) return QuestRewardPayoutVerdict.Refuse;
             if (!giverLeadsOwnClan) return QuestRewardPayoutVerdict.Refuse;
@@ -82,19 +131,66 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
+        ///   What a promised marriage is re-read against at payout, live, never trusted from the moment the
+        ///   promise was made. Shared with the ISSUANCE gate <see cref="CanPromiseMarriageReward" /> so the
+        ///   two ends of the same promise cannot drift apart on what a fact is called.
+        ///   SIX booleans in a row where two are requirements, two are disqualifiers, and one, the toggle,
+        ///   is neither: the shape a swap survives.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class MarriageRewardFacts
+        {
+           /// <summary>The heavy-reward feature is enabled at all.</summary>
+           public bool ToggleOn { get; set; }
+
+           /// <summary>The lord who made the promise is still alive to keep it.</summary>
+           public bool GiverAlive { get; set; }
+
+           /// <summary>The giver truly has the standing to give that hand away.</summary>
+           public bool GiverHasAuthorityOverSpouse { get; set; }
+
+           /// <summary>
+           ///   The match is STILL marriageable: alive, unwed, and not since promised elsewhere. At issuance
+           ///   this is simply "is marriageable"; at payout it is the same question asked again, weeks later.
+           /// </summary>
+           public bool SpouseStillMarriageable { get; set; }
+
+           /// <summary>The player has since gone to war with the giver's clan, which no reward survives.</summary>
+           public bool PlayerAtWarWithGiverClan { get; set; }
+
+           /// <summary>
+           ///   The player reigns over a realm. A sovereign's marriage can move their own clan's crown as a side
+           ///   effect, which is never risked as a quest-reward afterthought.
+           /// </summary>
+           public bool PlayerIsReigningSovereign { get; set; }
+
+           /// <summary>
+           ///   A spouse candidate actually resolved: the giver themselves, or a kin of their house. Asked at
+           ///   issuance; by payout the question has become whether that same match is still marriageable.
+           /// </summary>
+           public bool SpouseResolved { get; set; }
+        }
+
+        /// <summary>
         ///   PAYOUT re-validation for marriage_reward: the marriage sibling of <see cref="DecideFiefPayout" />.
         ///   Re-checks the giver's authority, the spouse's marriageability (alive, unwed, not since promised
         ///   elsewhere), no standing war with the giver's clan, and the sovereignty guard again (the player's
         ///   own standing may have changed between the promise and the completion, e.g. a war they won made
         ///   them a king).
         /// </summary>
-        public static QuestRewardPayoutVerdict DecideMarriageRewardPayout(bool toggleOn,
-                                                                          bool giverAlive,
-                                                                          bool giverHasAuthorityOverSpouse,
-                                                                          bool spouseStillMarriageable,
-                                                                          bool playerAtWarWithGiverClan,
-                                                                          bool playerIsReigningSovereign)
+        public static QuestRewardPayoutVerdict DecideMarriageRewardPayout(MarriageRewardFacts facts)
         {
+           if (facts == null) return QuestRewardPayoutVerdict.Refuse;
+
+           bool toggleOn = facts.ToggleOn;
+           bool giverAlive = facts.GiverAlive;
+           bool giverHasAuthorityOverSpouse = facts.GiverHasAuthorityOverSpouse;
+           bool spouseStillMarriageable = facts.SpouseStillMarriageable;
+           bool playerAtWarWithGiverClan = facts.PlayerAtWarWithGiverClan;
+           bool playerIsReigningSovereign = facts.PlayerIsReigningSovereign;
+
             if (!toggleOn) return QuestRewardPayoutVerdict.Refuse;
             if (!giverAlive) return QuestRewardPayoutVerdict.Refuse;
             if (!giverHasAuthorityOverSpouse) return QuestRewardPayoutVerdict.Refuse;

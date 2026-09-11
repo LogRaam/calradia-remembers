@@ -28,8 +28,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_every_teaching_fact_holds_WHEN_offering_an_oath_THEN_the_action_is_taught()
         {
-            OathOfferPolicy.CanOfferOath(
-                npcAlive: true, npcIsPrisoner: false, npcIsPlayer: false, npcHasActiveCommitment: false, npcQualifiesForSomeKind: true)
+            OathOfferPolicy.CanOfferOath(new OathOfferPolicy.OathOfferFacts {NpcAlive = true, NpcIsPrisoner = false, NpcIsPlayer = false, NpcHasActiveCommitment = false, NpcQualifiesForSomeKind = true})
                 .Should().BeTrue();
         }
 
@@ -38,8 +37,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_npc_is_dead_WHEN_offering_an_oath_THEN_it_is_withheld()
         {
-            OathOfferPolicy.CanOfferOath(
-                npcAlive: false, npcIsPrisoner: false, npcIsPlayer: false, npcHasActiveCommitment: false, npcQualifiesForSomeKind: true)
+            OathOfferPolicy.CanOfferOath(new OathOfferPolicy.OathOfferFacts {NpcAlive = false, NpcIsPrisoner = false, NpcIsPlayer = false, NpcHasActiveCommitment = false, NpcQualifiesForSomeKind = true})
                 .Should().BeFalse();
         }
 
@@ -48,8 +46,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_npc_is_imprisoned_WHEN_offering_an_oath_THEN_it_is_withheld()
         {
-            OathOfferPolicy.CanOfferOath(
-                npcAlive: true, npcIsPrisoner: true, npcIsPlayer: false, npcHasActiveCommitment: false, npcQualifiesForSomeKind: true)
+            OathOfferPolicy.CanOfferOath(new OathOfferPolicy.OathOfferFacts {NpcAlive = true, NpcIsPrisoner = true, NpcIsPlayer = false, NpcHasActiveCommitment = false, NpcQualifiesForSomeKind = true})
                 .Should().BeFalse();
         }
 
@@ -58,8 +55,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_npc_is_the_player_WHEN_offering_an_oath_THEN_it_is_withheld()
         {
-            OathOfferPolicy.CanOfferOath(
-                npcAlive: true, npcIsPrisoner: false, npcIsPlayer: true, npcHasActiveCommitment: false, npcQualifiesForSomeKind: true)
+            OathOfferPolicy.CanOfferOath(new OathOfferPolicy.OathOfferFacts {NpcAlive = true, NpcIsPrisoner = false, NpcIsPlayer = true, NpcHasActiveCommitment = false, NpcQualifiesForSomeKind = true})
                 .Should().BeFalse();
         }
 
@@ -69,8 +65,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_npc_already_carries_an_oath_WHEN_offering_an_oath_THEN_it_is_withheld()
         {
-            OathOfferPolicy.CanOfferOath(
-                npcAlive: true, npcIsPrisoner: false, npcIsPlayer: false, npcHasActiveCommitment: true, npcQualifiesForSomeKind: true)
+            OathOfferPolicy.CanOfferOath(new OathOfferPolicy.OathOfferFacts {NpcAlive = true, NpcIsPrisoner = false, NpcIsPlayer = false, NpcHasActiveCommitment = true, NpcQualifiesForSomeKind = true})
                 .Should().BeFalse();
         }
 
@@ -80,8 +75,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_npc_qualifies_for_no_oath_kind_WHEN_offering_an_oath_THEN_it_is_withheld()
         {
-            OathOfferPolicy.CanOfferOath(
-                npcAlive: true, npcIsPrisoner: false, npcIsPlayer: false, npcHasActiveCommitment: false, npcQualifiesForSomeKind: false)
+            OathOfferPolicy.CanOfferOath(new OathOfferPolicy.OathOfferFacts {NpcAlive = true, NpcIsPrisoner = false, NpcIsPlayer = false, NpcHasActiveCommitment = false, NpcQualifiesForSomeKind = false})
                 .Should().BeFalse();
         }
     }

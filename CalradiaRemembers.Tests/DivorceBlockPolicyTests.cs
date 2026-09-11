@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_no_pregnancy_captivity_or_role_WHEN_classifying_THEN_no_mechanical_block()
       {
-         DivorceBlockPolicy.Classify(false, false, false, false, false).Should().Be(DivorceBlock.None);
+         DivorceBlockPolicy.Classify(new DivorceBlockPolicy.DivorceBlockFacts {EitherPregnant = false, EitherCaptive = false, LeavingIsClanLeader = false, LeavingLeadsParty = false, LeavingIsGovernor = false}).Should().Be(DivorceBlock.None);
       }
 
       // Pregnancy is transient: the host must DEFER, never abort-with-penalty. A conception early in a 15-30 day
@@ -34,7 +34,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_pregnancy_WHEN_classifying_THEN_it_is_transient()
       {
-         DivorceBlockPolicy.Classify(true, false, false, false, false).Should().Be(DivorceBlock.Transient);
+         DivorceBlockPolicy.Classify(new DivorceBlockPolicy.DivorceBlockFacts {EitherPregnant = true, EitherCaptive = false, LeavingIsClanLeader = false, LeavingLeadsParty = false, LeavingIsGovernor = false}).Should().Be(DivorceBlock.Transient);
       }
 
       // Captivity is transient for the same reason: it clears on release, ransom, or death, so it must defer, not
@@ -42,7 +42,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_captivity_WHEN_classifying_THEN_it_is_transient()
       {
-         DivorceBlockPolicy.Classify(false, true, false, false, false).Should().Be(DivorceBlock.Transient);
+         DivorceBlockPolicy.Classify(new DivorceBlockPolicy.DivorceBlockFacts {EitherPregnant = false, EitherCaptive = true, LeavingIsClanLeader = false, LeavingLeadsParty = false, LeavingIsGovernor = false}).Should().Be(DivorceBlock.Transient);
       }
 
       // Each structural role, alone, is a STRUCTURAL block: none clears on its own, so a silent retry would loop
@@ -51,19 +51,19 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_only_a_party_leadership_WHEN_classifying_THEN_it_is_structural()
       {
-         DivorceBlockPolicy.Classify(false, false, false, true, false).Should().Be(DivorceBlock.Structural);
+         DivorceBlockPolicy.Classify(new DivorceBlockPolicy.DivorceBlockFacts {EitherPregnant = false, EitherCaptive = false, LeavingIsClanLeader = false, LeavingLeadsParty = true, LeavingIsGovernor = false}).Should().Be(DivorceBlock.Structural);
       }
 
       [Test]
       public void GIVEN_only_a_clan_leadership_WHEN_classifying_THEN_it_is_structural()
       {
-         DivorceBlockPolicy.Classify(false, false, true, false, false).Should().Be(DivorceBlock.Structural);
+         DivorceBlockPolicy.Classify(new DivorceBlockPolicy.DivorceBlockFacts {EitherPregnant = false, EitherCaptive = false, LeavingIsClanLeader = true, LeavingLeadsParty = false, LeavingIsGovernor = false}).Should().Be(DivorceBlock.Structural);
       }
 
       [Test]
       public void GIVEN_only_a_governorship_WHEN_classifying_THEN_it_is_structural()
       {
-         DivorceBlockPolicy.Classify(false, false, false, false, true).Should().Be(DivorceBlock.Structural);
+         DivorceBlockPolicy.Classify(new DivorceBlockPolicy.DivorceBlockFacts {EitherPregnant = false, EitherCaptive = false, LeavingIsClanLeader = false, LeavingLeadsParty = false, LeavingIsGovernor = true}).Should().Be(DivorceBlock.Structural);
       }
 
       // Precedence: a pregnancy AND a party leadership at once must read TRANSIENT, not structural. While the
@@ -73,7 +73,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_both_a_pregnancy_and_a_role_WHEN_classifying_THEN_transient_wins()
       {
-         DivorceBlockPolicy.Classify(true, false, true, true, true).Should().Be(DivorceBlock.Transient);
+         DivorceBlockPolicy.Classify(new DivorceBlockPolicy.DivorceBlockFacts {EitherPregnant = true, EitherCaptive = false, LeavingIsClanLeader = true, LeavingLeadsParty = true, LeavingIsGovernor = true}).Should().Be(DivorceBlock.Transient);
       }
    }
 }

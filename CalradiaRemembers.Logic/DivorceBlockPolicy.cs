@@ -42,16 +42,47 @@ namespace CalradiaRemembers.Logic
    public static class DivorceBlockPolicy
    {
       /// <summary>
+      ///   The dissolution facts the host observes. FIVE booleans in a row across two quite different
+      ///   kinds: the first two clear on their own and mean DEFER, the last three never clear and mean
+      ///   RELEASE-THEN-RETRY, and a swap between the halves is the exact mistake this class was written
+      ///   to stop the host from making.
+      ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+      ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+      ///   that names only what it is about reads as the rule it protects.
+      /// </summary>
+      public sealed class DivorceBlockFacts
+      {
+         /// <summary>One of the pair is pregnant. Transient: it ends at the birth.</summary>
+         public bool EitherPregnant { get; set; }
+
+         /// <summary>One of the pair is captive. Transient: it ends at release or death.</summary>
+         public bool EitherCaptive { get; set; }
+
+         /// <summary>The leaving spouse heads their own clan.</summary>
+         public bool LeavingIsClanLeader { get; set; }
+
+         /// <summary>The leaving spouse commands a party.</summary>
+         public bool LeavingLeadsParty { get; set; }
+
+         /// <summary>The leaving spouse governs a settlement.</summary>
+         public bool LeavingIsGovernor { get; set; }
+      }
+
+      /// <summary>
       ///   TRANSIENT when either party is pregnant or captive (it will clear, so defer, never punish);
       ///   otherwise STRUCTURAL when the leaving spouse leads a clan, a party, or governs a settlement (it will
       ///   not clear, so release then retry); otherwise NONE.
       /// </summary>
-      public static DivorceBlock Classify(bool eitherPregnant,
-                                          bool eitherCaptive,
-                                          bool leavingIsClanLeader,
-                                          bool leavingLeadsParty,
-                                          bool leavingIsGovernor)
+      public static DivorceBlock Classify(DivorceBlockFacts facts)
       {
+         if (facts == null) return DivorceBlock.None;
+
+         bool eitherPregnant = facts.EitherPregnant;
+         bool eitherCaptive = facts.EitherCaptive;
+         bool leavingIsClanLeader = facts.LeavingIsClanLeader;
+         bool leavingLeadsParty = facts.LeavingLeadsParty;
+         bool leavingIsGovernor = facts.LeavingIsGovernor;
+
          if (eitherPregnant || eitherCaptive) return DivorceBlock.Transient;
 
          if (leavingIsClanLeader || leavingLeadsParty || leavingIsGovernor) return DivorceBlock.Structural;

@@ -73,13 +73,13 @@ namespace CalradiaRemembers.Logic
         ///   direction is empty but the distance is not tiny (the points nearly coincide yet the distance says
         ///   otherwise), falls back to just the distance band with no direction suffix.
         /// </summary>
-        public static string Bearing(float dx, float dy, float mapDistance)
+        public static string Bearing(MapOffset step, float mapDistance)
         {
             if (mapDistance < SamePlaceRadius)
                 return "right here";
 
             var band = DistanceBand(mapDistance);
-            var direction = Direction(dx, dy);
+            var direction = Direction(step.East, step.North);
             if (direction.Length == 0)
                 return band;
 

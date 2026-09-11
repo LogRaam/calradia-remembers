@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Tests
       // Helper: compatibility from two (valor, honor, mercy, generosity, calculating) tuples.
       private static int Compat(
          (int v, int h, int m, int g, int c) a, (int v, int h, int m, int g, int c) b)
-         => CompanionRapport.Compatibility(a.v, a.h, a.m, a.g, a.c, b.v, b.h, b.m, b.g, b.c);
+         => CompanionRapport.Compatibility(new RomanticTraits {Valor = a.v, Honor = a.h, Mercy = a.m, Generosity = a.g, Calculating = a.c}, new RomanticTraits {Valor = b.v, Honor = b.h, Mercy = b.m, Generosity = b.g, Calculating = b.c});
 
       // ── Compatibility ──────────────────────────────────────────────────────
 

@@ -462,9 +462,7 @@ namespace CalradiaRemembers.Bastards
 
          bool formerSpouse = otherParent != null && (player.ExSpouses?.Contains(otherParent) ?? false);
 
-         return BastardLegitimacyPolicy.IsPlayersBastard(
-            true, otherParent != null, otherParent == player.Spouse, formerSpouse,
-            otherParent != null && otherParent.IsAlive);
+         return BastardLegitimacyPolicy.IsPlayersBastard(new BastardLegitimacyPolicy.ParentageFacts {PlayerIsParent = true, OtherParentExists = otherParent != null, OtherParentIsCurrentSpouse = otherParent == player.Spouse, OtherParentIsFormerSpouse = formerSpouse, OtherParentAlive = otherParent != null && otherParent.IsAlive});
       }
 
       private static string MotherNoteContent(Hero child, BastardMotherDisposition disposition)

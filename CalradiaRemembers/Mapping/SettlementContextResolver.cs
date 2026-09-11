@@ -113,7 +113,7 @@ namespace CalradiaRemembers.Mapping
          Vec2 from = basis.GetPosition2D;
          Vec2 to = target.GetPosition2D;
 
-         return GeographyDescriber.Bearing(to.X - from.X, to.Y - from.Y, from.Distance(to));
+         return GeographyDescriber.Bearing(new MapPoint(from.X, from.Y).StepTo(new MapPoint(to.X, to.Y)), from.Distance(to));
       }
 
       /// <summary>

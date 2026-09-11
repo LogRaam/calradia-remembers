@@ -85,9 +85,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_every_teaching_fact_holds_WHEN_offering_THEN_the_action_is_taught()
         {
-            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
-                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: true,
-                appointeeNotGoverningElsewhere: true, appointeeNotAway: true);
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(new GovernorAppointmentPolicy.AppointmentOfferFacts {PlayerLeadsClan = true, AppointeeInPlayerClan = true, AppointeeAvailable = true, HasVacantGovernableFief = true, AppointeeNotGoverningElsewhere = true, AppointeeNotAway = true});
 
             offered.Should().BeTrue();
         }
@@ -98,9 +96,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_does_not_lead_the_clan_WHEN_offering_THEN_the_action_is_withheld()
         {
-            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
-                playerLeadsClan: false, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: true,
-                appointeeNotGoverningElsewhere: true, appointeeNotAway: true);
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(new GovernorAppointmentPolicy.AppointmentOfferFacts {PlayerLeadsClan = false, AppointeeInPlayerClan = true, AppointeeAvailable = true, HasVacantGovernableFief = true, AppointeeNotGoverningElsewhere = true, AppointeeNotAway = true});
 
             offered.Should().BeFalse();
         }
@@ -111,9 +107,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_appointee_is_not_of_the_players_clan_WHEN_offering_THEN_the_action_is_withheld()
         {
-            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
-                playerLeadsClan: true, appointeeInPlayerClan: false, appointeeAvailable: true, hasVacantGovernableFief: true,
-                appointeeNotGoverningElsewhere: true, appointeeNotAway: true);
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(new GovernorAppointmentPolicy.AppointmentOfferFacts {PlayerLeadsClan = true, AppointeeInPlayerClan = false, AppointeeAvailable = true, HasVacantGovernableFief = true, AppointeeNotGoverningElsewhere = true, AppointeeNotAway = true});
 
             offered.Should().BeFalse();
         }
@@ -123,9 +117,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_appointee_is_unavailable_WHEN_offering_THEN_the_action_is_withheld()
         {
-            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
-                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: false, hasVacantGovernableFief: true,
-                appointeeNotGoverningElsewhere: true, appointeeNotAway: true);
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(new GovernorAppointmentPolicy.AppointmentOfferFacts {PlayerLeadsClan = true, AppointeeInPlayerClan = true, AppointeeAvailable = false, HasVacantGovernableFief = true, AppointeeNotGoverningElsewhere = true, AppointeeNotAway = true});
 
             offered.Should().BeFalse();
         }
@@ -136,9 +128,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_no_vacant_governable_fief_WHEN_offering_THEN_the_action_is_withheld()
         {
-            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
-                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: false,
-                appointeeNotGoverningElsewhere: true, appointeeNotAway: true);
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(new GovernorAppointmentPolicy.AppointmentOfferFacts {PlayerLeadsClan = true, AppointeeInPlayerClan = true, AppointeeAvailable = true, HasVacantGovernableFief = false, AppointeeNotGoverningElsewhere = true, AppointeeNotAway = true});
 
             offered.Should().BeFalse();
         }
@@ -149,9 +139,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_appointee_already_governs_another_fief_WHEN_offering_THEN_the_action_is_withheld()
         {
-            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
-                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: true,
-                appointeeNotGoverningElsewhere: false, appointeeNotAway: true);
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(new GovernorAppointmentPolicy.AppointmentOfferFacts {PlayerLeadsClan = true, AppointeeInPlayerClan = true, AppointeeAvailable = true, HasVacantGovernableFief = true, AppointeeNotGoverningElsewhere = false, AppointeeNotAway = true});
 
             offered.Should().BeFalse();
         }
@@ -162,9 +150,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_appointee_is_away_on_an_errand_WHEN_offering_THEN_the_action_is_withheld()
         {
-            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(
-                playerLeadsClan: true, appointeeInPlayerClan: true, appointeeAvailable: true, hasVacantGovernableFief: true,
-                appointeeNotGoverningElsewhere: true, appointeeNotAway: false);
+            bool offered = GovernorAppointmentPolicy.CanOfferAppointment(new GovernorAppointmentPolicy.AppointmentOfferFacts {PlayerLeadsClan = true, AppointeeInPlayerClan = true, AppointeeAvailable = true, HasVacantGovernableFief = true, AppointeeNotGoverningElsewhere = true, AppointeeNotAway = false});
 
             offered.Should().BeFalse();
         }

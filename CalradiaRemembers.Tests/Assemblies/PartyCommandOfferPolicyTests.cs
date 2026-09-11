@@ -29,7 +29,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_companion_in_the_party_WHEN_offering_a_role_THEN_it_is_taught()
         {
-            PartyCommandOfferPolicy.CanOfferAssignRole(npcIsPlayerCompanion: true, npcInMainParty: true)
+            PartyCommandOfferPolicy.CanOfferAssignRole(new PartyCommandOfferPolicy.AssignRoleFacts {NpcIsPlayerCompanion = true, NpcInMainParty = true})
                 .Should().BeTrue();
         }
 
@@ -39,7 +39,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_companion_out_of_the_party_WHEN_offering_a_role_THEN_it_is_withheld()
         {
-            PartyCommandOfferPolicy.CanOfferAssignRole(npcIsPlayerCompanion: true, npcInMainParty: false)
+            PartyCommandOfferPolicy.CanOfferAssignRole(new PartyCommandOfferPolicy.AssignRoleFacts {NpcIsPlayerCompanion = true, NpcInMainParty = false})
                 .Should().BeFalse();
         }
 
@@ -49,7 +49,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_non_companion_in_the_party_WHEN_offering_a_role_THEN_it_is_withheld()
         {
-            PartyCommandOfferPolicy.CanOfferAssignRole(npcIsPlayerCompanion: false, npcInMainParty: true)
+            PartyCommandOfferPolicy.CanOfferAssignRole(new PartyCommandOfferPolicy.AssignRoleFacts {NpcIsPlayerCompanion = false, NpcInMainParty = true})
                 .Should().BeFalse();
         }
 
@@ -59,8 +59,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_an_away_free_companion_WHEN_offering_rejoin_THEN_it_is_taught()
         {
-            PartyCommandOfferPolicy.CanOfferRejoinParty(
-                npcIsPlayerCompanion: true, npcAlive: true, npcIsPrisoner: false, npcInMainParty: false, npcLeadsOwnCompany: false)
+            PartyCommandOfferPolicy.CanOfferRejoinParty(new PartyCommandOfferPolicy.RejoinPartyFacts {NpcIsPlayerCompanion = true, NpcAlive = true, NpcIsPrisoner = false, NpcInMainParty = false, NpcLeadsOwnCompany = false})
                 .Should().BeTrue();
         }
 
@@ -69,8 +68,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_companion_already_in_the_party_WHEN_offering_rejoin_THEN_it_is_withheld()
         {
-            PartyCommandOfferPolicy.CanOfferRejoinParty(
-                npcIsPlayerCompanion: true, npcAlive: true, npcIsPrisoner: false, npcInMainParty: true, npcLeadsOwnCompany: false)
+            PartyCommandOfferPolicy.CanOfferRejoinParty(new PartyCommandOfferPolicy.RejoinPartyFacts {NpcIsPlayerCompanion = true, NpcAlive = true, NpcIsPrisoner = false, NpcInMainParty = true, NpcLeadsOwnCompany = false})
                 .Should().BeFalse();
         }
 
@@ -79,8 +77,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_an_imprisoned_companion_WHEN_offering_rejoin_THEN_it_is_withheld()
         {
-            PartyCommandOfferPolicy.CanOfferRejoinParty(
-                npcIsPlayerCompanion: true, npcAlive: true, npcIsPrisoner: true, npcInMainParty: false, npcLeadsOwnCompany: false)
+            PartyCommandOfferPolicy.CanOfferRejoinParty(new PartyCommandOfferPolicy.RejoinPartyFacts {NpcIsPlayerCompanion = true, NpcAlive = true, NpcIsPrisoner = true, NpcInMainParty = false, NpcLeadsOwnCompany = false})
                 .Should().BeFalse();
         }
 
@@ -90,8 +87,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_companion_leading_their_own_company_WHEN_offering_rejoin_THEN_it_is_withheld()
         {
-            PartyCommandOfferPolicy.CanOfferRejoinParty(
-                npcIsPlayerCompanion: true, npcAlive: true, npcIsPrisoner: false, npcInMainParty: false, npcLeadsOwnCompany: true)
+            PartyCommandOfferPolicy.CanOfferRejoinParty(new PartyCommandOfferPolicy.RejoinPartyFacts {NpcIsPlayerCompanion = true, NpcAlive = true, NpcIsPrisoner = false, NpcInMainParty = false, NpcLeadsOwnCompany = true})
                 .Should().BeFalse();
         }
 
@@ -100,8 +96,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_dead_companion_WHEN_offering_rejoin_THEN_it_is_withheld()
         {
-            PartyCommandOfferPolicy.CanOfferRejoinParty(
-                npcIsPlayerCompanion: true, npcAlive: false, npcIsPrisoner: false, npcInMainParty: false, npcLeadsOwnCompany: false)
+            PartyCommandOfferPolicy.CanOfferRejoinParty(new PartyCommandOfferPolicy.RejoinPartyFacts {NpcIsPlayerCompanion = true, NpcAlive = false, NpcIsPrisoner = false, NpcInMainParty = false, NpcLeadsOwnCompany = false})
                 .Should().BeFalse();
         }
 
@@ -111,8 +106,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_an_available_companion_in_the_party_WHEN_offering_a_mission_THEN_it_is_taught()
         {
-            PartyCommandOfferPolicy.CanOfferDispatchMission(
-                npcCanRideForPlayer: true, npcInMainParty: true, npcAvailableForErrand: true)
+            PartyCommandOfferPolicy.CanOfferDispatchMission(new PartyCommandOfferPolicy.DispatchMissionFacts {NpcCanRideForPlayer = true, NpcInMainParty = true, NpcAvailableForErrand = true})
                 .Should().BeTrue();
         }
 
@@ -122,8 +116,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_companion_not_free_to_ride_out_WHEN_offering_a_mission_THEN_it_is_withheld()
         {
-            PartyCommandOfferPolicy.CanOfferDispatchMission(
-                npcCanRideForPlayer: true, npcInMainParty: true, npcAvailableForErrand: false)
+            PartyCommandOfferPolicy.CanOfferDispatchMission(new PartyCommandOfferPolicy.DispatchMissionFacts {NpcCanRideForPlayer = true, NpcInMainParty = true, NpcAvailableForErrand = false})
                 .Should().BeFalse();
         }
 
@@ -132,8 +125,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_companion_out_of_the_party_WHEN_offering_a_mission_THEN_it_is_withheld()
         {
-            PartyCommandOfferPolicy.CanOfferDispatchMission(
-                npcCanRideForPlayer: true, npcInMainParty: false, npcAvailableForErrand: true)
+            PartyCommandOfferPolicy.CanOfferDispatchMission(new PartyCommandOfferPolicy.DispatchMissionFacts {NpcCanRideForPlayer = true, NpcInMainParty = false, NpcAvailableForErrand = true})
                 .Should().BeFalse();
         }
 
@@ -143,8 +135,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_someone_who_cannot_ride_for_the_player_WHEN_offering_a_mission_THEN_it_is_withheld()
         {
-            PartyCommandOfferPolicy.CanOfferDispatchMission(
-                npcCanRideForPlayer: false, npcInMainParty: true, npcAvailableForErrand: true)
+            PartyCommandOfferPolicy.CanOfferDispatchMission(new PartyCommandOfferPolicy.DispatchMissionFacts {NpcCanRideForPlayer = false, NpcInMainParty = true, NpcAvailableForErrand = true})
                 .Should().BeFalse();
         }
     }
