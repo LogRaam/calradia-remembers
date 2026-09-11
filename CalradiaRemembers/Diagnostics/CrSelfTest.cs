@@ -8143,6 +8143,48 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      /// <summary>
+      ///   How the code that enforces a setting relates to the range the MCM menu offers for it.
+      /// </summary>
+      private enum SettingShape
+      {
+         /// <summary>The accessor returns EXACTLY the number the player picked. Driven at both ends and compared.</summary>
+         Honours,
+
+         /// <summary>
+         ///   The accessor deliberately transforms or narrows what the player picked: a snap to a step, a
+         ///   conversion to a scale factor, a ceiling the feature imposes. Legitimate, but it must be DECLARED
+         ///   with its reason, because an undeclared narrowing is precisely the Regard Warmth Cooldown bug.
+         /// </summary>
+         Reshapes
+      }
+
+      /// <summary>
+      ///   Every <c>[SettingPropertyInteger]</c> on <see cref="CrSettings" />, paired with the ModSettings
+      ///   accessor that enforces it. A setting missing from this table FAILS the test by name: that is what
+      ///   stops the guard going quietly vacuous, which is exactly how it first shipped (2026-09-10: it compared
+      ///   ZERO settings and only its own "is there anything to compare" assertion caught it).
+      /// </summary>
+      private static readonly Dictionary<string, (string Accessor, SettingShape Shape, string Why)> SettingEnforcers =
+         new(StringComparer.Ordinal) {
+            ["RegardDecayDays"] = ("RegardDecayDays", SettingShape.Honours,
+               "the whole point of the FloatingMammal fix: 0 must reach the gate as 0"),
+            ["NpcCrossTalkRounds"] = ("NpcCrossTalkRounds", SettingShape.Honours,
+               "0 must mean the witnesses fall silent, 3 must mean three rounds"),
+            ["MarriageRegardNeeded"] = ("MarriageRegardThreshold", SettingShape.Reshapes,
+               "capped at MarriageEligibilityThreshold: the setting may only make marriage EASIER, never harder"),
+            ["LlmTimeoutSeconds"] = ("LlmResponseTimeoutSeconds", SettingShape.Honours,
+               "a timeout the player set is the timeout the request gets"),
+            ["ChatTextSizePercent"] = ("ChatTextSizeStep", SettingShape.Reshapes,
+               "snapped to a 10% step because the size reaches the widget as a sized BRUSH NAME, not a number"),
+            ["CouncilTextSizePercent"] = ("CouncilTextSizeStep", SettingShape.Reshapes,
+               "snapped to a 10% step, same brush-name reason as the chat"),
+            ["DarkLeatherZoomPercent"] = ("DarkLeatherScale", SettingShape.Reshapes,
+               "a percent the player reads becomes the scale factor the window uses"),
+            ["CouncilZoomPercent"] = ("CouncilScale", SettingShape.Reshapes,
+               "a percent the player reads becomes the scale factor the window uses")
+         };
+
       private static string TestSettingsRangesAgree(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("settings_ranges_agree");
@@ -8151,39 +8193,65 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(live == null, "MCM settings are not loaded, so there is nothing to compare against")) return t.Line();
 
          var mismatches = new List<string>();
-         var unchecked_ = new List<string>();
-         var checkedNames = new List<string>();
+         var unclassified = new List<string>();
+         var unreadable = new List<string>();
+         var compared = new List<string>();
 
          foreach (PropertyInfo declared in typeof(CrSettings).GetProperties(BindingFlags.Public | BindingFlags.Instance))
          {
-            object attribute = declared.GetCustomAttributes(true)
-                                       .FirstOrDefault(a => a.GetType().Name.StartsWith("SettingPropertyInteger", StringComparison.Ordinal));
-            if (attribute == null || declared.PropertyType != typeof(int) || !declared.CanWrite) continue;
+            if (declared.PropertyType != typeof(int) || !declared.CanWrite) continue;
+            if (!HasIntegerSettingAttribute(declared)) continue;
 
-            int? min = ReadIntMember(attribute, "MinValue");
-            int? max = ReadIntMember(attribute, "MaxValue");
+            (int Min, int Max)? offered = ReadOfferedRange(declared);
 
-            PropertyInfo enforced = typeof(ModSettings).GetProperty(declared.Name, BindingFlags.Public | BindingFlags.Static);
-
-            if (min == null || max == null || enforced == null || enforced.PropertyType != typeof(int))
+            if (offered == null)
             {
-               unchecked_.Add(declared.Name);
+               unreadable.Add(declared.Name);
 
                continue;
             }
 
-            checkedNames.Add(declared.Name);
+            if (!SettingEnforcers.TryGetValue(declared.Name, out (string Accessor, SettingShape Shape, string Why) how))
+            {
+               unclassified.Add(declared.Name);
+
+               continue;
+            }
+
+            PropertyInfo enforced = typeof(ModSettings).GetProperty(how.Accessor, BindingFlags.Public | BindingFlags.Static);
+
+            if (enforced == null)
+            {
+               mismatches.Add($"{declared.Name}: no ModSettings.{how.Accessor} to enforce it");
+
+               continue;
+            }
+
             var original = (int) declared.GetValue(live);
 
             try
             {
-               foreach (int offered in new[] {min.Value, max.Value})
-               {
-                  declared.SetValue(live, offered);
-                  var enforcedValue = (int) enforced.GetValue(null);
+               declared.SetValue(live, offered.Value.Min);
+               double atMin = Convert.ToDouble(enforced.GetValue(null));
+               declared.SetValue(live, offered.Value.Max);
+               double atMax = Convert.ToDouble(enforced.GetValue(null));
 
-                  if (enforcedValue != offered)
-                     mismatches.Add($"{declared.Name}: the menu offers {offered}, the code enforces {enforcedValue}");
+               compared.Add(declared.Name);
+
+               if (how.Shape == SettingShape.Honours)
+               {
+                  if (Math.Abs(atMin - offered.Value.Min) > 0.0001)
+                     mismatches.Add($"{declared.Name}: the menu offers {offered.Value.Min}, the code enforces {atMin}");
+                  if (Math.Abs(atMax - offered.Value.Max) > 0.0001)
+                     mismatches.Add($"{declared.Name}: the menu offers {offered.Value.Max}, the code enforces {atMax}");
+               }
+               // A reshaping accessor is allowed to return something other than the number picked, but never to
+               // run BACKWARDS: turning a slider up must not make its effect smaller. That is a rule about the
+               // player's hand on the slider, not about how the transform happens to be written.
+               else if (atMax < atMin)
+               {
+                  mismatches.Add($"{declared.Name}: turning it up ({offered.Value.Min}->{offered.Value.Max}) "
+                                 + $"makes ModSettings.{how.Accessor} smaller ({atMin}->{atMax})");
                }
             }
             finally
@@ -8192,38 +8260,61 @@ namespace CalradiaRemembers.Diagnostics
             }
          }
 
-         t.Note($"{checkedNames.Count} integer setting(s) compared"
-                + (unchecked_.Count == 0 ? "" : $"; no ModSettings twin for: {string.Join(", ", unchecked_)}")
+         t.Note($"{compared.Count} integer setting(s) driven end to end"
+                + (unclassified.Count == 0 ? "" : $"; UNCLASSIFIED: {string.Join(", ", unclassified)}")
+                + (unreadable.Count == 0 ? "" : $"; range unreadable: {string.Join(", ", unreadable)}")
                 + (mismatches.Count == 0 ? "" : $"; MISMATCH: {string.Join(" | ", mismatches)}"));
 
          // Gabriel, 2026-09-10, on the Regard Warmth Cooldown: "je suis surpris que le bon comportement n'ait pas
          // ete bien protege par des tests unitaires. Par exemple, 0 aurait du etre teste."
          //
          // The awkward truth is that 0 WAS tested, and the test agreed with the bug: it pinned what the code did,
-         // and nothing anywhere compared that with what the MENU offered or the changelog promised. The menu
-         // clamped its minimum to 1 while the changelog said 0 turned the cooldown off, and the two artefacts had
-         // no place to meet. This is that place. It compares the range the player can actually pick against the
-         // range the code will actually honour, for EVERY integer setting, including the ones added next month.
+         // and nothing anywhere compared that with what the MENU offered or the changelog promised. This is that
+         // place. It drives the slider to both of its own ends and reads what the game actually gets.
          t.Expect("everyValueTheMenuOffersIsAValueTheCodeHonours", mismatches.Count, 0);
-         t.Expect("thereIsSomethingToCompare", checkedNames.Count > 0, true);
+
+         // The guard on the guard. This test first shipped comparing NOTHING (it paired settings with accessors by
+         // name, and six of the eight are named differently), and only this assertion said so. A setting added
+         // tomorrow must be classified above, with the reason if it reshapes, or it lands here.
+         t.Expect("everyIntegerSettingIsClassified", unclassified.Count, 0);
+         t.Expect("everyDeclaredRangeCouldBeRead", unreadable.Count, 0);
+         t.Expect("thereIsSomethingToCompare", compared.Count > 0, true);
 
          return t.Line();
       }
 
-      /// <summary>Reads a named int member off an MCM attribute, whose shape differs across MCM versions.</summary>
-      private static int? ReadIntMember(object attribute, string name)
+      /// <summary>True when this property carries MCM's integer-setting attribute, whatever MCM version supplies it.</summary>
+      private static bool HasIntegerSettingAttribute(PropertyInfo declared)
+         => declared.GetCustomAttributes(true)
+                    .Any(a => a.GetType().Name.StartsWith("SettingPropertyInteger", StringComparison.Ordinal));
+
+      /// <summary>
+      ///   The [min, max] the MCM menu offers for this setting, read from the ATTRIBUTE'S OWN CONSTRUCTOR
+      ///   ARGUMENTS rather than from named members. MCM writes it as
+      ///   <c>[SettingPropertyInteger(displayName, min, max, ...)]</c>, and that shape is the contract the source
+      ///   file already relies on; the member NAMES behind it differ across MCM versions, which is why reading
+      ///   them returned nothing at all on the live build (2026-09-10) and the whole guard compared zero settings.
+      /// </summary>
+      private static (int Min, int Max)? ReadOfferedRange(PropertyInfo declared)
       {
          try
          {
-            PropertyInfo property = attribute.GetType().GetProperty(name);
-            if (property?.GetValue(attribute) is int fromProperty) return fromProperty;
+            foreach (CustomAttributeData data in CustomAttributeData.GetCustomAttributes(declared))
+            {
+               if (!data.AttributeType.Name.StartsWith("SettingPropertyInteger", StringComparison.Ordinal)) continue;
 
-            FieldInfo field = attribute.GetType().GetField(name);
-            if (field?.GetValue(attribute) is int fromField) return fromField;
+               List<int> ints = data.ConstructorArguments
+                                    .Where(a => a.ArgumentType == typeof(int))
+                                    .Select(a => (int) a.Value)
+                                    .ToList();
+
+               if (ints.Count >= 2) return (ints[0], ints[1]);
+            }
          }
          catch (Exception ex)
          {
-            ModLog.Error($"settings_ranges_agree: could not read {name}: {ex.GetType().Name}: {ex.Message}");
+            ModLog.Error($"settings_ranges_agree: could not read the declared range of {declared.Name}: "
+                         + $"{ex.GetType().Name}: {ex.Message}");
          }
 
          return null;

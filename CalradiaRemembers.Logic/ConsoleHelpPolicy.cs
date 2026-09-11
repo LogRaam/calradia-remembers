@@ -131,10 +131,33 @@ namespace CalradiaRemembers.Logic
 
             List<string> all = Sorted(registered);
 
-            string exact = all.FirstOrDefault(c => string.Equals(c, needle, StringComparison.OrdinalIgnoreCase));
-            if (exact != null && Doc(exact, docs) != null) return Explain(exact, docs);
-
             List<string> hits = all.Where(c => c.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+
+            string exact = all.FirstOrDefault(c => string.Equals(c, needle, StringComparison.OrdinalIgnoreCase));
+
+            if (exact != null && Doc(exact, docs) != null)
+            {
+                string explained = Explain(exact, docs);
+
+                // An exact hit used to END the answer, and that quietly cost the player the whole family:
+                // `cr.help duel` explained cr.duel and never mentioned duel_challenge, duel_arm, duel_town,
+                // duel_courtship or duel_here, so the one word most likely to be typed was the one that hid
+                // five commands (cr.testall, 2026-09-10). A name that is also the stem of a family now answers
+                // as both: the command in full, then its relatives by name, because a player who typed the
+                // stem is exactly the player who does not yet know what the family contains.
+                List<string> family = hits.Where(c => !string.Equals(c, exact, StringComparison.OrdinalIgnoreCase))
+                                          .ToList();
+                if (family.Count == 0) return explained;
+
+                var withFamily = new StringBuilder(explained);
+                withFamily.AppendLine();
+                withFamily.AppendLine();
+                withFamily.AppendLine($"{family.Count} more command(s) whose name contains '{needle}':");
+                foreach (string c in family) withFamily.AppendLine("  " + Line(c, docs, family.Count > CompactSearchThreshold));
+                withFamily.Append("cr.help <name> reads any of them in full.");
+
+                return withFamily.ToString();
+            }
 
             if (hits.Count == 0)
                 return $"No cr command's name contains '{needle}'. cr.help all lists every one.";
@@ -144,18 +167,20 @@ namespace CalradiaRemembers.Logic
 
             bool compact = hits.Count > CompactSearchThreshold;
 
-            foreach (string c in hits)
-            {
-                ConsoleCommandDoc doc = Doc(c, docs);
-                string usage = doc == null || doc.Usage.Length == 0 ? "" : " " + doc.Usage;
-
-                if (compact || doc == null) sb.AppendLine($"  cr.{c}{usage}");
-                else sb.AppendLine($"  cr.{c}{usage}\n      {Shorten(doc.Text)}");
-            }
+            foreach (string c in hits) sb.AppendLine("  " + Line(c, docs, compact));
 
             if (compact) sb.AppendLine("Narrow the search, or cr.help <name>, to read what they do.");
 
             return sb.ToString().TrimEnd();
+        }
+
+        /// <summary>One command as a search result: its name and usage, plus a first sentence unless the list is long.</summary>
+        private static string Line(string command, IReadOnlyDictionary<string, ConsoleCommandDoc> docs, bool compact)
+        {
+            ConsoleCommandDoc doc = Doc(command, docs);
+            string usage = doc == null || doc.Usage.Length == 0 ? "" : " " + doc.Usage;
+
+            return compact || doc == null ? $"cr.{command}{usage}" : $"cr.{command}{usage}\n      {Shorten(doc.Text)}";
         }
 
         /// <summary>

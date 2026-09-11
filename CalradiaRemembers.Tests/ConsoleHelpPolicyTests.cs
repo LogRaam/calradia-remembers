@@ -128,6 +128,32 @@ namespace CalradiaRemembers.Tests
             answer.Should().NotContain("matching");
         }
 
+        // The cost of stopping at the exact hit, found by cr.testall in a live game (2026-09-10). A player who
+        // types the stem of a family is exactly the player who does not yet know the family exists: `cr.help duel`
+        // explained cr.duel and never mentioned duel_challenge, duel_arm, duel_town, duel_courtship or duel_here,
+        // so the one word most likely to be typed was the one that hid five commands. Gabriel asked for these to
+        // be well documented because players use them heavily; a help that answers correctly and incompletely is
+        // the same dead end as one that answers wrongly.
+        [Test]
+        public void GIVEN_a_name_that_is_also_the_stem_of_a_family_WHEN_asked_THEN_the_relatives_are_named_too()
+        {
+            string answer = ConsoleHelpPolicy.Search(Registered, Docs, "test");
+
+            answer.Should().Contain("Runs one named self-test.");  // the exact command, in full
+            answer.Should().Contain("cr.testall");                 // and the relative it used to hide
+        }
+
+        // The mirror, so the previous rule cannot be satisfied by simply listing everything at every hit: a name
+        // with no relatives answers with itself alone, and says nothing about a family that does not exist.
+        [Test]
+        public void GIVEN_a_name_with_no_relatives_WHEN_asked_THEN_nothing_is_invented_to_list_beside_it()
+        {
+            string answer = ConsoleHelpPolicy.Search(Registered, Docs, "forget");
+
+            answer.Should().Contain("Deletes one event by index.");
+            answer.Should().NotContain("more command");
+        }
+
         // Case must not matter: nobody types a console command with the shift key.
         [Test]
         public void GIVEN_a_name_in_any_case_WHEN_asked_THEN_it_is_still_recognised()
