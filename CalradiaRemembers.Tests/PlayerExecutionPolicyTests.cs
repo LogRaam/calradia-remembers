@@ -25,7 +25,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_MCM_toggle_is_off_WHEN_every_other_guard_holds_THEN_execution_is_refused()
         {
-            PlayerExecutionPolicy.CanExecute(mcmOn: false, playerIsCaptive: true, hardcore: true, deathAllowed: true)
+            PlayerExecutionPolicy.CanExecute(new PlayerExecutionPolicy.ExecutionFacts {McmOn = false, PlayerIsCaptive = true, Hardcore = true, DeathAllowed = true})
                 .Should().BeFalse();
         }
 
@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_player_is_not_captive_WHEN_every_other_guard_holds_THEN_execution_is_refused()
         {
-            PlayerExecutionPolicy.CanExecute(mcmOn: true, playerIsCaptive: false, hardcore: true, deathAllowed: true)
+            PlayerExecutionPolicy.CanExecute(new PlayerExecutionPolicy.ExecutionFacts {McmOn = true, PlayerIsCaptive = false, Hardcore = true, DeathAllowed = true})
                 .Should().BeFalse();
         }
 
@@ -44,7 +44,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_content_level_is_below_Hardcore_WHEN_every_other_guard_holds_THEN_execution_is_refused()
         {
-            PlayerExecutionPolicy.CanExecute(mcmOn: true, playerIsCaptive: true, hardcore: false, deathAllowed: true)
+            PlayerExecutionPolicy.CanExecute(new PlayerExecutionPolicy.ExecutionFacts {McmOn = true, PlayerIsCaptive = true, Hardcore = false, DeathAllowed = true})
                 .Should().BeFalse();
         }
 
@@ -53,7 +53,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_campaign_death_setting_disallows_death_WHEN_every_other_guard_holds_THEN_execution_is_refused()
         {
-            PlayerExecutionPolicy.CanExecute(mcmOn: true, playerIsCaptive: true, hardcore: true, deathAllowed: false)
+            PlayerExecutionPolicy.CanExecute(new PlayerExecutionPolicy.ExecutionFacts {McmOn = true, PlayerIsCaptive = true, Hardcore = true, DeathAllowed = false})
                 .Should().BeFalse();
         }
 
@@ -61,7 +61,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_every_guard_holds_THEN_execution_is_permitted()
         {
-            PlayerExecutionPolicy.CanExecute(mcmOn: true, playerIsCaptive: true, hardcore: true, deathAllowed: true)
+            PlayerExecutionPolicy.CanExecute(new PlayerExecutionPolicy.ExecutionFacts {McmOn = true, PlayerIsCaptive = true, Hardcore = true, DeathAllowed = true})
                 .Should().BeTrue();
         }
 
@@ -87,7 +87,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_every_combination_of_the_four_guards_THEN_only_all_true_permits_execution(
             bool mcmOn, bool playerIsCaptive, bool hardcore, bool deathAllowed, bool expected)
         {
-            PlayerExecutionPolicy.CanExecute(mcmOn, playerIsCaptive, hardcore, deathAllowed).Should().Be(expected);
+            PlayerExecutionPolicy.CanExecute(new PlayerExecutionPolicy.ExecutionFacts {McmOn = mcmOn, PlayerIsCaptive = playerIsCaptive, Hardcore = hardcore, DeathAllowed = deathAllowed}).Should().Be(expected);
         }
     }
 }

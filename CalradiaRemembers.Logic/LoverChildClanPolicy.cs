@@ -37,20 +37,46 @@ namespace CalradiaRemembers.Logic
     public static class LoverChildClanPolicy
     {
         /// <summary>
+        ///   Which houses the two parents of a lover-child belong to. FOUR booleans in two matched pairs, and
+        ///   the pairs are asked in PRIORITY order: swap the lover's pair with the mother's and the child
+        ///   joins the wrong line, which is a thing a player reads in the encyclopedia years later.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class LoverChildFacts
+        {
+           /// <summary>The lover belongs to some clan.</summary>
+           public bool LoverHasClan { get; set; }
+
+           /// <summary>That clan is the player's own. The child never joins the player's clan by this route.</summary>
+           public bool LoverClanIsPlayer { get; set; }
+
+           /// <summary>The mother belongs to some clan.</summary>
+           public bool MotherHasClan { get; set; }
+
+           /// <summary>Her clan is the player's own, and so is not taken either.</summary>
+           public bool MotherClanIsPlayer { get; set; }
+        }
+
+        /// <summary>
         ///   The line a lover-child joins. Prefers the LOVER's clan when he has one that is not the player's
-        ///   (<paramref name="loverHasClan" /> and not <paramref name="loverClanIsPlayer" />); otherwise the
-        ///   MOTHER's clan when she has one that is not the player's (<paramref name="motherHasClan" /> and not
-        ///   <paramref name="motherClanIsPlayer" />); otherwise <see cref="LoverChildClanTarget.LeaveAsIs" />.
+        ///   (<c>LoverHasClan</c> and not <c>LoverClanIsPlayer</c>); otherwise the
+        ///   MOTHER's clan when she has one that is not the player's (<c>MotherHasClan</c> and not
+        ///   <c>MotherClanIsPlayer</c>); otherwise <see cref="LoverChildClanTarget.LeaveAsIs" />.
         ///   Because a lover is selected as a lord outside the player's household, the lover-clan branch is the
         ///   real path; the mother-clan fallback and LeaveAsIs guard the rare clanless-lover corner. In no case
         ///   does the child join the player's clan.
         /// </summary>
-        public static LoverChildClanTarget Resolve(
-            bool loverHasClan,
-            bool loverClanIsPlayer,
-            bool motherHasClan,
-            bool motherClanIsPlayer)
+        public static LoverChildClanTarget Resolve(LoverChildFacts facts)
         {
+           if (facts == null) return LoverChildClanTarget.LeaveAsIs;
+
+           bool loverHasClan = facts.LoverHasClan;
+           bool loverClanIsPlayer = facts.LoverClanIsPlayer;
+           bool motherHasClan = facts.MotherHasClan;
+           bool motherClanIsPlayer = facts.MotherClanIsPlayer;
+
             if (loverHasClan && !loverClanIsPlayer) return LoverChildClanTarget.LoverClan;
             if (motherHasClan && !motherClanIsPlayer) return LoverChildClanTarget.MotherClan;
             return LoverChildClanTarget.LeaveAsIs;

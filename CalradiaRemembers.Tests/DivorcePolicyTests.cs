@@ -102,7 +102,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_plain_spouse_and_a_high_roll_WHEN_resisting_THEN_the_process_continues()
       {
-         DivorcePolicy.RollResistance(0, 0, 0, 99).Should().Be(DivorceResistanceOutcome.Continue);
+         DivorcePolicy.RollResistance(new DivorcePolicy.ResistanceRollFacts {SpouseHonor = 0, SpouseCalculating = 0, CumulativeDelayDays = 0, Roll0To99 = 99}).Should().Be(DivorceResistanceOutcome.Continue);
       }
 
       // ── Spousal resistance roll ──────────────────────────────────────────
@@ -114,7 +114,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_plain_spouse_and_a_low_roll_WHEN_resisting_THEN_the_process_aborts()
       {
          // Base abort chance is 3%: a roll of 0 always lands inside it.
-         DivorcePolicy.RollResistance(0, 0, 0, 0).Should().Be(DivorceResistanceOutcome.Aborted);
+         DivorcePolicy.RollResistance(new DivorcePolicy.ResistanceRollFacts {SpouseHonor = 0, SpouseCalculating = 0, CumulativeDelayDays = 0, Roll0To99 = 0}).Should().Be(DivorceResistanceOutcome.Aborted);
       }
 
       // The middle outcome band: resistance that neither kills the process nor lets it pass unchallenged,
@@ -124,7 +124,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_plain_spouse_and_a_mid_roll_WHEN_resisting_THEN_the_process_is_delayed()
       {
          // Base abort 3% + base delay 10% = 13%: a roll of 5 clears the abort band and lands in delay.
-         DivorcePolicy.RollResistance(0, 0, 0, 5).Should().Be(DivorceResistanceOutcome.Delayed);
+         DivorcePolicy.RollResistance(new DivorcePolicy.ResistanceRollFacts {SpouseHonor = 0, SpouseCalculating = 0, CumulativeDelayDays = 0, Roll0To99 = 5}).Should().Be(DivorceResistanceOutcome.Delayed);
       }
 
       // One estrangement per NPC at a time: without this gate, re-triggering end_marriage mid-process could
@@ -148,8 +148,8 @@ namespace CalradiaRemembers.Tests
       {
          // Honor +2, Calculating +2: abort chance 3 + 2*2 + 2*2 = 11%. A roll of 10 aborts here but would
          // NOT abort a plain spouse (whose abort band is only 3%).
-         DivorcePolicy.RollResistance(2, 2, 0, 10).Should().Be(DivorceResistanceOutcome.Aborted);
-         DivorcePolicy.RollResistance(0, 0, 0, 10).Should().NotBe(DivorceResistanceOutcome.Aborted);
+         DivorcePolicy.RollResistance(new DivorcePolicy.ResistanceRollFacts {SpouseHonor = 2, SpouseCalculating = 2, CumulativeDelayDays = 0, Roll0To99 = 10}).Should().Be(DivorceResistanceOutcome.Aborted);
+         DivorcePolicy.RollResistance(new DivorcePolicy.ResistanceRollFacts {SpouseHonor = 0, SpouseCalculating = 0, CumulativeDelayDays = 0, Roll0To99 = 10}).Should().NotBe(DivorceResistanceOutcome.Aborted);
       }
 
       // The harsh tier: "a spouse set aside against their will turns on you and the one who left them" (shipped
@@ -340,7 +340,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_negative_traits_WHEN_resisting_THEN_they_never_shrink_the_base_chance()
       {
          // A dishonorable, uncalculating spouse resists no LESS than the base chance.
-         DivorcePolicy.RollResistance(-2, -2, 0, 2).Should().Be(DivorceResistanceOutcome.Aborted);
+         DivorcePolicy.RollResistance(new DivorcePolicy.ResistanceRollFacts {SpouseHonor = -2, SpouseCalculating = -2, CumulativeDelayDays = 0, Roll0To99 = 2}).Should().Be(DivorceResistanceOutcome.Aborted);
       }
 
       // Fail SAFE like the sibling PlayerDivorceConsentPolicy: missing facts must never be read as an eligible
@@ -372,7 +372,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_cumulative_delay_cap_is_reached_WHEN_resisting_THEN_an_abort_can_still_land()
       {
          // The cap only removes the Delayed option; Aborted stays available every day.
-         DivorcePolicy.RollResistance(0, 0, DivorcePolicy.MaxCumulativeDelayDays, 0).Should().Be(DivorceResistanceOutcome.Aborted);
+         DivorcePolicy.RollResistance(new DivorcePolicy.ResistanceRollFacts {SpouseHonor = 0, SpouseCalculating = 0, CumulativeDelayDays = DivorcePolicy.MaxCumulativeDelayDays, Roll0To99 = 0}).Should().Be(DivorceResistanceOutcome.Aborted);
       }
 
       // The cap's actual effect: once MaxCumulativeDelayDays is reached, a roll that would normally land in the
@@ -382,7 +382,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_cumulative_delay_cap_is_reached_WHEN_resisting_THEN_no_further_delay_is_offered()
       {
          // At the cap, a roll that would normally land in the delay band instead falls through to Continue.
-         DivorcePolicy.RollResistance(0, 0, DivorcePolicy.MaxCumulativeDelayDays, 5).Should().Be(DivorceResistanceOutcome.Continue);
+         DivorcePolicy.RollResistance(new DivorcePolicy.ResistanceRollFacts {SpouseHonor = 0, SpouseCalculating = 0, CumulativeDelayDays = DivorcePolicy.MaxCumulativeDelayDays, Roll0To99 = 5}).Should().Be(DivorceResistanceOutcome.Continue);
       }
 
       // Phase 1 REFUSES rather than reassigning these roles (design decision, not an oversight): a governing

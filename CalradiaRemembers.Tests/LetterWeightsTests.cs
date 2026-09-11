@@ -166,7 +166,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_dampers_that_would_push_below_the_floor_WHEN_combined_with_a_base_weight_THEN_the_result_floors_at_ten()
         {
-            LetterWeights.WeightWithInterest(LetterWeights.WeightBirthAnnouncement, -40, -25, -30)
+            LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = LetterWeights.WeightBirthAnnouncement, SenderInterest = -40, SubjectInterest = -25, GlobalInterest = -30})
                 .Should().Be(LetterWeights.EffectiveWeightFloor);
         }
 
@@ -175,8 +175,8 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_negative_interest_damper_WHEN_applied_THEN_the_weight_drops_below_the_base()
         {
-            int withoutDamper = LetterWeights.WeightWithInterest(LetterWeights.WeightRomanticCorrespondence, 0, 0, 0);
-            int withDamper = LetterWeights.WeightWithInterest(LetterWeights.WeightRomanticCorrespondence, -10, -5, 0);
+            int withoutDamper = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = LetterWeights.WeightRomanticCorrespondence, SenderInterest = 0, SubjectInterest = 0, GlobalInterest = 0});
+            int withDamper = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = LetterWeights.WeightRomanticCorrespondence, SenderInterest = -10, SubjectInterest = -5, GlobalInterest = 0});
 
             withDamper.Should().BeLessThan(withoutDamper);
         }
@@ -187,7 +187,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_interest_value_above_zero_WHEN_applied_THEN_it_still_simply_adds_no_extra_clamping_here()
         {
-            LetterWeights.WeightWithInterest(LetterWeights.WeightTournamentVictory, 10, 0, 0)
+            LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = LetterWeights.WeightTournamentVictory, SenderInterest = 10, SubjectInterest = 0, GlobalInterest = 0})
                 .Should().Be(LetterWeights.WeightTournamentVictory + 10);
         }
 
@@ -196,7 +196,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_all_interests_are_neutral_WHEN_applied_THEN_the_base_weight_passes_through_unchanged()
         {
-            LetterWeights.WeightWithInterest(LetterWeights.WeightQuestUpdate, 0, 0, 0)
+            LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = LetterWeights.WeightQuestUpdate, SenderInterest = 0, SubjectInterest = 0, GlobalInterest = 0})
                 .Should().Be(LetterWeights.WeightQuestUpdate);
         }
     }

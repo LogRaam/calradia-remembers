@@ -59,8 +59,8 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_predecessor_was_a_parent_WHEN_labelling_THEN_it_is_father_or_mother_by_sex()
         {
-            SuccessionKinship.Label(predecessorWasParent: true, false, false, predecessorIsFemale: false).Should().Be("father");
-            SuccessionKinship.Label(predecessorWasParent: true, false, false, predecessorIsFemale: true).Should().Be("mother");
+            SuccessionKinship.Label(new SuccessionKinship.PredecessorFacts {WasParent = true, WasSibling = false, WasSpouse = false, IsFemale = false}).Should().Be("father");
+            SuccessionKinship.Label(new SuccessionKinship.PredecessorFacts {WasParent = true, WasSibling = false, WasSpouse = false, IsFemale = true}).Should().Be("mother");
         }
 
         // Not every succession is parent-to-child: a sibling or spouse can inherit the clan too, and each needs
@@ -68,9 +68,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_sibling_or_spouse_WHEN_labelling_THEN_the_right_word_is_used()
         {
-            SuccessionKinship.Label(false, predecessorWasSibling: true, false, predecessorIsFemale: true).Should().Be("sister");
-            SuccessionKinship.Label(false, predecessorWasSibling: true, false, predecessorIsFemale: false).Should().Be("brother");
-            SuccessionKinship.Label(false, false, predecessorWasSpouse: true, false).Should().Be("spouse");
+            SuccessionKinship.Label(new SuccessionKinship.PredecessorFacts {WasParent = false, WasSibling = true, WasSpouse = false, IsFemale = true}).Should().Be("sister");
+            SuccessionKinship.Label(new SuccessionKinship.PredecessorFacts {WasParent = false, WasSibling = true, WasSpouse = false, IsFemale = false}).Should().Be("brother");
+            SuccessionKinship.Label(new SuccessionKinship.PredecessorFacts {WasParent = false, WasSibling = false, WasSpouse = true, IsFemale = false}).Should().Be("spouse");
         }
 
         // An heir need not be a parent, sibling, or spouse (a cousin inheriting the clan, say). The label must
@@ -78,7 +78,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_no_known_relation_WHEN_labelling_THEN_it_falls_back_to_kin()
         {
-            SuccessionKinship.Label(false, false, false, false).Should().Be("kin");
+            SuccessionKinship.Label(new SuccessionKinship.PredecessorFacts {WasParent = false, WasSibling = false, WasSpouse = false, IsFemale = false}).Should().Be("kin");
         }
 
         // Pins the precedence order explicitly (parent, then sibling, then spouse) for the rare edge case where
@@ -87,7 +87,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_several_relations_WHEN_labelling_THEN_parent_takes_precedence()
         {
-            SuccessionKinship.Label(predecessorWasParent: true, predecessorWasSibling: true, predecessorWasSpouse: true, predecessorIsFemale: false)
+            SuccessionKinship.Label(new SuccessionKinship.PredecessorFacts {WasParent = true, WasSibling = true, WasSpouse = true, IsFemale = false})
                 .Should().Be("father");
         }
     }

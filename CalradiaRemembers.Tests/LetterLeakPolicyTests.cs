@@ -24,8 +24,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_feature_is_disabled_THEN_nothing_leaks_however_favourable_everything_else_is()
         {
-            LetterLeakPolicy.ShouldLeak(enabled: false, byBandit: true, hasSubstance: true, antagonistAvailable: true,
-                chance: LetterLeakPolicy.DefaultLeakChance, roll: 0.0).Should().BeFalse();
+            LetterLeakPolicy.ShouldLeak(new LetterLeakPolicy.LeakFacts {Enabled = false, ByBandit = true, HasSubstance = true, AntagonistAvailable = true, Chance = LetterLeakPolicy.DefaultLeakChance, Roll = 0.0}).Should().BeFalse();
         }
 
         // A letter simply lost on the road (no bandit) reaches no one, so it cannot leak: interception is the whole
@@ -33,24 +32,21 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_loss_was_not_a_bandit_waylay_THEN_it_does_not_leak()
         {
-            LetterLeakPolicy.ShouldLeak(true, byBandit: false, hasSubstance: true, antagonistAvailable: true,
-                LetterLeakPolicy.DefaultLeakChance, 0.0).Should().BeFalse();
+            LetterLeakPolicy.ShouldLeak(new LetterLeakPolicy.LeakFacts {Enabled = true, ByBandit = false, HasSubstance = true, AntagonistAvailable = true, Chance = LetterLeakPolicy.DefaultLeakChance, Roll = 0.0}).Should().BeFalse();
         }
 
         // No substance, no secret: a one-line note has nothing worth exploiting, so it never leaks.
         [Test]
         public void GIVEN_the_letter_has_no_substance_THEN_it_does_not_leak()
         {
-            LetterLeakPolicy.ShouldLeak(true, true, hasSubstance: false, antagonistAvailable: true,
-                LetterLeakPolicy.DefaultLeakChance, 0.0).Should().BeFalse();
+            LetterLeakPolicy.ShouldLeak(new LetterLeakPolicy.LeakFacts {Enabled = true, ByBandit = true, HasSubstance = false, AntagonistAvailable = true, Chance = LetterLeakPolicy.DefaultLeakChance, Roll = 0.0}).Should().BeFalse();
         }
 
         // No antagonist to receive it, no leak: a secret falls into the wrong hands only if such hands exist.
         [Test]
         public void GIVEN_no_antagonist_is_available_THEN_it_does_not_leak()
         {
-            LetterLeakPolicy.ShouldLeak(true, true, true, antagonistAvailable: false,
-                LetterLeakPolicy.DefaultLeakChance, 0.0).Should().BeFalse();
+            LetterLeakPolicy.ShouldLeak(new LetterLeakPolicy.LeakFacts {Enabled = true, ByBandit = true, HasSubstance = true, AntagonistAvailable = false, Chance = LetterLeakPolicy.DefaultLeakChance, Roll = 0.0}).Should().BeFalse();
         }
 
         // The chance boundary: a roll below the chance leaks, a roll at or above it does not (so the leak stays the
@@ -58,9 +54,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_all_conditions_met_THEN_the_roll_decides_at_the_chance_boundary()
         {
-            LetterLeakPolicy.ShouldLeak(true, true, true, true, chance: 0.35, roll: 0.34).Should().BeTrue();
-            LetterLeakPolicy.ShouldLeak(true, true, true, true, chance: 0.35, roll: 0.35).Should().BeFalse();
-            LetterLeakPolicy.ShouldLeak(true, true, true, true, chance: 0.35, roll: 0.9).Should().BeFalse();
+            LetterLeakPolicy.ShouldLeak(new LetterLeakPolicy.LeakFacts {Enabled = true, ByBandit = true, HasSubstance = true, AntagonistAvailable = true, Chance = 0.35, Roll = 0.34}).Should().BeTrue();
+            LetterLeakPolicy.ShouldLeak(new LetterLeakPolicy.LeakFacts {Enabled = true, ByBandit = true, HasSubstance = true, AntagonistAvailable = true, Chance = 0.35, Roll = 0.35}).Should().BeFalse();
+            LetterLeakPolicy.ShouldLeak(new LetterLeakPolicy.LeakFacts {Enabled = true, ByBandit = true, HasSubstance = true, AntagonistAvailable = true, Chance = 0.35, Roll = 0.9}).Should().BeFalse();
         }
 
         // Substance heuristic: a short note is below the bar; a fuller letter clears it.

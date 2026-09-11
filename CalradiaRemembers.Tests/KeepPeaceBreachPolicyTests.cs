@@ -26,11 +26,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_promisor_declared_war_on_the_oath_house_WHEN_judging_THEN_it_breaches()
         {
-            KeepPeaceBreachPolicy.ShouldBreach(
-                promisorFactionId: "sturgia",
-                oathFactionId: "vlandia",
-                declarerFactionId: "sturgia",
-                defenderFactionId: "vlandia").Should().BeTrue();
+            KeepPeaceBreachPolicy.ShouldBreach(new WarSides("sturgia", "vlandia"), promisorFactionId: "sturgia", oathFactionId: "vlandia").Should().BeTrue();
         }
 
         // THE EXPLOIT THIS HOTFIX FIXES: the oath house invaded the promisor. The promisor is the victim, not
@@ -40,11 +36,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_the_oath_house_invaded_the_promisor_WHEN_judging_THEN_it_does_NOT_breach()
         {
             // Vlandia (the oath house) is the declarer; Sturgia (the promisor) is the defender/victim.
-            KeepPeaceBreachPolicy.ShouldBreach(
-                promisorFactionId: "sturgia",
-                oathFactionId: "vlandia",
-                declarerFactionId: "vlandia",
-                defenderFactionId: "sturgia").Should().BeFalse();
+            KeepPeaceBreachPolicy.ShouldBreach(new WarSides("vlandia", "sturgia"), promisorFactionId: "sturgia", oathFactionId: "vlandia").Should().BeFalse();
         }
 
         // The oath named ONE specific house. The promisor declaring war on a DIFFERENT faction is not a breach
@@ -52,11 +44,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_promisor_declared_war_on_a_different_house_WHEN_judging_THEN_it_does_NOT_breach()
         {
-            KeepPeaceBreachPolicy.ShouldBreach(
-                promisorFactionId: "sturgia",
-                oathFactionId: "vlandia",
-                declarerFactionId: "sturgia",
-                defenderFactionId: "battania").Should().BeFalse();
+            KeepPeaceBreachPolicy.ShouldBreach(new WarSides("sturgia", "battania"), promisorFactionId: "sturgia", oathFactionId: "vlandia").Should().BeFalse();
         }
 
         // WarDeclared fires for EVERY war in the world. A war between two houses the promisor is not part of
@@ -65,11 +53,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_war_between_two_unrelated_houses_WHEN_judging_THEN_it_does_NOT_breach()
         {
-            KeepPeaceBreachPolicy.ShouldBreach(
-                promisorFactionId: "sturgia",
-                oathFactionId: "vlandia",
-                declarerFactionId: "battania",
-                defenderFactionId: "khuzait").Should().BeFalse();
+            KeepPeaceBreachPolicy.ShouldBreach(new WarSides("battania", "khuzait"), promisorFactionId: "sturgia", oathFactionId: "vlandia").Should().BeFalse();
         }
 
         // Faction ids surface from different sources (the saved oath's TargetId vs. live WarDeclared factions)
@@ -78,7 +62,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_case_differences_WHEN_judging_THEN_matching_is_case_insensitive()
         {
-            KeepPeaceBreachPolicy.ShouldBreach("Sturgia", "Vlandia", "STURGIA", "vlandia").Should().BeTrue();
+            KeepPeaceBreachPolicy.ShouldBreach(new WarSides("STURGIA", "vlandia"), "Sturgia", "Vlandia").Should().BeTrue();
         }
 
         // A blank or unresolved id (a malformed oath, or a faction lookup that came back empty) must fail
@@ -87,8 +71,8 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_missing_id_WHEN_judging_THEN_it_does_NOT_breach()
         {
-            KeepPeaceBreachPolicy.ShouldBreach(null, "vlandia", "sturgia", "vlandia").Should().BeFalse();
-            KeepPeaceBreachPolicy.ShouldBreach("sturgia", "vlandia", "sturgia", "  ").Should().BeFalse();
+            KeepPeaceBreachPolicy.ShouldBreach(new WarSides("sturgia", "vlandia"), null, "vlandia").Should().BeFalse();
+            KeepPeaceBreachPolicy.ShouldBreach(new WarSides("sturgia", "  "), "sturgia", "vlandia").Should().BeFalse();
         }
     }
 }

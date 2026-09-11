@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_captive_is_still_held_WHEN_judged_THEN_the_offer_can_be_taken()
         {
-            PrisonerOfferAvailabilityPolicy.Evaluate(true, true, true, true)
+            PrisonerOfferAvailabilityPolicy.Evaluate(new PrisonerOfferAvailabilityPolicy.PrisonerOfferFacts {HasTargetId = true, HasAmount = true, CaptiveResolved = true, StillHeld = true})
                 .Should().Be(PrisonerOfferBlock.None);
             PrisonerOfferAvailabilityPolicy.Describe(PrisonerOfferBlock.None, "Derthert").Should().BeEmpty();
         }
@@ -46,7 +46,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_captive_has_left_your_prison_WHEN_judged_THEN_it_says_so_by_name()
         {
-            PrisonerOfferBlock block = PrisonerOfferAvailabilityPolicy.Evaluate(true, true, true, stillHeld: false);
+            PrisonerOfferBlock block = PrisonerOfferAvailabilityPolicy.Evaluate(new PrisonerOfferAvailabilityPolicy.PrisonerOfferFacts {HasTargetId = true, HasAmount = true, CaptiveResolved = true, StillHeld = false});
 
             block.Should().Be(PrisonerOfferBlock.NoLongerHeld);
             PrisonerOfferAvailabilityPolicy.Describe(block, "Derthert")
@@ -58,10 +58,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_each_way_an_offer_can_lapse_WHEN_judged_THEN_they_are_told_apart()
         {
-            PrisonerOfferAvailabilityPolicy.Evaluate(false, true, true, true).Should().Be(PrisonerOfferBlock.TermsMissing);
-            PrisonerOfferAvailabilityPolicy.Evaluate(true, false, true, true).Should().Be(PrisonerOfferBlock.TermsMissing);
-            PrisonerOfferAvailabilityPolicy.Evaluate(true, true, false, false).Should().Be(PrisonerOfferBlock.CaptiveUnknown);
-            PrisonerOfferAvailabilityPolicy.Evaluate(true, true, true, false).Should().Be(PrisonerOfferBlock.NoLongerHeld);
+            PrisonerOfferAvailabilityPolicy.Evaluate(new PrisonerOfferAvailabilityPolicy.PrisonerOfferFacts {HasTargetId = false, HasAmount = true, CaptiveResolved = true, StillHeld = true}).Should().Be(PrisonerOfferBlock.TermsMissing);
+            PrisonerOfferAvailabilityPolicy.Evaluate(new PrisonerOfferAvailabilityPolicy.PrisonerOfferFacts {HasTargetId = true, HasAmount = false, CaptiveResolved = true, StillHeld = true}).Should().Be(PrisonerOfferBlock.TermsMissing);
+            PrisonerOfferAvailabilityPolicy.Evaluate(new PrisonerOfferAvailabilityPolicy.PrisonerOfferFacts {HasTargetId = true, HasAmount = true, CaptiveResolved = false, StillHeld = false}).Should().Be(PrisonerOfferBlock.CaptiveUnknown);
+            PrisonerOfferAvailabilityPolicy.Evaluate(new PrisonerOfferAvailabilityPolicy.PrisonerOfferFacts {HasTargetId = true, HasAmount = true, CaptiveResolved = true, StillHeld = false}).Should().Be(PrisonerOfferBlock.NoLongerHeld);
         }
 
         // Missing terms are judged BEFORE anything else, because a letter with no captive and no sum names no
@@ -70,7 +70,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_no_terms_at_all_WHEN_judged_THEN_that_is_the_reason_given_rather_than_a_missing_captive()
         {
-            PrisonerOfferAvailabilityPolicy.Evaluate(false, false, false, false)
+            PrisonerOfferAvailabilityPolicy.Evaluate(new PrisonerOfferAvailabilityPolicy.PrisonerOfferFacts {HasTargetId = false, HasAmount = false, CaptiveResolved = false, StillHeld = false})
                 .Should().Be(PrisonerOfferBlock.TermsMissing);
         }
 

@@ -797,12 +797,7 @@ namespace CalradiaRemembers.Quests
 
          Hero target = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
 
-         return CalradiaRemembers.Logic.QuestTargetVoidPolicy.ReasonToVoid(
-            quest.Type,
-            hasTargetHero: true,
-            targetResolved: target != null,
-            targetAlive: target is {IsAlive: true},
-            targetIsPrisoner: target is {IsPrisoner: true});
+         return CalradiaRemembers.Logic.QuestTargetVoidPolicy.ReasonToVoid(new CalradiaRemembers.Logic.QuestTargetVoidPolicy.QuestTargetFacts {Type = quest.Type, HasTargetHero = true, TargetResolved = target != null, TargetAlive = target is {IsAlive: true}, TargetIsPrisoner = target is {IsPrisoner: true}});
       }
 
       /// <summary>

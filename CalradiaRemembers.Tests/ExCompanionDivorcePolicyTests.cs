@@ -27,9 +27,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_promoted_ex_companion_spouse_with_no_house_and_no_post_WHEN_divorcing_THEN_returned_to_the_wanderer_pool()
       {
-         ExCompanionDivorcePolicy.ReturnsToWandererPool(
-            playerInMarriage: true, candidateIsPlayer: false,
-            candidateOriginIsPlayerClanOrNone: true, candidateHoldsStructuralRole: false).Should().BeTrue();
+         ExCompanionDivorcePolicy.ReturnsToWandererPool(new ExCompanionDivorcePolicy.DivorcedSpouseFacts {PlayerInMarriage = true, CandidateIsPlayer = false, CandidateOriginIsPlayerClanOrNone = true, CandidateHoldsStructuralRole = false}).Should().BeTrue();
       }
 
       // A born-noble spouse of the player keeps a REAL birth house (origin is not the player's clan), so they are
@@ -38,9 +36,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_born_noble_spouse_with_a_real_birth_house_WHEN_divorcing_THEN_not_returned_to_the_pool()
       {
-         ExCompanionDivorcePolicy.ReturnsToWandererPool(
-            playerInMarriage: true, candidateIsPlayer: false,
-            candidateOriginIsPlayerClanOrNone: false, candidateHoldsStructuralRole: false).Should().BeFalse();
+         ExCompanionDivorcePolicy.ReturnsToWandererPool(new ExCompanionDivorcePolicy.DivorcedSpouseFacts {PlayerInMarriage = true, CandidateIsPlayer = false, CandidateOriginIsPlayerClanOrNone = false, CandidateHoldsStructuralRole = false}).Should().BeFalse();
       }
 
       // The player is never their own spouse, and never the one relocated. Guarding the player side keeps the rule
@@ -48,9 +44,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_candidate_is_the_player_WHEN_divorcing_THEN_not_returned_to_the_pool()
       {
-         ExCompanionDivorcePolicy.ReturnsToWandererPool(
-            playerInMarriage: true, candidateIsPlayer: true,
-            candidateOriginIsPlayerClanOrNone: true, candidateHoldsStructuralRole: false).Should().BeFalse();
+         ExCompanionDivorcePolicy.ReturnsToWandererPool(new ExCompanionDivorcePolicy.DivorcedSpouseFacts {PlayerInMarriage = true, CandidateIsPlayer = true, CandidateOriginIsPlayerClanOrNone = true, CandidateHoldsStructuralRole = false}).Should().BeFalse();
       }
 
       // An NPC-NPC divorce has no player companion to free; the ordinary relocation owns that case. Without this
@@ -58,9 +52,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_no_player_in_the_marriage_WHEN_divorcing_THEN_not_returned_to_the_pool()
       {
-         ExCompanionDivorcePolicy.ReturnsToWandererPool(
-            playerInMarriage: false, candidateIsPlayer: false,
-            candidateOriginIsPlayerClanOrNone: true, candidateHoldsStructuralRole: false).Should().BeFalse();
+         ExCompanionDivorcePolicy.ReturnsToWandererPool(new ExCompanionDivorcePolicy.DivorcedSpouseFacts {PlayerInMarriage = false, CandidateIsPlayer = false, CandidateOriginIsPlayerClanOrNone = true, CandidateHoldsStructuralRole = false}).Should().BeFalse();
       }
 
       // An ex-companion who now leads a party, governs a fief, or heads a clan is pinned by that post: yanking them
@@ -69,9 +61,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_an_ex_companion_holding_a_structural_post_WHEN_divorcing_THEN_left_in_place_not_pooled()
       {
-         ExCompanionDivorcePolicy.ReturnsToWandererPool(
-            playerInMarriage: true, candidateIsPlayer: false,
-            candidateOriginIsPlayerClanOrNone: true, candidateHoldsStructuralRole: true).Should().BeFalse();
+         ExCompanionDivorcePolicy.ReturnsToWandererPool(new ExCompanionDivorcePolicy.DivorcedSpouseFacts {PlayerInMarriage = true, CandidateIsPlayer = false, CandidateOriginIsPlayerClanOrNone = true, CandidateHoldsStructuralRole = true}).Should().BeFalse();
       }
    }
 }

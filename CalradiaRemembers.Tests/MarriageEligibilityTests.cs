@@ -43,9 +43,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_deceased_candidate_WHEN_checking_THEN_they_cannot_wed()
         {
-            MarriageEligibility.IsMarriageable(
-                candidateAlive: false, candidateHasSpouse: false, candidateIsFemale: false,
-                playerIsFemale: true, candidateAge: 30, playerAge: 28).Should().BeFalse();
+            MarriageEligibility.IsMarriageable(new MarriageEligibility.MarriageMatchFacts {CandidateAlive = false, CandidateHasSpouse = false, CandidateIsFemale = false, PlayerIsFemale = true, CandidateAge = 30, PlayerAge = 28}).Should().BeFalse();
         }
 
         // A candidate who already has a spouse must be excluded before the bridge's ExecuteMarry re-validation
@@ -54,9 +52,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_candidate_already_wed_WHEN_checking_THEN_they_cannot_wed()
         {
-            MarriageEligibility.IsMarriageable(
-                candidateAlive: true, candidateHasSpouse: true, candidateIsFemale: false,
-                playerIsFemale: true, candidateAge: 30, playerAge: 28).Should().BeFalse();
+            MarriageEligibility.IsMarriageable(new MarriageEligibility.MarriageMatchFacts {CandidateAlive = true, CandidateHasSpouse = true, CandidateIsFemale = false, PlayerIsFemale = true, CandidateAge = 30, PlayerAge = 28}).Should().BeFalse();
         }
 
         // Vanilla Bannerlord's own marriage action only supports opposite-sex pairs, unlike courtship or
@@ -115,10 +111,7 @@ namespace CalradiaRemembers.Tests
         #region private
 
         private static bool IsMatch(float candidateAge, bool candidateIsFemale, bool playerIsFemale, float playerAge)
-            => MarriageEligibility.IsMarriageable(
-                candidateAlive: true, candidateHasSpouse: false,
-                candidateIsFemale: candidateIsFemale, playerIsFemale: playerIsFemale,
-                candidateAge: candidateAge, playerAge: playerAge);
+            => MarriageEligibility.IsMarriageable(new MarriageEligibility.MarriageMatchFacts {CandidateAlive = true, CandidateHasSpouse = false, CandidateIsFemale = candidateIsFemale, PlayerIsFemale = playerIsFemale, CandidateAge = candidateAge, PlayerAge = playerAge});
 
         #endregion
     }

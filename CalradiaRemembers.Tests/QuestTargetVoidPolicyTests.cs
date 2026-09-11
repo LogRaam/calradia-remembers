@@ -31,7 +31,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(QuestType.DeliverPrisoner)]
         public void GIVEN_a_hero_bound_quest_WHEN_its_target_is_dead_THEN_it_voids(QuestType type)
         {
-            QuestTargetVoidPolicy.ShouldVoid(type, hasTargetHero: true, targetResolved: true, targetAlive: false, targetIsPrisoner: false)
+            QuestTargetVoidPolicy.ShouldVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = type, HasTargetHero = true, TargetResolved = true, TargetAlive = false, TargetIsPrisoner = false})
                 .Should().BeTrue();
         }
 
@@ -40,7 +40,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_hero_bound_quest_WHEN_its_target_has_vanished_THEN_it_voids()
         {
-            QuestTargetVoidPolicy.ShouldVoid(QuestType.CapturePrisoner, hasTargetHero: true, targetResolved: false, targetAlive: false, targetIsPrisoner: false)
+            QuestTargetVoidPolicy.ShouldVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = QuestType.CapturePrisoner, HasTargetHero = true, TargetResolved = false, TargetAlive = false, TargetIsPrisoner = false})
                 .Should().BeTrue();
         }
 
@@ -53,7 +53,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(QuestType.DeliverPrisoner)]
         public void GIVEN_a_hero_bound_quest_WHEN_its_target_is_alive_and_present_THEN_it_does_NOT_void(QuestType type)
         {
-            QuestTargetVoidPolicy.ShouldVoid(type, hasTargetHero: true, targetResolved: true, targetAlive: true, targetIsPrisoner: true)
+            QuestTargetVoidPolicy.ShouldVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = type, HasTargetHero = true, TargetResolved = true, TargetAlive = true, TargetIsPrisoner = true})
                 .Should().BeFalse();
         }
 
@@ -63,7 +63,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_rescue_WHEN_the_target_is_alive_but_no_longer_a_prisoner_THEN_it_voids()
         {
-            QuestTargetVoidPolicy.ShouldVoid(QuestType.RescuePrisoner, hasTargetHero: true, targetResolved: true, targetAlive: true, targetIsPrisoner: false)
+            QuestTargetVoidPolicy.ShouldVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = QuestType.RescuePrisoner, HasTargetHero = true, TargetResolved = true, TargetAlive = true, TargetIsPrisoner = false})
                 .Should().BeTrue();
         }
 
@@ -72,7 +72,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_rescue_WHEN_the_target_is_alive_and_still_held_THEN_it_does_NOT_void()
         {
-            QuestTargetVoidPolicy.ShouldVoid(QuestType.RescuePrisoner, hasTargetHero: true, targetResolved: true, targetAlive: true, targetIsPrisoner: true)
+            QuestTargetVoidPolicy.ShouldVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = QuestType.RescuePrisoner, HasTargetHero = true, TargetResolved = true, TargetAlive = true, TargetIsPrisoner = true})
                 .Should().BeFalse();
         }
 
@@ -82,7 +82,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_quest_with_no_named_target_hero_WHEN_judging_THEN_it_does_NOT_void()
         {
-            QuestTargetVoidPolicy.ShouldVoid(QuestType.DeliverPrisoner, hasTargetHero: false, targetResolved: false, targetAlive: false, targetIsPrisoner: false)
+            QuestTargetVoidPolicy.ShouldVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = QuestType.DeliverPrisoner, HasTargetHero = false, TargetResolved = false, TargetAlive = false, TargetIsPrisoner = false})
                 .Should().BeFalse();
         }
 
@@ -97,7 +97,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(QuestType.ScoutArmy)]
         public void GIVEN_a_non_hero_bound_kind_WHEN_judging_THEN_it_does_NOT_void(QuestType type)
         {
-            QuestTargetVoidPolicy.ShouldVoid(type, hasTargetHero: true, targetResolved: false, targetAlive: false, targetIsPrisoner: false)
+            QuestTargetVoidPolicy.ShouldVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = type, HasTargetHero = true, TargetResolved = false, TargetAlive = false, TargetIsPrisoner = false})
                 .Should().BeFalse();
         }
 
@@ -181,7 +181,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_vanished_target_WHEN_asked_the_void_reason_THEN_it_is_TargetVanished()
         {
-            QuestTargetVoidPolicy.ReasonToVoid(QuestType.CapturePrisoner, hasTargetHero: true, targetResolved: false, targetAlive: false, targetIsPrisoner: false)
+            QuestTargetVoidPolicy.ReasonToVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = QuestType.CapturePrisoner, HasTargetHero = true, TargetResolved = false, TargetAlive = false, TargetIsPrisoner = false})
                 .Should().Be(QuestVoidReason.TargetVanished);
         }
 
@@ -190,7 +190,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_dead_target_WHEN_asked_the_void_reason_THEN_it_is_TargetDead()
         {
-            QuestTargetVoidPolicy.ReasonToVoid(QuestType.AttackLord, hasTargetHero: true, targetResolved: true, targetAlive: false, targetIsPrisoner: false)
+            QuestTargetVoidPolicy.ReasonToVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = QuestType.AttackLord, HasTargetHero = true, TargetResolved = true, TargetAlive = false, TargetIsPrisoner = false})
                 .Should().Be(QuestVoidReason.TargetDead);
         }
 
@@ -200,7 +200,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_rescue_target_alive_but_freed_WHEN_asked_the_void_reason_THEN_it_is_RescueTargetFreed()
         {
-            QuestTargetVoidPolicy.ReasonToVoid(QuestType.RescuePrisoner, hasTargetHero: true, targetResolved: true, targetAlive: true, targetIsPrisoner: false)
+            QuestTargetVoidPolicy.ReasonToVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = QuestType.RescuePrisoner, HasTargetHero = true, TargetResolved = true, TargetAlive = true, TargetIsPrisoner = false})
                 .Should().Be(QuestVoidReason.RescueTargetFreed);
         }
 
@@ -209,7 +209,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_live_reachable_target_WHEN_asked_the_void_reason_THEN_it_is_None()
         {
-            QuestTargetVoidPolicy.ReasonToVoid(QuestType.RescuePrisoner, hasTargetHero: true, targetResolved: true, targetAlive: true, targetIsPrisoner: true)
+            QuestTargetVoidPolicy.ReasonToVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = QuestType.RescuePrisoner, HasTargetHero = true, TargetResolved = true, TargetAlive = true, TargetIsPrisoner = true})
                 .Should().Be(QuestVoidReason.None);
         }
 
@@ -224,8 +224,8 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_any_case_WHEN_comparing_ShouldVoid_and_ReasonToVoid_THEN_they_agree(
             QuestType type, bool hasTargetHero, bool targetResolved, bool targetAlive, bool targetIsPrisoner)
         {
-            bool shouldVoid = QuestTargetVoidPolicy.ShouldVoid(type, hasTargetHero, targetResolved, targetAlive, targetIsPrisoner);
-            QuestVoidReason reason = QuestTargetVoidPolicy.ReasonToVoid(type, hasTargetHero, targetResolved, targetAlive, targetIsPrisoner);
+            bool shouldVoid = QuestTargetVoidPolicy.ShouldVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = type, HasTargetHero = hasTargetHero, TargetResolved = targetResolved, TargetAlive = targetAlive, TargetIsPrisoner = targetIsPrisoner});
+            QuestVoidReason reason = QuestTargetVoidPolicy.ReasonToVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = type, HasTargetHero = hasTargetHero, TargetResolved = targetResolved, TargetAlive = targetAlive, TargetIsPrisoner = targetIsPrisoner});
 
             shouldVoid.Should().Be(reason != QuestVoidReason.None);
         }

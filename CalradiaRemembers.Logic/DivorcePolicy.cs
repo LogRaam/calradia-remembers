@@ -339,14 +339,51 @@ namespace CalradiaRemembers.Logic
       }
 
       /// <summary>
+      ///   One day's worth of a spouse's resistance to a dissolution. FOUR INTS in a row on four unrelated
+      ///   scales: two trait levels, a day count, and the caller's own dice. Swap the traits and the wrong
+      ///   one drives the abort chance; swap the delay days with the roll and a long-delayed process reads
+      ///   as a lucky throw. Nothing about the types could tell any of it apart.
+      ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+      ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+      ///   that names only what it is about reads as the rule it protects.
+      /// </summary>
+      public sealed class ResistanceRollFacts
+      {
+         /// <summary>The spouse's Honor trait. Only its positive side raises the abort and delay chances.</summary>
+         public int SpouseHonor { get; set; }
+
+         /// <summary>The spouse's Calculating trait, which raises the same two chances the same way.</summary>
+         public int SpouseCalculating { get; set; }
+
+         /// <summary>
+         ///   Days of delay already accumulated. At the cap the process may still be Aborted but is never
+         ///   offered a further Delayed roll, so a resistant spouse cannot stall forever.
+         /// </summary>
+         public int CumulativeDelayDays { get; set; }
+
+         /// <summary>
+         ///   The caller's own RNG draw, 0..99 inclusive. Injected so this stays a pure function of its inputs
+         ///   and the harness can pin every boundary instead of chasing a flaky throw.
+         /// </summary>
+         public int Roll0To99 { get; set; }
+      }
+
+      /// <summary>
       ///   One day's resistance roll: a spouse of higher Honor or Calculating resists harder (both
-      ///   raise the abort AND the delay chance, each capped). <paramref name="roll0To99" /> is the
+      ///   raise the abort AND the delay chance, each capped). <c>Roll0To99</c> is the
       ///   caller's own RNG draw (0..99 inclusive) so this stays a pure, deterministic function of its
       ///   inputs. A process already at <see cref="MaxCumulativeDelayDays" /> of accumulated delay can
       ///   still be Aborted, but is never offered a further Delayed roll (Continue instead).
       /// </summary>
-      public static DivorceResistanceOutcome RollResistance(int spouseHonor, int spouseCalculating, int cumulativeDelayDays, int roll0To99)
+      public static DivorceResistanceOutcome RollResistance(ResistanceRollFacts facts)
       {
+         if (facts == null) return DivorceResistanceOutcome.Continue;
+
+         int spouseHonor = facts.SpouseHonor;
+         int spouseCalculating = facts.SpouseCalculating;
+         int cumulativeDelayDays = facts.CumulativeDelayDays;
+         int roll0To99 = facts.Roll0To99;
+
          int abortChance = ClampPercent(
             BaseAbortChancePercent + PositivePart(spouseHonor) * AbortChancePerHonorLevel + PositivePart(spouseCalculating) * AbortChancePerCalculatingLevel,
             MaxAbortChancePercent);

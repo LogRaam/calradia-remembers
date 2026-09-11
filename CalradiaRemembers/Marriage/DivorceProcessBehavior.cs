@@ -352,9 +352,7 @@ namespace CalradiaRemembers.Marriage
             return;
          }
 
-         DivorceResistanceOutcome outcome = DivorcePolicy.RollResistance(
-            TraitLevel(spouse, DefaultTraits.Honor), TraitLevel(spouse, DefaultTraits.Calculating),
-            process.CumulativeDelayDays, MBRandom.RandomInt(100));
+         DivorceResistanceOutcome outcome = DivorcePolicy.RollResistance(new DivorcePolicy.ResistanceRollFacts {SpouseHonor = TraitLevel(spouse, DefaultTraits.Honor), SpouseCalculating = TraitLevel(spouse, DefaultTraits.Calculating), CumulativeDelayDays = process.CumulativeDelayDays, Roll0To99 = MBRandom.RandomInt(100)});
 
          switch (outcome)
          {

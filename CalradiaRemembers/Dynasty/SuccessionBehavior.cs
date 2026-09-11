@@ -96,7 +96,7 @@ namespace CalradiaRemembers.Dynasty
             bool parent  = heir.Father == predecessor || heir.Mother == predecessor;
             bool sibling = heir.Siblings != null && heir.Siblings.Contains(predecessor);
             bool spouse  = heir.Spouse == predecessor || predecessor.Spouse == heir;
-            return SuccessionKinship.Label(parent, sibling, spouse, predecessor.IsFemale);
+            return SuccessionKinship.Label(new SuccessionKinship.PredecessorFacts {WasParent = parent, WasSibling = sibling, WasSpouse = spouse, IsFemale = predecessor.IsFemale});
         }
     }
 }

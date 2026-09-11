@@ -42,8 +42,8 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_same_pair_in_either_order_WHEN_matched_THEN_both_orders_are_recognized()
         {
-            NonAggressionPactPolicy.IsMatch("kingdom_a", "clan_b", "kingdom_a", "clan_b").Should().BeTrue();
-            NonAggressionPactPolicy.IsMatch("kingdom_a", "clan_b", "clan_b", "kingdom_a").Should().BeTrue();
+            NonAggressionPactPolicy.IsMatch(new FactionPair("kingdom_a", "clan_b"), new FactionPair("kingdom_a", "clan_b")).Should().BeTrue();
+            NonAggressionPactPolicy.IsMatch(new FactionPair("kingdom_a", "clan_b"), new FactionPair("clan_b", "kingdom_a")).Should().BeTrue();
         }
 
         // A query naming a faction from a DIFFERENT pact entirely (or only one side matching) must never match:
@@ -51,8 +51,8 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_mismatched_pair_WHEN_matched_THEN_it_is_refused()
         {
-            NonAggressionPactPolicy.IsMatch("kingdom_a", "clan_b", "kingdom_a", "clan_c").Should().BeFalse();
-            NonAggressionPactPolicy.IsMatch("kingdom_a", "clan_b", "clan_c", "clan_d").Should().BeFalse();
+            NonAggressionPactPolicy.IsMatch(new FactionPair("kingdom_a", "clan_b"), new FactionPair("kingdom_a", "clan_c")).Should().BeFalse();
+            NonAggressionPactPolicy.IsMatch(new FactionPair("kingdom_a", "clan_b"), new FactionPair("clan_c", "clan_d")).Should().BeFalse();
         }
 
         // Null/blank ids on either side (a save written before this behavior existed, or a malformed query) must
@@ -60,9 +60,9 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_null_or_blank_id_on_either_side_WHEN_matched_THEN_it_is_refused()
         {
-            NonAggressionPactPolicy.IsMatch(null, "clan_b", "kingdom_a", "clan_b").Should().BeFalse();
-            NonAggressionPactPolicy.IsMatch("kingdom_a", "", "kingdom_a", "clan_b").Should().BeFalse();
-            NonAggressionPactPolicy.IsMatch("kingdom_a", "clan_b", null, "clan_b").Should().BeFalse();
+            NonAggressionPactPolicy.IsMatch(new FactionPair(null, "clan_b"), new FactionPair("kingdom_a", "clan_b")).Should().BeFalse();
+            NonAggressionPactPolicy.IsMatch(new FactionPair("kingdom_a", ""), new FactionPair("kingdom_a", "clan_b")).Should().BeFalse();
+            NonAggressionPactPolicy.IsMatch(new FactionPair("kingdom_a", "clan_b"), new FactionPair(null, "clan_b")).Should().BeFalse();
         }
 
         // IsBreach's own question: a real clash only counts when the two SIDES of the MapEvent map cleanly onto
@@ -71,15 +71,13 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_factionA_attacking_factionB_WHEN_checking_breach_THEN_it_is_a_breach()
         {
-            NonAggressionPactPolicy.IsBreach(attackerIsFactionA: true, attackerIsFactionB: false,
-                defenderIsFactionA: false, defenderIsFactionB: true).Should().BeTrue();
+            NonAggressionPactPolicy.IsBreach(new NonAggressionPactPolicy.PactBreachFacts {AttackerIsFactionA = true, AttackerIsFactionB = false, DefenderIsFactionA = false, DefenderIsFactionB = true}).Should().BeTrue();
         }
 
         [Test]
         public void GIVEN_factionB_attacking_factionA_WHEN_checking_breach_THEN_it_is_still_a_breach()
         {
-            NonAggressionPactPolicy.IsBreach(attackerIsFactionA: false, attackerIsFactionB: true,
-                defenderIsFactionA: true, defenderIsFactionB: false).Should().BeTrue();
+            NonAggressionPactPolicy.IsBreach(new NonAggressionPactPolicy.PactBreachFacts {AttackerIsFactionA = false, AttackerIsFactionB = true, DefenderIsFactionA = true, DefenderIsFactionB = false}).Should().BeTrue();
         }
 
         // A battle involving neither pact faction, or only ONE side of the pact against some unrelated third
@@ -88,13 +86,11 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_the_battle_does_not_pit_the_two_pact_factions_against_each_other_WHEN_checking_breach_THEN_it_is_not_a_breach()
         {
             // Neither faction involved at all.
-            NonAggressionPactPolicy.IsBreach(false, false, false, false).Should().BeFalse();
+            NonAggressionPactPolicy.IsBreach(new NonAggressionPactPolicy.PactBreachFacts {AttackerIsFactionA = false, AttackerIsFactionB = false, DefenderIsFactionA = false, DefenderIsFactionB = false}).Should().BeFalse();
             // FactionA attacks, but the defender is neither pact faction (a third party).
-            NonAggressionPactPolicy.IsBreach(attackerIsFactionA: true, attackerIsFactionB: false,
-                defenderIsFactionA: false, defenderIsFactionB: false).Should().BeFalse();
+            NonAggressionPactPolicy.IsBreach(new NonAggressionPactPolicy.PactBreachFacts {AttackerIsFactionA = true, AttackerIsFactionB = false, DefenderIsFactionA = false, DefenderIsFactionB = false}).Should().BeFalse();
             // Both pact factions fight on the SAME side (e.g. an allied army) - not a breach of each other.
-            NonAggressionPactPolicy.IsBreach(attackerIsFactionA: true, attackerIsFactionB: true,
-                defenderIsFactionA: false, defenderIsFactionB: false).Should().BeFalse();
+            NonAggressionPactPolicy.IsBreach(new NonAggressionPactPolicy.PactBreachFacts {AttackerIsFactionA = true, AttackerIsFactionB = true, DefenderIsFactionA = false, DefenderIsFactionB = false}).Should().BeFalse();
         }
 
         // The fault-direction rule (this class's own header, and CouncilPactBehavior's own consequence split):

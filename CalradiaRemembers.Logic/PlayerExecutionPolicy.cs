@@ -22,14 +22,50 @@ namespace CalradiaRemembers.Logic
     public static class PlayerExecutionPolicy
     {
         /// <summary>
-        ///   True only when EVERY guard holds: the player opted in via MCM (<paramref name="mcmOn" />), the
-        ///   player is genuinely this captor's captive right now (<paramref name="playerIsCaptive" />), the
+        ///   The four independent guards on a captor killing the player, every one of which must hold. They
+        ///   come from four different places, the MCM, the live campaign, the content floor and Bannerlord's
+        ///   own death setting, and they read identically as bare booleans.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class ExecutionFacts
+        {
+           /// <summary>The player opted in through the MCM setting.</summary>
+           public bool McmOn { get; set; }
+
+           /// <summary>The player is genuinely THIS captor's captive right now.</summary>
+           public bool PlayerIsCaptive { get; set; }
+
+           /// <summary>
+           ///   The scene sits at the Hardcore/Adult content floor every other captive-scene act requires.
+           /// </summary>
+           public bool Hardcore { get; set; }
+
+           /// <summary>
+           ///   Bannerlord's own campaign setting permits a hero to die, i.e. NOT IsLifeDeathCycleDisabled.
+           /// </summary>
+           public bool DeathAllowed { get; set; }
+        }
+
+        /// <summary>
+        ///   True only when EVERY guard holds: the player opted in via MCM (<c>McmOn</c>), the
+        ///   player is genuinely this captor's captive right now (<c>PlayerIsCaptive</c>), the
         ///   scene sits at the same Hardcore/Adult content floor every other captive-scene act already
-        ///   requires (<paramref name="hardcore" />), and Bannerlord's own campaign death setting permits a
-        ///   hero to die (<paramref name="deathAllowed" />, i.e. NOT IsLifeDeathCycleDisabled). Any single
+        ///   requires (<c>Hardcore</c>), and Bannerlord's own campaign death setting permits a
+        ///   hero to die (<c>DeathAllowed</c>, i.e. NOT IsLifeDeathCycleDisabled). Any single
         ///   false input refuses the whole thing.
         /// </summary>
-        public static bool CanExecute(bool mcmOn, bool playerIsCaptive, bool hardcore, bool deathAllowed)
-            => mcmOn && playerIsCaptive && hardcore && deathAllowed;
+        public static bool CanExecute(ExecutionFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool mcmOn = facts.McmOn;
+           bool playerIsCaptive = facts.PlayerIsCaptive;
+           bool hardcore = facts.Hardcore;
+           bool deathAllowed = facts.DeathAllowed;
+
+           return mcmOn && playerIsCaptive && hardcore && deathAllowed;
+        }
     }
 }

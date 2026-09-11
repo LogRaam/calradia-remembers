@@ -18,23 +18,20 @@ namespace CalradiaRemembers.Logic
     {
         /// <summary>
         ///   True when a war declaration satisfies the deed: the player's faction is the AGGRESSOR
-        ///   (<paramref name="aggressorFactionId"/>) and the demanded faction is the DEFENDER. A war the
+        ///   of the war and the demanded faction is the DEFENDER. A war the
         ///   player merely got dragged into as the defender does not count — the deed is the player's
         ///   own declaration.
+        ///   <para>
+        ///     Takes <see cref="WarSides" /> and the two ids it is measured against rather than four bare
+        ///     strings (2026-09-10). Swap the deed's target with the player's own faction in the old
+        ///     signature and the deed reads as satisfied by the wrong war entirely. The blank-id guard and
+        ///     the case-insensitive comparison moved onto the type, which KeepPeaceBreachPolicy was
+        ///     duplicating line for line.
+        ///   </para>
         /// </summary>
-        public static bool IsSatisfied(
-            string deedTargetFactionId,
-            string aggressorFactionId,
-            string defenderFactionId,
-            string playerFactionId)
+        public static bool IsSatisfied(WarSides war, string deedTargetFactionId, string playerFactionId)
         {
-            if (string.IsNullOrWhiteSpace(deedTargetFactionId) || string.IsNullOrWhiteSpace(playerFactionId))
-                return false;
-
-            bool playerIsAggressor = string.Equals(aggressorFactionId, playerFactionId, StringComparison.OrdinalIgnoreCase);
-            bool targetIsDefender  = string.Equals(defenderFactionId, deedTargetFactionId, StringComparison.OrdinalIgnoreCase);
-
-            return playerIsAggressor && targetIsDefender;
+            return war.AggressorIs(playerFactionId) && war.DefenderIs(deedTargetFactionId);
         }
     }
 }

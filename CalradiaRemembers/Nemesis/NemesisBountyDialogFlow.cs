@@ -124,13 +124,13 @@ namespace CalradiaRemembers.Nemesis
             {
                 if (string.IsNullOrEmpty(nem.HeroStringId)) continue; // never manifested, nothing to hunt yet
 
-                bool regionMatches = NemesisBountyPolicy.RegionMatches(homeId, currentId, cultureId, nem.RegionId);
+                bool regionMatches = NemesisBountyPolicy.RegionMatches(new NemesisBountyPolicy.RegionMatchFacts {LordHomeSettlementId = homeId, LordCurrentSettlementId = currentId, LordCultureId = cultureId, NemesisRegionId = nem.RegionId});
                 bool giverAlreadyBountiedHim = giverProfile?.ActiveQuests.Any(q =>
                     q.Type == QuestType.NemesisBounty
                     && q.Status == QuestStatus.Active
                     && string.Equals(q.TargetHeroId, nem.HeroStringId, StringComparison.Ordinal)) ?? false;
 
-                if (NemesisBountyPolicy.IsEligibleIssuer(nem.IsAlive, nem.IsTurned, giverAlreadyBountiedHim, regionMatches))
+                if (NemesisBountyPolicy.IsEligibleIssuer(new NemesisBountyPolicy.BountyIssuerFacts {NemesisAlive = nem.IsAlive, NemesisTurned = nem.IsTurned, GiverAlreadyBountiedHim = giverAlreadyBountiedHim, RegionMatches = regionMatches}))
                     return nem;
             }
 

@@ -195,7 +195,7 @@ namespace CalradiaRemembers.Letters
                if (!CanSendLetter(profile, today, DefaultCooldownDays)) continue;
 
                int baseWeight = intent.BaseWeightOverride > 0 ? intent.BaseWeightOverride : LetterWeights.BaseWeight(intent.Reason);
-               int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(intent.Reason), GlobalInterest);
+               int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = baseWeight, SenderInterest = profile.CorrespondenceInterest, SubjectInterest = GetSubjectInterest(intent.Reason), GlobalInterest = GlobalInterest});
 
                var candidate = new LetterCandidate {
                   Reason = intent.Reason,
@@ -260,7 +260,7 @@ namespace CalradiaRemembers.Letters
             string context = $"Romantic status: {profile.Romantic.Status}. " + $"Last saw the player {daysSince} days ago." + $" Your feeling toward the player right now: {ThirdPartyDescriptor.DescribeRelation(profile.ReputationWithPlayer)}. Write in a tone true to that feeling, not a generic longing.";
 
             int baseWeight = LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence);
-            int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(LetterReason.RomanticCorrespondence), GlobalInterest);
+            int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = baseWeight, SenderInterest = profile.CorrespondenceInterest, SubjectInterest = GetSubjectInterest(LetterReason.RomanticCorrespondence), GlobalInterest = GlobalInterest});
 
             var candidate = new LetterCandidate {
                Reason = LetterReason.RomanticCorrespondence,
@@ -354,7 +354,7 @@ namespace CalradiaRemembers.Letters
                              $"The player has not replied. Their silence weighs on you.";
 
             int baseWeight = LetterWeights.BaseWeight(LetterReason.AwaitingReply);
-            int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(LetterReason.AwaitingReply), GlobalInterest);
+            int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = baseWeight, SenderInterest = profile.CorrespondenceInterest, SubjectInterest = GetSubjectInterest(LetterReason.AwaitingReply), GlobalInterest = GlobalInterest});
 
             var candidate = new LetterCandidate {
                Reason = LetterReason.AwaitingReply,
@@ -433,7 +433,7 @@ namespace CalradiaRemembers.Letters
                              $"Eligible members of your house: {prospects}";
 
             int baseWeight = LetterWeights.BaseWeight(LetterReason.MarriageProposal);
-            int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(LetterReason.MarriageProposal), GlobalInterest);
+            int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = baseWeight, SenderInterest = profile.CorrespondenceInterest, SubjectInterest = GetSubjectInterest(LetterReason.MarriageProposal), GlobalInterest = GlobalInterest});
 
             var candidate = new LetterCandidate {
                Reason = LetterReason.MarriageProposal,
@@ -508,7 +508,7 @@ namespace CalradiaRemembers.Letters
                              $"You are writing to buy {captive.Name} from the player, and you offer {amount} denars for them.";
 
             int baseWeight = LetterWeights.BaseWeight(LetterReason.PrisonerOffer);
-            int weight = LetterWeights.WeightWithInterest(baseWeight, buyerProfile.CorrespondenceInterest, GetSubjectInterest(LetterReason.PrisonerOffer), GlobalInterest);
+            int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = baseWeight, SenderInterest = buyerProfile.CorrespondenceInterest, SubjectInterest = GetSubjectInterest(LetterReason.PrisonerOffer), GlobalInterest = GlobalInterest});
 
             var candidate = new LetterCandidate {
                Reason = LetterReason.PrisonerOffer,
@@ -592,7 +592,7 @@ namespace CalradiaRemembers.Letters
                              $"now serve and enter YOUR service instead. The enticement you dangle: {DescribeEnticement(enticement)}.";
 
             int baseWeight = LetterWeights.BaseWeight(LetterReason.ServiceOffer);
-            int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(LetterReason.ServiceOffer), GlobalInterest);
+            int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = baseWeight, SenderInterest = profile.CorrespondenceInterest, SubjectInterest = GetSubjectInterest(LetterReason.ServiceOffer), GlobalInterest = GlobalInterest});
 
             var candidate = new LetterCandidate {
                Reason = LetterReason.ServiceOffer,
@@ -678,7 +678,7 @@ namespace CalradiaRemembers.Letters
                var ctx = $"Player's spouse. Has not seen the player in {daysSince} days." + $" Your feeling toward the player right now: {ThirdPartyDescriptor.DescribeRelation(profile.ReputationWithPlayer)}. Write in a tone true to that feeling: a warm marriage writes with warmth, never generic reproach.";
 
                int baseWeight = LetterWeights.BaseWeight(LetterReason.SpouseCorrespondence);
-               int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(LetterReason.SpouseCorrespondence), GlobalInterest);
+               int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = baseWeight, SenderInterest = profile.CorrespondenceInterest, SubjectInterest = GetSubjectInterest(LetterReason.SpouseCorrespondence), GlobalInterest = GlobalInterest});
 
                var candidate = new LetterCandidate {
                   Reason = LetterReason.SpouseCorrespondence,
@@ -716,7 +716,7 @@ namespace CalradiaRemembers.Letters
             var context = $"Player's consort. Has not seen the player in {DaysSinceLastEvent(profile, today)} days.";
 
             int baseWeight = LetterWeights.BaseWeight(LetterReason.SpouseCorrespondence);
-            int weight = LetterWeights.WeightWithInterest(baseWeight, profile.CorrespondenceInterest, GetSubjectInterest(LetterReason.SpouseCorrespondence), GlobalInterest);
+            int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = baseWeight, SenderInterest = profile.CorrespondenceInterest, SubjectInterest = GetSubjectInterest(LetterReason.SpouseCorrespondence), GlobalInterest = GlobalInterest});
 
             var candidate = new LetterCandidate {
                Reason = LetterReason.SpouseCorrespondence,

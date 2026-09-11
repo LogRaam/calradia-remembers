@@ -1336,7 +1336,7 @@ namespace CalradiaRemembers.Letters
             Hero antagonist = ResolveLeakAntagonist(forward.RecipientId);
             double roll = MBRandom.RandomFloat;
 
-            if (!LetterLeakPolicy.ShouldLeak(enabled, byBandit, hasSubstance, antagonist != null, LetterLeakPolicy.DefaultLeakChance, roll))
+            if (!LetterLeakPolicy.ShouldLeak(new LetterLeakPolicy.LeakFacts {Enabled = enabled, ByBandit = byBandit, HasSubstance = hasSubstance, AntagonistAvailable = antagonist != null, Chance = LetterLeakPolicy.DefaultLeakChance, Roll = roll}))
                return;
 
             var today = (int) CampaignTime.Now.ToDays;

@@ -27,16 +27,18 @@ namespace CalradiaRemembers.Logic
         ///   True when a house would name this kin as a prospect: lawful to wed at all, and young enough
         ///   for the long alliance such a match is meant to buy.
         /// </summary>
-        public static bool IsOfferableProspect(
-            bool candidateAlive,
-            bool candidateHasSpouse,
-            bool candidateIsFemale,
-            bool playerIsFemale,
-            float candidateAge,
-            float playerAge)
+        public static bool IsOfferableProspect(MarriageEligibility.MarriageMatchFacts facts)
         {
-            if (!MarriageEligibility.IsMarriageable(
-                   candidateAlive, candidateHasSpouse, candidateIsFemale, playerIsFemale, candidateAge, playerAge))
+           if (facts == null) return false;
+
+           bool candidateAlive = facts.CandidateAlive;
+           bool candidateHasSpouse = facts.CandidateHasSpouse;
+           bool candidateIsFemale = facts.CandidateIsFemale;
+           bool playerIsFemale = facts.PlayerIsFemale;
+           float candidateAge = facts.CandidateAge;
+           float playerAge = facts.PlayerAge;
+
+            if (!MarriageEligibility.IsMarriageable(new MarriageEligibility.MarriageMatchFacts {CandidateAlive = candidateAlive, CandidateHasSpouse = candidateHasSpouse, CandidateIsFemale = candidateIsFemale, PlayerIsFemale = playerIsFemale, CandidateAge = candidateAge, PlayerAge = playerAge}))
                 return false;
 
             return candidateAge <= MaxProspectAge;

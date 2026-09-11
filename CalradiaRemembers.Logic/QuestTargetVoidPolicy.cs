@@ -75,16 +75,55 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>
         ///   Whether an outstanding quest should be VOIDED (cancelled with no penalty, no grudge, no fail banner)
-        ///   because its target hero left the board. <paramref name="hasTargetHero" /> is false when the quest
+        ///   because its target hero left the board. <c>HasTargetHero</c> is false when the quest
         ///   names no specific hero (e.g. a DeliverPrisoner keyed on a faction rather than a named lord): those are
-        ///   never voided here. <paramref name="targetResolved" /> is false when the target's StringId no longer
-        ///   resolves to any hero in the world (vanished), <paramref name="targetAlive" /> false when it resolves
-        ///   but is dead, and <paramref name="targetIsPrisoner" /> reports whether it is currently held captive
+        ///   never voided here. <c>TargetResolved</c> is false when the target's StringId no longer
+        ///   resolves to any hero in the world (vanished), <c>TargetAlive</c> false when it resolves
+        ///   but is dead, and <c>TargetIsPrisoner</c> reports whether it is currently held captive
         ///   (only meaningful for a rescue). A target that is alive, present, and (for a rescue) still captive
         ///   keeps the quest standing.
         /// </summary>
-        public static bool ShouldVoid(QuestType type, bool hasTargetHero, bool targetResolved, bool targetAlive, bool targetIsPrisoner)
-            => ReasonToVoid(type, hasTargetHero, targetResolved, targetAlive, targetIsPrisoner) != QuestVoidReason.None;
+        public static bool ShouldVoid(QuestTargetFacts facts)
+        {
+           if (facts == null) return false;
+
+           QuestType type = facts.Type;
+           bool hasTargetHero = facts.HasTargetHero;
+           bool targetResolved = facts.TargetResolved;
+           bool targetAlive = facts.TargetAlive;
+           bool targetIsPrisoner = facts.TargetIsPrisoner;
+
+           return QuestTargetVoidPolicy.ReasonToVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = type, HasTargetHero = hasTargetHero, TargetResolved = targetResolved, TargetAlive = targetAlive, TargetIsPrisoner = targetIsPrisoner}) != QuestVoidReason.None;
+        }
+
+        /// <summary>
+        ///   What is left of a quest's target hero. A quest type then FOUR booleans, three of which are read
+        ///   in a strict order that IS the rule: vanished, then dead, then, for a rescue only, freed. Shared
+        ///   with <see cref="ShouldVoid" /> so the yes/no and the why can never answer differently.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class QuestTargetFacts
+        {
+           /// <summary>The quest's kind. Only some kinds are bound to a target hero at all.</summary>
+           public QuestType Type { get; set; }
+
+           /// <summary>The quest names a target hero.</summary>
+           public bool HasTargetHero { get; set; }
+
+           /// <summary>That hero can still be found in the world. Unresolved means vanished entirely.</summary>
+           public bool TargetResolved { get; set; }
+
+           /// <summary>They are alive. Capture, attack, execute, deliver and rescue are all moot otherwise.</summary>
+           public bool TargetAlive { get; set; }
+
+           /// <summary>
+           ///   They are still held. A rescue needs that; freed or escaped there is nobody left to free, but they
+           ///   are not GONE, which is why that case gets its own reason.
+           /// </summary>
+           public bool TargetIsPrisoner { get; set; }
+        }
 
         /// <summary>
         ///   The same decision as <see cref="ShouldVoid" />, but naming WHY, so the host can give the player an
@@ -92,8 +131,16 @@ namespace CalradiaRemembers.Logic
         ///   <see cref="QuestVoidReason" /> for what each answer means and why <see cref="QuestVoidReason.RescueTargetFreed" />
         ///   is kept apart from the other two.
         /// </summary>
-        public static QuestVoidReason ReasonToVoid(QuestType type, bool hasTargetHero, bool targetResolved, bool targetAlive, bool targetIsPrisoner)
+        public static QuestVoidReason ReasonToVoid(QuestTargetFacts facts)
         {
+           if (facts == null) return QuestVoidReason.None;
+
+           QuestType type = facts.Type;
+           bool hasTargetHero = facts.HasTargetHero;
+           bool targetResolved = facts.TargetResolved;
+           bool targetAlive = facts.TargetAlive;
+           bool targetIsPrisoner = facts.TargetIsPrisoner;
+
             if (!hasTargetHero) return QuestVoidReason.None;
             if (!IsTargetHeroBound(type)) return QuestVoidReason.None;
 

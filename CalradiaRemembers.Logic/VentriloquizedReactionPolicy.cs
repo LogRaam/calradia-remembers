@@ -14,6 +14,35 @@ namespace CalradiaRemembers.Logic
     public static class VentriloquizedReactionPolicy
     {
         /// <summary>
+        ///   What this turn is, as far as the room's voice is concerned. FOUR booleans in a row of which two
+        ///   must hold and two must not, and getting it backwards either silences a room that should speak or
+        ///   makes it say everything twice.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class ReactionTurnFacts
+        {
+           /// <summary>The player's message opened the floor and the lap has not run yet.</summary>
+           public bool FloorRequestPending { get; set; }
+
+           /// <summary>
+           ///   Only the conversation's host ventriloquizes the room. A reply routed to a witness is that
+           ///   witness's own voice already, and the lap is not about to repeat it.
+           /// </summary>
+           public bool SpeakerIsMain { get; set; }
+
+           /// <summary>A captive scene never opens the floor, so nothing is ever dropped there.</summary>
+           public bool IsCaptiveEncounter { get; set; }
+
+           /// <summary>
+           ///   Once the conversation is over there is no lap to defer to, so dropping the lines would silence
+           ///   the room instead of giving it a better voice.
+           /// </summary>
+           public bool ConversationEnded { get; set; }
+        }
+
+        /// <summary>
         ///   True when this turn's emitted witness reactions must be discarded rather than voiced.
         /// </summary>
         /// <param name="floorRequestPending">The player's message opened the floor and the lap has not run yet.</param>
@@ -26,10 +55,16 @@ namespace CalradiaRemembers.Logic
         ///   Once the conversation is over there is no lap to defer to, so dropping the lines would silence
         ///   the room instead of giving it a better voice.
         /// </param>
-        public static bool DropsReactions(bool floorRequestPending,
-                                          bool speakerIsMain,
-                                          bool isCaptiveEncounter,
-                                          bool conversationEnded)
-            => floorRequestPending && speakerIsMain && !isCaptiveEncounter && !conversationEnded;
+        public static bool DropsReactions(ReactionTurnFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool floorRequestPending = facts.FloorRequestPending;
+           bool speakerIsMain = facts.SpeakerIsMain;
+           bool isCaptiveEncounter = facts.IsCaptiveEncounter;
+           bool conversationEnded = facts.ConversationEnded;
+
+           return floorRequestPending && speakerIsMain && !isCaptiveEncounter && !conversationEnded;
+        }
     }
 }

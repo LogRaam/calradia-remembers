@@ -22,29 +22,28 @@ namespace CalradiaRemembers.Logic
     {
         /// <summary>
         ///   True only when the war BREACHES the oath: the promisor's OWN faction
-        ///   (<paramref name="promisorFactionId" />) is the DECLARER (<paramref name="declarerFactionId" />)
+        ///   (<paramref name="promisorFactionId" />) is the DECLARER (the war's AGGRESSOR)
         ///   and the very house the oath was sworn to keep peace with (<paramref name="oathFactionId" />) is
-        ///   the DEFENDER (<paramref name="defenderFactionId" />). Every other case is NOT a breach: a war the
+        ///   the DEFENDER (the war's DEFENDER). Every other case is NOT a breach: a war the
         ///   promisor was dragged into as the defender (they were invaded, the victim, never an oathbreaker), a
         ///   war against some other house, or an unrelated war elsewhere in the world. Mirrors
         ///   <see cref="WarDeedMatcher.IsSatisfied" /> in shape: the aggressor must be the promisor and the
         ///   defender must be the oath's named house. Fails closed on any blank/unresolved id so an empty
         ///   faction lookup can never read as a breach (a false "oathbreaker" is worse than a missed one).
+        ///   <para>
+        ///     Takes <see cref="WarSides" /> and the two oath ids rather than four bare strings (2026-09-10).
+        ///     The old signature was promisor, oath house, declarer, defender: four faction ids in a row where
+        ///     swapping the last two turns "he marched on the house he swore peace with" into "he was invaded
+        ///     by it", and brands the victim an oathbreaker. The fail-closed rule and the case-insensitive
+        ///     comparison now live on the type, shared with <see cref="WarDeedMatcher.IsSatisfied" />, which
+        ///     was carrying its own copy of both.
+        ///   </para>
         /// </summary>
-        public static bool ShouldBreach(
-            string promisorFactionId,
-            string oathFactionId,
-            string declarerFactionId,
-            string defenderFactionId)
+        public static bool ShouldBreach(WarSides war, string promisorFactionId, string oathFactionId)
         {
-            if (string.IsNullOrWhiteSpace(promisorFactionId) || string.IsNullOrWhiteSpace(oathFactionId) ||
-                string.IsNullOrWhiteSpace(declarerFactionId) || string.IsNullOrWhiteSpace(defenderFactionId))
-                return false;
+            if (!war.IsResolved) return false;
 
-            bool promisorIsDeclarer = string.Equals(promisorFactionId, declarerFactionId, StringComparison.OrdinalIgnoreCase);
-            bool oathHouseIsDefender = string.Equals(oathFactionId, defenderFactionId, StringComparison.OrdinalIgnoreCase);
-
-            return promisorIsDeclarer && oathHouseIsDefender;
+            return war.AggressorIs(promisorFactionId) && war.DefenderIs(oathFactionId);
         }
     }
 }

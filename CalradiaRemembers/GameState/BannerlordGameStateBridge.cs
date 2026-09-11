@@ -1313,11 +1313,7 @@ namespace CalradiaRemembers.GameState
             bool playerIsCaptiveOfThisCaptor = player.IsPrisoner
                && player.PartyBelongedToAsPrisoner?.LeaderHero == npcHero;
 
-            bool permitted = PlayerExecutionPolicy.CanExecute(
-               ModSettings.AllowCaptorExecutions,
-               playerIsCaptiveOfThisCaptor,
-               ModSettings.AdultContentLevel == AdultContentLevel.Hardcore,
-               !CampaignOptions.IsLifeDeathCycleDisabled);
+            bool permitted = PlayerExecutionPolicy.CanExecute(new PlayerExecutionPolicy.ExecutionFacts {McmOn = ModSettings.AllowCaptorExecutions, PlayerIsCaptive = playerIsCaptiveOfThisCaptor, Hardcore = ModSettings.AdultContentLevel == AdultContentLevel.Hardcore, DeathAllowed = !CampaignOptions.IsLifeDeathCycleDisabled});
 
             if (!permitted)
             {

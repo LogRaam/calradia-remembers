@@ -25,7 +25,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_unfolded_count_at_or_below_the_threshold_WHEN_planning_THEN_nothing_is_folded()
         {
-            ConversationCompressionPolicy.Plan(totalLines: 10, summarizedThrough: 0, threshold: 14, recentKept: 4)
+            ConversationCompressionPolicy.Plan(new ConversationCompressionPolicy.TranscriptFold {TotalLines = 10, SummarizedThrough = 0, Threshold = 14, RecentKept = 4})
                 .ShouldFold.Should().BeFalse();
         }
 
@@ -36,7 +36,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_the_unfolded_count_exceeds_the_threshold_WHEN_planning_THEN_the_older_range_is_folded()
         {
             ConversationFoldPlan plan =
-                ConversationCompressionPolicy.Plan(totalLines: 20, summarizedThrough: 0, threshold: 14, recentKept: 4);
+                ConversationCompressionPolicy.Plan(new ConversationCompressionPolicy.TranscriptFold {TotalLines = 20, SummarizedThrough = 0, Threshold = 14, RecentKept = 4});
 
             plan.ShouldFold.Should().BeTrue();
             plan.FoldFrom.Should().Be(0);
@@ -50,7 +50,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_fold_WHEN_planning_THEN_exactly_the_recent_kept_lines_stay_out_of_the_fold()
         {
             ConversationFoldPlan plan =
-                ConversationCompressionPolicy.Plan(totalLines: 30, summarizedThrough: 0, threshold: 14, recentKept: 4);
+                ConversationCompressionPolicy.Plan(new ConversationCompressionPolicy.TranscriptFold {TotalLines = 30, SummarizedThrough = 0, Threshold = 14, RecentKept = 4});
 
             (plan.FoldTo).Should().Be(26);
             (30 - plan.FoldTo).Should().Be(4); // the 4 newest lines are replayed raw, not summarized
@@ -62,7 +62,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_some_lines_already_folded_WHEN_planning_THEN_the_fold_resumes_from_that_point()
         {
             ConversationFoldPlan plan =
-                ConversationCompressionPolicy.Plan(totalLines: 40, summarizedThrough: 16, threshold: 14, recentKept: 4);
+                ConversationCompressionPolicy.Plan(new ConversationCompressionPolicy.TranscriptFold {TotalLines = 40, SummarizedThrough = 16, Threshold = 14, RecentKept = 4});
 
             plan.ShouldFold.Should().BeTrue();
             plan.FoldFrom.Should().Be(16); // resume, do not re-fold [0,16)
@@ -75,7 +75,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_all_lines_beyond_the_summary_are_within_the_recent_window_WHEN_planning_THEN_nothing_is_folded()
         {
             // 18 total, 15 already folded, keep 4 recent: only lines [15,18) remain, all inside the recent window.
-            ConversationCompressionPolicy.Plan(totalLines: 18, summarizedThrough: 15, threshold: 2, recentKept: 4)
+            ConversationCompressionPolicy.Plan(new ConversationCompressionPolicy.TranscriptFold {TotalLines = 18, SummarizedThrough = 15, Threshold = 2, RecentKept = 4})
                 .ShouldFold.Should().BeFalse();
         }
     }

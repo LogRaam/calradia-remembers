@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_floor_is_open_on_the_hosts_turn_WHEN_deciding_THEN_the_reactions_are_dropped()
       {
-         VentriloquizedReactionPolicy.DropsReactions(true, true, false, false).Should().BeTrue();
+         VentriloquizedReactionPolicy.DropsReactions(new VentriloquizedReactionPolicy.ReactionTurnFacts {FloorRequestPending = true, SpeakerIsMain = true, IsCaptiveEncounter = false, ConversationEnded = false}).Should().BeTrue();
       }
 
       // The default, and the guard against a policy that silences the room by always answering yes: with no
@@ -34,7 +34,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_no_floor_request_is_pending_WHEN_deciding_THEN_the_reactions_are_kept()
       {
-         VentriloquizedReactionPolicy.DropsReactions(false, true, false, false).Should().BeFalse();
+         VentriloquizedReactionPolicy.DropsReactions(new VentriloquizedReactionPolicy.ReactionTurnFacts {FloorRequestPending = false, SpeakerIsMain = true, IsCaptiveEncounter = false, ConversationEnded = false}).Should().BeFalse();
       }
 
       // A reply routed to a witness is already that witness's own voice, not the host ventriloquizing the
@@ -42,7 +42,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_witness_and_not_the_host_is_replying_WHEN_deciding_THEN_the_reactions_are_kept()
       {
-         VentriloquizedReactionPolicy.DropsReactions(true, false, false, false).Should().BeFalse();
+         VentriloquizedReactionPolicy.DropsReactions(new VentriloquizedReactionPolicy.ReactionTurnFacts {FloorRequestPending = true, SpeakerIsMain = false, IsCaptiveEncounter = false, ConversationEnded = false}).Should().BeFalse();
       }
 
       // A captive scene never opens the floor to a round table, so a pending flag reaching this path is
@@ -50,7 +50,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_captive_scene_WHEN_deciding_THEN_the_reactions_are_kept()
       {
-         VentriloquizedReactionPolicy.DropsReactions(true, true, true, false).Should().BeFalse();
+         VentriloquizedReactionPolicy.DropsReactions(new VentriloquizedReactionPolicy.ReactionTurnFacts {FloorRequestPending = true, SpeakerIsMain = true, IsCaptiveEncounter = true, ConversationEnded = false}).Should().BeFalse();
       }
 
       // Once the conversation has ended there is no lap left to defer to. Dropping the lines would silence
@@ -58,7 +58,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_conversation_has_already_ended_WHEN_deciding_THEN_the_reactions_are_kept()
       {
-         VentriloquizedReactionPolicy.DropsReactions(true, true, false, true).Should().BeFalse();
+         VentriloquizedReactionPolicy.DropsReactions(new VentriloquizedReactionPolicy.ReactionTurnFacts {FloorRequestPending = true, SpeakerIsMain = true, IsCaptiveEncounter = false, ConversationEnded = true}).Should().BeFalse();
       }
    }
 }

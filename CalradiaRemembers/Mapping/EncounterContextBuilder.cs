@@ -1243,11 +1243,7 @@ namespace CalradiaRemembers.Mapping
             bool playerIsCaptiveOfThisHero = playerStatus == PlayerStatusVsNpc.Captive
                && Hero.MainHero?.PartyBelongedToAsPrisoner?.LeaderHero == hero;
 
-            return PlayerExecutionPolicy.CanExecute(
-               ModSettings.AllowCaptorExecutions,
-               playerIsCaptiveOfThisHero,
-               ModSettings.AdultContentLevel == AdultContentLevel.Hardcore,
-               !CampaignOptions.IsLifeDeathCycleDisabled);
+            return PlayerExecutionPolicy.CanExecute(new PlayerExecutionPolicy.ExecutionFacts {McmOn = ModSettings.AllowCaptorExecutions, PlayerIsCaptive = playerIsCaptiveOfThisHero, Hardcore = ModSettings.AdultContentLevel == AdultContentLevel.Hardcore, DeathAllowed = !CampaignOptions.IsLifeDeathCycleDisabled});
          }
          catch { return false; }
       }

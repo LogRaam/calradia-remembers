@@ -21,11 +21,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_player_declares_war_on_the_demanded_faction_WHEN_judging_THEN_it_is_satisfied()
         {
-            WarDeedMatcher.IsSatisfied(
-                deedTargetFactionId: "vlandia",
-                aggressorFactionId: "player_kingdom",
-                defenderFactionId: "vlandia",
-                playerFactionId: "player_kingdom").Should().BeTrue();
+            WarDeedMatcher.IsSatisfied(new WarSides("player_kingdom", "vlandia"), deedTargetFactionId: "vlandia", playerFactionId: "player_kingdom").Should().BeTrue();
         }
 
         // The deed is self-balancing (the player's own act, the player's own consequences): being attacked
@@ -35,11 +31,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_war_was_declared_ON_the_player_WHEN_judging_THEN_it_is_NOT_satisfied()
         {
             // Vlandia declared war on the player — the opposite act; the deed asked the PLAYER to declare.
-            WarDeedMatcher.IsSatisfied(
-                deedTargetFactionId: "vlandia",
-                aggressorFactionId: "vlandia",
-                defenderFactionId: "player_kingdom",
-                playerFactionId: "player_kingdom").Should().BeFalse();
+            WarDeedMatcher.IsSatisfied(new WarSides("vlandia", "player_kingdom"), deedTargetFactionId: "vlandia", playerFactionId: "player_kingdom").Should().BeFalse();
         }
 
         // Declaring war on the wrong target must not satisfy a deed that named a specific faction, or a
@@ -47,11 +39,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_war_with_a_different_faction_WHEN_judging_THEN_it_is_NOT_satisfied()
         {
-            WarDeedMatcher.IsSatisfied(
-                deedTargetFactionId: "vlandia",
-                aggressorFactionId: "player_kingdom",
-                defenderFactionId: "sturgia",
-                playerFactionId: "player_kingdom").Should().BeFalse();
+            WarDeedMatcher.IsSatisfied(new WarSides("player_kingdom", "sturgia"), deedTargetFactionId: "vlandia", playerFactionId: "player_kingdom").Should().BeFalse();
         }
 
         // Faction ids surface from different sources (saved deed data vs. live game events) and their casing
@@ -60,7 +48,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_case_differences_WHEN_judging_THEN_matching_is_case_insensitive()
         {
-            WarDeedMatcher.IsSatisfied("Vlandia", "Player_Kingdom", "VLANDIA", "player_kingdom").Should().BeTrue();
+            WarDeedMatcher.IsSatisfied(new WarSides("Player_Kingdom", "VLANDIA"), "Vlandia", "player_kingdom").Should().BeTrue();
         }
 
         // Blank or unresolved ids (a malformed deed, or a faction lookup that came back empty) must fail
@@ -68,8 +56,8 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_missing_ids_WHEN_judging_THEN_it_is_NOT_satisfied()
         {
-            WarDeedMatcher.IsSatisfied(null, "player_kingdom", "vlandia", "player_kingdom").Should().BeFalse();
-            WarDeedMatcher.IsSatisfied("vlandia", "player_kingdom", "vlandia", "  ").Should().BeFalse();
+            WarDeedMatcher.IsSatisfied(new WarSides("player_kingdom", "vlandia"), null, "player_kingdom").Should().BeFalse();
+            WarDeedMatcher.IsSatisfied(new WarSides("player_kingdom", "vlandia"), "vlandia", "  ").Should().BeFalse();
         }
     }
 }

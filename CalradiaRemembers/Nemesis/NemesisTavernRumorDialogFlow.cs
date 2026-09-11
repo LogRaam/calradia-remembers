@@ -98,7 +98,7 @@ namespace CalradiaRemembers.Nemesis
                 if (nem.TimesEncountered <= 0) continue; // discoverability gate: never spoil a latent nemesis
                 if (!nem.IsAlive || nem.IsTurned) continue; // dead or turned is no longer a threat worth naming
 
-                if (NemesisBountyPolicy.RegionMatches(homeId, currentId, cultureId, nem.RegionId))
+                if (NemesisBountyPolicy.RegionMatches(new NemesisBountyPolicy.RegionMatchFacts {LordHomeSettlementId = homeId, LordCurrentSettlementId = currentId, LordCultureId = cultureId, NemesisRegionId = nem.RegionId}))
                     return nem;
             }
 

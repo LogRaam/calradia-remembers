@@ -13,12 +13,46 @@ namespace CalradiaRemembers.Logic.Assemblies
     public static class HostageBreachPolicy
     {
         /// <summary>
+        ///   Which of the two watched houses stands on which side of a real battle. FOUR booleans in a row
+        ///   whose whole meaning is the CROSS between them: the breach is pledger-attacks-player OR
+        ///   player-attacks-pledger, so a swap inside either pair quietly asks a different question.
+        ///   This is the same rule <see cref="NonAggressionPactPolicy.IsBreach" /> applies to a pact; the
+        ///   two are kept apart because the pillars are, not because they disagree.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class HostageBreachFacts
+        {
+           /// <summary>The attacking side is wholly the pledger's faction.</summary>
+           public bool AttackerIsPledgerFaction { get; set; }
+
+           /// <summary>The attacking side is wholly the player's faction.</summary>
+           public bool AttackerIsPlayerFaction { get; set; }
+
+           /// <summary>The defending side is wholly the pledger's faction.</summary>
+           public bool DefenderIsPledgerFaction { get; set; }
+
+           /// <summary>The defending side is wholly the player's faction.</summary>
+           public bool DefenderIsPlayerFaction { get; set; }
+        }
+
+        /// <summary>
         ///   True when a real MapEvent's sides pit the pledger's faction against the player's (in EITHER
         ///   attacker/defender arrangement). Mirrors <see cref="NonAggressionPactPolicy.IsBreach" />: the caller
         ///   resolves each flag with a party-vs-faction scan, this only combines the four already-resolved booleans.
         /// </summary>
-        public static bool IsBreach(bool attackerIsPledgerFaction, bool attackerIsPlayerFaction, bool defenderIsPledgerFaction, bool defenderIsPlayerFaction)
-            => attackerIsPledgerFaction && defenderIsPlayerFaction || attackerIsPlayerFaction && defenderIsPledgerFaction;
+        public static bool IsBreach(HostageBreachFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool attackerIsPledgerFaction = facts.AttackerIsPledgerFaction;
+           bool attackerIsPlayerFaction = facts.AttackerIsPlayerFaction;
+           bool defenderIsPledgerFaction = facts.DefenderIsPledgerFaction;
+           bool defenderIsPlayerFaction = facts.DefenderIsPlayerFaction;
+
+           return attackerIsPledgerFaction && defenderIsPlayerFaction || attackerIsPlayerFaction && defenderIsPledgerFaction;
+        }
 
         /// <summary>
         ///   True when the PLEDGER's own faction is the breach's ATTACKER: the one direction that forfeits the

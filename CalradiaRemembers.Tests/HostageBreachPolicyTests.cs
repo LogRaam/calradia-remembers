@@ -23,16 +23,14 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_pledger_attacks_the_player_THEN_it_is_a_breach()
         {
-            HostageBreachPolicy.IsBreach(attackerIsPledgerFaction: true, attackerIsPlayerFaction: false,
-                defenderIsPledgerFaction: false, defenderIsPlayerFaction: true).Should().BeTrue();
+            HostageBreachPolicy.IsBreach(new HostageBreachPolicy.HostageBreachFacts {AttackerIsPledgerFaction = true, AttackerIsPlayerFaction = false, DefenderIsPledgerFaction = false, DefenderIsPlayerFaction = true}).Should().BeTrue();
         }
 
         // The reverse arrangement is still a breach (the two factions clashed); fault is decided separately.
         [Test]
         public void GIVEN_the_player_attacks_the_pledger_THEN_it_is_still_a_breach()
         {
-            HostageBreachPolicy.IsBreach(attackerIsPledgerFaction: false, attackerIsPlayerFaction: true,
-                defenderIsPledgerFaction: true, defenderIsPlayerFaction: false).Should().BeTrue();
+            HostageBreachPolicy.IsBreach(new HostageBreachPolicy.HostageBreachFacts {AttackerIsPledgerFaction = false, AttackerIsPlayerFaction = true, DefenderIsPledgerFaction = true, DefenderIsPlayerFaction = false}).Should().BeTrue();
         }
 
         // A battle that does not pit the two factions against each other (e.g. both on the same side against a third,
@@ -40,10 +38,8 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_two_factions_do_not_face_each_other_THEN_it_is_not_a_breach()
         {
-            HostageBreachPolicy.IsBreach(attackerIsPledgerFaction: true, attackerIsPlayerFaction: true,
-                defenderIsPledgerFaction: false, defenderIsPlayerFaction: false).Should().BeFalse();
-            HostageBreachPolicy.IsBreach(attackerIsPledgerFaction: false, attackerIsPlayerFaction: false,
-                defenderIsPledgerFaction: false, defenderIsPlayerFaction: false).Should().BeFalse();
+            HostageBreachPolicy.IsBreach(new HostageBreachPolicy.HostageBreachFacts {AttackerIsPledgerFaction = true, AttackerIsPlayerFaction = true, DefenderIsPledgerFaction = false, DefenderIsPlayerFaction = false}).Should().BeFalse();
+            HostageBreachPolicy.IsBreach(new HostageBreachPolicy.HostageBreachFacts {AttackerIsPledgerFaction = false, AttackerIsPlayerFaction = false, DefenderIsPledgerFaction = false, DefenderIsPlayerFaction = false}).Should().BeFalse();
         }
 
         // Fault, the load-bearing direction: the hostage is forfeit ONLY when the pledger's side struck. If the

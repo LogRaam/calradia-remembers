@@ -290,7 +290,7 @@ namespace CalradiaRemembers.Marriage
                || (other.PartyBelongedTo != null && other.PartyBelongedTo.LeaderHero == other)
                || other.GovernorOf != null;
 
-            if (!ExCompanionDivorcePolicy.ReturnsToWandererPool(true, false, originIsPlayerClanOrNone, holdsStructuralRole))
+            if (!ExCompanionDivorcePolicy.ReturnsToWandererPool(new ExCompanionDivorcePolicy.DivorcedSpouseFacts {PlayerInMarriage = true, CandidateIsPlayer = false, CandidateOriginIsPlayerClanOrNone = originIsPlayerClanOrNone, CandidateHoldsStructuralRole = holdsStructuralRole}))
                return;
 
             other.CompanionOf = null; // defensive: already null since promotion nulled it

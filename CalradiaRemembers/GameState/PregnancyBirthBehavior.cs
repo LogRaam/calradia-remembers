@@ -179,11 +179,7 @@ namespace CalradiaRemembers.GameState
          Clan loverClan = lover?.Clan;
          Clan motherClan = mother?.Clan;
 
-         LoverChildClanTarget verdict = LoverChildClanPolicy.Resolve(
-            loverHasClan: loverClan != null,
-            loverClanIsPlayer: loverClan != null && loverClan == playerClan,
-            motherHasClan: motherClan != null,
-            motherClanIsPlayer: motherClan != null && motherClan == playerClan);
+         LoverChildClanTarget verdict = LoverChildClanPolicy.Resolve(new LoverChildClanPolicy.LoverChildFacts {LoverHasClan = loverClan != null, LoverClanIsPlayer = loverClan != null && loverClan == playerClan, MotherHasClan = motherClan != null, MotherClanIsPlayer = motherClan != null && motherClan == playerClan});
 
          Clan destination = verdict switch {
             LoverChildClanTarget.LoverClan => loverClan,

@@ -1084,8 +1084,7 @@ namespace CalradiaRemembers.Chat
             // (IsRequestPending reads without consuming; TryConsumeForMainReply below still owns the request.)
             List<(string name, string heroId, string text)> witnessReactions =
                suppressGroupTail // an ensemble co-voice never renders passive-witness reactions; the group tail runs once, on the orchestrator's pass
-               || VentriloquizedReactionPolicy.DropsReactions(_roundTable.IsRequestPending, speaker.IsMain,
-                  IsCaptiveEncounter, _conversationEnded)
+               || VentriloquizedReactionPolicy.DropsReactions(new VentriloquizedReactionPolicy.ReactionTurnFacts {FloorRequestPending = _roundTable.IsRequestPending, SpeakerIsMain = speaker.IsMain, IsCaptiveEncounter = IsCaptiveEncounter, ConversationEnded = _conversationEnded})
                   ? new List<(string name, string heroId, string text)>()
                   : CollectWitnessReactions(response);
 
@@ -2336,7 +2335,7 @@ namespace CalradiaRemembers.Chat
             var behavior = NpcMemoryCampaignBehavior.Instance;
             if (behavior?.LlmServices is not {IsAvailable: true}) return;
 
-            ConversationFoldPlan plan = ConversationCompressionPolicy.Plan(_transcript.Count, _transcript.SummarizedThrough);
+            ConversationFoldPlan plan = ConversationCompressionPolicy.Plan(new ConversationCompressionPolicy.TranscriptFold {TotalLines = _transcript.Count, SummarizedThrough = _transcript.SummarizedThrough});
             if (!plan.ShouldFold) return;
 
             string newLines = _transcript.RenderRange(plan.FoldFrom, plan.FoldTo, PlayerTranscriptLabel());

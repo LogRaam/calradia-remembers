@@ -61,16 +61,37 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   <c>CouncilPactBehavior.IsUnderPact</c>, kept pure and order-independent here so a caller need not
         ///   worry which side it happens to pass first (mirrors <c>ParleyFactionLookup</c>'s own null-safety
         ///   discipline, just for a pair instead of a single id).
+        ///   <para>
+        ///     Takes two <see cref="FactionPair" /> values rather than four bare ids (2026-09-10). The
+        ///     order-independence this method's own doc used to PROMISE the caller in prose is now the pair
+        ///     type's behaviour, which is where a promise like that belongs. The two arguments may sit side
+        ///     by side unnamed precisely because matching a pair against a pair is symmetric.
+        ///   </para>
         /// </summary>
-        public static bool IsMatch(string pactFactionAId, string pactFactionBId, string queryFactionAId, string queryFactionBId)
+        public static bool IsMatch(FactionPair pact, FactionPair query)
+            => pact.Matches(query);
+
+        /// <summary>
+        ///   Which of the pact's two factions stands on which side of a real battle. Each flag is resolved by
+        ///   the caller with a party-vs-faction scan and never re-derived here; this predicate only asks
+        ///   whether the two are on OPPOSITE sides, in either arrangement.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class PactBreachFacts
         {
-            if (string.IsNullOrEmpty(pactFactionAId) || string.IsNullOrEmpty(pactFactionBId)) return false;
-            if (string.IsNullOrEmpty(queryFactionAId) || string.IsNullOrEmpty(queryFactionBId)) return false;
+           /// <summary>The attacking side is wholly the pact's first faction.</summary>
+           public bool AttackerIsFactionA { get; set; }
 
-            bool sameOrder = pactFactionAId == queryFactionAId && pactFactionBId == queryFactionBId;
-            bool reversedOrder = pactFactionAId == queryFactionBId && pactFactionBId == queryFactionAId;
+           /// <summary>The attacking side is wholly the pact's second faction.</summary>
+           public bool AttackerIsFactionB { get; set; }
 
-            return sameOrder || reversedOrder;
+           /// <summary>The defending side is wholly the pact's first faction.</summary>
+           public bool DefenderIsFactionA { get; set; }
+
+           /// <summary>The defending side is wholly the pact's second faction.</summary>
+           public bool DefenderIsFactionB { get; set; }
         }
 
         /// <summary>
@@ -80,8 +101,17 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   caller via a party-vs-faction scan (mirrors CommitmentBehavior's own SideHasHeroOrFaction), never
         ///   re-derived here - this predicate only combines the four already-resolved booleans.
         /// </summary>
-        public static bool IsBreach(bool attackerIsFactionA, bool attackerIsFactionB, bool defenderIsFactionA, bool defenderIsFactionB)
-            => attackerIsFactionA && defenderIsFactionB || attackerIsFactionB && defenderIsFactionA;
+        public static bool IsBreach(PactBreachFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool attackerIsFactionA = facts.AttackerIsFactionA;
+           bool attackerIsFactionB = facts.AttackerIsFactionB;
+           bool defenderIsFactionA = facts.DefenderIsFactionA;
+           bool defenderIsFactionB = facts.DefenderIsFactionB;
+
+           return attackerIsFactionA && defenderIsFactionB || attackerIsFactionB && defenderIsFactionA;
+        }
 
         /// <summary>
         ///   True when the PLAYER's own side (factionA, by this codebase's own {factionAId=player's} convention,

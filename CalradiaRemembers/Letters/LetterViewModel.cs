@@ -426,11 +426,7 @@ namespace CalradiaRemembers.Letters
             ? null
             : Hero.FindFirst(h => h.StringId == _letter.OfferTargetId);
 
-         return PrisonerOfferAvailabilityPolicy.Evaluate(
-            hasTargetId: !string.IsNullOrEmpty(_letter?.OfferTargetId),
-            hasAmount: _letter?.OfferAmount > 0,
-            captiveResolved: captive != null,
-            stillHeld: captive != null && BuyPrisonerVerb.PlayerHeldHeroPrisoners().Contains(captive));
+         return PrisonerOfferAvailabilityPolicy.Evaluate(new PrisonerOfferAvailabilityPolicy.PrisonerOfferFacts {HasTargetId = !string.IsNullOrEmpty(_letter?.OfferTargetId), HasAmount = _letter?.OfferAmount > 0, CaptiveResolved = captive != null, StillHeld = captive != null && BuyPrisonerVerb.PlayerHeldHeroPrisoners().Contains(captive)});
       }
 
       /// <summary>The captive's own name for the note, falling back to nothing rather than to an id.</summary>

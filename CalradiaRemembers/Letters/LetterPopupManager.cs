@@ -74,11 +74,7 @@ namespace CalradiaRemembers.Letters
                     ? null
                     : Hero.FindFirst(h => h.StringId == letter.OfferTargetId);
 
-                PrisonerOfferBlock block = PrisonerOfferAvailabilityPolicy.Evaluate(
-                    hasTargetId: !string.IsNullOrEmpty(letter.OfferTargetId),
-                    hasAmount: letter.OfferAmount > 0,
-                    captiveResolved: captive != null,
-                    stillHeld: captive != null && BuyPrisonerVerb.PlayerHeldHeroPrisoners().Contains(captive));
+                PrisonerOfferBlock block = PrisonerOfferAvailabilityPolicy.Evaluate(new PrisonerOfferAvailabilityPolicy.PrisonerOfferFacts {HasTargetId = !string.IsNullOrEmpty(letter.OfferTargetId), HasAmount = letter.OfferAmount > 0, CaptiveResolved = captive != null, StillHeld = captive != null && BuyPrisonerVerb.PlayerHeldHeroPrisoners().Contains(captive)});
 
                 ModLog.Info($"[LETTER] prisoner offer arrived from {letter.SenderName} for "
                             + $"{captive?.Name?.ToString() ?? letter.OfferTargetId ?? "(nobody named)"} "

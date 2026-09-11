@@ -4846,11 +4846,7 @@ namespace CalradiaRemembers.Diagnostics
          // The resolved birth clan, via the SAME pure rule the birth pipeline uses: it must be the lover's line
          // and must never be the player's clan.
          Clan playerClan = Clan.PlayerClan;
-         LoverChildClanTarget verdict = LoverChildClanPolicy.Resolve(
-            loverHasClan: lover.Clan != null,
-            loverClanIsPlayer: lover.Clan != null && lover.Clan == playerClan,
-            motherHasClan: partner.Clan != null,
-            motherClanIsPlayer: partner.Clan != null && partner.Clan == playerClan);
+         LoverChildClanTarget verdict = LoverChildClanPolicy.Resolve(new LoverChildClanPolicy.LoverChildFacts {LoverHasClan = lover.Clan != null, LoverClanIsPlayer = lover.Clan != null && lover.Clan == playerClan, MotherHasClan = partner.Clan != null, MotherClanIsPlayer = partner.Clan != null && partner.Clan == playerClan});
          Clan destination = verdict switch {
             LoverChildClanTarget.LoverClan => lover.Clan,
             LoverChildClanTarget.MotherClan => partner.Clan,
@@ -8655,7 +8651,7 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(antagonist == null, "no hostile lord or grudge-holder in this campaign to leak to")) return t.Line();
 
          t.Note($"antagonist={antagonist}");
-         bool leaksWhenAllMet = LetterLeakPolicy.ShouldLeak(true, true, true, true, LetterLeakPolicy.DefaultLeakChance, 0.0);
+         bool leaksWhenAllMet = LetterLeakPolicy.ShouldLeak(new LetterLeakPolicy.LeakFacts {Enabled = true, ByBandit = true, HasSubstance = true, AntagonistAvailable = true, Chance = LetterLeakPolicy.DefaultLeakChance, Roll = 0.0});
          t.Expect("realScanFoundAntagonist", !string.IsNullOrEmpty(antagonist), true);
          t.Expect("policyLeaksWhenEnabledAndAllMet", leaksWhenAllMet, true);
 
@@ -11460,7 +11456,7 @@ namespace CalradiaRemembers.Diagnostics
          {
             // ── Headline: a stated "write less" preference, through the REAL parser + the REAL apply seam ──
             profile.CorrespondenceInterest = 0;
-            int weightBefore = LetterWeights.WeightWithInterest(LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence), profile.CorrespondenceInterest, 0, 0);
+            int weightBefore = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence), SenderInterest = profile.CorrespondenceInterest, SubjectInterest = 0, GlobalInterest = 0});
 
             CorrespondencePreference pref = CorrespondencePreferenceParser.Parse(
                "DELAY: 2\nMy reply...\n[CORRESPONDENCE_PREFERENCE] scope=sender direction=less strength=strong");
@@ -11470,15 +11466,15 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("theSeamActuallyApplied", applied, true);
             t.Expect("statedPreferenceDrivesSenderToTheFloor", profile.CorrespondenceInterest, CorrespondenceInterestPolicy.SenderFloor);
 
-            int weightAfter = LetterWeights.WeightWithInterest(LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence), profile.CorrespondenceInterest, 0, 0);
+            int weightAfter = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence), SenderInterest = profile.CorrespondenceInterest, SubjectInterest = 0, GlobalInterest = 0});
             t.Note($"askedToWriteLess: weight {weightBefore} -> {weightAfter}");
             t.Expect("askingToWriteLessLOWERSTheirMailboxWeight", weightAfter < weightBefore, true);
 
             // ── The quiet implicit signal: an acknowledged-but-unanswered letter also dampens ──
             profile.CorrespondenceInterest = 0;
             profile.CorrespondenceInterest = CorrespondenceInterestPolicy.ClampSender(profile.CorrespondenceInterest + CorrespondenceInterestPolicy.OnAcknowledge().SenderDelta);
-            int weightNeutral = LetterWeights.WeightWithInterest(LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence), 0, 0, 0);
-            int weightAfterAck = LetterWeights.WeightWithInterest(LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence), profile.CorrespondenceInterest, 0, 0);
+            int weightNeutral = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence), SenderInterest = 0, SubjectInterest = 0, GlobalInterest = 0});
+            int weightAfterAck = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = LetterWeights.BaseWeight(LetterReason.RomanticCorrespondence), SenderInterest = profile.CorrespondenceInterest, SubjectInterest = 0, GlobalInterest = 0});
             t.Expect("acknowledgingWithoutReplyingGoesNegative", profile.CorrespondenceInterest < 0, true);
             t.Expect("anAcknowledgeAloneAlsoLowersTheirWeight", weightAfterAck < weightNeutral, true);
 

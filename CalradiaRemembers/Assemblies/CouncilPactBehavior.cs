@@ -106,7 +106,7 @@ namespace CalradiaRemembers.Assemblies
         {
             if (factionA == null || factionB == null) return false;
 
-            return _active.Any(p => NonAggressionPactPolicy.IsMatch(p.FactionAId, p.FactionBId, factionA.StringId, factionB.StringId));
+            return _active.Any(p => NonAggressionPactPolicy.IsMatch(new FactionPair(p.FactionAId, p.FactionBId), new FactionPair(factionA.StringId, factionB.StringId)));
         }
 
         /// <summary>Council Tier 2: the live pact binding these two factions (either order), or null when none. Additive read-only accessor for the 1:1 prompt (see CouncilAccordClause).</summary>
@@ -114,7 +114,7 @@ namespace CalradiaRemembers.Assemblies
         {
             if (factionA == null || factionB == null) return null;
 
-            return _active.Find(p => NonAggressionPactPolicy.IsMatch(p.FactionAId, p.FactionBId, factionA.StringId, factionB.StringId));
+            return _active.Find(p => NonAggressionPactPolicy.IsMatch(new FactionPair(p.FactionAId, p.FactionBId), new FactionPair(factionA.StringId, factionB.StringId)));
         }
 
         /// <summary>Dev/test only (cr.seed_accord): inject a live pact record directly, bypassing every guard, so the encyclopedia panel can be validated without a parley playthrough.</summary>
@@ -244,7 +244,7 @@ namespace CalradiaRemembers.Assemblies
             bool defenderIsA = SideHasFaction(defenders, pact.FactionAId);
             bool defenderIsB = SideHasFaction(defenders, pact.FactionBId);
 
-            if (!NonAggressionPactPolicy.IsBreach(attackerIsA, attackerIsB, defenderIsA, defenderIsB)) return;
+            if (!NonAggressionPactPolicy.IsBreach(new NonAggressionPactPolicy.PactBreachFacts {AttackerIsFactionA = attackerIsA, AttackerIsFactionB = attackerIsB, DefenderIsFactionA = defenderIsA, DefenderIsFactionB = defenderIsB})) return;
 
             _active.Remove(pact);
 

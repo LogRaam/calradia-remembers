@@ -620,7 +620,7 @@ namespace CalradiaRemembers.Quests
          int day = CurrentDay();
          ForEachOutstandingQuest((profile, quest) =>
          {
-            if (quest.Type == QuestType.DeclareWar && WarDeedMatcher.IsSatisfied(quest.TargetFactionId, faction1.StringId, faction2.StringId, player.StringId))
+            if (quest.Type == QuestType.DeclareWar && WarDeedMatcher.IsSatisfied(new WarSides(faction1.StringId, faction2.StringId), quest.TargetFactionId, player.StringId))
                Stamp(profile, quest,
                   $"Declared war on {quest.TargetFactionName ?? faction2.Name?.ToString()} on day {day}", day);
          });

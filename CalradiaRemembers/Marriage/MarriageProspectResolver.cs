@@ -100,9 +100,7 @@ namespace CalradiaRemembers.Marriage
       {
          if (player == null || candidate == null) return false;
 
-         return MarriageEligibility.IsMarriageable(
-            candidate.IsAlive, candidate.Spouse != null, candidate.IsFemale,
-            player.IsFemale, candidate.Age, player.Age);
+         return MarriageEligibility.IsMarriageable(new MarriageEligibility.MarriageMatchFacts {CandidateAlive = candidate.IsAlive, CandidateHasSpouse = candidate.Spouse != null, CandidateIsFemale = candidate.IsFemale, PlayerIsFemale = player.IsFemale, CandidateAge = candidate.Age, PlayerAge = player.Age});
       }
 
       /// <summary>
@@ -114,9 +112,7 @@ namespace CalradiaRemembers.Marriage
       {
          if (player == null || candidate == null) return false;
 
-         return MarriageProspectPolicy.IsOfferableProspect(
-            candidate.IsAlive, candidate.Spouse != null, candidate.IsFemale,
-            player.IsFemale, candidate.Age, player.Age);
+         return MarriageProspectPolicy.IsOfferableProspect(new MarriageEligibility.MarriageMatchFacts {CandidateAlive = candidate.IsAlive, CandidateHasSpouse = candidate.Spouse != null, CandidateIsFemale = candidate.IsFemale, PlayerIsFemale = player.IsFemale, CandidateAge = candidate.Age, PlayerAge = player.Age});
       }
 
       /// <summary>

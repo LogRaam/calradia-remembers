@@ -199,16 +199,47 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
+        ///   A letter's base weight and the three adaptive interest dampers applied on top of it. FOUR INTS in
+        ///   a row where the first is a WEIGHT and the other three are NEGATIVE dampers on three different
+        ///   scopes: put the base weight anywhere but first and the sum is still an int, still plausible, and
+        ///   still wrong. Each damper is clamped to its own floor by the caller; this only sums and floors.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class InterestDampers
+        {
+           /// <summary>The letter's already-computed base weight.</summary>
+           public int BaseWeight { get; set; }
+
+           /// <summary>Damper for how little the player engages with THIS correspondent.</summary>
+           public int SenderInterest { get; set; }
+
+           /// <summary>Damper for how little the player engages with this SUBJECT.</summary>
+           public int SubjectInterest { get; set; }
+
+           /// <summary>Damper for how little the player engages with letters at all.</summary>
+           public int GlobalInterest { get; set; }
+        }
+
+        /// <summary>
         ///   Applies the adaptive correspondence-interest dampers (see <see cref="CorrespondenceInterestPolicy" />)
-        ///   on top of a letter's already-computed base weight. Each of <paramref name="senderInterest" />,
-        ///   <paramref name="subjectInterest" /> and <paramref name="globalInterest" /> is a damper the caller
+        ///   on top of a letter's already-computed base weight. Each of <c>SenderInterest</c>,
+        ///   <c>SubjectInterest</c> and <c>GlobalInterest</c> is a damper the caller
         ///   has already clamped to its own floor (never positive), so this method only ever sums and floors;
         ///   it never re-clamps the individual interests itself. <see cref="EffectiveWeightFloor" /> guarantees
         ///   that no correspondent is ever fully silenced by interest alone, however disinterested the player
         ///   has signalled.
         /// </summary>
-        public static int WeightWithInterest(int baseWeight, int senderInterest, int subjectInterest, int globalInterest)
+        public static int WeightWithInterest(InterestDampers facts)
         {
+           facts ??= new InterestDampers();
+
+           int baseWeight = facts.BaseWeight;
+           int senderInterest = facts.SenderInterest;
+           int subjectInterest = facts.SubjectInterest;
+           int globalInterest = facts.GlobalInterest;
+
             return Math.Max(EffectiveWeightFloor, baseWeight + senderInterest + subjectInterest + globalInterest);
         }
 

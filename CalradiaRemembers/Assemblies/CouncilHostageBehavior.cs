@@ -325,7 +325,7 @@ namespace CalradiaRemembers.Assemblies
             bool defenderIsPledger = SideHasFaction(defenders, pledgerFaction.StringId);
             bool defenderIsPlayer = SideHasFaction(defenders, playerFaction.StringId);
 
-            if (!HostageBreachPolicy.IsBreach(attackerIsPledger, attackerIsPlayer, defenderIsPledger, defenderIsPlayer)) return;
+            if (!HostageBreachPolicy.IsBreach(new HostageBreachPolicy.HostageBreachFacts {AttackerIsPledgerFaction = attackerIsPledger, AttackerIsPlayerFaction = attackerIsPlayer, DefenderIsPledgerFaction = defenderIsPledger, DefenderIsPlayerFaction = defenderIsPlayer})) return;
 
             // Only the pledger's own aggression forfeits the hostage; a player-initiated attack is the PLAYER's
             // broken faith, not the pledger's, and must never punish the person given in good faith.

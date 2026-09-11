@@ -257,7 +257,7 @@ namespace CalradiaRemembers.Commitments
          // the victim, never an oathbreaker, so the oath retires as a clean NEUTRAL resolution below (no
          // relation hit, no BrokenOath grudge, no per-witness cost), never a false breach.
          bool shouldBreach = KeepPeaceBreachPolicy.ShouldBreach(
-            promisorFaction.StringId, commitment.TargetId, faction1.StringId, faction2.StringId);
+            new WarSides(faction1.StringId, faction2.StringId), promisorFaction.StringId, commitment.TargetId);
 
          if (shouldBreach)
          {

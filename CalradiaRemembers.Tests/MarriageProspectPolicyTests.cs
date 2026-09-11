@@ -45,10 +45,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_kin_past_the_prospect_age_WHEN_the_player_asks_for_them_THEN_the_marriage_is_still_lawful()
         {
-            MarriageEligibility.IsMarriageable(
-                candidateAlive: true, candidateHasSpouse: false, candidateIsFemale: true,
-                playerIsFemale: false, candidateAge: MarriageProspectPolicy.MaxProspectAge + 30,
-                playerAge: 25).Should().BeTrue();
+            MarriageEligibility.IsMarriageable(new MarriageEligibility.MarriageMatchFacts {CandidateAlive = true, CandidateHasSpouse = false, CandidateIsFemale = true, PlayerIsFemale = false, CandidateAge = MarriageProspectPolicy.MaxProspectAge + 30, PlayerAge = 25}).Should().BeTrue();
         }
 
         // An offer must still clear every LAWFUL bar first: the policy narrows the pool, it never widens it.
@@ -58,9 +55,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_kin_barred_by_law_WHEN_building_an_offer_THEN_they_are_not_put_forward(
             bool alive, bool hasSpouse)
         {
-            MarriageProspectPolicy.IsOfferableProspect(
-                candidateAlive: alive, candidateHasSpouse: hasSpouse, candidateIsFemale: true,
-                playerIsFemale: false, candidateAge: 22, playerAge: 25).Should().BeFalse();
+            MarriageProspectPolicy.IsOfferableProspect(new MarriageEligibility.MarriageMatchFacts {CandidateAlive = alive, CandidateHasSpouse = hasSpouse, CandidateIsFemale = true, PlayerIsFemale = false, CandidateAge = 22, PlayerAge = 25}).Should().BeFalse();
         }
 
         // A child is never a prospect, whatever the alliance would be worth. The prospect ceiling must not be
@@ -74,9 +69,7 @@ namespace CalradiaRemembers.Tests
         #region private
 
         private static bool IsOfferable(float candidateAge)
-            => MarriageProspectPolicy.IsOfferableProspect(
-                candidateAlive: true, candidateHasSpouse: false, candidateIsFemale: true,
-                playerIsFemale: false, candidateAge: candidateAge, playerAge: 25);
+            => MarriageProspectPolicy.IsOfferableProspect(new MarriageEligibility.MarriageMatchFacts {CandidateAlive = true, CandidateHasSpouse = false, CandidateIsFemale = true, PlayerIsFemale = false, CandidateAge = candidateAge, PlayerAge = 25});
 
         #endregion
     }

@@ -25,7 +25,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_lover_has_his_own_clan_WHEN_resolved_THEN_the_child_joins_the_lovers_line()
         {
-            LoverChildClanPolicy.Resolve(loverHasClan: true, loverClanIsPlayer: false, motherHasClan: true, motherClanIsPlayer: true)
+            LoverChildClanPolicy.Resolve(new LoverChildClanPolicy.LoverChildFacts {LoverHasClan = true, LoverClanIsPlayer = false, MotherHasClan = true, MotherClanIsPlayer = true})
                                 .Should().Be(LoverChildClanTarget.LoverClan,
                                     "a lover-child belongs to its genetic father's house, even when the mother lives in the player's clan");
         }
@@ -36,7 +36,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_clanless_lover_and_a_mother_in_the_player_clan_WHEN_resolved_THEN_neither_line_is_used()
         {
-            LoverChildClanPolicy.Resolve(loverHasClan: false, loverClanIsPlayer: false, motherHasClan: true, motherClanIsPlayer: true)
+            LoverChildClanPolicy.Resolve(new LoverChildClanPolicy.LoverChildFacts {LoverHasClan = false, LoverClanIsPlayer = false, MotherHasClan = true, MotherClanIsPlayer = true})
                                 .Should().Be(LoverChildClanTarget.LeaveAsIs,
                                     "a lover-child must NEVER join the player's clan, not even via the mother's-clan fallback");
         }
@@ -47,7 +47,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_clanless_lover_and_a_mother_in_her_own_non_player_clan_WHEN_resolved_THEN_the_child_joins_the_mothers_line()
         {
-            LoverChildClanPolicy.Resolve(loverHasClan: false, loverClanIsPlayer: false, motherHasClan: true, motherClanIsPlayer: false)
+            LoverChildClanPolicy.Resolve(new LoverChildClanPolicy.LoverChildFacts {LoverHasClan = false, LoverClanIsPlayer = false, MotherHasClan = true, MotherClanIsPlayer = false})
                                 .Should().Be(LoverChildClanTarget.MotherClan,
                                     "with no lover-clan, a non-player maternal clan is the safe fallback line");
         }
@@ -58,7 +58,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_lovers_clan_reads_as_the_player_clan_WHEN_resolved_THEN_it_is_not_used()
         {
-            LoverChildClanPolicy.Resolve(loverHasClan: true, loverClanIsPlayer: true, motherHasClan: true, motherClanIsPlayer: true)
+            LoverChildClanPolicy.Resolve(new LoverChildClanPolicy.LoverChildFacts {LoverHasClan = true, LoverClanIsPlayer = true, MotherHasClan = true, MotherClanIsPlayer = true})
                                 .Should().Be(LoverChildClanTarget.LeaveAsIs,
                                     "the player's clan is never a valid destination for a lover-child, from either parent");
         }
@@ -68,7 +68,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_neither_parent_has_a_clan_WHEN_resolved_THEN_the_child_is_left_as_is()
         {
-            LoverChildClanPolicy.Resolve(loverHasClan: false, loverClanIsPlayer: false, motherHasClan: false, motherClanIsPlayer: false)
+            LoverChildClanPolicy.Resolve(new LoverChildClanPolicy.LoverChildFacts {LoverHasClan = false, LoverClanIsPlayer = false, MotherHasClan = false, MotherClanIsPlayer = false})
                                 .Should().Be(LoverChildClanTarget.LeaveAsIs,
                                     "with no clan on either parent there is no line to join");
         }

@@ -34,13 +34,46 @@ namespace CalradiaRemembers.Logic
     public static class PrisonerOfferAvailabilityPolicy
     {
         /// <summary>
+        ///   What the host reads off the live campaign about one prisoner-buy offer. Four booleans in a row,
+        ///   and each produces a DIFFERENT sentence to the player and a different line in the log, which is
+        ///   the whole reason they are named apart rather than collapsed into one "unavailable".
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class PrisonerOfferFacts
+        {
+           /// <summary>The offer names whom it is about.</summary>
+           public bool HasTargetId { get; set; }
+
+           /// <summary>The offer names a sum. Without terms there is no offer to speak of.</summary>
+           public bool HasAmount { get; set; }
+
+           /// <summary>The captive can be found in the world at all.</summary>
+           public bool CaptiveResolved { get; set; }
+
+           /// <summary>
+           ///   The player still holds them. You cannot sell a captive who has been ransomed, escaped, or was
+           ///   lost with a fallen fief.
+           /// </summary>
+           public bool StillHeld { get; set; }
+        }
+
+        /// <summary>
         ///   Judges the offer from plain facts the host reads off the live campaign. The order matters: terms
         ///   first, because without them there is no offer to speak of; then whether the captive exists at all;
         ///   then whether they are still held. Each answer is a different sentence to the player and a different
         ///   line in the log, which is the whole point of naming them apart.
         /// </summary>
-        public static PrisonerOfferBlock Evaluate(bool hasTargetId, bool hasAmount, bool captiveResolved, bool stillHeld)
+        public static PrisonerOfferBlock Evaluate(PrisonerOfferFacts facts)
         {
+           if (facts == null) return PrisonerOfferBlock.TermsMissing;
+
+           bool hasTargetId = facts.HasTargetId;
+           bool hasAmount = facts.HasAmount;
+           bool captiveResolved = facts.CaptiveResolved;
+           bool stillHeld = facts.StillHeld;
+
             if (!hasTargetId || !hasAmount) return PrisonerOfferBlock.TermsMissing;
             if (!captiveResolved) return PrisonerOfferBlock.CaptiveUnknown;
 

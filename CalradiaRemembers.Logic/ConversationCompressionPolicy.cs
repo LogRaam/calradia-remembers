@@ -53,17 +53,49 @@ namespace CalradiaRemembers.Logic
         /// <summary>The most recent lines always replayed raw (never folded), so recent context stays verbatim. Tunable.</summary>
         public const int RecentLinesKeptVerbatim = 4;
 
-        /// <summary>Decides the fold using the tuned defaults.</summary>
-        public static ConversationFoldPlan Plan(int totalLines, int summarizedThrough)
-            => Plan(totalLines, summarizedThrough, UnfoldedLineThreshold, RecentLinesKeptVerbatim);
+        /// <summary>
+        ///   Where a transcript stands, and the two dials that decide when it folds.
+        ///   <para>
+        ///     Named rather than positional (2026-09-10). Plan took FOUR INTS in a row, all line counts, and
+        ///     no two of them meaning the same kind of thing: a total, a watermark, a threshold and a keep-back.
+        ///     Swap the last two and a conversation folds after four lines instead of fourteen, keeping
+        ///     fourteen verbatim, which is not a crash but a prompt three times the size anybody budgeted for.
+        ///   </para>
+        ///   <para>
+        ///     The two dials carry the tuned defaults here, which retires the two-argument convenience overload
+        ///     that existed only to supply them. One method now, and a caller that wants the shipped pacing
+        ///     simply does not mention it.
+        ///   </para>
+        /// </summary>
+        public sealed class TranscriptFold
+        {
+            /// <summary>How many lines the transcript holds in all.</summary>
+            public int TotalLines { get; set; }
+
+            /// <summary>How far a previous summary already reached. Lines before this are folded away already.</summary>
+            public int SummarizedThrough { get; set; }
+
+            /// <summary>Unfolded lines tolerated before a fold is worth doing. Defaults to the shipped pacing.</summary>
+            public int Threshold { get; set; } = UnfoldedLineThreshold;
+
+            /// <summary>How many of the newest lines stay verbatim, never folded. Defaults to the shipped pacing.</summary>
+            public int RecentKept { get; set; } = RecentLinesKeptVerbatim;
+        }
 
         /// <summary>
         ///   Decides the fold. Folds the range from where the last summary reached up to (but not including) the
-        ///   last <paramref name="recentKept" /> lines, but only once the unfolded count exceeds
-        ///   <paramref name="threshold" /> and there is actually a non-empty older range to fold.
+        ///   last <see cref="TranscriptFold.RecentKept" /> lines, but only once the unfolded count exceeds
+        ///   <see cref="TranscriptFold.Threshold" /> and there is actually a non-empty older range to fold.
         /// </summary>
-        public static ConversationFoldPlan Plan(int totalLines, int summarizedThrough, int threshold, int recentKept)
+        public static ConversationFoldPlan Plan(TranscriptFold transcript)
         {
+            if (transcript == null) return ConversationFoldPlan.None;
+
+            int totalLines = transcript.TotalLines;
+            int summarizedThrough = transcript.SummarizedThrough;
+            int threshold = transcript.Threshold;
+            int recentKept = transcript.RecentKept;
+
             int from = Math.Max(0, summarizedThrough);
             int unfolded = totalLines - from;
             int to = totalLines - Math.Max(0, recentKept);
