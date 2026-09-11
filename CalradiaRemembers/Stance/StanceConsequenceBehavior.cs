@@ -105,24 +105,14 @@ namespace CalradiaRemembers.Stance
       {
          if (hero == null || profile == null) return false;
 
-         return StanceConsequencePolicy.Resolve(
-            StanceService.ToStance(profile),
-            TraitLevel(hero, DefaultTraits.Honor),
-            TraitLevel(hero, DefaultTraits.Valor),
-            TraitLevel(hero, DefaultTraits.Mercy),
-            TraitLevel(hero, DefaultTraits.Calculating)) == StanceConsequence.Assassinate;
+         return StanceConsequencePolicy.Resolve(StanceService.ToStance(profile), new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = TraitLevel(hero, DefaultTraits.Honor), Valor = TraitLevel(hero, DefaultTraits.Valor), Mercy = TraitLevel(hero, DefaultTraits.Mercy), Calculating = TraitLevel(hero, DefaultTraits.Calculating)}) == StanceConsequence.Assassinate;
       }
 
       private static bool TryWrite(BannerlordNpcMemoryStore store, NpcProfile profile, Hero hero, int today, bool ignoreCooldown)
       {
          if (!ignoreCooldown && today - profile.StanceLastConsequenceDay < LetterCooldownDays) return false;
 
-         StanceConsequence verdict = StanceConsequencePolicy.Resolve(
-            StanceService.ToStance(profile),
-            TraitLevel(hero, DefaultTraits.Honor),
-            TraitLevel(hero, DefaultTraits.Valor),
-            TraitLevel(hero, DefaultTraits.Mercy),
-            TraitLevel(hero, DefaultTraits.Calculating));
+         StanceConsequence verdict = StanceConsequencePolicy.Resolve(StanceService.ToStance(profile), new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = TraitLevel(hero, DefaultTraits.Honor), Valor = TraitLevel(hero, DefaultTraits.Valor), Mercy = TraitLevel(hero, DefaultTraits.Mercy), Calculating = TraitLevel(hero, DefaultTraits.Calculating)});
 
          // Murderous intent doesn't write a letter, it arms a knife in the dark (the town ambush, increment 3).
          if (verdict == StanceConsequence.Assassinate)

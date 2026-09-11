@@ -972,10 +972,7 @@ namespace CalradiaRemembers.Chat
          Clan playerClan = Clan.PlayerClan;
          bool inPlayerKingdom = backer?.Kingdom != null && playerClan?.Kingdom != null && backer.Kingdom == playerClan.Kingdom;
 
-         return ClaimantSupportPolicy.Evaluate(
-            actorHero.IsAlive, actorHero.IsLord, actorHero.IsPrisoner,
-            backer != null, backer == playerClan, inPlayerKingdom,
-            actorHero.GetRelation(Hero.MainHero), backer?.Influence ?? 0f);
+         return ClaimantSupportPolicy.Evaluate(new ClaimantSupportPolicy.ClaimantBackerFacts {IsAlive = actorHero.IsAlive, IsLord = actorHero.IsLord, IsPrisoner = actorHero.IsPrisoner, HasClan = backer != null, IsPlayerClan = backer == playerClan, IsInPlayerKingdom = inPlayerKingdom, Relation = actorHero.GetRelation(Hero.MainHero), Influence = backer?.Influence ?? 0f});
       }
 
       /// <summary>

@@ -53,9 +53,52 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   (<see cref="Logic.CourtActionPolicy.CanAffordInfluenceGrant" />). A zero or negative relation yields a
         ///   zero grant, so a hostile vassal can never appear to back the player.
         /// </summary>
-        public static ClaimantSupportResult Evaluate(bool backerAlive, bool backerIsLord, bool backerIsPrisoner,
-            bool backerHasClan, bool backerIsPlayerClan, bool backerInPlayerKingdom, int relation, float backerInfluence)
+        /// <summary>
+        ///   What is known about the lord being asked to back a claimant, read off the campaign by the caller.
+        ///   Named rather than positional (2026-09-10): SIX booleans in a row, where "is of the player's own
+        ///   house" and "is in the player's kingdom" are both just true and mean opposite things to the answer.
+        /// </summary>
+        public sealed class ClaimantBackerFacts
         {
+            /// <summary>The backer is alive.</summary>
+            public bool IsAlive { get; set; }
+
+            /// <summary>The backer is a lord, which is who can spend influence at court.</summary>
+            public bool IsLord { get; set; }
+
+            /// <summary>The backer is somebody's prisoner.</summary>
+            public bool IsPrisoner { get; set; }
+
+            /// <summary>The backer has a clan of their own to spend from.</summary>
+            public bool HasClan { get; set; }
+
+            /// <summary>The backer belongs to the player's OWN house, whose influence is the player's to spend.</summary>
+            public bool IsPlayerClan { get; set; }
+
+            /// <summary>The backer sits in the player's kingdom, where the claim is actually being decided.</summary>
+            public bool IsInPlayerKingdom { get; set; }
+
+            /// <summary>The backer's relation with the player, which sizes what they would give.</summary>
+            public int Relation { get; set; }
+
+            /// <summary>The backer's clan influence, which sets what they can actually afford.</summary>
+            public float Influence { get; set; }
+        }
+
+        /// <summary>Whether this lord will back the claim, and with how much. Unknown facts find no backer.</summary>
+        public static ClaimantSupportResult Evaluate(ClaimantBackerFacts facts)
+        {
+            if (facts == null) return new ClaimantSupportResult(ClaimantSupportOutcome.NotFound, 0);
+
+            bool backerAlive = facts.IsAlive;
+            bool backerIsLord = facts.IsLord;
+            bool backerIsPrisoner = facts.IsPrisoner;
+            bool backerHasClan = facts.HasClan;
+            bool backerIsPlayerClan = facts.IsPlayerClan;
+            bool backerInPlayerKingdom = facts.IsInPlayerKingdom;
+            int relation = facts.Relation;
+            float backerInfluence = facts.Influence;
+
             if (!backerAlive || !backerIsLord || backerIsPrisoner)
                 return new ClaimantSupportResult(ClaimantSupportOutcome.NotFound, 0);
 

@@ -104,7 +104,7 @@ namespace CalradiaRemembers.Missions
          bool attached = profile.Romantic.IsConsort || profile.Romantic.IsSecretLover
                          || profile.Romantic.Status == RomanticStatus.Committed || h == Hero.MainHero?.Spouse;
 
-         if (CompanionSecretAffectionPolicy.IsEligible(true, compatible, adult, content, attached, profile.ReputationWithPlayer, ModSettings.RelationWarmth))
+         if (CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = compatible, AdultEnabled = adult, IsContent = content, AlreadyAttached = attached, Regard = profile.ReputationWithPlayer, Warmth = ModSettings.RelationWarmth}))
             return (true, "");
 
          if (!adult) return (false, "adult content is Off");

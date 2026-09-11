@@ -24,10 +24,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_eligible_well_liked_backer_THEN_the_backing_is_applied_with_a_positive_amount()
         {
-            ClaimantSupportResult r = ClaimantSupportPolicy.Evaluate(
-                backerAlive: true, backerIsLord: true, backerIsPrisoner: false,
-                backerHasClan: true, backerIsPlayerClan: false, backerInPlayerKingdom: true,
-                relation: 50, backerInfluence: 100000f);
+            ClaimantSupportResult r = ClaimantSupportPolicy.Evaluate(new ClaimantSupportPolicy.ClaimantBackerFacts {IsAlive = true, IsLord = true, IsPrisoner = false, HasClan = true, IsPlayerClan = false, IsInPlayerKingdom = true, Relation = 50, Influence = 100000f});
 
             r.Outcome.Should().Be(ClaimantSupportOutcome.Applied);
             r.Amount.Should().BeGreaterThan(0);
@@ -37,16 +34,16 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_dead_backer_THEN_the_outcome_is_not_found_even_if_otherwise_eligible()
         {
-            ClaimantSupportPolicy.Evaluate(false, true, false, true, false, true, 50, 100000f)
+            ClaimantSupportPolicy.Evaluate(new ClaimantSupportPolicy.ClaimantBackerFacts {IsAlive = false, IsLord = true, IsPrisoner = false, HasClan = true, IsPlayerClan = false, IsInPlayerKingdom = true, Relation = 50, Influence = 100000f})
                 .Outcome.Should().Be(ClaimantSupportOutcome.NotFound);
         }
 
         [Test]
         public void GIVEN_a_backer_who_is_not_a_lord_or_is_a_prisoner_THEN_the_outcome_is_not_found()
         {
-            ClaimantSupportPolicy.Evaluate(true, false, false, true, false, true, 50, 100000f)
+            ClaimantSupportPolicy.Evaluate(new ClaimantSupportPolicy.ClaimantBackerFacts {IsAlive = true, IsLord = false, IsPrisoner = false, HasClan = true, IsPlayerClan = false, IsInPlayerKingdom = true, Relation = 50, Influence = 100000f})
                 .Outcome.Should().Be(ClaimantSupportOutcome.NotFound);
-            ClaimantSupportPolicy.Evaluate(true, true, true, true, false, true, 50, 100000f)
+            ClaimantSupportPolicy.Evaluate(new ClaimantSupportPolicy.ClaimantBackerFacts {IsAlive = true, IsLord = true, IsPrisoner = true, HasClan = true, IsPlayerClan = false, IsInPlayerKingdom = true, Relation = 50, Influence = 100000f})
                 .Outcome.Should().Be(ClaimantSupportOutcome.NotFound);
         }
 
@@ -54,9 +51,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_no_clan_or_the_players_own_clan_THEN_the_outcome_is_backer_is_player_house()
         {
-            ClaimantSupportPolicy.Evaluate(true, true, false, false, false, true, 50, 100000f)
+            ClaimantSupportPolicy.Evaluate(new ClaimantSupportPolicy.ClaimantBackerFacts {IsAlive = true, IsLord = true, IsPrisoner = false, HasClan = false, IsPlayerClan = false, IsInPlayerKingdom = true, Relation = 50, Influence = 100000f})
                 .Outcome.Should().Be(ClaimantSupportOutcome.BackerIsPlayerHouse);
-            ClaimantSupportPolicy.Evaluate(true, true, false, true, true, true, 50, 100000f)
+            ClaimantSupportPolicy.Evaluate(new ClaimantSupportPolicy.ClaimantBackerFacts {IsAlive = true, IsLord = true, IsPrisoner = false, HasClan = true, IsPlayerClan = true, IsInPlayerKingdom = true, Relation = 50, Influence = 100000f})
                 .Outcome.Should().Be(ClaimantSupportOutcome.BackerIsPlayerHouse);
         }
 
@@ -64,7 +61,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_backer_outside_the_players_kingdom_THEN_the_outcome_is_not_in_player_kingdom()
         {
-            ClaimantSupportPolicy.Evaluate(true, true, false, true, false, false, 50, 100000f)
+            ClaimantSupportPolicy.Evaluate(new ClaimantSupportPolicy.ClaimantBackerFacts {IsAlive = true, IsLord = true, IsPrisoner = false, HasClan = true, IsPlayerClan = false, IsInPlayerKingdom = false, Relation = 50, Influence = 100000f})
                 .Outcome.Should().Be(ClaimantSupportOutcome.NotInPlayerKingdom);
         }
 
@@ -73,9 +70,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_non_positive_relation_THEN_the_backing_is_refused_as_unaffordable()
         {
-            ClaimantSupportPolicy.Evaluate(true, true, false, true, false, true, 0, 100000f)
+            ClaimantSupportPolicy.Evaluate(new ClaimantSupportPolicy.ClaimantBackerFacts {IsAlive = true, IsLord = true, IsPrisoner = false, HasClan = true, IsPlayerClan = false, IsInPlayerKingdom = true, Relation = 0, Influence = 100000f})
                 .Outcome.Should().Be(ClaimantSupportOutcome.CannotAfford);
-            ClaimantSupportPolicy.Evaluate(true, true, false, true, false, true, -20, 100000f)
+            ClaimantSupportPolicy.Evaluate(new ClaimantSupportPolicy.ClaimantBackerFacts {IsAlive = true, IsLord = true, IsPrisoner = false, HasClan = true, IsPlayerClan = false, IsInPlayerKingdom = true, Relation = -20, Influence = 100000f})
                 .Outcome.Should().Be(ClaimantSupportOutcome.CannotAfford);
         }
 
@@ -83,7 +80,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_willing_backer_with_no_influence_THEN_the_backing_is_unaffordable()
         {
-            ClaimantSupportPolicy.Evaluate(true, true, false, true, false, true, 50, 0f)
+            ClaimantSupportPolicy.Evaluate(new ClaimantSupportPolicy.ClaimantBackerFacts {IsAlive = true, IsLord = true, IsPrisoner = false, HasClan = true, IsPlayerClan = false, IsInPlayerKingdom = true, Relation = 50, Influence = 0f})
                 .Outcome.Should().Be(ClaimantSupportOutcome.CannotAfford);
         }
     }

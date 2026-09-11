@@ -32,7 +32,7 @@ namespace CalradiaRemembers.Tests
         {
             var stance = new NpcStance { Affection = 0 };
 
-            StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.None);
+            StanceConsequencePolicy.Resolve(stance, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 0, Valor = 0, Mercy = 0, Calculating = 0}).Should().Be(StanceConsequence.None);
         }
 
         // HostileFloor: where the hostile ladder starts. ColdShoulder is conversation-only (no letter,
@@ -42,7 +42,7 @@ namespace CalradiaRemembers.Tests
         {
             var stance = new NpcStance { Affection = -30 };
 
-            StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.ColdShoulder);
+            StanceConsequencePolicy.Resolve(stance, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 0, Valor = 0, Mercy = 0, Calculating = 0}).Should().Be(StanceConsequence.ColdShoulder);
         }
 
         // ThreatFloor: past this point the weekly sweep DOES send a cold/menacing letter. Pins that real
@@ -52,7 +52,7 @@ namespace CalradiaRemembers.Tests
         {
             var stance = new NpcStance { Affection = -50 };
 
-            StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.Threat);
+            StanceConsequencePolicy.Resolve(stance, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 0, Valor = 0, Mercy = 0, Calculating = 0}).Should().Be(StanceConsequence.Threat);
         }
 
         // The rarest, most dangerous verdict: arms a real town ambush (StanceAmbushArmedDay). ALL of
@@ -64,7 +64,7 @@ namespace CalradiaRemembers.Tests
             //Arrange — dishonourable, calculating, cruel, and not afraid to act.
             var stance = new NpcStance { Affection = -80, Fear = 10 };
 
-            StanceConsequencePolicy.Resolve(stance, honor: -1, valor: 0, mercy: -2, calculating: 2)
+            StanceConsequencePolicy.Resolve(stance, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = -1, Valor = 0, Mercy = -2, Calculating = 2})
                 .Should().Be(StanceConsequence.Assassinate);
         }
 
@@ -77,7 +77,7 @@ namespace CalradiaRemembers.Tests
             //Arrange — a cold schemer, but not cruel enough to kill (mercy not below zero).
             var stance = new NpcStance { Affection = -80, Fear = 10 };
 
-            StanceConsequencePolicy.Resolve(stance, honor: -1, valor: 0, mercy: 0, calculating: 2)
+            StanceConsequencePolicy.Resolve(stance, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = -1, Valor = 0, Mercy = 0, Calculating = 2})
                 .Should().Be(StanceConsequence.Plot);
         }
 
@@ -89,7 +89,7 @@ namespace CalradiaRemembers.Tests
             //Arrange — honourable and bold: he rides out rather than schemes.
             var stance = new NpcStance { Affection = -80, Fear = 10 };
 
-            StanceConsequencePolicy.Resolve(stance, honor: 1, valor: 2, mercy: 0, calculating: -1)
+            StanceConsequencePolicy.Resolve(stance, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 1, Valor = 2, Mercy = 0, Calculating = -1})
                 .Should().Be(StanceConsequence.Intercept);
         }
 
@@ -102,7 +102,7 @@ namespace CalradiaRemembers.Tests
             //Arrange — bold by nature, but too terrified to confront the player, and no scheming bent.
             var stance = new NpcStance { Affection = -80, Fear = 80 };
 
-            StanceConsequencePolicy.Resolve(stance, honor: 0, valor: 2, mercy: 0, calculating: 0)
+            StanceConsequencePolicy.Resolve(stance, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 0, Valor = 2, Mercy = 0, Calculating = 0})
                 .Should().Be(StanceConsequence.Threat);
         }
 
@@ -115,7 +115,7 @@ namespace CalradiaRemembers.Tests
             //Arrange — every trait points at murder EXCEPT honour, which forbids it; and he is not bold.
             var stance = new NpcStance { Affection = -80, Fear = 10 };
 
-            StanceConsequencePolicy.Resolve(stance, honor: 2, valor: 0, mercy: -2, calculating: 2)
+            StanceConsequencePolicy.Resolve(stance, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 2, Valor = 0, Mercy = -2, Calculating = 2})
                 .Should().Be(StanceConsequence.Threat);
         }
 
@@ -126,7 +126,7 @@ namespace CalradiaRemembers.Tests
         {
             var stance = new NpcStance { Affection = 30 };
 
-            StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.WarmWelcome);
+            StanceConsequencePolicy.Resolve(stance, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 0, Valor = 0, Mercy = 0, Calculating = 0}).Should().Be(StanceConsequence.WarmWelcome);
         }
 
         // FavorFloor + FavorRespect: a real boon (gift/discount) wants genuine esteem, not just fondness
@@ -136,7 +136,7 @@ namespace CalradiaRemembers.Tests
         {
             var stance = new NpcStance { Affection = 50, Respect = 40, Trust = 0 };
 
-            StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.Favor);
+            StanceConsequencePolicy.Resolve(stance, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 0, Valor = 0, Mercy = 0, Calculating = 0}).Should().Be(StanceConsequence.Favor);
         }
 
         // WarningTrust takes PRIORITY over Favor in ResolveFriendly's own ordering: a deeply trusted friend
@@ -148,7 +148,7 @@ namespace CalradiaRemembers.Tests
             //Arrange — a deeply trusted friend tips you off; trust takes priority over a mere boon.
             var stance = new NpcStance { Affection = 50, Trust = 50, Respect = 40 };
 
-            StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.Warning);
+            StanceConsequencePolicy.Resolve(stance, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 0, Valor = 0, Mercy = 0, Calculating = 0}).Should().Be(StanceConsequence.Warning);
         }
 
         // M-S1 (regard audit): fondness alone must not warrant a WARM welcome when trust has collapsed. Without
@@ -161,7 +161,7 @@ namespace CalradiaRemembers.Tests
             //Arrange: fond (Affection 50) yet deeply distrustful (Trust -80); no clean warm hint fits.
             var stance = new NpcStance { Affection = 50, Trust = -80 };
 
-            StanceConsequencePolicy.Resolve(stance, 0, 0, 0, 0).Should().Be(StanceConsequence.None);
+            StanceConsequencePolicy.Resolve(stance, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 0, Valor = 0, Mercy = 0, Calculating = 0}).Should().Be(StanceConsequence.None);
         }
 
         // The boundary is inclusive at -40: trust exactly at the floor still withholds the warm welcome, but a
@@ -172,8 +172,8 @@ namespace CalradiaRemembers.Tests
             var atFloor = new NpcStance { Affection = 50, Trust = -40 };
             var aboveFloor = new NpcStance { Affection = 50, Trust = -39 };
 
-            StanceConsequencePolicy.Resolve(atFloor, 0, 0, 0, 0).Should().Be(StanceConsequence.None);
-            StanceConsequencePolicy.Resolve(aboveFloor, 0, 0, 0, 0).Should().Be(StanceConsequence.WarmWelcome);
+            StanceConsequencePolicy.Resolve(atFloor, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 0, Valor = 0, Mercy = 0, Calculating = 0}).Should().Be(StanceConsequence.None);
+            StanceConsequencePolicy.Resolve(aboveFloor, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 0, Valor = 0, Mercy = 0, Calculating = 0}).Should().Be(StanceConsequence.WarmWelcome);
         }
     }
 }

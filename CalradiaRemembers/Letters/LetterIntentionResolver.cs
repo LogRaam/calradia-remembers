@@ -134,12 +134,7 @@ namespace CalradiaRemembers.Letters
                 NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(sender.StringId);
                 if (profile == null) return null;
 
-                return StanceConsequencePolicy.Resolve(
-                    StanceService.ToStance(profile),
-                    sender.GetTraitLevel(DefaultTraits.Honor),
-                    sender.GetTraitLevel(DefaultTraits.Valor),
-                    sender.GetTraitLevel(DefaultTraits.Mercy),
-                    sender.GetTraitLevel(DefaultTraits.Calculating));
+                return StanceConsequencePolicy.Resolve(StanceService.ToStance(profile), new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = sender.GetTraitLevel(DefaultTraits.Honor), Valor = sender.GetTraitLevel(DefaultTraits.Valor), Mercy = sender.GetTraitLevel(DefaultTraits.Mercy), Calculating = sender.GetTraitLevel(DefaultTraits.Calculating)});
             }
 
             private static bool IsHostile(StanceConsequence v)

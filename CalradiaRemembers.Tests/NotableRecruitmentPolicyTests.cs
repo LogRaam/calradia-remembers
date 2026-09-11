@@ -31,9 +31,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_free_notable_with_a_successor_at_the_regard_floor_WHEN_evaluating_THEN_they_can_be_recruited()
         {
-            NotableRecruitmentPolicy.Evaluate(true, true, false, false, NotableRecruitmentPolicy.RegardFloor, true)
+            NotableRecruitmentPolicy.Evaluate(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = false, Regard = NotableRecruitmentPolicy.RegardFloor, HasEligibleSuccessor = true})
                 .Should().Be(NotableRecruitmentBlock.None);
-            NotableRecruitmentPolicy.CanRecruit(true, true, false, false, NotableRecruitmentPolicy.RegardFloor, true)
+            NotableRecruitmentPolicy.CanRecruit(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = false, Regard = NotableRecruitmentPolicy.RegardFloor, HasEligibleSuccessor = true})
                 .Should().BeTrue();
         }
 
@@ -42,7 +42,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_regard_exactly_at_the_floor_WHEN_evaluating_THEN_it_passes()
         {
-            NotableRecruitmentPolicy.CanRecruit(true, true, false, false, 60, true).Should().BeTrue();
+            NotableRecruitmentPolicy.CanRecruit(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = false, Regard = 60, HasEligibleSuccessor = true}).Should().BeTrue();
         }
 
         // The strong regard bar is what stops the verb being a trivial "chat up any town's gang leader and keep
@@ -51,9 +51,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_regard_just_below_the_floor_WHEN_evaluating_THEN_regard_is_too_low()
         {
-            NotableRecruitmentPolicy.Evaluate(true, true, false, false, NotableRecruitmentPolicy.RegardFloor - 1, true)
+            NotableRecruitmentPolicy.Evaluate(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = false, Regard = NotableRecruitmentPolicy.RegardFloor - 1, HasEligibleSuccessor = true})
                 .Should().Be(NotableRecruitmentBlock.RegardTooLow);
-            NotableRecruitmentPolicy.CanRecruit(true, true, false, false, NotableRecruitmentPolicy.RegardFloor - 1, true)
+            NotableRecruitmentPolicy.CanRecruit(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = false, Regard = NotableRecruitmentPolicy.RegardFloor - 1, HasEligibleSuccessor = true})
                 .Should().BeFalse();
         }
 
@@ -63,9 +63,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_hero_who_is_not_a_notable_WHEN_evaluating_THEN_they_are_not_a_notable_even_at_full_regard()
         {
-            NotableRecruitmentPolicy.Evaluate(false, true, false, false, 100, true)
+            NotableRecruitmentPolicy.Evaluate(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = false, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = false, Regard = 100, HasEligibleSuccessor = true})
                 .Should().Be(NotableRecruitmentBlock.NotANotable);
-            NotableRecruitmentPolicy.CanRecruit(false, true, false, false, 100, true).Should().BeFalse();
+            NotableRecruitmentPolicy.CanRecruit(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = false, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = false, Regard = 100, HasEligibleSuccessor = true}).Should().BeFalse();
         }
 
         // A dead notable cannot be recruited. The live executor re-derives IsAlive from the engine, but if it
@@ -73,9 +73,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_dead_notable_WHEN_evaluating_THEN_they_are_not_alive()
         {
-            NotableRecruitmentPolicy.Evaluate(true, false, false, false, 100, true)
+            NotableRecruitmentPolicy.Evaluate(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = false, IsPrisoner = false, IsPlayerClanAlready = false, Regard = 100, HasEligibleSuccessor = true})
                 .Should().Be(NotableRecruitmentBlock.NotAlive);
-            NotableRecruitmentPolicy.CanRecruit(true, false, false, false, 100, true).Should().BeFalse();
+            NotableRecruitmentPolicy.CanRecruit(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = false, IsPrisoner = false, IsPlayerClanAlready = false, Regard = 100, HasEligibleSuccessor = true}).Should().BeFalse();
         }
 
         // A notable who is currently a prisoner belongs to the recruit_prisoner path (freed-from-the-cell
@@ -84,9 +84,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_notable_who_is_a_prisoner_WHEN_evaluating_THEN_it_refuses_as_a_prisoner()
         {
-            NotableRecruitmentPolicy.Evaluate(true, true, true, false, 100, true)
+            NotableRecruitmentPolicy.Evaluate(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = true, IsPrisoner = true, IsPlayerClanAlready = false, Regard = 100, HasEligibleSuccessor = true})
                 .Should().Be(NotableRecruitmentBlock.IsPrisoner);
-            NotableRecruitmentPolicy.CanRecruit(true, true, true, false, 100, true).Should().BeFalse();
+            NotableRecruitmentPolicy.CanRecruit(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = true, IsPrisoner = true, IsPlayerClanAlready = false, Regard = 100, HasEligibleSuccessor = true}).Should().BeFalse();
         }
 
         // A notable already in the player's clan has nothing to recruit. Refuse so a stray emission on an
@@ -94,9 +94,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_notable_already_in_the_player_clan_WHEN_evaluating_THEN_it_refuses_as_already_player_clan()
         {
-            NotableRecruitmentPolicy.Evaluate(true, true, false, true, 100, true)
+            NotableRecruitmentPolicy.Evaluate(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = true, Regard = 100, HasEligibleSuccessor = true})
                 .Should().Be(NotableRecruitmentBlock.AlreadyPlayerClan);
-            NotableRecruitmentPolicy.CanRecruit(true, true, false, true, 100, true).Should().BeFalse();
+            NotableRecruitmentPolicy.CanRecruit(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = true, Regard = 100, HasEligibleSuccessor = true}).Should().BeFalse();
         }
 
         // The author's first call: the notable must bequeath their gang/role to one of their own people so the
@@ -105,9 +105,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_no_eligible_successor_WHEN_evaluating_THEN_it_refuses_to_leave_the_post_vacant()
         {
-            NotableRecruitmentPolicy.Evaluate(true, true, false, false, 100, false)
+            NotableRecruitmentPolicy.Evaluate(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = false, Regard = 100, HasEligibleSuccessor = false})
                 .Should().Be(NotableRecruitmentBlock.NoEligibleSuccessor);
-            NotableRecruitmentPolicy.CanRecruit(true, true, false, false, 100, false).Should().BeFalse();
+            NotableRecruitmentPolicy.CanRecruit(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = false, Regard = 100, HasEligibleSuccessor = false}).Should().BeFalse();
         }
 
         // Which reason surfaces when several gates fail is real, player-facing behaviour (it grounds the
@@ -117,7 +117,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_non_notable_who_also_lacks_a_successor_with_low_regard_WHEN_evaluating_THEN_identity_is_reported_first()
         {
-            NotableRecruitmentPolicy.Evaluate(false, true, false, false, 0, false)
+            NotableRecruitmentPolicy.Evaluate(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = false, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = false, Regard = 0, HasEligibleSuccessor = false})
                 .Should().Be(NotableRecruitmentBlock.NotANotable);
         }
 
@@ -126,7 +126,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_beloved_notable_with_no_successor_WHEN_evaluating_THEN_the_missing_successor_is_reported_over_regard()
         {
-            NotableRecruitmentPolicy.Evaluate(true, true, false, false, 100, false)
+            NotableRecruitmentPolicy.Evaluate(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = true, IsAlive = true, IsPrisoner = false, IsPlayerClanAlready = false, Regard = 100, HasEligibleSuccessor = false})
                 .Should().Be(NotableRecruitmentBlock.NoEligibleSuccessor);
         }
 

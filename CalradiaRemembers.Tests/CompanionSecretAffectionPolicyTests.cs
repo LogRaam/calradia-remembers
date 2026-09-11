@@ -24,7 +24,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_all_conditions_hold_WHEN_checking_eligibility_THEN_the_companion_could_confide()
         {
-            CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, 60).Should().BeTrue();
+            CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = true, IsContent = true, AlreadyAttached = false, Regard = 60}).Should().BeTrue();
         }
 
         // CompanionAffectionBehavior only iterates IsPlayerCompanion heroes, but this pins the same
@@ -33,7 +33,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_hero_is_not_a_companion_WHEN_checking_eligibility_THEN_they_cannot_confide()
         {
-            CompanionSecretAffectionPolicy.IsEligible(false, true, true, true, false, 60).Should().BeFalse();
+            CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = false, OrientationCompatible = true, AdultEnabled = true, IsContent = true, AlreadyAttached = false, Regard = 60}).Should().BeFalse();
         }
 
         // Same class of bug this whole feature area guards elsewhere (jealousy's orientation gate,
@@ -42,7 +42,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_incompatible_orientation_WHEN_checking_eligibility_THEN_they_cannot_confide()
         {
-            CompanionSecretAffectionPolicy.IsEligible(true, false, true, true, false, 60).Should().BeFalse();
+            CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = false, AdultEnabled = true, IsContent = true, AlreadyAttached = false, Regard = 60}).Should().BeFalse();
         }
 
         // Per the production header, this feature only fires "when adult content is enabled";
@@ -51,7 +51,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_adult_content_is_disabled_WHEN_checking_eligibility_THEN_they_cannot_confide()
         {
-            CompanionSecretAffectionPolicy.IsEligible(true, true, false, true, false, 60).Should().BeFalse();
+            CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = false, IsContent = true, AlreadyAttached = false, Regard = 60}).Should().BeFalse();
         }
 
         // The production header calls this "the positive counterpart to CompanionHappinessBehavior's
@@ -60,7 +60,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_companion_is_not_content_WHEN_checking_eligibility_THEN_they_cannot_confide()
         {
-            CompanionSecretAffectionPolicy.IsEligible(true, true, true, false, false, 60).Should().BeFalse();
+            CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = true, IsContent = false, AlreadyAttached = false, Regard = 60}).Should().BeFalse();
         }
 
         // A companion already a consort/secret-lover/committed/spouse has nothing new to confide;
@@ -69,7 +69,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_companion_is_already_attached_WHEN_checking_eligibility_THEN_they_cannot_confide()
         {
-            CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, true, 60).Should().BeFalse();
+            CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = true, IsContent = true, AlreadyAttached = true, Regard = 60}).Should().BeFalse();
         }
 
         // Pins the MinRegard=50 boundary (one point below it) so a comrade bond that has not yet run
@@ -78,7 +78,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_bond_is_below_the_minimum_regard_WHEN_checking_eligibility_THEN_they_cannot_confide()
         {
-            CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, 49).Should().BeFalse();
+            CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = true, IsContent = true, AlreadyAttached = false, Regard = 49}).Should().BeFalse();
         }
 
         // Pins the formula (regard - MinRegard) * 2 + 5 at both ends and its clamps: floor 5% right at

@@ -3997,9 +3997,7 @@ namespace CalradiaRemembers.GameState
             Settlement settlement = npcHero.CurrentSettlement;
             Hero successor = FindNotableSuccessor(npcHero);
 
-            switch (NotableRecruitmentPolicy.Evaluate(
-                       npcHero.IsNotable, npcHero.IsAlive, npcHero.IsPrisoner,
-                       npcHero.Clan == playerClan, regard, successor != null))
+            switch (NotableRecruitmentPolicy.Evaluate(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = npcHero.IsNotable, IsAlive = npcHero.IsAlive, IsPrisoner = npcHero.IsPrisoner, IsPlayerClanAlready = npcHero.Clan == playerClan, Regard = regard, HasEligibleSuccessor = successor != null}))
             {
                case NotableRecruitmentBlock.NotANotable:
                   return ActionOutcome.Refused(

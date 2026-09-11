@@ -7838,7 +7838,7 @@ namespace CalradiaRemembers.Diagnostics
 
             // The confession is the thing that moved; these two must agree with it, at whatever pacing is set.
             t.Expect("theConfessionIsAllowedAtTheBar",
-               CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, bar, ModSettings.RelationWarmth), true);
+               CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = true, IsContent = true, AlreadyAttached = false, Regard = bar, Warmth = ModSettings.RelationWarmth}), true);
             t.Expect("belowTheBarTheVerbIsNotEvenTaught", below.SecretLoverEligible, false);
             t.Expect("belowTheBarTheBridgeRefuses", refusedBelow?.WasRefused, true);
             t.Expect("atTheBarTheVerbIsTaught", atBar.SecretLoverEligible, true);

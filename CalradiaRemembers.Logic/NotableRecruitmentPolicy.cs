@@ -71,9 +71,47 @@ namespace CalradiaRemembers.Logic
       public const int StartingRelationBonus = 20;
 
       /// <summary>The blocking reason, or <see cref="NotableRecruitmentBlock.None" /> when the notable can be recruited.</summary>
-      public static NotableRecruitmentBlock Evaluate(
-         bool isNotable, bool isAlive, bool isPrisoner, bool isPlayerClanAlready, int regard, bool hasEligibleSuccessor)
+      /// <summary>
+      ///   What is known about a notable the player would bring into their clan, read off the campaign by the
+      ///   caller. Named rather than positional (2026-09-10): four booleans in a row around a regard, where
+      ///   "already of the player's clan" and "has an heir to leave the post to" are both just true.
+      /// </summary>
+      public sealed class NotableRecruitmentFacts
       {
+         /// <summary>They are a settlement notable, which is who this is about.</summary>
+         public bool IsNotable { get; set; }
+
+         /// <summary>They are alive.</summary>
+         public bool IsAlive { get; set; }
+
+         /// <summary>They are somebody's prisoner.</summary>
+         public bool IsPrisoner { get; set; }
+
+         /// <summary>They already belong to the player's clan, so there is nothing to ask.</summary>
+         public bool IsPlayerClanAlready { get; set; }
+
+         /// <summary>The mod's own personal regard ledger, never the vanilla clan relation.</summary>
+         public int Regard { get; set; }
+
+         /// <summary>
+         ///   Somebody can inherit their post. A notable who leaves an empty chair behind takes their
+         ///   settlement's whole standing with them, so the succession is the price of the offer.
+         /// </summary>
+         public bool HasEligibleSuccessor { get; set; }
+      }
+
+      /// <summary>Which door is shut on recruiting this notable, or None. Unknown facts refuse.</summary>
+      public static NotableRecruitmentBlock Evaluate(NotableRecruitmentFacts facts)
+      {
+         if (facts == null) return NotableRecruitmentBlock.NotANotable;
+
+         bool isNotable = facts.IsNotable;
+         bool isAlive = facts.IsAlive;
+         bool isPrisoner = facts.IsPrisoner;
+         bool isPlayerClanAlready = facts.IsPlayerClanAlready;
+         int regard = facts.Regard;
+         bool hasEligibleSuccessor = facts.HasEligibleSuccessor;
+
          // Order runs from the most absolute bar (who they are) to the most temporary and earnable (regard), so
          // the reason surfaced is the truest one: someone who is not a notable at all is never told their regard
          // is the problem, and the "earn their deep trust" refusal is the last word only once every structural
@@ -89,9 +127,7 @@ namespace CalradiaRemembers.Logic
       }
 
       /// <summary>True when every gate passes, the convenience both live call sites use over <see cref="Evaluate" />.</summary>
-      public static bool CanRecruit(
-         bool isNotable, bool isAlive, bool isPrisoner, bool isPlayerClanAlready, int regard, bool hasEligibleSuccessor)
-         => Evaluate(isNotable, isAlive, isPrisoner, isPlayerClanAlready, regard, hasEligibleSuccessor)
-            == NotableRecruitmentBlock.None;
+      public static bool CanRecruit(NotableRecruitmentFacts facts)
+         => Evaluate(facts) == NotableRecruitmentBlock.None;
    }
 }

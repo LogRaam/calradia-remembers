@@ -155,14 +155,15 @@ namespace CalradiaRemembers.Mapping
       }
 
       private static string Categorize(Hero npc, Hero other)
-         => ThirdPartyDescriptor.Categorize(
-            CharacterRelationManager.GetHeroRelation(npc, other),
-            npc.Spouse == other,
-            npc.Father == other,
-            npc.Mother == other,
-            npc.Children != null && npc.Children.Any(c => c == other),
-            npc.Clan != null && npc.Clan == other.Clan,
-            AreRivalGangLeaders(npc, other));
+         => ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {
+            Relation = CharacterRelationManager.GetHeroRelation(npc, other),
+            IsSpouse = npc.Spouse == other,
+            IsFather = npc.Father == other,
+            IsMother = npc.Mother == other,
+            IsChild = npc.Children != null && npc.Children.Any(c => c == other),
+            SameClan = npc.Clan != null && npc.Clan == other.Clan,
+            AreRivalGangLeaders = AreRivalGangLeaders(npc, other)
+         });
 
       /// <summary>
       ///   Two DIFFERENT gang leaders whose turf is the same settlement are structural rivals, so the NPC is

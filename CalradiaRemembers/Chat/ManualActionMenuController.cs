@@ -437,8 +437,7 @@ namespace CalradiaRemembers.Chat
                npcIsFactionLeader, mediatableFactions.Count > 0, playerRegardWithLeader, playerStatureTier);
 
             bool hasNotableSuccessor = npc.IsNotable && BannerlordGameStateBridge.FindNotableSuccessor(npc) != null;
-            bool canRecruitNotable = npc.IsNotable && NotableRecruitmentPolicy.CanRecruit(
-               npc.IsNotable, npc.IsAlive, npc.IsPrisoner, npc.Clan == Clan.PlayerClan, regard, hasNotableSuccessor);
+            bool canRecruitNotable = npc.IsNotable && NotableRecruitmentPolicy.CanRecruit(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = npc.IsNotable, IsAlive = npc.IsAlive, IsPrisoner = npc.IsPrisoner, IsPlayerClanAlready = npc.Clan == Clan.PlayerClan, Regard = regard, HasEligibleSuccessor = hasNotableSuccessor});
 
             int itemCount = MobileParty.MainParty?.ItemRoster?.Count ?? 0;
 

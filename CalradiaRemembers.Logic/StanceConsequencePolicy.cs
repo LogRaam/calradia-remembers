@@ -67,9 +67,22 @@ namespace CalradiaRemembers.Logic
         ///   The single consequence this posture warrants, or <see cref="StanceConsequence.None" />. Traits are
         ///   the authored −2..+2 scale (honour, valour, mercy, calculating) and decide WHO dares WHAT.
         /// </summary>
-        public static StanceConsequence Resolve(NpcStance stance, int honor, int valor, int mercy, int calculating)
+        /// <summary>
+        ///   Named rather than positional (2026-09-10): this took FOUR INTS in a row, honor, valor, mercy and
+        ///   calculating, and nothing but their order told them apart. It does not invent a facts type either:
+        ///   Appreciations.TraitFacts already carries exactly these five trait values and is already built from
+        ///   the engine by GrudgeBridge.BuildTraitFacts, so the realignment is to ASK FOR THE TYPE THAT EXISTS
+        ///   rather than to unpack it into loose numbers at every call site.
+        /// </summary>
+        public static StanceConsequence Resolve(NpcStance stance, Appreciations.TraitFacts traits)
         {
             if (stance == null) return StanceConsequence.None;
+
+            traits ??= new Appreciations.TraitFacts();
+            int honor = traits.Honor;
+            int valor = traits.Valor;
+            int mercy = traits.Mercy;
+            int calculating = traits.Calculating;
 
             int affection = stance.Affection;
 

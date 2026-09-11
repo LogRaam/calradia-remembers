@@ -49,10 +49,52 @@ namespace CalradiaRemembers.Logic
         ///   with the player, adult content is enabled, they are content (not unhappy), they are not already
         ///   attached to the player (spouse/consort/secret-lover/committed), and the bond is deep enough.
         /// </summary>
-        public static bool IsEligible(bool isCompanion, bool orientationCompatible, bool adultEnabled,
-                                      bool isContent, bool alreadyAttached, int regard,
-                                      RelationWarmth warmth = RelationWarmth.Normal)
+        /// <summary>
+        ///   What a companion's confession rests on, read off the campaign by the caller. Named rather than
+        ///   positional (2026-09-10): this took FIVE booleans in a row, and cr.testall called it as
+        ///   IsEligible(true, true, true, true, false, bar, warmth), six bare values with nothing to say which
+        ///   was which, in the very test written to prove this bar had stopped drifting.
+        /// </summary>
+        public sealed class SecretAffectionFacts
         {
+            /// <summary>They are one of the player's own companions.</summary>
+            public bool IsCompanion { get; set; }
+
+            /// <summary>Their orientation admits the player.</summary>
+            public bool OrientationCompatible { get; set; }
+
+            /// <summary>The campaign's Adult Content level admits the romantic arc at all.</summary>
+            public bool AdultEnabled { get; set; }
+
+            /// <summary>
+            ///   They are content. This one belongs to the CONFESSION alone rather than to the bond: an unhappy
+            ///   companion does not open their heart, but unhappiness is no reason the bond could not exist.
+            /// </summary>
+            public bool IsContent { get; set; }
+
+            /// <summary>They are already bound to the player, so there is nothing left to confess.</summary>
+            public bool AlreadyAttached { get; set; }
+
+            /// <summary>The mod's own personal regard ledger, never the vanilla clan relation.</summary>
+            public int Regard { get; set; }
+
+            /// <summary>The player's Relationship Pacing, which sets how deep the bond must run first.</summary>
+            public RelationWarmth Warmth { get; set; } = RelationWarmth.Normal;
+        }
+
+        /// <summary>Whether this companion may confide their feelings. Unknown facts refuse.</summary>
+        public static bool IsEligible(SecretAffectionFacts facts)
+        {
+            if (facts == null) return false;
+
+            bool isCompanion = facts.IsCompanion;
+            bool orientationCompatible = facts.OrientationCompatible;
+            bool adultEnabled = facts.AdultEnabled;
+            bool isContent = facts.IsContent;
+            bool alreadyAttached = facts.AlreadyAttached;
+            int regard = facts.Regard;
+            RelationWarmth warmth = facts.Warmth;
+
             // Everything this shares with the bond itself is asked of the ONE rule, so a companion can never
             // confide a bond the game would then refuse to form. Only contentment is judged here, because it
             // belongs to the confession alone: an unhappy companion does not open their heart, but unhappiness

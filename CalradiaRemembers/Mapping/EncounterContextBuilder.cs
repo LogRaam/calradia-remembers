@@ -1807,9 +1807,7 @@ namespace CalradiaRemembers.Mapping
 
             bool hasSuccessor = BannerlordGameStateBridge.FindNotableSuccessor(hero) != null;
 
-            return NotableRecruitmentPolicy.CanRecruit(
-               hero.IsNotable, hero.IsAlive, hero.IsPrisoner,
-               hero.Clan == Clan.PlayerClan, profile?.ReputationWithPlayer ?? 0, hasSuccessor);
+            return NotableRecruitmentPolicy.CanRecruit(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = hero.IsNotable, IsAlive = hero.IsAlive, IsPrisoner = hero.IsPrisoner, IsPlayerClanAlready = hero.Clan == Clan.PlayerClan, Regard = profile?.ReputationWithPlayer ?? 0, HasEligibleSuccessor = hasSuccessor});
          }
          catch { return false; }
       }
@@ -2729,12 +2727,7 @@ namespace CalradiaRemembers.Mapping
       {
          if (hero == null || profile == null) return null;
 
-         StanceConsequence verdict = StanceConsequencePolicy.Resolve(
-            StanceService.ToStance(profile),
-            TraitLevel(hero, DefaultTraits.Honor),
-            TraitLevel(hero, DefaultTraits.Valor),
-            TraitLevel(hero, DefaultTraits.Mercy),
-            TraitLevel(hero, DefaultTraits.Calculating));
+         StanceConsequence verdict = StanceConsequencePolicy.Resolve(StanceService.ToStance(profile), new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = TraitLevel(hero, DefaultTraits.Honor), Valor = TraitLevel(hero, DefaultTraits.Valor), Mercy = TraitLevel(hero, DefaultTraits.Mercy), Calculating = TraitLevel(hero, DefaultTraits.Calculating)});
 
          return verdict switch {
             StanceConsequence.ColdShoulder => "You are cold toward the player and unwilling to strike any bargain or do them a favour; keep them at arm's length.",

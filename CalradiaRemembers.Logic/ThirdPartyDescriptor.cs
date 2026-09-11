@@ -31,6 +31,44 @@ namespace CalradiaRemembers.Logic
     ///   could relay that person's whereabouts. The host gathers the kin/clan/faction facts and the
     ///   relation score from the engine; these turn them into the exact words the prompt carries.
     /// </summary>
+    /// <summary>
+    ///   How one character stands to another, read off the engine by the caller: their kinship if any, their
+    ///   house, their standing, and whether they are rivals for the same turf.
+    ///   <para>
+    ///     Named rather than positional (2026-09-10). This took an int and SIX booleans in a row, and its own
+    ///     tests called it half-named: Categorize(-50, isSpouse: true, false, false, false, sameClan: false),
+    ///     with three bare values in the middle standing for father, mother and child. Nothing but care kept
+    ///     them in the right order, in the very file meant to prove the ordering.
+    ///   </para>
+    /// </summary>
+    public sealed class ThirdPartyFacts
+    {
+        /// <summary>The engine's relation score between the two of them.</summary>
+        public int Relation { get; set; }
+
+        /// <summary>They are married to one another.</summary>
+        public bool IsSpouse { get; set; }
+
+        /// <summary>The other is this character's father.</summary>
+        public bool IsFather { get; set; }
+
+        /// <summary>The other is this character's mother.</summary>
+        public bool IsMother { get; set; }
+
+        /// <summary>The other is this character's child.</summary>
+        public bool IsChild { get; set; }
+
+        /// <summary>They belong to the same clan.</summary>
+        public bool SameClan { get; set; }
+
+        /// <summary>
+        ///   Both are gang leaders holding the same turf, which makes them structural rivals whatever their
+        ///   culture or proximity would otherwise suggest (player report: gangs hallucinated friendships with
+        ///   the boss across the square).
+        /// </summary>
+        public bool AreRivalGangLeaders { get; set; }
+    }
+
     public static class ThirdPartyDescriptor
     {
         private const int FriendThreshold = 10;
@@ -43,10 +81,18 @@ namespace CalradiaRemembers.Logic
         ///   tiers; a clanmate at neutral standing is named as such; otherwise an acquaintance or a
         ///   stranger. Mirrors the original ordering exactly.
         /// </summary>
-        public static string Categorize(
-            int relation, bool isSpouse, bool isFather, bool isMother, bool isChild, bool sameClan,
-            bool areRivalGangLeaders = false)
+        public static string Categorize(ThirdPartyFacts facts)
         {
+            if (facts == null) return "a stranger";
+
+            int relation = facts.Relation;
+            bool isSpouse = facts.IsSpouse;
+            bool isFather = facts.IsFather;
+            bool isMother = facts.IsMother;
+            bool isChild = facts.IsChild;
+            bool sameClan = facts.SameClan;
+            bool areRivalGangLeaders = facts.AreRivalGangLeaders;
+
             if (isSpouse) return "your spouse";
             if (isFather) return "your father";
             if (isMother) return "your mother";

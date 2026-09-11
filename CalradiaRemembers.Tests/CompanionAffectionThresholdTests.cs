@@ -68,10 +68,10 @@ namespace CalradiaRemembers.Tests
         {
             const int regard = 30;
 
-            CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, regard, RelationWarmth.VeryEasy)
+            CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = true, IsContent = true, AlreadyAttached = false, Regard = regard, Warmth = RelationWarmth.VeryEasy})
                 .Should().BeTrue();
 
-            CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, regard, RelationWarmth.Normal)
+            CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = true, IsContent = true, AlreadyAttached = false, Regard = regard, Warmth = RelationWarmth.Normal})
                 .Should().BeFalse();
         }
 
@@ -94,7 +94,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_bond_below_every_threshold_WHEN_checking_eligibility_THEN_nobody_confides()
         {
-            CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, 10, RelationWarmth.VeryEasy)
+            CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = true, IsContent = true, AlreadyAttached = false, Regard = 10, Warmth = RelationWarmth.VeryEasy})
                 .Should().BeFalse();
         }
 
@@ -116,8 +116,8 @@ namespace CalradiaRemembers.Tests
             // into the bridge tomorrow would leave it green, because a pure test can only compare the policy with
             // itself. The guard that would actually catch that is cr.testall's secret_bond_bar_agrees, which
             // drives the LIVE teaching gate and the LIVE bridge action at this same bar.
-            CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, bar, warmth).Should().BeTrue();
-            CompanionSecretAffectionPolicy.IsEligible(true, true, true, true, false, bar - 1, warmth).Should().BeFalse();
+            CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = true, IsContent = true, AlreadyAttached = false, Regard = bar, Warmth = warmth}).Should().BeTrue();
+            CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = true, IsContent = true, AlreadyAttached = false, Regard = bar - 1, Warmth = warmth}).Should().BeFalse();
         }
     }
 }

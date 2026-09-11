@@ -23,7 +23,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_spouse_WHEN_categorizing_THEN_kinship_wins_over_any_relation_score()
         {
             //Arrange — kin is named as kin even if the stored relation would read otherwise.
-            ThirdPartyDescriptor.Categorize(-50, isSpouse: true, false, false, false, sameClan: false)
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = -50, IsSpouse = true})
                 .Should().Be("your spouse");
         }
 
@@ -33,9 +33,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_parent_or_child_WHEN_categorizing_THEN_each_kinship_is_named()
         {
-            ThirdPartyDescriptor.Categorize(0, false, isFather: true, false, false, false).Should().Be("your father");
-            ThirdPartyDescriptor.Categorize(0, false, false, isMother: true, false, false).Should().Be("your mother");
-            ThirdPartyDescriptor.Categorize(0, false, false, false, isChild: true, false).Should().Be("your child");
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = 0, IsFather = true}).Should().Be("your father");
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = 0, IsMother = true}).Should().Be("your mother");
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = 0, IsChild = true}).Should().Be("your child");
         }
 
         // CloseThreshold (30) is the ceiling where "a friend" prose upgrades to "a very close friend";
@@ -43,7 +43,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_deep_regard_WHEN_categorizing_THEN_they_are_a_very_close_friend()
         {
-            ThirdPartyDescriptor.Categorize(35, false, false, false, false, false)
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = 35})
                 .Should().Be("a very close friend (deep trust)");
         }
 
@@ -53,7 +53,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_warmth_at_the_friend_threshold_WHEN_categorizing_THEN_they_are_a_friend()
         {
             //Arrange — the threshold is inclusive at +10.
-            ThirdPartyDescriptor.Categorize(10, false, false, false, false, false)
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = 10})
                 .Should().Be("a friend (genuine regard)");
         }
 
@@ -62,7 +62,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_deep_hostility_WHEN_categorizing_THEN_they_are_a_bitter_enemy()
         {
-            ThirdPartyDescriptor.Categorize(-30, false, false, false, false, false)
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = -30})
                 .Should().Be("a bitter enemy (resentment)");
         }
 
@@ -73,7 +73,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_mild_hostility_at_the_enemy_threshold_WHEN_categorizing_THEN_they_are_an_enemy()
         {
             //Arrange — -10 is an enemy, and DescribeRelation reads it as quiet distrust (boundaries differ by design).
-            ThirdPartyDescriptor.Categorize(-10, false, false, false, false, false)
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = -10})
                 .Should().Be("an enemy (quiet distrust)");
         }
 
@@ -84,7 +84,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_neutral_clanmate_WHEN_categorizing_THEN_clan_membership_is_named()
         {
             //Arrange — same clan only surfaces between the enemy and friend thresholds.
-            ThirdPartyDescriptor.Categorize(0, false, false, false, false, sameClan: true)
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = 0, SameClan = true})
                 .Should().Be("a member of your clan");
         }
 
@@ -94,7 +94,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_two_same_turf_gang_leaders_at_neutral_standing_WHEN_categorizing_THEN_they_are_named_rivals_not_strangers()
         {
-            ThirdPartyDescriptor.Categorize(0, false, false, false, false, sameClan: false, areRivalGangLeaders: true)
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = 0, AreRivalGangLeaders = true})
                 .Should().Be("a rival gang leader (a competitor for the same turf, not a friend)");
         }
 
@@ -104,7 +104,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_rival_gang_leaders_who_happen_to_hold_regard_WHEN_categorizing_THEN_the_rivalry_overrides_the_friendly_label()
         {
-            ThirdPartyDescriptor.Categorize(40, false, false, false, false, sameClan: false, areRivalGangLeaders: true)
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = 40, AreRivalGangLeaders = true})
                 .Should().Contain("rival gang leader");
         }
 
@@ -114,7 +114,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_rival_gang_leaders_who_are_genuine_enemies_WHEN_categorizing_THEN_the_stronger_enemy_label_is_kept()
         {
-            ThirdPartyDescriptor.Categorize(-40, false, false, false, false, sameClan: false, areRivalGangLeaders: true)
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = -40, AreRivalGangLeaders = true})
                 .Should().Contain("enemy");
         }
 
@@ -125,7 +125,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_faint_acquaintance_outside_any_clan_WHEN_categorizing_THEN_they_are_an_acquaintance()
         {
             //Arrange — non-zero but below the thresholds, and not a clanmate.
-            ThirdPartyDescriptor.Categorize(5, false, false, false, false, sameClan: false)
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = 5})
                 .Should().Be("an acquaintance (neutral)");
         }
 
@@ -134,7 +134,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_stranger_WHEN_categorizing_THEN_they_are_not_personally_known()
         {
-            ThirdPartyDescriptor.Categorize(0, false, false, false, false, false)
+            ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {Relation = 0})
                 .Should().Be("not personally known to you");
         }
 
