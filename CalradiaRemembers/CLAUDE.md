@@ -174,6 +174,39 @@ GIVEN_the_cooldown_turned_off_WHEN_resolving_THEN_warmth_never_becomes_dearer
 
 which can only be written by thinking about the player, and which would have been RED on day one.
 
+### The other half: the code must stay free to change
+
+> "Le code doit pouvoir changer, evoluer, s'ameliorer, mais le comportement attendu ne doit jamais se degrader."
+> (Gabriel, 2026-09-10)
+
+The first half is defensive: a test bound to the implementation cannot fail on that implementation. The second
+half is why it actually matters. A test bound to the implementation **freezes the code**. Every restructuring then
+costs a test rewrite, and a suite that gets rewritten alongside the thing it guards has stopped guarding anything,
+precisely when the guard was most needed.
+
+So the property to aim for is: **restructure freely and the suite stays silent; change a behaviour and it goes
+red.** Both directions matter. Silence on a refactor is what makes improvement affordable; red on a behaviour
+change is what makes it safe. A suite that is noisy on refactors trains everyone to edit tests reflexively, which
+is how a red that MEANT something gets edited away.
+
+Both were demonstrated here on 2026-09-10, hours apart:
+
+- **Silent, correctly.** `ArmOrRefuseDuel` was extracted out of `ResolveDuelChallenge`, a pure restructuring so
+  the manual menu and the model could share one road. Not one existing assertion was touched. The suite had
+  nothing to say because nothing a player would notice had moved.
+- **Red, correctly.** `decayDays == 0` changed meaning, and a test failed. That failure was the suite working:
+  behaviour really had changed, and reversing it had to be a decision somebody made on purpose.
+- **Red, WRONGLY, and this is the cost to learn from.** Widening `CanEscort` changed its signature, and SEVEN
+  existing assertions had to be rewritten, including ones whose behaviour was untouched ("a lord who leads no
+  party of his own is refused" is as true as it ever was). They broke on arity and parameter names. They were
+  bound to the shape of the call.
+
+**The structural cure, which is already the house style.** Give a policy a named FACTS OBJECT rather than a row of
+positional booleans, so a test names the facts it cares about and says nothing about the others. Then adding,
+removing or reordering a fact costs nothing to any test that did not depend on it. As of 2026-09-10 there are 8
+dedicated `*Facts` types and 39 files in `CalradiaRemembers.Logic` taking one; `EscortEligibilityPolicy` was one
+of the older positional ones, which is exactly why it was the one that cost seven rewrites.
+
 ### The three checks, in order of how much they catch
 
 1. **Could this test's name have been written before the code existed?** If the THEN clause names a return value, a
