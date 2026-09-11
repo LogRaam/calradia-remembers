@@ -125,12 +125,12 @@ namespace CalradiaRemembers.Logic
             public bool IntimacyAllowed { get; set; }
 
             /// <summary>
-            ///   The player's Relationship Pacing. NOTE (2026-09-10): the gate does not currently read this. The
-            ///   progressive-regard model of 2026-09-05 replaced the flat throttle this once fed, and
-            ///   <see cref="CooldownHoursFor" /> and <see cref="RoutineCapFor" /> went unread with it, so Very
-            ///   Easy no longer buys the +2 beat those helpers still promise. The field is kept because callers
-            ///   mean it and the pacing dial is live elsewhere; whether the gate should honour it again is
-            ///   Gabriel's call, not a thing to change under cover of a rename.
+            ///   The player's Relationship Pacing. The gate does not read it, and that is DELIBERATE: the
+            ///   progressive-regard model of 2026-09-05 took warmth off the routine path on purpose, leaving
+            ///   <see cref="CooldownHoursFor" /> and <see cref="RoutineCapFor" /> dead-but-kept. Pacing still
+            ///   shapes prompt vocabulary and the intimacy gate elsewhere, and callers mean it when they pass
+            ///   it, so the field stays; it is recorded here so the next reader learns it where they stand
+            ///   rather than concluding the dial was dropped by accident.
             /// </summary>
             public RelationWarmth Warmth { get; set; } = RelationWarmth.Normal;
 
