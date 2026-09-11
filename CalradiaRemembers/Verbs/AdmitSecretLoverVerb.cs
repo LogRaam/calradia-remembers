@@ -100,7 +100,7 @@ namespace CalradiaRemembers.Verbs
          {
             Hero subject = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h.StringId == subjects[0]);
             if (subject != null)
-               return HeroLabel.Describe(subject.Name?.ToString(), subject.Clan?.Name?.ToString(), subject.Culture?.Name?.ToString()) + "'s";
+               return HeroLabel.Describe(new HeroLabel.HeroNaming {Name = subject.Name?.ToString(), ClanName = subject.Clan?.Name?.ToString(), CultureName = subject.Culture?.Name?.ToString()}) + "'s";
          }
 
          return "another's";

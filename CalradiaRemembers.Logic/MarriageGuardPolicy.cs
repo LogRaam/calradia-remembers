@@ -23,20 +23,79 @@ namespace CalradiaRemembers.Logic
         public const int MinBlessingRegard = 0;
 
         /// <summary>
+        ///   The states vanilla itself blocks at its own marriage screen, asked here because the marriage is
+        ///   being sealed through conversation instead. Three booleans in a row, all disqualifiers.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class MarriageStateFacts
+        {
+           /// <summary>The intended is somebody's captive.</summary>
+           public bool CandidatePrisoner { get; set; }
+
+           /// <summary>The player is somebody's captive.</summary>
+           public bool PlayerPrisoner { get; set; }
+
+           /// <summary>The two are on opposite sides of an active war.</summary>
+           public bool AtWarWithCandidate { get; set; }
+        }
+
+        /// <summary>
         ///   A marriage sealed through conversation (romance audit M-B5) requires that neither party is a captive
         ///   and that the two are not on opposite sides of an active war, exactly the states vanilla blocks at its
         ///   own marriage screen.
         /// </summary>
-        public static bool MarriageAllowed(bool candidatePrisoner, bool playerPrisoner, bool atWarWithCandidate)
-            => !candidatePrisoner && !playerPrisoner && !atWarWithCandidate;
+        public static bool MarriageAllowed(MarriageStateFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool candidatePrisoner = facts.CandidatePrisoner;
+           bool playerPrisoner = facts.PlayerPrisoner;
+           bool atWarWithCandidate = facts.AtWarWithCandidate;
+
+           return !candidatePrisoner && !playerPrisoner && !atWarWithCandidate;
+        }
+
+        /// <summary>
+        ///   What is asked of the person giving a marriage their blessing. Three booleans in a row, one of them
+        ///   inverting, plus the regard. Re-checked both when the action fires and when a marriage-consent quest
+        ///   completes, since the blesser's state may have changed since.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class BlesserFacts
+        {
+           /// <summary>They are alive to give it.</summary>
+           public bool BlesserAlive { get; set; }
+
+           /// <summary>They are held prisoner, and a captive blesses nothing.</summary>
+           public bool BlesserPrisoner { get; set; }
+
+           /// <summary>The player is at war with them.</summary>
+           public bool AtWarWithBlesser { get; set; }
+
+           /// <summary>Their regard for the player, which must be at least neutral.</summary>
+           public int BlesserRegard { get; set; }
+        }
 
         /// <summary>
         ///   A marriage blessing (romance audit M-B3/M-B4) requires the blesser alive, free (not a prisoner), at
         ///   peace with the player, and holding them in at least neutral regard. Re-checked both when the action
         ///   fires and when a marriage-consent quest completes, since the blesser's state may have changed since.
         /// </summary>
-        public static bool BlessingAllowed(bool blesserAlive, bool blesserPrisoner, bool atWarWithBlesser, int blesserRegard)
-            => blesserAlive && !blesserPrisoner && !atWarWithBlesser && blesserRegard >= MinBlessingRegard;
+        public static bool BlessingAllowed(BlesserFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool blesserAlive = facts.BlesserAlive;
+           bool blesserPrisoner = facts.BlesserPrisoner;
+           bool atWarWithBlesser = facts.AtWarWithBlesser;
+           int blesserRegard = facts.BlesserRegard;
+
+           return blesserAlive && !blesserPrisoner && !atWarWithBlesser && blesserRegard >= MinBlessingRegard;
+        }
 
         /// <summary>
         ///   Whether a recorded blessing still HONOURS the family the marriage swing will land on (romance audit

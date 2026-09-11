@@ -1791,7 +1791,7 @@ namespace CalradiaRemembers.GameState
             // ledger rule, not the vanilla clan relation.
             int blesserRegard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId)?.ReputationWithPlayer
                                 ?? npcHero.GetRelation(Hero.MainHero);
-            if (!MarriageGuardPolicy.BlessingAllowed(npcHero.IsAlive, npcHero.IsPrisoner, IsAtWarWithPlayer(npcHero), blesserRegard))
+            if (!MarriageGuardPolicy.BlessingAllowed(new MarriageGuardPolicy.BlesserFacts {BlesserAlive = npcHero.IsAlive, BlesserPrisoner = npcHero.IsPrisoner, AtWarWithBlesser = IsAtWarWithPlayer(npcHero), BlesserRegard = blesserRegard}))
                return ActionOutcome.Refused($"({npcHero.Name} is in no position to bless a match with you now.)");
 
             var day = (int) CampaignTime.Now.ToDays;
@@ -2511,7 +2511,7 @@ namespace CalradiaRemembers.GameState
             && player.PartyBelongedToAsPrisoner?.LeaderHero == npcHero;
          bool hardcore = ModSettings.AdultContentLevel == AdultContentLevel.Hardcore;
 
-         if (!HarmPrisonerPolicy.CanHarm(playerIsCaptiveOfCaptor, _captiveSceneActive, hardcore))
+         if (!HarmPrisonerPolicy.CanHarm(new HarmPrisonerPolicy.HarmFacts {PlayerIsCaptiveOfCaptor = playerIsCaptiveOfCaptor, CaptiveSceneActive = _captiveSceneActive, Hardcore = hardcore}))
          {
             ModLog.Info($"[ACTION] harm_prisoner refused by HarmPrisonerPolicy (captive={playerIsCaptiveOfCaptor}, " +
                         $"sceneActive={_captiveSceneActive}, hardcore={hardcore}).");
@@ -2758,7 +2758,7 @@ namespace CalradiaRemembers.GameState
             bool playerAtWarWithKingdom = Hero.MainHero?.MapFaction != null
                && FactionManager.IsAtWarAgainstFaction(Hero.MainHero.MapFaction, kingdom);
 
-            if (!VassalageOfferPolicy.CanJoin(npcIsKingdomRuler, playerAlreadyVassal, playerAtWarWithKingdom))
+            if (!VassalageOfferPolicy.CanJoin(new VassalageOfferPolicy.VassalageFacts {NpcIsKingdomRuler = npcIsKingdomRuler, PlayerAlreadyVassal = playerAlreadyVassal, PlayerAtWarWithKingdom = playerAtWarWithKingdom}))
             {
                if (!npcIsKingdomRuler)
                   return ActionOutcome.Refused(
@@ -2935,7 +2935,7 @@ namespace CalradiaRemembers.GameState
 
             // M-B5: vanilla blocks a marriage across an active war or with a captive at its own screen; a chat
             // marriage must honour the same law (the prompt is advice, the bridge is law).
-            if (!MarriageGuardPolicy.MarriageAllowed(npcHero.IsPrisoner, player.IsPrisoner, IsAtWarWithPlayer(npcHero)))
+            if (!MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = npcHero.IsPrisoner, PlayerPrisoner = player.IsPrisoner, AtWarWithCandidate = IsAtWarWithPlayer(npcHero)}))
                return ActionOutcome.Refused(
                   $"(A marriage with {npcHero.Name} cannot be sealed now: not across a war, nor from captivity.)");
 
@@ -4216,7 +4216,7 @@ namespace CalradiaRemembers.GameState
 
          int blesserRegard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId)?.ReputationWithPlayer
                              ?? npcHero.GetRelation(Hero.MainHero);
-         if (!MarriageGuardPolicy.BlessingAllowed(npcHero.IsAlive, npcHero.IsPrisoner, IsAtWarWithPlayer(npcHero), blesserRegard))
+         if (!MarriageGuardPolicy.BlessingAllowed(new MarriageGuardPolicy.BlesserFacts {BlesserAlive = npcHero.IsAlive, BlesserPrisoner = npcHero.IsPrisoner, AtWarWithBlesser = IsAtWarWithPlayer(npcHero), BlesserRegard = blesserRegard}))
             return ActionOutcome.Refused($"({npcHero.Name} can no longer give that blessing.)");
 
          var day = (int) CampaignTime.Now.ToDays;

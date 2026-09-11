@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_matching_live_quest_WHEN_deciding_THEN_the_mirror_is_kept()
         {
-            QuestReconcilePolicy.Decide(giverConfirmedDead: false, hasLiveMatch: true, hasTerminalMatch: false)
+            QuestReconcilePolicy.Decide(new QuestReconcilePolicy.MirrorFacts {GiverConfirmedDead = false, HasLiveMatch = true, HasTerminalMatch = false})
                 .Should().Be(MirrorReconcileDecision.Keep);
         }
 
@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Tests
         {
             // The reported bug: a completed, ready-to-turn-in quest whose id-match momentarily fails on load.
             // A living giver with no confident match must NEVER be cancelled.
-            QuestReconcilePolicy.Decide(giverConfirmedDead: false, hasLiveMatch: false, hasTerminalMatch: false)
+            QuestReconcilePolicy.Decide(new QuestReconcilePolicy.MirrorFacts {GiverConfirmedDead = false, HasLiveMatch = false, HasTerminalMatch = false})
                 .Should().Be(MirrorReconcileDecision.Keep);
         }
 
@@ -44,7 +44,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_giver_is_confirmed_dead_WHEN_deciding_THEN_the_mirror_is_closed_as_giver_gone()
         {
-            QuestReconcilePolicy.Decide(giverConfirmedDead: true, hasLiveMatch: false, hasTerminalMatch: false)
+            QuestReconcilePolicy.Decide(new QuestReconcilePolicy.MirrorFacts {GiverConfirmedDead = true, HasLiveMatch = false, HasTerminalMatch = false})
                 .Should().Be(MirrorReconcileDecision.CloseGiverGone);
         }
 
@@ -52,7 +52,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_dead_giver_takes_precedence_even_over_a_live_match_WHEN_deciding_THEN_it_closes()
         {
             // A dead giver cannot be reported to, so the quest is untinnable however live its own state looks.
-            QuestReconcilePolicy.Decide(giverConfirmedDead: true, hasLiveMatch: true, hasTerminalMatch: true)
+            QuestReconcilePolicy.Decide(new QuestReconcilePolicy.MirrorFacts {GiverConfirmedDead = true, HasLiveMatch = true, HasTerminalMatch = true})
                 .Should().Be(MirrorReconcileDecision.CloseGiverGone);
         }
 
@@ -61,7 +61,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_matching_terminal_quest_WHEN_deciding_THEN_the_mirror_is_closed_as_terminal()
         {
-            QuestReconcilePolicy.Decide(giverConfirmedDead: false, hasLiveMatch: false, hasTerminalMatch: true)
+            QuestReconcilePolicy.Decide(new QuestReconcilePolicy.MirrorFacts {GiverConfirmedDead = false, HasLiveMatch = false, HasTerminalMatch = true})
                 .Should().Be(MirrorReconcileDecision.CloseTerminal);
         }
 
@@ -70,7 +70,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_both_a_live_and_a_terminal_match_WHEN_deciding_THEN_the_live_one_wins_and_it_is_kept()
         {
-            QuestReconcilePolicy.Decide(giverConfirmedDead: false, hasLiveMatch: true, hasTerminalMatch: true)
+            QuestReconcilePolicy.Decide(new QuestReconcilePolicy.MirrorFacts {GiverConfirmedDead = false, HasLiveMatch = true, HasTerminalMatch = true})
                 .Should().Be(MirrorReconcileDecision.Keep);
         }
 
@@ -80,7 +80,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_live_quest_with_a_living_giver_and_no_open_mirror_WHEN_checking_THEN_the_mirror_is_restored()
         {
             // The healing case: the old false-cancel bug destroyed the journal entry while the quest survived.
-            QuestReconcilePolicy.ShouldRestoreMirror(questIsLive: true, giverAliveAndResolved: true, openMirrorExists: false)
+            QuestReconcilePolicy.ShouldRestoreMirror(new QuestReconcilePolicy.MirrorRestoreFacts {QuestIsLive = true, GiverAliveAndResolved = true, OpenMirrorExists = false})
                 .Should().BeTrue();
         }
 
@@ -88,7 +88,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_an_open_mirror_already_shows_the_quest_WHEN_checking_THEN_nothing_is_restored()
         {
             // Idempotence: running the pass twice must not stack duplicate journal entries.
-            QuestReconcilePolicy.ShouldRestoreMirror(questIsLive: true, giverAliveAndResolved: true, openMirrorExists: true)
+            QuestReconcilePolicy.ShouldRestoreMirror(new QuestReconcilePolicy.MirrorRestoreFacts {QuestIsLive = true, GiverAliveAndResolved = true, OpenMirrorExists = true})
                 .Should().BeFalse();
         }
 
@@ -97,7 +97,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_terminal_quest_WHEN_checking_THEN_no_mirror_is_restored()
         {
-            QuestReconcilePolicy.ShouldRestoreMirror(questIsLive: false, giverAliveAndResolved: true, openMirrorExists: false)
+            QuestReconcilePolicy.ShouldRestoreMirror(new QuestReconcilePolicy.MirrorRestoreFacts {QuestIsLive = false, GiverAliveAndResolved = true, OpenMirrorExists = false})
                 .Should().BeFalse();
         }
 
@@ -107,7 +107,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_dead_or_unresolved_giver_WHEN_checking_THEN_no_mirror_is_restored()
         {
-            QuestReconcilePolicy.ShouldRestoreMirror(questIsLive: true, giverAliveAndResolved: false, openMirrorExists: false)
+            QuestReconcilePolicy.ShouldRestoreMirror(new QuestReconcilePolicy.MirrorRestoreFacts {QuestIsLive = true, GiverAliveAndResolved = false, OpenMirrorExists = false})
                 .Should().BeFalse();
         }
     }

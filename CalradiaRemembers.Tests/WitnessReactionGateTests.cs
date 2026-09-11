@@ -112,7 +112,7 @@ namespace CalradiaRemembers.Tests
       {
          Decide("Olaf", "He is lying to you.", present: new string[0])
             .Verdict.Should().Be(WitnessReactionVerdict.DropAbsent);
-         WitnessReactionGate.Decide("Olaf", "Anything.", "Derthert", null, null)
+         WitnessReactionGate.Decide(new WitnessReactionGate.WitnessReactionFacts {EmittedName = "Olaf", Text = "Anything.", MainSpeakerName = "Derthert", PresentNames = null, LastLines = null})
                             .Verdict.Should().Be(WitnessReactionVerdict.DropAbsent);
       }
 
@@ -122,8 +122,7 @@ namespace CalradiaRemembers.Tests
                                                     string text,
                                                     IReadOnlyList<string> present = null!,
                                                     IReadOnlyDictionary<string, string> lastLines = null!)
-         => WitnessReactionGate.Decide(emitted, text, "Derthert",
-            present ?? new[] {"Olaf", "Alympia"}, lastLines);
+         => WitnessReactionGate.Decide(new WitnessReactionGate.WitnessReactionFacts {EmittedName = emitted, Text = text, MainSpeakerName = "Derthert", PresentNames = present ?? new[] {"Olaf", "Alympia"}, LastLines = lastLines});
 
       #endregion
    }

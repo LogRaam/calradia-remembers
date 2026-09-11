@@ -143,12 +143,42 @@ namespace CalradiaRemembers.Logic
             => governingSkillLevel >= MinSkillToAttempt;
 
         /// <summary>
+        ///   How an errand went. THREE INTS in a row after the kind, on three unrelated scales: a skill level,
+        ///   a dice roll and a difficulty. They are added and subtracted into one score, so a swap produces
+        ///   another perfectly plausible score and a companion is captured for the wrong reason.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class ErrandFacts
+        {
+           /// <summary>What the errand was. Only a risky kind can end in capture.</summary>
+           public CompanionMissionType Type { get; set; }
+
+           /// <summary>The companion's governing skill. Clamped defensively.</summary>
+           public int GoverningSkillLevel { get; set; }
+
+           /// <summary>The host's own RNG draw, 0..99, injected so the resolution stays pure.</summary>
+           public int Roll { get; set; }
+
+           /// <summary>How hard the errand was, 0..100.</summary>
+           public int Difficulty { get; set; }
+        }
+
+        /// <summary>
         ///   Resolves an errand from the companion's governing-skill level, a fresh roll (0..99 from the
         ///   host's RNG), and the errand's difficulty (0..100). Inputs are clamped defensively. A risky
         ///   errand that scores at/below the capture threshold returns the companion captured.
         /// </summary>
-        public static CompanionMissionOutcome Resolve(CompanionMissionType type, int governingSkillLevel, int roll, int difficulty)
+        public static CompanionMissionOutcome Resolve(ErrandFacts facts)
         {
+           facts ??= new ErrandFacts();
+
+           CompanionMissionType type = facts.Type;
+           int governingSkillLevel = facts.GoverningSkillLevel;
+           int roll = facts.Roll;
+           int difficulty = facts.Difficulty;
+
             int skill = Clamp(governingSkillLevel, 0, int.MaxValue);
             int r     = Clamp(roll, 0, 99);
             int diff  = Clamp(difficulty, 0, 100);

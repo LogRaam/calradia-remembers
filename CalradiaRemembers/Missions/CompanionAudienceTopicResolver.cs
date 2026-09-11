@@ -344,7 +344,7 @@ namespace CalradiaRemembers.Missions
             int effectiveMagnitude = AppreciationPolicy.EffectiveMagnitude(a, today, traits);
             int daysAgo = today - a.EventDay;
 
-            if (!CompanionGratitudePolicy.Holds(effectiveMagnitude, daysAgo, happiness)) continue;
+            if (!CompanionGratitudePolicy.Holds(new CompanionGratitudePolicy.GratitudeFacts {EffectiveMagnitude = effectiveMagnitude, DaysAgo = daysAgo, HappinessScore = happiness})) continue;
 
             return new CompanionAudienceTopicScan {
                Topic = CompanionAudienceReason.Gratitude, Holds = true,
@@ -526,7 +526,7 @@ namespace CalradiaRemembers.Missions
          {
             if (candidate is not {IsAlive: true} || candidate.Spouse != null || candidate.Age < MarriageEligibility.MinMarriageAge) continue;
             if (Campaign.Current?.Models?.MarriageModel?.IsCoupleSuitableForMarriage(candidate, companion) != true) continue;
-            if (!MarriageGuardPolicy.MarriageAllowed(candidate.IsPrisoner, companion.IsPrisoner, false)) continue;
+            if (!MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = candidate.IsPrisoner, PlayerPrisoner = companion.IsPrisoner, AtWarWithCandidate = false})) continue;
 
             return candidate;
          }

@@ -93,6 +93,29 @@ namespace CalradiaRemembers.Logic
         public static bool Rides(LordRescueFacts facts) => Evaluate(facts) != LordRescueMotive.None;
 
         /// <summary>
+        ///   What still holds of a rescue already under way. Three booleans in a row, ALL of them required, so
+        ///   any one falling calls the ride off. A ride that continues after its reason has gone is worse than
+        ///   none: the lord bears down on a player no longer in danger, which reads as a hostile pursuit.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class RescueStandingFacts
+        {
+           /// <summary>The player is still in someone's hands.</summary>
+           public bool PlayerStillCaptive { get; set; }
+
+           /// <summary>
+           ///   The band being ridden at still exists. Another party may have destroyed it, or it may have
+           ///   dispersed; either way there is nothing left to charge.
+           /// </summary>
+           public bool CaptorPartyStillExists { get; set; }
+
+           /// <summary>He has not since died, been taken, or lost his party.</summary>
+           public bool LordStillFreeToRide { get; set; }
+        }
+
+        /// <summary>
         ///   Whether a rescue already under way should be called off (Gabriel 2026-07-19: if the player gets
         ///   free before the rescuer reaches the captors, the rescuer stops). A ride that continues after its
         ///   reason has gone is worse than none: the lord bears down on a player who is no longer in danger,
@@ -104,9 +127,15 @@ namespace CalradiaRemembers.Logic
         ///   dispersed; either way there is nothing left to charge.
         /// </param>
         /// <param name="lordStillFreeToRide">He has not since died, been taken, or lost his party.</param>
-        public static bool ShouldAbandonRescue(bool playerStillCaptive,
-                                               bool captorPartyStillExists,
-                                               bool lordStillFreeToRide)
-            => !playerStillCaptive || !captorPartyStillExists || !lordStillFreeToRide;
+        public static bool ShouldAbandonRescue(RescueStandingFacts facts)
+        {
+           if (facts == null) return true;
+
+           bool playerStillCaptive = facts.PlayerStillCaptive;
+           bool captorPartyStillExists = facts.CaptorPartyStillExists;
+           bool lordStillFreeToRide = facts.LordStillFreeToRide;
+
+           return !playerStillCaptive || !captorPartyStillExists || !lordStillFreeToRide;
+        }
     }
 }

@@ -99,19 +99,56 @@ namespace CalradiaRemembers.Logic
             => kind == CommitmentKind.KeepPeace ? OverdueOutcome.Fulfill : OverdueOutcome.Breach;
 
         /// <summary>
+        ///   The world as it stands when a commitment's deadline lapses. Three booleans in a row after the
+        ///   kind, and each is a no-fault escape of a DIFFERENT shape: a target who is gone voids the pledge, a
+        ///   promisor in a cell suspends it, and a PLAYER in a cell suspends only a Protect. Cross the two
+        ///   prisoners and a lord is branded an oathbreaker for the player's own captivity.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class OverdueFacts
+        {
+           /// <summary>Which oath this is. KeepPeace honours itself by silence and short-circuits first.</summary>
+           public CommitmentKind Kind { get; set; }
+
+           /// <summary>
+           ///   The lord who swore is held. He could do nothing to honour it, so the clock is suspended rather
+           ///   than run out under him.
+           /// </summary>
+           public bool PromisorIsPrisoner { get; set; }
+
+           /// <summary>The PLAYER is held. Suspends a Protect only: there is nobody to fight beside.</summary>
+           public bool PlayerIsPrisoner { get; set; }
+
+           /// <summary>
+           ///   The rival a MoveAgainst named is dead or gone from the world. A lord cannot move against a corpse,
+           ///   and the death is an act of the world, never his breach.
+           /// </summary>
+           public bool TargetGone { get; set; }
+        }
+
+        /// <summary>
         ///   The overdue-sweep outcome once the WORLD that moved between promise and deadline is taken into
         ///   account (v1.34.2 fault/no-fault hardening, audit Pattern 2): a commitment must never be branded a
         ///   breach for an event outside the promisor's control. KeepPeace still honors itself by its own silence
         ///   even from a cell (its baseline is never a breach, so it short-circuits first). For every breach-bound
-        ///   kind: a MoveAgainst pledge whose rival is now dead or gone (<paramref name="targetGone" />) is a clean
+        ///   kind: a MoveAgainst pledge whose rival is now dead or gone (<c>TargetGone</c>) is a clean
         ///   <see cref="OverdueOutcome.NeutralVoid" /> (a lord cannot move against a corpse, and the death is an act
         ///   of the world, never his breach); a promisor who is a PRISONER, or (for Protect) a PLAYER who is a
         ///   prisoner, could do nothing to honor the vow, so the clock is <see cref="OverdueOutcome.Suspend" />ed,
         ///   never run out under him, resuming when he is freed. Only when none of these no-fault escapes apply does
         ///   silence at the deadline read as a genuine <see cref="OverdueOutcome.Breach" />.
         /// </summary>
-        public static OverdueOutcome OnOverdue(CommitmentKind kind, bool promisorIsPrisoner, bool playerIsPrisoner, bool targetGone)
+        public static OverdueOutcome OnOverdue(OverdueFacts facts)
         {
+           if (facts == null) return OverdueOutcome.Breach;
+
+           CommitmentKind kind = facts.Kind;
+           bool promisorIsPrisoner = facts.PromisorIsPrisoner;
+           bool playerIsPrisoner = facts.PlayerIsPrisoner;
+           bool targetGone = facts.TargetGone;
+
             OverdueOutcome baseline = OnOverdue(kind);
             if (baseline != OverdueOutcome.Breach) return baseline; // KeepPeace: silence IS success, cell or no cell
 

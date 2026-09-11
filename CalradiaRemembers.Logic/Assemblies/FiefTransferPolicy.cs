@@ -36,28 +36,125 @@ namespace CalradiaRemembers.Logic.Assemblies
         public const int GrantInfluenceCost = 150;
 
         /// <summary>
+        ///   What makes a crown fief the player's to give, and this lord's to receive. Three booleans in a row,
+        ///   and the middle one is the v1.34.1 hotfix invariant: without it a hallucinated grant_fief token
+        ///   could hand a crown fief to an enemy house.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class GrantFacts
+        {
+           /// <summary>
+           ///   The player rules a kingdom outright: Kingdom.Leader is the player, not merely a member,
+           ///   and not an independent clan's own head.
+           /// </summary>
+           public bool PlayerIsKingdomLeader { get; set; }
+
+           /// <summary>
+           ///   The recipient's clan is a vassal of THAT SAME kingdom. A crown fief passes only to a lord who
+           ///   owes this crown fealty, never to a foreign or enemy house.
+           /// </summary>
+           public bool RecipientInPlayerKingdom { get; set; }
+
+           /// <summary>
+           ///   The named town or castle is one the player's OWN clan holds right now. A fief another vassal
+           ///   already holds was never the player's to give.
+           /// </summary>
+           public bool FiefOwnedByPlayerClan { get; set; }
+        }
+
+        /// <summary>
         ///   grant_fief's gate: legal only when the player actually RULES a kingdom (Kingdom.Leader == the
         ///   player, not merely a member or an independent clan's own head) AND the recipient's clan is a vassal
         ///   of THAT SAME kingdom (a crown fief passes only to a lord who owes this crown fealty, never a
         ///   foreign or enemy house) AND the named fief is a town or castle the player's OWN clan currently owns
         ///   (a genuine crown fief to give away, never a fief another vassal already holds, which would not be
-        ///   the player's to give). The <paramref name="recipientInPlayerKingdom" /> fact is the v1.34.1 hotfix
+        ///   the player's to give). The <c>RecipientInPlayerKingdom</c> fact is the v1.34.1 hotfix
         ///   invariant: without it a hallucinated or coaxed grant_fief token could hand a crown fief to an enemy.
         /// </summary>
-        public static bool CanGrant(bool playerIsKingdomLeader, bool recipientInPlayerKingdom, bool fiefOwnedByPlayerClan)
-            => playerIsKingdomLeader && recipientInPlayerKingdom && fiefOwnedByPlayerClan;
+        public static bool CanGrant(GrantFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool playerIsKingdomLeader = facts.PlayerIsKingdomLeader;
+           bool recipientInPlayerKingdom = facts.RecipientInPlayerKingdom;
+           bool fiefOwnedByPlayerClan = facts.FiefOwnedByPlayerClan;
+
+           return playerIsKingdomLeader && recipientInPlayerKingdom && fiefOwnedByPlayerClan;
+        }
+
+        /// <summary>
+        ///   What makes a fief the crown's to strip. Three booleans in a row, and the middle one is the same
+        ///   v1.34.1 invariant grant carries: without it a hallucinated revoke_fief token could annex an
+        ///   enemy holding by decree rather than by siege.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class RevokeFacts
+        {
+           /// <summary>
+           ///   The player rules a kingdom outright: Kingdom.Leader is the player, not merely a member,
+           ///   and not an independent clan's own head.
+           /// </summary>
+           public bool PlayerIsKingdomLeader { get; set; }
+
+           /// <summary>
+           ///   The target's clan is a vassal of THAT SAME kingdom. A crown confiscates only from its own sworn
+           ///   lords; it does not seize an enemy's fief mid-war without a siege.
+           /// </summary>
+           public bool TargetInPlayerKingdom { get; set; }
+
+           /// <summary>
+           ///   The named fief is one the seated vassal's own clan holds. Naming a fief they never held would
+           ///   confiscate nothing: an empty punishment the table never actually paid.
+           /// </summary>
+           public bool FiefOwnedBySpoliatedClan { get; set; }
+        }
 
         /// <summary>
         ///   revoke_fief's gate: legal only when the player actually RULES a kingdom AND the target's clan is a
         ///   vassal of THAT SAME kingdom (the crown confiscates only from its own sworn lords, never seizes an
         ///   enemy's fief mid-war without a siege) AND the named fief is a town or castle the SEATED vassal's own
         ///   clan currently owns (a real fief to strip; naming a fief the vassal never held would confiscate
-        ///   nothing, an empty punishment the table never actually paid). The <paramref name="targetInPlayerKingdom" />
+        ///   nothing, an empty punishment the table never actually paid). The <c>TargetInPlayerKingdom</c>
         ///   fact is the v1.34.1 hotfix invariant: without it a hallucinated revoke_fief token could annex an
         ///   enemy holding by decree.
         /// </summary>
-        public static bool CanRevoke(bool playerIsKingdomLeader, bool targetInPlayerKingdom, bool fiefOwnedBySpoliatedClan)
-            => playerIsKingdomLeader && targetInPlayerKingdom && fiefOwnedBySpoliatedClan;
+        public static bool CanRevoke(RevokeFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool playerIsKingdomLeader = facts.PlayerIsKingdomLeader;
+           bool targetInPlayerKingdom = facts.TargetInPlayerKingdom;
+           bool fiefOwnedBySpoliatedClan = facts.FiefOwnedBySpoliatedClan;
+
+           return playerIsKingdomLeader && targetInPlayerKingdom && fiefOwnedBySpoliatedClan;
+        }
+
+        /// <summary>
+        ///   A swap is mechanically a grant and a revoke that must both succeed or neither happens, so it asks
+        ///   the sovereignty question once and the ownership question twice, of two different clans. Those two
+        ///   ownership booleans are the pair a swap cannot afford to have crossed.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class SwapFacts
+        {
+           /// <summary>
+           ///   The player rules a kingdom outright: Kingdom.Leader is the player, not merely a member,
+           ///   and not an independent clan's own head.
+           /// </summary>
+           public bool PlayerIsKingdomLeader { get; set; }
+
+           /// <summary>The fief the player gives up is one their own clan holds.</summary>
+           public bool PlayerFiefOwnedByPlayerClan { get; set; }
+
+           /// <summary>The fief offered in exchange is one the seated vassal's clan holds.</summary>
+           public bool VassalFiefOwnedBySeatedVassalClan { get; set; }
+        }
 
         /// <summary>
         ///   swap_fiefs' gate (COUNCIL_ACTIONS.md Partie 8, Kimi review): legal only when the player actually
@@ -72,8 +169,42 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   the executor's own validate-then-apply ordering, this method only says whether the trade is legal at
         ///   all.
         /// </summary>
-        public static bool CanSwap(bool playerIsKingdomLeader, bool playerFiefOwnedByPlayerClan, bool vassalFiefOwnedBySeatedVassalClan)
-            => playerIsKingdomLeader && playerFiefOwnedByPlayerClan && vassalFiefOwnedBySeatedVassalClan;
+        public static bool CanSwap(SwapFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool playerIsKingdomLeader = facts.PlayerIsKingdomLeader;
+           bool playerFiefOwnedByPlayerClan = facts.PlayerFiefOwnedByPlayerClan;
+           bool vassalFiefOwnedBySeatedVassalClan = facts.VassalFiefOwnedBySeatedVassalClan;
+
+           return playerIsKingdomLeader && playerFiefOwnedByPlayerClan && vassalFiefOwnedBySeatedVassalClan;
+        }
+
+        /// <summary>
+        ///   The same sovereignty question as <see cref="CanGrant" />, reduced to what can be read about the ONE
+        ///   conversation NPC before the LLM is shown grant_fief at all. The bridge re-checks every fact at
+        ///   commit, so a true answer here only ever OFFERS a teaching.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class GrantOfferFacts
+        {
+           /// <summary>
+           ///   The player rules a kingdom outright: Kingdom.Leader is the player, not merely a member,
+           ///   and not an independent clan's own head.
+           /// </summary>
+           public bool PlayerIsKingdomLeader { get; set; }
+
+           /// <summary>
+           ///   The NPC is a vassal of a SEPARATE house in that same kingdom. A fief is granted across houses,
+           ///   never to one's own clan.
+           /// </summary>
+           public bool NpcIsVassalInPlayerKingdom { get; set; }
+
+           /// <summary>The player's clan holds at least one town or castle to give.</summary>
+           public bool HasGrantableFief { get; set; }
+        }
 
         /// <summary>
         ///   grant_fief's 1:1 conversation TEACHING gate (2026-08-05, the suzerain-command batch brought to BOTH the
@@ -87,8 +218,41 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   again at commit time (<c>CourtActionResolver.TryGrantFief</c>), so a true answer here only ever OFFERS a
         ///   teaching, it never seals a deed.
         /// </summary>
-        public static bool CanOfferGrant(bool playerIsKingdomLeader, bool npcIsVassalInPlayerKingdom, bool hasGrantableFief)
-            => playerIsKingdomLeader && npcIsVassalInPlayerKingdom && hasGrantableFief;
+        public static bool CanOfferGrant(GrantOfferFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool playerIsKingdomLeader = facts.PlayerIsKingdomLeader;
+           bool npcIsVassalInPlayerKingdom = facts.NpcIsVassalInPlayerKingdom;
+           bool hasGrantableFief = facts.HasGrantableFief;
+
+           return playerIsKingdomLeader && npcIsVassalInPlayerKingdom && hasGrantableFief;
+        }
+
+        /// <summary>
+        ///   The teaching gate for revoke_fief, mirroring <see cref="CanOfferGrant" />. Re-checked in full at
+        ///   commit, so a true answer here only ever OFFERS.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class RevokeOfferFacts
+        {
+           /// <summary>
+           ///   The player rules a kingdom outright: Kingdom.Leader is the player, not merely a member,
+           ///   and not an independent clan's own head.
+           /// </summary>
+           public bool PlayerIsKingdomLeader { get; set; }
+
+           /// <summary>
+           ///   The NPC is a vassal of a separate house in that same kingdom. A clan's own fiefs already belong
+           ///   to it, so there is nothing to revoke from oneself.
+           /// </summary>
+           public bool NpcIsVassalInPlayerKingdom { get; set; }
+
+           /// <summary>That vassal's clan holds at least one town or castle.</summary>
+           public bool NpcHoldsRevocableFief { get; set; }
+        }
 
         /// <summary>
         ///   revoke_fief's 1:1 conversation TEACHING gate (2026-08-05, the suzerain-command batch). It reduces the
@@ -100,7 +264,15 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   re-checks every fact again at commit time (<c>CourtActionResolver.TryRevokeFief</c>), so a true answer
         ///   here only ever OFFERS a teaching.
         /// </summary>
-        public static bool CanOfferRevoke(bool playerIsKingdomLeader, bool npcIsVassalInPlayerKingdom, bool npcHoldsRevocableFief)
-            => playerIsKingdomLeader && npcIsVassalInPlayerKingdom && npcHoldsRevocableFief;
+        public static bool CanOfferRevoke(RevokeOfferFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool playerIsKingdomLeader = facts.PlayerIsKingdomLeader;
+           bool npcIsVassalInPlayerKingdom = facts.NpcIsVassalInPlayerKingdom;
+           bool npcHoldsRevocableFief = facts.NpcHoldsRevocableFief;
+
+           return playerIsKingdomLeader && npcIsVassalInPlayerKingdom && npcHoldsRevocableFief;
+        }
     }
 }

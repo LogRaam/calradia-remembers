@@ -25,7 +25,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_event_count_below_threshold_WHEN_never_attempted_THEN_compression_does_not_run()
         {
-            MemoryCompressionPolicy.ShouldCompress(10, 0, MemoryCompressionPolicy.DefaultThreshold).Should().BeFalse();
+            MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts {EventCount = 10, LastAttemptedAtCount = 0, Threshold = MemoryCompressionPolicy.DefaultThreshold}).Should().BeFalse();
         }
 
         // STAKE: pins the tunable threshold so a later change is deliberate. The boundary is inclusive: the
@@ -33,7 +33,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_event_count_at_the_threshold_WHEN_never_attempted_THEN_compression_runs()
         {
-            MemoryCompressionPolicy.ShouldCompress(MemoryCompressionPolicy.DefaultThreshold, 0, MemoryCompressionPolicy.DefaultThreshold).Should().BeTrue();
+            MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts {EventCount = MemoryCompressionPolicy.DefaultThreshold, LastAttemptedAtCount = 0, Threshold = MemoryCompressionPolicy.DefaultThreshold}).Should().BeTrue();
         }
 
         // STAKE: the reported failure mode this rule exists for, paying for a fresh call after every new
@@ -43,7 +43,7 @@ namespace CalradiaRemembers.Tests
         {
             int threshold = MemoryCompressionPolicy.DefaultThreshold;
 
-            MemoryCompressionPolicy.ShouldCompress(threshold, threshold, threshold).Should().BeFalse();
+            MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts {EventCount = threshold, LastAttemptedAtCount = threshold, Threshold = threshold}).Should().BeFalse();
         }
 
         // STAKE: memory must keep being contained as the history grows, not give up after one unproductive
@@ -54,32 +54,21 @@ namespace CalradiaRemembers.Tests
             int threshold = MemoryCompressionPolicy.DefaultThreshold;
             int grownCount = threshold + MemoryCompressionPolicy.RetryGrowth;
 
-            MemoryCompressionPolicy.ShouldCompress(grownCount, threshold, threshold).Should().BeTrue();
+            MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts {EventCount = grownCount, LastAttemptedAtCount = threshold, Threshold = threshold}).Should().BeTrue();
         }
 
-        // STAKE: the engine calls the short form, so the two must not drift.
-        [Test]
-        public void GIVEN_the_two_argument_overload_WHEN_compared_to_the_three_argument_form_THEN_they_agree()
-        {
-            int threshold = MemoryCompressionPolicy.DefaultThreshold;
-
-            MemoryCompressionPolicy.ShouldCompress(threshold - 1, 0)
-                .Should().Be(MemoryCompressionPolicy.ShouldCompress(threshold - 1, 0, MemoryCompressionPolicy.DefaultThreshold));
-
-            MemoryCompressionPolicy.ShouldCompress(threshold, 0)
-                .Should().Be(MemoryCompressionPolicy.ShouldCompress(threshold, 0, MemoryCompressionPolicy.DefaultThreshold));
-
-            MemoryCompressionPolicy.ShouldCompress(threshold, threshold)
-                .Should().Be(MemoryCompressionPolicy.ShouldCompress(threshold, threshold, MemoryCompressionPolicy.DefaultThreshold));
-        }
+        // What stood here compared the two-argument overload with the three-argument one, "they must not
+        // drift" - a test of a delegation rather than of a behaviour. Both overloads are gone (2026-09-10):
+        // the threshold is a default on the facts object, so there is no second form left to disagree, and
+        // the rule the test was really about is pinned by the threshold cases above.
 
         // STAKE: a misconfigured tuning value must not turn compression into an every-message LLM call.
         [Test]
         public void GIVEN_a_zero_or_negative_threshold_WHEN_checking_THEN_the_default_threshold_is_used_instead()
         {
-            MemoryCompressionPolicy.ShouldCompress(MemoryCompressionPolicy.DefaultThreshold - 1, 0, 0).Should().BeFalse();
-            MemoryCompressionPolicy.ShouldCompress(MemoryCompressionPolicy.DefaultThreshold - 1, 0, -5).Should().BeFalse();
-            MemoryCompressionPolicy.ShouldCompress(MemoryCompressionPolicy.DefaultThreshold, 0, 0).Should().BeTrue();
+            MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts {EventCount = MemoryCompressionPolicy.DefaultThreshold - 1, LastAttemptedAtCount = 0, Threshold = 0}).Should().BeFalse();
+            MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts {EventCount = MemoryCompressionPolicy.DefaultThreshold - 1, LastAttemptedAtCount = 0, Threshold = -5}).Should().BeFalse();
+            MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts {EventCount = MemoryCompressionPolicy.DefaultThreshold, LastAttemptedAtCount = 0, Threshold = 0}).Should().BeTrue();
         }
 
         // STAKE: the reported bug itself, an LLM call burned once a day on a hero the player can never
@@ -90,9 +79,9 @@ namespace CalradiaRemembers.Tests
         {
             int threshold = MemoryCompressionPolicy.DefaultThreshold;
 
-            MemoryCompressionPolicy.ShouldCompress(threshold, 0, threshold, isAlive: false).Should().BeFalse();
-            MemoryCompressionPolicy.ShouldCompress(threshold * 10, 0, threshold, isAlive: false).Should().BeFalse();
-            MemoryCompressionPolicy.ShouldCompress(threshold + MemoryCompressionPolicy.RetryGrowth, threshold, threshold, isAlive: false).Should().BeFalse();
+            MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts {EventCount = threshold, LastAttemptedAtCount = 0, Threshold = threshold, IsAlive = false}).Should().BeFalse();
+            MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts {EventCount = threshold * 10, LastAttemptedAtCount = 0, Threshold = threshold, IsAlive = false}).Should().BeFalse();
+            MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts {EventCount = threshold + MemoryCompressionPolicy.RetryGrowth, LastAttemptedAtCount = threshold, Threshold = threshold, IsAlive = false}).Should().BeFalse();
         }
 
         // STAKE: proves the gate is the ONLY new behaviour: an alive character at the exact same counts
@@ -103,9 +92,8 @@ namespace CalradiaRemembers.Tests
         {
             int threshold = MemoryCompressionPolicy.DefaultThreshold;
 
-            MemoryCompressionPolicy.ShouldCompress(threshold, 0, threshold, isAlive: true).Should().BeTrue();
-            MemoryCompressionPolicy.ShouldCompress(threshold, 0, threshold, isAlive: true)
-                .Should().Be(MemoryCompressionPolicy.ShouldCompress(threshold, 0, threshold));
+            MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts
+                {EventCount = threshold, Threshold = threshold, IsAlive = true}).Should().BeTrue();
         }
     }
 }

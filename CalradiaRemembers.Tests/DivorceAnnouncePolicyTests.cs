@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_current_letter_is_delivered_WHEN_resolving_THEN_the_clock_starts()
       {
-         DivorceAnnouncePolicy.Resolve(true, today: 100, cycleBeginDay: 99, reannounceCount: 5)
+         DivorceAnnouncePolicy.Resolve(new DivorceAnnouncePolicy.AnnounceStateFacts {CurrentLetterDelivered = true, Today = 100, CycleBeginDay = 99, ReannounceCount = 5})
             .Should().Be(DivorceAnnounceStep.StartClock);
       }
 
@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_an_undelivered_letter_still_within_its_window_WHEN_resolving_THEN_it_waits()
       {
-         DivorceAnnouncePolicy.Resolve(false, today: 105, cycleBeginDay: 100, reannounceCount: 0)
+         DivorceAnnouncePolicy.Resolve(new DivorceAnnouncePolicy.AnnounceStateFacts {CurrentLetterDelivered = false, Today = 105, CycleBeginDay = 100, ReannounceCount = 0})
             .Should().Be(DivorceAnnounceStep.Wait);
       }
 
@@ -44,7 +44,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_window_lapsed_undelivered_and_retries_remain_WHEN_resolving_THEN_it_reannounces()
       {
-         DivorceAnnouncePolicy.Resolve(false, today: 108, cycleBeginDay: 100, reannounceCount: 0)
+         DivorceAnnouncePolicy.Resolve(new DivorceAnnouncePolicy.AnnounceStateFacts {CurrentLetterDelivered = false, Today = 108, CycleBeginDay = 100, ReannounceCount = 0})
             .Should().Be(DivorceAnnounceStep.Reannounce);
       }
 
@@ -54,8 +54,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_retry_budget_is_exhausted_WHEN_resolving_THEN_it_forces_a_notice()
       {
-         DivorceAnnouncePolicy.Resolve(false, today: 130, cycleBeginDay: 120,
-               reannounceCount: DivorceAnnouncePolicy.MaxReannounces)
+         DivorceAnnouncePolicy.Resolve(new DivorceAnnouncePolicy.AnnounceStateFacts {CurrentLetterDelivered = false, Today = 130, CycleBeginDay = 120, ReannounceCount = DivorceAnnouncePolicy.MaxReannounces})
             .Should().Be(DivorceAnnounceStep.ForceNotice);
       }
 
@@ -64,8 +63,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_exactly_the_window_has_elapsed_WHEN_resolving_THEN_it_acts_rather_than_waiting()
       {
-         DivorceAnnouncePolicy.Resolve(false, today: 100 + DivorceAnnouncePolicy.AnnounceWindowDays,
-               cycleBeginDay: 100, reannounceCount: 0)
+         DivorceAnnouncePolicy.Resolve(new DivorceAnnouncePolicy.AnnounceStateFacts {CurrentLetterDelivered = false, Today = 100 + DivorceAnnouncePolicy.AnnounceWindowDays, CycleBeginDay = 100, ReannounceCount = 0})
             .Should().Be(DivorceAnnounceStep.Reannounce);
       }
    }

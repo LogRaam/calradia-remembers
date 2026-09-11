@@ -259,7 +259,7 @@ namespace CalradiaRemembers.Retainer
                     NotifyPlayer(lord, $"{lord.Name} no longer rides with you.");
                 }
 
-                if (RetainerLeavePolicy.MustLeave(atWar, alive, IsRetainer(id)))
+                if (RetainerLeavePolicy.MustLeave(new RetainerLeavePolicy.RetainerStandingFacts {FactionAtWarWithPlayer = atWar, IsAlive = alive, StillTracked = IsRetainer(id)}))
                 {
                     if (alive)
                     {

@@ -24,7 +24,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_tracked_retainer_alive_and_at_peace_WHEN_checked_THEN_they_stay()
         {
-            RetainerLeavePolicy.MustLeave(retainerFactionAtWarWithPlayer: false, retainerAlive: true, stillTracked: true)
+            RetainerLeavePolicy.MustLeave(new RetainerLeavePolicy.RetainerStandingFacts {FactionAtWarWithPlayer = false, IsAlive = true, StillTracked = true})
                 .Should().BeFalse();
         }
 
@@ -33,7 +33,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_retainers_faction_is_now_at_war_with_the_player_WHEN_checked_THEN_they_must_leave()
         {
-            RetainerLeavePolicy.MustLeave(retainerFactionAtWarWithPlayer: true, retainerAlive: true, stillTracked: true)
+            RetainerLeavePolicy.MustLeave(new RetainerLeavePolicy.RetainerStandingFacts {FactionAtWarWithPlayer = true, IsAlive = true, StillTracked = true})
                 .Should().BeTrue();
         }
 
@@ -42,7 +42,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_tracked_retainer_has_died_WHEN_checked_THEN_they_must_leave_even_at_peace()
         {
-            RetainerLeavePolicy.MustLeave(retainerFactionAtWarWithPlayer: false, retainerAlive: false, stillTracked: true)
+            RetainerLeavePolicy.MustLeave(new RetainerLeavePolicy.RetainerStandingFacts {FactionAtWarWithPlayer = false, IsAlive = false, StillTracked = true})
                 .Should().BeTrue();
         }
 
@@ -51,7 +51,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_hero_is_not_tracked_as_a_retainer_WHEN_checked_THEN_nothing_must_happen()
         {
-            RetainerLeavePolicy.MustLeave(retainerFactionAtWarWithPlayer: true, retainerAlive: true, stillTracked: false)
+            RetainerLeavePolicy.MustLeave(new RetainerLeavePolicy.RetainerStandingFacts {FactionAtWarWithPlayer = true, IsAlive = true, StillTracked = false})
                 .Should().BeFalse();
         }
 
@@ -60,7 +60,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_dead_hero_who_is_not_tracked_WHEN_checked_THEN_still_nothing_must_happen()
         {
-            RetainerLeavePolicy.MustLeave(retainerFactionAtWarWithPlayer: false, retainerAlive: false, stillTracked: false)
+            RetainerLeavePolicy.MustLeave(new RetainerLeavePolicy.RetainerStandingFacts {FactionAtWarWithPlayer = false, IsAlive = false, StillTracked = false})
                 .Should().BeFalse();
         }
     }

@@ -92,7 +92,7 @@ namespace CalradiaRemembers.Bastards
          string childId = _bastards.Where(kv => !kv.Value).Select(kv => kv.Key).FirstOrDefault(id => FindHero(id)?.Mother == npc);
 
          if (childId == null) return 0;
-         if (!BastardBlackmailPolicy.HoldsLeverage(true, npc.IsAlive, npc == Hero.MainHero.Spouse)) return 0;
+         if (!BastardBlackmailPolicy.HoldsLeverage(new BastardBlackmailPolicy.LeverageFacts {BastardConcealed = true, MotherAlive = npc.IsAlive, MotherIsPlayerSpouse = npc == Hero.MainHero.Spouse})) return 0;
          if (MotherDisposition(npc) != BastardMotherDisposition.Mercenary) return 0; // only a scheming mother extorts
 
          return BastardBlackmailPolicy.DemandAmount(Hero.MainHero.Gold);
@@ -198,7 +198,7 @@ namespace CalradiaRemembers.Bastards
             ? mother.GetRelation(Hero.MainHero)
             : 0;
 
-         return BastardMotherPolicy.Resolve(TraitLevel(mother, DefaultTraits.Honor), TraitLevel(mother, DefaultTraits.Calculating), relation);
+         return BastardMotherPolicy.Resolve(new BastardMotherPolicy.MotherDispositionFacts {Honor = TraitLevel(mother, DefaultTraits.Honor), Calculating = TraitLevel(mother, DefaultTraits.Calculating), RelationWithPlayer = relation});
       }
 
       /// <summary>

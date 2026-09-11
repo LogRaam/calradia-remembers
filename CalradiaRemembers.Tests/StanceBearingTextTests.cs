@@ -111,7 +111,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_every_axis_wholly_neutral_WHEN_composing_THEN_it_is_an_empty_string_not_null()
         {
-            StanceBearingText.Compose(0, 0, 0).Should().Be("");
+            StanceBearingText.Compose(new StanceBearingText.BearingFacts {Trust = 0, Respect = 0, Fear = 0}).Should().Be("");
         }
 
         // Guards that neutral axes are silently skipped rather than joined as empty fragments (which
@@ -119,7 +119,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_only_fear_stands_out_WHEN_composing_THEN_only_the_fear_phrase_appears()
         {
-            StanceBearingText.Compose(0, 0, StanceBearingText.FearStrong).Should().Be("fears you");
+            StanceBearingText.Compose(new StanceBearingText.BearingFacts {Trust = 0, Respect = 0, Fear = StanceBearingText.FearStrong}).Should().Be("fears you");
         }
 
         // Pins the STABLE join order (trust, respect, fear): a reordering would read as a random
@@ -127,7 +127,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_every_axis_stands_out_WHEN_composing_THEN_all_three_join_in_trust_respect_fear_order()
         {
-            string result = StanceBearingText.Compose(StanceBearingText.Strong, -StanceBearingText.Strong, StanceBearingText.FearStrong);
+            string result = StanceBearingText.Compose(new StanceBearingText.BearingFacts {Trust = StanceBearingText.Strong, Respect = -StanceBearingText.Strong, Fear = StanceBearingText.FearStrong});
 
             result.Should().Be("trusts your word, holds you in contempt, fears you");
         }
@@ -137,7 +137,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_believable_wary_but_unafraid_combination_WHEN_composing_THEN_it_reads_naturally()
         {
-            string result = StanceBearingText.Compose(-StanceBearingText.Strong, StanceBearingText.Strong, StanceBearingText.FearMild);
+            string result = StanceBearingText.Compose(new StanceBearingText.BearingFacts {Trust = -StanceBearingText.Strong, Respect = StanceBearingText.Strong, Fear = StanceBearingText.FearMild});
 
             result.Should().Be("does not trust your word, respects your strength, is uneasy around you");
         }

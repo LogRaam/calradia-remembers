@@ -665,7 +665,7 @@ namespace CalradiaRemembers.Marriage
                continue; // never time out on the same tick the clock starts
             }
 
-            if (!DivorceDemandTimeoutPolicy.IsRefusalDue(_demandStartDay[spouseId], today, GracePeriodDays)) continue;
+            if (!DivorceDemandTimeoutPolicy.IsRefusalDue(new DivorceDemandTimeoutPolicy.DemandClockFacts {DemandClockStartDay = _demandStartDay[spouseId], Today = today, GracePeriodDays = GracePeriodDays})) continue;
 
             Hero timedOutSpouse = spouse;
             SafeRun.Step($"SpouseDivorceDemandBehavior.SweepTimeouts({spouseId})",
@@ -686,7 +686,7 @@ namespace CalradiaRemembers.Marriage
          _announceRetries.TryGetValue(spouseId, out int retries);
          bool delivered = DemandLetterDelivered(spouse, cycleBegin);
 
-         switch (DivorceAnnouncePolicy.Resolve(delivered, today, cycleBegin, retries))
+         switch (DivorceAnnouncePolicy.Resolve(new DivorceAnnouncePolicy.AnnounceStateFacts {CurrentLetterDelivered = delivered, Today = today, CycleBeginDay = cycleBegin, ReannounceCount = retries}))
          {
             case DivorceAnnounceStep.StartClock:
                _demandStartDay[spouseId] = today;

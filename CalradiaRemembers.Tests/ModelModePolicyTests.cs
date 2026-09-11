@@ -88,17 +88,17 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_configured_models_WHEN_resolving_a_role_THEN_each_role_yields_its_own_id()
         {
-            ModelModePolicy.ResolveModelId(ServiceRole.Prose, "prose-x", "nsfw-y", "interp-z").Should().Be("prose-x");
-            ModelModePolicy.ResolveModelId(ServiceRole.Nsfw, "prose-x", "nsfw-y", "interp-z").Should().Be("nsfw-y");
-            ModelModePolicy.ResolveModelId(ServiceRole.Interpret, "prose-x", "nsfw-y", "interp-z").Should().Be("interp-z");
+            ModelModePolicy.ResolveModelId(new ModelModePolicy.RoleSettings {Role = ServiceRole.Prose, Prose = "prose-x", Nsfw = "nsfw-y", Interpret = "interp-z"}).Should().Be("prose-x");
+            ModelModePolicy.ResolveModelId(new ModelModePolicy.RoleSettings {Role = ServiceRole.Nsfw, Prose = "prose-x", Nsfw = "nsfw-y", Interpret = "interp-z"}).Should().Be("nsfw-y");
+            ModelModePolicy.ResolveModelId(new ModelModePolicy.RoleSettings {Role = ServiceRole.Interpret, Prose = "prose-x", Nsfw = "nsfw-y", Interpret = "interp-z"}).Should().Be("interp-z");
         }
 
         // A blank NSFW or Interpret model must fall back to PROSE, never send an empty id to the API.
         [Test]
         public void GIVEN_a_blank_explicit_or_interpret_model_WHEN_resolving_THEN_it_falls_back_to_prose()
         {
-            ModelModePolicy.ResolveModelId(ServiceRole.Nsfw, "prose-x", "   ", null).Should().Be("prose-x");
-            ModelModePolicy.ResolveModelId(ServiceRole.Interpret, "prose-x", "nsfw-y", "").Should().Be("prose-x");
+            ModelModePolicy.ResolveModelId(new ModelModePolicy.RoleSettings {Role = ServiceRole.Nsfw, Prose = "prose-x", Nsfw = "   ", Interpret = null}).Should().Be("prose-x");
+            ModelModePolicy.ResolveModelId(new ModelModePolicy.RoleSettings {Role = ServiceRole.Interpret, Prose = "prose-x", Nsfw = "nsfw-y", Interpret = ""}).Should().Be("prose-x");
         }
 
         // The cost difference between the two modes is exactly the interpret call and the fallback: Enhanced runs
@@ -117,11 +117,11 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_reasoning_efforts_WHEN_resolving_THEN_each_role_uses_its_own_or_falls_back_to_prose()
         {
-            ModelModePolicy.ResolveReasoningEffort(ServiceRole.Prose, "high", "off", "low").Should().Be("high");
-            ModelModePolicy.ResolveReasoningEffort(ServiceRole.Nsfw, "high", "off", "low").Should().Be("off");
-            ModelModePolicy.ResolveReasoningEffort(ServiceRole.Interpret, "high", "off", "low").Should().Be("low");
-            ModelModePolicy.ResolveReasoningEffort(ServiceRole.Nsfw, "high", "  ", "low").Should().Be("high");
-            ModelModePolicy.ResolveReasoningEffort(ServiceRole.Nsfw, "high", ModelModePolicy.SameAsProse, "low").Should().Be("high");
+            ModelModePolicy.ResolveReasoningEffort(new ModelModePolicy.RoleSettings {Role = ServiceRole.Prose, Prose = "high", Nsfw = "off", Interpret = "low"}).Should().Be("high");
+            ModelModePolicy.ResolveReasoningEffort(new ModelModePolicy.RoleSettings {Role = ServiceRole.Nsfw, Prose = "high", Nsfw = "off", Interpret = "low"}).Should().Be("off");
+            ModelModePolicy.ResolveReasoningEffort(new ModelModePolicy.RoleSettings {Role = ServiceRole.Interpret, Prose = "high", Nsfw = "off", Interpret = "low"}).Should().Be("low");
+            ModelModePolicy.ResolveReasoningEffort(new ModelModePolicy.RoleSettings {Role = ServiceRole.Nsfw, Prose = "high", Nsfw = "  ", Interpret = "low"}).Should().Be("high");
+            ModelModePolicy.ResolveReasoningEffort(new ModelModePolicy.RoleSettings {Role = ServiceRole.Nsfw, Prose = "high", Nsfw = ModelModePolicy.SameAsProse, Interpret = "low"}).Should().Be("high");
         }
 
         // Provider pins mirror efforts: PROSE keeps its pin, the others carry their own, and blank means "same as
@@ -129,10 +129,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_provider_pins_WHEN_resolving_THEN_each_role_uses_its_own_or_falls_back_to_prose()
         {
-            ModelModePolicy.ResolveProviderPin(ServiceRole.Prose, "openai", "novita", "deepinfra").Should().Be("openai");
-            ModelModePolicy.ResolveProviderPin(ServiceRole.Nsfw, "openai", "novita", "deepinfra").Should().Be("novita");
-            ModelModePolicy.ResolveProviderPin(ServiceRole.Interpret, "openai", "novita", "deepinfra").Should().Be("deepinfra");
-            ModelModePolicy.ResolveProviderPin(ServiceRole.Nsfw, "openai", "   ", "deepinfra").Should().Be("openai");
+            ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = ServiceRole.Prose, Prose = "openai", Nsfw = "novita", Interpret = "deepinfra"}).Should().Be("openai");
+            ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = ServiceRole.Nsfw, Prose = "openai", Nsfw = "novita", Interpret = "deepinfra"}).Should().Be("novita");
+            ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = ServiceRole.Interpret, Prose = "openai", Nsfw = "novita", Interpret = "deepinfra"}).Should().Be("deepinfra");
+            ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = ServiceRole.Nsfw, Prose = "openai", Nsfw = "   ", Interpret = "deepinfra"}).Should().Be("openai");
         }
     }
 }

@@ -25,13 +25,39 @@ namespace CalradiaRemembers.Logic
         public static bool ClockStarted(int demandClockStartDay) => demandClockStartDay != ClockNotStarted;
 
         /// <summary>
-        ///   True when a pending divorce demand should now lapse into a silent refusal: the clock has
-        ///   actually started (the letter reached the player) AND at least <paramref name="gracePeriodDays" />
-        ///   have elapsed since that delivery day. Never true while the clock has not started, however large
-        ///   <paramref name="today" /> grows.
+        ///   The clock on a pending divorce demand. THREE INTS in a row, two days and a span, and the first is
+        ///   also the flag: an unstarted clock is never due however large today grows, which is a rule a
+        ///   swapped pair silently breaks.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
         /// </summary>
-        public static bool IsRefusalDue(int demandClockStartDay, int today, int gracePeriodDays)
+        public sealed class DemandClockFacts
         {
+           /// <summary>The day the letter reached the player and the clock began. Unstarted means never due.</summary>
+           public int DemandClockStartDay { get; set; }
+
+           /// <summary>The current campaign day.</summary>
+           public int Today { get; set; }
+
+           /// <summary>How long the player is given before silence reads as refusal.</summary>
+           public int GracePeriodDays { get; set; }
+        }
+
+        /// <summary>
+        ///   True when a pending divorce demand should now lapse into a silent refusal: the clock has
+        ///   actually started (the letter reached the player) AND at least <c>GracePeriodDays</c>
+        ///   have elapsed since that delivery day. Never true while the clock has not started, however large
+        ///   <c>Today</c> grows.
+        /// </summary>
+        public static bool IsRefusalDue(DemandClockFacts facts)
+        {
+           if (facts == null) return false;
+
+           int demandClockStartDay = facts.DemandClockStartDay;
+           int today = facts.Today;
+           int gracePeriodDays = facts.GracePeriodDays;
+
             if (!ClockStarted(demandClockStartDay)) return false;
 
             return today - demandClockStartDay >= gracePeriodDays;

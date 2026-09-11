@@ -50,18 +50,48 @@ namespace CalradiaRemembers.Logic
             => reportEnabled ? BaseMessage + ReportHint : BaseMessage;
 
         /// <summary>
+        ///   Everything worth keeping about a verb the model invented. THREE STRINGS in a row at the end, a
+        ///   speaker's label and the two lines around it, all printed under their own headings: swap the NPC's
+        ///   line with the player's and the log tells the author the wrong person said it, which is the one
+        ///   thing this log exists to get right.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class UnknownActionFacts
+        {
+           /// <summary>The verb the model reached for and the mod does not have.</summary>
+           public string ActionType { get; set; }
+
+           /// <summary>Whatever it passed with it. Blank values are skipped rather than logged as empty fields.</summary>
+           public IReadOnlyDictionary<string, string> Parameters { get; set; }
+
+           /// <summary>Who attempted it.</summary>
+           public string NpcLabel { get; set; }
+
+           /// <summary>What the NPC said in the same turn.</summary>
+           public string NpcLine { get; set; }
+
+           /// <summary>What the player had said.</summary>
+           public string PlayerLine { get; set; }
+        }
+
+        /// <summary>
         ///   A readable multi-field block capturing the invented verb, its parameters, who attempted it, and the
         ///   surrounding lines, so the author can see the CONTEXT of what the model was trying to do and decide
         ///   whether to support it. Blank or null fields are omitted; a blank parameter value is skipped too.
         ///   Never throws. No timestamp is stamped here: the caller prepends one.
         /// </summary>
-        public static string FormatLogEntry(
-            string actionType,
-            IReadOnlyDictionary<string, string> parameters,
-            string npcLabel,
-            string npcLine,
-            string playerLine)
+        public static string FormatLogEntry(UnknownActionFacts facts)
         {
+           if (facts == null) return "";
+
+           string actionType = facts.ActionType;
+           IReadOnlyDictionary<string, string> parameters = facts.Parameters;
+           string npcLabel = facts.NpcLabel;
+           string npcLine = facts.NpcLine;
+           string playerLine = facts.PlayerLine;
+
             var sb = new StringBuilder();
 
             AppendField(sb, "Action type", actionType);

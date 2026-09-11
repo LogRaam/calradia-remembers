@@ -19,7 +19,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_companion_made_governor_WHEN_asked_THEN_they_are_NOT_idle()
         {
             // The reported case: a governorship is a charge, not idleness.
-            CompanionEngagementPolicy.IsIdle(onErrand: false, isGovernor: true, leadsAParty: false)
+            CompanionEngagementPolicy.IsIdle(new CompanionEngagementPolicy.CompanionChargeFacts {OnErrand = false, IsGovernor = true, LeadsAParty = false})
                 .Should().BeFalse();
         }
 
@@ -28,7 +28,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_companion_leading_a_party_of_your_clan_WHEN_asked_THEN_they_are_NOT_idle()
         {
-            CompanionEngagementPolicy.IsIdle(onErrand: false, isGovernor: false, leadsAParty: true)
+            CompanionEngagementPolicy.IsIdle(new CompanionEngagementPolicy.CompanionChargeFacts {OnErrand = false, IsGovernor = false, LeadsAParty = true})
                 .Should().BeFalse();
         }
 
@@ -37,7 +37,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_companion_away_on_an_errand_WHEN_asked_THEN_they_are_NOT_idle()
         {
-            CompanionEngagementPolicy.IsIdle(onErrand: true, isGovernor: false, leadsAParty: false)
+            CompanionEngagementPolicy.IsIdle(new CompanionEngagementPolicy.CompanionChargeFacts {OnErrand = true, IsGovernor = false, LeadsAParty = false})
                 .Should().BeFalse();
         }
 
@@ -46,7 +46,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_companion_with_no_charge_at_all_WHEN_asked_THEN_they_are_idle()
         {
-            CompanionEngagementPolicy.IsIdle(onErrand: false, isGovernor: false, leadsAParty: false)
+            CompanionEngagementPolicy.IsIdle(new CompanionEngagementPolicy.CompanionChargeFacts {OnErrand = false, IsGovernor = false, LeadsAParty = false})
                 .Should().BeTrue();
         }
     }

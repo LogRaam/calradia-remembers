@@ -103,7 +103,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_score_above_baseline_WHEN_it_drifts_THEN_it_eases_down_toward_default()
       {
          //Arrange/Act/Assert
-         CompanionHappiness.DriftToBaseline(70, 3).Should().Be(67);
+         CompanionHappiness.DriftToBaseline(new CompanionHappiness.HappinessDrift {Score = 70, Step = 3}).Should().Be(67);
       }
 
       // The mirror direction: a soured companion also RECOVERS toward baseline, not just a happy one decaying down.
@@ -112,7 +112,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_score_below_baseline_WHEN_it_drifts_THEN_it_eases_up_toward_default()
       {
          //Arrange/Act/Assert
-         CompanionHappiness.DriftToBaseline(40, 3).Should().Be(43);
+         CompanionHappiness.DriftToBaseline(new CompanionHappiness.HappinessDrift {Score = 40, Step = 3}).Should().Be(43);
       }
 
       // Without an overshoot guard, a large weekly step could push a near-baseline score past Default and back,
@@ -121,8 +121,8 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_score_near_baseline_WHEN_it_drifts_THEN_it_lands_on_default_without_overshoot()
       {
          //Arrange/Act/Assert — a step larger than the gap stops at Default, never past it.
-         CompanionHappiness.DriftToBaseline(CompanionHappiness.Default - 2, 10).Should().Be(CompanionHappiness.Default);
-         CompanionHappiness.DriftToBaseline(CompanionHappiness.Default, 10).Should().Be(CompanionHappiness.Default);
+         CompanionHappiness.DriftToBaseline(new CompanionHappiness.HappinessDrift {Score = CompanionHappiness.Default - 2, Step = 10}).Should().Be(CompanionHappiness.Default);
+         CompanionHappiness.DriftToBaseline(new CompanionHappiness.HappinessDrift {Score = CompanionHappiness.Default, Step = 10}).Should().Be(CompanionHappiness.Default);
       }
    }
 }

@@ -21,7 +21,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_siege_WHEN_judging_THEN_it_is_notable_whatever_the_armies()
         {
-            BattleNotability.IsNotable(isSiege: true, attackerHasArmy: false, defenderHasArmy: false).Should().BeTrue();
+            BattleNotability.IsNotable(new BattleNotability.BattleFacts {IsSiege = true, AttackerHasArmy = false, DefenderHasArmy = false}).Should().BeTrue();
         }
 
         // The other half of the bar: two real armies clashing is exactly what lords and the chronicle
@@ -29,7 +29,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_clash_of_two_armies_WHEN_judging_THEN_it_is_notable()
         {
-            BattleNotability.IsNotable(isSiege: false, attackerHasArmy: true, defenderHasArmy: true).Should().BeTrue();
+            BattleNotability.IsNotable(new BattleNotability.BattleFacts {IsSiege = false, AttackerHasArmy = true, DefenderHasArmy = true}).Should().BeTrue();
         }
 
         // Guards against a full army crushing a lone party being logged as a real battle: it would flood
@@ -38,8 +38,8 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_only_one_side_fields_an_army_WHEN_judging_THEN_it_is_not_notable()
         {
             //Arrange — an army crushing a lone party is a skirmish, not a remembered battle.
-            BattleNotability.IsNotable(isSiege: false, attackerHasArmy: true, defenderHasArmy: false).Should().BeFalse();
-            BattleNotability.IsNotable(isSiege: false, attackerHasArmy: false, defenderHasArmy: true).Should().BeFalse();
+            BattleNotability.IsNotable(new BattleNotability.BattleFacts {IsSiege = false, AttackerHasArmy = true, DefenderHasArmy = false}).Should().BeFalse();
+            BattleNotability.IsNotable(new BattleNotability.BattleFacts {IsSiege = false, AttackerHasArmy = false, DefenderHasArmy = true}).Should().BeFalse();
         }
 
         // The base noise floor: without it, every minor field scrap (a bandit chase, a small patrol clash)
@@ -47,7 +47,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_plain_field_skirmish_WHEN_judging_THEN_it_is_not_notable()
         {
-            BattleNotability.IsNotable(isSiege: false, attackerHasArmy: false, defenderHasArmy: false).Should().BeFalse();
+            BattleNotability.IsNotable(new BattleNotability.BattleFacts {IsSiege = false, AttackerHasArmy = false, DefenderHasArmy = false}).Should().BeFalse();
         }
 
         // The 04/07 addendum: a big scrap the player personally led deserves a chronicle line even when
@@ -56,8 +56,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_player_battle_at_or_above_the_size_threshold_WHEN_judging_THEN_it_is_notable_without_armies()
         {
-            BattleNotability.IsNotableForPlayer(isSiege: false, attackerHasArmy: false, defenderHasArmy: false,
-                totalCombatants: BattleNotability.PlayerBattleSizeThreshold).Should().BeTrue();
+            BattleNotability.IsNotableForPlayer(new BattleNotability.BattleFacts {IsSiege = false, AttackerHasArmy = false, DefenderHasArmy = false, TotalCombatants = BattleNotability.PlayerBattleSizeThreshold}).Should().BeTrue();
         }
 
         // Pins the floor of the size bypass: one combatant under threshold and it reverts to the normal
@@ -65,8 +64,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_player_battle_below_the_size_threshold_WHEN_judging_THEN_it_is_not_notable()
         {
-            BattleNotability.IsNotableForPlayer(isSiege: false, attackerHasArmy: false, defenderHasArmy: false,
-                totalCombatants: BattleNotability.PlayerBattleSizeThreshold - 1).Should().BeFalse();
+            BattleNotability.IsNotableForPlayer(new BattleNotability.BattleFacts {IsSiege = false, AttackerHasArmy = false, DefenderHasArmy = false, TotalCombatants = BattleNotability.PlayerBattleSizeThreshold - 1}).Should().BeFalse();
         }
 
         // Confirms the size threshold is an ADDITIONAL bypass for field battles, never a requirement: a
@@ -74,8 +72,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_player_siege_below_the_size_threshold_WHEN_judging_THEN_it_is_still_notable()
         {
-            BattleNotability.IsNotableForPlayer(isSiege: true, attackerHasArmy: false, defenderHasArmy: false,
-                totalCombatants: 1).Should().BeTrue();
+            BattleNotability.IsNotableForPlayer(new BattleNotability.BattleFacts {IsSiege = true, AttackerHasArmy = false, DefenderHasArmy = false, TotalCombatants = 1}).Should().BeTrue();
         }
     }
 }

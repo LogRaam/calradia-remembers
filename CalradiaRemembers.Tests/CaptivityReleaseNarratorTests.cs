@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Tests
       {
          CaptivityReleaseNarrator.Summary("Arwa", "Maritzios")
                                  .Should().Contain("Maritzios");
-         CaptivityReleaseNarrator.ChronicleLine("Arwa", "her", "Maritzios")
+         CaptivityReleaseNarrator.ChronicleLine(new CaptivityReleaseNarrator.ReleaseLineFacts {PlayerName = "Arwa", PossessivePronoun = "her", LiberatorName = "Maritzios"})
                                  .Should().Contain("Maritzios");
       }
 
@@ -46,7 +46,7 @@ namespace CalradiaRemembers.Tests
       {
          CaptivityReleaseNarrator.Summary("Arwa", "Maritzios")
                                  .Should().NotContain("won free");
-         CaptivityReleaseNarrator.ChronicleLine("Arwa", "her", "Maritzios")
+         CaptivityReleaseNarrator.ChronicleLine(new CaptivityReleaseNarrator.ReleaseLineFacts {PlayerName = "Arwa", PossessivePronoun = "her", LiberatorName = "Maritzios"})
                                  .Should().NotContain("won free");
       }
 
@@ -71,7 +71,7 @@ namespace CalradiaRemembers.Tests
       {
          CaptivityReleaseNarrator.Summary("Arwa", null)
                                  .Should().Be("Arwa won free of captivity.");
-         CaptivityReleaseNarrator.ChronicleLine("Arwa", "her", null)
+         CaptivityReleaseNarrator.ChronicleLine(new CaptivityReleaseNarrator.ReleaseLineFacts {PlayerName = "Arwa", PossessivePronoun = "her", LiberatorName = null})
                                  .Should().Be("after captivity, Arwa won free again, and came back to her own");
       }
 
@@ -89,7 +89,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_captors_were_engaged_by_a_known_attacker_WHEN_judging_THEN_the_attacker_is_credited()
       {
-         CaptivityReleaseNarrator.CreditsLiberator(captorWasEngaged: true, liberatorKnown: true, liberatorIsCaptor: false)
+         CaptivityReleaseNarrator.CreditsLiberator(new CaptivityReleaseNarrator.LiberationFacts {CaptorWasEngaged = true, LiberatorKnown = true, LiberatorIsCaptor = false})
                                  .Should().BeTrue();
       }
 
@@ -111,7 +111,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_player_broke_loose_in_the_din_WHEN_chronicling_THEN_the_attacker_is_named_without_claiming_the_rescue()
       {
-         string line = CaptivityReleaseNarrator.ChronicleLine("Arwa", "her", "Maritzios", brokeFree: true);
+         string line = CaptivityReleaseNarrator.ChronicleLine(new CaptivityReleaseNarrator.ReleaseLineFacts {PlayerName = "Arwa", PossessivePronoun = "her", LiberatorName = "Maritzios", BrokeFree = true});
 
          line.Should().Contain("Maritzios");
          line.Should().NotContain("cut down her captors");
@@ -136,7 +136,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_winner_is_the_captor_themselves_WHEN_judging_THEN_no_one_is_credited()
       {
-         CaptivityReleaseNarrator.CreditsLiberator(true, true, liberatorIsCaptor: true)
+         CaptivityReleaseNarrator.CreditsLiberator(new CaptivityReleaseNarrator.LiberationFacts {CaptorWasEngaged = true, LiberatorKnown = true, LiberatorIsCaptor = true})
                                  .Should().BeFalse();
       }
 
@@ -145,7 +145,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_captors_were_not_in_this_battle_at_all_WHEN_judging_THEN_no_one_is_credited()
       {
-         CaptivityReleaseNarrator.CreditsLiberator(captorWasEngaged: false, liberatorKnown: true, liberatorIsCaptor: false)
+         CaptivityReleaseNarrator.CreditsLiberator(new CaptivityReleaseNarrator.LiberationFacts {CaptorWasEngaged = false, LiberatorKnown = true, LiberatorIsCaptor = false})
                                  .Should().BeFalse();
       }
 
@@ -154,7 +154,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_winning_side_has_no_leader_WHEN_judging_THEN_no_one_is_credited()
       {
-         CaptivityReleaseNarrator.CreditsLiberator(true, liberatorKnown: false, liberatorIsCaptor: false)
+         CaptivityReleaseNarrator.CreditsLiberator(new CaptivityReleaseNarrator.LiberationFacts {CaptorWasEngaged = true, LiberatorKnown = false, LiberatorIsCaptor = false})
                                  .Should().BeFalse();
       }
    }

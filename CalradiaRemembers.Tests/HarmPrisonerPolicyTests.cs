@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_player_is_not_the_captors_prisoner_WHEN_the_other_guards_hold_THEN_harm_is_refused()
         {
-            HarmPrisonerPolicy.CanHarm(playerIsCaptiveOfCaptor: false, captiveSceneActive: true, hardcore: true)
+            HarmPrisonerPolicy.CanHarm(new HarmPrisonerPolicy.HarmFacts {PlayerIsCaptiveOfCaptor = false, CaptiveSceneActive = true, Hardcore = true})
                 .Should().BeFalse();
         }
 
@@ -36,7 +36,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_no_captive_scene_is_active_WHEN_the_other_guards_hold_THEN_harm_is_refused()
         {
-            HarmPrisonerPolicy.CanHarm(playerIsCaptiveOfCaptor: true, captiveSceneActive: false, hardcore: true)
+            HarmPrisonerPolicy.CanHarm(new HarmPrisonerPolicy.HarmFacts {PlayerIsCaptiveOfCaptor = true, CaptiveSceneActive = false, Hardcore = true})
                 .Should().BeFalse();
         }
 
@@ -45,7 +45,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_content_level_is_below_Hardcore_WHEN_the_other_guards_hold_THEN_harm_is_refused()
         {
-            HarmPrisonerPolicy.CanHarm(playerIsCaptiveOfCaptor: true, captiveSceneActive: true, hardcore: false)
+            HarmPrisonerPolicy.CanHarm(new HarmPrisonerPolicy.HarmFacts {PlayerIsCaptiveOfCaptor = true, CaptiveSceneActive = true, Hardcore = false})
                 .Should().BeFalse();
         }
 
@@ -54,7 +54,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_every_guard_holds_THEN_harm_is_permitted()
         {
-            HarmPrisonerPolicy.CanHarm(playerIsCaptiveOfCaptor: true, captiveSceneActive: true, hardcore: true)
+            HarmPrisonerPolicy.CanHarm(new HarmPrisonerPolicy.HarmFacts {PlayerIsCaptiveOfCaptor = true, CaptiveSceneActive = true, Hardcore = true})
                 .Should().BeTrue();
         }
 
@@ -72,7 +72,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_every_combination_of_the_three_guards_THEN_only_all_true_permits_harm(
             bool playerIsCaptiveOfCaptor, bool captiveSceneActive, bool hardcore, bool expected)
         {
-            HarmPrisonerPolicy.CanHarm(playerIsCaptiveOfCaptor, captiveSceneActive, hardcore).Should().Be(expected);
+            HarmPrisonerPolicy.CanHarm(new HarmPrisonerPolicy.HarmFacts {PlayerIsCaptiveOfCaptor = playerIsCaptiveOfCaptor, CaptiveSceneActive = captiveSceneActive, Hardcore = hardcore}).Should().Be(expected);
         }
     }
 }

@@ -71,7 +71,7 @@ namespace CalradiaRemembers.Missions
          bool opposite = a.IsFemale != b.IsFemale;
          bool adult = !a.IsChild && !b.IsChild;
 
-         if (!CompanionRapport.CanMarry(a.GetRelation(b), true, opposite, adult)) return;
+         if (!CompanionRapport.CanMarry(new CompanionRapport.CompanionMatchFacts {Relation = a.GetRelation(b), BothUnmarried = true, OppositeGender = opposite, BothAdult = adult})) return;
 
          // Vanilla has the final say: MarriageAction.Apply silently no-ops unless the marriage model deems the
          // couple suitable (extra checks our own guards do not make, e.g. for a same-clan companion pair). Ask it

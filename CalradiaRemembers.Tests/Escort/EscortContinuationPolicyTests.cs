@@ -137,16 +137,11 @@ namespace CalradiaRemembers.Tests.Escort
                                         .Should().NotBeNullOrWhiteSpace().And.NotContain("  ");
         }
 
-        // The four-fact overload is kept so nothing that already called it changed behaviour the day the reason
-        // was added. Same facts, same answer.
-        [Test]
-        public void GIVEN_the_older_four_fact_call_WHEN_used_THEN_it_answers_exactly_as_it_always_did()
-        {
-            EscortContinuationPolicy.ShouldEnd(5, false, false, false).Should().BeFalse();
-            EscortContinuationPolicy.ShouldEnd(0, false, false, false).Should().BeTrue();
-            EscortContinuationPolicy.ShouldEnd(10, true, false, false).Should().BeTrue();
-            EscortContinuationPolicy.ShouldEnd(10, false, true, false).Should().BeTrue();
-            EscortContinuationPolicy.ShouldEnd(10, false, false, true).Should().BeTrue();
-        }
+        // Every ending this policy knows is already pinned above, each from the standing that causes it: the
+        // term running out, a death, a capture, a war. What used to sit here instead was a sixth case pinning
+        // the four-argument OVERLOAD itself, "same facts, same answer" - a test of a signature rather than of
+        // a behaviour, and the overload it protected had no caller in the mod at all. Both are gone
+        // (2026-09-10). A test earns its place by naming something the game must do, not by holding a shape
+        // of the code still.
     }
 }

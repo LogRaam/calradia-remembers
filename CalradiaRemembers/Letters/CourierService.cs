@@ -744,10 +744,7 @@ namespace CalradiaRemembers.Letters
                MobileParty playerParty = MobileParty.MainParty;
                if (courier is {IsActive: true} && playerParty != null)
                {
-                  ReplyCourierBlock block = ReplyCourierGatePolicy.Decide(
-                     playerParty.IsCurrentlyAtSea,
-                     Hero.MainHero.IsPrisoner,
-                     LandPathExists(courier.GetPosition2D, playerParty.GetPosition2D));
+                  ReplyCourierBlock block = ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {PlayerAtSea = playerParty.IsCurrentlyAtSea, PlayerIsPrisoner = Hero.MainHero.IsPrisoner, LandRouteExists = LandPathExists(courier.GetPosition2D, playerParty.GetPosition2D)});
                   if (block != ReplyCourierBlock.None)
                   {
                      Disband(courier);
@@ -885,10 +882,7 @@ namespace CalradiaRemembers.Letters
             // party), or no overland route (an island: the courier would spawn only to starve on the shore).
             // Every blocked case is safe: the letter keeps its date-based fallback.
             Vec2 spawnPos = spawnOverride ?? GetSenderPosition(sender);
-            ReplyCourierBlock block = ReplyCourierGatePolicy.Decide(
-               playerParty.IsCurrentlyAtSea,
-               Hero.MainHero.IsPrisoner,
-               LandPathExists(spawnPos, playerParty.GetPosition2D));
+            ReplyCourierBlock block = ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {PlayerAtSea = playerParty.IsCurrentlyAtSea, PlayerIsPrisoner = Hero.MainHero.IsPrisoner, LandRouteExists = LandPathExists(spawnPos, playerParty.GetPosition2D)});
             if (block != ReplyCourierBlock.None)
             {
                ModLog.Info($"[COURIER-REPLY] {DescribeReplyBlock(block, sender.Name.ToString())}, letter stays on date-based delivery.");

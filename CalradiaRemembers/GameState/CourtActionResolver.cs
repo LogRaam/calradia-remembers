@@ -122,7 +122,7 @@ namespace CalradiaRemembers.GameState
          int playerRoom = Math.Max(0, playerParty.Party.PartySizeLimit - playerParty.MemberRoster.TotalManCount);
          if (playerRoom <= 0) return false;
 
-         int candidate = CourtActionPolicy.TroopLoanCount(relation, npcHealthyTroops, playerRoom);
+         int candidate = CourtActionPolicy.TroopLoanCount(new CourtActionPolicy.TroopLoanFacts {Relation = relation, NpcTotalRegularTroops = npcHealthyTroops, PlayerRoom = playerRoom});
          if (candidate <= 0) return false;
          if (!CourtActionPolicy.CooldownElapsed(LastMarkerDay(profile, TroopsMarker), Today(), CourtActionPolicy.TroopLoanCooldownDays)) return false;
 
@@ -200,7 +200,7 @@ namespace CalradiaRemembers.GameState
 
          int playerHealthyTroops = HealthyRegularTroopCount(playerParty.MemberRoster);
 
-         int candidate = CourtActionPolicy.TroopGiftCount(relation, playerHealthyTroops, npcRoom);
+         int candidate = CourtActionPolicy.TroopGiftCount(new CourtActionPolicy.TroopGiftFacts {Relation = relation, PlayerHealthyTroops = playerHealthyTroops, NpcRoom = npcRoom});
          if (candidate <= 0) return false;
          if (!CourtActionPolicy.CooldownElapsed(LastMarkerDay(profile, GiveTroopsMarker), Today(), CourtActionPolicy.GiveTroopsCooldownDays)) return false;
 
@@ -409,7 +409,7 @@ namespace CalradiaRemembers.GameState
          // ALL hard legality to the engine's IsCoupleSuitableForMarriage, which does NOT bar a captive kin or
          // kin whose houses are at war. Re-apply the SAME shared pure guard to BOTH parties so an arranged match
          // cannot wed a captive or across a war in one click when the direct action forbids exactly that.
-         if (!MarriageGuardPolicy.MarriageAllowed(a.IsPrisoner, b.IsPrisoner, HousesAtWar(a, b)))
+         if (!MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = a.IsPrisoner, PlayerPrisoner = b.IsPrisoner, AtWarWithCandidate = HousesAtWar(a, b)}))
             return new ArrangeMarriageVerdict(ArrangeMarriageResult.BlockedByGuard, a, b, null, null);
 
          // CR consent: the target family weighs the player's standing. The regard read is the mod's own
@@ -737,7 +737,7 @@ namespace CalradiaRemembers.GameState
             && s.OwnerClan == Clan.PlayerClan
             && string.Equals(s.Name?.ToString(), fiefName, StringComparison.OrdinalIgnoreCase));
 
-         if (!FiefTransferPolicy.CanGrant(playerIsKingdomLeader, recipientInPlayerKingdom, fief != null))
+         if (!FiefTransferPolicy.CanGrant(new FiefTransferPolicy.GrantFacts {PlayerIsKingdomLeader = playerIsKingdomLeader, RecipientInPlayerKingdom = recipientInPlayerKingdom, FiefOwnedByPlayerClan = fief != null}))
             return new GrantFiefVerdict(
                !playerIsKingdomLeader ? GrantFiefResult.PlayerNotKingdomLeader
                   : !recipientInPlayerKingdom ? GrantFiefResult.RecipientNotVassal
@@ -802,7 +802,7 @@ namespace CalradiaRemembers.GameState
             && s.OwnerClan == spoliatedClan
             && string.Equals(s.Name?.ToString(), fiefName, StringComparison.OrdinalIgnoreCase));
 
-         if (!FiefTransferPolicy.CanRevoke(playerIsKingdomLeader, targetInPlayerKingdom, fief != null))
+         if (!FiefTransferPolicy.CanRevoke(new FiefTransferPolicy.RevokeFacts {PlayerIsKingdomLeader = playerIsKingdomLeader, TargetInPlayerKingdom = targetInPlayerKingdom, FiefOwnedBySpoliatedClan = fief != null}))
             return new RevokeFiefVerdict(
                !playerIsKingdomLeader ? RevokeFiefResult.PlayerNotKingdomLeader
                   : !targetInPlayerKingdom ? RevokeFiefResult.VassalNotInKingdom

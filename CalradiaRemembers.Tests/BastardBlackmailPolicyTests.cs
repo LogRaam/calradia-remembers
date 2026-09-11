@@ -28,7 +28,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_hidden_bastard_and_a_living_unmarried_mother_WHEN_checking_THEN_she_holds_leverage()
         {
-            BastardBlackmailPolicy.HoldsLeverage(bastardConcealed: true, motherAlive: true, motherIsPlayerSpouse: false)
+            BastardBlackmailPolicy.HoldsLeverage(new BastardBlackmailPolicy.LeverageFacts {BastardConcealed = true, MotherAlive = true, MotherIsPlayerSpouse = false})
                 .Should().BeTrue();
         }
 
@@ -37,7 +37,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_secret_is_already_out_WHEN_checking_THEN_there_is_nothing_left_to_sell()
         {
-            BastardBlackmailPolicy.HoldsLeverage(bastardConcealed: false, motherAlive: true, motherIsPlayerSpouse: false)
+            BastardBlackmailPolicy.HoldsLeverage(new BastardBlackmailPolicy.LeverageFacts {BastardConcealed = false, MotherAlive = true, MotherIsPlayerSpouse = false})
                 .Should().BeFalse();
         }
 
@@ -46,7 +46,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_dead_mother_WHEN_checking_THEN_she_holds_no_leverage()
         {
-            BastardBlackmailPolicy.HoldsLeverage(bastardConcealed: true, motherAlive: false, motherIsPlayerSpouse: false)
+            BastardBlackmailPolicy.HoldsLeverage(new BastardBlackmailPolicy.LeverageFacts {BastardConcealed = true, MotherAlive = false, MotherIsPlayerSpouse = false})
                 .Should().BeFalse();
         }
 
@@ -55,7 +55,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_mother_is_the_players_own_spouse_WHEN_checking_THEN_she_holds_no_leverage()
         {
-            BastardBlackmailPolicy.HoldsLeverage(bastardConcealed: true, motherAlive: true, motherIsPlayerSpouse: true)
+            BastardBlackmailPolicy.HoldsLeverage(new BastardBlackmailPolicy.LeverageFacts {BastardConcealed = true, MotherAlive = true, MotherIsPlayerSpouse = true})
                 .Should().BeFalse();
         }
 

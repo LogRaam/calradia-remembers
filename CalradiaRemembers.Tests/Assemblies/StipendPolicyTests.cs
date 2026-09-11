@@ -92,7 +92,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_every_teaching_fact_holds_WHEN_offering_a_stipend_THEN_the_action_is_taught()
         {
-            StipendPolicy.CanOfferStipend(npcIsPlayerCompanion: true, npcHasActiveStipend: false, playerCanAffordMinTranche: true)
+            StipendPolicy.CanOfferStipend(new StipendPolicy.StipendOfferFacts {NpcIsPlayerCompanion = true, NpcHasActiveStipend = false, PlayerCanAffordMinTranche = true})
                 .Should().BeTrue();
         }
 
@@ -101,7 +101,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_npc_is_not_a_player_companion_WHEN_offering_a_stipend_THEN_it_is_withheld()
         {
-            StipendPolicy.CanOfferStipend(npcIsPlayerCompanion: false, npcHasActiveStipend: false, playerCanAffordMinTranche: true)
+            StipendPolicy.CanOfferStipend(new StipendPolicy.StipendOfferFacts {NpcIsPlayerCompanion = false, NpcHasActiveStipend = false, PlayerCanAffordMinTranche = true})
                 .Should().BeFalse();
         }
 
@@ -111,7 +111,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_stipend_already_runs_for_the_npc_WHEN_offering_a_stipend_THEN_it_is_withheld()
         {
-            StipendPolicy.CanOfferStipend(npcIsPlayerCompanion: true, npcHasActiveStipend: true, playerCanAffordMinTranche: true)
+            StipendPolicy.CanOfferStipend(new StipendPolicy.StipendOfferFacts {NpcIsPlayerCompanion = true, NpcHasActiveStipend = true, PlayerCanAffordMinTranche = true})
                 .Should().BeFalse();
         }
 
@@ -121,7 +121,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_cannot_afford_the_floor_tranche_WHEN_offering_a_stipend_THEN_it_is_withheld()
         {
-            StipendPolicy.CanOfferStipend(npcIsPlayerCompanion: true, npcHasActiveStipend: false, playerCanAffordMinTranche: false)
+            StipendPolicy.CanOfferStipend(new StipendPolicy.StipendOfferFacts {NpcIsPlayerCompanion = true, NpcHasActiveStipend = false, PlayerCanAffordMinTranche = false})
                 .Should().BeFalse();
         }
     }

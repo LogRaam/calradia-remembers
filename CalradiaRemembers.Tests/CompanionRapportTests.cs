@@ -126,7 +126,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_two_warm_eligible_companions_WHEN_asked_THEN_they_may_wed()
       {
          //Arrange/Act/Assert
-         CompanionRapport.CanMarry(CompanionRapport.MarriageThreshold, bothUnmarried: true, oppositeGender: true, bothAdult: true)
+         CompanionRapport.CanMarry(new CompanionRapport.CompanionMatchFacts {Relation = CompanionRapport.MarriageThreshold, BothUnmarried = true, OppositeGender = true, BothAdult = true})
             .Should().BeTrue();
       }
 
@@ -138,10 +138,10 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_any_failed_precondition_WHEN_asked_THEN_they_may_not_wed()
       {
          //Arrange/Act/Assert
-         CompanionRapport.CanMarry(50, bothUnmarried: false, oppositeGender: true,  bothAdult: true).Should().BeFalse();
-         CompanionRapport.CanMarry(50, bothUnmarried: true,  oppositeGender: false, bothAdult: true).Should().BeFalse();
-         CompanionRapport.CanMarry(50, bothUnmarried: true,  oppositeGender: true,  bothAdult: false).Should().BeFalse();
-         CompanionRapport.CanMarry(39, bothUnmarried: true,  oppositeGender: true,  bothAdult: true).Should().BeFalse("below the warmth gate");
+         CompanionRapport.CanMarry(new CompanionRapport.CompanionMatchFacts {Relation = 50, BothUnmarried = false, OppositeGender = true, BothAdult = true}).Should().BeFalse();
+         CompanionRapport.CanMarry(new CompanionRapport.CompanionMatchFacts {Relation = 50, BothUnmarried = true, OppositeGender = false, BothAdult = true}).Should().BeFalse();
+         CompanionRapport.CanMarry(new CompanionRapport.CompanionMatchFacts {Relation = 50, BothUnmarried = true, OppositeGender = true, BothAdult = false}).Should().BeFalse();
+         CompanionRapport.CanMarry(new CompanionRapport.CompanionMatchFacts {Relation = 39, BothUnmarried = true, OppositeGender = true, BothAdult = true}).Should().BeFalse("below the warmth gate");
       }
    }
 }

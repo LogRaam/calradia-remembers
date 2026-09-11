@@ -63,12 +63,7 @@ namespace CalradiaRemembers.Tests
             {"recipient", "player"}
          };
 
-         string entry = UnknownActionNotice.FormatLogEntry(
-            "grant_fief_to_player",
-            parameters,
-            "Derthert of dey Meroc (Vlandian)",
-            "Then let the deed be done: Pravend is yours.",
-            "Grant me a fief for my service.");
+         string entry = UnknownActionNotice.FormatLogEntry(new UnknownActionNotice.UnknownActionFacts {ActionType = "grant_fief_to_player", Parameters = parameters, NpcLabel = "Derthert of dey Meroc (Vlandian)", NpcLine = "Then let the deed be done: Pravend is yours.", PlayerLine = "Grant me a fief for my service."});
 
          entry.Should().Contain("grant_fief_to_player");
          entry.Should().Contain("fief");
@@ -91,12 +86,7 @@ namespace CalradiaRemembers.Tests
             {"note", "   "}
          };
 
-         string entry = UnknownActionNotice.FormatLogEntry(
-            "bless_marriage",
-            parameters,
-            null,
-            null,
-            "Bless our union.");
+         string entry = UnknownActionNotice.FormatLogEntry(new UnknownActionNotice.UnknownActionFacts {ActionType = "bless_marriage", Parameters = parameters, NpcLabel = null, NpcLine = null, PlayerLine = "Bless our union."});
 
          entry.Should().Contain("bless_marriage");
          entry.Should().Contain("amount");

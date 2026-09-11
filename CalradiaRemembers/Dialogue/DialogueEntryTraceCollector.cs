@@ -132,10 +132,7 @@ namespace CalradiaRemembers.Dialogue
             if (_currentPartnerHero == null) return;
 
             string kind = _currentPartnerHero.Occupation.ToString().ToLowerInvariant();
-            string partnerLabel = HeroLabel.Describe(
-               _currentPartnerHero.Name?.ToString(),
-               _currentPartnerHero.Clan?.Name?.ToString(),
-               _currentPartnerHero.Culture?.Name?.ToString());
+            string partnerLabel = HeroLabel.Describe(new HeroLabel.HeroNaming {Name = _currentPartnerHero.Name?.ToString(), ClanName = _currentPartnerHero.Clan?.Name?.ToString(), CultureName = _currentPartnerHero.Culture?.Name?.ToString()});
 
             ModLog.Info(DialogueEntryTracePolicy.ComposeLine(partnerLabel, kind, _entryOffered, _trail, LlmDialogFlow.EntryHubTokens));
          }

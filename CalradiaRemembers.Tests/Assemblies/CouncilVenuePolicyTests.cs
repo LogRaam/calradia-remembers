@@ -21,7 +21,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_owns_the_settlement_and_it_has_a_lordshall_WHEN_choosing_a_venue_THEN_the_hall_is_chosen()
         {
-            CouncilVenue venue = CouncilVenuePolicy.Choose(playerClanOwnsSettlement: true, hasLordshall: true, hasTavern: true);
+            CouncilVenue venue = CouncilVenuePolicy.Choose(new CouncilVenuePolicy.VenueFacts {PlayerClanOwnsSettlement = true, HasLordshall = true, HasTavern = true});
 
             venue.Should().Be(CouncilVenue.Hall);
         }
@@ -31,7 +31,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_is_a_guest_and_the_settlement_has_a_tavern_WHEN_choosing_a_venue_THEN_the_tavern_is_chosen()
         {
-            CouncilVenue venue = CouncilVenuePolicy.Choose(playerClanOwnsSettlement: false, hasLordshall: true, hasTavern: true);
+            CouncilVenue venue = CouncilVenuePolicy.Choose(new CouncilVenuePolicy.VenueFacts {PlayerClanOwnsSettlement = false, HasLordshall = true, HasTavern = true});
 
             venue.Should().Be(CouncilVenue.Tavern);
         }
@@ -42,7 +42,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_owns_the_settlement_but_it_has_no_lordshall_WHEN_choosing_a_venue_THEN_the_tavern_is_chosen_as_fallback()
         {
-            CouncilVenue venue = CouncilVenuePolicy.Choose(playerClanOwnsSettlement: true, hasLordshall: false, hasTavern: true);
+            CouncilVenue venue = CouncilVenuePolicy.Choose(new CouncilVenuePolicy.VenueFacts {PlayerClanOwnsSettlement = true, HasLordshall = false, HasTavern = true});
 
             venue.Should().Be(CouncilVenue.Tavern);
         }
@@ -52,7 +52,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_is_a_guest_and_the_settlement_has_no_tavern_but_has_a_lordshall_WHEN_choosing_a_venue_THEN_the_hall_is_chosen_as_fallback()
         {
-            CouncilVenue venue = CouncilVenuePolicy.Choose(playerClanOwnsSettlement: false, hasLordshall: true, hasTavern: false);
+            CouncilVenue venue = CouncilVenuePolicy.Choose(new CouncilVenuePolicy.VenueFacts {PlayerClanOwnsSettlement = false, HasLordshall = true, HasTavern = false});
 
             venue.Should().Be(CouncilVenue.Hall);
         }
@@ -62,7 +62,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_settlement_has_neither_a_lordshall_nor_a_tavern_WHEN_choosing_a_venue_THEN_none_is_chosen()
         {
-            CouncilVenue venue = CouncilVenuePolicy.Choose(playerClanOwnsSettlement: true, hasLordshall: false, hasTavern: false);
+            CouncilVenue venue = CouncilVenuePolicy.Choose(new CouncilVenuePolicy.VenueFacts {PlayerClanOwnsSettlement = true, HasLordshall = false, HasTavern = false});
 
             venue.Should().Be(CouncilVenue.None);
         }

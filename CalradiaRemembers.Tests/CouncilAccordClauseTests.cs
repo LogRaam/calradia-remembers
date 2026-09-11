@@ -24,7 +24,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_tribute_THEN_the_clause_says_the_NPC_owes_the_player_the_daily_amount()
         {
-            string clause = CouncilAccordClause.TributeOwedToPlayer("Rhagaea", 300, 12, 0);
+            string clause = CouncilAccordClause.TributeOwedToPlayer(new CouncilAccordClause.TributeToPlayer {PlayerName = "Rhagaea", AmountPerDay = 300, DaysRemaining = 12, MissedDays = 0});
 
             clause.Should().Contain("You owe");
             clause.Should().Contain("Rhagaea");
@@ -37,13 +37,13 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_tribute_with_missed_days_THEN_the_clause_notes_falling_behind()
         {
-            CouncilAccordClause.TributeOwedToPlayer("Rhagaea", 300, 12, 3).Should().Contain("fallen behind");
+            CouncilAccordClause.TributeOwedToPlayer(new CouncilAccordClause.TributeToPlayer {PlayerName = "Rhagaea", AmountPerDay = 300, DaysRemaining = 12, MissedDays = 3}).Should().Contain("fallen behind");
         }
 
         [Test]
         public void GIVEN_a_tribute_with_no_missed_days_THEN_the_clause_does_not_note_falling_behind()
         {
-            CouncilAccordClause.TributeOwedToPlayer("Rhagaea", 300, 12, 0).Should().NotContain("fallen behind");
+            CouncilAccordClause.TributeOwedToPlayer(new CouncilAccordClause.TributeToPlayer {PlayerName = "Rhagaea", AmountPerDay = 300, DaysRemaining = 12, MissedDays = 0}).Should().NotContain("fallen behind");
         }
 
         // The opposite direction: a stipend is the player paying the NPC, so it must read as a grant TO the NPC.

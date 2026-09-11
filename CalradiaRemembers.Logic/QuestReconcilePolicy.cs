@@ -26,13 +26,41 @@ namespace CalradiaRemembers.Logic
     public static class QuestReconcilePolicy
     {
         /// <summary>
-        ///   Decides a mirror's fate. <paramref name="giverConfirmedDead" /> must be a POSITIVE death (the giver
-        ///   resolved and is not alive), never a merely-null reference. <paramref name="hasLiveMatch" /> is a
-        ///   matching quest that is outstanding or awaiting its reward; <paramref name="hasTerminalMatch" /> a
+        ///   What can be PROVEN about an orphaned journal mirror. Three booleans in a row read in a strict
+        ///   order, and each unproven case must fall through to Keep: this pass can destroy a player's journal
+        ///   entry, so a swap here is not a wrong answer, it is a lost quest.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class MirrorFacts
+        {
+           /// <summary>A POSITIVE death: the giver resolved and is not alive. Never a merely-null reference.</summary>
+           public bool GiverConfirmedDead { get; set; }
+
+           /// <summary>
+           ///   A matching quest is outstanding or awaiting its reward, which is the whole point of the mirror.
+           /// </summary>
+           public bool HasLiveMatch { get; set; }
+
+           /// <summary>A matching quest has genuinely terminated, which is a safe and proven close.</summary>
+           public bool HasTerminalMatch { get; set; }
+        }
+
+        /// <summary>
+        ///   Decides a mirror's fate. <c>GiverConfirmedDead</c> must be a POSITIVE death (the giver
+        ///   resolved and is not alive), never a merely-null reference. <c>HasLiveMatch</c> is a
+        ///   matching quest that is outstanding or awaiting its reward; <c>HasTerminalMatch</c> a
         ///   matching quest in a terminal status. When nothing is confirmed, the answer is always Keep.
         /// </summary>
-        public static MirrorReconcileDecision Decide(bool giverConfirmedDead, bool hasLiveMatch, bool hasTerminalMatch)
+        public static MirrorReconcileDecision Decide(MirrorFacts facts)
         {
+           if (facts == null) return MirrorReconcileDecision.Keep;
+
+           bool giverConfirmedDead = facts.GiverConfirmedDead;
+           bool hasLiveMatch = facts.HasLiveMatch;
+           bool hasTerminalMatch = facts.HasTerminalMatch;
+
             // A dead giver makes the task un-turn-in-able regardless of the quest's own state.
             if (giverConfirmedDead) return MirrorReconcileDecision.CloseGiverGone;
 
@@ -47,6 +75,26 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
+        ///   The other direction of the same reconciliation: re-creating the missing mirror of a live quest,
+        ///   which heals saves damaged by the old false-cancel bug. Three booleans in a row, the last of which
+        ///   inverts and is what makes the pass idempotent.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class MirrorRestoreFacts
+        {
+           /// <summary>The quest is outstanding or awaiting its reward.</summary>
+           public bool QuestIsLive { get; set; }
+
+           /// <summary>Its giver is a resolved, living hero.</summary>
+           public bool GiverAliveAndResolved { get; set; }
+
+           /// <summary>An open mirror already shows it. Running the pass twice must create nothing new.</summary>
+           public bool OpenMirrorExists { get; set; }
+        }
+
+        /// <summary>
         ///   The journal is a PROJECTION of the authoritative quest store, so reconciliation runs both ways:
         ///   closing orphaned mirrors (<see cref="Decide" />) AND re-creating the missing mirror of a live quest.
         ///   This heals saves damaged by the old false-cancel bug (the quest survived in the store; only its
@@ -54,7 +102,15 @@ namespace CalradiaRemembers.Logic
         ///   (outstanding or awaiting its reward), its giver is a resolved living hero, and no open mirror
         ///   already shows it (idempotence: running the pass twice creates nothing new).
         /// </summary>
-        public static bool ShouldRestoreMirror(bool questIsLive, bool giverAliveAndResolved, bool openMirrorExists)
-            => questIsLive && giverAliveAndResolved && !openMirrorExists;
+        public static bool ShouldRestoreMirror(MirrorRestoreFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool questIsLive = facts.QuestIsLive;
+           bool giverAliveAndResolved = facts.GiverAliveAndResolved;
+           bool openMirrorExists = facts.OpenMirrorExists;
+
+           return questIsLive && giverAliveAndResolved && !openMirrorExists;
+        }
     }
 }

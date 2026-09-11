@@ -39,14 +39,43 @@ namespace CalradiaRemembers.Logic
         public const int ColdRelation = -10;
 
         /// <summary>
+        ///   Her two traits and how she feels about the player. THREE INTS on two entirely different scales:
+        ///   two traits at roughly -2..+2 and a regard at -100..+100. Swap a trait with the regard and a fond
+        ///   mother reads as a schemer, which is exactly the reported bug this rule was written to end.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class MotherDispositionFacts
+        {
+           /// <summary>Her Honor trait. Weighed only against Calculating, as their difference.</summary>
+           public int Honor { get; set; }
+
+           /// <summary>Her Calculating trait. Cunning well above honour inclines her to extort.</summary>
+           public int Calculating { get; set; }
+
+           /// <summary>
+           ///   Her regard for the player, checked FIRST: a mother who is fond of him does not extort him whatever
+           ///   her cunning. Warmth then sets the register, fond to longing and cold to resentful.
+           /// </summary>
+           public int RelationWithPlayer { get; set; }
+        }
+
+        /// <summary>
         ///   Her disposition. A scheming, dishonourable woman inclines toward blackmail, BUT ONLY when her
         ///   regard is not already warm: a mother who is fond of the player (and, in the reported case, has
         ///   his +50 regard and an agreement to wed) does not extort him whatever her cunning. So fondness is
         ///   checked first and rules out the mercenary path; then warmth sets the register: fond → longing,
         ///   cold → resentful, otherwise pragmatic.
         /// </summary>
-        public static BastardMotherDisposition Resolve(int honor, int calculating, int relationWithPlayer)
+        public static BastardMotherDisposition Resolve(MotherDispositionFacts facts)
         {
+           facts ??= new MotherDispositionFacts();
+
+           int honor = facts.Honor;
+           int calculating = facts.Calculating;
+           int relationWithPlayer = facts.RelationWithPlayer;
+
             if (relationWithPlayer >= FondRelation) return BastardMotherDisposition.Longing;
             if (calculating - honor >= MercenaryThreshold) return BastardMotherDisposition.Mercenary;
             if (relationWithPlayer <= ColdRelation) return BastardMotherDisposition.Resentful;

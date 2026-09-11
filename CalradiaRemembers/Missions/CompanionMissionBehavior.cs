@@ -125,7 +125,7 @@ namespace CalradiaRemembers.Missions
          if (dest == null) return (false, "There is no town to send them to.");
 
          int roll = MBRandom.RandomInt(0, 100);
-         MissionResult quality = CompanionMissions.Resolve(type, skill, roll, NewsDifficulty).Result;
+         MissionResult quality = CompanionMissions.Resolve(new CompanionMissions.ErrandFacts {Type = type, GoverningSkillLevel = skill, Roll = roll, Difficulty = NewsDifficulty}).Result;
 
          MobileParty party = SpawnTravelingCompanionParty(companion, dest);
 

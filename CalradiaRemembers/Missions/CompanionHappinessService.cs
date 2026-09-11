@@ -49,7 +49,7 @@ namespace CalradiaRemembers.Missions
             NpcProfile p = ProfileOf(hero);
             if (p == null) return;
 
-            int after = CompanionHappiness.DriftToBaseline(p.Happiness, step, baseline);
+            int after = CompanionHappiness.DriftToBaseline(new CompanionHappiness.HappinessDrift {Score = p.Happiness, Step = step, Baseline = baseline});
             if (after == p.Happiness) return;
             p.Happiness = after;
             Store?.Set(p);

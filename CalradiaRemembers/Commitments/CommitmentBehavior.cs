@@ -621,7 +621,7 @@ namespace CalradiaRemembers.Commitments
          bool playerIsPrisoner = Hero.MainHero is {IsPrisoner: true};
          bool targetGone = commitment.Kind == CommitmentKind.MoveAgainst && FindHero(commitment.TargetId) is not {IsAlive: true};
 
-         switch (CommitmentPolicy.OnOverdue(commitment.Kind, promisorIsPrisoner, playerIsPrisoner, targetGone))
+         switch (CommitmentPolicy.OnOverdue(new CommitmentPolicy.OverdueFacts {Kind = commitment.Kind, PromisorIsPrisoner = promisorIsPrisoner, PlayerIsPrisoner = playerIsPrisoner, TargetGone = targetGone}))
          {
             case OverdueOutcome.Fulfill:
                Fulfill(commitment, "the deadline passed with the peace unbroken");

@@ -23,7 +23,7 @@ namespace CalradiaRemembers.Tests
       // whole topic exists for.
       [Test]
       public void GIVEN_a_significant_recent_appreciation_and_a_content_companion_WHEN_checked_THEN_it_holds()
-         => CompanionGratitudePolicy.Holds(CompanionGratitudePolicy.MinEffectiveMagnitude + 10, 5, CompanionHappiness.Default)
+         => CompanionGratitudePolicy.Holds(new CompanionGratitudePolicy.GratitudeFacts {EffectiveMagnitude = CompanionGratitudePolicy.MinEffectiveMagnitude + 10, DaysAgo = 5, HappinessScore = CompanionHappiness.Default})
                                     .Should().BeTrue();
 
       // ── Magnitude floor ──────────────────────────────────────────────────────
@@ -32,13 +32,13 @@ namespace CalradiaRemembers.Tests
       // not the "genuinely meaningful kindness" the design brief asks for.
       [Test]
       public void GIVEN_a_magnitude_below_the_floor_WHEN_checked_THEN_it_does_not_hold()
-         => CompanionGratitudePolicy.Holds(CompanionGratitudePolicy.MinEffectiveMagnitude - 1, 5, CompanionHappiness.Default)
+         => CompanionGratitudePolicy.Holds(new CompanionGratitudePolicy.GratitudeFacts {EffectiveMagnitude = CompanionGratitudePolicy.MinEffectiveMagnitude - 1, DaysAgo = 5, HappinessScore = CompanionHappiness.Default})
                                     .Should().BeFalse();
 
       // The floor itself is inclusive: a kindness exactly AT the threshold still qualifies.
       [Test]
       public void GIVEN_a_magnitude_exactly_at_the_floor_WHEN_checked_THEN_it_holds()
-         => CompanionGratitudePolicy.Holds(CompanionGratitudePolicy.MinEffectiveMagnitude, 5, CompanionHappiness.Default)
+         => CompanionGratitudePolicy.Holds(new CompanionGratitudePolicy.GratitudeFacts {EffectiveMagnitude = CompanionGratitudePolicy.MinEffectiveMagnitude, DaysAgo = 5, HappinessScore = CompanionHappiness.Default})
                                     .Should().BeTrue();
 
       // ── Recency window ───────────────────────────────────────────────────────
@@ -47,14 +47,14 @@ namespace CalradiaRemembers.Tests
       // window, Gratitude must stay silent rather than dredge it up.
       [Test]
       public void GIVEN_an_appreciation_older_than_the_recency_window_WHEN_checked_THEN_it_does_not_hold()
-         => CompanionGratitudePolicy.Holds(100, CompanionGratitudePolicy.RecencyWindowDays + 1, CompanionHappiness.Default)
+         => CompanionGratitudePolicy.Holds(new CompanionGratitudePolicy.GratitudeFacts {EffectiveMagnitude = 100, DaysAgo = CompanionGratitudePolicy.RecencyWindowDays + 1, HappinessScore = CompanionHappiness.Default})
                                     .Should().BeFalse();
 
       // The window's own edge still counts as "recent enough": a boundary test so the constant's exact meaning
       // (inclusive ceiling) is pinned rather than left to guesswork.
       [Test]
       public void GIVEN_an_appreciation_exactly_at_the_recency_window_edge_WHEN_checked_THEN_it_still_holds()
-         => CompanionGratitudePolicy.Holds(100, CompanionGratitudePolicy.RecencyWindowDays, CompanionHappiness.Default)
+         => CompanionGratitudePolicy.Holds(new CompanionGratitudePolicy.GratitudeFacts {EffectiveMagnitude = 100, DaysAgo = CompanionGratitudePolicy.RecencyWindowDays, HappinessScore = CompanionHappiness.Default})
                                     .Should().BeTrue();
 
       // ── Happiness gate ───────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ namespace CalradiaRemembers.Tests
       // the kindness, a restless or disgruntled companion must never be handed this topic.
       [Test]
       public void GIVEN_a_companion_who_is_not_content_WHEN_checked_THEN_it_does_not_hold_even_with_a_strong_appreciation()
-         => CompanionGratitudePolicy.Holds(100, 0, CompanionHappiness.LeaveThreshold).Should().BeFalse();
+         => CompanionGratitudePolicy.Holds(new CompanionGratitudePolicy.GratitudeFacts {EffectiveMagnitude = 100, DaysAgo = 0, HappinessScore = CompanionHappiness.LeaveThreshold}).Should().BeFalse();
 
       // IsContentEnough reuses CompanionHappiness.Band's own Content threshold, so this can never disagree with
       // the encyclopedia/prompt wording the player already sees for this companion's mood.

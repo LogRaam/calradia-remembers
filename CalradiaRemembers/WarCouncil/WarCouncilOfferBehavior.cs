@@ -187,7 +187,7 @@ namespace CalradiaRemembers.WarCouncil
       {
          try
          {
-            if (CouncilAccessPolicy.Evaluate(ChatManager.IsOpen, Hero.MainHero?.IsPrisoner == true, Mission.Current != null)
+            if (CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = ChatManager.IsOpen, PlayerIsPrisoner = Hero.MainHero?.IsPrisoner == true, InMissionScene = Mission.Current != null})
                 != CouncilAccessBlock.None)
                return false;
 
@@ -257,7 +257,7 @@ namespace CalradiaRemembers.WarCouncil
          int total = (mapEvent.GetMapEventSide(BattleSideEnum.Attacker)?.TroopCount ?? 0)
                    + (mapEvent.GetMapEventSide(BattleSideEnum.Defender)?.TroopCount ?? 0);
 
-         return BattleNotability.IsNotableForPlayer(isSiege, attackerHasArmy, defenderHasArmy, total);
+         return BattleNotability.IsNotableForPlayer(new BattleNotability.BattleFacts {IsSiege = isSiege, AttackerHasArmy = attackerHasArmy, DefenderHasArmy = defenderHasArmy, TotalCombatants = total});
       }
 
       private static bool SideHasArmy(MapEvent mapEvent, BattleSideEnum side)

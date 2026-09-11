@@ -99,12 +99,12 @@ namespace CalradiaRemembers.WorldEvents
 
       private static bool IsBandit(Hero h) => h?.MapFaction?.IsBanditFaction == true;
 
-      private static string LeaderName(Hero h) => h?.Name == null ? "a host" : HeroLabel.Describe(h.Name.ToString(), h.Clan?.Name?.ToString());
+      private static string LeaderName(Hero h) => h?.Name == null ? "a host" : HeroLabel.Describe(new HeroLabel.HeroNaming {Name = h.Name.ToString(), ClanName = h.Clan?.Name?.ToString()});
 
       // Names a hero actor for a Summary line with the clan disambiguator (rumor/news phrasing must
       // never let a namesake, such as a lord and the player's own young son, be read as the same
       // person). Empty when the hero itself is null, so callers keep their own sentence-start fallback.
-      private static string Named(Hero h) => HeroLabel.Describe(h?.Name?.ToString(), h?.Clan?.Name?.ToString());
+      private static string Named(Hero h) => HeroLabel.Describe(new HeroLabel.HeroNaming {Name = h?.Name?.ToString(), ClanName = h?.Clan?.Name?.ToString()});
 
       private static string PairKey(Hero a, Hero b)
          => string.CompareOrdinal(a.StringId, b.StringId) < 0
@@ -424,8 +424,8 @@ namespace CalradiaRemembers.WorldEvents
             // A PLAYER battle earns a further bypass on raw size alone (BattleNotability.IsNotableForPlayer):
             // a great scrap the player led is chronicle-worthy even without armies on both sides.
             bool notable = playerIn
-               ? BattleNotability.IsNotableForPlayer(isSiege, attackerHasArmy, defenderHasArmy, TotalCombatants(mapEvent))
-               : BattleNotability.IsNotable(isSiege, attackerHasArmy, defenderHasArmy);
+               ? BattleNotability.IsNotableForPlayer(new BattleNotability.BattleFacts {IsSiege = isSiege, AttackerHasArmy = attackerHasArmy, DefenderHasArmy = defenderHasArmy, TotalCombatants = TotalCombatants(mapEvent)})
+               : BattleNotability.IsNotable(new BattleNotability.BattleFacts {IsSiege = isSiege, AttackerHasArmy = attackerHasArmy, DefenderHasArmy = defenderHasArmy});
 
             if (!notable) return;
 
@@ -952,7 +952,7 @@ namespace CalradiaRemembers.WorldEvents
                FactionIds = liberator != null
                   ? FactionIds(Hero.MainHero, liberator)
                   : FactionIds(Hero.MainHero),
-               ChronicleLine = CaptivityReleaseNarrator.ChronicleLine(PlayerName, pronoun, liberatorName, brokeFree)
+               ChronicleLine = CaptivityReleaseNarrator.ChronicleLine(new CaptivityReleaseNarrator.ReleaseLineFacts {PlayerName = PlayerName, PossessivePronoun = pronoun, LiberatorName = liberatorName, BrokeFree = brokeFree})
             });
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] prisoner-released feeder failed: {ex.GetType().Name}: {ex.Message}"); }
@@ -980,8 +980,7 @@ namespace CalradiaRemembers.WorldEvents
                               && (mapEvent.PartiesOnSide(losing).Any(p => p.Party == _pendingPlayerCaptor)
                                || mapEvent.PartiesOnSide(mapEvent.WinningSide).Any(p => p.Party == _pendingPlayerCaptor));
 
-            RecordPlayerFreed(CaptivityReleaseNarrator.CreditsLiberator(
-                                 captorEngaged, winner != null, winner != null && winner == _pendingPlayerCaptor?.LeaderHero)
+            RecordPlayerFreed(CaptivityReleaseNarrator.CreditsLiberator(new CaptivityReleaseNarrator.LiberationFacts {CaptorWasEngaged = captorEngaged, LiberatorKnown = winner != null, LiberatorIsCaptor = winner != null && winner == _pendingPlayerCaptor?.LeaderHero})
                                  ? winner
                                  : null,
                               _playerBrokeFree);

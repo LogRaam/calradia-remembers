@@ -85,8 +85,8 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_zero_or_negative_relation_WHEN_computing_the_troop_loan_THEN_it_is_zero()
       {
-         CourtActionPolicy.TroopLoanCount(0, 50, 20).Should().Be(0);
-         CourtActionPolicy.TroopLoanCount(-5, 50, 20).Should().Be(0);
+         CourtActionPolicy.TroopLoanCount(new CourtActionPolicy.TroopLoanFacts {Relation = 0, NpcTotalRegularTroops = 50, PlayerRoom = 20}).Should().Be(0);
+         CourtActionPolicy.TroopLoanCount(new CourtActionPolicy.TroopLoanFacts {Relation = -5, NpcTotalRegularTroops = 50, PlayerRoom = 20}).Should().Be(0);
       }
 
       // Pins the desired-count formula (relation / divisor) in the unconstrained case, isolating it from
@@ -95,7 +95,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_generous_relation_and_ample_room_WHEN_computing_the_troop_loan_THEN_it_scales_with_relation()
       {
          //Arrange: relation 25 / 5 = 5 desired, well within the party's spare and the player's room.
-         CourtActionPolicy.TroopLoanCount(25, 200, 50).Should().Be(5);
+         CourtActionPolicy.TroopLoanCount(new CourtActionPolicy.TroopLoanFacts {Relation = 25, NpcTotalRegularTroops = 200, PlayerRoom = 50}).Should().Be(5);
       }
 
       // Hard cap keeps even the deepest bond from lending away a whole army in one exchange; without it
@@ -103,7 +103,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_an_extremely_deep_relation_WHEN_computing_the_troop_loan_THEN_it_is_capped()
       {
-         CourtActionPolicy.TroopLoanCount(1000, 1000, 1000).Should().Be(CourtActionPolicy.TroopLoanMaxCount);
+         CourtActionPolicy.TroopLoanCount(new CourtActionPolicy.TroopLoanFacts {Relation = 1000, NpcTotalRegularTroops = 1000, PlayerRoom = 1000}).Should().Be(CourtActionPolicy.TroopLoanMaxCount);
       }
 
       // This is the self-preservation floor: without it a lord could be talked into gutting their own
@@ -112,7 +112,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_small_party_WHEN_computing_the_troop_loan_THEN_the_npc_never_drops_below_60_percent_strength()
       {
          //Arrange: 10 troops, 60% retained = 6, so at most 4 are spare regardless of relation.
-         CourtActionPolicy.TroopLoanCount(1000, 10, 50).Should().Be(4);
+         CourtActionPolicy.TroopLoanCount(new CourtActionPolicy.TroopLoanFacts {Relation = 1000, NpcTotalRegularTroops = 10, PlayerRoom = 50}).Should().Be(4);
       }
 
       // Pins the player-room cap: without it the count could exceed what the player's party can legally
@@ -120,7 +120,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_player_party_nearly_full_WHEN_computing_the_troop_loan_THEN_it_never_exceeds_the_players_room()
       {
-         CourtActionPolicy.TroopLoanCount(1000, 1000, 2).Should().Be(2);
+         CourtActionPolicy.TroopLoanCount(new CourtActionPolicy.TroopLoanFacts {Relation = 1000, NpcTotalRegularTroops = 1000, PlayerRoom = 2}).Should().Be(2);
       }
 
       // Exercises the retain-floor's rounding (ceiling) on a small roster: pins that a party already at
@@ -129,8 +129,8 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_no_spare_troops_WHEN_computing_the_troop_loan_THEN_it_is_zero()
       {
          //Arrange: the party is already below the 60% retain floor once rounded (5 troops, must keep 3).
-         CourtActionPolicy.TroopLoanCount(50, 5, 10).Should().Be(2);
-         CourtActionPolicy.TroopLoanCount(50, 1, 10).Should().Be(0);
+         CourtActionPolicy.TroopLoanCount(new CourtActionPolicy.TroopLoanFacts {Relation = 50, NpcTotalRegularTroops = 5, PlayerRoom = 10}).Should().Be(2);
+         CourtActionPolicy.TroopLoanCount(new CourtActionPolicy.TroopLoanFacts {Relation = 50, NpcTotalRegularTroops = 1, PlayerRoom = 10}).Should().Be(0);
       }
 
       // ── give_troops (reciprocal of lend_troops) ─────────────────────────
@@ -168,7 +168,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_relation_below_the_charity_floor_WHEN_computing_the_troop_gift_THEN_it_is_zero()
       {
-         CourtActionPolicy.TroopGiftCount(-5, 200, 20).Should().Be(0);
+         CourtActionPolicy.TroopGiftCount(new CourtActionPolicy.TroopGiftFacts {Relation = -5, PlayerHealthyTroops = 200, NpcRoom = 20}).Should().Be(0);
       }
 
       // Pins the desired-count formula in the unconstrained case, isolating it from the player-floor and
@@ -177,7 +177,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_ample_spare_troops_and_room_WHEN_computing_the_troop_gift_THEN_it_scales_with_relation()
       {
          //Arrange: relation 30 / 6 + 1 = 6 desired, well within the player's spare and the NPC's room.
-         CourtActionPolicy.TroopGiftCount(30, 300, 50).Should().Be(6);
+         CourtActionPolicy.TroopGiftCount(new CourtActionPolicy.TroopGiftFacts {Relation = 30, PlayerHealthyTroops = 300, NpcRoom = 50}).Should().Be(6);
       }
 
       // Hard cap (GiveTroopsMaxCount) keeps a single reinforcement gift bounded regardless of how deep
@@ -185,7 +185,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_an_extremely_deep_relation_WHEN_computing_the_troop_gift_THEN_it_is_capped()
       {
-         CourtActionPolicy.TroopGiftCount(1000, 1000, 1000).Should().Be(CourtActionPolicy.GiveTroopsMaxCount);
+         CourtActionPolicy.TroopGiftCount(new CourtActionPolicy.TroopGiftFacts {Relation = 1000, PlayerHealthyTroops = 1000, NpcRoom = 1000}).Should().Be(CourtActionPolicy.GiveTroopsMaxCount);
       }
 
       // Protects the PLAYER's own safety net (mirrors TroopLoanMinRetainFraction in the other direction):
@@ -195,7 +195,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_player_has_barely_more_than_the_floor_WHEN_computing_the_troop_gift_THEN_it_never_dips_the_player_below_the_floor()
       {
          //Arrange: 20 troops, must keep max(15, 70% of 20=14) = 15, so at most 5 are spare regardless of relation.
-         CourtActionPolicy.TroopGiftCount(1000, 20, 50).Should().Be(5);
+         CourtActionPolicy.TroopGiftCount(new CourtActionPolicy.TroopGiftFacts {Relation = 1000, PlayerHealthyTroops = 20, NpcRoom = 50}).Should().Be(5);
       }
 
       // Once the player is already at or under GiveTroopsPlayerFloor, the gift must be zero outright,
@@ -203,7 +203,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_player_at_or_under_the_floor_WHEN_computing_the_troop_gift_THEN_it_is_zero()
       {
-         CourtActionPolicy.TroopGiftCount(50, 15, 10).Should().Be(0);
+         CourtActionPolicy.TroopGiftCount(new CourtActionPolicy.TroopGiftFacts {Relation = 50, PlayerHealthyTroops = 15, NpcRoom = 10}).Should().Be(0);
       }
 
       // Pins the NPC-room cap: without it the gift could exceed the receiving party's own size limit,
@@ -211,7 +211,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_npc_party_nearly_full_WHEN_computing_the_troop_gift_THEN_it_never_exceeds_the_npcs_room()
       {
-         CourtActionPolicy.TroopGiftCount(1000, 1000, 2).Should().Be(2);
+         CourtActionPolicy.TroopGiftCount(new CourtActionPolicy.TroopGiftFacts {Relation = 1000, PlayerHealthyTroops = 1000, NpcRoom = 2}).Should().Be(2);
       }
 
       // ── spend_influence (reciprocal of give_influence) ──────────────────

@@ -1265,9 +1265,7 @@ namespace CalradiaRemembers.Interception
          bool isClosing = !invalid && _lastPursuitDistance >= 0f && distance < _lastPursuitDistance;
 
          bool giveUp = !invalid &&
-                       InterceptionPolicy.ShouldAbandonChase(
-                          pursuerParty.Speed, main.Speed, distance,
-                          today - _activePursuerSince, isClosing);
+                       InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {PursuerSpeed = pursuerParty.Speed, PlayerSpeed = main.Speed, Distance = distance, DaysPursuing = today - _activePursuerSince, IsClosing = isClosing});
 
          if (!invalid && !giveUp)
          {

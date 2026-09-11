@@ -14,7 +14,34 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public static class SettlementAudienceSafetyPolicy
     {
-        public static bool IsSafeForPrivateWord(bool underSiege, bool raidInProgress, bool atWarWithPlayer)
-            => !underSiege && !raidInProgress && !atWarWithPlayer;
+        /// <summary>
+        ///   What is happening to the settlement. Three booleans in a row, all disqualifiers, and all read as
+        ///   plain true when things are at their worst.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class SettlementSafetyFacts
+        {
+           /// <summary>An army is at the walls.</summary>
+           public bool UnderSiege { get; set; }
+
+           /// <summary>A raid is under way.</summary>
+           public bool RaidInProgress { get; set; }
+
+           /// <summary>Its owners are at war with the player.</summary>
+           public bool AtWarWithPlayer { get; set; }
+        }
+
+        public static bool IsSafeForPrivateWord(SettlementSafetyFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool underSiege = facts.UnderSiege;
+           bool raidInProgress = facts.RaidInProgress;
+           bool atWarWithPlayer = facts.AtWarWithPlayer;
+
+           return !underSiege && !raidInProgress && !atWarWithPlayer;
+        }
     }
 }

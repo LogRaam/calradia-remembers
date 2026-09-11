@@ -242,8 +242,8 @@ namespace CalradiaRemembers.Mapping
 
          string grantableFiefs = ResolveGrantableCrownFiefs();
          string revocableFiefs = ResolveRevocableFiefsOf(hero);
-         bool npcCanBeGrantedFief = FiefTransferPolicy.CanOfferGrant(playerIsKingdomLeader, npcIsVassalInPlayerKingdom, !string.IsNullOrEmpty(grantableFiefs));
-         bool npcCanHaveFiefRevoked = FiefTransferPolicy.CanOfferRevoke(playerIsKingdomLeader, npcIsVassalInPlayerKingdom, !string.IsNullOrEmpty(revocableFiefs));
+         bool npcCanBeGrantedFief = FiefTransferPolicy.CanOfferGrant(new FiefTransferPolicy.GrantOfferFacts {PlayerIsKingdomLeader = playerIsKingdomLeader, NpcIsVassalInPlayerKingdom = npcIsVassalInPlayerKingdom, HasGrantableFief = !string.IsNullOrEmpty(grantableFiefs)});
+         bool npcCanHaveFiefRevoked = FiefTransferPolicy.CanOfferRevoke(new FiefTransferPolicy.RevokeOfferFacts {PlayerIsKingdomLeader = playerIsKingdomLeader, NpcIsVassalInPlayerKingdom = npcIsVassalInPlayerKingdom, NpcHoldsRevocableFief = !string.IsNullOrEmpty(revocableFiefs)});
 
          bool playerLeadsClan = Clan.PlayerClan?.Leader == Hero.MainHero;
          bool npcIsSpouse = hero != null && hero == Hero.MainHero?.Spouse;
@@ -258,7 +258,7 @@ namespace CalradiaRemembers.Mapping
          // double-fund a stipend or double-record an oath already outstanding for this hero.
          bool npcHasActiveStipend = hero != null && CouncilStipendBehavior.Instance?.HasActive(hero.StringId) == true;
          bool playerCanAffordMinTranche = Hero.MainHero != null && Hero.MainHero.Gold >= StipendPolicy.MinTrancheCost;
-         bool npcCanBeGrantedStipend = StipendPolicy.CanOfferStipend(npcIsPlayerCompanion, npcHasActiveStipend, playerCanAffordMinTranche);
+         bool npcCanBeGrantedStipend = StipendPolicy.CanOfferStipend(new StipendPolicy.StipendOfferFacts {NpcIsPlayerCompanion = npcIsPlayerCompanion, NpcHasActiveStipend = npcHasActiveStipend, PlayerCanAffordMinTranche = playerCanAffordMinTranche});
 
          bool npcHasActiveCommitment = hero != null && CommitmentBehavior.Instance?.HasActive(hero.StringId) == true;
          // Plausibly qualifies for at least ONE whitelisted oath kind, mirroring AnySeatedMemberCanSwearOath's own
@@ -613,7 +613,7 @@ namespace CalradiaRemembers.Mapping
                bool sharesPlayer = obsFactionId != null && obsFactionId == playerFactionId;
 
                string valence;
-               switch (PlayerDeedValence.Classify(aggrieved, kinHarmed, sharesPlayer))
+               switch (PlayerDeedValence.Classify(new PlayerDeedValence.ObserverStakeFacts {FactionAggrieved = aggrieved, KinHarmed = kinHarmed, SharesPlayerSide = sharesPlayer}))
                {
                   case DeedValence.Wound: valence = "(this cut against you or your own) "; break;
                   case DeedValence.Boon: valence = "(this served your side) "; break;
@@ -1408,7 +1408,7 @@ namespace CalradiaRemembers.Mapping
          Hero lover = Hero.FindFirst(h => h.StringId == profile.Romantic.TakenLoverId);
          if (lover == null) return null;
 
-         return HeroLabel.Describe(lover.Name?.ToString(), lover.Clan?.Name?.ToString(), lover.Culture?.Name?.ToString());
+         return HeroLabel.Describe(new HeroLabel.HeroNaming {Name = lover.Name?.ToString(), ClanName = lover.Clan?.Name?.ToString(), CultureName = lover.Culture?.Name?.ToString()});
       }
 
       private static bool ResolveConsortEligible(Hero hero, NpcProfile profile)
@@ -1860,7 +1860,7 @@ namespace CalradiaRemembers.Mapping
 
             CouncilTribute tribute = CouncilTributeBehavior.Instance?.Get(hero.StringId);
             if (tribute != null)
-               clauses.Add(CouncilAccordClause.TributeOwedToPlayer(playerName, tribute.AmountPerDay, tribute.DaysRemaining, tribute.MissedDays));
+               clauses.Add(CouncilAccordClause.TributeOwedToPlayer(new CouncilAccordClause.TributeToPlayer {PlayerName = playerName, AmountPerDay = tribute.AmountPerDay, DaysRemaining = tribute.DaysRemaining, MissedDays = tribute.MissedDays}));
 
             CouncilStipend stipend = CouncilStipendBehavior.Instance?.Get(hero.StringId);
             if (stipend != null)
@@ -1949,7 +1949,7 @@ namespace CalradiaRemembers.Mapping
 
          // Captivity and war are one pure predicate (vanilla forbids both at its own marriage screen), so they
          // are asked together and then told apart only to name the obstacle.
-         if (!MarriageGuardPolicy.MarriageAllowed(hero.IsPrisoner, Hero.MainHero.IsPrisoner, atWar))
+         if (!MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = hero.IsPrisoner, PlayerPrisoner = Hero.MainHero.IsPrisoner, AtWarWithCandidate = atWar}))
             return atWar ? MarriageBlockReason.AtWar : MarriageBlockReason.Captive;
 
          if (RegardMeetsMarriageBar(hero, profile)) return MarriageBlockReason.None;
@@ -2090,7 +2090,7 @@ namespace CalradiaRemembers.Mapping
          // fighting. Withhold the offer; ExecuteJoinAsVassal re-checks the same war fact at commit.
          bool playerAtWar = Hero.MainHero?.MapFaction != null && FactionManager.IsAtWarAgainstFaction(Hero.MainHero.MapFaction, npcKingdom);
 
-         return VassalageOfferPolicy.CanJoin(npcKingdom.Leader == hero, playerAlreadyVassal, playerAtWar)
+         return VassalageOfferPolicy.CanJoin(new VassalageOfferPolicy.VassalageFacts {NpcIsKingdomRuler = npcKingdom.Leader == hero, PlayerAlreadyVassal = playerAlreadyVassal, PlayerAtWarWithKingdom = playerAtWar})
             ? npcKingdom.Name?.ToString()
             : null;
       }
@@ -2516,7 +2516,7 @@ namespace CalradiaRemembers.Mapping
             Hero subject = Hero.AllAliveHeroes?.FirstOrDefault(h => h != null && h.StringId == subjectId);
             if (subject == null) continue;
 
-            return HeroLabel.Describe(subject.Name?.ToString(), subject.Clan?.Name?.ToString(), subject.Culture?.Name?.ToString());
+            return HeroLabel.Describe(new HeroLabel.HeroNaming {Name = subject.Name?.ToString(), ClanName = subject.Clan?.Name?.ToString(), CultureName = subject.Culture?.Name?.ToString()});
          }
 
          return null;

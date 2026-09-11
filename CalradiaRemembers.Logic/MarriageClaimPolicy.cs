@@ -55,7 +55,27 @@ namespace CalradiaRemembers.Logic
         };
 
         /// <summary>
-        ///   True when <paramref name="summary" /> claims the NPC and the player are now wed: it uses
+        ///   One [EVENT] summary and the two people it might be about. THREE STRINGS in a row where the first
+        ///   is PROSE and the other two are NAMES searched for inside it: swap the summary with a name and the
+        ///   rule looks for a whole sentence inside a name, and no wedding is ever recognised again.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class MarriageClaimFacts
+        {
+           /// <summary>The [EVENT] summary text the model emitted.</summary>
+           public string Summary { get; set; }
+
+           /// <summary>The conversation NPC's display name, possibly a full titled name.</summary>
+           public string NpcName { get; set; }
+
+           /// <summary>The player's display name.</summary>
+           public string PlayerName { get; set; }
+        }
+
+        /// <summary>
+        ///   True when <c>Summary</c> claims the NPC and the player are now wed: it uses
         ///   marriage vocabulary, is not merely a future/pending intention, and carries evidence the
         ///   claim is about THIS pair (both names present, or a first-person-plural phrasing). False for
         ///   null/blank input, a third party's wedding, or a mere engagement.
@@ -63,8 +83,14 @@ namespace CalradiaRemembers.Logic
         /// <param name="summary">The [EVENT] summary text emitted by the model.</param>
         /// <param name="npcName">The conversation NPC's display name (may be a full titled name).</param>
         /// <param name="playerName">The player's display name.</param>
-        public static bool ClaimsMarriageWithPlayer(string summary, string npcName, string playerName)
+        public static bool ClaimsMarriageWithPlayer(MarriageClaimFacts facts)
         {
+           if (facts == null) return false;
+
+           string summary = facts.Summary;
+           string npcName = facts.NpcName;
+           string playerName = facts.PlayerName;
+
             if (string.IsNullOrWhiteSpace(summary)) return false;
 
             if (!ContainsAny(summary, MarriageWords)) return false;

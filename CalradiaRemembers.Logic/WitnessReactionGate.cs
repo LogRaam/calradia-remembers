@@ -61,7 +61,40 @@ namespace CalradiaRemembers.Logic
     public static class WitnessReactionGate
     {
         /// <summary>
-        ///   The verdict for one reaction. <paramref name="presentNames" /> is the room as the mod knows it,
+        ///   One emitted reaction and the room it claims to come from. THREE STRINGS in a row, two of them
+        ///   NAMES and one the LINE ITSELF: swap the line with a name and the gate compares a whole sentence
+        ///   against the roster, finds nobody, and drops every reaction in the game as absent.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class WitnessReactionFacts
+        {
+           /// <summary>The speaker name the model wrote, possibly with a parenthetical role.</summary>
+           public string EmittedName { get; set; }
+
+           /// <summary>The line itself.</summary>
+           public string Text { get; set; }
+
+           /// <summary>The NPC whose reply this turn is. They can never be their own witness.</summary>
+           public string MainSpeakerName { get; set; }
+
+           /// <summary>
+           ///   Everyone else actually in the room, matched by NAME rather than hero id on purpose: a synthetic
+           ///   flavour witness (a gang enforcer, an apprentice) has no hero id but is genuinely standing there.
+           /// </summary>
+           public IReadOnlyList<string> PresentNames { get; set; }
+
+           /// <summary>
+           ///   What each speaker was last shown saying, looked up by the CANONICAL name this gate resolves and
+           ///   never by the name the model wrote: the model's casing is not trustworthy, and a lookup on the raw
+           ///   spelling would miss the stored line and let a verbatim repeat straight through.
+           /// </summary>
+           public IReadOnlyDictionary<string, string> LastLines { get; set; }
+        }
+
+        /// <summary>
+        ///   The verdict for one reaction. <c>PresentNames</c> is the room as the mod knows it,
         ///   matched by NAME rather than by hero id on purpose: a synthetic flavour witness (a gang enforcer, an
         ///   apprentice) legitimately has no hero id but is genuinely standing there.
         /// </summary>
@@ -74,12 +107,16 @@ namespace CalradiaRemembers.Logic
         ///   never by the name the model wrote: the model's casing is not trustworthy, and a lookup on the raw
         ///   spelling would silently miss the stored line and let a verbatim repeat straight through.
         /// </param>
-        public static WitnessReactionDecision Decide(string emittedName,
-                                                    string text,
-                                                    string mainSpeakerName,
-                                                    IReadOnlyList<string> presentNames,
-                                                    IReadOnlyDictionary<string, string> lastLines)
+        public static WitnessReactionDecision Decide(WitnessReactionFacts facts)
         {
+           if (facts == null) return new WitnessReactionDecision(WitnessReactionVerdict.DropBlank, null);
+
+           string emittedName = facts.EmittedName;
+           string text = facts.Text;
+           string mainSpeakerName = facts.MainSpeakerName;
+           IReadOnlyList<string> presentNames = facts.PresentNames;
+           IReadOnlyDictionary<string, string> lastLines = facts.LastLines;
+
             string stripped = DialogueHeuristics.StripWitnessRole(emittedName);
 
             if (string.IsNullOrWhiteSpace(text))

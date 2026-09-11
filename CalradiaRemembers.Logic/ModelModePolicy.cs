@@ -70,21 +70,43 @@ namespace CalradiaRemembers.Logic
     public static class ModelModePolicy
     {
         /// <summary>
+        ///   One setting, as the player configured it for each of the three roles, plus the role being resolved.
+        ///   <para>
+        ///     Named rather than positional (2026-09-10). All three resolvers took a role and then THREE STRINGS
+        ///     in a row, and every one of those strings is free text a player typed: swap the nsfw model with the
+        ///     interpret model and explicit scenes are written by the tagger while the tagger runs the writer's
+        ///     model. Nothing throws, nothing logs, the bill simply goes to the wrong place and the prose gets
+        ///     worse.
+        ///   </para>
+        ///   <para>
+        ///     The three resolvers were also the SAME rule written out three times, twice identically
+        ///     (<see cref="ResolveModelId" /> and <see cref="ResolveProviderPin" /> were character-for-character
+        ///     the same fallback) and once with a sentinel bolted on. One type made that visible; they now share
+        ///     one private implementation and keep their three names, because the names are what a call site
+        ///     reads.
+        ///   </para>
+        /// </summary>
+        public sealed class RoleSettings
+        {
+            /// <summary>Which role is being resolved for.</summary>
+            public ServiceRole Role { get; set; }
+
+            /// <summary>The PROSE value, which is also what the other two fall back to.</summary>
+            public string Prose { get; set; }
+
+            /// <summary>The NSFW value. Blank means "same as prose".</summary>
+            public string Nsfw { get; set; }
+
+            /// <summary>The INTERPRET value. Blank means "same as prose".</summary>
+            public string Interpret { get; set; }
+        }
+
+        /// <summary>
         ///   The model id a role resolves to. Nsfw and Interpret fall back to the PROSE model when the player left
         ///   them blank (blank or whitespace counts as not configured), so a single-model config still works.
         /// </summary>
-        public static string ResolveModelId(ServiceRole role, string proseModel, string nsfwModel, string interpretModel)
-        {
-            switch (role)
-            {
-                case ServiceRole.Nsfw:
-                    return string.IsNullOrWhiteSpace(nsfwModel) ? proseModel : nsfwModel.Trim();
-                case ServiceRole.Interpret:
-                    return string.IsNullOrWhiteSpace(interpretModel) ? proseModel : interpretModel.Trim();
-                default:
-                    return proseModel;
-            }
-        }
+        public static string ResolveModelId(RoleSettings models)
+            => FallBackToProse(models);
 
         /// <summary>
         ///   The role the in-chat three-state switch selects: NSFW writes every scene on the NSFW model; Enhanced
@@ -130,14 +152,26 @@ namespace CalradiaRemembers.Logic
         ///   have their own, falling back to the PROSE effort when blank or the "Same as prose" sentinel. Explicit
         ///   and interpreter calls typically run LOW/OFF (fewer refusals, faster tags) while prose may want more.
         /// </summary>
-        public static string ResolveReasoningEffort(ServiceRole role, string proseEffort, string nsfwEffort, string interpretEffort)
+        public static string ResolveReasoningEffort(RoleSettings efforts)
+            => FallBackToProse(efforts, SameAsProse);
+
+        /// <summary>
+        ///   The one rule all three resolutions share: PROSE keeps its own value; NSFW and INTERPRET each use
+        ///   theirs when it is set, and fall back to the prose value when it is blank. Reasoning effort adds one
+        ///   thing, a literal "same as prose" sentinel the MCM dropdown offers, which is passed in rather than
+        ///   written into a fourth copy of the rule.
+        /// </summary>
+        private static string FallBackToProse(RoleSettings settings, string sentinel = null)
         {
-            string configured = role == ServiceRole.Nsfw ? nsfwEffort
-                              : role == ServiceRole.Interpret ? interpretEffort
-                              : proseEffort;
-            if (role == ServiceRole.Prose) return proseEffort;
-            if (string.IsNullOrWhiteSpace(configured)) return proseEffort;
-            if (string.Equals(configured.Trim(), SameAsProse, StringComparison.OrdinalIgnoreCase)) return proseEffort;
+            if (settings == null) return null;
+
+            if (settings.Role == ServiceRole.Prose) return settings.Prose;
+
+            string configured = settings.Role == ServiceRole.Nsfw ? settings.Nsfw : settings.Interpret;
+
+            if (string.IsNullOrWhiteSpace(configured)) return settings.Prose;
+            if (sentinel != null && string.Equals(configured.Trim(), sentinel, StringComparison.OrdinalIgnoreCase))
+                return settings.Prose;
 
             return configured.Trim();
         }
@@ -146,15 +180,7 @@ namespace CalradiaRemembers.Logic
         ///   The OpenRouter provider pin a role resolves to. PROSE keeps its own pin; NSFW and INTERPRET each have
         ///   their own free-text pin, blank meaning "same as prose" (a player who set one pin keeps it everywhere).
         /// </summary>
-        public static string ResolveProviderPin(ServiceRole role, string prosePin, string nsfwPin, string interpretPin)
-        {
-            string configured = role == ServiceRole.Nsfw ? nsfwPin
-                              : role == ServiceRole.Interpret ? interpretPin
-                              : prosePin;
-            if (role == ServiceRole.Prose) return prosePin;
-            if (string.IsNullOrWhiteSpace(configured)) return prosePin;
-
-            return configured.Trim();
-        }
+        public static string ResolveProviderPin(RoleSettings pins)
+            => FallBackToProse(pins);
     }
 }

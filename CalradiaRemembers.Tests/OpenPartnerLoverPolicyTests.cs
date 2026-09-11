@@ -175,7 +175,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_egalitarian_partner_with_no_open_arrangement_WHEN_asked_THEN_she_may_not_take_a_lover()
         {
-            OpenPartnerLoverPolicy.CanTakeLover(hasOpenArrangement: false, isHaremCulture: false, unsolicitedInfidelityAllowed: true)
+            OpenPartnerLoverPolicy.CanTakeLover(new OpenPartnerLoverPolicy.LoverEligibilityFacts {HasOpenArrangement = false, IsHaremCulture = false, UnsolicitedInfidelityAllowed = true})
                                   .Should().BeFalse("an egalitarian wife strays only under an open arrangement, never uninvited");
         }
 
@@ -185,7 +185,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_egalitarian_partner_with_an_open_arrangement_WHEN_asked_THEN_she_may_take_an_open_lover()
         {
-            OpenPartnerLoverPolicy.CanTakeLover(hasOpenArrangement: true, isHaremCulture: false, unsolicitedInfidelityAllowed: false)
+            OpenPartnerLoverPolicy.CanTakeLover(new OpenPartnerLoverPolicy.LoverEligibilityFacts {HasOpenArrangement = true, IsHaremCulture = false, UnsolicitedInfidelityAllowed = false})
                                   .Should().BeTrue("an open arrangement lets either culture take a lover, and it is not gated by the jealousy toggle");
             OpenPartnerLoverPolicy.LoverIsSecret(isHaremCulture: false)
                                   .Should().BeFalse("an egalitarian wife under an open pact takes an OPEN lover, nothing to hide");
@@ -197,7 +197,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_harem_partner_with_an_open_arrangement_WHEN_asked_THEN_she_takes_a_secret_lover()
         {
-            OpenPartnerLoverPolicy.CanTakeLover(hasOpenArrangement: true, isHaremCulture: true, unsolicitedInfidelityAllowed: false)
+            OpenPartnerLoverPolicy.CanTakeLover(new OpenPartnerLoverPolicy.LoverEligibilityFacts {HasOpenArrangement = true, IsHaremCulture = true, UnsolicitedInfidelityAllowed = false})
                                   .Should().BeTrue("the open arrangement makes her eligible regardless of the jealousy toggle");
             OpenPartnerLoverPolicy.LoverIsSecret(isHaremCulture: true)
                                   .Should().BeTrue("a harem/patriarchal wife hides her lover even within an open pact");
@@ -209,7 +209,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_harem_partner_with_no_pact_and_the_toggle_on_WHEN_asked_THEN_she_takes_a_secret_affair()
         {
-            OpenPartnerLoverPolicy.CanTakeLover(hasOpenArrangement: false, isHaremCulture: true, unsolicitedInfidelityAllowed: true)
+            OpenPartnerLoverPolicy.CanTakeLover(new OpenPartnerLoverPolicy.LoverEligibilityFacts {HasOpenArrangement = false, IsHaremCulture = true, UnsolicitedInfidelityAllowed = true})
                                   .Should().BeTrue("a neglected harem wife strays even without a pact when the jealousy toggle allows drama");
             OpenPartnerLoverPolicy.LoverIsSecret(isHaremCulture: true)
                                   .Should().BeTrue("an uninvited harem affair is hidden, never an open lover");
@@ -221,7 +221,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_harem_partner_with_no_pact_and_the_toggle_off_WHEN_asked_THEN_she_stays_faithful()
         {
-            OpenPartnerLoverPolicy.CanTakeLover(hasOpenArrangement: false, isHaremCulture: true, unsolicitedInfidelityAllowed: false)
+            OpenPartnerLoverPolicy.CanTakeLover(new OpenPartnerLoverPolicy.LoverEligibilityFacts {HasOpenArrangement = false, IsHaremCulture = true, UnsolicitedInfidelityAllowed = false})
                                   .Should().BeFalse("jealousy off means a drama-free household: no unsolicited infidelity");
         }
     }

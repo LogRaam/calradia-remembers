@@ -32,55 +32,62 @@ namespace CalradiaRemembers.Logic
         public const int RetryGrowth = 4;
 
         /// <summary>
-        ///   True when the NPC's memory is worth compressing right now, using <see cref="DefaultThreshold" />.
+        ///   What is known about one NPC's memory when deciding whether to pay for a compression call.
+        ///   <para>
+        ///     Named rather than positional (2026-09-10). THREE INTS in a row, all counts of events, and the
+        ///     threshold sits between the two that are compared against each other: swap the current count with
+        ///     the last-attempted watermark and a memory that has grown reads as one that has not, so the pass
+        ///     either never runs or runs on every message. Both are paid LLM calls.
+        ///   </para>
+        ///   <para>
+        ///     The two dials carry their defaults here, which retires the two convenience overloads that
+        ///     existed only to supply them. One method now, and one place the defaults are written down.
+        ///   </para>
         /// </summary>
-        /// <param name="eventCount">The NPC's current total event count.</param>
-        /// <param name="lastAttemptedAtCount">
-        ///   The event count at the time compression was last attempted for this NPC, or 0/negative if
-        ///   compression has never been attempted.
-        /// </param>
-        public static bool ShouldCompress(int eventCount, int lastAttemptedAtCount)
-            => ShouldCompress(eventCount, lastAttemptedAtCount, DefaultThreshold, isAlive: true);
-
-        /// <summary>
-        ///   True when the NPC's memory is worth compressing right now, using <see cref="DefaultThreshold" />
-        ///   and assuming the character is alive. See the 4-argument overload for the full order of checks.
-        /// </summary>
-        /// <param name="eventCount">The NPC's current total event count.</param>
-        /// <param name="lastAttemptedAtCount">
-        ///   The event count at the time compression was last attempted for this NPC, or 0/negative if
-        ///   compression has never been attempted.
-        /// </param>
-        /// <param name="threshold">
-        ///   The event count above which compression becomes worth it. A value below 1 is treated as
-        ///   <see cref="DefaultThreshold" />, so a misconfigured tuning value cannot turn compression into
-        ///   an every-message LLM call.
-        /// </param>
-        public static bool ShouldCompress(int eventCount, int lastAttemptedAtCount, int threshold)
-            => ShouldCompress(eventCount, lastAttemptedAtCount, threshold, isAlive: true);
-
-        /// <summary>
-        ///   True when the NPC's memory is worth compressing right now. Order: (1) not <paramref name="isAlive" />,
-        ///   never (a dead character is never spoken to again, so no future conversation ever reads its
-        ///   memory, and paying for a compression call on it is pure waste, checked first, before the
-        ///   threshold/retry logic even looks at the history); (2) below <paramref name="threshold" />, never
-        ///   (not worth the extra LLM call yet); (3) never attempted before for this NPC, always compress;
-        ///   (4) attempted before, only once at least <see cref="RetryGrowth" /> new events have accumulated
-        ///   since that attempt (see <see cref="RetryGrowth" /> for why); (5) otherwise, not yet.
-        /// </summary>
-        /// <param name="eventCount">The NPC's current total event count.</param>
-        /// <param name="lastAttemptedAtCount">
-        ///   The event count at the time compression was last attempted for this NPC, or 0/negative if
-        ///   compression has never been attempted.
-        /// </param>
-        /// <param name="threshold">
-        ///   The event count above which compression becomes worth it. A value below 1 is treated as
-        ///   <see cref="DefaultThreshold" />, so a misconfigured tuning value cannot turn compression into
-        ///   an every-message LLM call.
-        /// </param>
-        /// <param name="isAlive">False for a dead (or otherwise gone) character: compression is refused outright.</param>
-        public static bool ShouldCompress(int eventCount, int lastAttemptedAtCount, int threshold, bool isAlive)
+        public sealed class MemoryFacts
         {
+            /// <summary>The NPC's current total event count.</summary>
+            public int EventCount { get; set; }
+
+            /// <summary>
+            ///   The event count at the time compression was last attempted for this NPC, or zero/negative when
+            ///   it never has been.
+            /// </summary>
+            public int LastAttemptedAtCount { get; set; }
+
+            /// <summary>
+            ///   The event count above which compression becomes worth it. A value below 1 is treated as
+            ///   <see cref="DefaultThreshold" />, so a misconfigured tuning value cannot turn compression into
+            ///   an every-message LLM call.
+            /// </summary>
+            public int Threshold { get; set; } = DefaultThreshold;
+
+            /// <summary>
+            ///   The character is alive. False for a dead or otherwise gone one, whose compression is refused
+            ///   outright: nobody will ever speak to them again, so no future conversation reads that memory and
+            ///   the call would be pure waste.
+            /// </summary>
+            public bool IsAlive { get; set; } = true;
+        }
+
+        /// <summary>
+        ///   True when the NPC's memory is worth compressing right now. Order: (1) not
+        ///   <see cref="MemoryFacts.IsAlive" />, never (a dead character is never spoken to again, so no future
+        ///   conversation ever reads its memory, and paying for a compression call on it is pure waste, checked
+        ///   first, before the threshold/retry logic even looks at the history); (2) below
+        ///   <see cref="MemoryFacts.Threshold" />, never (not worth the extra LLM call yet); (3) never attempted
+        ///   before for this NPC, always compress; (4) attempted before, only once at least
+        ///   <see cref="RetryGrowth" /> new events have accumulated since that attempt; (5) otherwise, not yet.
+        /// </summary>
+        public static bool ShouldCompress(MemoryFacts facts)
+        {
+            if (facts == null) return false;
+
+            int eventCount = facts.EventCount;
+            int lastAttemptedAtCount = facts.LastAttemptedAtCount;
+            int threshold = facts.Threshold;
+            bool isAlive = facts.IsAlive;
+
             if (!isAlive)
             {
                 return false;

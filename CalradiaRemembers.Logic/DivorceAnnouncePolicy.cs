@@ -48,15 +48,44 @@ namespace CalradiaRemembers.Logic
         public const int MaxReannounces = 2;
 
         /// <summary>
+        ///   Where an announce cycle stands. THREE INTS in a row: two are DAYS whose difference is the window,
+        ///   and the third is a COUNT of windows already spent. Swap the days and the window is measured
+        ///   backwards; swap either with the count and the cycle either never advances or forces a notice at once.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class AnnounceStateFacts
+        {
+           /// <summary>This cycle's letter reached the player. That always wins: the clock starts.</summary>
+           public bool CurrentLetterDelivered { get; set; }
+
+           /// <summary>The current campaign day.</summary>
+           public int Today { get; set; }
+
+           /// <summary>The day this announce cycle opened.</summary>
+           public int CycleBeginDay { get; set; }
+
+           /// <summary>
+           ///   How many windows have already lapsed. At the cap the notice is forced rather than re-announced.
+           /// </summary>
+           public int ReannounceCount { get; set; }
+        }
+
+        /// <summary>
         ///   Given the current announce state, the single step the host should take. Delivery of the CURRENT
         ///   cycle's letter always wins (start the clock); otherwise wait out the window, then re-announce, then,
         ///   once <see cref="MaxReannounces" /> windows have lapsed, force a guaranteed notice.
         /// </summary>
-        public static DivorceAnnounceStep Resolve(bool currentLetterDelivered,
-                                                  int today,
-                                                  int cycleBeginDay,
-                                                  int reannounceCount)
+        public static DivorceAnnounceStep Resolve(AnnounceStateFacts facts)
         {
+           if (facts == null) return DivorceAnnounceStep.Wait;
+
+           bool currentLetterDelivered = facts.CurrentLetterDelivered;
+           int today = facts.Today;
+           int cycleBeginDay = facts.CycleBeginDay;
+           int reannounceCount = facts.ReannounceCount;
+
             if (currentLetterDelivered) return DivorceAnnounceStep.StartClock;
 
             if (today - cycleBeginDay < AnnounceWindowDays) return DivorceAnnounceStep.Wait;

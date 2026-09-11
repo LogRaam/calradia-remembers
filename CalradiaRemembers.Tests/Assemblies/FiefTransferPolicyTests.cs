@@ -32,7 +32,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_sovereign_and_a_player_owned_fief_WHEN_asked_to_grant_THEN_it_is_legal()
         {
-            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: true, recipientInPlayerKingdom: true, fiefOwnedByPlayerClan: true).Should().BeTrue();
+            FiefTransferPolicy.CanGrant(new FiefTransferPolicy.GrantFacts {PlayerIsKingdomLeader = true, RecipientInPlayerKingdom = true, FiefOwnedByPlayerClan = true}).Should().BeTrue();
         }
 
         // Gabriel's own condition, corrected by the Kimi review: "chef de clan" is not enough, since a clan's
@@ -41,7 +41,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_is_not_the_kingdom_sovereign_WHEN_asked_to_grant_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: false, recipientInPlayerKingdom: true, fiefOwnedByPlayerClan: true).Should().BeFalse();
+            FiefTransferPolicy.CanGrant(new FiefTransferPolicy.GrantFacts {PlayerIsKingdomLeader = false, RecipientInPlayerKingdom = true, FiefOwnedByPlayerClan = true}).Should().BeFalse();
         }
 
         // The v1.34.1 hotfix invariant. Without it, an LLM emitting grant_fief (hallucinated or coaxed) could hand
@@ -50,7 +50,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_recipient_is_not_a_vassal_of_the_players_kingdom_WHEN_asked_to_grant_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: true, recipientInPlayerKingdom: false, fiefOwnedByPlayerClan: true).Should().BeFalse();
+            FiefTransferPolicy.CanGrant(new FiefTransferPolicy.GrantFacts {PlayerIsKingdomLeader = true, RecipientInPlayerKingdom = false, FiefOwnedByPlayerClan = true}).Should().BeFalse();
         }
 
         // The fief must be a REAL crown fief the player's own clan holds right now: naming a fief already given
@@ -58,7 +58,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_named_fief_is_not_the_players_own_WHEN_asked_to_grant_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: true, recipientInPlayerKingdom: true, fiefOwnedByPlayerClan: false).Should().BeFalse();
+            FiefTransferPolicy.CanGrant(new FiefTransferPolicy.GrantFacts {PlayerIsKingdomLeader = true, RecipientInPlayerKingdom = true, FiefOwnedByPlayerClan = false}).Should().BeFalse();
         }
 
         // No single condition alone suffices: a non-sovereign, out-of-kingdom recipient, no owned fief must still be
@@ -66,7 +66,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_neither_condition_holds_WHEN_asked_to_grant_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanGrant(playerIsKingdomLeader: false, recipientInPlayerKingdom: false, fiefOwnedByPlayerClan: false).Should().BeFalse();
+            FiefTransferPolicy.CanGrant(new FiefTransferPolicy.GrantFacts {PlayerIsKingdomLeader = false, RecipientInPlayerKingdom = false, FiefOwnedByPlayerClan = false}).Should().BeFalse();
         }
 
         // The ordinary case: a true sovereign stripping a fief the SPOLIATED vassal's own clan actually holds, a
@@ -74,7 +74,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_sovereign_and_a_vassal_owned_fief_WHEN_asked_to_revoke_THEN_it_is_legal()
         {
-            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: true, targetInPlayerKingdom: true, fiefOwnedBySpoliatedClan: true).Should().BeTrue();
+            FiefTransferPolicy.CanRevoke(new FiefTransferPolicy.RevokeFacts {PlayerIsKingdomLeader = true, TargetInPlayerKingdom = true, FiefOwnedBySpoliatedClan = true}).Should().BeTrue();
         }
 
         // Gabriel's own condition (COUNCIL_ACTIONS.md): "uniquement si on est le chef du clan", corrected by the
@@ -84,7 +84,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_is_not_the_kingdom_sovereign_WHEN_asked_to_revoke_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: false, targetInPlayerKingdom: true, fiefOwnedBySpoliatedClan: true).Should().BeFalse();
+            FiefTransferPolicy.CanRevoke(new FiefTransferPolicy.RevokeFacts {PlayerIsKingdomLeader = false, TargetInPlayerKingdom = true, FiefOwnedBySpoliatedClan = true}).Should().BeFalse();
         }
 
         // The v1.34.1 hotfix invariant. Without it, an LLM emitting revoke_fief (hallucinated or coaxed) could
@@ -93,7 +93,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_target_is_not_a_vassal_of_the_players_kingdom_WHEN_asked_to_revoke_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: true, targetInPlayerKingdom: false, fiefOwnedBySpoliatedClan: true).Should().BeFalse();
+            FiefTransferPolicy.CanRevoke(new FiefTransferPolicy.RevokeFacts {PlayerIsKingdomLeader = true, TargetInPlayerKingdom = false, FiefOwnedBySpoliatedClan = true}).Should().BeFalse();
         }
 
         // The named fief must be a REAL holding of the spoliated vassal's own clan right now: naming a fief they
@@ -101,7 +101,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_named_fief_is_not_the_vassals_own_WHEN_asked_to_revoke_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: true, targetInPlayerKingdom: true, fiefOwnedBySpoliatedClan: false).Should().BeFalse();
+            FiefTransferPolicy.CanRevoke(new FiefTransferPolicy.RevokeFacts {PlayerIsKingdomLeader = true, TargetInPlayerKingdom = true, FiefOwnedBySpoliatedClan = false}).Should().BeFalse();
         }
 
         // No single condition alone suffices: a non-sovereign, out-of-kingdom target, no owned fief must still be
@@ -109,7 +109,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_neither_condition_holds_WHEN_asked_to_revoke_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanRevoke(playerIsKingdomLeader: false, targetInPlayerKingdom: false, fiefOwnedBySpoliatedClan: false).Should().BeFalse();
+            FiefTransferPolicy.CanRevoke(new FiefTransferPolicy.RevokeFacts {PlayerIsKingdomLeader = false, TargetInPlayerKingdom = false, FiefOwnedBySpoliatedClan = false}).Should().BeFalse();
         }
 
         // The relation hit and grudge magnitude are documented, testable constants (COUNCIL_ACTIONS.md's Kimi
@@ -139,7 +139,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_sovereign_and_both_fiefs_owned_as_expected_WHEN_asked_to_swap_THEN_it_is_legal()
         {
-            FiefTransferPolicy.CanSwap(playerIsKingdomLeader: true, playerFiefOwnedByPlayerClan: true, vassalFiefOwnedBySeatedVassalClan: true)
+            FiefTransferPolicy.CanSwap(new FiefTransferPolicy.SwapFacts {PlayerIsKingdomLeader = true, PlayerFiefOwnedByPlayerClan = true, VassalFiefOwnedBySeatedVassalClan = true})
                 .Should().BeTrue();
         }
 
@@ -148,7 +148,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_is_not_the_kingdom_sovereign_WHEN_asked_to_swap_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanSwap(playerIsKingdomLeader: false, playerFiefOwnedByPlayerClan: true, vassalFiefOwnedBySeatedVassalClan: true)
+            FiefTransferPolicy.CanSwap(new FiefTransferPolicy.SwapFacts {PlayerIsKingdomLeader = false, PlayerFiefOwnedByPlayerClan = true, VassalFiefOwnedBySeatedVassalClan = true})
                 .Should().BeFalse();
         }
 
@@ -157,7 +157,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_named_player_fief_is_not_the_players_own_WHEN_asked_to_swap_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanSwap(playerIsKingdomLeader: true, playerFiefOwnedByPlayerClan: false, vassalFiefOwnedBySeatedVassalClan: true)
+            FiefTransferPolicy.CanSwap(new FiefTransferPolicy.SwapFacts {PlayerIsKingdomLeader = true, PlayerFiefOwnedByPlayerClan = false, VassalFiefOwnedBySeatedVassalClan = true})
                 .Should().BeFalse();
         }
 
@@ -166,7 +166,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_named_vassal_fief_is_not_the_vassals_own_WHEN_asked_to_swap_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanSwap(playerIsKingdomLeader: true, playerFiefOwnedByPlayerClan: true, vassalFiefOwnedBySeatedVassalClan: false)
+            FiefTransferPolicy.CanSwap(new FiefTransferPolicy.SwapFacts {PlayerIsKingdomLeader = true, PlayerFiefOwnedByPlayerClan = true, VassalFiefOwnedBySeatedVassalClan = false})
                 .Should().BeFalse();
         }
 
@@ -176,7 +176,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_any_single_condition_is_missing_WHEN_asked_to_swap_THEN_it_is_refused()
         {
-            FiefTransferPolicy.CanSwap(playerIsKingdomLeader: false, playerFiefOwnedByPlayerClan: false, vassalFiefOwnedBySeatedVassalClan: false)
+            FiefTransferPolicy.CanSwap(new FiefTransferPolicy.SwapFacts {PlayerIsKingdomLeader = false, PlayerFiefOwnedByPlayerClan = false, VassalFiefOwnedBySeatedVassalClan = false})
                 .Should().BeFalse();
         }
 
@@ -186,7 +186,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_every_grant_teaching_fact_holds_WHEN_offering_THEN_the_action_is_taught()
         {
-            FiefTransferPolicy.CanOfferGrant(playerIsKingdomLeader: true, npcIsVassalInPlayerKingdom: true, hasGrantableFief: true)
+            FiefTransferPolicy.CanOfferGrant(new FiefTransferPolicy.GrantOfferFacts {PlayerIsKingdomLeader = true, NpcIsVassalInPlayerKingdom = true, HasGrantableFief = true})
                 .Should().BeTrue();
         }
 
@@ -195,7 +195,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_does_not_rule_a_kingdom_WHEN_offering_a_grant_THEN_the_action_is_withheld()
         {
-            FiefTransferPolicy.CanOfferGrant(playerIsKingdomLeader: false, npcIsVassalInPlayerKingdom: true, hasGrantableFief: true)
+            FiefTransferPolicy.CanOfferGrant(new FiefTransferPolicy.GrantOfferFacts {PlayerIsKingdomLeader = false, NpcIsVassalInPlayerKingdom = true, HasGrantableFief = true})
                 .Should().BeFalse();
         }
 
@@ -205,7 +205,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_npc_is_not_a_vassal_in_the_players_kingdom_WHEN_offering_a_grant_THEN_the_action_is_withheld()
         {
-            FiefTransferPolicy.CanOfferGrant(playerIsKingdomLeader: true, npcIsVassalInPlayerKingdom: false, hasGrantableFief: true)
+            FiefTransferPolicy.CanOfferGrant(new FiefTransferPolicy.GrantOfferFacts {PlayerIsKingdomLeader = true, NpcIsVassalInPlayerKingdom = false, HasGrantableFief = true})
                 .Should().BeFalse();
         }
 
@@ -215,7 +215,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_no_grantable_crown_fief_WHEN_offering_a_grant_THEN_the_action_is_withheld()
         {
-            FiefTransferPolicy.CanOfferGrant(playerIsKingdomLeader: true, npcIsVassalInPlayerKingdom: true, hasGrantableFief: false)
+            FiefTransferPolicy.CanOfferGrant(new FiefTransferPolicy.GrantOfferFacts {PlayerIsKingdomLeader = true, NpcIsVassalInPlayerKingdom = true, HasGrantableFief = false})
                 .Should().BeFalse();
         }
 
@@ -225,7 +225,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_every_revoke_teaching_fact_holds_WHEN_offering_THEN_the_action_is_taught()
         {
-            FiefTransferPolicy.CanOfferRevoke(playerIsKingdomLeader: true, npcIsVassalInPlayerKingdom: true, npcHoldsRevocableFief: true)
+            FiefTransferPolicy.CanOfferRevoke(new FiefTransferPolicy.RevokeOfferFacts {PlayerIsKingdomLeader = true, NpcIsVassalInPlayerKingdom = true, NpcHoldsRevocableFief = true})
                 .Should().BeTrue();
         }
 
@@ -234,7 +234,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_player_does_not_rule_a_kingdom_WHEN_offering_a_revoke_THEN_the_action_is_withheld()
         {
-            FiefTransferPolicy.CanOfferRevoke(playerIsKingdomLeader: false, npcIsVassalInPlayerKingdom: true, npcHoldsRevocableFief: true)
+            FiefTransferPolicy.CanOfferRevoke(new FiefTransferPolicy.RevokeOfferFacts {PlayerIsKingdomLeader = false, NpcIsVassalInPlayerKingdom = true, NpcHoldsRevocableFief = true})
                 .Should().BeFalse();
         }
 
@@ -244,7 +244,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_npc_is_not_a_vassal_in_the_players_kingdom_WHEN_offering_a_revoke_THEN_the_action_is_withheld()
         {
-            FiefTransferPolicy.CanOfferRevoke(playerIsKingdomLeader: true, npcIsVassalInPlayerKingdom: false, npcHoldsRevocableFief: true)
+            FiefTransferPolicy.CanOfferRevoke(new FiefTransferPolicy.RevokeOfferFacts {PlayerIsKingdomLeader = true, NpcIsVassalInPlayerKingdom = false, NpcHoldsRevocableFief = true})
                 .Should().BeFalse();
         }
 
@@ -253,7 +253,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_no_revocable_fief_WHEN_offering_a_revoke_THEN_the_action_is_withheld()
         {
-            FiefTransferPolicy.CanOfferRevoke(playerIsKingdomLeader: true, npcIsVassalInPlayerKingdom: true, npcHoldsRevocableFief: false)
+            FiefTransferPolicy.CanOfferRevoke(new FiefTransferPolicy.RevokeOfferFacts {PlayerIsKingdomLeader = true, NpcIsVassalInPlayerKingdom = true, NpcHoldsRevocableFief = false})
                 .Should().BeFalse();
         }
     }

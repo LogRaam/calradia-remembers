@@ -87,7 +87,7 @@ namespace CalradiaRemembers.Battles
          CombatFeatTier tier = CombatProwessPolicy.Rate(BattleFeatFacts.For(Hero.MainHero), BattleFeatFacts.For(foe));
          if (!CombatProwessPolicy.TravelsAsGossip(tier)) return false;
 
-         string name = HeroLabel.Describe(foe.Name?.ToString(), foe.Clan?.Name?.ToString(), foe.Culture?.Name?.ToString());
+         string name = HeroLabel.Describe(new HeroLabel.HeroNaming {Name = foe.Name?.ToString(), ClanName = foe.Clan?.Name?.ToString(), CultureName = foe.Culture?.Name?.ToString()});
          RecordExploitEvent(new CombatFeat(foe.StringId, name, outcome, tier), engagement);
 
          return true;
@@ -105,8 +105,7 @@ namespace CalradiaRemembers.Battles
          if (WorldEventStore.Instance == null || Hero.MainHero == null) return;
 
          var day = (int) CampaignTime.Now.ToDays;
-         string playerName = HeroLabel.Describe(Hero.MainHero.Name?.ToString(), Hero.MainHero.Clan?.Name?.ToString(),
-            Hero.MainHero.Culture?.Name?.ToString());
+         string playerName = HeroLabel.Describe(new HeroLabel.HeroNaming {Name = Hero.MainHero.Name?.ToString(), ClanName = Hero.MainHero.Clan?.Name?.ToString(), CultureName = Hero.MainHero.Culture?.Name?.ToString()});
 
          WorldEventStore.Instance.Record(new WorldEvent {
             Id = $"cr_feat_{feat.FoeId}_{day}",
@@ -135,7 +134,7 @@ namespace CalradiaRemembers.Battles
          CombatFeatTier tier = CombatProwessPolicy.Rate(BattleFeatFacts.For(Hero.MainHero), BattleFeatFacts.For(foe));
          if (tier == CombatFeatTier.Unremarkable) return null;
 
-         string name = HeroLabel.Describe(foe.Name?.ToString(), foe.Clan?.Name?.ToString(), foe.Culture?.Name?.ToString());
+         string name = HeroLabel.Describe(new HeroLabel.HeroNaming {Name = foe.Name?.ToString(), ClanName = foe.Clan?.Name?.ToString(), CultureName = foe.Culture?.Name?.ToString()});
 
          return new CombatFeat(heroId, name, ResolveOutcome(foe), tier);
       }
@@ -158,7 +157,7 @@ namespace CalradiaRemembers.Battles
 
          return hero == null
             ? null
-            : HeroLabel.Describe(hero.Name?.ToString(), hero.Clan?.Name?.ToString(), hero.Culture?.Name?.ToString());
+            : HeroLabel.Describe(new HeroLabel.HeroNaming {Name = hero.Name?.ToString(), ClanName = hero.Clan?.Name?.ToString(), CultureName = hero.Culture?.Name?.ToString()});
       }
    }
 

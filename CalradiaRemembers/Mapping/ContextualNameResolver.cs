@@ -90,7 +90,7 @@ namespace CalradiaRemembers.Mapping
          {
             if (other == npc || other.IsHumanPlayerCharacter) continue;
 
-            var fullName = HeroLabel.Describe(other.Name?.ToString(), other.Clan?.Name?.ToString(), other.Culture?.Name?.ToString());
+            var fullName = HeroLabel.Describe(new HeroLabel.HeroNaming {Name = other.Name?.ToString(), ClanName = other.Clan?.Name?.ToString(), CultureName = other.Culture?.Name?.ToString()});
 
             if (string.IsNullOrEmpty(fullName)) continue;
             if (seen.Contains(other.StringId)) continue;
@@ -305,7 +305,7 @@ namespace CalradiaRemembers.Mapping
          {
             holder = ThirdPartyDescriptor.PrisonerHolder.Other;
             captorLabel = captor != null
-               ? HeroLabel.Describe(captor.Name?.ToString(), captor.Clan?.Name?.ToString(), captor.Culture?.Name?.ToString())
+               ? HeroLabel.Describe(new HeroLabel.HeroNaming {Name = captor.Name?.ToString(), ClanName = captor.Clan?.Name?.ToString(), CultureName = captor.Culture?.Name?.ToString()})
                : party?.Name?.ToString();
          }
 

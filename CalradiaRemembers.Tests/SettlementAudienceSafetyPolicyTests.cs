@@ -24,7 +24,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_peaceful_entry_WHEN_gating_the_audience_THEN_the_offer_may_fire()
         {
-            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(underSiege: false, raidInProgress: false, atWarWithPlayer: false)
+            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(new SettlementAudienceSafetyPolicy.SettlementSafetyFacts {UnderSiege = false, RaidInProgress = false, AtWarWithPlayer = false})
                                           .Should().BeTrue("a town visited in peace is exactly where a private word belongs");
         }
 
@@ -32,7 +32,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_settlement_under_siege_WHEN_gating_the_audience_THEN_the_offer_is_blocked()
         {
-            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(underSiege: true, raidInProgress: false, atWarWithPlayer: false)
+            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(new SettlementAudienceSafetyPolicy.SettlementSafetyFacts {UnderSiege = true, RaidInProgress = false, AtWarWithPlayer = false})
                                           .Should().BeFalse();
         }
 
@@ -40,7 +40,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_raid_in_progress_WHEN_gating_the_audience_THEN_the_offer_is_blocked()
         {
-            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(underSiege: false, raidInProgress: true, atWarWithPlayer: false)
+            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(new SettlementAudienceSafetyPolicy.SettlementSafetyFacts {UnderSiege = false, RaidInProgress = true, AtWarWithPlayer = false})
                                           .Should().BeFalse();
         }
 
@@ -49,7 +49,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_enemy_territory_at_war_WHEN_gating_the_audience_THEN_the_offer_is_blocked()
         {
-            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(underSiege: false, raidInProgress: false, atWarWithPlayer: true)
+            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(new SettlementAudienceSafetyPolicy.SettlementSafetyFacts {UnderSiege = false, RaidInProgress = false, AtWarWithPlayer = true})
                                           .Should().BeFalse();
         }
 
@@ -58,10 +58,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_any_combination_of_hostilities_WHEN_gating_the_audience_THEN_the_offer_is_blocked()
         {
-            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(true, true, false).Should().BeFalse();
-            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(true, false, true).Should().BeFalse();
-            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(false, true, true).Should().BeFalse();
-            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(true, true, true).Should().BeFalse();
+            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(new SettlementAudienceSafetyPolicy.SettlementSafetyFacts {UnderSiege = true, RaidInProgress = true, AtWarWithPlayer = false}).Should().BeFalse();
+            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(new SettlementAudienceSafetyPolicy.SettlementSafetyFacts {UnderSiege = true, RaidInProgress = false, AtWarWithPlayer = true}).Should().BeFalse();
+            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(new SettlementAudienceSafetyPolicy.SettlementSafetyFacts {UnderSiege = false, RaidInProgress = true, AtWarWithPlayer = true}).Should().BeFalse();
+            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(new SettlementAudienceSafetyPolicy.SettlementSafetyFacts {UnderSiege = true, RaidInProgress = true, AtWarWithPlayer = true}).Should().BeFalse();
         }
     }
 }

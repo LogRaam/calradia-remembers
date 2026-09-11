@@ -93,15 +93,6 @@ namespace CalradiaRemembers.Logic.Escort
         public static bool ShouldEnd(EscortStandingFacts facts) => Resolve(facts) != EscortEndReason.None;
 
         /// <summary>
-        ///   The kept overload, so nothing that already calls this changes behaviour: the same four facts, the
-        ///   same answer. New callers should use the one that can also say WHY.
-        /// </summary>
-        public static bool ShouldEnd(int daysRemaining, bool isDead, bool isCaptured, bool isAtWar)
-            => ShouldEnd(new EscortStandingFacts {
-                DaysRemaining = daysRemaining, IsDead = isDead, IsCaptured = isCaptured, IsAtWarWithPlayer = isAtWar
-            });
-
-        /// <summary>
         ///   What the player is told, in the lord's own voice where a voice makes sense. Every ending gets a
         ///   sentence: an escort that simply stops is the complaint this whole change answers, and the term
         ///   running out quietly is the same silence as any other.

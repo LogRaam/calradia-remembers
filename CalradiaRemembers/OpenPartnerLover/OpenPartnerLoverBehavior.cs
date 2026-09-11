@@ -187,7 +187,7 @@ namespace CalradiaRemembers.OpenPartnerLover
          bool hasOpenArrangement = profile.Romantic.IsOpenArrangement;
          bool isHaremCulture = IsHaremCulture(partner);
 
-         if (!OpenPartnerLoverPolicy.CanTakeLover(hasOpenArrangement, isHaremCulture, ModSettings.EnableJealousy))
+         if (!OpenPartnerLoverPolicy.CanTakeLover(new OpenPartnerLoverPolicy.LoverEligibilityFacts {HasOpenArrangement = hasOpenArrangement, IsHaremCulture = isHaremCulture, UnsolicitedInfidelityAllowed = ModSettings.EnableJealousy}))
             return null;
 
          int neglect = JealousyBehavior.NeglectDaysFor(partner, today);
@@ -294,7 +294,7 @@ namespace CalradiaRemembers.OpenPartnerLover
             bool committed = h == spouse || (p.Romantic.IsConsort && p.Romantic.Status == RomanticStatus.Committed);
             if (!committed) continue;
 
-            if (!OpenPartnerLoverPolicy.CanTakeLover(p.Romantic.IsOpenArrangement, IsHaremCulture(h), ModSettings.EnableJealousy)) continue;
+            if (!OpenPartnerLoverPolicy.CanTakeLover(new OpenPartnerLoverPolicy.LoverEligibilityFacts {HasOpenArrangement = p.Romantic.IsOpenArrangement, IsHaremCulture = IsHaremCulture(h), UnsolicitedInfidelityAllowed = ModSettings.EnableJealousy})) continue;
 
             results.Add((h, p));
          }

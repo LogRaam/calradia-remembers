@@ -24,7 +24,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_due_day_has_not_arrived_WHEN_deciding_THEN_it_waits()
         {
-            ScheduledLetterPolicy.Decide(sendDay: 107, today: 100, attempts: 0, fulfilled: false, generationInFlight: false)
+            ScheduledLetterPolicy.Decide(new ScheduledLetterPolicy.ScheduledLetterFacts {SendDay = 107, Today = 100, Attempts = 0, Fulfilled = false, GenerationInFlight = false})
                 .Should().Be(ScheduledLetterAction.Wait);
         }
 
@@ -33,7 +33,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_it_is_due_and_nothing_is_in_flight_WHEN_deciding_THEN_it_generates()
         {
-            ScheduledLetterPolicy.Decide(sendDay: 100, today: 100, attempts: 0, fulfilled: false, generationInFlight: false)
+            ScheduledLetterPolicy.Decide(new ScheduledLetterPolicy.ScheduledLetterFacts {SendDay = 100, Today = 100, Attempts = 0, Fulfilled = false, GenerationInFlight = false})
                 .Should().Be(ScheduledLetterAction.Generate);
         }
 
@@ -42,7 +42,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_today_is_exactly_the_due_day_WHEN_deciding_THEN_it_generates()
         {
-            ScheduledLetterPolicy.Decide(sendDay: 100, today: 100, attempts: 0, fulfilled: false, generationInFlight: false)
+            ScheduledLetterPolicy.Decide(new ScheduledLetterPolicy.ScheduledLetterFacts {SendDay = 100, Today = 100, Attempts = 0, Fulfilled = false, GenerationInFlight = false})
                 .Should().Be(ScheduledLetterAction.Generate);
         }
 
@@ -51,7 +51,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_generation_is_already_in_flight_WHEN_deciding_THEN_it_waits()
         {
-            ScheduledLetterPolicy.Decide(sendDay: 100, today: 105, attempts: 1, fulfilled: false, generationInFlight: true)
+            ScheduledLetterPolicy.Decide(new ScheduledLetterPolicy.ScheduledLetterFacts {SendDay = 100, Today = 105, Attempts = 1, Fulfilled = false, GenerationInFlight = true})
                 .Should().Be(ScheduledLetterAction.Wait);
         }
 
@@ -60,7 +60,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_letter_has_already_been_written_WHEN_deciding_THEN_it_is_fulfilled()
         {
-            ScheduledLetterPolicy.Decide(sendDay: 100, today: 108, attempts: 1, fulfilled: true, generationInFlight: false)
+            ScheduledLetterPolicy.Decide(new ScheduledLetterPolicy.ScheduledLetterFacts {SendDay = 100, Today = 108, Attempts = 1, Fulfilled = true, GenerationInFlight = false})
                 .Should().Be(ScheduledLetterAction.Fulfilled);
         }
 
@@ -69,8 +69,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_it_is_fulfilled_at_the_attempt_limit_WHEN_deciding_THEN_fulfilled_wins_over_give_up()
         {
-            ScheduledLetterPolicy.Decide(sendDay: 100, today: 120, attempts: ScheduledLetterPolicy.MaxAttempts,
-                    fulfilled: true, generationInFlight: false)
+            ScheduledLetterPolicy.Decide(new ScheduledLetterPolicy.ScheduledLetterFacts {SendDay = 100, Today = 120, Attempts = ScheduledLetterPolicy.MaxAttempts, Fulfilled = true, GenerationInFlight = false})
                 .Should().Be(ScheduledLetterAction.Fulfilled);
         }
 
@@ -79,8 +78,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_attempt_limit_is_reached_and_nothing_written_WHEN_deciding_THEN_it_gives_up()
         {
-            ScheduledLetterPolicy.Decide(sendDay: 100, today: 130, attempts: ScheduledLetterPolicy.MaxAttempts,
-                    fulfilled: false, generationInFlight: false)
+            ScheduledLetterPolicy.Decide(new ScheduledLetterPolicy.ScheduledLetterFacts {SendDay = 100, Today = 130, Attempts = ScheduledLetterPolicy.MaxAttempts, Fulfilled = false, GenerationInFlight = false})
                 .Should().Be(ScheduledLetterAction.GiveUp);
         }
 
@@ -89,8 +87,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_one_attempt_below_the_limit_WHEN_deciding_THEN_it_still_generates()
         {
-            ScheduledLetterPolicy.Decide(sendDay: 100, today: 130, attempts: ScheduledLetterPolicy.MaxAttempts - 1,
-                    fulfilled: false, generationInFlight: false)
+            ScheduledLetterPolicy.Decide(new ScheduledLetterPolicy.ScheduledLetterFacts {SendDay = 100, Today = 130, Attempts = ScheduledLetterPolicy.MaxAttempts - 1, Fulfilled = false, GenerationInFlight = false})
                 .Should().Be(ScheduledLetterAction.Generate);
         }
     }

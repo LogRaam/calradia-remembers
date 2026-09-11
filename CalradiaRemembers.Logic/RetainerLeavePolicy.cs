@@ -17,6 +17,29 @@ namespace CalradiaRemembers.Logic
    public static class RetainerLeavePolicy
    {
       /// <summary>
+      ///   What is still true of a tracked retainer. Three booleans in a row where the last is a PRECONDITION
+      ///   and the first two are causes: nothing tracked means nothing to end, and the answer is a plain,
+      ///   idempotent false however the other two read.
+      ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+      ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+      ///   that names only what it is about reads as the rule it protects.
+      /// </summary>
+      public sealed class RetainerStandingFacts
+      {
+         /// <summary>
+         ///   Their map faction is now at war with the player's. The flagship rule: an enemy lord does not ride
+         ///   inside the army they may next fight.
+         /// </summary>
+         public bool FactionAtWarWithPlayer { get; set; }
+
+         /// <summary>The retainer is alive. A dead one is always dropped rather than lingering as a stale id.</summary>
+         public bool IsAlive { get; set; }
+
+         /// <summary>The mod is still tracking them as an active retainer.</summary>
+         public bool StillTracked { get; set; }
+      }
+
+      /// <summary>
       ///   True when a currently-tracked retainer must leave the player's party and be handed back to their own
       ///   clan. Two facts force it: the author's flagship rule, that the retainer's faction is now at war with
       ///   the player (an enemy lord does not ride inside the army they may next fight), and death, so a retainer
@@ -26,8 +49,14 @@ namespace CalradiaRemembers.Logic
       /// <param name="retainerFactionAtWarWithPlayer">Their map faction is at war with the player's map faction.</param>
       /// <param name="retainerAlive">The retainer hero is still alive.</param>
       /// <param name="stillTracked">The mod is still tracking this hero as an active retainer.</param>
-      public static bool MustLeave(bool retainerFactionAtWarWithPlayer, bool retainerAlive, bool stillTracked)
+      public static bool MustLeave(RetainerStandingFacts facts)
       {
+         if (facts == null) return false;
+
+         bool retainerFactionAtWarWithPlayer = facts.FactionAtWarWithPlayer;
+         bool retainerAlive = facts.IsAlive;
+         bool stillTracked = facts.StillTracked;
+
          if (!stillTracked) return false;
          if (!retainerAlive) return true;
 

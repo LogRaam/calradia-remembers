@@ -75,7 +75,7 @@ namespace CalradiaRemembers.Memory
 
                 bool isAlive = aliveIds.Contains(id);
 
-                if (!MemoryCompressionPolicy.ShouldCompress(count, lastAttempt, MemoryCompressionPolicy.DefaultThreshold, isAlive)) continue;
+                if (!MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts {EventCount = count, LastAttemptedAtCount = lastAttempt, IsAlive = isAlive})) continue;
 
                 best = id;
                 bestCount = count;
@@ -110,7 +110,7 @@ namespace CalradiaRemembers.Memory
             // rest of the spending policy (a forced test on a dead hero is a legitimate diagnostic).
             bool isAlive = Hero.AllAliveHeroes.Any(h => h?.StringId == npcId);
 
-            if (!force && !MemoryCompressionPolicy.ShouldCompress(snapshotCount, lastAttempt, MemoryCompressionPolicy.DefaultThreshold, isAlive)) return;
+            if (!force && !MemoryCompressionPolicy.ShouldCompress(new MemoryCompressionPolicy.MemoryFacts {EventCount = snapshotCount, LastAttemptedAtCount = lastAttempt, IsAlive = isAlive})) return;
 
             // Recorded BEFORE the call, so a second trigger cannot queue the same expensive pass twice.
             LastAttemptedAtCount[npcId] = snapshotCount;

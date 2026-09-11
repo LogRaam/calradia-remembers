@@ -95,10 +95,42 @@ namespace CalradiaRemembers.Logic
         public const int MarriageThreshold = 40;
 
         /// <summary>
+        ///   Whether two companions are warm enough, and free enough, to wed. Three booleans in a row after the
+        ///   relation, each a different precondition the host has already resolved. The host enforces clan
+        ///   rules; this is the warmth gate alone.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class CompanionMatchFacts
+        {
+           /// <summary>Their accumulated mutual relation, weighed against the marriage threshold.</summary>
+           public int Relation { get; set; }
+
+           /// <summary>Neither is already wed.</summary>
+           public bool BothUnmarried { get; set; }
+
+           /// <summary>The pairing can produce a vanilla marriage.</summary>
+           public bool OppositeGender { get; set; }
+
+           /// <summary>Both are of an age to marry.</summary>
+           public bool BothAdult { get; set; }
+        }
+
+        /// <summary>
         ///   Whether two companions could wed, from facts the host has already resolved (gender, marital
         ///   state, age) plus their mutual relation. The host enforces clan rules; this is the warmth gate.
         /// </summary>
-        public static bool CanMarry(int relation, bool bothUnmarried, bool oppositeGender, bool bothAdult)
-            => bothUnmarried && oppositeGender && bothAdult && relation >= MarriageThreshold;
+        public static bool CanMarry(CompanionMatchFacts facts)
+        {
+           if (facts == null) return false;
+
+           int relation = facts.Relation;
+           bool bothUnmarried = facts.BothUnmarried;
+           bool oppositeGender = facts.OppositeGender;
+           bool bothAdult = facts.BothAdult;
+
+           return bothUnmarried && oppositeGender && bothAdult && relation >= MarriageThreshold;
+        }
     }
 }

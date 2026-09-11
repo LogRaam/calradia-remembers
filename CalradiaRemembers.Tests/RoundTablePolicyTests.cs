@@ -23,7 +23,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_three_participants_from_the_start_WHEN_ordering_a_full_cap_THEN_each_speaks_once_in_turn()
         {
-            RoundTablePolicy.SpeakerOrder(3, 0, 3).Should().Equal(0, 1, 2);
+            RoundTablePolicy.SpeakerOrder(new RoundTablePolicy.RoundTableFacts {ParticipantCount = 3, StartIndex = 0, Cap = 3}).Should().Equal(0, 1, 2);
         }
 
         // Per the method's own doc comment: when participantCount is less than cap the index wraps, and this is
@@ -31,7 +31,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_two_participants_and_a_larger_cap_WHEN_ordering_THEN_it_wraps_into_cross_talk()
         {
-            RoundTablePolicy.SpeakerOrder(2, 0, 3).Should().Equal(0, 1, 0);
+            RoundTablePolicy.SpeakerOrder(new RoundTablePolicy.RoundTableFacts {ParticipantCount = 2, StartIndex = 0, Cap = 3}).Should().Equal(0, 1, 0);
         }
 
         // DefaultCap (3) caps every burst even when more NPCs are present: a fourth participant here is
@@ -39,7 +39,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_four_participants_from_the_start_WHEN_ordering_a_cap_of_three_THEN_only_the_first_three_speak()
         {
-            RoundTablePolicy.SpeakerOrder(4, 0, 3).Should().Equal(0, 1, 2);
+            RoundTablePolicy.SpeakerOrder(new RoundTablePolicy.RoundTableFacts {ParticipantCount = 4, StartIndex = 0, Cap = 3}).Should().Equal(0, 1, 2);
         }
 
         // The rotation must wrap at the participant count, not run off the end: starting near the tail of a
@@ -47,21 +47,21 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_four_participants_from_the_third_WHEN_ordering_THEN_it_round_robins_and_wraps_to_zero()
         {
-            RoundTablePolicy.SpeakerOrder(4, 2, 3).Should().Equal(2, 3, 0);
+            RoundTablePolicy.SpeakerOrder(new RoundTablePolicy.RoundTableFacts {ParticipantCount = 4, StartIndex = 2, Cap = 3}).Should().Equal(2, 3, 0);
         }
 
         // Defensive: no participants present must not throw or divide by zero (Normalize takes a modulo of count).
         [Test]
         public void GIVEN_no_participants_WHEN_ordering_THEN_the_order_is_empty()
         {
-            RoundTablePolicy.SpeakerOrder(0, 0, 3).Should().BeEmpty();
+            RoundTablePolicy.SpeakerOrder(new RoundTablePolicy.RoundTableFacts {ParticipantCount = 0, StartIndex = 0, Cap = 3}).Should().BeEmpty();
         }
 
         // Defensive: a zero or negative cap must produce no turns rather than an unbounded or malformed lap.
         [Test]
         public void GIVEN_a_non_positive_cap_WHEN_ordering_THEN_the_order_is_empty()
         {
-            RoundTablePolicy.SpeakerOrder(4, 0, 0).Should().BeEmpty();
+            RoundTablePolicy.SpeakerOrder(new RoundTablePolicy.RoundTableFacts {ParticipantCount = 4, StartIndex = 0, Cap = 0}).Should().BeEmpty();
         }
 
         // This is the fairness guarantee the method's doc comment promises: the next burst resumes exactly where
@@ -74,7 +74,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_burst_WHEN_computing_the_next_start_THEN_it_advances_so_everyone_eventually_speaks(
             int count, int start, int cap, int expected)
         {
-            RoundTablePolicy.NextStartIndex(count, start, cap).Should().Be(expected);
+            RoundTablePolicy.NextStartIndex(new RoundTablePolicy.RoundTableFacts {ParticipantCount = count, StartIndex = start, Cap = cap}).Should().Be(expected);
         }
 
         // Council audit M12: the per-member council used to give the whole roster a turn EVERY message (one full

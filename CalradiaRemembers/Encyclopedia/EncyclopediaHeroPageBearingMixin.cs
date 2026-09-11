@@ -98,7 +98,7 @@ namespace CalradiaRemembers.Encyclopedia
                 return;
             }
 
-            string bearing = StanceBearingText.Compose(profile.StanceTrust, profile.StanceRespect, profile.StanceFear);
+            string bearing = StanceBearingText.Compose(new StanceBearingText.BearingFacts {Trust = profile.StanceTrust, Respect = profile.StanceRespect, Fear = profile.StanceFear});
 
             if (string.IsNullOrEmpty(bearing))
             {

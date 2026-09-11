@@ -30,7 +30,7 @@ namespace CalradiaRemembers.Tests
         {
             const string summary = "Mesui and Huan Yi married under Khuzait law at Baltakhand, sealing their union before witnesses.";
 
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer(summary, "Mesui", "Huan Yi").Should().BeTrue();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = summary, NpcName = "Mesui", PlayerName = "Huan Yi"}).Should().BeTrue();
         }
 
         // The bug report's SECOND recorded [EVENT], same session, same day. The dedup guard in
@@ -41,7 +41,7 @@ namespace CalradiaRemembers.Tests
         {
             const string summary = "Mesui and Huan Yi were married before the Khan's envoy; they departed immediately for Kaysar Castle.";
 
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer(summary, "Mesui", "Huan Yi").Should().BeTrue();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = summary, NpcName = "Mesui", PlayerName = "Huan Yi"}).Should().BeTrue();
         }
 
         // A THIRD PARTY's wedding must never be read as the player's own: the NPC's name legitimately
@@ -54,7 +54,7 @@ namespace CalradiaRemembers.Tests
         {
             const string summary = "Mesui's daughter married a Sturgian lord in a quiet ceremony at the family estate.";
 
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer(summary, "Mesui", "Huan Yi").Should().BeFalse();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = summary, NpcName = "Mesui", PlayerName = "Huan Yi"}).Should().BeFalse();
         }
 
         // A mere ENGAGEMENT or agreement to marry LATER is not the falsifiable claim this policy guards:
@@ -66,7 +66,7 @@ namespace CalradiaRemembers.Tests
         {
             const string summary = "Mesui agreed to marry Huan Yi once the spring campaign season ends.";
 
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer(summary, "Mesui", "Huan Yi").Should().BeFalse();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = summary, NpcName = "Mesui", PlayerName = "Huan Yi"}).Should().BeFalse();
         }
 
         // Same pending-intention boundary via a different phrasing (a set date, not yet a vow spoken): the
@@ -77,7 +77,7 @@ namespace CalradiaRemembers.Tests
         {
             const string summary = "Mesui and Huan Yi have set a wedding date for the next full moon.";
 
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer(summary, "Mesui", "Huan Yi").Should().BeFalse();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = summary, NpcName = "Mesui", PlayerName = "Huan Yi"}).Should().BeFalse();
         }
 
         // First-person-plural phrasing pins the claim to the player's OWN union even when neither name is
@@ -88,7 +88,7 @@ namespace CalradiaRemembers.Tests
         {
             const string summary = "We were wed today before the gods, and I am now her husband in truth.";
 
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer(summary, "Mesui", "Huan Yi").Should().BeTrue();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = summary, NpcName = "Mesui", PlayerName = "Huan Yi"}).Should().BeTrue();
         }
 
         // Both names present is not enough on its own: without ANY marriage vocabulary, two people simply
@@ -98,7 +98,7 @@ namespace CalradiaRemembers.Tests
         {
             const string summary = "Mesui and Huan Yi shared a quiet dinner together and spoke of the harvest.";
 
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer(summary, "Mesui", "Huan Yi").Should().BeFalse();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = summary, NpcName = "Mesui", PlayerName = "Huan Yi"}).Should().BeFalse();
         }
 
         // "wed" as a bare three-letter token must not fire on an unrelated word that merely contains it as a
@@ -110,7 +110,7 @@ namespace CalradiaRemembers.Tests
         {
             const string summary = "Mesui and Huan Yi's caravan was wedged between two carts on the narrow bridge.";
 
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer(summary, "Mesui", "Huan Yi").Should().BeFalse();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = summary, NpcName = "Mesui", PlayerName = "Huan Yi"}).Should().BeFalse();
         }
 
         // Null, empty, and whitespace-only summaries must never throw (ProfileMutator.Apply already guards
@@ -118,9 +118,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_null_or_blank_summary_WHEN_checking_THEN_it_is_not_detected_and_does_not_throw()
         {
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer(null, "Mesui", "Huan Yi").Should().BeFalse();
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer("", "Mesui", "Huan Yi").Should().BeFalse();
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer("   ", "Mesui", "Huan Yi").Should().BeFalse();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = null, NpcName = "Mesui", PlayerName = "Huan Yi"}).Should().BeFalse();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = "", NpcName = "Mesui", PlayerName = "Huan Yi"}).Should().BeFalse();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = "   ", NpcName = "Mesui", PlayerName = "Huan Yi"}).Should().BeFalse();
         }
 
         // Null/blank names must not throw either (a defensive contract mirroring the summary case): a caller
@@ -130,9 +130,9 @@ namespace CalradiaRemembers.Tests
         {
             const string summary = "Mesui and Huan Yi married under Khuzait law at Baltakhand.";
 
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer(summary, null, "Huan Yi").Should().BeFalse();
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer(summary, "Mesui", null).Should().BeFalse();
-            MarriageClaimPolicy.ClaimsMarriageWithPlayer(summary, "", "").Should().BeFalse();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = summary, NpcName = null, PlayerName = "Huan Yi"}).Should().BeFalse();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = summary, NpcName = "Mesui", PlayerName = null}).Should().BeFalse();
+            MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = summary, NpcName = "", PlayerName = ""}).Should().BeFalse();
         }
     }
 }

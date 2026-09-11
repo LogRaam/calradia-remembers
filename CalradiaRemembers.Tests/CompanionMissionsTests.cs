@@ -103,7 +103,7 @@ namespace CalradiaRemembers.Tests
       {
          //Arrange — skill 300/3=100, roll 80, diff 10 -> score 170.
          //Act
-         var outcome = CompanionMissions.Resolve(CompanionMissionType.Barter, governingSkillLevel: 300, roll: 80, difficulty: 10);
+         var outcome = CompanionMissions.Resolve(new CompanionMissions.ErrandFacts {Type = CompanionMissionType.Barter, GoverningSkillLevel = 300, Roll = 80, Difficulty = 10});
 
          //Assert
          outcome.Result.Should().Be(MissionResult.Success);
@@ -117,7 +117,7 @@ namespace CalradiaRemembers.Tests
       {
          //Arrange — skill 150/3=50, roll 30, diff 20 -> score 60 (>=50, <100).
          //Act
-         var outcome = CompanionMissions.Resolve(CompanionMissionType.GatherNews, governingSkillLevel: 150, roll: 30, difficulty: 20);
+         var outcome = CompanionMissions.Resolve(new CompanionMissions.ErrandFacts {Type = CompanionMissionType.GatherNews, GoverningSkillLevel = 150, Roll = 30, Difficulty = 20});
 
          //Assert
          outcome.Result.Should().Be(MissionResult.Partial);
@@ -132,7 +132,7 @@ namespace CalradiaRemembers.Tests
       {
          //Arrange — skill 60/3=20, roll 10, diff 40 -> score -10 (a safe errand never captures).
          //Act
-         var outcome = CompanionMissions.Resolve(CompanionMissionType.Envoy, governingSkillLevel: 60, roll: 10, difficulty: 40);
+         var outcome = CompanionMissions.Resolve(new CompanionMissions.ErrandFacts {Type = CompanionMissionType.Envoy, GoverningSkillLevel = 60, Roll = 10, Difficulty = 40});
 
          //Assert
          outcome.Result.Should().Be(MissionResult.Failure);
@@ -150,7 +150,7 @@ namespace CalradiaRemembers.Tests
       {
          //Arrange — skill 60/3=20, roll 0, diff 40 -> score -20 (<=0) on a risky steal.
          //Act
-         var outcome = CompanionMissions.Resolve(CompanionMissionType.Steal, governingSkillLevel: 60, roll: 0, difficulty: 40);
+         var outcome = CompanionMissions.Resolve(new CompanionMissions.ErrandFacts {Type = CompanionMissionType.Steal, GoverningSkillLevel = 60, Roll = 0, Difficulty = 40});
 
          //Assert
          outcome.Result.Should().Be(MissionResult.Failure);
@@ -165,7 +165,7 @@ namespace CalradiaRemembers.Tests
       {
          //Arrange — score 10 (>0): a clean failure on a risky errand, no capture.
          //Act — skill 60/3=20, roll 30, diff 40 -> score 10.
-         var outcome = CompanionMissions.Resolve(CompanionMissionType.Spy, governingSkillLevel: 60, roll: 30, difficulty: 40);
+         var outcome = CompanionMissions.Resolve(new CompanionMissions.ErrandFacts {Type = CompanionMissionType.Spy, GoverningSkillLevel = 60, Roll = 30, Difficulty = 40});
 
          //Assert
          outcome.Result.Should().Be(MissionResult.Failure);
@@ -181,7 +181,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_out_of_range_inputs_WHEN_resolved_THEN_they_are_clamped_not_thrown()
       {
          //Arrange/Act — negative skill, an over-range roll, a negative difficulty.
-         var outcome = CompanionMissions.Resolve(CompanionMissionType.Barter, governingSkillLevel: -50, roll: 999, difficulty: -10);
+         var outcome = CompanionMissions.Resolve(new CompanionMissions.ErrandFacts {Type = CompanionMissionType.Barter, GoverningSkillLevel = -50, Roll = 999, Difficulty = -10});
 
          //Assert — clamps to skill 0, roll 99, diff 0 -> score 99 -> Partial.
          outcome.Result.Should().Be(MissionResult.Partial);

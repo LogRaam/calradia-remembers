@@ -26,12 +26,38 @@ namespace CalradiaRemembers.Logic.Assemblies
     public static class CouncilAccessPolicy
     {
         /// <summary>
+        ///   What stands between the player and opening the council. Three booleans read in PRIORITY order,
+        ///   and the order is the rule: each names a different block, and a swap reports the wrong one to a
+        ///   player who then cannot tell what to do about it.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class CouncilAccessFacts
+        {
+           /// <summary>A chat is already open. The most direct hijack risk, so checked first.</summary>
+           public bool ChatAlreadyOpen { get; set; }
+
+           /// <summary>The player is held captive and holds no council.</summary>
+           public bool PlayerIsPrisoner { get; set; }
+
+           /// <summary>A mission scene owns the screen.</summary>
+           public bool InMissionScene { get; set; }
+        }
+
+        /// <summary>
         ///   The first condition that blocks opening, in priority order: an already-open chat first (the most
         ///   direct hijack risk), then captivity, then an active scene. <see cref="CouncilAccessBlock.None" />
         ///   when none holds, so the caller may open.
         /// </summary>
-        public static CouncilAccessBlock Evaluate(bool chatAlreadyOpen, bool playerIsPrisoner, bool inMissionScene)
+        public static CouncilAccessBlock Evaluate(CouncilAccessFacts facts)
         {
+           if (facts == null) return CouncilAccessBlock.None;
+
+           bool chatAlreadyOpen = facts.ChatAlreadyOpen;
+           bool playerIsPrisoner = facts.PlayerIsPrisoner;
+           bool inMissionScene = facts.InMissionScene;
+
             if (chatAlreadyOpen) return CouncilAccessBlock.ChatAlreadyOpen;
             if (playerIsPrisoner) return CouncilAccessBlock.PlayerCaptive;
             if (inMissionScene) return CouncilAccessBlock.InScene;

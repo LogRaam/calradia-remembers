@@ -21,7 +21,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         // never open at all.
         [Test]
         public void GIVEN_a_free_player_on_the_map_with_no_chat_open_WHEN_evaluated_THEN_nothing_blocks()
-            => CouncilAccessPolicy.Evaluate(chatAlreadyOpen: false, playerIsPrisoner: false, inMissionScene: false)
+            => CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = false, PlayerIsPrisoner = false, InMissionScene = false})
                 .Should().Be(CouncilAccessBlock.None);
 
         // M2: an already-open chat is the direct hijack risk (ChatManager.Open returns early but leaves the old
@@ -29,25 +29,25 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_chat_already_open_WHEN_evaluated_THEN_it_blocks_as_chat_open_even_over_other_conditions()
         {
-            CouncilAccessPolicy.Evaluate(chatAlreadyOpen: true, playerIsPrisoner: false, inMissionScene: false)
+            CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = true, PlayerIsPrisoner = false, InMissionScene = false})
                 .Should().Be(CouncilAccessBlock.ChatAlreadyOpen);
 
             // Precedence: an open chat wins even when the player is also captive and in a scene.
-            CouncilAccessPolicy.Evaluate(chatAlreadyOpen: true, playerIsPrisoner: true, inMissionScene: true)
+            CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = true, PlayerIsPrisoner = true, InMissionScene = true})
                 .Should().Be(CouncilAccessBlock.ChatAlreadyOpen);
         }
 
         // M1: a captive player cannot convene their own house. Checked after the chat guard, before the scene one.
         [Test]
         public void GIVEN_a_captive_player_and_no_chat_open_WHEN_evaluated_THEN_it_blocks_as_captive()
-            => CouncilAccessPolicy.Evaluate(chatAlreadyOpen: false, playerIsPrisoner: true, inMissionScene: true)
+            => CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = false, PlayerIsPrisoner = true, InMissionScene = true})
                 .Should().Be(CouncilAccessBlock.PlayerCaptive);
 
         // M1: a running mission scene (battle, town walkabout) is no place for a map gathering; blocks when
         // nothing higher does.
         [Test]
         public void GIVEN_a_mission_scene_and_a_free_unengaged_player_WHEN_evaluated_THEN_it_blocks_as_in_scene()
-            => CouncilAccessPolicy.Evaluate(chatAlreadyOpen: false, playerIsPrisoner: false, inMissionScene: true)
+            => CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = false, PlayerIsPrisoner = false, InMissionScene = true})
                 .Should().Be(CouncilAccessBlock.InScene);
     }
 }

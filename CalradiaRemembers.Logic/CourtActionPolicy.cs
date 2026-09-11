@@ -82,13 +82,39 @@ namespace CalradiaRemembers.Logic
         public const int TroopLoanCooldownDays = 14;
 
         /// <summary>
+        ///   The mirror of <see cref="TroopGiftCount" />, and the reason both are named: the two counts change
+        ///   sides between them. Here the NPC gives and the player receives, so the party a fraction is kept
+        ///   back from is the NPC's, not the player's.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class TroopLoanFacts
+        {
+           /// <summary>The NPC's standing with the player, which scales how many they would peel off.</summary>
+           public int Relation { get; set; }
+
+           /// <summary>The NPC's own regulars, never heroes. A retained fraction is kept back from these.</summary>
+           public int NpcTotalRegularTroops { get; set; }
+
+           /// <summary>How many more the player's party can hold.</summary>
+           public int PlayerRoom { get; set; }
+        }
+
+        /// <summary>
         ///   How many regular troops (never heroes) an NPC would peel off for the player: scaled by
         ///   relation (<see cref="TroopLoanMaxCount" /> cap), never dipping the NPC's own party below
         ///   <see cref="TroopLoanMinRetainFraction" /> of its strength, and never more than the
         ///   player's remaining party room.
         /// </summary>
-        public static int TroopLoanCount(int relation, int npcTotalRegularTroops, int playerRoom)
+        public static int TroopLoanCount(TroopLoanFacts facts)
         {
+           if (facts == null) return 0;
+
+           int relation = facts.Relation;
+           int npcTotalRegularTroops = facts.NpcTotalRegularTroops;
+           int playerRoom = facts.PlayerRoom;
+
             if (relation <= 0 || npcTotalRegularTroops <= 0 || playerRoom <= 0) return 0;
 
             int desired = Math.Min(relation / TroopLoanRelationDivisor, TroopLoanMaxCount);
@@ -133,14 +159,42 @@ namespace CalradiaRemembers.Logic
             => partySizeLimit >= GiveTroopsMinPartySizeLimit && healthyTroops < partySizeLimit * GiveTroopsWeakenedFraction;
 
         /// <summary>
+        ///   What the player has to spare, and what the NPC's party can take. THREE INTS in a row where one is
+        ///   a RELATION and the other two are TROOP COUNTS belonging to two different parties: swap the two
+        ///   counts and the player hands over troops measured against the wrong party's room.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class TroopGiftFacts
+        {
+           /// <summary>The player's standing with them, which scales how many are offered.</summary>
+           public int Relation { get; set; }
+
+           /// <summary>
+           ///   The player's own healthy regulars. A floor and a retained fraction are kept back from these.
+           /// </summary>
+           public int PlayerHealthyTroops { get; set; }
+
+           /// <summary>How many more the NPC's party can hold.</summary>
+           public int NpcRoom { get; set; }
+        }
+
+        /// <summary>
         ///   How many of the player's OWN healthy regular troops they could spare for a weakened NPC's party:
         ///   scaled modestly by relation (<see cref="GiveTroopsMaxCount" /> cap), never dipping the player's own
         ///   party below <see cref="GiveTroopsPlayerMinRetainFraction" /> of its current strength nor
         ///   <see cref="GiveTroopsPlayerFloor" /> troops outright, and never more than the NPC party's own
         ///   remaining room.
         /// </summary>
-        public static int TroopGiftCount(int relation, int playerHealthyTroops, int npcRoom)
+        public static int TroopGiftCount(TroopGiftFacts facts)
         {
+           if (facts == null) return 0;
+
+           int relation = facts.Relation;
+           int playerHealthyTroops = facts.PlayerHealthyTroops;
+           int npcRoom = facts.NpcRoom;
+
             if (relation < GiveTroopsMinRelation || playerHealthyTroops <= 0 || npcRoom <= 0) return 0;
 
             int mustKeep = Math.Max(GiveTroopsPlayerFloor, (int) Math.Ceiling(playerHealthyTroops * GiveTroopsPlayerMinRetainFraction));

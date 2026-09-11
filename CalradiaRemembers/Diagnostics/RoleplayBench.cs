@@ -1038,7 +1038,7 @@ namespace CalradiaRemembers.Diagnostics
       /// </summary>
       private static string HeroLabelSafe(Hero hero)
       {
-         try { return HeroLabel.Describe(hero?.Name?.ToString(), hero?.Clan?.Name?.ToString(), hero?.Culture?.Name?.ToString()); }
+         try { return HeroLabel.Describe(new HeroLabel.HeroNaming {Name = hero?.Name?.ToString(), ClanName = hero?.Clan?.Name?.ToString(), CultureName = hero?.Culture?.Name?.ToString()}); }
          catch { return hero?.Name?.ToString() ?? "NPC"; }
       }
 

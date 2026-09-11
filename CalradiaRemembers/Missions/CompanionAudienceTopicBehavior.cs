@@ -475,7 +475,7 @@ namespace CalradiaRemembers.Missions
                          && Hero.MainHero?.MapFaction != null
                          && settlement.MapFaction.IsAtWarWith(Hero.MainHero.MapFaction);
 
-            bool peaceful = SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(underSiege, raidInProgress, atWar);
+            bool peaceful = SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(new SettlementAudienceSafetyPolicy.SettlementSafetyFacts {UnderSiege = underSiege, RaidInProgress = raidInProgress, AtWarWithPlayer = atWar});
 
             if (!peaceful)
                ModLog.Info($"[AUDIENCE_TOPIC] entry into {settlement.Name} is not peaceful " +

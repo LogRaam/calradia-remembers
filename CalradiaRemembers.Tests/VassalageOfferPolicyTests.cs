@@ -27,7 +27,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_npc_is_the_kingdom_ruler_and_the_player_is_not_already_a_vassal_WHEN_resolving_join_as_vassal_THEN_the_oath_is_allowed()
         {
-            VassalageOfferPolicy.CanJoin(npcIsKingdomRuler: true, playerAlreadyVassal: false, playerAtWarWithKingdom: false).Should().BeTrue();
+            VassalageOfferPolicy.CanJoin(new VassalageOfferPolicy.VassalageFacts {NpcIsKingdomRuler = true, PlayerAlreadyVassal = false, PlayerAtWarWithKingdom = false}).Should().BeTrue();
         }
 
         // STAKE: the player report was a narrated acceptance ("the LLM narrated acceptance and threw 6000
@@ -38,7 +38,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_npc_is_not_the_kingdom_ruler_WHEN_resolving_join_as_vassal_THEN_the_oath_is_refused()
         {
-            VassalageOfferPolicy.CanJoin(npcIsKingdomRuler: false, playerAlreadyVassal: false, playerAtWarWithKingdom: false).Should().BeFalse();
+            VassalageOfferPolicy.CanJoin(new VassalageOfferPolicy.VassalageFacts {NpcIsKingdomRuler = false, PlayerAlreadyVassal = false, PlayerAtWarWithKingdom = false}).Should().BeFalse();
         }
 
         // STAKE: a clan already sworn to a kingdom cannot be re-sworn by a passing conversation with another
@@ -48,7 +48,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_player_is_already_a_full_vassal_WHEN_resolving_join_as_vassal_THEN_the_oath_is_refused()
         {
-            VassalageOfferPolicy.CanJoin(npcIsKingdomRuler: true, playerAlreadyVassal: true, playerAtWarWithKingdom: false).Should().BeFalse();
+            VassalageOfferPolicy.CanJoin(new VassalageOfferPolicy.VassalageFacts {NpcIsKingdomRuler = true, PlayerAlreadyVassal = true, PlayerAtWarWithKingdom = false}).Should().BeFalse();
         }
 
         // STAKE (v1.34.2 governance hardening, finding 4): join_as_vassal never checked whether the player was AT
@@ -58,7 +58,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_player_is_at_war_with_the_kingdom_WHEN_resolving_join_as_vassal_THEN_the_oath_is_refused()
         {
-            VassalageOfferPolicy.CanJoin(npcIsKingdomRuler: true, playerAlreadyVassal: false, playerAtWarWithKingdom: true).Should().BeFalse();
+            VassalageOfferPolicy.CanJoin(new VassalageOfferPolicy.VassalageFacts {NpcIsKingdomRuler = true, PlayerAlreadyVassal = false, PlayerAtWarWithKingdom = true}).Should().BeFalse();
         }
 
         // Both guards failing at once must still refuse, not throw or default to true - belt-and-suspenders
@@ -66,7 +66,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_npc_is_not_the_ruler_and_the_player_is_already_a_vassal_WHEN_resolving_join_as_vassal_THEN_the_oath_is_refused()
         {
-            VassalageOfferPolicy.CanJoin(npcIsKingdomRuler: false, playerAlreadyVassal: true, playerAtWarWithKingdom: false).Should().BeFalse();
+            VassalageOfferPolicy.CanJoin(new VassalageOfferPolicy.VassalageFacts {NpcIsKingdomRuler = false, PlayerAlreadyVassal = true, PlayerAtWarWithKingdom = false}).Should().BeFalse();
         }
     }
 }

@@ -111,7 +111,7 @@ namespace CalradiaRemembers.Encyclopedia
 
                 CouncilTribute tribute = CouncilTributeBehavior.Instance?.Get(hero.StringId);
                 if (tribute != null)
-                    lines.Add(CouncilAccordPanelText.TributeOwed(tribute.AmountPerDay, tribute.DaysRemaining, tribute.MissedDays));
+                    lines.Add(CouncilAccordPanelText.TributeOwed(new CouncilAccordPanelText.TributeLine {AmountPerDay = tribute.AmountPerDay, DaysRemaining = tribute.DaysRemaining, MissedDays = tribute.MissedDays}));
 
                 CouncilStipend stipend = CouncilStipendBehavior.Instance?.Get(hero.StringId);
                 if (stipend != null)

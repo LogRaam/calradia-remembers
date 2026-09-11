@@ -27,7 +27,7 @@ namespace CalradiaRemembers.Tests
             score = CompanionHappiness.ApplyDriver(score, HappinessDriver.Idle);
             score = CompanionHappiness.ApplyDriver(score, HappinessDriver.KeptFromLovedOne);
 
-            return CompanionHappiness.DriftToBaseline(score, ContentmentPacingRules.DriftStepFor(pacing), baseline);
+            return CompanionHappiness.DriftToBaseline(new CompanionHappiness.HappinessDrift {Score = score, Step = ContentmentPacingRules.DriftStepFor(pacing), Baseline = baseline});
         }
 
         [Test]
@@ -55,7 +55,7 @@ namespace CalradiaRemembers.Tests
                 for (var week = 0; week < 104; week++)
                 {
                     score = CompanionHappiness.ApplyDriver(score, HappinessDriver.Idle);
-                    score = CompanionHappiness.DriftToBaseline(score, step, baseline);
+                    score = CompanionHappiness.DriftToBaseline(new CompanionHappiness.HappinessDrift {Score = score, Step = step, Baseline = baseline});
                     CompanionHappiness.WantsToLeave(score).Should().BeFalse($"under {pacing}");
                 }
             }

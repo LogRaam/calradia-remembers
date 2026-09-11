@@ -263,7 +263,7 @@ namespace CalradiaRemembers.WorldEvents
       // deterministic id keeps it a single standing fact.
       private static void RecordExistenceWhisper(Hero h, int today)
       {
-         string name = HeroLabel.Describe(h.Name?.ToString(), h.Clan?.Name?.ToString(), h.Culture?.Name?.ToString());
+         string name = HeroLabel.Describe(new HeroLabel.HeroNaming {Name = h.Name?.ToString(), ClanName = h.Clan?.Name?.ToString(), CultureName = h.Culture?.Name?.ToString()});
 
          WorldEventStore.Instance.Record(new WorldEvent
          {

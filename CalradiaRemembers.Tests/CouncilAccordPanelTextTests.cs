@@ -23,7 +23,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_tribute_THEN_the_line_reads_that_the_hero_owes_the_player()
         {
-            string line = CouncilAccordPanelText.TributeOwed(300, 12, 0);
+            string line = CouncilAccordPanelText.TributeOwed(new CouncilAccordPanelText.TributeLine {AmountPerDay = 300, DaysRemaining = 12, MissedDays = 0});
 
             line.Should().StartWith("Owes you a tribute");
             line.Should().Contain("300");
@@ -47,13 +47,13 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_tribute_with_missed_days_THEN_the_line_notes_falling_behind()
         {
-            CouncilAccordPanelText.TributeOwed(300, 12, 4).Should().Contain("fallen behind");
+            CouncilAccordPanelText.TributeOwed(new CouncilAccordPanelText.TributeLine {AmountPerDay = 300, DaysRemaining = 12, MissedDays = 4}).Should().Contain("fallen behind");
         }
 
         [Test]
         public void GIVEN_a_tribute_with_no_missed_days_THEN_the_line_does_not_note_falling_behind()
         {
-            CouncilAccordPanelText.TributeOwed(300, 12, 0).Should().NotContain("fallen behind");
+            CouncilAccordPanelText.TributeOwed(new CouncilAccordPanelText.TributeLine {AmountPerDay = 300, DaysRemaining = 12, MissedDays = 0}).Should().NotContain("fallen behind");
         }
 
         // A pact is a mutual truce, framed as a bond, not a debt one side carries.

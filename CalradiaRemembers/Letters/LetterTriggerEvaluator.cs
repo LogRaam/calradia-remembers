@@ -875,7 +875,7 @@ namespace CalradiaRemembers.Letters
                   else if (!l.IsLost) inFlight = true;
                }
 
-               switch (ScheduledLetterPolicy.Decide(scheduled.SendDay, today, scheduled.Attempts, fulfilled, inFlight))
+               switch (ScheduledLetterPolicy.Decide(new ScheduledLetterPolicy.ScheduledLetterFacts {SendDay = scheduled.SendDay, Today = today, Attempts = scheduled.Attempts, Fulfilled = fulfilled, GenerationInFlight = inFlight}))
                {
                   case ScheduledLetterAction.Fulfilled:
                      toRemove.Add(scheduled);

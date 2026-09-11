@@ -92,20 +92,41 @@ namespace CalradiaRemembers.Logic
         public static int ApplyDriver(int score, HappinessDriver driver) => Apply(score, DeltaFor(driver));
 
         /// <summary>
-        ///   Eases the score toward <see cref="Default"/> by at most <paramref name="step"/> (recovery /
-        ///   relaxation over time), without overshooting. A no-op once already at baseline.
+        ///   A happiness score and how far it may move back toward rest. THREE INTS in a row, all on the same
+        ///   scale and all plausible as each other: swap the score with the step and the drift starts from the
+        ///   step size. The baseline carries the shipped default here, which retires the two-argument overload
+        ///   that existed only to supply it.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
         /// </summary>
-        public static int DriftToBaseline(int score, int step) => DriftToBaseline(score, step, Default);
+        public sealed class HappinessDrift
+        {
+           /// <summary>Where the companion's happiness stands now.</summary>
+           public int Score { get; set; }
+
+           /// <summary>The most it may move this tick. The drift never overshoots the baseline.</summary>
+           public int Step { get; set; }
+
+           /// <summary>Where happiness rests when nothing is pushing it.</summary>
+           public int Baseline { get; set; } = Default;
+        }
 
         /// <summary>
         ///   Eases the score toward a GIVEN baseline (the resting happiness of the clan they serve, see
-        ///   <see cref="CompanionBaseline" />) by at most <paramref name="step"/>, without overshooting. This is
+        ///   <see cref="CompanionBaseline" />) by at most <c>Step</c>, without overshooting. This is
         ///   the recovery half of the loop, and it is deliberately stronger than the idle penalty: a companion
         ///   who is merely unoccupied comes back to rest rather than sliding away, so only a real and repeated
         ///   grievance can ever carry them to the leaving floor.
         /// </summary>
-        public static int DriftToBaseline(int score, int step, int baseline)
+        public static int DriftToBaseline(HappinessDrift facts)
         {
+           if (facts == null) return 0;
+
+           int score = facts.Score;
+           int step = facts.Step;
+           int baseline = facts.Baseline;
+
             baseline = Clamp(baseline);
             if (step <= 0 || score == baseline) return Clamp(score);
             if (score > baseline) return Clamp(score - System.Math.Min(step, score - baseline));

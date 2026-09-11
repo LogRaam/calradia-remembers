@@ -1580,7 +1580,7 @@ namespace CalradiaRemembers.Chat
             && s.OwnerClan == actorHero.Clan
             && string.Equals(s.Name?.ToString(), targetFiefName, StringComparison.OrdinalIgnoreCase));
 
-         if (!FiefTransferPolicy.CanSwap(playerIsKingdomLeader, playerFief != null, vassalFief != null))
+         if (!FiefTransferPolicy.CanSwap(new FiefTransferPolicy.SwapFacts {PlayerIsKingdomLeader = playerIsKingdomLeader, PlayerFiefOwnedByPlayerClan = playerFief != null, VassalFiefOwnedBySeatedVassalClan = vassalFief != null}))
          {
             string reason = !playerIsKingdomLeader
                ? "the player no longer rules a kingdom to broker a fief swap in its name."

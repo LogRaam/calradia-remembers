@@ -23,7 +23,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_no_captivity_and_no_war_WHEN_checking_a_marriage_THEN_it_is_allowed()
       {
-         MarriageGuardPolicy.MarriageAllowed(candidatePrisoner: false, playerPrisoner: false, atWarWithCandidate: false)
+         MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = false, PlayerPrisoner = false, AtWarWithCandidate = false})
             .Should().BeTrue();
       }
 
@@ -32,9 +32,9 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_any_of_captivity_or_war_WHEN_checking_a_marriage_THEN_it_is_forbidden()
       {
-         MarriageGuardPolicy.MarriageAllowed(true, false, false).Should().BeFalse();  // candidate captive
-         MarriageGuardPolicy.MarriageAllowed(false, true, false).Should().BeFalse();  // player captive
-         MarriageGuardPolicy.MarriageAllowed(false, false, true).Should().BeFalse();  // at war
+         MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = true, PlayerPrisoner = false, AtWarWithCandidate = false}).Should().BeFalse();  // candidate captive
+         MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = false, PlayerPrisoner = true, AtWarWithCandidate = false}).Should().BeFalse();  // player captive
+         MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = false, PlayerPrisoner = false, AtWarWithCandidate = true}).Should().BeFalse();  // at war
       }
 
       // v1.34.2 finding 1: arrange_marriage (CourtActionResolver.TryArrangeMarriage) now re-applies THIS same
@@ -45,10 +45,10 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_an_arranged_match_with_a_captive_kin_or_warring_houses_WHEN_checking_THEN_it_is_forbidden()
       {
-         MarriageGuardPolicy.MarriageAllowed(candidatePrisoner: true, playerPrisoner: false, atWarWithCandidate: false).Should().BeFalse();  // player-kin captive
-         MarriageGuardPolicy.MarriageAllowed(candidatePrisoner: false, playerPrisoner: true, atWarWithCandidate: false).Should().BeFalse();  // target-kin captive
-         MarriageGuardPolicy.MarriageAllowed(candidatePrisoner: false, playerPrisoner: false, atWarWithCandidate: true).Should().BeFalse();  // houses at war
-         MarriageGuardPolicy.MarriageAllowed(candidatePrisoner: false, playerPrisoner: false, atWarWithCandidate: false).Should().BeTrue();  // clean match still allowed
+         MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = true, PlayerPrisoner = false, AtWarWithCandidate = false}).Should().BeFalse();  // player-kin captive
+         MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = false, PlayerPrisoner = true, AtWarWithCandidate = false}).Should().BeFalse();  // target-kin captive
+         MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = false, PlayerPrisoner = false, AtWarWithCandidate = true}).Should().BeFalse();  // houses at war
+         MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = false, PlayerPrisoner = false, AtWarWithCandidate = false}).Should().BeTrue();  // clean match still allowed
       }
 
       // A blessing from a lord who is alive, free, at peace, and holds the player in at least neutral regard is
@@ -56,8 +56,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_living_free_peaceful_regarding_lord_WHEN_checking_a_blessing_THEN_it_is_allowed()
       {
-         MarriageGuardPolicy.BlessingAllowed(blesserAlive: true, blesserPrisoner: false, atWarWithBlesser: false,
-               blesserRegard: MarriageGuardPolicy.MinBlessingRegard)
+         MarriageGuardPolicy.BlessingAllowed(new MarriageGuardPolicy.BlesserFacts {BlesserAlive = true, BlesserPrisoner = false, AtWarWithBlesser = false, BlesserRegard = MarriageGuardPolicy.MinBlessingRegard})
             .Should().BeTrue();
       }
 
@@ -66,10 +65,10 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_any_disqualifying_state_WHEN_checking_a_blessing_THEN_it_is_forbidden()
       {
-         MarriageGuardPolicy.BlessingAllowed(false, false, false, 20).Should().BeFalse();   // dead
-         MarriageGuardPolicy.BlessingAllowed(true, true, false, 20).Should().BeFalse();     // imprisoned
-         MarriageGuardPolicy.BlessingAllowed(true, false, true, 20).Should().BeFalse();     // at war
-         MarriageGuardPolicy.BlessingAllowed(true, false, false, -1).Should().BeFalse();    // negative regard
+         MarriageGuardPolicy.BlessingAllowed(new MarriageGuardPolicy.BlesserFacts {BlesserAlive = false, BlesserPrisoner = false, AtWarWithBlesser = false, BlesserRegard = 20}).Should().BeFalse();   // dead
+         MarriageGuardPolicy.BlessingAllowed(new MarriageGuardPolicy.BlesserFacts {BlesserAlive = true, BlesserPrisoner = true, AtWarWithBlesser = false, BlesserRegard = 20}).Should().BeFalse();     // imprisoned
+         MarriageGuardPolicy.BlessingAllowed(new MarriageGuardPolicy.BlesserFacts {BlesserAlive = true, BlesserPrisoner = false, AtWarWithBlesser = true, BlesserRegard = 20}).Should().BeFalse();     // at war
+         MarriageGuardPolicy.BlessingAllowed(new MarriageGuardPolicy.BlesserFacts {BlesserAlive = true, BlesserPrisoner = false, AtWarWithBlesser = false, BlesserRegard = -1}).Should().BeFalse();    // negative regard
       }
 
       // M-B1: the +40 warm swing may only land on the clan that actually blessed. When the recorded blessing

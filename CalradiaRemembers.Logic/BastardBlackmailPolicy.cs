@@ -61,11 +61,38 @@ namespace CalradiaRemembers.Logic
             => !hasActiveDemand && currentSeason >= silentUntilSeason;
 
         /// <summary>
+        ///   What the mother of a concealed bastard has to hold over the player. Three booleans in a row, and
+        ///   the last is the one that inverts: a wife shares the house, not a secret to sell.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class LeverageFacts
+        {
+           /// <summary>The child's parentage is still a secret. There is nothing to sell once it is out.</summary>
+           public bool BastardConcealed { get; set; }
+
+           /// <summary>She is alive to press it.</summary>
+           public bool MotherAlive { get; set; }
+
+           /// <summary>She is the player's own wife, and a wife shares the house rather than blackmails it.</summary>
+           public bool MotherIsPlayerSpouse { get; set; }
+        }
+
+        /// <summary>
         ///   The mother holds blackmail leverage only while the bastard is still CONCEALED, she is alive, and
         ///   she is not the player's own spouse (a wife shares the house, not a secret to sell).
         /// </summary>
-        public static bool HoldsLeverage(bool bastardConcealed, bool motherAlive, bool motherIsPlayerSpouse)
-            => bastardConcealed && motherAlive && !motherIsPlayerSpouse;
+        public static bool HoldsLeverage(LeverageFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool bastardConcealed = facts.BastardConcealed;
+           bool motherAlive = facts.MotherAlive;
+           bool motherIsPlayerSpouse = facts.MotherIsPlayerSpouse;
+
+           return bastardConcealed && motherAlive && !motherIsPlayerSpouse;
+        }
 
         /// <summary>
         ///   What she demands for her silence: a share of the player's wealth, clamped to

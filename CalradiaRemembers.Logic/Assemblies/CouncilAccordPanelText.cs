@@ -10,9 +10,34 @@ namespace CalradiaRemembers.Logic.Assemblies
     /// <summary>Renders a standing council accord as a third-person line for the hero's Encyclopedia page (player POV).</summary>
     public static class CouncilAccordPanelText
     {
-        /// <summary>A tribute this hero pays the player daily (CouncilTribute). MissedDays &gt; 0 notes they have fallen behind.</summary>
-        public static string TributeOwed(int amountPerDay, int daysRemaining, int missedDays)
+        /// <summary>
+        ///   The same daily tribute as <see cref="CouncilAccordClause" /> renders in prose, here as the panel's
+        ///   own one-liner. Three ints in a row that all read as plain numbers to the player.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class TributeLine
         {
+           /// <summary>Denars owed each day.</summary>
+           public int AmountPerDay { get; set; }
+
+           /// <summary>Days the tribute still has to run.</summary>
+           public int DaysRemaining { get; set; }
+
+           /// <summary>Days already fallen behind. Above zero adds the note that they have.</summary>
+           public int MissedDays { get; set; }
+        }
+
+        /// <summary>A tribute this hero pays the player daily (CouncilTribute). MissedDays &gt; 0 notes they have fallen behind.</summary>
+        public static string TributeOwed(TributeLine facts)
+        {
+           if (facts == null) return "";
+
+           int amountPerDay = facts.AmountPerDay;
+           int daysRemaining = facts.DaysRemaining;
+           int missedDays = facts.MissedDays;
+
             string behind = missedDays > 0 ? " They have fallen behind on it lately." : "";
 
             return $"Owes you a tribute of {amountPerDay} denars a day, sworn at a parley{Days(daysRemaining)}.{behind}";

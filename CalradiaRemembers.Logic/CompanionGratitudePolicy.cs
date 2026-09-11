@@ -28,12 +28,40 @@ namespace CalradiaRemembers.Logic
         public const int RecencyWindowDays = 60;
 
         /// <summary>
+        ///   What makes a live appreciation worth a companion asking for a word. THREE INTS on three unrelated
+        ///   scales: a magnitude, a count of days, and a happiness score. Swap the days with the magnitude and
+        ///   a small kindness from long ago reads as a great one from yesterday.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class GratitudeFacts
+        {
+           /// <summary>How large the appreciation still is after decay.</summary>
+           public int EffectiveMagnitude { get; set; }
+
+           /// <summary>How long ago it was earned. Outside the recency window it is no longer news.</summary>
+           public int DaysAgo { get; set; }
+
+           /// <summary>
+           ///   How content they are in the player's service. An unhappy companion does not come to give thanks.
+           /// </summary>
+           public int HappinessScore { get; set; }
+        }
+
+        /// <summary>
         ///   True when a live appreciation is significant enough, recent enough, and the companion is CONTENT
         ///   enough in the player's service to earn a gratitude audience. Spend-once bookkeeping (has this
         ///   appreciation already been thanked for) is the caller's concern, exactly like Callback/RumourReport.
         /// </summary>
-        public static bool Holds(int effectiveMagnitude, int daysAgo, int happinessScore)
+        public static bool Holds(GratitudeFacts facts)
         {
+           if (facts == null) return false;
+
+           int effectiveMagnitude = facts.EffectiveMagnitude;
+           int daysAgo = facts.DaysAgo;
+           int happinessScore = facts.HappinessScore;
+
             if (!IsContentEnough(happinessScore)) return false;
             if (daysAgo < 0 || daysAgo > RecencyWindowDays) return false;
 

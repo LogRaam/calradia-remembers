@@ -21,7 +21,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_ashore_free_player_with_a_road_WHEN_gated_THEN_the_courier_may_ride()
         {
-            ReplyCourierGatePolicy.Decide(playerAtSea: false, playerIsPrisoner: false, landRouteExists: true)
+            ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {PlayerAtSea = false, PlayerIsPrisoner = false, LandRouteExists = true})
                 .Should().Be(ReplyCourierBlock.None);
         }
 
@@ -30,7 +30,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_player_at_sea_WHEN_gated_THEN_the_ride_is_blocked_as_at_sea()
         {
-            ReplyCourierGatePolicy.Decide(playerAtSea: true, playerIsPrisoner: false, landRouteExists: true)
+            ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {PlayerAtSea = true, PlayerIsPrisoner = false, LandRouteExists = true})
                 .Should().Be(ReplyCourierBlock.PlayerAtSea);
         }
 
@@ -39,7 +39,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_captive_player_WHEN_gated_THEN_the_ride_is_blocked_as_prisoner()
         {
-            ReplyCourierGatePolicy.Decide(playerAtSea: false, playerIsPrisoner: true, landRouteExists: true)
+            ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {PlayerAtSea = false, PlayerIsPrisoner = true, LandRouteExists = true})
                 .Should().Be(ReplyCourierBlock.PlayerIsPrisoner);
         }
 
@@ -48,7 +48,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_no_land_route_to_the_player_WHEN_gated_THEN_the_ride_is_blocked_as_no_road()
         {
-            ReplyCourierGatePolicy.Decide(playerAtSea: false, playerIsPrisoner: false, landRouteExists: false)
+            ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {PlayerAtSea = false, PlayerIsPrisoner = false, LandRouteExists = false})
                 .Should().Be(ReplyCourierBlock.NoLandRoute);
         }
 
@@ -59,9 +59,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_several_blocks_at_once_WHEN_gated_THEN_sea_outranks_prisoner_which_outranks_the_road()
         {
-            ReplyCourierGatePolicy.Decide(playerAtSea: true, playerIsPrisoner: true, landRouteExists: false)
+            ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {PlayerAtSea = true, PlayerIsPrisoner = true, LandRouteExists = false})
                 .Should().Be(ReplyCourierBlock.PlayerAtSea);
-            ReplyCourierGatePolicy.Decide(playerAtSea: false, playerIsPrisoner: true, landRouteExists: false)
+            ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {PlayerAtSea = false, PlayerIsPrisoner = true, LandRouteExists = false})
                 .Should().Be(ReplyCourierBlock.PlayerIsPrisoner);
         }
     }

@@ -592,7 +592,7 @@ namespace CalradiaRemembers.Services
       /// </summary>
       private static string ResolveProviderPin()
          => ActiveRoleKind() == ProviderKind.OpenRouter
-            ? ModelModePolicy.ResolveProviderPin(ActiveMainRole(), ModSettings.OpenRouterProviderPin, ModSettings.OpenRouterNsfwProviderPin, "")
+            ? ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = ActiveMainRole(), Prose = ModSettings.OpenRouterProviderPin, Nsfw = ModSettings.OpenRouterNsfwProviderPin, Interpret = ""})
             : "";
 
       /// <summary>
@@ -671,7 +671,7 @@ namespace CalradiaRemembers.Services
 
          // Phase 2: PROSE = the base model (per provider kind), NSFW = the CncModel storage (migrated from the old
          // CNC/NSFW slot), INTERPRET = the ActionInterpreterModel storage. The main call is only ever Prose or Nsfw.
-         return ModelModePolicy.ResolveModelId(ActiveMainRole(), proseModel, ModSettings.CncModel, ModSettings.ActionInterpreterModel);
+         return ModelModePolicy.ResolveModelId(new ModelModePolicy.RoleSettings {Role = ActiveMainRole(), Prose = proseModel, Nsfw = ModSettings.CncModel, Interpret = ModSettings.ActionInterpreterModel});
       }
 
       /// <summary>
@@ -743,7 +743,7 @@ namespace CalradiaRemembers.Services
          //   unchanged.
          string keyword =
             kind == ProviderKind.OpenRouter || kind == ProviderKind.NanoGpt
-               ? ModelModePolicy.ResolveReasoningEffort(ActiveMainRole(), ModSettings.ReasoningEffort, ModSettings.NsfwReasoningEffort, InterpreterReasoningEffort)
+               ? ModelModePolicy.ResolveReasoningEffort(new ModelModePolicy.RoleSettings {Role = ActiveMainRole(), Prose = ModSettings.ReasoningEffort, Nsfw = ModSettings.NsfwReasoningEffort, Interpret = InterpreterReasoningEffort})
                : kind == ProviderKind.OpenAiCompatible
                   ? ModSettings.CustomReasoningEffort
                   : null;
@@ -794,7 +794,7 @@ namespace CalradiaRemembers.Services
             TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
             ParameterOptionsProvider = () => ParameterOptionsFor(kind, model),
             ProviderSlugsProvider = () => kind == ProviderKind.OpenRouter
-               ? ModelModePolicy.ResolveProviderPin(ServiceRole.Interpret, ModSettings.OpenRouterProviderPin, ModSettings.OpenRouterNsfwProviderPin, "")
+               ? ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = ServiceRole.Interpret, Prose = ModSettings.OpenRouterProviderPin, Nsfw = ModSettings.OpenRouterNsfwProviderPin, Interpret = ""})
                : "",
             AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
          };
@@ -820,8 +820,10 @@ namespace CalradiaRemembers.Services
 
                break;
             case ServiceRole.Nsfw:
-               model = ModelModePolicy.ResolveModelId(ServiceRole.Nsfw, ResolveRoleplayModelForKind(kind),
-                  ModSettings.CncModel, ModSettings.ActionInterpreterModel);
+               model = ModelModePolicy.ResolveModelId(new ModelModePolicy.RoleSettings {
+                  Role = ServiceRole.Nsfw, Prose = ResolveRoleplayModelForKind(kind),
+                  Nsfw = ModSettings.CncModel, Interpret = ModSettings.ActionInterpreterModel
+               });
 
                break;
             default:

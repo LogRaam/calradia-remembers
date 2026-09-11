@@ -10312,8 +10312,8 @@ namespace CalradiaRemembers.Diagnostics
 
          // The pure rule the spike hangs on, asserted directly (it is also unit-tested in the Logic project): a war
          // with the retainer's faction MUST force a leave, and peace must not.
-         t.Expect("policyForcesLeaveOnWar", RetainerLeavePolicy.MustLeave(true, true, true), true);
-         t.Expect("policyKeepsThemAtPeace", RetainerLeavePolicy.MustLeave(false, true, true), false);
+         t.Expect("policyForcesLeaveOnWar", RetainerLeavePolicy.MustLeave(new RetainerLeavePolicy.RetainerStandingFacts {FactionAtWarWithPlayer = true, IsAlive = true, StillTracked = true}), true);
+         t.Expect("policyKeepsThemAtPeace", RetainerLeavePolicy.MustLeave(new RetainerLeavePolicy.RetainerStandingFacts {FactionAtWarWithPlayer = false, IsAlive = true, StillTracked = true}), false);
 
          // Borrow a real OTHER-CLAN, alive, non-prisoner, PARTYLESS lord (a clan member sitting without a party):
          // taking one of these never disbands a party, so the release fully restores the campaign.
@@ -10401,7 +10401,7 @@ namespace CalradiaRemembers.Diagnostics
 
          // (d) the pure rule the whole arrangement hangs on, asserted directly (also unit-tested in Logic): a war
          // with the retainer's faction MUST force a leave.
-         t.Expect("policyForcesLeaveOnWar", RetainerLeavePolicy.MustLeave(true, true, true), true);
+         t.Expect("policyForcesLeaveOnWar", RetainerLeavePolicy.MustLeave(new RetainerLeavePolicy.RetainerStandingFacts {FactionAtWarWithPlayer = true, IsAlive = true, StillTracked = true}), true);
 
          // Borrow an idle (partyless) other-clan lord AT PEACE with the player: taking one never disbands a party,
          // and peace means ride_with_me will actually be honoured rather than refused on the war guard.
@@ -10914,7 +10914,7 @@ namespace CalradiaRemembers.Diagnostics
             bool onErrand = CompanionMissionBehavior.Instance?.IsAway(governor.StringId) == true;
             bool leadsAParty = governor.PartyBelongedTo != null && governor.PartyBelongedTo.LeaderHero == governor;
             t.Note($"{governor.Name} governs {governor.GovernorOf.Name}");
-            t.Expect("aGovernorIsNotIdle", CompanionEngagementPolicy.IsIdle(onErrand, true, leadsAParty), false);
+            t.Expect("aGovernorIsNotIdle", CompanionEngagementPolicy.IsIdle(new CompanionEngagementPolicy.CompanionChargeFacts {OnErrand = onErrand, IsGovernor = true, LeadsAParty = leadsAParty}), false);
          }
          else t.Note("no companion governs a town right now, so the governor case is UNPROVEN here");
 

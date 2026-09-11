@@ -22,7 +22,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_name_alone_WHEN_describing_THEN_the_label_is_the_bare_name()
         {
-            HeroLabel.Describe("Luichan", null).Should().Be("Luichan");
+            HeroLabel.Describe(new HeroLabel.HeroNaming {Name = "Luichan", ClanName = null}).Should().Be("Luichan");
         }
 
         // The exact bug this increment fixes: a lord and a small child sharing "Luichan" must read
@@ -30,7 +30,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_name_and_clan_WHEN_describing_THEN_the_clan_is_appended()
         {
-            HeroLabel.Describe("Luichan", "Fen Company").Should().Be("Luichan of Fen Company");
+            HeroLabel.Describe(new HeroLabel.HeroNaming {Name = "Luichan", ClanName = "Fen Company"}).Should().Be("Luichan of Fen Company");
         }
 
         // The full disambiguator: clan first, then culture in parentheses, so two "Luichan"s in
@@ -38,7 +38,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_name_clan_and_culture_WHEN_describing_THEN_both_are_appended_in_order()
         {
-            HeroLabel.Describe("Luichan", "Fen Company", "Battanian").Should().Be("Luichan of Fen Company (Battanian)");
+            HeroLabel.Describe(new HeroLabel.HeroNaming {Name = "Luichan", ClanName = "Fen Company", CultureName = "Battanian"}).Should().Be("Luichan of Fen Company (Battanian)");
         }
 
         // Culture alone (no clan on record) still gives a sharper label than the bare name, so a
@@ -46,7 +46,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_name_and_culture_but_no_clan_WHEN_describing_THEN_only_the_culture_is_appended()
         {
-            HeroLabel.Describe("Luichan", null, "Battanian").Should().Be("Luichan (Battanian)");
+            HeroLabel.Describe(new HeroLabel.HeroNaming {Name = "Luichan", ClanName = null, CultureName = "Battanian"}).Should().Be("Luichan (Battanian)");
         }
 
         // Clanless heroes carry the engine's own placeholder clan names rather than a real one; printing
@@ -55,7 +55,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_no_clan_sentinel_WHEN_describing_THEN_it_is_omitted()
         {
-            HeroLabel.Describe("Luichan", "No clan").Should().Be("Luichan");
+            HeroLabel.Describe(new HeroLabel.HeroNaming {Name = "Luichan", ClanName = "No clan"}).Should().Be("Luichan");
         }
 
         // The engine's second clanless placeholder, seen on some wanderers and mercenaries: same
@@ -63,7 +63,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_unaligned_sentinel_WHEN_describing_THEN_it_is_omitted()
         {
-            HeroLabel.Describe("Luichan", "Unaligned").Should().Be("Luichan");
+            HeroLabel.Describe(new HeroLabel.HeroNaming {Name = "Luichan", ClanName = "Unaligned"}).Should().Be("Luichan");
         }
 
         // A null clan is the common case for callers that never resolved one; it must fall through to
@@ -71,7 +71,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_null_clan_WHEN_describing_THEN_it_is_omitted_without_throwing()
         {
-            HeroLabel.Describe("Luichan", null).Should().Be("Luichan");
+            HeroLabel.Describe(new HeroLabel.HeroNaming {Name = "Luichan", ClanName = null}).Should().Be("Luichan");
         }
 
         // A blank (whitespace-only) clan string must be treated the same as null or the sentinels
@@ -79,7 +79,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_blank_clan_WHEN_describing_THEN_it_is_omitted()
         {
-            HeroLabel.Describe("Luichan", "   ").Should().Be("Luichan");
+            HeroLabel.Describe(new HeroLabel.HeroNaming {Name = "Luichan", ClanName = "   "}).Should().Be("Luichan");
         }
 
         // Anti-fabrication floor for the name itself: a null name must never throw at a call site that
@@ -87,7 +87,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_null_name_WHEN_describing_THEN_an_empty_string_is_returned_without_throwing()
         {
-            HeroLabel.Describe(null, "Fen Company").Should().BeEmpty();
+            HeroLabel.Describe(new HeroLabel.HeroNaming {Name = null, ClanName = "Fen Company"}).Should().BeEmpty();
         }
 
         // A blank name is the same anti-fabrication case as null, just spelled differently by whatever
@@ -95,7 +95,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_blank_name_WHEN_describing_THEN_it_is_returned_unchanged()
         {
-            HeroLabel.Describe("   ", "Fen Company").Should().Be("   ");
+            HeroLabel.Describe(new HeroLabel.HeroNaming {Name = "   ", ClanName = "Fen Company"}).Should().Be("   ");
         }
     }
 }

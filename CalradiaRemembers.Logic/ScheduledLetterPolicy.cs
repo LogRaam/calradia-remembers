@@ -41,13 +41,50 @@ namespace CalradiaRemembers.Logic
         public const int MaxAttempts = 5;
 
         /// <summary>
-        ///   Decides the action for one scheduled letter. <paramref name="fulfilled" /> is true when a real letter
+        ///   Where one scheduled letter stands. THREE INTS in a row, two of them DAYS whose comparison is the
+        ///   due gate and one a COUNT of attempts: swap the days and a letter due tomorrow is generated today,
+        ///   swap either with the attempts and it gives up before it has tried.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class ScheduledLetterFacts
+        {
+           /// <summary>The day it is due to go.</summary>
+           public int SendDay { get; set; }
+
+           /// <summary>The current campaign day.</summary>
+           public int Today { get; set; }
+
+           /// <summary>How many times generation has already been tried. At the bound it gives up.</summary>
+           public int Attempts { get; set; }
+
+           /// <summary>
+           ///   A real letter of this reason already exists with content: generation succeeded on an earlier
+           ///   tick. Wins outright.
+           /// </summary>
+           public bool Fulfilled { get; set; }
+
+           /// <summary>A blank placeholder of that reason is mid-generation right now, so this tick waits.</summary>
+           public bool GenerationInFlight { get; set; }
+        }
+
+        /// <summary>
+        ///   Decides the action for one scheduled letter. <c>Fulfilled</c> is true when a real letter
         ///   of the same reason already exists with content (generation succeeded on an earlier tick);
-        ///   <paramref name="generationInFlight" /> is true when a blank placeholder of that reason is mid-generation
+        ///   <c>GenerationInFlight</c> is true when a blank placeholder of that reason is mid-generation
         ///   right now. Fulfilled wins outright; then the due-day gate; then in-flight; then the attempt bound.
         /// </summary>
-        public static ScheduledLetterAction Decide(int sendDay, int today, int attempts, bool fulfilled, bool generationInFlight)
+        public static ScheduledLetterAction Decide(ScheduledLetterFacts facts)
         {
+           if (facts == null) return ScheduledLetterAction.Wait;
+
+           int sendDay = facts.SendDay;
+           int today = facts.Today;
+           int attempts = facts.Attempts;
+           bool fulfilled = facts.Fulfilled;
+           bool generationInFlight = facts.GenerationInFlight;
+
             if (fulfilled) return ScheduledLetterAction.Fulfilled;
             if (today < sendDay) return ScheduledLetterAction.Wait;
             if (generationInFlight) return ScheduledLetterAction.Wait;

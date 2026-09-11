@@ -104,7 +104,7 @@ namespace CalradiaRemembers.Violence
       }
 
       private static string Named(Hero hero)
-         => Logic.HeroLabel.Describe(hero?.Name?.ToString(), hero?.Clan?.Name?.ToString(), hero?.Culture?.Name?.ToString());
+         => Logic.HeroLabel.Describe(new Logic.HeroLabel.HeroNaming {Name = hero?.Name?.ToString(), ClanName = hero?.Clan?.Name?.ToString(), CultureName = hero?.Culture?.Name?.ToString()});
 
       // The engine's own crime rating against the victim's realm: this is what actually turns guards hostile.
       private static void ChargeCrime(Hero victim, int crime)

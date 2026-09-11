@@ -37,7 +37,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_clock_has_not_started_WHEN_checking_refusal_due_THEN_it_is_never_due_even_far_in_the_future()
         {
-            DivorceDemandTimeoutPolicy.IsRefusalDue(DivorceDemandTimeoutPolicy.ClockNotStarted, 999999, 12).Should().BeFalse();
+            DivorceDemandTimeoutPolicy.IsRefusalDue(new DivorceDemandTimeoutPolicy.DemandClockFacts {DemandClockStartDay = DivorceDemandTimeoutPolicy.ClockNotStarted, Today = 999999, GracePeriodDays = 12}).Should().BeFalse();
         }
 
         // Pins the moment right after delivery: the player must get the full grace window, not zero days,
@@ -45,7 +45,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_clock_started_today_WHEN_the_grace_period_is_twelve_days_THEN_it_is_not_yet_due()
         {
-            DivorceDemandTimeoutPolicy.IsRefusalDue(100, 100, 12).Should().BeFalse();
+            DivorceDemandTimeoutPolicy.IsRefusalDue(new DivorceDemandTimeoutPolicy.DemandClockFacts {DemandClockStartDay = 100, Today = 100, GracePeriodDays = 12}).Should().BeFalse();
         }
 
         // One day short of the boundary: confirms the comparison is not off-by-one in the lenient
@@ -53,7 +53,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_clock_started_eleven_days_ago_WHEN_the_grace_period_is_twelve_days_THEN_it_is_not_yet_due()
         {
-            DivorceDemandTimeoutPolicy.IsRefusalDue(100, 111, 12).Should().BeFalse();
+            DivorceDemandTimeoutPolicy.IsRefusalDue(new DivorceDemandTimeoutPolicy.DemandClockFacts {DemandClockStartDay = 100, Today = 111, GracePeriodDays = 12}).Should().BeFalse();
         }
 
         // The boundary itself must be inclusive: this is the exact day the weekly SweepTimeouts is allowed
@@ -61,7 +61,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_clock_started_exactly_twelve_days_ago_WHEN_the_grace_period_is_twelve_days_THEN_it_is_due()
         {
-            DivorceDemandTimeoutPolicy.IsRefusalDue(100, 112, 12).Should().BeTrue();
+            DivorceDemandTimeoutPolicy.IsRefusalDue(new DivorceDemandTimeoutPolicy.DemandClockFacts {DemandClockStartDay = 100, Today = 112, GracePeriodDays = 12}).Should().BeTrue();
         }
 
         // Well past the boundary, not merely sitting on it: guards against a comparison that only matched
@@ -69,7 +69,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_clock_started_twenty_days_ago_WHEN_the_grace_period_is_twelve_days_THEN_it_is_due()
         {
-            DivorceDemandTimeoutPolicy.IsRefusalDue(100, 120, 12).Should().BeTrue();
+            DivorceDemandTimeoutPolicy.IsRefusalDue(new DivorceDemandTimeoutPolicy.DemandClockFacts {DemandClockStartDay = 100, Today = 120, GracePeriodDays = 12}).Should().BeTrue();
         }
     }
 }

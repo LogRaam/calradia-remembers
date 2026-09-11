@@ -11,9 +11,39 @@ namespace CalradiaRemembers.Logic.Assemblies
     /// <summary>Renders a standing council accord as a first-person (NPC POV) clause for the 1:1 prompt.</summary>
     public static class CouncilAccordClause
     {
-        /// <summary>A tribute THIS NPC pays the player daily (CouncilTribute). MissedDays &gt; 0 notes they have fallen behind.</summary>
-        public static string TributeOwedToPlayer(string playerName, int amountPerDay, int daysRemaining, int missedDays)
+        /// <summary>
+        ///   A daily tribute this NPC owes the player. THREE INTS in a row, all day- or coin-counts, and the
+        ///   sentence prints them straight to the player: swap the rate with the days and the prompt tells a
+        ///   lord he owes thirty denars for twelve days when he owes twelve for thirty.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class TributeToPlayer
         {
+           /// <summary>How the player is named in the clause.</summary>
+           public string PlayerName { get; set; }
+
+           /// <summary>Denars owed each day.</summary>
+           public int AmountPerDay { get; set; }
+
+           /// <summary>Days the tribute still has to run.</summary>
+           public int DaysRemaining { get; set; }
+
+           /// <summary>Days already fallen behind. Above zero adds the note that they have.</summary>
+           public int MissedDays { get; set; }
+        }
+
+        /// <summary>A tribute THIS NPC pays the player daily (CouncilTribute). MissedDays &gt; 0 notes they have fallen behind.</summary>
+        public static string TributeOwedToPlayer(TributeToPlayer facts)
+        {
+           if (facts == null) return "";
+
+           string playerName = facts.PlayerName;
+           int amountPerDay = facts.AmountPerDay;
+           int daysRemaining = facts.DaysRemaining;
+           int missedDays = facts.MissedDays;
+
             string behind = missedDays > 0 ? " You have lately fallen behind on it." : "";
 
             return $"You owe {Player(playerName)} a tribute of {amountPerDay} denars a day, sworn at a parley{DaysSuffix(daysRemaining)}.{behind}";

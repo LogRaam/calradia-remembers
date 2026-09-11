@@ -19,7 +19,7 @@ namespace CalradiaRemembers.Tests
       private static bool Eligible(
          bool playerIsFemale = true, bool npcIsMale = true, bool kin = false,
          int honor = -1, int calculating = 1, int mercy = -1, bool adult = true)
-         => IntimacyCurrencyPolicy.IsEligible(playerIsFemale, npcIsMale, kin, honor, calculating, mercy, adult);
+         => IntimacyCurrencyPolicy.IsEligible(new IntimacyCurrencyPolicy.LeverageArchetype {PlayerIsFemale = playerIsFemale, NpcIsMale = npcIsMale, NpcIsPlayerKin = kin, NpcHonor = honor, NpcCalculating = calculating, NpcMercy = mercy, AdultExplicitOrHigher = adult});
 
       // The sole positive case in the whole gate: if this ever reads false, the feature has no eligible
       // path left and can never engage even the one archetype it was built for.

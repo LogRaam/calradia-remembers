@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Tests
             int baseline = CompanionBaseline.From(3);
             int score = CompanionHappiness.ApplyDriver(baseline, HappinessDriver.SharedDefeat);
 
-            CompanionHappiness.DriftToBaseline(score, CompanionHappiness.WeeklyDriftStep, baseline)
+            CompanionHappiness.DriftToBaseline(new CompanionHappiness.HappinessDrift {Score = score, Step = CompanionHappiness.WeeklyDriftStep, Baseline = baseline})
                 .Should().Be(baseline);
         }
 
@@ -62,7 +62,7 @@ namespace CalradiaRemembers.Tests
                 score = CompanionHappiness.ApplyDriver(score, HappinessDriver.SharedVictory);
                 score = CompanionHappiness.ApplyDriver(score, HappinessDriver.HighMorale);
                 score = CompanionHappiness.ApplyDriver(score, HappinessDriver.Idle);
-                score = CompanionHappiness.DriftToBaseline(score, CompanionHappiness.WeeklyDriftStep, baseline);
+                score = CompanionHappiness.DriftToBaseline(new CompanionHappiness.HappinessDrift {Score = score, Step = CompanionHappiness.WeeklyDriftStep, Baseline = baseline});
             }
 
             score.Should().BeGreaterThan(baseline);

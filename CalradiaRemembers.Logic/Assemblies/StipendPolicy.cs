@@ -44,6 +44,30 @@ namespace CalradiaRemembers.Logic.Assemblies
         public static bool CanAfford(int playerGold, int amountPerDay) => playerGold >= TotalCost(amountPerDay);
 
         /// <summary>
+        ///   The teaching gate for grant_stipend. The bridge re-checks the companion status, the already-active
+        ///   guard AND the full proposed amount against the player's gold at commit, so a true answer here
+        ///   never funds anything.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class StipendOfferFacts
+        {
+           /// <summary>The NPC is one of the player's own clan companions. A stipend is a clan-internal keep.</summary>
+           public bool NpcIsPlayerCompanion { get; set; }
+
+           /// <summary>
+           ///   A stipend is already running for them. Never double-escrow a second tranche on top of one funded.
+           /// </summary>
+           public bool NpcHasActiveStipend { get; set; }
+
+           /// <summary>
+           ///   The purse covers at least <see cref="MinTrancheCost" />, the floor, before any real amount is proposed.
+           /// </summary>
+           public bool PlayerCanAffordMinTranche { get; set; }
+        }
+
+        /// <summary>
         ///   Whether the 1:1 conversation path should TEACH this NPC the grant_stipend action this turn (2026-08-05,
         ///   grant_stipend brought to BOTH the council and 1:1 pipelines). It reduces the SAME eligibility the
         ///   council's own offering proves (ResolutionOfferingResolver / ChatViewModel.PlayerCanAffordStipend: a
@@ -57,7 +81,15 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   time (CourtActionResolver.TryGrantStipend -> CouncilStipendBehavior.TryStart), so a true answer here
         ///   only ever OFFERS a teaching, it never funds a stipend.
         /// </summary>
-        public static bool CanOfferStipend(bool npcIsPlayerCompanion, bool npcHasActiveStipend, bool playerCanAffordMinTranche)
-            => npcIsPlayerCompanion && !npcHasActiveStipend && playerCanAffordMinTranche;
+        public static bool CanOfferStipend(StipendOfferFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool npcIsPlayerCompanion = facts.NpcIsPlayerCompanion;
+           bool npcHasActiveStipend = facts.NpcHasActiveStipend;
+           bool playerCanAffordMinTranche = facts.PlayerCanAffordMinTranche;
+
+           return npcIsPlayerCompanion && !npcHasActiveStipend && playerCanAffordMinTranche;
+        }
     }
 }

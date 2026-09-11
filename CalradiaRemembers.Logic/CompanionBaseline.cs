@@ -9,7 +9,7 @@ namespace CalradiaRemembers.Logic
 {
     /// <summary>
     ///   The happiness a companion drifts toward, set by the prestige of the clan they serve. It is the
-    ///   equilibrium of <see cref="CompanionHappiness.DriftToBaseline(int,int,int)" />: with nothing else acting
+    ///   equilibrium of <see cref="CompanionHappiness.DriftToBaseline(CompanionHappiness.HappinessDrift)" />: with nothing else acting
     ///   on them, this is where a companion comes to rest.
     /// </summary>
     public static class CompanionBaseline

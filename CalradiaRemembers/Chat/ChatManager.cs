@@ -443,14 +443,14 @@ namespace CalradiaRemembers.Chat
          // since gone is a ghost, and refusing on its account cost a player every conversation for the rest of
          // his session (Nexus report 2026-09-08: a companion approached in a village, no window came, and from
          // then on "no CR chat windows with anyone work unless I fully quit and restart the game").
-         if (ChatWindowLivenessPolicy.ShouldRefuseOpen(IsOpen, LayerIsOnHostScreen, HostScreenIsAlive))
+         if (ChatWindowLivenessPolicy.ShouldRefuseOpen(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = IsOpen, LayerStillOnHostScreen = LayerIsOnHostScreen, HostScreenAlive = HostScreenIsAlive}))
          {
             ModLog.Info("ChatManager.Open called but chat is already open.");
 
             return;
          }
 
-         if (ChatWindowLivenessPolicy.IsGhost(IsOpen, LayerIsOnHostScreen, HostScreenIsAlive))
+         if (ChatWindowLivenessPolicy.IsGhost(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = IsOpen, LayerStillOnHostScreen = LayerIsOnHostScreen, HostScreenAlive = HostScreenIsAlive}))
          {
             // Always recorded, even with logging off: this is the fingerprint of the bug above, and the next
             // report of it should arrive with the evidence already in hand.
@@ -852,7 +852,7 @@ namespace CalradiaRemembers.Chat
       {
          bool inScene = !allowInScene && Mission.Current != null;
 
-         switch (CouncilAccessPolicy.Evaluate(IsOpen, Hero.MainHero?.IsPrisoner == true, inScene))
+         switch (CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = IsOpen, PlayerIsPrisoner = Hero.MainHero?.IsPrisoner == true, InMissionScene = inScene}))
          {
             case CouncilAccessBlock.ChatAlreadyOpen: return "A conversation is already open. Close it before convening.";
             case CouncilAccessBlock.PlayerCaptive:   return "You cannot convene while you are held captive.";
@@ -869,7 +869,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public static string PreCouncilBlockReason()
       {
-         switch (CouncilAccessPolicy.Evaluate(IsOpen, Hero.MainHero?.IsPrisoner == true, false))
+         switch (CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = IsOpen, PlayerIsPrisoner = Hero.MainHero?.IsPrisoner == true, InMissionScene = false}))
          {
             case CouncilAccessBlock.ChatAlreadyOpen: return "A conversation is already open. Close it before convening.";
             case CouncilAccessBlock.PlayerCaptive:   return "You cannot convene while you are held captive.";

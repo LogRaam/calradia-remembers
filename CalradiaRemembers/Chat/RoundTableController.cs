@@ -103,8 +103,7 @@ namespace CalradiaRemembers.Chat
             };
 
             int effectiveCap = cap ?? RoundTablePolicy.DefaultCap;
-            IReadOnlyList<int> order = RoundTablePolicy.SpeakerOrder(
-               participants.Count, _gate.Start, effectiveCap);
+            IReadOnlyList<int> order = RoundTablePolicy.SpeakerOrder(new RoundTablePolicy.RoundTableFacts {ParticipantCount = participants.Count, StartIndex = _gate.Start, Cap = effectiveCap});
 
             foreach (int idx in order)
             {
@@ -219,7 +218,7 @@ namespace CalradiaRemembers.Chat
             }
 
             host.ClearActiveCouncilSpeaker();
-            _gate.Start = RoundTablePolicy.NextStartIndex(participants.Count, _gate.Start, order.Count);
+            _gate.Start = RoundTablePolicy.NextStartIndex(new RoundTablePolicy.RoundTableFacts {ParticipantCount = participants.Count, StartIndex = _gate.Start, Cap = order.Count});
          }
          catch (Exception ex)
          {

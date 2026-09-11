@@ -411,13 +411,13 @@ namespace CalradiaRemembers.Chat
                : new List<string>();
             List<string> appointableFiefs = VacantCrownFiefsOf(Clan.PlayerClan);
 
-            bool npcCanBeGrantedFief = FiefTransferPolicy.CanOfferGrant(playerIsKingdomLeader, npcIsVassalInPlayerKingdom, grantableFiefs.Count > 0);
-            bool npcCanHaveFiefRevoked = FiefTransferPolicy.CanOfferRevoke(playerIsKingdomLeader, npcIsVassalInPlayerKingdom, revocableFiefs.Count > 0);
+            bool npcCanBeGrantedFief = FiefTransferPolicy.CanOfferGrant(new FiefTransferPolicy.GrantOfferFacts {PlayerIsKingdomLeader = playerIsKingdomLeader, NpcIsVassalInPlayerKingdom = npcIsVassalInPlayerKingdom, HasGrantableFief = grantableFiefs.Count > 0});
+            bool npcCanHaveFiefRevoked = FiefTransferPolicy.CanOfferRevoke(new FiefTransferPolicy.RevokeOfferFacts {PlayerIsKingdomLeader = playerIsKingdomLeader, NpcIsVassalInPlayerKingdom = npcIsVassalInPlayerKingdom, NpcHoldsRevocableFief = revocableFiefs.Count > 0});
             bool npcCanBeAppointedGovernor = GovernorAppointmentPolicy.CanOfferAppointment(new GovernorAppointmentPolicy.AppointmentOfferFacts {PlayerLeadsClan = Clan.PlayerClan?.Leader == Hero.MainHero, AppointeeInPlayerClan = npc.Clan != null && npc.Clan == Clan.PlayerClan, AppointeeAvailable = npc.IsAlive && !npc.IsPrisoner && npc != Hero.MainHero, HasVacantGovernableFief = appointableFiefs.Count > 0, AppointeeNotGoverningElsewhere = npc.GovernorOf == null, AppointeeNotAway = npcAvailableForErrand});
 
             bool npcHasActiveStipend = CouncilStipendBehavior.Instance?.HasActive(npc.StringId) == true;
             bool playerCanAffordMinTranche = Hero.MainHero != null && Hero.MainHero.Gold >= StipendPolicy.MinTrancheCost;
-            bool npcCanBeGrantedStipend = StipendPolicy.CanOfferStipend(npcIsPlayerCompanion, npcHasActiveStipend, playerCanAffordMinTranche);
+            bool npcCanBeGrantedStipend = StipendPolicy.CanOfferStipend(new StipendPolicy.StipendOfferFacts {NpcIsPlayerCompanion = npcIsPlayerCompanion, NpcHasActiveStipend = npcHasActiveStipend, PlayerCanAffordMinTranche = playerCanAffordMinTranche});
 
             var verbCtx = new VerbContext(npc, profile, bridge, null, null);
             bool canGiveTroops = new GiveTroopsVerb().IsEligible(verbCtx);

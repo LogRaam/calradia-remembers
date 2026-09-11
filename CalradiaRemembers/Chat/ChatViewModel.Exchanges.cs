@@ -63,8 +63,7 @@ namespace CalradiaRemembers.Chat
          try
          {
             string header = $"=== {DateTime.Now:yyyy-MM-dd HH:mm:ss} ==={Environment.NewLine}";
-            string body = UnknownActionNotice.FormatLogEntry(
-               action?.Type, action?.Parameters, npcLabel, npcLine, playerLine);
+            string body = UnknownActionNotice.FormatLogEntry(new UnknownActionNotice.UnknownActionFacts {ActionType = action?.Type, Parameters = action?.Parameters, NpcLabel = npcLabel, NpcLine = npcLine, PlayerLine = playerLine});
 
             string dir = Path.GetDirectoryName(UnknownActionLogPath);
             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
@@ -1159,8 +1158,7 @@ namespace CalradiaRemembers.Chat
             ParsedEventData withheldMarriageClaim = null;
             ParsedResponse responseForMutator = response;
             if (response.NewEventData != null &&
-                MarriageClaimPolicy.ClaimsMarriageWithPlayer(
-                   response.NewEventData.Summary, profile.Name, Hero.MainHero?.Name?.ToString()))
+                MarriageClaimPolicy.ClaimsMarriageWithPlayer(new MarriageClaimPolicy.MarriageClaimFacts {Summary = response.NewEventData.Summary, NpcName = profile.Name, PlayerName = Hero.MainHero?.Name?.ToString()}))
             {
                withheldMarriageClaim = response.NewEventData;
                responseForMutator = WithoutEventData(response);

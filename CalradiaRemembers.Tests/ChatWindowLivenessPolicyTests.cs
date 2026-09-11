@@ -41,9 +41,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_window_that_is_genuinely_open_WHEN_opening_again_THEN_the_request_is_refused()
         {
-            ChatWindowLivenessPolicy.ShouldRefuseOpen(hasRecordedLayer: true, layerStillOnHostScreen: true, hostScreenAlive: true)
+            ChatWindowLivenessPolicy.ShouldRefuseOpen(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = true, LayerStillOnHostScreen = true, HostScreenAlive = true})
                 .Should().BeTrue();
-            ChatWindowLivenessPolicy.IsGhost(hasRecordedLayer: true, layerStillOnHostScreen: true, hostScreenAlive: true)
+            ChatWindowLivenessPolicy.IsGhost(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = true, LayerStillOnHostScreen = true, HostScreenAlive = true})
                 .Should().BeFalse();
         }
 
@@ -52,9 +52,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_layer_left_on_a_screen_that_is_gone_WHEN_opening_THEN_it_is_a_ghost_and_never_refuses()
         {
-            ChatWindowLivenessPolicy.IsGhost(hasRecordedLayer: true, layerStillOnHostScreen: false, hostScreenAlive: true)
+            ChatWindowLivenessPolicy.IsGhost(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = true, LayerStillOnHostScreen = false, HostScreenAlive = true})
                 .Should().BeTrue();
-            ChatWindowLivenessPolicy.ShouldRefuseOpen(hasRecordedLayer: true, layerStillOnHostScreen: false, hostScreenAlive: true)
+            ChatWindowLivenessPolicy.ShouldRefuseOpen(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = true, LayerStillOnHostScreen = false, HostScreenAlive = true})
                 .Should().BeFalse();
         }
 
@@ -64,9 +64,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_layer_still_listed_on_a_screen_that_has_died_WHEN_opening_THEN_it_is_a_ghost_not_a_window()
         {
-            ChatWindowLivenessPolicy.IsGhost(hasRecordedLayer: true, layerStillOnHostScreen: true, hostScreenAlive: false)
+            ChatWindowLivenessPolicy.IsGhost(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = true, LayerStillOnHostScreen = true, HostScreenAlive = false})
                 .Should().BeTrue();
-            ChatWindowLivenessPolicy.ShouldRefuseOpen(hasRecordedLayer: true, layerStillOnHostScreen: true, hostScreenAlive: false)
+            ChatWindowLivenessPolicy.ShouldRefuseOpen(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = true, LayerStillOnHostScreen = true, HostScreenAlive = false})
                 .Should().BeFalse();
         }
 
@@ -77,8 +77,8 @@ namespace CalradiaRemembers.Tests
         [TestCase(true, false)]
         public void GIVEN_either_half_of_liveness_is_missing_WHEN_opening_THEN_nothing_is_refused(bool onScreen, bool hostAlive)
         {
-            ChatWindowLivenessPolicy.ShouldRefuseOpen(true, onScreen, hostAlive).Should().BeFalse();
-            ChatWindowLivenessPolicy.IsGhost(true, onScreen, hostAlive).Should().BeTrue();
+            ChatWindowLivenessPolicy.ShouldRefuseOpen(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = true, LayerStillOnHostScreen = onScreen, HostScreenAlive = hostAlive}).Should().BeFalse();
+            ChatWindowLivenessPolicy.IsGhost(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = true, LayerStillOnHostScreen = onScreen, HostScreenAlive = hostAlive}).Should().BeTrue();
         }
 
         // The ordinary path must stay ordinary: with nothing recorded there is nothing to refuse and nothing to
@@ -86,10 +86,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_no_window_recorded_WHEN_opening_THEN_it_neither_refuses_nor_cleans()
         {
-            ChatWindowLivenessPolicy.ShouldRefuseOpen(false, false, false).Should().BeFalse();
-            ChatWindowLivenessPolicy.IsGhost(false, false, false).Should().BeFalse();
-            ChatWindowLivenessPolicy.ShouldRefuseOpen(false, true, true).Should().BeFalse();
-            ChatWindowLivenessPolicy.IsGhost(false, true, true).Should().BeFalse();
+            ChatWindowLivenessPolicy.ShouldRefuseOpen(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = false, LayerStillOnHostScreen = false, HostScreenAlive = false}).Should().BeFalse();
+            ChatWindowLivenessPolicy.IsGhost(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = false, LayerStillOnHostScreen = false, HostScreenAlive = false}).Should().BeFalse();
+            ChatWindowLivenessPolicy.ShouldRefuseOpen(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = false, LayerStillOnHostScreen = true, HostScreenAlive = true}).Should().BeFalse();
+            ChatWindowLivenessPolicy.IsGhost(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = false, LayerStillOnHostScreen = true, HostScreenAlive = true}).Should().BeFalse();
         }
 
         // The two answers must never both be true: one says "leave it alone", the other says "tear it down", and
@@ -104,8 +104,8 @@ namespace CalradiaRemembers.Tests
         [TestCase(false, false, false)]
         public void GIVEN_any_state_WHEN_asked_THEN_refusing_and_ghosting_are_never_both_true(bool recorded, bool onScreen, bool hostAlive)
         {
-            (ChatWindowLivenessPolicy.ShouldRefuseOpen(recorded, onScreen, hostAlive)
-             && ChatWindowLivenessPolicy.IsGhost(recorded, onScreen, hostAlive)).Should().BeFalse();
+            (ChatWindowLivenessPolicy.ShouldRefuseOpen(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = recorded, LayerStillOnHostScreen = onScreen, HostScreenAlive = hostAlive})
+             && ChatWindowLivenessPolicy.IsGhost(new ChatWindowLivenessPolicy.WindowRecord {HasRecordedLayer = recorded, LayerStillOnHostScreen = onScreen, HostScreenAlive = hostAlive})).Should().BeFalse();
         }
     }
 }

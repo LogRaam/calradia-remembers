@@ -344,7 +344,7 @@ namespace CalradiaRemembers.Chat
          foreach (WitnessReaction wr in response.WitnessReactions)
          {
             WitnessReactionDecision decision =
-               WitnessReactionGate.Decide(wr.Name, wr.Text, _npcName, presentNames, _lastWitnessReaction);
+               WitnessReactionGate.Decide(new WitnessReactionGate.WitnessReactionFacts {EmittedName = wr.Name, Text = wr.Text, MainSpeakerName = _npcName, PresentNames = presentNames, LastLines = _lastWitnessReaction});
 
             if (!decision.IsKept)
             {

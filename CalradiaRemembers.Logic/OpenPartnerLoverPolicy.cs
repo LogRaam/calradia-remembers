@@ -50,24 +50,59 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
+        ///   What decides whether a committed partner may take a lover at all, before any neglect roll. Three
+        ///   booleans in a row on three different levels, the arrangement, the culture and the host's toggle,
+        ///   and only ONE of the two paths is gated by the toggle. A swap gates the wrong one, which either
+        ///   keeps a harem culture faithful or makes an egalitarian one stray without the player opting in.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class LoverEligibilityFacts
+        {
+           /// <summary>
+           ///   A reciprocal open arrangement is in place. Never gated by the toggle: the player opted into openness.
+           /// </summary>
+           public bool HasOpenArrangement { get; set; }
+
+           /// <summary>
+           ///   Hers is a harem, patriarchal, submissive-wife culture, which may stray when neglected whether or
+           ///   not an arrangement exists.
+           /// </summary>
+           public bool IsHaremCulture { get; set; }
+
+           /// <summary>
+           ///   The host's EnableJealousy toggle. Gates the no-arrangement path ONLY, so a drama-free household
+           ///   keeps wives faithful.
+           /// </summary>
+           public bool UnsolicitedInfidelityAllowed { get; set; }
+        }
+
+        /// <summary>
         ///   Whether a committed partner is ELIGIBLE at all to take a lover this week, before the neglect roll.
         ///   Her CULTURE decides: an egalitarian wife strays ONLY under a reciprocal open arrangement
-        ///   (<paramref name="hasOpenArrangement" />), never otherwise; a harem / patriarchal (submissive-wife)
-        ///   culture (<paramref name="isHaremCulture" />) may stray when neglected WHETHER OR NOT there is an
+        ///   (<c>HasOpenArrangement</c>), never otherwise; a harem / patriarchal (submissive-wife)
+        ///   culture (<c>IsHaremCulture</c>) may stray when neglected WHETHER OR NOT there is an
         ///   arrangement, but the unsolicited-infidelity path (no arrangement) is gated by
-        ///   <paramref name="unsolicitedInfidelityAllowed" /> (the host's EnableJealousy toggle, so a drama-free
+        ///   <c>UnsolicitedInfidelityAllowed</c> (the host's EnableJealousy toggle, so a drama-free
         ///   household keeps wives faithful). The open-arrangement paths are never gated: the player opted into
         ///   openness. The host still rolls <see cref="ShouldTakeLover" /> afterwards for the neglect chance.
         /// </summary>
-        public static bool CanTakeLover(bool hasOpenArrangement, bool isHaremCulture, bool unsolicitedInfidelityAllowed)
+        public static bool CanTakeLover(LoverEligibilityFacts facts)
         {
+           if (facts == null) return false;
+
+           bool hasOpenArrangement = facts.HasOpenArrangement;
+           bool isHaremCulture = facts.IsHaremCulture;
+           bool unsolicitedInfidelityAllowed = facts.UnsolicitedInfidelityAllowed;
+
             if (hasOpenArrangement) return true;
             return isHaremCulture && unsolicitedInfidelityAllowed;
         }
 
         /// <summary>
         ///   Whether the lover this partner takes is SECRET (hidden from the player) rather than an OPEN,
-        ///   acknowledged one. A harem / patriarchal-culture wife (<paramref name="isHaremCulture" />) always
+        ///   acknowledged one. A harem / patriarchal-culture wife (<c>IsHaremCulture</c>) always
         ///   hides her lover, even within an open arrangement (cultural submission); an egalitarian wife takes
         ///   an OPEN lover under her reciprocal open arrangement. Drives RomanticProfile.LoverIsSecret on the
         ///   mod side: a secret affair lays no public rumour and must be DISCOVERED later; an open lover keeps

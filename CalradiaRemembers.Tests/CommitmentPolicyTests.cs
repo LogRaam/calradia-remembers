@@ -205,7 +205,7 @@ namespace CalradiaRemembers.Tests
       [TestCase(CommitmentKind.Protect)]
       public void GIVEN_a_calm_world_WHEN_a_breach_bound_kind_lapses_THEN_it_still_breaches(CommitmentKind kind)
       {
-         CommitmentPolicy.OnOverdue(kind, promisorIsPrisoner: false, playerIsPrisoner: false, targetGone: false)
+         CommitmentPolicy.OnOverdue(new CommitmentPolicy.OverdueFacts {Kind = kind, PromisorIsPrisoner = false, PlayerIsPrisoner = false, TargetGone = false})
             .Should().Be(OverdueOutcome.Breach);
       }
 
@@ -217,7 +217,7 @@ namespace CalradiaRemembers.Tests
       [TestCase(CommitmentKind.Protect)]
       public void GIVEN_the_promisor_is_a_prisoner_WHEN_a_breach_bound_kind_lapses_THEN_it_suspends(CommitmentKind kind)
       {
-         CommitmentPolicy.OnOverdue(kind, promisorIsPrisoner: true, playerIsPrisoner: false, targetGone: false)
+         CommitmentPolicy.OnOverdue(new CommitmentPolicy.OverdueFacts {Kind = kind, PromisorIsPrisoner = true, PlayerIsPrisoner = false, TargetGone = false})
             .Should().Be(OverdueOutcome.Suspend);
       }
 
@@ -227,7 +227,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_player_is_a_prisoner_WHEN_a_protect_oath_lapses_THEN_it_suspends()
       {
-         CommitmentPolicy.OnOverdue(CommitmentKind.Protect, promisorIsPrisoner: false, playerIsPrisoner: true, targetGone: false)
+         CommitmentPolicy.OnOverdue(new CommitmentPolicy.OverdueFacts {Kind = CommitmentKind.Protect, PromisorIsPrisoner = false, PlayerIsPrisoner = true, TargetGone = false})
             .Should().Be(OverdueOutcome.Suspend);
       }
 
@@ -237,7 +237,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_only_the_player_is_a_prisoner_WHEN_a_pay_gold_oath_lapses_THEN_it_still_breaches()
       {
-         CommitmentPolicy.OnOverdue(CommitmentKind.PayGold, promisorIsPrisoner: false, playerIsPrisoner: true, targetGone: false)
+         CommitmentPolicy.OnOverdue(new CommitmentPolicy.OverdueFacts {Kind = CommitmentKind.PayGold, PromisorIsPrisoner = false, PlayerIsPrisoner = true, TargetGone = false})
             .Should().Be(OverdueOutcome.Breach);
       }
 
@@ -247,7 +247,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_move_against_rival_is_gone_WHEN_the_pledge_lapses_THEN_it_is_a_neutral_void()
       {
-         CommitmentPolicy.OnOverdue(CommitmentKind.MoveAgainst, promisorIsPrisoner: false, playerIsPrisoner: false, targetGone: true)
+         CommitmentPolicy.OnOverdue(new CommitmentPolicy.OverdueFacts {Kind = CommitmentKind.MoveAgainst, PromisorIsPrisoner = false, PlayerIsPrisoner = false, TargetGone = true})
             .Should().Be(OverdueOutcome.NeutralVoid);
       }
 
@@ -257,7 +257,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_rival_is_gone_AND_the_promisor_is_captive_WHEN_the_pledge_lapses_THEN_void_wins_over_suspend()
       {
-         CommitmentPolicy.OnOverdue(CommitmentKind.MoveAgainst, promisorIsPrisoner: true, playerIsPrisoner: false, targetGone: true)
+         CommitmentPolicy.OnOverdue(new CommitmentPolicy.OverdueFacts {Kind = CommitmentKind.MoveAgainst, PromisorIsPrisoner = true, PlayerIsPrisoner = false, TargetGone = true})
             .Should().Be(OverdueOutcome.NeutralVoid);
       }
 
@@ -267,7 +267,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_keep_peace_WHEN_the_deadline_lapses_even_with_a_captive_promisor_THEN_it_still_fulfills()
       {
-         CommitmentPolicy.OnOverdue(CommitmentKind.KeepPeace, promisorIsPrisoner: true, playerIsPrisoner: true, targetGone: true)
+         CommitmentPolicy.OnOverdue(new CommitmentPolicy.OverdueFacts {Kind = CommitmentKind.KeepPeace, PromisorIsPrisoner = true, PlayerIsPrisoner = true, TargetGone = true})
             .Should().Be(OverdueOutcome.Fulfill);
       }
 

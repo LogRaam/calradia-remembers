@@ -58,12 +58,38 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
+        ///   The three stance axes, as the encyclopedia prints them. THREE INTS in a row on three ledgers that
+        ///   share a scale, and the sentence goes straight onto a page: swap fear with trust and a terrified
+        ///   lord is described as a devoted one.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class BearingFacts
+        {
+           /// <summary>How far they trust the player.</summary>
+           public int Trust { get; set; }
+
+           /// <summary>How much political weight they grant the player.</summary>
+           public int Respect { get; set; }
+
+           /// <summary>How much they fear the player.</summary>
+           public int Fear { get; set; }
+        }
+
+        /// <summary>
         ///   The full "Bearing:" value: every non-neutral phrase joined by commas, in a stable order
         ///   (trust, respect, fear). Empty string (never null) when every axis is neutral — the caller's
         ///   AutoHideRichTextWidget collapses on an empty string, not on null.
         /// </summary>
-        public static string Compose(int trust, int respect, int fear)
+        public static string Compose(BearingFacts facts)
         {
+           if (facts == null) return "";
+
+           int trust = facts.Trust;
+           int respect = facts.Respect;
+           int fear = facts.Fear;
+
             var parts = new List<string>();
             Add(parts, TrustPhrase(trust));
             Add(parts, RespectPhrase(respect));

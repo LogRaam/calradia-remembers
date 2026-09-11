@@ -186,8 +186,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_player_freed_themself_first_WHEN_the_rescue_is_under_way_THEN_it_is_called_off()
       {
-         LordRescuePolicy.ShouldAbandonRescue(playerStillCaptive: false, captorPartyStillExists: true,
-                            lordStillFreeToRide: true)
+         LordRescuePolicy.ShouldAbandonRescue(new LordRescuePolicy.RescueStandingFacts {PlayerStillCaptive = false, CaptorPartyStillExists = true, LordStillFreeToRide = true})
                          .Should().BeTrue();
       }
 
@@ -196,7 +195,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_captors_are_already_gone_WHEN_the_rescue_is_under_way_THEN_it_is_called_off()
       {
-         LordRescuePolicy.ShouldAbandonRescue(true, captorPartyStillExists: false, lordStillFreeToRide: true)
+         LordRescuePolicy.ShouldAbandonRescue(new LordRescuePolicy.RescueStandingFacts {PlayerStillCaptive = true, CaptorPartyStillExists = false, LordStillFreeToRide = true})
                          .Should().BeTrue();
       }
 
@@ -205,7 +204,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_rescuer_can_no_longer_ride_WHEN_the_rescue_is_under_way_THEN_it_is_called_off()
       {
-         LordRescuePolicy.ShouldAbandonRescue(true, true, lordStillFreeToRide: false).Should().BeTrue();
+         LordRescuePolicy.ShouldAbandonRescue(new LordRescuePolicy.RescueStandingFacts {PlayerStillCaptive = true, CaptorPartyStillExists = true, LordStillFreeToRide = false}).Should().BeTrue();
       }
 
       // The ordinary case, so the three guards above cannot be satisfied by abandoning everything: the
@@ -213,7 +212,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_nothing_has_changed_WHEN_the_rescue_is_under_way_THEN_he_keeps_coming()
       {
-         LordRescuePolicy.ShouldAbandonRescue(true, true, true).Should().BeFalse();
+         LordRescuePolicy.ShouldAbandonRescue(new LordRescuePolicy.RescueStandingFacts {PlayerStillCaptive = true, CaptorPartyStillExists = true, LordStillFreeToRide = true}).Should().BeFalse();
       }
 
       // Fail safe: the host has nothing to offer (no player, no captor resolved). Silence, not a rescue.

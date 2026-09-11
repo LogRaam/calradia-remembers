@@ -126,7 +126,7 @@ namespace CalradiaRemembers
 
          // Guard 4: MarriageGuardPolicy.MarriageAllowed (M-B5): neither party a prisoner, no active war.
          bool atWar = IsAtWarWithPlayerForCheck(npc);
-         bool guardAllowed = MarriageGuardPolicy.MarriageAllowed(npc.IsPrisoner, player.IsPrisoner, atWar);
+         bool guardAllowed = MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = npc.IsPrisoner, PlayerPrisoner = player.IsPrisoner, AtWarWithCandidate = atWar});
          sb.AppendLine(guardAllowed
             ? "  [PASS] not a prisoner (either side), and not at war."
             : "  [FAIL] blocked: " + (npc.IsPrisoner

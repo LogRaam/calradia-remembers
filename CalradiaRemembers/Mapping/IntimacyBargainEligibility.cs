@@ -22,14 +22,7 @@ namespace CalradiaRemembers.Mapping
         {
             if (npc == null || Hero.MainHero == null) return false;
 
-            return IntimacyCurrencyPolicy.IsEligible(
-                playerIsFemale:        Hero.MainHero.IsFemale,
-                npcIsMale:             !npc.IsFemale,
-                npcIsPlayerKin:        npc.Clan != null && npc.Clan == Hero.MainHero.Clan,
-                npcHonor:              npc.GetTraitLevel(DefaultTraits.Honor),
-                npcCalculating:        npc.GetTraitLevel(DefaultTraits.Calculating),
-                npcMercy:              npc.GetTraitLevel(DefaultTraits.Mercy),
-                adultExplicitOrHigher: ModSettings.AdultContentLevel >= AdultContentLevel.Explicit);
+            return IntimacyCurrencyPolicy.IsEligible(new IntimacyCurrencyPolicy.LeverageArchetype {PlayerIsFemale = Hero.MainHero.IsFemale, NpcIsMale = !npc.IsFemale, NpcIsPlayerKin = npc.Clan != null && npc.Clan == Hero.MainHero.Clan, NpcHonor = npc.GetTraitLevel(DefaultTraits.Honor), NpcCalculating = npc.GetTraitLevel(DefaultTraits.Calculating), NpcMercy = npc.GetTraitLevel(DefaultTraits.Mercy), AdultExplicitOrHigher = ModSettings.AdultContentLevel >= AdultContentLevel.Explicit});
         }
     }
 }

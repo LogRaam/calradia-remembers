@@ -29,8 +29,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_chase_past_the_timeout_WHEN_judging_THEN_it_is_abandoned()
       {
-         InterceptionPolicy.ShouldAbandonChase(5f, 1f, 10f,
-            InterceptionPolicy.MaxPursuitDays).Should().BeTrue();
+         InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {PursuerSpeed = 5f, PlayerSpeed = 1f, Distance = 10f, DaysPursuing = InterceptionPolicy.MaxPursuitDays}).Should().BeTrue();
       }
 
       // ── CanMeetOnLand ──────────────────────────────────────────────────────
@@ -117,8 +116,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_almost_caught_even_past_the_timeout_WHEN_judging_THEN_the_pursuer_still_presses_on()
       {
          //Arrange — being right on top of the player overrides the timeout: do not give up on the cusp.
-         InterceptionPolicy.ShouldAbandonChase(4f, 8f, 3f,
-            InterceptionPolicy.MaxPursuitDays + 3).Should().BeFalse();
+         InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {PursuerSpeed = 4f, PlayerSpeed = 8f, Distance = 3f, DaysPursuing = InterceptionPolicy.MaxPursuitDays + 3}).Should().BeFalse();
       }
 
       // "One interception at a time" per the class doc: without this guard several lords could converge
@@ -173,7 +171,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_player_clearly_faster_and_well_clear_WHEN_judging_THEN_the_hopeless_chase_is_given_up()
       {
          //Arrange — player 25% faster, well beyond the encounter range.
-         InterceptionPolicy.ShouldAbandonChase(4f, 5f, 20f, 1)
+         InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {PursuerSpeed = 4f, PlayerSpeed = 5f, Distance = 20f, DaysPursuing = 1})
                            .Should().BeTrue();
       }
 
@@ -183,7 +181,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_player_faster_but_almost_caught_WHEN_judging_THEN_the_pursuer_keeps_pressing()
       {
          //Arrange — within AbandonMinDistance, the encounter is imminent whatever the speed.
-         InterceptionPolicy.ShouldAbandonChase(4f, 8f, 3f, 1)
+         InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {PursuerSpeed = 4f, PlayerSpeed = 8f, Distance = 3f, DaysPursuing = 1})
                            .Should().BeFalse();
       }
 
@@ -193,7 +191,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_player_only_marginally_faster_WHEN_judging_THEN_the_chase_continues()
       {
          //Arrange — 4.5/4 = 1.125, below the 1.15 outrun ratio.
-         InterceptionPolicy.ShouldAbandonChase(4f, 4.5f, 20f, 1)
+         InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {PursuerSpeed = 4f, PlayerSpeed = 4.5f, Distance = 20f, DaysPursuing = 1})
                            .Should().BeFalse();
       }
 
@@ -202,7 +200,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_pursuer_at_least_as_fast_as_the_player_WHEN_judging_THEN_they_press_on()
       {
-         InterceptionPolicy.ShouldAbandonChase(5f, 4f, 30f, 2)
+         InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {PursuerSpeed = 5f, PlayerSpeed = 4f, Distance = 30f, DaysPursuing = 2})
                            .Should().BeFalse();
       }
 
@@ -215,7 +213,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_gap_is_closing_even_past_the_outrun_ratio_WHEN_judging_THEN_the_chase_is_not_abandoned()
       {
          //Arrange: player nominally 25% faster (would read as outrun on its own), but the distance is closing.
-         InterceptionPolicy.ShouldAbandonChase(4f, 5f, 20f, 1, isClosing: true)
+         InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {PursuerSpeed = 4f, PlayerSpeed = 5f, Distance = 20f, DaysPursuing = 1, IsClosing = true})
                            .Should().BeFalse();
       }
 
@@ -225,7 +223,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_gap_is_closing_even_past_the_timeout_WHEN_judging_THEN_the_chase_is_not_abandoned()
       {
-         InterceptionPolicy.ShouldAbandonChase(5f, 1f, 10f, InterceptionPolicy.MaxPursuitDays, isClosing: true)
+         InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {PursuerSpeed = 5f, PlayerSpeed = 1f, Distance = 10f, DaysPursuing = InterceptionPolicy.MaxPursuitDays, IsClosing = true})
                            .Should().BeFalse();
       }
 
@@ -235,7 +233,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_isClosing_is_not_specified_WHEN_judging_a_stale_chase_THEN_the_default_still_abandons()
       {
-         InterceptionPolicy.ShouldAbandonChase(5f, 1f, 10f, InterceptionPolicy.MaxPursuitDays)
+         InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {PursuerSpeed = 5f, PlayerSpeed = 1f, Distance = 10f, DaysPursuing = InterceptionPolicy.MaxPursuitDays})
                            .Should().BeTrue();
       }
 

@@ -169,7 +169,7 @@ namespace CalradiaRemembers.Quests
                string key = giverAliveAndResolved ? CalradiaRemembersQuest.BuildQuestId(giver, quest) : null;
                bool questIsLive = quest.IsOutstanding || quest.IsAwaitingReward;
 
-               if (!QuestReconcilePolicy.ShouldRestoreMirror(questIsLive, giverAliveAndResolved, key != null && openKeys.Contains(key)))
+               if (!QuestReconcilePolicy.ShouldRestoreMirror(new QuestReconcilePolicy.MirrorRestoreFacts {QuestIsLive = questIsLive, GiverAliveAndResolved = giverAliveAndResolved, OpenMirrorExists = key != null && openKeys.Contains(key)}))
                   continue;
 
                try
@@ -240,7 +240,7 @@ namespace CalradiaRemembers.Quests
                else hasTerminalMatch = true;
             }
 
-         MirrorReconcileDecision decision = QuestReconcilePolicy.Decide(giverConfirmedDead, hasLiveMatch, hasTerminalMatch);
+         MirrorReconcileDecision decision = QuestReconcilePolicy.Decide(new QuestReconcilePolicy.MirrorFacts {GiverConfirmedDead = giverConfirmedDead, HasLiveMatch = hasLiveMatch, HasTerminalMatch = hasTerminalMatch});
 
          switch (decision)
          {

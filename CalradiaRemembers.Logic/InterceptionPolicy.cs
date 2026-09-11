@@ -156,12 +156,42 @@ namespace CalradiaRemembers.Logic
         public static bool CanMeetOnLand(bool playerAtSea, bool pursuerAtSea) => !playerAtSea && !pursuerAtSea;
 
         /// <summary>
+        ///   The state of one pursuit. THREE FLOATS in a row, two speeds and a distance: swap the speeds and a
+        ///   pursuer who is faster reads as outrun and gives up on a meeting he was about to make. That is the
+        ///   class of bug the isClosing override exists to answer in the first place, after a player reported
+        ///   riding straight at an announced lord and having the meeting cancelled from under him.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class ChaseFacts
+        {
+           /// <summary>How fast the lord travels.</summary>
+           public float PursuerSpeed { get; set; }
+
+           /// <summary>How fast the player travels. Clearly faster, and clear away, is hopeless.</summary>
+           public float PlayerSpeed { get; set; }
+
+           /// <summary>How far apart they are. Right on top of the player, nothing gives up.</summary>
+           public float Distance { get; set; }
+
+           /// <summary>How long the chase has run. Past the cap it is stale.</summary>
+           public int DaysPursuing { get; set; }
+
+           /// <summary>
+           ///   The player is actively riding at the meeting. Overrides both give-ups: doing exactly what the
+           ///   feature promised must never be punished by a timeout or a speed gap.
+           /// </summary>
+           public bool IsClosing { get; set; } = false;
+        }
+
+        /// <summary>
         ///   Whether a lord gives up the chase. A pursuer right on top of the player keeps pressing no
         ///   matter what — the encounter is about to happen, so neither the timeout nor a speed gap
         ///   matters. Otherwise a stale pursuit (past <see cref="MaxPursuitDays"/>) is abandoned, and
         ///   so is a hopeless one — when the player is well clear and clearly faster, the pursuer
         ///   cannot force the meeting and stops wasting the effort.
-        ///   <paramref name="isClosing"/> overrides both of those give-ups: a player reported riding
+        ///   <c>IsClosing</c> overrides both of those give-ups: a player reported riding
         ///   straight at a lord who had been announced ("I'll ride up to them and everything") only to
         ///   have the meeting cancelled out from under them. A player who is actively closing the gap is
         ///   doing exactly what the feature promised, so neither slowness (outrun) nor patience
@@ -169,8 +199,16 @@ namespace CalradiaRemembers.Logic
         ///   (sea, army, death), which this method knows nothing about and the caller checks separately,
         ///   and which still stands the chase down regardless.
         /// </summary>
-        public static bool ShouldAbandonChase(float pursuerSpeed, float playerSpeed, float distance, int daysPursuing, bool isClosing = false)
+        public static bool ShouldAbandonChase(ChaseFacts facts)
         {
+           if (facts == null) return false;
+
+           float pursuerSpeed = facts.PursuerSpeed;
+           float playerSpeed = facts.PlayerSpeed;
+           float distance = facts.Distance;
+           int daysPursuing = facts.DaysPursuing;
+           bool isClosing = facts.IsClosing;
+
             if (distance < AbandonMinDistance) return false; // about to connect — never give up now
             if (isClosing) return false; // the player is riding straight at the meeting, so let them arrive
             if (daysPursuing >= MaxPursuitDays) return true;

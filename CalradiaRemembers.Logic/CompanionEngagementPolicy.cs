@@ -14,11 +14,39 @@ namespace CalradiaRemembers.Logic
     public static class CompanionEngagementPolicy
     {
         /// <summary>
+        ///   Every charge a companion might hold in the player's service. Three booleans in a row, ALL of them
+        ///   disqualifiers, so a swap changes nothing today and everything the first time one of them stops
+        ///   meaning simply "busy".
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class CompanionChargeFacts
+        {
+           /// <summary>Away on a companion errand.</summary>
+           public bool OnErrand { get; set; }
+
+           /// <summary>Governing a settlement for the player.</summary>
+           public bool IsGovernor { get; set; }
+
+           /// <summary>Leading a party of the player's clan.</summary>
+           public bool LeadsAParty { get; set; }
+        }
+
+        /// <summary>
         ///   True only when the companion has NO occupation at all in your service: not away on an errand, not
         ///   governing a settlement for you, and not leading a party of your clan. Any one of those is a charge
         ///   they hold, and a charge is not idleness.
         /// </summary>
-        public static bool IsIdle(bool onErrand, bool isGovernor, bool leadsAParty)
-            => !onErrand && !isGovernor && !leadsAParty;
+        public static bool IsIdle(CompanionChargeFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool onErrand = facts.OnErrand;
+           bool isGovernor = facts.IsGovernor;
+           bool leadsAParty = facts.LeadsAParty;
+
+           return !onErrand && !isGovernor && !leadsAParty;
+        }
     }
 }

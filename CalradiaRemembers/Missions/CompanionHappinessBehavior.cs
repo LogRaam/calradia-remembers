@@ -215,7 +215,7 @@ namespace CalradiaRemembers.Missions
          bool isGovernor = h.GovernorOf != null;
          bool leadsAParty = h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h;
 
-         return CompanionEngagementPolicy.IsIdle(onErrand, isGovernor, leadsAParty);
+         return CompanionEngagementPolicy.IsIdle(new CompanionEngagementPolicy.CompanionChargeFacts {OnErrand = onErrand, IsGovernor = isGovernor, LeadsAParty = leadsAParty});
       }
 
       /// <summary>

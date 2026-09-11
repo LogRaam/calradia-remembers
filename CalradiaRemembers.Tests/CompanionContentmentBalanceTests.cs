@@ -25,7 +25,7 @@ namespace CalradiaRemembers.Tests
         {
             score = CompanionHappiness.ApplyDriver(score, HappinessDriver.Idle);
 
-            return CompanionHappiness.DriftToBaseline(score, CompanionHappiness.WeeklyDriftStep, baseline);
+            return CompanionHappiness.DriftToBaseline(new CompanionHappiness.HappinessDrift {Score = score, Step = CompanionHappiness.WeeklyDriftStep, Baseline = baseline});
         }
 
         /// <summary>A weekly pass for an unoccupied companion who is ALSO kept from their spouse.</summary>
@@ -34,7 +34,7 @@ namespace CalradiaRemembers.Tests
             score = CompanionHappiness.ApplyDriver(score, HappinessDriver.Idle);
             score = CompanionHappiness.ApplyDriver(score, HappinessDriver.KeptFromLovedOne);
 
-            return CompanionHappiness.DriftToBaseline(score, CompanionHappiness.WeeklyDriftStep, baseline);
+            return CompanionHappiness.DriftToBaseline(new CompanionHappiness.HappinessDrift {Score = score, Step = CompanionHappiness.WeeklyDriftStep, Baseline = baseline});
         }
 
         [Test]

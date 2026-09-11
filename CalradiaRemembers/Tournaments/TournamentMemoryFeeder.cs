@@ -184,7 +184,7 @@ namespace CalradiaRemembers.Tournaments
          Hero champion = Hero.AllAliveHeroes?.FirstOrDefault(h => h != null && h.StringId == result.ChampionHeroId);
          if (champion == null) return;
 
-         string name = HeroLabel.Describe(champion.Name?.ToString(), champion.Clan?.Name?.ToString(), champion.Culture?.Name?.ToString());
+         string name = HeroLabel.Describe(new HeroLabel.HeroNaming {Name = champion.Name?.ToString(), ClanName = champion.Clan?.Name?.ToString(), CultureName = champion.Culture?.Name?.ToString()});
          string atTown = string.IsNullOrEmpty(result.TownName) ? "a tournament" : $"the tournament at {result.TownName}";
 
          WorldEventStore.Instance.Record(new WorldEvent

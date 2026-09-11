@@ -20,13 +20,42 @@ namespace CalradiaRemembers.Logic
     public static class HarmPrisonerPolicy
     {
         /// <summary>
+        ///   The three independent guards on harming a captive, every one of which must hold. They come from
+        ///   three different places and read identically as bare booleans.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class HarmFacts
+        {
+           /// <summary>The player is genuinely THIS captor's prisoner right now.</summary>
+           public bool PlayerIsCaptiveOfCaptor { get; set; }
+
+           /// <summary>A captive scene is actually running.</summary>
+           public bool CaptiveSceneActive { get; set; }
+
+           /// <summary>
+           ///   The scene sits at the Hardcore/Adult content floor every other captive-scene act requires.
+           /// </summary>
+           public bool Hardcore { get; set; }
+        }
+
+        /// <summary>
         ///   True only when EVERY guard holds: the player is genuinely this captor's prisoner right now
-        ///   (<paramref name="playerIsCaptiveOfCaptor" />), a captive scene is actually running
-        ///   (<paramref name="captiveSceneActive" />), and the scene sits at the same Hardcore/Adult content
-        ///   floor every other captive-scene act already requires (<paramref name="hardcore" />). Any single
+        ///   (<c>PlayerIsCaptiveOfCaptor</c>), a captive scene is actually running
+        ///   (<c>CaptiveSceneActive</c>), and the scene sits at the same Hardcore/Adult content
+        ///   floor every other captive-scene act already requires (<c>Hardcore</c>). Any single
         ///   false input refuses the harm and costs no health.
         /// </summary>
-        public static bool CanHarm(bool playerIsCaptiveOfCaptor, bool captiveSceneActive, bool hardcore)
-            => playerIsCaptiveOfCaptor && captiveSceneActive && hardcore;
+        public static bool CanHarm(HarmFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool playerIsCaptiveOfCaptor = facts.PlayerIsCaptiveOfCaptor;
+           bool captiveSceneActive = facts.CaptiveSceneActive;
+           bool hardcore = facts.Hardcore;
+
+           return playerIsCaptiveOfCaptor && captiveSceneActive && hardcore;
+        }
     }
 }
