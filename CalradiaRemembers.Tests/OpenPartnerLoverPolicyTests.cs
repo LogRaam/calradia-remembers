@@ -21,6 +21,26 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class OpenPartnerLoverPolicyTests
     {
+        /// <summary>
+        ///   Somebody she could plausibly turn to: alive, a lord, compatible, unwed, grown, and known to her.
+        ///   Each test below spoils exactly one of those and says nothing about the other seven.
+        /// </summary>
+        /// <summary>The plausible candidate with one thing about them changed, which is what each rule is.</summary>
+        private static OpenPartnerLoverPolicy.LoverCandidateFacts Spoiled(
+            System.Action<OpenPartnerLoverPolicy.LoverCandidateFacts> change)
+        {
+            OpenPartnerLoverPolicy.LoverCandidateFacts facts = APlausibleCandidate();
+            change(facts);
+
+            return facts;
+        }
+
+        private static OpenPartnerLoverPolicy.LoverCandidateFacts APlausibleCandidate()
+            => new() {
+                IsAlive = true, IsHero = true, OrientationCompatible = true,
+                IsUnwed = true, IsAdult = true, Acquainted = true
+            };
+
         // The whole design intent: a well-attended open partner should rarely stray, a long-neglected one much
         // more often. If the chance did not rise with neglect, neglect would carry no consequence and the
         // feature would not model "she exercises the same freedom when the player ignores her" at all.
@@ -86,10 +106,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_unwed_acquainted_compatible_adult_WHEN_judged_THEN_he_is_a_plausible_lover()
         {
-            OpenPartnerLoverPolicy.IsPlausibleLover(
-                                      candidateAlive: true, candidateIsHero: true, orientationCompatible: true,
-                                      candidateUnwed: true, candidateAdult: true, acquainted: true,
-                                      isThePlayer: false, isSameClanAsPlayerHousehold: false)
+            OpenPartnerLoverPolicy.IsPlausibleLover(APlausibleCandidate())
                                   .Should().BeTrue("a valid, acquainted, unwed compatible adult is a believable lover");
         }
 
@@ -99,10 +116,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_candidate_is_the_player_WHEN_judged_THEN_he_is_rejected()
         {
-            OpenPartnerLoverPolicy.IsPlausibleLover(
-                                      candidateAlive: true, candidateIsHero: true, orientationCompatible: true,
-                                      candidateUnwed: true, candidateAdult: true, acquainted: true,
-                                      isThePlayer: true, isSameClanAsPlayerHousehold: false)
+            OpenPartnerLoverPolicy.IsPlausibleLover(Spoiled(c => { c.IsThePlayer = true; }))
                                   .Should().BeFalse("her own lover is a third party, never the player");
         }
 
@@ -111,10 +125,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_married_candidate_WHEN_judged_THEN_he_is_rejected()
         {
-            OpenPartnerLoverPolicy.IsPlausibleLover(
-                                      candidateAlive: true, candidateIsHero: true, orientationCompatible: true,
-                                      candidateUnwed: false, candidateAdult: true, acquainted: true,
-                                      isThePlayer: false, isSameClanAsPlayerHousehold: false)
+            OpenPartnerLoverPolicy.IsPlausibleLover(Spoiled(c => { c.IsUnwed = false; }))
                                   .Should().BeFalse("a married lord's spouse would be a jealous party, out of scope this increment");
         }
 
@@ -122,10 +133,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_child_candidate_WHEN_judged_THEN_he_is_rejected()
         {
-            OpenPartnerLoverPolicy.IsPlausibleLover(
-                                      candidateAlive: true, candidateIsHero: true, orientationCompatible: true,
-                                      candidateUnwed: true, candidateAdult: false, acquainted: true,
-                                      isThePlayer: false, isSameClanAsPlayerHousehold: false)
+            OpenPartnerLoverPolicy.IsPlausibleLover(Spoiled(c => { c.IsAdult = false; }))
                                   .Should().BeFalse("a lover must be an adult");
         }
 
@@ -135,10 +143,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_stranger_WHEN_judged_THEN_he_is_rejected()
         {
-            OpenPartnerLoverPolicy.IsPlausibleLover(
-                                      candidateAlive: true, candidateIsHero: true, orientationCompatible: true,
-                                      candidateUnwed: true, candidateAdult: true, acquainted: false,
-                                      isThePlayer: false, isSameClanAsPlayerHousehold: false)
+            OpenPartnerLoverPolicy.IsPlausibleLover(Spoiled(c => { c.Acquainted = false; }))
                                   .Should().BeFalse("she takes a lover from among those she is at least acquainted with");
         }
 
@@ -147,10 +152,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_member_of_the_players_household_WHEN_judged_THEN_he_is_rejected()
         {
-            OpenPartnerLoverPolicy.IsPlausibleLover(
-                                      candidateAlive: true, candidateIsHero: true, orientationCompatible: true,
-                                      candidateUnwed: true, candidateAdult: true, acquainted: true,
-                                      isThePlayer: false, isSameClanAsPlayerHousehold: true)
+            OpenPartnerLoverPolicy.IsPlausibleLover(Spoiled(c => { c.IsOfPlayerHousehold = true; }))
                                   .Should().BeFalse("a lover inside the player's own household would cascade drama, out of scope");
         }
 
@@ -160,10 +162,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_orientation_incompatible_candidate_WHEN_judged_THEN_he_is_rejected()
         {
-            OpenPartnerLoverPolicy.IsPlausibleLover(
-                                      candidateAlive: true, candidateIsHero: true, orientationCompatible: false,
-                                      candidateUnwed: true, candidateAdult: true, acquainted: true,
-                                      isThePlayer: false, isSameClanAsPlayerHousehold: false)
+            OpenPartnerLoverPolicy.IsPlausibleLover(Spoiled(c => { c.OrientationCompatible = false; }))
                                   .Should().BeFalse("she takes a lover she is actually drawn to");
         }
 

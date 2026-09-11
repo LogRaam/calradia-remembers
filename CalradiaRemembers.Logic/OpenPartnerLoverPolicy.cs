@@ -89,27 +89,60 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
-        ///   Whether a scanned candidate is a plausible lover for the open partner. She prefers an UNWED,
-        ///   orientation-compatible adult hero she is at least acquainted with, and NEVER the player or a member
-        ///   of the player's own household (that cascade drama is out of scope this increment). Every condition
-        ///   must hold; the host computes each fact from the engine and this pins the bar.
+        ///   What is known about somebody the open partner might turn to, read off the engine by the caller.
+        ///   <para>
+        ///     Named rather than positional (2026-09-10): this was EIGHT booleans in a row, the longest such run
+        ///     in the whole Logic project, and a silent swap is only possible inside a run like that. Nothing but
+        ///     the caller's care stood between "is the player" and "is unwed", and a test would only have caught
+        ///     the mix-up on a day the two happened to differ.
+        ///   </para>
         /// </summary>
-        public static bool IsPlausibleLover(
-            bool candidateAlive,
-            bool candidateIsHero,
-            bool orientationCompatible,
-            bool candidateUnwed,
-            bool candidateAdult,
-            bool acquainted,
-            bool isThePlayer,
-            bool isSameClanAsPlayerHousehold)
+        public sealed class LoverCandidateFacts
         {
-            if (isThePlayer) return false;
-            if (isSameClanAsPlayerHousehold) return false;
-            if (!candidateAlive || !candidateIsHero) return false;
-            if (!orientationCompatible) return false;
-            if (!candidateUnwed || !candidateAdult) return false;
-            return acquainted;
+            /// <summary>They are alive.</summary>
+            public bool IsAlive { get; set; }
+
+            /// <summary>They are a hero rather than an anonymous troop.</summary>
+            public bool IsHero { get; set; }
+
+            /// <summary>Her orientation admits them.</summary>
+            public bool OrientationCompatible { get; set; }
+
+            /// <summary>They are unwed. She turns to someone free, not into a second scandal.</summary>
+            public bool IsUnwed { get; set; }
+
+            /// <summary>They are an adult.</summary>
+            public bool IsAdult { get; set; }
+
+            /// <summary>She knows them at least a little. A stranger is not a lover.</summary>
+            public bool Acquainted { get; set; }
+
+            /// <summary>They ARE the player, who is never the answer here.</summary>
+            public bool IsThePlayer { get; set; }
+
+            /// <summary>
+            ///   They belong to the player's own household, whose cascade of drama is deliberately out of scope
+            ///   for this increment.
+            /// </summary>
+            public bool IsOfPlayerHousehold { get; set; }
+        }
+
+        /// <summary>
+        ///   Whether this candidate is a plausible lover for the open partner. She prefers an UNWED,
+        ///   orientation-compatible adult she is at least acquainted with, and NEVER the player or a member of
+        ///   the player's own household. Every condition must hold, and unknown facts refuse.
+        /// </summary>
+        public static bool IsPlausibleLover(LoverCandidateFacts candidate)
+        {
+            if (candidate == null) return false;
+
+            if (candidate.IsThePlayer) return false;
+            if (candidate.IsOfPlayerHousehold) return false;
+            if (!candidate.IsAlive || !candidate.IsHero) return false;
+            if (!candidate.OrientationCompatible) return false;
+            if (!candidate.IsUnwed || !candidate.IsAdult) return false;
+
+            return candidate.Acquainted;
         }
     }
 }

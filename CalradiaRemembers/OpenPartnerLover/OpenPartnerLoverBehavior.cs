@@ -245,15 +245,16 @@ namespace CalradiaRemembers.OpenPartnerLover
             // rule (RomanticProfile.IsCompatibleWith), reused for a female-partner-seeking-a-male-lover direction.
             bool orientationCompatible = profile.Romantic.IsCompatibleWith(h.IsFemale);
 
-            bool ok = OpenPartnerLoverPolicy.IsPlausibleLover(
-               candidateAlive: h.IsAlive,
-               candidateIsHero: h.IsLord, // a proper lord/lady, not a wanderer or notable
-               orientationCompatible: orientationCompatible,
-               candidateUnwed: h.Spouse == null,
-               candidateAdult: !h.IsChild && h.Age >= MarriageEligibility.MinMarriageAge,
-               acquainted: acquainted,
-               isThePlayer: h == player,
-               isSameClanAsPlayerHousehold: playerClan != null && h.Clan == playerClan);
+            bool ok = OpenPartnerLoverPolicy.IsPlausibleLover(new OpenPartnerLoverPolicy.LoverCandidateFacts {
+               IsAlive = h.IsAlive,
+               IsHero = h.IsLord, // a proper lord/lady, not a wanderer or notable
+               OrientationCompatible = orientationCompatible,
+               IsUnwed = h.Spouse == null,
+               IsAdult = !h.IsChild && h.Age >= MarriageEligibility.MinMarriageAge,
+               Acquainted = acquainted,
+               IsThePlayer = h == player,
+               IsOfPlayerHousehold = playerClan != null && h.Clan == playerClan
+            });
 
             if (!ok) continue;
 

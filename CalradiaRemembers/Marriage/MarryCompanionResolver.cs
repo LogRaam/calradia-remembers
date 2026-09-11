@@ -46,8 +46,15 @@ namespace CalradiaRemembers.Marriage
          bool bloodKin = IsBloodKinOfPlayer(hero);
          bool playerFree = player.Spouse == null;
 
-         return MarryCompanionEligibilityPolicy.CanMarry(
-            isCompanion, isAlive, isAdult, orientationCompatible, alreadyWed, bloodKin, playerFree);
+         return MarryCompanionEligibilityPolicy.CanMarry(new MarryCompanionEligibilityPolicy.MarryCompanionFacts {
+            IsCompanion = isCompanion,
+            IsAlive = isAlive,
+            IsAdult = isAdult,
+            OrientationCompatibleWithPlayer = orientationCompatible,
+            AlreadyWed = alreadyWed,
+            IsBloodKinOfPlayer = bloodKin,
+            PlayerCanTakeAnotherSpouse = playerFree
+         });
       }
 
       /// <summary>True when <paramref name="hero" /> is one of the player's own clan companions (a hired wanderer of the player's clan).</summary>

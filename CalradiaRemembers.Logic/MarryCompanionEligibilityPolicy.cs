@@ -31,21 +31,49 @@ namespace CalradiaRemembers.Logic
       ///   (<paramref name="playerCanTakeAnotherSpouse" />). Any single failure closes the match: this is a
       ///   conjunction so a new admission can never slip in without being stated here.
       /// </summary>
-      public static bool CanMarry(bool isCompanion,
-                                  bool isAlive,
-                                  bool isAdult,
-                                  bool orientationCompatibleWithPlayer,
-                                  bool alreadyWed,
-                                  bool isBloodKinOfPlayer,
-                                  bool playerCanTakeAnotherSpouse)
+      /// <summary>
+      ///   What a match between the player and one of their own companions rests on, read off the campaign by
+      ///   the caller.
+      ///   <para>
+      ///     Named rather than positional (2026-09-10): this took SEVEN booleans in a row, and cr.testall called
+      ///     it as CanMarry(true, true, true, true, false, false, true), seven bare values with nothing to say
+      ///     which was which. Inverting "already wed" and "blood kin" there would have compiled, passed, and
+      ///     quietly tested the wrong rule.
+      ///   </para>
+      /// </summary>
+      public sealed class MarryCompanionFacts
       {
-         return isCompanion
-             && isAlive
-             && isAdult
-             && orientationCompatibleWithPlayer
-             && !alreadyWed
-             && !isBloodKinOfPlayer
-             && playerCanTakeAnotherSpouse;
+         /// <summary>They are one of the player's own companions, which is what this policy is about.</summary>
+         public bool IsCompanion { get; set; }
+
+         /// <summary>They are alive.</summary>
+         public bool IsAlive { get; set; }
+
+         /// <summary>They are of age.</summary>
+         public bool IsAdult { get; set; }
+
+         /// <summary>Their orientation admits the player.</summary>
+         public bool OrientationCompatibleWithPlayer { get; set; }
+
+         /// <summary>They are already married to somebody.</summary>
+         public bool AlreadyWed { get; set; }
+
+         /// <summary>They share blood with the player, which no match may cross.</summary>
+         public bool IsBloodKinOfPlayer { get; set; }
+
+         /// <summary>The player is free to wed: unmarried, or in a culture that admits another spouse.</summary>
+         public bool PlayerCanTakeAnotherSpouse { get; set; }
       }
+
+      /// <summary>Whether the player may wed this companion. Every condition must hold; unknown facts refuse.</summary>
+      public static bool CanMarry(MarryCompanionFacts facts)
+         => facts != null
+            && facts.IsCompanion
+            && facts.IsAlive
+            && facts.IsAdult
+            && facts.OrientationCompatibleWithPlayer
+            && !facts.AlreadyWed
+            && !facts.IsBloodKinOfPlayer
+            && facts.PlayerCanTakeAnotherSpouse;
    }
 }

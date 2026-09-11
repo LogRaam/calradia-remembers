@@ -65,8 +65,15 @@ namespace CalradiaRemembers
          bool bloodKin = IsBloodKinOfPlayer(companion);
          bool playerFree = player.Spouse == null;
 
-         bool policySaysYes = MarryCompanionEligibilityPolicy.CanMarry(
-            isCompanion, isAlive, isAdult, orientationCompatible, alreadyWed, bloodKin, playerFree);
+         bool policySaysYes = MarryCompanionEligibilityPolicy.CanMarry(new MarryCompanionEligibilityPolicy.MarryCompanionFacts {
+            IsCompanion = isCompanion,
+            IsAlive = isAlive,
+            IsAdult = isAdult,
+            OrientationCompatibleWithPlayer = orientationCompatible,
+            AlreadyWed = alreadyWed,
+            IsBloodKinOfPlayer = bloodKin,
+            PlayerCanTakeAnotherSpouse = playerFree
+         });
 
          sb.AppendLine($"  occupation={companion.Occupation}, isPlayerCompanion={companion.IsPlayerCompanion}, "
                      + $"clan={companion.Clan?.Name?.ToString() ?? "(none)"} (== player clan: {companion.Clan == Clan.PlayerClan})");

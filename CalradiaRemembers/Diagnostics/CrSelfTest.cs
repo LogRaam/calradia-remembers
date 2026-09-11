@@ -6065,13 +6065,13 @@ namespace CalradiaRemembers.Diagnostics
          // The one match the feature exists to admit: a compatible, unwed, adult, non-kin companion while the
          // player is free. If this flips the whole carve-out is dead.
          t.Expect("policy_admits_compatible_companion",
-            MarryCompanionEligibilityPolicy.CanMarry(true, true, true, true, false, false, true), true);
+            MarryCompanionEligibilityPolicy.CanMarry(new MarryCompanionEligibilityPolicy.MarryCompanionFacts {IsCompanion = true, IsAlive = true, IsAdult = true, OrientationCompatibleWithPlayer = true, AlreadyWed = false, IsBloodKinOfPlayer = false, PlayerCanTakeAnotherSpouse = true}), true);
          // The line the SameClan bar must always hold: a companion who is also blood kin stays barred (no incest).
          t.Expect("policy_bars_blood_kin",
-            MarryCompanionEligibilityPolicy.CanMarry(true, true, true, true, false, true, true), false);
+            MarryCompanionEligibilityPolicy.CanMarry(new MarryCompanionEligibilityPolicy.MarryCompanionFacts {IsCompanion = true, IsAlive = true, IsAdult = true, OrientationCompatibleWithPlayer = true, AlreadyWed = false, IsBloodKinOfPlayer = true, PlayerCanTakeAnotherSpouse = true}), false);
          // A second spouse onto an already-wed player is impossible in law; the carve-out defers to that.
          t.Expect("policy_bars_when_player_not_free",
-            MarryCompanionEligibilityPolicy.CanMarry(true, true, true, true, false, false, false), false);
+            MarryCompanionEligibilityPolicy.CanMarry(new MarryCompanionEligibilityPolicy.MarryCompanionFacts {IsCompanion = true, IsAlive = true, IsAdult = true, OrientationCompatibleWithPlayer = true, AlreadyWed = false, IsBloodKinOfPlayer = false, PlayerCanTakeAnotherSpouse = false}), false);
 
          if (t.Skip(Hero.MainHero == null, "no player hero")) return t.Line();
          if (t.Skip(Hero.MainHero.Spouse != null,
