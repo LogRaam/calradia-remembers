@@ -147,6 +147,59 @@ internal sealed class MyPatchA : PrefabExtensionInsertPatch
 
 ---
 
+## What a test is for (Gabriel's ruling, 2026-09-10, do not relitigate)
+
+> "Les tests ne doivent pas proteger le code, mais doivent proteger les comportements attendus. Un programme
+> informatique doit resoudre les problemes du monde et pour s'assurer que le programme le fait vraiment, on met
+> des tests pour garantir que les comportements souhaites seront respectes."
+
+A test written by reading the implementation cannot fail on that implementation. It does not protect anything: it
+**industrialises the bug**. Kent Beck's order is the point, not a ceremony: the expectation comes from the problem
+in the world, and the code is what makes it true.
+
+**The proof, from this repository.** The Regard Warmth Cooldown shipped with `0` meaning "the resistance freezes
+and warmth becomes permanently dearer", while the v2.5.1 changelog promised a player that `0` turned the cooldown
+off. It had a test. It was green for months. Its name was:
+
+```
+GIVEN_decay_disabled_WHEN_resolving_far_later_THEN_the_tier_never_relaxes
+```
+
+`decay_disabled` and `the_tier_never_relaxes` describe the branch `if (windowHours <= 0.0) return;`. That name can
+only be written with the code open. The name it needed was:
+
+```
+GIVEN_the_cooldown_turned_off_WHEN_resolving_THEN_warmth_never_becomes_dearer
+```
+
+which can only be written by thinking about the player, and which would have been RED on day one.
+
+### The three checks, in order of how much they catch
+
+1. **Could this test's name have been written before the code existed?** If the THEN clause names a return value, a
+   null, a flag, a branch or a method, the answer is no. Rewrite it as what someone would notice. (Measured
+   2026-09-10: 61 of 3889 tests in this repo still name a return rather than an outcome. The rest are already
+   behavioural, so this is a discipline to hold, not a rewrite to schedule.)
+2. **Where does the expectation come from?** For anything a player can see, it must be traceable OUTSIDE the code:
+   a player's own words, the Nexus changelog, an MCM label, one of Gabriel's rulings. Quote the source in the test
+   file's header, as nearly every test file here already does. If the only source is the implementation, stop.
+3. **Finish the sentence "if this fails, a player ...".** If it cannot be finished, the test is describing code.
+   Structural guards are allowed to assert structure (`IsPatched`, "no verb is taught and refused at once"), but
+   their NAME and header still carry the world-level promise they protect, because that is what makes it obvious
+   when the structure stops protecting it.
+
+### The related failure: a guard that measures its own construction
+
+Same root, different disguise. A test whose subject is built differently from production measures its own setup.
+Three examples found within 24 hours, all of them green the whole time:
+
+- `cr.help` described 70 of 259 commands. Nothing compared the hand-written list with the **registry**.
+- The Lean prompt budget passed at 6,950 chars while the game sent ~22,500. The test built a `PromptBuilder` with
+  **no ActionVocabulary**, so the entire GAME ACTIONS section was absent from everything it measured.
+- The affection bar lived as a literal `50` in three places. All three agreed until one moved.
+
+So: build the subject the way production builds it, and take the expectation from outside it.
+
 ## Where a panel lives: the one rule (measured 2026-09-07, do not relitigate)
 
 **Never `ScreenManager.PushScreen`, and never a Gauntlet layer over the live map.** Both leave `MapState` active, so
