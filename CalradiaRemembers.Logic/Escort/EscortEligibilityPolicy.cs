@@ -8,23 +8,35 @@
 // execution (BannerlordGameStateBridge.ExecuteFollowMe / FollowMeBehavior.TryStart), so the two can never
 // quietly diverge ("the prompt is advice, the bridge is law").
 //
-// 10/09/2026, THE FIFTH GATE IS GONE, and a player report is why. "It feels like the AI using this like never
-// follows me despite it agreeing to." A gate added 29/08/2026 refused any lord whose realm was at war with
+// 10/09/2026, THE BLANKET WAR GATE IS GONE, and a player report is why. "It feels like the AI using this like
+// never follows me despite it agreeing to." A gate added 29/08/2026 refused any lord whose realm was at war with
 // ANYONE, so that he stayed available for his liege's muster call. The intent was sound and the effect was not:
 // in an ordinary campaign nearly every kingdom is at war with somebody nearly all the time, so follow_me was
 // almost never taught, and a verb that is not taught is ABSENT rather than refused. The model, told nothing,
-// agreed warmly and emitted nothing. The player watched a promise evaporate, over and over, with no explanation
-// ever offered.
+// agreed warmly and emitted nothing. The player watched a promise evaporate, over and over, with no explanation.
 //
 // Gabriel's ruling, 10/09/2026: keep the intent, drop the blanket. A lord is stopped by being COMMITTED to that
-// war right now (an army, a siege, a battle), not by its existence somewhere on the map. And, his own condition
-// on relaxing it: "si il accepte de suivre le joueur et apres il y a un appel pour joindre une armee, ce Lord
-// devrait expliquer au joueur qu'il doit le quitter pour suivre l'appel de son seigneur." That is what makes the
-// relaxation honest rather than merely permissive, and it lives in EscortContinuationPolicy.
+// war right now (an army, a siege, a battle), not by its existence somewhere on the map. And, his condition on
+// relaxing it: "si il accepte de suivre le joueur et apres il y a un appel pour joindre une armee, ce Lord
+// devrait expliquer au joueur qu'il doit le quitter pour suivre l'appel de son seigneur." That half lives in
+// EscortContinuationPolicy. RealmAtWar did not disappear here; it changed jobs, from refusing to WARNING.
 //
-// The factionAtWar fact did not disappear; it changed jobs. It no longer refuses anything. It is now a
-// DISCLOSURE: a lord whose realm is at war says up front that he may be called away, so the promise the player
-// hears is the promise the world can keep.
+// ---------------------------------------------------------------------------------------------------------
+// WHY THIS TAKES A FACTS OBJECT AND NOT FOUR BOOLEANS (Gabriel's ruling on testing, 10/09/2026):
+//
+//   "Le code doit pouvoir changer, evoluer, s'ameliorer, mais le comportement attendu ne doit jamais se
+//    degrader."
+//
+// This very file is the evidence for that rule and the debt it left. Widening the gate above changed the
+// positional signature, and SEVEN existing assertions had to be rewritten, including ones whose behaviour had
+// not moved at all: "a lord who leads no party of his own is refused" was as true after as before. They broke on
+// ARITY AND PARAMETER NAMES. They were bound to the shape of the call rather than to anything a player would
+// notice, which is the exact failure the rule is about, in its second and less obvious form.
+//
+// A named facts object fixes it structurally: a test names the facts it cares about and says nothing about the
+// others, so adding, removing or reordering a fact costs nothing to any test that never depended on it. This is
+// already the house style (8 dedicated *Facts types, 39 files in Logic taking one); this policy was one of the
+// older positional stragglers, which is precisely why it was the one that cost seven rewrites.
 
 namespace CalradiaRemembers.Logic.Escort
 {
@@ -51,6 +63,39 @@ namespace CalradiaRemembers.Logic.Escort
         AlreadyEscorting
     }
 
+    /// <summary>
+    ///   What the escort decision rests on, read off the live campaign by whoever is asking. Named rather than
+    ///   positional so a caller cannot pass them in the wrong order and a test cannot bind to their arity.
+    /// </summary>
+    public sealed class EscortFacts
+    {
+        /// <summary>
+        ///   He truly leads his own mobile party. A companion already riding IN the player's party never does,
+        ///   so this alone excludes that case: there is nothing further for follow_me to do for them.
+        /// </summary>
+        public bool LeadsOwnParty { get; set; }
+
+        /// <summary>His realm and the player's are at war with EACH OTHER, which is not the same as his realm being at war.</summary>
+        public bool AtWarWithPlayer { get; set; }
+
+        /// <summary>
+        ///   His party is spoken for by a war TODAY: an army, a siege, or a live battle. The successor to the
+        ///   old inArmy, widened to include a battle, because all three mean the same thing to a promise.
+        /// </summary>
+        public bool CommittedToWar { get; set; }
+
+        /// <summary>He is already riding escort for somebody. One at a time.</summary>
+        public bool AlreadyEscorting { get; set; }
+
+        /// <summary>
+        ///   His realm is at war with somebody, anybody. This REFUSES NOTHING: it is the fact behind
+        ///   <see cref="ShouldWarnOfMuster" />, so a lord who may be called away says so as he agrees rather
+        ///   than leaving the player to discover it when he rides off. It used to be the fifth refusal, and
+        ///   being at war is so nearly always true that it made the whole feature unreachable.
+        /// </summary>
+        public bool RealmAtWar { get; set; }
+    }
+
     /// <summary>Pure eligibility gate for follow_me: every guard the teaching and the bridge share.</summary>
     public static class EscortEligibilityPolicy
     {
@@ -63,31 +108,32 @@ namespace CalradiaRemembers.Logic.Escort
         public const int TermDays = 15;
 
         /// <summary>
-        ///   Which door is shut, tried in the order a lord would think of them. <paramref name="committedToWar" />
-        ///   is the widened successor to the old inArmy: an army, a siege, or a live battle, because all three
-        ///   mean the same thing, that his party is spoken for today.
+        ///   Which door is shut, tried in the order a lord would think of them: what he has, who he is at war
+        ///   with, what he is doing today, and what he has already promised. Missing facts refuse rather than
+        ///   permit, since the safe answer to "I do not know" is that no promise is made.
         /// </summary>
-        public static EscortRefusal Refusal(bool leadsParty, bool atWar, bool committedToWar, bool alreadyEscorting)
+        public static EscortRefusal Refusal(EscortFacts facts)
         {
-            if (!leadsParty) return EscortRefusal.NoPartyOfHisOwn;
-            if (atWar) return EscortRefusal.AtWarWithPlayer;
-            if (committedToWar) return EscortRefusal.CommittedToWar;
-            if (alreadyEscorting) return EscortRefusal.AlreadyEscorting;
+            if (facts == null) return EscortRefusal.NoPartyOfHisOwn;
+
+            if (!facts.LeadsOwnParty) return EscortRefusal.NoPartyOfHisOwn;
+            if (facts.AtWarWithPlayer) return EscortRefusal.AtWarWithPlayer;
+            if (facts.CommittedToWar) return EscortRefusal.CommittedToWar;
+            if (facts.AlreadyEscorting) return EscortRefusal.AlreadyEscorting;
 
             return EscortRefusal.None;
         }
 
         /// <summary>Whether the escort can be promised at all. The bridge asks this; so does the teaching gate.</summary>
-        public static bool CanEscort(bool leadsParty, bool atWar, bool committedToWar, bool alreadyEscorting)
-            => Refusal(leadsParty, atWar, committedToWar, alreadyEscorting) == EscortRefusal.None;
+        public static bool CanEscort(EscortFacts facts) => Refusal(facts) == EscortRefusal.None;
 
         /// <summary>
-        ///   True when this lord should WARN the player, as he agrees, that he may be called away. His realm is
+        ///   True when this lord should WARN the player, as he agrees, that he may be called away: his realm is
         ///   at war with someone, so the muster may reach him at any time and the escort will end there
-        ///   (EscortContinuationPolicy.EscortEndReason.SummonedByLiege). Said in advance, that is a lord being
-        ///   honest; said only afterwards, it is the broken promise this whole change exists to end.
+        ///   (EscortEndReason.SummonedByLiege). Said in advance that is a lord being honest; said only
+        ///   afterwards it is the broken promise this whole change exists to end.
         /// </summary>
-        public static bool ShouldWarnOfMuster(bool factionAtWar) => factionAtWar;
+        public static bool ShouldWarnOfMuster(EscortFacts facts) => facts?.RealmAtWar == true;
 
         /// <summary>
         ///   What to tell the player when the escort is refused, in the lord's own terms rather than the rule's.

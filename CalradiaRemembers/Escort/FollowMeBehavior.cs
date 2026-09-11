@@ -95,11 +95,13 @@ namespace CalradiaRemembers.Escort
             // refused nearly every lord in an ordinary campaign, so the verb was almost never taught and the
             // model, told nothing, agreed to escorts that never happened. His party is spoken for by an army, a
             // siege or a battle; a war on the far side of Calradia does not spend it.
-            if (!EscortEligibilityPolicy.CanEscort(
-                   leadsParty: party != null && party.LeaderHero == lord,
-                   atWar: IsAtWarWithPlayer(lord),
-                   committedToWar: party?.Army != null || party?.SiegeEvent != null || party?.MapEvent != null,
-                   alreadyEscorting: IsEscorting(lord.StringId)))
+            if (!EscortEligibilityPolicy.CanEscort(new EscortFacts {
+                   LeadsOwnParty = party != null && party.LeaderHero == lord,
+                   AtWarWithPlayer = IsAtWarWithPlayer(lord),
+                   CommittedToWar = party?.Army != null || party?.SiegeEvent != null || party?.MapEvent != null,
+                   AlreadyEscorting = IsEscorting(lord.StringId),
+                   RealmAtWar = FactionIsAtWarWithAnyone(lord.MapFaction)
+                }))
             {
                 failReason = "they cannot ride with you right now.";
 

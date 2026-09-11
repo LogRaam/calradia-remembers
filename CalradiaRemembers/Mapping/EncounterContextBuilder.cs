@@ -446,7 +446,8 @@ namespace CalradiaRemembers.Mapping
             // He may ride, but his realm is at war, so the muster may call him away. He is told to say so
             // as he agrees rather than leaving the player to find out when he goes (Gabriel, 2026-09-10).
             NpcMayBeCalledToMuster = npcCanEscortPlayer
-                                     && EscortEligibilityPolicy.ShouldWarnOfMuster(FactionIsAtWarWithAnyone(hero?.MapFaction)),
+                                     && EscortEligibilityPolicy.ShouldWarnOfMuster(
+                                        EscortFactsFor(hero, ResolveNpcIsEscortingPlayer(hero))),
             NpcIsEscortingPlayer = npcIsEscortingPlayer,
             // ride_with_me / part_ways: the idle-lord complement of follow_me, taught only when
             // RideWithMeEligibilityPolicy says the game can honour it right now AND RetainerBehavior.Enabled is on
@@ -2123,13 +2124,22 @@ namespace CalradiaRemembers.Mapping
       {
          if (hero is not {IsLord: true}) return EscortRefusal.NoPartyOfHisOwn;
 
-         MobileParty party = hero.PartyBelongedTo;
-         bool leadsParty = party != null && party.LeaderHero == hero;
-         bool atWar = hero.MapFaction != null && Hero.MainHero?.MapFaction != null &&
-                      FactionManager.IsAtWarAgainstFaction(hero.MapFaction, Hero.MainHero.MapFaction);
-         bool committedToWar = party?.Army != null || party?.SiegeEvent != null || party?.MapEvent != null;
+         return EscortEligibilityPolicy.Refusal(EscortFactsFor(hero, alreadyEscorting));
+      }
 
-         return EscortEligibilityPolicy.Refusal(leadsParty, atWar, committedToWar, alreadyEscorting);
+      /// <summary>The live campaign read behind every escort question, gathered once so no two callers disagree.</summary>
+      private static EscortFacts EscortFactsFor(Hero hero, bool alreadyEscorting)
+      {
+         MobileParty party = hero?.PartyBelongedTo;
+
+         return new EscortFacts {
+            LeadsOwnParty = party != null && party.LeaderHero == hero,
+            AtWarWithPlayer = hero?.MapFaction != null && Hero.MainHero?.MapFaction != null
+                              && FactionManager.IsAtWarAgainstFaction(hero.MapFaction, Hero.MainHero.MapFaction),
+            CommittedToWar = party?.Army != null || party?.SiegeEvent != null || party?.MapEvent != null,
+            AlreadyEscorting = alreadyEscorting,
+            RealmAtWar = FactionIsAtWarWithAnyone(hero?.MapFaction)
+         };
       }
 
       /// <summary>
