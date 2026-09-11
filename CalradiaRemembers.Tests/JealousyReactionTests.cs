@@ -61,7 +61,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_competition_hit_WHEN_scored_THEN_culture_outrage_does_not_scale_it()
       {
          //Arrange — the competition track is a flat rank/attention sting, independent of exclusivity stance.
-         JealousyCulture low  = JealousyCulture.FromRaw("Low", 0, "Low", false, "");
+         JealousyCulture low  = JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""});
          JealousyCulture high = JealousyCulture.Monogamous;
 
          //Act/Assert
@@ -77,8 +77,8 @@ namespace CalradiaRemembers.Tests
       {
          //Arrange — SpouseOfCourted Intimacy has a base of 20, scaled by the writer's outrage.
          JealousyCulture high   = JealousyCulture.Monogamous;                               // ×1.0
-         JealousyCulture medium = JealousyCulture.FromRaw("Medium", 0, "Low", false, "");   // ×0.85
-         JealousyCulture low    = JealousyCulture.FromRaw("Low", 0, "Low", false, "");      // ×0.7
+         JealousyCulture medium = JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Medium", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""});   // ×0.85
+         JealousyCulture low    = JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""});      // ×0.7
 
          //Act/Assert
          JealousyReaction.Severity(JealousStake.SpouseOfCourted, RomanticActTier.Intimacy, false, high).Should().Be(20);
@@ -142,7 +142,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_culture_hint_WHEN_a_letter_context_is_built_THEN_it_carries_the_names_and_the_hint()
       {
          //Arrange
-         JealousyCulture culture = JealousyCulture.FromRaw("High", 0, "Low", false, "By Vlandian custom a wife's honour is the house's honour.");
+         JealousyCulture culture = JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "High", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = "By Vlandian custom a wife's honour is the house's honour."});
 
          //Act
          string context = JealousyReaction.BuildLetterContext(
@@ -194,7 +194,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_secret_lover_WHEN_scored_THEN_culture_outrage_never_scales_the_private_wound()
       {
          //Arrange: a Low-outrage culture scales public stakes down, but the secret bond is personal.
-         JealousyCulture permissive = JealousyCulture.FromRaw("Low", 0, "Low", false, "");
+         JealousyCulture permissive = JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""});
 
          //Act/Assert
          JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Intimacy, false, permissive).Should().Be(12);

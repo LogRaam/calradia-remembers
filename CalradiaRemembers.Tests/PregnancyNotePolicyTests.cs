@@ -34,9 +34,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_woman_who_is_not_pregnant_WHEN_describing_THEN_returns_empty_string()
         {
-            PregnancyNotePolicy.Describe(
-                    isPregnant: false, fatherIsPlayer: false, fatherName: "Derthert",
-                    fatherNamable: true, daysRemaining: 30, totalDurationDays: TotalDuration)
+            PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = false, FatherIsPlayer = false, FatherName = "Derthert", FatherNamable = true, DaysRemaining = 30, TotalDurationDays = TotalDuration})
                 .Should().BeEmpty();
         }
 
@@ -47,9 +45,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_an_unknown_total_duration_WHEN_describing_THEN_returns_empty_string()
         {
-            PregnancyNotePolicy.Describe(
-                    isPregnant: true, fatherIsPlayer: false, fatherName: "Derthert",
-                    fatherNamable: true, daysRemaining: 10, totalDurationDays: 0)
+            PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = "Derthert", FatherNamable = true, DaysRemaining = 10, TotalDurationDays = 0})
                 .Should().BeEmpty();
         }
 
@@ -61,9 +57,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_pregnancy_barely_begun_WHEN_describing_THEN_early_weeks_stage()
         {
             // elapsed = 90 - 80 = 10 days -> fraction ~0.11, well below the early threshold (1/3).
-            string note = PregnancyNotePolicy.Describe(
-                isPregnant: true, fatherIsPlayer: false, fatherName: null,
-                fatherNamable: false, daysRemaining: 80, totalDurationDays: TotalDuration);
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = null, FatherNamable = false, DaysRemaining = 80, TotalDurationDays = TotalDuration});
 
             note.Should().Contain("in the early weeks of a pregnancy");
         }
@@ -74,9 +68,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_elapsed_fraction_just_under_one_third_WHEN_describing_THEN_still_early_weeks_stage()
         {
             // elapsed = 90 - 61 = 29 days -> fraction = 29/90 ≈ 0.322, just under 1/3 (0.333...).
-            string note = PregnancyNotePolicy.Describe(
-                isPregnant: true, fatherIsPlayer: false, fatherName: null,
-                fatherNamable: false, daysRemaining: 61, totalDurationDays: TotalDuration);
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = null, FatherNamable = false, DaysRemaining = 61, TotalDurationDays = TotalDuration});
 
             note.Should().Contain("in the early weeks of a pregnancy");
         }
@@ -87,9 +79,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_elapsed_fraction_at_one_third_WHEN_describing_THEN_visibly_pregnant_stage()
         {
             // elapsed = 30 days of 90 -> fraction exactly 1/3.
-            string note = PregnancyNotePolicy.Describe(
-                isPregnant: true, fatherIsPlayer: false, fatherName: null,
-                fatherNamable: false, daysRemaining: 60, totalDurationDays: TotalDuration);
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = null, FatherNamable = false, DaysRemaining = 60, TotalDurationDays = TotalDuration});
 
             note.Should().Contain("visibly pregnant");
         }
@@ -99,9 +89,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_pregnancy_at_the_halfway_point_WHEN_describing_THEN_visibly_pregnant_stage()
         {
             // elapsed = 45 of 90 -> fraction 0.5.
-            string note = PregnancyNotePolicy.Describe(
-                isPregnant: true, fatherIsPlayer: false, fatherName: null,
-                fatherNamable: false, daysRemaining: 45, totalDurationDays: TotalDuration);
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = null, FatherNamable = false, DaysRemaining = 45, TotalDurationDays = TotalDuration});
 
             note.Should().Contain("visibly pregnant");
         }
@@ -111,9 +99,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_elapsed_fraction_just_under_two_thirds_WHEN_describing_THEN_still_visibly_pregnant_stage()
         {
             // elapsed = 59 of 90 -> fraction ≈ 0.655, just under 2/3 (0.666...).
-            string note = PregnancyNotePolicy.Describe(
-                isPregnant: true, fatherIsPlayer: false, fatherName: null,
-                fatherNamable: false, daysRemaining: 31, totalDurationDays: TotalDuration);
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = null, FatherNamable = false, DaysRemaining = 31, TotalDurationDays = TotalDuration});
 
             note.Should().Contain("visibly pregnant");
         }
@@ -123,9 +109,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_elapsed_fraction_at_two_thirds_WHEN_describing_THEN_heavily_pregnant_stage()
         {
             // elapsed = 60 of 90 -> fraction exactly 2/3.
-            string note = PregnancyNotePolicy.Describe(
-                isPregnant: true, fatherIsPlayer: false, fatherName: null,
-                fatherNamable: false, daysRemaining: 30, totalDurationDays: TotalDuration);
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = null, FatherNamable = false, DaysRemaining = 30, TotalDurationDays = TotalDuration});
 
             note.Should().Contain("heavily pregnant and near your term");
         }
@@ -134,9 +118,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_pregnancy_almost_due_WHEN_describing_THEN_heavily_pregnant_stage()
         {
-            string note = PregnancyNotePolicy.Describe(
-                isPregnant: true, fatherIsPlayer: false, fatherName: null,
-                fatherNamable: false, daysRemaining: 2, totalDurationDays: TotalDuration);
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = null, FatherNamable = false, DaysRemaining = 2, TotalDurationDays = TotalDuration});
 
             note.Should().Contain("heavily pregnant and near your term");
         }
@@ -148,9 +130,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_namable_lord_father_WHEN_describing_THEN_names_him_as_the_father()
         {
-            string note = PregnancyNotePolicy.Describe(
-                isPregnant: true, fatherIsPlayer: false, fatherName: "Derthert",
-                fatherNamable: true, daysRemaining: 45, totalDurationDays: TotalDuration);
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = "Derthert", FatherNamable = true, DaysRemaining = 45, TotalDurationDays = TotalDuration});
 
             note.Should().Contain("carrying Derthert's child");
         }
@@ -161,9 +141,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_named_father_who_is_not_namable_WHEN_describing_THEN_no_father_clause_but_still_acknowledges()
         {
-            string note = PregnancyNotePolicy.Describe(
-                isPregnant: true, fatherIsPlayer: false, fatherName: "Derthert",
-                fatherNamable: false, daysRemaining: 45, totalDurationDays: TotalDuration);
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = "Derthert", FatherNamable = false, DaysRemaining = 45, TotalDurationDays = TotalDuration});
 
             note.Should().NotContain("Derthert");
             note.Should().Contain("You are");
@@ -175,9 +153,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_player_is_the_namable_father_WHEN_describing_THEN_names_the_player_as_the_father()
         {
-            string note = PregnancyNotePolicy.Describe(
-                isPregnant: true, fatherIsPlayer: true, fatherName: "PlayerName",
-                fatherNamable: true, daysRemaining: 45, totalDurationDays: TotalDuration);
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = true, FatherName = "PlayerName", FatherNamable = true, DaysRemaining = 45, TotalDurationDays = TotalDuration});
 
             note.Should().Contain("carrying the player's child");
         }
@@ -188,9 +164,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_player_is_the_father_but_not_namable_WHEN_describing_THEN_no_father_clause_but_still_acknowledges()
         {
-            string note = PregnancyNotePolicy.Describe(
-                isPregnant: true, fatherIsPlayer: true, fatherName: "PlayerName",
-                fatherNamable: false, daysRemaining: 45, totalDurationDays: TotalDuration);
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = true, FatherName = "PlayerName", FatherNamable = false, DaysRemaining = 45, TotalDurationDays = TotalDuration});
 
             note.Should().NotContain("carrying");
             note.Should().Contain("never deny being with child");
@@ -203,10 +177,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_any_pregnant_state_WHEN_describing_THEN_the_never_deny_directive_is_always_present()
         {
-            PregnancyNotePolicy.Describe(true, false, null, false, 80, TotalDuration)
+            PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = null, FatherNamable = false, DaysRemaining = 80, TotalDurationDays = TotalDuration})
                 .Should().Contain("You are aware of this and never deny being with child");
 
-            PregnancyNotePolicy.Describe(true, true, "PlayerName", true, 10, TotalDuration)
+            PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = true, FatherName = "PlayerName", FatherNamable = true, DaysRemaining = 10, TotalDurationDays = TotalDuration})
                 .Should().Contain("You are aware of this and never deny being with child");
         }
     }

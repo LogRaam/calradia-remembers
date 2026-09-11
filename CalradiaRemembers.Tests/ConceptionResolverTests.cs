@@ -31,9 +31,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_fertile_female_player_and_a_living_male_npc_WHEN_resolving_THEN_the_player_is_the_mother()
         {
-            ConceptionResolver.Resolve(
-                    playerIsFemale: true, playerIsAlive: true, playerAge: Fertile,
-                    npcIsFemale: false, npcIsAlive: true, npcAge: 30d)
+            ConceptionResolver.Resolve(new ConceptionResolver.ConceptionFacts {
+                    Player = new ConceptionResolver.Participant {IsFemale = true, IsAlive = true, Age = Fertile},
+                    Npc = new ConceptionResolver.Participant {IsFemale = false, IsAlive = true, Age = 30d}
+                })
                 .Should().Be(ConceptionRole.PlayerIsMother);
         }
 
@@ -43,9 +44,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_male_player_and_a_fertile_female_npc_WHEN_resolving_THEN_the_npc_is_the_mother()
         {
-            ConceptionResolver.Resolve(
-                    playerIsFemale: false, playerIsAlive: true, playerAge: 30d,
-                    npcIsFemale: true, npcIsAlive: true, npcAge: Fertile)
+            ConceptionResolver.Resolve(new ConceptionResolver.ConceptionFacts {
+                    Player = new ConceptionResolver.Participant {IsFemale = false, IsAlive = true, Age = 30d},
+                    Npc = new ConceptionResolver.Participant {IsFemale = true, IsAlive = true, Age = Fertile}
+                })
                 .Should().Be(ConceptionRole.NpcIsMother);
         }
 
@@ -57,9 +59,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_two_females_WHEN_resolving_THEN_no_conception_for_lack_of_a_father()
         {
-            ConceptionResolver.Resolve(
-                    playerIsFemale: true, playerIsAlive: true, playerAge: Fertile,
-                    npcIsFemale: true, npcIsAlive: true, npcAge: Fertile)
+            ConceptionResolver.Resolve(new ConceptionResolver.ConceptionFacts {
+                    Player = new ConceptionResolver.Participant {IsFemale = true, IsAlive = true, Age = Fertile},
+                    Npc = new ConceptionResolver.Participant {IsFemale = true, IsAlive = true, Age = Fertile}
+                })
                 .Should().Be(ConceptionRole.None);
         }
 
@@ -68,9 +71,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_two_males_WHEN_resolving_THEN_no_conception_for_lack_of_a_mother()
         {
-            ConceptionResolver.Resolve(
-                    playerIsFemale: false, playerIsAlive: true, playerAge: 30d,
-                    npcIsFemale: false, npcIsAlive: true, npcAge: 30d)
+            ConceptionResolver.Resolve(new ConceptionResolver.ConceptionFacts {
+                    Player = new ConceptionResolver.Participant {IsFemale = false, IsAlive = true, Age = 30d},
+                    Npc = new ConceptionResolver.Participant {IsFemale = false, IsAlive = true, Age = 30d}
+                })
                 .Should().Be(ConceptionRole.None);
         }
 
@@ -82,9 +86,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_female_player_below_the_fertile_window_WHEN_resolving_THEN_no_conception()
         {
-            ConceptionResolver.Resolve(
-                    playerIsFemale: true, playerIsAlive: true, playerAge: 17d,
-                    npcIsFemale: false, npcIsAlive: true, npcAge: 30d)
+            ConceptionResolver.Resolve(new ConceptionResolver.ConceptionFacts {
+                    Player = new ConceptionResolver.Participant {IsFemale = true, IsAlive = true, Age = 17d},
+                    Npc = new ConceptionResolver.Participant {IsFemale = false, IsAlive = true, Age = 30d}
+                })
                 .Should().Be(ConceptionRole.None);
         }
 
@@ -93,9 +98,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_female_npc_above_the_fertile_window_WHEN_resolving_THEN_no_conception()
         {
-            ConceptionResolver.Resolve(
-                    playerIsFemale: false, playerIsAlive: true, playerAge: 30d,
-                    npcIsFemale: true, npcIsAlive: true, npcAge: 46d)
+            ConceptionResolver.Resolve(new ConceptionResolver.ConceptionFacts {
+                    Player = new ConceptionResolver.Participant {IsFemale = false, IsAlive = true, Age = 30d},
+                    Npc = new ConceptionResolver.Participant {IsFemale = true, IsAlive = true, Age = 46d}
+                })
                 .Should().Be(ConceptionRole.None);
         }
 
@@ -105,10 +111,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_fertile_window_bounds_WHEN_checking_the_mother_THEN_eighteen_and_fortyfive_are_inclusive()
         {
-            ConceptionResolver.IsFertileMother(true, true, 18d).Should().BeTrue();
-            ConceptionResolver.IsFertileMother(true, true, 45d).Should().BeTrue();
-            ConceptionResolver.IsFertileMother(true, true, 17.9d).Should().BeFalse();
-            ConceptionResolver.IsFertileMother(true, true, 45.1d).Should().BeFalse();
+            ConceptionResolver.IsFertileMother(new ConceptionResolver.Participant {IsFemale = true, IsAlive = true, Age = 18d}).Should().BeTrue();
+            ConceptionResolver.IsFertileMother(new ConceptionResolver.Participant {IsFemale = true, IsAlive = true, Age = 45d}).Should().BeTrue();
+            ConceptionResolver.IsFertileMother(new ConceptionResolver.Participant {IsFemale = true, IsAlive = true, Age = 17.9d}).Should().BeFalse();
+            ConceptionResolver.IsFertileMother(new ConceptionResolver.Participant {IsFemale = true, IsAlive = true, Age = 45.1d}).Should().BeFalse();
         }
 
         // ── The dead conceive nothing ──────────────────────────────────────────
@@ -118,9 +124,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_dead_fertile_female_WHEN_resolving_THEN_no_conception()
         {
-            ConceptionResolver.Resolve(
-                    playerIsFemale: true, playerIsAlive: false, playerAge: Fertile,
-                    npcIsFemale: false, npcIsAlive: true, npcAge: 30d)
+            ConceptionResolver.Resolve(new ConceptionResolver.ConceptionFacts {
+                    Player = new ConceptionResolver.Participant {IsFemale = true, IsAlive = false, Age = Fertile},
+                    Npc = new ConceptionResolver.Participant {IsFemale = false, IsAlive = true, Age = 30d}
+                })
                 .Should().Be(ConceptionRole.None);
         }
 
@@ -129,9 +136,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_fertile_female_npc_and_a_dead_male_player_WHEN_resolving_THEN_no_conception_for_lack_of_a_living_father()
         {
-            ConceptionResolver.Resolve(
-                    playerIsFemale: false, playerIsAlive: false, playerAge: 30d,
-                    npcIsFemale: true, npcIsAlive: true, npcAge: Fertile)
+            ConceptionResolver.Resolve(new ConceptionResolver.ConceptionFacts {
+                    Player = new ConceptionResolver.Participant {IsFemale = false, IsAlive = false, Age = 30d},
+                    Npc = new ConceptionResolver.Participant {IsFemale = true, IsAlive = true, Age = Fertile}
+                })
                 .Should().Be(ConceptionRole.None);
         }
     }

@@ -65,9 +65,7 @@ namespace CalradiaRemembers.Nemesis
             List<string> history = CollectHistorySentences(hero.StringId);
 
             result.Label = NemesisDossierBuilder.BuildLabel(nem.TimesEncountered);
-            result.Items = NemesisDossierBuilder.BuildItems(
-                displayName, cultureDisplay, regionDisplay,
-                nem.TimesEncountered, nem.RecaptureCount, history);
+            result.Items = NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = displayName, CultureDisplay = cultureDisplay, RegionDisplay = regionDisplay, TimesEncountered = nem.TimesEncountered, RecaptureCount = nem.RecaptureCount, HistorySentences = history});
 
             return result;
         }

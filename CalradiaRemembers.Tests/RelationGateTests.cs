@@ -39,7 +39,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile();
 
-         int granted = RelationGate.Resolve(10, p, null, 100.0, false, false);
+         int granted = RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 10, Profile = p, CurrentHour = 100.0});
 
          granted.Should().Be(1, "a routine gain is +1 no matter how large the proposal");
          p.RegardResistanceTier.Should().Be(1, "granting a point raises the bar for the next one");
@@ -57,14 +57,14 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile();
 
-         RelationGate.Resolve(1, p, null, 100.0, false, false).Should().Be(1, "tier 0: one moment lands a point");
-         RelationGate.Resolve(1, p, null, 100.0, false, false).Should().Be(0, "tier 1: the first of two moments only banks");
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 1, Profile = p, CurrentHour = 100.0}).Should().Be(1, "tier 0: one moment lands a point");
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 1, Profile = p, CurrentHour = 100.0}).Should().Be(0, "tier 1: the first of two moments only banks");
          p.RegardWarmthAccrued.Should().Be(1);
-         RelationGate.Resolve(1, p, null, 100.0, false, false).Should().Be(1, "tier 1: the second moment lands the point");
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 1, Profile = p, CurrentHour = 100.0}).Should().Be(1, "tier 1: the second moment lands the point");
          p.RegardResistanceTier.Should().Be(2);
-         RelationGate.Resolve(1, p, null, 100.0, false, false).Should().Be(0, "tier 2: needs three");
-         RelationGate.Resolve(1, p, null, 100.0, false, false).Should().Be(0);
-         RelationGate.Resolve(1, p, null, 100.0, false, false).Should().Be(1, "tier 2: the third moment lands it");
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 1, Profile = p, CurrentHour = 100.0}).Should().Be(0, "tier 2: needs three");
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 1, Profile = p, CurrentHour = 100.0}).Should().Be(0);
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 1, Profile = p, CurrentHour = 100.0}).Should().Be(1, "tier 2: the third moment lands it");
          p.RegardResistanceTier.Should().Be(3);
       }
 
@@ -89,7 +89,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile(tier: 1, stampHour: 100.0);
 
-         RelationGate.Resolve(1, p, null, 108.0, false, false).Should().Be(0, "8h is nowhere near a decay step");
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 1, Profile = p, CurrentHour = 108.0}).Should().Be(0, "8h is nowhere near a decay step");
          p.RegardResistanceTier.Should().Be(1, "the tier did not relax");
       }
 
@@ -103,7 +103,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile(tier: 2, stampHour: 100.0);
 
-         int granted = RelationGate.Resolve(1, p, null, 100.0 + 2 * DecayDays * Day, false, false);
+         int granted = RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 1, Profile = p, CurrentHour = 100.0 + 2 * DecayDays * Day});
 
          granted.Should().Be(1, "the bar decayed to 0, so one moment suffices again");
          p.RegardResistanceTier.Should().Be(1, "and the fresh point raised it back to 1");
@@ -116,7 +116,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile(tier: 1, stampHour: 100.0);
 
-         RelationGate.Resolve(1, p, null, 100.0 + (DecayDays * Day - 1.0), false, false).Should().Be(0);
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 1, Profile = p, CurrentHour = 100.0 + (DecayDays * Day - 1.0)}).Should().Be(0);
          p.RegardResistanceTier.Should().Be(1);
       }
 
@@ -143,7 +143,7 @@ namespace CalradiaRemembers.Tests
          NpcProfile p = Profile(tier: 1, stampHour: 100.0);
 
          for (var exchange = 0; exchange < 6; exchange++)
-            RelationGate.Resolve(1, p, null, 100.0 + exchange, false, false, RelationWarmth.Normal, 0.0)
+            RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 1, Profile = p, CurrentHour = 100.0 + exchange, DecayDays = 0.0})
                         .Should().Be(1, "every warm exchange is worth the same when the cooldown is off");
       }
 
@@ -155,7 +155,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile(tier: 4, stampHour: 100.0);
 
-         RelationGate.Resolve(1, p, null, 100.0, false, false, RelationWarmth.Normal, 0.0).Should().Be(1);
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 1, Profile = p, CurrentHour = 100.0, DecayDays = 0.0}).Should().Be(1);
       }
 
       // The default is untouched, which is the promise to everyone who never opens the menu: at 7 days a deep
@@ -165,7 +165,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile(tier: 4, stampHour: 100.0);
 
-         RelationGate.Resolve(1, p, null, 100.0, false, false, RelationWarmth.Normal, DecayDays).Should().Be(0);
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 1, Profile = p, CurrentHour = 100.0, DecayDays = DecayDays}).Should().Be(0);
       }
 
       // But off is not a licence: one warm exchange still buys at most one point, so a player cannot walk in and
@@ -175,7 +175,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile(tier: 0, stampHour: null);
 
-         RelationGate.Resolve(5, p, null, 100.0, false, false, RelationWarmth.Normal, 0.0).Should().Be(1);
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 5, Profile = p, CurrentHour = 100.0, DecayDays = 0.0}).Should().Be(1);
       }
 
       // ── The unchanged pillars ────────────────────────────────────────────
@@ -184,13 +184,13 @@ namespace CalradiaRemembers.Tests
       // value the instant it happens, unlike a compliment which must clear the rising bar.
       [Test]
       public void GIVEN_a_moderate_insult_WHEN_resolving_THEN_the_full_negative_applies_immediately()
-         => RelationGate.Resolve(-7, Profile(), null, 100.5, false, false).Should().Be(-7);
+         => RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = -7, Profile = Profile(), CurrentHour = 100.5}).Should().Be(-7);
 
       // Fail-safe: an unknown/not-yet-tracked NPC (null profile) must return 0, never throw, since this runs on every
       // single proposal.
       [Test]
       public void GIVEN_a_null_profile_WHEN_resolving_THEN_nothing_moves()
-         => RelationGate.Resolve(5, null, null, 100.0, false, false).Should().Be(0);
+         => RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 5, Profile = null, CurrentHour = 100.0}).Should().Be(0);
 
       // A zero proposal is a no-op: it must not accrue a moment or move the tier, or an empty exchange would nudge
       // the progression on its own.
@@ -199,7 +199,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile();
 
-         RelationGate.Resolve(0, p, null, 100.0, false, false).Should().Be(0);
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 0, Profile = p, CurrentHour = 100.0}).Should().Be(0);
          p.RegardWarmthAccrued.Should().Be(0);
       }
 
@@ -207,18 +207,18 @@ namespace CalradiaRemembers.Tests
       // deeper collapse is reserved for a verified captive.
       [Test]
       public void GIVEN_a_savage_insult_in_ordinary_conversation_WHEN_resolving_THEN_it_stops_at_the_conversational_floor()
-         => RelationGate.Resolve(-40, Profile(), null, 100.0, false, false).Should().Be(-15);
+         => RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = -40, Profile = Profile(), CurrentHour = 100.0}).Should().Be(-15);
 
       // The same cruelty lands in full against a captive: the deeper floor is gated on the ENGINE's captive status,
       // never on anything the LLM narrates.
       [Test]
       public void GIVEN_the_same_cruelty_toward_a_captive_WHEN_resolving_THEN_the_deeper_captive_floor_is_unlocked()
-         => RelationGate.Resolve(-40, Profile(), null, 100.0, true, false).Should().Be(-40);
+         => RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = -40, Profile = Profile(), CurrentHour = 100.0, NpcIsCaptive = true}).Should().Be(-40);
 
       // Even the captive floor caps a wild proposal at -100 rather than passing the raw magnitude through.
       [Test]
       public void GIVEN_an_extreme_proposal_against_a_captive_WHEN_resolving_THEN_it_still_stops_at_the_captive_floor()
-         => RelationGate.Resolve(-500, Profile(), null, 100.0, true, false).Should().Be(-100);
+         => RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = -500, Profile = Profile(), CurrentHour = 100.0, NpcIsCaptive = true}).Should().Be(-100);
 
       // ── Intimacy: the guarded, separate +3 (unchanged, outside the progression) ──
 
@@ -229,7 +229,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile();
 
-         int granted = RelationGate.Resolve(10, p, NotableEventType.Intimacy, 100.0, false, intimacyAllowed: true);
+         int granted = RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 10, Profile = p, EmittedEvent = NotableEventType.Intimacy, CurrentHour = 100.0, IntimacyAllowed = true});
 
          granted.Should().Be(3);
          p.LastIntimacyGainHour.Should().Be(100.0, "a granted intimacy bonus stamps its own dedicated cooldown");
@@ -243,7 +243,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile();
 
-         RelationGate.Resolve(10, p, NotableEventType.Intimacy, 100.0, false, intimacyAllowed: false).Should().Be(1);
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 10, Profile = p, EmittedEvent = NotableEventType.Intimacy, CurrentHour = 100.0}).Should().Be(1);
          p.LastIntimacyGainHour.Should().BeNull("a demoted tag never stamps the intimacy clock");
       }
 
@@ -254,7 +254,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile(tier: 1, stampHour: 100.0);
 
-         RelationGate.Resolve(10, p, NotableEventType.Intimacy, 100.0, false, intimacyAllowed: false).Should().Be(0);
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 10, Profile = p, EmittedEvent = NotableEventType.Intimacy, CurrentHour = 100.0}).Should().Be(0);
          p.RegardWarmthAccrued.Should().Be(1);
          p.LastIntimacyGainHour.Should().BeNull();
       }
@@ -266,7 +266,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile(tier: 1, stampHour: 100.0, lastIntimacyHour: 100.0);
 
-         RelationGate.Resolve(10, p, NotableEventType.Intimacy, 105.0, false, intimacyAllowed: true).Should().Be(0);
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 10, Profile = p, EmittedEvent = NotableEventType.Intimacy, CurrentHour = 105.0, IntimacyAllowed = true}).Should().Be(0);
          p.RegardWarmthAccrued.Should().Be(1, "demoted to a routine moment, banked against the tier-1 bar");
       }
 
@@ -277,7 +277,7 @@ namespace CalradiaRemembers.Tests
       {
          NpcProfile p = Profile(lastIntimacyHour: 100.0);
 
-         RelationGate.Resolve(10, p, NotableEventType.Intimacy, 125.0, false, intimacyAllowed: true).Should().Be(3);
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 10, Profile = p, EmittedEvent = NotableEventType.Intimacy, CurrentHour = 125.0, IntimacyAllowed = true}).Should().Be(3);
       }
 
       #region private

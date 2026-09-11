@@ -57,6 +57,6 @@ namespace CalradiaRemembers.Jealousy
 
       /// <summary>Parses this DTO into the pure, testable culture value object.</summary>
       public JealousyCulture ToCulture()
-         => JealousyCulture.FromRaw(ExclusivityOutrage, PolygamyEliteTier, HierarchySensitivity, EquityExpectation, PromptHint, PatriarchalHousehold);
+         => JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = ExclusivityOutrage, PolygamyEliteTier = PolygamyEliteTier, HierarchySensitivity = HierarchySensitivity, EquityExpectation = EquityExpectation, PromptHint = PromptHint, PatriarchalHousehold = PatriarchalHousehold});
    }
 }

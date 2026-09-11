@@ -31,6 +31,42 @@ namespace CalradiaRemembers.Logic
         public const string Label = "Nemesis:";
 
         /// <summary>
+        ///   Everything the page knows about one encountered nemesis, resolved off the campaign by the mixin.
+        ///   <para>
+        ///     Named rather than positional (2026-09-10). The old signature opened with THREE strings in a row
+        ///     (name, culture, region) followed by TWO ints (encounters, recaptures), and a swap inside either
+        ///     run compiled silently: a page reading "forest bandits leads a band of Ranulf the Faceless Fox"
+        ///     is not a crash, it is a screenshot. Gabriel: the code should be an example of good practice.
+        ///   </para>
+        /// </summary>
+        public sealed class NemesisDossierFacts
+        {
+            /// <summary>His name and epithet as the page should print them. Missing means render nothing.</summary>
+            public string DisplayName { get; set; }
+
+            /// <summary>His band's culture in plain words ("forest bandits"), or null when unresolved.</summary>
+            public string CultureDisplay { get; set; }
+
+            /// <summary>The country he haunts, or null when the anchor is not a real place ("the wilds").</summary>
+            public string RegionDisplay { get; set; }
+
+            /// <summary>
+            ///   How many times the player has actually crossed his path. At or below zero he is LATENT and
+            ///   the whole dossier stays hidden, which is what keeps an unmet nemesis secret by construction.
+            /// </summary>
+            public int TimesEncountered { get; set; }
+
+            /// <summary>How many times he took the player back after an escape. Zero prints no such line.</summary>
+            public int RecaptureCount { get; set; }
+
+            /// <summary>
+            ///   The extra history the player asked to see (the escape, the victories), oldest first. Null is
+            ///   the ordinary case; blank entries are skipped rather than rendered as an empty bullet.
+            /// </summary>
+            public IReadOnlyList<string> HistorySentences { get; set; }
+        }
+
+        /// <summary>
         ///   The header line, or empty when this hero is not an encountered nemesis
         ///   (<paramref name="timesEncountered" /> at or below zero) so the widget auto-hides.
         /// </summary>
@@ -45,14 +81,17 @@ namespace CalradiaRemembers.Logic
         ///   or below zero (a latent nemesis stays hidden) or <paramref name="displayName" /> is missing
         ///   (never render a nameless entry).
         /// </summary>
-        public static string BuildItems(
-            string displayName,
-            string cultureDisplay,
-            string regionDisplay,
-            int timesEncountered,
-            int recaptureCount,
-            IReadOnlyList<string> historySentences)
+        public static string BuildItems(NemesisDossierFacts facts)
         {
+            if (facts == null) return string.Empty;
+
+            string displayName = facts.DisplayName;
+            string cultureDisplay = facts.CultureDisplay;
+            string regionDisplay = facts.RegionDisplay;
+            int timesEncountered = facts.TimesEncountered;
+            int recaptureCount = facts.RecaptureCount;
+            IReadOnlyList<string> historySentences = facts.HistorySentences;
+
             if (timesEncountered <= 0 || string.IsNullOrWhiteSpace(displayName)) return string.Empty;
 
             var lines = new List<string> {

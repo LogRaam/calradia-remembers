@@ -47,11 +47,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_latent_nemesis_WHEN_building_the_items_THEN_it_is_empty_even_with_other_data_supplied()
         {
-            NemesisDossierBuilder.BuildItems(
-                "Ranulf the Faceless Fox", "forest bandits", "the Northmarch",
-                timesEncountered: 0, recaptureCount: 3,
-                historySentences: new List<string> { "some history line" }
-            ).Should().BeEmpty();
+            NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = "Ranulf the Faceless Fox", CultureDisplay = "forest bandits", RegionDisplay = "the Northmarch", TimesEncountered = 0, RecaptureCount = 3, HistorySentences = new List<string> { "some history line" }}).Should().BeEmpty();
         }
 
         // A nameless entry must never render: the mixin only calls this once it has resolved a real hero, but
@@ -59,10 +55,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_missing_display_name_WHEN_building_the_items_THEN_it_is_empty()
         {
-            NemesisDossierBuilder.BuildItems(
-                null, "forest bandits", "the Northmarch",
-                timesEncountered: 2, recaptureCount: 0, historySentences: null
-            ).Should().BeEmpty();
+            NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = null, CultureDisplay = "forest bandits", RegionDisplay = "the Northmarch", TimesEncountered = 2, RecaptureCount = 0, HistorySentences = null}).Should().BeEmpty();
         }
 
         // ── Wording: singular vs plural ──────────────────────────────────────────
@@ -71,9 +64,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_exactly_one_encounter_WHEN_building_the_items_THEN_the_wording_reads_once_not_1_times()
         {
-            string items = NemesisDossierBuilder.BuildItems(
-                "Ranulf the Faceless Fox", "forest bandits", "the Northmarch",
-                timesEncountered: 1, recaptureCount: 0, historySentences: null);
+            string items = NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = "Ranulf the Faceless Fox", CultureDisplay = "forest bandits", RegionDisplay = "the Northmarch", TimesEncountered = 1, RecaptureCount = 0, HistorySentences = null});
 
             items.Should().Contain("crossed his path once.");
             items.Should().NotContain("1 times");
@@ -84,9 +75,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_several_encounters_WHEN_building_the_items_THEN_the_wording_shows_the_count()
         {
-            string items = NemesisDossierBuilder.BuildItems(
-                "Ranulf the Faceless Fox", "forest bandits", "the Northmarch",
-                timesEncountered: 4, recaptureCount: 0, historySentences: null);
+            string items = NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = "Ranulf the Faceless Fox", CultureDisplay = "forest bandits", RegionDisplay = "the Northmarch", TimesEncountered = 4, RecaptureCount = 0, HistorySentences = null});
 
             items.Should().Contain("crossed his path 4 times.");
         }
@@ -98,9 +87,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_zero_recaptures_WHEN_building_the_items_THEN_no_recapture_line_appears()
         {
-            string items = NemesisDossierBuilder.BuildItems(
-                "Ranulf the Faceless Fox", "forest bandits", "the Northmarch",
-                timesEncountered: 2, recaptureCount: 0, historySentences: null);
+            string items = NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = "Ranulf the Faceless Fox", CultureDisplay = "forest bandits", RegionDisplay = "the Northmarch", TimesEncountered = 2, RecaptureCount = 0, HistorySentences = null});
 
             items.Should().NotContain("recaptured");
         }
@@ -108,9 +95,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_exactly_one_recapture_WHEN_building_the_items_THEN_the_wording_reads_once()
         {
-            string items = NemesisDossierBuilder.BuildItems(
-                "Ranulf the Faceless Fox", "forest bandits", "the Northmarch",
-                timesEncountered: 2, recaptureCount: 1, historySentences: null);
+            string items = NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = "Ranulf the Faceless Fox", CultureDisplay = "forest bandits", RegionDisplay = "the Northmarch", TimesEncountered = 2, RecaptureCount = 1, HistorySentences = null});
 
             items.Should().Contain("recaptured you once");
         }
@@ -118,9 +103,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_several_recaptures_WHEN_building_the_items_THEN_the_wording_shows_the_count()
         {
-            string items = NemesisDossierBuilder.BuildItems(
-                "Ranulf the Faceless Fox", "forest bandits", "the Northmarch",
-                timesEncountered: 5, recaptureCount: 3, historySentences: null);
+            string items = NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = "Ranulf the Faceless Fox", CultureDisplay = "forest bandits", RegionDisplay = "the Northmarch", TimesEncountered = 5, RecaptureCount = 3, HistorySentences = null});
 
             items.Should().Contain("recaptured you 3 times");
         }
@@ -132,9 +115,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_culture_and_region_are_both_known_WHEN_building_the_items_THEN_both_appear_in_the_identity_line()
         {
-            string items = NemesisDossierBuilder.BuildItems(
-                "Ranulf the Faceless Fox", "forest bandits", "the Northmarch",
-                timesEncountered: 1, recaptureCount: 0, historySentences: null);
+            string items = NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = "Ranulf the Faceless Fox", CultureDisplay = "forest bandits", RegionDisplay = "the Northmarch", TimesEncountered = 1, RecaptureCount = 0, HistorySentences = null});
 
             items.Should().Contain("forest bandits");
             items.Should().Contain("the Northmarch");
@@ -146,9 +127,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_the_region_is_unresolved_WHEN_building_the_items_THEN_the_identity_line_still_reads_naturally()
         {
-            string items = NemesisDossierBuilder.BuildItems(
-                "Ranulf the Faceless Fox", "forest bandits", regionDisplay: null,
-                timesEncountered: 1, recaptureCount: 0, historySentences: null);
+            string items = NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = "Ranulf the Faceless Fox", CultureDisplay = "forest bandits", RegionDisplay = null, TimesEncountered = 1, RecaptureCount = 0, HistorySentences = null});
 
             items.Should().Contain("Ranulf the Faceless Fox leads a band of forest bandits.");
             items.Should().NotContain("around .");
@@ -157,9 +136,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_neither_culture_nor_region_is_known_WHEN_building_the_items_THEN_a_generic_identity_line_is_used()
         {
-            string items = NemesisDossierBuilder.BuildItems(
-                "Ranulf the Faceless Fox", cultureDisplay: null, regionDisplay: null,
-                timesEncountered: 1, recaptureCount: 0, historySentences: null);
+            string items = NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = "Ranulf the Faceless Fox", CultureDisplay = null, RegionDisplay = null, TimesEncountered = 1, RecaptureCount = 0, HistorySentences = null});
 
             items.Should().Contain("Ranulf the Faceless Fox is a bandit boss you have crossed paths with.");
         }
@@ -171,13 +148,10 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_history_sentences_are_supplied_WHEN_building_the_items_THEN_each_appears_as_its_own_bullet_line()
         {
-            string items = NemesisDossierBuilder.BuildItems(
-                "Ranulf the Faceless Fox", "forest bandits", "the Northmarch",
-                timesEncountered: 2, recaptureCount: 1,
-                historySentences: new List<string> {
+            string items = NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = "Ranulf the Faceless Fox", CultureDisplay = "forest bandits", RegionDisplay = "the Northmarch", TimesEncountered = 2, RecaptureCount = 1, HistorySentences = new List<string> {
                     "I slipped his grasp and escaped his hold.",
                     "I cut him down in battle at last."
-                });
+                }});
 
             items.Should().Contain("• I slipped his grasp and escaped his hold.");
             items.Should().Contain("• I cut him down in battle at last.");
@@ -188,10 +162,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_blank_history_sentence_WHEN_building_the_items_THEN_it_is_skipped()
         {
-            string items = NemesisDossierBuilder.BuildItems(
-                "Ranulf the Faceless Fox", "forest bandits", "the Northmarch",
-                timesEncountered: 1, recaptureCount: 0,
-                historySentences: new List<string> { "  ", "", "A real history line." });
+            string items = NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = "Ranulf the Faceless Fox", CultureDisplay = "forest bandits", RegionDisplay = "the Northmarch", TimesEncountered = 1, RecaptureCount = 0, HistorySentences = new List<string> { "  ", "", "A real history line." }});
 
             items.Should().Contain("• A real history line.");
             items.Should().NotContainAny("•  \n", "• \n•");
@@ -201,9 +172,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_no_history_sentences_supplied_WHEN_building_the_items_THEN_it_still_builds_the_identity_and_encounter_lines()
         {
-            string items = NemesisDossierBuilder.BuildItems(
-                "Ranulf the Faceless Fox", "forest bandits", "the Northmarch",
-                timesEncountered: 1, recaptureCount: 0, historySentences: null);
+            string items = NemesisDossierBuilder.BuildItems(new NemesisDossierBuilder.NemesisDossierFacts {DisplayName = "Ranulf the Faceless Fox", CultureDisplay = "forest bandits", RegionDisplay = "the Northmarch", TimesEncountered = 1, RecaptureCount = 0, HistorySentences = null});
 
             items.Should().Contain("• Ranulf the Faceless Fox leads a band of forest bandits, haunting the country around the Northmarch.");
             items.Should().Contain("• You have crossed his path once.");

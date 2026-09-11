@@ -21,6 +21,42 @@ namespace CalradiaRemembers.Logic
       private const double LateStageThreshold = 2d / 3d;
 
       /// <summary>
+      ///   What the mod knows about one mother's pregnancy, read off the campaign by the caller.
+      ///   <para>
+      ///     Named rather than positional (2026-09-10). Two of the three booleans decide whether the FATHER is
+      ///     named at all, which is the bastard-secret pillar's whole hinge, and a swap between them or between
+      ///     the two day counts compiled in silence: passing the days remaining where the total belongs turns a
+      ///     woman near her term into one barely showing, and no test of the arithmetic would notice.
+      ///   </para>
+      /// </summary>
+      public sealed class PregnancyFacts
+      {
+         /// <summary>She is carrying a child. False renders no line at all.</summary>
+         public bool IsPregnant { get; set; }
+
+         /// <summary>The player is the father, which is worth saying in his own presence.</summary>
+         public bool FatherIsPlayer { get; set; }
+
+         /// <summary>The father's name, used only when he may be named.</summary>
+         public string FatherName { get; set; }
+
+         /// <summary>
+         ///   The father may be named. He is her legal spouse. An affair or a faceless bandit is NOT namable,
+         ///   and she then stays evasive about who the father is while still owning the pregnancy itself.
+         /// </summary>
+         public bool FatherNamable { get; set; }
+
+         /// <summary>Days still to run before the birth.</summary>
+         public int DaysRemaining { get; set; }
+
+         /// <summary>
+         ///   The pregnancy model's full term in days. At or below zero the game could not resolve it, and the
+         ///   line is omitted rather than guessed from a meaningless fraction.
+         /// </summary>
+         public int TotalDurationDays { get; set; }
+      }
+
+      /// <summary>
       ///   Describes a pregnant mother's state for the NPC identity directive. Returns "" when
       ///   <paramref name="isPregnant" /> is false or <paramref name="totalDurationDays" /> is unknown
       ///   (&lt;= 0), so the caller omits the line entirely rather than render a nonsensical stage.
@@ -28,14 +64,17 @@ namespace CalradiaRemembers.Logic
       ///   who is not the mother's legal spouse (an affair, or a faceless bandit) stays unnamed, so the
       ///   NPC remains evasive about the father while still acknowledging the pregnancy itself.
       /// </summary>
-      public static string Describe(
-         bool isPregnant,
-         bool fatherIsPlayer,
-         string fatherName,
-         bool fatherNamable,
-         int daysRemaining,
-         int totalDurationDays)
+      public static string Describe(PregnancyFacts facts)
       {
+         if (facts == null) return "";
+
+         bool isPregnant = facts.IsPregnant;
+         bool fatherIsPlayer = facts.FatherIsPlayer;
+         string fatherName = facts.FatherName;
+         bool fatherNamable = facts.FatherNamable;
+         int daysRemaining = facts.DaysRemaining;
+         int totalDurationDays = facts.TotalDurationDays;
+
          if (!isPregnant || totalDurationDays <= 0) return "";
 
          int elapsed = totalDurationDays - daysRemaining;

@@ -2591,9 +2591,12 @@ namespace CalradiaRemembers.GameState
             return null;
          }
 
-         ConceptionRole role = ConceptionResolver.Resolve(
-            player.IsFemale, player.IsAlive, player.Age,
-            npcHero.IsFemale, npcHero.IsAlive, npcHero.Age);
+         ConceptionRole role = ConceptionResolver.Resolve(new ConceptionResolver.ConceptionFacts {
+            Player = new ConceptionResolver.Participant
+               {IsFemale = player.IsFemale, IsAlive = player.IsAlive, Age = player.Age},
+            Npc = new ConceptionResolver.Participant
+               {IsFemale = npcHero.IsFemale, IsAlive = npcHero.IsAlive, Age = npcHero.Age}
+         });
 
          switch (role)
          {
@@ -4581,9 +4584,7 @@ namespace CalradiaRemembers.GameState
             // softens how the refusal is voiced, it never buys a standing mechanical exemption.
             && IntimacyThresholdPolicy.PermitsIntimacy(BuildConsentFacts(npcHero, context.Profile));
 
-         int delta = RelationGate.Resolve(
-            proposed, context.Profile, context.EmittedEvent, CampaignTime.Now.ToHours, captive,
-            intimacyAllowed, ModSettings.RelationWarmth, ModSettings.RegardDecayDays);
+         int delta = RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = proposed, Profile = context.Profile, EmittedEvent = context.EmittedEvent, CurrentHour = CampaignTime.Now.ToHours, NpcIsCaptive = captive, IntimacyAllowed = intimacyAllowed, Warmth = ModSettings.RelationWarmth, DecayDays = ModSettings.RegardDecayDays});
 
          if (delta == 0)
          {

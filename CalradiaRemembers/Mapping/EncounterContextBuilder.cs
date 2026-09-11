@@ -1031,7 +1031,7 @@ namespace CalradiaRemembers.Mapping
                : "";
             var totalDuration = (int) (Campaign.Current?.Models?.PregnancyModel?.PregnancyDurationInDays ?? 0f);
 
-            return PregnancyNotePolicy.Describe(true, fatherIsPlayer, fatherName, fatherNamable, daysRemaining, totalDuration);
+            return PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = fatherIsPlayer, FatherName = fatherName, FatherNamable = fatherNamable, DaysRemaining = daysRemaining, TotalDurationDays = totalDuration});
          }
          catch { return ""; }
       }
@@ -1346,9 +1346,12 @@ namespace CalradiaRemembers.Mapping
 
          if (hero == null || player == null || hero == player) return ConceptionRisk.None;
 
-         ConceptionRole role = ConceptionResolver.Resolve(
-            player.IsFemale, player.IsAlive, player.Age,
-            hero.IsFemale, hero.IsAlive, hero.Age);
+         ConceptionRole role = ConceptionResolver.Resolve(new ConceptionResolver.ConceptionFacts {
+            Player = new ConceptionResolver.Participant
+               {IsFemale = player.IsFemale, IsAlive = player.IsAlive, Age = player.Age},
+            Npc = new ConceptionResolver.Participant
+               {IsFemale = hero.IsFemale, IsAlive = hero.IsAlive, Age = hero.Age}
+         });
 
          switch (role)
          {

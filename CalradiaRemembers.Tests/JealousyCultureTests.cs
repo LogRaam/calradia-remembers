@@ -40,7 +40,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_permissive_culture_at_or_above_the_elite_tier_WHEN_asked_THEN_it_tolerates_sharing()
       {
          //Arrange
-         JealousyCulture culture = JealousyCulture.FromRaw("Low", polygamyEliteTier: 2, "Low", false, "");
+         JealousyCulture culture = JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = 2, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""});
 
          //Act/Assert
          culture.ToleratesSharedPartners(2).Should().BeTrue("the elite tier gate is inclusive at its edge");
@@ -54,7 +54,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_permissive_culture_below_the_elite_tier_WHEN_asked_THEN_it_behaves_monogamously()
       {
          //Arrange — historically polygamy was concentrated among the elite.
-         JealousyCulture culture = JealousyCulture.FromRaw("Low", polygamyEliteTier: 2, "Low", false, "");
+         JealousyCulture culture = JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = 2, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""});
 
          //Act/Assert
          culture.ToleratesSharedPartners(1).Should().BeFalse("a commoner of a permissive culture still expects exclusivity");
@@ -67,7 +67,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_high_outrage_culture_above_the_tier_gate_WHEN_asked_THEN_it_still_refuses_to_share()
       {
          //Arrange — both conditions are required; outrage alone vetoes tolerance.
-         JealousyCulture culture = JealousyCulture.FromRaw("High", polygamyEliteTier: 0, "Low", false, "");
+         JealousyCulture culture = JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "High", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""});
 
          //Act/Assert
          culture.ToleratesSharedPartners(6).Should().BeFalse();
@@ -82,9 +82,9 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_outrage_strings_in_any_casing_WHEN_parsed_THEN_they_map_to_the_right_level()
       {
          //Arrange/Act/Assert
-         JealousyCulture.FromRaw("low", 0, "Low", false, "").Outrage.Should().Be(JealousyOutrage.Low);
-         JealousyCulture.FromRaw("MEDIUM", 0, "Low", false, "").Outrage.Should().Be(JealousyOutrage.Medium);
-         JealousyCulture.FromRaw("High", 0, "Low", false, "").Outrage.Should().Be(JealousyOutrage.High);
+         JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "low", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""}).Outrage.Should().Be(JealousyOutrage.Low);
+         JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "MEDIUM", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""}).Outrage.Should().Be(JealousyOutrage.Medium);
+         JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "High", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""}).Outrage.Should().Be(JealousyOutrage.High);
       }
 
       // The documented fail-safe (JealousyCulture's own doc: "any culture not configured...
@@ -95,8 +95,8 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_an_unrecognised_or_null_outrage_WHEN_parsed_THEN_it_degrades_to_monogamous()
       {
          //Arrange/Act/Assert
-         JealousyCulture.FromRaw("nonsense", 0, "Low", false, "").Outrage.Should().Be(JealousyOutrage.High);
-         JealousyCulture.FromRaw(null, 0, "Low", false, "").Outrage.Should().Be(JealousyOutrage.High,
+         JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "nonsense", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""}).Outrage.Should().Be(JealousyOutrage.High);
+         JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = null, PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""}).Outrage.Should().Be(JealousyOutrage.High,
             "a mistyped or missing culture must fail safe toward exclusivity, never toward permissiveness");
       }
 
@@ -108,9 +108,9 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_hierarchy_strings_WHEN_parsed_THEN_only_high_and_medium_are_recognised()
       {
          //Arrange/Act/Assert
-         JealousyCulture.FromRaw("Low", 0, "High", false, "").Hierarchy.Should().Be(JealousyHierarchy.High);
-         JealousyCulture.FromRaw("Low", 0, "medium", false, "").Hierarchy.Should().Be(JealousyHierarchy.Medium);
-         JealousyCulture.FromRaw("Low", 0, "anything-else", false, "").Hierarchy.Should().Be(JealousyHierarchy.Low);
+         JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = 0, HierarchySensitivity = "High", EquityExpectation = false, PromptHint = ""}).Hierarchy.Should().Be(JealousyHierarchy.High);
+         JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = 0, HierarchySensitivity = "medium", EquityExpectation = false, PromptHint = ""}).Hierarchy.Should().Be(JealousyHierarchy.Medium);
+         JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = 0, HierarchySensitivity = "anything-else", EquityExpectation = false, PromptHint = ""}).Hierarchy.Should().Be(JealousyHierarchy.Low);
       }
 
       // PromptHint is concatenated directly into the LLM letter-context string
@@ -120,7 +120,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_null_prompt_hint_WHEN_built_THEN_it_is_an_empty_string()
       {
          //Arrange/Act
-         JealousyCulture culture = JealousyCulture.FromRaw("Low", 0, "Low", false, null);
+         JealousyCulture culture = JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = null});
 
          //Assert
          culture.PromptHint.Should().BeEmpty("the reaction prompt concatenates the hint and must never see null");

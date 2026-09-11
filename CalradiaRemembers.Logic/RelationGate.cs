@@ -81,38 +81,82 @@ namespace CalradiaRemembers.Logic
         ///   <see cref="NpcProfile.LastRelationGainHour"/> so the cooldown can be
         ///   enforced on subsequent turns. Returns 0 when the change is fully gated out.
         /// </summary>
-        /// <param name="proposed">The raw delta the LLM emitted.</param>
-        /// <param name="profile">The NPC profile (its cooldown stamp may be updated).</param>
-        /// <param name="emittedEvent">The event type emitted this exchange, if any.</param>
-        /// <param name="currentHour"><c>CampaignTime.Now.ToHours</c> at this moment.</param>
-        /// <param name="npcIsCaptive">True if the NPC is currently the player's captive.</param>
-        /// <param name="intimacyAllowed">
-        ///   Regard audit C1: whether the caller has confirmed an intimacy [EVENT] is legitimate this turn (adult
-        ///   content enabled, orientation-compatible, an active romance underway). Only then may an intimacy tag
-        ///   earn the larger, cooldown-bypassing bonus; otherwise it is treated as a routine gain, so the tag can
-        ///   never be spammed to farm regard. The prompt is advice, this gate is the law.
-        /// </param>
+        /// <param name="proposal">The proposal and the facts it is weighed against; see <see cref="RegardProposal" />.</param>
         /// <summary>Default per-tier decay period (in-game DAYS) for the progressive-regard model; the MCM setting overrides it.</summary>
         public const double DefaultDecayDays = 7.0;
 
-        public static int Resolve(
-            int proposed,
-            NpcProfile profile,
-            NotableEventType? emittedEvent,
-            double currentHour,
-            bool npcIsCaptive,
-            bool intimacyAllowed,
-            RelationWarmth warmth = RelationWarmth.Normal,
-            double decayDays = DefaultDecayDays)
+        /// <summary>
+        ///   One proposal from the model, with everything the gate weighs it against.
+        ///   <para>
+        ///     Named rather than positional (2026-09-10). The old signature ended in TWO bare booleans,
+        ///     <c>npcIsCaptive</c> and <c>intimacyAllowed</c>, and every one of the twenty-five call sites read
+        ///     <c>Resolve(1, p, null, 100.0, false, false)</c>. Swap those two and a conversational insult gets
+        ///     the captive's -100 floor while an intimacy tag earns its cooldown-bypassing +3 unvouched, which
+        ///     is precisely the farming exploit this class exists to stop, and it would compile in silence.
+        ///     Gabriel: the code should be an example of good practice.
+        ///   </para>
+        /// </summary>
+        public sealed class RegardProposal
         {
+            /// <summary>The raw delta the LLM emitted. Zero is a no-op that banks nothing.</summary>
+            public int Proposed { get; set; }
+
+            /// <summary>
+            ///   The NPC's profile, carrying the tier and accrual the progressive model reads and WRITES: this
+            ///   is the one field the gate mutates. Null is an untracked NPC and yields 0 rather than throwing.
+            /// </summary>
+            public NpcProfile Profile { get; set; }
+
+            /// <summary>The event type tagged on this exchange, if any. Only Intimacy opens the guarded door.</summary>
+            public NotableEventType? EmittedEvent { get; set; }
+
+            /// <summary><c>CampaignTime.Now.ToHours</c> at this moment, the only clock the gate has.</summary>
+            public double CurrentHour { get; set; }
+
+            /// <summary>The NPC is the player's captive, which deepens the floor a negative may reach.</summary>
+            public bool NpcIsCaptive { get; set; }
+
+            /// <summary>
+            ///   Regard audit C1: the caller has confirmed an intimacy [EVENT] is legitimate this turn (adult
+            ///   content enabled, orientation-compatible, an active romance underway). Only then may an intimacy
+            ///   tag earn the larger, cooldown-bypassing bonus; otherwise it falls through to the routine path,
+            ///   so the tag can never be spammed to farm regard. The prompt is advice, this gate is the law.
+            /// </summary>
+            public bool IntimacyAllowed { get; set; }
+
+            /// <summary>
+            ///   The player's Relationship Pacing. NOTE (2026-09-10): the gate does not currently read this. The
+            ///   progressive-regard model of 2026-09-05 replaced the flat throttle this once fed, and
+            ///   <see cref="CooldownHoursFor" /> and <see cref="RoutineCapFor" /> went unread with it, so Very
+            ///   Easy no longer buys the +2 beat those helpers still promise. The field is kept because callers
+            ///   mean it and the pacing dial is live elsewhere; whether the gate should honour it again is
+            ///   Gabriel's call, not a thing to change under cover of a rename.
+            /// </summary>
+            public RelationWarmth Warmth { get; set; } = RelationWarmth.Normal;
+
+            /// <summary>
+            ///   How many in-game days a resistance tier survives without being fed. Zero means the player
+            ///   turned the cooldown off, and the resistance relaxes completely every time it is consulted.
+            /// </summary>
+            public double DecayDays { get; set; } = DefaultDecayDays;
+        }
+
+        public static int Resolve(RegardProposal proposal)
+        {
+            if (proposal == null) return 0;
+
+            int proposed = proposal.Proposed;
+            NpcProfile profile = proposal.Profile;
+
             if (proposed == 0 || profile == null) return 0;
 
             if (proposed > 0)
-                return ResolvePositive(proposed, profile, emittedEvent, currentHour, intimacyAllowed, decayDays);
+                return ResolvePositive(proposed, profile, proposal.EmittedEvent, proposal.CurrentHour,
+                                       proposal.IntimacyAllowed, proposal.DecayDays);
 
             // ── Negative: not rate-limited; depth bounded by verifiable context ──
             // Warmth never softens negatives — insults and betrayals cost the same at every level.
-            int floor = npcIsCaptive ? CaptiveFloor : ConversationalFloor;
+            int floor = proposal.NpcIsCaptive ? CaptiveFloor : ConversationalFloor;
             return proposed > floor ? proposed : floor;
         }
 

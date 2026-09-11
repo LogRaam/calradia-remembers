@@ -89,20 +89,51 @@ namespace CalradiaRemembers.Logic
       ///   Builds a culture from the raw JSON values. Unrecognised or missing strings degrade to
       ///   the strictly-monogamous defaults, so an unlisted or mistyped culture stays safe.
       /// </summary>
-      public static JealousyCulture FromRaw(
-         string exclusivityOutrage,
-         int polygamyEliteTier,
-         string hierarchySensitivity,
-         bool equityExpectation,
-         string promptHint,
-         bool patriarchalHousehold = false)
-         => new(
-            ParseOutrage(exclusivityOutrage),
-            ParseHierarchy(hierarchySensitivity),
-            equityExpectation,
-            polygamyEliteTier,
-            promptHint,
-            patriarchalHousehold);
+      /// <summary>
+      ///   One culture's jealousy rules exactly as they are WRITTEN in jealousy_cultures.json, before anything is
+      ///   parsed. The host's own DTO fills it, so the shape of the file and the shape of this record stay one
+      ///   thing rather than two that can disagree.
+      ///   <para>
+      ///     Named rather than positional (2026-09-10). Gabriel: the code should be an example of good practice,
+      ///     and a repository with no exceptions has nothing to explain. Every policy in Logic now takes its
+      ///     facts by name, so a caller cannot pass them in the wrong order, a test names only what it is about,
+      ///     and adding a field costs nothing to a test that never used it.
+      ///   </para>
+      /// </summary>
+      public sealed class JealousyCultureRaw
+      {
+         /// <summary>How badly this culture takes exclusivity being broken, as the file spells it ("Low", "High").</summary>
+         public string ExclusivityOutrage { get; set; } = "";
+
+         /// <summary>The clan tier from which polygamy is tolerated, historical polygamy being an elite affair.</summary>
+         public int PolygamyEliteTier { get; set; }
+
+         /// <summary>How much rank matters to them, as the file spells it.</summary>
+         public string HierarchySensitivity { get; set; } = "";
+
+         /// <summary>They expect partners to be treated as equals.</summary>
+         public bool EquityExpectation { get; set; }
+
+         /// <summary>The sentence the prompt carries for this culture, authored in the file.</summary>
+         public string PromptHint { get; set; } = "";
+
+         /// <summary>The household is patriarchal, which colours who may take another partner.</summary>
+         public bool PatriarchalHousehold { get; set; }
+      }
+
+      /// <summary>Reads one culture's written rules into the rule the mod actually applies.</summary>
+      public static JealousyCulture FromRaw(JealousyCultureRaw raw)
+      {
+         raw ??= new JealousyCultureRaw();
+
+         return new JealousyCulture(
+            ParseOutrage(raw.ExclusivityOutrage),
+            ParseHierarchy(raw.HierarchySensitivity),
+            raw.EquityExpectation,
+            raw.PolygamyEliteTier,
+            raw.PromptHint,
+            raw.PatriarchalHousehold);
+      }
 
       /// <summary>
       ///   True when a partner of this culture, at <paramref name="clanTier" />, tolerates the

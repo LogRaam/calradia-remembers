@@ -36,7 +36,7 @@ namespace CalradiaRemembers.Tests
 
         // A culture that holds shared partners normal, at a tier that historically practised it.
         private static JealousyCulture Tolerant() =>
-            JealousyCulture.FromRaw("Low", 0, "Low", false, null, true);
+            JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = null, PatriarchalHousehold = true});
 
         private static JealousyCulture Strict() => JealousyCulture.Monogamous;
 
@@ -66,7 +66,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_tolerant_culture_WHEN_the_character_is_below_its_elite_tier_THEN_polyamory_is_not_offered()
         {
-            JealousyCulture eliteOnly = JealousyCulture.FromRaw("Low", EliteTier, "Low", false, null, true);
+            JealousyCulture eliteOnly = JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = EliteTier, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = null, PatriarchalHousehold = true});
 
             RomanticProfilePolicy.BuildPreferencePool(Traits(0), eliteOnly, clanTier: 0)
                 .Should().NotContain(RomanticPreference.Polyamorous);
