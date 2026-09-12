@@ -455,6 +455,8 @@ namespace CalradiaRemembers.Mapping
             // the player's ledger while fixing one companion.
             Bearer = BuildKnowledgeBearer(hero),
             HouseStanding = BuildHouseStanding(hero),
+            PersonalBonds = BuildPersonalBonds(hero, profile),
+            Audience = BuildListeningAudience(profile, witnesses),
             // follow_me: taught only when EscortEligibilityPolicy.CanEscort says the game can truly honour it
             // right now (see the computation just above the object initializer). dismiss_escort is the mirror,
             // taught only while THIS lord's own party is genuinely escorting the player.
@@ -2083,6 +2085,85 @@ namespace CalradiaRemembers.Mapping
       ///   Who this character is, for the knowledge factory. Plain engine reads; the RULE about what any of it
       ///   entitles them to know lives in the SDK, pure and unit-tested, never here.
       /// </summary>
+      /// <summary>
+      ///   Who is listening, so a pack can decide what would actually be SAID rather than only what is known.
+      ///   A confidence is not given to a room, and not to someone barely known.
+      /// </summary>
+      private static ListeningAudience BuildListeningAudience(NpcProfile profile, IReadOnlyList<WitnessEntry> witnesses)
+         => new() {
+            Regard = profile?.ReputationWithPlayer ?? 0,
+            InPrivate = witnesses == null || witnesses.Count == 0
+         };
+
+      /// <summary>
+      ///   The people this character carries who are NOT the player, drawn from what the simulation already
+      ///   runs and nobody could mention (Gabriel, 2026-09-11).
+      ///   <para>
+      ///     Two sources today, both of them things that genuinely happen to NPCs without the player: a live
+      ///     grudge whose TARGET is somebody else, and this character's own lover. Family, friends and rivalries
+      ///     are the obvious next sources and are deliberately not guessed at here.
+      ///   </para>
+      ///   <para>
+      ///     A SECRET affair is passed through with its discretion intact rather than filtered out here: the
+      ///     pack never renders a secret, and keeping the judgement in one place is what stops this from
+      ///     becoming a second authority on what may be told.
+      ///   </para>
+      /// </summary>
+      private static PersonalBondsFacts BuildPersonalBonds(Hero hero, NpcProfile profile)
+      {
+         if (hero == null) return null;
+
+         var bonds = new List<PersonalBond>();
+         string playerId = Hero.MainHero?.StringId;
+         int today = (int) CampaignTime.Now.ToDays;
+
+         // Grievances against somebody other than the player. GrudgeNote already carries the ones aimed AT the
+         // player; these are the ones he has never had anyone to tell.
+         IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today);
+         if (live != null)
+            foreach (Grudge grudge in live)
+            {
+               if (grudge == null || string.IsNullOrEmpty(grudge.TargetId)) continue;
+               if (grudge.TargetId == playerId) continue;
+
+               string name = NameOf(grudge.TargetId);
+               if (string.IsNullOrWhiteSpace(name)) continue;
+
+               bonds.Add(new PersonalBond {
+                  PersonName = name,
+                  Kind = BondKind.Enemy,
+                  Note = string.IsNullOrWhiteSpace(grudge.CauseSummary) ? null : grudge.CauseSummary.Trim(),
+                  Discretion = Discretion.Open
+               });
+            }
+
+         // His own lover, if he has one. A secret affair keeps its secrecy all the way through: the pack refuses
+         // to render it, which is how the mystery-lover pillar keeps sole ownership of when it may surface.
+         string loverId = profile?.Romantic?.TakenLoverId;
+         if (!string.IsNullOrEmpty(loverId) && loverId != playerId)
+         {
+            string name = NameOf(loverId);
+            if (!string.IsNullOrWhiteSpace(name))
+               bonds.Add(new PersonalBond {
+                  PersonName = name,
+                  Kind = BondKind.Beloved,
+                  Discretion = profile.Romantic.LoverIsSecret ? Discretion.Secret : Discretion.Guarded
+               });
+         }
+
+         return bonds.Count == 0 ? null : new PersonalBondsFacts {Bonds = bonds};
+      }
+
+      /// <summary>A hero's display name from their id, or null when the world no longer has them.</summary>
+      private static string NameOf(string heroId)
+      {
+         if (string.IsNullOrEmpty(heroId)) return null;
+
+         Hero found = Hero.FindFirst(h => h != null && h.StringId == heroId);
+
+         return found?.Name?.ToString();
+      }
+
       private static KnowledgeBearer BuildKnowledgeBearer(Hero hero)
       {
          if (hero == null) return null;
