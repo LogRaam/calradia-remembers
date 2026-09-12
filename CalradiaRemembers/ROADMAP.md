@@ -388,6 +388,47 @@ read "On (default): ... Off: ..." the clipped half was always the one explaining
 `cr.testall setting_hints_fit` reads the ATTRIBUTES (so it holds whether or not MCM has loaded) and asserts
 every hint is under 250 characters and none is empty.
 
+### IS versus KNOWS, and the case for gathering the whole prompt (Gabriel, 2026-09-12)
+
+Asked whether the identity block should migrate into the pack architecture, the answer had to be NO, for a
+reason that is mechanical rather than stylistic: the Compact allowance SKIPS a pack that will not fit. That is
+right for what a character knows and catastrophic for who a character IS - a busy landed lord would silently
+lose his own name and station on a small model, which is the king-denies-his-crown bug rebuilt on purpose.
+
+**Gabriel's answer resolved it instead of working around it: two kinds of pack, and the IS kind is mandatory.**
+`PackKind.Constitutive` renders FIRST and OUTSIDE the allowance; `PackKind.Contingent` is budgeted as before.
+Two guards keep it honest: a constitutive pack must be carried by EVERY bearer (a "mandatory" pack whose
+composition rule can refuse somebody is a contradiction, and it is the obvious back door - mark a pack
+constitutive and it escapes the budget), and being carried by everyone does NOT by itself make a pack
+constitutive (the weather is universal and perfectly droppable). The line is "would the character stop making
+sense", not "is it unconditional".
+
+**And his real argument, which is the stronger one: gathering it makes the whole work VISIBLE.** This session
+alone gives four proofs, none of which came from anybody knowing: `here_and_now` discovered the council had
+carried a Season all along and nobody had generalised it; the Compact budget guard was measuring a prompt with
+zero packs in it; the wound gap was found by a grep; and the player-visibility pack was avoided only because
+the context happened to get checked first. It is the `cr.help` lesson exactly - 70 of 259 commands documented,
+cured not by keeping the list better but by making the registry ENUMERABLE.
+
+**The size of it, measured rather than guessed: `PromptBuilder` is 8,077 lines with 171 `Append` calls.** So
+the migration is real work and must be incremental. What belongs and what does not:
+
+- **Migrate** anything answering "what does this character know or is": relationships, cultural traditions,
+  discovered traits, quests, romantic profile, current stance, station.
+- **Never migrate** anything telling the model HOW to reply: response format, the action catalogue, scene
+  discipline, prose craft. Those are instructions, not memory, and folding them in would make the registry
+  mean two things.
+
+**The method, and it is the part that makes it safe:** each section moves in its own increment and must be
+verified BYTE-IDENTICAL before and after. A permanent golden-text test is the wrong tool - it would go red on
+every legitimate wording change and train everyone to regenerate it blindly, which is how a red that MEANT
+something gets edited away. The right tool is a prompt DUMP used as a migration harness and thrown away, and
+it would earn its keep permanently for a different reason: when a player reports something strange, "what did
+the model actually see?" is currently unanswerable. **Proposed, not built.**
+
+**Built so far: the split itself.** No pack is constitutive yet - the first one should be `station`, which is
+small, unambiguously part of who someone is, and already fixed once from a player report.
+
 ### The audit, still open
 
 The categories with a named gap and no pack yet, in the order the evidence supports:
