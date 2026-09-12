@@ -515,6 +515,49 @@ stronghold changing hands has no threshold at all, because it is the thing peopl
 `cr.testall seasonal_chronicle` drives the real behaviour against the real store with a deliberately perturbed
 reading - the honest alternative is waiting a season and hoping a kingdom took a town - and removes its row.
 
+### THE ROLE AUDIT (Gabriel asked, 2026-09-12: are packs or ROLES missing?)
+
+Done against the engine rather than from memory. Bannerlord names **33 occupations**; `KnowledgeBearer`
+distinguishes six kinds of person. That gap is mostly FINE - a tavern wench and a shop worker need no
+knowledge the existing packs do not already give them. The question worth asking is narrower: **which roles
+carry knowledge nobody else has?**
+
+**1. THE POSTS THE PLAYER GRANTS, and this is the finding.** The context carries three OFFER gates -
+`NpcCanBeAppointedGovernor`, `NpcCanBeAssignedPartyRole`, `NpcCanBeDispatchedOnMission` - and exactly ONE of
+them has a matching "post actually held" (`GovernedSettlementName`, added 2026-09-11 the day fkasad reported
+that his governor did not know he governed).
+
+> The context knows whether a post can be OFFERED. It mostly does not know whether one is HELD.
+
+So fkasad's bug was fixed in one of three places. The mod appoints a companion QUARTERMASTER through its own
+verb and never tells them they are one; the engine has kept `EffectiveQuartermaster`, `EffectiveScout`,
+`EffectiveSurgeon`, `EffectiveEngineer` (and `EffectiveFirstMate`/`EffectiveNavigator` since War Sails) all
+along. Ask that quartermaster how the party is for supplies and he will invent, exactly as the governor did
+about his granary. **Highest value, cheapest to build, and it is a bug the mod created for itself.**
+
+**2. CARAVANS AND WORKSHOPS.** `Hero.OwnedCaravans` and `Hero.OwnedWorkshops` return nothing to the context
+today. This is the natural completion of `market_word` and genuinely distinct from it: a static merchant knows
+ONE market, a caravan owner knows the ROAD between markets - where his goods are, what the passage costs,
+which road he stopped using. Gabriel named caravans unprompted, which is usually a sign.
+
+**3. THE MERCENARY.** `PlayerIsMercenary` is carried; the NPC's own service is not. A mercenary captain knows
+who pays him and until when, and that is exactly the sort of thing a player would ask.
+
+**4. THE PREACHER, and the honest answer about it.** A whole occupation with no representation anywhere - but
+the engine models almost nothing for it, so a pack would have nothing to read. Naming it as a gap would be
+naming a gap in Bannerlord rather than in this mod. What it IS good for is the other system built today: a
+preacher is the natural mouth for an OMEN, which `WorldClaimPolicy` already accepts as promotable precisely
+because the engine has nothing to say about it.
+
+**What needs nothing:** tavernkeeper, arena master, ransom broker, blacksmith, horse trader. Their knowledge
+is either their market (`market_word`), their town (`seat_standing`), or their manner (the station-matched
+behaviour guidelines, which have always existed).
+
+**The structural reading, which is worth more than any single pack on the list:** `station` covers the ranks
+the WORLD confers - a crown, a house, a seat. Nothing covers the posts the PLAYER confers, and the mod grants
+at least four kinds (governor, party role, mission, retainer). Every one is a promise the player made to a
+character who does not know they hold it, and one of the four has already come back as a report.
+
 ### The audit, still open
 
 The categories with a named gap and no pack yet, in the order the evidence supports:
