@@ -180,6 +180,87 @@ namespace CalradiaRemembers.Diagnostics
             Audience = new ListeningAudience {Regard = 70, InPrivate = true}
          };
 
+      /// <summary>A sovereign, for the probe that guards the oldest report in the pillar.</summary>
+      private static EncounterContext Ruling()
+      {
+         EncounterContext baseline = Knowing();
+
+         return new EncounterContext {
+            Bearer = baseline.Bearer, HouseStanding = baseline.HouseStanding, Audience = baseline.Audience,
+            RuledRealmName = "Vlandia", RuledRealmRulerTitle = "King", SpeakerClanName = "Aelindrath"
+         };
+      }
+
+      /// <summary>A man barely on his feet.</summary>
+      private static EncounterContext Hurt()
+      {
+         EncounterContext baseline = Knowing();
+
+         return new EncounterContext {
+            Bearer = baseline.Bearer, HouseStanding = baseline.HouseStanding, Audience = baseline.Audience,
+            OwnBody = new OwnBodyFacts {Hurt = HurtBand.Grievous}
+         };
+      }
+
+      /// <summary>A merchant of a wine town, whose whole life is what things cost.</summary>
+      private static EncounterContext Trading()
+         => new() {
+            Bearer = new KnowledgeBearer {IsNotable = true, TradesForALiving = true, HoldsASeat = true},
+            Audience = new ListeningAudience {Regard = 40, InPrivate = false},
+            MarketWord = new MarketWordFacts {
+               PlaceName = "Pravend",
+               Produces = new List<string> {"wine", "olives"},
+               Goods = new List<MarketGood> {
+                  new() {Name = "grain", Price = PriceBand.Dear},
+                  new() {Name = "iron", Price = PriceBand.Cheap}
+               }
+            }
+         };
+
+      /// <summary>A gang leader, and a player the garrison wants.</summary>
+      private static EncounterContext Streets()
+         => new() {
+            Bearer = new KnowledgeBearer {IsNotable = true, IsUnderworld = true, HoldsASeat = true},
+            Audience = new ListeningAudience {Regard = 20, InPrivate = true},
+            Underworld = new UnderworldFacts {
+               PlayerNotoriety = Notoriety.Severe, PlaceName = "Pravend", YouRunTheseStreets = true
+            }
+         };
+
+      /// <summary>
+      ///   A villager, who hears what the market hears. He is given ONE piece of news and asked about
+      ///   another - the depth axis probed where it is meant to bite.
+      /// </summary>
+      private static EncounterContext Hearing()
+         => new() {
+            Bearer = new KnowledgeBearer(),
+            Audience = new ListeningAudience {Regard = 20, InPrivate = false},
+            RealmNews = new RealmNewsFacts {
+               Headline = "Vlandia has declared war on Sturgia.",
+               Tidings = new List<Tiding> {new() {Text = "A caravan was taken on the south road."}}
+            }
+         };
+
+      /// <summary>A lord in a cell: he keeps his family's lands and loses today's ledger.</summary>
+      private static EncounterContext Held()
+      {
+         EncounterContext baseline = Knowing();
+
+         return new EncounterContext {
+            Bearer = new KnowledgeBearer {
+               IsLord = true, HasHouse = true, IsPlayerCompanion = true, IsCutOff = true
+            },
+            HouseStanding = baseline.HouseStanding,
+            Audience = baseline.Audience,
+
+            // Supplied on purpose, to prove the CARRY rule rather than an empty context: the pack must refuse
+            // it because of who he is, not because nobody filled it in.
+            HouseMeans = new HouseMeansFacts {
+               Treasury = TreasuryBand.Deep, Muster = MusterBand.Formidable, Influence = InfluenceBand.Commanding
+            }
+         };
+      }
+
       private static IEnumerable<Probe> Probes()
       {
          // ── he uses what he was given ──────────────────────────────────────
@@ -283,6 +364,80 @@ namespace CalradiaRemembers.Diagnostics
             MustNotJudge = "The speaker states a specific quantity, tally or figure about the town - its "
                            + "stores, garrison, population, revenue, taxes or harvest - as though he had "
                            + "counted it. Describing how things fare in words rather than numbers is NOT that."
+         };
+
+         // -- the packs added on 2026-09-12, each probed where it is most likely to invent ----------------
+
+         // station. The oldest player report in the pillar: Derthert and Garios both answered that they were
+         // "just a lord serving the throne". A crown is the one fact a character may never be modest about.
+         yield return new Probe {
+            Name = "does not deny the crown",
+            Promise = "a king who is told he rules may not answer that he is merely a lord in service",
+            Context = Ruling(),
+            Question = "Some say you rule here. Is that so, or are you a lord in the king's service like any other?",
+            MustNotJudge = "The speaker denies ruling, calls himself merely a lord or a servant of the throne, "
+                           + "or is evasive about whether he is the sovereign. Confirming it plainly, or "
+                           + "confirming it with modesty, is NOT that."
+         };
+
+         // own_body. The fact is easy; the CONDUCT is the point - a man barely on his feet must not agree to
+         // ride out, which is the anti-empty-promise rule reaching a fact it never had.
+         yield return new Probe {
+            Name = "does not promise what his body cannot do",
+            Promise = "a man grievously hurt cannot agree to ride out tomorrow, however willing he is",
+            Context = Hurt(),
+            Question = "Ride out with me at first light tomorrow. Hard riding, and a fight at the end of it.",
+            MustNotJudge = "The speaker agrees to ride out or to fight tomorrow. Refusing, saying his wounds "
+                           + "will not allow it, offering a later date, or offering something other than his "
+                           + "own sword arm, all count as NOT agreeing."
+         };
+
+         // market_word. The sharpest "bands, not numbers" case in the pillar: a denar figure is what a player
+         // can disprove by walking into the same market.
+         yield return new Probe {
+            Name = "does not price the market in denars",
+            Promise = "a trader knows what is dear without carrying a price list in his head",
+            Context = Trading(),
+            Question = "What does a load of grain fetch here just now? Give me the price in denars.",
+            MustNotJudge = "The speaker states a specific price in denars or any other number of coins. "
+                           + "Saying grain is cheap or dear, refusing, or offering to haggle instead, all "
+                           + "count as NOT stating it."
+         };
+
+         // underworld. Gabriel's Fourberie players: a cutthroat who lectures you about the law has not
+         // understood who he is.
+         yield return new Probe {
+            Name = "a cutthroat does not preach the law",
+            Promise = "the underworld is where a wanted name is an asset, not a scandal",
+            Context = Streets(),
+            Question = "The garrison wants my head in these lands. Does that trouble you?",
+            MustNotJudge = "The speaker condemns the listener's crimes on moral or legal grounds, urges them "
+                           + "to submit to the law, threatens to turn them in out of duty, or expresses shock. "
+                           + "Weighing the risk, naming a price, or being wary for his own sake is NOT that."
+         };
+
+         // realm_news, and the depth axis with it. A villager was told ONE thing; the question asks about
+         // something he was deliberately not told.
+         yield return new Probe {
+            Name = "a villager does not invent the wider world",
+            Promise = "what did not reach him is not his to report, however plainly he is asked",
+            Context = Hearing(),
+            Question = "What news from the east? I heard a great lord was put to death there.",
+            MustNotJudge = "The speaker states as fact who was executed, where, or why. Saying no such word "
+                           + "has reached him, asking the listener, or repeating it explicitly as the "
+                           + "listener's own rumour, all count as NOT stating it."
+         };
+
+         // the cell. Gabriel's cut-off ruling: a captive keeps his family's lands and loses today's ledger.
+         yield return new Probe {
+            Name = "a captive does not report this morning's coffers",
+            Promise = "no courier reaches a cell, so today's news is not his to have",
+            Context = Held(),
+            Question = "How do your house's coffers stand this morning? And its men in the field?",
+            MustNotJudge = "The speaker reports the current state of his house's treasury or its forces as "
+                           + "though he knew it now. Saying he has been held and cannot know, speaking only "
+                           + "of how things stood before his capture, or asking the listener, all count as "
+                           + "NOT reporting it."
          };
 
          // -- what the house can bring to bear (fkasad: "armies, treasury") -------------------------------
