@@ -36,6 +36,7 @@ using CalradiaRemembers.Social;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
+using NpcMemoryService.Core.Knowledge;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using TaleWorlds.CampaignSystem;
@@ -448,6 +449,12 @@ namespace CalradiaRemembers.Mapping
             GovernedSettlementName = hero?.GovernorOf?.Settlement?.Name?.ToString(),
             GovernsForPlayerHouse = hero?.GovernorOf?.Settlement?.OwnerClan != null
                                     && hero.GovernorOf.Settlement.OwnerClan == Clan.PlayerClan,
+
+            // Knowledge composition, increment 1 (ROADMAP: "WHAT A CHARACTER KNOWS"). Who this person is, and
+            // what they are to the player: the factory weighs both, because role alone would hand a stranger
+            // the player's ledger while fixing one companion.
+            Bearer = BuildKnowledgeBearer(hero),
+            HouseStanding = BuildHouseStanding(hero),
             // follow_me: taught only when EscortEligibilityPolicy.CanEscort says the game can truly honour it
             // right now (see the computation just above the object initializer). dismiss_escort is the mirror,
             // taught only while THIS lord's own party is genuinely escorting the player.
@@ -2072,6 +2079,67 @@ namespace CalradiaRemembers.Mapping
       ///   at commit time). Null otherwise, the vassalage-offer section is then not taught at all.
       /// </summary>
       /// <summary>The realm this hero actually rules, or null. No further condition: it states who they are.</summary>
+      /// <summary>
+      ///   Who this character is, for the knowledge factory. Plain engine reads; the RULE about what any of it
+      ///   entitles them to know lives in the SDK, pure and unit-tested, never here.
+      /// </summary>
+      private static KnowledgeBearer BuildKnowledgeBearer(Hero hero)
+      {
+         if (hero == null) return null;
+
+         return new KnowledgeBearer {
+            IsLord = hero.IsLord,
+            IsPlayerCompanion = hero.IsPlayerCompanion,
+            IsOfPlayerClan = hero.Clan != null && hero.Clan == Clan.PlayerClan,
+            IsNotable = hero.IsNotable,
+            HasHouse = hero.Clan != null
+         };
+      }
+
+      /// <summary>
+      ///   The standing of this character's OWN house, read live and thrown away with the encounter. Derived,
+      ///   never stored: a persisted copy would be a second world model beside Bannerlord's, which this project
+      ///   already pays for twice (two diverging regard ledgers, and romantic profiles generated once so later
+      ///   rule changes never reach existing heroes).
+      ///   <para>
+      ///     Returns null when there is no house, and the pack reads that as UNSUPPLIED rather than as a house
+      ///     with nothing: the completeness sweep needs those two to stay distinguishable, because their
+      ///     confusion is the fkasad class of bug.
+      ///   </para>
+      /// </summary>
+      private static HouseStandingFacts BuildHouseStanding(Hero hero)
+      {
+         Clan clan = hero?.Clan;
+         if (clan == null || string.IsNullOrWhiteSpace(clan.Name?.ToString())) return null;
+
+         var fiefs = new List<string>();
+         if (clan.Fiefs != null)
+            foreach (Town town in clan.Fiefs)
+            {
+               string name = town?.Settlement?.Name?.ToString();
+               if (!string.IsNullOrWhiteSpace(name)) fiefs.Add(name);
+            }
+
+         var wars = new List<string>();
+         IFaction mine = clan.MapFaction;
+         if (mine != null && Kingdom.All != null)
+            foreach (Kingdom other in Kingdom.All)
+            {
+               if (other == null || other == mine || other.IsEliminated) continue;
+               if (!FactionManager.IsAtWarAgainstFaction(mine, other)) continue;
+
+               string name = other.Name?.ToString();
+               if (!string.IsNullOrWhiteSpace(name)) wars.Add(name);
+            }
+
+         return new HouseStandingFacts {
+            HouseName = clan.Name.ToString(),
+            IsPlayerHouse = clan == Clan.PlayerClan,
+            Fiefs = fiefs,
+            AtWarWith = wars
+         };
+      }
+
       private static string ResolveRuledRealmName(Hero hero)
          => hero?.MapFaction is Kingdom k && k.Leader == hero ? k.Name?.ToString() : null;
 
