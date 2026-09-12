@@ -441,6 +441,13 @@ namespace CalradiaRemembers.Mapping
             RuledRealmName = ResolveRuledRealmName(hero),
             RuledRealmRulerTitle = ResolveRuledRealmRulerTitle(hero),
             LeadsOwnClan = hero?.Clan?.Leader == hero && hero?.Clan != null,
+
+            // The post the man actually holds. Read from the engine's own GovernorOf, which this file ALREADY
+            // reads a few lines below to decide whether appoint_governor may be offered: the fact was here all
+            // along, used to gate an action and never to state a truth (fkasad, 2026-09-11).
+            GovernedSettlementName = hero?.GovernorOf?.Settlement?.Name?.ToString(),
+            GovernsForPlayerHouse = hero?.GovernorOf?.Settlement?.OwnerClan != null
+                                    && hero.GovernorOf.Settlement.OwnerClan == Clan.PlayerClan,
             // follow_me: taught only when EscortEligibilityPolicy.CanEscort says the game can truly honour it
             // right now (see the computation just above the object initializer). dismiss_escort is the mirror,
             // taught only while THIS lord's own party is genuinely escorting the player.
