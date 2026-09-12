@@ -310,6 +310,7 @@ namespace CalradiaRemembers.Mapping
          // same read. Two predicates that must agree are two predicates that will one day disagree, and the
          // whole pillar exists because "he would know this" and "somebody told him" drifted apart.
          SeatStandingFacts seatStanding = BuildSeatStanding(hero);
+         MarketWordFacts marketWord = BuildMarketWord(hero);
 
          return new() {
             PlayerStatus = playerStatus,
@@ -466,12 +467,12 @@ namespace CalradiaRemembers.Mapping
             // Knowledge composition, increment 1 (ROADMAP: "WHAT A CHARACTER KNOWS"). Who this person is, and
             // what they are to the player: the factory weighs both, because role alone would hand a stranger
             // the player's ledger while fixing one companion.
-            Bearer = BuildKnowledgeBearer(hero, seatStanding != null),
+            Bearer = BuildKnowledgeBearer(hero, seatStanding != null, marketWord != null),
             HouseStanding = BuildHouseStanding(hero),
             SeatStanding = seatStanding,
             HouseMeans = BuildHouseMeans(hero),
             OwnBody = BuildOwnBody(hero),
-            MarketWord = BuildMarketWord(hero),
+            MarketWord = marketWord,
             Underworld = BuildUnderworld(hero),
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
@@ -2309,7 +2310,7 @@ namespace CalradiaRemembers.Mapping
       ///   in rather than recomputed: it is true exactly when the seat facts were actually read, so the pack's
       ///   "he would know this" cannot drift from the host's "here it is".
       /// </summary>
-      private static KnowledgeBearer BuildKnowledgeBearer(Hero hero, bool holdsASeat)
+      private static KnowledgeBearer BuildKnowledgeBearer(Hero hero, bool holdsASeat, bool hasAMarket)
       {
          if (hero == null) return null;
 
@@ -2318,8 +2319,11 @@ namespace CalradiaRemembers.Mapping
             IsPlayerCompanion = hero.IsPlayerCompanion,
             IsOfPlayerClan = hero.Clan != null && hero.Clan == Clan.PlayerClan,
             IsNotable = hero.IsNotable,
-            TradesForALiving = hero.Occupation == Occupation.Merchant
-                               || hero.Occupation == Occupation.Artisan,
+            // Their trade AND somewhere to ply it. Derived from the same read that supplies the facts, so
+            // "he would know his market" and "here is his market" cannot part company.
+            TradesForALiving = hasAMarket
+                               && (hero.Occupation == Occupation.Merchant
+                                   || hero.Occupation == Occupation.Artisan),
             IsUnderworld = hero.Occupation == Occupation.GangLeader
                            || hero.Occupation == Occupation.Gangster,
             HasHouse = hero.Clan != null,
@@ -2789,11 +2793,16 @@ namespace CalradiaRemembers.Mapping
                if (!string.IsNullOrWhiteSpace(name)) produces.Add(name);
             }
 
-            return new MarketWordFacts {
+            var facts = new MarketWordFacts {
                PlaceName = place.Name?.ToString(),
                Produces = produces,
                Goods = PricedGoods(place, basket)
             };
+
+            // A merchant in a castle, or in a town whose bound villages yield nothing readable, has a trade
+            // and no market to describe. Returning an empty facts object would have the sweep report a fault
+            // that is really two of my own rules disagreeing - the personal_bonds lesson, for the third time.
+            return facts.HasAnyReading ? facts : null;
          }
          catch (Exception ex)
          {
