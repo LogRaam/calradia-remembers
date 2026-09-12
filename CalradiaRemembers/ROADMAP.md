@@ -125,6 +125,80 @@ character profile know something it does not know today?" becomes a pass somebod
 waiting for a player to notice. That turns this from an architecture into an instrument for finding the next
 three fkasad reports before they are written.
 
+### The seasonal historian (Gabriel, 2026-09-11), and why it is NOT a time series
+
+The question that produced it: a lord knows how many men he has now; asked how many he had last year, he will
+invent. Building a Historian to make him right would be **expensive and wrong**, and the wrong matters more.
+Nobody remembers a number. A real captain says "I lost half my men before Pravend", not "487". A Historian that
+sampled a time series would give a character a memory BETTER than a human's, which breaks the illusion from the
+other side, and it would fight the mod's own architecture: `LlmMemoryCompressor` already folds old events into a
+background summary, and precise figures are the first thing compression destroys. **The mod already votes for
+episodic.**
+
+Gabriel's design answers it without a time series, and its real gift is that it makes DATING affordable. What
+made "date every fact" ruinous was the unit: 365 days. In SEASONS it is four entries a year, so dating is
+trivial - and the prisoner question from earlier in the day closes by itself, since a captive carries the
+entries up to his capture and none after.
+
+**Three tiers, and they compose:**
+
+1. **Notable events** - what HAPPENED. Already built: battle memory, the Chronicle, `WorldEvent`s.
+2. **Seasonal snapshots** - what the world WAS, dated, roughly four a year.
+3. **Knowledge packs** - what THIS character knows of it, and up to when.
+
+**Three rulings on the snapshot, and the first is the one that matters:**
+
+**Compute it deterministically; do not have the LLM write it.** "Résumé comme l'expliquerait un chroniqueur"
+invites a background model call every season, forever - a cost the player pays for every season while only some
+are ever asked about, plus a failure mode (a failed call is a hole in history) and the Reply-Language question
+we had just finished fixing for memories. But "Vlandia grew rich" IS a delta description. `PowerIndexPolicy`
+already computes military, territory, economy and political standing, so the input exists: record the DELTAS as
+structured facts and let the conversation put them in a voice. Free, deterministic, testable, language-neutral -
+and the chronicler stays alive, because it is a character telling it rather than a background job.
+
+**One historian for the WORLD, not one per character.** Each character carries a VIEW of it (how much they
+would follow, and up to when). Otherwise storage is heroes x seasons instead of seasons.
+
+**It must not become a fourth memory store.** `ChronicleBehavior` and `WorldEventStore` already exist and the
+Chronicle is literally for this. Parallel ledgers have cost this project before (the two regard ledgers that
+diverge).
+
+### The categories of knowledge, and the audit's first pass
+
+Gabriel: "Est-ce que tu vois d'autres catégories de connaissances qui pourraient exister? Par exemple, la saison
+actuelle, sommes-nous le jour ou la nuit... où je me situe, suis-je à cheval ou à pieds."
+
+A working taxonomy, to be filled pack by pack. Marked with what is VERIFIED today, because the point of the
+pillar is to stop guessing at this:
+
+1. **Self** - who I am, the post I hold, what I carry, my body's state, mounted or afoot.
+   *Identity, station and governorship: DONE. Gear: exists. Wounded / weary / mounted: **ABSENT**.*
+2. **Here and now** - where we stand, indoors or out, the season, the hour, the weather, who else is present.
+   *Scene type and witnesses: exist. Season, time of day, weather, terrain: **ABSENT** (see the finding below).*
+3. **My house** - its lands, its wars, its purse. *Increment 1 built; treasury deliberately deferred.*
+4. **My people** - family, friends, enemies, who I answer to and who answers to me. *Grudges and appreciations
+   exist; the rest is UNAUDITED.*
+5. **You** - what I have seen of you, what I have heard, your standing and your bearing. *First impression,
+   regard, appearance: exist.*
+6. **The world's recent history** - the three tiers above.
+7. **My craft** - a merchant's prices, a smith's materials, a healer's remedies. ***ABSENT.*** Notables are
+   given almost nothing that is theirs.
+8. **What I was told** - rumours, letters, a companion's briefing. *Exists.*
+
+**THE FIRST FINDING, and it is a good advertisement for the method.** A grep of `EncounterContext` returns ZERO
+for season, time of day, night, weather, mounted, terrain, indoors, wounded and health. A character has no idea
+whether it is winter, whether it is the middle of the night, or whether the player rode up or walked.
+
+And the sharper half: `CouncilPromptInput` HAS a `Season` field, and the council prompt says it. So the mod
+already decided a season is worth telling a character - **once, for one surface, and never generalised**. That
+is precisely the "built as we go, scattered" Gabriel named when he asked for this pillar, caught by the first
+question anyone asked of it rather than by the next player report.
+
+**Recommended next increment: "here and now".** It is cheap (every fact is one engine read), it is carried by
+EVERYONE so the composition rule is trivial, it is bounded to one or two sentences, and it improves every single
+conversation rather than a subset. The council's existing Season becomes the general case instead of the
+exception.
+
 ### First slice
 
 The house's standing — fiefs held, wars under way — which is exactly the remainder of fkasad's request
