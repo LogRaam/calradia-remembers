@@ -32,6 +32,119 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## DESIGNED 2026-09-11, NOT BUILT (Gabriel): WHAT A CHARACTER KNOWS, declared once and auditable
+
+Gabriel: "il devrait y avoir une classe qui représente des informations du monde. Et chaque profile de
+personnage devrait avoir une mémoire avec certaines de ces informations... nous pourrions alors faire des tests
+unitaires de logic pour nous assurer qu'un profile se compose de la bonne mémoire." Two goals, in his words:
+**(a) everything an NPC should know, and (b) being able to test it.** And the reason: today that is built as we
+go, scattered, and every gap arrives as a player comment.
+
+### The evidence that this is a missing abstraction and not tidying
+
+Three reports in a row are the same bug wearing different clothes, and each was fixed by hand, one field at a
+time: plagueAdvocate (a lord who has the numbers of a battle wrong, invents where goods came from, cannot see
+the inventory), "never follows me... or send troops to X location", and fkasad's governor who did not know he
+governed. `EncounterContext` now carries **170 flat init properties over 1730 lines**, and what a character
+knows is implicit in which of them the host happened to populate. There is no statement anywhere of what a
+person of this kind, standing in this relation to the player, ought to know.
+
+### The seam already exists — do not invent one
+
+`EncounterContext` is pure data with no engine types. That is why 1301 SDK tests run with Bannerlord not
+installed, and it is exactly the stub point Gabriel's (b) needs. Nothing about the seam changes. What changes is
+that the flat bag becomes a COMPOSITION whose rule is itself pure and testable.
+
+### Shape: declarative packs, a factory that composes them, three readers
+
+**Gabriel's correction, and it fixes a real defect in the first sketch: this is a FACTORY, not a catalogue.** A
+hand-kept inventory rots — `cr.help` described 70 commands of 259 for exactly that reason, and the cure was not
+to keep the list better but to make the registry ENUMERABLE and check completeness against it.
+
+So: **declarative knowledge packs** (each says what it covers and on what terms a character carries it),
+**a factory that composes** them for a given hero, and one declaration read by three different readers:
+
+1. the factory, at conversation time;
+2. a unit test, asserting the COMPOSITION RULE ("a lord of the player's house carries the house's standing; a
+   merchant does not");
+3. a live sweep, asserting COMPLETENESS against real heroes.
+
+The one property that matters is **enumerable**: it is what lets somebody other than the producer ask "is it all
+there?". A factory that is also its own specification can only ever be checked against itself, which is the
+closed loop this project has broken twice this week (a test deriving its expectation from the implementation; a
+guard measuring its own construction).
+
+### Why a unit test alone CANNOT stop the next "the NPC should know X"
+
+This is the part worth arguing before any code. Take fkasad's governor. The prompt code was right. The
+composition rule would have been right. What was missing is that **the host never filled the field** — while the
+engine knew it and the mod read it ten lines away to gate an action. A unit test builds its own context: it
+would have stubbed `GovernedSettlementName` and passed green, and the player would still have had an amnesiac
+governor.
+
+So the design needs two guards of different kinds:
+
+- **The composition rule — pure, unit-tested.** A rule about the world ("a lord knows his house's finances"),
+  which is what makes the assertion worth writing.
+- **Completeness — live.** "Every hero who actually governs something arrives with his post populated." Only a
+  real campaign can answer that, and the instrument and precedent already exist: `cr.testall unavailable_deeds`
+  sweeps 60 real lords and asserts `theShutDeedReachesTheLiveEncounterContext=True`. Generalise that shape.
+
+### Three constraints the design must carry from the first increment
+
+**DERIVED, NEVER STORED.** A class that HOLDS world facts would be a second world model beside Bannerlord's, and
+this project already knows what that costs: two regard ledgers that diverge (`ReputationWithPlayer` vs
+`Hero.GetRelation`), and romantic profiles generated once and persisted, so rule changes never reach existing
+heroes. Knowledge is a projection resolved at conversation time. What CR itself OBSERVED stays in `NpcProfile`
+(37 persisted fields); what a character knows of the world is recomputed. Keeping those two apart is the
+structural decision.
+
+**ROLE IS NOT THE ONLY KEY.** "Lord" does not determine what he knows about YOU. An enemy lord knows his own
+house's finances and not yours; your companion knows yours. Role says which KINDS of knowledge exist for him (a
+merchant has trade knowledge); RELATION says whose facts he may hold. Lord/Merchant/Wanderer alone would bake in
+the wrong axis.
+
+**RELEVANCE, OR THIS MAKES THE PROMPT BIGGER RATHER THAN BETTER.** If a lord composes clan + family + friends +
+enemies + battle history, the natural implementation renders all of it and the 22,500 -> 15,150 characters just
+won back are spent in one release. What he KNOWS (standing, structural) and what he WOULD MENTION NOW (per turn,
+bounded) are two different questions and must be two different steps.
+
+### What it buys beyond tidiness
+
+**Ignorance becomes structural instead of instructed.** `KnowledgeBoundaryPolicy` today states ignorance in
+PROSE — "you do not see the player's purse" — which is a plea to the model. If a merchant simply does not
+compose the clan-finances pack, the fact is never rendered and cannot be leaked. A model cannot divulge what it
+was never given.
+
+**The packs can be READ as design.** Enumerable declarations mean `Tools/Generate-Rules.ps1` can emit a "what
+each kind of character knows" page the way it already emits RULES.md from the suite: reviewable as design rather
+than as code.
+
+**And the audit, which is the real payoff (Gabriel).** Once the packs are enumerable, the question "should a
+character profile know something it does not know today?" becomes a pass somebody can actually run, instead of
+waiting for a player to notice. That turns this from an architecture into an instrument for finding the next
+three fkasad reports before they are written.
+
+### First slice
+
+The house's standing — fiefs held, wars under way — which is exactly the remainder of fkasad's request
+("companions should have a better understanding of the clan current status, territories, armies, treasury,
+wars etc"). Small enough to prove all three constraints on a real case with its budget measured, and useful on
+its own. The 170 existing fields migrate afterwards, by family, by strangling.
+
+### Open questions
+
+- The treasury. A companion who knows your gold to the denar will haggle with it ("you can afford it"). A band
+  rather than a number, and that is Gabriel's call, not a technical one.
+- Does a pack carry FRESHNESS? A lord away on campaign for a season should know his house's standing as it was
+  when he left, not as it is now. That is either a rich seam or a trap, and it should be decided, not discovered.
+- Where do the packs live: `CalradiaRemembers.Logic` (pure, with the other policies) or the SDK beside
+  `EncounterContext`? The composition rule is pure logic; the shape it fills is the SDK's.
+
+**Nothing built. Design first, as with the briefing and the escort.**
+
+---
+
 ## DESIGNED 2026-09-11, NOT BUILT (player request + Gabriel): ESCORT a person to a place, and the arrival IS the scene
 
 A player: "so i just had a noble ask me to bring a healer to a local village that had just been raided. is there
