@@ -457,6 +457,7 @@ namespace CalradiaRemembers.Mapping
             // the player's ledger while fixing one companion.
             Bearer = BuildKnowledgeBearer(hero),
             HouseStanding = BuildHouseStanding(hero),
+            SeatStanding = BuildSeatStanding(hero),
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
             Audience = BuildListeningAudience(profile, witnesses),
@@ -2286,7 +2287,8 @@ namespace CalradiaRemembers.Mapping
             IsPlayerCompanion = hero.IsPlayerCompanion,
             IsOfPlayerClan = hero.Clan != null && hero.Clan == Clan.PlayerClan,
             IsNotable = hero.IsNotable,
-            HasHouse = hero.Clan != null
+            HasHouse = hero.Clan != null,
+            HoldsASeat = HoldsASeat(hero)
          };
       }
 
@@ -2332,6 +2334,213 @@ namespace CalradiaRemembers.Mapping
             Fiefs = fiefs,
             AtWarWith = wars
          };
+      }
+
+      /// <summary>
+      ///   Whether this character answers for any place at all: they govern one, or their house holds one and
+      ///   they lead it. Deliberately not "is a lord": fkasad's governor is a COMPANION, and the count who owns
+      ///   a village knows its granary far less well than the headman who lives in it.
+      /// </summary>
+      private static bool HoldsASeat(Hero hero)
+      {
+         if (hero == null) return false;
+         if (hero.GovernorOf != null) return true;
+         if (hero.IsClanLeader && hero.Clan?.Fiefs != null && hero.Clan.Fiefs.Count > 0) return true;
+
+         // A notable answers for the place they live in - but only if they have one. Deciding that HERE rather
+         // than in the pack is what keeps "carried" and "supplied" from disagreeing, which is the whole point
+         // of the sweep.
+         return hero.IsNotable && hero.HomeSettlement != null;
+      }
+
+      /// <summary>
+      ///   How the places this character answers for are actually doing. Read live and thrown away with the
+      ///   encounter, like every other pack: a stored copy would be a second world model beside Bannerlord's.
+      ///   <para>
+      ///     Built after the first live cr.memory_bench run (2026-09-12), where a character given two fief names
+      ///     and nothing else produced a harvest, grain lost to rot, granary stores and a garrison "at strength",
+      ///     none of it in her prompt. Every reading below is one of those invented sentences made true.
+      ///   </para>
+      /// </summary>
+      private static SeatStandingFacts BuildSeatStanding(Hero hero)
+      {
+         if (hero == null) return null;
+
+         try
+         {
+            var seats = new List<SeatFacts>();
+
+            // Closest first: what he governs day to day before what he merely owns. The pack describes only the
+            // first two, so the order here is what decides which places he actually speaks about.
+            Settlement governed = hero.GovernorOf?.Settlement;
+            if (governed != null) seats.Add(ReadSeat(governed, SeatRole.Governor));
+
+            if (hero.IsClanLeader && hero.Clan?.Fiefs != null)
+               foreach (Town fief in hero.Clan.Fiefs)
+               {
+                  Settlement held = fief?.Settlement;
+                  if (held == null || held == governed) continue;
+
+                  seats.Add(ReadSeat(held, SeatRole.Owner));
+
+                  if (seats.Count >= SeatStandingFacts.MaxSeatsDescribed) break;
+               }
+
+            // A notable answers for nowhere but home, and knows it better than anyone above them does.
+            if (seats.Count == 0 && hero.IsNotable && hero.HomeSettlement != null)
+               seats.Add(ReadSeat(hero.HomeSettlement, SeatRole.Notable));
+
+            return seats.Count == 0 ? null : new SeatStandingFacts {Seats = seats};
+         }
+         catch (Exception ex)
+         {
+            // Read on every conversation with a landed character: a bad read costs the sentence, not the scene.
+            ModLog.Error($"[knowledge] seat standing read failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>One place, as the engine currently has it. Bands, because a lord has never counted any of it.</summary>
+      private static SeatFacts ReadSeat(Settlement place, SeatRole role)
+      {
+         Town town = place.Town;
+
+         return new SeatFacts {
+            PlaceName = place.Name?.ToString(),
+            Role = role,
+            Kind = KindOf(place),
+            IsPlayerHolding = place.OwnerClan != null && place.OwnerClan == Clan.PlayerClan,
+            Prosperity = ReadProsperity(place),
+            FoodStores = ReadFoodStores(town),
+            FoodDirection = ReadFoodTrend(town),
+            Garrison = ReadGarrison(town),
+            Loyalty = ReadLoyalty(town),
+            Security = ReadSecurity(town),
+            IsUnderSiege = place.IsUnderSiege,
+            IsBeingRaided = place.IsUnderRaid,
+            IsLooted = place.Village != null && place.Village.VillageState == Village.VillageStates.Looted,
+            IsInRebellion = place.InRebelliousState,
+            IsStarving = place.IsStarving
+         };
+      }
+
+      private static NpcMemoryService.Core.Knowledge.SettlementKind KindOf(Settlement place)
+      {
+         if (place.IsTown) return NpcMemoryService.Core.Knowledge.SettlementKind.Town;
+         if (place.IsCastle) return NpcMemoryService.Core.Knowledge.SettlementKind.Castle;
+         if (place.IsVillage) return NpcMemoryService.Core.Knowledge.SettlementKind.Village;
+
+         return NpcMemoryService.Core.Knowledge.SettlementKind.Unknown;
+      }
+
+      /// <summary>
+      ///   Prosperity has no natural ceiling to measure against, so it is read as a RANK among places of the
+      ///   same kind rather than against a threshold invented here. That is also how a lord would say it: he
+      ///   knows his town is richer than most towns, not that it scores 5163.
+      /// </summary>
+      private static ProsperityBand ReadProsperity(Settlement place)
+      {
+         float mine = WealthOf(place);
+         if (mine <= 0f || Settlement.All == null) return ProsperityBand.Unknown;
+
+         int poorer = 0, counted = 0;
+
+         foreach (Settlement other in Settlement.All)
+         {
+            if (other == null || other.IsHideout || KindOf(other) != KindOf(place)) continue;
+
+            counted++;
+            if (WealthOf(other) < mine) poorer++;
+         }
+
+         if (counted < 4) return ProsperityBand.Unknown;
+
+         float rank = poorer / (float) counted;
+
+         if (rank < 0.25f) return ProsperityBand.Poor;
+         if (rank < 0.55f) return ProsperityBand.Middling;
+         if (rank < 0.80f) return ProsperityBand.Comfortable;
+
+         return ProsperityBand.Rich;
+      }
+
+      /// <summary>A village's wealth is its hearths; a town's or castle's is its prosperity.</summary>
+      private static float WealthOf(Settlement place)
+         => place.Village != null ? place.Village.Hearth : place.Town?.Prosperity ?? 0f;
+
+      /// <summary>The granary against the engine's OWN ceiling, so no threshold here has to be defended.</summary>
+      private static FoodBand ReadFoodStores(Town town)
+      {
+         if (town == null) return FoodBand.Unknown;
+
+         int ceiling = town.FoodStocksUpperLimit();
+         if (ceiling <= 0) return FoodBand.Unknown;
+
+         float share = town.FoodStocks / ceiling;
+
+         if (share < 0.10f) return FoodBand.Empty;
+         if (share < 0.35f) return FoodBand.Thin;
+         if (share < 0.75f) return FoodBand.Adequate;
+
+         return FoodBand.Full;
+      }
+
+      /// <summary>Which way it is going, which is the half of a steward's report that decides what to do.</summary>
+      private static FoodTrend ReadFoodTrend(Town town)
+      {
+         if (town == null) return FoodTrend.Unknown;
+
+         if (town.FoodChange < -0.5f) return FoodTrend.Falling;
+         if (town.FoodChange > 0.5f) return FoodTrend.Rising;
+
+         return FoodTrend.Steady;
+      }
+
+      /// <summary>
+      ///   The garrison against the engine's own party-size limit for the place, so "under strength" means what
+      ///   the game means by it rather than what a number here decided it should mean.
+      /// </summary>
+      private static GarrisonBand ReadGarrison(Town town)
+      {
+         if (town == null) return GarrisonBand.Unknown;
+
+         PartyBase garrison = town.GarrisonParty?.Party;
+         if (garrison == null) return GarrisonBand.Skeleton;
+
+         int limit = garrison.PartySizeLimit;
+         if (limit <= 0) return GarrisonBand.Unknown;
+
+         float share = garrison.NumberOfHealthyMembers / (float) limit;
+
+         if (share < 0.15f) return GarrisonBand.Skeleton;
+         if (share < 0.50f) return GarrisonBand.UnderStrength;
+         if (share < 0.85f) return GarrisonBand.Adequate;
+
+         return GarrisonBand.Strong;
+      }
+
+      /// <summary>On the engine's own 0-100 loyalty scale; below 25 is where vanilla itself starts worrying.</summary>
+      private static LoyaltyBand ReadLoyalty(Town town)
+      {
+         if (town == null) return LoyaltyBand.Unknown;
+
+         if (town.Loyalty < 25f) return LoyaltyBand.Rebellious;
+         if (town.Loyalty < 50f) return LoyaltyBand.Restless;
+         if (town.Loyalty < 75f) return LoyaltyBand.Content;
+
+         return LoyaltyBand.Devoted;
+      }
+
+      /// <summary>On the engine's own 0-100 security scale. Low security IS banditry on the roads.</summary>
+      private static SecurityBand ReadSecurity(Town town)
+      {
+         if (town == null) return SecurityBand.Unknown;
+
+         if (town.Security < 25f) return SecurityBand.Lawless;
+         if (town.Security < 60f) return SecurityBand.Uneasy;
+
+         return SecurityBand.Settled;
       }
 
       private static string ResolveRuledRealmName(Hero hero)

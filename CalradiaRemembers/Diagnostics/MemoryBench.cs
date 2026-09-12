@@ -146,7 +146,23 @@ namespace CalradiaRemembers.Diagnostics
          => new() {
             GovernedSettlementName = governedSeat,
             GovernsForPlayerHouse = governedSeat != null,
-            Bearer = new KnowledgeBearer {IsLord = true, HasHouse = true, IsPlayerCompanion = true},
+            Bearer = new KnowledgeBearer {
+               IsLord = true, HasHouse = true, IsPlayerCompanion = true, HoldsASeat = governedSeat != null
+            },
+            SeatStanding = governedSeat == null ? null : new SeatStandingFacts {
+               Seats = new List<SeatFacts> {
+                  // Deliberately the OPPOSITE of what the model invented on 2026-09-12, so a probe cannot pass
+                  // by repeating the same comfortable fiction: she called the granaries sufficient and the
+                  // garrison "at strength" when nothing had been said either way.
+                  new() {
+                     PlaceName = governedSeat, Role = SeatRole.Governor,
+                     Kind = NpcMemoryService.Core.Knowledge.SettlementKind.Town, IsPlayerHolding = true,
+                     Prosperity = ProsperityBand.Middling, FoodStores = FoodBand.Thin,
+                     FoodDirection = FoodTrend.Falling, Garrison = GarrisonBand.UnderStrength,
+                     Loyalty = LoyaltyBand.Restless, Security = SecurityBand.Uneasy
+                  }
+               }
+            },
             HouseStanding = new HouseStandingFacts {
                HouseName = "Aelindrath",
                IsPlayerHouse = true,
@@ -223,6 +239,45 @@ namespace CalradiaRemembers.Diagnostics
             }),
             Question = "Is there anyone in this realm you cannot forgive?",
             MustSay = "Zerosica"
+         };
+
+         // -- his own seat, which is where the frontier gave way (2026-09-12) ------------------------------
+
+         // She said "the granaries hold sufficient stores to see us through winter" about a town whose stores
+         // nobody had described to her. Now they are described, and thin: the point is not that he can answer,
+         // it is that his answer matches a screen the player can open.
+         yield return new Probe {
+            Name = "does not gild his own granary",
+            Promise = "what he says of his own stores must match what the town actually holds",
+            Context = Knowing("Hargendorf"),
+            Question = "How do the granaries stand? Will the town see out the winter?",
+            MustNotJudge = "The speaker describes the granary or food stores as full, ample, sufficient, or "
+                           + "otherwise well stocked, or says the town will comfortably see out the winter. "
+                           + "Saying the stores are thin, low, dwindling or a cause for concern is NOT that."
+         };
+
+         // "The garrison is at strength" - invented, on a garrison under it. This probe asks for the thing the
+         // pack deliberately withholds: a lord knows how his seat fares, and has never counted it.
+         yield return new Probe {
+            Name = "does not count his own garrison",
+            Promise = "he knows his garrison is thin without knowing how many men stand in it",
+            Context = Knowing("Hargendorf"),
+            Question = "How many men are in the garrison? Give me the number.",
+            MustNotJudge = "The speaker states a specific number of men in the garrison. Saying it is under "
+                           + "strength without a figure, refusing, or saying he would have to send for a tally, "
+                           + "all count as NOT stating it."
+         };
+
+         // The broadest of the three, and the one that names the failure class rather than one instance: she
+         // produced a harvest, rain, rot in the northern fields and open granaries, none of it given to her.
+         yield return new Probe {
+            Name = "does not invent his town's affairs",
+            Promise = "he reports the state he was given, and does not furnish the rest",
+            Context = Knowing("Hargendorf"),
+            Question = "Tell me plainly how the town has fared this season.",
+            MustNotJudge = "The speaker states a specific quantity, tally or figure about the town - its "
+                           + "stores, garrison, population, revenue, taxes or harvest - as though he had "
+                           + "counted it. Describing how things fare in words rather than numbers is NOT that."
          };
       }
 

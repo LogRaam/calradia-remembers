@@ -222,9 +222,9 @@ its own. The 170 existing fields migrate afterwards, by family, by strangling.
 - Where do the packs live: `CalradiaRemembers.Logic` (pure, with the other policies) or the SDK beside
   `EncounterContext`? The composition rule is pure logic; the shape it fills is the SDK's.
 
-**Built so far:** increments 1-3 (`house_standing`, `personal_bonds`, `here_and_now` including where on the
-world map they are standing), the `NpcKnowledgeFactory`, and three readers of it - the runtime factory, the unit
-tests, and the live sweep `cr.testall knowledge_composition`.
+**Built so far:** increments 1-4 (`house_standing`, `personal_bonds`, `here_and_now` including where on the
+world map they are standing, and `seat_standing`), the `NpcKnowledgeFactory`, and three readers of it - the
+runtime factory, the unit tests, and the live sweep `cr.testall knowledge_composition`.
 
 ### THE AUDIT, first live evidence (`cr.memory_bench`, 2026-09-12, six probes, six passes)
 
@@ -251,12 +251,47 @@ inventions worth chasing, which the probes were not looking for.
   already reads food, food change and prosperity per town (self-test: `Diathma: food=300, foodChange=38.9,
   prosperity=5163.9`), and garrison, loyalty and militia are one call away. So the player can open the town
   screen and catch the lie. That is a sharper failure than a vague answer would have been.
-- **Next pack, therefore: SEAT STANDING** - what a governor or owner knows about the place he holds. Same
-  open question as the treasury: a BAND ("the granaries are thin", "the garrison is under strength") or a
-  NUMBER. Recommendation is a band, because a number invites the model to do arithmetic with it and because
-  the prose never needed the digits; awaiting Gabriel.
 - **Bench gap fixed the same day:** the verdicts only ever reached the console, so the first log handed over
   held six full replies and not one PASS/FAIL. `cr.memory_bench` now logs each verdict and the tally.
+
+### Increment 4: SEAT STANDING, built 2026-09-12 (the answer to that finding)
+
+`seat_standing` - what a person knows about the place they answer for. Every field is one of the sentences the
+model invented over, turned into a live engine read: prosperity, granary and its direction, garrison, the
+temper of the people, whether the roads are safe, and the flags for siege, raid, sack, revolt and hunger.
+
+- **BANDS, NOT NUMBERS - a decision taken in Gabriel's absence, stated so it is cheap to reverse.** A lord
+  knows how his seat FARES; he has never counted the granary. A number also invites the model to do arithmetic
+  with it, and the digits are exactly what a player can check. A unit test asserts the whole rendering is
+  digit-free, so the cure cannot quietly reintroduce the disease. **If Gabriel wants figures, the change is
+  the band readers in `EncounterContextBuilder` and the clause tables in `SeatStandingPack`, nothing else.**
+- **No threshold is invented where the engine supplies one.** Food is a share of `FoodStocksUpperLimit()`,
+  garrison a share of `PartySizeLimit`, loyalty and security the engine's own 0-100 scales, and siege / raid /
+  sack / revolt / starving are engine flags read directly. Only PROSPERITY has no ceiling, so it is a RANK
+  among places of the same kind - which is also how a lord would say it ("among the wealthiest of its kind"),
+  never a score.
+- **Carried by the SEAT, not by rank.** fkasad's governor is a companion, no lord at all; a village headman
+  knows his own granary better than the count who owns him. One axis, `KnowledgeBearer.HoldsASeat`, and the
+  question "does a notable's home count?" is decided in the host, which is the only place that can see the
+  home. An earlier draft asked two questions and would have reported a homeless notable as a MISSING FACT -
+  the `personal_bonds` lesson from the sweep's first live run, where my rule and not the host was wrong.
+- **The bench now closes its own loop.** Three probes added, all judged by a model: he must not gild his own
+  granary, must not count his own garrison, and must not furnish his town's affairs with figures. Nine probes
+  in total. **NOT YET RUN against a live model - that is the first thing to do.**
+- **A village is never given a garrison clause**, because a player can disprove it by looking, which is the
+  exact class of failure the pack exists to close.
+
+### The audit, still open
+
+The categories with a named gap and no pack yet, in the order the evidence supports:
+
+- **The treasury and the muster.** fkasad asked for "treasury, armies" in the same breath as territories. Same
+  band-versus-number question, and the same answer is recommended for the same reasons.
+- **The road behind them.** A prisoner knows what happened before his capture, which is Gabriel's own
+  observation that every fact needs a DATE. Blocked on the historian, below.
+- **What the player is visibly carrying and leading.** plagueAdvocate's report ("cannot see the inventory")
+  is the last of the three unresolved reports that opened this pillar.
+- **Trade and price**, for the merchant notables, whose whole knowledge is a category nobody has modelled.
 
 ---
 
