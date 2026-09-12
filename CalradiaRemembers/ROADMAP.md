@@ -302,6 +302,30 @@ armies, treasury, wars"; `house_standing` answered territories and wars, and thi
 - **Two more bench probes**, both model-judged: he must not count his own coffers, and he must not promise men
   he does not have. **Eleven probes now, none of the five new ones yet run against a live model.**
 
+### The cost, and the guard that was not measuring it (2026-09-12)
+
+`LeanRealPromptBudgetTests` holds the Compact prompt under 16,000 characters, which is DuskSymphony's 8k local
+context stated as a player-facing promise. Its own header warns that "a guard that constructs its subject
+differently from production measures its own construction". **It was doing exactly that:** it built
+`new EncounterContext {LeanLevel = lean}`, which has no `Bearer`, so `NpcKnowledgeFactory.For` returned nothing
+and the budget was measured on a prompt containing **not one knowledge pack**. Green, and blind to all five.
+
+Given a real subject - a landed lord of the player's house who governs a besieged town - the true number was
+**16,329**, over the ceiling. So the ceiling had already been breached, silently, before tonight's two packs.
+
+- **Trimmed:** coaching out of every Compact path (`house_standing` had a 124-character sentence of advice
+  living INSIDE a fact), a bare label for `personal_bonds`, a four-word location clause for `here_and_now`,
+  and bounded Compact allowances for named fiefs, wars and bonds - the shape the Lean witness recall already
+  used, so cost does not grow with how full a life is. That reached 15,986.
+- **Fourteen characters of headroom is not a guarantee, it is arithmetic that happened to work.** The sixth
+  pack would have broken a player's context and nothing would have said so. So Compact now spends a
+  COLLECTIVE allowance, `NpcKnowledgeFactory.LeanBudgetChars = 700`: packs are offered the budget in registry
+  order and one that will not fit is skipped WHOLE rather than truncated, because half a fact can say the
+  opposite of what it meant. The registry order is therefore a priority - room, house, means, seat, bonds
+  last.
+- **Consequence for the next pack:** adding one no longer risks the ceiling. It risks silently displacing
+  `personal_bonds` in Compact instead, which is a visible, testable trade rather than a player writing in.
+
 ### The audit, still open
 
 The categories with a named gap and no pack yet, in the order the evidence supports:
