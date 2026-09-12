@@ -429,6 +429,39 @@ the model actually see?" is currently unanswerable. **Proposed, not built.**
 **Built so far: the split itself.** No pack is constitutive yet - the first one should be `station`, which is
 small, unambiguously part of who someone is, and already fixed once from a player report.
 
+### THE PROMPT CACHE: the packs made it worse, then made the fix possible (2026-09-12)
+
+Gabriel asked whether the pack architecture could optimise the LLM prompt cache further. Measuring first found
+the opposite, and it was a regression introduced the day before.
+
+**The number: on a 37,267-character prompt, changing only the HOUR and the WEATHER cost 10,018 characters of
+cacheable prefix - 27%.** The divergence fell immediately after the age line, which is where the knowledge
+section begins, because `here_and_now` rendered up inside the identity block and every section below it was
+invalidated along with it. Providers with prefix-matching caches charge full price for all of it and a local
+model re-processes it. Nothing failed, nothing broke: it would have shown up only as a bill.
+
+`PromptBuilder`'s own seam comment had named "time of day" as belonging BELOW the encounter marker long before
+any of this existed. The packs simply had no way to say which of them was which.
+
+**So the answer to the question is yes, but only after paying back what the architecture had just borrowed** -
+and the reason it CAN be paid back is that the packs are an ordered, enumerable list, so volatility becomes a
+property a pack declares rather than a placement somebody has to remember:
+
+- `PackVolatility.Stable` (default) renders in the cacheable prefix. `PerEncounter` renders below the marker,
+  with the day count and the scene stage, where the prompt already keeps what cannot be cached. Only
+  `here_and_now` is volatile.
+- Default is Stable because that is the CHEAP mistake: a stable pack wrongly marked volatile merely moves down
+  the prompt, while a volatile one left in the prefix silently costs every later section its cache.
+- The Compact allowance is applied ONCE across both halves, so splitting the render did not split the budget.
+
+**Verified, not asserted: nothing above the cache-split marker changes when the clock moves.** The 8,005
+characters that still differ are all below it, and were never cacheable.
+
+**Three orderings now pull on the registry and they are not the same**: narrative order (what reads well),
+budget priority (what Compact drops first), and cache stability (what changes least). Today one list serves
+all three and they happen not to conflict. The next pack could break that, and the fix is to separate the
+render order from the drop order rather than to argue about one list.
+
 ### The audit, still open
 
 The categories with a named gap and no pack yet, in the order the evidence supports:
