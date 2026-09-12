@@ -454,6 +454,10 @@ namespace CalradiaRemembers.Mapping
             // The post the man actually holds. Read from the engine's own GovernorOf, which this file ALREADY
             // reads a few lines below to decide whether appoint_governor may be offered: the fact was here all
             // along, used to gate an action and never to state a truth (fkasad, 2026-09-11).
+            // The speaking character's own house, for the station pack's clan-head line. Read from the LIVE
+            // hero rather than from the stored profile string, which is a snapshot taken when the profile was
+            // first built and would be stale for anyone who has changed house since.
+            SpeakerClanName = hero?.Clan?.Name?.ToString(),
             GovernedSettlementName = hero?.GovernorOf?.Settlement?.Name?.ToString(),
             GovernsForPlayerHouse = hero?.GovernorOf?.Settlement?.OwnerClan != null
                                     && hero.GovernorOf.Settlement.OwnerClan == Clan.PlayerClan,
@@ -467,6 +471,7 @@ namespace CalradiaRemembers.Mapping
             HouseMeans = BuildHouseMeans(hero),
             OwnBody = BuildOwnBody(hero),
             MarketWord = BuildMarketWord(hero),
+            Underworld = BuildUnderworld(hero),
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
             Audience = BuildListeningAudience(profile, witnesses),
@@ -2303,6 +2308,8 @@ namespace CalradiaRemembers.Mapping
             IsNotable = hero.IsNotable,
             TradesForALiving = hero.Occupation == Occupation.Merchant
                                || hero.Occupation == Occupation.Artisan,
+            IsUnderworld = hero.Occupation == Occupation.GangLeader
+                           || hero.Occupation == Occupation.Gangster,
             HasHouse = hero.Clan != null,
             HoldsASeat = holdsASeat,
 
@@ -2832,6 +2839,70 @@ namespace CalradiaRemembers.Mapping
          }
 
          return priced;
+      }
+
+      /// <summary>
+      ///   What the streets know: how badly the player is wanted in THIS character's realm, and who holds the
+      ///   criminal trade of the place they are standing in.
+      ///   <para>
+      ///     The engine classifies the crime rating itself - mild, moderate, severe - so no threshold here is
+      ///     one this file invented. Same deference own_body shows IsWounded and here_and_now shows IsNight.
+      ///   </para>
+      ///   <para>
+      ///     Gabriel, 2026-09-12: "plusieurs joueurs jouent des malfrats avec le mod Fourberie." The voice of
+      ///     a gang leader already existed in the behaviour guidelines; this is what he knows.
+      ///   </para>
+      /// </summary>
+      private static UnderworldFacts BuildUnderworld(Hero hero)
+      {
+         if (hero == null) return null;
+
+         try
+         {
+            Settlement place = hero.CurrentSettlement ?? hero.HomeSettlement;
+            Hero boss = GangLeaderOf(place);
+
+            return new UnderworldFacts {
+               PlayerNotoriety = ReadNotoriety(hero.MapFaction),
+               PlaceName = place?.Name?.ToString(),
+               StreetsRunBy = boss == null || boss == hero ? null : boss.Name?.ToString(),
+               YouRunTheseStreets = boss != null && boss == hero
+            };
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[knowledge] underworld read failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   How the law of this realm sees the player, on the engine's own classification. A realmless
+      ///   character has no law to answer to and reports nothing rather than vouching for anybody.
+      /// </summary>
+      private static Notoriety ReadNotoriety(IFaction faction)
+      {
+         CrimeModel crime = Campaign.Current?.Models?.CrimeModel;
+         if (crime == null || faction == null) return Notoriety.Unknown;
+
+         if (crime.IsPlayerCrimeRatingSevere(faction)) return Notoriety.Severe;
+         if (crime.IsPlayerCrimeRatingModerate(faction)) return Notoriety.Moderate;
+         if (crime.IsPlayerCrimeRatingMild(faction)) return Notoriety.Mild;
+
+         return Notoriety.Clean;
+      }
+
+      /// <summary>Whoever holds the criminal trade of this place, when somebody does.</summary>
+      private static Hero GangLeaderOf(Settlement place)
+      {
+         if (place?.Notables == null) return null;
+
+         foreach (Hero notable in place.Notables)
+            if (notable is {IsAlive: true} && notable.Occupation == Occupation.GangLeader)
+               return notable;
+
+         return null;
       }
 
       private static string ResolveRuledRealmName(Hero hero)

@@ -506,7 +506,10 @@ The categories with a named gap and no pack yet, in the order the evidence suppo
   of plagueAdvocate's report, the player's inventory, is not a gap either: `KnowledgeBoundaryPolicy`
   deliberately closes it, which is a decision already taken. **A sixth pack here would have been a second
   source for one fact, which is how two sources come to disagree.**
-- **Trade and price**, for the merchant notables, whose whole knowledge is a category nobody has modelled.
+- ~~**Trade and price**~~ **BUILT 2026-09-12** as `market_word`.
+- ~~**Gangs and bandits**~~ **BUILT 2026-09-12** as `underworld`.
+- **A realm-news pack**, which is where the depth axis will finally earn its keep: a villager hears there is
+  fighting; a lord knows who, since when, and who is winning. Not built.
 
 ---
 
