@@ -40,6 +40,8 @@ using NpcMemoryService.Core.Knowledge;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.ComponentInterfaces;
+using TaleWorlds.Library;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.Party;
@@ -455,6 +457,7 @@ namespace CalradiaRemembers.Mapping
             // the player's ledger while fixing one companion.
             Bearer = BuildKnowledgeBearer(hero),
             HouseStanding = BuildHouseStanding(hero),
+            HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
             Audience = BuildListeningAudience(profile, witnesses),
             // follow_me: taught only when EscortEligibilityPolicy.CanEscort says the game can truly honour it
@@ -2089,6 +2092,116 @@ namespace CalradiaRemembers.Mapping
       ///   Who is listening, so a pack can decide what would actually be SAID rather than only what is known.
       ///   A confidence is not given to a room, and not to someone barely known.
       /// </summary>
+      /// <summary>
+      ///   The season, the hour, the weather, and where on the map they are standing. Every value is one engine
+      ///   read; nothing is inferred and nothing is stored.
+      ///   <para>
+      ///     Gabriel, 2026-09-12: "Il faudrait que le NPC ait conscience de où il se trouve sur la carte Monde."
+      ///     CurrentLocationNote and GeographyNote both ground the settlement a character STANDS IN and both go
+      ///     null the moment the party is on the open map, which is most of the game. So the WHERE here is only
+      ///     ever filled for the country: inside a settlement the older field still owns that sentence, and two
+      ///     sources for one fact is how two sources come to disagree.
+      ///   </para>
+      /// </summary>
+      private static HereAndNowFacts BuildHereAndNow(Hero hero)
+      {
+         try
+         {
+            CampaignTime now = CampaignTime.Now;
+            MobileParty party = hero?.PartyBelongedTo ?? MobileParty.MainParty;
+            Settlement inside = hero?.CurrentSettlement ?? party?.CurrentSettlement;
+            Settlement nearest = inside ?? NearestSettlementTo(party);
+
+            return new HereAndNowFacts {
+               Season = ReadSeason(now),
+               HourOfDay = now.GetHourOfDay,
+               IsNight = now.IsNightTime,
+               Weather = ReadWeather(party),
+               NearestPlace = nearest?.Name?.ToString(),
+               IsInsideThatPlace = inside != null,
+               BearingToPlace = inside != null ? null : BearingFrom(party, nearest),
+               RealmName = (nearest?.MapFaction ?? party?.MapFaction)?.Name?.ToString()
+            };
+         }
+         catch (Exception ex)
+         {
+            // Read on every single conversation: a bad read must cost the sentence, never the conversation.
+            ModLog.Error($"[knowledge] here-and-now read failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>Squared map distance, via the MapPoint helper so one type owns the arithmetic.</summary>
+      private static float SquaredDistance(Vec2 a, Vec2 b)
+         => new MapPoint(a.x, a.y).SquaredDistanceTo(new MapPoint(b.x, b.y));
+
+      private static Season ReadSeason(CampaignTime now)
+      {
+         switch (now.GetSeasonOfYear)
+         {
+            case CampaignTime.Seasons.Spring: return Season.Spring;
+            case CampaignTime.Seasons.Summer: return Season.Summer;
+            case CampaignTime.Seasons.Autumn: return Season.Autumn;
+            case CampaignTime.Seasons.Winter: return Season.Winter;
+            default: return Season.Unknown;
+         }
+      }
+
+      /// <summary>The engine's own weather event where the party stands, mapped onto the SDK's engine-free enum.</summary>
+      private static Weather ReadWeather(MobileParty party)
+      {
+         if (party == null || Campaign.Current?.Models?.MapWeatherModel == null) return Weather.Unknown;
+
+         switch (Campaign.Current.Models.MapWeatherModel.GetWeatherEventInPosition(party.GetPosition2D))
+         {
+            case MapWeatherModel.WeatherEvent.Clear: return Weather.Clear;
+            case MapWeatherModel.WeatherEvent.LightRain: return Weather.LightRain;
+            case MapWeatherModel.WeatherEvent.HeavyRain: return Weather.HeavyRain;
+            case MapWeatherModel.WeatherEvent.Snowy: return Weather.Snow;
+            case MapWeatherModel.WeatherEvent.Blizzard: return Weather.Blizzard;
+            case MapWeatherModel.WeatherEvent.Storm: return Weather.Storm;
+            default: return Weather.Unknown;
+         }
+      }
+
+      /// <summary>The closest settlement worth naming, so a party in the country still knows roughly where it is.</summary>
+      private static Settlement NearestSettlementTo(MobileParty party)
+      {
+         if (party == null || Settlement.All == null) return null;
+
+         Settlement best = null;
+         var bestDistance = float.MaxValue;
+
+         foreach (Settlement candidate in Settlement.All)
+         {
+            if (candidate?.IsHideout != false) continue;
+
+            float distance = SquaredDistance(candidate.GetPosition2D, party.GetPosition2D);
+            if (distance >= bestDistance) continue;
+
+            bestDistance = distance;
+            best = candidate;
+         }
+
+         return best;
+      }
+
+      /// <summary>
+      ///   How that place lies from here, in the words the mod already uses for a journey. Reuses
+      ///   GeographyDescriber rather than composing a second phrasing for the same idea.
+      /// </summary>
+      private static string BearingFrom(MobileParty party, Settlement place)
+      {
+         if (party == null || place == null) return null;
+
+         var from = new MapPoint(party.GetPosition2D.x, party.GetPosition2D.y);
+         var to = new MapPoint(place.GetPosition2D.x, place.GetPosition2D.y);
+
+         return GeographyDescriber.Bearing(
+            from.StepTo(to), (float) Math.Sqrt(SquaredDistance(party.GetPosition2D, place.GetPosition2D)));
+      }
+
       private static ListeningAudience BuildListeningAudience(NpcProfile profile, IReadOnlyList<WitnessEntry> witnesses)
          => new() {
             Regard = profile?.ReputationWithPlayer ?? 0,
