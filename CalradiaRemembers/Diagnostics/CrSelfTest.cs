@@ -8399,6 +8399,7 @@ namespace CalradiaRemembers.Diagnostics
          int examined = 0, carried = 0;
          var unsupplied = new List<string>();
          var carriers = new Dictionary<string, int>();
+         var suppliedCount = new Dictionary<string, int>();
          Hero withHouse = null;
 
          foreach (Hero person in people)
@@ -8417,21 +8418,42 @@ namespace CalradiaRemembers.Diagnostics
                carriers.TryGetValue(pack.Name, out int seen);
                carriers[pack.Name] = seen + 1;
 
+               bool supplied = pack.IsSupplied(ctx);
+               if (supplied)
+               {
+                  suppliedCount.TryGetValue(pack.Name, out int filled);
+                  suppliedCount[pack.Name] = filled + 1;
+               }
+
                // The whole question: you say this person would know it - did anyone tell them?
-               if (!pack.IsSupplied(ctx) && unsupplied.Count < 8)
+               //
+               // Asked only of packs that REQUIRE content. The first live run reported four lords as carried
+               // but not supplied for personal_bonds, and it was right to notice and wrong to fail: none of
+               // them had a living feud or a lover, which is an empty life rather than a missing fact. Failing
+               // on that would teach everyone to ignore the report, which is worse than not reporting.
+               if (!supplied && pack.RequiresContent && unsupplied.Count < 8)
                   unsupplied.Add($"{person.Name}/{pack.Name}");
             }
 
             if (withHouse == null && person.Clan != null) withHouse = person;
          }
 
+         // The census reads "carried/supplied" per pack. For an optional pack that is all the sweep can say,
+         // and it is worth saying: a pack supplied to NOBODY across the whole world is probably unwired, which
+         // is a thing to read rather than a thing to fail on (an early campaign may honestly have no feuds).
+         string census = string.Join(", ", carriers.Select(kv => {
+            suppliedCount.TryGetValue(kv.Key, out int filled);
+
+            return $"{kv.Key} {filled}/{kv.Value}";
+         }));
+
          t.Note($"{examined} hero(es) composed, {carried} pack(s) carried"
-                + (carriers.Count == 0 ? "" : " [" + string.Join(", ", carriers.Select(kv => $"{kv.Key} x{kv.Value}")) + "]")
+                + (census.Length == 0 ? "" : " [supplied/carried: " + census + "]")
                 + (unsupplied.Count == 0 ? "" : "; CARRIED BUT NOT SUPPLIED: " + string.Join(", ", unsupplied)));
 
          // The invariant, and the one that would have caught the governor: nothing the factory says a person
          // knows may be missing from the context the game actually builds for them.
-         t.Expect("everythingAPersonCarriesIsActuallySupplied", unsupplied.Count, 0);
+         t.Expect("everyRequiredPackAPersonCarriesIsActuallySupplied", unsupplied.Count, 0);
 
          // The guard on the guard. A sweep that composed nothing would report zero failures and prove nothing,
          // which is the vacuity that shipped in settings_ranges_agree a day earlier.
