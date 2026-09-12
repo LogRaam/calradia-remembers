@@ -491,12 +491,39 @@ price of grain. A pack already IS a subject, so the question had a natural home.
 fighting; a lord knows who, since when, and who is winning), and the underworld, where a street thug knows his
 own gang deeply and the city guard shallowly.
 
+### THE SEASONAL HISTORIAN, built 2026-09-12 (Gabriel's design, and all three rulings held)
+
+The question that produced it: a lord knows how many men he has NOW; asked how many he had last year, he
+invents. A time series would have been expensive AND wrong - nobody remembers a number, and a character with
+perfect recall of figures breaks the illusion from the other side.
+
+- **Ruling 1, compute it - do not have the LLM write it.** `SeasonalTurnPolicy` is pure arithmetic and fixed
+  phrasing over the almanac's own `KingdomPowerFacts`: "Vlandia took 2 strongholds and grew richer this past
+  spring." Free, deterministic, testable, language-neutral. The chronicler stays alive because a CHARACTER
+  tells it, not a background job.
+- **Ruling 2, one historian for the WORLD.** It produces world facts; who has heard them is the rumour
+  pipeline's business, and `realm_news` then decides how much each person's standing commands. Satisfied
+  without a line of its own, because that machinery already existed.
+- **Ruling 3, not a fourth memory store.** The output is a `WorldEvent` (`SeasonalTurn`, added last for save
+  ordinals), so ageing, awareness and the confidence rating all already apply. The ONLY thing persisted is one
+  snapshot per realm - what the world looked like at the last turn - and the history itself is the events.
+
+Notability is by SHARE, not amount: a thousand denars is a fortune to one realm and a rounding error to
+another, and a chronicle that only remarked on the largest kingdom would be a chronicle about one kingdom. A
+stronghold changing hands has no threshold at all, because it is the thing people actually talk about.
+
+`cr.testall seasonal_chronicle` drives the real behaviour against the real store with a deliberately perturbed
+reading - the honest alternative is waiting a season and hoping a kingdom took a town - and removes its row.
+
 ### The audit, still open
 
 The categories with a named gap and no pack yet, in the order the evidence supports:
 
-- **The road behind them.** A prisoner knows what happened before his capture, which is Gabriel's own
-  observation that every fact needs a DATE. Blocked on the historian, below.
+- **The road behind them.** A prisoner knows what happened before his capture - Gabriel's observation that
+  every fact needs a DATE. **Half unblocked 2026-09-12:** the historian is built, so seasonal facts now carry
+  one, and a captive stops receiving new entries because the rumour road stops reaching him. What is still
+  not modelled is a character REASONING about the date ("that was two winters ago"), which needs the entries
+  to reach the prompt with their season attached rather than only their text.
 - ~~**What the player is visibly carrying and leading.**~~ **CLOSED by audit, 2026-09-12, not built.** The
   candidate was checked against the context before writing it, which is the discipline `here_and_now` earned
   (the council had carried a Season all along and nobody had generalised it). This time the answer was that

@@ -156,6 +156,10 @@ namespace CalradiaRemembers
          // World-event / rumor store (v1.2): persisted log of dated happenings feeding street
          // rumors, NPC awareness, and the player's chronicle. Feeders register separately.
          campaignStarter.AddBehavior(new WorldEventStore());
+
+         // The seasonal historian writes INTO the store above, so it is registered after it (Gabriel's design,
+         // 2026-09-12: one historian for the world, and no fourth memory store - the chronicle is WorldEvents).
+         campaignStarter.AddBehavior(new WorldAlmanac.SeasonalChronicleBehavior());
          // Schemes (v1.3): bitter rivals plot against each other; the lifecycle is mechanical (pure
          // SchemeAdvancer), the effect is standing damage, and the player only ever hears of it as a
          // rumour fed to the world-event store. Registered AFTER WorldEventStore (it records into it).

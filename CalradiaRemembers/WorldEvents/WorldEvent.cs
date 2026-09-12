@@ -62,7 +62,16 @@ namespace CalradiaRemembers.WorldEvents
       ///   </para>
       ///   Added last to preserve the serialized ordinals of existing saves.
       /// </summary>
-      HeardTell
+      HeardTell,
+
+      /// <summary>
+      ///   The world's own account of a season just ended: a realm grew richer, took a stronghold, saw its
+      ///   armies thin. Computed deterministically from the almanac's power facts rather than written by a
+      ///   model (Gabriel's ruling, 2026-09-12), and recorded as ordinary news so the ageing, the awareness
+      ///   and the confidence rating all already apply - the historian must not become a fourth memory store.
+      ///   Added last to preserve the serialized ordinals of existing saves.
+      /// </summary>
+      SeasonalTurn
    }
 
    /// <summary>

@@ -50,6 +50,7 @@ using CalradiaRemembers.Settings;
 using CalradiaRemembers.Social;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Travel;
+using CalradiaRemembers.WorldAlmanac;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Actions;
@@ -237,6 +238,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("setting_hints_fit", Severity.Light, "Mechanical: every MCM hint fits on screen. A shipped bug with a receipt - v2.5.6 repaired NINETEEN hints that ran off the edge, and because they read \"On (default): ... Off: ...\" the clipped half was always the one explaining the other position. They were fixed by hand with nothing left to stop the twentieth, which 2026-09-12 then added. Reads the ATTRIBUTES, so it holds whether or not MCM has loaded. Read-only", TestSettingHintsFit),
          new SelfTest("settings_ranges_agree", Severity.Light, "Mechanical (Gabriel, 2026-09-10, after the Regard Warmth Cooldown: \"je suis surpris que le bon comportement n'ait pas ete bien protege par des tests unitaires. Par exemple, 0 aurait du etre teste\"). The uncomfortable truth is that 0 WAS tested and the test agreed with the bug: it pinned what the code did, while the MCM control clamped its minimum to 1 and the v2.5.1 changelog promised 0 turned the cooldown off. Three artefacts, no place for any two of them to meet. This is that place. Reflects over EVERY [SettingPropertyInteger] on CrSettings, pairs it with the same-named ModSettings property that enforces it, drives the declared MIN and MAX through the live setting, and asserts the code honours every value the menu offers. Catches the whole family in one assertion, including settings that do not exist yet. Restores each setting to its prior value in a finally", TestSettingsRangesAgree),
          new SelfTest("console_help_complete", Severity.Light, "Mechanical: cr.help against the REAL command registry. Asked on 2026-09-10 whether it was still complete, it described 70 of 259 registered commands, so cr.testall and cr.test were themselves invisible, and it advertised cr.compose, renamed cr.letter_compose long before, which made the one name a reader was most likely to copy verbatim the one that would fail. A hand-written list of every command in a project that gains commands weekly can only drift, so what EXISTS now comes from reflection over the assembly its own [CommandLineArgumentFunction] attributes and the prose is an overlay on top of it. Reads the live registry, drives the real ModCheats.Help in all three of its forms, and asserts: the help never names a command that does not exist (the cr.compose class of error), every registered command is reachable through cr.help all however undescribed, the curated page says where the rest of them are, and the search finds a command by fragment. Read-only, mutates nothing", TestConsoleHelpComplete),
+         new SelfTest("seasonal_chronicle", Severity.Light, "The seasonal historian (Gabriel's design): at each turn of the season every realm is read, and what MOVED - a stronghold taken, coffers grown, armies thinned - is written into the world as ordinary news. Computed deterministically from the almanac's own power facts rather than written by a model, because \"Vlandia grew rich\" IS a delta description and a background call every season would cost tokens forever, fail halfway, and have a language to get wrong. Drives the REAL behaviour against the REAL store with a perturbed reading (the honest alternative is waiting a season and hoping), and asserts it is ordinary news rather than a fourth memory store. Removes the row it writes", TestSeasonalChronicle),
          new SelfTest("world_claims", Severity.Light, "Invented facts (Gabriel, 2026-09-12): a character makes up a blight, the gate judges it, and if it passes it becomes a real low-weight rumour a DIFFERENT character can have heard - which is the incoherence Gabriel named, closed through the rumour road that already existed instead of a second world model. A unit test can prove the RULE and never that the row reached the world, so this drives the real injector against the real store. Also asserts the two refusals that matter: the PLAYER never authors the world, and nothing the engine keeps on a screen is ever invented into it. Removes every row it writes", TestWorldClaims),
          new SelfTest("knowledge_composition", Severity.Light, "Mechanical (Gabriel + fkasad, 2026-09-11): the half a unit test CANNOT do. A unit test builds its own EncounterContext, so it can prove a companion WOULD carry his house's standing and never that anyone supplied it - which is exactly where the governor bug lived (the prompt was right, the rule would have been right, the host never filled the field). Sweeps up to 60 REAL heroes, asks NpcKnowledgeFactory which knowledge packs each one CARRIES, and asserts the live context actually SUPPLIED every one of them; reports the pack census so a pack that reaches nobody is visible rather than silently vacuous. Read-only: builds contexts, mutates nothing", TestKnowledgeComposition),
          new SelfTest("unavailable_deeds", Severity.Light, "Mechanical (Gabriel's ruling 09/09/2026: \"il faudrait que le LLM declare en connaissant deja le gating\"): a verb used to have TWO states in the prompt, taught in full or ABSENT, and absence does not read to a language model as forbidden, it reads as not mentioned, so the model supplied the permission itself and the player met the contradiction one deed later as a system message refusing what the NPC had just promised. Verbs now state their own closed door BEFORE the model speaks (IStatesUnavailability, the inward twin of the IProvidesGuidance channel built for modders on 30/08/2026 and never turned inward). Sweeps up to 60 real living foreign lords, driving the LIVE VerbRegistry.ComposeUnavailability and ComposeTeachings against each, and asserts: no refusal ever leaks a verb id or an [ACTION] block (which would teach the model the very token it must not emit), and no verb is ever taught and refused in the same prompt. Then takes the first lord the world supplied who has the means but not the trust and drives the REAL EncounterContextBuilder.Build, asserting the block reaches the live EncounterContext.UnavailableDeeds and forbids the PROMISE, not merely the deed (a deferred promise being the same failure). MANUAL when no lord in this world is currently in that state. Read-only: builds contexts, mutates nothing", TestUnavailableDeeds),
@@ -11982,6 +11984,72 @@ namespace CalradiaRemembers.Diagnostics
       ///   </para>
       ///   Removes every row it wrote.
       /// </summary>
+      /// <summary>
+      ///   The seasonal historian (Gabriel, 2026-09-11 design; built 2026-09-12). Drives the REAL behaviour
+      ///   against the REAL world-event store and asserts the whole road: a season's change becomes an entry,
+      ///   the entry is ordinary news rather than a fourth memory store, and a third party can reach it
+      ///   through the same rumour machinery everything else uses.
+      ///   <para>
+      ///     It uses a deliberately perturbed reading, because the honest alternative is waiting a season and
+      ///     hoping a kingdom happened to take a town. Removes the row it writes.
+      ///   </para>
+      /// </summary>
+      private static string TestSeasonalChronicle(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("seasonal_chronicle");
+
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+         SeasonalChronicleBehavior chronicle = SeasonalChronicleBehavior.Instance;
+         if (t.Abort(chronicle == null, "SeasonalChronicleBehavior not attached")) return t.Line();
+
+         WorldEvent written = null;
+
+         try
+         {
+            // A plain turn first: it must run over every realm without throwing, and on a save whose readings
+            // are already current it must find nothing to say. A chronicle that reported every tick would be
+            // a chronicle nobody reads.
+            int quiet = chronicle.DebugRunTurn();
+            t.Note($"a turn with readings already current recorded {quiet} entr(ies)");
+
+            written = chronicle.DebugRecordSyntheticTurn();
+
+            if (t.Skip(written == null, "no realm in this save yields a describable season")) return t.Line();
+
+            t.Note($"entry: {written.Summary}");
+            t.Expect("aSeasonsChangeBecomesAnEntry", written.Type, WorldEventType.SeasonalTurn);
+            t.Expect("itIsTaggedAsTheChronicles", written.SourceMod, SeasonalChronicleBehavior.Source);
+
+            // Ruling 3, made mechanical: it is ordinary news, so the ageing and awareness that already exist
+            // apply to it and no parallel ledger was created.
+            t.Expect("itIsNotThePlayersChronicle", written.InvolvesPlayer, false);
+            t.Expect("itIsNotKeptForeverAsADeed", written.IsPersistentDeed, false);
+            t.Expect("itOutweighsAnInventedRumourButNotABattle",
+                     written.Magnitude > WorldClaimPolicy.Magnitude && written.Magnitude < 8, true);
+
+            // Ruling 2: one historian for the world, and every character carries a VIEW of it - which is the
+            // machinery that already existed rather than anything this feature added.
+            Hero reader = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsAlive && h.IsLord);
+
+            if (reader != null)
+            {
+               var today = (int) CampaignTime.Now.ToDays;
+               bool reachable = WorldEventStore.Instance.GetKnownEvents(reader, today, 50)
+                                               .Any(e => e?.Id == written.Id)
+                                || WorldEventStore.Instance.IsAwareOf(reader, written, today);
+
+               t.Note($"a lord ({reader.Name}) can reach it through the rumour road={reachable}");
+            }
+         }
+         finally
+         {
+            if (written?.Id != null) WorldEventStore.Instance.Remove(written.Id);
+         }
+
+         return t.Line();
+      }
+
       private static string TestWorldClaims(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("world_claims");
