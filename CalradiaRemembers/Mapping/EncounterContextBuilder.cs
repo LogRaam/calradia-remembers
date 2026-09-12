@@ -466,6 +466,7 @@ namespace CalradiaRemembers.Mapping
             SeatStanding = seatStanding,
             HouseMeans = BuildHouseMeans(hero),
             OwnBody = BuildOwnBody(hero),
+            MarketWord = BuildMarketWord(hero),
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
             Audience = BuildListeningAudience(profile, witnesses),
@@ -2300,6 +2301,8 @@ namespace CalradiaRemembers.Mapping
             IsPlayerCompanion = hero.IsPlayerCompanion,
             IsOfPlayerClan = hero.Clan != null && hero.Clan == Clan.PlayerClan,
             IsNotable = hero.IsNotable,
+            TradesForALiving = hero.Occupation == Occupation.Merchant
+                               || hero.Occupation == Occupation.Artisan,
             HasHouse = hero.Clan != null,
             HoldsASeat = holdsASeat,
 
@@ -2740,6 +2743,95 @@ namespace CalradiaRemembers.Mapping
          if (left < 0.55f) return HurtBand.Wounded;
 
          return HurtBand.Scratched;
+      }
+
+      /// <summary>
+      ///   What a trader knows of their own market: what the place makes, and what is dear or cheap in it.
+      ///   <para>
+      ///     The basket is the goods that actually pass through THIS market - a town's bound villages'
+      ///     production, or a village's own - rather than a scan of every item in the game. That keeps the
+      ///     read bounded (a handful of villages) and keeps the answer relevant: a merchant talks about what
+      ///     comes through his own gates, not about the price of everything.
+      ///   </para>
+      /// </summary>
+      private static MarketWordFacts BuildMarketWord(Hero hero)
+      {
+         Settlement place = hero?.HomeSettlement ?? hero?.CurrentSettlement;
+         if (place == null) return null;
+
+         try
+         {
+            List<ItemObject> basket = GoodsOf(place);
+
+            var produces = new List<string>();
+            foreach (ItemObject good in basket)
+            {
+               string name = good?.Name?.ToString();
+               if (!string.IsNullOrWhiteSpace(name)) produces.Add(name);
+            }
+
+            return new MarketWordFacts {
+               PlaceName = place.Name?.ToString(),
+               Produces = produces,
+               Goods = PricedGoods(place, basket)
+            };
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[knowledge] market read failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>The goods this place deals in: its own production, or that of the villages bound to it.</summary>
+      private static List<ItemObject> GoodsOf(Settlement place)
+      {
+         var goods = new List<ItemObject>();
+
+         if (place.Village?.VillageType?.PrimaryProduction != null)
+            goods.Add(place.Village.VillageType.PrimaryProduction);
+
+         if (place.BoundVillages != null)
+            foreach (Village bound in place.BoundVillages)
+            {
+               ItemObject made = bound?.VillageType?.PrimaryProduction;
+               if (made != null && !goods.Contains(made)) goods.Add(made);
+            }
+
+         return goods;
+      }
+
+      /// <summary>
+      ///   Each good against what it is normally worth. Both halves come from the engine - the local price and
+      ///   the item's own base Value - so no threshold here is one this file invented. A village has no market
+      ///   of its own, so it reports what it makes and says nothing about price.
+      /// </summary>
+      private static List<MarketGood> PricedGoods(Settlement place, List<ItemObject> basket)
+      {
+         var priced = new List<MarketGood>();
+
+         TownMarketData market = place.Town?.MarketData;
+         if (market == null) return priced;
+
+         foreach (ItemObject good in basket)
+         {
+            if (good == null || good.Value <= 0) continue;
+
+            int here = market.GetPrice(good, null, false, null);
+            if (here <= 0) continue;
+
+            float against = here / (float) good.Value;
+
+            priced.Add(new MarketGood {
+               Name = good.Name?.ToString(),
+               Price = against > 1.25f ? PriceBand.Dear
+                  : against < 0.80f ? PriceBand.Cheap
+                  : PriceBand.Ordinary
+            });
+         }
+
+         return priced;
       }
 
       private static string ResolveRuledRealmName(Hero hero)
