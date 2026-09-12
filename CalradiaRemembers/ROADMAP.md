@@ -136,8 +136,15 @@ its own. The 170 existing fields migrate afterwards, by family, by strangling.
 
 - The treasury. A companion who knows your gold to the denar will haggle with it ("you can afford it"). A band
   rather than a number, and that is Gabriel's call, not a technical one.
-- Does a pack carry FRESHNESS? A lord away on campaign for a season should know his house's standing as it was
-  when he left, not as it is now. That is either a rich seam or a trap, and it should be decided, not discovered.
+- **RULED 2026-09-11 (Gabriel): knowledge is CURRENT, not stale-as-of-departure.** "Considérant qu'il y a un
+  système de courrier, je pencherais pour que le Seigneur soit au courant de ce qui se passe." The reason comes
+  from the world rather than from the code, which is what makes it hold: couriers ride, so news travels, and a
+  lord on campaign hears how his house fares. No freshness axis in the packs; knowledge is resolved live, which
+  also keeps DERIVED-NEVER-STORED honest, since a stale copy is a stored copy by another name.
+  **Corollary still open:** the same reasoning says a man who receives NO couriers hears nothing. A prisoner in
+  a cell is the case the mod already models as cut off. Recommendation is that a captive simply does not CARRY
+  the pack, rather than carrying a stale one - that keeps staleness out of the design entirely, which is the
+  point of the ruling. Not implemented pending Gabriel.
 - Where do the packs live: `CalradiaRemembers.Logic` (pure, with the other policies) or the SDK beside
   `EncounterContext`? The composition rule is pure logic; the shape it fills is the SDK's.
 
