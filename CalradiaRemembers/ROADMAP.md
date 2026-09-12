@@ -90,35 +90,58 @@ population for a reason that made sense in its own pillar and does not generalis
 does a notable ride in the party under the same terms as a lord, or does an escortee need its own, narrower
 eligibility (alive, free, willing, not already travelling, and NOT a party leader)?
 
-**2. No CR quest completes by ARRIVING anywhere.** This surprised me and it is worth writing down. Twelve quest
+**2. No CR quest completes by ARRIVING anywhere — and Gabriel's ruling below means none has to.** Twelve quest
 types exist and the closest, `DeliverPrisoner`, completes through a conversation verb (`give_prisoner`), a hand-off
-someone performs — not through a place being reached. `QuestService` does not listen to `SettlementEntered` at all;
-three other behaviours do (`CourierService`, the companion audience, the assembly). So "arrive and it completes" is
-genuinely new wiring, and it is the heart of the request rather than a detail of it.
+someone performs, not through a place being reached. `QuestService` does not listen to `SettlementEntered` at all;
+three other behaviours do (`CourierService`, the companion audience, the assembly). I first read this as the heart
+of the request and the one piece of genuinely new wiring. **It is not, because the conclusion is a conversation:**
+arrival only OFFERS the scene, and the hand-off inside it completes the quest through the road every other quest
+already takes. The escort is `DeliverPrisoner`'s shape with a willing passenger.
+
+### Gabriel's rulings, 2026-09-11
+
+**The conclusion is a conversation with the destination's headman, not an arrival event.** You reach the village
+with your charge and the scene opens; what completes the quest is the hand-off you perform inside it. This is
+worth more than the convenience: a quest that ends because a coordinate matched ends in silence, and this mod
+exists for what is said. It also means the whole feature rides the verb path CR already has, tested, journalled
+and stamped.
+
+**A late arrival is not a failure, it is a darker resolution.** "Elle pourrait être dramatique effectivement dans
+certaines situations." A raided village that waited three weeks for a healer has a scene worth writing, and a flat
+"quest failed" throws it away.
+
+**The consequence of that second ruling is the part worth noticing: the bad endings become scenes too.** If the
+conclusion is a conversation, then arriving LATE is a conversation, and arriving WITHOUT the person you promised
+is the strongest one this feature can produce — you stand in front of the headman and have to say it. Today a
+quest target who dies is silently voided by `QuestTargetVoidPolicy` with an honest closure line the player reads
+in a journal. Here the player says it out loud to the person who was waiting. That is the difference between a
+quest system and this mod, and it costs nothing extra: the same policy already tells the three states apart
+(vanished, dead, freed), and each one is simply a different scene rather than a different log entry.
 
 ### Shape
 
 - **Inc 1 — the escortee may travel.** Widen or fork the retainer eligibility per Gabriel's ruling above. Pure
   policy plus tests; nothing player-visible yet.
 - **Inc 2 — a quest that names a passenger and a destination.** New `QuestType.EscortPerson` carrying a target hero
-  AND a target settlement (today a quest carries one or the other, never both). `QuestService` gains an arrival
-  listener; the completion goes through the ONE existing path so a delivered escort is stamped, rewarded and
-  journalled exactly as every other quest is.
-- **Inc 3 — the arrival is a scene.** On arrival with the passenger, stage the conversation through
-  `ChatSceneStager` behind the audience's own safety read, so it can never fire at sea, in a siege, over a menu, or
-  on top of an open chat. The escortee speaks first: they are the one who has arrived somewhere.
-- **Inc 4 — the ways it ends.** Reuse rather than reinvent: `RetainerLeavePolicy` for war and death,
-  `QuestTargetVoidPolicy` for a passenger who vanishes, and a deadline. The vanilla list above is the checklist to
-  answer against; the one genuinely new question is what a village OWES you for a healer who arrived, versus one
-  who arrived too late.
+  AND a target settlement (today a quest carries one or the other, never both). Completion is the hand-off VERB,
+  not the arrival, so it goes through the ONE existing path and is stamped, rewarded and journalled exactly as
+  every other quest is. No arrival listener in `QuestService`.
+- **Inc 3 — the arrival OFFERS the scene.** Reaching the destination with the passenger raises the same popup a
+  companion raises for a private word, behind the same safety read (`RoadAudienceFacts`, so it can never fire at
+  sea, in a siege, over a menu, or on an open chat). Declining must leave the quest untouched and offer again:
+  the player is late for a reason, and a scene that can be missed once by a misclick is a scene that will be.
+  Who speaks first is a writing decision: the headman receiving, or the charge arriving.
+- **Inc 4 — the endings, all of them scenes.** In time, late, and empty-handed are three conversations, not one
+  success and two failures. `RetainerLeavePolicy` still ends the travelling on war and death, and
+  `QuestTargetVoidPolicy` still tells vanished from dead from freed — but its verdict now chooses which scene
+  opens rather than which log line prints. The genuinely new question stays: what a village OWES you for a healer
+  who came late, and whether the lord who sent you agrees with the village about it.
 
 ### Open questions for Gabriel, not to be decided unilaterally
 
 - Who issues it? A lord, as the player described, or the destination's own notable asking for help?
 - Does the escortee have to be found first (a real errand: go to a town, persuade a surgeon), or does the giver
   hand them to you? The first is a much better story and roughly doubles the work.
-- Is a late arrival a failure, or a worse outcome that still resolves? A raided village that waited three weeks for
-  a healer is a scene worth writing, and a plain "failed" throws it away.
 - Does the passenger occupy a party slot, and does the player feed them? Vanilla's escortee is a separate party and
   costs nothing; a retainer rides in the roster.
 
