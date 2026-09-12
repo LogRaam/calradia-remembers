@@ -1,18 +1,22 @@
 // Code written by Gabriel Mailhot, 12/09/2026.
-// A test bed for the knowledge packs, because Gabriel's save had nothing to show them.
+// A test bed for the knowledge packs, and then the run that uses it.
 //
 // The live sweep reported personal_bonds at 0 supplied out of 60 carried, and the reason turned out to be the
 // world rather than the code: bonds come from exactly two places - a LIVE GRUDGE against somebody other than
-// the player, and a TAKEN LOVER - and his campaign had neither. His answer: "ma partie n'a pas de liens
+// the player, and a TAKEN LOVER - and Gabriel's campaign had neither. His answer: "ma partie n'a pas de liens
 // intimes. Tu peux en injecter. Et tu peux injecter différents scénarios à différents NPC pour tester tous les
-// cas."
+// cas." Then, immediately and rightly: "est-ce que tu peux automatiser les tests... plutôt que j'aie à avoir
+// une conversation en jeu avec eux."
 //
-// So each seeded character gets a DIFFERENT situation rather than all of them the same one. That is the point:
-// the discretion axis only shows itself when a secret and an open bond sit side by side, and "do not promise
-// what your body cannot do" only shows itself on somebody who is actually hurt.
+// So each seeded character gets a DIFFERENT situation, and one command can then put the matching question to
+// every one of them. Seeding without asking is half a tool.
 //
-// Everything it touches is reversible and marked. The grudges it plants carry a seed marker in their cause, so
-// a leftover is identifiable in a log months later.
+// WHY THE ASKING MATTERS MORE THAN THE CONVENIENCE: cr.memory_bench hands a character facts assembled by hand,
+// which proves the PACK behaves. This asks a REAL character in a REAL save, with the context the game itself
+// builds - so it proves the host read the world, the packs composed, and the model then answered. The whole
+// road, which a bench with hand-made facts can never reach.
+//
+// Everything it touches is reversible and marked.
 
 #region
 
@@ -20,10 +24,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
-using NpcMemoryService.Core.Knowledge;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
@@ -34,27 +38,37 @@ namespace CalradiaRemembers
 {
    public static partial class ModCheats
    {
-      /// <summary>The marker every seeded grudge carries, so a leftover can be recognised long afterwards.</summary>
+      /// <summary>The marker every seeded grudge carries, so a leftover is recognisable long afterwards.</summary>
       private const string SeedMark = "[SEED]";
 
-      /// <summary>Who was seeded this session, so `clear` knows whom to undo.</summary>
-      private static readonly Dictionary<string, int> SeededHeroes = new();
+      /// <summary>What was seeded this session: what to ask about, and what to put back.</summary>
+      private static readonly List<SeededCase> Seeded = new();
 
       /// <summary>
-      ///   cr.seed_knowledge [clear] — gives several characters DIFFERENT situations so every knowledge pack
-      ///   has something to show, and reports what each now carries. `clear` undoes it.
+      ///   cr.seed_knowledge [test|clear] — gives several characters DIFFERENT situations so every knowledge
+      ///   pack has something to show. `test` then puts the matching question to each of them against the real
+      ///   model and reports; `clear` undoes it all.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("seed_knowledge", "cr")]
       public static string SeedKnowledge(List<string> args)
       {
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
 
-         bool clearing = args is {Count: > 0}
-                         && string.Equals(args[0].Trim(), "clear", StringComparison.OrdinalIgnoreCase);
+         string mode = args is {Count: > 0} ? args[0].Trim().ToLowerInvariant() : "";
 
          try
          {
-            return clearing ? Unseed(behavior) : Seed(behavior);
+            switch (mode)
+            {
+               case "clear": return Unseed(behavior);
+               case "test":
+                  // Seeding first when nothing is seeded makes the one-word command do the whole job, which is
+                  // what was actually asked for.
+                  if (Seeded.Count == 0) Seed(behavior);
+
+                  return MemoryBench.RunSeeded(behavior, Seeded);
+               default: return Seed(behavior);
+            }
          }
          catch (Exception ex)
          {
@@ -74,53 +88,49 @@ namespace CalradiaRemembers
                                .Take(12)
                                .ToList();
 
-         if (pool.Count < 4) return "cr.seed_knowledge: not enough living lords in this save to seed.";
+         if (pool.Count < 6) return "cr.seed_knowledge: not enough living lords in this save to seed.";
+
+         Seeded.Clear();
 
          var report = new List<string> {"cr.seed_knowledge — each character gets a DIFFERENT case:"};
 
-         // 1. A SECRET love. The pack must refuse to render it however it is asked: the mystery-lover pillar
-         //    keeps sole ownership of when a secret surfaces.
-         report.Add(GiveLover(behavior, pool[0], pool[1], true, "a SECRET love (must NEVER be named)"));
+         // The two ends of the discretion axis. Neither shows anything on its own: a secret that is never
+         // named proves nothing unless an open bond, elsewhere, IS named.
+         report.Add(Lover(behavior, pool[0], pool[1], SeededKind.SecretLove, "a SECRET love (must never be named)"));
+         report.Add(Lover(behavior, pool[2], pool[3], SeededKind.OpenLove, "an OPEN love (his to speak of in private)"));
 
-         // 2. An openly held lover. Guarded rather than secret, so it surfaces only in private and only to
-         //    somebody they think well of - the discretion axis, which needs both cases to be visible at all.
-         report.Add(GiveLover(behavior, pool[2], pool[3], false, "an OPEN love (only in private, regard 30+)"));
+         // Ordinary talk, and the half that stops the secret probe passing for the wrong reason - a character
+         // who mentions nobody at all would otherwise sail through every "does not name X".
+         report.Add(Grudge(pool[4], pool[5], today, "an OPEN grievance"));
 
-         // 3. A grievance against a third party. Open: it may be spoken to anyone, and it is the half that
-         //    stops the secret test passing for the wrong reason (a character who names nobody).
-         report.Add(GiveGrudge(pool[4 % pool.Count], pool[5 % pool.Count], today, "an OPEN grievance"));
-
-         // 4. Both at once, to see the cap and the ordering rather than one bond in isolation.
-         report.Add(GiveLover(behavior, pool[6 % pool.Count], pool[7 % pool.Count], true, "a secret love AND"));
-         report.Add(GiveGrudge(pool[6 % pool.Count], pool[8 % pool.Count], today, "   ...a grievance"));
-
-         // 5 and 6. A body that changes what may be promised. Grievous first, because that is the case with a
-         //    consequence: he must refuse to ride out.
-         report.Add(Wound(pool[9 % pool.Count], 0.10f, "GRIEVOUSLY hurt (must refuse to ride out)"));
-         report.Add(Wound(pool[10 % pool.Count], 0.60f, "knocked about (should mention it, still able)"));
+         // A body that changes what may be PROMISED, which is the anti-empty-promise rule reaching a fact it
+         // never used to have.
+         report.Add(Wound(pool[6 % pool.Count], 0.10f, SeededKind.GrievousWound, "GRIEVOUSLY hurt (must refuse to ride out)"));
+         report.Add(Wound(pool[7 % pool.Count], 0.60f, SeededKind.LightWound, "knocked about (should say so, still able)"));
 
          report.Add("");
-         report.Add("Talk to them, or run: cr.prompt_dump <name>. Undo with: cr.seed_knowledge clear");
+         report.Add("Now run: cr.seed_knowledge test   (asks each of them, judges the answers)");
+         report.Add("Or look:  cr.prompt_dump <name>    Undo: cr.seed_knowledge clear");
 
          return string.Join("\n", report);
       }
 
       private static string Unseed(NpcMemoryCampaignBehavior behavior)
       {
-         if (SeededHeroes.Count == 0)
-            return "cr.seed_knowledge: nothing seeded this session. A seeded grudge is marked "
-                   + SeedMark + " in the log if you need to find one after a reload.";
+         if (Seeded.Count == 0)
+            return "cr.seed_knowledge: nothing seeded this session. A seeded grudge is marked " + SeedMark
+                   + " in its cause if you need to find one after a reload.";
 
          var undone = 0;
 
-         foreach (KeyValuePair<string, int> entry in SeededHeroes)
+         foreach (SeededCase seeded in Seeded)
          {
-            Hero hero = Hero.FindFirst(h => h != null && h.StringId == entry.Key);
+            Hero hero = seeded.Hero;
             if (hero == null) continue;
 
-            GrudgeBehavior.Instance?.ClearGrudgesFor(entry.Key);
+            GrudgeBehavior.Instance?.ClearGrudgesFor(hero.StringId);
 
-            NpcProfile profile = behavior.Store.Get(entry.Key);
+            NpcProfile profile = behavior.Store.Get(hero.StringId);
 
             if (profile?.Romantic != null)
             {
@@ -129,61 +139,58 @@ namespace CalradiaRemembers
                behavior.Store.Set(profile);
             }
 
-            // Their hit points are put back where they were rather than to full: healing somebody the player
-            // had actually wounded would be a gift nobody asked for.
-            if (entry.Value > 0) hero.HitPoints = Math.Min(hero.MaxHitPoints, entry.Value);
+            // Put their hit points back WHERE THEY WERE rather than to full: healing somebody the player had
+            // actually wounded would be a gift nobody asked for.
+            if (seeded.HitPointsBefore > 0)
+               hero.HitPoints = Math.Min(hero.MaxHitPoints, seeded.HitPointsBefore);
 
             undone++;
          }
 
-         SeededHeroes.Clear();
+         Seeded.Clear();
 
          return $"cr.seed_knowledge: undone for {undone} character(s).";
       }
 
-      private static string GiveLover(NpcMemoryCampaignBehavior behavior, Hero hero, Hero lover, bool secret,
-                                      string what)
+      private static string Lover(NpcMemoryCampaignBehavior behavior, Hero hero, Hero lover, SeededKind kind,
+                                  string what)
       {
          NpcProfile profile = behavior.Store.Get(hero.StringId) ?? HeroProfileMapper.FromHero(hero);
 
          profile.Romantic ??= new RomanticProfile {IsFemale = hero.IsFemale};
          profile.Romantic.TakenLoverId = lover.StringId;
-         profile.Romantic.LoverIsSecret = secret;
+         profile.Romantic.LoverIsSecret = kind == SeededKind.SecretLove;
          behavior.Store.Set(profile);
 
-         Remember(hero, 0);
+         Seeded.Add(new SeededCase {Hero = hero, Kind = kind, CounterpartName = lover.Name?.ToString()});
 
          return $"  {hero.Name}: {what} — {lover.Name}";
       }
 
-      private static string GiveGrudge(Hero holder, Hero target, int today, string what)
+      private static string Grudge(Hero holder, Hero target, int today, string what)
       {
          bool planted = GrudgeBehavior.Instance?.TryPlant(
             holder, target, GrudgeSource.FailedQuest,
             $"{SeedMark} {target.Name} shamed me before my own people.", 40, false, today, false) == true;
 
-         if (planted) Remember(holder, 0);
+         if (planted)
+            Seeded.Add(new SeededCase {
+               Hero = holder, Kind = SeededKind.OpenGrievance, CounterpartName = target.Name?.ToString()
+            });
 
          return planted
             ? $"  {holder.Name}: {what} — against {target.Name}"
             : $"  {holder.Name}: grudge could not be planted (one may already stand)";
       }
 
-      private static string Wound(Hero hero, float share, string what)
+      private static string Wound(Hero hero, float share, SeededKind kind, string what)
       {
          int before = hero.HitPoints;
          hero.HitPoints = Math.Max(1, (int) (hero.MaxHitPoints * share));
-         Remember(hero, before);
+
+         Seeded.Add(new SeededCase {Hero = hero, Kind = kind, HitPointsBefore = before});
 
          return $"  {hero.Name}: {what}";
-      }
-
-      /// <summary>Records what to put back, keeping the FIRST reading if a character is seeded twice.</summary>
-      private static void Remember(Hero hero, int hitPointsBefore)
-      {
-         if (!SeededHeroes.ContainsKey(hero.StringId)) SeededHeroes[hero.StringId] = hitPointsBefore;
-         else if (SeededHeroes[hero.StringId] == 0 && hitPointsBefore > 0)
-            SeededHeroes[hero.StringId] = hitPointsBefore;
       }
 
       #endregion

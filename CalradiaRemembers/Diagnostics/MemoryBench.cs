@@ -76,6 +76,25 @@ namespace CalradiaRemembers.Diagnostics
          ///   than a token: sounding surprised, or stating a figure he cannot know.
          /// </summary>
          public string MustNotJudge { get; set; }
+
+         /// <summary>
+         ///   A YES/NO criterion the reply MUST satisfy, or null. The mirror of <see cref="MustNotJudge" />,
+         ///   for the cases where the failure is a silence rather than an invention - a character who mentions
+         ///   nobody would otherwise pass every "does not name X" probe for entirely the wrong reason.
+         /// </summary>
+         public string MustJudge { get; set; }
+
+         /// <summary>
+         ///   Whom to ask. Null means the one speaker the whole run is about; set, it makes this probe a LIVE
+         ///   one - put to that character with the context the game itself would build, rather than with a
+         ///   controlled one assembled here.
+         ///   <para>
+         ///     That difference is the point of the seeded run. A controlled context proves the PACK behaves;
+         ///     a live one proves the host reads the world, the packs compose, and the model then answers - the
+         ///     whole road, which is the half a bench with hand-made facts can never reach.
+         ///   </para>
+         /// </summary>
+         public Hero Speaker { get; set; }
       }
 
       public static string Run(NpcMemoryCampaignBehavior behavior, string heroNameFragment = null)
@@ -139,7 +158,141 @@ namespace CalradiaRemembers.Diagnostics
          return report.ToString().TrimEnd();
       }
 
+      /// <summary>
+      ///   Puts one question to each SEEDED character, using the context the game itself builds for them.
+      ///   <para>
+      ///     Gabriel, 2026-09-12: "est-ce que tu peux automatiser les tests avec cr.seed_knowledge? Plutot que
+      ///     j'aie a avoir une conversation en jeu avec eux." So the seeding and the asking became one command.
+      ///   </para>
+      ///   <para>
+      ///     This is stronger evidence than the ordinary bench, not merely more convenient. The ordinary bench
+      ///     hands a character facts assembled by hand, which proves the PACK behaves. This one asks a real
+      ///     character in a real save, so it proves the host read the world, the packs composed, and the model
+      ///     then answered - the whole road end to end.
+      ///   </para>
+      /// </summary>
+      public static string RunSeeded(NpcMemoryCampaignBehavior behavior, IEnumerable<SeededCase> cases)
+      {
+         LlmServices services = behavior?.LlmServices;
+
+         if (services is not {IsAvailable: true})
+            return "cr.seed_knowledge test: the LLM is not configured. Set a provider, key and model first.";
+
+         List<Probe> probes = cases.Select(ProbeFor).Where(p => p != null).ToList();
+
+         if (probes.Count == 0) return "cr.seed_knowledge test: nothing seeded to ask about.";
+
+         var report = new StringBuilder();
+         report.AppendLine($"cr.seed_knowledge test — {probes.Count} live probe(s) [model: {services.ModelId}]");
+         report.AppendLine("Each is put to a REAL character with the context the game builds for them.");
+
+         int passed = 0, failed = 0, errored = 0;
+
+         foreach (Probe probe in probes)
+         {
+            string reply = Ask(services, null, behavior, probe);
+
+            if (reply == null)
+            {
+               errored++;
+               report.AppendLine($"  ERROR  {probe.Name}: the model did not answer.");
+
+               continue;
+            }
+
+            ModLog.Info($"[seed_test] {probe.Name} — Q: {probe.Question}");
+            ModLog.Info($"[seed_test] {probe.Name} — A: {reply}");
+
+            (bool ok, string why) = Judge(services, probe, reply);
+
+            if (ok)
+            {
+               passed++;
+               report.AppendLine($"  PASS   {probe.Name}");
+               ModLog.Info($"[seed_test] {probe.Name} — PASS");
+            }
+            else
+            {
+               failed++;
+               report.AppendLine($"  FAIL   {probe.Name}: {why}");
+               report.AppendLine($"         he was owed: {probe.Promise}");
+               report.AppendLine($"         he said: {Shorten(reply)}");
+               ModLog.Info($"[seed_test] {probe.Name} — FAIL: {why}");
+            }
+         }
+
+         report.AppendLine($"{passed} passed, {failed} failed, {errored} errored. Transcript in the mod log.");
+         ModLog.Info($"[seed_test] {passed} passed, {failed} failed, {errored} errored.");
+
+         return report.ToString().TrimEnd();
+      }
+
       #region private
+
+      /// <summary>The question each seeded situation deserves, and how its answer is judged.</summary>
+      private static Probe ProbeFor(SeededCase seeded)
+      {
+         if (seeded?.Hero == null) return null;
+
+         string who = seeded.Hero.Name?.ToString() ?? "he";
+
+         switch (seeded.Kind)
+         {
+            case SeededKind.SecretLove:
+               return new Probe {
+                  Name = $"{who}: keeps a secret love",
+                  Promise = "a secret is never placed in his prompt, so he cannot name it even asked point blank",
+                  Speaker = seeded.Hero,
+                  Question = "Speak plainly with me. Is there someone you love? Name them.",
+                  MustNotSay = seeded.CounterpartName
+               };
+
+            case SeededKind.OpenLove:
+               return new Probe {
+                  Name = $"{who}: owns an open love",
+                  Promise = "a bond he does not hide is his to speak of when he is asked in private",
+                  Speaker = seeded.Hero,
+                  Question = "We are alone here. Is there someone you hold dear?",
+                  MustNotJudge = "The speaker denies having anyone at all, or claims his heart is empty. "
+                                 + "Naming them, alluding to them, or declining to give the name while "
+                                 + "admitting there IS someone, all count as NOT denying it."
+               };
+
+            case SeededKind.OpenGrievance:
+               return new Probe {
+                  Name = $"{who}: speaks an open grievance",
+                  Promise = "an ordinary feud is ordinary talk, and must come out when he is asked",
+                  Speaker = seeded.Hero,
+                  Question = "Is there anyone in this realm you cannot forgive?",
+                  MustSay = seeded.CounterpartName
+               };
+
+            case SeededKind.GrievousWound:
+               return new Probe {
+                  Name = $"{who}: will not promise what his body cannot do",
+                  Promise = "a man barely on his feet cannot agree to ride out, however willing he is",
+                  Speaker = seeded.Hero,
+                  Question = "Ride out with me at first light tomorrow. Hard riding, and a fight at the end.",
+                  MustNotJudge = "The speaker agrees to ride out or to fight tomorrow. Refusing, saying his "
+                                 + "wounds will not allow it, offering a later date, or offering something "
+                                 + "other than his own sword arm, all count as NOT agreeing."
+               };
+
+            case SeededKind.LightWound:
+               return new Probe {
+                  Name = $"{who}: knows he is knocked about",
+                  Promise = "he can feel his own bruises, and says so when asked how he fares",
+                  Speaker = seeded.Hero,
+                  Question = "You look like you have been in the wars. How do you fare?",
+                  MustJudge = "The speaker acknowledges being hurt, bruised, knocked about or recently in a "
+                              + "fight, even lightly or in passing."
+               };
+
+            default:
+               return null;
+         }
+      }
+
 
       /// <summary>The controlled facts every probe starts from: a lord of the player's own house.</summary>
       private static EncounterContext Knowing(string governedSeat = null,
@@ -473,6 +626,12 @@ namespace CalradiaRemembers.Diagnostics
          {
             var world = new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()};
 
+            if (probe.Speaker != null)
+            {
+               profile = behavior.Store.Get(probe.Speaker.StringId) ?? HeroProfileMapper.FromHero(probe.Speaker);
+               probe.Context = EncounterContextBuilder.Build(probe.Speaker, profile, behavior.GameStateBridge, null);
+            }
+
             NpcChatResult result = Task.Run(() => services.ChatService.ChatAsync(
                                           profile, world, new ChatSession(), probe.Question, probe.Context))
                                        .GetAwaiter().GetResult();
@@ -494,6 +653,14 @@ namespace CalradiaRemembers.Diagnostics
 
          if (probe.MustNotSay != null && reply.IndexOf(probe.MustNotSay, StringComparison.OrdinalIgnoreCase) >= 0)
             return (false, $"he said \"{probe.MustNotSay}\", which was never in his prompt at all");
+
+         if (probe.MustJudge != null)
+         {
+            bool? met = JudgeYes(services, probe.MustJudge, reply);
+
+            // A judge that cannot answer must not invent a failure, exactly as on the negative side.
+            if (met == false) return (false, "he did not say the thing he plainly knows");
+         }
 
          if (probe.MustNotJudge == null) return (true, null);
 
