@@ -465,6 +465,7 @@ namespace CalradiaRemembers.Mapping
             HouseStanding = BuildHouseStanding(hero),
             SeatStanding = seatStanding,
             HouseMeans = BuildHouseMeans(hero),
+            OwnBody = BuildOwnBody(hero),
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
             Audience = BuildListeningAudience(profile, witnesses),
@@ -2300,7 +2301,11 @@ namespace CalradiaRemembers.Mapping
             IsOfPlayerClan = hero.Clan != null && hero.Clan == Clan.PlayerClan,
             IsNotable = hero.IsNotable,
             HasHouse = hero.Clan != null,
-            HoldsASeat = holdsASeat
+            HoldsASeat = holdsASeat,
+
+            // No courier reaches a cell (Gabriel, 2026-09-12). The packs that are TODAY'S news are simply not
+            // carried; the ones that are durable, or that he is standing in, still are.
+            IsCutOff = hero.IsPrisoner
          };
       }
 
@@ -2690,6 +2695,51 @@ namespace CalradiaRemembers.Mapping
          if (rank < 0.85f) return InfluenceBand.Considerable;
 
          return InfluenceBand.Commanding;
+      }
+
+      /// <summary>
+      ///   The state of the body this conversation is happening in. Found by auditing EncounterContext rather
+      ///   than by a player report: it returned ZERO for wound, injury and health while the engine kept
+      ///   IsWounded, HitPoints, MaxHitPoints and IsDisabled all along.
+      ///   <para>
+      ///     The engine's own IsWounded flag decides whether they count as wounded at all, and the hit-point
+      ///     ratio only grades HOW badly - the same deference here_and_now shows the engine's night reading
+      ///     over arithmetic on the hour.
+      ///   </para>
+      /// </summary>
+      private static OwnBodyFacts BuildOwnBody(Hero hero)
+      {
+         if (hero == null) return null;
+
+         try
+         {
+            return new OwnBodyFacts {
+               Hurt = ReadHurt(hero),
+               IsMaimed = hero.IsDisabled
+            };
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[knowledge] body read failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      private static HurtBand ReadHurt(Hero hero)
+      {
+         if (hero.MaxHitPoints <= 0) return HurtBand.Unknown;
+
+         // Not wounded by the engine's own reckoning is WHOLE, whatever the arithmetic says. A hero a few
+         // points down from a scrape is not someone who should mention it.
+         if (!hero.IsWounded) return HurtBand.Unhurt;
+
+         float left = hero.HitPoints / (float) hero.MaxHitPoints;
+
+         if (left < 0.20f) return HurtBand.Grievous;
+         if (left < 0.55f) return HurtBand.Wounded;
+
+         return HurtBand.Scratched;
       }
 
       private static string ResolveRuledRealmName(Hero hero)
