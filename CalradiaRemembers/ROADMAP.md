@@ -32,6 +32,100 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## DESIGNED 2026-09-11, NOT BUILT (player request + Gabriel): ESCORT a person to a place, and the arrival IS the scene
+
+A player: "so i just had a noble ask me to bring a healer to a local village that had just been raided. is there
+any possible way for this to somehow be integrated into the quest system? perhaps a 'deliver/escort (character) to
+(location)' and then the events of the quest would play out in the chat window once you arrive. perhaps the chat
+window would pop up similar to when a companion wishes to speak to you?"
+
+He is describing something the mod half owns already, and he has correctly identified the mechanism to reuse
+(the companion-audience popup). Gabriel pointed at the vanilla precedent, which is the right instinct and turns
+out to be two precedents.
+
+### What vanilla already solved, read out of the decompiled CampaignSystem
+
+`HeadmanVillageNeedsDraughtAnimalsIssueBehavior` is the "deliver goods to a village" shape. The nearer model is
+`EscortMerchantCaravanIssueQuest`, and its member list is a checklist of everything this feature has to answer:
+
+- `SpawnCaravan` + `CustomPartyComponent` — **vanilla does not walk an existing hero to the destination, it spawns
+  a party for the escortee.** This is the answer to "the healer does not exist as a character".
+- `AdjustCaravansSpeed` — the escortee is kept at the player's pace. Without it the charge is left behind by the
+  simulation itself and the quest dies of arithmetic.
+- `NotifyPlayerOrCancelTheQuestIfCaravanIsFar` — the "you abandoned them" rule, warned before it fires.
+- `TryToFindAndSetTargetToNextSettlement`, `_visitedSettlements`, `ProperSettlementCondition` — destination tracking.
+- `SimulateSettlementWaitForCaravan`, `_caravanWaitedInSettlementForHours` — what happens while the player dawdles.
+- `OnSettlementEntered` — arrival. The same hook the player named.
+- `OnTimedOut`, `FailConsequences`, `FailByPlayerHostileConsequences`, `OnWarDeclared`, `OnClanChangedKingdom`,
+  `OnMapEventEnded` — every way it ends badly, each with its own consequence.
+
+### Option A, ratified as the scope: the escortee is somebody who already exists
+
+Two options were weighed. **B** would spawn a party as vanilla does: faithful, and it buys us convoy simulation
+that Bannerlord already performs better than we would. **A** carries a hero who is already in the world, using the
+retainer tech (`ride_with_me`) that already handles their clan, their death, their capture, and war breaking out.
+
+A is chosen because **what CR adds is not the journey, it is what is said on arrival.** Paying for a bespoke party
+simulation to deliver a conversation is paying for the wrong half. It also gives the healer a name, a face and a
+memory profile, which a spawned nobody cannot have — and a named person is the only kind this mod can make matter.
+
+### What already exists, verified in code rather than remembered
+
+- **A hero travels with you**: `RetainerBehavior` / `RideWithMeEligibilityPolicy`, with `RetainerLeavePolicy`
+  already ending it on war, death, or loss of tracking.
+- **The chat opens by itself when you arrive somewhere**: `CompanionAudienceTopicBehavior.OnSettlementEntered`,
+  which is exactly the popup the player is asking for, and whose safety read (`RoadAudienceFacts`, eleven facts
+  including `AtSea` after the 2026-09-10 crash) already knows when a conversation must NOT be staged.
+- **A quest can name a place**: `QuestMenuEntry.TargetField` carries `target_settlement`, and the composer already
+  grounds a settlement name into the prompt.
+- **A quest can be voided when its subject is gone**: `QuestTargetVoidPolicy` distinguishes vanished, dead, and
+  (for a rescue) freed, so an escortee who dies mid-journey already has an honest closure line waiting.
+
+### The two things that are NOT there, and neither is cosmetic
+
+**1. `ride_with_me` is scoped to LORDS.** `RideWithMeEligibilityPolicy` requires `IsLord`, so a village headman, a
+healer, a surgeon, an artisan — precisely the people this quest is about — cannot ride today. Widening it is the
+first real decision, and it is the same shape as the `follow_me` widening of 2026-09-10: the rule refused a whole
+population for a reason that made sense in its own pillar and does not generalise. **Gabriel's ruling needed:**
+does a notable ride in the party under the same terms as a lord, or does an escortee need its own, narrower
+eligibility (alive, free, willing, not already travelling, and NOT a party leader)?
+
+**2. No CR quest completes by ARRIVING anywhere.** This surprised me and it is worth writing down. Twelve quest
+types exist and the closest, `DeliverPrisoner`, completes through a conversation verb (`give_prisoner`), a hand-off
+someone performs — not through a place being reached. `QuestService` does not listen to `SettlementEntered` at all;
+three other behaviours do (`CourierService`, the companion audience, the assembly). So "arrive and it completes" is
+genuinely new wiring, and it is the heart of the request rather than a detail of it.
+
+### Shape
+
+- **Inc 1 — the escortee may travel.** Widen or fork the retainer eligibility per Gabriel's ruling above. Pure
+  policy plus tests; nothing player-visible yet.
+- **Inc 2 — a quest that names a passenger and a destination.** New `QuestType.EscortPerson` carrying a target hero
+  AND a target settlement (today a quest carries one or the other, never both). `QuestService` gains an arrival
+  listener; the completion goes through the ONE existing path so a delivered escort is stamped, rewarded and
+  journalled exactly as every other quest is.
+- **Inc 3 — the arrival is a scene.** On arrival with the passenger, stage the conversation through
+  `ChatSceneStager` behind the audience's own safety read, so it can never fire at sea, in a siege, over a menu, or
+  on top of an open chat. The escortee speaks first: they are the one who has arrived somewhere.
+- **Inc 4 — the ways it ends.** Reuse rather than reinvent: `RetainerLeavePolicy` for war and death,
+  `QuestTargetVoidPolicy` for a passenger who vanishes, and a deadline. The vanilla list above is the checklist to
+  answer against; the one genuinely new question is what a village OWES you for a healer who arrived, versus one
+  who arrived too late.
+
+### Open questions for Gabriel, not to be decided unilaterally
+
+- Who issues it? A lord, as the player described, or the destination's own notable asking for help?
+- Does the escortee have to be found first (a real errand: go to a town, persuade a surgeon), or does the giver
+  hand them to you? The first is a much better story and roughly doubles the work.
+- Is a late arrival a failure, or a worse outcome that still resolves? A raided village that waited three weeks for
+  a healer is a scene worth writing, and a plain "failed" throws it away.
+- Does the passenger occupy a party slot, and does the player feed them? Vanilla's escortee is a separate party and
+  costs nothing; a retainer rides in the roster.
+
+**Nothing here is built. This entry exists so the design is argued before any code, as with the briefing pillar.**
+
+---
+
 ## BUILT 2026-09-07, UNTESTED IN GAME (player request + Gabriel): take your own people aside and BRIEF them
 
 A player asked whether a specific NPC could LEAD a group conversation (a cruel companion interrogating a prisoner,
