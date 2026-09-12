@@ -48,7 +48,21 @@ namespace CalradiaRemembers.WorldEvents
       ///   shortage and/or collapsing prosperity). Recorded by the weekly world-conditions feeder. Added last
       ///   to preserve the serialized ordinals of existing saves.
       /// </summary>
-      Hardship
+      Hardship,
+
+      /// <summary>
+      ///   A piece of local news a CHARACTER asserted in conversation that nobody had told him - a blight,
+      ///   brigands on a road, a death, an omen, a quarrel at some hall. Not something the engine recorded:
+      ///   something an NPC made up, judged safe to adopt, and now travelling as ordinary rumour so a second
+      ///   character can have heard it.
+      ///   <para>
+      ///     Gabriel, 2026-09-12: "Les nouveaux faits proviennent QUE des NPC, pas du joueur. Le joueur subit
+      ///     le Monde alors que les NPC le définissent." Only subjects the engine does not model reach this
+      ///     type, so an invention can never contradict a screen the player can open - see WorldClaimPolicy.
+      ///   </para>
+      ///   Added last to preserve the serialized ordinals of existing saves.
+      /// </summary>
+      HeardTell
    }
 
    /// <summary>

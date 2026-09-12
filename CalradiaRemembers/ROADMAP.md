@@ -326,6 +326,59 @@ Given a real subject - a landed lord of the player's house who governs a besiege
 - **Consequence for the next pack:** adding one no longer risks the ceiling. It risks silently displacing
   `personal_bonds` in Compact instead, which is a visible, testable trade rather than a player writing in.
 
+### INVENTED FACTS BECOME REAL, built 2026-09-12 (Gabriel's design)
+
+He read the bench transcript where a governor invented a blight and asked the question the whole pillar had
+been walking towards: "si un NPC invente un FAIT... et que le joueur en parle a un autre NPC, ce dernier ne
+connaitra pas ce fait. Ca peut creer de l'incoherence. Est-ce qu'il est possible de capter des FAITS INVENTES
+et de les rendre reels dans le Monde?"
+
+**His two rulings, and everything is built on them:**
+
+- **"Les nouveaux faits proviennent QUE des NPC, pas du joueur. Le joueur subit le Monde alors que les NPC le
+  definissent. C'est la nature du jeu video."** So a player's invention is never adopted - checked twice, in
+  the pure gate and again at the injector, by hero IDENTITY rather than by an id string, because it is the one
+  rule that must not be lost to a formatting difference.
+- **"On ne contredit pas, on avoue ignorer est une bonne garde."**
+
+**Phase 1 - the boundary now runs BOTH ways.** `KnowledgeBoundaryPolicy` had always said "do not invent what
+you were not told" and had never said "do not DENY what you were not told". That second half is the one a
+player actually feels: not knowing is correct, flatly contradicting is the incoherence. Both prompt forms now
+say unheard news is not therefore false, and the Full form hands over what to do instead - say it has not
+reached you, or ask who told them. **Cost: it displaced `personal_bonds` from the Compact prompt, which is the
+allowance mechanism working as designed rather than a ceiling breaking.**
+
+**Phase 2 - adoption, behind one hard frontier.**
+
+> A claim may enter the world ONLY where the ENGINE HAS NOTHING TO SAY.
+
+Blight, banditry, a passing or a birth, an omen, a local quarrel: Bannerlord has no field for any of them, so
+an invention cannot contradict a screen. Troop counts, coin, who holds a town, war and peace, prosperity,
+garrisons: the engine owns those, and an invention there is a checkable lie - the exact failure `seat_standing`
+was built to end. It is "bands, not numbers" drawn one level up.
+
+- `WorldClaim` / `WorldClaimPolicy` (SDK, pure): the shape and the gate, which refuses by default and names
+  every refusal (`FromThePlayer`, `EngineOwnsIt`, `AboutThePlayer`, `Unclassified`, `NotSayable`,
+  `AlreadyKnown`). Magnitude capped at 2 so an invented rumour never outranks a battle.
+- `WorldClaimExtractor` (SDK): a narrow, closed-list instruction and a strict parse. The asymmetry that shapes
+  it: a false positive is written into the save and read back to strangers months later; a false negative
+  loses a rumour nobody had yet. So anything doubtful is dropped.
+- `WorldEventType.HeardTell` + `WorldClaimInjector` (mod): writes the row, tagged `SourceMod` so every row this
+  feature ever writes can be found and removed as a group, with the SPEAKER in `ActorIds` so a later listener
+  can say who told them rather than knowing it from nowhere.
+- Hooked on the durable summary queue's SUCCESS path, so it runs once per conversation rather than once per
+  retry. **Honest cost: it is its OWN LLM call, not a free ride on the summariser** - widening that prompt's
+  output contract would put the memory line at risk to save a request. One call per conversation CLOSE, never
+  per turn.
+- `cr.testall world_claims` drives the real injector against the real store and asserts both refusals.
+
+**OPEN, and my recommendation: this should ship with an MCM off switch.** A language model writing permanent
+rows into a player's save is exactly the kind of feature a player should be able to decline, and there is no
+toggle yet. Not built, because it is Gabriel's call how it is worded and defaulted.
+
+**Also open:** nobody has watched a claim make the journey in a real game - invented in one conversation,
+adopted, then heard from a second character.
+
 ### The audit, still open
 
 The categories with a named gap and no pack yet, in the order the evidence supports:

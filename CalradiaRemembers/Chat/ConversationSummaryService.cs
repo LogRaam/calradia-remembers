@@ -9,10 +9,14 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
+using System.Collections.Generic;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Captivity;
+using NpcMemoryService.Core.Knowledge;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
+using TaleWorlds.CampaignSystem;
 
 #endregion
 
@@ -109,6 +113,55 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Reads the finished conversation back for facts the character asserted that nobody had told him, and
+      ///   offers them to the world (Gabriel, 2026-09-12: "lorsqu'un nouveau fait est déclaré par un NPC et
+      ///   jugé crédible, alors il peut être injecté comme fait divers dans le World Events").
+      ///   <para>
+      ///     Runs on the SAME background path as the summary above and is deliberately independent of it: a
+      ///     failed summary must not cost the claims, and a failed harvest must never cost the memory. It is
+      ///     its own LLM call - the summariser's output contract is a memory line and widening it would put
+      ///     the memory at risk to save a request - so the cost is one call per conversation CLOSE, never per
+      ///     turn.
+      ///   </para>
+      /// </summary>
+      public static async Task HarvestWorldClaimsAsync(
+         NpcMemoryCampaignBehavior behavior,
+         string npcId,
+         string transcript)
+      {
+         try
+         {
+            NpcProfile npc = behavior?.Store?.Get(npcId);
+            if (npc == null || string.IsNullOrWhiteSpace(transcript)) return;
+
+            Hero speaker = Hero.FindFirst(h => h != null && h.StringId == npcId);
+
+            // The player never authors the world. Checked here as well as in the injector, because this is
+            // the rule that must not be lost to a refactor of either side.
+            if (speaker == null || speaker == Hero.MainHero) return;
+
+            var extractor = new WorldClaimExtractor(behavior.LlmServices.LlmClient);
+
+            IReadOnlyList<WorldClaim> claims;
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+            {
+               claims = await Task.Run(() => extractor.ExtractAsync(npc, transcript, cts.Token))
+                                  .ConfigureAwait(false);
+            }
+
+            if (claims == null || claims.Count == 0) return;
+
+            int adopted = WorldClaimInjector.Adopt(claims, speaker, behavior.GameStateBridge.GetCurrentGameDay());
+
+            ModLog.Info($"[CLAIM] {npc.Name}: {claims.Count} claim(s) read, {adopted} adopted into the world.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[CLAIM] harvest failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
       ///   Processes ONE durable <see cref="PendingSummaryJob" /> from the summary queue: rebuilds the anchor
       ///   event from the job's stored fields (the live objects are gone after a reload), generates the rich
       ///   summary, and replaces the base event by value match. Returns TRUE when the job is RESOLVED and must
@@ -161,6 +214,13 @@ namespace CalradiaRemembers.Chat
             fresh.Events[idx] = fresh.Events[idx] with {summary = rich.Trim()};
             behavior.Store.Set(fresh);
             ModLog.Info($"[CONV MEMORY] queued summary applied for {npc.Name}: \"{rich.Trim()}\"");
+
+            // Read the same transcript back for facts this character asserted that nobody had told him, and
+            // offer them to the world. Hooked HERE, on the durable queue's success path, so it runs once per
+            // conversation rather than once per retry - and awaited rather than fired, so a claim cannot
+            // outlive the job that produced it. Its own failures are swallowed inside, so it can never turn a
+            // successful memory into a retry.
+            await HarvestWorldClaimsAsync(behavior, job.ProfileId, job.Transcript).ConfigureAwait(false);
 
             return true;
          }

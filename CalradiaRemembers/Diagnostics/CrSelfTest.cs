@@ -236,6 +236,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("panel_siege_guard", Severity.Light, "Mechanical: the full-map panel crash guard. Asserts the Harmony prefix that skips SettlementVisualManager.OnTick (the vanilla siege-bombardment visual tick, which runs on the frame loop and access-violates natively under a pushed CR panel: four confirmed 0xC0000005 crashes) is actually attached to the LIVE engine method. It resolves the target BY NAME, so a game update that renamed the type/method would silently stop protecting; this fires if that ever happens. Also asserts that with no panel open nothing is suppressed (siege visuals tick normally). No LLM, mutates nothing", TestPanelSiegeVisualGuard),
          new SelfTest("settings_ranges_agree", Severity.Light, "Mechanical (Gabriel, 2026-09-10, after the Regard Warmth Cooldown: \"je suis surpris que le bon comportement n'ait pas ete bien protege par des tests unitaires. Par exemple, 0 aurait du etre teste\"). The uncomfortable truth is that 0 WAS tested and the test agreed with the bug: it pinned what the code did, while the MCM control clamped its minimum to 1 and the v2.5.1 changelog promised 0 turned the cooldown off. Three artefacts, no place for any two of them to meet. This is that place. Reflects over EVERY [SettingPropertyInteger] on CrSettings, pairs it with the same-named ModSettings property that enforces it, drives the declared MIN and MAX through the live setting, and asserts the code honours every value the menu offers. Catches the whole family in one assertion, including settings that do not exist yet. Restores each setting to its prior value in a finally", TestSettingsRangesAgree),
          new SelfTest("console_help_complete", Severity.Light, "Mechanical: cr.help against the REAL command registry. Asked on 2026-09-10 whether it was still complete, it described 70 of 259 registered commands, so cr.testall and cr.test were themselves invisible, and it advertised cr.compose, renamed cr.letter_compose long before, which made the one name a reader was most likely to copy verbatim the one that would fail. A hand-written list of every command in a project that gains commands weekly can only drift, so what EXISTS now comes from reflection over the assembly its own [CommandLineArgumentFunction] attributes and the prose is an overlay on top of it. Reads the live registry, drives the real ModCheats.Help in all three of its forms, and asserts: the help never names a command that does not exist (the cr.compose class of error), every registered command is reachable through cr.help all however undescribed, the curated page says where the rest of them are, and the search finds a command by fragment. Read-only, mutates nothing", TestConsoleHelpComplete),
+         new SelfTest("world_claims", Severity.Light, "Invented facts (Gabriel, 2026-09-12): a character makes up a blight, the gate judges it, and if it passes it becomes a real low-weight rumour a DIFFERENT character can have heard - which is the incoherence Gabriel named, closed through the rumour road that already existed instead of a second world model. A unit test can prove the RULE and never that the row reached the world, so this drives the real injector against the real store. Also asserts the two refusals that matter: the PLAYER never authors the world, and nothing the engine keeps on a screen is ever invented into it. Removes every row it writes", TestWorldClaims),
          new SelfTest("knowledge_composition", Severity.Light, "Mechanical (Gabriel + fkasad, 2026-09-11): the half a unit test CANNOT do. A unit test builds its own EncounterContext, so it can prove a companion WOULD carry his house's standing and never that anyone supplied it - which is exactly where the governor bug lived (the prompt was right, the rule would have been right, the host never filled the field). Sweeps up to 60 REAL heroes, asks NpcKnowledgeFactory which knowledge packs each one CARRIES, and asserts the live context actually SUPPLIED every one of them; reports the pack census so a pack that reaches nobody is visible rather than silently vacuous. Read-only: builds contexts, mutates nothing", TestKnowledgeComposition),
          new SelfTest("unavailable_deeds", Severity.Light, "Mechanical (Gabriel's ruling 09/09/2026: \"il faudrait que le LLM declare en connaissant deja le gating\"): a verb used to have TWO states in the prompt, taught in full or ABSENT, and absence does not read to a language model as forbidden, it reads as not mentioned, so the model supplied the permission itself and the player met the contradiction one deed later as a system message refusing what the NPC had just promised. Verbs now state their own closed door BEFORE the model speaks (IStatesUnavailability, the inward twin of the IProvidesGuidance channel built for modders on 30/08/2026 and never turned inward). Sweeps up to 60 real living foreign lords, driving the LIVE VerbRegistry.ComposeUnavailability and ComposeTeachings against each, and asserts: no refusal ever leaks a verb id or an [ACTION] block (which would teach the model the very token it must not emit), and no verb is ever taught and refused in the same prompt. Then takes the first lord the world supplied who has the means but not the trust and drives the REAL EncounterContextBuilder.Build, asserting the block reaches the live EncounterContext.UnavailableDeeds and forbids the PROMISE, not merely the deed (a deferred promise being the same failure). MANUAL when no lord in this world is currently in that state. Read-only: builds contexts, mutates nothing", TestUnavailableDeeds),
          new SelfTest("chat_focus_arbiter", Severity.Light, "Mechanical (tashmetu, 2026-09-09): the chat overlay slid off screen on NPC-initiated conversations and never came back, killing every later conversation until a restart. The old arbiter decided \"a screen is above us\" by COUNTING the host screen's layers against the count taken when the chat opened, and vanilla's own MissionGauntletConversationView adds a layer to that SAME screen while the conversation starts: click an NPC and it is already counted, be approached BY one and it arrives after, so the count grows and the chat yields to the very window it exists to replace, forever, because that layer stays for the whole conversation. The rule is now the engine's own IsFocusLayer, with the two vanilla conversation windows named and exempt. Builds REAL GauntletLayers on the live top screen exactly as vanilla builds them (\"MissionConversation\" order 49, \"MissionEscapeMenu\" order 50, IsFocusLayer set, no input restrictions taken) and asserts: ScreenLayer.Name really hands back the name the layer was built with (the one assumption a pure test cannot check), the vanilla conversation layer changes the verdict by nothing at all, a real modal still takes the screen and is NAMED in the log, and removing it reclaims the screen. EXTENDED after Gabriel's play-test (2026-09-09) proved a name list cannot be complete: he opened a chat in a TAVERN, where vanilla's settlement menu \"MapMenuOverlay\" holds focus for the whole conversation, and the chat yielded to the very backdrop it had been drawn over, never appeared, and let the vanilla dialogue run on underneath. Whatever already claims focus when the chat OPENS is scenery, whatever it is called; only what arrives afterwards can be a screen above. Now also builds a real \"MapMenuOverlay\" layer and asserts it is held through when recorded as backdrop, yields when it is not (the exact bug), and that a genuine modal opening OVER that backdrop still takes the screen. Removes every layer in a finally, so a failed assertion can never leave one on the player's screen. No LLM, mutates nothing", TestChatFocusArbiter),
@@ -11912,6 +11913,103 @@ namespace CalradiaRemembers.Diagnostics
       ///   Type/Aggrieved* stay keyed on the real taker (the conquest's attribution is not stolen, the nuance
       ///   the fix must not break). Removes the seeded WorldEvent afterwards.
       /// </summary>
+      /// <summary>
+      ///   Invented facts (Gabriel, 2026-09-12). A character makes up a blight; the gate judges it; if it
+      ///   passes it becomes a real rumour that a DIFFERENT character can later have heard. A unit test can
+      ///   prove the gate's rule and can never prove the row reached the world, which is the same gap the
+      ///   knowledge sweep exists for - so this drives the real injector against the real store.
+      ///   <para>
+      ///     Also asserts the two refusals that matter most: a claim the PLAYER made never enters (Gabriel:
+      ///     "le joueur subit le Monde alors que les NPC le definissent"), and a claim about something the
+      ///     ENGINE records never enters, because that is the checkable lie the whole design avoids.
+      ///   </para>
+      ///   Removes every row it wrote.
+      /// </summary>
+      private static string TestWorldClaims(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("world_claims");
+
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+
+         Hero speaker = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsAlive && h.IsLord);
+         if (t.Skip(speaker == null, "no living lord to put words in the mouth of")) return t.Line();
+
+         Settlement place = Settlement.All?.FirstOrDefault(p => p.IsVillage) ?? Settlement.All?.FirstOrDefault();
+         if (t.Skip(place == null, "no settlement to place the news at")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         var before = WorldEventStore.Instance.Count;
+         var written = new List<string>();
+
+         try
+         {
+            var blight = new WorldClaim {
+               SpeakerId = speaker.StringId, SpeakerName = speaker.Name?.ToString(),
+               Subject = ClaimSubject.Blight, PlaceName = place.Name?.ToString(), StatedAsFact = true,
+               Text = $"[SELFTEST] A blight has taken the grain in the fields about {place.Name}."
+            };
+
+            t.Note($"speaker={speaker.Name}, place={place.Name}");
+
+            // 1. an NPC's invention about something the game does not model DOES become real.
+            int adopted = WorldClaimInjector.Adopt(new List<WorldClaim> {blight}, speaker, today);
+            t.Expect("anNpcsInventionEntersTheWorld", adopted, 1);
+
+            WorldEvent row = WorldEventStore.Instance.MostRecentMatching(
+               WorldEventType.HeardTell, e => e?.Summary != null && e.Summary.Contains("[SELFTEST]"));
+
+            if (t.Abort(row == null, "the adopted claim is not in the store")) return t.Line();
+            written.Add(row.Id);
+
+            // The row has to be attributable, findable and weightless enough to never crowd out real news.
+            t.Expect("theSpeakerIsNamedSoItCanBeAttributed", row.ActorIds?.Contains(speaker.StringId) == true, true);
+            t.Expect("itIsTaggedAsOurs", row.SourceMod, WorldClaimInjector.Source);
+            t.Expect("itIsNotThePlayersChronicle", row.InvolvesPlayer, false);
+            t.Expect("itNeverOutweighsSomethingThatHappened", row.Magnitude <= WorldClaimPolicy.Magnitude, true);
+
+            // 2. and the whole point: somebody ELSE can now have heard it. This is the incoherence Gabriel
+            //    named - the second NPC who could not know - closed through the rumour road that already
+            //    existed rather than through a second world model.
+            Hero other = Hero.AllAliveHeroes.FirstOrDefault(
+               h => h != Hero.MainHero && h != speaker && h.IsAlive && !h.IsPrisoner);
+
+            if (other != null)
+            {
+               bool reachable = WorldEventStore.Instance.GetKnownEvents(other, today, 50)
+                                               .Any(e => e?.Id == row.Id)
+                                || WorldEventStore.Instance.IsAwareOf(other, row, today);
+
+               t.Note($"a third party ({other.Name}) can reach it through the rumour road={reachable}");
+            }
+
+            // 3. the player does not author the world.
+            int fromPlayer = WorldClaimInjector.Adopt(new List<WorldClaim> {blight}, Hero.MainHero, today);
+            t.Expect("thePlayersOwnClaimNeverEnters", fromPlayer, 0);
+
+            // 4. nor does anything the engine keeps on a screen the player can open.
+            var engineOwned = new WorldClaim {
+               SpeakerId = speaker.StringId, SpeakerName = speaker.Name?.ToString(),
+               Subject = ClaimSubject.EngineOwned, PlaceName = place.Name?.ToString(), StatedAsFact = true,
+               Text = "[SELFTEST] The garrison there numbers four hundred spears."
+            };
+
+            t.Expect("aClaimTheGameItselfRecordsNeverEnters",
+                     WorldClaimInjector.Adopt(new List<WorldClaim> {engineOwned}, speaker, today), 0);
+
+            // 5. and the same news twice is still one piece of news.
+            t.Expect("theSameNewsTwiceIsRecordedOnce",
+                     WorldClaimInjector.Adopt(new List<WorldClaim> {blight}, speaker, today), 0);
+         }
+         finally
+         {
+            foreach (string id in written) WorldEventStore.Instance.Remove(id);
+
+            t.Note($"store restored: {before} -> {WorldEventStore.Instance.Count}");
+         }
+
+         return t.Line();
+      }
+
       private static string TestSiegeTidingsParticipation(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("siege_tidings_participation");
