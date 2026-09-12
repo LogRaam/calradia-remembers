@@ -17,6 +17,7 @@ using CalradiaRemembers.Escort;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
+using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Verbs;
 using CalradiaRemembers.Logic.Appreciations;
@@ -588,6 +589,14 @@ namespace CalradiaRemembers.Mapping
             // EncounterContext and still render if some other mod sets them - the host simply no longer does,
             // so nothing is said twice.
             RealmNews = BuildRealmNews(hero),
+
+            // Player report 2026-09-12: the tolerance existed and never reached the prompt, so a character
+            // whose profile said "comfortable with multiple partners" was docked for exactly that and could
+            // not say why. Gated on the PLAYER's clan tier, like the jealousy path it explains, so the two
+            // cannot disagree about who is grand enough to keep consorts.
+            SharedPartnersAreCustomary =
+               JealousyCultureLoader.GetCulture(hero?.Culture?.Name?.ToString())
+                                    .ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0),
             PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
             QueryRelevantFactsBlock = ResolveQueryRelevantFacts(hero, playerMessage, (int) CampaignTime.Now.ToDays),
             CompanionOnErrand = ResolveCompanionOnErrand(hero),

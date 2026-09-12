@@ -11,11 +11,49 @@
 
 #endregion
 
+using System;
+
 namespace CalradiaRemembers.Logic
 {
     /// <summary>Decides whether a romantic act, witnessed or private, draws a jealous reaction this time.</summary>
     public static class JealousyReactionPolicy
     {
+        /// <summary>
+        ///   How low a SHARING-CULTURE partner's regard may be driven by the player taking further partners.
+        ///   <para>
+        ///     Player report, 2026-09-12: "Even if an NPC from the Empire accepts polyamory, their affinity
+        ///     continues to drop. Since there is no specific information regarding jealousy, it is possible
+        ///     that a recent update - intended to align views on romance with the culture - has caused an
+        ///     internal conflict."
+        ///   </para>
+        ///   <para>
+        ///     He was half right, and the half he was right about is this one. The culture change works: a
+        ///     tolerant partner already takes 3/6/8 where an exclusive one takes 10/25/40, because by their
+        ///     custom the grievance is RANK AND ATTENTION rather than betrayal. But nothing bounded it, so a
+        ///     long campaign grinds a partner who ACCEPTS the arrangement all the way to -100, one small
+        ///     slight at a time. Being set below another consort should cost warmth; it must not manufacture
+        ///     hatred for a practice their own people keep.
+        ///   </para>
+        ///   <para>
+        ///     Zero, not a negative: they may cool completely and still not become an enemy over it. A real
+        ///     betrayal is a different stake and keeps the old floor of -100.
+        ///   </para>
+        /// </summary>
+        public const int SharingRankFloor = 0;
+
+        /// <summary>
+        ///   The regard a sharing-culture partner actually loses, after the floor. Returns 0 once they have
+        ///   already cooled to it, so the grievance stops costing regard and starts costing only the scene -
+        ///   the memory and the letter still happen, because being overlooked is still worth saying.
+        /// </summary>
+        public static int SharingRankDelta(int currentRegard, int rawDelta)
+        {
+            if (rawDelta >= 0) return rawDelta;
+            if (currentRegard <= SharingRankFloor) return 0;
+
+            return Math.Max(rawDelta, SharingRankFloor - currentRegard);
+        }
+
         /// <summary>
         ///   True when a witnessed act reacts: a <see cref="RomanticActTier.Marriage" /> act ALWAYS does (a public
         ///   wedding or consort-taking is never a "maybe someone noticed" event, romance audit M-J2), and any

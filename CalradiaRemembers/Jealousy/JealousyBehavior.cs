@@ -375,6 +375,12 @@ namespace CalradiaRemembers.Jealousy
          // A wound of the heart, not clan politics — routed to this NPC's PERSONAL regard
          // (ReputationWithPlayer), not the vanilla clan-relation ledger.
          int delta = -JealousyReaction.Severity(stake, tier, competition, culture);
+
+         // Player report 2026-09-12: a partner whose culture ACCEPTS the arrangement still slid without end.
+         // By their own custom the grievance is rank, not betrayal, so it may cool them completely and must
+         // not manufacture hatred - see JealousyReactionPolicy.SharingRankFloor.
+         if (competition) delta = JealousyReactionPolicy.SharingRankDelta(profile.ReputationWithPlayer, delta);
+
          if (delta < 0)
             ProfileMutator.ApplyReputationDelta(profile, delta);
 
