@@ -139,16 +139,16 @@ namespace CalradiaRemembers.Settings
       public bool EnableCouncil { get; set; } = true;
 
       [SettingPropertyBool("Strategic Assessment (AI)", RequireRestart = false, Order = 6,
-         HintText = "On (default): the Balance of Power panel's Strategic Assessment is written by your highest-Tactics " +
-                    "companion (a warband soldier if you have none), and the sharper their Tactics the better the counsel. " +
-                    "Off, or travelling alone: a plain summary, no AI call.")]
+         HintText = "On (default): the Strategic Assessment is written by your highest-Tactics companion (a warband soldier " +
+                    "if you have none), and the sharper their Tactics the better the counsel. Off, or alone: " +
+                    "a plain summary, no AI call.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool EnableStrategicAssessment { get; set; } = true;
 
       [SettingPropertyDropdown("Council Voices", RequireRestart = false, Order = 4,
-         HintText = "Default for a newly opened council (flip it in the council window). One call for the table keeps the " +
-                    "scene cohesive but voices the others from little more than a name. One call per member gives each their " +
-                    "real memory and regard, at one round-trip apiece.")]
+         HintText = "Default for a new council (flip it in the council window). One call for the table keeps the scene " +
+                    "cohesive but voices the others from little more than a name. One call per member gives " +
+                    "each their real memory and regard, at a round-trip apiece.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public Dropdown<string> CouncilVoices { get; set; } =
          new(new[] {"One call for the table", "One call per member"}, 0); // default: whole table
@@ -250,16 +250,16 @@ namespace CalradiaRemembers.Settings
       public bool EnableJealousy { get; set; } = true;
 
       [SettingPropertyBool("Enable Stolen Love", RequireRestart = false, Order = 1,
-         HintText = "Off (default): a married character resists an affair as before. On: seducing a MARRIED character becomes " +
-                    "a gated, personality-true path (an honourable or content one holds firm however high your standing). " +
-                    "Explicit content follows Adult Content Level.")]
+         HintText = "Off (default): a married character resists an affair as before. On: seducing a MARRIED character is a " +
+                    "gated, personality-true path (an honourable or content one holds firm however high your " +
+                    "standing). Explicit content follows Adult Content Level.")]
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool EnableStolenLove { get; set; } = false;
 
       [SettingPropertyBool("Allow killing characters", RequireRestart = false, Order = 2,
-         HintText = "Off (default): you may rob or beat someone in conversation, never kill. On: a killing attempt becomes " +
-                    "possible, never a formality (it turns on how you two compare and whether they are alone). The world " +
-                    "answers: a crime, lost standing, kin who remember.")]
+         HintText = "Off (default): you may rob or beat someone in conversation, never kill. On: a killing attempt is " +
+                    "possible, never a formality (it turns on how you compare and whether they are alone). The " +
+                    "world answers: a crime, lost standing, kin who remember.")]
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool AllowKillingCharacters { get; set; } = false;
 

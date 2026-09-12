@@ -79,6 +79,25 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
       public const double NotableProsperityShare = 0.15;
 
       /// <summary>
+      ///   How far a season's turn travels, on the awareness scale the rumour pipeline uses:
+      ///   (magnitude + 25 for the observer's own realm + up to 25 for proximity) x recency, heard at 50.
+      ///   <para>
+      ///     45 is the number the FICTION asks for. A realm's own people hear how their realm fared
+      ///     (45 + 25 = 70, comfortably); a stranger across the map does not (45, just under). Below a war
+      ///     looming (60) because it is a trend rather than a threat, well above a town's hardship (30)
+      ///     because it is the whole realm.
+      ///   </para>
+      ///   <para>
+      ///     CORRECTED 2026-09-12 from 4, which had been chosen as a RANK ("above an invented claim, below a
+      ///     battle") when magnitude is a REACH IN POINTS. At 4 the chronicle was unreachable by anybody, and
+      ///     every unit test passed the whole time because every one of them asked about the number. It lives
+      ///     HERE rather than on the behaviour so the test project can see it beside the awareness rule -
+      ///     which is exactly why nothing had ever compared the two.
+      ///   </para>
+      /// </summary>
+      public const int Magnitude = 45;
+
+      /// <summary>
       ///   What a chronicler would say of this realm's season, or null when nothing happened worth saying.
       /// </summary>
       /// <param name="before">Its standing at the last turn of the season.</param>

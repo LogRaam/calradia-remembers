@@ -12025,8 +12025,13 @@ namespace CalradiaRemembers.Diagnostics
             // apply to it and no parallel ledger was created.
             t.Expect("itIsNotThePlayersChronicle", written.InvolvesPlayer, false);
             t.Expect("itIsNotKeptForeverAsADeed", written.IsPersistentDeed, false);
-            t.Expect("itOutweighsAnInventedRumourButNotABattle",
-                     written.Magnitude > WorldClaimPolicy.Magnitude && written.Magnitude < 8, true);
+            // Not a rank but a REACH: what matters is who hears it, so the assertion is that a countryman of
+            // that realm actually would and a distant foreigner would not. The old form compared magnitudes
+            // as though they were ranks, which is how both features shipped unreachable.
+            t.Expect("itsOwnRealmHearsHowItFared",
+                     RumorAwareness.Knows(RumorAwareness.Score(written.Magnitude, true, 0, 0)), true);
+            t.Expect("aDistantForeignerHasNotBeenFollowingIt",
+                     RumorAwareness.Knows(RumorAwareness.Score(written.Magnitude, false, 0, 0)), false);
 
             // Ruling 2: one historian for the world, and every character carries a VIEW of it - which is the
             // machinery that already existed rather than anything this feature added.

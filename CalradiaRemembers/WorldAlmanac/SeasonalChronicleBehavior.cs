@@ -29,11 +29,8 @@ namespace CalradiaRemembers.WorldAlmanac
    /// </summary>
    public sealed class SeasonalChronicleBehavior : CampaignBehaviorBase
    {
-      /// <summary>
-      ///   How heavily a seasonal turn weighs as news. Above an invented claim (2) because it is true, below a
-      ///   battle or a siege because it is a trend rather than a thing that happened to somebody.
-      /// </summary>
-      public const int Magnitude = 4;
+      /// <summary>How far a season's turn travels. Lives in the policy, beside the reasoning for it.</summary>
+      public const int Magnitude = SeasonalTurnPolicy.Magnitude;
 
       /// <summary>Tags every row this feature writes, so the chronicle can be found and counted as a group.</summary>
       public const string Source = "CalradiaRemembers.SeasonalChronicle";
