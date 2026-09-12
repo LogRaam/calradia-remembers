@@ -2752,20 +2752,21 @@ namespace CalradiaRemembers.Mapping
          }
       }
 
+      /// <summary>
+      ///   The band, decided by a pure policy so all four of its answers can be shown to be reachable. The
+      ///   first version of this lived here inline and TWO of its four were impossible - see BodyHurtPolicy for
+      ///   the seeded lord at 60% health who answered "I fare well enough".
+      /// </summary>
       private static HurtBand ReadHurt(Hero hero)
       {
-         if (hero.MaxHitPoints <= 0) return HurtBand.Unknown;
-
-         // Not wounded by the engine's own reckoning is WHOLE, whatever the arithmetic says. A hero a few
-         // points down from a scrape is not someone who should mention it.
-         if (!hero.IsWounded) return HurtBand.Unhurt;
-
-         float left = hero.HitPoints / (float) hero.MaxHitPoints;
-
-         if (left < 0.20f) return HurtBand.Grievous;
-         if (left < 0.55f) return HurtBand.Wounded;
-
-         return HurtBand.Scratched;
+         switch (BodyHurtPolicy.Read(hero.HitPoints, hero.MaxHitPoints, hero.IsWounded, hero.WoundedHealthLimit))
+         {
+            case BodyHurtPolicy.Hurt.Unhurt: return HurtBand.Unhurt;
+            case BodyHurtPolicy.Hurt.Scratched: return HurtBand.Scratched;
+            case BodyHurtPolicy.Hurt.Wounded: return HurtBand.Wounded;
+            case BodyHurtPolicy.Hurt.Grievous: return HurtBand.Grievous;
+            default: return HurtBand.Unknown;
+         }
       }
 
       /// <summary>
