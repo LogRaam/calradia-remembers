@@ -66,16 +66,16 @@ namespace CalradiaRemembers.Diagnostics
          public string Question { get; set; } = "";
 
          /// <summary>A word that MUST appear in the reply, or null.</summary>
-         public string? MustSay { get; set; }
+         public string MustSay { get; set; }
 
          /// <summary>A word that must NOT appear, or null.</summary>
-         public string? MustNotSay { get; set; }
+         public string MustNotSay { get; set; }
 
          /// <summary>
          ///   A YES/NO criterion the reply must NOT satisfy, or null. Used where the failure is a manner rather
          ///   than a token: sounding surprised, or stating a figure he cannot know.
          /// </summary>
-         public string? MustNotJudge { get; set; }
+         public string MustNotJudge { get; set; }
       }
 
       public static string Run(NpcMemoryCampaignBehavior behavior, string heroNameFragment = null)
@@ -116,6 +116,7 @@ namespace CalradiaRemembers.Diagnostics
             {
                passed++;
                report.AppendLine($"  PASS   {probe.Name}");
+               ModLog.Info($"[memory_bench] {probe.Name} — PASS");
             }
             else
             {
@@ -123,10 +124,17 @@ namespace CalradiaRemembers.Diagnostics
                report.AppendLine($"  FAIL   {probe.Name}: {why}");
                report.AppendLine($"         he was owed: {probe.Promise}");
                report.AppendLine($"         he said: {Shorten(reply)}");
+
+               // The verdict has to be in the LOG, not only on the console: the console scrolls away and the
+               // log is what actually gets handed over. The first live run (2026-09-12) logged six full replies
+               // and not one verdict, which made the transcript unreadable without the screen beside it.
+               ModLog.Info($"[memory_bench] {probe.Name} — FAIL: {why}");
+               ModLog.Info($"[memory_bench] {probe.Name} — he was owed: {probe.Promise}");
             }
          }
 
          report.AppendLine($"{passed} passed, {failed} failed, {errored} errored. Full transcript in the mod log.");
+         ModLog.Info($"[memory_bench] {speaker.Name}: {passed} passed, {failed} failed, {errored} errored.");
 
          return report.ToString().TrimEnd();
       }

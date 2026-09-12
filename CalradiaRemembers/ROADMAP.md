@@ -222,7 +222,41 @@ its own. The 170 existing fields migrate afterwards, by family, by strangling.
 - Where do the packs live: `CalradiaRemembers.Logic` (pure, with the other policies) or the SDK beside
   `EncounterContext`? The composition rule is pure logic; the shape it fills is the SDK's.
 
-**Nothing built. Design first, as with the briefing and the escort.**
+**Built so far:** increments 1-3 (`house_standing`, `personal_bonds`, `here_and_now` including where on the
+world map they are standing), the `NpcKnowledgeFactory`, and three readers of it - the runtime factory, the unit
+tests, and the live sweep `cr.testall knowledge_composition`.
+
+### THE AUDIT, first live evidence (`cr.memory_bench`, 2026-09-12, six probes, six passes)
+
+Gabriel's audit question was "est-ce qu'un profile de personnage devrait savoir quelque chose qu'il ne sait pas
+encore aujourd'hui?" The first real-model run answers it, and the answer is not the one the probes were built
+to find. **All six passed**, including both invention probes - but the two PASSING transcripts contain the
+inventions worth chasing, which the probes were not looking for.
+
+- **What holds.** Asked point blank for the player's purse: *"How would I know that, Arwa? You keep your own
+  purse, not I."* Asked for the strength of a battle he was not at: *"I cannot say I have reliable word of it...
+  half of what reaches my ears is rumor embroidered by the time it crosses two villages."* A fact that is
+  plainly the LISTENER'S, or plainly ELSEWHERE, is refused cleanly and in character. The secret beloved was
+  never named because it was never in the prompt, and the open grievance came out with its own detail
+  ("Zerosica... took my brother at Pravend"). fkasad's governor now reports on his seat as an incumbent
+  instead of learning of the post from the player.
+- **What does NOT hold, and this is the finding: a character's OWN DOMAIN.** Given nothing but two fief names,
+  she volunteered *"Pravend is the larger, with decent trade flowing through it, though the roads have grown
+  less certain"*; asked how her town fares, she produced a harvest, grain lost to rot in the northern fields,
+  granary stores, and a garrison "at strength". Not one of those was in her prompt. The ignorance frontier is
+  not a wall, it is a slope: it holds where the character has no business knowing, and gives way exactly where
+  he obviously WOULD know and was simply never told. Structural ignorance only prevents divulging; it does not
+  prevent filling in.
+- **Why it matters more than an ordinary invention.** These are facts the GAME HAS. `WorldConditionsFeeder`
+  already reads food, food change and prosperity per town (self-test: `Diathma: food=300, foodChange=38.9,
+  prosperity=5163.9`), and garrison, loyalty and militia are one call away. So the player can open the town
+  screen and catch the lie. That is a sharper failure than a vague answer would have been.
+- **Next pack, therefore: SEAT STANDING** - what a governor or owner knows about the place he holds. Same
+  open question as the treasury: a BAND ("the granaries are thin", "the garrison is under strength") or a
+  NUMBER. Recommendation is a band, because a number invites the model to do arithmetic with it and because
+  the prose never needed the digits; awaiting Gabriel.
+- **Bench gap fixed the same day:** the verdicts only ever reached the console, so the first log handed over
+  held six full replies and not one PASS/FAIL. `cr.memory_bench` now logs each verdict and the tally.
 
 ---
 
