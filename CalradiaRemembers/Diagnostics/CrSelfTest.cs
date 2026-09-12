@@ -8404,7 +8404,12 @@ namespace CalradiaRemembers.Diagnostics
 
          foreach (Hero person in people)
          {
-            NpcProfile profile = behavior.Store.Get(person.StringId);
+            // A hero with no stored profile is not a hero to skip: a real conversation with one composes a
+            // profile from the engine by this very call, so skipping them measured only people who had already
+            // chatted with the player. On 2026-09-12 that left the sweep examining FOUR heroes of the sixty it
+            // walked - and the four it dropped hardest are notables and landless wanderers, which is exactly
+            // where a carry rule is most likely to disagree with the host.
+            NpcProfile profile = behavior.Store.Get(person.StringId) ?? HeroProfileMapper.FromHero(person);
             if (profile == null) continue;
 
             EncounterContext ctx = EncounterContextBuilder.Build(person, profile, behavior.GameStateBridge, null);
