@@ -462,6 +462,35 @@ budget priority (what Compact drops first), and cache stability (what changes le
 all three and they happen not to conflict. The next pack could break that, and the fix is to separate the
 render order from the drop order rather than to argue about one list.
 
+### DEPTH: knowing a subject is a matter of degree (Gabriel, 2026-09-12)
+
+His proposal: "un pack pourrait avoir des niveaux requis de connaissance pour un sujet... un habitant de
+village pourrait être peu connaissant du reste du monde, mais un Lord pourrait être très connaissant."
+
+**The turn that made it fit without bending anything: depth belongs to the PAIR of a person and a SUBJECT, not
+to a person.** A villager is slight on the realm and deep on his own village; a lord is the reverse about the
+price of grain. A pack already IS a subject, so the question had a natural home.
+
+- `KnowledgeDepth { None, Slight, Ordinary, Knowing, Deep }`, and `DepthFor(bearer)` REPLACES `CarriedBy`,
+  which is now derived and non-overridable. One source of truth rather than two predicates that must agree -
+  the trap `HoldsASeat` fell into earlier the same day.
+- **THE CONSTRAINT: a shallower depth renders FEWER FACTS, never vaguer ones.** "You know a little about the
+  wars" is an invitation to invent the rest, which is exactly what a governor did with a granary nobody had
+  described to him. A test asserts the shallow rendering contains no hedging words and still states flatly
+  what it does know.
+- **First real use, and it is his example turned around:** a headman can say what is in the granary this week
+  because he walks past it; his count, three towns away, knows how the place FARES and would have to send for
+  the tally. `seat_standing` drops the granary for an absentee holder.
+- **A mistake worth keeping in the file:** the first draft read that depth off the BEARER, where a governor
+  and an absentee owner are indistinguishable (both merely "hold a seat"), and it wrongly demoted fkasad's
+  governor - the very character the pillar was built for. The distinction is RESIDENCE, and only the seat can
+  answer it. So the axis has two halves: bearer-level depth answers composition, and the subject refines it at
+  render time.
+
+**Where it will really earn its keep:** the realm-news pack that does not exist yet (a villager hears there is
+fighting; a lord knows who, since when, and who is winning), and the underworld, where a street thug knows his
+own gang deeply and the city guard shallowly.
+
 ### The audit, still open
 
 The categories with a named gap and no pack yet, in the order the evidence supports:
