@@ -308,8 +308,15 @@ The categories with a named gap and no pack yet, in the order the evidence suppo
 
 - **The road behind them.** A prisoner knows what happened before his capture, which is Gabriel's own
   observation that every fact needs a DATE. Blocked on the historian, below.
-- **What the player is visibly carrying and leading.** plagueAdvocate's report ("cannot see the inventory")
-  is the last of the three unresolved reports that opened this pillar.
+- ~~**What the player is visibly carrying and leading.**~~ **CLOSED by audit, 2026-09-12, not built.** The
+  candidate was checked against the context before writing it, which is the discipline `here_and_now` earned
+  (the council had carried a Season all along and nobody had generalised it). This time the answer was that
+  the category is ALREADY covered and covered well: `PlayerGear` feeds notable equipped arms and armour in
+  the third person, and `PlayerPartyTroopCount` feeds the force at the player's back - already as a coarse
+  qualitative BAND rather than a figure, and already aware of whether the men are outside the room. The rest
+  of plagueAdvocate's report, the player's inventory, is not a gap either: `KnowledgeBoundaryPolicy`
+  deliberately closes it, which is a decision already taken. **A sixth pack here would have been a second
+  source for one fact, which is how two sources come to disagree.**
 - **Trade and price**, for the merchant notables, whose whole knowledge is a category nobody has modelled.
 
 ---

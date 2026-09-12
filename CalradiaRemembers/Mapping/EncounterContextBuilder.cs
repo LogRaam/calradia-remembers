@@ -305,6 +305,11 @@ namespace CalradiaRemembers.Mapping
             && hero != null && hero.IsLord
             && !canRecruitPrisoner;
 
+         // Built here rather than inside the initializer so the BEARER'S seat axis and the SEAT FACTS are the
+         // same read. Two predicates that must agree are two predicates that will one day disagree, and the
+         // whole pillar exists because "he would know this" and "somebody told him" drifted apart.
+         SeatStandingFacts seatStanding = BuildSeatStanding(hero);
+
          return new() {
             PlayerStatus = playerStatus,
             SharedRealmName = bridge.GetSharedRealmName(hero),
@@ -456,9 +461,9 @@ namespace CalradiaRemembers.Mapping
             // Knowledge composition, increment 1 (ROADMAP: "WHAT A CHARACTER KNOWS"). Who this person is, and
             // what they are to the player: the factory weighs both, because role alone would hand a stranger
             // the player's ledger while fixing one companion.
-            Bearer = BuildKnowledgeBearer(hero),
+            Bearer = BuildKnowledgeBearer(hero, seatStanding != null),
             HouseStanding = BuildHouseStanding(hero),
-            SeatStanding = BuildSeatStanding(hero),
+            SeatStanding = seatStanding,
             HouseMeans = BuildHouseMeans(hero),
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
@@ -2280,7 +2285,12 @@ namespace CalradiaRemembers.Mapping
          return found?.Name?.ToString();
       }
 
-      private static KnowledgeBearer BuildKnowledgeBearer(Hero hero)
+      /// <summary>
+      ///   Who this character is, as the knowledge factory weighs it. <paramref name="holdsASeat" /> is passed
+      ///   in rather than recomputed: it is true exactly when the seat facts were actually read, so the pack's
+      ///   "he would know this" cannot drift from the host's "here it is".
+      /// </summary>
+      private static KnowledgeBearer BuildKnowledgeBearer(Hero hero, bool holdsASeat)
       {
          if (hero == null) return null;
 
@@ -2290,7 +2300,7 @@ namespace CalradiaRemembers.Mapping
             IsOfPlayerClan = hero.Clan != null && hero.Clan == Clan.PlayerClan,
             IsNotable = hero.IsNotable,
             HasHouse = hero.Clan != null,
-            HoldsASeat = HoldsASeat(hero)
+            HoldsASeat = holdsASeat
          };
       }
 
@@ -2339,23 +2349,6 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
-      ///   Whether this character answers for any place at all: they govern one, or their house holds one and
-      ///   they lead it. Deliberately not "is a lord": fkasad's governor is a COMPANION, and the count who owns
-      ///   a village knows its granary far less well than the headman who lives in it.
-      /// </summary>
-      private static bool HoldsASeat(Hero hero)
-      {
-         if (hero == null) return false;
-         if (hero.GovernorOf != null) return true;
-         if (hero.IsClanLeader && hero.Clan?.Fiefs != null && hero.Clan.Fiefs.Count > 0) return true;
-
-         // A notable answers for the place they live in - but only if they have one. Deciding that HERE rather
-         // than in the pack is what keeps "carried" and "supplied" from disagreeing, which is the whole point
-         // of the sweep.
-         return hero.IsNotable && hero.HomeSettlement != null;
-      }
-
-      /// <summary>
       ///   How the places this character answers for are actually doing. Read live and thrown away with the
       ///   encounter, like every other pack: a stored copy would be a second world model beside Bannerlord's.
       ///   <para>
@@ -2391,6 +2384,11 @@ namespace CalradiaRemembers.Mapping
             // A notable answers for nowhere but home, and knows it better than anyone above them does.
             if (seats.Count == 0 && hero.IsNotable && hero.HomeSettlement != null)
                seats.Add(ReadSeat(hero.HomeSettlement, SeatRole.Notable));
+
+            // The pack only describes a place it knows something about, so the host must count them the same
+            // way. Otherwise a seat read as all-unknown would be CARRIED and not SUPPLIED, and the sweep would
+            // report a fault that is really two of my own rules disagreeing.
+            seats = seats.Where(seat => seat != null && seat.HasAnyReading).ToList();
 
             return seats.Count == 0 ? null : new SeatStandingFacts {Seats = seats};
          }
@@ -2559,7 +2557,7 @@ namespace CalradiaRemembers.Mapping
       private static HouseMeansFacts BuildHouseMeans(Hero hero)
       {
          Clan clan = hero?.Clan;
-         if (clan == null || clan.IsEliminated) return null;
+         if (clan == null) return null;
 
          try
          {
