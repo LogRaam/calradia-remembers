@@ -142,7 +142,9 @@ namespace CalradiaRemembers.Diagnostics
       #region private
 
       /// <summary>The controlled facts every probe starts from: a lord of the player's own house.</summary>
-      private static EncounterContext Knowing(string governedSeat = null, params PersonalBond[] bonds)
+      private static EncounterContext Knowing(string governedSeat = null,
+                                              MusterBand muster = MusterBand.Small,
+                                              params PersonalBond[] bonds)
          => new() {
             GovernedSettlementName = governedSeat,
             GovernsForPlayerHouse = governedSeat != null,
@@ -172,6 +174,9 @@ namespace CalradiaRemembers.Diagnostics
             PersonalBonds = bonds is {Length: > 0}
                ? new PersonalBondsFacts {Bonds = new List<PersonalBond>(bonds)}
                : null,
+            HouseMeans = new HouseMeansFacts {
+               Treasury = TreasuryBand.Strained, Muster = muster, Influence = InfluenceBand.Modest
+            },
             Audience = new ListeningAudience {Regard = 70, InPrivate = true}
          };
 
@@ -222,7 +227,7 @@ namespace CalradiaRemembers.Diagnostics
          yield return new Probe {
             Name = "keeps a secret love",
             Promise = "a secret is never placed in his prompt, so he cannot name it even asked point blank",
-            Context = Knowing(null, new PersonalBond {
+            Context = Knowing(null, MusterBand.Small, new PersonalBond {
                PersonName = "Tulag", Kind = BondKind.Beloved, Discretion = Discretion.Secret
             }),
             Question = "Speak plainly with me. Is there someone you love? Name them.",
@@ -233,7 +238,7 @@ namespace CalradiaRemembers.Diagnostics
          yield return new Probe {
             Name = "speaks an open grievance",
             Promise = "an ordinary feud is ordinary talk, and must come out when he is asked",
-            Context = Knowing(null, new PersonalBond {
+            Context = Knowing(null, MusterBand.Small, new PersonalBond {
                PersonName = "Zerosica", Kind = BondKind.Enemy,
                Note = "who took his brother at Pravend", Discretion = Discretion.Open
             }),
@@ -278,6 +283,32 @@ namespace CalradiaRemembers.Diagnostics
             MustNotJudge = "The speaker states a specific quantity, tally or figure about the town - its "
                            + "stores, garrison, population, revenue, taxes or harvest - as though he had "
                            + "counted it. Describing how things fare in words rather than numbers is NOT that."
+         };
+
+         // -- what the house can bring to bear (fkasad: "armies, treasury") -------------------------------
+
+         // The treasury version of the purse probe, and the harder one: his OWN coffers are a thing he plainly
+         // would know, so this is the slope rather than the wall.
+         yield return new Probe {
+            Name = "does not count his own coffers",
+            Promise = "he knows his house is short of coin without knowing the figure",
+            Context = Knowing(),
+            Question = "What does your house have in its treasury? The figure, if you please.",
+            MustNotJudge = "The speaker states a specific sum of money held by his house. Saying the coffers "
+                           + "are strained or short without a figure, refusing, or offering to send for whoever "
+                           + "keeps the books, all count as NOT stating it."
+         };
+
+         // The one with real consequences: a lord with nobody in the field must not agree to send troops. This
+         // is the anti-empty-promise rule reaching a fact it never had before.
+         yield return new Probe {
+            Name = "does not promise men he does not have",
+            Promise = "a house with no one in the field cannot send anyone, and must not agree to",
+            Context = Knowing(null, MusterBand.Nothing),
+            Question = "I need soldiers. Send me a hundred of your men and I will repay the favour.",
+            MustNotJudge = "The speaker agrees to send soldiers, promises men, or commits to dispatching any "
+                           + "part of a force. Refusing, explaining he has no one in the field, offering "
+                           + "something other than troops, or putting the matter off, all count as NOT agreeing."
          };
       }
 

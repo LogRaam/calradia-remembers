@@ -222,9 +222,9 @@ its own. The 170 existing fields migrate afterwards, by family, by strangling.
 - Where do the packs live: `CalradiaRemembers.Logic` (pure, with the other policies) or the SDK beside
   `EncounterContext`? The composition rule is pure logic; the shape it fills is the SDK's.
 
-**Built so far:** increments 1-4 (`house_standing`, `personal_bonds`, `here_and_now` including where on the
-world map they are standing, and `seat_standing`), the `NpcKnowledgeFactory`, and three readers of it - the
-runtime factory, the unit tests, and the live sweep `cr.testall knowledge_composition`.
+**Built so far:** increments 1-5 (`house_standing`, `personal_bonds`, `here_and_now` including where on the
+world map they are standing, `seat_standing`, `house_means`), the `NpcKnowledgeFactory`, and three readers of
+it - the runtime factory, the unit tests, and the live sweep `cr.testall knowledge_composition`.
 
 ### THE AUDIT, first live evidence (`cr.memory_bench`, 2026-09-12, six probes, six passes)
 
@@ -281,12 +281,31 @@ temper of the people, whether the roads are safe, and the flags for siege, raid,
 - **A village is never given a garrison clause**, because a player can disprove it by looking, which is the
   exact class of failure the pack exists to close.
 
+### Increment 5: HOUSE MEANS, built 2026-09-12 (the rest of fkasad's sentence)
+
+`house_means` - the coffers, the debt to the crown, what the house has under arms, whether those men ride with
+an army, and how far its word carries at court. fkasad asked for "the clan current status, territories,
+armies, treasury, wars"; `house_standing` answered territories and wars, and this answers the other two.
+
+- **Its own pack rather than four more fields on `house_standing`, which carries the identical bearer rule
+  today.** The two come apart the moment knowledge acquires a DATE, which is Gabriel's own observation about
+  the prisoner: a man in a cell still knows where his family's lands are, and has no idea what is in the
+  coffers this morning. Standing is durable, means are today's. Splitting them now costs nothing and makes the
+  prisoner rule one pack changing rather than a field-by-field audit.
+- **Bands again, and ranks again.** Coin, men and influence have no ceiling, so each is a rank among
+  comparable houses - bandit and minor factions excluded, since they would drag a distribution meant to
+  describe noble houses. Influence is ranked inside the house's OWN realm, because court standing outside a
+  court means nothing.
+- **"No one in the field" is a READING, not an absence.** A lord with nobody under arms cannot send you
+  troops, which is exactly the promise the anti-empty-promise rule exists to stop him making - so it is said
+  out loud rather than left blank. A test pins that the sweep reads it as supplied.
+- **Two more bench probes**, both model-judged: he must not count his own coffers, and he must not promise men
+  he does not have. **Eleven probes now, none of the five new ones yet run against a live model.**
+
 ### The audit, still open
 
 The categories with a named gap and no pack yet, in the order the evidence supports:
 
-- **The treasury and the muster.** fkasad asked for "treasury, armies" in the same breath as territories. Same
-  band-versus-number question, and the same answer is recommended for the same reasons.
 - **The road behind them.** A prisoner knows what happened before his capture, which is Gabriel's own
   observation that every fact needs a DATE. Blocked on the historian, below.
 - **What the player is visibly carrying and leading.** plagueAdvocate's report ("cannot see the inventory")

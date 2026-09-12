@@ -45,6 +45,7 @@ using TaleWorlds.Library;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TraitFacts = CalradiaRemembers.Logic.Grudges.TraitFacts;
@@ -458,6 +459,7 @@ namespace CalradiaRemembers.Mapping
             Bearer = BuildKnowledgeBearer(hero),
             HouseStanding = BuildHouseStanding(hero),
             SeatStanding = BuildSeatStanding(hero),
+            HouseMeans = BuildHouseMeans(hero),
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
             Audience = BuildListeningAudience(profile, witnesses),
@@ -2541,6 +2543,155 @@ namespace CalradiaRemembers.Mapping
          if (town.Security < 60f) return SecurityBand.Uneasy;
 
          return SecurityBand.Settled;
+      }
+
+      /// <summary>
+      ///   What this character's own house can bring to bear today: coin, men, and weight at court. The rest
+      ///   of fkasad's report ("territories, armies, treasury, wars"), of which house_standing answered the
+      ///   first and last on 2026-09-11.
+      ///   <para>
+      ///     Every band is a RANK among comparable houses rather than a threshold invented here: coin, men and
+      ///     influence all have no ceiling, and a lord compares his house with other houses anyway. Bandit and
+      ///     minor factions are excluded from the comparison because they would drag a distribution meant to
+      ///     describe noble houses.
+      ///   </para>
+      /// </summary>
+      private static HouseMeansFacts BuildHouseMeans(Hero hero)
+      {
+         Clan clan = hero?.Clan;
+         if (clan == null || clan.IsEliminated) return null;
+
+         try
+         {
+            return new HouseMeansFacts {
+               Treasury = ReadTreasury(clan),
+               OwesTheCrown = clan.DebtToKingdom > 0,
+               Muster = ReadMuster(clan),
+               RidingWithAnArmy = RidesWithAnArmy(clan),
+               Influence = ReadInfluence(clan)
+            };
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[knowledge] house means read failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>Every house worth comparing against: noble, alive, and not a bandit or a minor faction.</summary>
+      private static List<Clan> ComparableHouses()
+      {
+         var houses = new List<Clan>();
+         if (Clan.All == null) return houses;
+
+         foreach (Clan other in Clan.All)
+         {
+            if (other == null || other.IsEliminated || other.IsBanditFaction || other.IsMinorFaction) continue;
+
+            houses.Add(other);
+         }
+
+         return houses;
+      }
+
+      /// <summary>Where this house's value sits among comparable houses, 0 (poorest) to 1 (richest).</summary>
+      private static float? RankAmong(List<Clan> houses, Clan mine, Func<Clan, float> value)
+      {
+         if (houses.Count < 4) return null;
+
+         float ours = value(mine);
+         var below = 0;
+
+         foreach (Clan other in houses)
+            if (value(other) < ours)
+               below++;
+
+         return below / (float) houses.Count;
+      }
+
+      private static TreasuryBand ReadTreasury(Clan clan)
+      {
+         float? rank = RankAmong(ComparableHouses(), clan, c => c.Gold);
+         if (rank == null) return TreasuryBand.Unknown;
+
+         if (rank < 0.20f) return TreasuryBand.Empty;
+         if (rank < 0.50f) return TreasuryBand.Strained;
+         if (rank < 0.85f) return TreasuryBand.Sound;
+
+         return TreasuryBand.Deep;
+      }
+
+      private static MusterBand ReadMuster(Clan clan)
+      {
+         // Nobody in the field is a READING, not a missing one: a lord with no men cannot send you any, which
+         // is exactly the promise the mod must stop him making.
+         if (MenUnderArms(clan) <= 0) return MusterBand.Nothing;
+
+         float? rank = RankAmong(ComparableHouses(), clan, MenUnderArms);
+         if (rank == null) return MusterBand.Unknown;
+
+         if (rank < 0.40f) return MusterBand.Small;
+         if (rank < 0.85f) return MusterBand.Respectable;
+
+         return MusterBand.Formidable;
+      }
+
+      private static float MenUnderArms(Clan clan)
+      {
+         if (clan?.WarPartyComponents == null) return 0f;
+
+         var men = 0;
+
+         foreach (WarPartyComponent component in clan.WarPartyComponents)
+         {
+            MobileParty party = component?.MobileParty;
+            if (party == null || !party.IsActive) continue;
+
+            men += party.MemberRoster?.TotalManCount ?? 0;
+         }
+
+         return men;
+      }
+
+      /// <summary>Men on the map and men on campaign are different answers to "can you come with me?".</summary>
+      private static bool RidesWithAnArmy(Clan clan)
+      {
+         if (clan?.WarPartyComponents == null) return false;
+
+         foreach (WarPartyComponent component in clan.WarPartyComponents)
+            if (component?.MobileParty?.Army != null)
+               return true;
+
+         return false;
+      }
+
+      /// <summary>
+      ///   Court standing is only meaningful inside a court, so the comparison is against the other houses of
+      ///   the same realm. A landless or realmless house has no court to carry weight in, and says nothing.
+      /// </summary>
+      private static InfluenceBand ReadInfluence(Clan clan)
+      {
+         Kingdom kingdom = clan.Kingdom;
+         if (kingdom?.Clans == null) return InfluenceBand.Unknown;
+
+         var peers = new List<Clan>();
+
+         foreach (Clan other in kingdom.Clans)
+         {
+            if (other == null || other.IsEliminated) continue;
+
+            peers.Add(other);
+         }
+
+         float? rank = RankAmong(peers, clan, c => c.Influence);
+         if (rank == null) return InfluenceBand.Unknown;
+
+         if (rank < 0.25f) return InfluenceBand.Negligible;
+         if (rank < 0.60f) return InfluenceBand.Modest;
+         if (rank < 0.85f) return InfluenceBand.Considerable;
+
+         return InfluenceBand.Commanding;
       }
 
       private static string ResolveRuledRealmName(Hero hero)
