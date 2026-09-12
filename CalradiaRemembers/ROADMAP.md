@@ -508,8 +508,20 @@ The categories with a named gap and no pack yet, in the order the evidence suppo
   source for one fact, which is how two sources come to disagree.**
 - ~~**Trade and price**~~ **BUILT 2026-09-12** as `market_word`.
 - ~~**Gangs and bandits**~~ **BUILT 2026-09-12** as `underworld`.
-- **A realm-news pack**, which is where the depth axis will finally earn its keep: a villager hears there is
-  fighting; a lord knows who, since when, and who is winning. Not built.
+- ~~**A realm-news pack**~~ **BUILT 2026-09-12** as `realm_news`, and it did not add news - it took ownership
+  of a decision that was living as a magic number. The news already reached the prompt by two routes
+  (`RealmNewsLine`, `WorldRumorsBlock`); what was missing is exactly what depth names. The host asked the
+  store for six events and kept **FOUR, for everybody alike** - the awareness filter underneath is geographic
+  and temporal and never once asks who is listening, so a village headman and a marshal of the realm heard the
+  same amount from the same distance. Now a lord reaches five and hears distant rumours, a notable three, a
+  villager one - and the headline reaches everyone, because a war declared reaches a village square as surely
+  as a council chamber. The tuned prose was moved verbatim (recovered from git) and is now pinned by tests.
+  `PerEncounter`, so it renders below the cache-split marker. **The old fields still render if another mod
+  sets them; the host simply no longer does, so nothing is said twice.**
+  - **Process note, recorded because it cost something:** the byte-diff harness was run, and I destroyed my
+    own baseline by re-running the capture with the output path still pointing at it. The exact-string tests
+    are the evidence instead - and they are the better guard anyway, since a diff is thrown away and a test
+    stays.
 
 ---
 

@@ -583,8 +583,11 @@ namespace CalradiaRemembers.Mapping
             MatchmakerPlayerKin = MatchmakerResolver.BuildPlayerKin(),
             // The player's chosen writing voice, served from memory unless the pick or the file changed.
             NarrativeStyle = StyleService.CurrentRules(),
-            WorldRumorsBlock = ResolveWorldRumors(hero),
-            RealmNewsLine = ResolveRealmNews(hero),
+            // The news now travels as FACTS rather than as a pre-formatted block: how much of it a character
+            // carries is a rule about people, and RealmNewsPack owns it. The two older fields are left on
+            // EncounterContext and still render if some other mod sets them - the host simply no longer does,
+            // so nothing is said twice.
+            RealmNews = BuildRealmNews(hero),
             PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
             QueryRelevantFactsBlock = ResolveQueryRelevantFacts(hero, playerMessage, (int) CampaignTime.Now.ToDays),
             CompanionOnErrand = ResolveCompanionOnErrand(hero),
@@ -2905,6 +2908,59 @@ namespace CalradiaRemembers.Mapping
          return null;
       }
 
+      /// <summary>
+      ///   What word has brought this character, RAW and uncapped. The cut belongs to RealmNewsPack, because
+      ///   how far somebody's word reaches is a fact about them and not a constant.
+      ///   <para>
+      ///     What this replaces: ResolveWorldRumors asked the store for six and then kept FOUR, for everybody
+      ///     alike - a village headman and a marshal of the realm heard exactly as much, from exactly as far.
+      ///     The awareness filter underneath is geographic and temporal and never asked who was listening.
+      ///   </para>
+      /// </summary>
+      private static RealmNewsFacts BuildRealmNews(Hero hero)
+      {
+         if (hero == null) return null;
+
+         try
+         {
+            var tidings = new List<Tiding>();
+
+            IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> rated =
+               WorldEventStore.Instance?.GetKnownEventsRated(hero, (int) CampaignTime.Now.ToDays, 12);
+
+            if (rated != null)
+               foreach ((WorldEvent e, RumorConfidence confidence) in rated)
+               {
+                  // Player deeds go round the influence loop; realm-level war and peace ARE the headline.
+                  if (e.InvolvesPlayer || string.IsNullOrWhiteSpace(e.Summary)) continue;
+                  if (e.Type == WorldEventType.WarDeclared || e.Type == WorldEventType.PeaceDeclared) continue;
+
+                  tidings.Add(new Tiding {Text = e.Summary, Confidence = MapConfidence(confidence)});
+               }
+
+            var facts = new RealmNewsFacts {Headline = ResolveRealmNews(hero), Tidings = tidings};
+
+            return facts.HasAnyReading ? facts : null;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[knowledge] realm news read failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>The store's own rating, on the SDK's engine-free scale. Same words, same meaning.</summary>
+      private static TidingConfidence MapConfidence(RumorConfidence confidence)
+      {
+         switch (confidence)
+         {
+            case RumorConfidence.Distant: return TidingConfidence.Distant;
+            case RumorConfidence.Secondhand: return TidingConfidence.Secondhand;
+            default: return TidingConfidence.Firsthand;
+         }
+      }
+
       private static string ResolveRuledRealmName(Hero hero)
          => hero?.MapFaction is Kingdom k && k.Leader == hero ? k.Name?.ToString() : null;
 
@@ -3613,52 +3669,16 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>
-      ///   The recent THIRD-PARTY world happenings this NPC would plausibly have heard of (faction/
-      ///   region/recency), pre-formatted as hearsay lines for the prompt. The player's OWN deeds are
-      ///   pulled out here and routed to <see cref="ResolvePlayerDeedsHeard" /> instead, so they reach
-      ///   the NPC attributed to the person before them rather than as faceless gossip. Null when
-      ///   nothing relevant has reached them, so the "WHAT YOU'VE HEARD" section is skipped entirely.
-      /// </summary>
-      private static string ResolveWorldRumors(Hero hero)
-      {
-         try
-         {
-            IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> rated = WorldEventStore.Instance?.GetKnownEventsRated(
-               hero, (int) CampaignTime.Now.ToDays, 6);
-
-            if (rated == null || rated.Count == 0) return null;
-
-            var lines = new List<string>();
-            foreach ((WorldEvent e, RumorConfidence conf) in rated)
-            {
-               if (e.InvolvesPlayer || string.IsNullOrWhiteSpace(e.Summary)) continue; // player deeds → influence loop
-               if (e.Type == WorldEventType.WarDeclared || e.Type == WorldEventType.PeaceDeclared) continue; // realm-level → RealmNewsLine
-               string tag = conf == RumorConfidence.Distant ? "(a distant, unverified rumour) "
-                  : conf == RumorConfidence.Secondhand ? "(heard secondhand) "
-                  : "";
-               lines.Add($"- {tag}{e.Summary.TrimEnd('.', ' ')}.");
-
-               if (lines.Count >= 4) break;
-            }
-
-            return lines.Count > 0
-               ? string.Join("\n", lines)
-               : null;
-         }
-         catch { return null; }
-      }
-
-      /// <summary>
       ///   A SECOND, message-relevant world-fact block: known facts this NPC would plausibly know that bear
       ///   specifically on what the player just said, deterministic (no LLM call anywhere in this path).
-      ///   Fixes a modder report: awareness alone (<see cref="ResolveWorldRumors" />'s small top-N by
+      ///   Fixes a modder report: awareness alone (the ambient news pack's small top-N by
       ///   magnitude/faction/distance/recency) starves a fact the NPC DOES know but that never ranked high
       ///   enough to make the ambient cut, so a pointed question about it got a hallucinated answer instead
       ///   of the real one. Order is mandatory and never reversed: the KNOWLEDGE gate
       ///   (<see cref="WorldEventStore.GetKnownEventsRated" />) runs FIRST over a generous candidate pool, THEN
       ///   <see cref="WorldFactRelevancePolicy" /> ranks only the survivors against the message, so a fact the
       ///   NPC would not plausibly know can never surface merely because the player asked about it. Best-effort
-      ///   de-dup against the ambient <see cref="ResolveWorldRumors" /> top-6 selection and
+      ///   de-dup against the ambient realm-news selection and
       ///   <see cref="ResolveRealmNews" />'s own pick (both drawn from the identical rated query, so the same
       ///   ids line up) so a fact is never shown twice under two headers; player-deed events are excluded here
       ///   too, they are already covered, attributed, by <see cref="ResolvePlayerDeedsHeard" />. Null when
