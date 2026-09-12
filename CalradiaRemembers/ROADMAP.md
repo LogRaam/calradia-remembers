@@ -372,12 +372,21 @@ was built to end. It is "bands, not numbers" drawn one level up.
   per turn.
 - `cr.testall world_claims` drives the real injector against the real store and asserts both refusals.
 
-**OPEN, and my recommendation: this should ship with an MCM off switch.** A language model writing permanent
-rows into a player's save is exactly the kind of feature a player should be able to decline, and there is no
-toggle yet. Not built, because it is Gabriel's call how it is worded and defaulted.
+**MCM: "Characters can add news to the world", Content group, OFF by default** (Gabriel, 2026-09-12). Checked
+FIRST in the harvest, so with the switch off the extraction call is never made at all - the feature costs
+nothing rather than costing a request and discarding the answer. The facade falls back to FALSE rather than to
+the usual "on" default: a settings screen that has not loaded yet must not be read as consent for something
+that writes to the save. `cr.testall world_claims` drives the injector directly and REPORTS the toggle state,
+so a PASS is never mistaken for "it is running".
 
 **Also open:** nobody has watched a claim make the journey in a real game - invented in one conversation,
 adopted, then heard from a second character.
+
+**A guard that should have existed since v2.5.6.** Adding the twentieth MCM hint made it obvious that nothing
+protected the nineteen: that release repaired nineteen hints running off the screen, by hand, and because they
+read "On (default): ... Off: ..." the clipped half was always the one explaining the other position. New
+`cr.testall setting_hints_fit` reads the ATTRIBUTES (so it holds whether or not MCM has loaded) and asserts
+every hint is under 250 characters and none is empty.
 
 ### The audit, still open
 

@@ -129,6 +129,10 @@ namespace CalradiaRemembers.Chat
          string npcId,
          string transcript)
       {
+         // Off by default, and checked BEFORE anything else: with the switch off the extraction call is never
+         // made at all, so the feature costs nothing rather than costing a request and discarding the answer.
+         if (!ModSettings.EnableNpcWorldClaims) return;
+
          try
          {
             NpcProfile npc = behavior?.Store?.Get(npcId);

@@ -117,6 +117,13 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool EnableRideWithMe { get; set; } = true;
 
+      [SettingPropertyBool("Characters can add news to the world", RequireRestart = false, Order = 13,
+         HintText = "Off (default): what a character invents stays in that conversation. On: a blight, brigands, " +
+                    "a death or an omen they mention can become a real rumour others may hear. Never numbers, " +
+                    "money, or who holds what - the game owns those.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool EnableNpcWorldClaims { get; set; } = false;
+
       [SettingPropertyBool("NPCs can end conversations", RequireRestart = false, Order = 5,
          HintText = "On (default): when a character ends a conversation the chat closes and you click Leave. Off: their " +
                     "goodbye no longer closes it, so you can have the last word and close it yourself. Captivity scenes keep " +

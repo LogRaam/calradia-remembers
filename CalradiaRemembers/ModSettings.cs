@@ -114,6 +114,13 @@ namespace CalradiaRemembers
       public static bool EnableRideWithMe => CrSettings.Instance?.EnableRideWithMe ?? true;
 
       /// <summary>
+      ///   Whether a fact a character invents may become a real rumour others can hear (Gabriel, 2026-09-12).
+      ///   Falls back to FALSE rather than to the usual "on" default: this one writes permanent rows into the
+      ///   player's save, so a settings screen that has not loaded yet must not be read as consent.
+      /// </summary>
+      public static bool EnableNpcWorldClaims => CrSettings.Instance?.EnableNpcWorldClaims ?? false;
+
+      /// <summary>
       ///   When ON (default), an NPC's end_conversation closes an ordinary Chatroom conversation (input locks,
       ///   Leave button). OFF leaves the chat open so the player keeps the last word and closes it themselves.
       ///   Captive/captor scenes ignore this: they always end on their own Continue/resume flow.

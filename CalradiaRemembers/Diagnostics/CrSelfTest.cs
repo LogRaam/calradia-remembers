@@ -234,6 +234,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("panel_siege_guard", Severity.Light, "Mechanical: the full-map panel crash guard. Asserts the Harmony prefix that skips SettlementVisualManager.OnTick (the vanilla siege-bombardment visual tick, which runs on the frame loop and access-violates natively under a pushed CR panel: four confirmed 0xC0000005 crashes) is actually attached to the LIVE engine method. It resolves the target BY NAME, so a game update that renamed the type/method would silently stop protecting; this fires if that ever happens. Also asserts that with no panel open nothing is suppressed (siege visuals tick normally). No LLM, mutates nothing", TestPanelSiegeVisualGuard),
+         new SelfTest("setting_hints_fit", Severity.Light, "Mechanical: every MCM hint fits on screen. A shipped bug with a receipt - v2.5.6 repaired NINETEEN hints that ran off the edge, and because they read \"On (default): ... Off: ...\" the clipped half was always the one explaining the other position. They were fixed by hand with nothing left to stop the twentieth, which 2026-09-12 then added. Reads the ATTRIBUTES, so it holds whether or not MCM has loaded. Read-only", TestSettingHintsFit),
          new SelfTest("settings_ranges_agree", Severity.Light, "Mechanical (Gabriel, 2026-09-10, after the Regard Warmth Cooldown: \"je suis surpris que le bon comportement n'ait pas ete bien protege par des tests unitaires. Par exemple, 0 aurait du etre teste\"). The uncomfortable truth is that 0 WAS tested and the test agreed with the bug: it pinned what the code did, while the MCM control clamped its minimum to 1 and the v2.5.1 changelog promised 0 turned the cooldown off. Three artefacts, no place for any two of them to meet. This is that place. Reflects over EVERY [SettingPropertyInteger] on CrSettings, pairs it with the same-named ModSettings property that enforces it, drives the declared MIN and MAX through the live setting, and asserts the code honours every value the menu offers. Catches the whole family in one assertion, including settings that do not exist yet. Restores each setting to its prior value in a finally", TestSettingsRangesAgree),
          new SelfTest("console_help_complete", Severity.Light, "Mechanical: cr.help against the REAL command registry. Asked on 2026-09-10 whether it was still complete, it described 70 of 259 registered commands, so cr.testall and cr.test were themselves invisible, and it advertised cr.compose, renamed cr.letter_compose long before, which made the one name a reader was most likely to copy verbatim the one that would fail. A hand-written list of every command in a project that gains commands weekly can only drift, so what EXISTS now comes from reflection over the assembly its own [CommandLineArgumentFunction] attributes and the prose is an overlay on top of it. Reads the live registry, drives the real ModCheats.Help in all three of its forms, and asserts: the help never names a command that does not exist (the cr.compose class of error), every registered command is reachable through cr.help all however undescribed, the curated page says where the rest of them are, and the search finds a command by fragment. Read-only, mutates nothing", TestConsoleHelpComplete),
          new SelfTest("world_claims", Severity.Light, "Invented facts (Gabriel, 2026-09-12): a character makes up a blight, the gate judges it, and if it passes it becomes a real low-weight rumour a DIFFERENT character can have heard - which is the incoherence Gabriel named, closed through the rumour road that already existed instead of a second world model. A unit test can prove the RULE and never that the row reached the world, so this drives the real injector against the real store. Also asserts the two refusals that matter: the PLAYER never authors the world, and nothing the engine keeps on a screen is ever invented into it. Removes every row it writes", TestWorldClaims),
@@ -8188,6 +8189,62 @@ namespace CalradiaRemembers.Diagnostics
                "a percent the player reads becomes the scale factor the window uses")
          };
 
+      /// <summary>
+      ///   Every MCM hint fits on the screen. This is a shipped bug with a receipt: v2.5.6 fixed NINETEEN hints
+      ///   that ran off the edge, and the reason it hurt is that they are written "On (default): ... Off: ...",
+      ///   so the half that got clipped was always the one explaining the other position. They were repaired by
+      ///   hand and nothing was left to stop the twentieth doing it again - which matters now, because
+      ///   2026-09-12 added the twentieth.
+      ///   <para>
+      ///     Reads the ATTRIBUTES rather than the live settings object, so it holds whether or not MCM has
+      ///     loaded, and so a hint is checked as it was WRITTEN rather than as it happened to render here.
+      ///   </para>
+      /// </summary>
+      private static string TestSettingHintsFit(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("setting_hints_fit");
+
+         var toolong = new List<string>();
+         var empty = new List<string>();
+         var checkedCount = 0;
+
+         foreach (PropertyInfo declared in typeof(CrSettings).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+         foreach (CustomAttributeData attribute in declared.GetCustomAttributesData())
+         {
+            string hint = ReadHintText(attribute);
+            if (hint == null) continue;
+
+            checkedCount++;
+
+            if (hint.Trim().Length == 0) empty.Add(declared.Name);
+            else if (hint.Length > MaxHintChars) toolong.Add($"{declared.Name}={hint.Length}");
+         }
+
+         if (t.Skip(checkedCount == 0, "no setting declares a hint, so there is nothing to measure")) return t.Line();
+
+         t.Note($"{checkedCount} hint(s) measured against {MaxHintChars} chars");
+         t.Expect("everyHintFitsOnTheScreen", toolong.Count == 0 ? "" : string.Join(", ", toolong), "");
+         t.Expect("noSettingIsLeftWithoutItsExplanation", empty.Count == 0 ? "" : string.Join(", ", empty), "");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The width a hint has before MCM clips it. Measured the hard way in v2.5.6 and kept as a number
+      ///   rather than a habit.
+      /// </summary>
+      private const int MaxHintChars = 250;
+
+      /// <summary>The HintText named argument of a setting attribute, or null when this attribute has none.</summary>
+      private static string ReadHintText(CustomAttributeData attribute)
+      {
+         foreach (CustomAttributeNamedArgument named in attribute.NamedArguments)
+            if (named.MemberName == "HintText")
+               return named.TypedValue.Value as string;
+
+         return null;
+      }
+
       private static string TestSettingsRangesAgree(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("settings_ranges_agree");
@@ -11949,7 +12006,10 @@ namespace CalradiaRemembers.Diagnostics
                Text = $"[SELFTEST] A blight has taken the grain in the fields about {place.Name}."
             };
 
-            t.Note($"speaker={speaker.Name}, place={place.Name}");
+            // The switch is OFF by default, and this test drives the injector DIRECTLY - it proves the
+            // mechanism, never that the feature is live. Saying so here stops a PASS being read as "it runs".
+            t.Note($"speaker={speaker.Name}, place={place.Name}, "
+                   + $"MCM 'Characters can add news to the world'={(ModSettings.EnableNpcWorldClaims ? "ON" : "OFF (default) - no claim is harvested in play")}");
 
             // 1. an NPC's invention about something the game does not model DOES become real.
             int adopted = WorldClaimInjector.Adopt(new List<WorldClaim> {blight}, speaker, today);
