@@ -186,8 +186,20 @@ namespace CalradiaRemembers.Companions
 
          try
          {
-            ReturnMove move = BriefingReturnDecision.Decide(
-               _returnArmed, ChatManager.IsOpen, Mission.Current != null, ++_ticksWaited);
+            bool chatOpen = ChatManager.IsOpen;
+            bool sceneLive = Mission.Current != null;
+            ReturnMove move = BriefingReturnDecision.Decide(_returnArmed, chatOpen, sceneLive, ++_ticksWaited);
+
+            // Logged on CHANGE only: this runs on every application tick, and Wait is the answer for most of
+            // them. What a reader needs is the inputs at the moment the answer turned - because every fault
+            // in this sequence so far has been an answer that was wrong for the inputs it had, and no log
+            // ever showed the inputs.
+            if (move != _lastLoggedMove)
+            {
+               _lastLoggedMove = move;
+               ModLog.Info($"[BRIEFING] decide(armed=true chat={chatOpen} scene={sceneLive} " +
+                           $"waited={_ticksWaited}) -> {move}");
+            }
 
             switch (move)
             {
@@ -226,6 +238,7 @@ namespace CalradiaRemembers.Companions
       }
 
       private static int _ticksWaited;
+      private static ReturnMove _lastLoggedMove = ReturnMove.Idle;
 
       /// <summary>
       ///   Nothing came of the briefing, so end the meeting it was nested inside.
@@ -266,6 +279,7 @@ namespace CalradiaRemembers.Companions
          _returnWith = null;
          _returnArmed = false;
          _ticksWaited = 0;
+         _lastLoggedMove = ReturnMove.Idle;
       }
 
       /// <summary>The name of the meeting we owe a way back into, for the close button. Null when there is none.</summary>

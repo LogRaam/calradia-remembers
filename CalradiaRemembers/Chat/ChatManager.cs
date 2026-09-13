@@ -422,10 +422,17 @@ namespace CalradiaRemembers.Chat
             // The steps after the window are DATA now (ChatClosePlan), so a unit test can read which of them
             // a hand-off skips instead of somebody having to trust a comment. See BriefingReturnDecision for
             // why the shape of this sequence, rather than any step in it, is what kept going wrong.
-            foreach (ChatCloseStep step in ChatClosePlan.For(handingOff
-                                                                ? ChatCloseKind.HandOff
-                                                                : ChatCloseKind.Ordinary))
-               RunCloseStep(step);
+            ChatCloseKind kind = handingOff ? ChatCloseKind.HandOff : ChatCloseKind.Ordinary;
+            IReadOnlyList<ChatCloseStep> plan = ChatClosePlan.For(kind);
+
+            // THE PLAN IS SAID OUT LOUD, and this matters as much as making it data. SafeStep logs only
+            // FAILURES, so a step correctly skipped left no trace whatever - which is exactly the class of
+            // fault that cost three attempts here (a missing step, an inverted guard, a step that should not
+            // have existed). All three were diagnosed from logs. Now the log carries the same vocabulary the
+            // unit test asserts in, so a line from a player's log can be read straight against ChatClosePlan.
+            ModLog.Info($"[CLOSE] plan={kind}: {string.Join(" > ", plan)}");
+
+            foreach (ChatCloseStep step in plan) RunCloseStep(step);
 
             if (handingOff)
                ModLog.Info("[BRIEFING] window closed as a HAND-OFF: the meeting stands, the world is untouched.");
@@ -1077,7 +1084,10 @@ namespace CalradiaRemembers.Chat
 
          // Derived from the two plans, never listed again: the debt IS whatever the hand-off skipped, so it
          // cannot fall out of step with what a hand-off actually skips.
-         foreach (ChatCloseStep step in ChatClosePlan.Deferred()) RunCloseStep(step);
+         IReadOnlyList<ChatCloseStep> owed = ChatClosePlan.Deferred();
+         ModLog.Info($"[CLOSE] plan=Deferred: {string.Join(" > ", owed)}");
+
+         foreach (ChatCloseStep step in owed) RunCloseStep(step);
       }
 
       /// <summary>
@@ -1117,6 +1127,14 @@ namespace CalradiaRemembers.Chat
 
             case ChatCloseStep.RestoreTime:
                SafeStep(RestoreTime, "RestoreTime");
+
+               return;
+
+            default:
+               // A step was added to the plan and never given an action here. Silence would mean the world
+               // quietly stops being given back in one of its parts - the exact shape of every fault in this
+               // sequence so far - so it is loud instead.
+               ModLog.Error($"[CLOSE] planned step {step} has no action wired; it did NOTHING.");
 
                return;
          }

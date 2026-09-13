@@ -159,5 +159,40 @@ namespace CalradiaRemembers.Tests.Conversation
                       .BeEquivalentTo(ChatClosePlan.For(ChatCloseKind.Ordinary),
                                       "a hand-off plus its debt must equal an ordinary close, or something is lost");
       }
+
+      // ── nothing orphaned, nothing doubled ──
+
+      // Every step that EXISTS must be planned by somebody. A step defined and never planned is a piece of
+      // the world nobody gives back, and it would sit there looking implemented.
+      [Test]
+      public void GIVEN_every_step_that_exists_WHEN_planning_THEN_the_ordinary_close_runs_all_of_them()
+      {
+         ChatClosePlan.For(ChatCloseKind.Ordinary)
+                      .Should()
+                      .BeEquivalentTo(Enum.GetValues(typeof(ChatCloseStep)).Cast<ChatCloseStep>(),
+                                      "a step nobody plans is a piece of the world nobody gives back");
+      }
+
+      // Running a step twice is not harmless here: ending a conversation or an encounter twice is exactly the
+      // kind of double teardown this codebase has crashed on.
+      [Test]
+      public void GIVEN_either_plan_WHEN_read_THEN_no_step_appears_twice()
+      {
+         foreach (ChatCloseKind kind in Enum.GetValues(typeof(ChatCloseKind)).Cast<ChatCloseKind>())
+            ChatClosePlan.For(kind).Should().OnlyHaveUniqueItems();
+
+         ChatClosePlan.Deferred().Should().OnlyHaveUniqueItems();
+      }
+
+      // A hand-off must be a STRICT subset: it may defer work, never invent any. If it ever grew a step the
+      // ordinary close does not have, that step would run with no counterpart and no test would notice.
+      [Test]
+      public void GIVEN_a_hand_off_WHEN_compared_to_an_ordinary_close_THEN_it_only_ever_does_less()
+      {
+         ChatClosePlan.For(ChatCloseKind.HandOff)
+                      .Should()
+                      .BeSubsetOf(ChatClosePlan.For(ChatCloseKind.Ordinary));
+      }
+
    }
 }
