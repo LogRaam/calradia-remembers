@@ -12349,140 +12349,75 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
-      ///   Companion-briefing pillar: the player asks a lord, in the vanilla dialogue, for a moment to speak
-      ///   with his own people, briefs whichever companion he drew aside, then brings that companion into the
-      ///   conversation with the lord. Drives the REAL <see cref="CompanionBriefingStore" /> and the REAL
-      ///   <see cref="EncounterContextBuilder.Build" /> (no LLM call) for two DISTINCT heroes: the briefed
-      ///   companion, and a second, unrelated hero standing in for the conversation's TARGET. Asserts the brief
-      ///   reaches the companion's own context, is ABSENT from the target's (the load-bearing property the whole
-      ///   design rests on: the target was never present for the briefing and must never see it), stacks on a
-      ///   second briefing, and is gone once <see cref="CompanionBriefingStore.ExpireForConversationClose" /> (the
-      ///   exact call <see cref="Chat.ChatViewModel.FinalizeCompanionBriefs" /> makes on an ordinary conversation's
-      ///   close) has run. Borrows a companion into the party if none rides along, the same way
-      ///   companion_battle_memory does; the "target" is picked by a hero PROPERTY (alive, not the player, not
-      ///   the companion), never by list position, so the test never depends on which hero the campaign happens
-      ///   to list first.
+      ///   The companion-briefing pillar as it now stands: a private word becomes a PRIVATE MEMORY on everyone
+      ///   who stood in it, and that memory never reaches the person it was about.
+      ///   <para>
+      ///     Rewritten 2026-09-13 when the standing brief was dismantled. The old version drove
+      ///     CompanionBriefingStore through stacking, bounding and expiry - a whole second carrier that existed
+      ///     for one reason, that a memory could not be kept private, and that stopped being a reason the hour
+      ///     NotableEvent.IsPrivate was built.
+      ///   </para>
       /// </summary>
       private static string TestCompanionBriefing(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("companion_briefing");
 
-         if (t.Abort(behavior.Store == null, "memory store not active")) return t.Line();
-         if (t.Abort(MobileParty.MainParty == null, "no main party to hold a companion")) return t.Line();
+         Hero companion = Hero.AllAliveHeroes?.FirstOrDefault(h => h != null && h != Hero.MainHero && h.IsAlive);
+         Hero target = Hero.AllAliveHeroes?.FirstOrDefault(
+            h => h != null && h != Hero.MainHero && h.IsAlive && h != companion);
 
-         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(
-            h => h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && h.PartyBelongedTo == MobileParty.MainParty);
+         if (t.Skip(companion == null || target == null, "no two living heroes to brief and be briefed about"))
+            return t.Line();
 
-         MobileParty borrowedFrom = null;
-         var borrowed = false;
+         NpcProfile companionProfile = behavior?.Store?.Get(companion!.StringId);
+         if (t.Skip(companionProfile?.Events == null, "no profile to remember a briefing")) return t.Line();
 
-         if (companion == null)
-         {
-            Hero spare = Hero.AllAliveHeroes.FirstOrDefault(
-               h => h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner);
-
-            if (t.Skip(spare == null, "the player has no companion at all to brief")) return t.Line();
-
-            borrowedFrom = spare.PartyBelongedTo;
-            borrowed = true;
-            AddHeroToPartyAction.Apply(spare, MobileParty.MainParty, false);
-            companion = spare;
-            t.Note($"(borrowed {spare.Name} into the player's party for this test)");
-         }
-
-         // The stand-in TARGET: any other living hero, chosen by exclusion (not the player, not the companion
-         // just resolved above), never by position in a list.
-         Hero target = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != companion && h.IsAlive);
-
-         if (t.Skip(target == null, "no second distinct living hero available to stand in as the conversation's target")) return t.Line();
-
-         NpcProfile companionProfile = GetOrCreate(behavior, companion);
-         NpcProfile targetProfile = GetOrCreate(behavior, target);
-
-         const string firstInstruction = "press him gently on the matter of the unpaid debt";
-         const string secondInstruction = "and remind him of his promise to your father";
+         List<NotableEvent> original = companionProfile!.Events.ToList();
+         string errand = $"SELFTEST-ERRAND the player asked me to win over {target!.Name} before we meet";
 
          try
          {
-            EncounterContext beforeAnyBrief = EncounterContextBuilder.Build(
-               companion, companionProfile, behavior.GameStateBridge, resolveInterception: false);
-            t.Expect("noBriefBeforeAnyGiven", string.IsNullOrEmpty(beforeAnyBrief.CompanionBrief), true);
+            int day = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
+            companionProfile.Events.Add(new NotableEvent(day, NotableEventType.Other, errand) {IsPrivate = true});
+            behavior.Store.Set(companionProfile);
 
-            CompanionBriefingStore.AddInstruction(companion.StringId, firstInstruction);
+            // The briefed companion carries it: a private memory is still one of THEIR memories, so it sits in
+            // their own profile and reaches their own prompt through the ordinary history like any other.
+            t.Expect("theErrandReachesTheCompanionWhoWasGivenIt",
+                     BuildOwnMemoryProbe(companionProfile).Contains("SELFTEST-ERRAND"), true);
 
-            EncounterContext companionContext = EncounterContextBuilder.Build(
-               companion, companionProfile, behavior.GameStateBridge, resolveInterception: false);
-            EncounterContext targetContext = EncounterContextBuilder.Build(
-               target, targetProfile, behavior.GameStateBridge, resolveInterception: false);
+            // THE LOAD-BEARING ASSERTION OF THE WHOLE PILLAR: standing in the room with the target, that same
+            // memory must not be readable by them. The witness recall is the only path it could travel.
+            t.Expect("theErrandNeverReachesTheRoom",
+                     (ChatViewModel.DebugWitnessMemory(companion.StringId) ?? "").Contains("SELFTEST-ERRAND"),
+                     false);
 
-            t.Note($"companion={companion.Name}, target={target.Name}");
-            t.Expect("briefReachesTheBriefedCompanion",
-               companionContext.CompanionBrief != null && companionContext.CompanionBrief.Contains("unpaid debt"), true);
-            // The load-bearing assertion of the whole feature: the conversation's TARGET was never present for
-            // the briefing, so their own context must carry no trace of it.
-            t.Expect("briefAbsentFromTheTarget", string.IsNullOrEmpty(targetContext.CompanionBrief), true);
+            // And the scene flag still names the absent target, so the briefing chat itself knows who it is for.
+            EncounterContext scene = EncounterContextBuilder.Build(
+               companion, companionProfile, behavior.GameStateBridge, "well?", null, false,
+               isCompanionBriefingScene: true, companionBriefingTargetName: target.Name?.ToString());
 
-            CompanionBriefingStore.AddInstruction(companion.StringId, secondInstruction);
+            t.Expect("theSceneKnowsWhoItIsFor", scene?.IsCompanionBriefingScene, true);
+            t.Expect("theSceneNamesTheAbsentTarget",
+                     string.Equals(scene?.CompanionBriefingTargetName, target.Name?.ToString()), true);
 
-            EncounterContext stackedContext = EncounterContextBuilder.Build(
-               companion, companionProfile, behavior.GameStateBridge, resolveInterception: false);
-            t.Expect("secondBriefingStacksRatherThanReplaces",
-               stackedContext.CompanionBrief != null
-               && stackedContext.CompanionBrief.Contains("unpaid debt")
-               && stackedContext.CompanionBrief.Contains("promise to your father"), true);
-
-            // Gabriel's ruling (2026-09-07): the briefing chat must be a REAL conversation, so the model needs
-            // to know WHAT this scene is (EncounterContext.IsCompanionBriefingScene) or a companion answers as
-            // though the absent target could hear it. Drives the REAL EncounterContextBuilder.Build wiring, the
-            // same call ChatViewModel.Exchanges.cs makes for every turn inside the briefing chat itself.
-            string targetName = target.Name?.ToString();
-            EncounterContext sceneContext = EncounterContextBuilder.Build(
-               companion, companionProfile, behavior.GameStateBridge, resolveInterception: false,
-               isCompanionBriefingScene: true, companionBriefingTargetName: targetName);
-            t.Expect("sceneFlagReachesTheContext", sceneContext.IsCompanionBriefingScene, true);
-            t.Expect("sceneNamesTheAbsentTarget", sceneContext.CompanionBriefingTargetName == targetName, true);
-            // The double-instruction guard: inside the briefing scene itself the standing CompanionBrief must
-            // stay suppressed (the store is being written live by this very conversation), even though the
-            // companion is still genuinely briefed (proven by stackedContext just above).
-            t.Expect("standingBriefSuppressedInsideTheSceneItself", string.IsNullOrEmpty(sceneContext.CompanionBrief), true);
-
-            // The ordinary conversation the brief was carried into has closed: the exact production call
-            // ChatViewModel.FinalizeCompanionBriefs makes (isBriefingChat: false).
-            CompanionBriefingStore.ExpireForConversationClose(new[] {target.StringId, companion.StringId}, false);
-
-            EncounterContext afterExpiry = EncounterContextBuilder.Build(
-               companion, companionProfile, behavior.GameStateBridge, resolveInterception: false);
-            t.Expect("briefGoneAfterTheConversationItRodeIntoCloses", string.IsNullOrEmpty(afterExpiry.CompanionBrief), true);
+            t.Note($"briefed={companion.Name}, about={target.Name}");
          }
          finally
          {
-            // Never leave a brief outstanding regardless of assertion outcome, and never conscript a companion
-            // this test borrowed.
-            CompanionBriefingStore.Clear(companion.StringId);
-            CompanionBriefingStore.Clear(target.StringId);
-
-            if (borrowed)
-            {
-               if (borrowedFrom != null && borrowedFrom != MobileParty.MainParty)
-               {
-                  AddHeroToPartyAction.Apply(companion, borrowedFrom, false);
-                  t.Note($"(returned {companion.Name} to their party)");
-               }
-               else t.Note($"(NOTE: {companion.Name} had no party to return to and remains in yours; reload to discard)");
-            }
+            companionProfile.Events.Clear();
+            companionProfile.Events.AddRange(original);
+            behavior?.Store?.Set(companionProfile);
          }
 
          return t.Line();
       }
 
-      /// <summary>
-      ///   Query-relevant world facts (mechanical, no LLM): drives the REAL
-      ///   <see cref="EncounterContextBuilder.ResolveQueryRelevantFacts" /> end to end. Seeds a fresh, high-magnitude,
-      ///   faction-tagged WorldEvent naming a real third-party lord so it is guaranteed KNOWN (awareness) regardless
-      ///   of map position, proving relevance ranking rather than awareness itself; asks about that lord by name and
-      ///   asserts the fact surfaces, then asks an unrelated question and asserts it does not (knowledge gate first,
-      ///   relevance second, never omniscience). Removes the seeded event afterwards.
-      /// </summary>
+      /// <summary>The plain read of a hero's own memories, for the assertion that they still have them.</summary>
+      private static string BuildOwnMemoryProbe(NpcProfile profile)
+         => string.Join(" ", profile.Events.Select(e => e?.summary ?? ""));
+
+
       private static string TestQueryRelevantFacts(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("query_relevant_facts");

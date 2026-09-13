@@ -16,9 +16,9 @@
 #region
 
 using System.Collections.Generic;
+using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Companions;
-using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 
@@ -32,6 +32,7 @@ namespace CalradiaRemembers.Chat
       // conversation is for. Never shown to anyone in this conversation: it exists purely so
       // FinalizeCompanionBriefs can tell this chat's own close apart from an ordinary conversation's close (see
       // CompanionBriefPolicy.HeroesToExpireOnClose's isBriefingChat parameter). Null for every other chat.
+      private bool _briefingMemoryWritten;
       private string _companionBriefingTargetId;
 
       // The absent target's display name, fed to EncounterContext.CompanionBriefingTargetName every turn of
@@ -82,88 +83,76 @@ namespace CalradiaRemembers.Chat
       ///   brief carries no record of which target it was meant for (ruling #2: it is attached to the
       ///   companion, never to the conversation or the target).
       /// </summary>
+      /// <summary>
+      ///   Writes the private word into the memory of EVERYONE who stood in it, as the briefing closes.
+      ///   <para>
+      ///     THE BRIEF IS GONE, and Gabriel's question is what killed it (2026-09-13): "pourquoi on doit encore
+      ///     transporter le contenu du briefing?". There was exactly one reason, and it is written in the gate
+      ///     this method now replaces - "the standing brief already carries what needs to survive; nothing else
+      ///     may". The brief existed because a memory could not be kept PRIVATE. That stopped being true the
+      ///     hour NotableEvent.IsPrivate was built, and a second carrier for one fact is the thing this
+      ///     codebase keeps learning not to have.
+      ///   </para>
+      ///   <para>
+      ///     It also kills the question that could not be answered honestly: WHERE in a briefing the
+      ///     instruction sits. Bounding the text meant betting on it - his own briefing put the mission in the
+      ///     first sentence and a 500-character tail-trim threw it away, so Sley walked in knowing the reward
+      ///     and not the errand. There is no bet here. Every word the player said in that scene is kept, and
+      ///     bounding is left to the memory compressor, whose job it actually is.
+      ///   </para>
+      ///   <para>
+      ///     Written to EVERY participant, not just the anchor. An ordinary conversation gives the anchor a
+      ///     summary and the onlookers a contentless "was present"; a briefing has no onlookers - the player
+      ///     drew these people aside together and told them all the same thing.
+      ///   </para>
+      /// </summary>
       public void FinalizeCompanionBriefs()
       {
-         // Write it down first: expiry below may clear the very text the memory is made of.
-         WriteBriefingToMemory();
-
-         if (CompanionBriefingStore.BriefedHeroIds.Count == 0) return;
-
-         var participants = new List<string>();
-         if (_npcHero != null) participants.Add(_npcHero.StringId);
-         foreach (WitnessEntry w in _witnesses)
-            if (!string.IsNullOrEmpty(w.HeroStringId))
-               participants.Add(w.HeroStringId);
-
-         CompanionBriefingStore.ExpireForConversationClose(participants, IsCompanionBriefingChat);
-      }
-
-      /// <summary>
-      ///   Called from <see cref="ExecuteSendMessage" /> as a side effect BEFORE the ordinary pipeline runs,
-      ///   while <see cref="IsCompanionBriefingChat" /> is true: captures the player's OWN words, trimmed, into
-      ///   EVERY present companion's brief (the anchor and every chosen witness all heard it, ruling #2 attaches
-      ///   the brief to each companion who was there). Never an LLM summary: cheaper, and truer to what the
-      ///   player actually asked for than a paraphrase would be. Ordinary send processing continues unchanged
-      ///   after this returns, so the anchor (or whichever companion the player addresses) answers for real.
-      /// </summary>
-      private void RecordCompanionBriefingInstruction(string text)
-      {
-         if (_npcHero != null) CompanionBriefingStore.AddInstruction(_npcHero.StringId, text);
-         foreach (WitnessEntry w in _witnesses)
-            if (!string.IsNullOrEmpty(w.HeroStringId))
-               CompanionBriefingStore.AddInstruction(w.HeroStringId, text);
-      }
-
-      /// <summary>
-      ///   Writes what the player asked for into each briefed companion's own memory, PRIVATELY, as the
-      ///   briefing closes.
-      ///   <para>
-      ///     Gabriel's design, 2026-09-13: "les décisions prises devraient se retrouver dans la mémoire du
-      ///     compagnon, et c'est la mémoire qui devrait être utilisée ensuite". It is the better vehicle for
-      ///     three reasons - it is durable across saves where the standing brief dies with the session, it is
-      ///     bounded by the memory pipeline rather than by a character count that ate his mission statement,
-      ///     and it is truer: the companion acts because he REMEMBERS being asked, not because a hidden field
-      ///     commands him.
-      ///   </para>
-      ///   <para>
-      ///     Private is what makes it safe. Until now the briefing DROPPED its memories outright, because a
-      ///     companion's memories travel into the prompt of whoever is speaking - so "Arwa asked me to charm
-      ///     Ira" would have been read out in Ira's own prompt while she stood there. See NotableEvent.IsPrivate
-      ///     and the filter in BuildWitnessMemory, which is the single path by which that could happen.
-      ///   </para>
-      /// </summary>
-      private void WriteBriefingToMemory()
-      {
-         if (!IsCompanionBriefingChat) return;
+         if (!IsCompanionBriefingChat || _briefingMemoryWritten) return;
+         _briefingMemoryWritten = true;
 
          NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
          var store = behavior?.Store;
          if (store == null) return;
 
-         // The same clock every other memory is stamped from, read through the bridge rather than the engine
-         // directly, so a briefing memory sorts beside the rest instead of into its own era.
+         string instruction = PlayerWordsInThisBriefing();
+         if (string.IsNullOrWhiteSpace(instruction)) return;
+
          int day = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
          string targetName = _companionBriefingTargetName;
 
+         string summary = string.IsNullOrWhiteSpace(targetName)
+            ? $"The player drew me aside for a private word and asked this of me: {instruction}"
+            : $"Before the meeting with {targetName}, the player drew me aside and asked this of me: {instruction}";
+
+         var written = 0;
+
          foreach (string heroId in BriefedParticipantIds())
          {
-            string instruction = CompanionBriefingStore.Peek(heroId);
-            if (string.IsNullOrWhiteSpace(instruction)) continue;
-
             NpcProfile profile = store.Get(heroId);
             if (profile?.Events == null) continue;
 
-            string summary = string.IsNullOrWhiteSpace(targetName)
-               ? $"The player drew me aside for a private word and asked this of me: {instruction}"
-               : $"Before the meeting with {targetName}, the player drew me aside and asked this of me: {instruction}";
-
             profile.Events.Add(new NotableEvent(day, NotableEventType.Other, summary) {IsPrivate = true});
             store.Set(profile);
-
-            ModLog.Info($"[BRIEFING] wrote a private memory of the errand for {profile.Name ?? heroId} " +
-                        $"({summary.Length} chars).");
+            written++;
          }
+
+         if (written > 0)
+            ModLog.Info($"[BRIEFING] the private word is now a private memory for {written} companion(s) " +
+                        $"({summary.Length} chars).");
       }
+
+      /// <summary>
+      ///   Everything the PLAYER said in this briefing, in order, joined. Their own words rather than a
+      ///   paraphrase: an instruction is one of the few things worth quoting exactly, and taking ALL of them
+      ///   means nothing has to guess which one was the order.
+      /// </summary>
+      private string PlayerWordsInThisBriefing()
+         => string.Join(" ",
+               _transcript.Lines
+                          .Where(l => l != null && l.IsPlayer && !string.IsNullOrWhiteSpace(l.Text))
+                          .Select(l => l.Text.Trim()))
+             .Trim();
 
       /// <summary>Everyone who stood in the private word: the anchor and every companion present.</summary>
       private IEnumerable<string> BriefedParticipantIds()
@@ -171,7 +160,7 @@ namespace CalradiaRemembers.Chat
          if (!string.IsNullOrEmpty(_npcHero?.StringId)) yield return _npcHero.StringId;
 
          foreach (WitnessEntry w in _witnesses)
-            if (!string.IsNullOrEmpty(w?.HeroStringId))
+            if (!string.IsNullOrEmpty(w?.HeroStringId) && w.HeroStringId != _npcHero?.StringId)
                yield return w.HeroStringId;
       }
    }

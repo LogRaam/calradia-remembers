@@ -2141,7 +2141,6 @@ namespace CalradiaRemembers.Chat
          // conversation, so the player's own words are captured as a pure side effect, THEN the ordinary
          // pipeline below runs unchanged, letting the anchor (or whichever chosen companion the player
          // addresses) answer through the real LLM path like any other multi-participant scene.
-         if (IsCompanionBriefingChat) RecordCompanionBriefingInstruction(text);
 
          // Council narrator model (2026-08-02): a real council never routes to a per-witness speaker (that
          // whole-conversation retargeting is the 15B one-on-one pivot, wrong for a narrator call that must stay

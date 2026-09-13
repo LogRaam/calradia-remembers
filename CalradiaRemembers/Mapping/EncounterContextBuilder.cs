@@ -628,7 +628,6 @@ namespace CalradiaRemembers.Mapping
             // Suppressed INSIDE the briefing scene itself: the store is being written live, turn by turn, by
             // this very conversation, so re-injecting it as "what the player told you BEFORE this meeting"
             // would just echo the message the model is already reading as the live player turn.
-            CompanionBrief = isCompanionBriefingScene ? null : ResolveCompanionBrief(hero),
             // Companion-briefing pillar, revised per Gabriel's ruling: the model needs to know it is IN that
             // private word right now, not merely holding one's standing result (CompanionBrief, above).
             IsCompanionBriefingScene = isCompanionBriefingScene,
@@ -1348,17 +1347,6 @@ namespace CalradiaRemembers.Mapping
             ? $"You think highly of your fellow companion {other.Name} — you value riding at their side."
             : $"You cannot abide your fellow companion {other.Name} — they grate on you, and you would as soon not share a camp.";
       }
-
-      /// <summary>
-      ///   Companion-briefing pillar: the player's standing instruction to THIS hero, resolved by looking up
-      ///   the in-memory store keyed on their own id. No extra eligibility gate is needed: the store only ever
-      ///   holds an entry for a hero the player actually chose in the companion-briefing picker (see
-      ///   CompanionBriefingCoordinator/CompanionBriefingStore), so a lookup miss (the ordinary case, and always
-      ///   the case for the conversation's TARGET, whose id was never handed a brief) already means "was never
-      ///   briefed" and needs no further reasoning here.
-      /// </summary>
-      private static string ResolveCompanionBrief(Hero hero)
-         => hero == null ? null : CompanionBriefingStore.Peek(hero.StringId);
 
       /// <summary>
       ///   A directive for an unhappy OWN-companion to voice their discontent — scaled to the happiness
