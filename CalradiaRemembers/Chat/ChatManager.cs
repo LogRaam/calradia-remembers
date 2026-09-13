@@ -372,8 +372,14 @@ namespace CalradiaRemembers.Chat
 
             // A briefing closing means "take me back to the meeting I asked leave from"; anything else closing
             // means whatever return was pending is stale and must not keep encounters alive behind our back.
+            // A briefing closing means "take me back to the meeting I asked leave from"; anything else
+            // closing means whatever return was pending is stale and must not keep encounters alive behind
+            // our back.
+            var handingOff = false;
             SafeStep(() => {
-               if (ActiveViewModel?.IsBriefingChat == true) CompanionBriefingCoordinator.ArmReturn();
+               handingOff = ActiveViewModel?.IsBriefingChat == true;
+
+               if (handingOff) CompanionBriefingCoordinator.ArmReturn();
                else CompanionBriefingCoordinator.Forget();
             }, "ArmBriefingReturn");
             SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
@@ -395,8 +401,28 @@ namespace CalradiaRemembers.Chat
             SafeStep(() => ActiveViewModel?.ReleaseAllPortraits(), "ReleaseAllPortraits");
             // Turn the host map scene's rendering back on before we tear our layer down, so the map is live
             // again the instant the chat is gone.
-            SafeStep(MapSceneSuspender.Resume, "ResumeMapScene");
+            // ── THE TWO CLOSES ─────────────────────────────────────────────────────────────────────────
+            // Gabriel's reading, 2026-09-13, and it is the right shape: "End Conversation" has two jobs, and
+            // the button is composed for the situation. An ordinary close ENDS things - it gives the world
+            // back, ends the conversation, finishes the encounter and lets the clock run. A briefing's close
+            // HANDS OFF: the window goes, another opens on the meeting it was nested inside, and nothing about
+            // the world should move in between.
+            //
+            // Everything above this line runs either way - the private word is remembered whichever it is.
+            // Everything below is the world being given back, and a hand-off must not give it back only to
+            // take it again a frame later. Resuming the map scene, restoring the clock, ending the encounter
+            // and ending the conversation are all things the very next open would immediately undo, and the
+            // churn between them is where two days of loading screens and one native crash lived.
             SafeStep(KillChatWindow, "KillChatWindow");
+
+            if (handingOff)
+            {
+               ModLog.Info("[BRIEFING] window closed as a HAND-OFF: the meeting stands, the world is untouched.");
+
+               return;
+            }
+
+            SafeStep(MapSceneSuspender.Resume, "ResumeMapScene");
             SafeStep(EndVanillaConversation, "EndVanillaConversation");
             SafeStep(EndOrphanedStagedMission, "EndOrphanedStagedMission");
             SafeStep(EndMapEncounterIfNeeded, "EndMapEncounterIfNeeded");
@@ -406,7 +432,9 @@ namespace CalradiaRemembers.Chat
          {
             FreeResources();
             SafeStep(LlmServices.ClearTestGenderOverride, "ClearTestGenderOverride");
-            ModLog.Info("Chat window closed — returned to campaign map.");
+            ModLog.Info(handingOff
+               ? "Chat window closed — handing off to the meeting it was nested inside."
+               : "Chat window closed — returned to campaign map.");
             ModLog.Info($"[VRAM] close (after teardown) | {VramProbe.Describe()}");
          }
       }
@@ -1027,6 +1055,31 @@ namespace CalradiaRemembers.Chat
       ///   player. Finishing the encounter returns them cleanly to the map. Strictly map-only: never
       ///   tear down a settlement encounter (the player's presence in a town) or a mission scene.
       /// </summary>
+      /// <summary>
+      ///   Gives the world back, for a hand-off that nobody caught.
+      ///   <para>
+      ///     A briefing's close skips these steps deliberately: the next window opens immediately and would
+      ///     undo every one of them. But "immediately" is a promise, and an unkept one would leave the map
+      ///     scene suspended, the clock stopped and the encounter standing, with no window on screen - a
+      ///     frozen game, which is worse than the crash this whole change is undoing. So the promise has a
+      ///     catch: whoever armed the hand-off calls this if it does not happen.
+      ///   </para>
+      ///   <para>
+      ///     Every step is the same one Close runs and each is individually guarded, so calling it when the
+      ///     world was never taken is a no-op rather than a fault.
+      ///   </para>
+      /// </summary>
+      public static void FinishDeferredClose()
+      {
+         ModLog.Info("[BRIEFING] the hand-off was not caught; giving the world back as an ordinary close would.");
+
+         SafeStep(MapSceneSuspender.Resume, "ResumeMapScene (deferred)");
+         SafeStep(EndVanillaConversation, "EndVanillaConversation (deferred)");
+         SafeStep(EndOrphanedStagedMission, "EndOrphanedStagedMission (deferred)");
+         SafeStep(EndMapEncounterIfNeeded, "EndMapEncounterIfNeeded (deferred)");
+         SafeStep(RestoreTime, "RestoreTime (deferred)");
+      }
+
       private static void EndMapEncounterIfNeeded()
       {
          try

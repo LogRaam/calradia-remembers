@@ -192,6 +192,7 @@ namespace CalradiaRemembers.Companions
             {
                ModLog.Info("[BRIEFING] the return went stale before the chat came down; dropped.");
                Forget();
+               ChatManager.FinishDeferredClose();
 
                return;
             }
@@ -205,7 +206,15 @@ namespace CalradiaRemembers.Companions
             // here. If no scene is live, something has gone differently than expected and the honest move is to
             // do nothing at all - he can speak to them again himself. A feature that quietly declines is worth
             // a great deal more than one that crashes.
-            if (Mission.Current == null) return;
+            // No scene to open over. The hand-off cannot be caught, so settle what it deferred rather
+            // than leaving the map suspended and the clock stopped behind an empty screen.
+            if (Mission.Current == null)
+            {
+               Forget();
+               ChatManager.FinishDeferredClose();
+
+               return;
+            }
 
             Hero target = _returnTo;
             List<Hero> briefed = _returnWith;
@@ -221,6 +230,7 @@ namespace CalradiaRemembers.Companions
          {
             ModLog.Error($"[BRIEFING] the return failed: {ex.GetType().Name}: {ex.Message}");
             Forget();
+            ChatManager.FinishDeferredClose();
          }
       }
 
