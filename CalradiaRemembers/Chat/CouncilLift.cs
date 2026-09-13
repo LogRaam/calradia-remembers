@@ -2269,8 +2269,18 @@ namespace CalradiaRemembers.Chat
 
                      break;
 
-                  default:
+                  case CommitmentKind.Protect:
                      swornLine = $"{actorName} swears to stand at your side in battle within {CommitmentPolicy.DeadlineDays} days.";
+
+                     break;
+
+                  // Named for the same reason as the 1:1 bridge's own switch: a `default:` here silently
+                  // described every unnamed kind as a battle oath. The council cannot refuse mid-resolution the
+                  // way the bridge can, so it says plainly that an oath was sworn and logs what it could not word.
+                  default:
+                     ModLog.Error($"[COUNCIL] swear_oath: {verdict.Kind} has no player-facing wording; announced "
+                                + "without terms rather than as a battle oath.");
+                     swornLine = $"{actorName} gives their word, on terms the chronicle cannot set down.";
 
                      break;
                }

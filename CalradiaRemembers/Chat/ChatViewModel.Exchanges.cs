@@ -1325,6 +1325,40 @@ namespace CalradiaRemembers.Chat
                      continue;
                   }
 
+                  // A BRIEFING PLANS; IT DOES NOT ACT (Gabriel, 13/09/2026). He briefed Nabb to charm Ira and
+                  // the game answered "Nabb the Bloody Handed swears to stand at your side in battle within 21
+                  // days" - a persisted commitment about a war, born in a conversation about a seduction.
+                  //
+                  // Three things had to line up and all three are worth naming, because only the last one can be
+                  // fixed here. The prose model was NOT taught swear_oath this turn; the ACTION INTERPRETER, which
+                  // re-reads the prose and re-derives the tags, is given the WHOLE GameActionCatalog as a static
+                  // cacheable prefix and so knows nothing of this turn's gating; and it read "I'll do it" as a
+                  // vow, which is a fair reading of the words. The audit line below already SAID so ("'swear_oath'
+                  // executed but was not taught this turn") and the action ran anyway, because that audit is
+                  // deliberately log-only - the taught-set is a mirror of the SDK's gating and a mirror can be
+                  // wrong, so refusing on it would turn every mirror bug into a broken feature.
+                  //
+                  // This gate needs none of that. IsCompanionBriefingChat is a hard scene flag, not a mirror. The
+                  // briefing is the player and his own people planning off to one side; it is not the meeting, and
+                  // nothing decided in it happens until the meeting it is FOR. That is already why no [EVENT] is
+                  // persisted here (see the drop above); a mechanical deed is the same rule with more at stake,
+                  // since a deed writes the world and a memory only writes a mind.
+                  //
+                  // No OOC refusal is shown. The prose stands as written - Nabb agreeing to a plan is exactly what
+                  // happened - and the player is told nothing was refused, because from inside the fiction nothing
+                  // was attempted. Whatever he commits to, he commits to in front of Ira, where the verb is taught
+                  // or it is not. Logged, never silent.
+                  //
+                  // The chat-flow controls above (request_privacy, end_conversation, witness_leaves, retire) are
+                  // already past this point: they steer the window, they do not touch the world.
+                  if (IsCompanionBriefingChat)
+                  {
+                     ModLog.Info($"[BRIEFING] dropped the [ACTION] '{action.Type}' inside the private briefing "
+                               + "chat (a briefing plans; the meeting acts).");
+
+                     continue;
+                  }
+
                   // v1.34.2 log-only audit: this action is about to be dispatched. If it was never taught this
                   // turn, leave a trace so hallucinated / untaught executions are visible for a future enforcing
                   // pass. Purely observational: it does not skip, refuse, or reorder anything.

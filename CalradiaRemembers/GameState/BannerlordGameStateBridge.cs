@@ -2463,10 +2463,21 @@ namespace CalradiaRemembers.GameState
 
                   break;
 
-               default:
+               case CommitmentKind.Protect:
                   msg = $"{npcHero.Name} swears to stand at your side in battle within {CommitmentPolicy.DeadlineDays} days.";
 
                   break;
+
+               // NAMED, not a default (13/09/2026). This switch used to end in `default:` meaning Protect, so any
+               // kind the whitelist ever resolves that is not PayGold or KeepPeace would be announced to the
+               // player as a battle oath - a sentence about a war attached to a vow about something else. The
+               // catch-all is now a refusal that says the truth instead of guessing.
+               default:
+                  ModLog.Error($"[ACTION] swear_oath: {verdict.Kind} has no player-facing wording; refused rather "
+                             + "than announced as a battle oath.");
+
+                  return ActionOutcome.Refused($"({npcHero.Name} gave their word, but on terms the chronicle "
+                                             + "cannot set down.)");
             }
 
             MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
