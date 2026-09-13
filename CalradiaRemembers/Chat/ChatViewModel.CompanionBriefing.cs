@@ -70,7 +70,13 @@ namespace CalradiaRemembers.Chat
          // its own RefreshWitnessUi while IsCompanionBriefingChat still read false (set just above): recompute
          // now so AllowsPrivacyRequest's gate (see its own doc) actually hides the privacy-request button.
          RefreshWitnessUi();
-         AppendNpcMessage("We're listening. What is it?");
+         // Written for a group and plural whatever the room held, so one companion drawn aside answered
+         // "We're listening" with nobody beside him (Gabriel, 2026-09-13). The roster is already seated by
+         // this point - OpenForCompanionBriefing adds every non-anchor companion before calling this - so the
+         // count is known and the line can simply be true.
+         AppendNpcMessage(_witnesses.Count == 0
+            ? "I'm listening. What is it?"
+            : "We're listening. What is it?");
       }
 
       /// <summary>
