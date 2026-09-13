@@ -513,11 +513,19 @@ namespace CalradiaRemembers.Dialogue
             }
 
             NpcMemoryCampaignBehavior.Instance?.DialogueRecorder?.Clear();
+
+            // No canned greeting: the target opens with an LLM line of their own (below), so they do not both
+            // greet blandly AND then remark on the player's return. Same shape as the interception opener.
             _pendingGreeting = null;
             _preSeatedBriefed = briefed;
 
             try { OnPlayerSelectedChat(target); }
             finally { _preSeatedBriefed = null; }
+
+            // The one who waited gets the first word. Without this the chat opened SILENT, which is what
+            // Gabriel found: the hand-off landed, and then nobody said anything at all.
+            string aside = NamesOf(briefed);
+            ChatManager.ActiveViewModel?.ActivateBriefedReturnOpener(aside);
 
             ModLog.Info($"[BRIEFING] returned to {target.Name} with {briefed?.Count ?? 0} briefed companion(s).");
          }
@@ -525,6 +533,27 @@ namespace CalradiaRemembers.Dialogue
          {
             ModLog.Error($"[BRIEFING] OpenChatForBriefedReturn failed: {ex.GetType().Name}: {ex.Message}");
          }
+      }
+
+      /// <summary>
+      ///   The companions the player drew aside, named, for the return opener's cue. The target watched them
+      ///   go, so naming them is not a leak - what was SAID is the secret, never who was in the room.
+      /// </summary>
+      private static string NamesOf(List<Hero> briefed)
+      {
+         if (briefed == null || briefed.Count == 0) return null;
+
+         var names = new List<string>();
+         foreach (Hero h in briefed)
+         {
+            string n = h?.Name?.ToString();
+            if (!string.IsNullOrWhiteSpace(n)) names.Add(n);
+         }
+
+         if (names.Count == 0) return null;
+         if (names.Count == 1) return names[0];
+
+         return string.Join(", ", names.GetRange(0, names.Count - 1)) + " and " + names[names.Count - 1];
       }
 
       public void OpenChatForInterceptingHero(Hero hero)

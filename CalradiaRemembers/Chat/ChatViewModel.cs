@@ -1521,6 +1521,53 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   Opens the meeting a briefing was FOR, with the TARGET speaking first (Gabriel, 13/09/2026: the chat
+      ///   came back empty and nobody greeted him).
+      ///   <para>
+      ///     They should speak first here for a reason the ordinary chat has no equivalent of: the player asked
+      ///     their leave, walked off with their own people, and has now walked back. The one waiting is owed
+      ///     the first word, and it is theirs to colour - impatient, amused, wary, gracious - which is why this
+      ///     is an LLM turn and not a canned line. Gabriel's own example ("Ah, vous voilà enfin...") ended in
+      ///     "etc": he wants a character, not a string.
+      ///   </para>
+      ///   <para>
+      ///     WHAT THEY KNOW, and it is the pillar in one sentence: that the player stepped aside with their own
+      ///     people, never a word of what was said. The cue below says exactly that much and no more; the
+      ///     private memory it produced lives on the COMPANIONS' profiles and is filtered out of this speaker's
+      ///     prompt by BuildWitnessMemory. So the target may be curious, and cannot be informed.
+      ///   </para>
+      /// </summary>
+      public void ActivateBriefedReturnOpener(string companionsAside)
+      {
+         _mode = ChatMode.Conversation;
+
+         ChatSpeaker speaker = MainSpeaker();
+         if (speaker.Profile == null)
+         {
+            ModLog.Error("[BRIEFING] return opener: no profile, cannot open the meeting.");
+
+            return;
+         }
+
+         ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+         _messages.Add(placeholder);
+         IsSendEnabled = false;
+
+         string who = string.IsNullOrWhiteSpace(companionsAside) ? "their own people" : companionsAside;
+         string cue =
+            $"[A moment ago the player asked your leave to speak privately with {who}, and you granted it. "
+          + "They have finished and come back to you now, with them. You have been waiting. Open the "
+          + "conversation YOURSELF, in your own voice: mark that they are back and that you are ready to hear "
+          + "them. You have NO idea what was said out of your hearing and you did not listen - you may wonder "
+          + "aloud, or let it pass, as suits you. Do not wait for them to speak first, and do not greet them "
+          + "as though they had only just arrived.]";
+
+         ModLog.Info($"[BRIEFING] {speaker.Name} opens the meeting; the player is back with {who}.");
+         MarkOpenerPending();
+         _ = RunLlmExchangeAsync(cue, speaker, placeholder, true);
+      }
+
+      /// <summary>
       ///   The opener cue text for <see cref="ActivateInterceptionOpener" />, per trigger: a grudge is
       ///   confronted (in the NPC's own voice, never a forced fight, road interception opens a conversation
       ///   not combat), a kindness is acknowledged warmly, a nemesis bounty is announced (naming him and
