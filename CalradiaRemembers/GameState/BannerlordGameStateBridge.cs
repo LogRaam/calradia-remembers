@@ -15,6 +15,7 @@ using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Items;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Grudges;
@@ -291,6 +292,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteRecruitPrisoner(npcHero, context?.Profile);
             case "recruit_notable":
                return ExecuteRecruitNotable(npcHero, context?.Profile);
+            case "take_into_service":
+               return ExecuteTakeIntoService(action, npcHero);
             case "grant_blessing":
                return ExecuteGrantBlessing(action, npcHero);
 
@@ -3976,6 +3979,130 @@ namespace CalradiaRemembers.GameState
       ///   as heroes, so "the gang" is represented by the alleys, the role, and the standing (Power) that pass
       ///   to the successor.
       /// </summary>
+      /// <summary>
+      ///   take_into_service (13/09/2026, Gabriel's ruling "un seigneur doit pouvoir recruter"): an NPC LORD
+      ///   takes one of the player's own companions into their household. The companion leaves the player's
+      ///   clan and party and joins the lord's clan and party.
+      ///   <para>
+      ///     THE ONLY VERB IN THE GAME THAT POINTS OUTWARD. recruit_notable, join_clan, join_party and
+      ///     recruit_prisoner all bring somebody IN; this one gives somebody away, which is why its gates are
+      ///     about the player's household (a spouse, a governor, someone away on an errand) rather than about
+      ///     the lord's regard. Whether she WANTS him is hers to play in prose; whether the player can be
+      ///     parted from him is law.
+      ///   </para>
+      ///   <para>
+      ///     Built because the absence of it silently ate a scene: Ira agreed to take Nabb under her banner,
+      ///     the model reached for the nearest verb it could see (recruit_notable, which refuses because she
+      ///     is a lord and not a settlement notable), and the whole payoff evaporated with Nabb still in the
+      ///     party.
+      ///   </para>
+      ///   <para>
+      ///     The companion is named in the action's <c>target</c> field, which a lord taking the man in front
+      ///     of her very often omits - so a blank target resolves to the single companion present, and to a
+      ///     refusal when several are (see <see cref="CompanionServiceTransferPolicy.PickCompanion" />).
+      ///   </para>
+      ///   <para>
+      ///     REMOVAL DETAIL MATTERS. RemoveCompanionAction.ApplyByFire runs MakeHeroFugitiveAction, which
+      ///     would leave the hero a fugitive we then try to seat in a household. ApplyAfterQuest is the
+      ///     neutral departure, which is what an honourable transfer is. Verified by reflection against the
+      ///     shipped TaleWorlds.CampaignSystem.dll (the four Apply* overloads it actually exposes).
+      ///   </para>
+      /// </summary>
+      private static ActionOutcome ExecuteTakeIntoService(GameAction action, Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null) return null;
+
+            Clan playerClan = Clan.PlayerClan;
+            if (playerClan == null) return null;
+
+            string spoken = null;
+            action?.Parameters?.TryGetValue("target", out spoken);
+
+            var candidates = new List<CompanionCandidate>();
+            foreach (Hero h in playerClan.Companions)
+               if (h is {IsAlive: true})
+                  candidates.Add(new CompanionCandidate {HeroId = h.StringId, Name = h.Name?.ToString()});
+
+            string chosenId = CompanionServiceTransferPolicy.PickCompanion(candidates, spoken);
+            Hero companion = string.IsNullOrEmpty(chosenId)
+               ? null
+               : Hero.FindFirst(h => h != null && h.StringId == chosenId);
+
+            Clan lordClan = npcHero.Clan;
+
+            var facts = new CompanionServiceTransferFacts {
+               LordIsAlive = npcHero.IsAlive,
+               LordIsPrisoner = npcHero.IsPrisoner,
+               LordIsThePlayer = npcHero == Hero.MainHero,
+               LordHasClan = lordClan != null,
+               LordClanIsPlayerClan = lordClan == playerClan,
+               CompanionResolved = companion != null,
+               CompanionIsAlive = companion?.IsAlive == true,
+               CompanionIsPrisoner = companion?.IsPrisoner == true,
+               CompanionIsPlayerCompanion = companion?.IsPlayerCompanion == true,
+               CompanionIsPlayerSpouse = companion != null && companion == Hero.MainHero.Spouse,
+               CompanionAwayOnErrand = companion != null && CompanionMissionBehavior.Instance?.IsAway(companion.StringId) == true,
+               CompanionGovernsPlayerFief = companion?.GovernorOf != null
+            };
+
+            switch (CompanionServiceTransferPolicy.Evaluate(facts))
+            {
+               case CompanionServiceTransferBlock.LordUnavailable:
+                  return null;
+               case CompanionServiceTransferBlock.LordHasNoHouse:
+                  return ActionOutcome.Refused($"({npcHero.Name} holds no household of their own to take anyone into.)");
+               case CompanionServiceTransferBlock.LordIsOfThePlayersOwnClan:
+                  return ActionOutcome.Refused($"({npcHero.Name} is of your own clan; nobody would change hands.)");
+               case CompanionServiceTransferBlock.NoCompanionNamed:
+                  return ActionOutcome.Refused(candidates.Count > 1
+                                                  ? "(Name which of your companions is to take service, and it will be done.)"
+                                                  : "(You have no companion here to give over.)");
+               case CompanionServiceTransferBlock.NotYourCompanion:
+                  return ActionOutcome.Refused($"({companion?.Name} is not a companion of your clan to give over.)");
+               case CompanionServiceTransferBlock.CompanionUnavailable:
+                  return ActionOutcome.Refused($"({companion?.Name} is in no condition to take service with anyone.)");
+               case CompanionServiceTransferBlock.CompanionIsYourSpouse:
+                  return ActionOutcome.Refused($"({companion?.Name} is your own spouse; a marriage is not a term of service.)");
+               case CompanionServiceTransferBlock.CompanionAwayOnErrand:
+                  return ActionOutcome.Refused($"({companion?.Name} is away on an errand; recall them before giving them over.)");
+               case CompanionServiceTransferBlock.CompanionGovernsAFief:
+                  return ActionOutcome.Refused($"({companion?.Name} governs {companion?.GovernorOf?.Name}; appoint another governor first.)");
+            }
+
+            // ── the transfer proper ───────────────────────────────────────────────────────────────────
+            // AfterQuest, never ByFire: ByFire makes them a FUGITIVE, and a fugitive cannot be seated in a
+            // household. This is an honourable departure on their lord's own word.
+            RemoveCompanionAction.ApplyAfterQuest(playerClan, companion);
+            AddCompanionAction.Apply(lordClan, companion);
+
+            // Into her party when she has one. A lord between parties (in a settlement, in a garrison) still
+            // takes the companion into her HOUSE; the engine will place them with her clan in the ordinary way.
+            MobileParty lordParty = npcHero.PartyBelongedTo;
+            if (lordParty != null) AddHeroToPartyAction.Apply(companion, lordParty, false);
+
+            // They arrive on their old lord's recommendation, not as a stranger.
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(
+               npcHero, companion, CompanionServiceTransferPolicy.StartingRelationWithNewLord, false);
+
+            string where = lordParty != null ? $" and rides with {lordParty.Name}" : "";
+            ModLog.Info($"[ACTION] take_into_service: {companion.Name} left the player's clan for "
+                      + $"{lordClan.Name} at {npcHero.Name}'s word{where}.");
+
+            var msg = $"{companion.Name} takes service with {npcHero.Name} and leaves your clan.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, companion.CharacterObject);
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] take_into_service failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
       private static ActionOutcome ExecuteRecruitNotable(Hero npcHero, NpcProfile profile)
       {
          try

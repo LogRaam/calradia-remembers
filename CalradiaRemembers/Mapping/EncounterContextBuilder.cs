@@ -19,6 +19,7 @@ using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Logic.Verbs;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
@@ -544,6 +545,8 @@ namespace CalradiaRemembers.Mapping
             // The negative teaching's gate: see the shared computation just above the initializer.
             CaptiveLordWithheldFromDefection = captiveLordWithheldFromDefection,
             CanRecruitNotable = ResolveCanRecruitNotable(hero, profile),
+            // take_into_service: the mirror direction, see ResolveCompanionsOfferableToThisLord below.
+            CompanionsOfferableToThisLord = ResolveCompanionsOfferableToThisLord(hero),
             // teach_skill: the conditional-teaching contract, same shape as CompanionAskingPrice/CanRecruitNotable
             // just above (see ResolveTeachableSkills below): taught exactly when the NPC genuinely has mastery
             // to teach, per CalradiaRemembers.Logic.TeachSkillPolicy.CanTeach.
@@ -1852,6 +1855,67 @@ namespace CalradiaRemembers.Mapping
       ///   unless a real replacement exists for the town. Regard is the mod's own personal ledger, never the
       ///   possibly-unsynced clan relation. Never taught to a lord, wanderer, prisoner or stranger.
       /// </summary>
+      /// <summary>
+      ///   take_into_service: the player's own companions THIS lord could take into their household, by name,
+      ///   or null when there is nobody to give over (which is also how the verb stays untaught).
+      ///   <para>
+      ///     Runs the SAME pure gate the bridge runs
+      ///     (<see cref="CompanionServiceTransferPolicy.Evaluate" />) once per companion, so a spouse, a
+      ///     sitting governor, or someone away on an errand never reaches the prompt at all. That is the
+      ///     ratified shape: an NPC must not be able to promise what the game will refuse.
+      ///   </para>
+      ///   <para>
+      ///     Built 13/09/2026 on Gabriel's ruling. Fail-soft: any trouble reading the household leaves the
+      ///     verb untaught, which costs a scene rather than risking a wrong one.
+      ///   </para>
+      /// </summary>
+      private static string ResolveCompanionsOfferableToThisLord(Hero lord)
+      {
+         try
+         {
+            if (lord == null || Hero.MainHero == null) return null;
+
+            Clan playerClan = Clan.PlayerClan;
+            if (playerClan?.Companions == null) return null;
+
+            Clan lordClan = lord.Clan;
+            var offerable = new List<string>();
+
+            foreach (Hero c in playerClan.Companions)
+            {
+               if (c is not {IsAlive: true}) continue;
+
+               var facts = new CompanionServiceTransferFacts {
+                  LordIsAlive = lord.IsAlive,
+                  LordIsPrisoner = lord.IsPrisoner,
+                  LordIsThePlayer = lord == Hero.MainHero,
+                  LordHasClan = lordClan != null,
+                  LordClanIsPlayerClan = lordClan == playerClan,
+                  CompanionResolved = true,
+                  CompanionIsAlive = c.IsAlive,
+                  CompanionIsPrisoner = c.IsPrisoner,
+                  CompanionIsPlayerCompanion = c.IsPlayerCompanion,
+                  CompanionIsPlayerSpouse = c == Hero.MainHero.Spouse,
+                  CompanionAwayOnErrand = CompanionMissionBehavior.Instance?.IsAway(c.StringId) == true,
+                  CompanionGovernsPlayerFief = c.GovernorOf != null
+               };
+
+               if (CompanionServiceTransferPolicy.Evaluate(facts) == CompanionServiceTransferBlock.None)
+                  offerable.Add(c.Name?.ToString());
+            }
+
+            offerable.RemoveAll(string.IsNullOrWhiteSpace);
+
+            return offerable.Count == 0 ? null : string.Join(", ", offerable);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[CONTEXT] take_into_service gate failed; leaving it untaught: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
       private static bool ResolveCanRecruitNotable(Hero hero, NpcProfile profile)
       {
          try

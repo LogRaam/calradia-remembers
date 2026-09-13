@@ -29,6 +29,7 @@ using CalradiaRemembers.Items;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Logic.Battles;
 using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Assemblies;
@@ -200,6 +201,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("succession", Severity.Light, "seed private+public events -> Apply -> assert private dropped", TestSuccession),
          new SelfTest("recruit", Severity.Heavy, "eligible lord -> join_clan -> assert he moved into your clan", TestRecruit),
          new SelfTest("teach_skill", Severity.Light, "find a live NPC with a skill at or above TeachSkillPolicy.TeacherSkillFloor -> drive the REAL bridge teach_skill once (clean cooldown) -> assert real skill XP landed on the player, a second immediate lesson from the same NPC is refused by the cooldown, and an unrecognised skill name is refused rather than faked. Restores the player's skill level and the NPC's cooldown stamp afterwards", TestTeachSkill),
+         new SelfTest("take_into_service", Severity.Heavy, "the MIRROR direction (13/09/2026, Gabriel's ruling 'un seigneur doit pouvoir recruter'): every other recruiting verb brings somebody INTO the player's household, this one gives somebody away. Finds a spare player companion the pure gate says is free to go and an other-clan lord, runs the REAL bridge take_into_service -> asserts the companion LEFT the player's clan, JOINED the lord's, is NOT a fugitive (the whole reason the executor uses RemoveCompanionAction.ApplyAfterQuest and never ApplyByFire, which runs MakeHeroFugitiveAction), and gained the starting relation with their new lord. Then puts them back and ASSERTS THE RESTORE, so a broken restore is reported rather than quietly costing a real companion. Skips when the campaign has no spare companion or no other-clan lord", TestTakeIntoService),
          new SelfTest("recruit_notable", Severity.Heavy, "find a settlement NOTABLE (gang leader/headman/merchant...) that has an eligible successor in its town, force regard to the floor, run the REAL bridge recruit_notable -> assert the notable is now a companion in your CLAN and PARTY, a starting relation bonus was applied, and the chosen successor holds the vacated notable post (settlement.Notables). Best-effort restore afterwards (recruit_notable is not cleanly reversible: the alley transfer cannot be undone). Skips when no disposable notable+successor pair exists rather than wreck a real campaign", TestRecruitNotable),
          new SelfTest("secret_bond_bar_agrees", Severity.Light, "player report 2026-09-09 ('the NPC is expressing affection, yet the system displays a message stating that intimacy is insufficient'), caused by ONE regard bar living as a literal 50 in three places while only the confession moved onto the Relationship Pacing dial. Drives the REAL EncounterContextBuilder.Build and the REAL bridge action take_as_secret_lover against a compatible companion at exactly MinRegardFor(current pacing) and one point below it, and asserts BOTH engine gates flip on the SAME number the confession uses. A pure test cannot catch this (it would compare the policy with itself); only driving the live sites can. EXTENDED 2026-09-09 with the THIRD site of that same bar, what the NPC may SAY: asserts the LIVE PromptBuilder the chat uses declares from the very number the confession roll measures from, and that the register reads Attachment at the bar and Interest one below it, where an NPC may flirt but must never speak of love nor open a courtship on standing alone. Restores the regard and undoes any bond formed", TestSecretBondBarAgrees),
          new SelfTest("captive_lord_withheld_from_defection", Severity.Heavy, "player report: a held captive lord below the recruit_prisoner regard floor could still narrate accepting the player's offer to defect, though nothing happened (an empty promise). Really captures a capturable in-party lord who is not their own clan's leader, drives EncounterContextBuilder.Build with regard just BELOW PrisonerRecruitmentPolicy.RegardFloor -> assert CanRecruitPrisoner is false and the new CaptiveLordWithheldFromDefection flag is true, then raises regard to the floor -> assert they FLIP (CanRecruitPrisoner true, the new flag false), proving the two are mutually exclusive on live engine facts. Releases the captive and restores regard afterwards", TestCaptiveLordWithheldFromDefection),
@@ -7717,6 +7719,91 @@ namespace CalradiaRemembers.Diagnostics
       ///   this restores what it can (regard, occupations, power, seating) BEST-EFFORT and SKIPS when no
       ///   disposable notable+successor pair is available rather than force the change on a real campaign.
       /// </summary>
+      /// <summary>
+      ///   take_into_service, and specifically THE PART NO PURE TEST CAN REACH. CompanionServiceTransferPolicy
+      ///   is unit-tested and proves the gates; it cannot prove that RemoveCompanionAction leaves the hero in a
+      ///   coherent state. That is the load-bearing unknown here: ApplyByFire runs MakeHeroFugitiveAction, so
+      ///   picking the wrong overload would leave a FUGITIVE seated in a household and nothing but a live
+      ///   campaign would ever say so. This drives the real bridge and reads the real engine back.
+      ///   <para>
+      ///     It genuinely moves a companion between clans on a live save, so the restore is asserted too: a
+      ///     restore that silently failed would cost Gabriel a real companion, and a test that can do that must
+      ///     say when it has.
+      ///   </para>
+      /// </summary>
+      private static string TestTakeIntoService(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("take_into_service");
+
+         Clan playerClan = Clan.PlayerClan;
+         if (t.Skip(playerClan?.Companions == null || Hero.MainHero == null, "no player clan to give anyone from")) return t.Line();
+
+         // A lord of some OTHER clan, alive and free: the household the companion would join.
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(
+            h => h != null && h.IsAlive && !h.IsPrisoner && h.IsLord
+              && h.Clan != null && h.Clan != playerClan && h != Hero.MainHero);
+
+         if (t.Skip(lord == null, "no other-clan lord to take anyone into service")) return t.Line();
+
+         // Exactly the candidates the gate itself would offer, so the test cannot pass on someone the feature
+         // would never have touched (a spouse, a sitting governor, someone away on an errand).
+         Hero companion = playerClan.Companions.FirstOrDefault(
+            c => c is {IsAlive: true, IsPrisoner: false}
+              && c != Hero.MainHero.Spouse
+              && c.GovernorOf == null
+              && CompanionMissionBehavior.Instance?.IsAway(c.StringId) != true);
+
+         if (t.Skip(companion == null, "the player has no spare companion who is free to go")) return t.Line();
+
+         MobileParty cameFrom = companion.PartyBelongedTo;
+         Clan lordClan = lord.Clan;
+         int relationBefore = companion.GetRelation(lord);
+         t.Note($"{companion.Name} of {playerClan.Name} -> {lord.Name} of {lordClan.Name}");
+
+         // Prove the ground truth the assertions below rest on, so a pass cannot mean "they were never ours".
+         t.Expect("theyStartAsYourOwnCompanion", companion.IsPlayerCompanion, true);
+
+         NpcProfile lordProfile = behavior.Store?.Get(lord.StringId);
+         if (t.Skip(lordProfile == null, "no stored profile for the lord to act through")) return t.Line();
+
+         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {
+               Type = "take_into_service",
+               Parameters = new Dictionary<string, string> {{"target", companion.Name.ToString()}}
+            }, lord, new ActionContext(lordProfile, null));
+
+         t.Note($"outcome='{outcome?.Message}' refused={outcome?.WasRefused}");
+         t.Expect("theBridgeCarriedItOut", outcome is {WasRefused: false}, true);
+
+         t.Expect("theyLeftYourClan", companion.IsPlayerCompanion, false);
+         t.Expect("theyJoinedTheLordsHouse", companion.Clan == lordClan, true);
+
+         // THE ONE THIS TEST EXISTS FOR. ApplyByFire would have made them a fugitive; ApplyAfterQuest does not.
+         t.Expect("theyAreNotLeftAFugitive", companion.IsFugitive, false);
+         t.Expect("theyAreStillAliveAndFree", companion is {IsAlive: true, IsPrisoner: false}, true);
+
+         t.Expect("theyArriveOnTheirOldLordsRecommendation",
+                  companion.GetRelation(lord) > relationBefore, true);
+
+         // ── put them back, and prove it took ────────────────────────────────────────────────────
+         try
+         {
+            RemoveCompanionAction.ApplyAfterQuest(lordClan, companion);
+            AddCompanionAction.Apply(playerClan, companion);
+            if (cameFrom != null) AddHeroToPartyAction.Apply(companion, cameFrom, false);
+            else if (MobileParty.MainParty != null) AddHeroToPartyAction.Apply(companion, MobileParty.MainParty, false);
+         }
+         catch (Exception ex)
+         {
+            t.Note($"(RESTORE THREW: {ex.GetType().Name}: {ex.Message})");
+         }
+
+         t.Expect("andTheyAreYoursAgainAfterwards", companion.IsPlayerCompanion, true);
+         t.Expect("andNotLeftAFugitiveByTheRestoreEither", companion.IsFugitive, false);
+
+         return t.Line();
+      }
+
       private static string TestRecruitNotable(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("recruit_notable");
