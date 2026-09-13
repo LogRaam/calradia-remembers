@@ -15,6 +15,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Appreciations;
@@ -1900,6 +1901,11 @@ namespace CalradiaRemembers.Chat
             if (_isComposeOpen) IsComposeOpen = false;
             _witnessExchangesThisRound = 0;
             _sceneContinuations = 0;
+            _hangingAnswersThisBeat = 0;
+
+            // Where this beat starts in the transcript, so the answering pass below reads only what THIS beat
+            // produced and can never be triggered by a question left over from an earlier one.
+            int beatStart = _transcript.Count;
 
             for (var i = 0; i < order.Count; i++)
             {
@@ -1915,6 +1921,17 @@ namespace CalradiaRemembers.Chat
                if (_conversationEnded) break;                                   // a voice ended the meeting (e.g. a duel armed)
             }
 
+            // ── THE BEAT MUST NOT END ON A HANGING QUESTION (Gabriel, 13/09/2026) ────────────────────────
+            // The ordered pass above is decided BEFORE anyone has spoken, so a voice late in the order can put
+            // a question to a voice whose turn is already spent, and the floor then goes back to the player
+            // with it hanging. Gabriel hit exactly that: Nabb turned to Ira and asked "Which ones do you
+            // remember?", and to get an answer he had to spend his own turn typing "*I watch and wait*".
+            // One answering turn closes it. See EnsembleFloorPolicy for why a question mark, and nothing
+            // looser, is the signal.
+            await AnswerAnyHangingQuestionAsync(beatStart);
+
+            if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
+
             // The group tail, once: return the floor to the player and raise any queued action confirmation.
             if (!_npcWitnessExchangePending && !_sceneContinuationPending && !_isScenePaused)
             {
@@ -1928,6 +1945,73 @@ namespace CalradiaRemembers.Chat
             IsSendEnabled = !_conversationEnded;
          }
       }
+
+      /// <summary>
+      ///   Gives one participant the floor back when the beat closed on a question addressed to them, then
+      ///   returns. No-op when nothing was asked, when the asker was the only voice, or when this beat has
+      ///   already spent its answer (<see cref="EnsembleFloorPolicy.RepliesPerBeat" />).
+      ///   <para>
+      ///     The question is passed as the answering voice's stimulus even though it is already in the shared
+      ///     transcript, the same shape the 15C exchange uses: the last user turn is what a model actually
+      ///     answers, and without it the reply lands on the player's older message instead of the question.
+      ///   </para>
+      ///   <para>
+      ///     Fail-soft in the strongest sense: this runs after a beat the player has already watched, so any
+      ///     trouble here must cost the answer and nothing else. It never rethrows and never touches the input
+      ///     state - the orchestrator's own tail owns that, and runs whatever happens in here.
+      ///   </para>
+      /// </summary>
+      private async Task AnswerAnyHangingQuestionAsync(int beatStart)
+      {
+         try
+         {
+            if (_conversationEnded || _cast == null) return;
+
+            var beatLines = new List<TranscriptLine>();
+            for (int i = beatStart; i < _transcript.Count; i++) beatLines.Add(_transcript.Lines[i]);
+
+            string answererId = EnsembleFloorPolicy.WhoAnswers(
+               beatLines, _cast.ActiveIds, _cast.AnchorId, _hangingAnswersThisBeat);
+
+            if (answererId == null) return;
+
+            ChatSpeaker answerer = SpeakerForActive(answererId);
+            if (answerer == null) return;
+
+            // The asking line, attributed, exactly as the 15C stimulus is built.
+            TranscriptLine question = null;
+            for (int i = beatLines.Count - 1; i >= 0; i--)
+            {
+               TranscriptLine line = beatLines[i];
+               if (line is {IsPlayer: false, IsNarration: false} && !string.IsNullOrWhiteSpace(line.SpeakerHeroId))
+               {
+                  question = line;
+
+                  break;
+               }
+            }
+
+            if (question == null) return;
+
+            _hangingAnswersThisBeat++;
+            ModLog.Info($"[SPOTLIGHT] the beat closed on a question from {question.SpeakerName}; "
+                      + $"{answerer.Name} answers it.");
+
+            ChatMessageViewModel placeholder = MakeSpeakerMessage(answerer, PlaceholderText);
+            _messages.Add(placeholder);
+
+            await RunLlmExchangeAsync($"[{question.SpeakerName}]: {question.Text}", answerer, placeholder,
+                                      suppressPlayerLine: true, suppressGroupTail: true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SPOTLIGHT] answering the hanging question threw {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      // How many hanging questions this beat has already answered. Reset per player turn, alongside the 15C
+      // and scene-continuation counters, so the cap bounds a BEAT rather than the whole conversation.
+      private int _hangingAnswersThisBeat;
 
       /// <summary>
       ///   An ensemble co-voice whose LLM turn failed simply stays quiet this beat: drop its "thinking"
