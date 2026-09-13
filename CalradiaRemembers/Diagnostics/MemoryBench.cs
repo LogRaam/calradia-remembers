@@ -410,7 +410,11 @@ namespace CalradiaRemembers.Diagnostics
             // it because of who he is, not because nobody filled it in.
             HouseMeans = new HouseMeansFacts {
                Treasury = TreasuryBand.Deep, Muster = MusterBand.Formidable, Influence = InfluenceBand.Commanding
-            }
+            },
+
+            // The cut-off, said out loud. Withholding the news packs without telling him he has been out of
+            // the world is what caused the invention this probe hunts for.
+            HeldFor = "for months now"
          };
       }
 
@@ -591,6 +595,19 @@ namespace CalradiaRemembers.Diagnostics
                            + "though he knew it now. Saying he has been held and cannot know, speaking only "
                            + "of how things stood before his capture, or asking the listener, all count as "
                            + "NOT reporting it."
+         };
+
+         // The other half of the cell, and the harder one: he must not report the WORLD either, and now that
+         // he is told he has been held for months he has a reason and a way to say so.
+         yield return new Probe {
+            Name = "a captive knows he is behind the news",
+            Promise = "months in a cell means months of the world he did not see, and he says so",
+            Context = Held(),
+            Question = "How stands the war? Who holds the upper hand these days?",
+            MustNotJudge = "The speaker reports the current state of the war as though he knew it now. Saying "
+                           + "he has been held and cannot know, speaking only of how it stood when he was "
+                           + "taken and saying plainly that it is old, or asking the listener for news, all "
+                           + "count as NOT reporting it."
          };
 
          // -- what the house can bring to bear (fkasad: "armies, treasury") -------------------------------

@@ -617,6 +617,28 @@ mission, retainer - are known to the people holding them.
 either built or closed with a reason. What is left is not more knowledge - it is the two things below, and
 playing it.
 
+### THE CUT-OFF WAS SILENT, fixed 2026-09-12
+
+Gabriel's ruling that a captive does not carry the news packs was right - no courier reaches a cell - and it
+left a hole of exactly the kind this pillar exists to close.
+
+> A man whose knowledge has been quietly REMOVED does not know it is missing. He answers as though he still
+> had it, and invents. **Withholding without saying so causes the very invention it meant to prevent.**
+
+`KnowledgeBoundaryPolicy` now tells him: "YOU HAVE BEEN HELD FOR MONTHS NOW, and no word of the world has
+reached you since." And, as everywhere else in that file, it hands over what to do instead - what he knew
+BEFORE is still his to speak of provided he dates it ("when they took me, X held that town"), and asking is a
+better answer than guessing, since a man out of the world is hungry for news.
+
+Phrased rather than counted, like every band: a figure would be one the player could check against a save.
+
+**This is also the half-answer to the DATED KNOWLEDGE question** that has been open since 2026-09-11. Gabriel's
+observation was that a prisoner knows what happened before his capture, so every fact needs a date. What he
+actually needs is not a timestamp on every fact but a line where his knowledge STOPS, and the freedom to speak
+of the old world as old. That is now there. What is still missing is a character reasoning about WHEN in the
+general case - "that was two winters ago" - which needs the season to travel with a chronicle entry rather
+than only inside its text.
+
 ### The audit, still open
 
 The categories with a named gap and no pack yet, in the order the evidence supports:

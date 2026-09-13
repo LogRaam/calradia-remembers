@@ -480,6 +480,7 @@ namespace CalradiaRemembers.Mapping
             MarketWord = marketWord,
             Underworld = BuildUnderworld(hero),
             OwnVentures = ventures,
+            HeldFor = ReadHeldFor(hero),
             PartyStanding = BuildPartyStanding(hero),
 
             // The post the mod's own verb assigned and never mentioned. Named here so the station pack can
@@ -3128,6 +3129,41 @@ namespace CalradiaRemembers.Mapping
             ModLog.Error($"[knowledge] ventures read failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
+         }
+      }
+
+      /// <summary>
+      ///   How long this character has been held, in the words a person would use. Null when they are free.
+      ///   <para>
+      ///     Closes the hole the cut-off rule opened: a captive no longer carries the news packs, which is
+      ///     right, but a man whose knowledge was quietly REMOVED does not know it is missing and answers as
+      ///     though he still had it. Withholding without saying so causes the very invention it meant to stop.
+      ///   </para>
+      ///   <para>
+      ///     Phrased rather than counted, like every other band: a prisoner knows it has been "months now",
+      ///     and a figure would be one the player could check against a save.
+      ///   </para>
+      /// </summary>
+      private static string ReadHeldFor(Hero hero)
+      {
+         if (hero is not {IsPrisoner: true}) return null;
+
+         try
+         {
+            var days = (int) (CampaignTime.Now - hero.CaptivityStartTime).ToDays;
+
+            if (days < 0) return "for a while now";
+            if (days < 3) return "for a few days";
+            if (days < 21) return "for some weeks now";
+            if (days < 84) return "for months now";
+
+            return "for more than a year";
+         }
+         catch
+         {
+            // A captive whose start date cannot be read is still a captive, and the point of the line is the
+            // CUT-OFF rather than the arithmetic.
+            return "for a while now";
          }
       }
 
