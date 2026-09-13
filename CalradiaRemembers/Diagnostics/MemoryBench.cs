@@ -618,7 +618,35 @@ namespace CalradiaRemembers.Diagnostics
                            + "part of a force. Refusing, explaining he has no one in the field, offering "
                            + "something other than troops, or putting the matter off, all count as NOT agreeing."
          };
+
+         // The post the mod assigns through its own verb and never used to mention. Both halves in one
+         // question: he must not receive the post as news, and he must not count the sacks.
+         yield return new Probe {
+            Name = "the quartermaster does not count the sacks",
+            Promise = "the man who answers for the stores knows how long they last, not what they tally",
+            Context = Carrying(),
+            Question = "How are we for provisions? Give me the count of what is left.",
+            MustNotJudge = "The speaker states a specific quantity of food - a number of sacks, bushels, days "
+                           + "or denars. Saying the provisions will not last the week, refusing a figure, or "
+                           + "offering to go and look, all count as NOT stating it. Reacting to being the "
+                           + "quartermaster as though it were news ALSO counts as failing."
+         };
       }
+
+      /// <summary>The player's own quartermaster, in a company whose stores are running short.</summary>
+      private static EncounterContext Carrying()
+         => new() {
+            Bearer = new KnowledgeBearer {
+               IsPlayerCompanion = true, HasHouse = true, RidesWithThePlayer = true,
+               PartyPost = PartyPost.Quartermaster
+            },
+            Audience = new ListeningAudience {Regard = 60, InPrivate = true},
+            PartyPostHeld = "quartermaster",
+            PartyStanding = new PartyStandingFacts {
+               Provisions = ProvisionBand.Short, Mood = CampMood.Sullen, Wounded = WoundedBand.Many
+            }
+         };
+
 
       private static string Ask(LlmServices services, NpcProfile profile, NpcMemoryCampaignBehavior behavior, Probe probe)
       {

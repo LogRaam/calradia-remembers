@@ -580,8 +580,21 @@ this is the ONE pack that re-checks `CarriedBy` inside `Render`, deliberately: w
 the player's own camp, the most leak-sensitive content in the pillar, so the guarantee is local rather than
 borrowed from the composer. A test asked for exactly that.
 
-**Still open in the same shape:** whether a companion is AWAY ON A MISSION (`NpcCanBeDispatchedOnMission` has
-no held twin either), and the retainer. Both are posts the player grants to somebody who does not know it.
+**The other two, audited and closed the same day:**
+
+- **The mission was already covered**, and covering it again would have been the duplication this pillar keeps
+  refusing. `AppendCompanionRecallOffer` states it plainly - "YOU ARE AWAY ON THE PLAYER'S ERRAND... you left
+  the party to carry out a task for the player" - alongside the verb that lets him agree to come home. Nothing
+  to build.
+- **The RETAINER was genuinely absent, and its absence was actively misleading.** `IsRetainer` had existed
+  since `ride_with_me` shipped and was read only by the action menu, never by a conversation. Meanwhile
+  `PresenceNote` tells such a lord he "travels at the player's side, sharing camp and road day after day" -
+  which on its own reads as having JOINED the household. So the silence was not neutral; it invited exactly
+  the wrong conclusion. `station` now says the three things presence cannot: for a TIME, by his OWN agreement,
+  and his house is still his own.
+
+**The offered-versus-held pattern is now closed.** All four posts the player grants - governor, party role,
+mission, retainer - are known to the people holding them.
 
 ### The audit, still open
 

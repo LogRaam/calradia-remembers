@@ -481,6 +481,11 @@ namespace CalradiaRemembers.Mapping
             // The post the mod's own verb assigned and never mentioned. Named here so the station pack can
             // say it, exactly as GovernedSettlementName is named for the governorship.
             PartyPostHeld = partyPost == PartyPost.None ? null : partyPost.ToString().ToLowerInvariant(),
+
+            // The last of the player-granted posts nobody had told the holder about. The register has existed
+            // since ride_with_me shipped and was read only by the action menu, never by a conversation.
+            RidesAsRetainer = hero?.StringId != null
+                              && RetainerBehavior.Instance?.IsRetainer(hero.StringId) == true,
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
             Audience = BuildListeningAudience(profile, witnesses),
