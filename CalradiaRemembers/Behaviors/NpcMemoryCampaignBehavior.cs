@@ -291,9 +291,9 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.ScrubLeakedReasoningTraces", ScrubLeakedReasoningTraces);
          SafeRun.Step("OnSessionLaunched.RefreshRelationships", RefreshRelationships);
          SafeRun.Step("OnSessionLaunched.RumorStore.Clear", RumorStore.Clear);
-         // Companion-briefing pillar: a brief never touches the save format (see CompanionBriefingStore's own
-         // header), so it must be dropped here or a prior campaign's briefs could leak into a fresh one loaded
-         // in the same process.
+         // Companion-briefing pillar: what a briefing leaves behind is now an ordinary (private) memory on
+         // each companion who stood in it, saved and loaded with the campaign like every other memory - so
+         // there is no session-lifetime store left to clear here.
          SafeRun.Step("OnSessionLaunched.DialogFlow.Register", () => DialogFlow.Register(campaignGameStarter));
          // The staged-captive intercept line: while a captive scene is staging its conversation, this wins the
          // "start" token (so no vanilla "Who are you?" intro shows) and hands the conversation to the captive chat.

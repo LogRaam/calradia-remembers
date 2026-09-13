@@ -30,8 +30,8 @@ namespace CalradiaRemembers.Chat
    {
       // Set ONLY for this private briefing chat itself, to the hero StringId of the lord the FOLLOWING
       // conversation is for. Never shown to anyone in this conversation: it exists purely so
-      // FinalizeCompanionBriefs can tell this chat's own close apart from an ordinary conversation's close (see
-      // CompanionBriefPolicy.HeroesToExpireOnClose's isBriefingChat parameter). Null for every other chat.
+      // FinalizeCompanionBriefs can tell this chat's own close apart from an ordinary conversation's close,
+      // which is what decides whether the private word gets written down. Null for every other chat.
       private bool _briefingMemoryWritten;
       private string _companionBriefingTargetId;
 
