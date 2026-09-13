@@ -248,14 +248,7 @@ namespace CalradiaRemembers.Witnesses
 
                if ((agent.Position - playerAgent.Position).LengthSquared > FollowRadiusMeters * FollowRadiusMeters) continue;
 
-               result.Add(new WitnessEntry {
-                  Name = h.Name.ToString(),
-                  RelationToNpc = "the player's companion",
-                  IsPlayerCompanion = true,
-                  HeroStringId = h.StringId,
-                  IsFemale = h.IsFemale,
-                  Gear = ComposeGear(h)
-               });
+               result.Add(EntryForCompanion(h));
             }
 
             if (result.Count > 0)
@@ -269,6 +262,23 @@ namespace CalradiaRemembers.Witnesses
 
          return result;
       }
+
+      /// <summary>
+      ///   The witness entry for one of the player's own companions. ONE read of what a companion looks like
+      ///   in a room, so the two ways they can arrive - walking in beside the player, or being seated by the
+      ///   briefing they were given - cannot describe the same person differently.
+      /// </summary>
+      public static WitnessEntry EntryForCompanion(Hero h)
+         => h == null
+            ? null
+            : new WitnessEntry {
+               Name = h.Name?.ToString(),
+               RelationToNpc = "the player's companion",
+               IsPlayerCompanion = true,
+               HeroStringId = h.StringId,
+               IsFemale = h.IsFemale,
+               Gear = ComposeGear(h)
+            };
 
       /// <summary>
       ///   Shows a companion-selection overlay if the player has companions in their

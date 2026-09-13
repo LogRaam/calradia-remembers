@@ -16,6 +16,7 @@ using System.Linq;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Witnesses;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.MountAndBlade;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 
@@ -98,6 +99,13 @@ namespace CalradiaRemembers.Companions
 
             if (chosen.Count == 0) return;
 
+               // Remember the meeting this briefing is FOR. Until 2026-09-13 the target survived only as a
+            // StringId and a display name on the view-model, for the sole purpose of telling this chat's
+            // close apart from an ordinary one - the Hero itself was dropped, so there was nothing to go
+            // back to. Gabriel played it and the whole encounter ended instead (see ArmReturn).
+            _returnTo = target;
+            _returnWith = new List<Hero>(chosen);
+
             ChatManager.OpenForCompanionBriefing(target, chosen);
          }
          catch (Exception ex)
@@ -105,5 +113,70 @@ namespace CalradiaRemembers.Companions
             ModLog.Error($"[BRIEFING] OnCompanionsChosen failed: {ex.GetType().Name}: {ex.Message}");
          }
       }
+      #region the return
+
+      private static Hero _returnTo;
+      private static List<Hero> _returnWith;
+      private static bool _returnArmed;
+
+      /// <summary>True while a briefing is open for a meeting we still owe the player a way back into.</summary>
+      public static bool HasPendingReturn => _returnTo != null;
+
+      /// <summary>
+      ///   Arms the return, called as the briefing chat closes. Deferred rather than immediate for the reason
+      ///   DuelCoordinator defers its own restart: the chat is still tearing down on this very call, and a
+      ///   conversation cannot be staged over a window that has not finished closing.
+      /// </summary>
+      public static void ArmReturn()
+      {
+         if (_returnTo == null) return;
+
+         _returnArmed = true;
+         ModLog.Info($"[BRIEFING] return to {_returnTo.Name} armed; waiting for the chat to come down.");
+      }
+
+      /// <summary>
+      ///   Drives the armed return once the chat is actually down. Called from the campaign tick.
+      ///   <para>
+      ///     Waits on the same two facts DuelCoordinator waits on - no chat, no mission - because the vanilla
+      ///     conversation was ENDED by the engine's own close_window token back at the briefing dialogue line,
+      ///     so there is nothing to resume and a scene must be staged fresh.
+      ///   </para>
+      /// </summary>
+      public static void TickReturn()
+      {
+         if (!_returnArmed) return;
+
+         try
+         {
+            if (ChatManager.IsOpen || Mission.Current != null) return;
+
+            Hero target = _returnTo;
+            List<Hero> briefed = _returnWith;
+            Forget();
+
+            if (target == null || !target.IsAlive) return;
+
+            ChatSceneStager.StageBriefedReturn(target, briefed);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[BRIEFING] the return failed: {ex.GetType().Name}: {ex.Message}");
+            Forget();
+         }
+      }
+
+      /// <summary>Drops the pending return: the briefing was abandoned, or the return has been handed over.</summary>
+      public static void Forget()
+      {
+         _returnTo = null;
+         _returnWith = null;
+         _returnArmed = false;
+      }
+
+      /// <summary>The name of the meeting we owe a way back into, for the close button. Null when there is none.</summary>
+      public static string PendingReturnName => _returnTo?.Name?.ToString();
+
+      #endregion
    }
 }

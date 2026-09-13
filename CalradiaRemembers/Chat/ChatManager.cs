@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Companions;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
@@ -368,6 +369,13 @@ namespace CalradiaRemembers.Chat
             // feature is unused). Never before the briefing chat's OWN close (see the method's own doc), so a
             // brief always survives to reach the conversation it was actually given for.
             SafeStep(() => ActiveViewModel?.FinalizeCompanionBriefs(), "FinalizeCompanionBriefs");
+
+            // A briefing closing means "take me back to the meeting I asked leave from"; anything else closing
+            // means whatever return was pending is stale and must not keep encounters alive behind our back.
+            SafeStep(() => {
+               if (ActiveViewModel?.IsBriefingChat == true) CompanionBriefingCoordinator.ArmReturn();
+               else CompanionBriefingCoordinator.Forget();
+            }, "ArmBriefingReturn");
             SafeStep(() => ActiveViewModel?.FinalizeConversationMemory(), "FinalizeConversationMemory");
             SafeStep(() => ActiveViewModel?.NoteCompanionHeard(), "NoteCompanionHeard");
             SafeStep(() => ActiveViewModel?.FinalizeWitnessMemories(), "FinalizeWitnessMemories");
@@ -1017,6 +1025,20 @@ namespace CalradiaRemembers.Chat
             if (Mission.Current != null) return; // inside a scene/mission — not a map talk
             if (PlayerEncounter.Current == null) return; // no encounter to finish
             if (PlayerEncounter.InsideSettlement) return; // a town/castle encounter — leave it intact
+
+            // A briefing is a step INSIDE a meeting, never the end of one. Gabriel asked Ira for a moment to
+            // brief his companion (2026-09-12) and closing that briefing left him on the map with the meeting
+            // gone. The cause proper is the briefing dialogue line, which exits on the engine's own
+            // close_window token and so ENDS the conversation rather than suspending it; his own encounter was
+            // inside a settlement, so this particular call was NOT what finished it that night. It would be on
+            // the open map, where all three guards above pass while the encounter is still perfectly alive -
+            // so the guard belongs here too, before somebody meets Ira in the field.
+            if (CompanionBriefingCoordinator.HasPendingReturn)
+            {
+               ModLog.Info("[BRIEFING] encounter kept: this close is a briefing, not the end of the meeting.");
+
+               return;
+            }
 
             PlayerEncounter.Finish();
             ModLog.Info("Map encounter finished on chat close (clean return — no lingering army menu).");

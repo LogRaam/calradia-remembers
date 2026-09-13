@@ -51,6 +51,12 @@ namespace CalradiaRemembers.Dialogue
       // vanilla window outright (see Register) rather than opening the main chat.
       private const string BriefCompanionsToken = "calradia_remembers_brief_companions";
 
+      /// <summary>
+      ///   Set only for the length of a briefed return (see OpenChatForBriefedReturn): the companions to seat
+      ///   instead of running the witness picker. Null on every ordinary open, which is unchanged.
+      /// </summary>
+      private List<Hero> _preSeatedBriefed;
+
       // Deliberately courteous and ordinary: asking to step aside with one's own people is socially normal, so
       // it breeds no suspicion (the design property the whole feature rests on, see LlmDialogFlow's own
       // header for the two rejected designs this replaces). The lord's reaction is the vanilla reply below,
@@ -463,6 +469,43 @@ namespace CalradiaRemembers.Dialogue
       ///   <see cref="Hero.OneToOneConversationHero" />, which is null in that path. Picks a relation-appropriate
       ///   greeting and drops any line the staging captured (there is no real vanilla exchange to carry over).
       /// </summary>
+      /// <summary>
+      ///   Reopens the meeting a companion briefing was for, with the briefed companions already seated as
+      ///   FULL participants rather than onlookers.
+      ///   <para>
+      ///     Two things separate this from an ordinary open, and both are Gabriel's, from playing it on
+      ///     2026-09-12. The witness picker must not run: these companions were already chosen when the
+      ///     briefing was launched, and asking again made the player pick the same man twice. And they arrive
+      ///     ACTIVE: he drew them aside and gave them an errand, so they are in this conversation on purpose,
+      ///     not standing at the edge waiting to be named before they may speak.
+      ///   </para>
+      /// </summary>
+      public void OpenChatForBriefedReturn(Hero target, List<Hero> briefed)
+      {
+         try
+         {
+            if (target == null)
+            {
+               ModLog.Error("[BRIEFING] no target to return to.");
+
+               return;
+            }
+
+            NpcMemoryCampaignBehavior.Instance?.DialogueRecorder?.Clear();
+            _pendingGreeting = null;
+            _preSeatedBriefed = briefed;
+
+            try { OnPlayerSelectedChat(target); }
+            finally { _preSeatedBriefed = null; }
+
+            ModLog.Info($"[BRIEFING] returned to {target.Name} with {briefed?.Count ?? 0} briefed companion(s).");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[BRIEFING] OpenChatForBriefedReturn failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
       public void OpenChatForInterceptingHero(Hero hero)
       {
          try
@@ -564,12 +607,28 @@ namespace CalradiaRemembers.Dialogue
                // alone) the picker offers to summon up to two, or go alone.
                // The player can later dismiss a companion in conversation — the
                // witness_leaves action handles it.
-               List<WitnessEntry> sceneCompanions = WitnessResolver.ResolveSceneCompanions(hero);
-               if (sceneCompanions.Count > 0)
-                  foreach (WitnessEntry companion in sceneCompanions)
-                     vm.AddWitness(companion);
+               // A briefed return seats exactly the people the player drew aside, and never asks again: they
+               // were chosen at the briefing. They also arrive ACTIVE - see OpenChatForBriefedReturn.
+               if (_preSeatedBriefed is {Count: > 0})
+               {
+                  foreach (Hero companion in _preSeatedBriefed)
+                  {
+                     if (companion == null) continue;
+                     vm.AddWitness(WitnessResolver.EntryForCompanion(companion));
+
+                     if (vm.PromoteForDiagnostics(companion.StringId))
+                        ModLog.Info($"[SPOTLIGHT] {companion.Name} returns from the briefing as a full participant.");
+                  }
+               }
                else
-                  WitnessResolver.ShowCompanionPickerIfNeeded(hero, vm.AddWitness);
+               {
+                  List<WitnessEntry> sceneCompanions = WitnessResolver.ResolveSceneCompanions(hero);
+                  if (sceneCompanions.Count > 0)
+                     foreach (WitnessEntry companion in sceneCompanions)
+                        vm.AddWitness(companion);
+                  else
+                     WitnessResolver.ShowCompanionPickerIfNeeded(hero, vm.AddWitness);
+               }
                // ─────────────────────────────────────────────────────────
             }
 

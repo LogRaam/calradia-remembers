@@ -74,6 +74,7 @@ namespace CalradiaRemembers
          CouncilConversationStager.Tick(); // opens a staged council once its conversation scene has loaded
          Duels.DuelSceneSpike.Tick(dt); // drives the wilderness-duel spike's open/close/VRAM state machine
          Duels.DuelCoordinator.OnTick(dt); // stages an armed duel; here (not CampaignEvents.TickEvent) so it runs inside a settlement too
+         Companions.CompanionBriefingCoordinator.TickReturn(); // takes the player back into the meeting a briefing was for
          UI.Spike.CrMapTickSpike.Tick(dt); // throwaway spike (cr.tick_probe): closes its own measurement window
       }
 

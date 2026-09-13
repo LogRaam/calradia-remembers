@@ -40,6 +40,9 @@ namespace CalradiaRemembers.Chat
       /// <summary>True while THIS chat is the private briefing chat itself, never the ordinary conversation the brief rides into.</summary>
       private bool IsCompanionBriefingChat => _companionBriefingTargetId != null;
 
+      /// <summary>Whether this chat is the private word itself, read by ChatManager.Close to arm the return.</summary>
+      public bool IsBriefingChat => IsCompanionBriefingChat;
+
       /// <summary>
       ///   Opens the private briefing chat. <see cref="ChatManager.OpenForCompanionBriefing" /> has already set
       ///   the anchor (<see cref="_npcHero" />) and seated the rest of the CHOSEN roster as witnesses (never the
@@ -54,7 +57,11 @@ namespace CalradiaRemembers.Chat
          _companionBriefingTargetName = target?.Name?.ToString();
 
          TitleText = "Calradia Remembers: A private word";
-         CloseButtonText = "Done";
+         // The button says where it LEADS. Gabriel clicked "Done" expecting to be taken back to Ira and was
+         // put on the map instead (2026-09-12); now the label promises the return the close actually performs.
+         CloseButtonText = target?.Name == null
+            ? "Done"
+            : $"Rejoin {target.Name}";
          SendButtonText = "Say";
 
          // ChatManager.OpenForCompanionBriefing already called AddWitness for the non-anchor roster, which ran

@@ -34,7 +34,14 @@ namespace CalradiaRemembers.Chat
       CompanionAudience,
 
       /// <summary>The conversation that resumes right after a duel, coloured by who prevailed. <see cref="ChatManager.OpenForPostDuel" />.</summary>
-      PostDuel
+      PostDuel,
+
+      /// <summary>
+      ///   The meeting a companion briefing was FOR: the player asked the target's leave for a private word,
+      ///   gave his people their instructions, and is now brought back to the target with those people at his
+      ///   side. See CompanionBriefingCoordinator.
+      /// </summary>
+      BriefedReturn
    }
 
    /// <summary>
@@ -75,6 +82,13 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>Set for <see cref="ChatSceneKind.CompanionAudience" />; null otherwise.</summary>
       public CompanionAudiencePayload Audience;
+
+      /// <summary>
+      ///   Companion-briefing return: the companions the player drew aside, to be seated in the meeting they
+      ///   were briefed FOR. They were already chosen when the briefing was launched, so the ordinary witness
+      ///   picker must not ask again (Gabriel, 2026-09-13).
+      /// </summary>
+      public List<Hero> BriefedCompanions;
 
       /// <summary>Set for <see cref="ChatSceneKind.PostDuel" />; null otherwise.</summary>
       public PostDuelPayload PostDuel;

@@ -126,6 +126,16 @@ namespace CalradiaRemembers.Chat
             OnInterceptLineReached,
             200);
 
+         // The meeting a briefing was for. The player asked for a moment and is coming back with his people;
+         // the target has been waiting, so the opener is hers, not a fresh greeting.
+         starter.AddDialogLine(
+            "cr_briefed_return_intercept",
+            "start", "cr_captive_stage_hold",
+            "You have had your moment. Now, then.",
+            () => IsStaging && _pending?.Kind == ChatSceneKind.BriefedReturn,
+            OnInterceptLineReached,
+            200);
+
          // The conversation that resumes right after a duel: a neutral opener wins "start" (covered by the chat
          // within a few frames), then the post-duel chat takes over with the victor's or the loser's own words.
          starter.AddDialogLine(
@@ -250,6 +260,27 @@ namespace CalradiaRemembers.Chat
             // A companion rides in the player's own party, so the scene attaches to the main party.
             AttachParty = companion?.PartyBelongedTo?.Party,
             Audience = new CompanionAudiencePayload {Reason = reason, Landed = landed, TopicDetail = topicDetail}
+         });
+      }
+
+      /// <summary>
+      ///   Builds the BRIEFED-RETURN request: the meeting the player asked leave for, reopened with the
+      ///   companions he drew aside already at his side.
+      ///   <para>
+      ///     Staged rather than opened directly, for the reason every other map-side entry is staged: the
+      ///     briefing chat is closed and the conversation the player left was ENDED by the engine's own
+      ///     close_window token, so there is nothing left to ride on. Staging also picks the map path from the
+      ///     settlement path, which is not a nicety - staging a map conversation from inside a settlement
+      ///     crashed natively (see StageOverSettlement).
+      ///   </para>
+      /// </summary>
+      public static void StageBriefedReturn(Hero target, List<Hero> briefed)
+      {
+         Open(new ChatSceneRequest {
+            Kind = ChatSceneKind.BriefedReturn,
+            Partner = target,
+            AttachParty = target?.PartyBelongedTo?.Party ?? target?.CurrentSettlement?.Party,
+            BriefedCompanions = briefed
          });
       }
 
@@ -568,6 +599,12 @@ namespace CalradiaRemembers.Chat
                   r.Partner, r.Profile, r.Captive?.Witnesses, r.Captive?.IsCollective ?? false,
                   r.Captive?.Intent ?? CaptiveSceneIntent.Interrogation,
                   r.PortraitCharacter, r.Captive?.VictimCompanion, r.Captive?.PlayerCoerced ?? false);
+
+               return;
+
+            case ChatSceneKind.BriefedReturn:
+               NpcMemoryCampaignBehavior.Instance?.DialogFlow?.OpenChatForBriefedReturn(
+                  r.Partner, r.BriefedCompanions);
 
                return;
 

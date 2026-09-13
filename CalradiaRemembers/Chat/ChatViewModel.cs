@@ -1565,6 +1565,18 @@ namespace CalradiaRemembers.Chat
          if (entry == null || AlreadyPresent(entry)) return;
          _witnesses.Add(entry);
          _witnessColors[entry.Name] = ColorForWitness(entry);
+
+         // SPOTLIGHT, hole 2 of 2 (found in play 2026-09-12, Gabriel's log: Sley addressed at 23:56 and
+         // never promoted, no [SPOTLIGHT] line anywhere). SetWitnesses rebuilt the cast; this did not. So
+         // every companion brought in through the picker - which IS how a companion joins, and the picker
+         // resolves ASYNCHRONOUSLY, after the cast was already built from the auto-witnesses - sat in the
+         // witness LIST while being absent from the CAST. Promote demands RoleOf == Witness; for them it
+         // read null, returned false, and the whole pillar was dead for exactly the people it was written
+         // for. ConversationCast.Introduce was built for this on 27/08, unit-tested, and never once called
+         // from the game.
+         if (_cast?.Introduce(entry.HeroStringId) == true)
+            ModLog.Info($"[SPOTLIGHT] {entry.Name} joined the scene as a witness (promotable from here).");
+
          RefreshWitnessUi();
          ModLog.Info($"[WITNESSES] added: {entry.Name} ({entry.RelationToNpc}) color={_witnessColors[entry.Name]}");
       }
@@ -2769,6 +2781,13 @@ namespace CalradiaRemembers.Chat
 
          if (!string.IsNullOrWhiteSpace(npcHero?.Name?.ToString())) _npcName = npcHero.Name.ToString();
          TitleText = $"Calradia Remembers — {_npcName}";
+
+         // SPOTLIGHT, hole 1 of 2 (found in play 2026-09-12). The cast used to be born inside
+         // SetWitnesses, so a conversation with NO auto-detected witness - a lord standing alone, the
+         // commonest case there is - had no cast AT ALL, not even its own anchor. Nobody could then be
+         // promoted into it, and the ensemble scene the pillar exists for could never begin. It belongs
+         // here, where the anchor becomes known: a conversation always has a cast, even a cast of one.
+         RebuildCast();
          _storyIntroWritten = false;
          _storyLocation = CaptiveSceneText.BuildStoryLocation();
 
@@ -2836,6 +2855,27 @@ namespace CalradiaRemembers.Chat
          if (off && _isMemoryPanelOpen) IsMemoryPanelOpen = false;
       }
 
+      /// <summary>
+      ///   This character's standing in the Spotlight cast, or null when they are not in the scene at all.
+      ///   <para>
+      ///     A read surface rather than a convenience: the pillar's two holes (2026-09-12) both lived in the
+      ///     WIRING, not in ConversationCast, whose own unit tests were green throughout. A test that builds
+      ///     the cast itself cannot see a host that never fills it, so the live sweep needs to be able to ask
+      ///     the real view-model who is actually in the room.
+      ///   </para>
+      /// </summary>
+      public CastRole? CastRoleOf(string heroId) => _cast?.RoleOf(heroId);
+
+      /// <summary>True once two or more voices are active, which is what makes this an ensemble scene.</summary>
+      public bool IsEnsembleScene => _cast?.IsEnsemble == true;
+
+      /// <summary>
+      ///   Promotes through the same call the address path uses, for the live sweep only. Production promotes
+      ///   from ResolveAddressedSpeaker, which needs a parsed player message; the sweep needs the promotion
+      ///   without inventing one, and driving the real cast is the whole point of the test.
+      /// </summary>
+      public bool PromoteForDiagnostics(string heroId) => _cast?.Promote(heroId) == true;
+
       /// <summary>Replaces the full witness list (called by WitnessResolver at session open).</summary>
       public void SetWitnesses(List<WitnessEntry> witnesses)
       {
@@ -2871,10 +2911,23 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         // Who was already drawn INTO the conversation, so a rebuild cannot undo it. The old comment
+         // claimed a later rebuild was harmless because rebuilds only happen at setup - true of the two
+         // callers as they stand, and exactly the kind of claim that stops being true the day somebody
+         // adds a third. A promotion is earned in play; nothing at setup should be able to spend it.
+         List<string> alreadyActive = _cast?.ActiveIds.Where(id => id != _cast.AnchorId).ToList()
+                                      ?? new List<string>();
+
          _cast = new ConversationCast(
             anchorId,
             _witnesses.Where(w => !string.IsNullOrEmpty(w?.HeroStringId) && w.HeroStringId != anchorId)
                       .Select(w => w.HeroStringId));
+
+         foreach (string id in alreadyActive)
+         {
+            _cast.Introduce(id);
+            _cast.Promote(id);
+         }
       }
 
       #region private
