@@ -187,8 +187,18 @@ namespace CalradiaRemembers.Companions
          try
          {
             bool chatOpen = ChatManager.IsOpen;
-            bool sceneLive = Mission.Current != null;
-            ReturnMove move = BriefingReturnDecision.Decide(_returnArmed, chatOpen, sceneLive, ++_ticksWaited);
+
+            // THE TWO HOSTS, kept apart in the log because conflating them is what broke this. A Mission is
+            // one way the engine holds a conversation (walk up to somebody inside a settlement scene); a MAP
+            // conversation is the other, and it has no Mission whatever. Gabriel's meeting with Ira was the
+            // second kind, so "Mission.Current != null" answered False about a meeting that was standing.
+            // ChatSceneStager's own fallback has asked the question this way since 26/08; the briefing return
+            // did not, and that is the whole of the fault.
+            bool missionLive = Mission.Current != null;
+            bool mapTalkLive = Hero.OneToOneConversationHero != null;
+            ReturnMove move = BriefingReturnDecision.Decide(
+               _returnArmed, chatOpen, BriefingReturnDecision.HostIsLive(missionLive, mapTalkLive),
+               ++_ticksWaited);
 
             // Logged on CHANGE only: this runs on every application tick, and Wait is the answer for most of
             // them. What a reader needs is the inputs at the moment the answer turned - because every fault
@@ -197,8 +207,8 @@ namespace CalradiaRemembers.Companions
             if (move != _lastLoggedMove)
             {
                _lastLoggedMove = move;
-               ModLog.Info($"[BRIEFING] decide(armed=true chat={chatOpen} scene={sceneLive} " +
-                           $"waited={_ticksWaited}) -> {move}");
+               ModLog.Info($"[BRIEFING] decide(armed=true chat={chatOpen} mission={missionLive} " +
+                           $"mapTalk={mapTalkLive} waited={_ticksWaited}) -> {move}");
             }
 
             switch (move)
@@ -216,14 +226,15 @@ namespace CalradiaRemembers.Companions
 
                   return;
 
-               case ReturnMove.OpenOverLiveScene:
+               case ReturnMove.OpenOverLiveHost:
                   Hero target = _returnTo;
                   List<Hero> briefed = _returnWith;
                   Forget();
 
                   if (target == null || !target.IsAlive) return;
 
-                  ModLog.Info($"[BRIEFING] returning to {target.Name} over the scene already loaded.");
+                  ModLog.Info($"[BRIEFING] returning to {target.Name} over the live "
+                            + $"{(missionLive ? "mission" : "map conversation")}.");
                   ChatSceneStager.Open(ChatSceneStager.BuildBriefedReturn(target, briefed));
 
                   return;

@@ -166,6 +166,27 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         // THE SECOND HOST (13/09/2026). A Mission is not the only thing the chat can open over: a MAP
+         // conversation is a live conversation with no Mission behind it, and the chat sits on it perfectly
+         // well - it is what the companion briefing itself opened over, backdrop "MapConversation" on the map
+         // screen. Reading only Mission.Current, this door concluded "nothing live" about a meeting the player
+         // was standing in and STAGED one, which opens an interior mission from the campaign map: the native
+         // crash of 13/09/2026, and before it the loading screen that went nowhere.
+         //
+         // Deliberately narrow: only when the live conversation is with THE VERY PERSON this request is for.
+         // A live conversation with somebody else is not a host for this chat, it is a collision, and staging
+         // remains the right answer there. That is why this asks about the partner rather than reusing the
+         // stager's own looser "conversationActive" fallback (which is answering a different question: whether
+         // a conversation IT started has registered yet).
+         if (request.Partner != null && Hero.OneToOneConversationHero == request.Partner)
+         {
+            ModLog.Info($"[STAGE] {request.Kind}: a map conversation with {request.Partner.Name} is already "
+                      + "live; opening over it rather than staging a scene.");
+            OpenNow(request);
+
+            return;
+         }
+
          // Nothing live behind us (the world map or a settlement menu): stage a scene so the chat opens over a
          // rendered mission, never the bare map (the VRAM-leak / ghost-pixel class).
          BeginStagedConversation(request);

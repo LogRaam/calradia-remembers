@@ -43,8 +43,8 @@ namespace CalradiaRemembers.Logic.Conversation
       /// <summary>Keep waiting: the briefing window has not finished closing.</summary>
       Wait,
 
-      /// <summary>Open the meeting over the scene the player is standing in.</summary>
-      OpenOverLiveScene,
+      /// <summary>Open the meeting over the live host the player never left.</summary>
+      OpenOverLiveHost,
 
       /// <summary>
       ///   The return cannot happen. Give back what the hand-off deferred - the map scene, the clock, the
@@ -67,23 +67,45 @@ namespace CalradiaRemembers.Logic.Conversation
       public const int PatienceTicks = 600;
 
       /// <summary>
+      ///   IS THERE STILL A MEETING TO GO BACK TO? Bannerlord hosts a conversation in one of two ways and the
+      ///   briefing return only ever asked about one of them, which is the whole of the 13/09/2026 fault:
+      ///   <list type="bullet">
+      ///     <item>a MISSION - the player walked up to somebody inside a loaded scene;</item>
+      ///     <item>a MAP CONVERSATION - a layer over the map screen, with no Mission behind it at all.</item>
+      ///   </list>
+      ///   Either one is a host the chat opens cleanly over. Neither one is a scene to be BUILT: if this reads
+      ///   false, the answer is to give the world back, never to stage anything.
+      /// </summary>
+      public static bool HostIsLive(bool missionLive, bool mapConversationLive) =>
+         missionLive || mapConversationLive;
+
+      /// <summary>
       ///   THE DECISION. <paramref name="armed" /> is whether a briefing close asked for a return;
       ///   <paramref name="chatIsOpen" /> whether the briefing window is still up;
-      ///   <paramref name="sceneIsLive" /> whether a Mission is loaded to open over;
+      ///   <paramref name="hostIsLive" /> whether the meeting still has a host to open over;
       ///   <paramref name="ticksWaited" /> how long we have been waiting.
       ///   <para>
-      ///     NOTE THE ASYMMETRY THAT WAS WRONG BEFORE: a live scene is the REASON to act, never the reason to
+      ///     NOTE THE ASYMMETRY THAT WAS WRONG BEFORE: a live host is the REASON to act, never the reason to
       ///     wait. The return wants the meeting the player never left. Staging one is not a move this decision
       ///     can even express, which is the point - the crash of 13/09/2026 is now unrepresentable.
       ///   </para>
+      ///   <para>
+      ///     WHAT "HOST" MEANS, and getting this wrong cost a fourth attempt on 13/09/2026. The parameter used
+      ///     to be called sceneIsLive and the caller filled it with Mission.Current != null. That is only ONE of
+      ///     the two ways Bannerlord hosts a conversation. Gabriel's meeting with Ira was the other: a MAP
+      ///     conversation, a layer over the map screen with no Mission behind it at all (his log: "Chat overlay
+      ///     backdrop ... SceneLayer, MapMenuOverlay, MapConversation" on NavalMapScreen). So the briefing read
+      ///     "no scene" about a meeting that was standing perfectly well, gave the world back, and ended it.
+      ///     The caller now asks the question this parameter's NAME always claimed to ask.
+      ///   </para>
       /// </summary>
-      public static ReturnMove Decide(bool armed, bool chatIsOpen, bool sceneIsLive, int ticksWaited)
+      public static ReturnMove Decide(bool armed, bool chatIsOpen, bool hostIsLive, int ticksWaited)
       {
          if (!armed) return ReturnMove.Idle;
          if (ticksWaited > PatienceTicks) return ReturnMove.GiveTheWorldBack;
          if (chatIsOpen) return ReturnMove.Wait;
 
-         return sceneIsLive ? ReturnMove.OpenOverLiveScene : ReturnMove.GiveTheWorldBack;
+         return hostIsLive ? ReturnMove.OpenOverLiveHost : ReturnMove.GiveTheWorldBack;
       }
    }
 
