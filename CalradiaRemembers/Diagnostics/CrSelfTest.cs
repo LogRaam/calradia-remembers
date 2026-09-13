@@ -8581,7 +8581,7 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"{subject.Name}: witness recall = {(recall.Length == 0 ? "(none)" : recall.Substring(0, System.Math.Min(120, recall.Length)))}");
 
             t.Expect("aSharedMemoryStillReachesTheRoom", recall.Contains("SELFTEST-SHARED"), true);
-            t.Expect("aPrivateMemoryNeverReachesTheRoom", recall.Contains("SELFTEST-SECRET"), false);
+            t.Expect("aPrivateMemoryNeverReachesTheRoom", !recall.Contains("SELFTEST-SECRET"), true);
 
             // And somebody whose ONLY memories are private must contribute nothing, rather than an empty husk
             // that would read to the model as "this person remembers something they are not telling you".
@@ -8668,8 +8668,8 @@ namespace CalradiaRemembers.Diagnostics
                      anchorGot?.summary?.Contains(target.Name?.ToString() ?? "\u0000") == true, true);
 
             // 4. THE LOAD-BEARING PROPERTY, by both roads the target could read it.
-            t.Expect("notThroughTheWitnessRecall",
-                     (ChatViewModel.DebugWitnessMemory(anchor.StringId) ?? "").Contains("SELFTEST-ORDER"), false);
+            t.Expect("theErrandStaysOutOfTheWitnessRecall",
+                     !(ChatViewModel.DebugWitnessMemory(anchor.StringId) ?? "").Contains("SELFTEST-ORDER"), true);
 
             EncounterContext hers = EncounterContextBuilder.Build(
                target, behavior.Store.Get(target.StringId), behavior.GameStateBridge, "and who are these two?",
@@ -8679,7 +8679,7 @@ namespace CalradiaRemembers.Diagnostics
 
             string roomAsSheReadsIt = string.Join(" ", (hers?.Witnesses ?? new List<WitnessEntry>())
                                                        .Select(w => w?.Memory ?? ""));
-            t.Expect("notThroughHerOwnContextEither", roomAsSheReadsIt.Contains("SELFTEST-ORDER"), false);
+            t.Expect("theErrandStaysOutOfHerOwnContextToo", !roomAsSheReadsIt.Contains("SELFTEST-ORDER"), true);
 
             // 5. the return: armed at the right meeting, with the right people, and asking for them by name.
             t.Expect("theReturnIsArmedAtThatMeeting",
@@ -8739,7 +8739,7 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("anArrivalJoinsTheCastAsAWitness", role == CastRole.Witness, true);
 
          // And being in the cast is what makes the rest of the pillar reachable at all.
-         t.Expect("notAnEnsembleUntilSomebodyIsDrawnIn", vm.IsEnsembleScene, false);
+         t.Expect("aLoneAnchorIsNotYetAnEnsemble", !vm.IsEnsembleScene, true);
          t.Expect("thePromotionThatUsedToFailNowTakes", vm.PromoteForDiagnostics(arrival.StringId), true);
          t.Expect("twoActiveVoicesMakeAnEnsemble", vm.IsEnsembleScene, true);
 
@@ -12498,8 +12498,8 @@ namespace CalradiaRemembers.Diagnostics
             // THE LOAD-BEARING ASSERTION OF THE WHOLE PILLAR: standing in the room with the target, that same
             // memory must not be readable by them. The witness recall is the only path it could travel.
             t.Expect("theErrandNeverReachesTheRoom",
-                     (ChatViewModel.DebugWitnessMemory(companion.StringId) ?? "").Contains("SELFTEST-ERRAND"),
-                     false);
+                     !(ChatViewModel.DebugWitnessMemory(companion.StringId) ?? "").Contains("SELFTEST-ERRAND"),
+                     true);
 
             // And the scene flag still names the absent target, so the briefing chat itself knows who it is for.
             EncounterContext scene = EncounterContextBuilder.Build(
