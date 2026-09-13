@@ -709,7 +709,13 @@ namespace CalradiaRemembers.Chat
       public static void OpenForCompanionAudience(
          Hero companion, NpcProfile profile, CompanionAudienceReason reason, bool landed, string topicDetail = null)
       {
-         if (companion == null || profile == null) return;
+         if (companion == null || profile == null)
+         {
+            ModLog.Error($"[AUDIENCE] cannot open: companion={companion?.Name?.ToString() ?? "null"}, "
+                       + $"profile={(profile == null ? "null" : "ok")}. The popup was answered and nothing followed.");
+
+            return;
+         }
 
          // Route through the single door, which decides staging vs direct: over the SUSPENDED map an overlay
          // sub-panel that hides itself (Memories/Compose set IsVisible=false) left ghost pixels, because nothing
@@ -728,11 +734,24 @@ namespace CalradiaRemembers.Chat
       public static void OpenForCompanionAudienceDirect(
          Hero companion, NpcProfile profile, CompanionAudienceReason reason, bool landed, string topicDetail = null)
       {
-         if (companion == null || profile == null) return;
+         if (companion == null || profile == null)
+         {
+            ModLog.Error("[AUDIENCE] direct open refused: no companion or no profile.");
+
+            return;
+         }
 
          Open(companion.Name?.ToString() ?? profile.Name);
 
-         if (ActiveViewModel == null) return;
+         // The END of the road for a player who answered the popup and saw nothing. Open() failing leaves no
+         // window and left no trace either, so the report reads "nothing happens" and the log agrees with it.
+         if (ActiveViewModel == null)
+         {
+            ModLog.Error($"[AUDIENCE] the window did not open for {companion.Name}; their private word is lost. "
+                       + "Try cr.chat_reset if later conversations also refuse to open.");
+
+            return;
+         }
 
          ActiveViewModel.SetNpcHero(companion);
          ActiveViewModel.ActivateCompanionAudience(profile, reason, landed, topicDetail);

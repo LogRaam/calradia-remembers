@@ -407,8 +407,11 @@ namespace CalradiaRemembers.Missions
          // the menu has settled, so the overlay opens cleanly. See NpcMemoryServiceSubmodule.OnApplicationTick.
          MainThreadDispatcher.Enqueue(() =>
          {
+            // "granted", not "opened": this line used to say opened and was written whatever happened next,
+            // so a log could assert an audience had opened when no window ever appeared. Whether it opened is
+            // now ChatManager's own to report (Lordfadooboo, 2.5.8).
+            ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s {topic} audience granted; opening.");
             ChatManager.OpenForCompanionAudience(companion, profile, topic, false, detail);
-            ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s {topic} audience opened.");
          });
       }
 

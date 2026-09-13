@@ -341,7 +341,14 @@ namespace CalradiaRemembers.Chat
          if (_pending == null) return;
          if (ChatManager.IsOpen)
          {
-            _pending = null; // something else opened the chat; drop the staging
+            // SAID OUT LOUD (Lordfadooboo, 2.5.8: "i enter a city and it says (companion) wants to talk to
+            // you, i say yes, and nothing happens"). This drop was silent, and a silent drop on this path is
+            // indistinguishable from the popup never having been answered. If IsOpen is ever TRUE wrongly -
+            // the ghost-layer class this mod has already been bitten by once - the staged scene dies here and
+            // nothing whatever is written down.
+            ModLog.Info($"[CHAT STAGE {_pending.Kind}] dropped: the chat is already open, so something else "
+                      + "claimed this scene first.");
+            _pending = null;
 
             return;
          }
