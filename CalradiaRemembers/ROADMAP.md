@@ -558,6 +558,31 @@ the WORLD confers - a crown, a house, a seat. Nothing covers the posts the PLAYE
 at least four kinds (governor, party role, mission, retainer). Every one is a promise the player made to a
 character who does not know they hold it, and one of the four has already come back as a report.
 
+### THE POSTS THE PLAYER GRANTS, first half built 2026-09-12
+
+The role audit found a SHAPE rather than a missing occupation: the context carried three OFFER gates and
+exactly one matching "post actually held". It knew whether a post could be offered and mostly not whether one
+was held - so the mod assigns a companion QUARTERMASTER through its own verb and never told him. fkasad's
+governor, a second time, in a place the mod made for itself.
+
+Two halves, because the post alone would have been half a fix:
+
+- **`station` names the post.** "You are the quartermaster of the player's own company... never receive it as
+  news." Additive like the governorship: a man may head his house, keep a town AND carry the ledger. Read from
+  the engine's EFFECTIVE holders rather than from a formal assignment, because Bannerlord falls back to
+  whoever is best and the man doing the job is the man who would know it.
+- **`party_standing` says what the post KNOWS** - provisions, the temper of the camp, how many are hurt.
+  Telling a man he is quartermaster and nothing else does not stop him inventing the stores, it gives him a
+  reason to. The granary lesson, applied before it could bite a second time.
+
+Depth is the post: quartermaster and surgeon Deep, any other rider Ordinary, a lord met on the road None. And
+this is the ONE pack that re-checks `CarriedBy` inside `Render`, deliberately: what it renders is the state of
+the player's own camp, the most leak-sensitive content in the pillar, so the guarantee is local rather than
+borrowed from the composer. A test asked for exactly that.
+
+**Still open in the same shape:** whether a companion is AWAY ON A MISSION (`NpcCanBeDispatchedOnMission` has
+no held twin either), and the retainer. Both are posts the player grants to somebody who does not know it.
+
 ### The audit, still open
 
 The categories with a named gap and no pack yet, in the order the evidence supports:

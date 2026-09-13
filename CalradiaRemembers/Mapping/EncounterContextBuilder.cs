@@ -47,6 +47,7 @@ using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TraitFacts = CalradiaRemembers.Logic.Grudges.TraitFacts;
@@ -311,6 +312,7 @@ namespace CalradiaRemembers.Mapping
          // whole pillar exists because "he would know this" and "somebody told him" drifted apart.
          SeatStandingFacts seatStanding = BuildSeatStanding(hero);
          MarketWordFacts marketWord = BuildMarketWord(hero);
+         PartyPost partyPost = ReadPartyPost(hero);
 
          return new() {
             PlayerStatus = playerStatus,
@@ -467,13 +469,18 @@ namespace CalradiaRemembers.Mapping
             // Knowledge composition, increment 1 (ROADMAP: "WHAT A CHARACTER KNOWS"). Who this person is, and
             // what they are to the player: the factory weighs both, because role alone would hand a stranger
             // the player's ledger while fixing one companion.
-            Bearer = BuildKnowledgeBearer(hero, seatStanding != null, marketWord != null),
+            Bearer = BuildKnowledgeBearer(hero, seatStanding != null, marketWord != null, partyPost),
             HouseStanding = BuildHouseStanding(hero),
             SeatStanding = seatStanding,
             HouseMeans = BuildHouseMeans(hero),
             OwnBody = BuildOwnBody(hero),
             MarketWord = marketWord,
             Underworld = BuildUnderworld(hero),
+            PartyStanding = BuildPartyStanding(hero),
+
+            // The post the mod's own verb assigned and never mentioned. Named here so the station pack can
+            // say it, exactly as GovernedSettlementName is named for the governorship.
+            PartyPostHeld = partyPost == PartyPost.None ? null : partyPost.ToString().ToLowerInvariant(),
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
             Audience = BuildListeningAudience(profile, witnesses),
@@ -2310,7 +2317,8 @@ namespace CalradiaRemembers.Mapping
       ///   in rather than recomputed: it is true exactly when the seat facts were actually read, so the pack's
       ///   "he would know this" cannot drift from the host's "here it is".
       /// </summary>
-      private static KnowledgeBearer BuildKnowledgeBearer(Hero hero, bool holdsASeat, bool hasAMarket)
+      private static KnowledgeBearer BuildKnowledgeBearer(Hero hero, bool holdsASeat, bool hasAMarket,
+                                                          PartyPost partyPost)
       {
          if (hero == null) return null;
 
@@ -2326,6 +2334,8 @@ namespace CalradiaRemembers.Mapping
                                    || hero.Occupation == Occupation.Artisan),
             IsUnderworld = hero.Occupation == Occupation.GangLeader
                            || hero.Occupation == Occupation.Gangster,
+            RidesWithThePlayer = hero.PartyBelongedTo != null && hero.PartyBelongedTo == MobileParty.MainParty,
+            PartyPost = partyPost,
             HasHouse = hero.Clan != null,
             HoldsASeat = holdsASeat,
 
@@ -2978,6 +2988,94 @@ namespace CalradiaRemembers.Mapping
             case RumorConfidence.Secondhand: return TidingConfidence.Secondhand;
             default: return TidingConfidence.Firsthand;
          }
+      }
+
+      /// <summary>
+      ///   The post this character holds in the player's own company, from the engine's own reckoning of who
+      ///   actually fills each one.
+      ///   <para>
+      ///     EFFECTIVE rather than assigned on purpose: Bannerlord falls back to whoever is best when no one is
+      ///     appointed, and the man doing the job is the man who would know the job. A companion who has never
+      ///     been formally named quartermaster but IS the quartermaster should not be told he is nobody.
+      ///   </para>
+      /// </summary>
+      private static PartyPost ReadPartyPost(Hero hero)
+      {
+         MobileParty party = MobileParty.MainParty;
+
+         if (hero == null || party == null || hero.PartyBelongedTo != party) return PartyPost.None;
+
+         if (party.EffectiveQuartermaster == hero) return PartyPost.Quartermaster;
+         if (party.EffectiveScout == hero) return PartyPost.Scout;
+         if (party.EffectiveSurgeon == hero) return PartyPost.Surgeon;
+         if (party.EffectiveEngineer == hero) return PartyPost.Engineer;
+
+         return PartyPost.None;
+      }
+
+      /// <summary>
+      ///   How the player's company is faring, for the people riding in it. Every band leans on a reading the
+      ///   engine already owns - GetNumDaysForFoodToLast, the 0-100 morale, the roster's own wounded count - so
+      ///   no threshold here is one this file invented.
+      /// </summary>
+      private static PartyStandingFacts BuildPartyStanding(Hero hero)
+      {
+         MobileParty party = MobileParty.MainParty;
+
+         if (hero == null || party == null || hero.PartyBelongedTo != party) return null;
+
+         try
+         {
+            var facts = new PartyStandingFacts {
+               Provisions = ReadProvisions(party),
+               Mood = ReadMood(party),
+               Wounded = ReadWounded(party)
+            };
+
+            return facts.HasAnyReading ? facts : null;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[knowledge] party standing read failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>The engine's own count of days, banded: a quartermaster says "a week or so", not "eleven".</summary>
+      private static ProvisionBand ReadProvisions(MobileParty party)
+      {
+         int days = party.GetNumDaysForFoodToLast();
+
+         if (days <= 0) return ProvisionBand.Starving;
+         if (days < 7) return ProvisionBand.Short;
+         if (days < 21) return ProvisionBand.Sufficient;
+
+         return ProvisionBand.Plentiful;
+      }
+
+      /// <summary>On the engine's own 0-100 morale, where 50 is the settled middle it drifts back towards.</summary>
+      private static CampMood ReadMood(MobileParty party)
+      {
+         if (party.Morale < 25f) return CampMood.Mutinous;
+         if (party.Morale < 45f) return CampMood.Sullen;
+         if (party.Morale > 70f) return CampMood.HighHearted;
+
+         return CampMood.Steady;
+      }
+
+      private static WoundedBand ReadWounded(MobileParty party)
+      {
+         TroopRoster roster = party.MemberRoster;
+
+         if (roster == null || roster.TotalManCount <= 0) return WoundedBand.Unknown;
+
+         float hurt = (roster.TotalManCount - roster.TotalHealthyCount) / (float) roster.TotalManCount;
+
+         if (hurt > 0.50f) return WoundedBand.Most;
+         if (hurt > 0.20f) return WoundedBand.Many;
+
+         return WoundedBand.Few;
       }
 
       private static string ResolveRuledRealmName(Hero hero)
