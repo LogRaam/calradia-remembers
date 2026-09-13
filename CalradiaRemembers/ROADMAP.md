@@ -596,6 +596,27 @@ borrowed from the composer. A test asked for exactly that.
 **The offered-versus-held pattern is now closed.** All four posts the player grants - governor, party role,
 mission, retainer - are known to the people holding them.
 
+### THE LAST TWO NAMED GAPS, built 2026-09-12
+
+- **`own_ventures`** - the caravans and workshops somebody owns. Gabriel raised caravans unprompted and
+  nothing reached the context. Deliberately NOT part of `market_word`, and the test of that is mechanical
+  rather than aesthetic: the two rules refuse DIFFERENT PEOPLE. A lord who owns three caravans is not a
+  merchant and must never be handed the price of grain; a merchant with no caravan has a market and no
+  ventures. A trader's market is where he stands; his caravans are where he is not.
+  - **It states NUMBERS**, which is the first pack to, and the reason is worth keeping: a man knows how many
+    caravans he owns the way he knows how many children he has. The rule was never "never be precise", it was
+    "never invent what you have not counted" - and `house_standing` has named fiefs exactly since it shipped.
+  - The invention it closes is not the ventures but their FORTUNES: asked how they are doing, a man with three
+    caravans invents a profit unless told he would have to wait for word. The granary lesson in a merchant's
+    coat.
+- **The mercenary's own service**, added to `house_means`: `PlayerIsMercenary` had been carried all along and
+  the NPC's own contract had not, so a captain could not say who pays him. "It sells its swords to X under
+  contract, not by oath."
+
+**The audit list is now empty.** Every category named on 2026-09-11 and every role named on 2026-09-12 is
+either built or closed with a reason. What is left is not more knowledge - it is the two things below, and
+playing it.
+
 ### The audit, still open
 
 The categories with a named gap and no pack yet, in the order the evidence supports:

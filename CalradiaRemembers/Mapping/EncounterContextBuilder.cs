@@ -49,6 +49,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.Settlements.Workshops;
 using TaleWorlds.Core;
 using TraitFacts = CalradiaRemembers.Logic.Grudges.TraitFacts;
 
@@ -313,6 +314,7 @@ namespace CalradiaRemembers.Mapping
          SeatStandingFacts seatStanding = BuildSeatStanding(hero);
          MarketWordFacts marketWord = BuildMarketWord(hero);
          PartyPost partyPost = ReadPartyPost(hero);
+         OwnVenturesFacts ventures = BuildOwnVentures(hero);
 
          return new() {
             PlayerStatus = playerStatus,
@@ -469,13 +471,15 @@ namespace CalradiaRemembers.Mapping
             // Knowledge composition, increment 1 (ROADMAP: "WHAT A CHARACTER KNOWS"). Who this person is, and
             // what they are to the player: the factory weighs both, because role alone would hand a stranger
             // the player's ledger while fixing one companion.
-            Bearer = BuildKnowledgeBearer(hero, seatStanding != null, marketWord != null, partyPost),
+            Bearer = BuildKnowledgeBearer(hero, seatStanding != null, marketWord != null, partyPost,
+                                          ventures != null),
             HouseStanding = BuildHouseStanding(hero),
             SeatStanding = seatStanding,
             HouseMeans = BuildHouseMeans(hero),
             OwnBody = BuildOwnBody(hero),
             MarketWord = marketWord,
             Underworld = BuildUnderworld(hero),
+            OwnVentures = ventures,
             PartyStanding = BuildPartyStanding(hero),
 
             // The post the mod's own verb assigned and never mentioned. Named here so the station pack can
@@ -2323,7 +2327,7 @@ namespace CalradiaRemembers.Mapping
       ///   "he would know this" cannot drift from the host's "here it is".
       /// </summary>
       private static KnowledgeBearer BuildKnowledgeBearer(Hero hero, bool holdsASeat, bool hasAMarket,
-                                                          PartyPost partyPost)
+                                                          PartyPost partyPost, bool ownsVentures)
       {
          if (hero == null) return null;
 
@@ -2341,6 +2345,7 @@ namespace CalradiaRemembers.Mapping
                            || hero.Occupation == Occupation.Gangster,
             RidesWithThePlayer = hero.PartyBelongedTo != null && hero.PartyBelongedTo == MobileParty.MainParty,
             PartyPost = partyPost,
+            OwnsVentures = ownsVentures,
             HasHouse = hero.Clan != null,
             HoldsASeat = holdsASeat,
 
@@ -2612,7 +2617,11 @@ namespace CalradiaRemembers.Mapping
                OwesTheCrown = clan.DebtToKingdom > 0,
                Muster = ReadMuster(clan),
                RidingWithAnArmy = RidesWithAnArmy(clan),
-               Influence = ReadInfluence(clan)
+               Influence = ReadInfluence(clan),
+
+               // Named by the role audit: PlayerIsMercenary was carried all along and the NPC's own service
+               // was not, so a captain under contract could not say who pays him.
+               SellsSwordsTo = clan.IsUnderMercenaryService ? clan.Kingdom?.Name?.ToString() : null
             };
          }
          catch (Exception ex)
@@ -3081,6 +3090,45 @@ namespace CalradiaRemembers.Mapping
          if (hurt > 0.20f) return WoundedBand.Many;
 
          return WoundedBand.Few;
+      }
+
+      /// <summary>
+      ///   The caravans and workshops this character owns. Read ONCE and used both to supply the facts and to
+      ///   set the bearer's axis, the rule HoldsASeat and the market both learned the hard way.
+      /// </summary>
+      private static OwnVenturesFacts BuildOwnVentures(Hero hero)
+      {
+         if (hero == null) return null;
+
+         try
+         {
+            var shops = new List<OwnedWorkshop>();
+
+            if (hero.OwnedWorkshops != null)
+               foreach (Workshop shop in hero.OwnedWorkshops)
+               {
+                  string trade = shop?.WorkshopType?.JobName?.ToString() ?? shop?.WorkshopType?.Name?.ToString();
+                  if (string.IsNullOrWhiteSpace(trade)) continue;
+
+                  shops.Add(new OwnedWorkshop {
+                     Trade = trade.ToLowerInvariant(),
+                     PlaceName = shop.Settlement?.Name?.ToString()
+                  });
+               }
+
+            var facts = new OwnVenturesFacts {
+               Caravans = hero.OwnedCaravans?.Count ?? 0,
+               Workshops = shops
+            };
+
+            return facts.HasAnyReading ? facts : null;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[knowledge] ventures read failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
       }
 
       private static string ResolveRuledRealmName(Hero hero)
