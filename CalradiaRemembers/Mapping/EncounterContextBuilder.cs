@@ -1864,6 +1864,10 @@ namespace CalradiaRemembers.Mapping
       ///     verb untaught, which costs a scene rather than risking a wrong one.
       ///   </para>
       /// </summary>
+      // The last take_into_service verdict logged, so the line appears when the answer CHANGES rather than on
+      // every context build. Keyed by lord too, so moving between conversations always reports afresh.
+      private static string _lastOfferableVerdict;
+
       private static string ResolveCompanionsOfferableToThisLord(Hero lord)
       {
          try
@@ -1874,6 +1878,12 @@ namespace CalradiaRemembers.Mapping
             if (playerClan?.Companions == null) return null;
 
             Clan lordClan = lord.Clan;
+
+            // A hero of the player's OWN clan can never be offered anyone (the policy refuses on
+            // LordIsOfThePlayersOwnClan), so there is no verdict here worth computing or logging - and this is
+            // most of the calls, since every companion in the scene gets a context of their own.
+            if (lordClan == playerClan) return null;
+
             var offerable = new List<string>();
 
             // Clan.Heroes, not Clan.Companions: turn_nemesis and recruit_prisoner swear a hero in by assigning
@@ -1907,10 +1917,18 @@ namespace CalradiaRemembers.Mapping
             offerable.RemoveAll(string.IsNullOrWhiteSpace);
 
             // SAID OUT LOUD, because Gabriel's log could not answer "was the verb even on the table?" - the
-            // same blind spot that cost a day this morning. A gate that silently teaches nothing looks exactly
-            // like a model that chose not to act.
+            // same blind spot that cost a day. But said ONCE per answer, not once per context build: this runs
+            // several times a turn, and the first version put four identical lines into his log before he had
+            // even closed the briefing. A diagnostic nobody can skim is a diagnostic nobody reads, which is the
+            // fault it was added to fix.
             string named = offerable.Count == 0 ? null : string.Join(", ", offerable);
-            ModLog.Info($"[TAKE-INTO-SERVICE] {lord.Name} could be offered: {named ?? "(nobody)"}.");
+            string verdict = $"{lord.StringId}|{named ?? "(nobody)"}";
+
+            if (verdict != _lastOfferableVerdict)
+            {
+               _lastOfferableVerdict = verdict;
+               ModLog.Info($"[TAKE-INTO-SERVICE] {lord.Name} could be offered: {named ?? "(nobody)"}.");
+            }
 
             return named;
          }
