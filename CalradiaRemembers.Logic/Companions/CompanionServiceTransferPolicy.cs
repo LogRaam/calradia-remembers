@@ -107,11 +107,11 @@ namespace CalradiaRemembers.Logic.Companions
    /// </summary>
    public static class CompanionServiceTransferPolicy
    {
-      /// <summary>
-      ///   The relation the companion carries into their new house. Modest and positive: they arrive on their
-      ///   old lord's recommendation rather than as a stranger, but the standing is the new lord's to build.
-      /// </summary>
-      public const int StartingRelationWithNewLord = 10;
+      // NO STARTING-RELATION CONSTANT. There was one, and cr.testall on a live campaign showed the engine
+      // ignoring the change (two heroes who are by then in the same clan). Rather than move the call earlier
+      // to make a number stick, it was dropped: this project judges relationships on
+      // NpcProfile.ReputationWithPlayer, and a vanilla relation between a lord and their own clan companion
+      // is read by nothing here. See the executor for the fuller reasoning.
 
       /// <summary>
       ///   Ordered so the FIRST thing a reader is told is the most fundamental reason. The lord's own

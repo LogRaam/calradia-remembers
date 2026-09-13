@@ -222,7 +222,8 @@ namespace CalradiaRemembers.GameState
          "end_mercenary", "join_as_vassal", "mediate_peace", "join_clan", "scheme_assist", "scheme_heed",
          "marry", "take_as_consort", "take_as_secret_lover", "open_relationship", "close_relationship",
          "end_affair", "give_item", "give_prisoner", "free_prisoner", "execute_prisoner", "execute_player",
-         "turn_nemesis", "recruit_prisoner", "recruit_notable", "grant_blessing", "arrange_marriage",
+         "turn_nemesis", "recruit_prisoner", "recruit_notable",
+         "take_into_service", "grant_blessing", "arrange_marriage",
          "appoint_governor", "assign_party_role", "rejoin_party", "dispatch_mission", "grant_fief",
          "revoke_fief", "expel_from_clan", "grant_stipend", "swear_oath", "harm_prisoner", "impregnation_risk",
          "gather_news", "reassure_companion", "recall_companion", "follow_me", "dismiss_escort", "ride_with_me",
@@ -4082,9 +4083,15 @@ namespace CalradiaRemembers.GameState
             MobileParty lordParty = npcHero.PartyBelongedTo;
             if (lordParty != null) AddHeroToPartyAction.Apply(companion, lordParty, false);
 
-            // They arrive on their old lord's recommendation, not as a stranger.
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(
-               npcHero, companion, CompanionServiceTransferPolicy.StartingRelationWithNewLord, false);
+            // NO RELATION BONUS, and the reason is worth keeping. The first version warmed the new lord to
+            // the companion "so they arrive on a recommendation, not as a stranger". cr.testall on Gabriel's
+            // live campaign said the relation had not moved a point: a change between two heroes who are by
+            // then in the SAME clan does not take. It could have been applied before the move instead - but
+            // this project's own rule is that the ledger which matters is NpcProfile.ReputationWithPlayer,
+            // and a vanilla relation between a lord and their own clan companion is read by nothing here.
+            // A cosmetic poke the engine ignores is worse than none: it fails a test for something no player
+            // can feel. Warming the LORD toward the PLAYER for the favour was considered and refused too -
+            // progressive regard owns that, and change_relation is its verb.
 
             string where = lordParty != null ? $" and rides with {lordParty.Name}" : "";
             ModLog.Info($"[ACTION] take_into_service: {companion.Name} left the player's clan for "

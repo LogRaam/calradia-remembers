@@ -7757,7 +7757,6 @@ namespace CalradiaRemembers.Diagnostics
 
          MobileParty cameFrom = companion.PartyBelongedTo;
          Clan lordClan = lord.Clan;
-         int relationBefore = companion.GetRelation(lord);
          t.Note($"{companion.Name} of {playerClan.Name} -> {lord.Name} of {lordClan.Name}");
 
          // Prove the ground truth the assertions below rest on, so a pass cannot mean "they were never ours".
@@ -7775,15 +7774,15 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"outcome='{outcome?.Message}' refused={outcome?.WasRefused}");
          t.Expect("theBridgeCarriedItOut", outcome is {WasRefused: false}, true);
 
-         t.Expect("theyLeftYourClan", companion.IsPlayerCompanion, false);
+         // Every assertion below is phrased so that TRUE means the thing worked. An earlier version wrote
+         // these as "expect false" and the passing line read "theyLeftYourClan=False", which is the same trap
+         // this project already fell into once: a log a human scans must not make a pass look like a failure.
+         t.Expect("theyAreNoLongerYourCompanion", !companion.IsPlayerCompanion, true);
          t.Expect("theyJoinedTheLordsHouse", companion.Clan == lordClan, true);
 
          // THE ONE THIS TEST EXISTS FOR. ApplyByFire would have made them a fugitive; ApplyAfterQuest does not.
-         t.Expect("theyAreNotLeftAFugitive", companion.IsFugitive, false);
+         t.Expect("theyAreNotLeftAFugitive", !companion.IsFugitive, true);
          t.Expect("theyAreStillAliveAndFree", companion is {IsAlive: true, IsPrisoner: false}, true);
-
-         t.Expect("theyArriveOnTheirOldLordsRecommendation",
-                  companion.GetRelation(lord) > relationBefore, true);
 
          // ── put them back, and prove it took ────────────────────────────────────────────────────
          try
@@ -7799,7 +7798,7 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          t.Expect("andTheyAreYoursAgainAfterwards", companion.IsPlayerCompanion, true);
-         t.Expect("andNotLeftAFugitiveByTheRestoreEither", companion.IsFugitive, false);
+         t.Expect("andNotLeftAFugitiveByTheRestoreEither", !companion.IsFugitive, true);
 
          return t.Line();
       }
