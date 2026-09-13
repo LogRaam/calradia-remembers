@@ -149,11 +149,18 @@ namespace CalradiaRemembers.Companions
       }
 
       /// <summary>
-      ///   Drives the armed return once the chat is actually down. Called from the campaign tick.
+      ///   Drives the armed return once the briefing window is actually down. Called from the application tick.
       ///   <para>
-      ///     Waits on the same two facts DuelCoordinator waits on - no chat, no mission - because the vanilla
-      ///     conversation was ENDED by the engine's own close_window token back at the briefing dialogue line,
-      ///     so there is nothing to resume and a scene must be staged fresh.
+      ///     IT WAITS FOR THE CHAT, AND ONLY THE CHAT. The first cut also waited for Mission.Current to go
+      ///     null, copied from DuelCoordinator - where that is right for the opposite reason: a duel needs its
+      ///     OWN arena, so it must let the current mission end first. A briefing return wants the scene the
+      ///     player is ALREADY standing in. Gabriel briefed his companion inside Ira's hall, ended it, and got
+      ///     a load screen that went nowhere (2026-09-13): the guard held until something made the mission
+      ///     momentarily null, then staged a second scene on top of the one he had never left.
+      ///   </para>
+      ///   <para>
+      ///     ChatSceneStager.Open already makes exactly this decision - a live scene is opened over, only an
+      ///     empty one is staged - so the right move is to hand it the request and stop second-guessing it.
       ///   </para>
       /// </summary>
       public static void TickReturn()
@@ -162,7 +169,19 @@ namespace CalradiaRemembers.Companions
 
          try
          {
-            if (ChatManager.IsOpen || Mission.Current != null) return;
+            // A return that never fires must not lie in wait and stage something into an unrelated moment
+            // later on. Armed means "on the way back now", not "eventually". Counted BEFORE the wait below,
+            // or it would only ever reach one and the guard would be decoration.
+            if (++_framesWaiting > ReturnPatienceFrames)
+            {
+               ModLog.Info("[BRIEFING] the return went stale before the chat came down; dropped.");
+               Forget();
+
+               return;
+            }
+
+            // The window is still tearing down on the frame Close() armed us; give it that frame.
+            if (ChatManager.IsOpen) return;
 
             Hero target = _returnTo;
             List<Hero> briefed = _returnWith;
@@ -170,7 +189,10 @@ namespace CalradiaRemembers.Companions
 
             if (target == null || !target.IsAlive) return;
 
-            ChatSceneStager.StageBriefedReturn(target, briefed);
+            ModLog.Info($"[BRIEFING] returning to {target.Name} " +
+                        $"({(Mission.Current != null ? "over the scene already loaded" : "staging one, none live")}).");
+
+            ChatSceneStager.Open(ChatSceneStager.BuildBriefedReturn(target, briefed));
          }
          catch (Exception ex)
          {
@@ -179,12 +201,18 @@ namespace CalradiaRemembers.Companions
          }
       }
 
+      /// <summary>How many ticks the return waits for the briefing window before giving up (a few seconds).</summary>
+      private const int ReturnPatienceFrames = 600;
+
+      private static int _framesWaiting;
+
       /// <summary>Drops the pending return: the briefing was abandoned, or the return has been handed over.</summary>
       public static void Forget()
       {
          _returnTo = null;
          _returnWith = null;
          _returnArmed = false;
+         _framesWaiting = 0;
       }
 
       /// <summary>The name of the meeting we owe a way back into, for the close button. Null when there is none.</summary>
