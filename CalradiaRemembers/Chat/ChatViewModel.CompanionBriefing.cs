@@ -16,6 +16,7 @@
 #region
 
 using System.Collections.Generic;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Companions;
 using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
@@ -83,6 +84,9 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public void FinalizeCompanionBriefs()
       {
+         // Write it down first: expiry below may clear the very text the memory is made of.
+         WriteBriefingToMemory();
+
          if (CompanionBriefingStore.BriefedHeroIds.Count == 0) return;
 
          var participants = new List<string>();
@@ -108,6 +112,67 @@ namespace CalradiaRemembers.Chat
          foreach (WitnessEntry w in _witnesses)
             if (!string.IsNullOrEmpty(w.HeroStringId))
                CompanionBriefingStore.AddInstruction(w.HeroStringId, text);
+      }
+
+      /// <summary>
+      ///   Writes what the player asked for into each briefed companion's own memory, PRIVATELY, as the
+      ///   briefing closes.
+      ///   <para>
+      ///     Gabriel's design, 2026-09-13: "les décisions prises devraient se retrouver dans la mémoire du
+      ///     compagnon, et c'est la mémoire qui devrait être utilisée ensuite". It is the better vehicle for
+      ///     three reasons - it is durable across saves where the standing brief dies with the session, it is
+      ///     bounded by the memory pipeline rather than by a character count that ate his mission statement,
+      ///     and it is truer: the companion acts because he REMEMBERS being asked, not because a hidden field
+      ///     commands him.
+      ///   </para>
+      ///   <para>
+      ///     Private is what makes it safe. Until now the briefing DROPPED its memories outright, because a
+      ///     companion's memories travel into the prompt of whoever is speaking - so "Arwa asked me to charm
+      ///     Ira" would have been read out in Ira's own prompt while she stood there. See NotableEvent.IsPrivate
+      ///     and the filter in BuildWitnessMemory, which is the single path by which that could happen.
+      ///   </para>
+      /// </summary>
+      private void WriteBriefingToMemory()
+      {
+         if (!IsCompanionBriefingChat) return;
+
+         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         var store = behavior?.Store;
+         if (store == null) return;
+
+         // The same clock every other memory is stamped from, read through the bridge rather than the engine
+         // directly, so a briefing memory sorts beside the rest instead of into its own era.
+         int day = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
+         string targetName = _companionBriefingTargetName;
+
+         foreach (string heroId in BriefedParticipantIds())
+         {
+            string instruction = CompanionBriefingStore.Peek(heroId);
+            if (string.IsNullOrWhiteSpace(instruction)) continue;
+
+            NpcProfile profile = store.Get(heroId);
+            if (profile?.Events == null) continue;
+
+            string summary = string.IsNullOrWhiteSpace(targetName)
+               ? $"The player drew me aside for a private word and asked this of me: {instruction}"
+               : $"Before the meeting with {targetName}, the player drew me aside and asked this of me: {instruction}";
+
+            profile.Events.Add(new NotableEvent(day, NotableEventType.Other, summary) {IsPrivate = true});
+            store.Set(profile);
+
+            ModLog.Info($"[BRIEFING] wrote a private memory of the errand for {profile.Name ?? heroId} " +
+                        $"({summary.Length} chars).");
+         }
+      }
+
+      /// <summary>Everyone who stood in the private word: the anchor and every companion present.</summary>
+      private IEnumerable<string> BriefedParticipantIds()
+      {
+         if (!string.IsNullOrEmpty(_npcHero?.StringId)) yield return _npcHero.StringId;
+
+         foreach (WitnessEntry w in _witnesses)
+            if (!string.IsNullOrEmpty(w?.HeroStringId))
+               yield return w.HeroStringId;
       }
    }
 }

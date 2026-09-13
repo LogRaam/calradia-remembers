@@ -230,9 +230,16 @@ namespace CalradiaRemembers.Chat
          List<NotableEvent> events = profile?.Events;
          if (events == null || events.Count == 0) return null;
 
+         // THE LEAK GUARD, and this is the ONE place it is needed: a witness's recall is the only path by which
+         // one hero's memories reach another hero's prompt (everything else in EncounterContextBuilder reads the
+         // SPEAKER's own profile). A private memory is the holder's alone - it still reaches their own prompt
+         // through the ordinary history, and it never reaches the room. See NotableEvent.IsPrivate.
+         List<NotableEvent> shareable = events.Where(ev => ev != null && !ev.IsPrivate).ToList();
+         if (shareable.Count == 0) return null;
+
          // The oldest-kept-plus-recent selection is pure and unit-tested in CalradiaRemembers.Logic; here we only
          // hand it this witness's event summaries in order.
-         return WitnessMemoryDigest.Compose(events.Select(ev => ev?.summary).ToList(), cap);
+         return WitnessMemoryDigest.Compose(shareable.Select(ev => ev.summary).ToList(), cap);
       }
 
       /// <summary>

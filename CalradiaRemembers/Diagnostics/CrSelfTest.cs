@@ -226,6 +226,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("siege_tidings_participation", Severity.Light, "Mechanical (player report: told by letter of a siege they FOUGHT IN, days later, as if it were news): stamps the REAL WorldEventFeeders siege-participation marker for a live settlement, then drives the REAL RecordSiegeCapture construction with a NON-player taker (a mere participant, never the credited capturer) -> assert the recorded WorldEvent has InvolvesPlayer true (so realm-tidings' own InvolvesPlayer filter will never relay it back) while Type stays SettlementCaptured and Aggrieved* stay empty (the conquest's attribution is NOT stolen from the real taker). Removes the seeded event afterwards", TestSiegeTidingsParticipation),
          new SelfTest("companion_battle_memory", Severity.Light, "Mechanical: the companion 'fought together' memory (WorldEventFeeders' main-party companion loop), which a real MapEvent drives in game. Borrows a companion into the party if none rides along, calls the DebugRecordCompanionBattleMemories seam, and asserts the companion's profile gained a fresh 'Fought at your side' memory. Removes the memory it added and returns any borrowed companion", TestCompanionBattleMemory),
          new SelfTest("spotlight_cast", Severity.Light, "Spotlight pillar wiring (found in play by Gabriel 2026-09-12: he addressed his companion Sley by name in a conversation with Ira, the turn routed to Sley, and no [SPOTLIGHT] line was ever written - the promotion silently did nothing). ConversationCast has been correct and unit-tested since 27/08; both faults were in the HOST. (1) The cast was born inside SetWitnesses, so a conversation with no auto-detected witness - a lord standing alone - had no cast at all, not even its own anchor. (2) AddWitness never introduced the arrival, and AddWitness is how a companion joins: the picker resolves ASYNCHRONOUSLY, after the cast was built, so every brought companion sat in the witness list while absent from the cast, Promote read RoleOf == null and returned false. ConversationCast.Introduce was written for exactly this on 27/08 and had never once been called from the game. Drives the REAL ChatViewModel: sets a real anchor hero with NO witnesses and asserts a cast exists with that anchor Active (hole 1), then AddWitness a real companion and asserts they are IN the cast as a Witness and therefore promotable (hole 2), then promotes and asserts the scene became an ensemble. A pure test cannot catch either: it would build the very cast the host failed to fill", TestSpotlightCast),
+         new SelfTest("private_memory", Severity.Light, "The leak guard the companion briefing is built on (Gabriel 2026-09-13: what was decided in a briefing should live in the companion MEMORY and be used from there). A memory is normally shared: a witness carries theirs into the prompt of whoever is speaking, which is right for \"he was there when you took the town\" and catastrophic for \"Arwa asked me to charm Ira\", read out in Ira own prompt while she stands there. Until now the briefing dealt with that by DROPPING its memories outright, so nothing of the private word survived. NotableEvent.IsPrivate now marks a memory the holder keeps to themselves. Plants one PUBLIC and one PRIVATE event on a real hero profile and drives the REAL ChatViewModel.DebugWitnessMemory - the same BuildWitnessMemory path a live turn uses, and the ONLY path by which one hero memories reach another hero prompt - asserting the public one is carried and the private one is not, and that a hero holding NOTHING but private memories contributes no recall at all rather than an empty husk. Restores the profile events in a finally", TestPrivateMemory),
          new SelfTest("companion_briefing", Severity.Light, "Companion-briefing pillar (player request 2026-09-07: a specific NPC taking the lead in a group conversation needs the player's own, unspoken intent to reach them; revised the same day into a REAL conversation per Gabriel's ruling). Borrows a companion into the party if none rides along; picks a second, distinct living hero to stand in as the conversation's TARGET. Drives the REAL CompanionBriefingStore.AddInstruction and the REAL EncounterContextBuilder.Build (no LLM call) for both heroes: asserts the brief reaches the briefed companion's own context, and (the load-bearing assertion of the whole feature) is ABSENT from the target's context; asserts a second briefing STACKS rather than replaces; asserts the REAL isCompanionBriefingScene/companionBriefingTargetName wiring reaches the context AND that it suppresses the standing brief inside the scene itself (avoids telling the model twice); then drives the REAL CompanionBriefingStore.ExpireForConversationClose (the same call ChatViewModel.FinalizeCompanionBriefs makes on an ordinary conversation's close) and asserts the brief is gone afterwards. Clears any brief it planted and returns the borrowed companion in a finally", TestCompanionBriefing),
          new SelfTest("query_relevant_facts", Severity.Light, "Modder report: asking a lord a POINTED question about a specific third party got a hallucinated answer because the real fact ranked too low on ambient awareness (the small WorldRumorsBlock top-N) to ever be injected. Seeds a fresh, high-magnitude, faction-tagged WorldEvent naming a real third-party lord (guaranteed KNOWN regardless of map position), then drives the REAL EncounterContextBuilder.ResolveQueryRelevantFacts (no LLM call) once with a message naming that lord -> assert the seeded fact surfaces, and once with an unrelated message -> assert it does NOT (the knowledge-then-relevance gate, never omniscience). Removes the seeded event afterwards", TestQueryRelevantFacts),
          new SelfTest("war_council_offer", Severity.Light, "Mechanical: the war-council OFFER trigger's arm + policy + persisted-cooldown decision (WarCouncilOfferBehavior.DebugWouldOffer), WITHOUT opening the council UI. Arms the flag and asserts a notable action while leading an army WOULD offer, that not-in-army / non-notable / disarmed all refuse, and that stamping an offer today blocks a fresh one (cooldown) while a stale stamp clears it. Restores the flag + the persisted last-offer day", TestWarCouncilOffer),
@@ -8547,6 +8548,58 @@ namespace CalradiaRemembers.Diagnostics
       ///   Spotlight wiring, swept against the REAL view-model. What this pins is not the cast rules (pure and
       ///   long since tested) but that the host actually FILLS the cast - the two things that were missing.
       /// </summary>
+
+      /// <summary>
+      ///   The one rule that makes a remembered briefing safe: a private memory reaches its holder and nobody
+      ///   else. Driven through the real witness-recall seam, because that is the only door it could escape by.
+      /// </summary>
+      private static string TestPrivateMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("private_memory");
+
+         Hero subject = Hero.AllAliveHeroes?.FirstOrDefault(h => h != null && h != Hero.MainHero && h.IsAlive);
+         if (t.Skip(subject == null, "no living hero to remember anything")) return t.Line();
+
+         NpcProfile profile = behavior?.Store?.Get(subject!.StringId);
+         if (t.Skip(profile?.Events == null, "no profile to plant a memory on")) return t.Line();
+
+         List<NotableEvent> original = profile!.Events.ToList();
+         const string shared = "SELFTEST-SHARED they stood beside the player at the ford";
+         const string secret = "SELFTEST-SECRET the player asked me privately to charm the countess";
+
+         try
+         {
+            int day = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
+
+            profile.Events.Add(new NotableEvent(day, NotableEventType.Other, shared));
+            profile.Events.Add(new NotableEvent(day, NotableEventType.Other, secret) {IsPrivate = true});
+            behavior.Store.Set(profile);
+
+            string recall = ChatViewModel.DebugWitnessMemory(subject.StringId) ?? "";
+            t.Note($"{subject.Name}: witness recall = {(recall.Length == 0 ? "(none)" : recall.Substring(0, System.Math.Min(120, recall.Length)))}");
+
+            t.Expect("aSharedMemoryStillReachesTheRoom", recall.Contains("SELFTEST-SHARED"), true);
+            t.Expect("aPrivateMemoryNeverReachesTheRoom", recall.Contains("SELFTEST-SECRET"), false);
+
+            // And somebody whose ONLY memories are private must contribute nothing, rather than an empty husk
+            // that would read to the model as "this person remembers something they are not telling you".
+            profile.Events.Clear();
+            profile.Events.Add(new NotableEvent(day, NotableEventType.Other, secret) {IsPrivate = true});
+            behavior.Store.Set(profile);
+
+            t.Expect("nothingButPrivateMeansNoRecallAtAll",
+                     string.IsNullOrWhiteSpace(ChatViewModel.DebugWitnessMemory(subject.StringId)), true);
+         }
+         finally
+         {
+            profile.Events.Clear();
+            profile.Events.AddRange(original);
+            behavior?.Store?.Set(profile);
+         }
+
+         return t.Line();
+      }
+
       private static string TestSpotlightCast(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("spotlight_cast");

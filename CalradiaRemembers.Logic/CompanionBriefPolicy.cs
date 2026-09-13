@@ -33,25 +33,44 @@ namespace CalradiaRemembers.Logic
         ///   sentence or two each, small enough that a player who keeps going back for "one more word" can
         ///   never quietly balloon a companion's slice of the prompt.
         /// </summary>
-        public const int MaxChars = 500;
+        public const int MaxChars = 2000;
 
         private const string Separator = " ";
 
+        /// <summary>Marks where the middle of an over-long briefing was dropped, so nobody reads across the seam.</summary>
+        private const string Elision = " ... ";
+
         /// <summary>
-        ///   Trims <paramref name="text" /> down to <see cref="MaxChars" /> from the FRONT (the oldest material),
-        ///   on a word boundary where one exists, so the newest instruction at the tail always survives whole:
-        ///   the most recent thing the player said is the one he means right now.
+        ///   Bounds <paramref name="text" /> by keeping the HEAD and the TAIL and dropping the middle, on word
+        ///   boundaries where they exist.
+        ///   <para>
+        ///     IT USED TO CUT FROM THE FRONT, on the reasoning that "the most recent instruction is the one the
+        ///     player means right now". That is true when he comes BACK to add something, and false inside a
+        ///     single briefing, where the FIRST sentence is the order and everything after it is reward,
+        ///     reassurance and "did you accept?".
+        ///   </para>
+        ///   <para>
+        ///     Measured on Gabriel's own briefing, 2026-09-12: four messages, 1,000 characters, bounded to the
+        ///     last 500. What survived was the promise of protection and "we go now". What was cut was "I need
+        ///     you to try to charm her. If you can become her lover, we'll have a good influence in the
+        ///     Empire." The companion walked into the meeting with the negotiation and none of the mission, and
+        ///     behaved exactly like a man who had been told nothing - because he had.
+        ///   </para>
         /// </summary>
         private static string Bound(string text)
         {
             if (text.Length <= MaxChars) return text;
 
-            int cutFrom = text.Length - MaxChars;
-            int wordBoundary = text.IndexOf(' ', cutFrom);
+            int head = MaxChars / 2;
+            int tail = MaxChars - head - Elision.Length;
 
-            return wordBoundary >= 0 && wordBoundary < text.Length - 1
-                ? text.Substring(wordBoundary + 1)
-                : text.Substring(cutFrom);
+            int headEnd = text.LastIndexOf(' ', head);
+            if (headEnd <= 0) headEnd = head;
+
+            int tailStart = text.IndexOf(' ', text.Length - tail);
+            if (tailStart < 0 || tailStart >= text.Length - 1) tailStart = text.Length - tail;
+
+            return text.Substring(0, headEnd) + Elision + text.Substring(tailStart + 1);
         }
 
         /// <summary>

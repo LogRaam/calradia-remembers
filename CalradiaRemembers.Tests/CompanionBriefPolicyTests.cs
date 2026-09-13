@@ -81,17 +81,41 @@ namespace CalradiaRemembers.Tests
          brief.Length.Should().BeLessThanOrEqualTo(CompanionBriefPolicy.MaxChars);
       }
 
-      // "The most recent instruction is the one the player means": when the stack overflows, the OLDEST
-      // material is dropped, so the newest instruction (the one just given) always survives whole.
+      // REVERSED 2026-09-13, and the reversal is the whole point. The rule used to be "drop the oldest, the
+      // most recent instruction is the one the player means". That is true when he comes BACK to add
+      // something, and false inside a single briefing, where the FIRST sentence is the order and everything
+      // after it is reward, reassurance and "did you accept?".
+      //
+      // Gabriel's own briefing, measured from his log: four messages, 1,000 characters, bounded to the last
+      // 500. What survived was the promise of protection and "we go now". What was cut was "I need you to try
+      // to charm her. If you can become her lover, we'll have a good influence in the Empire." His companion
+      // walked into the meeting with the negotiation and none of the mission, and played it exactly like a man
+      // who had been told nothing - because he had.
+      //
+      // So the head and the tail both survive and the MIDDLE goes: the order, and the latest word on it.
       [Test]
-      public void GIVEN_the_stack_overflows_the_cap_WHEN_stacking_THEN_the_oldest_material_is_dropped_first()
+      public void GIVEN_the_stack_overflows_the_cap_WHEN_stacking_THEN_the_order_survives_with_the_latest_word()
       {
          string brief = "";
-         for (var i = 0; i < 20; i++)
+         for (var i = 0; i < 60; i++)
             brief = CompanionBriefPolicy.Stack(brief, $"Instruction number {i}, remember to ask about the harvest and the garrison.");
 
-         brief.Should().NotContain("Instruction number 0,");
-         brief.Should().Contain("Instruction number 19,");
+         brief.Length.Should().BeLessThanOrEqualTo(CompanionBriefPolicy.MaxChars);
+         brief.Should().Contain("Instruction number 0,", "the first thing said is the mission");
+         brief.Should().Contain("Instruction number 59,", "the last thing said is the latest amendment");
+         brief.Should().NotContain("Instruction number 30,", "the middle is what a briefing can afford to lose");
+      }
+
+      // And the seam must be visible, so nobody - model or reader - runs the two halves together into a
+      // sentence neither of them said.
+      [Test]
+      public void GIVEN_a_brief_cut_in_the_middle_WHEN_read_THEN_the_gap_is_marked()
+      {
+         string brief = "";
+         for (var i = 0; i < 60; i++)
+            brief = CompanionBriefPolicy.Stack(brief, $"Instruction number {i}, remember to ask about the harvest and the garrison.");
+
+         brief.Should().Contain("...");
       }
 
       // A single instruction alone exceeding the cap (an extreme edge case) must still be bounded, not left to
