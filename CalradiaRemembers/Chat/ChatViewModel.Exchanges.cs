@@ -968,7 +968,7 @@ namespace CalradiaRemembers.Chat
             }
             // ─────────────────────────────────────────────────────────────────────────────────────
 
-            ParsedResponse response = result.Response;
+            ParsedResponse response = TakeBackTheOtherPeoplesLines(result.Response, speaker);
             // Empty when the model produced no spoken line; RenderNpcTurn below turns that into
             // a narration-only turn (no "(silence...)" bubble) when [NARRATION] is present.
             string npcLine = !string.IsNullOrWhiteSpace(response?.Dialogue)
@@ -1471,6 +1471,12 @@ namespace CalradiaRemembers.Chat
                   string refusalNote = ActionRefusalNote.For(outcome?.WasRefused == true, outcome?.Message);
                   if (refusalNote != null)
                   {
+                     // LOGGED, because it was not. A refused action is the single most diagnostic thing an
+                     // action turn produces and it left no trace whatever: Gabriel watched Ira agree to take
+                     // Nabb into her service and nothing happen, and the log showed only that the verb ran.
+                     // Now the reason is in the log next to the verb that gave it.
+                     ModLog.Info($"[ACTION] {action.Type} REFUSED by the bridge: {outcome?.Message}");
+
                      try { RecordTranscript(true, "You", Hero.MainHero?.StringId, refusalNote); }
                      catch (Exception ex) { ModLog.Error($"[ACTION] refusal note failed: {ex.GetType().Name}: {ex.Message}"); }
                   }
@@ -1913,9 +1919,25 @@ namespace CalradiaRemembers.Chat
                ChatMessageViewModel placeholder = MakeSpeakerMessage(s, PlaceholderText);
                _messages.Add(placeholder);
 
+               // WHAT THIS VOICE IS ANSWERING, and getting it wrong produced the worst leak of 13/09/2026.
+               //
+               // Every voice used to be handed the PLAYER's line as its stimulus, which is right for the one
+               // who leads and wrong for everyone after. Gabriel typed "*I shift my attention to Ira, waiting
+               // for her reaction*". Ira answered it and closed the deal. Then Nabb was handed the SAME line -
+               // a line asking for Ira's reaction - and the model gave the only completion that sentence has:
+               // it wrote Ira's reaction, in Ira's voice, ending "Do we have a bargain?". Gabriel answered
+               // "We do", and the real Ira then closed the same deal a second time. That is the repetition he
+               // reported, and the voice hijack, and they are one fault.
+               //
+               // A co-voice is answering the ROOM as it stands, so its stimulus is the last thing said in it,
+               // attributed. The player's line is already in the shared transcript (the lead voice committed
+               // it), so nothing is lost - what changes is which message the model is completing. Same shape
+               // the 15C exchange has always used.
+               string stimulus = i == 0 ? text : (LastThingSaidInTheRoom() ?? text);
+
                // The first voice commits the player line to the transcript; the rest suppress it (committed once).
                // Every voice suppresses the group tail: the orchestrator owns it below.
-               await RunLlmExchangeAsync(text, s, placeholder, suppressPlayerLine: i > 0, suppressGroupTail: true);
+               await RunLlmExchangeAsync(stimulus, s, placeholder, suppressPlayerLine: i > 0, suppressGroupTail: true);
 
                if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return; // chat closed/replaced mid-sequence
                if (_conversationEnded) break;                                   // a voice ended the meeting (e.g. a duel armed)
@@ -1944,6 +1966,25 @@ namespace CalradiaRemembers.Chat
             ModLog.Error($"[SPOTLIGHT] RunEnsembleTurnAsync threw {ex.GetType().Name}: {ex.Message}");
             IsSendEnabled = !_conversationEnded;
          }
+      }
+
+      /// <summary>
+      ///   The most recent spoken line in the room, attributed the way a third-party voice reaches a model
+      ///   (<c>[Name]: content</c>). Null when nobody has spoken yet, which leaves the caller on the player's
+      ///   own line.
+      /// </summary>
+      private string LastThingSaidInTheRoom()
+      {
+         for (int i = _transcript.Count - 1; i >= 0; i--)
+         {
+            TranscriptLine line = _transcript.Lines[i];
+            if (line == null || line.IsPlayer || string.IsNullOrWhiteSpace(line.Text)) continue;
+            if (string.IsNullOrWhiteSpace(line.SpeakerName)) continue;
+
+            return $"[{line.SpeakerName}]: {line.Text}";
+         }
+
+         return null;
       }
 
       /// <summary>
@@ -2012,6 +2053,82 @@ namespace CalradiaRemembers.Chat
       // How many hanging questions this beat has already answered. Reset per player turn, alongside the 15C
       // and scene-continuation counters, so the cap bounds a BEAT rather than the whole conversation.
       private int _hangingAnswersThisBeat;
+
+      /// <summary>
+      ///   Cuts out any turn the reply wrote for SOMEBODY ELSE, above all the player's.
+      ///   <para>
+      ///     Gabriel's play-test, 13:31:32: Nabb's reply came back as a full script - "[Nabb]: ...", then
+      ///     "[Arwa]: ..." putting a long speech in the PLAYER's mouth, then "[Nabb]: ..." again. The speech
+      ///     offered Ira an alliance and Nabb's service "and whatever else may grow from that": the briefing
+      ///     plan, said aloud, in the player's own voice, to the one person it existed to stay hidden from.
+      ///   </para>
+      ///   <para>
+      ///     The cause is structural, not a bad roll. Third-party voices reach the model as "[Name]: content"
+      ///     (ChatSession.AddWitnessStatement), which is a SCRIPT format; shown enough of it a model writes the
+      ///     scene instead of a character, and the player is then just another part to write. That is why this
+      ///     is enforced here rather than asked for in the prompt.
+      ///   </para>
+      ///   <para>
+      ///     WHEN THE PLAYER WAS SPOKEN FOR, THIS TURN'S [EVENT] GOES TOO. The event that came back read "Arwa
+      ///     formally proposed an alliance with Ira of Onira, offering Nabb's service..." - a memory of a thing
+      ///     the player never did, written from words the model invented for them. Cutting the speech and
+      ///     keeping the memory of it would leave the leak in the only place that outlives the conversation.
+      ///     Narrow on purpose: a reply that merely scripted another NPC keeps its event.
+      ///   </para>
+      /// </summary>
+      private static ParsedResponse TakeBackTheOtherPeoplesLines(ParsedResponse response, ChatSpeaker speaker)
+      {
+         if (response == null) return null;
+
+         try
+         {
+            string speakerName = speaker?.Name;
+            string playerName = Hero.MainHero?.Name?.ToString();
+
+            SpeakerScriptVerdict spoken = SpeakerScriptGuard.Cut(response.Dialogue, speakerName, playerName);
+            SpeakerScriptVerdict narrated = SpeakerScriptGuard.Cut(response.Narration, speakerName, playerName);
+
+            if (!spoken.CutAnything && !narrated.CutAnything) return response;
+
+            var who = new List<string>(spoken.CutSpeakers);
+            who.AddRange(narrated.CutSpeakers);
+            bool forThePlayer = spoken.SpokeForThePlayer || narrated.SpokeForThePlayer;
+
+            ModLog.Info($"[SCRIPT] {speakerName ?? "a speaker"} wrote lines for {string.Join(", ", who)}"
+                      + $"{(forThePlayer ? " INCLUDING THE PLAYER" : "")}; taken back out of the reply.");
+
+            bool dropEvent = forThePlayer && response.NewEventData != null;
+            if (dropEvent)
+               ModLog.Info("[SCRIPT] dropped this turn's [EVENT] too - it was written from words the model "
+                         + $"invented for the player: \"{response.NewEventData.Summary}\"");
+
+            // ParsedResponse is a plain class, so a copy is written out field by field, the same way
+            // WithoutEventData above does it. Every field not named here travels unchanged.
+            return new ParsedResponse {
+               Dialogue = spoken.Text,
+               Narration = string.IsNullOrWhiteSpace(narrated.Text) ? null : narrated.Text,
+               NarrationBeforeDialogue = response.NarrationBeforeDialogue,
+               Memory = response.Memory,
+               NewEventData = dropEvent ? null : response.NewEventData,
+               Reputation = response.Reputation,
+               StanceShift = response.StanceShift,
+               Actions = response.Actions,
+               Discovery = response.Discovery,
+               QuestGiven = response.QuestGiven,
+               QuestBlockMalformed = response.QuestBlockMalformed,
+               QuestCompleted = response.QuestCompleted,
+               QuestAbandoned = response.QuestAbandoned,
+               WitnessReactions = response.WitnessReactions
+            };
+         }
+         catch (Exception ex)
+         {
+            // A reply that reaches the player unfiltered is better than a turn lost to this guard.
+            ModLog.Error($"[SCRIPT] guard threw {ex.GetType().Name}: {ex.Message}; the reply stands as written.");
+
+            return response;
+         }
+      }
 
       /// <summary>
       ///   An ensemble co-voice whose LLM turn failed simply stays quiet this beat: drop its "thinking"
