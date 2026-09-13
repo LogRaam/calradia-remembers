@@ -36,6 +36,13 @@ namespace CalradiaRemembers
       ///   The memories CR currently holds for the NPC with this hero StringId, oldest first. Empty when the id
       ///   is unknown, the NPC has no profile yet, or no campaign is loaded. Read this to avoid injecting a
       ///   duplicate of something CR already remembers.
+      ///   <para>
+      ///     PRIVATE memories are withheld (audit, 13/09/2026). A private memory is one CR deliberately keeps
+      ///     out of every other character's prompt - a word the player spoke to this companion alone - and
+      ///     <see cref="CrMemoryRecord" /> has no field in which to say so, so a caller could neither know nor
+      ///     honour it. Withholding costs this API nothing: its stated job is to let a caller avoid duplicating
+      ///     what CR already knows, and nothing outside CR ever writes a private memory to duplicate.
+      ///   </para>
       /// </summary>
       public static IReadOnlyList<CrMemoryRecord> GetMemories(string npcId)
       {
@@ -46,6 +53,7 @@ namespace CalradiaRemembers
          if (profile?.Events == null) return new List<CrMemoryRecord>();
 
          return profile.Events
+                       .Where(e => e is {IsPrivate: false})
                        .Select(e => new CrMemoryRecord(e.gameDay, e.type.ToString(), e.summary))
                        .ToList();
       }
