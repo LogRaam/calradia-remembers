@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Witnesses;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.MountAndBlade;
@@ -185,46 +186,36 @@ namespace CalradiaRemembers.Companions
 
          try
          {
-            // A return that never fires must not lie in wait and stage something into an unrelated moment
-            // later on. Armed means "on the way back now", not "eventually". Counted BEFORE the wait below,
-            // or it would only ever reach one and the guard would be decoration.
-            if (++_framesWaiting > ReturnPatienceFrames)
+            ReturnMove move = BriefingReturnDecision.Decide(
+               _returnArmed, ChatManager.IsOpen, Mission.Current != null, ++_ticksWaited);
+
+            switch (move)
             {
-               ModLog.Info("[BRIEFING] the return went stale before the chat came down; dropped.");
-               Forget();
-               ChatManager.FinishDeferredClose();
+               case ReturnMove.Idle:
+               case ReturnMove.Wait:
+                  return;
 
-               return;
+               case ReturnMove.GiveTheWorldBack:
+                  // The hand-off cannot be caught: no scene to open over, or the wait ran long. Settle what
+                  // the close deferred rather than leave the map suspended behind an empty screen.
+                  ModLog.Info("[BRIEFING] the return cannot happen; settling what the hand-off deferred.");
+                  Forget();
+                  ChatManager.FinishDeferredClose();
+
+                  return;
+
+               case ReturnMove.OpenOverLiveScene:
+                  Hero target = _returnTo;
+                  List<Hero> briefed = _returnWith;
+                  Forget();
+
+                  if (target == null || !target.IsAlive) return;
+
+                  ModLog.Info($"[BRIEFING] returning to {target.Name} over the scene already loaded.");
+                  ChatSceneStager.Open(ChatSceneStager.BuildBriefedReturn(target, briefed));
+
+                  return;
             }
-
-            // The window is still tearing down on the frame Close() armed us; give it that frame.
-            if (ChatManager.IsOpen) return;
-
-            // NEVER STAGE. The briefing is a step inside a meeting the player has not left, so the scene he
-            // is standing in is the only one this may open over. Building one instead is what killed his game:
-            // an interior mission opened from the campaign map, which is the documented native-crash class
-            // here. If no scene is live, something has gone differently than expected and the honest move is to
-            // do nothing at all - he can speak to them again himself. A feature that quietly declines is worth
-            // a great deal more than one that crashes.
-            // No scene to open over. The hand-off cannot be caught, so settle what it deferred rather
-            // than leaving the map suspended and the clock stopped behind an empty screen.
-            if (Mission.Current == null)
-            {
-               Forget();
-               ChatManager.FinishDeferredClose();
-
-               return;
-            }
-
-            Hero target = _returnTo;
-            List<Hero> briefed = _returnWith;
-            Forget();
-
-            if (target == null || !target.IsAlive) return;
-
-            ModLog.Info($"[BRIEFING] returning to {target.Name} over the scene already loaded.");
-
-            ChatSceneStager.Open(ChatSceneStager.BuildBriefedReturn(target, briefed));
          }
          catch (Exception ex)
          {
@@ -234,10 +225,7 @@ namespace CalradiaRemembers.Companions
          }
       }
 
-      /// <summary>How many ticks the return waits for the briefing window before giving up (a few seconds).</summary>
-      private const int ReturnPatienceFrames = 600;
-
-      private static int _framesWaiting;
+      private static int _ticksWaited;
 
       /// <summary>
       ///   Nothing came of the briefing, so end the meeting it was nested inside.
@@ -277,7 +265,7 @@ namespace CalradiaRemembers.Companions
          _returnTo = null;
          _returnWith = null;
          _returnArmed = false;
-         _framesWaiting = 0;
+         _ticksWaited = 0;
       }
 
       /// <summary>The name of the meeting we owe a way back into, for the close button. Null when there is none.</summary>

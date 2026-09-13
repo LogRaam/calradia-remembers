@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CalradiaRemembers.Companions;
+using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
@@ -351,6 +352,10 @@ namespace CalradiaRemembers.Chat
       {
          if (!IsOpen) return;
 
+         // Declared OUTSIDE the try because the finally reads it: a hand-off and an ordinary close say
+         // different things about where the player just went.
+         var handingOff = false;
+
          // CRITICAL: FreeResources() (which nulls _activeLayer) MUST run no matter what.
          // If any teardown step threw before it, _activeLayer would stay non-null, IsOpen
          // would stay true forever, and every future Open() would no-op — silently killing
@@ -375,7 +380,6 @@ namespace CalradiaRemembers.Chat
             // A briefing closing means "take me back to the meeting I asked leave from"; anything else
             // closing means whatever return was pending is stale and must not keep encounters alive behind
             // our back.
-            var handingOff = false;
             SafeStep(() => {
                handingOff = ActiveViewModel?.IsBriefingChat == true;
 
@@ -401,7 +405,7 @@ namespace CalradiaRemembers.Chat
             SafeStep(() => ActiveViewModel?.ReleaseAllPortraits(), "ReleaseAllPortraits");
             // Turn the host map scene's rendering back on before we tear our layer down, so the map is live
             // again the instant the chat is gone.
-            // ── THE TWO CLOSES ─────────────────────────────────────────────────────────────────────────
+            // ── THE TWO CLOSES, walked as a plan ───────────────────────────────────────────────────────
             // Gabriel's reading, 2026-09-13, and it is the right shape: "End Conversation" has two jobs, and
             // the button is composed for the situation. An ordinary close ENDS things - it gives the world
             // back, ends the conversation, finishes the encounter and lets the clock run. A briefing's close
@@ -415,18 +419,16 @@ namespace CalradiaRemembers.Chat
             // churn between them is where two days of loading screens and one native crash lived.
             SafeStep(KillChatWindow, "KillChatWindow");
 
+            // The steps after the window are DATA now (ChatClosePlan), so a unit test can read which of them
+            // a hand-off skips instead of somebody having to trust a comment. See BriefingReturnDecision for
+            // why the shape of this sequence, rather than any step in it, is what kept going wrong.
+            foreach (ChatCloseStep step in ChatClosePlan.For(handingOff
+                                                                ? ChatCloseKind.HandOff
+                                                                : ChatCloseKind.Ordinary))
+               RunCloseStep(step);
+
             if (handingOff)
-            {
                ModLog.Info("[BRIEFING] window closed as a HAND-OFF: the meeting stands, the world is untouched.");
-
-               return;
-            }
-
-            SafeStep(MapSceneSuspender.Resume, "ResumeMapScene");
-            SafeStep(EndVanillaConversation, "EndVanillaConversation");
-            SafeStep(EndOrphanedStagedMission, "EndOrphanedStagedMission");
-            SafeStep(EndMapEncounterIfNeeded, "EndMapEncounterIfNeeded");
-            SafeStep(RestoreTime, "RestoreTime");
          }
          finally
          {
@@ -1073,11 +1075,51 @@ namespace CalradiaRemembers.Chat
       {
          ModLog.Info("[BRIEFING] the hand-off was not caught; giving the world back as an ordinary close would.");
 
-         SafeStep(MapSceneSuspender.Resume, "ResumeMapScene (deferred)");
-         SafeStep(EndVanillaConversation, "EndVanillaConversation (deferred)");
-         SafeStep(EndOrphanedStagedMission, "EndOrphanedStagedMission (deferred)");
-         SafeStep(EndMapEncounterIfNeeded, "EndMapEncounterIfNeeded (deferred)");
-         SafeStep(RestoreTime, "RestoreTime (deferred)");
+         // Derived from the two plans, never listed again: the debt IS whatever the hand-off skipped, so it
+         // cannot fall out of step with what a hand-off actually skips.
+         foreach (ChatCloseStep step in ChatClosePlan.Deferred()) RunCloseStep(step);
+      }
+
+      /// <summary>
+      ///   Performs one planned step. The plan says WHICH and in what order; this says how, and nothing here
+      ///   decides anything - that separation is the whole point (see BriefingReturnDecision's header).
+      /// </summary>
+      private static void RunCloseStep(ChatCloseStep step)
+      {
+         switch (step)
+         {
+            // Recording and the window itself are run directly by Close, above the plan walk: they happen on
+            // every path including the finally-guarded one, and must not depend on a plan being well formed.
+            case ChatCloseStep.RecordWhatHappened:
+            case ChatCloseStep.ReleasePortraits:
+            case ChatCloseStep.KillWindow:
+               return;
+
+            case ChatCloseStep.ResumeMapScene:
+               SafeStep(MapSceneSuspender.Resume, "ResumeMapScene");
+
+               return;
+
+            case ChatCloseStep.EndVanillaConversation:
+               SafeStep(EndVanillaConversation, "EndVanillaConversation");
+
+               return;
+
+            case ChatCloseStep.EndStagedMission:
+               SafeStep(EndOrphanedStagedMission, "EndOrphanedStagedMission");
+
+               return;
+
+            case ChatCloseStep.EndMapEncounter:
+               SafeStep(EndMapEncounterIfNeeded, "EndMapEncounterIfNeeded");
+
+               return;
+
+            case ChatCloseStep.RestoreTime:
+               SafeStep(RestoreTime, "RestoreTime");
+
+               return;
+         }
       }
 
       private static void EndMapEncounterIfNeeded()
