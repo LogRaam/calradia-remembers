@@ -103,8 +103,7 @@ namespace CalradiaRemembers.Companions
             // StringId and a display name on the view-model, for the sole purpose of telling this chat's
             // close apart from an ordinary one - the Hero itself was dropped, so there was nothing to go
             // back to. Gabriel played it and the whole encounter ended instead (see ArmReturn).
-            _returnTo = target;
-            _returnWith = new List<Hero>(chosen);
+            RememberReturn(target, chosen);
 
             ChatManager.OpenForCompanionBriefing(target, chosen);
          }
@@ -114,6 +113,20 @@ namespace CalradiaRemembers.Companions
          }
       }
       #region the return
+
+      /// <summary>
+      ///   Records the meeting a briefing is FOR, apart from opening anything. Split out so the live sweep can
+      ///   walk the whole briefing-to-meeting vector without an inquiry popping up mid-test: the picker is a
+      ///   window, and what has to be RIGHT is what it decides.
+      /// </summary>
+      public static void RememberReturn(Hero target, IEnumerable<Hero> chosen)
+      {
+         _returnTo = target;
+         _returnWith = chosen == null ? new List<Hero>() : new List<Hero>(chosen);
+      }
+
+      /// <summary>The companions we owe a seat at that meeting, for the sweep to check against.</summary>
+      public static IReadOnlyList<Hero> PendingReturnCompanions => _returnWith ?? new List<Hero>();
 
       private static Hero _returnTo;
       private static List<Hero> _returnWith;

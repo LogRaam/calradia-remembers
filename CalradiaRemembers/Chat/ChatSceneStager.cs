@@ -275,14 +275,20 @@ namespace CalradiaRemembers.Chat
       ///   </para>
       /// </summary>
       public static void StageBriefedReturn(Hero target, List<Hero> briefed)
-      {
-         Open(new ChatSceneRequest {
+         => Open(BuildBriefedReturn(target, briefed));
+
+      /// <summary>
+      ///   The request a briefed return stages, built apart from staging it. Separated so the live sweep can
+      ///   assert WHAT the return asks for without a mission actually loading: the scene is the part only play
+      ///   can prove, the request is the part that can be wrong quietly.
+      /// </summary>
+      public static ChatSceneRequest BuildBriefedReturn(Hero target, List<Hero> briefed)
+         => new() {
             Kind = ChatSceneKind.BriefedReturn,
             Partner = target,
             AttachParty = target?.PartyBelongedTo?.Party ?? target?.CurrentSettlement?.Party,
             BriefedCompanions = briefed
-         });
-      }
+         };
 
       /// <summary>
       ///   Builds a POST-DUEL request (the conversation that resumes right after a fought duel) and stages it.

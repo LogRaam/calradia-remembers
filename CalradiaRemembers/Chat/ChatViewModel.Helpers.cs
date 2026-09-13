@@ -609,6 +609,13 @@ namespace CalradiaRemembers.Chat
 
       // ── Sprint 15B helpers ────────────────────────────────────────────────
 
+      /// <summary>
+      ///   cr.testall seam: records a line into this chat's transcript exactly as a real turn would, so the
+      ///   sweep can drive a briefing to its close without an LLM, a window, or a player typing.
+      /// </summary>
+      public void RecordPlayerLineForDiagnostics(string text)
+         => RecordTranscript(true, Hero.MainHero?.Name?.ToString() ?? "the player", null, text);
+
       private void RecordTranscript(bool isPlayer, string name, string heroId, string text, bool isNarration = false)
       {
          _transcript.Record(new TranscriptLine {IsPlayer = isPlayer, SpeakerName = name, SpeakerHeroId = heroId, Text = text, IsNarration = isNarration});
