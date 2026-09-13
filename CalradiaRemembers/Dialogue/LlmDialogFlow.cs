@@ -52,6 +52,27 @@ namespace CalradiaRemembers.Dialogue
       private const string BriefCompanionsToken = "calradia_remembers_brief_companions";
 
       /// <summary>
+      ///   An output token nothing consumes, so the vanilla conversation with the LORD idles silently behind
+      ///   the picker and the briefing chat instead of ending.
+      ///   <para>
+      ///     IT USED TO BE close_window, and that one word cost two days. Ending the conversation meant there
+      ///     was nothing left to come back to, so the way back had to build a scene from nothing - and staging
+      ///     an interior mission from the campaign map is the documented native-crash class in this codebase.
+      ///     Gabriel's game died on it (2026-09-13): "[CHAT STAGE BriefedReturn] interior mission opening at
+      ///     lordshall", then the crash reporter.
+      ///   </para>
+      ///   <para>
+      ///     Idling is the SAME proven pattern the ordinary "A word with you" flow uses, and the one
+      ///     ChatSceneStager uses for its own staged scenes: a token with no matching line leaves the engine's
+      ///     conversation alive and quiet underneath. Then the way back is no journey at all - the meeting was
+      ///     never left. The original reason for close_window was that no dialogue window should hang behind
+      ///     the companion picker; an idling conversation does not hang, it waits, which is what every other
+      ///     CR chat in the mod already does on top of one.
+      ///   </para>
+      /// </summary>
+      private const string BriefCompanionsHoldToken = "calradia_remembers_brief_hold";
+
+      /// <summary>
       ///   Set only for the length of a briefed return (see OpenChatForBriefedReturn): the companions to seat
       ///   instead of running the witness picker. Null on every ordinary open, which is unchanged.
       /// </summary>
@@ -159,7 +180,7 @@ namespace CalradiaRemembers.Dialogue
          //      so there is never a hung dialogue window waiting on a popup that may not open a chat at all.
          starter.AddDialogLine(
             "calradia_remembers_brief_companions_reply",
-            BriefCompanionsToken, "close_window",
+            BriefCompanionsToken, BriefCompanionsHoldToken,
             BriefCompanionsReplyText,
             null,
             OnPlayerRequestedCompanionBriefing);

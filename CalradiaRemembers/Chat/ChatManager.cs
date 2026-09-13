@@ -736,7 +736,16 @@ namespace CalradiaRemembers.Chat
          }
 
          Open(anchor.Name?.ToString());
-         if (ActiveViewModel == null) return;
+
+         // The window failed to open. The conversation this briefing interrupted is now IDLING behind
+         // nothing at all, so it has to be ended here or the player is left in a dialogue with no replies.
+         if (ActiveViewModel == null)
+         {
+            ModLog.Error("[BRIEFING] the window did not open; ending the meeting rather than leaving it hung.");
+            CompanionBriefingCoordinator.AbandonBriefingFromHost();
+
+            return;
+         }
 
          ActiveViewModel.SetNpcHero(anchor);
          foreach (Hero h in chosen.Where(h => h != anchor))
@@ -1060,6 +1069,15 @@ namespace CalradiaRemembers.Chat
          // logged) on leave (player report 2026-08-25). An ordinary chat and every STAGED overlay (captive,
          // audience, council) ride a real conversation here, so ending it is what tears their mission down
          // cleanly; a direct overlay has none, and skipping is a safe no-op for it.
+         // A briefing is nested INSIDE a meeting: its close must leave that meeting standing, or the way
+         // back has to rebuild a scene from nothing, which is what crashed the game on 2026-09-13.
+         if (CompanionBriefingCoordinator.HasPendingReturn)
+         {
+            ModLog.Info("[BRIEFING] the vanilla conversation is left idling: the meeting is not over.");
+
+            return;
+         }
+
          if (Hero.OneToOneConversationHero == null) return;
 
          if (Campaign.Current?.ConversationManager != null)

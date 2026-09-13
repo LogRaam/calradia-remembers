@@ -54,7 +54,7 @@ namespace CalradiaRemembers.Companions
             List<Hero> companions = WitnessResolver.GetPlayerCompanions(target);
             if (companions.Count == 0)
             {
-               ModLog.Info("[BRIEFING] picker skipped, no companions available to brief.");
+               AbandonBriefing("no companions available to brief");
 
                return;
             }
@@ -72,13 +72,18 @@ namespace CalradiaRemembers.Companions
                   1, WitnessResolver.MaxCompanions, // at least one: the player just asked for this word
                   "Speak With Them", "Never Mind",
                   selected => OnCompanionsChosen(target, selected),
-                  null),
+                  // "Never Mind". Previously null, and harmless while the dialogue line exited on
+                  // close_window: the conversation was already over by the time the picker appeared. It now
+                  // IDLES instead, so somebody has to end it or the player is left staring at a dialogue with
+                  // no replies (see BriefCompanionsHoldToken).
+                  _ => AbandonBriefing("the player said never mind")),
                false, // pauseGameActiveState (nothing else is running that needs pausing)
                true); // prioritize
          }
          catch (Exception ex)
          {
             ModLog.Error($"[BRIEFING] OfferPicker failed: {ex.GetType().Name}: {ex.Message}");
+            AbandonBriefing("the picker could not be shown");
          }
       }
 
@@ -86,7 +91,12 @@ namespace CalradiaRemembers.Companions
       {
          try
          {
-            if (selected == null || selected.Count == 0) return;
+            if (selected == null || selected.Count == 0)
+            {
+               AbandonBriefing("nobody was chosen");
+
+               return;
+            }
 
             var chosen = new List<Hero>();
             foreach (InquiryElement element in selected)
@@ -97,7 +107,12 @@ namespace CalradiaRemembers.Companions
                if (hero != null) chosen.Add(hero);
             }
 
-            if (chosen.Count == 0) return;
+            if (chosen.Count == 0)
+            {
+               AbandonBriefing("none of the chosen could be resolved");
+
+               return;
+            }
 
                // Remember the meeting this briefing is FOR. Until 2026-09-13 the target survived only as a
             // StringId and a display name on the view-model, for the sole purpose of telling this chat's
@@ -110,6 +125,7 @@ namespace CalradiaRemembers.Companions
          catch (Exception ex)
          {
             ModLog.Error($"[BRIEFING] OnCompanionsChosen failed: {ex.GetType().Name}: {ex.Message}");
+            AbandonBriefing("the briefing could not be opened");
          }
       }
       #region the return
@@ -183,14 +199,21 @@ namespace CalradiaRemembers.Companions
             // The window is still tearing down on the frame Close() armed us; give it that frame.
             if (ChatManager.IsOpen) return;
 
+            // NEVER STAGE. The briefing is a step inside a meeting the player has not left, so the scene he
+            // is standing in is the only one this may open over. Building one instead is what killed his game:
+            // an interior mission opened from the campaign map, which is the documented native-crash class
+            // here. If no scene is live, something has gone differently than expected and the honest move is to
+            // do nothing at all - he can speak to them again himself. A feature that quietly declines is worth
+            // a great deal more than one that crashes.
+            if (Mission.Current == null) return;
+
             Hero target = _returnTo;
             List<Hero> briefed = _returnWith;
             Forget();
 
             if (target == null || !target.IsAlive) return;
 
-            ModLog.Info($"[BRIEFING] returning to {target.Name} " +
-                        $"({(Mission.Current != null ? "over the scene already loaded" : "staging one, none live")}).");
+            ModLog.Info($"[BRIEFING] returning to {target.Name} over the scene already loaded.");
 
             ChatSceneStager.Open(ChatSceneStager.BuildBriefedReturn(target, briefed));
          }
@@ -205,6 +228,38 @@ namespace CalradiaRemembers.Companions
       private const int ReturnPatienceFrames = 600;
 
       private static int _framesWaiting;
+
+      /// <summary>
+      ///   Nothing came of the briefing, so end the meeting it was nested inside.
+      ///   <para>
+      ///     THE DEBT THE HOLD TOKEN TOOK ON. While the dialogue line exited on close_window, every way of
+      ///     abandoning a briefing was already handled: the conversation was over before the picker even
+      ///     appeared. Leaving it IDLING is what makes the way back possible without building a scene - and it
+      ///     means an abandoned briefing now leaves a live conversation with no reply and no chat over it,
+      ///     which is a player stuck in a window. One exit, called from every abandonment, so a new one cannot
+      ///     be added without meeting this.
+      ///   </para>
+      /// </summary>
+      /// <summary>The same exit, for the one abandonment that happens outside this class (the window failing to open).</summary>
+      public static void AbandonBriefingFromHost() => AbandonBriefing("the briefing window did not open");
+
+      private static void AbandonBriefing(string why)
+      {
+         Forget();
+
+         try
+         {
+            ModLog.Info($"[BRIEFING] abandoned ({why}); the meeting ends as it would have before.");
+
+            if (Hero.OneToOneConversationHero != null && Campaign.Current?.ConversationManager != null)
+               Campaign.Current.ConversationManager.EndConversation();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[BRIEFING] could not end the conversation after abandoning: " +
+                         $"{ex.GetType().Name}: {ex.Message}");
+         }
+      }
 
       /// <summary>Drops the pending return: the briefing was abandoned, or the return has been handed over.</summary>
       public static void Forget()
