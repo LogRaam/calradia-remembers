@@ -2468,8 +2468,8 @@ namespace CalradiaRemembers.Chat
          // that it runs a REAL exchange, an ordinary conversation summary would land on the anchor's own
          // profile.Events, and a LATER conversation where this same companion is a WITNESS reads recent events
          // straight into whoever is currently speaking's context (BuildWitnessMemory/WithMemories), which would
-         // hand the private briefing's content to the very target it must stay blind to. The standing brief
-         // (CompanionBriefingStore) already carries what needs to survive; nothing else may.
+         // hand the private briefing's content to the very target it must stay blind to. The PRIVATE MEMORY
+         // written by FinalizeCompanionBriefs already carries what needs to survive; nothing else may.
          if (_conversationMemoryFinalized || _mode != ChatMode.Conversation || IsCompanionBriefingChat) return;
          _conversationMemoryFinalized = true;
 

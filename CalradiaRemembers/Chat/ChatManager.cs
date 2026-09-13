@@ -370,13 +370,12 @@ namespace CalradiaRemembers.Chat
             SafeStep(() => ActiveViewModel?.FinalizeCaptiveSceneMemory(), "FinalizeCaptiveSceneMemory");
             SafeStep(() => ActiveViewModel?.FinalizeCaptorSceneMemory(), "FinalizeCaptorSceneMemory");
             SafeStep(() => ActiveViewModel?.FinalizeCompanionAudience(), "FinalizeCompanionAudience");
-            // Companion-briefing pillar: sweep the standing-brief store on EVERY close (cheap no-op when the
-            // feature is unused). Never before the briefing chat's OWN close (see the method's own doc), so a
-            // brief always survives to reach the conversation it was actually given for.
+            // Companion-briefing pillar: writes the private word into the memory of everyone who stood in
+            // it. A no-op on any close that is not the briefing chat's OWN. (This comment described a
+            // standing-brief STORE that was dismantled on 13/09/2026 and said the opposite of what the code
+            // now does - the memory is written BY this close, not swept by it.)
             SafeStep(() => ActiveViewModel?.FinalizeCompanionBriefs(), "FinalizeCompanionBriefs");
 
-            // A briefing closing means "take me back to the meeting I asked leave from"; anything else closing
-            // means whatever return was pending is stale and must not keep encounters alive behind our back.
             // A briefing closing means "take me back to the meeting I asked leave from"; anything else
             // closing means whatever return was pending is stale and must not keep encounters alive behind
             // our back.

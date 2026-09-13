@@ -80,16 +80,6 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Companion-briefing pillar, expiry sweep: called on EVERY chat close (<see cref="ChatManager.Close" />).
-      ///   A cheap no-op whenever no brief is outstanding (the common case, feature unused this session). Never
-      ///   clears a brief on THIS chat's own close (<see cref="IsCompanionBriefingChat" />): the brief must
-      ///   survive to reach the conversation it was actually given for. On an ORDINARY conversation's close, any
-      ///   currently-briefed companion who took part in it (the anchor or a witness) has their brief spent, see
-      ///   <see cref="CompanionBriefPolicy.HeroesToExpireOnClose" /> for why this is exactly right even though a
-      ///   brief carries no record of which target it was meant for (ruling #2: it is attached to the
-      ///   companion, never to the conversation or the target).
-      /// </summary>
-      /// <summary>
       ///   Writes the private word into the memory of EVERYONE who stood in it, as the briefing closes.
       ///   <para>
       ///     THE BRIEF IS GONE, and Gabriel's question is what killed it (2026-09-13): "pourquoi on doit encore
@@ -149,15 +139,29 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Everything the PLAYER said in this briefing, in order, joined. Their own words rather than a
-      ///   paraphrase: an instruction is one of the few things worth quoting exactly, and taking ALL of them
-      ///   means nothing has to guess which one was the order.
+      ///   Everything SAID in this briefing, in order, attributed. Verbatim rather than paraphrased: an
+      ///   instruction is one of the few things worth quoting exactly, and taking ALL of it means nothing has
+      ///   to guess which line was the order.
+      ///   <para>
+      ///     BOTH SIDES, since 13/09/2026 (audit). The first version kept only the player's lines, on the
+      ///     reasoning that the instruction is what matters. But a briefing is a conversation, and Gabriel's
+      ///     own words when he asked for this were "tout le briefing est important": a companion who
+      ///     bargained, set a condition, or agreed reluctantly said something the meeting afterwards depends
+      ///     on, and keeping only one half of it recorded an order nobody answered.
+      ///   </para>
+      ///   <para>
+      ///     Attributed, because an unattributed join would read to the model as one continuous instruction
+      ///     from the player and put its own past words in the player's mouth - the same class of confusion
+      ///     SpeakerScriptGuard exists to undo at the other end.
+      ///   </para>
       /// </summary>
       private string PlayerWordsInThisBriefing()
-         => string.Join(" ",
+         => string.Join("\n",
                _transcript.Lines
-                          .Where(l => l != null && l.IsPlayer && !string.IsNullOrWhiteSpace(l.Text))
-                          .Select(l => l.Text.Trim()))
+                          .Where(l => l != null && !l.IsNarration && !string.IsNullOrWhiteSpace(l.Text))
+                          .Select(l => l.IsPlayer
+                                     ? $"[the player]: {l.Text.Trim()}"
+                                     : $"[{l.SpeakerName ?? "one of your people"}]: {l.Text.Trim()}"))
              .Trim();
 
       /// <summary>Everyone who stood in the private word: the anchor and every companion present.</summary>

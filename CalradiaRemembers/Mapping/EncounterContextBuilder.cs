@@ -624,15 +624,10 @@ namespace CalradiaRemembers.Mapping
             CompanionNewsReport = CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
             CompanionMoodNote = ResolveCompanionMoodNote(hero),
             CompanionCampNote = ResolveCompanionCampNote(hero),
-            // Companion-briefing pillar: resolved by the SPEAKING hero's own id, so it is present ONLY when
-            // building THIS hero's own turn context and simply absent for anyone else's, including the target
-            // of the conversation this companion was brought into (see EncounterContext.CompanionBrief's own
-            // doc for why an absent field, rather than a present-but-secret one, is the whole mechanism).
-            // Suppressed INSIDE the briefing scene itself: the store is being written live, turn by turn, by
-            // this very conversation, so re-injecting it as "what the player told you BEFORE this meeting"
-            // would just echo the message the model is already reading as the live player turn.
-            // Companion-briefing pillar, revised per Gabriel's ruling: the model needs to know it is IN that
-            // private word right now, not merely holding one's standing result (CompanionBrief, above).
+            // Companion-briefing pillar: the model needs to know it is IN that private word right now.
+            // (What the briefing PRODUCES no longer travels through this context at all: since 13/09/2026 it
+            // is an IsPrivate NotableEvent on each participant's own profile, which reaches their prompt
+            // through the ordinary history and is filtered out of everyone else's by BuildWitnessMemory.)
             IsCompanionBriefingScene = isCompanionBriefingScene,
             CompanionBriefingTargetName = companionBriefingTargetName,
             IntimacyBargainEligible = IntimacyBargainEligibility.IsEligible(hero),
