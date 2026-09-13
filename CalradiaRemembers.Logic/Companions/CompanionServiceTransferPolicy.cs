@@ -51,8 +51,18 @@ namespace CalradiaRemembers.Logic.Companions
       /// <summary>Nobody was named and the room does not settle it, so there is no one to hand over.</summary>
       NoCompanionNamed,
 
-      /// <summary>The named hero is not a companion of the player's clan.</summary>
+      /// <summary>The named hero is not of the player's household at all.</summary>
       NotYourCompanion,
+
+      /// <summary>
+      ///   The hero is the player's own BLOOD - a child, a parent, a sibling. Placing your own kin in another
+      ///   lord's house is fosterage or hostage-taking, a different act with different consequences, not the
+      ///   ordinary placing of a retainer.
+      /// </summary>
+      CompanionIsYourOwnBlood,
+
+      /// <summary>The hero LEADS the player's clan (or is the player), so they are nobody's to give.</summary>
+      CompanionLeadsYourHouse,
 
       /// <summary>The companion is dead or held prisoner.</summary>
       CompanionUnavailable,
@@ -96,7 +106,28 @@ namespace CalradiaRemembers.Logic.Companions
 
       public bool CompanionIsAlive { get; init; }
       public bool CompanionIsPrisoner { get; init; }
-      public bool CompanionIsPlayerCompanion { get; init; }
+      /// <summary>
+      ///   In the player's HOUSEHOLD, which is deliberately wider than Bannerlord's IsPlayerCompanion.
+      ///   <para>
+      ///     Gabriel's play-test of 13/09/2026 is why. He presented Sley the Grim to Ira as "my Master of
+      ///     Arms" - a nemesis he had spared and sworn into his clan. But turn_nemesis (and recruit_prisoner)
+      ///     join a hero by assigning Hero.Clan directly, which never sets CompanionOf, so IsPlayerCompanion
+      ///     stayed false and Clan.Companions never listed him. The verb was therefore never taught, and Ira
+      ///     could not have accepted him however the scene had gone.
+      ///   </para>
+      ///   <para>
+      ///     The question this verb asks is "is this person in your service", not "did they arrive through
+      ///     the companion door". So the caller reads Clan.Heroes and lets the two gates below exclude the
+      ///     ones who are not anybody's to give.
+      ///   </para>
+      /// </summary>
+      public bool CompanionIsInYourHousehold { get; init; }
+
+      /// <summary>The hero leads the player's clan, or IS the player.</summary>
+      public bool CompanionLeadsThePlayersClan { get; init; }
+
+      /// <summary>The hero is the player's child, parent, or sibling.</summary>
+      public bool CompanionIsPlayerBlood { get; init; }
       public bool CompanionIsPlayerSpouse { get; init; }
       public bool CompanionAwayOnErrand { get; init; }
       public bool CompanionGovernsPlayerFief { get; init; }
@@ -129,11 +160,13 @@ namespace CalradiaRemembers.Logic.Companions
 
          if (!f.CompanionResolved) return CompanionServiceTransferBlock.NoCompanionNamed;
          if (!f.CompanionIsAlive || f.CompanionIsPrisoner) return CompanionServiceTransferBlock.CompanionUnavailable;
-         if (!f.CompanionIsPlayerCompanion) return CompanionServiceTransferBlock.NotYourCompanion;
+         if (!f.CompanionIsInYourHousehold) return CompanionServiceTransferBlock.NotYourCompanion;
 
-         // Checked AFTER "is one of yours" so a spouse who is not a clan companion reads as the plainer
-         // refusal, and BEFORE the errand/fief gates because it can never be resolved by waiting.
+         // The three that can never be resolved by waiting, checked AFTER "is one of yours" so somebody
+         // outside the household reads as the plainer refusal, and BEFORE the errand/fief gates which can.
+         if (f.CompanionLeadsThePlayersClan) return CompanionServiceTransferBlock.CompanionLeadsYourHouse;
          if (f.CompanionIsPlayerSpouse) return CompanionServiceTransferBlock.CompanionIsYourSpouse;
+         if (f.CompanionIsPlayerBlood) return CompanionServiceTransferBlock.CompanionIsYourOwnBlood;
 
          if (f.CompanionAwayOnErrand) return CompanionServiceTransferBlock.CompanionAwayOnErrand;
          if (f.CompanionGovernsPlayerFief) return CompanionServiceTransferBlock.CompanionGovernsAFief;

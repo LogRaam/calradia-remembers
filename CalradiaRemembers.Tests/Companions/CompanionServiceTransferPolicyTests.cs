@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Tests.Companions
          LordHasClan = true,
          CompanionResolved = true,
          CompanionIsAlive = true,
-         CompanionIsPlayerCompanion = true
+         CompanionIsInYourHousehold = true
       };
 
       [Test]
@@ -66,11 +66,45 @@ namespace CalradiaRemembers.Tests.Companions
       }
 
       [Test]
-      public void GIVEN_the_hero_is_not_one_of_the_players_companions_WHEN_evaluated_THEN_there_is_nothing_to_give()
+      public void GIVEN_the_hero_is_not_of_the_players_household_WHEN_evaluated_THEN_there_is_nothing_to_give()
       {
-         CompanionServiceTransferFacts f = Fine() with {CompanionIsPlayerCompanion = false};
+         CompanionServiceTransferFacts f = Fine() with {CompanionIsInYourHousehold = false};
 
          CompanionServiceTransferPolicy.Evaluate(f).Should().Be(CompanionServiceTransferBlock.NotYourCompanion);
+      }
+
+      // THE ONE GABRIEL'S PLAY-TEST FOUND. He presented Sley the Grim to Ira as "my Master of Arms" - a nemesis
+      // he had spared and sworn into his clan - and the verb was never taught, so she could not have accepted
+      // him however the scene had gone. turn_nemesis and recruit_prisoner join a hero by assigning Hero.Clan
+      // directly, which never sets CompanionOf: IsPlayerCompanion stays FALSE for exactly the retainers a
+      // player is proudest of. The question is "is this person in your service", never "which door did they
+      // come through", and this pins that the fact is about the household.
+      [Test]
+      public void GIVEN_a_retainer_sworn_in_without_the_companion_door_WHEN_evaluated_THEN_they_can_still_be_offered()
+      {
+         CompanionServiceTransferFacts sworn = Fine(); // in the household, never a formal companion
+
+         CompanionServiceTransferPolicy.Evaluate(sworn).Should().Be(CompanionServiceTransferBlock.None);
+      }
+
+      // Your own son is not a retainer. Placing kin in another house is fosterage or hostage-taking - a
+      // different act, with different consequences, that this verb must not quietly perform.
+      [Test]
+      public void GIVEN_the_hero_is_the_players_own_blood_WHEN_evaluated_THEN_they_are_not_a_retainer_to_place()
+      {
+         CompanionServiceTransferFacts f = Fine() with {CompanionIsPlayerBlood = true};
+
+         CompanionServiceTransferPolicy.Evaluate(f).Should().Be(CompanionServiceTransferBlock.CompanionIsYourOwnBlood);
+      }
+
+      // Widening the candidate set from Companions to the whole clan lets the player and their clan leader in,
+      // so they are refused explicitly rather than relied upon never to be asked for.
+      [Test]
+      public void GIVEN_the_hero_leads_the_players_house_WHEN_evaluated_THEN_they_are_nobodys_to_give()
+      {
+         CompanionServiceTransferFacts f = Fine() with {CompanionLeadsThePlayersClan = true};
+
+         CompanionServiceTransferPolicy.Evaluate(f).Should().Be(CompanionServiceTransferBlock.CompanionLeadsYourHouse);
       }
 
       // ── the lord's own fitness, which comes first because it makes everything after moot ──

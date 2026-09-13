@@ -4022,9 +4022,8 @@ namespace CalradiaRemembers.GameState
             action?.Parameters?.TryGetValue("target", out spoken);
 
             var candidates = new List<CompanionCandidate>();
-            foreach (Hero h in playerClan.Companions)
-               if (h is {IsAlive: true})
-                  candidates.Add(new CompanionCandidate {HeroId = h.StringId, Name = h.Name?.ToString()});
+            foreach (Hero h in HouseholdOfferableTo(playerClan))
+               candidates.Add(new CompanionCandidate {HeroId = h.StringId, Name = h.Name?.ToString()});
 
             string chosenId = CompanionServiceTransferPolicy.PickCompanion(candidates, spoken);
             Hero companion = string.IsNullOrEmpty(chosenId)
@@ -4042,7 +4041,10 @@ namespace CalradiaRemembers.GameState
                CompanionResolved = companion != null,
                CompanionIsAlive = companion?.IsAlive == true,
                CompanionIsPrisoner = companion?.IsPrisoner == true,
-               CompanionIsPlayerCompanion = companion?.IsPlayerCompanion == true,
+               CompanionIsInYourHousehold = companion != null && companion.Clan == playerClan,
+               CompanionLeadsThePlayersClan = companion != null
+                                           && (companion == Hero.MainHero || companion == playerClan.Leader),
+               CompanionIsPlayerBlood = companion != null && IsPlayersOwnBlood(companion),
                CompanionIsPlayerSpouse = companion != null && companion == Hero.MainHero.Spouse,
                CompanionAwayOnErrand = companion != null && CompanionMissionBehavior.Instance?.IsAway(companion.StringId) == true,
                CompanionGovernsPlayerFief = companion?.GovernorOf != null
@@ -4061,7 +4063,11 @@ namespace CalradiaRemembers.GameState
                                                   ? "(Name which of your companions is to take service, and it will be done.)"
                                                   : "(You have no companion here to give over.)");
                case CompanionServiceTransferBlock.NotYourCompanion:
-                  return ActionOutcome.Refused($"({companion?.Name} is not a companion of your clan to give over.)");
+                  return ActionOutcome.Refused($"({companion?.Name} is not of your household to give over.)");
+               case CompanionServiceTransferBlock.CompanionLeadsYourHouse:
+                  return ActionOutcome.Refused($"({companion?.Name} leads your house, and is nobody's to give.)");
+               case CompanionServiceTransferBlock.CompanionIsYourOwnBlood:
+                  return ActionOutcome.Refused($"({companion?.Name} is your own blood; placing kin in another house is not a term of service.)");
                case CompanionServiceTransferBlock.CompanionUnavailable:
                   return ActionOutcome.Refused($"({companion?.Name} is in no condition to take service with anyone.)");
                case CompanionServiceTransferBlock.CompanionIsYourSpouse:
@@ -4108,6 +4114,45 @@ namespace CalradiaRemembers.GameState
 
             return null;
          }
+      }
+
+      /// <summary>
+      ///   Everyone in the player's HOUSEHOLD a lord could be offered: the clan's heroes, less the ones nobody
+      ///   may give away. Deliberately Clan.Heroes and not Clan.Companions - the mod's own turn_nemesis and
+      ///   recruit_prisoner swear a hero in by assigning Hero.Clan directly, which never sets CompanionOf, so
+      ///   IsPlayerCompanion stays false for exactly the retainers a player is proudest of (Gabriel presented a
+      ///   turned nemesis as "my Master of Arms" and the verb was never even taught).
+      /// </summary>
+      private static IEnumerable<Hero> HouseholdOfferableTo(Clan playerClan)
+      {
+         if (playerClan?.Heroes == null) yield break;
+
+         foreach (Hero h in playerClan.Heroes)
+         {
+            if (h is not {IsAlive: true} || h.IsPrisoner) continue;
+            if (h == Hero.MainHero || h == playerClan.Leader) continue;
+            if (h == Hero.MainHero?.Spouse) continue;
+            if (IsPlayersOwnBlood(h)) continue;
+            if (h.GovernorOf != null) continue;
+            if (CompanionMissionBehavior.Instance?.IsAway(h.StringId) == true) continue;
+
+            yield return h;
+         }
+      }
+
+      /// <summary>The player's child, parent, or sibling. Kin are placed in another house by fosterage, not service.</summary>
+      /// <summary>The teaching gate (EncounterContextBuilder) runs the same kin rule; one copy, no drift.</summary>
+      public static bool IsPlayersOwnBloodForGate(Hero hero) => IsPlayersOwnBlood(hero);
+
+      private static bool IsPlayersOwnBlood(Hero hero)
+      {
+         Hero player = Hero.MainHero;
+         if (hero == null || player == null) return false;
+
+         if (hero == player.Father || hero == player.Mother) return true;
+         if (player.Children != null && player.Children.Contains(hero)) return true;
+
+         return player.Siblings != null && player.Siblings.Contains(hero);
       }
 
       private static ActionOutcome ExecuteRecruitNotable(Hero npcHero, NpcProfile profile)

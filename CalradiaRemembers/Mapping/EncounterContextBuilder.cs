@@ -1876,7 +1876,10 @@ namespace CalradiaRemembers.Mapping
             Clan lordClan = lord.Clan;
             var offerable = new List<string>();
 
-            foreach (Hero c in playerClan.Companions)
+            // Clan.Heroes, not Clan.Companions: turn_nemesis and recruit_prisoner swear a hero in by assigning
+            // Hero.Clan directly and never set CompanionOf, so IsPlayerCompanion is false for exactly the
+            // retainers a player is proudest of. See BannerlordGameStateBridge.HouseholdOfferableTo.
+            foreach (Hero c in playerClan.Heroes)
             {
                if (c is not {IsAlive: true}) continue;
 
@@ -1889,7 +1892,9 @@ namespace CalradiaRemembers.Mapping
                   CompanionResolved = true,
                   CompanionIsAlive = c.IsAlive,
                   CompanionIsPrisoner = c.IsPrisoner,
-                  CompanionIsPlayerCompanion = c.IsPlayerCompanion,
+                  CompanionIsInYourHousehold = c.Clan == playerClan,
+                  CompanionLeadsThePlayersClan = c == Hero.MainHero || c == playerClan.Leader,
+                  CompanionIsPlayerBlood = BannerlordGameStateBridge.IsPlayersOwnBloodForGate(c),
                   CompanionIsPlayerSpouse = c == Hero.MainHero.Spouse,
                   CompanionAwayOnErrand = CompanionMissionBehavior.Instance?.IsAway(c.StringId) == true,
                   CompanionGovernsPlayerFief = c.GovernorOf != null
@@ -1901,7 +1906,13 @@ namespace CalradiaRemembers.Mapping
 
             offerable.RemoveAll(string.IsNullOrWhiteSpace);
 
-            return offerable.Count == 0 ? null : string.Join(", ", offerable);
+            // SAID OUT LOUD, because Gabriel's log could not answer "was the verb even on the table?" - the
+            // same blind spot that cost a day this morning. A gate that silently teaches nothing looks exactly
+            // like a model that chose not to act.
+            string named = offerable.Count == 0 ? null : string.Join(", ", offerable);
+            ModLog.Info($"[TAKE-INTO-SERVICE] {lord.Name} could be offered: {named ?? "(nobody)"}.");
+
+            return named;
          }
          catch (Exception ex)
          {
