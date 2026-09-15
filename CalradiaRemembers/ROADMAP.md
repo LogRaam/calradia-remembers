@@ -32,6 +32,109 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## DESIGNED 2026-09-14 (Gabriel + player basildingleberry), NOT BUILT: THE MOOD OF THE DAY
+
+Promised publicly on the pinned Nexus roadmap since 2026-07-03 ("a mood randomizer that affects characters
+when you start a conversation") and asked for again by basildingleberry (2026-09-14), whose complaint is the
+real specification: **"many of them seem to talk the same way, focus on politics"**, and whose objection to the
+existing remedy is correct - authoring `character_overrides.json` per lord does not scale.
+
+### The gap, stated against what already exists
+
+| axis | what it says | lifetime |
+|---|---|---|
+| `NpcStance` (Affection/Trust/Respect/Fear) | how they stand toward the PLAYER | persistent, moved by deeds |
+| `CompanionHappiness` | contentment in the player's SERVICE | persistent, companions only |
+| Traits (H/M/V/G/C) | who they permanently ARE | fixed |
+| Knowledge packs (v2.5.9) | what they KNOW | per situation |
+
+None of them says **what kind of day the character is having**. That is the hole, and it is orthogonal to
+every axis above, which is why it cannot be folded into one of them.
+
+### Ruling 1 — mood COLOURS delivery; it never decides an outcome
+
+The hard boundary, and the whole safety of the feature. This project's own drop-order principle is that *what
+changes what a character may SAY OR DO outranks what colours how he says it*. Mood is the second kind. A mood
+must never make a lord refuse an oath he would otherwise swear: that is an invisible gate the player can
+neither see nor learn, and the roadmap already names that failure in the companion-acts entry ("unlearnable
+refusals"). Gates stay with Stance, regard and the verb policies. **If a mood ever changes an outcome, it has
+become a bug.**
+
+### Ruling 2 — a CONSTRAINED draw, not a random roll
+
+"Randomizer" is the wrong mechanism and would read as incoherence: a lord who has just lost a fief must not
+roll cheerful. v2.5.9 shipped exactly the facts that constrain it - `own_body` (wounded, exhausted),
+`house_means` (empty coffers), `realm_news` (his realm's fortunes), `here_and_now` (the hour, the sky, a feast
+hall versus a siege camp), plus his recent memories and his traits.
+
+So: compute the set of moods his situation PERMITS, then draw one from it. The wounded lord whose realm just
+lost a fief cannot draw expansive; he can draw grim, short-tempered, or bleak-humoured. **This is the knowledge
+pillar earning a second keep** rather than a parallel system.
+
+Traits shape the EXPRESSION, not the draw: a Calculating man in good spirits is dry and barbed where a
+Valorous one is boisterous. Same mood, two different men - which is precisely what basildingleberry is asking
+for.
+
+### Ruling 3 — the seed makes or breaks it
+
+Stable within a conversation (re-rolling per turn produces a manic character) and different between
+conversations (or it is just another static trait). Seed on hero id + game day: **talking to him twice in one
+afternoon finds the same man**, which is right - a person's day does not reset - and tomorrow is another day.
+
+### Ruling 4 (Gabriel, 2026-09-14) — the PLAYER moves it during the chat
+
+This is what turns mood from weather into a surface the player can play. Mood must shift EASILY - that is what
+makes it a mood rather than a stance. A joke, a kindness, good news, a gift lifts it inside one conversation;
+a threat or a callous remark drops it.
+
+Reuse the shape Stance already proves ("words shift weakly, deeds strongly") but inverted: **mood is the axis
+words move well**. Bounded to about one band per turn and two across a conversation, so a bleak man can be
+warmed but not transformed. The prompt then carries BOTH facts: where he started and where the player has
+brought him ("you began this guarded; they have thawed you somewhat"). That teaches the player that how you
+OPEN a conversation matters, which no current system does.
+
+It resets by the next conversation. A mood that persisted would be Stance with extra steps.
+
+### Ruling 5 (Gabriel, 2026-09-14) — the man who is in the mood to enjoy himself
+
+Wanted explicitly, and the most likely of all of these to go wrong: "make jokes" in a prompt produces quips in
+every line, anachronistic wit, and a character who will not stop. Three constraints make it work:
+
+- **Humour is a MOOD, never a trait switch.** It is occasional by construction, and a character who was funny
+  on Tuesday is not the designated comedian for the rest of the campaign.
+- **The joke must be AT something in the scene** - the weather, his own wound, the absurdity of the errand,
+  the player's reputation. Free-floating wit reads as a comedian; a remark about the thing in front of him
+  reads as a person.
+- **Bounded: once or twice, not as a manner.** The same discipline the hanging-question answer is capped by.
+
+Its expression is trait-shaped like every other mood: a Calculating lord's amusement is a barb, a Valorous
+one's is a laugh at his own expense.
+
+### Rejected, with reasons
+
+- **A visible mood bar or UI.** It turns a texture into a mechanic to be optimised, and the player starts
+  farming it. Mood should be FELT, and inferred from how he speaks.
+- **Mood gating actions.** Ruling 1.
+- **Pure randomness.** Ruling 2.
+- **Mood persisting across days.** It would duplicate Stance.
+- **A per-culture or per-station mood table.** The cache lesson: the draw belongs in the DYNAMIC tail, not the
+  cached prefix (the in-world clock in the cached prefix cost 27% of prompt-cache reuse, 2026-09-12).
+
+### Cost and placement
+
+One line, roughly 100-150 characters, in the per-turn tail below the encounter marker - it changes per
+conversation, so it must never sit in the cacheable prefix. Negligible next to what v2.5.9 removed.
+
+### Open questions for Gabriel, not to be decided unilaterally
+
+- Does mood reach the LETTER writer and the council, or only the 1:1 chat? A letter is written on a day too.
+- Should a companion's mood be visible to the player anywhere (the Memories panel), or strictly felt? Rejected
+  as a bar above; a line of prose in the panel is a different question.
+- Does the player's own state feed it - riding in wounded, or fresh from a victory the NPC has heard of?
+- Is there an MCM dial for how strongly mood colours speech, as Relationship Pacing has one?
+
+---
+
 ## BUILT + SHIPPED 2026-09-13/14 (v2.5.9): the group scene stops being written by one voice
 
 Three faults found by playing, each one a case of a reply saying more than its speaker was entitled to say.
