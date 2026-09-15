@@ -32,7 +32,117 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
-## DESIGNED 2026-09-11, NOT BUILT (Gabriel): WHAT A CHARACTER KNOWS, declared once and auditable
+## BUILT + SHIPPED 2026-09-13/14 (v2.5.9): the group scene stops being written by one voice
+
+Three faults found by playing, each one a case of a reply saying more than its speaker was entitled to say.
+All three are in v2.5.9.
+
+- **A reply is one character's turn, not a script.** A companion's reply came back as `[Nabb]: ... [Arwa]: ...
+  [Nabb]: ...`, and the `[Arwa]` block put a long speech in the PLAYER's mouth that said the briefing plan
+  aloud to the very lord it was meant to stay hidden from. **The cause is a FORMAT, which is why prompting
+  would not have held it:** third-party voices reach the model as `[Name]: content`
+  (`ChatSession.AddWitnessStatement`), which is a script format, and shown enough of it a model writes the
+  scene instead of a character. `SpeakerScriptGuard` (SDK) cuts every labelled turn that is not the speaker's
+  own, and drops that turn's `[EVENT]` when the player was the one spoken for. Deliberately blind to
+  UNLABELLED prose about the player: an NPC narrating the room is this mod's ordinary third-person style.
+- **A co-voice answers the room, not the player's opening line.** Every voice in an ensemble beat was handed
+  the PLAYER's message as its stimulus. Gabriel typed "*I shift my attention to Ira, waiting for her
+  reaction*"; Ira answered and closed a deal; Nabb was handed the same sentence and produced the only
+  completion it has - Ira's reaction, in Ira's voice, ending on a question the player then answered, after
+  which the real Ira closed the same deal again. The "Ira repeats herself" report and the voice hijack were
+  ONE fault. A co-voice's stimulus is now the last thing said in the room, attributed.
+- **A beat must not end on a hanging question.** `EnsembleFloorPolicy` gives ONE answering turn when the beat
+  closes on a question put to somebody present. Stage directions are stripped BEFORE the question test - a
+  beat usually closes on narration, so a raw "ends with ?" never fires. Capped at one: two NPCs conversing
+  while the player watches, unable to interrupt, is worse than the silence it fixes.
+
+---
+
+## BUILT 2026-09-13, SHIPPED v2.5.9, NEVER YET SEEN TO COMPLETE IN PLAY: a lord takes one of your people
+
+Gabriel's ruling, "un seigneur doit pouvoir recruter", after a lord agreed in prose to take his companion under
+her banner and the game had nothing to execute (the model reached for `recruit_notable`, which refuses because
+she is a lord and not a settlement notable, so the scene's whole payoff evaporated).
+
+`take_into_service` is **the only verb in the mod that points OUTWARD**. Every other recruiting verb brings
+somebody IN (`recruit_notable`, `join_clan`, `join_party`, `recruit_prisoner`); this one gives somebody away,
+and the catalogue's anti-patterns name the reverse direction explicitly because that confusion caused the bug.
+
+Gates are about the PLAYER'S HOUSEHOLD, not the lord's regard - whether she wants him is hers to play in prose,
+whether the player can be parted from him is law. A spouse refuses outright; a sitting governor or someone away
+on an errand refuses with the reason. A blank target resolves to the single companion present and REFUSES when
+several are: handing over the wrong companion is the one error here the player cannot undo.
+
+**DURABLE ENGINE FACTS** (both read by reflection off the shipped dll, not assumed):
+- `RemoveCompanionAction.ApplyByFire` runs `MakeHeroFugitiveAction`. Use `ApplyAfterQuest` for an honourable
+  transfer. `cr.testall take_into_service` drives the real bridge and asserts the hero is NOT left a fugitive,
+  then restores and asserts the restore.
+- `turn_nemesis` and `recruit_prisoner` join a hero by assigning `Hero.Clan` DIRECTLY and never set
+  `CompanionOf`, so `IsPlayerCompanion` is FALSE and `Clan.Companions` omits them - exactly the retainers a
+  player is proudest of. Any gate asking "is this person in the player's service" must read `Clan.Heroes`.
+
+**OPEN:** the verb has never once been accepted in a live game. Both lords asked refused, legitimately, at
+regard 0. The self-test proves the mechanics; no player has watched it conclude.
+
+---
+
+## MEASURED 2026-09-14, NOT ACTED ON: the action bench, and the two gaps that make it unreliable
+
+`cr.action_bench 3` on `x-ai/grok-4.20`, 251 cases: **243/251, 0 false positives, 0 call failures.**
+
+The withholding problem is SOLVED and durably so - the verbalised CHECK of iteration 5 took false positives
+from 18 to 0. The failure mass has moved entirely to the opposite side:
+
+- **Over-retention, 9 of 16 problem cases.** Five emit NOTHING while their own `[EVENT]` states the deed
+  plainly ("I gave Rhobart eight hundred denars", "I forsook my father's house, knelt, and swore"). Four more
+  emit only `end_conversation`. The model understood and then declined to tag. The CHECK ends with "if those
+  words are not there, drop that tag" and nothing counterweighs it.
+- **Direction confusion, 3 cases, never once fixed** despite being declared closed at iteration 2:
+  `kill_npc -> execute_player` (twice), `sell_prisoner -> buy_prisoner`, `rob_npc -> take_gold`. All three are
+  mirror pairs where direction is the only discriminator.
+- `expel_from_clan` fails at 0/3, as it did at iteration 1. The most persistent case in the whole history.
+
+**THE TWO TOOLING GAPS, open since iteration 1 and classed P2 through six iterations:**
+`ActionInterpreterContextBuilder.AppendConversationSoFar` has NO production caller (only the bench and its
+tests), so prompt rule 3 is dead at runtime; and the bench's `contextFacts` are freeform while production sends
+the structured `SETTING/PLAYER/YOU` digest. **Until both are closed a better bench score says nothing about
+what players experience** - which `ANALYSE-ACTION-BENCH.md` states itself at iteration 1 and then never acts
+on. Close these BEFORE any further prompt iteration.
+
+**Also durable:** `ANALYSE-ACTION-BENCH.md` ends on an iteration-6 prediction that two later runs already
+answered, one of which reached 218/220 by SWAPPING THE INTERPRETER MODEL to `deepseek-v4-flash` rather than by
+any prompt change. A score compared across a model swap is not a measurement of the prompt.
+
+---
+
+## OPEN PLAYER THREADS as of 2026-09-14
+
+- **Lordfadooboo (2.5.8):** a companion asks for a word in a city, "talk now" does nothing. Not diagnosed. The
+  three silent exits on that path now speak (the staged-scene drop, the null-profile return, and the window
+  that fails to open), so his next log on 2.5.9+ should name it. Needs logging ON in the mod options.
+- **mysticwolf92 (2.5.8):** the "Hold a council" bar button disappears depending on load order. **Retinues is
+  NOT the cause** - reflection over Retinues 1.3.14.31 shows 29 Harmony targets, none touching
+  `MapNavigationVM`, and the binary contains ZERO occurrences of `MapNavigation`, `MapBar`, `NavigationItems`
+  or `INavigationElement`. Do not chase the next mod by guessing: the bar now reports on itself, holding a weak
+  reference and saying loudly ~2s later if our item was removed. His log then separates "removed by somebody"
+  from "present but not drawn", which need completely different fixes. `cr.council` with no argument opens the
+  button's own picker meanwhile.
+- **His side note, FIXED (unreleased):** an NPC asking to speak with the player in a town placed the player at
+  the scene entrance and the NPC elsewhere. Our intercept line hijacks the conversation's "start" token, which
+  skips the vanilla walk-up - and the remedy that exists for exactly this (`PlaceAudienceCompanionIfPending`)
+  was armed only for `CompanionAudience`, excluding a fief audience by name. Now armed for every staged kind
+  that hijacks the walk-up, except the captive scenes, which their own director arranges.
+
+---
+
+## BUILT 2026-09-12, SHIPPED in v2.5.9 (2026-09-14): WHAT A CHARACTER KNOWS, declared once and auditable
+
+> **Status corrected 2026-09-14.** This heading still read "DESIGNED, NOT BUILT" two days after every
+> increment below had been built and a day after they went live, which is exactly the phantom gap this
+> file warns about. Increments 1-8 are built (each says so in its own sub-heading), the audit's remaining
+> categories are listed under "The audit, still open", and the whole pillar shipped in v2.5.9. What is
+> NOT yet known is how it reads in a long campaign: it touches every conversation in the game and went
+> out one day old, which the release notes say plainly.
 
 Gabriel: "il devrait y avoir une classe qui représente des informations du monde. Et chaque profile de
 personnage devrait avoir une mémoire avec certaines de ces informations... nous pourrions alors faire des tests
@@ -793,7 +903,24 @@ quest system and this mod, and it costs nothing extra: the same policy already t
 
 ---
 
-## BUILT 2026-09-07, UNTESTED IN GAME (player request + Gabriel): take your own people aside and BRIEF them
+## BUILT 2026-09-07, REBUILT + PLAY-VERIFIED 2026-09-13/14, SHIPPED v2.5.9: take your own people aside and BRIEF them
+
+> **Status corrected 2026-09-14.** The 2026-09-07 build did not hold up in play: closing the briefing
+> dropped the player on the map with the meeting gone, or into a loading screen, or crashed natively.
+> Rebuilt 2026-09-13 around ONE carrier - the private word becomes an `IsPrivate` NotableEvent on everyone
+> who stood in it, and `BuildWitnessMemory` filters those out of every other character's prompt. The
+> standing brief (`CompanionBriefingStore`, `EncounterContext.CompanionBrief`) is DISMANTLED: it existed
+> only because a memory could not be private, and that stopped being true the hour `IsPrivate` was built.
+>
+> **Verified end to end in Gabriel's own game 2026-09-14**, in one log: hand-off with no scene staging
+> (`mission=False mapTalk=True -> OpenOverLiveHost`), the target opening the meeting in her own voice
+> knowing he stepped aside and not a word of what was said, and the companion answering a question put to
+> him instead of the floor returning to the player with it hanging.
+>
+> **DURABLE, cost four attempts in one day:** Bannerlord hosts a conversation EITHER as a Mission OR as a
+> MAP conversation (a layer over the map screen, `Mission.Current == null` throughout). Code that reads
+> only `Mission.Current` is blind to half of them - which is what staged an interior mission from the
+> campaign map (the native crash) and what later ended a meeting that was standing perfectly well.
 
 A player asked whether a specific NPC could LEAD a group conversation (a cruel companion interrogating a prisoner,
 a charming one working a village notable). Gabriel named the blocker: choosing the right speaker needs the
@@ -813,7 +940,11 @@ with you...". Briefs stack, capped and trimmed from the oldest end, and expire w
 
 ---
 
-## DESIGNED, NOT BUILT, gated on the briefing being tested: a companion ACTS on your order
+## DESIGNED, NOT BUILT — **THE GATE IS OPEN since 2026-09-14**: a companion ACTS on your order
+
+> The condition on this entry was "gated on the briefing being tested". The briefing is now tested and
+> shipped, so nothing external blocks this any more; what remains is the four rulings below, which are
+> Gabriel's and were deliberately not taken unilaterally. This is the most natural next pillar.
 
 Gabriel asked whether he could tell a companion to stab the target on the word "GO". The briefing half works; the
 deed does not. There is no verb for a companion harming anyone (every violence verb is the PLAYER acting), and the
