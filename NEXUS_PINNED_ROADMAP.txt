@@ -1,0 +1,51 @@
+I want to sincerely thank all the players who take the time to send feedback on the mod.
+
+NEW in v2.5.9! Characters now know what someone in their position would actually know. A governor knows he governs. A merchant knows his own market. Word of a war reaches a lord in his hall sooner, and in more detail, than it reaches a villager at the end of a valley - and both hear it before a prisoner in a cell does. Knowing something is a matter of DEGREE now, not a yes or no.
+
+Next on the ROADMAP:
+
+[DONE] Manual injection of actions in chat
+[DONE] The Grand Council (family council, war council, strategic council, diplomatic council, etc.)
+[DONE] Adding world info panels (like 4X strategy games): open the new panel from the Clan page
+[DONE] FULL Refactoring of NPC memory system to enhance what they know - shipped in v2.5.9
+[IN PROGRESS] Players Testing (please report any bugs - a log attached to a report is worth ten descriptions)
+[IN PROGRESS] Mod stabilization following players comments
+
+[NEXT] THE MOOD OF THE DAY (this is the "mood randomizer" from the old list, and it grew)
+
+   Three people have now told me the same thing: too many lords talk the same way. So a
+   character will have a mood - but drawn from their own situation rather than at random. A
+   lord who has just lost a fief cannot wake up cheerful. Wounds, empty coffers, the news from
+   his realm, the hour and the weather all decide what kind of day he is allowed to be having.
+   Two conversations with the same man on different days stop being interchangeable.
+
+   His TRAITS decide how the mood comes out, so the same mood is two different men: a
+   calculating lord is dry and barbed where a bold one is loud and open. That is the part that
+   should fix "they all sound alike", without anyone writing a single line of custom text.
+
+   You will be able to shift it while you talk. Mood moves easily - that is what makes it a
+   mood - so a joke, a kindness, or good news warms a guarded man inside one conversation,
+   and a threat cools him. How you OPEN a conversation will matter.
+
+   And wit. A lord's wit is a mark of quality, so it will be rare, dry, understated, and
+   always at his own expense rather than anyone else's - never a gag, never a pun. Once in a
+   long while, and worth remembering when it lands.
+
+   It will reach letters too. A letter is written on a day as well, and a note dashed off by a
+   man having a bleak one should not read like the same man at a feast.
+
+[ ] Can edit NPC storyline, factions, and so on in game
+[ ] Player can configure a family, friends, legacy, ...
+[ ] Any suggestions?
+
+---
+
+OPTIONAL EXTRA (paste it only if you want the thread, Gabriel - it invites a conversation you
+will then have to host):
+
+WHICH MODEL DO YOU USE? I keep being asked which model is best for roleplay and I genuinely do
+not have a complete answer - it depends on your provider, your budget and your context size.
+If you have found one you like, say so below with a line about why. One thing I can offer from
+my own testing: judge a model on whether it USES the facts the mod hands it, not on how
+agreeable it is. A model that refuses you because it noticed you have only just met is doing
+its job better than one that says yes to everything.
