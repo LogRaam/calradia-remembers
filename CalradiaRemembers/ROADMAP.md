@@ -95,20 +95,40 @@ OPEN a conversation matters, which no current system does.
 
 It resets by the next conversation. A mood that persisted would be Stance with extra steps.
 
-### Ruling 5 (Gabriel, 2026-09-14) — the man who is in the mood to enjoy himself
+### Ruling 5 (Gabriel, 2026-09-14) - WIT, and it is a mark of quality rather than a jokey mood
 
-Wanted explicitly, and the most likely of all of these to go wrong: "make jokes" in a prompt produces quips in
-every line, anachronistic wit, and a character who will not stop. Three constraints make it work:
+Gabriel's steer, and it reframes the whole thing: **"pour un Lord, l'Esprit est une grande qualite"**, with
+ENGLISH humour named as the model - "souvent de bon gout". That is not the same feature as "an NPC who tells
+jokes", and the difference is the design.
 
-- **Humour is a MOOD, never a trait switch.** It is occasional by construction, and a character who was funny
-  on Tuesday is not the designated comedian for the rest of the campaign.
-- **The joke must be AT something in the scene** - the weather, his own wound, the absurdity of the errand,
-  the player's reputation. Free-floating wit reads as a comedian; a remark about the thing in front of him
-  reads as a person.
-- **Bounded: once or twice, not as a manner.** The same discipline the hanging-question answer is capped by.
+**Wit is self-possession, not frivolity.** A lord who makes a dry remark about his own wound is showing that
+the wound has not diminished him. Read that way, humour belongs to the same family as bearing and composure -
+it is a thing a well-made character HAS, occasionally displayed, never a costume he puts on. A character who
+clowns has not been given wit; he has been given a tic.
 
-Its expression is trait-shaped like every other mood: a Calculating lord's amusement is a barb, a Valorous
-one's is a laugh at his own expense.
+**What "English, in good taste" means in a prompt**, concretely, because "be funny" is the instruction that
+produces the worst output in this entire mod:
+
+- **Understatement, never exaggeration.** A rout is "not our finest afternoon". A downpour is "a little damp".
+  The humour is in the GAP between the words and the thing, and the model must be told that plainly.
+- **The speaker is the butt, or nobody is.** Self-deprecation costs the speaker something, which is exactly
+  what makes it good taste. Wit aimed DOWNWARD - at a servant, a cripple, somebody's misfortune or station -
+  is the failure mode, and it must be named as forbidden rather than left to be inferred.
+- **Delivered straight.** No winking, no signalling that a joke has been made, no laughing at one's own line.
+  A character who explains the joke has not made one.
+- **Irony over gags.** Saying the opposite with a level face. Never a pun, never scatology, never a modern
+  register.
+
+**RARE, and rarer than the first draft said.** Gabriel: "il faut que ce soit rare". So the mood makes wit
+POSSIBLE, never expected: at most ONE such remark in a conversation, only when the draw permits it, and even
+then only if the scene gives it something to land on. A dry remark that arrives once in twenty conversations
+is a moment the player remembers; one that arrives every time is a verbal tic and actively cheapens the
+character. Rarity is not a limitation here, it is the mechanism.
+
+**Station and traits shape it**, as every other mood does, and the station files already exist to carry it: a
+lord's wit is dry and understated, a gang leader's is coarse and direct, a wanderer's is wry about his own
+circumstances. A Calculating lord's amusement is a barb held just inside courtesy; a Valorous one's is a laugh
+at his own expense.
 
 ### Rejected, with reasons
 
@@ -125,11 +145,28 @@ one's is a laugh at his own expense.
 One line, roughly 100-150 characters, in the per-turn tail below the encounter marker - it changes per
 conversation, so it must never sit in the cacheable prefix. Negligible next to what v2.5.9 removed.
 
-### Open questions for Gabriel, not to be decided unilaterally
+### Ruling 6 (Gabriel, 2026-09-14) - the surfaces: the chat, the LETTERS, and the news he carries
 
-- Does mood reach the LETTER writer and the council, or only the 1:1 chat? A letter is written on a day too.
-- Should a companion's mood be visible to the player anywhere (the Memories panel), or strictly felt? Rejected
-  as a bar above; a line of prose in the panel is a different question.
+Not the 1:1 chat alone. **A letter is written on a day too**, and a note dashed off by a man having a bleak
+one should not read like the same man at a feast. The letter path carries its own writer
+(`PlayerLetterService` / the letter summarizers), so mood reaches it the same way it reaches a reply.
+
+**And the news of the realm.** Gabriel named this alongside the letters, and it works in both directions,
+which is why both are taken:
+
+- *Realm news FEEDS the draw* - his kingdom's fortunes are among the facts that decide which moods his day
+  permits (already Ruling 2, `realm_news`).
+- *Mood COLOURS how he tells it* - the same fall of a fief is reported flatly by a grim man, bitterly by an
+  angry one, and with black understatement by a man whose wit is intact. This follows from Ruling 1 without
+  any new machinery: the news is what he knows, the mood is how he says it. It is also the cheapest possible
+  demonstration of the whole feature, because the player hears the same piece of news from several mouths.
+
+### Open questions for Gabriel, not yet decided
+
+- Does the COUNCIL carry it too? A council is many voices in one scene; per-seat moods may enrich it or may
+  just add noise to a channel that already juggles several speakers.
+- Should a companion's mood be legible in the Memories panel as a line of prose? Rejected as a BAR above; a
+  sentence is a different question.
 - Does the player's own state feed it - riding in wounded, or fresh from a victory the NPC has heard of?
 - Is there an MCM dial for how strongly mood colours speech, as Relationship Pacing has one?
 
