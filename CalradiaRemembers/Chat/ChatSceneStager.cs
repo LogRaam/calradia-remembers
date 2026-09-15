@@ -388,11 +388,16 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Run from the Mission.AfterStart postfix (agents now exist): a staged COMPANION audience opens the
-      ///   interior mission with the companion as the talk-to character, but the intercept-line hijack skips the
-      ///   vanilla walk-up, leaving them at their spawn point out of view. Teleport them to a reachable spot beside
-      ///   the player so the audience reads as a face-to-face. No-op unless one is pending; fail-soft (on any
-      ///   trouble the companion simply stays where the engine put them). One-shot: the pending id is consumed here.
+      ///   Run from the Mission.AfterStart postfix (agents now exist): a staged interior conversation opens the
+      ///   mission with the other party as the talk-to character, but the intercept-line hijack skips the
+      ///   vanilla walk-up, leaving them at their spawn point out of view while the player stands at the scene
+      ///   entrance. Teleport them to a reachable spot beside the player so the meeting reads as a face-to-face.
+      ///   <para>
+      ///     Applies to every staged kind that hijacks the walk-up, not only a companion audience - the case
+      ///     mysticwolf92 reported (14/09/2026) was a FIEF audience, staged as PlainConversation.
+      ///   </para>
+      ///   No-op unless one is pending; fail-soft (on any trouble they simply stay where the engine put them).
+      ///   One-shot: the pending id is consumed here.
       /// </summary>
       public static void PlaceAudienceCompanionIfPending(Mission mission)
       {
@@ -524,11 +529,26 @@ namespace CalradiaRemembers.Chat
             _fallbackFrames = 0;
             _armedFrames = 0;
             StagedMissionNeedsEnd = false;
-            // For a companion audience, remember whom to bring beside the player once the scene's agents exist
-            // (the intercept-line hijack skips the vanilla walk-up, leaving the talk-to companion at their spawn
-            // point out of view). PlaceAudienceCompanionIfPending, run from the Mission.AfterStart postfix,
-            // teleports them over. Cleared for every non-companion stage so a stale id never fires.
-            PendingAudienceCompanionId = request.Kind == ChatSceneKind.CompanionAudience ? partner?.HeroObject?.StringId : null;
+            // Remember whom to bring beside the player once the scene's agents exist. The reason is in the
+            // line above this one: our intercept line hijacks the conversation's "start" token, which SKIPS
+            // the vanilla walk-up, so the engine leaves both parties at their spawn points - the player at the
+            // scene entrance and the person who asked for him somewhere else entirely.
+            //
+            // That hijack is shared by every staged kind, but until 14/09/2026 only a COMPANION audience was
+            // brought over. mysticwolf92: "When someone asks to speak with me in a town/castle it places me in
+            // the scene at the entrance but nowhere close to the NPC that wants to talk to me." He is
+            // describing a FIEF audience, which stages as PlainConversation, so the one line that fixes this
+            // had been excluding his case by name.
+            //
+            // The captive kinds are left out deliberately: those scenes are arranged by their own director,
+            // and dropping a prisoner at arm's length from their captor is a staging decision that belongs to
+            // it, not to this general remedy.
+            PendingAudienceCompanionId = request.Kind is ChatSceneKind.CompanionAudience
+                                                      or ChatSceneKind.PlainConversation
+                                                      or ChatSceneKind.PostDuel
+                                                      or ChatSceneKind.BriefedReturn
+               ? partner?.HeroObject?.StringId
+               : null;
             PlayerEncounter.LocationEncounter.CreateAndOpenMissionController(location, null, partner, null);
             ModLog.Info($"[CHAT STAGE {request.Kind}] interior mission opening at {location.StringId} with {partner.StringId}; awaiting the scene to load.");
          }

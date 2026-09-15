@@ -87,7 +87,20 @@ namespace CalradiaRemembers
       {
          try
          {
-            string which = args is {Count: > 0} ? args[0].ToLowerInvariant() : "companions";
+            // NO ARGUMENT NOW OPENS THE BUTTON'S OWN PICKER, not a silent default of "companions"
+            // (mysticwolf92, 2026-09-12: "Even the console command seems to only allow the 'all companions'
+            // council and not give the options the button did"). He was half right - the scopes were always
+            // available as arguments - but a player who has LOST the bar button has no way to learn that, and
+            // the button's picker is the thing he is trying to get back: every council listed with how many it
+            // would seat, and a Cancel. This is the same call the button makes, so the two cannot drift.
+            if (args is not {Count: > 0})
+            {
+               CouncilEntry.PromptAndConvene();
+
+               return "Choose a council.";
+            }
+
+            string which = args[0].ToLowerInvariant();
 
             CouncilScope scope;
             string parleyTargetFactionId = null;
