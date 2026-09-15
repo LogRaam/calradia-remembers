@@ -76,6 +76,7 @@ namespace CalradiaRemembers
          Duels.DuelCoordinator.OnTick(dt); // stages an armed duel; here (not CampaignEvents.TickEvent) so it runs inside a settlement too
          Companions.CompanionBriefingCoordinator.TickReturn(); // takes the player back into the meeting a briefing was for
          UI.Spike.CrMapTickSpike.Tick(dt); // throwaway spike (cr.tick_probe): closes its own measurement window
+         Map.MapNavigationCouncilItemPatch.Tick(); // reports ONCE if another mod removed our council bar button
       }
 
       /// <summary>

@@ -41,9 +41,60 @@ namespace CalradiaRemembers.Map
 
             CouncilBarIconSprite.EnsureRegistered(); // the glyph's runtime sprite, rebuilt if a language change dropped it
 
-            ModLog.Info("[COUNCIL BAR] council nav item added at construction.");
+            // Hold the bar so Tick can look again in a moment (see the field's own doc): "added" is not the
+            // same claim as "still there", and until now the log only ever made the first one.
+            _watched = new WeakReference(__instance);
+            _ticksSinceAdd = 0;
+
+            ModLog.Info($"[COUNCIL BAR] council nav item added at construction "
+                      + $"(bar now holds {__instance.NavigationItems.Count} item(s)).");
          }
          catch (Exception ex) { ModLog.Error($"[COUNCIL BAR] failed to add the council nav item: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      // The bar we last added to, held WEAKLY so this can never keep a dead view model alive, plus how many
+      // ticks ago. mysticwolf92 (2026-09-09..12) loses the button depending on load order and named Retinues
+      // as the cause; reflection over Retinues 1.3.14.31 shows it does not contain the strings MapNavigation,
+      // MapBar, NavigationItems or INavigationElement at all, so it is not the culprit and guessing at the
+      // next mod would be the same mistake again.
+      //
+      // What no log could answer is WHICH of three things happens to him: the item never added, added and then
+      // removed by somebody else, or present and simply not drawn. Those need completely different fixes and
+      // they look identical from the outside. Looking again a moment later separates the first two, and if the
+      // item IS still there his answer is the third and the search moves to the sprite and the prefab.
+      private static WeakReference _watched;
+      private static int _ticksSinceAdd;
+
+      /// <summary>
+      ///   Checks ONCE, shortly after the bar was built, whether our item survived. Called from the
+      ///   application tick. Silent when all is well, which is the common case by far.
+      /// </summary>
+      internal static void Tick()
+      {
+         if (_watched == null) return;
+
+         // ~2 seconds at 60fps: long enough for every other mod's construction-time work to have run, short
+         // enough that the line sits next to the add in the log rather than pages away from it.
+         if (++_ticksSinceAdd < 120) return;
+
+         try
+         {
+            var bar = _watched.Target as MapNavigationVM;
+            _watched = null;
+
+            if (bar?.NavigationItems == null) return; // the bar went away; nothing to report
+
+            if (bar.NavigationItems.Any(i => i?.ItemId == "cr_council")) return; // survived, say nothing
+
+            ModLog.Error("[COUNCIL BAR] our council item was added and is GONE from the bar "
+                       + $"({bar.NavigationItems.Count} item(s) remain). Another mod rebuilt or cleared the "
+                       + "navigation list after us. Use cr.council with no argument to convene meanwhile.");
+         }
+         catch (Exception ex)
+         {
+            _watched = null;
+            ModLog.Error($"[COUNCIL BAR] survival check failed: {ex.GetType().Name}: {ex.Message}");
+         }
       }
    }
 }
