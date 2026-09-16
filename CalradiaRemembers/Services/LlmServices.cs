@@ -129,6 +129,30 @@ namespace CalradiaRemembers.Services
       public ILlmClient LlmClient { get; private set; }
 
       /// <summary>
+      ///   Optional diagnostic seat beside the wire (cr.wire), null in normal play. Held HERE rather than on
+      ///   a client because the interpreter client is rebuilt whenever its provider or model changes, so an
+      ///   observer attached to the instance alone would quietly stop reporting halfway through a session.
+      ///   Setting it attaches to whatever exists now; every client built later picks it up.
+      /// </summary>
+      public ILlmWireObserver WireObserver
+      {
+         get => _wireObserver;
+         set
+         {
+            _wireObserver = value;
+            Attach(LlmClient);
+            Attach(_interpreterClient);
+         }
+      }
+
+      private ILlmWireObserver _wireObserver;
+
+      private void Attach(ILlmClient client)
+      {
+         if (client is OpenRouterClient open) open.WireObserver = _wireObserver;
+      }
+
+      /// <summary>
       ///   The dedicated client for the ACTION INTERPRETER role (Prose + Interpreter composition). Its base URL,
       ///   API key, caching, and parameter shape are fixed to the interpreter role's provider kind, and its model
       ///   is <see cref="ResolveInterpreterModel" />. Built lazily and rebuilt only when the interpreter provider
@@ -313,7 +337,7 @@ namespace CalradiaRemembers.Services
                ProviderSlugsProvider = ResolveProviderPin,
                AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
             };
-            LlmClient = new OpenRouterClient(_httpClient, config);
+            LlmClient = new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver};
 
             if (ResolveProvider() != ProviderCustom && string.IsNullOrWhiteSpace(ApiKeyFor(ServiceRole.Prose, DefaultKind())))
                ModLog.Info($"LLM stack built, but no {ResolveProvider()} API key is set yet. " +
@@ -825,7 +849,7 @@ namespace CalradiaRemembers.Services
             AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
          };
 
-         return new OpenRouterClient(_httpClient, config);
+         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver};
       }
 
       /// <summary>
