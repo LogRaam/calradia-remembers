@@ -2568,7 +2568,14 @@ namespace CalradiaRemembers.Chat
             var behavior = NpcMemoryCampaignBehavior.Instance;
             if (behavior?.LlmServices is not {IsAvailable: true}) return;
 
-            ConversationFoldPlan plan = ConversationCompressionPolicy.Plan(new ConversationCompressionPolicy.TranscriptFold {TotalLines = _transcript.Count, SummarizedThrough = _transcript.SummarizedThrough});
+            // Compact folds sooner. The raw transcript was the one growing part of a Compact prompt that
+            // nothing had ever shrunk, which is why a small model's FIRST message could fit and its followups
+            // could not (DuskSymphony, Nexus).
+            ConversationFoldPlan plan = ConversationCompressionPolicy.Plan(new ConversationCompressionPolicy.TranscriptFold {
+               TotalLines = _transcript.Count,
+               SummarizedThrough = _transcript.SummarizedThrough,
+               Threshold = ConversationCompressionPolicy.ThresholdFor(ModSettings.LeanPrompt)
+            });
             if (!plan.ShouldFold) return;
 
             string newLines = _transcript.RenderRange(plan.FoldFrom, plan.FoldTo, PlayerTranscriptLabel());

@@ -54,7 +54,11 @@ namespace CalradiaRemembers.Chat
          try
          {
             string contextFacts = ActionInterpreterContextBuilder.Project(context, profile, playerLabel, conversationInProgress);
-            prompt = ActionInterpreterPromptBuilder.Build(prose, contextFacts);
+            // Compact reaches the interpreter too, at last. This prompt had no notion of a prompt level: at
+            // ~17.6k tokens it is more than twice the whole context of the 8,192-token models the setting is
+            // named for, so for those players this call could never once succeed - and the failure below is
+            // swallowed, so they played on with no deed ever recorded and nothing saying why.
+            prompt = ActionInterpreterPromptBuilder.Build(prose, contextFacts, context?.LeanLevel ?? LeanPromptLevel.Full);
          }
          catch (Exception ex)
          {
@@ -70,7 +74,7 @@ namespace CalradiaRemembers.Chat
             // Being cacheable and being CACHED are not the same thing: nothing ever asked for the breakpoint,
             // so every turn re-sent that block at full price, on top of the prose call's own prompt. Claimed
             // here. The prompt's text and order are untouched; only where cache_control falls changes.
-            StableSystemPrompt = ActionInterpreterPromptBuilder.StablePrefix,
+            StableSystemPrompt = ActionInterpreterPromptBuilder.StablePrefixFor(context?.LeanLevel ?? LeanPromptLevel.Full),
             // Diagnostic only: which character this reading is FOR, so a wire observer compares the
             // interpreter's prefix against its own and never against the prose call's (see LlmRequest.Subject).
             Subject = profile?.Id,
@@ -119,7 +123,14 @@ namespace CalradiaRemembers.Chat
 
          if (error != null || string.IsNullOrWhiteSpace(content))
          {
-            ModLog.Error($"[PROSE-INTERPRET] interpreter call produced no tags; applying none: {error ?? "empty reply"}");
+            // Compat, not Error: this channel is on even when logging is off (the Nexus default), because a
+            // silent failure here is INVISIBLE in play - the prose still shows, the scene continues, and only
+            // the deeds quietly stop being recorded. A player on a small local model could run a whole campaign
+            // in that state, as DuskSymphony did, with nothing anywhere to explain it.
+            ModLog.Compat($"[PROSE-INTERPRET] interpreter call produced no tags; applying none: {error ?? "empty reply"}. "
+                        + "Deeds from this reply are NOT recorded. If this repeats on a local model, its context is "
+                        + "too small for the interpreter: turn on 'Compact prompt for small models', or switch "
+                        + "Chat Composition to Standard so the scene model emits its own tags in one call.");
 
             return WithInterpretedTags(proseResponse, null);
          }

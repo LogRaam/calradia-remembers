@@ -50,6 +50,24 @@ namespace CalradiaRemembers.Logic
         /// <summary>Fold once this many lines have piled up UNFOLDED (raw) since the last summary. Tunable.</summary>
         public const int UnfoldedLineThreshold = 14;
 
+        /// <summary>
+        ///   The same dial for Compact mode, where the whole budget is a fraction of the size.
+        ///
+        ///   Fourteen lines of a roleplay exchange is a large and GROWING block of raw transcript, and it was
+        ///   the one part of a Compact prompt nothing had shrunk. That is exactly the shape DuskSymphony
+        ///   reported on an 8,192-token local model (Nexus, 14/09/2026): "occasionally one will get through the
+        ///   first message but followups will still be too high." The first turn fits; the transcript is what
+        ///   pushes the later ones over.
+        ///
+        ///   Six, not four: folding costs an LLM call of its own, and on the small servers this exists for that
+        ///   call is not free either. Six keeps the fold rare enough to be worth its own price while holding
+        ///   the raw block to roughly a third of what Full tolerates.
+        /// </summary>
+        public const int CompactUnfoldedLineThreshold = 6;
+
+        /// <summary>The fold threshold for a prompt level — the shipped pacing, or the tighter Compact one.</summary>
+        public static int ThresholdFor(bool compact) => compact ? CompactUnfoldedLineThreshold : UnfoldedLineThreshold;
+
         /// <summary>The most recent lines always replayed raw (never folded), so recent context stays verbatim. Tunable.</summary>
         public const int RecentLinesKeptVerbatim = 4;
 
