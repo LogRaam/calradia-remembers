@@ -18,7 +18,9 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Commitments;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Logic.Assemblies;
+using NpcMemoryService.Core.Knowledge;
 using NpcMemoryService.Core.Compression;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Parsing;
@@ -1161,6 +1163,9 @@ namespace CalradiaRemembers.Chat
                // set the tone -- a courteous lord of a martial culture then turned blunt at the table (player report).
                PersonaLine = p?.Trait ?? p?.Personality,
                RegardTowardPlayer = p?.ReputationWithPlayer ?? 0,
+               // Read through EncounterContextBuilder.StationContextFor, the SAME reader a private word uses,
+               // and rendered by StationPack itself. The table had no station at all before this.
+               StationLine = StationPack.DescribeBriefly(EncounterContextBuilder.StationContextFor(hero)),
                Culture = hero?.Culture?.StringId,
                Age = hero != null ? (int?) hero.Age : null // so a seated child/youth is voiced true to their years
             });

@@ -315,6 +315,10 @@ namespace CalradiaRemembers.Mapping
          SeatStandingFacts seatStanding = BuildSeatStanding(hero);
          MarketWordFacts marketWord = BuildMarketWord(hero);
          PartyPost partyPost = ReadPartyPost(hero);
+
+         // ONE reader for the station facts, shared with the COUNCIL (StationContextFor). Two readers is how a
+         // seated governor ends up knowing less than the same man in a private word.
+         EncounterContext station = StationContextFor(hero);
          OwnVenturesFacts ventures = BuildOwnVentures(hero);
 
          return new() {
@@ -453,10 +457,12 @@ namespace CalradiaRemembers.Mapping
             PlayerIsMercenary = Clan.PlayerClan?.IsUnderMercenaryService ?? false,
             VassalOfferKingdom = ResolveVassalOfferKingdom(hero),
             // Station, unconditionally: see the EncounterContext docs. A ruler used to learn his own rank only
-            // through the vassal offer above, which is gated, so he denied the crown everywhere else.
-            RuledRealmName = ResolveRuledRealmName(hero),
-            RuledRealmRulerTitle = ResolveRuledRealmRulerTitle(hero),
-            LeadsOwnClan = hero?.Clan?.Leader == hero && hero?.Clan != null,
+            // through the vassal offer above, which is gated, so he denied the crown everywhere else. Read
+            // through StationContextFor, the ONE reader the council shares (audit, 15/09/2026: a seated
+            // governor did not know he governed, because the table had its own, emptier idea of a person).
+            RuledRealmName = station.RuledRealmName,
+            RuledRealmRulerTitle = station.RuledRealmRulerTitle,
+            LeadsOwnClan = station.LeadsOwnClan,
 
             // The post the man actually holds. Read from the engine's own GovernorOf, which this file ALREADY
             // reads a few lines below to decide whether appoint_governor may be offered: the fact was here all
@@ -464,8 +470,8 @@ namespace CalradiaRemembers.Mapping
             // The speaking character's own house, for the station pack's clan-head line. Read from the LIVE
             // hero rather than from the stored profile string, which is a snapshot taken when the profile was
             // first built and would be stale for anyone who has changed house since.
-            SpeakerClanName = hero?.Clan?.Name?.ToString(),
-            GovernedSettlementName = hero?.GovernorOf?.Settlement?.Name?.ToString(),
+            SpeakerClanName = station.SpeakerClanName,
+            GovernedSettlementName = station.GovernedSettlementName,
             GovernsForPlayerHouse = hero?.GovernorOf?.Settlement?.OwnerClan != null
                                     && hero.GovernorOf.Settlement.OwnerClan == Clan.PlayerClan,
 
@@ -486,12 +492,11 @@ namespace CalradiaRemembers.Mapping
 
             // The post the mod's own verb assigned and never mentioned. Named here so the station pack can
             // say it, exactly as GovernedSettlementName is named for the governorship.
-            PartyPostHeld = partyPost == PartyPost.None ? null : partyPost.ToString().ToLowerInvariant(),
+            PartyPostHeld = station.PartyPostHeld,
 
             // The last of the player-granted posts nobody had told the holder about. The register has existed
             // since ride_with_me shipped and was read only by the action menu, never by a conversation.
-            RidesAsRetainer = hero?.StringId != null
-                              && RetainerBehavior.Instance?.IsRetainer(hero.StringId) == true,
+            RidesAsRetainer = station.RidesAsRetainer,
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
             Audience = BuildListeningAudience(profile, witnesses),
@@ -3241,6 +3246,36 @@ namespace CalradiaRemembers.Mapping
             // CUT-OFF rather than the arithmetic.
             return "for a while now";
          }
+      }
+
+      /// <summary>
+      ///   A hero's STATION facts, and nothing else: what they rule, head, govern, or hold. Returned as an
+      ///   EncounterContext because that is what <see cref="NpcMemoryService.Core.Knowledge.StationPack" />
+      ///   reads, so the one-clause form the COUNCIL needs and the paragraphs a private word needs are two
+      ///   renderings of one set of facts rather than two opinions about what a station is.
+      ///
+      ///   Exists because the council had none of this at all: a seated governor did not know he governed and
+      ///   a seated king did not know he ruled, which is the Derthert/Garios failure StationPack was written
+      ///   to end, still live in a whole conversation mode (audit, 15/09/2026).
+      /// </summary>
+      public static EncounterContext StationContextFor(Hero hero)
+         => new() {
+            RuledRealmName = ResolveRuledRealmName(hero),
+            RuledRealmRulerTitle = ResolveRuledRealmRulerTitle(hero),
+            LeadsOwnClan = hero?.Clan?.Leader == hero && hero?.Clan != null,
+            SpeakerClanName = hero?.Clan?.Name?.ToString(),
+            GovernedSettlementName = hero?.GovernorOf?.Settlement?.Name?.ToString(),
+            PartyPostHeld = ResolvePartyPostName(hero),
+            RidesAsRetainer = hero?.StringId != null
+                              && RetainerBehavior.Instance?.IsRetainer(hero.StringId) == true
+         };
+
+      /// <summary>The party post this hero holds in the player's company, lowercased, or null for none.</summary>
+      private static string ResolvePartyPostName(Hero hero)
+      {
+         PartyPost post = ReadPartyPost(hero);
+
+         return post == PartyPost.None ? null : post.ToString().ToLowerInvariant();
       }
 
       private static string ResolveRuledRealmName(Hero hero)
