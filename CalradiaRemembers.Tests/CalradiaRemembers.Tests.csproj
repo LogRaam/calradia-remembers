@@ -21,6 +21,23 @@
     <PackageReference Include="Mono.Cecil" Version="0.11.5" />
   </ItemGroup>
 
+  <!-- The shipped narrative files, copied BESIDE the test assembly so ShippedNarrativeSizeTests can measure
+       them from AppContext.BaseDirectory. They used to be located from the test's own [CallerFilePath],
+       which is the path the COMPILER saw - fine under `dotnet test`, wrong under NCrunch, which compiles
+       from its own workspace copy and does not carry these .txt files into it. Gabriel runs NCrunch, so all
+       three tests were red there while green on the command line. Copying them makes the file reachable the
+       same way in every runner, and CopyToOutputDirectory is what NCrunch honours. -->
+  <ItemGroup>
+    <None Include="../CalradiaRemembers/ModuleData/world.txt"
+          Link="ShippedNarrative/world.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../CalradiaRemembers/ModuleData/behavior_guidelines.txt"
+          Link="ShippedNarrative/behavior_guidelines.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../CalradiaRemembers/ModuleData/player_description.txt"
+          Link="ShippedNarrative/player_description.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../CalradiaRemembers/ModuleData/post_history_instructions.txt"
+          Link="ShippedNarrative/post_history_instructions.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\CalradiaRemembers.Logic\CalradiaRemembers.Logic.csproj" />
     <!-- The SDK (NpcMemoryService.Core) is engine-agnostic; referencing it lets us unit-test its pure

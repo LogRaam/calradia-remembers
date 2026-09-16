@@ -19,8 +19,8 @@
 
 #region
 
+using System;
 using System.IO;
-using System.Runtime.CompilerServices;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -76,21 +76,26 @@ namespace CalradiaRemembers.Tests
 
         private static int Measure(string fileName)
         {
-            string path = Path.Combine(ModuleDataDirectory(), fileName);
+            string path = Path.Combine(NarrativeDirectory, fileName);
 
-            File.Exists(path).Should().BeTrue($"{fileName} ships with the mod and is read by NarrativeLoader");
+            File.Exists(path).Should().BeTrue(
+                $"{fileName} ships with the mod, is read by NarrativeLoader, and is copied beside this test "
+              + $"assembly by the .csproj. Looked in: {NarrativeDirectory}");
 
             return File.ReadAllText(path).Length;
         }
 
         /// <summary>
-        ///   ModuleData, located from THIS FILE's own compile-time path rather than from the test assembly's
-        ///   output directory — which moves with the build configuration and would make this test pass or
-        ///   fail for reasons that have nothing to do with the files.
+        ///   Beside the test assembly, where the .csproj copies the shipped files.
+        ///
+        ///   The first version located them from this file's own <c>[CallerFilePath]</c> — the path the
+        ///   COMPILER saw. That is correct under <c>dotnet test</c> and wrong under NCrunch, which compiles
+        ///   from its own workspace copy and does not carry these .txt files into it, so all three tests were
+        ///   red in the runner Gabriel actually watches while green on the command line. A test that passes in
+        ///   one runner and fails in another is measuring the runner.
         /// </summary>
-        private static string ModuleDataDirectory([CallerFilePath] string thisFile = "")
-            => Path.GetFullPath(Path.Combine(
-                Path.GetDirectoryName(thisFile)!, "..", "CalradiaRemembers", "ModuleData"));
+        private static string NarrativeDirectory
+            => Path.Combine(AppContext.BaseDirectory, "ShippedNarrative");
 
         #endregion
     }
