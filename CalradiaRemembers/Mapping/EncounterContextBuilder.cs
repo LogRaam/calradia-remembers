@@ -3946,8 +3946,17 @@ namespace CalradiaRemembers.Mapping
          bool isPlayerCompanion = hero.CompanionOf == Clan.PlayerClan;
          bool holdsFief = hero.IsClanLeader && (hero.Clan?.Settlements?.Any(s => s != null && (s.IsTown || s.IsCastle)) ?? false);
          string key = StationGuidelinesPolicy.ResolveStationKey(hero.Occupation.ToString(), isPlayerCompanion, holdsFief);
+         string text = StationGuidelinesPolicy.SelectStationText(key, NarrativeLoader.StationGuidelines);
 
-         return StationGuidelinesPolicy.SelectStationText(key, NarrativeLoader.StationGuidelines);
+         // A lord resolves to no station file and used to fall through to the base register, which is
+         // injected session-wide (LlmServices -> BehaviorGuidelinesOverride) and therefore cannot know who is
+         // speaking. Resolving it HERE instead, where the hero is in hand, is what lets the FACTION BEHAVIOR
+         // section be narrowed to his own culture. PromptBuilder prefers this override over the session one,
+         // so a lord receives the same text he always did, minus the seven cultures he is not.
+         if (string.IsNullOrWhiteSpace(text)) text = NarrativeLoader.BehaviorGuidelines;
+
+         return FactionGuidelinesPolicy.NarrowToOwnCulture(
+            text, hero.Culture?.Name?.ToString(), hero.MapFaction?.Name?.ToString());
       }
 
       /// <summary>
