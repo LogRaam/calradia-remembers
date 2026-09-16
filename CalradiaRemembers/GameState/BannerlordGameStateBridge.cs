@@ -442,21 +442,21 @@ namespace CalradiaRemembers.GameState
       {
          if (Kingdom.All == null) return "";
 
-         var wars = new List<string>();
+         var wars = new List<(string Side, string Enemy)>();
          List<Kingdom> kingdoms = RetrieveAllKingdoms();
 
+         // Emitted side-by-side on purpose: every war of kingdoms[i] comes out together, which is what lets
+         // ActiveConflictsFormatter write that kingdom's name once instead of once per enemy.
          for (var i = 0; i < kingdoms.Count; i++)
             for (int j = i + 1; j < kingdoms.Count; j++)
             {
                Kingdom a = kingdoms[i];
                Kingdom b = kingdoms[j];
                if (FactionManager.IsAtWarAgainstFaction(a, b))
-                  wars.Add($"{a.Name} vs {b.Name}");
+                  wars.Add((a.Name?.ToString(), b.Name?.ToString()));
             }
 
-         return wars.Count > 0
-            ? string.Join("; ", wars)
-            : "";
+         return ActiveConflictsFormatter.Describe(wars);
       }
 
       public string GetCurrentActivity(Hero npc)

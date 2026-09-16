@@ -86,6 +86,11 @@ namespace CalradiaRemembers.Mapping
 
          var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+         // The speaker's OWN name, so their namesakes can be told apart from genuine third parties below.
+         // Personal name only, never clan or culture: matching on a clan name is how a player asks about a
+         // house, and that question must still find the house.
+         List<string> speakerNameTokens = NameTokens(npc.Name?.ToString());
+
          foreach (Hero other in Hero.AllAliveHeroes)
          {
             if (other == npc || other.IsHumanPlayerCharacter) continue;
@@ -94,7 +99,14 @@ namespace CalradiaRemembers.Mapping
 
             if (string.IsNullOrEmpty(fullName)) continue;
             if (seen.Contains(other.StringId)) continue;
-            if (!NameSharesTokenWithMessage(fullName, messageTokens)) continue;
+
+            List<string> matched = MatchedTokens(fullName, messageTokens);
+            if (matched.Count == 0) continue;
+
+            // Found only through words that also name the person being spoken to: the player was addressing
+            // them, not naming somebody else (fkasad, Nexus, 15/09/2026 — a companion named Erevan was
+            // answered with two other Erevans, and invited to ask which one was meant).
+            if (SpeakerNamesakePolicy.IsMerelyANamesake(matched, speakerNameTokens)) continue;
 
             seen.Add(other.StringId);
             result.Add((other, fullName, Categorize(npc, other)));
@@ -248,19 +260,40 @@ namespace CalradiaRemembers.Mapping
             : activity;
       }
 
-      private static bool NameSharesTokenWithMessage(string heroName, HashSet<string> messageTokens)
+      /// <summary>
+      ///   WHICH words of a hero's name the player actually used — the evidence for the match, not merely
+      ///   that there was one. SpeakerNamesakePolicy needs the words themselves to tell a third party from
+      ///   the speaker's own namesake. Empty means no match at all.
+      /// </summary>
+      private static List<string> MatchedTokens(string heroName, HashSet<string> messageTokens)
       {
-         foreach (string part in heroName.Split(new[] {' ', '-'}, StringSplitOptions.RemoveEmptyEntries))
+         var matched = new List<string>();
+
+         foreach (string part in NameTokens(heroName))
+            // Folded the same way as the message tokens, so "Heloise the Finger" (typed plain)
+            // still matches "Héloïse the Finger" (stored accented).
+            if (messageTokens.Contains(part))
+               matched.Add(part);
+
+         return matched;
+      }
+
+      /// <summary>The significant, folded words of a name, by the same rules the message is tokenised with.</summary>
+      private static List<string> NameTokens(string name)
+      {
+         var tokens = new List<string>();
+
+         if (string.IsNullOrWhiteSpace(name)) return tokens;
+
+         foreach (string part in name.Split(new[] {' ', '-'}, StringSplitOptions.RemoveEmptyEntries))
          {
             if (part.Length < MinTokenLength) continue;
             if (IsStopWord(part)) continue;
 
-            // Folded the same way as the message tokens, so "Heloise the Finger" (typed plain)
-            // still matches "Héloïse the Finger" (stored accented).
-            if (messageTokens.Contains(NameNormalization.Fold(part))) return true;
+            tokens.Add(NameNormalization.Fold(part));
          }
 
-         return false;
+         return tokens;
       }
 
       /// <summary>
