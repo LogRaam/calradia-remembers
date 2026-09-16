@@ -136,6 +136,15 @@ namespace CalradiaRemembers.Chat
       /// summary (kept) plus the most recent few, so a group scene voices each witness true to what THEY recall.</summary>
       private const int WitnessMemoryEventCap = 8;
 
+      /// <summary>
+      ///   How many remembered summaries a COUNCIL seat carries. Two, not the witness path's eight: a council
+      ///   renders every seat at once, so this cost is multiplied by the size of the table rather than by the
+      ///   handful of people in a room. At two the digest keeps the oldest kept memory AND the most recent
+      ///   (WitnessMemoryDigest.Compose's own rule), which is the pair worth having — where this began, and
+      ///   what happened last.
+      /// </summary>
+      private const int CouncilSeatMemoryEventCap = 2;
+
       private IReadOnlyList<WitnessEntry> BuildContextWitnesses(ChatSpeaker speaker)
       {
          if (speaker.IsMain)
@@ -230,10 +239,13 @@ namespace CalradiaRemembers.Chat
          List<NotableEvent> events = profile?.Events;
          if (events == null || events.Count == 0) return null;
 
-         // THE LEAK GUARD, and this is the ONE place it is needed: a witness's recall is the only path by which
-         // one hero's memories reach another hero's prompt (everything else in EncounterContextBuilder reads the
-         // SPEAKER's own profile). A private memory is the holder's alone - it still reaches their own prompt
-         // through the ordinary history, and it never reaches the room. See NotableEvent.IsPrivate.
+         // THE LEAK GUARD. It used to say this was the ONE place it was needed, and that stopped being true on
+         // 16/09/2026 when the COUNCIL began carrying each seat's recall: a council is one prompt covering the
+         // whole table, so a seat's memories are read by the voice writing every other seat. That is the same
+         // exposure as a witness's recall, which is why the council calls THIS builder rather than reading
+         // events itself - the guard is inherited, not re-reasoned. A private memory is the holder's alone: it
+         // still reaches their own prompt through the ordinary history, and it never reaches the room.
+         // See NotableEvent.IsPrivate.
          List<NotableEvent> shareable = events.Where(ev => ev != null && !ev.IsPrivate).ToList();
          if (shareable.Count == 0) return null;
 

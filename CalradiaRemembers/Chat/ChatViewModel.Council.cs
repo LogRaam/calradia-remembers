@@ -1166,6 +1166,10 @@ namespace CalradiaRemembers.Chat
                // Read through EncounterContextBuilder.StationContextFor, the SAME reader a private word uses,
                // and rendered by StationPack itself. The table had no station at all before this.
                StationLine = StationPack.DescribeBriefly(EncounterContextBuilder.StationContextFor(hero)),
+               // Through the SAME builder the witness path uses, so the private-memory leak guard is inherited
+               // rather than re-reasoned. A council is one prompt for the whole table: every seat's recall is
+               // read by the voice writing every other seat.
+               Memory = BuildWitnessMemory(p, CouncilSeatMemoryEventCap),
                Culture = hero?.Culture?.StringId,
                Age = hero != null ? (int?) hero.Age : null // so a seated child/youth is voiced true to their years
             });
