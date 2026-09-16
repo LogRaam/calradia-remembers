@@ -71,6 +71,9 @@ namespace CalradiaRemembers.Chat
             // so every turn re-sent that block at full price, on top of the prose call's own prompt. Claimed
             // here. The prompt's text and order are untouched; only where cache_control falls changes.
             StableSystemPrompt = ActionInterpreterPromptBuilder.StablePrefix,
+            // Diagnostic only: which character this reading is FOR, so a wire observer compares the
+            // interpreter's prefix against its own and never against the prose call's (see LlmRequest.Subject).
+            Subject = profile?.Id,
             Messages = new[] {new LlmMessage(MessageRole.User, ActionInterpreterPromptBuilder.FinalInstruction)},
             // 900, not 600: the two-step FinalInstruction makes the model write a CHECK grounding line per
             // candidate action BEFORE the tag block. A reply carrying several deeds can spend 600 on the CHECK
