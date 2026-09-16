@@ -97,6 +97,14 @@ namespace CalradiaRemembers.Chat
                // which may differ from the scene (prose) provider. Never null (falls back to the main client).
                LlmResponse resp = await Task.Run(() => services.InterpreterClient.CompleteAsync(request, cts.Token))
                                             .ConfigureAwait(false);
+
+               // The interpreter runs once per turn on a ~70k-char prompt, which makes it the larger half of
+               // what a turn costs — and its usage was the ONE call whose numbers never reached the log, so
+               // "did the interpreter's provider honour the cache breakpoint?" had no answer. It does now.
+               if (resp?.Usage != null)
+                  ModLog.Info($"  [INTERPRETER TOKENS] prompt={resp.Usage.PromptTokens} "
+                            + $"(cached:{resp.Usage.CachedPromptTokens ?? 0}) | completion={resp.Usage.CompletionTokens}");
+
                if (resp is {IsSuccess: true}) content = resp.Content;
                else error = resp?.ErrorMessage ?? "no result";
             }

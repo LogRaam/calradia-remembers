@@ -18,6 +18,7 @@
 #region
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using NpcMemoryService.Core.LlmClient;
@@ -38,13 +39,21 @@ namespace CalradiaRemembers.Diagnostics
       private int _sequence;
 
       /// <summary>
-      ///   The previous request's cacheable prefix. Compared against the next one — which is exactly the
-      ///   diff a player does between two saved prompts, and carries the same caveat: several characters
-      ///   speaking in turn (a room of witnesses, the interpreter) interleave here, so a "broken" verdict
-      ///   between two DIFFERENT speakers is expected and means nothing. The verdict to read is the one
-      ///   between two consecutive turns with the same character.
+      ///   The previous prefix seen PER CALLER, keyed by model.
+      ///
+      ///   The first version kept a single previous prefix and warned in a comment that interleaved callers
+      ///   would confuse it. First run proved the warning worthless: prose and interpreter alternate on every
+      ///   single turn, so every line read "diverges at 0 — 100.0% discarded" while both prefixes were in fact
+      ///   perfectly stable. A verdict that is wrong in the normal case is not a caveat, it is a broken
+      ///   instrument — and one a player would have sent us as evidence of a bug that did not exist.
+      ///
+      ///   Keyed by model because that is what separates the two callers here and needs nothing new plumbed
+      ///   through. It is not a conversation id: two characters spoken to in turn on the SAME model still
+      ///   compare against each other, and that shows as a genuine divergence. Read the verdict across two
+      ///   consecutive turns with one character.
       /// </summary>
-      private string _previousPrefix;
+      private readonly Dictionary<string, string> _previousPrefixByModel =
+         new Dictionary<string, string>(StringComparer.Ordinal);
 
       public WireRecorder(string folder, bool dumpBodies)
       {
@@ -56,8 +65,16 @@ namespace CalradiaRemembers.Diagnostics
       {
          if (snapshot == null) return;
 
-         PrefixComparison cache = PromptCacheReport.Compare(_previousPrefix, snapshot.StablePrefix);
-         _previousPrefix = snapshot.StablePrefix;
+         string model = snapshot.Model ?? "?";
+
+         string previous;
+         lock (_previousPrefixByModel)
+         {
+            _previousPrefixByModel.TryGetValue(model, out previous);
+            _previousPrefixByModel[model] = snapshot.StablePrefix;
+         }
+
+         PrefixComparison cache = PromptCacheReport.Compare(previous, snapshot.StablePrefix);
 
          int n = Interlocked.Increment(ref _sequence);
 
