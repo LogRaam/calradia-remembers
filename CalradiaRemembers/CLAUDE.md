@@ -379,7 +379,17 @@ cr.remove_kink <kink> [name]         # remove a kink
 - **Language**: Gabriel writes in French; all code and files in English.
 - **Before each task**: suggest the model (Sonnet 4.6 / Opus) and wait for explicit confirmation before implementing.
 - **Scope**: pas de cleanup ou refactoring spontané pendant une feature. Refactoring et polish explicitement demandés sont en scope.
-- **Commits**: never commit without explicit request. When asked: both repos (mod + SDK) unless stated.
+- **Commits and pushes**: AUTOMATIC since 2026-09-15. Commit as work reaches a coherent state, and push when
+  the suite is green. Both repos (mod + SDK) unless stated. No need to ask.
+  - *Why this changed, so it is not "fixed" back:* the old rule was `never commit without explicit request`. It
+    was never about git hygiene — Gabriel was on a small plan and every exchange had to earn its place. That
+    constraint is gone. Asking permission per commit now costs a round trip and buys nothing.
+  - **What still holds:** a green suite before pushing (SDK + `CalradiaRemembers.Tests`), and a commit message
+    that says WHY, in the house style — the player report or ruling behind it, what was measured, and what was
+    deliberately NOT done. The message is the record; it is where a decision is found again a month later.
+  - **What is still NOT automatic:** anything a player sees. Cutting a release, numbering a version, writing to
+    the Nexus page or answering a player still waits for Gabriel. Pushing to a private repo is reversible;
+    publishing is not.
 
 ---
 
