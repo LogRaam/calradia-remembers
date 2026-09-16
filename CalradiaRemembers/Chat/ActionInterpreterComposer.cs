@@ -65,6 +65,12 @@ namespace CalradiaRemembers.Chat
 
          var request = new LlmRequest {
             SystemPrompt = prompt,
+            // The interpreter prompt has ALWAYS been built prefix-first so its invariant head — the role, the
+            // tag vocabulary, the output format and the whole action catalogue — could be cached across calls.
+            // Being cacheable and being CACHED are not the same thing: nothing ever asked for the breakpoint,
+            // so every turn re-sent that block at full price, on top of the prose call's own prompt. Claimed
+            // here. The prompt's text and order are untouched; only where cache_control falls changes.
+            StableSystemPrompt = ActionInterpreterPromptBuilder.StablePrefix,
             Messages = new[] {new LlmMessage(MessageRole.User, ActionInterpreterPromptBuilder.FinalInstruction)},
             // 900, not 600: the two-step FinalInstruction makes the model write a CHECK grounding line per
             // candidate action BEFORE the tag block. A reply carrying several deeds can spend 600 on the CHECK
