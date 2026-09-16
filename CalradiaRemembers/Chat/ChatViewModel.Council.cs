@@ -1136,6 +1136,37 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   What one seat knows, composed the way a private word composes it and budgeted the way Compact is.
+      ///
+      ///   COMPACT whatever the player's own prompt setting, because the cost here multiplies by the size of
+      ///   the table: six seats of Full composition would dwarf the council prompt itself. Which facts survive
+      ///   that budget is the packs' own decision (their DropPriority), not a truncation taken here.
+      ///
+      ///   Never throws. A seat that cannot be composed sits with what it already had — a name, a rank, a
+      ///   recall — rather than taking the whole sitting down with it.
+      /// </summary>
+      private static string ComposeSeatKnowledge(Hero hero, NpcProfile profile)
+      {
+         if (hero == null) return null;
+
+         try
+         {
+            EncounterContext context =
+               EncounterContextBuilder.KnowledgeContextFor(hero, profile, LeanPromptLevel.Lean);
+
+            (string stable, string volatileText) = NpcKnowledgeFactory.Compose(context);
+
+            return string.Concat(stable, volatileText);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COUNCIL] knowledge composition failed for {hero.Name}: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
       ///   Builds the council prompt input from the seated roster, world state, transcript, and offered kinds.
       ///   On the sitting's OPENING turn (<paramref name="isOpener" />) the message is a scene-setting stage
       ///   direction, so it rides in as <see cref="CouncilPromptInput.OpeningCue" /> and the player line is left
@@ -1170,6 +1201,10 @@ namespace CalradiaRemembers.Chat
                // rather than re-reasoned. A council is one prompt for the whole table: every seat's recall is
                // read by the voice writing every other seat.
                Memory = BuildWitnessMemory(p, CouncilSeatMemoryEventCap),
+               // Composed through the SAME factory a private word uses, at the Compact budget: a table
+               // multiplies this by the number of seats. Audience is left unset by KnowledgeContextFor, so
+               // Discretion fails closed and nothing held as Secret reaches the room.
+               Knowledge = ComposeSeatKnowledge(hero, p),
                Culture = hero?.Culture?.StringId,
                Age = hero != null ? (int?) hero.Age : null // so a seated child/youth is voiced true to their years
             });

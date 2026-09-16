@@ -319,6 +319,7 @@ namespace CalradiaRemembers.Mapping
          // ONE reader for the station facts, shared with the COUNCIL (StationContextFor). Two readers is how a
          // seated governor ends up knowing less than the same man in a private word.
          EncounterContext station = StationContextFor(hero);
+         EncounterContext knowledge = KnowledgeContextFor(hero, profile);
          OwnVenturesFacts ventures = BuildOwnVentures(hero);
 
          return new() {
@@ -477,18 +478,19 @@ namespace CalradiaRemembers.Mapping
 
             // Knowledge composition, increment 1 (ROADMAP: "WHAT A CHARACTER KNOWS"). Who this person is, and
             // what they are to the player: the factory weighs both, because role alone would hand a stranger
-            // the player's ledger while fixing one companion.
-            Bearer = BuildKnowledgeBearer(hero, seatStanding != null, marketWord != null, partyPost,
-                                          ventures != null),
-            HouseStanding = BuildHouseStanding(hero),
-            SeatStanding = seatStanding,
-            HouseMeans = BuildHouseMeans(hero),
-            OwnBody = BuildOwnBody(hero),
-            MarketWord = marketWord,
-            Underworld = BuildUnderworld(hero),
-            OwnVentures = ventures,
-            HeldFor = ReadHeldFor(hero),
-            PartyStanding = BuildPartyStanding(hero),
+            // the player's ledger while fixing one companion. Read through KnowledgeContextFor, the ONE reader
+            // the council shares — the table had no knowledge at all before 16/09/2026, so a lord who could
+            // name his house's fiefs in a private word could name nothing at his own council.
+            Bearer = knowledge.Bearer,
+            HouseStanding = knowledge.HouseStanding,
+            SeatStanding = knowledge.SeatStanding,
+            HouseMeans = knowledge.HouseMeans,
+            OwnBody = knowledge.OwnBody,
+            MarketWord = knowledge.MarketWord,
+            Underworld = knowledge.Underworld,
+            OwnVentures = knowledge.OwnVentures,
+            HeldFor = knowledge.HeldFor,
+            PartyStanding = knowledge.PartyStanding,
 
             // The post the mod's own verb assigned and never mentioned. Named here so the station pack can
             // say it, exactly as GovernedSettlementName is named for the governorship.
@@ -497,8 +499,8 @@ namespace CalradiaRemembers.Mapping
             // The last of the player-granted posts nobody had told the holder about. The register has existed
             // since ride_with_me shipped and was read only by the action menu, never by a conversation.
             RidesAsRetainer = station.RidesAsRetainer,
-            HereAndNow = BuildHereAndNow(hero),
-            PersonalBonds = BuildPersonalBonds(hero, profile),
+            HereAndNow = knowledge.HereAndNow,
+            PersonalBonds = knowledge.PersonalBonds,
             Audience = BuildListeningAudience(profile, witnesses),
             // follow_me: taught only when EscortEligibilityPolicy.CanEscort says the game can truly honour it
             // right now (see the computation just above the object initializer). dismiss_escort is the mirror,
@@ -614,7 +616,7 @@ namespace CalradiaRemembers.Mapping
             // carries is a rule about people, and RealmNewsPack owns it. The two older fields are left on
             // EncounterContext and still render if some other mod sets them - the host simply no longer does,
             // so nothing is said twice.
-            RealmNews = BuildRealmNews(hero),
+            RealmNews = knowledge.RealmNews,
 
             // Player report 2026-09-12: the tolerance existed and never reached the prompt, so a character
             // whose profile said "comfortable with multiple partners" was docked for exactly that and could
@@ -3258,6 +3260,47 @@ namespace CalradiaRemembers.Mapping
       ///   a seated king did not know he ruled, which is the Derthert/Garios failure StationPack was written
       ///   to end, still live in a whole conversation mode (audit, 15/09/2026).
       /// </summary>
+      /// <summary>
+      ///   A hero's KNOWLEDGE facts: the bearer that decides what a person like this would know, and every
+      ///   fact set the packs read. The companion to <see cref="StationContextFor" /> — that one is what they
+      ///   ARE, this is what they KNOW — and shared with the COUNCIL for the same reason: the table had no
+      ///   knowledge at all, so a lord who could name his house's fiefs in a private word could name nothing
+      ///   at his own council (audit, 15/09/2026).
+      ///
+      ///   AUDIENCE IS DELIBERATELY LEFT UNSET. Discretion is fail-closed on a null audience, so nothing a
+      ///   character holds as Secret is rendered through this context. At a table that is the right default
+      ///   and not a limitation: a council is the definition of "in front of others".
+      /// </summary>
+      public static EncounterContext KnowledgeContextFor(Hero hero, NpcProfile profile,
+                                                        LeanPromptLevel lean = LeanPromptLevel.Full)
+      {
+         SeatStandingFacts seatStanding = BuildSeatStanding(hero);
+         MarketWordFacts marketWord = BuildMarketWord(hero);
+         OwnVenturesFacts ventures = BuildOwnVentures(hero);
+         PartyPost partyPost = ReadPartyPost(hero);
+
+         return new EncounterContext {
+            // Carried on the context because the packs budget themselves by it. Build supplies its own level
+            // from the player's setting and never reads this one; the COUNCIL asks for Compact explicitly,
+            // since a table multiplies the cost by the number of seats.
+            LeanLevel = lean,
+            Bearer = BuildKnowledgeBearer(hero, seatStanding != null, marketWord != null, partyPost,
+                                          ventures != null),
+            HouseStanding = BuildHouseStanding(hero),
+            SeatStanding = seatStanding,
+            HouseMeans = BuildHouseMeans(hero),
+            OwnBody = BuildOwnBody(hero),
+            MarketWord = marketWord,
+            Underworld = BuildUnderworld(hero),
+            OwnVentures = ventures,
+            HeldFor = ReadHeldFor(hero),
+            PartyStanding = BuildPartyStanding(hero),
+            HereAndNow = BuildHereAndNow(hero),
+            PersonalBonds = BuildPersonalBonds(hero, profile),
+            RealmNews = BuildRealmNews(hero)
+         };
+      }
+
       public static EncounterContext StationContextFor(Hero hero)
          => new() {
             RuledRealmName = ResolveRuledRealmName(hero),
