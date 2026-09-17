@@ -58,13 +58,33 @@ namespace CalradiaRemembers.Map
             if (UIResourceManager.SpriteData != null && !UIResourceManager.SpriteData.SpriteExists(SpriteName))
                UIResourceManager.SpriteData.Sprites[SpriteName] = sprite;
 
-            BrushLayer layer = UIResourceManager.BrushFactory?.GetBrush("MapBar.Left.Button.Backgrounds")?.GetLayer("cr_council");
+            Brush brush = UIResourceManager.BrushFactory?.GetBrush("MapBar.Left.Button.Backgrounds");
 
-            if (layer == null)
+            if (brush == null)
             {
-               ModLog.Error("[COUNCIL BAR] MapBar.Left.Button.Backgrounds has no cr_council layer to attach the sprite to.");
+               ModLog.Compat("[COUNCIL BAR] the map bar brush is missing entirely; the council button cannot be drawn.");
 
                return;
+            }
+
+            BrushLayer layer = brush.GetLayer("cr_council");
+
+            // THE LAYER MAY BELONG TO SOMEBODY ELSE'S FILE. A Brushes XML redefines a brush WHOLE, so two mods
+            // that both extend MapBar.Left.Button.Backgrounds do not merge - the one loaded last replaces the
+            // other, layers and all. Retinues v2.0.0.12 ships GUI/Brushes/MapBar.Troops.xml, which redeclares
+            // every vanilla layer plus its own "troops"; ours is GUI/Brushes/CRMapBar.xml, same brush plus
+            // "cr_council". Whoever loses that race loses their button's ICON while the button itself sits in
+            // the bar drawing nothing - which is exactly what a player sees as "the button disappeared"
+            // (Gabriel reproduced it 17/09/2026: bar holds 10 items, sprite has no layer, nothing on screen).
+            //
+            // So the layer is CREATED here when it is absent, on the live brush, rather than relied upon to
+            // have survived. It costs nothing when our file did win, and it makes the race irrelevant.
+            if (layer == null)
+            {
+               layer = new BrushLayer {Name = "cr_council"};
+               brush.AddLayer(layer);
+               ModLog.Compat("[COUNCIL BAR] another mod's brush replaced ours, so the cr_council layer was "
+                           + "rebuilt at runtime. The button keeps its icon and theirs is untouched.");
             }
 
             if (layer.Sprite != sprite) layer.Sprite = sprite;
