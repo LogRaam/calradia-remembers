@@ -9,6 +9,7 @@
 
 using System;
 using System.Linq;
+using System.Reflection;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Map.MapBar;
@@ -80,6 +81,54 @@ namespace CalradiaRemembers.Map
       // item IS still there his answer is the third and the search moves to the sprite and the prefab.
       private static WeakReference _watched;
       private static int _ticksSinceAdd;
+
+      /// <summary>
+      ///   Says at startup whether this patch actually ATTACHED to the constructor it names, on the channel
+      ///   that stays on when logging is off.
+      ///
+      ///   Without it, one of the three ways a player loses the button is completely invisible. PatchAll
+      ///   reports "Harmony patches applied" for the whole set, so a target that never resolved, or a bar
+      ///   built from some other view model, leaves no trace at all — and silence is also what a player who
+      ///   simply never opened the map produces. With this line the three cases separate cleanly in a log:
+      ///
+      ///     no "attached" line          the patch never applied; the search is load order and game version
+      ///     attached, no "added" line   the constructor never ran; another mod supplies a different bar
+      ///     added, then "GONE"          somebody rebuilt the list after us, and the line names what is left
+      ///
+      ///   Players report losing the button alongside Retinues (mysticwolf92, 2026-09-09..12, and others per
+      ///   Gabriel on 17/09). That correlation is now well attested; the MECHANISM is not, and reflection over
+      ///   Retinues v2.0.0.12 argues against the simple reading — it contains MapNavigationVM zero times and
+      ///   set_NavigationItems zero times, so it never touches the list our item lives in. Which is exactly
+      ///   why the answer has to come from a log rather than from another round of inference.
+      /// </summary>
+      internal static void ReportAttachment(Harmony harmony)
+      {
+         try
+         {
+            ConstructorInfo target = typeof(MapNavigationVM).GetConstructor(
+               new[] {typeof(INavigationHandler), typeof(Func<MapBarShortcuts>)});
+
+            if (target == null)
+            {
+               ModLog.Compat("[COUNCIL BAR] the map bar constructor this build expects was not found; the "
+                           + "council button cannot be added. Use cr.council to convene.");
+
+               return;
+            }
+
+            Patches info = Harmony.GetPatchInfo(target);
+            bool ours = info?.Postfixes?.Any(p => p.owner == harmony.Id) == true;
+
+            if (ours) ModLog.Compat("[COUNCIL BAR] council button patch attached to the map navigation bar.");
+            else
+               ModLog.Compat("[COUNCIL BAR] council button patch did NOT attach; the button will be absent. "
+                           + "Use cr.council to convene.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Compat($"[COUNCIL BAR] could not verify the button patch: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
 
       /// <summary>
       ///   Checks ONCE, shortly after the bar was built, whether our item survived. Called from the
