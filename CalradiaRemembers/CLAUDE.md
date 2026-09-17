@@ -276,6 +276,45 @@ Three examples found within 24 hours, all of them green the whole time:
 
 So: build the subject the way production builds it, and take the expectation from outside it.
 
+## Where a prompt section lives: order the prefix by STABILITY (measured 2026-09-17)
+
+The prompt is split at the literal `CURRENT ENCOUNTER:` marker: everything above it carries the provider's
+cache breakpoint, everything below is sent fresh every turn. Two rules follow, and the second was unwritten
+until it had been broken twice.
+
+**1. A per-turn fact goes BELOW the marker.** Already in `PromptBuilder`'s own seam comment. Broken anyway:
+`IsConversationOpening` branched the format teaching near the TOP of the prefix, so turn 2 of every
+conversation discarded 93% of it. Guarded now by `PromptCacheTurnStabilityTests`.
+
+**2. Inside the prefix, order from most stable to least.** A change at position P invalidates everything
+from P to the marker — so what changes costs not its OWN size but the size of everything after it.
+
+Measured on a real prompt (Alympia, 57,664-char prefix):
+
+| block | position | a change re-writes |
+|---|---|---|
+| `YOUR HISTORY WITH THIS PLAYER` | 50,880 | 6,784 chars (12%) |
+| `CURRENT STANCE (reputation N)` | 51,262 | 6,402 chars (11%) |
+| behind them | | 6,088 chars of stable offer teachings |
+
+The two most volatile blocks in the prefix sit AHEAD of six thousand characters that never move. The code
+already has the instinct without the rule — `AppendNarrativeStyle` carries "Last of the cacheable prefix: it
+is stable for the whole conversation" — it simply was never stated as a rule, so nothing applied it upward.
+
+**And the remedy is NOT to move a block below the marker.** That trades a rare invalidation for a permanent
+cost: a 314-char stance block below the marker is re-sent uncached on every turn, where above it is free on
+every turn the regard does not move. A token audit (16/09/2026) recommended exactly that, on a claim of
+"40–60% of the prefix re-written" that measurement put at 11–12%.
+
+**Ruled not worth doing today** (2026-09-17): reordering would save ~1,425 tokens on the turns where regard
+moves, roughly once per conversation, against ~16,000-token prompts — about 1% — and prompt ORDER is a
+quality question under Gabriel's quality-first ruling. Written down so the next person starts from the
+measurement rather than from the estimate. The one member of that family worth fixing, the history block,
+was fixed on 2026-09-17 for a prose reason (characters restating the conversation back at the player), and
+the cache saving was incidental.
+
+---
+
 ## Where a panel lives: the one rule (measured 2026-09-07, do not relitigate)
 
 **Never `ScreenManager.PushScreen`, and never a Gauntlet layer over the live map.** Both leave `MapState` active, so
