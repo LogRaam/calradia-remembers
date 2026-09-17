@@ -8120,13 +8120,13 @@ namespace CalradiaRemembers.Diagnostics
             var seeded = new WitnessEntry {Name = hero.Name?.ToString(), HeroStringId = hero.StringId, RelationToNpc = "a bystander"};
             System.Collections.Generic.IReadOnlyList<WitnessEntry> enriched =
                Chat.ChatViewModel.WithMemories(new System.Collections.Generic.List<WitnessEntry> {seeded});
-            string carried = enriched != null && enriched.Count > 0 ? enriched[0].Memory : null;
+            string carried = enriched != null && enriched.Count > 0 ? enriched[0].Memory?.Text : null;
 
             WitnessEntry reDescribed = Witnesses.WitnessResolver.ForObserver(
                enriched?[0], Hero.MainHero, behavior.Store);
 
             t.Expect("everyEntryIsGivenItsMemory", carried != null && carried.Contains(marker), true);
-            t.Expect("reDescribingForAnotherSpeakerKeepsIt", reDescribed?.Memory != null && reDescribed.Memory.Contains(marker), true);
+            t.Expect("reDescribingForAnotherSpeakerKeepsIt", reDescribed?.Memory != null && reDescribed.Memory.Text.Contains(marker), true);
          }
          finally
          {
@@ -8764,7 +8764,7 @@ namespace CalradiaRemembers.Diagnostics
                }, false);
 
             string roomAsSheReadsIt = string.Join(" ", (hers?.Witnesses ?? new List<WitnessEntry>())
-                                                       .Select(w => w?.Memory ?? ""));
+                                                       .Select(w => w?.Memory?.Text ?? ""));
             t.Expect("theErrandStaysOutOfHerOwnContextToo", !roomAsSheReadsIt.Contains("SELFTEST-ORDER"), true);
 
             // 5. the return: armed at the right meeting, with the right people, and asking for them by name.

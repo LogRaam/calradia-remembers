@@ -17,6 +17,7 @@ using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Witnesses;
+using NpcMemoryService.Core.Memory;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
@@ -207,13 +208,15 @@ namespace CalradiaRemembers.Chat
          var store = NpcMemoryCampaignBehavior.Instance?.Store;
          NpcProfile p = store != null && !string.IsNullOrEmpty(heroId) ? store.Get(heroId) : null;
 
-         return BuildWitnessMemory(p, WitnessMemoryEventCap);
+         // A diagnostic reads the TEXT; only the prompt paths carry the typed recall. Flattening here is safe
+         // because the filter has already run - this is the far side of SharedRecall.From, not a way round it.
+         return BuildWitnessMemory(p, WitnessMemoryEventCap)?.Text;
       }
 
       /// <summary>A copy of <paramref name="e" /> carrying <paramref name="memory" />, or the original when there is no memory to add.</summary>
-      private static WitnessEntry WithWitnessMemory(WitnessEntry e, string memory)
+      private static WitnessEntry WithWitnessMemory(WitnessEntry e, SharedRecall memory)
       {
-         if (e == null || string.IsNullOrWhiteSpace(memory)) return e;
+         if (e == null || string.IsNullOrWhiteSpace(memory?.Text)) return e;
 
          return new WitnessEntry {
             Name = e.Name,
@@ -234,25 +237,18 @@ namespace CalradiaRemembers.Chat
       ///   meeting (events[0]) plus the most recent, capped at <paramref name="cap" />, so nothing salient is
       ///   dropped yet the group prompt stays bounded. Null when the witness has no profile or no events.
       /// </summary>
-      private static string BuildWitnessMemory(NpcProfile profile, int cap)
-      {
-         List<NotableEvent> events = profile?.Events;
-         if (events == null || events.Count == 0) return null;
-
-         // THE LEAK GUARD. It used to say this was the ONE place it was needed, and that stopped being true on
-         // 16/09/2026 when the COUNCIL began carrying each seat's recall: a council is one prompt covering the
-         // whole table, so a seat's memories are read by the voice writing every other seat. That is the same
-         // exposure as a witness's recall, which is why the council calls THIS builder rather than reading
-         // events itself - the guard is inherited, not re-reasoned. A private memory is the holder's alone: it
-         // still reaches their own prompt through the ordinary history, and it never reaches the room.
-         // See NotableEvent.IsPrivate.
-         List<NotableEvent> shareable = events.Where(ev => ev != null && !ev.IsPrivate).ToList();
-         if (shareable.Count == 0) return null;
-
-         // The oldest-kept-plus-recent selection is pure and unit-tested in CalradiaRemembers.Logic; here we only
-         // hand it this witness's event summaries in order.
-         return WitnessMemoryDigest.Compose(shareable.Select(ev => ev.summary).ToList(), cap);
-      }
+      /// <summary>
+      ///   A recall this character may be shown to hold IN FRONT OF OTHERS, bounded to <paramref name="cap" />
+      ///   summaries. Null when there is nothing they could say in company.
+      ///
+      ///   The filter and the bound both live in SharedRecall.From now, beside NotableEvent.IsPrivate, and the
+      ///   return TYPE is what carries the guarantee. This used to be a private method holding the only copy of
+      ///   the rule, with a comment explaining why it mattered - which is a rule kept by care, and it very
+      ///   nearly failed while the council was being wired: reading profile.Events there would have been
+      ///   shorter, would have compiled, and would have put a confidence in front of a whole table.
+      /// </summary>
+      private static SharedRecall BuildWitnessMemory(NpcProfile profile, int cap)
+         => SharedRecall.From(profile?.Events, cap);
 
       /// <summary>
       ///   Bring-participants-to-a-captor-scene, increment 1: true when THIS turn's speaker is a brought
