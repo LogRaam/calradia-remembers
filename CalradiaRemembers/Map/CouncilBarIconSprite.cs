@@ -69,21 +69,31 @@ namespace CalradiaRemembers.Map
 
             BrushLayer layer = brush.GetLayer("cr_council");
 
-            // THE LAYER MAY BELONG TO SOMEBODY ELSE'S FILE. A Brushes XML redefines a brush WHOLE, so two mods
-            // that both extend MapBar.Left.Button.Backgrounds do not merge - the one loaded last replaces the
-            // other, layers and all. Retinues v2.0.0.12 ships GUI/Brushes/MapBar.Troops.xml, which redeclares
-            // every vanilla layer plus its own "troops"; ours is GUI/Brushes/CRMapBar.xml, same brush plus
-            // "cr_council". Whoever loses that race loses their button's ICON while the button itself sits in
-            // the bar drawing nothing - which is exactly what a player sees as "the button disappeared"
-            // (Gabriel reproduced it 17/09/2026: bar holds 10 items, sprite has no layer, nothing on screen).
+            // OUR LAYER CAN BE WIPED BY A BRUSH DECLARED THE BLUNT WAY, and the asymmetry is the point.
             //
-            // So the layer is CREATED here when it is absent, on the live brush, rather than relied upon to
-            // have survived. It costs nothing when our file did win, and it makes the race irrelevant.
+            // CRMapBar.xml does NOT redefine this brush. It declares CR.MapBar.Left.Button.Backgrounds with
+            // OverrideBrush="MapBar.Left.Button.Backgrounds", the engine's own merge: the override is filled
+            // from the original and our single layer is added by name, so every native entry survives - down
+            // to NavalDLC's manage_fleet, which a hand-copied brush would silently freeze at whatever the
+            // game shipped the day the file was written.
+            //
+            // Retinues v2.0.0.12 ships GUI/Brushes/MapBar.Troops.xml, which declares a brush under the NATIVE
+            // NAME and restates every vanilla layer plus its own "troops". That replaces the brush whole, and
+            // a replacement carries no merged override with it. Load last and it wins; our layer is simply not
+            // in what the bar reads.
+            //
+            // The button then sits in the bar drawing NOTHING, because IconOffsetButtonWidget takes its size
+            // from the sprite of the layer named after the item id - no layer, no size, no picture, and a
+            // player correctly reports that the button disappeared (Gabriel reproduced it 17/09/2026: bar
+            // holds 10 items, sprite has no layer, nothing on screen).
+            //
+            // So the layer is CREATED here when it is absent, on whatever brush is live. It costs nothing in
+            // the ordinary case, where the override did its work, and it takes nothing from the other mod.
             if (layer == null)
             {
                layer = new BrushLayer {Name = "cr_council"};
                brush.AddLayer(layer);
-               ModLog.Compat("[COUNCIL BAR] another mod's brush replaced ours, so the cr_council layer was "
+               ModLog.Compat("[COUNCIL BAR] another mod replaced the map bar brush, so the cr_council layer was "
                            + "rebuilt at runtime. The button keeps its icon and theirs is untouched.");
             }
 
