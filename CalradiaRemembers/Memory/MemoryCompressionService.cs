@@ -212,8 +212,12 @@ namespace CalradiaRemembers.Memory
             rebuilt.AddRange(since);
 
             int before = fresh.Events.Count;
-            fresh.Events.Clear();
-            fresh.Events.AddRange(rebuilt);
+
+            // ONE reference store, not Clear() then AddRange. This runs off the main thread, which is reading
+            // the same list to build prompts; between those two calls the character's whole past is gone, and
+            // a reader landing in that window sees an empty history or throws into a background task. See
+            // NpcProfile.ReplaceEvents.
+            fresh.ReplaceEvents(rebuilt);
 
             // The compressor is told to fold the EXISTING background context into its summary, so replacing is
             // right: keeping both would duplicate the older outline every pass.
