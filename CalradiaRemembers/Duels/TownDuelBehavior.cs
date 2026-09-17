@@ -57,14 +57,31 @@ namespace CalradiaRemembers.Duels
          if (Settlement.CurrentSettlement is not {IsTown: true}) return "A town duel needs the player to be inside a town.";
          if (Mission.Current != null) return "A mission is already running.";
 
+         // THE SCENE HAS TO EXIST BEFORE THE ENGINE IS ASKED TO LOAD IT. GetLocationWithId returns null for a
+         // settlement whose complex carries no "center", which a modded or total-conversion town may well not
+         // — and a null went straight into CreateAndOpenMissionController, where the engine crashed loading
+         // the scene rather than refusing it (player report, 17/09/2026). A missing venue is a thing to say,
+         // not a thing to hand to the engine.
+         //
+         // The same test DuelEligibilityResolver uses to decide whether to OFFER the duel at all, which is the
+         // point: it was already right, and this path was asking a different question.
+         Location centre = LocationComplex.Current?.GetLocationWithId("center");
+
+         if (centre == null || PlayerEncounter.LocationEncounter == null)
+         {
+            ModLog.Error($"[DUEL] {Settlement.CurrentSettlement?.Name} has no town centre to fight in "
+                       + $"(centre={centre != null}, encounter={PlayerEncounter.LocationEncounter != null}); refused.");
+
+            return $"There is nowhere in {Settlement.CurrentSettlement?.Name} to hold a duel.";
+         }
+
          try
          {
             _pendingOpponentId = opponent.StringId;
             _pendingOnDuelEnd = onDuelEnd;
             OpponentAgent = null;
 
-            PlayerEncounter.LocationEncounter.CreateAndOpenMissionController(
-               LocationComplex.Current.GetLocationWithId("center"));
+            PlayerEncounter.LocationEncounter.CreateAndOpenMissionController(centre);
             ModLog.Info($"[DUEL] town duel armed against {opponent.Name}; opening the town centre.");
 
             return $"You step out to meet {opponent.Name}. The loser is knocked out, not killed.";

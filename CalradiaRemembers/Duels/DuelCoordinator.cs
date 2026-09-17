@@ -147,7 +147,12 @@ namespace CalradiaRemembers.Duels
                // one who armed a duel in a town but has since walked out onto the map fights in the wilderness,
                // not a stale town duel whose guard fails silently (player report: "hit yes, nothing happened").
                bool atSea = MobileParty.MainParty?.IsCurrentlyAtSea == true;
-               DuelVenue venue = DuelVenuePolicy.Choose(atSea, Settlement.CurrentSettlement != null);
+
+               // The SAME test that decides whether the duel is offered at all. Asking merely "is the player in
+               // a settlement" here chose a town venue for settlements that have no town centre to fight in,
+               // and the null reached the engine (player report, 17/09/2026).
+               DuelVenue venue = DuelVenuePolicy.Choose(
+                  atSea, DuelEligibilityResolver.SettlementCanHostADuel(Settlement.CurrentSettlement));
 
                // The only unstageable case is at sea: tell the player rather than dropping it in silence.
                if (!DuelStagingSupport.CanStage(venue))

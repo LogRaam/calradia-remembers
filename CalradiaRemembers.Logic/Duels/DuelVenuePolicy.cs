@@ -25,16 +25,30 @@ namespace CalradiaRemembers.Logic.Duels
    public static class DuelVenuePolicy
    {
       /// <summary>
-      ///   In a settlement the duel is staged at the town gates (the ambush settlement-scene path); on the
-      ///   open land it is a wilderness field; AT SEA there is no duel, so it must be deferred until the
-      ///   player is ashore. Sea is checked FIRST: a player at sea is never in a settlement, but the
+      ///   In a settlement that can HOST one the duel is staged at the town gates (the ambush settlement-scene
+      ///   path); on the open land it is a wilderness field; AT SEA there is no duel, so it must be deferred
+      ///   until the player is ashore. Sea is checked FIRST: a player at sea is never in a settlement, but the
       ///   precedence is guarded anyway.
+      ///
+      ///   <para>
+      ///     The second argument used to be "is the player in a settlement at all", which is not the same
+      ///     question. A settlement whose location complex carries no "center" cannot host a duel, and a
+      ///     modded or total-conversion town may carry none — DuelEligibilityResolver knew that and withheld
+      ///     the verb correctly, while THIS decided a town venue anyway for a duel armed by the action button.
+      ///     The location came back null and went into the engine unchecked, which crashed loading the scene
+      ///     (player report, 17/09/2026).
+      ///   </para>
+      ///   <para>
+      ///     Falling back to the WILDERNESS rather than refusing: a player standing in a town with no duelling
+      ///     ground can still walk out and fight, and a duel they asked for should happen somewhere rather
+      ///     than nowhere.
+      ///   </para>
       /// </summary>
-      public static DuelVenue Choose(bool playerAtSea, bool playerInSettlement)
+      public static DuelVenue Choose(bool playerAtSea, bool settlementCanHostADuel)
       {
          if (playerAtSea) return DuelVenue.NotNow;
 
-         return playerInSettlement ? DuelVenue.TownGates : DuelVenue.Wilderness;
+         return settlementCanHostADuel ? DuelVenue.TownGates : DuelVenue.Wilderness;
       }
    }
 }

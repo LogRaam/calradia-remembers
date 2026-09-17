@@ -45,5 +45,31 @@ namespace CalradiaRemembers.Tests.Duels
       {
          DuelVenuePolicy.Choose(true, true).Should().Be(DuelVenue.NotNow);
       }
+
+      // THE CRASH (player report, 17/09/2026): "the game crashes when I try to initiate a duel using the
+      // action button… it crashes while loading the battle field", in a settlement named Vaen-Griefendok,
+      // which is nobody's Calradia — a modded or total-conversion town.
+      //
+      // The second argument used to be "is the player in a settlement AT ALL", which is a different question
+      // from the one that matters. A settlement whose location complex carries no "center" has no town centre
+      // to fight in; DuelEligibilityResolver knew that and withheld the verb correctly, and THIS chose a town
+      // venue anyway for a duel armed by the action button. The location came back null and went into the
+      // engine unchecked.
+      //
+      // If this fails, somebody's game is about to close itself when they draw a sword.
+      [Test]
+      public void GIVEN_a_settlement_with_nowhere_to_fight_WHEN_choosing_THEN_the_duel_goes_to_the_open_field()
+      {
+         DuelVenuePolicy.Choose(false, false).Should().Be(DuelVenue.Wilderness);
+      }
+
+      // The WILDERNESS rather than a refusal, deliberately: a player standing in a town with no duelling
+      // ground can still walk out and fight, and a duel they asked for should happen somewhere rather than
+      // nowhere. Refusing would trade a crash for the older reported bug — "hit yes, nothing happened".
+      [Test]
+      public void GIVEN_a_settlement_that_cannot_host_one_WHEN_choosing_THEN_the_duel_is_not_silently_dropped()
+      {
+         DuelVenuePolicy.Choose(false, false).Should().NotBe(DuelVenue.NotNow);
+      }
    }
 }

@@ -112,7 +112,18 @@ namespace CalradiaRemembers.Duels
       ///     remembering this line. Fails CLOSED: an unreadable settlement is not a duelling ground.
       ///   </para>
       /// </summary>
-      private static bool SettlementCanHostADuel(Settlement here)
+      /// <summary>
+      ///   Whether a duel can actually be STAGED in this settlement: it needs a "center" location to open, and
+      ///   not every settlement has one. A modded or total-conversion town may carry none at all.
+      ///
+      ///   PUBLIC since 17/09/2026, because it was right and private while the STAGING path asked a different
+      ///   and emptier question — Settlement.CurrentSettlement != null. So the verb was correctly withheld
+      ///   where it could not be honoured, and a duel armed by the ACTION BUTTON still resolved to a town
+      ///   venue, whose location came back null and went into the engine unchecked. It crashed loading the
+      ///   scene (player report, 17/09/2026, in a settlement named Vaen-Griefendok, which is nobody's
+      ///   Calradia). Two predicates for one question, and only one of them was ever right.
+      /// </summary>
+      public static bool SettlementCanHostADuel(Settlement here)
       {
          try { return here?.LocationComplex?.GetLocationWithId("center") != null; }
          catch { return false; }
