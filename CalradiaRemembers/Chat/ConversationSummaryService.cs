@@ -55,7 +55,7 @@ namespace CalradiaRemembers.Chat
             NpcProfile fresh = behavior.Store.Get(captorId);
 
             if (fresh == null) return;
-            int idx = fresh.Events.FindLastIndex(e => e.Equals(baseEvent));
+            int idx = fresh.IndexOfAnchor(baseEvent.Id, baseEvent);
 
             if (idx < 0) return;
 
@@ -98,7 +98,7 @@ namespace CalradiaRemembers.Chat
             NpcProfile fresh = behavior.Store.Get(npcId);
 
             if (fresh == null) return;
-            int idx = fresh.Events.FindLastIndex(e => e.Equals(baseEvent));
+            int idx = fresh.IndexOfAnchor(baseEvent.Id, baseEvent);
 
             if (idx < 0) return;
 
@@ -210,8 +210,10 @@ namespace CalradiaRemembers.Chat
 
             if (fresh == null) return true;
 
+            // By IDENTITY when the job carries one, which is every job enqueued since 16/09/2026. The value
+            // fallback below it only serves jobs replayed from an older save.
             var anchor = new NotableEvent(job.AnchorDay, anchorType, job.AnchorSummary);
-            int idx = fresh.Events.FindLastIndex(e => e.Equals(anchor));
+            int idx = fresh.IndexOfAnchor(job.AnchorId, anchor);
 
             if (idx < 0) return true;                                           // already enriched (or gone): idempotent no-op.
 

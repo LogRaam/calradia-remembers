@@ -70,7 +70,7 @@ namespace CalradiaRemembers.Logic
         {
             if (job == null) throw new ArgumentNullException(nameof(job));
 
-            if (IndexOfMatch(job.ProfileId, job.AnchorDay, job.AnchorSummary) >= 0)
+            if (IndexOfMatch(job) >= 0)
                 return SummaryEnqueueOutcome.Deduplicated;
 
             bool droppedOldest = false;
@@ -90,7 +90,7 @@ namespace CalradiaRemembers.Logic
         /// <summary>Removes a finished job from the queue. Returns false if it was already gone.</summary>
         public bool Complete(PendingSummaryJob job)
         {
-            int index = IndexOfMatch(job?.ProfileId, job?.AnchorDay ?? -1, job?.AnchorSummary);
+            int index = IndexOfMatch(job);
             if (index < 0) return false;
 
             _jobs.RemoveAt(index);
@@ -106,7 +106,7 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public bool Fail(PendingSummaryJob job)
         {
-            int index = IndexOfMatch(job?.ProfileId, job?.AnchorDay ?? -1, job?.AnchorSummary);
+            int index = IndexOfMatch(job);
             if (index < 0) return false;
 
             PendingSummaryJob stored = _jobs[index];
@@ -145,14 +145,38 @@ namespace CalradiaRemembers.Logic
             return queue;
         }
 
-        private int IndexOfMatch(string profileId, int anchorDay, string anchorSummary)
+        /// <summary>
+        ///   Which stored job is THIS job, by identity where there is one and by value where there is not.
+        ///
+        ///   The value triple - profile, day, summary - cannot tell two conversations apart, because the
+        ///   anchor is always "Spoke with {player}." on today's date. A second sitting with the same person on
+        ///   the same day was therefore deduplicated away as a repeat of the first (audit, 15/09/2026).
+        ///   AnchorId is unique per conversation, so it decides whenever BOTH jobs carry one.
+        ///
+        ///   The value fallback stays for jobs enqueued before identities existed and replayed from an older
+        ///   save: for those, today's behaviour is the best available and is exactly what they had.
+        /// </summary>
+        private int IndexOfMatch(PendingSummaryJob job)
         {
+            if (job == null) return -1;
+
             for (int i = 0; i < _jobs.Count; i++)
             {
                 PendingSummaryJob j = _jobs[i];
-                if (j.AnchorDay == anchorDay &&
-                    string.Equals(j.ProfileId, profileId, StringComparison.Ordinal) &&
-                    string.Equals(j.AnchorSummary, anchorSummary, StringComparison.Ordinal))
+
+                if (!string.Equals(j.ProfileId, job.ProfileId, StringComparison.Ordinal)) continue;
+
+                bool bothIdentified = !string.IsNullOrEmpty(j.AnchorId) && !string.IsNullOrEmpty(job.AnchorId);
+
+                if (bothIdentified)
+                {
+                    if (string.Equals(j.AnchorId, job.AnchorId, StringComparison.Ordinal)) return i;
+
+                    continue;
+                }
+
+                if (j.AnchorDay == job.AnchorDay &&
+                    string.Equals(j.AnchorSummary, job.AnchorSummary, StringComparison.Ordinal))
                 {
                     return i;
                 }

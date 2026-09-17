@@ -164,11 +164,41 @@ namespace CalradiaRemembers.Memory
         #region private
 
         /// <summary>
-        ///   Writes the compressed history back. The compressor worked on a SNAPSHOT, so anything recorded while
-        ///   the call was in flight (a conversation that ended meanwhile, a summary the queue enriched) sits past
-        ///   the snapshot boundary and is carried over untouched: compression must never cost the player a
-        ///   memory that was made after it started.
+        ///   Writes the compressed history back. The compressor worked on a SNAPSHOT, so anything recorded
+        ///   while the call was in flight is carried over rather than lost: compression must never cost the
+        ///   player a memory that was made after it started.
+        ///
+        ///   <para>
+        ///     That used to be true of APPENDS only, and this comment used to claim it of enrichments too —
+        ///     "a summary the queue enriched … is carried over untouched" — which was false and is the worse
+        ///     kind of wrong, because the next reader concludes the case is handled. A summarizer replaces an
+        ///     anchor IN PLACE, at its original index, which is inside the snapshot range; KeptEvents holds
+        ///     the object as it was BEFORE that, so writing it back silently restored the plain
+        ///     "Spoke with X." over the rich summary — with the job already marked done and never retried
+        ///     (audit, 15/09/2026).
+        ///   </para>
+        ///   <para>
+        ///     Now each kept event is re-read from the CURRENT list by its identity, so whatever the anchor
+        ///     has become since the snapshot is what survives. Events with no identity — everything written
+        ///     before 16/09/2026, and everything nobody intends to revisit — behave exactly as they did.
+        ///   </para>
         /// </summary>
+        /// <summary>
+        ///   The live version of a kept event: whatever now sits under its identity, or the snapshot's own
+        ///   object when it has no identity or has since gone. Enrichment replaces an anchor in place while a
+        ///   compression pass is in flight, and this is what stops the pass undoing it.
+        /// </summary>
+        private static NotableEvent Current(NpcProfile fresh, NotableEvent kept)
+        {
+            if (kept == null || string.IsNullOrEmpty(kept.Id)) return kept;
+
+            foreach (NotableEvent live in fresh.Events)
+                if (live != null && string.Equals(live.Id, kept.Id, StringComparison.Ordinal))
+                    return live;
+
+            return kept;
+        }
+
         private static void Apply(NpcMemoryCampaignBehavior behavior, string npcId, CompressionResult result, int snapshotCount)
         {
             NpcProfile fresh = behavior.Store.Get(npcId);
@@ -178,7 +208,7 @@ namespace CalradiaRemembers.Memory
                 ? fresh.Events.Skip(snapshotCount).ToList()
                 : new List<NotableEvent>();
 
-            var rebuilt = new List<NotableEvent>(result.KeptEvents);
+            var rebuilt = new List<NotableEvent>(result.KeptEvents.Select(kept => Current(fresh, kept)));
             rebuilt.AddRange(since);
 
             int before = fresh.Events.Count;

@@ -2368,7 +2368,9 @@ namespace CalradiaRemembers.Chat
          string baseSummary = BuildCaptiveBaseSummary(intentVerb);
 
          // Stage 1 — synchronous base capture.
-         var baseEvent = new NotableEvent(gameDay, NotableEventType.Captivity, baseSummary);
+         // Identified: the async summarizer below comes back for this exact event, and two scenes with the
+         // same captor on one day share an anchor by value.
+         NotableEvent baseEvent = new NotableEvent(gameDay, NotableEventType.Captivity, baseSummary).Identified();
          profile.Events.Add(baseEvent);
          behavior.Store.Set(profile);
          ModLog.Info($"[CAPTIVE MEMORY] base event recorded for {profile.Name}: \"{baseSummary}\"");
@@ -2539,8 +2541,12 @@ namespace CalradiaRemembers.Chat
 
          // Stage 1 — synchronous base capture (guaranteed even if the async summary
          // never returns). Plain but truthful; better than the NPC forgetting.
-         var baseEvent = new NotableEvent(gameDay, NotableEventType.Other,
-            $"Spoke with {player}.");
+         // IDENTIFIED, because stage 2 below comes back for this exact event later. Without an identity it
+         // is found by value, and its value is "Spoke with {player}." on today's date — which two sittings on
+         // one day share exactly (audit, 15/09/2026).
+         NotableEvent baseEvent = new NotableEvent(gameDay, NotableEventType.Other, $"Spoke with {player}.")
+            .Identified();
+
          profile.Events.Add(baseEvent);
          behavior.Store.Set(profile);
          ModLog.Info($"[CONV MEMORY] conversation recap recorded for {profile.Name} " + $"({_playerTurnsThisSession} player turn(s)).");
@@ -2557,6 +2563,7 @@ namespace CalradiaRemembers.Chat
             AnchorDay = baseEvent.gameDay,
             AnchorType = baseEvent.type.ToString(),
             AnchorSummary = baseEvent.summary,
+            AnchorId = baseEvent.Id,
             Transcript = transcript,
             PlayerName = player,
             ReplyLanguage = ModSettings.ReplyLanguage,

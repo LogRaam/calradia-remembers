@@ -35,10 +35,12 @@ namespace CalradiaRemembers.Tests
             string playerName = "Player",
             string replyLanguage = null!,
             int enqueuedDay = 10,
-            int attempts = 0)
+            int attempts = 0,
+            string anchorId = null!)
         {
             return new PendingSummaryJob
             {
+                AnchorId = anchorId,
                 ProfileId = profileId,
                 AnchorDay = anchorDay,
                 AnchorType = "Conversation",
@@ -230,6 +232,46 @@ namespace CalradiaRemembers.Tests
 
             act.Should().NotThrow();
             queue!.Count.Should().Be(0);
+        }
+
+        // THE REPORTED DEFECT (audit, 15/09/2026). The anchor of a conversation is always "Spoke with X." on
+        // today's date, so a SECOND sitting with the same person on the same day was byte-identical to the
+        // first and was deduplicated away as a repeat. That conversation was never enriched, and the first
+        // one's summary was written onto its event. Two sittings are two jobs.
+        [Test]
+        public void GIVEN_a_second_conversation_the_same_day_WHEN_enqueued_THEN_it_is_not_mistaken_for_the_first()
+        {
+            var queue = new ConversationSummaryQueue();
+
+            queue.Enqueue(MakeJob(anchorId: "first-sitting"));
+
+            queue.Enqueue(MakeJob(anchorId: "second-sitting")).Should().Be(SummaryEnqueueOutcome.Added);
+            queue.Count.Should().Be(2);
+        }
+
+        // The SAME job offered twice is still a repeat: identity must not turn deduplication off, only make
+        // it correct. A queue that accepts duplicates pays the model twice for one conversation.
+        [Test]
+        public void GIVEN_the_same_job_twice_WHEN_enqueued_THEN_the_repeat_is_still_refused()
+        {
+            var queue = new ConversationSummaryQueue();
+
+            queue.Enqueue(MakeJob(anchorId: "one-sitting"));
+
+            queue.Enqueue(MakeJob(anchorId: "one-sitting")).Should().Be(SummaryEnqueueOutcome.Deduplicated);
+            queue.Count.Should().Be(1);
+        }
+
+        // OLDER SAVES replay jobs that carry no identity, and those must keep the behaviour they have: matched
+        // by value, deduplicated by value. Anything else would drop a job a player is already waiting on.
+        [Test]
+        public void GIVEN_jobs_from_an_older_save_WHEN_enqueued_THEN_they_are_still_matched_by_value()
+        {
+            var queue = new ConversationSummaryQueue();
+
+            queue.Enqueue(MakeJob());
+
+            queue.Enqueue(MakeJob()).Should().Be(SummaryEnqueueOutcome.Deduplicated);
         }
     }
 }

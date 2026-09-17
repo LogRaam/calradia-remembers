@@ -30,6 +30,18 @@ namespace CalradiaRemembers.Logic
         /// <summary>Part of the anchor key: the base event's placeholder text ("Spoke with X."), replaced once the rich summary lands.</summary>
         public string AnchorSummary { get; set; }
 
+        /// <summary>
+        ///   The identity of the anchor this job will enrich (NotableEvent.Id), or null for a job enqueued
+        ///   before 16/09/2026 and replayed from an older save.
+        ///
+        ///   The three fields above cannot tell two conversations apart: the anchor is always
+        ///   "Spoke with {player}." on today's date, so a second sitting with the same person on the same day
+        ///   produced a byte-identical key. The queue deduplicated the second job away and the first
+        ///   conversation's summary was written onto the second conversation's event — one memory
+        ///   misattributed, one conversation never enriched (audit, 15/09/2026).
+        /// </summary>
+        public string AnchorId { get; set; }
+
         /// <summary>The conversation transcript the summarizer needs as its input.</summary>
         public string Transcript { get; set; }
 

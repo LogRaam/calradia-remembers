@@ -52,7 +52,9 @@ namespace CalradiaRemembers.Letters
             string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
             string baseSummary = LetterMemoryPolicy.BaseMemory(reason, profile.Name, playerName, npcIsSender);
 
-            var baseEvent = new NotableEvent(today, NotableEventType.Other, baseSummary);
+            // Identified, because the enrichment below comes back for this exact event once the model has
+            // read the letter — and two letters from the same person on one day are identical by value.
+            NotableEvent baseEvent = new NotableEvent(today, NotableEventType.Other, baseSummary).Identified();
             profile.Events.Add(baseEvent);
             behavior.Store.Set(profile);
             ModLog.Info($"[LETTER MEMORY] base event recorded for {profile.Name}: \"{baseSummary}\"");
@@ -91,11 +93,12 @@ namespace CalradiaRemembers.Letters
 
                 if (string.IsNullOrWhiteSpace(rich)) return;
 
-                // Re-fetch fresh and replace the base event's summary by value match.
+                // Re-fetch fresh and replace the base event, found by its IDENTITY rather than by an equal
+                // value: two letters from the same person on the same day are byte-identical as anchors.
                 NpcProfile fresh = behavior.Store.Get(profileId);
 
                 if (fresh == null) return;
-                int idx = fresh.Events.FindLastIndex(e => e.Equals(baseEvent));
+                int idx = fresh.IndexOfAnchor(baseEvent.Id, baseEvent);
 
                 if (idx < 0) return;
 
