@@ -47,8 +47,13 @@ namespace CalradiaRemembers.Map
             _watched = new WeakReference(__instance);
             _ticksSinceAdd = 0;
 
-            ModLog.Info($"[COUNCIL BAR] council nav item added at construction "
-                      + $"(bar now holds {__instance.NavigationItems.Count} item(s)).");
+            // Compat, like the attachment and survival lines: the three of them are ONE diagnosis, and a
+            // triage is only as good as its weakest channel. On Info this line vanishes for any player with
+            // logging off - the Nexus default - and its absence then reads as "the constructor never ran"
+            // when the truth may be "added, and taken from us afterwards". Two different causes, two
+            // different fixes, told apart by whether one line survived the log settings.
+            ModLog.Compat($"[COUNCIL BAR] council nav item added at construction "
+                        + $"(bar now holds {__instance.NavigationItems.Count} item(s)).");
          }
          catch (Exception ex) { ModLog.Error($"[COUNCIL BAR] failed to add the council nav item: {ex.GetType().Name}: {ex.Message}"); }
       }
