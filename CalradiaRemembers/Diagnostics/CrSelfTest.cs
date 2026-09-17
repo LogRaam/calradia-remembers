@@ -361,7 +361,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_captor_release", Severity.Light, "LLM: the PLAYER is captive and pleads for freedom -> assert a disposed captor's release gate OPENED (deterministic wiring) + judge whether release_player fires (should feel earned, not instant)", TestChatCaptorRelease, true),
          new SelfTest("gang_rivalry", Severity.Light, "Mechanical: a same-town gang-leader pair is framed as RIVALS in the name hint (never friends-by-culture); skips if the campaign has no such pair", TestGangRivalry),
          new SelfTest("captive_fear_coerced", Severity.Light, "Mechanical: a terrified captive (high Fear) trips the freedom-bargain coercion flag, a fearless one does not (Fear-1 wiring)", TestCaptiveFearCoerced),
-         new SelfTest("faction_identity_refreshes", Severity.Light, "Mechanical: a profile's frozen realm/house identity is refreshed to live game state on conversation open, so a hero who changed kingdom (a defection, or a runtime civil-war split from another mod like Bellum Civile) is introduced by their CURRENT faction/clan, not the one frozen at profile creation. Corrupts Faction/Clan, calls RefreshIdentity, asserts they match the live hero", TestFactionIdentityRefreshes),
+         new SelfTest("faction_identity_refreshes", Severity.Light, "Mechanical: a profile's frozen realm/house identity is refreshed to live game state on conversation open, so a hero who changed kingdom (a defection, or a runtime civil-war split from another mod like Bellum Civile) is introduced by their CURRENT faction/clan, not the one frozen at profile creation. Since 16/09/2026 it also covers the NAME (a renamed hero was led by the old one for the rest of the campaign, and {{char}} expanded to it) and the SPOUSE, which was refreshed only at session launch - so marrying and then speaking to your own wife in the same sitting left the profile believing her unwed, and the intimacy was classified as a secret affair, which is the very case ProfileMutator believes it is guarding. Corrupts all four, calls RefreshIdentity, asserts they match the live hero", TestFactionIdentityRefreshes),
          new SelfTest("deferred_audience_open_pumps", Severity.Light, "Mechanical: the deferral mechanism the settlement-entry audience fix relies on. An enqueued action does NOT run until the next MainThreadDispatcher.Pump (fired by OnApplicationTick), which is why the audience chat opens one frame AFTER its inquiry dismisses instead of synchronously inside the inquiry consequence, breaking the 'million popups' cascade when accepting an approach in a settlement", TestDeferredAudienceOpenPumps),
          new SelfTest("party_troop_count", Severity.Light, "Mechanical: a companion in the player's party sees the real troop count in context (no more hallucinated army size); skips if the player has no party companion", TestPartyTroopCount),
          new SelfTest("nemesis_mint", Severity.Light, "Mechanical: minting a nemesis creates a persistent Hero WITH a memory profile (the 'no memory' bug fixed), reuses him in-region, mints a distinct one per region; PLANTS test nemeses (reload after)", TestNemesisMint),
@@ -1844,17 +1844,28 @@ namespace CalradiaRemembers.Diagnostics
 
          string liveFaction = npc.MapFaction?.Name?.ToString() ?? "Unaligned";
          string liveClan = npc.Clan?.Name?.ToString() ?? "";
+         string liveName = npc.Name?.ToString();
+         string liveSpouse = npc.Spouse?.IsAlive == true ? npc.Spouse.Name?.ToString() : null;
 
-         // Corrupt the identity exactly as a mid-session defection leaves a frozen profile.
+         // Corrupt the identity exactly as a mid-session defection leaves a frozen profile. Name and spouse
+         // joined the refresh on 16/09/2026 (audit): a renamed hero was led by the old name for the rest of
+         // the campaign, and the SPOUSE was refreshed only at session launch - so marrying and then speaking
+         // to your own wife in the same sitting left the profile believing her unwed, and the scene was
+         // classified as a secret affair.
          profile.Faction = "[SELFTEST] Old Fallen Realm";
          profile.Clan = "[SELFTEST] Old House";
+         profile.Name = "[SELFTEST] The Name They Had Before";
+         profile.SpouseName = "[SELFTEST] Somebody They Never Married";
 
          CalradiaRemembers.Mapping.HeroProfileMapper.RefreshIdentity(profile, npc);
 
          t.Expect("factionRefreshedToLive", profile.Faction == liveFaction, true);
          t.Expect("clanRefreshedToLive", profile.Clan == liveClan, true);
+         t.Expect("nameRefreshedToLive", profile.Name == liveName, true);
+         t.Expect("spouseRefreshedToLive", profile.SpouseName == liveSpouse, true);
 
-         t.Note($"{npc.Name}: stale identity overwritten with live faction '{liveFaction}', clan '{liveClan}'.");
+         t.Note($"{npc.Name}: stale identity overwritten with live faction '{liveFaction}', clan '{liveClan}', "
+              + $"name '{liveName}', spouse '{liveSpouse ?? "(none)"}'.");
 
          return t.Line();
       }

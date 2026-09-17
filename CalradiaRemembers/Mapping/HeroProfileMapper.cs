@@ -77,6 +77,22 @@ namespace CalradiaRemembers.Mapping
          if (profile == null || hero == null) return;
          profile.Faction = hero.MapFaction?.Name?.ToString() ?? "Unaligned";
          profile.Clan = hero.Clan?.Name?.ToString() ?? "";
+
+         // THE NAME, for the reason this method's own doc gives about realm and house: a frozen creation-time
+         // value keeps introducing somebody as who they used to be. A renamed hero was led by the old name for
+         // the rest of the campaign, and {{char}} expanded to it (audit, 15/09/2026). Guarded rather than
+         // assigned blindly: a blank name would leave the identity line with nobody in it, and keeping a stale
+         // name is far less bad than that.
+         string live = hero.Name?.ToString();
+         if (!string.IsNullOrWhiteSpace(live)) profile.Name = live;
+
+         // THE SPOUSE, and this one a player can actually feel. It was refreshed only at SESSION LAUNCH, so a
+         // marriage and an intimate scene in the same sitting left the profile still believing the character
+         // unwed - and the affair was classified SecretLover, which is precisely the case ProfileMutator
+         // believes it is guarding. Marrying and then speaking to your spouse is ordinary play.
+         profile.SpouseName = hero.Spouse?.IsAlive == true
+            ? hero.Spouse.Name?.ToString()
+            : null;
       }
 
       /// <summary>
