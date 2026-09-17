@@ -350,6 +350,37 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private bool _openingNarrationPending = true;
 
+      /// <summary>
+      ///   Where this speaker's remembered PAST ends and the current conversation begins: the number of
+      ///   memories they held when it opened, captured once and reused for every later turn.
+      ///
+      ///   Player report, 17/09/2026: "the ai just keeps talking about the same thing over and over… the
+      ///   longer the conversation goes, the longer their replies get because they feel the need to state the
+      ///   entire conversation in each reply."
+      ///
+      ///   ProfileMutator runs every turn, so an [EVENT] emitted on turn two is in the profile for turn three,
+      ///   where AppendHistory renders it as notable past and then says "reference them when relevant". The
+      ///   model was being instructed to bring up something it had said twenty seconds earlier and which was
+      ///   still in the raw messages — once per new memory, so the effect compounded exactly as he described.
+      ///
+      ///   Per SPEAKER, because a group scene routes turns to different characters and each has their own
+      ///   past. Captured lazily on first use rather than at activation: a witness may be pulled into the
+      ///   conversation several turns in, and their history began when THEY started speaking.
+      /// </summary>
+      private readonly Dictionary<string, int> _historyKnownThrough = new();
+
+      private int HistoryKnownThrough(NpcProfile profile)
+      {
+         if (profile?.Id == null) return 0;
+
+         if (_historyKnownThrough.TryGetValue(profile.Id, out int known)) return known;
+
+         known = profile.Events?.Count ?? 0;
+         _historyKnownThrough[profile.Id] = known;
+
+         return known;
+      }
+
       /// <summary>True exactly once per conversation: this is the turn that establishes the scene.</summary>
       private bool ConsumeOpeningNarration()
       {

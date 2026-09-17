@@ -122,6 +122,12 @@ namespace CalradiaRemembers.Mapping
          bool isWitnessExchangeTurn = false,
          bool isLastWitnessExchange = false,
          bool isConversationOpening = false,
+         // How many memories this character already held when THIS conversation opened. Everything past it was
+         // recorded during the exchange the model is already reading verbatim, and rendering it again as
+         // notable history is what made characters restate the same answer every turn (player, 17/09/2026).
+         // Null means unset and keeps the old behaviour; ZERO is a real answer and cuts everything, since a
+         // character the player has never met held no memories when the conversation opened.
+         int? historyKnownThrough = null,
          bool isCollectiveCaptiveScene = false,
          bool isCaptorScene = false,
          bool companionActingOnCaptive = false,
@@ -360,6 +366,7 @@ namespace CalradiaRemembers.Mapping
             PrivacyRequested = privacyRequested,
             IsWitnessExchangeTurn = isWitnessExchangeTurn,
             IsConversationOpening = isConversationOpening,
+            HistoryKnownThrough = historyKnownThrough,
             IsLastWitnessExchange = isLastWitnessExchange,
             // IsRoundTableTurn is the one council flag the chat prompt path still carries: it is armed ONLY by the
             // cr.council_test spike (RoundTableController.CouncilTurnsForced). The REAL council (2026-08-22,
