@@ -54,9 +54,25 @@ namespace CalradiaRemembers.Map
 
       // The bar we last added to, held WEAKLY so this can never keep a dead view model alive, plus how many
       // ticks ago. mysticwolf92 (2026-09-09..12) loses the button depending on load order and named Retinues
-      // as the cause; reflection over Retinues 1.3.14.31 shows it does not contain the strings MapNavigation,
-      // MapBar, NavigationItems or INavigationElement at all, so it is not the culprit and guessing at the
-      // next mod would be the same mistake again.
+      // as the cause.
+      //
+      // WHAT WAS WRITTEN HERE BEFORE, AND WHY IT WAS WRONG TO WRITE IT THAT WAY. This comment used to say
+      // Retinues "is not the culprit", from reflection over version 1.3.14.31, which genuinely contains none
+      // of the strings MapNavigation, MapBar, NavigationItems or INavigationElement. That was a finding about
+      // ONE BUILD stated as a conclusion about a MOD - and Retinues v2.0.0.12 (17/09/2026) carries an entire
+      // Retinues.Editor.Integration.MapBar namespace, a MapNavigationHandlerCtorPatch on
+      // SandBox.View.Map.Navigation.MapNavigationHandler, a TroopsNavigationElement of its own, and
+      // EnsureInjected/IsMapBarIntegrated. It puts a button on this bar.
+      //
+      // It still does not patch what WE patch: MapNavigationVM does not appear in that assembly at all. The
+      // two hook different types - we the view model, it the handler that feeds the view model - so this is
+      // not a same-method collision. What it IS is a second mod writing to the same bar, which is exactly the
+      // condition the check below exists to observe rather than to guess about.
+      //
+      // THE STRUCTURAL RISK IS OURS, and naming it matters more than naming a mod: our item lives only on the
+      // VIEW MODEL, inserted after construction. It has no handler-level registration, so anything that
+      // rebuilds the VM's list FROM the handler drops it and cannot restore it. A mod adding a handler
+      // element is precisely the sort of thing that can cause such a rebuild.
       //
       // What no log could answer is WHICH of three things happens to him: the item never added, added and then
       // removed by somebody else, or present and simply not drawn. Those need completely different fixes and
@@ -86,9 +102,18 @@ namespace CalradiaRemembers.Map
 
             if (bar.NavigationItems.Any(i => i?.ItemId == "cr_council")) return; // survived, say nothing
 
-            ModLog.Error("[COUNCIL BAR] our council item was added and is GONE from the bar "
-                       + $"({bar.NavigationItems.Count} item(s) remain). Another mod rebuilt or cleared the "
-                       + "navigation list after us. Use cr.council with no argument to convene meanwhile.");
+            // NAME WHAT IS LEFT. "Another mod rebuilt the list" is what we already knew; WHICH mod is what a
+            // player report cannot supply and this can. The surviving item ids identify the winner by its own
+            // element - a Retinues TroopsNavigationElement, say - so the next report arrives as evidence
+            // instead of a guess, and nobody has to reflect over another mod's assembly to start.
+            string remaining = string.Join(", ", bar.NavigationItems
+                                                   .Select(i => i?.ItemId)
+                                                   .Where(id => !string.IsNullOrWhiteSpace(id)));
+
+            ModLog.Compat("[COUNCIL BAR] our council item was added and is GONE from the bar "
+                        + $"({bar.NavigationItems.Count} item(s) remain: {remaining}). Another mod rebuilt or "
+                        + "cleared the navigation list after us. Use cr.council with no argument to convene "
+                        + "meanwhile.");
          }
          catch (Exception ex)
          {
