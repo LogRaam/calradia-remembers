@@ -2,6 +2,76 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.10.. 2026-09-17
+
+Two reports drove this release: the mod costs too much per conversation, and characters repeat themselves. Both
+were right, and both had a single cause that had been in place for a long time. Saves from 2.5.9 carry over
+untouched.
+
+*(v2.5.7 through v2.5.9 are recorded in `NEXUS_CHANGELOG_v2.5.7.txt`, `…v2.5.8.txt` and `…v2.5.9.txt`.)*
+
+### Cost
+- **The prompt cache died on turn two of every conversation.** Reported by fkasad with two consecutive prompts and
+  a finger on the line where they diverged. `AppendNarrativeVoice` took an `isOpening` flag and rendered it ABOVE
+  the `CURRENT ENCOUNTER:` marker, which is the cache breakpoint, so the stable prefix was byte-identical on turn
+  one and different on every turn after. A changed prefix is a full-price prefix. Fixed by moving the opening
+  clause below the marker; `PromptCacheSplit.StablePrefixOf` now holds the rule in one place and
+  `PromptCacheTurnStabilityTests` pins it. Play-verified: 0 cached tokens before, 12,864 after.
+- **The action interpreter carried the largest artefact in the mod and had no breakpoint at all.** 70,378
+  characters of invariant head, sent fresh every turn in Enhanced. `ActionInterpreterPromptBuilder` now exposes a
+  stable prefix and the client marks it. Play-verified at 96.6% cached.
+- **Compact now fits 8,192 tokens.** Reported by DuskSymphony. The interpreter head drops to 25,353 characters in
+  Compact (the `emit when:` / `not when:` clauses and the worked examples come out), the transcript folds at 6
+  unfolded lines instead of 14, and `LeanReplyBudget.Tokens = 1200` budgets the completion — which nothing had
+  ever done.
+- **The truncation retry was dropping `ReasoningOverride`.** Every housekeeping call sets it off; those are the
+  calls most likely to truncate, so they were retried at double budget with the global reasoning dial back on.
+  `RebuildForBiggerBudget` now carries it, and `AllowTruncationRetry` with it.
+- **`cr.wire` reports the cache from the inside.** Keyed on `(model, subject)`, because prose and interpreter
+  alternate on one conversation and a group scene has several subjects.
+
+### Fixed
+- **A character recited the conversation back at the player.** Reported 17/09: replies grew each turn until they
+  restated the whole exchange. `ProfileMutator` runs every turn, so an `[EVENT]` from turn two is a notable
+  memory on turn three — rendered under "reference them when relevant", while still verbatim in the raw messages.
+  `AppendHistory` now stops at `EncounterContext.HistoryKnownThrough`, a count taken when the conversation opens.
+  Nullable on purpose: zero is a real and common answer.
+- **Duels crashed on the action button.** Staging asked `Settlement.CurrentSettlement != null`; teaching asked
+  `SettlementCanHostADuel`. Two predicates for one question, so a null location could reach
+  `CreateAndOpenMissionController`. Both now go through `DuelVenuePolicy.Choose`.
+- **The council button vanished when Retinues was installed.** Retinues declares
+  `MapBar.Left.Button.Backgrounds` under its native name, which replaces the brush whole rather than merging into
+  it, taking the `cr_council` layer with it. `CouncilBarIconSprite` rebuilds the layer at runtime if it is gone
+  and says so on the always-on channel. Play-verified with Retinues 2.0.0.12: both buttons present.
+  `CRMapBar.xml` stays as it is — it uses `OverrideBrush`, which is the polite form.
+- **Every character was handed all eight cultures' behaviour guidelines.** `FactionGuidelinesPolicy` gives each
+  character their own.
+- **Namesakes and the wars list**, both from fkasad: a character had no way to distinguish themselves from another
+  hero of the same name (`SpeakerNamesakePolicy`), and active conflicts were listed once per participant
+  (`ActiveConflictsFormatter`).
+
+### Memory and knowledge audit
+- **Anchors carry an identity.** Two conversations on one day produced byte-identical anchors, so the summary
+  queue deduplicated one away and a `FindLastIndex` wrote the first summary onto the second event.
+  `NotableEvent.Id` + `NpcProfile.IndexOfAnchor`; an identified anchor that is gone returns −1 and never falls
+  back to a value match, which would reintroduce the defect it fixes.
+- **Compression stopped undoing enrichment**, and `ReplaceEvents` swaps the reference instead of `Clear()` then
+  `AddRange`, so a reader mid-prompt never sees a half-emptied past.
+- **`SharedRecall`** replaces `WitnessMemoryDigest` and is the only way to obtain a shareable recall: the
+  `IsPrivate` filter and the oldest+recent bound are one function, and a field typed `SharedRecall` cannot be
+  handed raw event text. The leak stops compiling instead of stopping in review.
+- **A cut-off bearer gets no realm news and no underworld.** `RealmNewsPack` and `UnderworldPack` return
+  `KnowledgeDepth.None` when `bearer.IsCutOff`.
+- **The conversation-open refresh covers name and spouse**, not name and station only.
+- **The council fills its seats through the shared builders** — `EncounterContextBuilder.StationContextFor` and
+  `KnowledgeContextFor` — rather than assembling its own version of a person.
+- Minors: `OwnBodyPack.IsSupplied` accepts `IsMaimed`; `MarketWordPack` renders an unnamed place as "Here, …";
+  `HouseMeansPack.Muster` answers on an unknown band; wit reaches the letter voice.
+
+### Known
+- `take_into_service` has never completed in a live game.
+- Nobody has read a council sitting, three increments of content later.
+
 ## v2.5.6.. 2026-09-08
 
 A bug-fix release, and every fix in it came from a player's own log. Two of them unblock a campaign rather than

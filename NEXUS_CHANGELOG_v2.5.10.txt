@@ -1,0 +1,65 @@
+Version 2.5.10
+
+Your saves from 2.5.9 carry over untouched. This release is about two things players told us plainly: it costs too much, and characters repeat themselves. Neither was a guess - both were reported with enough detail to find, and one player sent a side-by-side of two prompts that showed exactly where the problem was.
+
+What a conversation costs
+
+- The prompt cache was dying on the second turn of every conversation. This is the big one. Most providers bill you far less for the part of a prompt they have already seen, and the mod is built to take advantage of that: everything stable about a character sits above a line, everything about this particular moment sits below it. One line of narrative instruction was sitting on the wrong side of that line and changed between the first turn and the second - so from turn two onward, every provider threw the whole thing away and charged full price for all of it, every turn, forever. Reported by fkasad, who sent two consecutive prompts and pointed at the line where they diverged. He was right. Measured in play after the fix: a conversation that cached nothing now caches from the second turn on.
+
+- The action interpreter was built to be cached and never was. In Enhanced mode every turn makes two calls - one for what the character says, one to work out what they meant to DO. The second one carries the larger document of the two, and it is almost entirely fixed text. It had no cache marker at all. It has one now, and in play it reads back at 96.6% cached.
+
+- Compact Prompt mode now fits an 8,192-token model. Reported by DuskSymphony, running a local model, who had Compact turned on and was still overflowing. The interpreter document is cut from roughly 70,000 characters to 25,000 in Compact, the conversation transcript folds sooner, and the reply itself is now budgeted - that last one had never been touched, so a small model was being asked to leave room for a 3,000-token answer it was never going to write.
+
+- A retry that doubled the budget was also switching reasoning back on. When an answer comes back cut off, the mod asks again with twice the room. Rebuilding that second request by hand had quietly lost the setting that says "do not think about this" - which is set by every mechanical background job in the mod, precisely because they are cheap and do not need to. So the calls most likely to be retried came back with double the budget AND reasoning spending it.
+
+- You can now see all of this yourself. The console command cr.wire reports, per character, how much of each prompt was served from cache and how much was paid for fresh. If you think the mod is costing you more than it should, that is the number to look at, and it is worth attaching to a report.
+
+- There is a note in the mod options about pinning a provider. Without a pin, a router is free to move you between upstream servers between turns, and a cache that lives on one server is worth nothing on another. This is not something the mod can fix from the inside; it can only tell you.
+
+Characters repeating themselves
+
+- A character no longer recites the conversation back at you. Reported this week: "I ask a question early on, and even though the conversation has moved on, the AI keeps including the answer to that question in every single response - and the longer the conversation goes, the longer their replies get, because they feel the need to state the entire conversation in each reply." That is exactly what was happening, and every part of it was working as designed. When a character learns something in a conversation it is written to their memory immediately. Their memory is then read back on the next turn as HISTORY, under an instruction that says to respond as someone who lived through these events and reference them when relevant. So the mod was telling the character, in as many words, to bring up something it said twenty seconds ago - which was also still sitting in the conversation itself, so it appeared twice. Each turn added another line. A character's history now stops where the conversation started. What happened during it is the conversation, and they already have it.
+
+- Characters stopped sounding like each other. Reported by basildingleberry. The file that tells a character how their people behave was being handed to every character in the game in full - all of it, every culture, to everyone. A Sturgian was reading the Aserai section. Each culture now has its own, and a character is told about their own people only.
+
+- A man asked to identify himself could not. Reported by fkasad. If there was somebody else in Calradia with the same name, the mod had no way to tell the character which one they were, so being asked which one they are produced something evasive. They now know their own namesakes exist and can answer.
+
+- The list of active wars stopped stuttering. Also fkasad: the same conflict was being listed once per participant, so a long war read as a paragraph of repetition. It is grouped now.
+
+Fixed
+
+- The game no longer crashes when you challenge someone to a duel. Reported 17 September. Two different questions were being asked about where the duel would happen - the part that decides whether to offer it asked one thing, the part that stages it asked another - so it was possible to accept a duel and then hand the engine a place that did not exist. Both now ask the same question, and staging refuses rather than crashes if the answer is no.
+
+- The council button on the map bar comes back when Retinues is installed. Several players reported the button simply gone. Retinues adds its own button and, in doing so, replaces the shared piece of the interface both buttons draw from, which takes ours with it. The mod now rebuilds its own part at runtime if it finds it missing. Confirmed in play with Retinues 2.0.0.12 installed: both buttons present, neither disturbed. If it still happens to you, the log now says which of the two possible causes it was.
+
+- Somebody who asks for a word is the person you end up speaking to. Not, as it could be, whoever happened to be standing nearest.
+
+What a character remembers
+
+Most of this came out of a full audit of the memory and knowledge systems, and none of it is visible as a feature. It is listed because each item was producing something a player could see.
+
+- Two conversations with the same person on the same day no longer collide. They were being told apart by their content, and their content was identical - so the first conversation's summary could be written onto the second conversation's memory, and one of the two was never enriched at all.
+
+- A memory that has just been written in full is no longer overwritten by the shorter version of itself. When memories are folded down to keep them manageable, that fold was working from a snapshot taken before the enrichment landed - so a rich, specific memory could be replaced by the plain line it started as, with the job marked done.
+
+- A character's past is never momentarily empty. The fold used to clear the list and refill it; a conversation opening in that gap read a character with no history at all.
+
+- A prisoner in a cell no longer discusses this week's news from the capital, or the state of the underworld. Being cut off now means cut off.
+
+- A husband or wife is recognised as one from the first line. The refresh that happens when a conversation opens read a character's name and station but not their marriage, so an intimacy after a wedding could still be filed as a secret affair.
+
+- Something told to a character in confidence cannot reach a room. This rule was correct and was kept by care - a comment, and whoever read it. It is now the only way to obtain a shareable memory at all, so the leak stops compiling instead of stopping in review.
+
+- Everyone at a council table is now built the same way as everyone in a conversation. The table was assembling its own version of who people are, which meant every fix to one had to be remembered for the other. Council members now know the seat they hold, remember the player, and read the world through the same knowledge the rest of the mod uses.
+
+- A character who lost a hand still says so. A market with no name is described as being here rather than by a blank. A house whose men are away reads as a sentence rather than a fragment.
+
+- Wit reaches the letters. A character with a dry turn of phrase had it in conversation and lost it in writing.
+
+Notes
+
+- This is a large release, and its headline changes are to the PROMPT - which is to say, to what every character in the game receives before they speak. The cost work has been measured in play and is safe. The repetition fix removes content from every prompt, and although it is tested and the rule behind it is simple - a character's history ends where the conversation begins - it has had the least time in a real campaign. If characters seem to have forgotten you rather than merely stopped repeating themselves, that is the thing to report, and it would be worth reporting quickly.
+
+- If you run a local or self-hosted model and Compact Prompt mode was not enough before, it is worth another try.
+
+- Nothing here changes your save format, and nothing needs a new game. The mod writes a log to Documents\Mount and Blade II Bannerlord\Logs\CalradiaRemembers.log when logging is on in the mod options; a log attached to a report is worth more than a description.
