@@ -32,6 +32,92 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## BUILT 2026-09-15/16, NOT RELEASED: the prompt cache, Compact, and the knowledge audit
+
+Three days of work that share one shape: **a rule was written down, and nothing asserted it.** Every item
+below was found either by a player reading prompts from the outside, or by an audit reading the code — never
+by the suite, which was green throughout.
+
+### What players found
+
+- **fkasad** diffed two successive prompts of one conversation and reported the cacheable prefix dying at
+  2.5%. He was right. `IsConversationOpening`, a fact about THIS TURN, decided wording near the top of the
+  cached prefix, so every conversation paid two full prefix writes instead of one. Narration FREQUENCY moved
+  whole into the dynamic tail; `PromptCacheSplit` holds the rule so tests measure the function the game runs.
+  **Play-verified: cached went 0 to 12,864 on turn 2.**
+- **The interpreter prompt was built to be cached and never was.** 70,378 chars (~17.6k tokens) of invariant
+  head, re-sent at full price once per turn on top of the prose call — the larger half of what a turn costs.
+  One line. **Confirmed in play at 96.6% cache reuse.**
+- **DuskSymphony** cannot hold a conversation on an 8,192-token local model. Three things in a turn had no
+  notion of a prompt level at all: the interpreter (70,378 to 25,353), the discovered-traits list (the only
+  unbounded block in the prompt), and the language rule's worked examples. The transcript fold threshold
+  ignored Compact too, which is why his FIRST message fit and his followups did not. And the reply budget
+  was 3,000 tokens on an 8k window — the largest saving of the lot, and it cost nobody a sentence.
+- **basildingleberry**, "many of them seem to talk the same way": every prompt shipped all eight cultures as
+  an if-then list to a character whose culture the mod knows exactly. ~2,144 chars, and the model was
+  averaging eight personality prescriptions.
+
+### What the audit found (2026-09-15), and what became of each item
+
+| # | finding | outcome |
+|---|---|---|
+| 1 | compression overwrote an in-place enrichment | fixed — anchors carry an identity, the write-back re-reads by it |
+| 2 | two conversations in one day collided on one anchor | fixed — the same identity; a misattributed memory, not just a lost one |
+| 3 | `Events.Clear()` + `AddRange` off the main thread | fixed — one reference store (`ReplaceEvents`) |
+| 4 | `realm_news` / `underworld` ignored `IsCutOff` | fixed — and the RULE is now asserted over all four reach packs at once |
+| 5 | house_means: a dropped army clause, a dangling "and" | fixed — both were invisible to their own guards |
+| 6 | "two depth authorities" in seat_standing | **not a defect** — a documented two-level split. The TEST was pinning an unread number |
+| 7 | day-scale volatility in the cacheable prefix | **open, and deliberately** — see below |
+| 8 | identity frozen (name) or refreshed too late (spouse) | fixed — both now refresh at conversation open |
+| 9 | the council renders no packs; the sweep exempts station and prisoners | fixed — three increments, plus both exemptions closed |
+| 10 | the Compact budget guard was blind to memory | fixed — it now builds what the host builds |
+
+### The council was worse than the audit said
+
+A `CouncilMemberInput` was a name, a sex, an age, one archetype word, a culture and a regard number. No
+memory, no relationships, **no station** — so a seated governor did not know he governed and a seated king
+did not know he ruled. That is the Derthert/Garios failure, still live in a whole conversation mode, and it
+is where "they all sound alike" bites hardest: culture and archetype is the recipe for interchangeable
+voices.
+
+Three increments, each sharing ONE reader with the private-word path so the table cannot drift from the
+tete-a-tete: **station** (`StationPack.DescribeBriefly`), **memory** (bounded at two summaries, through the
+witness builder so the private-memory filter is inherited), and **knowledge** (`NpcKnowledgeFactory.Compose`,
+moved out of `PromptBuilder` where it was private — which is precisely why the council never had it).
+
+### The type that ended a class of leak
+
+Gabriel asked whether the Command pattern would guard the private-memory rule. It would not; a TYPE does.
+`SharedRecall` has no public constructor, so a field of that type cannot be handed raw event text and the
+leak **stops compiling**. Five places treated a recall as a string; the compiler listed them. Had it existed
+a day earlier, the council wiring could not have been written the unsafe way — which was the actual near
+miss that prompted it.
+
+### Open, and why
+
+- **#7, day-scale volatility.** `AppendHistory` renders "yesterday / 6 days ago" above the cache marker, so a
+  new game day invalidates the prefix. Real, and ONE extra prefix write per NPC per day — an order of
+  magnitude below what was fixed. Its cure moves prose, and `RecencySuffix` exists because the model is bad
+  at subtracting day numbers. **Behind Gabriel's quality ruling, not forgotten.**
+- **The anti-confabulation wall** (`STAY WITHIN WHAT YOU KNOW` and its two siblings) stays in the dynamic
+  tail at ~1,840 tokens a turn. It sits last for RECENCY, deliberately, because players reported characters
+  inventing. **Measured, offered, and refused — a priced trade, not an oversight.**
+- **Unbounded rich summaries.** Memory events are capped at six in Compact; their LENGTH is not. Capping is a
+  quality decision.
+- **Two audit minors rejected with reasons** (the "and N others" counters, market_word's truncation): both
+  rest on a rule that protects STANDING, and a market is not standing.
+
+### What still needs Gabriel
+
+- **`cr.testall` in game.** Two new live assertions (every ruler the engine knows is told he rules; every
+  governor likewise) and prisoners now in the sweep — neither can be verified from here.
+- **DuskSymphony should retest.** The arithmetic says ~6,942 tokens inside 8,192; that is a calculation, not
+  a measurement on his machine.
+- **A council sitting, read rather than counted.** Three increments of content reached the table and nobody
+  has read one.
+
+---
+
 ## DESIGNED 2026-09-14 (Gabriel + player basildingleberry), NOT BUILT: THE MOOD OF THE DAY
 
 Promised publicly on the pinned Nexus roadmap since 2026-07-03 ("a mood randomizer that affects characters
