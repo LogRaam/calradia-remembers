@@ -261,6 +261,20 @@ namespace CalradiaRemembers.Letters
                   token).ConfigureAwait(false);
             }
 
+            // WHAT A LETTER COSTS, which nothing reported until now: the path logged its failures and never
+            // its price, so "is a dedicated letter path worth building?" had no evidence behind it either way.
+            // Measured 17/09/2026: a letter prompt is 32,461 chars against a conversation's 33,539 — 97%, not
+            // the fraction EncounterContext.Empty suggests, because the format contract, the action catalogue,
+            // the persona and the prose craft are all unconditional. It also carries no CURRENT ENCOUNTER
+            // marker, so PromptCacheSplit finds no prefix and the WHOLE prompt is written as one cached block
+            // that a one-shot call will never read back.
+            //
+            // The frequency is the other half and only play can give it. This line is what makes both
+            // countable in a real session before any content decision is taken.
+            if (result.Usage != null)
+               ModLog.Info($"  [LETTER TOKENS] prompt={result.Usage.PromptTokens} "
+                         + $"(cached:{result.Usage.CachedPromptTokens ?? 0}) | completion={result.Usage.CompletionTokens}");
+
             if (result.IsSuccess) return result.Response?.Dialogue;
 
             ModLog.Error($"[LETTER] LLM call failed: {result.ErrorMessage}");

@@ -93,8 +93,9 @@ namespace CalradiaRemembers.Settings
       // (Gabriel, screenshot 2026-07-13). Two or three lines, no more. Say the stake, not the essay.
       // ProviderPin and NsfwProviderPin are resolved per model mode by ModelModePolicy.ResolveProviderPin.
       [SettingPropertyText("Pin Providers (advanced)", RequireRestart = false, Order = 4,
-         HintText = "Leave blank unless you need it. Some OpenRouter providers censor their own output, cutting " +
-                    "replies mid-sentence. Enter trusted provider slugs, comma separated (e.g. deepinfra, together).")]
+         HintText = "Leave blank unless needed. Some providers censor their own output, cutting replies " +
+                    "mid-sentence. Pinning also steadies prompt caching, which lowers cost: unpinned, OpenRouter " +
+                    "may switch provider mid-session and the cache is lost. Comma separated.")]
       [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
       public string ProviderPin { get; set; } = "";
 
