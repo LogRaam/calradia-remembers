@@ -247,7 +247,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("console_help_complete", Severity.Light, "Mechanical: cr.help against the REAL command registry. Asked on 2026-09-10 whether it was still complete, it described 70 of 259 registered commands, so cr.testall and cr.test were themselves invisible, and it advertised cr.compose, renamed cr.letter_compose long before, which made the one name a reader was most likely to copy verbatim the one that would fail. A hand-written list of every command in a project that gains commands weekly can only drift, so what EXISTS now comes from reflection over the assembly its own [CommandLineArgumentFunction] attributes and the prose is an overlay on top of it. Reads the live registry, drives the real ModCheats.Help in all three of its forms, and asserts: the help never names a command that does not exist (the cr.compose class of error), every registered command is reachable through cr.help all however undescribed, the curated page says where the rest of them are, and the search finds a command by fragment. Read-only, mutates nothing", TestConsoleHelpComplete),
          new SelfTest("seasonal_chronicle", Severity.Light, "The seasonal historian (Gabriel's design): at each turn of the season every realm is read, and what MOVED - a stronghold taken, coffers grown, armies thinned - is written into the world as ordinary news. Computed deterministically from the almanac's own power facts rather than written by a model, because \"Vlandia grew rich\" IS a delta description and a background call every season would cost tokens forever, fail halfway, and have a language to get wrong. Drives the REAL behaviour against the REAL store with a perturbed reading (the honest alternative is waiting a season and hoping), and asserts it is ordinary news rather than a fourth memory store. Removes the row it writes", TestSeasonalChronicle),
          new SelfTest("world_claims", Severity.Light, "Invented facts (Gabriel, 2026-09-12): a character makes up a blight, the gate judges it, and if it passes it becomes a real low-weight rumour a DIFFERENT character can have heard - which is the incoherence Gabriel named, closed through the rumour road that already existed instead of a second world model. A unit test can prove the RULE and never that the row reached the world, so this drives the real injector against the real store. Also asserts the two refusals that matter: the PLAYER never authors the world, and nothing the engine keeps on a screen is ever invented into it. Removes every row it writes", TestWorldClaims),
-         new SelfTest("knowledge_composition", Severity.Light, "Mechanical (Gabriel + fkasad, 2026-09-11): the half a unit test CANNOT do. A unit test builds its own EncounterContext, so it can prove a companion WOULD carry his house's standing and never that anyone supplied it - which is exactly where the governor bug lived (the prompt was right, the rule would have been right, the host never filled the field). Sweeps up to 60 REAL heroes, asks NpcKnowledgeFactory which knowledge packs each one CARRIES, and asserts the live context actually SUPPLIED every one of them; reports the pack census so a pack that reaches nobody is visible rather than silently vacuous. Read-only: builds contexts, mutates nothing", TestKnowledgeComposition),
+         new SelfTest("knowledge_composition", Severity.Light, "Mechanical (Gabriel + fkasad, 2026-09-11): the half a unit test CANNOT do. A unit test builds its own EncounterContext, so it can prove a companion WOULD carry his house's standing and never that anyone supplied it - which is exactly where the governor bug lived (the prompt was right, the rule would have been right, the host never filled the field). Sweeps up to 60 free REAL heroes PLUS up to 15 PRISONERS, asks NpcKnowledgeFactory which knowledge packs each one CARRIES, and asserts the live context actually SUPPLIED every one of them; reports the pack census so a pack that reaches nobody is visible rather than silently vacuous. Prisoners joined the sample on 16/09/2026: excluding them left the whole IsCutOff composition unverified in a live game - the one branch where packs are meant to go SILENT, and so the one where a mistake is hardest to spot by reading a transcript - and that blind spot was covering a real defect, since realm_news and underworld ignored the flag and a man in a cell was reading his realm's current fortunes. Read-only: builds contexts, mutates nothing", TestKnowledgeComposition),
          new SelfTest("unavailable_deeds", Severity.Light, "Mechanical (Gabriel's ruling 09/09/2026: \"il faudrait que le LLM declare en connaissant deja le gating\"): a verb used to have TWO states in the prompt, taught in full or ABSENT, and absence does not read to a language model as forbidden, it reads as not mentioned, so the model supplied the permission itself and the player met the contradiction one deed later as a system message refusing what the NPC had just promised. Verbs now state their own closed door BEFORE the model speaks (IStatesUnavailability, the inward twin of the IProvidesGuidance channel built for modders on 30/08/2026 and never turned inward). Sweeps up to 60 real living foreign lords, driving the LIVE VerbRegistry.ComposeUnavailability and ComposeTeachings against each, and asserts: no refusal ever leaks a verb id or an [ACTION] block (which would teach the model the very token it must not emit), and no verb is ever taught and refused in the same prompt. Then takes the first lord the world supplied who has the means but not the trust and drives the REAL EncounterContextBuilder.Build, asserting the block reaches the live EncounterContext.UnavailableDeeds and forbids the PROMISE, not merely the deed (a deferred promise being the same failure). MANUAL when no lord in this world is currently in that state. Read-only: builds contexts, mutates nothing", TestUnavailableDeeds),
          new SelfTest("chat_focus_arbiter", Severity.Light, "Mechanical (tashmetu, 2026-09-09): the chat overlay slid off screen on NPC-initiated conversations and never came back, killing every later conversation until a restart. The old arbiter decided \"a screen is above us\" by COUNTING the host screen's layers against the count taken when the chat opened, and vanilla's own MissionGauntletConversationView adds a layer to that SAME screen while the conversation starts: click an NPC and it is already counted, be approached BY one and it arrives after, so the count grows and the chat yields to the very window it exists to replace, forever, because that layer stays for the whole conversation. The rule is now the engine's own IsFocusLayer, with the two vanilla conversation windows named and exempt. Builds REAL GauntletLayers on the live top screen exactly as vanilla builds them (\"MissionConversation\" order 49, \"MissionEscapeMenu\" order 50, IsFocusLayer set, no input restrictions taken) and asserts: ScreenLayer.Name really hands back the name the layer was built with (the one assumption a pure test cannot check), the vanilla conversation layer changes the verdict by nothing at all, a real modal still takes the screen and is NAMED in the log, and removing it reclaims the screen. EXTENDED after Gabriel's play-test (2026-09-09) proved a name list cannot be complete: he opened a chat in a TAVERN, where vanilla's settlement menu \"MapMenuOverlay\" holds focus for the whole conversation, and the chat yielded to the very backdrop it had been drawn over, never appeared, and let the vanilla dialogue run on underneath. Whatever already claims focus when the chat OPENS is scenery, whatever it is called; only what arrives afterwards can be a screen above. Now also builds a real \"MapMenuOverlay\" layer and asserts it is held through when recorded as backdrop, yields when it is not (the exact bug), and that a genuine modal opening OVER that backdrop still takes the screen. Removes every layer in a finally, so a failed assertion can never leave one on the player's screen. No LLM, mutates nothing", TestChatFocusArbiter),
          new SelfTest("panel_state_hosting", Severity.Light, "Mechanical: the panel-hosting migration (PushScreen -> PushState). cr.tick_probe measured a pushed SCREEN leaving MapState ticking at exactly the same rate as nothing pushed at all (481 settlement-visual + 481 map-input ticks per 4s window), while a pushed STATE silenced both to zero, because GameStateManager deactivates MapState before the new screen even exists. Drives a REAL open/close cycle through LetterWindowManager.OpenCompose/Close (the shared CrPanelHost, defaulted to the state strategy) on a borrowed lord's profile, and asserts: the live GameState becomes CrPanelState while open, CrPanelHost.AnyPanelOwnsScreen (the tick-suppression flag every guard reads) engages then fully clears, and the state stack returns to EXACTLY the state that was active before, never left substituted or stuck. Force-closes the window in a finally even if an assertion throws, so a broken assertion can never leave a panel open or the map muted. No LLM", TestPanelStateHosting),
@@ -8552,14 +8552,31 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("knowledge_composition");
 
-         var people = Hero.AllAliveHeroes
-                          .Where(h => h != null && h != Hero.MainHero && h.IsAlive && !h.IsPrisoner)
-                          .Take(60)
-                          .ToList();
+         // PRISONERS ARE IN THE SAMPLE since 16/09/2026. They were excluded, which left the ENTIRE IsCutOff
+         // composition unverified in a live game — the one branch where packs are meant to go SILENT, and
+         // therefore the one where a mistake is hardest to notice by reading a transcript. That exclusion was
+         // cover for a real defect: realm_news and underworld ignored the flag outright, so a man in a cell
+         // was reading his realm's current fortunes and the player's crime rating (audit, 15/09/2026).
+         //
+         // Capped separately so a campaign full of captives cannot crowd out the free heroes, and so the pass
+         // always examines both branches rather than whichever the save happens to hold.
+         var free = Hero.AllAliveHeroes
+                        .Where(h => h != null && h != Hero.MainHero && h.IsAlive && !h.IsPrisoner)
+                        .Take(60)
+                        .ToList();
+
+         var held = Hero.AllAliveHeroes
+                        .Where(h => h != null && h != Hero.MainHero && h.IsAlive && h.IsPrisoner)
+                        .Take(15)
+                        .ToList();
+
+         List<Hero> people = free.Concat(held).ToList();
          if (t.Skip(people.Count == 0, "no living hero to compose knowledge for")) return t.Line();
 
          int examined = 0, carried = 0;
          var unsupplied = new List<string>();
+         var crownless = new List<string>();
+         var ungoverned = new List<string>();
          var carriers = new Dictionary<string, int>();
          var suppliedCount = new Dictionary<string, int>();
          Hero withHouse = null;
@@ -8603,6 +8620,22 @@ namespace CalradiaRemembers.Diagnostics
             }
 
             if (withHouse == null && person.Clan != null) withHouse = person;
+
+            // STATION, ASKED OF THE ENGINE RATHER THAN OF THE PACK. station is RequiresContent=false — rightly,
+            // since most people hold nothing and reporting every commoner as a missing fact would teach
+            // everyone to ignore this report. But that exemption leaves the "king denies his crown" class
+            // guarded by unit tests alone, which cannot see whether the HOST filled the field, and that is the
+            // one thing this sweep exists to see (audit, 15/09/2026).
+            //
+            // So it is asked the other way round: where the ENGINE says somebody rules or governs, the context
+            // must say so too. No commoner is ever asked, and no rank can go missing unnoticed.
+            if (person.MapFaction is Kingdom kingdom && kingdom.Leader == person
+                && string.IsNullOrWhiteSpace(ctx.RuledRealmName) && crownless.Count < 5)
+               crownless.Add(person.Name?.ToString() ?? person.StringId);
+
+            if (person.GovernorOf?.Settlement != null
+                && string.IsNullOrWhiteSpace(ctx.GovernedSettlementName) && ungoverned.Count < 5)
+               ungoverned.Add(person.Name?.ToString() ?? person.StringId);
          }
 
          // The census reads "carried/supplied" per pack. For an optional pack that is all the sweep can say,
@@ -8625,6 +8658,15 @@ namespace CalradiaRemembers.Diagnostics
          // The guard on the guard. A sweep that composed nothing would report zero failures and prove nothing,
          // which is the vacuity that shipped in settings_ranges_agree a day earlier.
          t.Expect("thePacksReachRealPeopleAtAll", carried > 0, true);
+
+         // The two ranks the engine can confirm on its own. A king who was never told he rules DENIED THE
+         // CROWN in front of two players, and fkasad's governor did not know he governed; both were hosts
+         // failing to fill a field the engine already knew, which no unit test can see.
+         if (crownless.Count > 0) t.Note("RULERS WHOSE CROWN NEVER REACHED THE CONTEXT: " + string.Join(", ", crownless));
+         if (ungoverned.Count > 0) t.Note("GOVERNORS WHOSE SEAT NEVER REACHED THE CONTEXT: " + string.Join(", ", ungoverned));
+
+         t.Expect("everyRulerTheEngineKnowsIsToldHeRules", crownless.Count, 0);
+         t.Expect("everyGovernorTheEngineKnowsIsToldHeGoverns", ungoverned.Count, 0);
 
          // And end to end on one real person: the composed knowledge must actually reach the prompt, or the
          // whole pipeline could be correct and silent.
