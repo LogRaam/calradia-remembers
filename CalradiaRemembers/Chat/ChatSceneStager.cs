@@ -42,20 +42,9 @@ namespace CalradiaRemembers.Chat
       // the conversation has been live this long. ~1 second at 60 fps.
       private const int FallbackFrames = 60;
 
-      /// <summary>
-      ///   Grace given to <c>OpenMapConversation</c> to register its conversation before we conclude it did
-      ///   nothing. This is NOT a timeout on the scene load: it is the shortest wait that lets a successful
-      ///   call be observed, because a successful one sets <c>Hero.OneToOneConversationHero</c> at once and
-      ///   only then loads a scene. A few frames, not seconds.
-      ///   <para>
-      ///     Player report (Nexus, 2026-07-19): "getting stuck in the loop of someone approaching me, but the
-      ///     dialogue doesn't trigger, so it's an endless chain of them trying to talk to me." The fallback
-      ///     below only runs once a conversation IS active, so a call that started none left the staging armed
-      ///     forever, and because <see cref="IsStaging" /> gates InterceptionBehavior.PlayerIsFreeOnMap,
-      ///     NOTHING could open again: not this meeting, not the next lord's, not a captive scene.
-      ///   </para>
-      /// </summary>
-      private const int ConversationRegistrationFrames = 10;
+      // The two graces a staged meeting may be given, and WHY they differ, live in StagingGracePolicy: the
+      // rule is about which engine call was made, so it belongs where it can be read against that call and
+      // tested, not as a bare number inside a tick loop.
 
       // Frames to let the conversation scene render after our intercept line fires, so the chat opens over a
       // fully set-up mission screen rather than mid-transition.
@@ -65,6 +54,13 @@ namespace CalradiaRemembers.Chat
       private static readonly float[] AudienceRingRadii = {2.5f, 3.5f, 4.5f, 6f};
 
       private static int _armedFrames;
+
+      /// <summary>
+      ///   True while the pending staging is waiting on an INTERIOR MISSION to load rather than on a map
+      ///   conversation to register. Read only by <see cref="Tick" />, to pick which of the two graces above
+      ///   applies; the two calls fail in different ways and on different clocks.
+      /// </summary>
+      private static bool _stagedByMissionController;
       private static int _fallbackFrames;
       private static bool _lineReached;
 
@@ -348,6 +344,11 @@ namespace CalradiaRemembers.Chat
             // nothing whatever is written down.
             ModLog.Info($"[CHAT STAGE {_pending.Kind}] dropped: the chat is already open, so something else "
                       + "claimed this scene first.");
+            // ALWAYS-ON, because the two men who reported this could not see the line above it: logging is
+            // off by default on Nexus, so the mod's whole account of what became of their answer was written
+            // where they would never read it. This one sentence is what turns the next report into a fix.
+            ModLog.Notice("a conversation was already open, so the private word you accepted was dropped. "
+                        + "If no window appeared at all, cr.chat_reset clears a stuck one.");
             _pending = null;
 
             return;
@@ -373,11 +374,21 @@ namespace CalradiaRemembers.Chat
          // to that rather than to a stopwatch: it fires in a fraction of a second instead of ten, and it
          // cannot mistake a slow scene load on a tired machine for a failure, because a slow load has
          // already set the conversation by this point.
-         if (!conversationActive && ++_armedFrames >= ConversationRegistrationFrames)
+         // TWO CALLS ARRIVE HERE AND ONLY ONE OF THEM REGISTERS AT ONCE. The grace above is reasoned about
+         // OpenMapConversation, whose success is observable in a few frames. The settlement twin calls
+         // CreateAndOpenMissionController, which has an interior scene to load first, so "the call returned
+         // and no conversation exists" is its normal state for most of a second. Judging that by a rule
+         // written for the other call declares a healthy staging dead in a sixth of a second, opens the chat
+         // over the town menu, and lets the arriving scene carry it off: the player answers the popup and
+         // nothing appears. Both paths keep a bound; they do not share a clock.
+         int grace = StagingGracePolicy.FramesFor(_stagedByMissionController);
+
+         if (!conversationActive && ++_armedFrames >= grace)
          {
-            ModLog.Error("[STAGE] OpenMapConversation registered no conversation; opening directly so the "
-                       + "staging cannot jam every later meeting.");
-            OpenPending("no conversation was registered");
+            ModLog.Error(_stagedByMissionController
+                            ? "[STAGE] the interior scene never came up; opening directly so the staging cannot jam every later meeting."
+                            : "[STAGE] OpenMapConversation registered no conversation; opening directly so the staging cannot jam every later meeting.");
+            OpenPending("nothing was ever staged");
 
             return;
          }
@@ -484,6 +495,7 @@ namespace CalradiaRemembers.Chat
             _settleFrames = 0;
             _fallbackFrames = 0;
             _armedFrames = 0;
+            _stagedByMissionController = false; // this path waits on a conversation, not on a scene
             StagedMissionNeedsEnd = false;
             Campaign.Current.ConversationManager.OpenMapConversation(playerData, partnerData);
             ModLog.Info($"[CHAT STAGE {request.Kind}] conversation started with {partner.StringId}; awaiting the scene to load.");
@@ -528,6 +540,7 @@ namespace CalradiaRemembers.Chat
             _settleFrames = 0;
             _fallbackFrames = 0;
             _armedFrames = 0;
+            _stagedByMissionController = true; // this path waits on an interior scene, which takes its time
             StagedMissionNeedsEnd = false;
             // Remember whom to bring beside the player once the scene's agents exist. The reason is in the
             // line above this one: our intercept line hijacks the conversation's "start" token, which SKIPS
@@ -673,6 +686,7 @@ namespace CalradiaRemembers.Chat
                // PostDuel and any future kind not yet wired: log rather than silently drop, so a missing branch
                // is visible instead of a scene that opens onto nothing.
                ModLog.Error($"[CHAT STAGE] no open wired for kind {r.Kind}; nothing opened.");
+               ModLog.Notice("that meeting could not be opened. Nothing was lost but the moment; they will ask again.");
 
                return;
          }
@@ -686,6 +700,7 @@ namespace CalradiaRemembers.Chat
          _settleFrames = 0;
          _fallbackFrames = 0;
          _armedFrames = 0;
+         _stagedByMissionController = false;
 
          // If the chat opens over a mission whose conversation never started (the fallback path: our intercept
          // line lost the "start" token to another mod), no conversation exists for ChatManager.Close to end, and

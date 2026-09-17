@@ -713,6 +713,8 @@ namespace CalradiaRemembers.Chat
          {
             ModLog.Error($"[AUDIENCE] cannot open: companion={companion?.Name?.ToString() ?? "null"}, "
                        + $"profile={(profile == null ? "null" : "ok")}. The popup was answered and nothing followed.");
+            ModLog.Notice("a companion asked for a private word and the mod could not open it. "
+                        + "They keep the grievance; they will ask again.");
 
             return;
          }
@@ -749,6 +751,11 @@ namespace CalradiaRemembers.Chat
          {
             ModLog.Error($"[AUDIENCE] the window did not open for {companion.Name}; their private word is lost. "
                        + "Try cr.chat_reset if later conversations also refuse to open.");
+            // The end of the road, and until now it ended out of sight: Error is gated by the MCM logging
+            // switch, which is off by default, so the player who answered the popup was told nothing and the
+            // log they sent said nothing either. Say it where it cannot be switched off.
+            ModLog.Notice($"{companion.Name}'s private word could not be opened. If it happens again, "
+                        + "cr.chat_reset clears a stuck window.");
 
             return;
          }

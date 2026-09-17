@@ -22,7 +22,7 @@ untouched.
   stable prefix and the client marks it. Play-verified at 96.6% cached.
 - **Compact now fits 8,192 tokens.** Reported by DuskSymphony. The interpreter head drops to 25,353 characters in
   Compact (the `emit when:` / `not when:` clauses and the worked examples come out), the transcript folds at 6
-  unfolded lines instead of 14, and `LeanReplyBudget.Tokens = 1200` budgets the completion — which nothing had
+  unfolded lines instead of 14, and `LeanReplyBudget.Tokens = 1200` budgets the completion, which nothing had
   ever done.
 - **The truncation retry was dropping `ReasoningOverride`.** Every housekeeping call sets it off; those are the
   calls most likely to truncate, so they were retried at double budget with the global reasoning dial back on.
@@ -33,7 +33,7 @@ untouched.
 ### Fixed
 - **A character recited the conversation back at the player.** Reported 17/09: replies grew each turn until they
   restated the whole exchange. `ProfileMutator` runs every turn, so an `[EVENT]` from turn two is a notable
-  memory on turn three — rendered under "reference them when relevant", while still verbatim in the raw messages.
+  memory on turn three, rendered under "reference them when relevant", while still verbatim in the raw messages.
   `AppendHistory` now stops at `EncounterContext.HistoryKnownThrough`, a count taken when the conversation opens.
   Nullable on purpose: zero is a real and common answer.
 - **Duels crashed on the action button.** Staging asked `Settlement.CurrentSettlement != null`; teaching asked
@@ -43,7 +43,7 @@ untouched.
   `MapBar.Left.Button.Backgrounds` under its native name, which replaces the brush whole rather than merging into
   it, taking the `cr_council` layer with it. `CouncilBarIconSprite` rebuilds the layer at runtime if it is gone
   and says so on the always-on channel. Play-verified with Retinues 2.0.0.12: both buttons present.
-  `CRMapBar.xml` stays as it is — it uses `OverrideBrush`, which is the polite form.
+  `CRMapBar.xml` stays as it is: it uses `OverrideBrush`, which is the polite form.
 - **Every character was handed all eight cultures' behaviour guidelines.** `FactionGuidelinesPolicy` gives each
   character their own.
 - **Namesakes and the wars list**, both from fkasad: a character had no way to distinguish themselves from another
@@ -63,8 +63,8 @@ untouched.
 - **A cut-off bearer gets no realm news and no underworld.** `RealmNewsPack` and `UnderworldPack` return
   `KnowledgeDepth.None` when `bearer.IsCutOff`.
 - **The conversation-open refresh covers name and spouse**, not name and station only.
-- **The council fills its seats through the shared builders** — `EncounterContextBuilder.StationContextFor` and
-  `KnowledgeContextFor` — rather than assembling its own version of a person.
+- **The council fills its seats through the shared builders** (`EncounterContextBuilder.StationContextFor` and
+  `KnowledgeContextFor`) rather than assembling its own version of a person.
 - Minors: `OwnBodyPack.IsSupplied` accepts `IsMaimed`; `MarketWordPack` renders an unnamed place as "Here, …";
   `HouseMeansPack.Muster` answers on an unknown band; wit reaches the letter voice.
 

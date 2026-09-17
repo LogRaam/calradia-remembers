@@ -30,6 +30,7 @@ namespace CalradiaRemembers
 
       private static readonly HashSet<string> SeenCompat = new();
       private static readonly HashSet<string> SeenConfigError = new();
+      private static readonly HashSet<string> SeenNotice = new();
 
       // Player report (2026-07-23): with logging switched ON, nothing was ever written. Bannerlord creates
       // Documents\Mount and Blade II Bannerlord for saves and config, but NOT the Logs subfolder, and
@@ -145,6 +146,45 @@ namespace CalradiaRemembers
          {
             InformationManager.DisplayMessage(
                new InformationMessage($"[{Tag}] config error: {message}", Colors.Red));
+         }
+         catch
+         {
+            /* a UI call before the manager is ready must never crash startup */
+         }
+      }
+
+      /// <summary>
+      ///   Something the player ASKED FOR did not happen, and they are the only person who can see that it
+      ///   did not. ALWAYS recorded, even when the MCM logging switch is off (its default on Nexus), for the
+      ///   same reason <see cref="ConfigError" /> is: the ordinary diagnostics are gated by that switch, so a
+      ///   player who answers a popup and gets nothing has no way to tell a broken feature from a feature
+      ///   that never fired, and neither has anyone reading their report.
+      ///   <para>
+      ///     Two players said the same sentence a week apart (Lordfadooboo 11/09/2026, Zinced121212
+      ///     17/09/2026): "a companion wants to talk, I say yes, and nothing happens". Every branch that
+      ///     could swallow that answer wrote its account through <see cref="Info" />, so the log they would
+      ///     have sent was empty of it. A channel is the difference between a fix and another guess.
+      ///   </para>
+      ///   Reserve this for a DEAD END the player experienced. A path that recovers (a fallback that still
+      ///   opens the window) belongs on <see cref="Info" />: a notice that fires when nothing went wrong
+      ///   teaches players to ignore it. Deduplicated per distinct message per session, same pattern as
+      ///   <see cref="Compat" />, so a fault on a repeating path cannot spam the log or the screen.
+      /// </summary>
+      internal static void Notice(string message)
+      {
+         lock (SeenNotice)
+         {
+            if (!SeenNotice.Add(message)) return;
+         }
+
+         var line = $"[{DateTime.Now:HH:mm:ss}] [NOTICE] [{Tag}] {message}";
+
+         WriteToFile(line);
+
+         try
+         {
+            InformationManager.DisplayMessage(
+               new InformationMessage($"[{Tag}] {message}", Colors.Yellow));
          }
          catch
          {

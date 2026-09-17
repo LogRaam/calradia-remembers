@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Conversation;
@@ -40,18 +41,15 @@ namespace CalradiaRemembers.Chat
       // the conversation has been live this long. ~1 second at 60 fps. Mirrors ChatSceneStager.FallbackFrames.
       private const int FallbackFrames = 60;
 
-      /// <summary>
-      ///   Grace given to <c>OpenMapConversation</c> to register its conversation before we conclude it did
-      ///   nothing. See <see cref="ChatSceneStager" />'s own constant for the full rationale (the same
-      ///   engine call, the same failure mode): a call that started no conversation must open directly rather
-      ///   than leave the staging armed forever, which (via <see cref="IsStaging" />) would jam every later
-      ///   council too.
-      /// </summary>
-      private const int ConversationRegistrationFrames = 10;
+      // Same rule, same reason as ChatSceneStager: a council convened from a settlement menu waits on an
+      // interior scene, not on a conversation that registers at once. StagingGracePolicy holds both graces.
 
       // Frames to let the conversation scene render after our intercept line fires, so the council opens over a
       // fully set-up mission screen rather than mid-transition.
       private const int SettleFrames = 3;
+
+      /// <summary>True while the pending council waits on an INTERIOR MISSION rather than on a map conversation.</summary>
+      private static bool _stagedByMissionController;
 
       private static int _armedFrames;
       private static int _fallbackFrames;
@@ -150,7 +148,7 @@ namespace CalradiaRemembers.Chat
          // successful OpenMapConversation registers its conversation immediately and only then loads a scene,
          // so "the call returned and no conversation exists" IS the failure, not a slow load. See
          // ChatSceneStager.Tick for the full rationale (the same engine call, the same reasoning).
-         if (!conversationActive && ++_armedFrames >= ConversationRegistrationFrames)
+         if (!conversationActive && ++_armedFrames >= StagingGracePolicy.FramesFor(_stagedByMissionController))
          {
             ModLog.Error("[COUNCIL STAGE] OpenMapConversation registered no conversation; opening directly so the "
                        + "staging cannot jam every later council.");
@@ -226,6 +224,7 @@ namespace CalradiaRemembers.Chat
             _settleFrames = 0;
             _fallbackFrames = 0;
             _armedFrames = 0;
+            _stagedByMissionController = false; // waits on a conversation, not on a scene
             ChatSceneStager.StagedMissionNeedsEnd = false;
             Campaign.Current.ConversationManager.OpenMapConversation(playerData, partnerData);
             ModLog.Info($"[COUNCIL STAGE] conversation started with {partner.StringId}; awaiting the scene to load.");
@@ -264,6 +263,7 @@ namespace CalradiaRemembers.Chat
             _settleFrames = 0;
             _fallbackFrames = 0;
             _armedFrames = 0;
+            _stagedByMissionController = true; // waits on an interior scene, which takes its time
             ChatSceneStager.StagedMissionNeedsEnd = false;
             PlayerEncounter.LocationEncounter.CreateAndOpenMissionController(location, null, partner, null);
             ModLog.Info($"[COUNCIL STAGE] interior mission opening at {location.StringId} with {partner.StringId}; awaiting the scene to load.");
@@ -296,6 +296,7 @@ namespace CalradiaRemembers.Chat
          _settleFrames = 0;
          _fallbackFrames = 0;
          _armedFrames = 0;
+         _stagedByMissionController = false;
 
          // Same orphan-mission guard as ChatSceneStager.OpenPending: if the chat opens over a mission whose
          // conversation never started, no conversation end will ever tear that mission down, so ChatManager.Close
