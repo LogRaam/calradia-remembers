@@ -21,5 +21,27 @@ namespace CalradiaRemembers.Logic.Duels
       /// </summary>
       public static bool CanStage(DuelVenue venue)
          => venue == DuelVenue.Wilderness || venue == DuelVenue.TownGates;
+
+      /// <summary>
+      ///   Whether a TOWN duel can be held where the player stands. Both halves are required and only one of
+      ///   them was ever asked.
+      ///   <para>
+      ///     yozakura12 (Nexus, 17 and 18/09/2026, still crashing on 2.5.10): his log reads
+      ///     <c>venue=TownGates</c>, then "opening the town centre", then nothing. The conversation had ended
+      ///     with "returned to campaign map": he was AT a town, on the map, not inside it. Both predicates in
+      ///     play asked only whether a settlement was there and whether it owned a "center" location, and a
+      ///     settlement the player is merely standing on answers yes to both. Opening a settlement LOCATION
+      ///     mission from outside is a state the engine does not support, and it dies loading the scene.
+      ///   </para>
+      ///   <para>
+      ///     The same lesson ChatSceneStager learned from the CarolusIV/Windmolen crashes: inside a settlement
+      ///     and at a settlement are different places, and only PlayerEncounter.InsideSettlement tells them
+      ///     apart. The duel path never got it.
+      ///   </para>
+      ///   When this is false at a town the answer is not "no duel": it is the open field, which is where a
+      ///   man standing outside the walls would fight anyway.
+      /// </summary>
+      public static bool CanHoldATownDuel(bool playerIsInsideTheSettlement, bool theSettlementHasADuellingGround)
+         => playerIsInsideTheSettlement && theSettlementHasADuellingGround;
    }
 }

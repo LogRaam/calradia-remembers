@@ -44,5 +44,45 @@ namespace CalradiaRemembers.Tests.Duels
       {
          DuelStagingSupport.CanStage(DuelVenue.NotNow).Should().BeFalse();
       }
+
+      // yozakura12 (Nexus, 17 and 18/09/2026, the second time on the version meant to have fixed it): the game
+      // crashed loading the battlefield when he called a lord out. His log reads venue=TownGates, then "opening
+      // the town centre", then nothing, and the conversation before it ended with "returned to campaign map".
+      // He was AT a town, on the map, not inside it.
+      //
+      // Standing on a settlement answers YES to both of the questions that were being asked: a settlement is
+      // there, and it owns a "center" location. Neither of them asked the one that decides whether the engine
+      // can open an interior mission, which is whether the player is inside the walls.
+
+      [Test]
+      public void GIVEN_the_player_is_inside_a_town_with_a_centre_WHEN_asked_THEN_a_town_duel_can_be_held()
+      {
+         DuelStagingSupport.CanHoldATownDuel(true, true).Should().BeTrue();
+      }
+
+      // THE REPORTED CASE. Everything about the settlement is right and the player is still outside it.
+      [Test]
+      public void GIVEN_the_player_is_at_a_town_but_not_inside_it_WHEN_asked_THEN_no_town_duel_can_be_held()
+      {
+         DuelStagingSupport.CanHoldATownDuel(false, true).Should()
+                           .BeFalse("a settlement the party is merely standing on owns a centre just the same");
+      }
+
+      // The half that WAS being asked, kept: a settlement with no duelling ground cannot host one even from
+      // inside. Without this the fix above could pass by answering the wrong question the other way round.
+      [Test]
+      public void GIVEN_a_settlement_with_no_duelling_ground_WHEN_asked_THEN_no_town_duel_can_be_held()
+      {
+         DuelStagingSupport.CanHoldATownDuel(true, false).Should().BeFalse();
+      }
+
+      // And a refusal here is never the end of the duel: the wilderness is still a venue that can be staged,
+      // which is what makes routing the outside case to the open field the right answer rather than a fallback.
+      [Test]
+      public void GIVEN_a_town_duel_is_refused_WHEN_the_open_field_is_chosen_instead_THEN_it_can_still_be_staged()
+      {
+         DuelStagingSupport.CanHoldATownDuel(false, true).Should().BeFalse();
+         DuelStagingSupport.CanStage(DuelVenue.Wilderness).Should().BeTrue();
+      }
    }
 }

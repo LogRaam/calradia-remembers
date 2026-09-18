@@ -54,7 +54,23 @@ namespace CalradiaRemembers.Duels
       public static string Arm(Hero opponent, Action<bool> onDuelEnd)
       {
          if (opponent == null) return "No opponent to duel.";
-         if (Settlement.CurrentSettlement is not {IsTown: true}) return "A town duel needs the player to be inside a town.";
+
+         // AT A TOWN IS NOT INSIDE A TOWN, and this line used to accept both. Settlement.CurrentSettlement is
+         // set for a party merely standing on a settlement, so a duel armed during a MAP conversation walked
+         // straight through here and asked the engine to open an interior location from outside: it crashed
+         // loading the scene (yozakura12, 17 and 18/09/2026, the second time on the version meant to fix it).
+         // The callers now resolve the WILDERNESS venue for that case, so arriving here at all means something
+         // upstream disagreed, and the honest answer is to say so rather than hand the engine a state it does
+         // not support.
+         if (Settlement.CurrentSettlement is not {IsTown: true} || !PlayerEncounter.InsideSettlement)
+         {
+            ModLog.Error("[DUEL] refused a town duel from outside the walls (settlement="
+                       + (Settlement.CurrentSettlement?.Name?.ToString() ?? "none")
+                       + ", inside=" + PlayerEncounter.InsideSettlement
+                       + "); the open field is the venue for this.");
+
+            return "A town duel needs the player to be inside a town.";
+         }
          if (Mission.Current != null) return "A mission is already running.";
 
          // THE SCENE HAS TO EXIST BEFORE THE ENGINE IS ASKED TO LOAD IT. GetLocationWithId returns null for a

@@ -148,11 +148,12 @@ namespace CalradiaRemembers.Duels
                // not a stale town duel whose guard fails silently (player report: "hit yes, nothing happened").
                bool atSea = MobileParty.MainParty?.IsCurrentlyAtSea == true;
 
-               // The SAME test that decides whether the duel is offered at all. Asking merely "is the player in
-               // a settlement" here chose a town venue for settlements that have no town centre to fight in,
-               // and the null reached the engine (player report, 17/09/2026).
+               // The SAME test that decides whether the duel is offered at all, and it now really is the same
+               // one. Two earlier readings of "can a duel be held here" disagreed about a player standing on
+               // a town on the MAP: this one chose a town venue, which asks the engine to open an interior
+               // from outside the walls, and it crashed loading the scene (yozakura12, 17 and 18/09/2026).
                DuelVenue venue = DuelVenuePolicy.Choose(
-                  atSea, DuelEligibilityResolver.SettlementCanHostADuel(Settlement.CurrentSettlement));
+                  atSea, DuelEligibilityResolver.PlayerCanFightADuelHere(Settlement.CurrentSettlement));
 
                // The only unstageable case is at sea: tell the player rather than dropping it in silence.
                if (!DuelStagingSupport.CanStage(venue))

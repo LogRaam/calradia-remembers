@@ -14,6 +14,7 @@ using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Social;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
@@ -45,13 +46,15 @@ namespace CalradiaRemembers.Duels
 
             Settlement here = Settlement.CurrentSettlement;
             bool atSea = MobileParty.MainParty?.IsCurrentlyAtSea ?? false;
-            venue = DuelVenuePolicy.Choose(atSea, here != null);
-
-            // The settlement duel is staged in the town-centre scene (TownDuelBehavior, on the street ambush's
-            // recipe), and only a TOWN has one: a village or a castle would send the player into a location
-            // that does not exist. The pure policy cannot know that (it is engine truth, not design), so the
-            // narrowing belongs here, in the engine adapter, rather than in DuelVenuePolicy's contract.
-            if (venue == DuelVenue.TownGates && !SettlementCanHostADuel(here)) venue = DuelVenue.NotNow;
+            // THE SAME QUESTION THE COORDINATOR ASKS, asked here in the same words. It used to be asked twice
+            // and differently: this line passed "is there a settlement at all" and then narrowed to NotNow,
+            // while DuelCoordinator passed "does the settlement own a centre" and narrowed to nothing. So on
+            // the map beside a town, one of them refused the duel outright and the other staged a town duel
+            // from outside the walls. Disagreeing on this exact question is what crashed a player twice.
+            //
+            // The narrowing goes with it: standing outside the walls is not a reason to refuse a duel, it is
+            // a reason to fight in the open field, which is what Choose already answers.
+            venue = DuelVenuePolicy.Choose(atSea, PlayerCanFightADuelHere(here));
 
             var ctx = new DuelChallengeContext {
                Challenger = DuelChallenger.Player,
@@ -123,9 +126,25 @@ namespace CalradiaRemembers.Duels
       ///   scene (player report, 17/09/2026, in a settlement named Vaen-Griefendok, which is nobody's
       ///   Calradia). Two predicates for one question, and only one of them was ever right.
       /// </summary>
-      public static bool SettlementCanHostADuel(Settlement here)
+      /// <summary>
+      ///   Whether the player can fight a TOWN duel right where they stand: they are INSIDE a settlement, and
+      ///   that settlement owns a "center" location to fight in. The second half alone was the old question,
+      ///   and it is the one that crashed yozakura12 twice (see DuelStagingSupport.CanHoldATownDuel): a
+      ///   settlement the party is merely standing on, on the map, owns a centre just the same.
+      ///   <para>
+      ///     Deliberately renamed from SettlementCanHostADuel. The old name described the SETTLEMENT, and the
+      ///     defect was that nobody was asking about the PLAYER. A predicate whose name answers a different
+      ///     question than its body is how both halves of this went wrong.
+      ///   </para>
+      /// </summary>
+      public static bool PlayerCanFightADuelHere(Settlement here)
       {
-         try { return here?.LocationComplex?.GetLocationWithId("center") != null; }
+         try
+         {
+            return DuelStagingSupport.CanHoldATownDuel(
+               PlayerEncounter.InsideSettlement,
+               here?.LocationComplex?.GetLocationWithId("center") != null);
+         }
          catch { return false; }
       }
 
