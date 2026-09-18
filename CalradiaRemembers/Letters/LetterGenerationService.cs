@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
 using Newtonsoft.Json;
@@ -243,6 +244,13 @@ namespace CalradiaRemembers.Letters
             // never mutated, so the race is gone.
             NpcProfile promptProfile = CloneForPrompt(profile);
 
+            // A letter used to be written from EncounterContext.Empty, which means the writer was told
+            // nothing about what the player IS to them. zhenja1zhenja1 (17/09/2026) was written to as a man
+            // riding in a lord's retinue by a lord he had merely beaten in a tournament. The standing is the
+            // one fact a letter cannot do without, and it is read on THIS thread with the rest of the
+            // snapshot, because the bridge reads live campaign state.
+            EncounterContext standing = EncounterContextBuilder.StandingContextFor(profile);
+
             var emptySession = new ChatSession();
             var world = new WorldState {
                CurrentDay = (int) CampaignTime.Now.ToDays,
@@ -257,7 +265,7 @@ namespace CalradiaRemembers.Letters
                result = await Task.Run(
                   () => llmServices.ChatService.ChatAsync(
                      promptProfile, world, emptySession, generationMessage,
-                     EncounterContext.Empty, token),
+                     standing, token),
                   token).ConfigureAwait(false);
             }
 
@@ -265,9 +273,10 @@ namespace CalradiaRemembers.Letters
             // its price, so "is a dedicated letter path worth building?" had no evidence behind it either way.
             // Measured 17/09/2026: a letter prompt is 32,461 chars against a conversation's 33,539 — 97%, not
             // the fraction EncounterContext.Empty suggests, because the format contract, the action catalogue,
-            // the persona and the prose craft are all unconditional. It also carries no CURRENT ENCOUNTER
-            // marker, so PromptCacheSplit finds no prefix and the WHOLE prompt is written as one cached block
-            // that a one-shot call will never read back.
+            // the persona and the prose craft are all unconditional. It carried no CURRENT ENCOUNTER marker
+            // either, so PromptCacheSplit found no prefix and the whole prompt was written as one cached
+            // block that a one-shot call would never read back; the marker is emitted unconditionally since
+            // 18/09/2026, so a letter now has a prefix like any other prompt.
             //
             // The frequency is the other half and only play can give it. This line is what makes both
             // countable in a real session before any content decision is taken.

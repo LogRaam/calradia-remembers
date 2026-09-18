@@ -2,6 +2,7 @@
 
 #region
 
+using CalradiaRemembers.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -3306,6 +3307,43 @@ namespace CalradiaRemembers.Mapping
             PersonalBonds = BuildPersonalBonds(hero, profile),
             RealmNews = BuildRealmNews(hero)
          };
+      }
+
+      /// <summary>
+      ///   The player's STANDING beside one character, and nothing else. Built for the paths that send a
+      ///   prompt without an encounter: a letter is written by somebody who is not standing in front of
+      ///   anyone, and it still has to know what the player is to them.
+      ///   <para>
+      ///     Player report (zhenja1zhenja1, 17/09/2026): a lord he had merely beaten in a tournament wrote to
+      ///     him as though he rode with that lord's retinue. The letter path sends EncounterContext.Empty, so
+      ///     the standing reached the model as Unknown, which renders nothing, and nothing is what gets
+      ///     filled in. See PlayerStandingNote for the other half of the fix.
+      ///   </para>
+      ///   Fail-soft: a hero the engine cannot find, or a bridge that is not up, yields the empty context the
+      ///   letter used to send, never an exception on a background generation.
+      /// </summary>
+      public static EncounterContext StandingContextFor(NpcProfile profile)
+      {
+         try
+         {
+            IGameStateBridge bridge = NpcMemoryCampaignBehavior.Instance?.GameStateBridge;
+            Hero hero = profile?.Id == null
+               ? null
+               : Hero.FindFirst(h => h != null && h.StringId == profile.Id);
+
+            if (bridge == null || hero == null) return EncounterContext.Empty;
+
+            return new EncounterContext {
+               PlayerStatus = ResolvePlayerStatus(hero, profile, bridge),
+               SharedRealmName = bridge.GetSharedRealmName(hero)
+            };
+         }
+         catch (Exception ex)
+         {
+            ModLog.Info($"[LETTER] could not read the player's standing ({ex.GetType().Name}); writing without it.");
+
+            return EncounterContext.Empty;
+         }
       }
 
       public static EncounterContext StationContextFor(Hero hero)

@@ -19,6 +19,7 @@
 using CalradiaRemembers.Logic;
 using FluentAssertions;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Prompts;
 using NUnit.Framework;
 
 #endregion
@@ -192,12 +193,18 @@ namespace CalradiaRemembers.Tests
       /// <summary>
       ///   The full chain the game runs: engine facts, the policy's verdict, and the sentence the SDK puts in
       ///   front of the model. Asserting anywhere short of the sentence is what let the inversion ship.
+      ///   <para>
+      ///     The sentence moved out of EncounterContext.ToPromptDescription on 18/09/2026, when the standing
+      ///     was lifted into the cacheable prefix. It is read here from its new home rather than from the
+      ///     prompt, for the reason in the header: these tests exist to check the WORDS, and reading them
+      ///     from wherever they live is the point.
+      ///   </para>
       /// </summary>
       private static string Describe(PlayerStandingFacts facts, string realm)
-         => new EncounterContext {
+         => PlayerStandingNote.Sentence(new EncounterContext {
             PlayerStatus = PlayerStandingPolicy.Resolve(facts),
             SharedRealmName = realm
-         }.ToPromptDescription();
+         }) ?? "";
 
       #endregion
    }
