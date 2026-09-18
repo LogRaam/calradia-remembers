@@ -2,6 +2,59 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.11.. 2026-09-18
+
+Six fixes, five reported by name in the two days since 2.5.10. Saves from 2.5.10 carry over untouched.
+
+### Fixed
+- **The duel crash, for real this time.** yozakura12, twice: 17/09 on 2.5.9, and 18/09 on the version meant to
+  have fixed it. His second log carried the deciding line, `returned to campaign map`, immediately before
+  `venue=TownGates`. He was AT a town, parked on it, not inside it. **DURABLE: `Settlement.CurrentSettlement`
+  is set for a party merely standing on a settlement; only `PlayerEncounter.InsideSettlement` says the player
+  is in it,** and `CreateAndOpenMissionController` on an interior location from outside crashes loading the
+  scene. Three readings of one question disagreed (`here != null` in `DuelEligibilityResolver`, "owns a centre"
+  in `DuelCoordinator`, `is {IsTown: true}` in `TownDuelBehavior.Arm`), so on the map beside a town the
+  resolver refused the duel outright while the coordinator staged one. Now one predicate,
+  `PlayerCanFightADuelHere`, pure half in `DuelStagingSupport.CanHoldATownDuel` with tests. Outside the walls
+  is no longer a refusal: it is the wilderness venue. The 2.5.10 fix (`277026a`) closed a different hole, a
+  MISSING town centre, which was real and was not his.
+- **A companion audience that opened nothing, inside a town.** Lordfadooboo 11/09 and Zinced121212 17/09, in
+  almost the same words. The staging watchdog is reasoned about `OpenMapConversation`, whose success registers
+  at once, and its own doc comment says it is not a timeout on a scene load. It was applied unchanged to the
+  settlement twin, which calls `CreateAndOpenMissionController` and has an interior scene to load first, so a
+  healthy staging was declared dead in ten frames. Rule moved to `StagingGracePolicy` (10 frames vs 1800).
+  `CouncilConversationStager` carried the identical defect and is fixed with it, which may be why nobody has
+  ever managed to read a council sitting: a council is convened from a settlement menu.
+- **`ModLog.Notice`, an always-on channel for a dead end the player actually experienced.** `Info` and `Error`
+  are both gated by the MCM switch, off by default on Nexus, so every branch that could swallow an answered
+  popup wrote its account where the reporter could never read it. A recovering fallback stays on `Info`.
+- **A reply to an NPC's letter left no trace on their profile.** Zivkyn: four letters answered, she is still
+  angry he never wrote back. **DURABLE: three letter directions exist and only two were written down.** NPC
+  letter to the player goes through `LetterPopupManager` to `LetterMemoryFinalizer`; an unprompted player
+  letter goes through `PlayerLetterService.RecordReceipt`; `SealAndSendReply` went through neither.
+  `LetterMemoryFinalizer` had carried the `npcIsSender:false` direction unused since it was written.
+- **A quest agreed mid-conversation was rendered as an outstanding errand** with "you may ask how it fares"
+  (raphareish). `EncounterContext.QuestsKnownThrough` is the twin of `HistoryKnownThrough`, captured per
+  speaker in `ChatViewModel`. **`IssuedOnDay` cannot settle this: a deal struck a minute ago and one struck at
+  dawn share the day stamp.** MARKED, not hidden, unlike the history cut: the character must still know what
+  they agreed to.
+- **`PlayerStatusVsNpc.Free` rendered nothing**, so the commonest standing in the game reached the model as
+  silence and a lord wrote to a tournament loser as though he rode in that lord's retinue (zhenja1zhenja1).
+  The sentence now lives in `PlayerStandingNote` and is rendered ABOVE the `CURRENT ENCOUNTER:` marker: about
+  500 chars added to the cached prefix for `Free`, 70 to 130 chars MOVED out of the per-turn tail for the
+  others. The letter path sent `EncounterContext.Empty`, so `EncounterContextBuilder.StandingContextFor` was
+  needed or the fix would have missed the only case reported.
+- **The `CURRENT ENCOUNTER:` marker is now emitted unconditionally.** Tying the cache breakpoint to whether one
+  paragraph had content meant a letter had no prefix at all, which the letter path's own comment had recorded.
+
+### Testing
+- **`cr.testall` gains `conversation_cut`.** `HistoryKnownThrough` and `QuestsKnownThrough` are counts the HOST
+  captures and the SDK honours; the unit tests on either side prove each half and neither can see the wire
+  between them. It takes both cuts through the real `ChatViewModel` and reads the exact prompt the chat
+  pipeline builds. No LLM: the question is what the prompt CONTAINS, which is decidable and free.
+- **`cr.audience ask <name>`** raises the real "X asks for a word" inquiry instead of opening the chat, so the
+  accept path can be walked on demand. Try it inside a town.
+
 ## v2.5.10.. 2026-09-17
 
 Two reports drove this release: the mod costs too much per conversation, and characters repeat themselves. Both
