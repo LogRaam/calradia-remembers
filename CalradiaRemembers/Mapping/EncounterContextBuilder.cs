@@ -129,6 +129,7 @@ namespace CalradiaRemembers.Mapping
          // Null means unset and keeps the old behaviour; ZERO is a real answer and cuts everything, since a
          // character the player has never met held no memories when the conversation opened.
          int? historyKnownThrough = null,
+         int? questsKnownThrough = null,
          bool isCollectiveCaptiveScene = false,
          bool isCaptorScene = false,
          bool companionActingOnCaptive = false,
@@ -368,6 +369,7 @@ namespace CalradiaRemembers.Mapping
             IsWitnessExchangeTurn = isWitnessExchangeTurn,
             IsConversationOpening = isConversationOpening,
             HistoryKnownThrough = historyKnownThrough,
+            QuestsKnownThrough = questsKnownThrough,
             IsLastWitnessExchange = isLastWitnessExchange,
             // IsRoundTableTurn is the one council flag the chat prompt path still carries: it is armed ONLY by the
             // cr.council_test spike (RoundTableController.CouncilTurnsForced). The REAL council (2026-08-22,

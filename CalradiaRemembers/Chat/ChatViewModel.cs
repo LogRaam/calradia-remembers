@@ -381,6 +381,31 @@ namespace CalradiaRemembers.Chat
          return known;
       }
 
+      /// <summary>
+      ///   The twin of <see cref="_historyKnownThrough" />, for quests. A task agreed thirty seconds ago is in
+      ///   ActiveQuests by the next turn, and was rendered as an OUTSTANDING errand the character could ask
+      ///   after: "after accepting a quest and talking about the deal that was just made, NPCs behave like it
+      ///   happened hours before on the same day, even though the chat has never been closed and there had
+      ///   been no roleplay about time passing" (raphareish, 18/09/2026).
+      ///
+      ///   A count and not a day, because the day is precisely what cannot tell them apart. Captured lazily
+      ///   per speaker, for the same reason the history cut is: a witness drawn in on turn six brings a past
+      ///   that began when THEY started speaking.
+      /// </summary>
+      private readonly Dictionary<string, int> _questsKnownThrough = new();
+
+      private int QuestsKnownThrough(NpcProfile profile)
+      {
+         if (profile?.Id == null) return 0;
+
+         if (_questsKnownThrough.TryGetValue(profile.Id, out int known)) return known;
+
+         known = profile.ActiveQuests?.Count ?? 0;
+         _questsKnownThrough[profile.Id] = known;
+
+         return known;
+      }
+
       /// <summary>True exactly once per conversation: this is the turn that establishes the scene.</summary>
       private bool ConsumeOpeningNarration()
       {

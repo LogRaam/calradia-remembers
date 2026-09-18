@@ -191,6 +191,23 @@ namespace CalradiaRemembers.Letters
          BannerlordNpcMemoryStore store,
          int today)
       {
+         // THE ANSWER IS FILED BEFORE IT IS ANSWERED. Zivkyn (Nexus, 18/09/2026): "Love interest sends me four
+         // letters, i write back to each one, she responds to each one. I return to talk to her and shes mad i
+         // didnt write back... all four letters."
+         //
+         // He was right and her ledger agreed with him. An NPC-authored letter files a memory when it reaches
+         // the player (LetterPopupManager -> LetterMemoryFinalizer), and an UNPROMPTED player letter files one
+         // when it reaches the NPC (PlayerLetterService.RecordReceipt, added for an earlier report in this same
+         // family). A REPLY to her letter went through neither: it set PlayerReply, queued her answer, and left
+         // nothing whatever on her profile. So she held four memories of writing and none of being answered,
+         // and silence is what she spoke from.
+         //
+         // LetterMemoryFinalizer has carried the npcIsSender:false direction since it was written; its own
+         // summary says that direction was never wired. It is wired here. Recorded BEFORE the generation and
+         // not inside it, for the reason that class already states about its base event: a guaranteed capture
+         // must not depend on an LLM call returning.
+         RecordThatThePlayerWroteBack(profile, originalLetter, today);
+
          _ = GenerateReplyAsync(profile, giverHero, originalLetter, llmServices, store, today)
             .ContinueWith(t =>
             {
@@ -223,6 +240,29 @@ namespace CalradiaRemembers.Letters
       }
 
       #region private
+
+      /// <summary>
+      ///   Files, on the NPC's own profile, the fact that the player answered their letter. Fail-soft: a
+      ///   correspondence that cannot be remembered must still be sent.
+      /// </summary>
+      private static void RecordThatThePlayerWroteBack(NpcProfile profile, PendingLetter originalLetter, int today)
+      {
+         try
+         {
+            var behavior = NpcMemoryCampaignBehavior.Instance;
+            string reply = originalLetter?.PlayerReply;
+
+            if (profile == null || behavior == null || string.IsNullOrWhiteSpace(reply)) return;
+
+            LetterMemoryFinalizer.RecordLetterMemory(
+               profile, originalLetter!.Reason, reply, false, today, behavior);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[LETTER] could not file the player's reply on {profile?.Name}: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
 
       /// <summary>
       ///   Calls the LLM via the existing ChatService pipeline with a fresh empty

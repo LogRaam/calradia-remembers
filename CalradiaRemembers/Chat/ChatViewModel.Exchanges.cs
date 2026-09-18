@@ -777,6 +777,7 @@ namespace CalradiaRemembers.Chat
                // Where this character's REMEMBERED past ends and this conversation begins. Captured once, on
                // the first turn, so every later turn cuts at the same place.
                historyKnownThrough: HistoryKnownThrough(profile),
+               questsKnownThrough: QuestsKnownThrough(profile),
                // The only council flag the chat prompt path still carries: the cr.council_test spike's whole-table
                // framing (RoundTableController.CouncilTurnsForced), so that single call yields the anchor's reply
                // plus a [WITNESS_REACTION] per present member. The REAL council (2026-08-22, Council Increment 4)
