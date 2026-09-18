@@ -300,6 +300,15 @@ namespace CalradiaRemembers.Missions
          ModLog.Info($"[HAPPINESS] {h.Name}'s audience refused ({_refusals[h.StringId]}/{CompanionRetentionPolicy.MaxAudienceRefusals}).");
       }
 
+      /// <summary>
+      ///   Raises the REAL "X asks for a word" popup for <paramref name="h" />, the same inquiry the retention
+      ///   pass raises, so the accept path can be walked on demand (cr.audience ask). Internal rather than
+      ///   private because the console is the only way to reach a state that otherwise needs an unhappy
+      ///   companion and a settlement arrival to coincide, and that flow is exactly the one two players
+      ///   reported failing (Lordfadooboo 11/09/2026, Zinced121212 17/09/2026).
+      /// </summary>
+      internal void RequestAudienceNow(Hero h) => RequestAudience(h);
+
       private void RequestAudience(Hero h)
       {
          var title = new TextObject($"{h.Name} asks for a word");

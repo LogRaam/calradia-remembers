@@ -369,7 +369,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private readonly Dictionary<string, int> _historyKnownThrough = new();
 
-      private int HistoryKnownThrough(NpcProfile profile)
+      internal int HistoryKnownThrough(NpcProfile profile)
       {
          if (profile?.Id == null) return 0;
 
@@ -394,7 +394,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private readonly Dictionary<string, int> _questsKnownThrough = new();
 
-      private int QuestsKnownThrough(NpcProfile profile)
+      internal int QuestsKnownThrough(NpcProfile profile)
       {
          if (profile?.Id == null) return 0;
 

@@ -99,6 +99,10 @@ namespace CalradiaRemembers
          var forceGratitude = false;
          var forceSchemeWarning = false;
          var forceAmbition = false;
+         // "ask": raise the REAL popup instead of opening the chat outright. The two are different code
+         // paths and only one of them is what players do: the inquiry's consequence runs on the frame the
+         // popup tears down, and it is the ACCEPT that walks the staging (Lordfadooboo, Zinced121212).
+         var raisePopup = false;
          var nameTokens = new List<string>();
          foreach (string arg in args ?? new List<string>())
             if (arg.Equals("grievance", StringComparison.OrdinalIgnoreCase)) reason = CompanionAudienceReason.Grievance;
@@ -107,6 +111,7 @@ namespace CalradiaRemembers
             else if (arg.Equals("gratitude", StringComparison.OrdinalIgnoreCase) || arg.Equals("thanks", StringComparison.OrdinalIgnoreCase)) forceGratitude = true;
             else if (arg.Equals("scheme_warning", StringComparison.OrdinalIgnoreCase) || arg.Equals("scheme", StringComparison.OrdinalIgnoreCase) || arg.Equals("warn", StringComparison.OrdinalIgnoreCase)) forceSchemeWarning = true;
             else if (arg.Equals("ambition", StringComparison.OrdinalIgnoreCase) || arg.Equals("ambitions", StringComparison.OrdinalIgnoreCase)) forceAmbition = true;
+            else if (arg.Equals("ask", StringComparison.OrdinalIgnoreCase) || arg.Equals("popup", StringComparison.OrdinalIgnoreCase)) raisePopup = true;
             else nameTokens.Add(arg);
 
          Hero hero = ResolveHero(nameTokens);
@@ -135,6 +140,18 @@ namespace CalradiaRemembers
 
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
          bool landed = hero.GovernorOf != null || hero.PartyBelongedTo?.LeaderHero == hero;
+
+         if (raisePopup)
+         {
+            if (CompanionHappinessBehavior.Instance == null) return "The companion-contentment system is not active.";
+            if (!hero.IsPlayerCompanion) return $"{hero.Name} is not one of your companions, so they cannot ask you for a word.";
+
+            CompanionHappinessBehavior.Instance.RequestAudienceNow(hero);
+
+            return $"{hero.Name} is asking for a word. Answer the popup: \"Let us speak of it...\" walks the real "
+                 + "accept path (staging included), \"I've no time for this\" walks the refusal.";
+         }
+
          ChatManager.OpenForCompanionAudience(hero, profile, reason, landed);
 
          return $"Opened a {reason} audience with {hero.Name} (landed={landed}). They speak first; for a retirement, " +

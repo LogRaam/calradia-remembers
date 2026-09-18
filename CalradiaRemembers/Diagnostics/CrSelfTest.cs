@@ -223,6 +223,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("interception_grudge_appreciation", Severity.Light, "Two new proactive channels for the mod's two signature event-anchored affect ledgers (design brief 2026-08-20): a lord who holds a live, significant grudge against the PLAYER rides out/asks for a word to air it (Grudge), and one who holds a significant, recent appreciation of the player does likewise to acknowledge it (AppreciationOwed), on BOTH the road (InterceptionBehavior) and the fief-audience channel (FiefAudienceBehavior), since both reuse the SAME InterceptionPolicy.Choose. Seeds a real Grudge (TryPlant) on a clean-slate lord and asserts InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer finds it (false before planting), the pure InterceptionPolicy.Choose surfaces Grudge, and Grudge is fief-valid; does the same for a real Appreciation and AppreciationOwed; then asserts the priority pin (Grudge outranks AppreciationOwed when both hold on the same facts, mirroring InterceptionPolicyTests). Removes the seeded grudge afterwards (mirrors appreciation_flow/companion_gratitude: no removal API exists for an appreciation, so it is left, exactly like every other appreciation-seeding self-test)", TestInterceptionGrudgeAppreciation),
          new SelfTest("interception_nemesis_bounty", Severity.Light, "A third proactive channel, the announcement/discoverability layer on top of the EXISTING scripted hero_main_options nemesis bounty offer (roadmap piece 2, player wish, subsumes the 'tavern rumour: Coll raids near X' wish since the lord tells the player directly): a lord whose region is plagued by a nemesis he is eligible to bounty seeks the player out to name him and where he operates, never settling the bounty itself in this channel. Mints a nemesis anchored to a REAL lord's own region (MintBountyEligibleNemesis) and asserts InterceptionBehavior.HasNemesisBountyToOffer reuses the SAME NemesisBountyDialogFlow.FindEligibleNemesisFor gate the scripted offer uses (never a re-derived one), that the Detail names the nemesis, that the pure InterceptionPolicy.Choose surfaces NemesisBounty, that it is fief-valid, and the priority pin (a live grudge against the PLAYER still outranks it, mirroring InterceptionPolicyTests). Marks the minted identity dead afterwards", TestInterceptionNemesisBounty),
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
+         new SelfTest("conversation_cut", Severity.Light, "Player report (17/09/2026): characters recited the conversation back, replies growing every turn; and (raphareish, 18/09/2026) asked after the progress of a quest agreed thirty seconds earlier. Both cures are a COUNT taken when the conversation opens, and both counts are produced by the HOST (ChatViewModel) and honoured by the SDK, so the pure tests on either side cannot see the wire between them. This is the wire: seeds one memory and one task on a real profile, takes the two cuts through the REAL ChatViewModel, seeds a second memory and task to stand for what the exchange itself writes, asserts neither cut moves, then builds the EXACT prompt the chat pipeline builds (LlmServices.ChatService.PromptBuilder, via EncounterContextBuilder.Build) and asserts the character still holds their past, does not have this conversation replayed at them as history, and reads a task agreed at the table as JUST AGREED rather than an errand under way. No LLM: the whole question is what the prompt CONTAINS, and an answer from a model would be a weaker reading of the same fact. Removes everything it seeded", TestConversationCut),
          new SelfTest("letter_memory", Severity.Light, "Player report (Desporion): a marriage proposal 'agreed on the terms' over three letters was denied face to face because letters left only a generic 'Received a letter (Reason)' memory, never their substance. Pure half: LetterMemoryPolicy.ShouldRemember excludes the two re-ping reasons (AwaitingReply, QuestUpdate) and includes MarriageProposal; BaseMemory is first-person and reflects direction. Real-path half: drives the REAL LetterMemoryFinalizer.RecordLetterMemory (LetterPopupManager.MarkReceived's own seam) with a ShouldRemember=false reason (QuestUpdate), so the run can never fall through to the async LLM summarizer (Lane C, kept out of cr.testall), and asserts the base event actually lands on profile.Events. Removes the event it added", TestLetterMemory),
          new SelfTest("world_conditions", Severity.Light, "Mechanical: the engine reads the weekly world-conditions feeder depends on still work against the live game (a renamed field or a changed model signature would silently swallow to 0 inside the feeder's own guards, recording nothing forever). Reads GetScoreOfDeclaringWar in both directions between two live kingdoms and a live town's FoodStocks/FoodChange/Prosperity DIRECTLY, asserts each is finite, then runs the real RunScan and asserts both scanners ran. Skips when the world has fewer than two kingdoms or no town", TestWorldConditions),
          new SelfTest("realm_tidings", Severity.Light, "Mechanical: drives the REAL RealmTidingsBehavior.DebugEvaluate end to end and proves per-NPC dedup. Seeds a dominant known event for a friendly landed lord (regard forced to 30), asserts a RealmTidings letter candidate is queued and the event id enters the dedup ledger, then re-evaluates and asserts the same event is never relayed twice. Restores the writer's regard, ledger and candidates and removes the seed", TestRealmTidings),
@@ -12123,6 +12124,103 @@ namespace CalradiaRemembers.Diagnostics
       ///   cr.testall) even against a live LLM client, while still proving the base event actually lands on
       ///   profile.Events. Removes the event it added.
       /// </summary>
+      /// <summary>
+      ///   THE WIRE BETWEEN TWO HALVES THAT ARE EACH ALREADY TESTED. HistoryKnownThrough and
+      ///   QuestsKnownThrough are counts captured by ChatViewModel when a speaker first takes a turn; the SDK
+      ///   unit tests prove AppendHistory and AppendActiveQuests honour a cut they are handed, and the mod's
+      ///   own tests cannot run a live builder. Nothing tested that the right number actually travels, which
+      ///   is the only part a player can see going wrong.
+      ///   <para>
+      ///     It matters most for the HISTORY cut, because that one REMOVES content from every prompt. If the
+      ///     count arrived wrong the symptom would not be repetition, it would be a character who has
+      ///     forgotten the player entirely, and that is a far worse bug than the one it fixes.
+      ///   </para>
+      ///   Deliberately no LLM call. The question is what the prompt contains, which is decidable and free;
+      ///   asking a model whether it remembers would be a slower, dearer and less certain reading of the same
+      ///   fact, and it would fail for reasons that have nothing to do with the cut.
+      /// </summary>
+      private static string TestConversationCut(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("conversation_cut");
+
+         const string before = "CRSELFTEST BEFORE: we sheltered together at the Hollowmere ford.";
+         const string during = "CRSELFTEST DURING: I have just told them of the Hollowmere ford.";
+         const string taskBefore = "CRSELFTEST BEFORE: carry my seal to the reeve at Hollowmere";
+         const string taskDuring = "CRSELFTEST DURING: bring me the head of the Hollowmere boar";
+
+         string id = behavior.Store.ListIds().FirstOrDefault();
+         NpcProfile profile = id != null ? behavior.Store.Get(id) : null;
+         Hero hero = profile?.Id == null ? null : Hero.FindFirst(h => h != null && h.StringId == profile.Id);
+
+         if (t.Skip(hero == null, "no NPC profile with a live hero yet (chat with someone once, then re-run)")) return t.Line();
+         if (t.Skip(behavior.LlmServices?.ChatService?.PromptBuilder == null, "the prompt builder is not up")) return t.Line();
+
+         IPromptBuilder builder = behavior.LlmServices.ChatService.PromptBuilder;
+         int events = profile.Events.Count;
+         int quests = profile.ActiveQuests.Count;
+         int today = behavior.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
+
+         try
+         {
+            // ── What this character already held when the conversation opened ──
+            profile.Events.Add(new NotableEvent(today, NotableEventType.Other, before));
+            profile.ActiveQuests.Add(Seeded(taskBefore, today));
+
+            var vm = new ChatViewModel();
+            int historyCut = vm.HistoryKnownThrough(profile);
+            int questCut = vm.QuestsKnownThrough(profile);
+
+            t.Expect("theHistoryCutIsTakenAtWhatTheyAlreadyHeld", historyCut, events + 1);
+            t.Expect("theQuestCutIsTakenAtWhatTheyAlreadyHeld", questCut, quests + 1);
+
+            // ── Now the exchange itself writes, which is what ProfileMutator does every turn ──
+            profile.Events.Add(new NotableEvent(today, NotableEventType.Other, during));
+            profile.ActiveQuests.Add(Seeded(taskDuring, today));
+
+            t.Expect("theHistoryCutDoesNotMoveDuringTheTalk", vm.HistoryKnownThrough(profile), historyCut);
+            t.Expect("theQuestCutDoesNotMoveDuringTheTalk", vm.QuestsKnownThrough(profile), questCut);
+
+            EncounterContext ctx = EncounterContextBuilder.Build(
+               hero, profile, behavior.GameStateBridge, null,
+               historyKnownThrough: historyCut, questsKnownThrough: questCut);
+
+            t.Expect("theCutReachesTheContext", ctx.HistoryKnownThrough, historyCut);
+
+            string prompt = builder.BuildSystemPrompt(profile, new WorldState {CurrentDay = today}, ctx);
+
+            // THE ONE THAT MATTERS: a memory older than this conversation must still reach the character.
+            t.Expect("thePastStillReachesTheCharacter", prompt.Contains(before), true);
+            t.Expect("thisConversationIsNotReplayedAsHistory", prompt.Contains(during), false);
+
+            // Quests can be switched off entirely, in which case the block is absent and there is nothing
+            // to assert about it. Read that from the prompt rather than from a setting: the prompt is the
+            // thing under test.
+            if (prompt.Contains("YOUR QUESTS"))
+            {
+               t.Expect("aTaskFromBeforeIsStillAnErrand", prompt.Contains("OUTSTANDING: " + taskBefore), true);
+               t.Expect("aTaskAgreedAtTheTableReadsAsFresh", prompt.Contains("JUST AGREED, in this very conversation: " + taskDuring), true);
+            }
+         }
+         finally
+         {
+            NpcProfile cleanup = behavior.Store.Get(profile.Id);
+            if (cleanup != null)
+            {
+               cleanup.Events.RemoveAll(e => e.summary == before || e.summary == during);
+               cleanup.ActiveQuests.RemoveAll(q => q.Description == taskBefore || q.Description == taskDuring);
+               behavior.Store.Set(cleanup);
+            }
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>A throwaway task for <see cref="TestConversationCut" />, removed again in its finally.</summary>
+      private static InformalQuest Seeded(string description, int today)
+         => new InformalQuest {
+            Type = QuestType.BanditClear, Description = description, IssuedOnDay = today, Status = QuestStatus.Active
+         };
+
       private static string TestLetterMemory(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("letter_memory");
