@@ -2,6 +2,8 @@
 
 #region
 
+using TaleWorlds.ModuleManager;
+using CalradiaRemembers.Storage;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -205,6 +207,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("recruit_notable", Severity.Heavy, "find a settlement NOTABLE (gang leader/headman/merchant...) that has an eligible successor in its town, force regard to the floor, run the REAL bridge recruit_notable -> assert the notable is now a companion in your CLAN and PARTY, a starting relation bonus was applied, and the chosen successor holds the vacated notable post (settlement.Notables). Best-effort restore afterwards (recruit_notable is not cleanly reversible: the alley transfer cannot be undone). Skips when no disposable notable+successor pair exists rather than wreck a real campaign", TestRecruitNotable),
          new SelfTest("secret_bond_bar_agrees", Severity.Light, "player report 2026-09-09 ('the NPC is expressing affection, yet the system displays a message stating that intimacy is insufficient'), caused by ONE regard bar living as a literal 50 in three places while only the confession moved onto the Relationship Pacing dial. Drives the REAL EncounterContextBuilder.Build and the REAL bridge action take_as_secret_lover against a compatible companion at exactly MinRegardFor(current pacing) and one point below it, and asserts BOTH engine gates flip on the SAME number the confession uses. A pure test cannot catch this (it would compare the policy with itself); only driving the live sites can. EXTENDED 2026-09-09 with the THIRD site of that same bar, what the NPC may SAY: asserts the LIVE PromptBuilder the chat uses declares from the very number the confession roll measures from, and that the register reads Attachment at the bar and Interest one below it, where an NPC may flirt but must never speak of love nor open a courtship on standing alone. Restores the regard and undoes any bond formed", TestSecretBondBarAgrees),
          new SelfTest("captive_lord_withheld_from_defection", Severity.Heavy, "player report: a held captive lord below the recruit_prisoner regard floor could still narrate accepting the player's offer to defect, though nothing happened (an empty promise). Really captures a capturable in-party lord who is not their own clan's leader, drives EncounterContextBuilder.Build with regard just BELOW PrisonerRecruitmentPolicy.RegardFloor -> assert CanRecruitPrisoner is false and the new CaptiveLordWithheldFromDefection flag is true, then raises regard to the floor -> assert they FLIP (CanRecruitPrisoner true, the new flag false), proving the two are mutually exclusive on live engine facts. Releases the captive and restores regard afterwards", TestCaptiveLordWithheldFromDefection),
+         new SelfTest("narrative_patch_scope", Severity.Light, "Found checking a modder's README against the code (tashmetu, 19/09/2026): the cr_patch scanner first read ModuleHelper.GetModules(), which is every module FOUND on disk, enabled or not. A bridge disabled in the launcher still had its prose read into every prompt, and with its assembly not loaded its {{variables}} reached the model as raw braces. Asserts that every module the scanner reads is one the player ENABLED, and that Calradia Remembers itself is among them (proof the list is the live one, not an empty fallback).", TestNarrativePatchScope),
          new SelfTest("deliver_prisoner_by_sale", Severity.Heavy, "Player report (Lordfadooboo, 18/09/2026): a lord asked for a Nord lord in chains, the player handed one over in words, got PAID, and the bargain stayed open for good. Two verbs hand a captive to an NPC and only give_prisoner ever looked at the bargain; buy_prisoner paid a price and touched nothing. Seeds a REALM-keyed DeliverPrisoner bargain, takes a lord of that realm prisoner, then runs buy_prisoner (the SALE) through the real bridge and asserts the bargain is SETTLED anyway and the captive left the player: handing a lord the very captive he asked for keeps his bargain, whatever the word.", TestDeliverPrisonerBySale),
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
          new SelfTest("free_prisoner", Severity.Heavy, "capture -> free_prisoner -> assert released", TestFreePrisoner),
@@ -3594,6 +3597,26 @@ namespace CalradiaRemembers.Diagnostics
       ///   such a captive over as the delivery, so this asserts the bargain ends settled and the captive gone.
       ///   Realm-keyed on purpose, because that is the bargain the game's own menu offers ("any of their lords").
       /// </summary>
+      /// <summary>
+      ///   The cr_patch scan reads ENABLED modules only. Its first version read every module found on disk, so a
+      ///   bridge turned off in the launcher went on feeding prose, and unregistered {{variables}}, into every prompt.
+      /// </summary>
+      private static string TestNarrativePatchScope(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("narrative_patch_scope");
+
+         IReadOnlyList<string> scanned = NarrativePatchScanner.LoadedModuleIds();
+         var enabled = new HashSet<string>(
+            ModuleHelper.GetActiveModules().Where(m => m != null).Select(m => m.Id),
+            StringComparer.OrdinalIgnoreCase);
+
+         t.Note($"scanned {scanned.Count} module(s), {enabled.Count} enabled");
+         t.Expect("everyScannedModuleIsEnabled", scanned.All(id => enabled.Contains(id)), true);
+         t.Expect("thisModIsAmongThem", scanned.Any(id => string.Equals(id, "CalradiaRemembers", StringComparison.OrdinalIgnoreCase)), true);
+
+         return t.Line();
+      }
+
       private static string TestDeliverPrisonerBySale(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("deliver_prisoner_by_sale");

@@ -70,14 +70,43 @@ namespace CalradiaRemembers.Storage
 
       #region private
 
-      /// <summary>The loaded modules, in the order the launcher loads them. Empty rather than throwing.</summary>
-      private static IEnumerable<string> LoadedModuleIds()
+      /// <summary>
+      ///   The modules the player actually ENABLED, in the order the game loaded them. Empty rather than throwing.
+      ///   <para>
+      ///     Written first against ModuleHelper.GetModules(), and wrong twice over, found while checking a modder's
+      ///     README against the code (tashmetu, 19/09/2026). That call walks every module FOUND on disk, enabled
+      ///     or not, in the order of a dictionary. So a player who disabled a bridge mod in the launcher and left
+      ///     the folder in place still had its prose read into every prompt, and with its assembly no longer
+      ///     loaded, none of its {{variables}} were registered, so they reached the model as raw braces, every
+      ///     turn. And the "launcher load order" the 2.5.13 notes promised was not what it read either.
+      ///   </para>
+      ///   The engine's own module list is the enabled set in load order. ModuleHelper.GetActiveModules() is the
+      ///   fallback if that call is ever unavailable: still enabled-only, just without a guaranteed order.
+      /// </summary>
+      internal static IReadOnlyList<string> LoadedModuleIds()
       {
+         try
+         {
+            string[] names = TaleWorlds.Engine.Utilities.GetModulesNames();
+            var ids = new List<string>();
+
+            if (names != null)
+               foreach (string name in names)
+                  if (!string.IsNullOrWhiteSpace(name))
+                     ids.Add(name.Trim());
+
+            if (ids.Count > 0) return ids;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Fault("reading the enabled module list in load order", ex);
+         }
+
          try
          {
             var ids = new List<string>();
 
-            foreach (ModuleInfo module in ModuleHelper.GetModules())
+            foreach (ModuleInfo module in ModuleHelper.GetActiveModules())
                if (module != null && !string.IsNullOrWhiteSpace(module.Id))
                   ids.Add(module.Id);
 
@@ -85,7 +114,7 @@ namespace CalradiaRemembers.Storage
          }
          catch (Exception ex)
          {
-            ModLog.Fault("reading the loaded module list", ex);
+            ModLog.Fault("reading the enabled module list", ex);
 
             return Array.Empty<string>();
          }
