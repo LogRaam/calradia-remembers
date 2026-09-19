@@ -484,7 +484,7 @@ cr.remove_kink <kink> [name]         # remove a kink
 > Short on purpose. The detail lives in `CHANGELOG.md`, the `NEXUS_CHANGELOG_*.txt` files and git; this says
 > only where things stand and what is NOT safe to assume.
 
-**Shipped: v2.5.15 is LIVE on Nexus** (Gabriel, 2026-09-19: "2.5.15 en ligne"): four bridge-mod fixes, detail in `CHANGELOG.md`. **v2.5.16 is cut, NOT yet live** (answered grievances, duel grudge applied, expelled player no longer written to as a member); `cr.testall grudge_answered` and `realm_departure` not yet run in game. The 2.5.14 prisoner-delivery fix is play-verified by a player (fkasad). `cr.testall` runs with 0 failures on 2.5.15 (Gabriel, 2026-09-19). Verify a live version by asking Gabriel
+**Shipped: v2.5.16 is LIVE on Nexus** (Gabriel, 2026-09-19: "2.5.16 en ligne"): answered grievances, duel grudge applied, expelled player no longer written to as a member (MOD `c8875e5` / SDK `b98f52d`). v2.5.15 before it: four bridge-mod fixes, detail in `CHANGELOG.md`. `cr.testall grudge_answered` and `realm_departure` (new in 2.5.16) not yet run in game. The 2.5.14 prisoner-delivery fix is play-verified by a player (fkasad). `cr.testall` runs with 0 failures on 2.5.15 (Gabriel, 2026-09-19). Verify a live version by asking Gabriel
 to paste text or a screenshot: `SubModule.xml` is NOT evidence and WebFetch on Nexus is 403 (Cloudflare).
 v2.5.11 was built and never uploaded. The 2.5.14 archive was rebuilt three times before upload to fold in
 three fixes found after the first cut; the shipped one is MOD `d082528` / SDK `86ca836`.
