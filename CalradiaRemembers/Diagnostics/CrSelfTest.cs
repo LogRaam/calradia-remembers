@@ -226,6 +226,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("fief_audience", Severity.Light, "Player wish (Fakade, roadmap): road-only InterceptionBehavior needs a field party to move, so anyone without one (ladies, notables, a garrisoned lord standing around in a fief) never got a turn. Finds a real partyless hero standing in a live settlement; asserts the pure gate (FiefAudiencePolicy.ChooseFiefValid) raises nothing for a no-reason fact set; seeds a fresh, high-reach, player-involving WorldEvent so the SAME live fact HeardRecentPlayerDeed the road path reads is real, not fabricated; drives the REAL candidate scan (FiefAudienceBehavior.DebugScanAndStamp, never the live UI inquiry, never an LLM call) and asserts it offers that NPC with a fief-valid trigger; then asserts the SAME NPC asked again is WITHHELD by the per-NPC cooldown the offer itself just stamped. Removes the seeded WorldEvent and clears the stamped cooldown afterwards", TestFiefAudience),
          new SelfTest("interception_grudge_appreciation", Severity.Light, "Two new proactive channels for the mod's two signature event-anchored affect ledgers (design brief 2026-08-20): a lord who holds a live, significant grudge against the PLAYER rides out/asks for a word to air it (Grudge), and one who holds a significant, recent appreciation of the player does likewise to acknowledge it (AppreciationOwed), on BOTH the road (InterceptionBehavior) and the fief-audience channel (FiefAudienceBehavior), since both reuse the SAME InterceptionPolicy.Choose. Seeds a real Grudge (TryPlant) on a clean-slate lord and asserts InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer finds it (false before planting), the pure InterceptionPolicy.Choose surfaces Grudge, and Grudge is fief-valid; does the same for a real Appreciation and AppreciationOwed; then asserts the priority pin (Grudge outranks AppreciationOwed when both hold on the same facts, mirroring InterceptionPolicyTests). Removes the seeded grudge afterwards (mirrors appreciation_flow/companion_gratitude: no removal API exists for an appreciation, so it is left, exactly like every other appreciation-seeding self-test)", TestInterceptionGrudgeAppreciation),
          new SelfTest("grudge_answered", Severity.Light, "Player report (Zivkyn, 18/09/2026): a lord kept asking why the player killed his kin, months later, however often it had been explained, and kept riding out to confront the player about it. Plants a real grudge against the player on a clean-slate lord and makes it a VENDETTA, asserts it drives an interception and hear_account is offered, then runs hear_account through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes) and asserts: the grudge is answered with the account, still a vendetta and exactly as heavy, the lord's built GrudgeNote now carries the account and the do-not-ask-again instruction, the interception no longer fires, and hear_account is no longer offered. No LLM call. Clears the lord's grudges afterwards", TestGrudgeAnswered),
+         new SelfTest("realm_departure", Severity.Light, "Player report (tashmetu, 19/09/2026): expelled from his kingdom by another mod after a lost war, he kept getting letters as if he still belonged. Records a departure from a real kingdom the way the kingdom-change feeder now marks every one, and asserts WorldEventFeeders.DaysSincePlayerLeft finds it and silences that ruler's service offer (ServiceOfferPolicy.RulerMayWrite), then removes it and asserts the ruler may write again. Also asserts the service-offer premise follows the player's LIVE realm. No LLM call, mutates nothing it does not remove", TestRealmDeparture),
          new SelfTest("interception_nemesis_bounty", Severity.Light, "A third proactive channel, the announcement/discoverability layer on top of the EXISTING scripted hero_main_options nemesis bounty offer (roadmap piece 2, player wish, subsumes the 'tavern rumour: Coll raids near X' wish since the lord tells the player directly): a lord whose region is plagued by a nemesis he is eligible to bounty seeks the player out to name him and where he operates, never settling the bounty itself in this channel. Mints a nemesis anchored to a REAL lord's own region (MintBountyEligibleNemesis) and asserts InterceptionBehavior.HasNemesisBountyToOffer reuses the SAME NemesisBountyDialogFlow.FindEligibleNemesisFor gate the scripted offer uses (never a re-derived one), that the Detail names the nemesis, that the pure InterceptionPolicy.Choose surfaces NemesisBounty, that it is fief-valid, and the priority pin (a live grudge against the PLAYER still outranks it, mirroring InterceptionPolicyTests). Marks the minted identity dead afterwards", TestInterceptionNemesisBounty),
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
          new SelfTest("conversation_cut", Severity.Light, "Player report (17/09/2026): characters recited the conversation back, replies growing every turn; and (raphareish, 18/09/2026) asked after the progress of a quest agreed thirty seconds earlier. Both cures are a COUNT taken when the conversation opens, and both counts are produced by the HOST (ChatViewModel) and honoured by the SDK, so the pure tests on either side cannot see the wire between them. This is the wire: seeds one memory and one task on a real profile, takes the two cuts through the REAL ChatViewModel, seeds a second memory and task to stand for what the exchange itself writes, asserts neither cut moves, then builds the EXACT prompt the chat pipeline builds (LlmServices.ChatService.PromptBuilder, via EncounterContextBuilder.Build) and asserts the character still holds their past, does not have this conversation replayed at them as history, and reads a task agreed at the table as JUST AGREED rather than an errand under way. No LLM: the whole question is what the prompt CONTAINS, and an answer from a model would be a weaker reading of the same fact. Removes everything it seeded", TestConversationCut),
@@ -12078,6 +12079,57 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("grudgeOutranksAppreciationWhenBothHold",
             InterceptionPolicy.Choose(new InterceptionFacts {HoldsLiveGrudgeAgainstPlayer = true, HoldsSignificantAppreciation = true}),
             InterceptionTrigger.Grudge);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The engine half of the expelled-player fix: that a departure marker lands in the PERSISTED store and the
+      ///   letter scheduler's question ("how long since the player left this realm?") finds it by kingdom id.
+      /// </summary>
+      private static string TestRealmDeparture(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("realm_departure");
+
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Kingdom realm = Kingdom.All.FirstOrDefault(k => k != null && !k.IsEliminated && k != Clan.PlayerClan?.Kingdom
+                                                         && WorldEventFeeders.DaysSincePlayerLeft(k, today) == null);
+
+         if (t.Skip(realm == null, "no kingdom the player has not already left")) return t.Line();
+
+         var marker = new WorldEvent {
+            Id = "selftest_realm_departure_" + today,
+            Type = WorldEventType.PlayerFeat,
+            Day = today,
+            Magnitude = 1,
+            InvolvesPlayer = true,
+            Summary = "[SELFTEST] departure marker",
+            FactionIds = new List<string> {realm.StringId},
+            Status = WorldEventFeeders.PlayerLeftRealmStatus
+         };
+
+         try
+         {
+            WorldEventStore.Instance.Record(marker);
+
+            int? days = WorldEventFeeders.DaysSincePlayerLeft(realm, today);
+            t.Expect("theDepartureIsFound", days, (int?) 0);
+            t.Expect("itsRulerStaysSilent", ServiceOfferPolicy.RulerMayWrite(days), false);
+         }
+         finally
+         {
+            WorldEventStore.Instance.Remove(marker.Id);
+         }
+
+         t.Expect("removedTheRulerMayWriteAgain", ServiceOfferPolicy.RulerMayWrite(WorldEventFeeders.DaysSincePlayerLeft(realm, today)), true);
+
+         string playerRealm = Clan.PlayerClan?.Kingdom?.Name?.ToString();
+         string premise = ServiceOfferPolicy.Premise(realm.Name.ToString(), playerRealm);
+         t.Note($"player realm={playerRealm ?? "(none)"}; premise={premise}");
+         t.Expect("thePremiseFollowsTheLiveRealm", playerRealm == null ? premise.Contains("serves no realm") : premise.Contains(playerRealm), true);
 
          return t.Line();
       }

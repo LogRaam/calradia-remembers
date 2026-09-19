@@ -66,6 +66,28 @@ namespace CalradiaRemembers.WorldEvents
       private static WorldEventStore Store => WorldEventStore.Instance;
       private static int Today => (int) CampaignTime.Now.ToDays;
 
+      /// <summary>
+      ///   Marks every event recording that the player's clan left a realm, whatever the way out, so "how long ago
+      ///   did the player leave this realm" is one query on the persisted store (<see cref="DaysSincePlayerLeft" />).
+      /// </summary>
+      public const string PlayerLeftRealmStatus = "player_left_realm";
+
+      /// <summary>
+      ///   Days since the player's clan last left <paramref name="kingdom" />, or null when it never has (as far as
+      ///   the store knows: departures before 2.5.16 carry no marker, so an old save reads "never", the permissive
+      ///   answer).
+      /// </summary>
+      public static int? DaysSincePlayerLeft(Kingdom kingdom, int today)
+      {
+         if (kingdom == null || Store == null) return null;
+
+         string id = kingdom.StringId;
+         WorldEvent left = Store.MostRecentMatching(WorldEventType.PlayerFeat,
+            e => e.Status == PlayerLeftRealmStatus && e.FactionIds != null && e.FactionIds.Contains(id));
+
+         return left == null ? (int?) null : Math.Max(0, today - left.Day);
+      }
+
       public void Subscribe()
       {
          CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
@@ -693,6 +715,18 @@ namespace CalradiaRemembers.WorldEvents
                   RecordDeparture(oldKingdom);
 
                   break;
+               default:
+                  // Any OTHER way out of a realm, which vanilla does not use for a living realm but another mod
+                  // may: tashmetu's Bellum Civile expelled him after a lost war, and nothing here noticed, so a
+                  // letter from his former king read as though he still served. Neutral wording, since CR cannot
+                  // tell an expulsion from a departure.
+                  if (oldKingdom != null && newKingdom == null && !oldKingdom.IsEliminated)
+                  {
+                     ModLog.Info($"[WORLD] player clan left {oldKingdom.Name} (detail={detail}); CR observed this event, it did not initiate it.");
+                     RecordParting(oldKingdom);
+                  }
+
+                  break;
             }
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] kingdom-change feeder failed: {ex.GetType().Name}: {ex.Message}"); }
@@ -745,7 +779,24 @@ namespace CalradiaRemembers.WorldEvents
             Summary = $"{PlayerName} left {kingdom.Name}.",
             ActorIds = Ids(Hero.MainHero),
             FactionIds = new List<string> {kingdom.StringId},
-            ChronicleLine = $"{PlayerName} forsook {kingdom.Name}, and the oath was broken"
+            ChronicleLine = $"{PlayerName} forsook {kingdom.Name}, and the oath was broken",
+            Status = PlayerLeftRealmStatus
+         });
+      }
+
+      /// <summary>The player's clan is out of a realm by a way CR does not recognise; see the default branch above.</summary>
+      private void RecordParting(Kingdom kingdom)
+      {
+         Store.Record(new WorldEvent {
+            Type = WorldEventType.PlayerFeat,
+            Day = Today,
+            Magnitude = 45,
+            InvolvesPlayer = true,
+            Summary = $"{PlayerName} is no longer part of {kingdom.Name}.",
+            ActorIds = Ids(Hero.MainHero),
+            FactionIds = new List<string> {kingdom.StringId},
+            ChronicleLine = $"{PlayerName} and {kingdom.Name} parted ways",
+            Status = PlayerLeftRealmStatus
          });
       }
 

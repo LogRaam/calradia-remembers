@@ -37,5 +37,30 @@ namespace CalradiaRemembers.Logic
             => canOfferCastle ? ServiceEnticement.Castle
              : canOfferTroops ? ServiceEnticement.Troops
              : ServiceEnticement.Gold;
+
+        /// <summary>
+        ///   How long the ruler of a realm the player has just left stays silent before writing to court them.
+        ///   tashmetu (Nexus, 19/09/2026) was expelled from his kingdom after a lost war, and letters kept arriving
+        ///   "as if I were still part of it". A king who has just put the player out does not write within weeks to
+        ///   poach them back as though nothing had happened; after a season, an overture is a real turn of events.
+        /// </summary>
+        public const int FormerLiegeSilenceDays = 120;
+
+        /// <summary>
+        ///   Whether the ruler of a realm may write. <paramref name="daysSincePlayerLeftThisRealm" /> is null when
+        ///   the player never left it (or never belonged), which is every realm but a former one.
+        /// </summary>
+        public static bool RulerMayWrite(int? daysSincePlayerLeftThisRealm)
+            => daysSincePlayerLeftThisRealm == null || daysSincePlayerLeftThisRealm.Value >= FormerLiegeSilenceDays;
+
+        /// <summary>
+        ///   The premise the letter is written on, from the player's LIVE allegiance. The old wording always said
+        ///   "leave the lord they now serve", so a player who served no one read a letter from a ruler who plainly
+        ///   believed they still did. <paramref name="playerRealm" /> is the realm the player serves now, or null.
+        /// </summary>
+        public static string Premise(string rulerRealm, string playerRealm)
+            => string.IsNullOrWhiteSpace(playerRealm)
+                ? $"You are the ruler of {rulerRealm}. The player serves no realm at present, sworn to no liege, and you would have them enter YOUR service."
+                : $"You are the ruler of {rulerRealm}, and you would have the player leave {playerRealm}, which they now serve, and enter YOUR service instead.";
     }
 }

@@ -88,5 +88,25 @@ namespace CalradiaRemembers.Tests
             LetterCandidateFreshness.FreshnessDays(LetterReason.MarriageProposal)
                 .Should().Be(LetterCandidateFreshness.DefaultFreshnessDays);
         }
+
+        // tashmetu (Nexus, 19/09/2026): expelled from his kingdom, still getting letters "as if I were still part of
+        // it". A comrade's congratulation queued while the player served with them can wait two weeks for the
+        // mailbox; if the player no longer shares the sender's realm by then, it is retired, not delivered.
+        [Test]
+        public void GIVEN_a_battle_congratulation_from_a_realm_the_player_has_left_WHEN_it_comes_up_THEN_it_no_longer_holds()
+        {
+            LetterCandidateFreshness.PremiseStillHolds(LetterReason.BattleVictory, senderSharesPlayerRealm: false)
+                .Should().BeFalse();
+            LetterCandidateFreshness.PremiseStillHolds(LetterReason.BattleVictory, senderSharesPlayerRealm: true)
+                .Should().BeTrue();
+        }
+
+        // Only the congratulation was queued on the realm; a birth or a tournament never asked who the player serves.
+        [Test]
+        public void GIVEN_a_letter_that_never_depended_on_the_realm_WHEN_the_player_changes_realm_THEN_it_still_holds()
+        {
+            LetterCandidateFreshness.PremiseStillHolds(LetterReason.TournamentVictory, senderSharesPlayerRealm: false).Should().BeTrue();
+            LetterCandidateFreshness.PremiseStillHolds(LetterReason.BirthAnnouncement, senderSharesPlayerRealm: false).Should().BeTrue();
+        }
     }
 }

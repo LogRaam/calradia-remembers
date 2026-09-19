@@ -54,6 +54,12 @@ namespace CalradiaRemembers.Services
       private AdultContentLevel _builtAdultLevel;
       private RelationWarmth _builtWarmth;
       private string _builtReplyLanguage;
+
+      // The player's clan and realm as the builder last captured them. They feed {{user_clan}}, {{user_faction}} and
+      // {{faction}}, which were read once and kept until the next load: a bridge mod writing {{faction}} kept naming
+      // a realm the player had been expelled from (tashmetu, 19/09/2026). A change now rebuilds the builder.
+      private string _builtPlayerFaction;
+      private string _builtPlayerClan;
       private NpcChatService _chatService;
 
       private HttpClient _httpClient;
@@ -109,13 +115,19 @@ namespace CalradiaRemembers.Services
             RelationWarmth warmth = ModSettings.RelationWarmth;
             string replyLanguage = ModSettings.ReplyLanguage;
 
+            string playerFaction = Hero.MainHero?.MapFaction?.Name?.ToString() ?? "";
+            string playerClan = Hero.MainHero?.Clan?.Name?.ToString() ?? "";
+
             if (_chatService != null && _builtAdultLevel == current && _builtWarmth == warmth
-                                      && _builtReplyLanguage == replyLanguage)
+                                      && _builtReplyLanguage == replyLanguage
+                                      && _builtPlayerFaction == playerFaction && _builtPlayerClan == playerClan)
                return _chatService;
             _chatService = BuildChatService();
             _builtAdultLevel = current;
             _builtWarmth = warmth;
             _builtReplyLanguage = replyLanguage;
+            _builtPlayerFaction = playerFaction;
+            _builtPlayerClan = playerClan;
 
             return _chatService;
          }

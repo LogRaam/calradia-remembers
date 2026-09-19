@@ -185,7 +185,10 @@ namespace CalradiaRemembers.Letters
 
             foreach (LetterCandidateIntent intent in profile.LetterCandidates)
             {
-               if (LetterCandidateFreshness.IsStale(intent.Reason, intent.EligibleSinceDay, today))
+               bool sharesRealm = hero.MapFaction != null && hero.MapFaction == Hero.MainHero?.MapFaction;
+
+               if (LetterCandidateFreshness.IsStale(intent.Reason, intent.EligibleSinceDay, today)
+                   || !LetterCandidateFreshness.PremiseStillHolds(intent.Reason, sharesRealm))
                {
                   stale.Add(intent);
                   continue;
@@ -569,6 +572,9 @@ namespace CalradiaRemembers.Letters
             if (kingdom == null || kingdom.Leader != hero) continue;
             if (playerFaction != null && hero.MapFaction == playerFaction) continue;
 
+            // Not the realm the player has only just left (see ServiceOfferPolicy.FormerLiegeSilenceDays).
+            if (!ServiceOfferPolicy.RulerMayWrite(WorldEventFeeders.DaysSincePlayerLeft(kingdom, today))) continue;
+
             if (!CanSendLetter(profile, today, 90)) continue; // rare on purpose
 
             // One service offer per lord ever: never pester.
@@ -588,8 +594,8 @@ namespace CalradiaRemembers.Letters
             bool canOfferTroops = hero.PartyBelongedTo != null;
             ServiceEnticement enticement = ServiceOfferPolicy.ChooseEnticement(canOfferCastle, canOfferTroops);
 
-            string context = $"You are the ruler of {kingdom.Name}, and you would have the player leave the lord they " +
-                             $"now serve and enter YOUR service instead. The enticement you dangle: {DescribeEnticement(enticement)}.";
+            string context = ServiceOfferPolicy.Premise(kingdom.Name?.ToString(), Clan.PlayerClan?.Kingdom?.Name?.ToString()) +
+                             $" The enticement you dangle: {DescribeEnticement(enticement)}.";
 
             int baseWeight = LetterWeights.BaseWeight(LetterReason.ServiceOffer);
             int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = baseWeight, SenderInterest = profile.CorrespondenceInterest, SubjectInterest = GetSubjectInterest(LetterReason.ServiceOffer), GlobalInterest = GlobalInterest});

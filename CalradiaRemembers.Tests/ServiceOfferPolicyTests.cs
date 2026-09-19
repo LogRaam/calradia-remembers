@@ -51,5 +51,49 @@ namespace CalradiaRemembers.Tests
             ServiceOfferPolicy.AcceptRelationWarmup.Should().BeGreaterThan(0);
             ServiceOfferPolicy.AcceptRelationWarmup.Should().BeLessThanOrEqualTo(10);
         }
+
+        #region the realm the player is actually in (tashmetu, 19/09/2026)
+
+        // THE REPORTED CASE: expelled after a lost war, the player serves no one, and a letter that says "leave the
+        // lord you now serve" tells them the writer thinks they still belong to their old realm.
+        [Test]
+        public void GIVEN_a_player_who_serves_no_realm_WHEN_the_premise_is_written_THEN_it_says_so_and_asks_them_to_leave_no_one()
+        {
+            string premise = ServiceOfferPolicy.Premise("the Vlandian Kingdom", null);
+
+            premise.Should().Contain("serves no realm");
+            premise.Should().NotContain("leave");
+        }
+
+        // A player who does serve a realm is asked to leave THAT realm, named, rather than an unnamed lord.
+        [Test]
+        public void GIVEN_a_player_serving_a_realm_WHEN_the_premise_is_written_THEN_it_names_the_realm_they_would_leave()
+        {
+            ServiceOfferPolicy.Premise("the Vlandian Kingdom", "the Northern Empire")
+                .Should().Contain("leave the Northern Empire, which they now serve");
+        }
+
+        // The king who just put the player out does not write to poach them back within weeks.
+        [Test]
+        public void GIVEN_the_realm_the_player_left_a_month_ago_WHEN_its_ruler_would_write_THEN_they_stay_silent()
+        {
+            ServiceOfferPolicy.RulerMayWrite(30).Should().BeFalse();
+        }
+
+        // After a season, an overture from the old realm is a turn of events rather than a mistake.
+        [Test]
+        public void GIVEN_the_realm_the_player_left_long_ago_WHEN_its_ruler_would_write_THEN_they_may()
+        {
+            ServiceOfferPolicy.RulerMayWrite(ServiceOfferPolicy.FormerLiegeSilenceDays).Should().BeTrue();
+        }
+
+        // Every other ruler, which is nearly all of them, is untouched by this.
+        [Test]
+        public void GIVEN_a_realm_the_player_never_left_WHEN_its_ruler_would_write_THEN_nothing_holds_them_back()
+        {
+            ServiceOfferPolicy.RulerMayWrite(null).Should().BeTrue();
+        }
+
+        #endregion
     }
 }

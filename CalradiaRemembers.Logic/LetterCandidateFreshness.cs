@@ -58,5 +58,16 @@ namespace CalradiaRemembers.Logic
         {
             return today - eligibleSinceDay > FreshnessDays(reason);
         }
+
+        /// <summary>
+        ///   Whether the premise a candidate was queued on still holds at delivery. A battle congratulation is
+        ///   queued only from a sender in the player's own realm, and can wait up to
+        ///   <see cref="CongratulationFreshnessDays" /> for the mailbox; tashmetu (Nexus, 19/09/2026) was expelled
+        ///   from his kingdom and kept getting letters "as if I were still part of it". A comrade's congratulation
+        ///   from a realm the player no longer shares is retired rather than delivered. Every other reason is
+        ///   indifferent to the realm.
+        /// </summary>
+        public static bool PremiseStillHolds(LetterReason reason, bool senderSharesPlayerRealm)
+            => reason != LetterReason.BattleVictory || senderSharesPlayerRealm;
     }
 }
