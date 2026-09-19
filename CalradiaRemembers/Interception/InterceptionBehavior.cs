@@ -1026,7 +1026,9 @@ namespace CalradiaRemembers.Interception
 
             foreach (Grudge g in grudges)
             {
-               if (g == null || g.IsResolved || g.TargetId != Hero.MainHero.StringId) continue;
+               // An ANSWERED grievance no longer brings its holder out: the confrontation has happened, and the
+               // player's account is on the grudge (Zivkyn, 18/09/2026; see GrudgePolicy.StillDrivesConfrontation).
+               if (g == null || !GrudgePolicy.StillDrivesConfrontation(g) || g.TargetId != Hero.MainHero.StringId) continue;
 
                int magnitude = GrudgePolicy.EffectiveMagnitude(g, today, traits);
                if (magnitude <= bestMagnitude) continue;

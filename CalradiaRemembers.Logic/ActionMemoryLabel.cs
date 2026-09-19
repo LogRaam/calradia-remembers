@@ -99,6 +99,7 @@ namespace CalradiaRemembers.Logic
             case "accept_divorce": return "Divorce accepted";
             case "decline_divorce": return "Divorce refused";
             case "make_amends": return "Amends made";
+            case "hear_account": return "A grievance answered";
             case "pledge_against": return "Pledged against a foe";
             case "grant_blessing": return "A blessing given";
             case "mediate_peace": return "Peace brokered";

@@ -102,17 +102,10 @@ namespace CalradiaRemembers.Duels
          StanceService.ApplyDeed(opponent, StanceAxis.Respect, generic.NpcRespectDelta);
          StanceService.ApplyDeed(opponent, StanceAxis.Fear, generic.NpcFearDelta);
 
-         // NOT YET APPLIED: generic.GrudgeEffect (Settled/Hardened) is computed above but never mutates
-         // drivingGrudge itself. Settling it cleanly is possible today (GrudgePolicy.Resolve), but there is no
-         // equivalent clean API anywhere in the Grudges pillar to HARDEN one (raise its Magnitude/Rigidity);
-         // only formation (GrudgeBehavior.TryPlant) and softening/resolving (GrudgeResolutionService) exist.
-         // Applying just the settle half and silently dropping the harden half would read as "duels only ever
-         // help a grudge, never worsen one", which is the opposite of what DuelOutcomePolicy's own header
-         // promises. Left unapplied on both sides rather than invented or half-wired; see the report for this
-         // increment. The stance/renown numbers above already move correctly either way (AGrudgeDroveIt feeds
-         // DuelOutcomePolicy's existing warmth bonus on a fought duel).
-         if (drivingGrudge != null && generic.GrudgeEffect != DuelGrudgeEffect.None)
-            ModLog.Info($"[DUEL] a live grudge drove this duel; computed effect {generic.GrudgeEffect} on {opponent.Name}'s grudge, NOT applied (no clean harden API).");
+         // The grudge that drove it is answered by the fight, or festers because it was ducked. The objects are the
+         // ledger's own, persisted with it at the next save.
+         if (drivingGrudge != null && DuelOutcomePolicy.ApplyGrudgeEffect(drivingGrudge, generic.GrudgeEffect, (int) CampaignTime.Now.ToDays))
+            ModLog.Info($"[DUEL] {opponent.Name}'s {drivingGrudge.Source} grudge {(generic.GrudgeEffect == DuelGrudgeEffect.Settled ? "settled by the fight" : $"hardened by the forfeit (now {drivingGrudge.Magnitude})")}.");
 
          // 2. Courtship-specific: the courted hero's attraction toward the player swings on who prevailed.
          if (reason == DuelReason.CourtshipRivalry && courtedHero != null)

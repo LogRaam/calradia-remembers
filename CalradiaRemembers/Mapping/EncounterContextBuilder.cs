@@ -95,7 +95,7 @@ namespace CalradiaRemembers.Mapping
       ///   Grudges pillar, resolution + discovery halves: make_amends then grudge_terms, taught last of all, after every
       ///   verb above.
       /// </summary>
-      private static readonly string[] GrudgeVerbs = {"make_amends", "grudge_terms"};
+      private static readonly string[] GrudgeVerbs = {"make_amends", "grudge_terms", "hear_account"};
 
       // Prisoner trade (08/07/2026): the NPC may BUY a captive the player holds, or SELL one his clan holds.
       private static readonly string[] PrisonerTradeVerbs = {"buy_prisoner", "sell_prisoner"};

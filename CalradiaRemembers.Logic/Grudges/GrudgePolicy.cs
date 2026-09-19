@@ -332,6 +332,61 @@ namespace CalradiaRemembers.Logic.Grudges
             return true;
         }
 
+        // ── Answered, and hardened ───────────────────────────────────────────
+
+        /// <summary>The longest account kept on a grudge. One line of the holder's own summary, not a transcript.</summary>
+        public const int MaxAccountChars = 200;
+
+        /// <summary>True once the player has given their account of this grievance. See <see cref="Grudge.AnsweredDay" />.</summary>
+        public static bool IsAnswered(Grudge grudge) => grudge != null && grudge.AnsweredDay >= 0;
+
+        /// <summary>
+        ///   Records that the player has given their account, and what it was. It changes nothing about how heavy
+        ///   the grievance is, how rigid, or whether it can ever be mended: Gabriel's ruling (19/09/2026) is that a
+        ///   vendetta stays unforgivable however well it is answered, and that an explanation is not amends. What it
+        ///   changes is that the holder has HEARD it. A grievance answered is also, by definition, one the player
+        ///   knows of. Refused for a resolved grudge and for an empty account: an answer that says nothing is not one.
+        ///   A later account replaces an earlier one, since the latest thing the player said is what the holder has.
+        /// </summary>
+        public static bool RecordAnswer(Grudge grudge, string account, int today)
+        {
+            if (grudge == null || grudge.IsResolved) return false;
+
+            string said = (account ?? "").Replace('\r', ' ').Replace('\n', ' ').Trim();
+            if (said.Length == 0) return false;
+            if (said.Length > MaxAccountChars) said = said.Substring(0, MaxAccountChars).TrimEnd() + "...";
+
+            grudge.AnsweredDay = today;
+            grudge.PlayerAccount = said;
+            grudge.KnownToPlayer = true;
+
+            return true;
+        }
+
+        /// <summary>
+        ///   Whether this grievance still sends its holder out to confront the player. Once answered it does not:
+        ///   the confrontation has happened (Gabriel's ruling, 19/09/2026). The holder stays as cold as the grudge
+        ///   makes them at every meeting; they simply stop riding out to ask a question already answered.
+        /// </summary>
+        public static bool StillDrivesConfrontation(Grudge grudge)
+            => grudge != null && !grudge.IsResolved && !IsAnswered(grudge);
+
+        /// <summary>
+        ///   Deepens a live grudge by <paramref name="amount" />, capped at 100. The counterpart
+        ///   <see cref="Resolve" /> always had: a duel ducked over a grievance was meant to make it fester
+        ///   (DuelOutcomePolicy says so), and the only reason it never did is that nothing could raise a grudge
+        ///   once formed. Rigidity is left alone on purpose: a grievance made worse is not thereby made
+        ///   unforgivable, and turning a mendable grudge into a vendetta is not a thing a single refusal should do.
+        /// </summary>
+        public static bool Harden(Grudge grudge, int amount)
+        {
+            if (grudge == null || grudge.IsResolved || amount <= 0) return false;
+
+            grudge.Magnitude = Clamp(grudge.Magnitude + amount, 0, 100);
+
+            return true;
+        }
+
         // ── Helpers ──────────────────────────────────────────────────────────
 
         private static double PositivePart(double value) => value > 0 ? value : 0;

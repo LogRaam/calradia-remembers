@@ -53,6 +53,15 @@ namespace CalradiaRemembers.Logic.Grudges
             string word = RigidityWord(grudge.Rigidity);
             string cause = string.IsNullOrWhiteSpace(grudge.CauseSummary) ? FallbackCause : grudge.CauseSummary;
 
+            // ANSWERED: the grievance keeps all its weight and the holder knows what was said. The instruction that
+            // mattered was the permissive "you may name it openly", which, read fresh every conversation, let the
+            // model raise the same question as though it had never been answered (Zivkyn, 18/09/2026).
+            if (knownToPlayer && GrudgePolicy.IsAnswered(grudge) && !string.IsNullOrWhiteSpace(grudge.PlayerAccount))
+                return $"You nurse {word} toward them over {cause}. You have already heard their account of it: "
+                       + $"\"{grudge.PlayerAccount.TrimEnd('.')}.\" It undid nothing. Do not ask them again why, and do not "
+                       + "demand an explanation they have already given. Speak from what you now know: whether you "
+                       + "believe them, and what it changes between you, if anything.";
+
             return knownToPlayer
                 ? $"You nurse {word} toward them over {cause}, and you may name it openly if the moment calls for it."
                 : $"You privately nurse {word} toward them over {cause}, but you conceal it: stay courteous and cold, never name the true cause, and never hint at it either, no allusions, no knowing references, no veiled phrases that point at it; if pressed about your coolness, deflect to some other plausible irritation.";

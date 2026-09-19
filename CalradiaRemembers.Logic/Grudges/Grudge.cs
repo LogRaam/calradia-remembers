@@ -57,5 +57,22 @@ namespace CalradiaRemembers.Logic.Grudges
 
         /// <summary>In-game day it was resolved, or -1 while unresolved.</summary>
         public int ResolvedDay { get; set; } = -1;
+
+        /// <summary>
+        ///   In-game day the player gave their ACCOUNT of it, or -1 while they never have. Answered is not resolved:
+        ///   the grievance keeps its full weight, but the holder knows what the player said and stops asking.
+        ///   <para>
+        ///     Zivkyn (Nexus, 18/09/2026): a lord kept "asking why i killed their Kinsmen, that i did months ago,
+        ///     even though ive explained it 10 times now". Nothing linked an explanation to the grudge, so every
+        ///     conversation met it as though for the first time, and a vendetta-grade grudge also sent the lord
+        ///     riding out to "confront them with it while it was still raw" every thirty days, forever.
+        ///   </para>
+        ///   Additive: a save written before this field existed reads -1, which is "never answered", the truth
+        ///   about every grudge that existed then.
+        /// </summary>
+        public int AnsweredDay { get; set; } = -1;
+
+        /// <summary>What the player said, in the holder's own summary, one line. Null until answered.</summary>
+        public string PlayerAccount { get; set; }
     }
 }

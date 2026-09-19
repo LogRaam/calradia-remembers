@@ -7,6 +7,8 @@
 // reputation moving, never a death. Get the signs wrong and winning a duel would cost you the NPC's respect,
 // or fleeing one would settle a grudge, and the pillar would teach players the opposite of what it means.
 
+using CalradiaRemembers.Logic.Grudges;
+
 namespace CalradiaRemembers.Logic.Duels
 {
    /// <summary>How a duel ended.</summary>
@@ -159,6 +161,13 @@ namespace CalradiaRemembers.Logic.Duels
 
       // ── Settling a grudge by steel ────────────────────────────────────────
 
+      /// <summary>
+      ///   Tuning: how much a grudge DEEPENS when the duel it drove is ducked by either side. Enough to be felt and
+      ///   to keep a grievance from quietly decaying away after a refusal, well short of turning a quarrel into a
+      ///   feud on its own.
+      /// </summary>
+      public const int GrudgeHardenedByForfeit = 15;
+
       /// <summary>Tuning: the warmth restored when a driving grudge is answered by an honest fight, whoever won. Steel clears the air.</summary>
       public const int GrudgeSettledWarmthToAffection = 8;
 
@@ -277,6 +286,25 @@ namespace CalradiaRemembers.Logic.Duels
 
          result.GrudgeEffect = DuelGrudgeEffect.Settled;
          result.NpcAffectionDelta += GrudgeSettledWarmthToAffection;
+      }
+
+      /// <summary>
+      ///   Carries a duel's verdict onto the grudge that drove it: SETTLED resolves it, HARDENED deepens it by
+      ///   <see cref="GrudgeHardenedByForfeit" />. Until 19/09/2026 both were computed and neither was ever applied,
+      ///   because no API could deepen a grudge and applying only the settle half would have taught that a duel can
+      ///   only ever help. A vendetta is refused here as it is everywhere else: steel does not answer a dead kinsman,
+      ///   and a vendetta cannot be made worse than unforgivable. Returns whether the grudge changed.
+      /// </summary>
+      public static bool ApplyGrudgeEffect(Grudge grudge, DuelGrudgeEffect effect, int today)
+      {
+         if (grudge == null || !GrudgePolicy.IsResolvable(grudge)) return false;
+
+         switch (effect)
+         {
+            case DuelGrudgeEffect.Settled: return GrudgePolicy.Resolve(grudge, today);
+            case DuelGrudgeEffect.Hardened: return GrudgePolicy.Harden(grudge, GrudgeHardenedByForfeit);
+            default: return false;
+         }
       }
 
       /// <summary>The award only means a transfer when the stake was material; an honour-only duel moves no goods however it ended.</summary>

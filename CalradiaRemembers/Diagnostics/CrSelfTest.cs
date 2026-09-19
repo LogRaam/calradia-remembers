@@ -225,6 +225,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("companion_road_audience", Severity.Light, "Mechanical: the ROAD trigger (player report 2026-09-08: 'unless I remember to routinely engage with my travel buddies, they never say anything on their own', since the found-topic audience only ever offered on SettlementEntered). Asserts the pacing dial's Never setting switches the road trigger's own gate (DebugRoadTriggerWouldFire) off deterministically, whatever the live roster/cooldown state; asserts Occasionally's shared cooldown still equals the shipped CompanionAudienceTopicPolicy.GlobalCooldownDays (the 'default reproduces today's feel' requirement); and, with the dial restored, drives the REAL RoadIsSafeForPrivateWord + DebugWouldOfferAudience chain OnDailyTick itself calls (no dice roll, no popup, no mutation), reporting whatever the live map state answers. Restores the MCM dial's prior index afterwards", TestCompanionRoadAudience),
          new SelfTest("fief_audience", Severity.Light, "Player wish (Fakade, roadmap): road-only InterceptionBehavior needs a field party to move, so anyone without one (ladies, notables, a garrisoned lord standing around in a fief) never got a turn. Finds a real partyless hero standing in a live settlement; asserts the pure gate (FiefAudiencePolicy.ChooseFiefValid) raises nothing for a no-reason fact set; seeds a fresh, high-reach, player-involving WorldEvent so the SAME live fact HeardRecentPlayerDeed the road path reads is real, not fabricated; drives the REAL candidate scan (FiefAudienceBehavior.DebugScanAndStamp, never the live UI inquiry, never an LLM call) and asserts it offers that NPC with a fief-valid trigger; then asserts the SAME NPC asked again is WITHHELD by the per-NPC cooldown the offer itself just stamped. Removes the seeded WorldEvent and clears the stamped cooldown afterwards", TestFiefAudience),
          new SelfTest("interception_grudge_appreciation", Severity.Light, "Two new proactive channels for the mod's two signature event-anchored affect ledgers (design brief 2026-08-20): a lord who holds a live, significant grudge against the PLAYER rides out/asks for a word to air it (Grudge), and one who holds a significant, recent appreciation of the player does likewise to acknowledge it (AppreciationOwed), on BOTH the road (InterceptionBehavior) and the fief-audience channel (FiefAudienceBehavior), since both reuse the SAME InterceptionPolicy.Choose. Seeds a real Grudge (TryPlant) on a clean-slate lord and asserts InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer finds it (false before planting), the pure InterceptionPolicy.Choose surfaces Grudge, and Grudge is fief-valid; does the same for a real Appreciation and AppreciationOwed; then asserts the priority pin (Grudge outranks AppreciationOwed when both hold on the same facts, mirroring InterceptionPolicyTests). Removes the seeded grudge afterwards (mirrors appreciation_flow/companion_gratitude: no removal API exists for an appreciation, so it is left, exactly like every other appreciation-seeding self-test)", TestInterceptionGrudgeAppreciation),
+         new SelfTest("grudge_answered", Severity.Light, "Player report (Zivkyn, 18/09/2026): a lord kept asking why the player killed his kin, months later, however often it had been explained, and kept riding out to confront the player about it. Plants a real grudge against the player on a clean-slate lord and makes it a VENDETTA, asserts it drives an interception and hear_account is offered, then runs hear_account through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes) and asserts: the grudge is answered with the account, still a vendetta and exactly as heavy, the lord's built GrudgeNote now carries the account and the do-not-ask-again instruction, the interception no longer fires, and hear_account is no longer offered. No LLM call. Clears the lord's grudges afterwards", TestGrudgeAnswered),
          new SelfTest("interception_nemesis_bounty", Severity.Light, "A third proactive channel, the announcement/discoverability layer on top of the EXISTING scripted hero_main_options nemesis bounty offer (roadmap piece 2, player wish, subsumes the 'tavern rumour: Coll raids near X' wish since the lord tells the player directly): a lord whose region is plagued by a nemesis he is eligible to bounty seeks the player out to name him and where he operates, never settling the bounty itself in this channel. Mints a nemesis anchored to a REAL lord's own region (MintBountyEligibleNemesis) and asserts InterceptionBehavior.HasNemesisBountyToOffer reuses the SAME NemesisBountyDialogFlow.FindEligibleNemesisFor gate the scripted offer uses (never a re-derived one), that the Detail names the nemesis, that the pure InterceptionPolicy.Choose surfaces NemesisBounty, that it is fief-valid, and the priority pin (a live grudge against the PLAYER still outranks it, mirroring InterceptionPolicyTests). Marks the minted identity dead afterwards", TestInterceptionNemesisBounty),
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
          new SelfTest("conversation_cut", Severity.Light, "Player report (17/09/2026): characters recited the conversation back, replies growing every turn; and (raphareish, 18/09/2026) asked after the progress of a quest agreed thirty seconds earlier. Both cures are a COUNT taken when the conversation opens, and both counts are produced by the HOST (ChatViewModel) and honoured by the SDK, so the pure tests on either side cannot see the wire between them. This is the wire: seeds one memory and one task on a real profile, takes the two cuts through the REAL ChatViewModel, seeds a second memory and task to stand for what the exchange itself writes, asserts neither cut moves, then builds the EXACT prompt the chat pipeline builds (LlmServices.ChatService.PromptBuilder, via EncounterContextBuilder.Build) and asserts the character still holds their past, does not have this conversation replayed at them as history, and reads a task agreed at the table as JUST AGREED rather than an errand under way. No LLM: the whole question is what the prompt CONTAINS, and an answer from a model would be a weaker reading of the same fact. Removes everything it seeded", TestConversationCut),
@@ -12077,6 +12078,70 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("grudgeOutranksAppreciationWhenBothHold",
             InterceptionPolicy.Choose(new InterceptionFacts {HoldsLiveGrudgeAgainstPlayer = true, HoldsSignificantAppreciation = true}),
             InterceptionTrigger.Grudge);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   An answered grievance, end to end in the engine. The pure half (AnsweredGrievanceTests) covers the rules and
+      ///   the wording; what only the engine can get wrong is that the verb's Execute mutates the LEDGER's own grudge
+      ///   (not a copy), that the bridge routes hear_account at all, and that the note the prompt reads and the
+      ///   interception check both see the change.
+      /// </summary>
+      private static string TestGrudgeAnswered(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("grudge_answered");
+
+         if (t.Abort(GrudgeBehavior.Instance == null, "GrudgeBehavior not active")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.IsAlive
+            && GrudgeBehavior.Instance.GrudgesFor(h.StringId).Count == 0);
+
+         if (t.Skip(lord == null, "no lord free of grudges")) return t.Line();
+
+         const string account = "Your brother raised his banner against his own liege";
+
+         try
+         {
+            bool planted = GrudgeBehavior.Instance.TryPlant(lord, Hero.MainHero, GrudgeSource.ExecutedKin,
+               "[SELFTEST] the execution of their brother", InterceptionGrudgeTestMagnitude, true, today, false);
+
+            if (t.Skip(!planted, "grudge refused (anti-noise guardrail)")) return t.Line();
+
+            Grudge grudge = GrudgeBehavior.Instance.GrudgesFor(lord.StringId).First();
+            grudge.Rigidity = GrudgePolicy.VendettaRigidity; // the case reported: a vendetta nothing can mend
+            int magnitudeBefore = grudge.Magnitude;
+
+            t.Expect("unansweredItDrivesAnInterception", InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer(lord, today, out _), true);
+            t.Expect("unansweredHearAccountIsOffered", HearAccountVerb.UnansweredKnownGrudge(lord) != null, true);
+
+            NpcProfile profile = GetOrCreate(behavior, lord);
+            behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "hear_account", Parameters = new Dictionary<string, string> {{"account", account}}},
+               lord, new ActionContext(profile, null));
+
+            t.Expect("theLedgerGrudgeIsAnswered", GrudgePolicy.IsAnswered(grudge), true);
+            t.Expect("theAccountIsKept", grudge.PlayerAccount, account);
+            t.Expect("stillAVendetta", GrudgePolicy.IsResolvable(grudge), false);
+            t.Expect("exactlyAsHeavy", grudge.Magnitude, magnitudeBefore);
+            t.Expect("notResolved", grudge.IsResolved, false);
+
+            EncounterContext ctx = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "We meet again.");
+            string note = ctx?.GrudgeNote ?? "";
+            t.Note($"{lord.Name}: GrudgeNote = {note}");
+            t.Expect("theNoteCarriesTheAccount", note.Contains(account), true);
+            t.Expect("theNoteSaysDoNotAskAgain", note.Contains("Do not ask them again why"), true);
+
+            t.Expect("answeredItNoLongerDrivesAnInterception", InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer(lord, today, out _), false);
+            t.Expect("answeredHearAccountIsNoLongerOffered", HearAccountVerb.UnansweredKnownGrudge(lord) == null, true);
+         }
+         finally
+         {
+            GrudgeBehavior.Instance.ClearGrudgesFor(lord.StringId);
+         }
 
          return t.Line();
       }

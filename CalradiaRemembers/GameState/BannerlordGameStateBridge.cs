@@ -228,7 +228,7 @@ namespace CalradiaRemembers.GameState
          "revoke_fief", "expel_from_clan", "grant_stipend", "swear_oath", "harm_prisoner", "impregnation_risk",
          "gather_news", "reassure_companion", "recall_companion", "follow_me", "dismiss_escort", "ride_with_me",
          "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
-         "release_prisoner", "buy_prisoner", "sell_prisoner", "end_marriage", "make_amends", "pledge_against",
+         "release_prisoner", "buy_prisoner", "sell_prisoner", "end_marriage", "make_amends", "hear_account", "pledge_against",
          "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill", "admit_secret_lover", "pay_for_silence",
          "rob_npc", "assault_npc", "kill_npc",
          // ChatViewModel chat-flow controls: real LLM-emittable actions, never dispatched by the switch below.
@@ -356,6 +356,7 @@ namespace CalradiaRemembers.GameState
             // identically to the four above.
             case "end_marriage":
             case "make_amends":
+            case "hear_account":
             // admit_secret_lover (mystery-lover pillar phase 3b): the player confesses a hidden bond; the verb
             // records that this NPC now privately knows the identity. pay_for_silence (phase 3b-3): the player pays
             // a lord who holds that secret for his silence. Routed identically to the group above.
