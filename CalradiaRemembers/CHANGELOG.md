@@ -2,6 +2,64 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.12.. 2026-09-19
+
+Eleven fixes in two days, every one from a post on the Nexus page. Supersedes the v2.5.11 cut, which was built
+but not uploaded, so this carries both spans. Saves carry over untouched.
+
+### What NPCs stop you about
+- **`RecentMatterRegister.WorldGossip` is off by default** (Kilju101 17/09, seconded Lordfadooboo 18/09, priced
+  by fkasad 18/09: "one in ten NPCs has something interesting to say... I'm forced to decline because of the
+  other nine"). **DURABLE: that register's own doc says it always yields to anything personal, so it fires
+  exactly when a lord has nothing of his own to say.** Gated where a gossip matter is MINTED, not at the
+  approach, so a lord left with no matter has nothing to say, `HeardRecentPlayerDeed` is false, and no
+  invitation is raised. MCM `NpcsRaiseWorldNews`, default false.
+- **The invitation names the subject** (`AudienceTopicLine`, tested). `HeardOfDeed`, by far the commonest
+  trigger, was the only one carrying no `detail` at all, while the matter was already in hand. The test earned
+  its keep at once: trimming the summary's full stop AFTER cutting it ate the ellipsis.
+- **STILL OPEN:** `RumorAboutPlayer` has no magnitude filter (gossip does, threshold 55), so a cleared looter
+  camp counts as much as a city falling. fkasad's point 3. Needs thresholds set against real play.
+
+### Fixed
+- **The duel crash, third report, third version** (yozakura12). **DURABLE: `Settlement.CurrentSettlement` is set
+  for a party MERELY STANDING ON a settlement; only `PlayerEncounter.InsideSettlement` means inside**, and
+  `CreateAndOpenMissionController` on an interior from outside crashes loading the scene. Three readings of one
+  question disagreed; now one, `DuelEligibilityResolver.PlayerCanFightADuelHere`, pure half in
+  `DuelStagingSupport.CanHoldATownDuel`. Outside the walls is the WILDERNESS venue, not a refusal.
+- **`DuelReason.Friendly`** (Zinced121212). Every chat-armed duel was `HonourAffront`, hard-coded, whose premise
+  is that somebody was insulted. New `spirit:` parameter on `challenge_duel`, defaulting to grievance so nothing
+  changes unless the fiction says so. A control test asserts an affront duel still wounds pride.
+- **The companion audience that opened nothing, inside a town** (Lordfadooboo, Zinced121212). The staging
+  watchdog is reasoned about `OpenMapConversation`, which registers at once; it was applied unchanged to
+  `CreateAndOpenMissionController`, which loads a scene first. `StagingGracePolicy`, 10 frames vs 1800.
+  `CouncilConversationStager` had the identical defect.
+- **`ModLog.Notice`**, always on, for a dead end the player experienced. `Info` and `Error` are both gated by the
+  MCM switch, off by default on Nexus.
+- **A letter REPLY left no trace on the NPC's profile** (Zivkyn). Three letter directions exist and only two were
+  written down; `LetterMemoryFinalizer` had carried the `npcIsSender:false` direction unused since it was written.
+- **A council seat had no profile** (fkasad, via the innkeeper's courier list). `OpenForAssembly` and the
+  companion briefing both guarantee one; `OpenForCouncil` never did. Both council write paths `continue` on a
+  missing profile, so a councillor kept NO memory, NO sealed agreement and NO regard shift from a sitting.
+- **A quest agreed mid-conversation read as an errand under way** (raphareish). `QuestsKnownThrough`, twin of
+  `HistoryKnownThrough`. `IssuedOnDay` cannot settle it: a deal struck a minute ago and one struck at dawn share
+  the day stamp.
+- **`PlayerStatusVsNpc.Free` rendered nothing** (zhenja1zhenja1), so the commonest standing reached the model as
+  silence. `PlayerStandingNote`, rendered ABOVE the `CURRENT ENCOUNTER:` marker. The letter path sent
+  `EncounterContext.Empty`, so `StandingContextFor` was needed or the fix would have missed the only reported
+  case. **The marker is now emitted UNCONDITIONALLY**: tying the cache breakpoint to whether one paragraph had
+  content meant a letter had no prefix at all.
+- **Renamed kingdoms** (Bellum Civile bridge modder). No lookup to invert: the vanilla names are PROSE in
+  `world.txt` and `behavior_guidelines.txt`, and the live name already won wherever it was a value. A precedence
+  rule in the cacheable prefix now says the background document may be out of date. The matched guidelines
+  heading is also re-titled from the live realm. **LIMIT, pinned by a test: the Empire's headings split by REALM
+  rather than culture, so a renamed imperial realm keeps both headings; re-titling both would merge two peoples.**
+
+### Testing
+- **`cr.testall` gains `conversation_cut`**: the two cuts are produced by the HOST and honoured by the SDK, and
+  the unit tests on either side cannot see the wire between them. No LLM, deliberately.
+- **`cr.audience ask <name>`** raises the real "X asks for a word" inquiry so the accept path can be walked on
+  demand, inside a town.
+
 ## v2.5.11.. 2026-09-18
 
 Six fixes, five reported by name in the two days since 2.5.10. Saves from 2.5.10 carry over untouched.

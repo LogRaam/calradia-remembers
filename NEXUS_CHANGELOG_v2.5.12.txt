@@ -1,0 +1,37 @@
+Version 2.5.12
+
+Your saves carry over untouched. Eleven fixes in two days, and every one of them came from someone posting here. Two of you sent logs, one sent two prompts side by side, and one wrote a page on what an NPC approaching you should and should not be for. None of this would have been found otherwise.
+
+What NPCs stop you about
+
+- NPCs no longer stop you to ask what you make of distant news. Raised by Kilju101, seconded by Lordfadooboo, and pinned down by fkasad: "Maybe one in ten NPCs has something interesting to say, but unfortunately, I'm forced to decline the conversation because of the other nine. Either way, it's wasted playtime." He was describing something real, and it had a name in the code: a separate fallback for a happening that does NOT involve you, which the character does not comment on but asks YOU about. It always yields to anything personal, which means it fired exactly when someone had nothing of their own to say. It is now off by default, with a switch in the mod options for anyone who wants the world talked about. Everything personal is untouched, so the one in ten still reaches you.
+
+- And the invitation now tells you what it is about before you answer it. fkasad again: "The invitation to talk should specify the topic the NPC wants to discuss (that's how it works in real life)." He was right that this is the real cost of the problem above. Declining blind is the sensible thing to do when most of them are filler, and it refuses the good one along with the rest. The subject was already known at the moment the question was put to you; it had simply never been shown.
+
+- Still on the list, and named here so you know it was heard: a cleared looter camp currently counts for as much as a city falling, so lords congratulate you on housekeeping. That needs thresholds set against real play rather than guessed at, so it comes after these two.
+
+Fixed
+
+- The game no longer crashes when you challenge someone to a duel. Reported by yozakura12 three times, on three versions, which is two more than it should have taken. His last log carried the line that found it: "returned to campaign map", immediately before the duel was staged. He was AT a town, standing on it, not inside it. The mod was asking three different questions about where the duel should be held, none of which was the one that decides anything, and all three answer yes for a party merely parked on a settlement. So the game was asked to open a town interior from outside the walls, which it cannot do, and it died loading the scene. There is one question now and it asks whether you are actually inside. From outside the walls the duel is fought in the open field, which is where a man standing at the gate would fight anyway.
+
+- A friendly duel no longer costs you the friendship. Reported by Zinced121212: "all duels remove personal regard even if it's a friendly battle that both sides agree to and the companion seems to be in a good mood after." One value did it. Every duel was recorded as a matter of honour, whose whole premise is that somebody was insulted: the loser's pride is wounded, their house is shamed, the winner is feared. A wager settled with blunted steel was being priced as an insult. A bout both sides wanted is now its own thing: warmth and respect both ways, nobody humiliated, and nothing at all if you agree to one and neither of you goes through with it.
+
+- A companion who asks for a word now gets one. Reported by Lordfadooboo and, a week later in almost the same words, by Zinced121212: "i enter a city and it says (companion) wants to talk to you, i say yes, and nothing happens." Both were in a town, and that is the whole of it. Out on the map the game sets a conversation up at once; inside a settlement an entire interior scene has to load first. The mod was timing the second with a stopwatch written for the first and declaring a perfectly healthy scene dead in a sixth of a second.
+
+- The mod now says so when something you asked for does not happen. This is why the one above took a month to find. Every path that could swallow an answered prompt wrote its account to the log file, which is off by default, so the players reporting it had nothing to send. A dead end you actually experienced now puts one line on screen whatever your settings say.
+
+- Someone you wrote back to remembers that you wrote back. Reported by Zivkyn: "Love interest sends me four letters, i write back to each one, she responds to each one. I return to talk to her and shes mad i didnt write back." Her memory agreed with him. A letter arriving from her was recorded, and a letter you sent unprompted was recorded, but a REPLY to one of her letters was recorded nowhere at all. What you actually said in a reply is now summarised into her memory, not just the fact that you answered.
+
+- Someone you met at a council is someone you have met. Reported by fkasad, about the innkeeper's courier list: "Looks like the name is added to the list when you talk to someone. But not those you've talk to during a concil." That list is everyone the mod has a record of, so his report meant a councillor had no record at all. The invisible half was worse: without one, a councillor kept nothing from a sitting he attended. No memory of it, no agreement recorded against him, no change in how he regards you. He arrived at the next council a stranger.
+
+- A character no longer asks how a task is coming along thirty seconds after agreeing to it. Reported by raphareish: "after accepting a quest and talking about the deal that was just made, NPCs behave like it happened hours before on the same day, even though the chat has never been closed." A task settled at the table now reads as exactly that.
+
+- A lord no longer writes to you as though you rode in his retinue. Reported by zhenja1zhenja1, about a letter that arrived after he beat that lord in a tournament. The mod knew perfectly well that he owed that lord nothing; the trouble is that it said nothing at all, and an AI does not read silence as "there is no relationship", it reads it as "nobody mentioned it" and fills the gap. Characters are now told plainly where you stand with them, including when the answer is that nothing binds you, which is the commonest case in the game.
+
+- Characters use the name a kingdom has now, not the one it had. Raised by a modder building a bridge to Bellum Civile, which renames every kingdom while the game runs. His own evidence found it: the rebel kingdoms his mod creates at runtime were named correctly, and only the renamed vanilla ones were wrong. The mod's background lore document is written once, by hand, and names the realms of an unmodified Calradia, while everything else is read from the running game. Nothing said which to believe when they disagreed. Now something does, and characters stop being told they come from a realm that no longer exists. This also applies to total conversions, restored factions, and a kingdom you found yourself.
+
+Notes
+
+- Several of these are reasoned from what the logs say rather than reproduced here, the duel and the companion audience above all. If either still misbehaves for you, a log attached to a report is worth more than a description. The mod writes one to Documents\Mount and Blade II Bannerlord\Logs\CalradiaRemembers.log when logging is on in the mod options.
+
+- Nothing here changes your save format and nothing needs a new game.
