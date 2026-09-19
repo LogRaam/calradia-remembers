@@ -1,0 +1,21 @@
+Version 2.5.14
+
+One addition, for anyone running a local model, and it was asked for on this page by fkasad.
+
+New
+
+- The mod's background work can now be sent to a different model from your conversations. In the mod options you will find a Background model field, and, for an OpenAI-Compatible server, a Background endpoint and API key to go with it. Leave them blank and absolutely nothing changes: your summaries and memory compression go exactly where they always did.
+
+  What this is for. The mod makes two very different kinds of call. One is the conversation, which is a long prompt that stays mostly the same from turn to turn. The other is its background work: summarising a conversation after you close it, compressing an NPC's memory when it gets long, reading a transcript for claims about the world. Those are short, mechanical, and look nothing like a conversation.
+
+  On a hosted service that costs you a little money and nothing else. On a local server it can cost you much more than that, and fkasad worked out why before anyone here did. A local server keeps the work it has already done for a prompt and reuses it when the next prompt starts the same way. Two kinds of prompt with nothing in common, arriving one after the other, throw away each other's work every single time. Nothing the mod sends can prevent that, because the bookkeeping belongs to the server. Sending them to a different model is what prevents it.
+
+  So: point the background work at something small and cheap and leave your good model to do the talking. A 4B model is plenty to summarise a conversation.
+
+  One thing is deliberately NOT background, in case you wonder why it still uses your main model: the illuminated chronicle. It runs after the fact like the rest, but you read it, so it stays where the prose is.
+
+Notes
+
+- Nothing here changes your save format and nothing needs a new game.
+
+- Still open from the same discussion: a cleared looter camp counts for as much as a city falling, so lords congratulate you on housekeeping, and a grievance has no notion of ever having been answered. Both are understood and neither is a one-line fix.

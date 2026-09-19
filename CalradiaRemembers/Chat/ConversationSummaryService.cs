@@ -39,7 +39,7 @@ namespace CalradiaRemembers.Chat
 
             if (captor == null) return;
 
-            var summarizer = new CaptiveSceneSummarizer(behavior.LlmServices.LlmClient);
+            var summarizer = new CaptiveSceneSummarizer(behavior.LlmServices.HousekeepingClient);
 
             string rich;
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
@@ -82,7 +82,7 @@ namespace CalradiaRemembers.Chat
 
             if (npc == null) return;
 
-            var summarizer = new ConversationSummarizer(behavior.LlmServices.LlmClient);
+            var summarizer = new ConversationSummarizer(behavior.LlmServices.HousekeepingClient);
 
             string rich;
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
@@ -144,7 +144,7 @@ namespace CalradiaRemembers.Chat
             // the rule that must not be lost to a refactor of either side.
             if (speaker == null || speaker == Hero.MainHero) return;
 
-            var extractor = new WorldClaimExtractor(behavior.LlmServices.LlmClient);
+            var extractor = new WorldClaimExtractor(behavior.LlmServices.HousekeepingClient);
 
             IReadOnlyList<WorldClaim> claims;
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
@@ -183,11 +183,11 @@ namespace CalradiaRemembers.Chat
 
          if (npc == null) return true;                                          // the NPC no longer exists: drop.
          if (!Enum.TryParse(job.AnchorType, out NotableEventType anchorType)) return true; // unparseable anchor: drop.
-         if (behavior.LlmServices?.LlmClient == null) return false;             // no client right now: retry later.
+         if (behavior.LlmServices?.HousekeepingClient == null) return false;             // no client right now: retry later.
 
          try
          {
-            var summarizer = new ConversationSummarizer(behavior.LlmServices.LlmClient);
+            var summarizer = new ConversationSummarizer(behavior.LlmServices.HousekeepingClient);
 
             string rich;
             using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60)))

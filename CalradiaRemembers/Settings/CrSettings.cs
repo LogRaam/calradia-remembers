@@ -195,6 +195,12 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
       public string CustomEndpointUrlNsfw { get; set; } = "";
 
+      [SettingPropertyText("Endpoint URL (Background)", RequireRestart = false, Order = 4,
+         HintText = "Optional. A separate OpenAI-Compatible server URL for the mod's background work only " +
+                    "(summaries, memory compression). Leave blank to use the same server as everything else.")]
+      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      public string CustomEndpointUrlHousekeeping { get; set; } = "";
+
       [SettingPropertyText("Endpoint URL (Interpret)", RequireRestart = false, Order = 3,
          HintText = "Optional. A separate OpenAI-Compatible server URL for the Interpret role only, so the interpreter " +
                     "can run on its own local machine. Blank = use the shared Endpoint URL above. Applies immediately.")]
@@ -221,6 +227,12 @@ namespace CalradiaRemembers.Settings
                     "OpenAI-Compatible server than the shared one. Blank = use the API Key above. Applies immediately.")]
       [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
       public string CustomApiKeyNsfw { get; set; } = "";
+
+      [SettingPropertyText("API Key (Background)", RequireRestart = false, Order = 7,
+         HintText = "Optional. A separate API key for the mod's background work only. Leave blank to use the " +
+                    "same key as everything else.")]
+      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      public string CustomApiKeyHousekeeping { get; set; } = "";
 
       [SettingPropertyText("API Key (Interpret)", RequireRestart = false, Order = 6,
          HintText = "Optional. A separate API key for the Interpret role only, so the interpreter can authenticate " +
@@ -350,6 +362,26 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public Dropdown<string> CncProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
+
+      // fkasad (Nexus, 19/09/2026), running a local model: the mod's background work and its conversations are
+      // two completely different prompts, and on a single-slot local server they evict each other's KV cache
+      // every time they alternate. He asked what was happening behind the curtain, and the honest answer was
+      // that there was no way to separate them. There is now.
+      //
+      // Blank means what it has always meant: the same model as the prose reply, so nobody who does not go
+      // looking for this is affected by it.
+      [SettingPropertyText("Background model", RequireRestart = false, Order = 11,
+         HintText = "Optional. A cheaper or smaller model for the mod's background work: summaries, memory " +
+                    "compression, claim extraction. Blank uses the roleplay model. Useful on a local server, " +
+                    "where two unrelated prompts share one cache.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public string HousekeepingModel { get; set; } = "";
+
+      [SettingPropertyDropdown("Background provider", RequireRestart = false, Order = 12,
+         HintText = "Which provider the Background model above is sent to. (default) uses the PROSE provider.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public Dropdown<string> HousekeepingProvider { get; set; } =
+         new(new[] {"(default)", "OpenRouter", "NanoGPT", "OpenAI-Compatible"}, 0);
 
       [SettingPropertyText("Interpret model", RequireRestart = false, Order = 8,
          HintText = "Enhanced mode only: the model that reads the structured actions out of the prose. Blank " +

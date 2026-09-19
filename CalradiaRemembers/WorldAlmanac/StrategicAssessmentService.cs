@@ -53,7 +53,7 @@ namespace CalradiaRemembers.WorldAlmanac
          {
             StrategicAssessmentContext ctx = StrategicAssessmentContextBuilder.Build(result);
 
-            ILlmClient client = NpcMemoryCampaignBehavior.Instance?.LlmServices?.LlmClient;
+            ILlmClient client = NpcMemoryCampaignBehavior.Instance?.LlmServices?.HousekeepingClient;
 
             // Offline path: feature off, no advisor (player alone), or no AI configured -> the deterministic summary.
             if (!ModSettings.EnableStrategicAssessment || !ctx.HasAdvisor || client == null)

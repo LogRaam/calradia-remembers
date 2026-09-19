@@ -60,7 +60,7 @@ namespace CalradiaRemembers.Letters
             ModLog.Info($"[LETTER MEMORY] base event recorded for {profile.Name}: \"{baseSummary}\"");
 
             if (!LetterMemoryPolicy.ShouldRemember(reason)) return;
-            if (string.IsNullOrWhiteSpace(content) || behavior.LlmServices?.LlmClient == null) return;
+            if (string.IsNullOrWhiteSpace(content) || behavior.LlmServices?.HousekeepingClient == null) return;
 
             _ = GenerateAndApplyAsync(behavior, profile.Id, baseEvent, content, npcIsSender, playerName);
         }
@@ -81,7 +81,7 @@ namespace CalradiaRemembers.Letters
 
                 if (npc == null) return;
 
-                var summarizer = new LetterMemorySummarizer(behavior.LlmServices.LlmClient);
+                var summarizer = new LetterMemorySummarizer(behavior.LlmServices.HousekeepingClient);
 
                 string rich;
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))

@@ -535,6 +535,16 @@ namespace CalradiaRemembers
       public static string ActionInterpreterProviderSelection =>
          CrSettings.Instance?.ActionInterpreterProvider?.SelectedValue ?? ProviderRolePolicy.DefaultSelection;
 
+      /// <summary>Which provider the mod's BACKGROUND work is sent to; "(default)" inherits the prose provider.</summary>
+      public static string HousekeepingProviderSelection =>
+         CrSettings.Instance?.HousekeepingProvider?.SelectedValue ?? ProviderRolePolicy.DefaultSelection;
+
+      /// <summary>
+      ///   The model for the mod's background work (summaries, compression, extraction), or blank to use the
+      ///   prose model, which is what every install did before this existed. See ServiceRole.Housekeeping.
+      /// </summary>
+      public static string HousekeepingModel => CrSettings.Instance?.HousekeepingModel ?? "";
+
       /// <summary>
       ///   How a chat reply is composed: <see cref="Logic.ChatCompositionMode.Standard" /> (one call, today's
       ///   behaviour) or <see cref="Logic.ChatCompositionMode.Enhanced" /> (prose then a separate action-

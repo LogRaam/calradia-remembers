@@ -10301,9 +10301,31 @@ namespace CalradiaRemembers.Diagnostics
          string priorApiKey = s.CustomApiKey;
          string priorNsfwApiKey = s.CustomApiKeyNsfw;
          string priorInterpApiKey = s.CustomApiKeyInterpret;
+         string priorHousekeepingModel = s.HousekeepingModel;
+         int priorHousekeepingProvider = s.HousekeepingProvider.SelectedIndex;
 
          try
          {
+            // THE BACKGROUND ROLE'S ONE PROMISE, and it is a promise to everyone who never touches the setting:
+            // a blank Background model resolves to EXACTLY the prose model, so an install that ignores this
+            // feature keeps sending its summaries and memory compression where it always did (fkasad asked for
+            // the setting, 19/09/2026; nobody asked to have their background work quietly moved).
+            s.HousekeepingModel = "";
+            s.HousekeepingProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
+
+            (ProviderKind _, string _, string proseModel) = llm.DebugDescribeRoleRouting(ServiceRole.Prose);
+            (ProviderKind _, string _, string inherited) = llm.DebugDescribeRoleRouting(ServiceRole.Housekeeping);
+
+            t.Expect("blankBackgroundModelIsTheProseModel", inherited, proseModel);
+
+            // And when it IS set, it is honoured: otherwise the setting is a placebo and the player's local
+            // server goes on evicting its own cache.
+            s.HousekeepingModel = "a-cheap/background-model";
+            (ProviderKind _, string _, string chosen) = llm.DebugDescribeRoleRouting(ServiceRole.Housekeeping);
+
+            t.Expect("aSetBackgroundModelIsUsed", chosen, "a-cheap/background-model");
+
+            s.HousekeepingModel = priorHousekeepingModel;
             // STAKE: the whole round is "a different provider per role". If DISTINCT selections did not yield
             // distinct base URLs + kinds, every request would still go to one provider and the feature is a no-op.
             // The roleplay / prose role is the base (property still named Provider); the others carry "(default)".
@@ -10395,6 +10417,8 @@ namespace CalradiaRemembers.Diagnostics
             s.CustomApiKey = priorApiKey;
             s.CustomApiKeyNsfw = priorNsfwApiKey;
             s.CustomApiKeyInterpret = priorInterpApiKey;
+            s.HousekeepingModel = priorHousekeepingModel;
+            s.HousekeepingProvider.SelectedIndex = priorHousekeepingProvider;
          }
 
          return t.Line();

@@ -2,6 +2,31 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.14.. 2026-09-19
+
+One addition: a BACKGROUND role, so the mod's mechanical calls can go to a different model from the prose.
+
+### New
+- **`ServiceRole.Housekeeping`** plus `LlmServices.HousekeepingClient`, a lazily-built, fail-soft-to-main client
+  mirroring `InterpreterClient`. MCM gains a Background model, and a Background endpoint and API key for an
+  OpenAI-Compatible server. **Blank means the prose model on the prose provider**, guarded by an assertion added
+  to `cr.testall`'s `provider_routing`: an install that ignores the setting is unaffected.
+  - Asked for by fkasad (Nexus, 19/09/2026), running a local model. There are no sessions anywhere in this mod
+    (every call is a standalone POST with its own `messages`), so the first half of his worry was unfounded and
+    said so. The second half is exact: **a local server reuses its KV cache by longest common prefix, and two
+    prompt families alternating on one slot evict each other every time.** The client cannot prevent that; a
+    different model can.
+  - **DURABLE, and it was MY error for a day: `ModelOverride` is NOT set by most requests.** CLAUDE.md said "every
+    request already carries its own, so this is a setting away". An inventory found it on exactly two in the
+    whole codebase (`NpcChatService`, and explicitly null in `ActionInterpreterComposer`) and on NONE of the ten
+    housekeeping calls. A second CLIENT is also the better route regardless: it carries provider, base URL and
+    key as well as the model, which is what pointing background work at another server actually needs.
+  - Eleven call sites repointed across six files: the conversation, captive-scene and letter summarizers, the
+    memory and transcript compressors, the claim extractor, and both strategic-assessment paths.
+  - **`ChronicleIlluminator` is deliberately NOT moved.** Background by shape, prose by purpose: the player reads
+    the illuminated chronicle, and it is the only member of the family with no `ReasoningOverride`, at Creativity
+    0.7 and 1200 tokens. Sending it to a cheap model to save on background work would degrade something visible.
+
 ## v2.5.13.. 2026-09-19
 
 Two changes, one day after 2.5.12, both from the page discussion and both things the mod already knew and was

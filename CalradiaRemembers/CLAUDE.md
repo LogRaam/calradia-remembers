@@ -520,9 +520,16 @@ writing to a tournament loser as though he rode in that lord's retinue.
 - **The companion audience inside a town is REASONED, not reproduced.** `cr.audience ask <name>` raises the
   real popup on demand; it has not been walked.
 - **`take_into_service` has never once completed in a live game.**
-- **No separate model for housekeeping calls.** MCM exposes PROSE, NSFW and Interpret; the summarizers,
-  compressor and extractors follow the default. Promised to fkasad, who runs a local model and pays for this
-  in KV-cache evictions. **Every request already carries its own `ModelOverride`, so this is a setting away.**
+- **A BACKGROUND role exists since 2026-09-19** (`ServiceRole.Housekeeping`), asked for by fkasad, who runs a
+  local model and paid for its absence in evicted KV cache. Blank means the prose model, guarded by
+  `cr.testall`'s `provider_routing`. **DURABLE, and I had this wrong for a day: `ModelOverride` was NOT already
+  set by every request.** An inventory found it on exactly two (`NpcChatService`, and explicitly null in
+  `ActionInterpreterComposer`) and on none of the ten housekeeping calls. The route taken instead is a second
+  CLIENT, mirroring `InterpreterClient`, because a client carries provider, base URL and key as well as the
+  model, which is what a player pointing background work at another server actually needs.
+  - **`ChronicleIlluminator` is deliberately NOT on it.** It is background by shape and prose by purpose: the
+    player reads the illuminated chronicle, and it is the only one of the family with no `ReasoningOverride`,
+    at Creativity 0.7 and 1200 tokens. Moving it would quietly degrade something visible.
 - **Raised and deliberately not built:** a grievance has no notion of having been answered (a lord asks why
   you killed his kinsman however often you explain); `RumorAboutPlayer` has no magnitude filter, so a cleared
   looter camp counts as much as a city falling; profession-shaped reasons to approach (Lordfadooboo offered

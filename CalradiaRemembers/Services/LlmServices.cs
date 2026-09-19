@@ -63,6 +63,9 @@ namespace CalradiaRemembers.Services
       // built AdultLevel. It exists even when the interpreter kind equals the default kind, so the caller always
       // has one uniform path.
       private ILlmClient _interpreterClient;
+      private ILlmClient _housekeepingClient;
+      private ProviderKind _builtHousekeepingKind;
+      private string _builtHousekeepingModel;
       private ProviderKind _builtInterpreterKind;
       private string _builtInterpreterModel;
 
@@ -548,6 +551,10 @@ namespace CalradiaRemembers.Services
                selection = ModSettings.ActionInterpreterProviderSelection;
 
                break;
+            case ServiceRole.Housekeeping:
+               selection = ModSettings.HousekeepingProviderSelection;
+
+               break;
             default:
                selection = ModSettings.RoleplayProviderSelection;
 
@@ -643,6 +650,7 @@ namespace CalradiaRemembers.Services
          {
             case ServiceRole.Nsfw: return s?.CustomEndpointUrlNsfw;
             case ServiceRole.Interpret: return s?.CustomEndpointUrlInterpret;
+            case ServiceRole.Housekeeping: return s?.CustomEndpointUrlHousekeeping;
             default: return null;
          }
       }
@@ -656,6 +664,7 @@ namespace CalradiaRemembers.Services
          {
             case ServiceRole.Nsfw: return s?.CustomApiKeyNsfw;
             case ServiceRole.Interpret: return s?.CustomApiKeyInterpret;
+            case ServiceRole.Housekeeping: return s?.CustomApiKeyHousekeeping;
             default: return null;
          }
       }
@@ -826,6 +835,87 @@ namespace CalradiaRemembers.Services
       ///   the small reply budget on reasoning and emit no tags); the provider-pin still mirrors the main client's
       ///   OpenRouter-only routing.
       /// </summary>
+      /// <summary>
+      ///   The model for the mod's BACKGROUND work, or the prose model when the field is blank, which is what
+      ///   every install did before the setting existed. Read live, so changing it in the menu applies at once.
+      /// </summary>
+      private static string ResolveHousekeepingModel()
+      {
+         string configured = ConfiguredModelFor(ModSettings.HousekeepingModel, ResolveKindForRole(ServiceRole.Housekeeping));
+
+         return string.IsNullOrWhiteSpace(configured) ? ResolveModel() : configured.Trim();
+      }
+
+      /// <summary>
+      ///   The dedicated client for the mod's BACKGROUND work: summaries, memory and transcript compression,
+      ///   claim extraction, the strategic assessment. Built lazily and rebuilt only when its provider or model
+      ///   changes, and it falls back to the main client on any fault, exactly like
+      ///   <see cref="InterpreterClient" />.
+      ///   <para>
+      ///     Asked for by fkasad (Nexus, 19/09/2026), who runs a local model: the mod's background prompts and
+      ///     its conversation prompts have almost nothing in common, and a local server reusing its KV cache by
+      ///     longest common prefix on one slot has them evicting each other every time they alternate. Nothing
+      ///     the client sends can prevent that, because the eviction is the server's own bookkeeping; sending
+      ///     them somewhere else is what prevents it.
+      ///   </para>
+      ///   <para>
+      ///     WITH THE FIELD BLANK THIS IS THE PROSE MODEL ON THE PROSE PROVIDER, so an install that ignores the
+      ///     setting behaves exactly as it did. The cost of the feature to everybody else is one more cached
+      ///     client object.
+      ///   </para>
+      /// </summary>
+      public ILlmClient HousekeepingClient
+      {
+         get
+         {
+            try
+            {
+               if (_httpClient == null) return LlmClient;
+
+               ProviderKind kind = ResolveKindForRole(ServiceRole.Housekeeping);
+               string model = ResolveHousekeepingModel();
+
+               if (_housekeepingClient != null && _builtHousekeepingKind == kind && _builtHousekeepingModel == model)
+                  return _housekeepingClient;
+
+               _housekeepingClient = BuildHousekeepingClient(kind, model);
+               _builtHousekeepingKind = kind;
+               _builtHousekeepingModel = model;
+
+               return _housekeepingClient;
+            }
+            catch (Exception ex)
+            {
+               ModLog.Error($"Failed to build the background-work client; falling back to the main client: {ex.Message}");
+
+               return LlmClient;
+            }
+         }
+      }
+
+      private ILlmClient BuildHousekeepingClient(ProviderKind kind, string model)
+      {
+         var config = new OpenRouterConfig {
+            ApiKeyProvider = () => ApiKeyFor(ServiceRole.Housekeeping, kind),
+            ModelProvider = () => model,
+            BaseUrlProvider = () => BaseUrlFor(ServiceRole.Housekeeping, kind),
+            UseSystemPromptCachingProvider = () => UseCachingFor(kind),
+            // Background work never reasons, and every one of these callers already says so per request. Saying
+            // it here too costs nothing and closes the case where one of them forgets: the retry that silently
+            // switched reasoning back on (fixed 17/09/2026) was exactly that failure one level down.
+            ReasoningProvider = () => kind == ProviderKind.OpenRouter || kind == ProviderKind.OpenAiCompatible || kind == ProviderKind.NanoGpt
+               ? InterpreterReasoningEffort
+               : null,
+            ReasoningAsEffortStringProvider = () => ReasoningWirePolicy.UsesEffortString(kind),
+            TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
+            ParameterOptionsProvider = () => ParameterOptionsFor(kind, model),
+            ProviderSlugsProvider = () => "",
+            AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
+         };
+
+         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver};
+      }
+
       private ILlmClient BuildInterpreterClient(ProviderKind kind, string model)
       {
          var config = new OpenRouterConfig {
@@ -867,6 +957,10 @@ namespace CalradiaRemembers.Services
          {
             case ServiceRole.Interpret:
                model = ResolveInterpreterModel();
+
+               break;
+            case ServiceRole.Housekeeping:
+               model = ResolveHousekeepingModel();
 
                break;
             case ServiceRole.Nsfw:

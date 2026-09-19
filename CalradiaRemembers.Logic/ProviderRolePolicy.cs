@@ -43,7 +43,23 @@ namespace CalradiaRemembers.Logic
         Nsfw,
 
         /// <summary>The small model that reads structured actions out of prose in Enhanced (Prose + Interpreter).</summary>
-        Interpret
+        Interpret,
+
+        /// <summary>
+        ///   The mod's BACKGROUND WORK: the conversation and letter summarizers, the memory and transcript
+        ///   compressors, the claim extractor, the strategic assessment. Mechanical calls on tight budgets that
+        ///   never reason and are never read as prose by anybody.
+        ///   <para>
+        ///     Asked for by fkasad (Nexus, 19/09/2026), who runs a local model and pays for the lack of it in
+        ///     evicted KV cache: "if it is the same session, HKTs involve highly variable data, essentially
+        ///     code-like instructions... say goodbye to the KV cache." There are no sessions, so the first half
+        ///     of his worry was unfounded, but the second half is exact: a local server reuses its cache by
+        ///     longest common prefix, and two prompt families with nothing in common alternating on one slot
+        ///     evict each other every time. Sending them to a different model is what stops that.
+        ///   </para>
+        ///   Inherits everything it is not given: no model set means the Prose model, exactly as before.
+        /// </summary>
+        Housekeeping
     }
 
     /// <summary>Maps the per-role provider dropdown strings to a <see cref="ProviderKind" />, honouring the "(default)" inherit sentinel.</summary>

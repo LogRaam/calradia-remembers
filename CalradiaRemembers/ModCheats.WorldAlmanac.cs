@@ -147,7 +147,7 @@ namespace CalradiaRemembers
          PlayerStrategicContext player = ctx.Player;
          string prompt = StrategicAssessmentPromptBuilder.Build(r, player, advisor, ctx.Wars, CalradiaRemembers.Styles.StyleService.CurrentRules());
 
-         ILlmClient client = NpcMemoryCampaignBehavior.Instance?.LlmServices?.LlmClient;
+         ILlmClient client = NpcMemoryCampaignBehavior.Instance?.LlmServices?.HousekeepingClient;
          if (client == null)
             return "No AI is configured. Offline summary instead:\n" + StrategicAssessmentSummary.Compose(r, player);
 
