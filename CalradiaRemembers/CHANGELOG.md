@@ -2,6 +2,32 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.15.. 2026-09-19
+
+Four fixes, all found by reading the first real bridge mod built on the modder API (tashmetu's Bellum Bridge)
+against the code. Every one was invisible from outside the mod.
+
+### Fixed
+- **The cr_patch scanner read DISABLED modules.** `ModuleHelper.GetModules()` is, per the decompiled engine, a
+  walk over `_loadedModules.Values`: every module found on disk, enabled or not, in dictionary order. A bridge
+  turned off in the launcher kept feeding its prose, and with its assembly unloaded its `{{variables}}` were
+  unregistered, and `PromptVariableExpander` leaves an unknown token literal, so the model read raw braces every
+  turn. Now `TaleWorlds.Engine.Utilities.GetModulesNames()` (enabled, load order), fallback
+  `ModuleHelper.GetActiveModules()`. The "launcher load order" the 2.5.13 notes promised is now true.
+  `cr.testall` gains `narrative_patch_scope`. **DURABLE: verify an engine method by decompiling it, not by its
+  name; `GetModules` sounds like "the loaded modules" and is not.**
+
+### For modders
+- **`{{variables}}` are expanded in the behaviour guidelines**, full and Lean. Style, player description, world
+  and post-history were expanded; the guidelines were not. They sit in the CACHED prefix, so a variable there
+  should change rarely.
+- **A contribution to a sectioned file gets its own section.** behavior_guidelines ends with per-culture blocks,
+  Nords last, and `FactionGuidelinesPolicy` ends a section at the next `=== ` heading. Text appended with no
+  heading became part of the Nords block and was stripped for every other culture. The composer now places
+  `=== FURTHER GUIDANCE ===` before a contribution's first line of text, unless it opens with its own heading.
+  Two features, each tested and correct alone, and no test for the seam: there is one now, end to end.
+- **`!#` comments** in cr_patch files. A comment-only file returns the shipped text byte for byte.
+
 ## v2.5.14.. 2026-09-19
 
 One addition: a BACKGROUND role, so the mod's mechanical calls can go to a different model from the prose. And

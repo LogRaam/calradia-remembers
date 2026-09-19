@@ -484,7 +484,7 @@ cr.remove_kink <kink> [name]         # remove a kink
 > Short on purpose. The detail lives in `CHANGELOG.md`, the `NEXUS_CHANGELOG_*.txt` files and git; this says
 > only where things stand and what is NOT safe to assume.
 
-**Shipped: v2.5.14 is being published** (Gabriel, 2026-09-19: "On publie 2.5.14"). v2.5.13 is live before it. Verify a live version by asking Gabriel
+**Shipped: v2.5.14 is LIVE** (Gabriel, 2026-09-19: "livré"). **v2.5.15 is cut and being published** (Gabriel: "On publie nexus"): four bridge-mod fixes, detail in `CHANGELOG.md`. Verify a live version by asking Gabriel
 to paste text or a screenshot: `SubModule.xml` is NOT evidence and WebFetch on Nexus is 403 (Cloudflare).
 v2.5.11 was built and never uploaded. The 2.5.14 archive was rebuilt three times before upload to fold in
 three fixes found after the first cut; the shipped one is MOD `d082528` / SDK `86ca836`.
