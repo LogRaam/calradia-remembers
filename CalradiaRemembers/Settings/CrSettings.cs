@@ -402,6 +402,24 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public string ReplyLanguage { get; set; } = "";
 
+      // Three players in two days, none of them defending it (Kilju101 17/09, Lordfadooboo 18/09, fkasad 18/09).
+      // fkasad put the cost plainly: "Maybe one in ten NPCs has something interesting to say, but unfortunately,
+      // I'm forced to decline the conversation because of the other nine... it's wasted playtime."
+      //
+      // The nine have a name in the code: RecentMatterRegister.WorldGossip, a happening that does NOT involve
+      // the player, which the lord does not comment on but ASKS the player about. It always yields to anything
+      // personal, so it fires exactly when a lord has nothing of his own to say. This switches that one register
+      // off and leaves every other reason to approach untouched.
+      //
+      // Default OFF, and that is the decision, not the switch: a player annoyed by this does not go looking
+      // through mod options, they stop using the mod. Anyone who wants the world talked about can turn it on.
+      [SettingPropertyBool("NPCs Raise World News", RequireRestart = false, Order = 3,
+         HintText = "Off (default): an NPC approaches you only about something between the two of you. On: they " +
+                    "may also stop you to ask what you make of distant news. Their own deeds and yours are " +
+                    "always allowed either way.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool NpcsRaiseWorldNews { get; set; } = false;
+
       [SettingPropertyDropdown("Lords Approaching You", RequireRestart = false, Order = 2,
          HintText = "How often a lord rides out to have a word with you on the road. Never switches it off " +
                     "entirely. Occasionally is the shipped feel.")]

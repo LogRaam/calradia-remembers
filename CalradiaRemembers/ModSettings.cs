@@ -276,6 +276,13 @@ namespace CalradiaRemembers
       ///   live from the MCM menu; Occasionally (the shipped feel) when MCM has not loaded, so nothing changes for
       ///   a player who never touches it.
       /// </summary>
+      /// <summary>
+      ///   Whether an NPC may stop the player over news that does not concern them
+      ///   (<c>RecentMatterRegister.WorldGossip</c>). Off by default: see CrSettings for the three reports.
+      ///   Nothing else about approaching is touched by it.
+      /// </summary>
+      public static bool NpcsRaiseWorldNews => CrSettings.Instance?.NpcsRaiseWorldNews ?? false;
+
       public static InterceptionPacing LordsApproaching
       {
          get

@@ -19,6 +19,7 @@
 
 #region
 
+using CalradiaRemembers.Logic.Interception;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -219,6 +220,9 @@ namespace CalradiaRemembers.Interception
                InterceptionTrigger.Grudge => grudgeCause,
                InterceptionTrigger.AppreciationOwed => appreciationCause,
                InterceptionTrigger.NemesisBounty => nemesisDetail,
+               // HeardOfDeed is the commonest trigger by far and was the one with no detail at all, so the
+               // invitation it raised could only say "someone wants a word". The matter is right there.
+               InterceptionTrigger.HeardOfDeed => InterceptionBehavior.RecentMatterTopic(h, today),
                _ => null
             };
 
@@ -239,7 +243,13 @@ namespace CalradiaRemembers.Interception
          _pendingDetail = detail;
 
          var title = new TextObject($"{npc.Name} asks for a word");
-         var body = new TextObject($"{npc.Name}, standing here, catches your eye and seems to want a private word with you.");
+
+         // NAME THE SUBJECT (fkasad, 18/09/2026). Declining blind nine times out of ten is rational, and it
+         // costs the player the tenth one too. The topic has always been in hand at this point; it was simply
+         // never shown. Trimmed, because a summary can run long and an inquiry box cannot.
+         string about = AudienceTopicLine.For(detail);
+         var body = new TextObject(
+            $"{npc.Name}, standing here, catches your eye and seems to want a private word with you.{about}");
 
          InformationManager.ShowInquiry(new InquiryData(
             title.ToString(), body.ToString(),

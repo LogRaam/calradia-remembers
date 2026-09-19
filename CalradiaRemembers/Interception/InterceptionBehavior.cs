@@ -735,6 +735,20 @@ namespace CalradiaRemembers.Interception
          => Instance != null && Instance.PickRecentMatter(lord, today) != null;
 
       /// <summary>
+      ///   WHAT this lord would raise, in a few words, for the invitation that asks the player whether to hear
+      ///   him. Null when he has nothing, which is also when no invitation is raised.
+      ///   <para>
+      ///     fkasad (Nexus, 18/09/2026): "The invitation to talk should specify the topic the NPC wants to
+      ///     discuss (that's how it works in real life)." His whole complaint turns on this. He accepts or
+      ///     declines blind, so a nine-in-ten chance of a platitude makes declining the rational move, and the
+      ///     tenth one, the one worth having, is refused along with the rest. Naming the subject costs nothing,
+      ///     needs no model, and hands the choice back to him.
+      ///   </para>
+      /// </summary>
+      internal static string RecentMatterTopic(Hero lord, int today)
+         => Instance?.PickRecentMatter(lord, today)?.Summary;
+
+      /// <summary>
       ///   The single matter this lord would raise right now: the freshest unraised one from his own profile
       ///   memories of the player (LIVED) and the world events he knows of involving the player (LIVED if he took
       ///   part, else RUMOR), or null when he has nothing fresh left. Pure selection lives in the tested
@@ -791,11 +805,17 @@ namespace CalradiaRemembers.Interception
                   matters.Add(new RecentMatter("we:" + we.Id, we.Day, we.Summary,
                      tookPart ? RecentMatterRegister.LivedMemory : RecentMatterRegister.RumorAboutPlayer));
                }
-               else if (!tookPart && we.Magnitude >= GossipMagnitudeThreshold)
+               else if (!tookPart && ModSettings.NpcsRaiseWorldNews && we.Magnitude >= GossipMagnitudeThreshold)
                {
                   // World GOSSIP (phase 2): a noteworthy happening the lord only heard of and had no part in, so he
                   // probes the player about it. The tookPart guard is also what stops a lord gossiping about
                   // himself ("Lucon asks who Lucon's secret lover is") -- if he is a participant it is never gossip.
+                  //
+                  // GATED OFF BY DEFAULT since 18/09/2026. This register always yields to anything personal, so
+                  // it is precisely what fires when a lord has nothing of his own to say, and three players in
+                  // two days described the same result. Gating it HERE, where a gossip matter is minted, rather
+                  // than at the approach: a lord left with no matter at all now has nothing to say, so
+                  // HeardRecentPlayerDeed is false and he does not ask for a word. Silence is the point.
                   matters.Add(new RecentMatter("we:" + we.Id, we.Day, we.Summary, RecentMatterRegister.WorldGossip));
                }
             }
