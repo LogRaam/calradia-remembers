@@ -5,8 +5,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.5.14.. 2026-09-19
 
 One addition: a BACKGROUND role, so the mod's mechanical calls can go to a different model from the prose. And
-two fixes folded in before upload: `take_into_service` could give away family by marriage or the wider tree, and
-`teach_skill` never checked whether the player already knew more than the teacher.
+three fixes folded in before upload: `take_into_service` could give away family by marriage or the wider tree,
+`teach_skill` never checked whether the player already knew more than the teacher, and a prisoner handed over as a
+SALE never settled the delivery bargain it answered.
 
 ### Fixed
 - **A daughter-in-law could be offered to a lord as a retainer** (reminensce, a bridge-submod author who asked
@@ -24,6 +25,14 @@ two fixes folded in before upload: `take_into_service` could give away family by
   it already takes two ints in a row, and a third where swapping teacher and player silently inverts the rule is
   the signature this repo spent a campaign removing. A test calls the pair both ways and must go red on a swap.
   The prompt line now reads "and the player knows less of them than you do", since the list means that now.
+- **A captive delivered by SALE left the bargain open forever** (Lordfadooboo: paid, quest stuck). Two verbs
+  hand a captive to an NPC and only `give_prisoner` settled the bargain; `buy_prisoner` paid a price and touched
+  nothing, and the bag's only prisoner option was worded as a sale. `DeliveryQuestMatcher` asks the one question
+  for every path: a sale of a captive the buyer asked for is handed over as the DELIVERY (reward paid once), the
+  bag offers a handover in that case, and `give_prisoner` now reads the whole custody (party and own dungeons,
+  as the bag and the sale already did), tries every open bargain, and honours the captive the player named. The
+  catalogue's give_prisoner anti-pattern named `sell_prisoner` for a sale to the NPC; it is `buy_prisoner`.
+  `cr.testall` gains `deliver_prisoner_by_sale`.
 
 ### New
 - **`ServiceRole.Housekeeping`** plus `LlmServices.HousekeepingClient`, a lazily-built, fail-soft-to-main client

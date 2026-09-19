@@ -1,6 +1,6 @@
 Version 2.5.14
 
-One addition for anyone running a local model, asked for on this page by fkasad, and two fixes: one reported by a modder who was careful enough to ask before working around it, and one found while answering a player's question.
+One addition for anyone running a local model, asked for on this page by fkasad, and three fixes: one reported by a modder who was careful enough to ask before working around it, one found while answering a player's question, and one reported by a player who got paid for a job the game then refused to close.
 
 New
 
@@ -23,6 +23,12 @@ Fixed
   Family now means what you would mean by it: anyone who shares a forebear with you within three generations, and anyone married to one of them, read from the game's own family tree. It decides both whether the offer is made at all and whether it goes through, so the two can never disagree. Companions, and anyone who joined your house rather than being born or married into it, can still be offered exactly as before, including a turned nemesis or a prisoner who swore to you.
 
 - You can no longer be taught a skill by someone who knows less of it than you do. Found while answering Zinced121212, who asked on this page whether characters are aware of skills at all. Anyone with real mastery of a skill can teach it to you if you ask, but nothing ever checked how good YOU already were: a player at 300 in Medicine could be taught Medicine by a companion at 100, and be paid in experience for it. A teacher now has to know more of it than you do, and a character only offers lessons in what they could actually show you. If you ask anyway, you are told plainly that there is nothing to learn from them there.
+
+- Handing a lord the prisoner he asked for now always completes his request. Reported by Lordfadooboo: a Khuzait lord asked him to deliver a Nord lord in chains, he brought one, typed out the handover, "the character spoke as if i completed the quest, i even got paid, but the quest still remained on my board, unable to be completed."
+
+  There are two ways a prisoner changes hands in a conversation, delivering one that was asked for and selling one, and only the delivery ever closed the request. Which one happened depended on how the character took your words. Worse, the only prisoner option in the offer bag was worded as a sale, which pushed straight towards the one that never closes anything. Now, a prisoner handed to someone who asked for them completes the request however it was phrased, and you are paid the promised reward once, not a sale price as well. When the prisoner you pick in the bag is one this person asked for, the bag offers the handover instead of a sale. And a prisoner held in your own dungeon now counts for a delivery, as they already did for a sale.
+
+  If you have a request stuck this way from before, the console command cr.quest_void with its number (see cr.quests) clears it without any penalty.
 
 Notes
 
