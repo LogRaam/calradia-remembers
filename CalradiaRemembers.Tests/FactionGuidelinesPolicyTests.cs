@@ -167,5 +167,79 @@ You are a seafarer of raider stock.";
 
             text.Should().Be(Guidelines);
         }
+
+        #region a realm renamed at runtime
+
+        // Modder report (Bellum Civile bridge, 18/09/2026). Bellum renames every kingdom while the game runs,
+        // and characters went on using the vanilla name. His diagnosis: "the prompt builder seems to match a
+        // fixed list and only fall back to the live name for factions it doesn't recognise" - and his evidence
+        // was that REBEL kingdoms his mod spawns at runtime were named correctly, because nothing static
+        // mentions them.
+        //
+        // He was right about the shape and there is no lookup to invert: the vanilla names are PROSE. The one
+        // place a stale name is asserted about the character THEMSELVES is the heading of the block they read
+        // about their own people, so that heading is now written from the live realm.
+
+        // THE REPORTED SHAPE. The culture still matches its heading, the realm has been renamed under it, and
+        // the block he reads must not go on telling him the old name.
+        [Test]
+        public void GIVEN_a_realm_renamed_at_runtime_WHEN_narrowed_THEN_the_heading_uses_the_live_name()
+        {
+            string text = Narrow("Vlandia", "Kingdom of Wercheg");
+
+            text.Should().Contain("If you are from Kingdom of Wercheg:");
+            text.Should().NotContain("If you are from Vlandia:");
+        }
+
+        // The BODY is the people, not the name: renaming a realm does not change what its lords are like, and
+        // rewriting the text would be inventing a culture the file never described.
+        [Test]
+        public void GIVEN_a_realm_renamed_at_runtime_WHEN_narrowed_THEN_the_guidance_itself_is_untouched()
+        {
+            Narrow("Vlandia", "Kingdom of Wercheg")
+                .Should().Contain("You believe in knightly honor and courtly love.");
+        }
+
+        // AND THE LIMIT, WRITTEN DOWN RATHER THAN WISHED AWAY. The Empire is the one culture whose headings
+        // are split by REALM and not by culture, so the only thing that ever told a Southern lord from a
+        // Northern one was the realm's NAME. Rename it and that distinction is gone: the loose fallback keeps
+        // both imperial blocks, and re-titling both with the live name would merge two different peoples into
+        // one. Two headings, one of them stale, is the lesser harm; the prompt's precedence rule carries the
+        // rest. This test exists so the day someone thinks they have fixed it, they see what it would cost.
+        [Test]
+        public void GIVEN_an_imperial_realm_renamed_at_runtime_WHEN_narrowed_THEN_both_headings_stay_as_written()
+        {
+            string text = Narrow("Empire", "Basileia ton Notion Kalradon");
+
+            text.Should().NotContain("If you are from Basileia ton Notion Kalradon:");
+            text.Should().Contain("If you are from the Southern Empire:");
+            text.Should().Contain("If you are from the Northern or Western Empire:");
+        }
+
+        // AN UNRENAMED REALM MUST READ EXACTLY AS IT ALWAYS DID. If this fails, every ordinary campaign just
+        // had its guidelines rewritten for a bug it never had.
+        [Test]
+        public void GIVEN_a_realm_that_was_never_renamed_WHEN_narrowed_THEN_the_heading_is_left_alone()
+        {
+            Narrow("Vlandia", "Vlandia").Should().Contain("If you are from Vlandia:");
+        }
+
+        // A realm the heading ALREADY names, spelled differently by the engine, must not be re-titled into a
+        // near-duplicate of itself.
+        [Test]
+        public void GIVEN_a_live_name_the_heading_already_carries_WHEN_narrowed_THEN_it_is_not_retitled()
+        {
+            Narrow("Battania", "Battania").Should().Contain("If you are from Battania:");
+        }
+
+        // No live realm to speak of (a wanderer of no kingdom): nothing to rename, and the old heading is
+        // better than an empty one.
+        [Test]
+        public void GIVEN_a_character_with_no_realm_WHEN_narrowed_THEN_the_heading_survives_as_written()
+        {
+            Narrow("Vlandia", null).Should().Contain("If you are from Vlandia:");
+        }
+
+        #endregion
     }
 }

@@ -88,7 +88,7 @@ namespace CalradiaRemembers.Logic
 
             foreach (string block in kept)
             {
-                rebuilt.AppendLine(block.Trim());
+                rebuilt.AppendLine(RenamedForLiveRealm(block.Trim(), factionName, kept.Count));
                 rebuilt.AppendLine();
             }
 
@@ -147,6 +147,42 @@ namespace CalradiaRemembers.Logic
                           && (requireAll
                                  ? words.All(w => Mentions(identity, w))
                                  : words.Any(w => Mentions(identity, w))));
+
+        /// <summary>
+        ///   Re-titles a matched block with the realm's LIVE name when that name is not the one the heading
+        ///   uses. The body is untouched: this renames the character's realm, it does not rewrite what their
+        ///   people are like.
+        ///   <para>
+        ///     Modder report (Bellum Civile bridge, 18/09/2026): Bellum renames every kingdom at runtime
+        ///     ("Southern Empire" becomes "Basileia ton Notion Kalradon") and characters went on saying the
+        ///     vanilla name. His diagnosis was that the prompt matched a fixed list and fell back to the live
+        ///     name only for factions it did not recognise, which is right in substance: rebel kingdoms his
+        ///     mod spawns at runtime were named correctly because nothing static mentions them.
+        ///   </para>
+        ///   <para>
+        ///     There is no name lookup to invert. The vanilla names are PROSE, in behavior_guidelines.txt and
+        ///     world.txt, and the heading of the block a character reads about themselves is the one place a
+        ///     stale name is asserted about THEM. So that one is corrected from the live realm and the rest is
+        ///     left to the precedence rule in the prompt.
+        ///   </para>
+        ///   Only when exactly ONE block survived: with two or more the headings are what tell them apart, and
+        ///   giving both the same live name would merge two different peoples into one.
+        /// </summary>
+        private static string RenamedForLiveRealm(string block, string factionName, int keptCount)
+        {
+            string live = (factionName ?? "").Trim();
+
+            if (keptCount != 1 || live.Length == 0 || block.Length == 0) return block;
+
+            string firstLine = block.Split('\n')[0].TrimEnd('\r');
+
+            if (!firstLine.TrimStart().StartsWith(BlockPrefix, StringComparison.OrdinalIgnoreCase)) return block;
+            if (Mentions(live, HeadingKey(block))) return block; // the heading already names this realm
+
+            string rest = block.Substring(Math.Min(firstLine.Length, block.Length));
+
+            return BlockPrefix + live + ":" + rest;
+        }
 
         /// <summary>The "X" of "If you are from X:", lowercased and stripped of its trailing colon.</summary>
         private static string HeadingKey(string block)
