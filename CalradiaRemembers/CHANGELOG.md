@@ -5,7 +5,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.5.14.. 2026-09-19
 
 One addition: a BACKGROUND role, so the mod's mechanical calls can go to a different model from the prose. And
-one fix, folded in before upload: `take_into_service` could give away family by marriage or the wider tree.
+two fixes folded in before upload: `take_into_service` could give away family by marriage or the wider tree, and
+`teach_skill` never checked whether the player already knew more than the teacher.
 
 ### Fixed
 - **A daughter-in-law could be offered to a lord as a retainer** (reminensce, a bridge-submod author who asked
@@ -17,6 +18,12 @@ one fix, folded in before upload: `take_into_service` could give away family by 
   - **Renamed as well as widened**: `CompanionIsPlayerBlood` and the refusal "{name} is your own blood" became
     FAMILY, or a daughter-in-law's refusal would have told the player she was their blood. The same class of
     defect as the duel: a predicate whose name answers a different question than its body.
+- **A master at 100 could teach a player at 300 and pay him for it** (found answering Zinced121212). The lesson
+  never read the player's level. `TeachSkillPolicy.CanTeachPlayer`: competent at all AND strictly better than the
+  player, used by the list the prompt offers and the bridge that pays. **Kept out of `GrantedXp` on purpose**:
+  it already takes two ints in a row, and a third where swapping teacher and player silently inverts the rule is
+  the signature this repo spent a campaign removing. A test calls the pair both ways and must go red on a swap.
+  The prompt line now reads "and the player knows less of them than you do", since the list means that now.
 
 ### New
 - **`ServiceRole.Housekeeping`** plus `LlmServices.HousekeepingClient`, a lazily-built, fail-soft-to-main client

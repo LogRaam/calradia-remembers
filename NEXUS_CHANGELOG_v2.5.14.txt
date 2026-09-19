@@ -1,6 +1,6 @@
 Version 2.5.14
 
-One addition for anyone running a local model, asked for on this page by fkasad, and one fix, reported by a modder who was careful enough to ask before working around it.
+One addition for anyone running a local model, asked for on this page by fkasad, and two fixes: one reported by a modder who was careful enough to ask before working around it, and one found while answering a player's question.
 
 New
 
@@ -21,6 +21,8 @@ Fixed
   It was an error, and he had read it exactly right. The 2.5.9 notes promised that your spouse and your own blood could never be given away, and "your own blood" had been taken to mean your parents, your children and your siblings, and nobody else. A house that has run for a generation holds grandchildren, nephews, cousins, and the husbands and wives of all of them. A daughter-in-law is in your clan, is not your blood and is not your spouse, so she passed every check there was.
 
   Family now means what you would mean by it: anyone who shares a forebear with you within three generations, and anyone married to one of them, read from the game's own family tree. It decides both whether the offer is made at all and whether it goes through, so the two can never disagree. Companions, and anyone who joined your house rather than being born or married into it, can still be offered exactly as before, including a turned nemesis or a prisoner who swore to you.
+
+- You can no longer be taught a skill by someone who knows less of it than you do. Found while answering Zinced121212, who asked on this page whether characters are aware of skills at all. Anyone with real mastery of a skill can teach it to you if you ask, but nothing ever checked how good YOU already were: a player at 300 in Medicine could be taught Medicine by a companion at 100, and be paid in experience for it. A teacher now has to know more of it than you do, and a character only offers lessons in what they could actually show you. If you ask anyway, you are told plainly that there is nothing to learn from them there.
 
 Notes
 
