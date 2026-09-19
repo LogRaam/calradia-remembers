@@ -2,6 +2,8 @@
 
 #region
 
+using CalradiaRemembers.Storage;
+using CalradiaRemembers.Logic.Narrative;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -101,7 +103,18 @@ namespace CalradiaRemembers.Mapping
          string content = File.ReadAllText(path, Encoding.UTF8).Trim();
          ModLog.Info($"  [{label}]{(useCustom ? " (custom)" : "")} loaded ({content.Length} chars).");
 
-         return content;
+         // OTHER MODULES GET THEIR SAY, AFTER OURS AND AFTER THE PLAYER'S. The Custom folder above is the
+         // PLAYER's override and stays the last word on what the base text is; patches are laid over whatever
+         // that resolved to, in launcher load order. A player with no bridge mod installed gets back the exact
+         // bytes read above, which NarrativePatchComposer guarantees rather than merely tends to do.
+         IReadOnlyList<NarrativePatch> patches = NarrativePatchScanner.PatchesFor(filename);
+
+         if (patches.Count == 0) return content;
+
+         string composed = NarrativePatchComposer.Compose(content, patches);
+         ModLog.Info($"  [{label}] {patches.Count} module patch(es) applied ({content.Length} -> {composed.Length} chars).");
+
+         return composed;
       }
 
       #endregion

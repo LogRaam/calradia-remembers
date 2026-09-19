@@ -454,6 +454,29 @@ cr.remove_kink <kink> [name]         # remove a kink
     the Nexus page or answering a player still waits for Gabriel. Pushing to a private repo is reversible;
     publishing is not.
 
+- **Tracing the code: DELEGATE IT.** Use the `cr-trace` agent (`.claude/agents/cr-trace.md`) for any question
+  that means sweeping files rather than opening one you can already name: "where is X decided", "who sets Y",
+  "what ordering picks Z". Several of these can run at once, in a single message, since they do not touch each
+  other. It is read-only by design.
+  - *Why:* a sizeable share of a working session goes on exactly this, and the answer is one paragraph. Keeping
+    the search out of the main thread keeps room for the part that needs judgement.
+  - *When NOT to:* if you already know the file, just read it. A delegated search that comes back with a file
+    you could have opened directly cost more than it saved.
+- **Building in parallel: almost never, and know why before you try.** Three things serialise this work and none
+  of them is about speed.
+  - **Git.** Two agents editing and committing in the same two repos collide, and the rhythm here is
+    build, test, commit, push. Use an isolated worktree or do not write from an agent at all.
+  - **The shared prompt budget.** Many changes land in the same cacheable prefix and are guarded by the same
+    ratchets (Compact fit, prompt cache stability). Two agents each adding a block would blow a budget neither
+    of them measured.
+  - **The bar.** Most of the value in this repo comes from NOT taking the first plausible diagnosis: the duel
+    venue was mis-diagnosed once and shipped, the archive verifier cried wolf twice, a new test failed for a
+    good reason and the code was what was wrong. An agent working from a short brief returns the plausible
+    answer with confidence, and the cost of a wrong fix here is a player writing "still broken on the version
+    that was meant to fix it". That has already happened once.
+  - *So:* delegate a BUILD only when the work is genuinely disjoint from everything else in flight AND has a
+    spec precise enough that you would accept the result without re-deriving it.
+
 ---
 
 ## Current state (2026-09-15)
