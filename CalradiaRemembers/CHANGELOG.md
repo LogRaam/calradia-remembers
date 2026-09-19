@@ -4,7 +4,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.5.16.. 2026-09-19
 
-Grievances that remember being answered, and duels that finally act on the grudge that drove them.
+Grievances that remember being answered, duels that finally act on the grudge that drove them, and a player who
+leaves a realm is no longer written to as a member of it.
 
 ### Fixed
 - **A lord kept asking why the player did what he holds against them** (Zivkyn: "asking why i killed their
@@ -21,7 +22,18 @@ Grievances that remember being answered, and duels that finally act on the grudg
   grudge. `GrudgePolicy.Harden` now exists; `DuelOutcomePolicy.ApplyGrudgeEffect` resolves on a fought duel and
   adds `GrudgeHardenedByForfeit` (15) on a forfeit by either side. Vendettas refused both ways.
 
-`cr.testall` gains `grudge_answered` (drives `hear_account` through the real bridge).
+- **Letters and prompts kept treating an expelled player as a member of their old realm** (tashmetu, expelled by
+  Bellum Civile after a lost war). The live standing reads were right; four places were not. ServiceOffer: once
+  the player had no kingdom every friendly ruler qualified, the expelling one included, and the context always
+  said "leave the lord they now serve"; the premise now follows the live realm and the ruler of a realm the
+  player left stays silent 120 days (`ServiceOfferPolicy`). Departures other than LeaveKingdom/LeaveWithRebellion
+  went unrecorded; every departure now carries the `player_left_realm` marker (`WorldEventFeeders`), an
+  unrecognised one logged and recorded neutrally. `{{faction}}`/`{{user_clan}}` were captured once per
+  PromptBuilder until reload; a realm or clan change now rebuilds it. BattleVictory candidates are retired at
+  release if the sender no longer shares the player's realm. SDK: the history block now says memories keep the
+  allegiances of their day and the present standing is true now.
+
+`cr.testall` gains `grudge_answered` (drives `hear_account` through the real bridge) and `realm_departure`.
 
 ## v2.5.15.. 2026-09-19
 
