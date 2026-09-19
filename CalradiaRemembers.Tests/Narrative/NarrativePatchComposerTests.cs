@@ -13,6 +13,7 @@
 #region
 
 using System.Collections.Generic;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Narrative;
 using FluentAssertions;
 using NUnit.Framework;
@@ -122,6 +123,70 @@ namespace CalradiaRemembers.Tests.Narrative
       {
          Compose(Patch("Empty", "   ")).Should().Contain("Six cultures compete for it.");
       }
+
+      #region what tashmetu's first real contribution taught (19/09/2026)
+
+      private const string Guidelines = @"=== MEMORY AND CONSEQUENCES ===
+
+Severe betrayal changes you.
+
+=== FACTION BEHAVIOR ===
+
+If you are from the Southern Empire:
+You are shaped by Empress Rhagaea's progressive vision.
+
+If you are from the Nords:
+You are a seafarer of raider stock.";
+
+      // THE CASE THAT WOULD HAVE SHIPPED BROKEN. The shipped guidelines end with the per-culture blocks, Nords
+      // last, and each character keeps only their own culture's block. A contribution appended straight after
+      // it became part of the Nords block, so every lord who was not a Nord lost it without a word. This runs
+      // the two real policies end to end, compose then narrow, the way the game does.
+      [Test]
+      public void GIVEN_a_contribution_to_the_guidelines_WHEN_an_imperial_lord_reads_them_THEN_it_is_still_there()
+      {
+         string composed = NarrativePatchComposer.Compose(Guidelines,
+            new[] {new NarrativePatch("BellumBridge", "A seat on the privy council is not a feudal title.")});
+
+         string imperial = FactionGuidelinesPolicy.NarrowToOwnCulture(composed, "Empire", "Southern Empire");
+
+         imperial.Should().Contain("A seat on the privy council is not a feudal title.");
+         imperial.Should().NotContain("seafarer of raider stock", "the narrowing itself must still work");
+      }
+
+      // The boundary is only drawn when there is something above to separate from; a contributor who opened with
+      // a heading of their own has drawn it already, and a second would be an empty section.
+      [Test]
+      public void GIVEN_a_contribution_that_opens_with_its_own_heading_WHEN_composed_THEN_no_second_heading_is_added()
+      {
+         string composed = NarrativePatchComposer.Compose(Guidelines,
+            new[] {new NarrativePatch("BellumBridge", "=== BELLUM CIVILE ===\nOffices are held at the crown's pleasure.")});
+
+         composed.Should().Contain("=== BELLUM CIVILE ===");
+         composed.Should().NotContain(NarrativePatchComposer.ContributionHeading);
+      }
+
+      // THE COMMENT. His files opened with a paragraph explaining cr_patch to a human, and every word of it went to
+      // the model on every call. A contributor must be able to document the file without the lords hearing it.
+      [Test]
+      public void GIVEN_comment_lines_in_a_contribution_WHEN_composed_THEN_the_model_never_reads_them()
+      {
+         string composed = Compose(Patch("Bridge",
+            "!# Bellum Bridge: appended after the mod's own text and your Custom folder.\n" +
+            "Offices are held at the crown's pleasure."));
+
+         composed.Should().NotContain("Custom folder");
+         composed.Should().Contain("Offices are held at the crown's pleasure.");
+      }
+
+      // A file of nothing but notes changes nothing, byte for byte: the same promise as a module with no file.
+      [Test]
+      public void GIVEN_a_contribution_that_is_only_comments_WHEN_composed_THEN_the_shipped_text_is_returned_unchanged()
+      {
+         Compose(Patch("Bridge", "!# nothing to add yet\n\n!# still nothing")).Should().Be(Base);
+      }
+
+      #endregion
 
       #region private
 

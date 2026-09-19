@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 #endregion
@@ -59,6 +60,31 @@ namespace CalradiaRemembers.Logic.Narrative
       public const string RemoveDirective = "!remove ";
 
       /// <summary>
+      ///   A line the AUTHOR reads and the model never does. tashmetu's first contribution opened both files with a
+      ///   paragraph explaining cr_patch to a human reader ("appended after the mod's own text and after whatever
+      ///   you keep in your Custom folder"), and every word of it went to the model on every call, because the only
+      ///   lines kept out were directives. A contributor should be able to document a file without the lords of
+      ///   Calradia hearing about Custom folders.
+      /// </summary>
+      public const string CommentPrefix = "!#";
+
+      /// <summary>
+      ///   The heading that separates a module's contribution from whatever came before it, so it is its own
+      ///   section rather than a continuation of the last one.
+      ///   <para>
+      ///     tashmetu, 19/09/2026 again, and this one would have been invisible from outside. behavior_guidelines
+      ///     ends with the per-culture blocks, "If you are from the Nords:" last, and each character is shown only
+      ///     their own culture's block. A contribution appended straight after it, with no heading of its own,
+      ///     BECAME part of the Nords block: every lord who was not a Nord lost it, and nothing said so. The
+      ///     narrowing ends a section at the next "=== " heading, so one is placed here unless the contributor
+      ///     already opened with one.
+      ///   </para>
+      ///   Worded as plain guidance rather than as the module's name, because the model reads it and has no use
+      ///   for knowing which mod wrote the lines below it.
+      /// </summary>
+      public const string ContributionHeading = "=== FURTHER GUIDANCE ===";
+
+      /// <summary>
       ///   The mod's own <paramref name="baseText" /> with each patch applied after it, in the order given,
       ///   which the caller takes from the launcher. A patch that says nothing changes nothing.
       /// </summary>
@@ -71,16 +97,21 @@ namespace CalradiaRemembers.Logic.Narrative
          {
             if (patch == null || string.IsNullOrWhiteSpace(patch.Text)) continue;
 
-            touched = true;
+            // The boundary is owed once per contribution, before its first line of text, and only when there is
+            // something above it to be separated from.
+            var boundaryPending = true;
 
             foreach (string raw in SplitLines(patch.Text))
             {
                string line = raw ?? "";
                string trimmed = line.Trim();
 
+               if (trimmed.StartsWith(CommentPrefix, StringComparison.Ordinal)) continue;
+
                if (trimmed.Equals(ReplaceDirective, StringComparison.OrdinalIgnoreCase))
                {
                   lines.Clear();
+                  touched = true;
 
                   continue;
                }
@@ -92,12 +123,32 @@ namespace CalradiaRemembers.Logic.Narrative
                   // An empty !remove would take the whole file with it, which is what !replace is FOR and is
                   // never what a typo meant.
                   if (needle.Length > 0)
+                  {
                      lines.RemoveAll(l => l != null && l.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0);
+                     touched = true;
+                  }
 
                   continue;
                }
 
+               if (boundaryPending && trimmed.Length > 0)
+               {
+                  boundaryPending = false;
+
+                  // A contributor who opened with a heading of their own has already drawn the line; a second
+                  // one straight above it would only be an empty section.
+                  if (!trimmed.StartsWith("=== ", StringComparison.Ordinal) && lines.Any(l => !string.IsNullOrWhiteSpace(l)))
+                  {
+                     lines.Add("");
+                     lines.Add(ContributionHeading);
+                  }
+               }
+
                lines.Add(line);
+
+               // A blank line alone changes nothing a reader would notice; only real text counts as a change,
+               // so a file of nothing but comments and spacing leaves the shipped bytes untouched.
+               if (trimmed.Length > 0) touched = true;
             }
          }
 
