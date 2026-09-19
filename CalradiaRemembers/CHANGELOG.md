@@ -2,6 +2,38 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.13.. 2026-09-19
+
+Two changes, one day after 2.5.12, both from the page discussion and both things the mod already knew and was
+discarding before the decision that needed them.
+
+### Fixed
+- **A matter is chosen by what touches the speaker, then its size, then the clock** (fkasad: a notable whose
+  village was being looted raised a war three hundred leagues south instead). `RecentMatterSelector.IsBetter`
+  ranked personal-over-gossip and then by DAY alone; `WorldEvent.PlaceId`, `FactionIds` and `Magnitude` were all
+  available and were dropped on the way into `RecentMatter`. It carries `TouchesTheSpeaker` and `Weight` now.
+  **No thresholds: this is an ORDER, not a filter**, so it needs no tuning values and hides nothing that was not
+  already going to lose. **Scoped to gossip on purpose, with a test saying so**: weighing a quiet conversation
+  memory by "size" would bury the most personal material under the loudest.
+
+### For modders
+- **`ModuleData/cr_patch/<filename>` in any loaded module** contributes to that narrative file. Applied after
+  ours and after the player's Custom folder, in launcher load order. `!remove <text>` drops matching lines,
+  `!replace` discards everything before it, anything else appends. Asked for by tashmetu (Bellum Civile bridge),
+  whose argument settled the format: a small bridge appends a few lines while a total conversion replaces the
+  geography, and one mechanism must serve both without the small case causing the large one by accident.
+  - **DURABLE: the directive marker is `!` and not `-`.** Prose written for a model is full of lines beginning
+    with a dash, because that is how anyone writes a list, and a patch silently deleting a lord's behaviour over
+    a bullet would be unbearable to debug from outside the mod. There is a test for the bulleted contribution.
+  - **No patches means no change, byte for byte, line endings included.** The first draft returned a rejoined
+    copy on that path and the test caught it on the line endings: composing normalises CRLF and collapses blank
+    runs, which is right after a patch and wrong for every player who has no bridge mod.
+
+### Workflow
+- `.claude/agents/cr-trace.md`, a read-only tracer for this codebase, plus the CLAUDE.md rule for when to
+  delegate a search and why building in parallel is almost always wrong here (git, the shared prompt budget,
+  and the bar). The CLAUDE.md "Current state" section was three releases stale and is rewritten.
+
 ## v2.5.12.. 2026-09-19
 
 Eleven fixes in two days, every one from a post on the Nexus page. Supersedes the v2.5.11 cut, which was built

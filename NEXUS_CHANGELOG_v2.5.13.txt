@@ -1,0 +1,25 @@
+Version 2.5.13
+
+A small release, one day after a large one. Two changes, both from the discussion on this page, and both of them things it turned out the mod already knew and was throwing away.
+
+Fixed
+
+- A character raises what actually concerns them, not merely the newest thing they heard. Reported by fkasad, and his example is the whole of it: "Less than an hour ago, I arrived at a village that was being looted by an enemy army, intending to defend it. The notable waiting at the gate called out to me to talk about a new war taking place much further south, a conflict we aren't even involved in. Damn it! His village was burning. He could have asked for help, or insulted me and called me incompetent for arriving too late."
+
+  The notable knew about both. The mod chose between them on the date alone, so a war declared that morning three hundred leagues away outranked the raid on his own village that began the day before. Where a thing happened and how big it was were both already recorded and were both being discarded before the choice was made. They are not any more: what touches this person comes first, then the size of it, and only then how recent it is.
+
+  This is an ORDER and not a filter. Nothing new is hidden from you; a character who only knows distant news still mentions it. What changes is which one they lead with when they know several.
+
+For modders
+
+- Another module can now contribute to the prompt's background text without overwriting anything. Asked for by tashmetu, who is building a bridge between this mod and Bellum Civile using the public API, and who described the problem exactly: the only way in was to tell users to copy a file over one of ours, which destroys whatever was there and means two mods contributing can never coexist.
+
+  A module now ships its contribution at ModuleData/cr_patch/ in its own folder, using the same filename as the file it is adding to. Everything is applied after ours and after your own Custom folder, in launcher load order, so your edits still decide what the base text is and nothing overwrites anything. Lines are added as written; a line reading "!remove some text" drops matching lines, and a line reading "!replace" discards everything before it, which is what a total conversion needs when Calradia's geography is not its own.
+
+  If you have no such mod installed, your prompt files are byte for byte what they always were.
+
+Notes
+
+- Nothing here changes your save format and nothing needs a new game.
+
+- Still on the list from the same discussion, so you know it was heard rather than lost: a cleared looter camp still counts for as much as a city falling, which is why lords congratulate you on housekeeping; a grievance has no notion of ever having been answered, so a lord can keep asking why you killed his kinsman however often you explain; and there is no separate model setting for the mod's background work, which matters most to anyone running a local model. All three are understood and none of them is a one-line fix.
