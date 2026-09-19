@@ -1,6 +1,6 @@
 Version 2.5.14
 
-One addition, for anyone running a local model, and it was asked for on this page by fkasad.
+One addition for anyone running a local model, asked for on this page by fkasad, and one fix, reported by a modder who was careful enough to ask before working around it.
 
 New
 
@@ -13,6 +13,14 @@ New
   So: point the background work at something small and cheap and leave your good model to do the talking. A 4B model is plenty to summarise a conversation.
 
   One thing is deliberately NOT background, in case you wonder why it still uses your main model: the illuminated chronicle. It runs after the fact like the rest, but you read it, so it stays where the prose is.
+
+Fixed
+
+- A lord can no longer be offered a member of your family as though they were a retainer. Reported by reminensce, who is building a bridge submod: "it's possible for extended family members or married-in nobles to be given to and/or taken by other lords. Is this the intended behavior or an actual semantic error?"
+
+  It was an error, and he had read it exactly right. The 2.5.9 notes promised that your spouse and your own blood could never be given away, and "your own blood" had been taken to mean your parents, your children and your siblings, and nobody else. A house that has run for a generation holds grandchildren, nephews, cousins, and the husbands and wives of all of them. A daughter-in-law is in your clan, is not your blood and is not your spouse, so she passed every check there was.
+
+  Family now means what you would mean by it: anyone who shares a forebear with you within three generations, and anyone married to one of them, read from the game's own family tree. It decides both whether the offer is made at all and whether it goes through, so the two can never disagree. Companions, and anyone who joined your house rather than being born or married into it, can still be offered exactly as before, including a turned nemesis or a prisoner who swore to you.
 
 Notes
 

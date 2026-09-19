@@ -4,7 +4,19 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.5.14.. 2026-09-19
 
-One addition: a BACKGROUND role, so the mod's mechanical calls can go to a different model from the prose.
+One addition: a BACKGROUND role, so the mod's mechanical calls can go to a different model from the prose. And
+one fix, folded in before upload: `take_into_service` could give away family by marriage or the wider tree.
+
+### Fixed
+- **A daughter-in-law could be offered to a lord as a retainer** (reminensce, a bridge-submod author who asked
+  before patching around it). The pool walks `Clan.Heroes` and not `Clan.Companions` ON PURPOSE, because
+  `turn_nemesis` and `recruit_prisoner` set `Hero.Clan` directly and never `CompanionOf`, so narrowing it would
+  lose the retainers players care most about. The EXCLUSIONS were the defect: "own blood" was parents, children
+  and siblings only. `HouseholdKinPolicy` now means family: a shared forebear within three generations, or
+  married to one, from the engine's tree with dead forebears included. Pool and teaching gate share it.
+  - **Renamed as well as widened**: `CompanionIsPlayerBlood` and the refusal "{name} is your own blood" became
+    FAMILY, or a daughter-in-law's refusal would have told the player she was their blood. The same class of
+    defect as the duel: a predicate whose name answers a different question than its body.
 
 ### New
 - **`ServiceRole.Housekeeping`** plus `LlmServices.HousekeepingClient`, a lazily-built, fail-soft-to-main client
