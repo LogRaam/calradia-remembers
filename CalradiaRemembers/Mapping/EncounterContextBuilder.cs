@@ -579,6 +579,9 @@ namespace CalradiaRemembers.Mapping
             InterceptionReason = resolveInterception
                ? ResolveInterceptionReason(hero)
                : null,
+            // Set AFTER the line above on purpose: resolving the reason is what records the seeker, so on the
+            // first turn this reads the fact that call just wrote, and on every later turn it reads it again.
+            NpcSoughtThePlayer = InterceptionBehavior.Instance?.SoughtThePlayerThisConversation(hero) ?? false,
             // C5 feedback loop: consumed on read like InterceptionReason, so only pull it on a real LLM turn,
             // never on the dead open-time build (which would swallow the nudge before the model ever sees it).
             LlmFormatFeedbackNote = resolveInterception

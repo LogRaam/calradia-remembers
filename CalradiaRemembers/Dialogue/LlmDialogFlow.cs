@@ -8,6 +8,7 @@ using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Companions;
+using CalradiaRemembers.Interception;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
@@ -610,6 +611,9 @@ namespace CalradiaRemembers.Dialogue
             }
 
             Profile = GetOrCreateProfile(hero, behavior.Store);
+            // A new conversation owes nothing to the last one: whoever sought the player out then must not be
+            // read as the seeker here (see InterceptionBehavior.SoughtThePlayerThisConversation).
+            InterceptionBehavior.Instance?.ForgetConversationSeeker();
             // resolveInterception:false, since this open-time context is never fed to the model (each LLM turn rebuilds
             // its own), so it must not consume the one-shot interception directive before the first turn does.
             Context = EncounterContextBuilder.Build(hero, Profile, behavior.GameStateBridge, resolveInterception: false);

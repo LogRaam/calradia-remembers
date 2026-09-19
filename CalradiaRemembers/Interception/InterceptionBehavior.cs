@@ -126,6 +126,9 @@ namespace CalradiaRemembers.Interception
       // The REMEMBERED INTENT (player report, 2026-09-03: "if I go and meet them they don't remember they
       // wanted to tell me something"): when a road pursuit is abandoned, a living lord keeps his errand in
       // mind for InterceptionPolicy.RememberedIntentWindowDays, so a player who seeks HIM out still gets the
+      // The NPC who sought the player out in the conversation now open, or null. See SoughtThePlayerThisConversation.
+      private string _conversationSeekerId;
+
       // matter raised in person (ConsumeInterceptionReason checks this slot when no pursuit is active).
       private string _rememberedIntentLordId;
       private InterceptionTrigger _rememberedIntentTrigger = InterceptionTrigger.None;
@@ -150,6 +153,30 @@ namespace CalradiaRemembers.Interception
       ///   (same one-shot consumption). Null otherwise. Called as the CR chat context is built.
       /// </summary>
       public string ConsumeInterceptionReason(Hero npc)
+      {
+         string reason = ConsumeInterceptionReasonCore(npc);
+
+         // The DIRECTIVE is a one-shot (it tells the character how to OPEN), but the fact that they are the one
+         // who came is true for the whole conversation. Fakade (19/09/2026) watched a lord who had ridden out to
+         // him start speaking, one turn later, as though the player had come to him: from turn two the prompt
+         // said nothing about it at all. Remembered here, restated every turn by EncounterContextBuilder.
+         if (reason != null && npc != null) _conversationSeekerId = npc.StringId;
+
+         return reason;
+      }
+
+      /// <summary>
+      ///   Whether THIS conversation is one <paramref name="npc" /> sought: true from the turn the opening
+      ///   directive was consumed until the conversation ends. Deliberately not persisted: a conversation never
+      ///   survives a save, and a stale seeker read after a reload would be a lie in the prompt.
+      /// </summary>
+      public bool SoughtThePlayerThisConversation(Hero npc)
+         => npc != null && _conversationSeekerId != null && _conversationSeekerId == npc.StringId;
+
+      /// <summary>Cleared as a conversation opens, so the previous one's seeker cannot colour this one.</summary>
+      public void ForgetConversationSeeker() => _conversationSeekerId = null;
+
+      private string ConsumeInterceptionReasonCore(Hero npc)
       {
          if (npc == null || _activePursuerId == null || npc.StringId != _activePursuerId)
             return ConsumeRememberedIntent(npc);

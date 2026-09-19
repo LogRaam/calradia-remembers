@@ -226,6 +226,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("fief_audience", Severity.Light, "Player wish (Fakade, roadmap): road-only InterceptionBehavior needs a field party to move, so anyone without one (ladies, notables, a garrisoned lord standing around in a fief) never got a turn. Finds a real partyless hero standing in a live settlement; asserts the pure gate (FiefAudiencePolicy.ChooseFiefValid) raises nothing for a no-reason fact set; seeds a fresh, high-reach, player-involving WorldEvent so the SAME live fact HeardRecentPlayerDeed the road path reads is real, not fabricated; drives the REAL candidate scan (FiefAudienceBehavior.DebugScanAndStamp, never the live UI inquiry, never an LLM call) and asserts it offers that NPC with a fief-valid trigger; then asserts the SAME NPC asked again is WITHHELD by the per-NPC cooldown the offer itself just stamped. Removes the seeded WorldEvent and clears the stamped cooldown afterwards", TestFiefAudience),
          new SelfTest("interception_grudge_appreciation", Severity.Light, "Two new proactive channels for the mod's two signature event-anchored affect ledgers (design brief 2026-08-20): a lord who holds a live, significant grudge against the PLAYER rides out/asks for a word to air it (Grudge), and one who holds a significant, recent appreciation of the player does likewise to acknowledge it (AppreciationOwed), on BOTH the road (InterceptionBehavior) and the fief-audience channel (FiefAudienceBehavior), since both reuse the SAME InterceptionPolicy.Choose. Seeds a real Grudge (TryPlant) on a clean-slate lord and asserts InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer finds it (false before planting), the pure InterceptionPolicy.Choose surfaces Grudge, and Grudge is fief-valid; does the same for a real Appreciation and AppreciationOwed; then asserts the priority pin (Grudge outranks AppreciationOwed when both hold on the same facts, mirroring InterceptionPolicyTests). Removes the seeded grudge afterwards (mirrors appreciation_flow/companion_gratitude: no removal API exists for an appreciation, so it is left, exactly like every other appreciation-seeding self-test)", TestInterceptionGrudgeAppreciation),
          new SelfTest("grudge_answered", Severity.Light, "Player report (Zivkyn, 18/09/2026): a lord kept asking why the player killed his kin, months later, however often it had been explained, and kept riding out to confront the player about it. Plants a real grudge against the player on a clean-slate lord and makes it a VENDETTA, asserts it drives an interception and hear_account is offered, then runs hear_account through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes) and asserts: the grudge is answered with the account, still a vendetta and exactly as heavy, the lord's built GrudgeNote now carries the account and the do-not-ask-again instruction, the interception no longer fires, and hear_account is no longer offered. No LLM call. Clears the lord's grudges afterwards", TestGrudgeAnswered),
+         new SelfTest("approach_framing", Severity.Light, "Player report (Fakade, 19/09/2026, local model): a lord rode out to him, then from the next turn spoke as though the player had come to HIM. The opening directive is consumed on read, so who sought whom was in the prompt once and never again. Stashes a real fief-audience reason on a lord, builds the encounter context twice through the REAL builder, and asserts the directive fires on the first build and is spent on the second while NpcSoughtThePlayer stays true on both; then asserts opening a new conversation (ForgetConversationSeeker) clears it. Leaves no pursuit behind", TestApproachFraming),
          new SelfTest("realm_departure", Severity.Light, "Player report (tashmetu, 19/09/2026): expelled from his kingdom by another mod after a lost war, he kept getting letters as if he still belonged. Records a departure from a real kingdom the way the kingdom-change feeder now marks every one, and asserts WorldEventFeeders.DaysSincePlayerLeft finds it and silences that ruler's service offer (ServiceOfferPolicy.RulerMayWrite), then removes it and asserts the ruler may write again. Also asserts the service-offer premise follows the player's LIVE realm. No LLM call, mutates nothing it does not remove", TestRealmDeparture),
          new SelfTest("interception_nemesis_bounty", Severity.Light, "A third proactive channel, the announcement/discoverability layer on top of the EXISTING scripted hero_main_options nemesis bounty offer (roadmap piece 2, player wish, subsumes the 'tavern rumour: Coll raids near X' wish since the lord tells the player directly): a lord whose region is plagued by a nemesis he is eligible to bounty seeks the player out to name him and where he operates, never settling the bounty itself in this channel. Mints a nemesis anchored to a REAL lord's own region (MintBountyEligibleNemesis) and asserts InterceptionBehavior.HasNemesisBountyToOffer reuses the SAME NemesisBountyDialogFlow.FindEligibleNemesisFor gate the scripted offer uses (never a re-derived one), that the Detail names the nemesis, that the pure InterceptionPolicy.Choose surfaces NemesisBounty, that it is fief-valid, and the priority pin (a live grudge against the PLAYER still outranks it, mirroring InterceptionPolicyTests). Marks the minted identity dead afterwards", TestInterceptionNemesisBounty),
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
@@ -12079,6 +12080,48 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("grudgeOutranksAppreciationWhenBothHold",
             InterceptionPolicy.Choose(new InterceptionFacts {HoldsLiveGrudgeAgainstPlayer = true, HoldsSignificantAppreciation = true}),
             InterceptionTrigger.Grudge);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The engine half of Fakade's report: the DIRECTIVE is a one-shot, the FACT is not. Only the live
+      ///   builder can show that the second turn of the same conversation still carries it, since that depends
+      ///   on the host remembering the seeker rather than on anything the prompt does.
+      /// </summary>
+      private static string TestApproachFraming(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("approach_framing");
+
+         if (t.Abort(InterceptionBehavior.Instance == null, "InterceptionBehavior not active")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.IsAlive && !h.IsPrisoner);
+
+         if (t.Skip(lord == null, "no lord to send")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, lord);
+
+         try
+         {
+            InterceptionBehavior.Instance.ForgetConversationSeeker();
+            InterceptionBehavior.Instance.StashFiefAudienceReason(lord, InterceptionTrigger.Grudge, "[SELFTEST] a grievance");
+
+            EncounterContext first = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "Well?", resolveInterception: true);
+            t.Expect("theFirstTurnCarriesTheOpeningDirective", string.IsNullOrEmpty(first?.InterceptionReason), false);
+            t.Expect("theFirstTurnKnowsWhoSoughtWhom", first?.NpcSoughtThePlayer, true);
+
+            EncounterContext second = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "I hear you.", resolveInterception: true);
+            t.Expect("theDirectiveIsSpentAfterOneTurn", string.IsNullOrEmpty(second?.InterceptionReason), true);
+            t.Expect("butTheSecondTurnStillKnowsWhoSoughtWhom", second?.NpcSoughtThePlayer, true);
+
+            InterceptionBehavior.Instance.ForgetConversationSeeker();
+            EncounterContext later = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "Good day.", resolveInterception: true);
+            t.Expect("aNewConversationOwesNothingToTheLastOne", later?.NpcSoughtThePlayer, false);
+         }
+         finally
+         {
+            InterceptionBehavior.Instance.ForgetConversationSeeker();
+         }
 
          return t.Line();
       }
