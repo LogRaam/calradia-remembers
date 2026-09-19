@@ -484,9 +484,13 @@ cr.remove_kink <kink> [name]         # remove a kink
 > Short on purpose. The detail lives in `CHANGELOG.md`, the `NEXUS_CHANGELOG_*.txt` files and git; this says
 > only where things stand and what is NOT safe to assume.
 
-**Shipped: v2.5.12 is LIVE on Nexus** (Gabriel confirmed 2026-09-19). Verify a live version by asking Gabriel
+**Shipped: v2.5.13 is LIVE on Nexus** (Gabriel confirmed 2026-09-19). Verify a live version by asking Gabriel
 to paste text or a screenshot: `SubModule.xml` is NOT evidence and WebFetch on Nexus is 403 (Cloudflare).
-v2.5.11 was built and never uploaded; its archive was deleted and 2.5.12 carries its content.
+v2.5.11 was built and never uploaded. **v2.5.14 is cut and NOT uploaded**, and the family fix for
+`take_into_service` came after its archive was built.
+
+**The order of Gabriel's messages is not evidence of what is live either.** The 2.5.13 archive was deleted on
+the assumption that it had never gone up, and the commit message said so. It had gone up. Ask.
 
 **The last three releases were almost entirely player reports**, named in the changelogs: the prompt cache
 dying on turn two, the interpreter prompt never cached, Compact fitting an 8k model, the duel crash (three
@@ -494,14 +498,16 @@ reports across three versions before it was right), the companion audience that 
 a letter reply that left no trace, a quest treated as an old errand seconds after it was agreed, and a lord
 writing to a tournament loser as though he rode in that lord's retinue.
 
-**Pushed since 2.5.12, NOT released:**
+**In 2.5.13 (live):** matters ordered by what touches the speaker, then size, then the clock (fkasad's burning
+village); and `ModuleData/cr_patch/<filename>`, so another module contributes prompt prose without overwriting
+ours (tashmetu, Bellum Civile bridge). `!remove <text>` and `!replace` cover a total conversion.
 
-- **Matters are ordered by what touches the speaker**, then size, then the clock. Previously the clock alone,
-  so a notable whose village was burning raised a war three hundred leagues away instead (fkasad).
-- **Other modules can contribute prompt prose** without overwriting anything: a module ships
-  `ModuleData/cr_patch/<filename>` and it is applied after ours and after the player's Custom folder, in
-  launcher load order. `!remove <text>` and `!replace` cover a total conversion; anything else appends.
-  Asked for by tashmetu, building a Bellum Civile bridge on the public API.
+**In 2.5.14 (cut, not uploaded):** a Background model role for summaries, compression and extraction, so a
+local server stops evicting its own cache (fkasad).
+
+**Pushed after the 2.5.14 archive:** `take_into_service` refused to give away blood kin but not family by
+marriage or the wider tree, so a daughter-in-law could be offered to a lord as a retainer (reminensce).
+`HouseholdKinPolicy` now means family: a shared forebear within three generations, or married to one.
 
 **Rulings, do not relitigate:**
 
