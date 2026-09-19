@@ -92,9 +92,9 @@ namespace CalradiaRemembers.Tests.Companions
       [Test]
       public void GIVEN_the_hero_is_the_players_own_blood_WHEN_evaluated_THEN_they_are_not_a_retainer_to_place()
       {
-         CompanionServiceTransferFacts f = Fine() with {CompanionIsPlayerBlood = true};
+         CompanionServiceTransferFacts f = Fine() with {CompanionIsPlayerFamily = true};
 
-         CompanionServiceTransferPolicy.Evaluate(f).Should().Be(CompanionServiceTransferBlock.CompanionIsYourOwnBlood);
+         CompanionServiceTransferPolicy.Evaluate(f).Should().Be(CompanionServiceTransferBlock.CompanionIsYourFamily);
       }
 
       // Widening the candidate set from Companions to the whole clan lets the player and their clan leader in,

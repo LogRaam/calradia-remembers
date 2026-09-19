@@ -55,11 +55,17 @@ namespace CalradiaRemembers.Logic.Companions
       NotYourCompanion,
 
       /// <summary>
-      ///   The hero is the player's own BLOOD - a child, a parent, a sibling. Placing your own kin in another
-      ///   lord's house is fosterage or hostage-taking, a different act with different consequences, not the
-      ///   ordinary placing of a retainer.
+      ///   The hero is the player's FAMILY: blood kin within three generations, or married to one of them.
+      ///   Placing your own kin in another lord's house is fosterage or hostage-taking, a different act with
+      ///   different consequences, not the ordinary placing of a retainer.
+      ///   <para>
+      ///     Renamed from CompanionIsYourOwnBlood (reminensce, 19/09/2026). It used to mean parents, children and
+      ///     siblings only, so a daughter-in-law or a grandson passed straight through. It now covers them, and
+      ///     keeping the old name would have made it a predicate whose name answers a different question than
+      ///     its body, which is how the duel crash survived two fixes.
+      ///   </para>
       /// </summary>
-      CompanionIsYourOwnBlood,
+      CompanionIsYourFamily,
 
       /// <summary>The hero LEADS the player's clan (or is the player), so they are nobody's to give.</summary>
       CompanionLeadsYourHouse,
@@ -127,7 +133,7 @@ namespace CalradiaRemembers.Logic.Companions
       public bool CompanionLeadsThePlayersClan { get; init; }
 
       /// <summary>The hero is the player's child, parent, or sibling.</summary>
-      public bool CompanionIsPlayerBlood { get; init; }
+      public bool CompanionIsPlayerFamily { get; init; }
       public bool CompanionIsPlayerSpouse { get; init; }
       public bool CompanionAwayOnErrand { get; init; }
       public bool CompanionGovernsPlayerFief { get; init; }
@@ -166,7 +172,7 @@ namespace CalradiaRemembers.Logic.Companions
          // outside the household reads as the plainer refusal, and BEFORE the errand/fief gates which can.
          if (f.CompanionLeadsThePlayersClan) return CompanionServiceTransferBlock.CompanionLeadsYourHouse;
          if (f.CompanionIsPlayerSpouse) return CompanionServiceTransferBlock.CompanionIsYourSpouse;
-         if (f.CompanionIsPlayerBlood) return CompanionServiceTransferBlock.CompanionIsYourOwnBlood;
+         if (f.CompanionIsPlayerFamily) return CompanionServiceTransferBlock.CompanionIsYourFamily;
 
          if (f.CompanionAwayOnErrand) return CompanionServiceTransferBlock.CompanionAwayOnErrand;
          if (f.CompanionGovernsPlayerFief) return CompanionServiceTransferBlock.CompanionGovernsAFief;

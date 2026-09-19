@@ -4044,7 +4044,7 @@ namespace CalradiaRemembers.GameState
                CompanionIsInYourHousehold = companion != null && companion.Clan == playerClan,
                CompanionLeadsThePlayersClan = companion != null
                                            && (companion == Hero.MainHero || companion == playerClan.Leader),
-               CompanionIsPlayerBlood = companion != null && IsPlayersOwnBlood(companion),
+               CompanionIsPlayerFamily = companion != null && IsPlayersFamily(companion),
                CompanionIsPlayerSpouse = companion != null && companion == Hero.MainHero.Spouse,
                CompanionAwayOnErrand = companion != null && CompanionMissionBehavior.Instance?.IsAway(companion.StringId) == true,
                CompanionGovernsPlayerFief = companion?.GovernorOf != null
@@ -4066,8 +4066,10 @@ namespace CalradiaRemembers.GameState
                   return ActionOutcome.Refused($"({companion?.Name} is not of your household to give over.)");
                case CompanionServiceTransferBlock.CompanionLeadsYourHouse:
                   return ActionOutcome.Refused($"({companion?.Name} leads your house, and is nobody's to give.)");
-               case CompanionServiceTransferBlock.CompanionIsYourOwnBlood:
-                  return ActionOutcome.Refused($"({companion?.Name} is your own blood; placing kin in another house is not a term of service.)");
+               // "Family", not "your own blood": this now refuses a daughter-in-law too, and telling the player she is
+               // their own blood would be the one false sentence in an otherwise correct refusal.
+               case CompanionServiceTransferBlock.CompanionIsYourFamily:
+                  return ActionOutcome.Refused($"({companion?.Name} is family; placing kin in another house is not a term of service.)");
                case CompanionServiceTransferBlock.CompanionUnavailable:
                   return ActionOutcome.Refused($"({companion?.Name} is in no condition to take service with anyone.)");
                case CompanionServiceTransferBlock.CompanionIsYourSpouse:
@@ -4127,12 +4129,15 @@ namespace CalradiaRemembers.GameState
       {
          if (playerClan?.Heroes == null) yield break;
 
+         // Computed ONCE for the whole walk: the family tree does not change between one hero and the next.
+         ISet<string> family = PlayerFamilyIds();
+
          foreach (Hero h in playerClan.Heroes)
          {
             if (h is not {IsAlive: true} || h.IsPrisoner) continue;
             if (h == Hero.MainHero || h == playerClan.Leader) continue;
             if (h == Hero.MainHero?.Spouse) continue;
-            if (IsPlayersOwnBlood(h)) continue;
+            if (h.StringId != null && family.Contains(h.StringId)) continue;
             if (h.GovernorOf != null) continue;
             if (CompanionMissionBehavior.Instance?.IsAway(h.StringId) == true) continue;
 
@@ -4140,19 +4145,67 @@ namespace CalradiaRemembers.GameState
          }
       }
 
-      /// <summary>The player's child, parent, or sibling. Kin are placed in another house by fosterage, not service.</summary>
-      /// <summary>The teaching gate (EncounterContextBuilder) runs the same kin rule; one copy, no drift.</summary>
-      public static bool IsPlayersOwnBloodForGate(Hero hero) => IsPlayersOwnBlood(hero);
+      /// <summary>The teaching gate (EncounterContextBuilder) runs the same family rule; one copy, no drift.</summary>
+      public static bool IsPlayersFamilyForGate(Hero hero) => IsPlayersFamily(hero);
 
-      private static bool IsPlayersOwnBlood(Hero hero)
+      /// <summary>
+      ///   Whether <paramref name="hero" /> is the player's family, per <see cref="HouseholdKinPolicy" />: blood kin
+      ///   within three generations, or married to one of them. Kin are placed in another house by fosterage, not
+      ///   service. It used to be parents, children and siblings only (reminensce, 19/09/2026).
+      /// </summary>
+      private static bool IsPlayersFamily(Hero hero)
+         => hero?.StringId != null && Hero.MainHero != null && PlayerFamilyIds().Contains(hero.StringId);
+
+      /// <summary>
+      ///   The player's family as a set of hero ids, from the engine's own tree. Every clan hero and the player are
+      ///   walked up to the policy's reach, dead forebears included, because a cousin is only a cousin through a
+      ///   grandparent who may be long in the ground. Fail-soft to "nobody but the player": a tree that cannot be
+      ///   read must never make a retainer look like family, since that would disable the verb, but must never
+      ///   make family look offerable either, which is why the player's spouse keeps its own separate check.
+      /// </summary>
+      private static ISet<string> PlayerFamilyIds()
       {
-         Hero player = Hero.MainHero;
-         if (hero == null || player == null) return false;
+         try
+         {
+            Hero player = Hero.MainHero;
+            if (player?.StringId == null) return new HashSet<string>();
 
-         if (hero == player.Father || hero == player.Mother) return true;
-         if (player.Children != null && player.Children.Contains(hero)) return true;
+            var records = new Dictionary<string, KinRecord>();
+            var reachedAt = new Dictionary<string, int>();
 
-         return player.Siblings != null && player.Siblings.Contains(hero);
+            void Walk(Hero h, int depthLeft)
+            {
+               if (h?.StringId == null) return;
+               if (reachedAt.TryGetValue(h.StringId, out int seen) && seen >= depthLeft) return;
+
+               reachedAt[h.StringId] = depthLeft;
+               records[h.StringId] = new KinRecord {
+                  Id = h.StringId,
+                  FatherId = h.Father?.StringId,
+                  MotherId = h.Mother?.StringId,
+                  SpouseId = h.Spouse?.StringId
+               };
+
+               if (depthLeft <= 0) return;
+
+               Walk(h.Father, depthLeft - 1);
+               Walk(h.Mother, depthLeft - 1);
+            }
+
+            Walk(player, HouseholdKinPolicy.GenerationsUp);
+
+            if (Clan.PlayerClan?.Heroes != null)
+               foreach (Hero h in Clan.PlayerClan.Heroes)
+                  Walk(h, HouseholdKinPolicy.GenerationsUp);
+
+            return HouseholdKinPolicy.FamilyOf(player.StringId, records.Values);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] could not read the player's family tree: {ex.GetType().Name}: {ex.Message}");
+
+            return new HashSet<string>();
+         }
       }
 
       private static ActionOutcome ExecuteRecruitNotable(Hero npcHero, NpcProfile profile)

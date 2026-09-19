@@ -1921,7 +1921,7 @@ namespace CalradiaRemembers.Mapping
                   CompanionIsPrisoner = c.IsPrisoner,
                   CompanionIsInYourHousehold = c.Clan == playerClan,
                   CompanionLeadsThePlayersClan = c == Hero.MainHero || c == playerClan.Leader,
-                  CompanionIsPlayerBlood = BannerlordGameStateBridge.IsPlayersOwnBloodForGate(c),
+                  CompanionIsPlayerFamily = BannerlordGameStateBridge.IsPlayersFamilyForGate(c),
                   CompanionIsPlayerSpouse = c == Hero.MainHero.Spouse,
                   CompanionAwayOnErrand = CompanionMissionBehavior.Instance?.IsAway(c.StringId) == true,
                   CompanionGovernsPlayerFief = c.GovernorOf != null
