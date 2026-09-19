@@ -484,10 +484,10 @@ cr.remove_kink <kink> [name]         # remove a kink
 > Short on purpose. The detail lives in `CHANGELOG.md`, the `NEXUS_CHANGELOG_*.txt` files and git; this says
 > only where things stand and what is NOT safe to assume.
 
-**Shipped: v2.5.13 is LIVE on Nexus** (Gabriel confirmed 2026-09-19). Verify a live version by asking Gabriel
+**Shipped: v2.5.14 is being published** (Gabriel, 2026-09-19: "On publie 2.5.14"). v2.5.13 is live before it. Verify a live version by asking Gabriel
 to paste text or a screenshot: `SubModule.xml` is NOT evidence and WebFetch on Nexus is 403 (Cloudflare).
-v2.5.11 was built and never uploaded. **v2.5.14 is cut and NOT uploaded**, and the family fix for
-`take_into_service` came after its archive was built.
+v2.5.11 was built and never uploaded. The 2.5.14 archive was rebuilt three times before upload to fold in
+three fixes found after the first cut; the shipped one is MOD `d082528` / SDK `86ca836`.
 
 **The order of Gabriel's messages is not evidence of what is live either.** The 2.5.13 archive was deleted on
 the assumption that it had never gone up, and the commit message said so. It had gone up. Ask.
@@ -502,12 +502,11 @@ writing to a tournament loser as though he rode in that lord's retinue.
 village); and `ModuleData/cr_patch/<filename>`, so another module contributes prompt prose without overwriting
 ours (tashmetu, Bellum Civile bridge). `!remove <text>` and `!replace` cover a total conversion.
 
-**In 2.5.14 (cut, not uploaded):** a Background model role for summaries, compression and extraction, so a
-local server stops evicting its own cache (fkasad).
-
-**Pushed after the 2.5.14 archive:** `take_into_service` refused to give away blood kin but not family by
-marriage or the wider tree, so a daughter-in-law could be offered to a lord as a retainer (reminensce).
-`HouseholdKinPolicy` now means family: a shared forebear within three generations, or married to one.
+**In 2.5.14:** a Background model role for summaries, compression and extraction, so a local server stops
+evicting its own cache (fkasad). `take_into_service` now refuses all family, not only blood (reminensce).
+`teach_skill` requires the teacher to know MORE than the player (found answering Zinced121212). A captive handed
+over as a SALE to the lord who asked for him now settles his bargain (Lordfadooboo): two verbs moved a prisoner
+and only one ever looked at the quest, the duel's shape again, now asked once in `DeliveryQuestMatcher`.
 
 **Rulings, do not relitigate:**
 
