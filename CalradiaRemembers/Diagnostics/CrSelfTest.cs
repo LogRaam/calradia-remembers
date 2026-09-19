@@ -205,6 +205,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("recruit_notable", Severity.Heavy, "find a settlement NOTABLE (gang leader/headman/merchant...) that has an eligible successor in its town, force regard to the floor, run the REAL bridge recruit_notable -> assert the notable is now a companion in your CLAN and PARTY, a starting relation bonus was applied, and the chosen successor holds the vacated notable post (settlement.Notables). Best-effort restore afterwards (recruit_notable is not cleanly reversible: the alley transfer cannot be undone). Skips when no disposable notable+successor pair exists rather than wreck a real campaign", TestRecruitNotable),
          new SelfTest("secret_bond_bar_agrees", Severity.Light, "player report 2026-09-09 ('the NPC is expressing affection, yet the system displays a message stating that intimacy is insufficient'), caused by ONE regard bar living as a literal 50 in three places while only the confession moved onto the Relationship Pacing dial. Drives the REAL EncounterContextBuilder.Build and the REAL bridge action take_as_secret_lover against a compatible companion at exactly MinRegardFor(current pacing) and one point below it, and asserts BOTH engine gates flip on the SAME number the confession uses. A pure test cannot catch this (it would compare the policy with itself); only driving the live sites can. EXTENDED 2026-09-09 with the THIRD site of that same bar, what the NPC may SAY: asserts the LIVE PromptBuilder the chat uses declares from the very number the confession roll measures from, and that the register reads Attachment at the bar and Interest one below it, where an NPC may flirt but must never speak of love nor open a courtship on standing alone. Restores the regard and undoes any bond formed", TestSecretBondBarAgrees),
          new SelfTest("captive_lord_withheld_from_defection", Severity.Heavy, "player report: a held captive lord below the recruit_prisoner regard floor could still narrate accepting the player's offer to defect, though nothing happened (an empty promise). Really captures a capturable in-party lord who is not their own clan's leader, drives EncounterContextBuilder.Build with regard just BELOW PrisonerRecruitmentPolicy.RegardFloor -> assert CanRecruitPrisoner is false and the new CaptiveLordWithheldFromDefection flag is true, then raises regard to the floor -> assert they FLIP (CanRecruitPrisoner true, the new flag false), proving the two are mutually exclusive on live engine facts. Releases the captive and restores regard afterwards", TestCaptiveLordWithheldFromDefection),
+         new SelfTest("deliver_prisoner_by_sale", Severity.Heavy, "Player report (Lordfadooboo, 18/09/2026): a lord asked for a Nord lord in chains, the player handed one over in words, got PAID, and the bargain stayed open for good. Two verbs hand a captive to an NPC and only give_prisoner ever looked at the bargain; buy_prisoner paid a price and touched nothing. Seeds a REALM-keyed DeliverPrisoner bargain, takes a lord of that realm prisoner, then runs buy_prisoner (the SALE) through the real bridge and asserts the bargain is SETTLED anyway and the captive left the player: handing a lord the very captive he asked for keeps his bargain, whatever the word.", TestDeliverPrisonerBySale),
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
          new SelfTest("free_prisoner", Severity.Heavy, "capture -> free_prisoner -> assert released", TestFreePrisoner),
          new SelfTest("quest_rescue_release_credit", Severity.Heavy, "v2.5.3 player report ('his success cancelled his quest'): capture a real in-party lord bound to a real outstanding RescuePrisoner quest, free them through the REAL free_prisoner bridge action (not a battle, not a Debug seam) so the REAL CampaignEvents.HeroPrisonerReleased dispatch reaches QuestDeedTracker's new hook, and assert the quest is stamped SATISFIED, not left outstanding; then runs the REAL daily maintenance sweep and asserts it still does not CANCEL the now-satisfied quest (the exact bug: the void sweep used to read the freed target as proof the task was impossible). Releases the captive and drops the seeded quest afterwards", TestRescueCreditedOnRelease),
@@ -3583,6 +3584,60 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"target={target.Name}");
          t.Expect("atWar", atWar, true);
          t.Expect("deedStamped", stamped, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The SALE path on a captive the receiver asked for. Before 19/09/2026 buy_prisoner paid a price, moved
+      ///   the captive and left the bargain open forever, which is exactly what Lordfadooboo reported. It now hands
+      ///   such a captive over as the delivery, so this asserts the bargain ends settled and the captive gone.
+      ///   Realm-keyed on purpose, because that is the bargain the game's own menu offers ("any of their lords").
+      /// </summary>
+      private static string TestDeliverPrisonerBySale(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("deliver_prisoner_by_sale");
+
+         Hero receiver = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && h.Clan != Clan.PlayerClan && h.PartyBelongedTo != null);
+         Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h != receiver && h.IsLord && !h.IsPrisoner && h.MapFaction != null
+            && h.MapFaction != receiver?.MapFaction);
+
+         if (t.Skip(receiver == null || captive == null, "need a lord with a party and a free lord of another realm")) return t.Line();
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, captive);
+
+         NpcProfile profile = GetOrCreate(behavior, receiver);
+         var quest = new InformalQuest {
+            Type = QuestType.DeliverPrisoner,
+            Description = $"[SELFTEST] Bring {receiver.Name} any lord of {captive.MapFaction.Name} in chains.",
+            TargetFactionId = captive.MapFaction.StringId,
+            TargetFactionName = captive.MapFaction.Name?.ToString(),
+            IssuedOnDay = behavior.GameStateBridge.GetCurrentGameDay(),
+            RewardGold = 500,
+            RewardRelation = 5,
+            Status = QuestStatus.Active
+         };
+         profile.ActiveQuests.Add(quest);
+         behavior.Store.Set(profile);
+
+         // The word the model reached for in the report: a SALE, with a price.
+         behavior.GameStateBridge.ExecuteAction(
+            new GameAction {
+               Type = "buy_prisoner",
+               Parameters = new Dictionary<string, string> {["target"] = captive.Name?.ToString() ?? "", ["price"] = "900"}
+            },
+            receiver, new ActionContext(profile, null));
+
+         bool stillHeld = BuyPrisonerVerb.PlayerHeldHeroPrisoners().Contains(captive);
+         InformalQuest after = behavior.Store.Get(receiver.StringId)?.ActiveQuests
+                                       .FirstOrDefault(q => q.Type == QuestType.DeliverPrisoner
+                                                         && q.TargetFactionId == captive.MapFaction.StringId);
+
+         t.Note($"captive={captive.Name} ({captive.MapFaction.Name}) -> {receiver.Name}, by SALE");
+         t.Expect("theCaptiveLeftThePlayer", !stillHeld, true);
+         t.Expect("theBargainIsSettledEvenThoughItWasASale", after != null && !after.IsOutstanding, true);
 
          return t.Line();
       }

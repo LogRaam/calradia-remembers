@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
@@ -81,6 +82,31 @@ namespace CalradiaRemembers.Verbs
 
                 if (captive == null)
                     return ActionOutcome.Refused("(You hold no such captive to sell.)");
+
+                // A CAPTIVE HE ASKED FOR IS A DELIVERY, NOT A SALE (Lordfadooboo, 18/09/2026). A Khuzait lord
+                // asked for a Nord lord in chains; the player brought one and typed the handover, and the model
+                // reached for this verb. It paid a price, moved the captive, and left the bargain open for good:
+                // "i even got paid, but the quest still remained on my board, unable to be completed."
+                //
+                // Settled HERE rather than by teaching the model harder, because the prompt is advice and this
+                // is law, and because it was never the model's choice to make: handing a lord the very captive
+                // he asked for keeps his bargain, whatever the words. The delivery pays the bargain's own reward,
+                // so the player is not paid twice for one captive, once by price and once by reward.
+                InformalQuest owed = DeliveryQuestMatcher.QuestSettledBy(
+                    profile.ActiveQuests, new HeldCaptive {Id = captive.StringId, FactionId = captive.MapFaction?.StringId});
+
+                IGameStateBridge bridge = NpcMemoryCampaignBehavior.Instance?.GameStateBridge;
+                if (owed != null && bridge != null)
+                {
+                    ModLog.Info($"[ACTION] buy_prisoner: {captive.Name} settles {npcHero.Name}'s outstanding delivery bargain, so this is a delivery, not a sale.");
+
+                    var delivery = new GameAction {
+                        Type = "give_prisoner",
+                        Parameters = new Dictionary<string, string> {["target"] = captive.Name?.ToString() ?? ""}
+                    };
+
+                    return bridge.ExecuteAction(delivery, npcHero, new ActionContext(profile, null));
+                }
 
                 action.Parameters.TryGetValue("price", out string priceStr);
                 int.TryParse(priceStr?.Trim(), out int proposed);

@@ -133,13 +133,28 @@ namespace CalradiaRemembers.Chat
          var options = held.Select(h => new InquiryElement(h, h.Name?.ToString() ?? "a captive", null)).ToList();
          MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
             "Offer a Prisoner",
-            "Which captive do you offer to sell?",
+            "Which captive do you hand over?",
             options, true, 1, 1, "Offer", "Cancel",
             picked =>
             {
                if (picked?.FirstOrDefault()?.Identifier is not Hero captive) return;
-               host.SetInputText($"I have {captive.Name} in my custody. Would you buy this prisoner from me?");
-               ModLog.Info($"[OFFER PRISONER] pre-filled: {captive.Name}.");
+
+               // THE ONLY PRISONER OPTION ANYWHERE WAS WORDED AS A SALE, so a player bringing a lord the captive
+               // he had asked for was steered straight to the one verb that never keeps a bargain (Lordfadooboo,
+               // 18/09/2026: "i didnt see the button to do that action"). When this captive settles something
+               // this person asked for, the line is the handover itself, framed as done, like a gift, so it
+               // lands in one turn.
+               NpcProfile profile = host.Npc == null
+                  ? null
+                  : NpcMemoryCampaignBehavior.Instance?.Store?.Get(host.Npc.StringId);
+               bool owed = DeliveryQuestMatcher.QuestSettledBy(
+                  profile?.ActiveQuests,
+                  new HeldCaptive {Id = captive.StringId, FactionId = captive.MapFaction?.StringId}) != null;
+
+               host.SetInputText(owed
+                  ? $"*I hand {captive.Name} over to you in chains, as you asked.*"
+                  : $"I have {captive.Name} in my custody. Would you buy this prisoner from me?");
+               ModLog.Info($"[OFFER PRISONER] pre-filled {(owed ? "a DELIVERY" : "a sale")}: {captive.Name}.");
             },
             null));
       }

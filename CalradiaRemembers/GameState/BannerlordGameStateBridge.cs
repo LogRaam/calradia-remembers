@@ -280,7 +280,7 @@ namespace CalradiaRemembers.GameState
             case "give_item":
                return ExecuteGiveItem(action, npcHero, context);
             case "give_prisoner":
-               return ExecuteGivePrisoner(npcHero, context);
+               return ExecuteGivePrisoner(action, npcHero, context);
             case "free_prisoner":
                return ExecuteFreePrisoner(npcHero, context);
             case "execute_prisoner":
@@ -4953,7 +4953,7 @@ namespace CalradiaRemembers.GameState
       ///   turn (mirrors SettleItemBargain). A spurious emission (no bargain, or the captive not held) is
       ///   reported, never faked.
       /// </summary>
-      private ActionOutcome ExecuteGivePrisoner(Hero npcHero, ActionContext context)
+      private ActionOutcome ExecuteGivePrisoner(GameAction action, Hero npcHero, ActionContext context)
       {
          try
          {
@@ -4961,32 +4961,37 @@ namespace CalradiaRemembers.GameState
 
             if (profile == null || npcHero == null) return null;
 
-            InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q =>
+            InformalQuest anyBargain = profile.ActiveQuests.FirstOrDefault(q =>
                q.Type == QuestType.DeliverPrisoner && q.IsOutstanding);
 
             // Was a silent no-op: the model had already narrated the captive as handed over while the
             // prisoner roster (and any bargain) never moved. No such bargain, so surface the refusal.
-            if (quest == null) return ActionOutcome.Refused(SilentRefusalMessages.GivePrisonerNoBargain());
+            if (anyBargain == null) return ActionOutcome.Refused(SilentRefusalMessages.GivePrisonerNoBargain());
 
-            var target = new PrisonerDeedTarget(quest.TargetHeroId, quest.TargetFactionId);
+            // THE WHOLE OF THE PLAYER'S CUSTODY, and every outstanding bargain rather than only the first. This
+            // read only the main party's prison and only the first open bargain, while the offer bag and
+            // buy_prisoner already counted a captive left in the player's own dungeon: a lord held there showed
+            // up in the bag and was then refused here as "not held". And with two bargains open, a captive who
+            // settled the SECOND was refused because the first did not match him.
+            List<Hero> held = BuyPrisonerVerb.PlayerHeldHeroPrisoners();
 
-            CharacterObject prisonerChar = null;
-            Hero prisonerHero = null;
-            TroopRoster prison = MobileParty.MainParty?.PrisonRoster;
-            if (prison != null)
-               foreach (TroopRosterElement el in prison.GetTroopRoster())
-               {
-                  Hero h = el.Character?.HeroObject;
+            string preferredId = null;
+            if (action?.Parameters != null
+                && action.Parameters.TryGetValue("target", out string targetName)
+                && !string.IsNullOrWhiteSpace(targetName))
+               preferredId = BuyPrisonerVerb.ResolvePlayerHeldPrisonerByName(targetName)?.StringId;
 
-                  if (h == null || !target.Matches(h.StringId, h.MapFaction?.StringId)) continue;
-                  prisonerChar = el.Character;
-                  prisonerHero = h;
+            DeliveryMatch match = DeliveryQuestMatcher.FirstDelivery(
+               profile.ActiveQuests,
+               held.Select(h => new HeldCaptive {Id = h.StringId, FactionId = h.MapFaction?.StringId}),
+               preferredId);
 
-                  break;
-               }
+            if (match == null)
+               return ActionOutcome.Refused($"(You do not hold {anyBargain.TargetHeroName ?? "the captive"} I asked for.)");
 
-            if (prisonerChar == null)
-               return ActionOutcome.Refused($"(You do not hold {quest.TargetHeroName ?? "the captive"} I asked for.)");
+            InformalQuest quest = match.Quest;
+            Hero prisonerHero = held.First(h => h.StringId == match.CaptiveId);
+            CharacterObject prisonerChar = prisonerHero.CharacterObject;
 
             // Captured BEFORE the transfer, per the rule's own "prior regard" framing (mirrors
             // DivorceFacts.SpouseRegardForPlayer's low-regard-nurses-harder read).
@@ -5003,7 +5008,10 @@ namespace CalradiaRemembers.GameState
             if (dest == null)
                return ActionOutcome.Refused($"({npcHero.Name} has no party or holding to keep {prisonerHero.Name} in.)");
 
-            TransferPrisonerAction.Apply(prisonerChar, MobileParty.MainParty.Party, dest);
+            // From wherever the captive is actually held, as buy_prisoner already does: a dungeon captive
+            // transferred "from the main party" would move nothing and still settle the bargain.
+            PartyBase source = prisonerHero.PartyBelongedToAsPrisoner ?? MobileParty.MainParty.Party;
+            TransferPrisonerAction.Apply(prisonerChar, source, dest);
 
             var today = (int) CampaignTime.Now.ToDays;
             quest.SatisfiedOnDay = today;
