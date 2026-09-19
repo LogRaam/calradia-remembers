@@ -1031,7 +1031,7 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         ArmOrRefuseDuel(opponent, profile, speaker.Name, ChallengerIsPlayer(response));
+         ArmOrRefuseDuel(opponent, profile, speaker.Name, ChallengerIsPlayer(response), SpiritOfTheChallenge(response));
       }
 
       /// <summary>
@@ -1070,7 +1070,8 @@ namespace CalradiaRemembers.Chat
          ArmOrRefuseDuel(opponent, ((IManualActionMenuHost) this).Profile, opponent.Name?.ToString(), playerIssued: true);
       }
 
-      private void ArmOrRefuseDuel(Hero opponent, NpcProfile profile, string speakerName, bool playerIssued)
+      private void ArmOrRefuseDuel(Hero opponent, NpcProfile profile, string speakerName, bool playerIssued,
+         DuelReason reason = DuelReason.HonourAffront)
       {
          // The prompt is advice, the bridge is law. The verb was taught from a context built at the START of
          // the turn, and a model can reach for it several turns later, by which time the two may have moved
@@ -1100,7 +1101,7 @@ namespace CalradiaRemembers.Chat
             // Recorded as scene narration rather than a bare system line, so it enters the transcript and the
             // NPC's very next reply is spoken by someone who knows they refused.
             AppendNarration($"{profile?.Name ?? speakerName} lets the challenge hang, and will not take it up.");
-            DuelOutcomeApplier.Apply(DuelReason.HonourAffront, DuelResolution.NpcForfeited, opponent, null, _witnesses.Count);
+            DuelOutcomeApplier.Apply(reason, DuelResolution.NpcForfeited, opponent, null, _witnesses.Count);
             IsSendEnabled = !_conversationEnded;
             ModLog.Info($"[DUEL] {speakerName} refused the player's challenge (acceptance score below the threshold).");
 
@@ -1111,7 +1112,7 @@ namespace CalradiaRemembers.Chat
          // is dismissed rather than fought (ratified 2026-08-26). See DuelStationGap / DuelStation below.
          // Carry the conversation that led here so the post-duel scene resumes it (Transcript is this chat's
          // live source of truth; a duel never spans a save, so the reference travels as-is).
-         DuelCoordinator.Arm(opponent, DuelReason.HonourAffront, venue, !playerIssued, _witnesses.Count, null, Transcript);
+         DuelCoordinator.Arm(opponent, reason, venue, !playerIssued, _witnesses.Count, null, Transcript);
 
          // Same deliberate transition as the escape: lock the input and leave only the close button. Clicking
          // it closes the chat, and the coordinator stages the duel on the next tick, on the live map.
@@ -1151,6 +1152,42 @@ namespace CalradiaRemembers.Chat
       ///   the acceptance policy against an NPC who has ALREADY demanded satisfaction, and could have them balk
       ///   at their own challenge.
       /// </summary>
+      /// <summary>
+      ///   WHY the challenge was made, as the model said it. Defaults to <see cref="DuelReason.HonourAffront" />,
+      ///   which is what every duel used to be whatever the fiction had just described.
+      ///   <para>
+      ///     Zinced121212 (Nexus, 18/09/2026): "all duels remove personal regard even if it's a friendly battle
+      ///     that both sides agree to and the companion seems to be in a good mood after". The value was
+      ///     hard-coded at the arming site, so a wager settled with blunted steel was filed as an insult and
+      ///     priced as one. A day earlier yozakura12's log had recorded the model agreeing to exactly such a
+      ///     match ("a private sparring match, the loser grants the winner's wish"), which is how long the
+      ///     fiction had been ahead of the ledger.
+      ///   </para>
+      ///   Unrecognised or absent reads as a grievance, so a model that says nothing keeps today's behaviour
+      ///   and only an explicit "friendly" buys the gentler outcome.
+      /// </summary>
+      private static DuelReason SpiritOfTheChallenge(ParsedResponse response)
+      {
+         if (response?.Actions == null) return DuelReason.HonourAffront;
+
+         foreach (GameAction action in response.Actions)
+         {
+            if (!string.Equals(action?.Type, "challenge_duel", StringComparison.OrdinalIgnoreCase)) continue;
+            if (action.Parameters == null
+                || !action.Parameters.TryGetValue("spirit", out string spirit)
+                || string.IsNullOrWhiteSpace(spirit))
+               return DuelReason.HonourAffront;
+
+            return spirit.Trim().StartsWith("friendly", StringComparison.OrdinalIgnoreCase)
+                   || spirit.Trim().StartsWith("bout", StringComparison.OrdinalIgnoreCase)
+                   || spirit.Trim().StartsWith("spar", StringComparison.OrdinalIgnoreCase)
+               ? DuelReason.Friendly
+               : DuelReason.HonourAffront;
+         }
+
+         return DuelReason.HonourAffront;
+      }
+
       private static bool ChallengerIsPlayer(ParsedResponse response)
       {
          if (response?.Actions == null) return false;

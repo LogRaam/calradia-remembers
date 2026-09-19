@@ -57,6 +57,12 @@ namespace CalradiaRemembers.Logic.Duels
       /// <summary>How the duel ended.</summary>
       public DuelResolution Resolution { get; set; }
 
+      /// <summary>
+      ///   WHY it was fought, which decides whether losing is a humiliation or an afternoon. Defaults to
+      ///   HonourAffront, the behaviour every caller had before a friendly bout existed.
+      /// </summary>
+      public DuelReason Reason { get; set; } = DuelReason.HonourAffront;
+
       /// <summary>A grudge against the player drove this duel, so its fate (settled or hardened) is in play.</summary>
       public bool AGrudgeDroveIt { get; set; }
 
@@ -176,6 +182,17 @@ namespace CalradiaRemembers.Logic.Duels
       /// <summary>Tuning: fear the NPC gains of a player they dared not fight.</summary>
       public const int FearFromNpcForfeit = 5;
 
+      // ── A friendly bout: agreed, not provoked ─────────────────────────────
+
+      /// <summary>Tuning: the warmth of a good match between people who meant no harm by it. Crossing blades in play is a thing friends do.</summary>
+      public const int FriendlyBoutWarmthToAffection = 5;
+
+      /// <summary>Tuning: the respect earned by whoever showed well, winner or loser. A bout is a demonstration, and both sides watched it.</summary>
+      public const int RespectFromAFriendlyBout = 4;
+
+      /// <summary>Tuning: renown for a friendly match. Small on purpose: sparring is not a feat of arms, and a crowd changes nothing about that.</summary>
+      public const int RenownFromAFriendlyBout = 1;
+
       /// <summary>The full aftermath of a duel. A null context yields an all-zero, no-effect result.</summary>
       public static DuelOutcomeResult Resolve(DuelResolutionContext ctx)
       {
@@ -187,6 +204,25 @@ namespace CalradiaRemembers.Logic.Duels
 
          switch (ctx.Resolution)
          {
+            // A FRIENDLY BOUT SHORT-CIRCUITS THE LOT, and it has to, because every branch below is written
+            // about an affront: wounded pride, a shamed house, fear of the man who beat you. None of that
+            // follows from a match two people agreed to for the pleasure of it. Warmth and respect both ways,
+            // no fear, no influence lost, and a token of renown; a bout nobody goes through with costs nothing
+            // at all, because nothing binding was ever agreed.
+            case DuelResolution.PlayerWon when ctx.Reason == DuelReason.Friendly:
+            case DuelResolution.NpcWon when ctx.Reason == DuelReason.Friendly:
+               result.NpcAffectionDelta = FriendlyBoutWarmthToAffection;
+               result.NpcRespectDelta = RespectFromAFriendlyBout;
+               result.PlayerRenownDelta = RenownFromAFriendlyBout;
+               ApplyFoughtGrudge(ctx, result); // steel still clears the air when one was carried in
+
+               break;
+
+            case DuelResolution.PlayerForfeited when ctx.Reason == DuelReason.Friendly:
+            case DuelResolution.NpcForfeited when ctx.Reason == DuelReason.Friendly:
+
+               break;
+
             case DuelResolution.PlayerWon:
                result.NpcRespectDelta = RespectFromLosingToPlayer;
                result.NpcFearDelta = FearFromLosingToPlayer;

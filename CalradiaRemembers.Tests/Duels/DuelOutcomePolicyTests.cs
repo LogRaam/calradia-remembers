@@ -219,16 +219,94 @@ namespace CalradiaRemembers.Tests.Duels
          r.StakeAward.Should().Be(DuelStakeAward.None);
       }
 
+      #region a bout both sides wanted
+
+      // Zinced121212 (Nexus, 18/09/2026): "Currently all duels remove personal regard even if it's a friendly
+      // battle that both sides agree to and the companion seems to be in a good mood after, or atleast thats
+      // the case in my experience trying it out not really sure if this is a bug or if the duel feature is
+      // only meant to be used against enemies."
+      //
+      // It was a bug and it was one hard-coded value: every duel armed from a chat was filed as HonourAffront,
+      // whose whole premise is that somebody was insulted. A day earlier yozakura12's log had the model
+      // agreeing to "a private sparring match, the loser grants the winner's wish", which is how long the
+      // fiction had been ahead of the ledger.
+      //
+      // These pin the DISTINCTION rather than the numbers: a bout nobody resented must not cost fondness, must
+      // not shame the loser's house, and must not be the reason a companion thinks less of the player.
+
+      // THE REPORTED CASE, and the whole point: he beats the companion and the companion likes him for it.
+      [Test]
+      public void GIVEN_a_friendly_bout_the_player_wins_WHEN_resolved_THEN_it_costs_no_fondness()
+      {
+         DuelOutcomeResult r = DuelOutcomePolicy.Resolve(Ctx(DuelResolution.PlayerWon, reason: DuelReason.Friendly));
+
+         r.NpcAffectionDelta.Should().BePositive("a match nobody resented is a thing friends enjoy");
+         r.NpcFearDelta.Should().Be(0, "nobody is frightened by a bout they asked for");
+      }
+
+      // Losing a friendly bout is an afternoon, not a humiliation, so no house is shamed by it.
+      [Test]
+      public void GIVEN_a_friendly_bout_the_player_wins_WHEN_resolved_THEN_the_loser_house_is_not_shamed()
+      {
+         DuelOutcomePolicy.Resolve(Ctx(DuelResolution.PlayerWon, reason: DuelReason.Friendly))
+                          .LoserInfluenceDelta.Should().Be(0);
+      }
+
+      // And it holds the other way round, which is the half a fix like this usually forgets.
+      [Test]
+      public void GIVEN_a_friendly_bout_the_npc_wins_WHEN_resolved_THEN_it_still_costs_no_fondness()
+      {
+         DuelOutcomePolicy.Resolve(Ctx(DuelResolution.NpcWon, reason: DuelReason.Friendly))
+                          .NpcAffectionDelta.Should().BePositive();
+      }
+
+      // Nobody agreed to anything binding, so backing out of a friendly match costs nothing at all. Pricing it
+      // as cowardice would punish a player for declining a game.
+      [Test]
+      public void GIVEN_a_friendly_bout_nobody_goes_through_with_WHEN_resolved_THEN_nothing_happens()
+      {
+         foreach (DuelResolution walked in new[] {DuelResolution.PlayerForfeited, DuelResolution.NpcForfeited})
+         {
+            DuelOutcomeResult r = DuelOutcomePolicy.Resolve(Ctx(walked, reason: DuelReason.Friendly));
+
+            r.NpcAffectionDelta.Should().Be(0);
+            r.NpcRespectDelta.Should().Be(0);
+            r.PlayerRenownDelta.Should().Be(0);
+         }
+      }
+
+      // THE CONTROL, and it is what makes the four above mean anything: a duel over a real affront still wounds
+      // the loser's pride exactly as it did. If this ever goes the other way, the fix has quietly declawed
+      // every duel in the game.
+      [Test]
+      public void GIVEN_a_duel_over_an_affront_WHEN_resolved_THEN_the_beaten_pride_still_costs_fondness()
+      {
+         DuelOutcomePolicy.Resolve(Ctx(DuelResolution.PlayerWon))
+                          .NpcAffectionDelta.Should().BeNegative("this is what a friendly bout is told apart FROM");
+      }
+
+      // A reason nobody supplied reads as a grievance, so every caller that predates this keeps what it had.
+      [Test]
+      public void GIVEN_no_reason_supplied_WHEN_a_context_is_built_THEN_it_is_an_affront()
+      {
+         new DuelResolutionContext {Resolution = DuelResolution.PlayerWon}.Reason
+            .Should().Be(DuelReason.HonourAffront);
+      }
+
+      #endregion
+
       private static DuelResolutionContext Ctx(
          DuelResolution resolution,
          bool grudge = false,
          int witnesses = 0,
-         DuelStakeKind stake = DuelStakeKind.Honour)
+         DuelStakeKind stake = DuelStakeKind.Honour,
+         DuelReason reason = DuelReason.HonourAffront)
          => new() {
             Resolution = resolution,
             AGrudgeDroveIt = grudge,
             WitnessCount = witnesses,
-            Stake = stake
+            Stake = stake,
+            Reason = reason
          };
    }
 }

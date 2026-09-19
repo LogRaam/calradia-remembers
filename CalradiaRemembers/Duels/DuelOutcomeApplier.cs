@@ -67,6 +67,7 @@ namespace CalradiaRemembers.Duels
          //    stake for now (no material wager from the console path).
          var ctx = new DuelResolutionContext {
             Resolution = resolution,
+            Reason = reason, // a friendly bout is settled entirely differently; see DuelOutcomePolicy
             AGrudgeDroveIt = drivingGrudge != null,
             Stake = DuelStakeKind.Honour,
             WitnessCount = witnessCount

@@ -851,6 +851,26 @@ namespace CalradiaRemembers.Chat
          if (seated.Count == 0)
             return $"Nobody is seated for a {scope} council right now (nobody available, or nobody of that house).";
 
+         // EVERY SEAT GETS A PERSISTED PROFILE BEFORE ANYTHING READS ONE. OpenForAssembly has done this since it
+         // was written (SeatedByStatus) and so has the companion briefing; the council was the one door that
+         // never did, and it seats people the player may never have spoken to alone.
+         //
+         // fkasad (Nexus, 18/09/2026) found the visible half: "The send letter is showing the list of the
+         // people you can sent a letter to... But not those you've talked to during a council." That list is
+         // simply store.ListIds(), so somebody with no profile is somebody you have never met.
+         //
+         // The invisible half is worse, and it is why this is a fix rather than a courtesy. Both council write
+         // paths read the profile and give up when it is missing: the engagement seal (ChatViewModel.Council,
+         // "if (profile == null) continue") and the regard shift the sitting awards. So a councillor without a
+         // profile kept NOTHING from a council he sat through: no memory of it, no agreement sealed on him, and
+         // no change in how he regards the player. He would arrive at the next sitting as a stranger again.
+         foreach (Hero h in seated)
+            if (h != null && behavior.Store.Get(h.StringId) == null)
+            {
+               behavior.Store.Set(HeroProfileMapper.FromHero(h));
+               ModLog.Info($"[COUNCIL] seated {h.Name} for the first time; a memory profile was created for them.");
+            }
+
          // The anchor is chosen on the mod's OWN personal regard ledger, the one the player actually builds in
          // conversation, not the vanilla clan relation.
          var facts = seated
