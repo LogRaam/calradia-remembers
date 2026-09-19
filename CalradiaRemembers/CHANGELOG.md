@@ -2,6 +2,27 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.16.. 2026-09-19
+
+Grievances that remember being answered, and duels that finally act on the grudge that drove them.
+
+### Fixed
+- **A lord kept asking why the player did what he holds against them** (Zivkyn: "asking why i killed their
+  Kinsmen, that i did months ago, even though ive explained it 10 times now"). Nothing linked an explanation to
+  the grudge, so every conversation met it fresh, and the permissive "you may name it openly" read every turn let
+  the model reopen it. A vendetta also drove the road interception and the fief audience every thirty days with
+  a "confront them" opener, forever. New verb `hear_account` records `Grudge.AnsweredDay` + `PlayerAccount`
+  (additive; old saves read "never answered"); `GrudgeNarrator` then tells the holder the account and not to ask
+  again; `GrudgePolicy.StillDrivesConfrontation` keeps an answered grudge out of `HoldsLiveGrudgeAgainstPlayer`.
+  **Gabriel's ruling: answering mends nothing.** A vendetta stays unforgivable, weight and rigidity untouched;
+  only amends, gifts, deeds and time soften a grudge. Taught for vendettas too, unlike `make_amends`.
+- **A duel fought over a grudge never touched the grudge.** `DuelOutcomePolicy` has computed Settled/Hardened
+  since the pillar shipped; `DuelOutcomeApplier` logged it and applied neither, because nothing could deepen a
+  grudge. `GrudgePolicy.Harden` now exists; `DuelOutcomePolicy.ApplyGrudgeEffect` resolves on a fought duel and
+  adds `GrudgeHardenedByForfeit` (15) on a forfeit by either side. Vendettas refused both ways.
+
+`cr.testall` gains `grudge_answered` (drives `hear_account` through the real bridge).
+
 ## v2.5.15.. 2026-09-19
 
 Four fixes, all found by reading the first real bridge mod built on the modder API (tashmetu's Bellum Bridge)

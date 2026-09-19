@@ -1,0 +1,15 @@
+Version 2.5.16
+
+A small release about grudges. It comes from a player report: a lord kept asking why the player had killed his kinsmen, months after the fact, however many times it had been explained.
+
+Fixed
+
+- A lord who holds a grievance against you now remembers that you have answered it. When you explain yourself, the character records what you said. From then on they know your side of it, and they stop asking the same question every time you meet. They may still not believe you. Answering is not forgiving: the grievance keeps its full weight, and a blood feud over a dead kinsman stays exactly that. Apologies, gifts, deeds and time are still the only things that soften a grudge.
+
+- A grievance you have answered no longer sends its holder riding out to confront you. Until now, a lord with a serious grudge came to find you about it on the road, or asked for an audience in your fief, roughly every month, with no end. Once you have given your account, the confrontation has happened. They stay as cold as the grudge makes them, but they stop coming after you over it.
+
+- A duel fought over a grudge now settles it, whoever wins. That was always the intent, and it never actually happened: the grudge survived the fight untouched. The other half works now too. Refusing such a duel, or seeing your opponent back out of it, makes the grievance worse. Blood feuds are not settled or deepened by a duel either way.
+
+Notes
+
+- Nothing here needs a new game. Grudges in an existing save simply start out as not yet answered, which is true of every one of them.
