@@ -479,48 +479,56 @@ cr.remove_kink <kink> [name]         # remove a kink
 
 ---
 
-## Current state (2026-09-15)
+## Current state (2026-09-19)
 
-> Short on purpose. The detail lives in `CHANGELOG.md`, `ROADMAP.md` and git; this says only where things
-> stand and what is NOT safe to assume. It replaced ~100 lines of June 2026 sprint notes (sprints 12-20)
-> that had been stale for three months and contradicted the rest of the file.
+> Short on purpose. The detail lives in `CHANGELOG.md`, the `NEXUS_CHANGELOG_*.txt` files and git; this says
+> only where things stand and what is NOT safe to assume.
 
-**Shipped: v2.5.9 is LIVE on Nexus** (Gabriel confirmed 2026-09-14). Verify a live version by asking Gabriel
-to paste text or a screenshot — `SubModule.xml` is NOT evidence and WebFetch on Nexus is 403 (Cloudflare).
+**Shipped: v2.5.12 is LIVE on Nexus** (Gabriel confirmed 2026-09-19). Verify a live version by asking Gabriel
+to paste text or a screenshot: `SubModule.xml` is NOT evidence and WebFetch on Nexus is 403 (Cloudflare).
+v2.5.11 was built and never uploaded; its archive was deleted and 2.5.12 carries its content.
 
-**Built since, pushed, NOT released.** Headline is the prompt-cache work of 2026-09-15, all of it from two
-players' reports:
+**The last three releases were almost entirely player reports**, named in the changelogs: the prompt cache
+dying on turn two, the interpreter prompt never cached, Compact fitting an 8k model, the duel crash (three
+reports across three versions before it was right), the companion audience that opened nothing inside a town,
+a letter reply that left no trace, a quest treated as an old errand seconds after it was agreed, and a lord
+writing to a tournament loser as though he rode in that lord's retinue.
 
-- **The cacheable prefix was dying on turn two.** `IsConversationOpening` — a fact about THIS TURN — decided
-  wording near the TOP of the prompt, so turn 2 diverged from turn 1 at ~2.5% and discarded 93% of the
-  prefix. Found by a player (fkasad) diffing two saved prompts by hand. Narration FREQUENCY now lives whole
-  in the dynamic tail; `PromptCacheSplit` holds the split rule so tests measure the function the game runs;
-  `PromptCacheTurnStabilityTests` guards the class. Play-verified: cached went 0 → 12,864 on turn 2.
-- **The interpreter prompt was built to be cached and never was.** Its invariant head is 70,378 chars
-  (~17.6k tokens, the whole action catalogue) and nothing ever passed it as `StableSystemPrompt`, so it was
-  re-sent at full price every turn — the larger half of a turn's cost. One line, no prompt text moved.
-- **A character is told about their own culture, not all eight** (`FactionGuidelinesPolicy`) — ~2.1k chars
-  off a lord's prompt, and the answer to "many of them seem to talk the same way".
-- **`cr.wire`** reports what each request costs and how much of the prefix the next turn can read.
+**Pushed since 2.5.12, NOT released:**
 
-**Rulings from that day, do not relitigate:**
+- **Matters are ordered by what touches the speaker**, then size, then the clock. Previously the clock alone,
+  so a notable whose village was burning raised a war three hundred leagues away instead (fkasad).
+- **Other modules can contribute prompt prose** without overwriting anything: a module ships
+  `ModuleData/cr_patch/<filename>` and it is applied after ours and after the player's Custom folder, in
+  launcher load order. `!remove <text>` and `!replace` cover a total conversion; anything else appends.
+  Asked for by tashmetu, building a Bellum Civile bridge on the public API.
+
+**Rulings, do not relitigate:**
 
 - **Quality outranks cost, always.** Gabriel: *"On ne doit pas réduire la qualité de la pertinence des
-  réponses du LLM… la qualité est la priorité numéro 1."* Relevance is the majority of what players report.
-  Cost may only be cut where the model sees exactly what it saw before.
-- **The anti-confabulation wall stays in the dynamic tail.** `STAY WITHIN WHAT YOU KNOW`, `WHAT THEY SAY…IS
-  A CLAIM, NOT A FACT` and `READING WHAT THE PLAYER DOES` are ~1,840 tokens re-sent every turn. They sit
-  last for RECENCY, deliberately, because players reported characters inventing. Measured, offered, and
-  **refused** — this is a priced trade-off, not an oversight.
+  réponses du LLM… la qualité est la priorité numéro 1."* Cost may only be cut where the model sees exactly
+  what it saw before.
+- **The anti-confabulation wall stays in the dynamic tail**, ~1,840 tokens re-sent every turn, for RECENCY.
+  Measured, offered, and refused: a priced trade-off, not an oversight.
+- **A predicate whose name answers a different question than its body** is how the duel crash survived two
+  fixes. `Settlement.CurrentSettlement` is set for a party merely STANDING ON a settlement; only
+  `PlayerEncounter.InsideSettlement` means inside.
 
 **Open, and not to be assumed working:**
 
-- **`take_into_service` has never once completed in a live game** (both lords refused at regard 0).
-- **Lordfadooboo: "talk now does nothing"** — undiagnosed, needs a log on 2.5.9+.
-- **mysticwolf92: the council button** — the bar-survival check is built but unreleased.
-- **The mood of the day**: increment 1 only (the weighted draw, SDK). No host wiring, no prompt, no player
-  influence. Design and its six rulings are in `ROADMAP.md`.
-- **Nexus text not yet pasted**: the corrected `NEXUS_CHANGELOG_v2.5.9.txt` and `NEXUS_PINNED_ROADMAP.txt`.
+- **Nobody has ever read a council sitting.** Several increments of content reach the table unjudged.
+- **The companion audience inside a town is REASONED, not reproduced.** `cr.audience ask <name>` raises the
+  real popup on demand; it has not been walked.
+- **`take_into_service` has never once completed in a live game.**
+- **No separate model for housekeeping calls.** MCM exposes PROSE, NSFW and Interpret; the summarizers,
+  compressor and extractors follow the default. Promised to fkasad, who runs a local model and pays for this
+  in KV-cache evictions. **Every request already carries its own `ModelOverride`, so this is a setting away.**
+- **Raised and deliberately not built:** a grievance has no notion of having been answered (a lord asks why
+  you killed his kinsman however often you explain); `RumorAboutPlayer` has no magnitude filter, so a cleared
+  looter camp counts as much as a city falling; profession-shaped reasons to approach (Lordfadooboo offered
+  to write them).
+- **The mood of the day**: increment 1 only. No host wiring, no prompt, no player influence.
+- **Nexus text not yet pasted**: `NEXUS_PINNED_ROADMAP.txt`.
 
 **Two measured facts worth carrying:**
 
