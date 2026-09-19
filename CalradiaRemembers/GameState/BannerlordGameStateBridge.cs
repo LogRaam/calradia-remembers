@@ -4877,6 +4877,12 @@ namespace CalradiaRemembers.GameState
             if (!TeachSkillPolicy.CanTeach(teacherLevel))
                return ActionOutcome.Refused($"({npcHero.Name} is no master of {skillLabel}, and has nothing worth teaching there.)");
 
+            // The prompt only offers skills the player knows less of, but the prompt is advice and the bridge is
+            // law: the model may name a skill from its own sense of the character, and the player's level may
+            // have risen since the turn began.
+            if (!TeachSkillPolicy.CanTeachPlayer(teacherLevel, Hero.MainHero.GetSkillValue(skill)))
+               return ActionOutcome.Refused($"(You already know more of {skillLabel} than {npcHero.Name} does; there is nothing to learn from them there.)");
+
             // "Advisory" per the catalog: the LLM may omit amount, or write anything at all. Absent a parsed
             // figure, request comfortably above every possible ceiling (MaxCeiling) so the teacher's OWN
             // mastery, not a missing parameter, decides the real grant.

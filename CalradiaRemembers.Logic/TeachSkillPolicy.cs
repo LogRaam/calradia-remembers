@@ -57,6 +57,23 @@ namespace CalradiaRemembers.Logic
         public static bool CanTeach(int teacherSkillLevel) => teacherSkillLevel >= TeacherSkillFloor;
 
         /// <summary>
+        ///   True when this teacher can teach THIS player: competent in the skill at all, and better at it than
+        ///   the player already is. A tie is not enough, since two equals have nothing to show each other.
+        ///   <para>
+        ///     Found while answering a player's question (Zinced121212, Nexus, 19/09/2026), about whether
+        ///     characters are aware of skills at all: the lesson never looked at the player's own level. A player
+        ///     at 300 Medicine could be "taught" Medicine by a companion at 100, and paid in real experience for
+        ///     it. The competence floor was right and was the only thing asked; nobody asked whether the student
+        ///     already knew more than the master.
+        ///   </para>
+        ///   Kept apart from <see cref="GrantedXp" /> on purpose: that one answers "how much, from a teacher
+        ///   entitled to teach", and adding a third integer to a signature that already runs two in a row would
+        ///   make it one silent argument swap away from inverting who is teaching whom.
+        /// </summary>
+        public static bool CanTeachPlayer(int teacherSkillLevel, int playerSkillLevel)
+            => CanTeach(teacherSkillLevel) && teacherSkillLevel > playerSkillLevel;
+
+        /// <summary>
         ///   Resolves the real XP a lesson grants: 0 when the teacher is not competent
         ///   (<see cref="CanTeach"/> false), 0 when the last lesson from this NPC landed less than
         ///   <see cref="CooldownHours"/> ago, 0 for a non-positive request, and otherwise the LLM's requested

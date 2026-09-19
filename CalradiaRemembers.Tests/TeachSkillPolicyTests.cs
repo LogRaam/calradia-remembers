@@ -120,5 +120,52 @@ namespace CalradiaRemembers.Tests
          TeachSkillPolicy.GrantedXp(300, 0, null, 100.0).Should().Be(0);
          TeachSkillPolicy.GrantedXp(300, -5, null, 100.0).Should().Be(0);
       }
+
+      #region the student must know less than the master
+
+      // Found while answering Zinced121212 (Nexus, 19/09/2026), who asked whether characters are aware of
+      // skills at all. The lesson never read the player's own level, so a player at 300 Medicine could be taught
+      // Medicine by a companion at 100 and paid in real experience for it.
+
+      // THE CASE: a master teaching a novice. The whole reason the verb exists must keep working.
+      [Test]
+      public void GIVEN_a_master_and_a_player_who_knows_less_WHEN_asked_THEN_the_lesson_can_be_given()
+      {
+         TeachSkillPolicy.CanTeachPlayer(150, 40).Should().BeTrue();
+      }
+
+      // THE DEFECT: a player who already knows more cannot be taught by someone who knows less, however
+      // competent that someone is in absolute terms.
+      [Test]
+      public void GIVEN_a_player_who_already_knows_more_than_the_master_WHEN_asked_THEN_there_is_nothing_to_teach()
+      {
+         TeachSkillPolicy.CanTeachPlayer(100, 300).Should().BeFalse("a student at 300 learns nothing from a master at 100");
+      }
+
+      // Two equals have nothing to show each other; a tie is not a lesson.
+      [Test]
+      public void GIVEN_a_teacher_and_player_at_the_same_level_WHEN_asked_THEN_it_is_not_a_lesson()
+      {
+         TeachSkillPolicy.CanTeachPlayer(150, 150).Should().BeFalse();
+      }
+
+      // AND THE ARGUMENT ORDER IS THE WHOLE RULE. Swapped, this would let the weaker party teach the stronger,
+      // which is the very defect being fixed, and it would compile and run and look plausible. This pair is the
+      // test that goes red if anyone ever calls it the wrong way round.
+      [Test]
+      public void GIVEN_the_same_two_people_the_other_way_round_WHEN_asked_THEN_the_answer_inverts()
+      {
+         TeachSkillPolicy.CanTeachPlayer(150, 120).Should().BeTrue();
+         TeachSkillPolicy.CanTeachPlayer(120, 150).Should().BeFalse();
+      }
+
+      // The competence floor still stands: knowing more than a complete novice does not make someone a teacher.
+      [Test]
+      public void GIVEN_a_teacher_below_the_floor_who_still_knows_more_than_the_player_WHEN_asked_THEN_no_lesson()
+      {
+         TeachSkillPolicy.CanTeachPlayer(60, 10).Should().BeFalse("the floor is about the teacher, not the gap");
+      }
+
+      #endregion
    }
 }

@@ -1983,11 +1983,15 @@ namespace CalradiaRemembers.Mapping
          {
             if (hero == null || !hero.IsAlive) return null;
 
+            // Only what this person could teach THIS player: a master of a craft the player already knows
+            // better has nothing to show them there, and the lesson would be offered and then refused.
+            Hero player = Hero.MainHero;
             var teachable = new List<string>();
             foreach (SkillObject skill in Skills.All)
             {
                if (skill == null) continue;
-               if (TeachSkillPolicy.CanTeach(hero.GetSkillValue(skill)))
+               int playerLevel = player?.GetSkillValue(skill) ?? 0;
+               if (TeachSkillPolicy.CanTeachPlayer(hero.GetSkillValue(skill), playerLevel))
                   teachable.Add(skill.Name?.ToString() ?? skill.StringId);
             }
 
