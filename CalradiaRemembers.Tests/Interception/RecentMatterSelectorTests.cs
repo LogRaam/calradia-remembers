@@ -152,5 +152,111 @@ namespace CalradiaRemembers.Tests.Interception
          RecentMatterSelector.PickFreshest(null, new HashSet<string>(), Today, Window).Should().BeNull();
          RecentMatterSelector.PickFreshest(new List<RecentMatter>(), new HashSet<string>(), Today, Window).Should().BeNull();
       }
+
+      #region what touches him, before what is merely newest
+
+      // fkasad (Nexus, 19/09/2026): "Less than an hour ago, I arrived at a village that was being looted by an
+      // enemy army, intending to defend it. The notable waiting at the gate called out to me to talk about a new
+      // war taking place much further south, a conflict we aren't even involved in. Damn it! His village was
+      // burning. He could have asked for help, or insulted me and called me incompetent for arriving too late
+      // (again: a living world)."
+      //
+      // The notable knew both. The choice between them was made on the DAY ALONE, so a war declared this
+      // morning outranked the raid on his own village that began yesterday. Nearness and size were sitting on
+      // the world event and were being dropped on the way in.
+
+      // THE REPORTED CASE, and it is a case the old ordering got exactly backwards.
+      [Test]
+      public void GIVEN_his_own_village_burning_and_a_fresher_distant_war_WHEN_picking_THEN_he_raises_the_village()
+      {
+         var matters = new[]
+         {
+            new RecentMatter("we:war", Today, "a war is declared far to the south", RecentMatterRegister.WorldGossip,
+               touchesTheSpeaker: false, weight: 80),
+            new RecentMatter("we:raid", Today - 1, "the village is being looted", RecentMatterRegister.WorldGossip,
+               touchesTheSpeaker: true, weight: 30)
+         };
+
+         RecentMatterSelector.PickFreshest(matters, new HashSet<string>(), Today, Window)
+                             .Key.Should().Be("we:raid", "it is his village, and it is burning now");
+      }
+
+      // Size decides between two that touch him equally, which is the half that makes the order an order rather
+      // than a single rule.
+      [Test]
+      public void GIVEN_two_matters_that_both_touch_him_WHEN_picking_THEN_the_greater_one_wins()
+      {
+         var matters = new[]
+         {
+            new RecentMatter("we:small", Today, "a purse was cut in the market", RecentMatterRegister.WorldGossip,
+               touchesTheSpeaker: true, weight: 10),
+            new RecentMatter("we:siege", Today - 2, "the town is under siege", RecentMatterRegister.WorldGossip,
+               touchesTheSpeaker: true, weight: 90)
+         };
+
+         RecentMatterSelector.PickFreshest(matters, new HashSet<string>(), Today, Window).Key.Should().Be("we:siege");
+      }
+
+      // And the clock still decides when nothing else does, so nothing that used to work stopped working.
+      [Test]
+      public void GIVEN_two_matters_alike_in_every_other_way_WHEN_picking_THEN_the_fresher_one_wins()
+      {
+         var matters = new[]
+         {
+            new RecentMatter("we:older", Today - 3, "an older happening", RecentMatterRegister.WorldGossip,
+               touchesTheSpeaker: true, weight: 50),
+            new RecentMatter("we:newer", Today, "a newer happening", RecentMatterRegister.WorldGossip,
+               touchesTheSpeaker: true, weight: 50)
+         };
+
+         RecentMatterSelector.PickFreshest(matters, new HashSet<string>(), Today, Window).Key.Should().Be("we:newer");
+      }
+
+      // THE SCOPE, and it is the guard on the whole change: a matter between him and the PLAYER is never weighed
+      // by size. A quiet conversation memory carries no magnitude at all, and ranking it against a battle would
+      // bury the most personal material under the loudest, which is the opposite of what any of this is for.
+      [Test]
+      public void GIVEN_a_personal_memory_of_no_size_and_a_great_public_event_WHEN_picking_THEN_the_personal_one_wins()
+      {
+         var matters = new[]
+         {
+            new RecentMatter("we:battle", Today, "a great battle was fought", RecentMatterRegister.WorldGossip,
+               touchesTheSpeaker: true, weight: 100),
+            new RecentMatter("mem:word", Today - 2, "we spoke of his daughter", RecentMatterRegister.LivedMemory)
+         };
+
+         RecentMatterSelector.PickFreshest(matters, new HashSet<string>(), Today, Window)
+                             .Key.Should().Be("mem:word", "personal still outranks the world, whatever the world was doing");
+      }
+
+      // Two PERSONAL matters keep the ordering they always had: freshest, untouched by nearness or size.
+      [Test]
+      public void GIVEN_two_personal_matters_WHEN_picking_THEN_the_fresher_one_still_wins()
+      {
+         var matters = new[]
+         {
+            new RecentMatter("mem:old", Today - 2, "an older word between us", RecentMatterRegister.LivedMemory),
+            new RecentMatter("mem:new", Today, "what we said today", RecentMatterRegister.LivedMemory)
+         };
+
+         RecentMatterSelector.PickFreshest(matters, new HashSet<string>(), Today, Window).Key.Should().Be("mem:new");
+      }
+
+      // Nothing is FILTERED by any of this. It is an order, so a matter that touches nobody is still raised when
+      // it is the only thing he knows: silence has its own gate and this is not it.
+      [Test]
+      public void GIVEN_only_a_distant_matter_WHEN_picking_THEN_it_is_still_raised()
+      {
+         var matters = new[]
+         {
+            new RecentMatter("we:far", Today, "a war far away", RecentMatterRegister.WorldGossip,
+               touchesTheSpeaker: false, weight: 5)
+         };
+
+         RecentMatterSelector.PickFreshest(matters, new HashSet<string>(), Today, Window).Key.Should().Be("we:far");
+      }
+
+      #endregion
+
    }
 }

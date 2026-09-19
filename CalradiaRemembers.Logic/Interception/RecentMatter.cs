@@ -35,12 +35,15 @@ namespace CalradiaRemembers.Logic.Interception
    /// <summary>One recent matter a lord could raise with the player: what it is, when it happened, its register, and a stable key for the once-per-NPC guard.</summary>
    public sealed class RecentMatter
    {
-      public RecentMatter(string key, int day, string summary, RecentMatterRegister register)
+      public RecentMatter(string key, int day, string summary, RecentMatterRegister register,
+         bool touchesTheSpeaker = false, int weight = 0)
       {
          Key = key ?? "";
          Day = day;
          Summary = summary ?? "";
          Register = register;
+         TouchesTheSpeaker = touchesTheSpeaker;
+         Weight = weight;
       }
 
       /// <summary>Stable dedup key (NOT NPC-scoped: the caller scopes it per NPC). A world event uses its Id; a profile memory a day+type+summary composite.</summary>
@@ -53,6 +56,19 @@ namespace CalradiaRemembers.Logic.Interception
       public string Summary { get; }
 
       public RecentMatterRegister Register { get; }
+
+      /// <summary>
+      ///   Whether this happened in THIS speaker's own place or to his own people: his settlement, his clan's
+      ///   holdings, or a faction he belongs to. The mechanical stand-in for "does it affect him".
+      /// </summary>
+      public bool TouchesTheSpeaker { get; }
+
+      /// <summary>
+      ///   How big the thing was, carried straight from the world event's Magnitude. Zero for a profile memory,
+      ///   which is never weighed against anything (see <see cref="RecentMatterSelector" />: size only ever
+      ///   sorts gossip against gossip).
+      /// </summary>
+      public int Weight { get; }
    }
 
    /// <summary>Picks the single matter a lord raises: the most recent one, within a recency window, that he has not already raised.</summary>
@@ -96,6 +112,31 @@ namespace CalradiaRemembers.Logic.Interception
          bool aPersonal = a.Register != RecentMatterRegister.WorldGossip;
          bool bPersonal = b.Register != RecentMatterRegister.WorldGossip;
          if (aPersonal != bPersonal) return aPersonal;
+
+         // AMONG GOSSIP, NEARNESS THEN SIZE, AND ONLY THEN THE CLOCK.
+         //
+         // fkasad (Nexus, 19/09/2026): "Less than an hour ago, I arrived at a village that was being looted by
+         // an enemy army, intending to defend it. The notable waiting at the gate called out to me to talk
+         // about a new war taking place much further south, a conflict we aren't even involved in. Damn it!
+         // His village was burning."
+         //
+         // Nothing was broken in the gathering: the notable knew both. The choice between them was made on the
+         // DAY ALONE, so a war declared this morning three hundred leagues away outranked the raid on his own
+         // village that started yesterday. Recency is a fine tie-break and a terrible first question.
+         //
+         // The data to do better was already on the world event and was being thrown away on the way in:
+         // PlaceId and FactionIds say whether it touches him, Magnitude says how big it was. No thresholds are
+         // introduced here and none are needed; this is an ORDER, not a filter, so nothing is ever hidden that
+         // was not already going to lose to something else.
+         //
+         // Deliberately scoped to gossip. A matter between him and the player keeps exactly the ordering it
+         // had, because weighing a quiet conversation memory against a battle by "size" would bury the most
+         // personal material under the loudest, which is the opposite of the point.
+         if (!aPersonal)
+         {
+            if (a.TouchesTheSpeaker != b.TouchesTheSpeaker) return a.TouchesTheSpeaker;
+            if (a.Weight != b.Weight) return a.Weight > b.Weight;
+         }
 
          if (a.Day != b.Day) return a.Day > b.Day;
          if (a.Register != b.Register) return a.Register < b.Register;

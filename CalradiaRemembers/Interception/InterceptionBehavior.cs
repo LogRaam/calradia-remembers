@@ -775,6 +775,44 @@ namespace CalradiaRemembers.Interception
       // construction, so LIVED), and the recent world events he knows of that involve the player (LIVED when his id
       // or faction is among the actors, else a RUMOR he merely heard). The window + type filter keep it to fresh,
       // fitting matters; the tested selector then picks the freshest unraised one.
+      /// <summary>
+      ///   Whether a world event happened in this lord's own place or to his own people: the settlement he is
+      ///   standing in, one his clan holds, or a faction he belongs to. The mechanical stand-in for "does this
+      ///   affect him", and the reason a raid on his own village now outranks a war three hundred leagues off
+      ///   (fkasad, 19/09/2026). Fail-soft: unreadable means "does not touch him", which only ever costs the
+      ///   event a tie-break it might have won.
+      /// </summary>
+      private static bool TouchesTheSpeaker(WorldEvent we, Hero lord)
+      {
+         try
+         {
+            if (we == null || lord == null) return false;
+
+            if (!string.IsNullOrEmpty(we.PlaceId))
+            {
+               if (we.PlaceId == lord.CurrentSettlement?.StringId) return true;
+               if (we.PlaceId == lord.HomeSettlement?.StringId) return true;
+               if (lord.Clan?.Settlements != null)
+                  foreach (Settlement held in lord.Clan.Settlements)
+                     if (held != null && held.StringId == we.PlaceId)
+                        return true;
+            }
+
+            if (we.FactionIds != null)
+            {
+               string clan = lord.Clan?.StringId;
+               string realm = lord.MapFaction?.StringId;
+
+               foreach (string id in we.FactionIds)
+                  if (!string.IsNullOrEmpty(id) && (id == clan || id == realm))
+                     return true;
+            }
+
+            return false;
+         }
+         catch { return false; }
+      }
+
       private static IEnumerable<RecentMatter> BuildRecentMatters(Hero lord, int today)
       {
          var matters = new List<RecentMatter>();
@@ -816,7 +854,8 @@ namespace CalradiaRemembers.Interception
                   // two days described the same result. Gating it HERE, where a gossip matter is minted, rather
                   // than at the approach: a lord left with no matter at all now has nothing to say, so
                   // HeardRecentPlayerDeed is false and he does not ask for a word. Silence is the point.
-                  matters.Add(new RecentMatter("we:" + we.Id, we.Day, we.Summary, RecentMatterRegister.WorldGossip));
+                  matters.Add(new RecentMatter("we:" + we.Id, we.Day, we.Summary, RecentMatterRegister.WorldGossip,
+                     TouchesTheSpeaker(we, lord), we.Magnitude));
                }
             }
 
