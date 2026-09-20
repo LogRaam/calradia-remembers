@@ -63,7 +63,11 @@ namespace CalradiaRemembers.Tests.Battles
         [Test]
         public void GIVEN_the_player_was_downed_WHEN_written_THEN_the_foe_is_named()
         {
-            BattleFeatText.WitnessedPlayerDowned("Ganak", "open battle").Should().Contain("Ganak").And.Contain("open battle");
+            BattleFeatText.WitnessedPlayerDowned("Ganak", "open battle", "Adam").Should().Contain("Ganak").And.Contain("open battle").And.Contain("Adam");
+
+            // WHOSE "YOU" (reminensce, 19/09/2026): a memory read in a prompt that calls the CHARACTER "you" must
+            // not use "you" for the player. With no name to hand it says "the player", never "you".
+            BattleFeatText.WitnessedPlayerDowned("Ganak", "open battle").Should().Contain("the player").And.NotContain(" you ");
         }
 
         // The version that reaches lords who were NOT there is hearsay, third person, naming both parties: an
@@ -100,9 +104,9 @@ namespace CalradiaRemembers.Tests.Battles
         [Test]
         public void GIVEN_the_bested_foe_himself_WHEN_written_THEN_he_speaks_of_his_own_defeat()
         {
-            string line = BattleFeatText.SubjectBestedByPlayer(CombatFeatOutcome.Bested, "the siege of Poros");
+            string line = BattleFeatText.SubjectBestedByPlayer(CombatFeatOutcome.Bested, "the siege of Poros", "Adam");
 
-            line.Should().StartWith("You bested me");
+            line.Should().StartWith("Adam bested me");
             line.Should().NotContain("I saw");
         }
 
@@ -119,9 +123,9 @@ namespace CalradiaRemembers.Tests.Battles
         [Test]
         public void GIVEN_the_man_who_downed_the_player_WHEN_written_THEN_he_owns_the_deed()
         {
-            string line = BattleFeatText.SubjectDownedThePlayer("open battle");
+            string line = BattleFeatText.SubjectDownedThePlayer("open battle", "Adam");
 
-            line.Should().Contain("I put you down myself");
+            line.Should().Contain("I put Adam down myself");
             line.Should().NotContain("I saw");
         }
     }

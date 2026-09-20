@@ -184,8 +184,8 @@ namespace CalradiaRemembers.WorldEvents
                // EncounterContextBuilder.LostBattleToPlayerRecently to feed the POWER BALANCE
                // note — keep the two in sync if this wording changes.
                string summary = ally
-                  ? BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort)
-                  : $"Faced you in battle and {(playerWon ? "saw you put their host to flight" : "held the field against you")}{placeClause}.";
+                  ? BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort, PlayerName)
+                  : $"Faced {PlayerName} in battle and {(playerWon ? "saw them put my host to flight" : "held the field against them")}{placeClause}.";
                profile.Events.Add(new NotableEvent(day, NotableEventType.Other, summary));
 
                // They were there, so they speak of the deeds first-hand (the LIVED register).
@@ -238,7 +238,7 @@ namespace CalradiaRemembers.WorldEvents
 
             if (companion == null) continue; // only companions the player has actually met
 
-            companion.Events.Add(new NotableEvent(day, NotableEventType.Other, BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort)));
+            companion.Events.Add(new NotableEvent(day, NotableEventType.Other, BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort, PlayerName)));
 
             // A companion rode at the player's shoulder, so they witnessed the deeds too.
             if (deeds != null)
@@ -266,7 +266,7 @@ namespace CalradiaRemembers.WorldEvents
          if (behavior?.Store == null) return 0;
 
          int day = Today;
-         string expected = BattleMemoryText.AllySummary(playerWon, "", false);
+         string expected = BattleMemoryText.AllySummary(playerWon, "", false, PlayerName);
          int before = CountCompanionAllyMemories(behavior, day, expected);
          RecordCompanionBattleMemories(day, playerWon, "", false);
 

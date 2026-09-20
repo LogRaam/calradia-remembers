@@ -8,6 +8,8 @@
 // Lucon" would have NPCs mourning a man the player can visit in his own dungeon. Rank-and-file soldiers do die and
 // may be spoken of plainly as fallen.
 
+using CalradiaRemembers.Logic;
+
 namespace CalradiaRemembers.Logic.Battles
 {
     /// <summary>The first-hand lines a battle's real deeds leave in the memory of those who were there.</summary>
@@ -39,12 +41,12 @@ namespace CalradiaRemembers.Logic.Battles
         ///   The mirror: a foe who put the PLAYER down. Kept as its own line because it is the seed of a rivalry or
         ///   a grudge, and because a lord who unhorsed the player has something of his own to say about it.
         /// </summary>
-        public static string WitnessedPlayerDowned(string foeName, string engagement)
+        public static string WitnessedPlayerDowned(string foeName, string engagement, string playerName = null)
         {
             string who = string.IsNullOrWhiteSpace(foeName) ? "a foe" : foeName.Trim();
             string place = string.IsNullOrWhiteSpace(engagement) ? "" : $" at {engagement.Trim()}";
 
-            return $"I saw {who} put you down in the fighting{place}.";
+            return $"I saw {who} put {BattleMemoryText.NameOrPlayer(playerName)} down in the fighting{place}.";
         }
 
         /// <summary>
@@ -52,27 +54,28 @@ namespace CalradiaRemembers.Logic.Battles
         ///   read "I saw you best Lucon" in Lucon's own memory, which is nonsense: the subject of a deed speaks of
         ///   it in his own voice, as something done TO him.
         /// </summary>
-        public static string SubjectBestedByPlayer(CombatFeatOutcome outcome, string engagement)
+        public static string SubjectBestedByPlayer(CombatFeatOutcome outcome, string engagement, string playerName = null)
         {
             string place = string.IsNullOrWhiteSpace(engagement) ? "" : $" at {engagement.Trim()}";
+            string who = BattleMemoryText.NameOrPlayer(playerName);
 
             switch (outcome)
             {
                 case CombatFeatOutcome.TakenAlive:
-                    return $"You beat me down and took me alive{place}.";
+                    return $"{who} beat me down and took me alive{place}.";
                 case CombatFeatOutcome.Slain:
-                    return $"You cut me down{place}."; // a dead hero keeps no memory; kept for completeness
+                    return $"{who} cut me down{place}."; // a dead hero keeps no memory; kept for completeness
                 default:
-                    return $"You bested me in the fighting{place}.";
+                    return $"{who} bested me in the fighting{place}.";
             }
         }
 
         /// <summary>The mirror, as the man who did it remembers it: he did not WATCH someone put the player down, he did it himself.</summary>
-        public static string SubjectDownedThePlayer(string engagement)
+        public static string SubjectDownedThePlayer(string engagement, string playerName = null)
         {
             string place = string.IsNullOrWhiteSpace(engagement) ? "" : $" at {engagement.Trim()}";
 
-            return $"I put you down myself in the fighting{place}.";
+            return $"I put {BattleMemoryText.NameOrPlayer(playerName)} down myself in the fighting{place}.";
         }
 
         /// <summary>

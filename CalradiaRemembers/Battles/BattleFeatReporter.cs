@@ -182,6 +182,9 @@ namespace CalradiaRemembers.Battles
          _engagement = engagement;
       }
 
+      /// <summary>The player as these memory lines name them, never "you": see BattleMemoryText.NameOrPlayer.</summary>
+      private static string PlayerName => Hero.MainHero?.Name?.ToString() ?? "the player";
+
       /// <summary>True when there is nothing to append to anyone.</summary>
       public bool IsEmpty => _digest == null || _digest.IsEmpty;
 
@@ -200,13 +203,13 @@ namespace CalradiaRemembers.Battles
 
          if (_digest.BestFeat != null)
             lines.Add(isTheBestedFoe
-               ? BattleFeatText.SubjectBestedByPlayer(_digest.BestFeat.Outcome, _engagement)
+               ? BattleFeatText.SubjectBestedByPlayer(_digest.BestFeat.Outcome, _engagement, PlayerName)
                : BattleFeatText.WitnessedFeat(_digest.BestFeat.FoeName, _digest.BestFeat.Outcome, _engagement));
 
          if (!string.IsNullOrEmpty(_digest.DownedThePlayer))
             lines.Add(isTheOneWhoDownedThePlayer
-               ? BattleFeatText.SubjectDownedThePlayer(_engagement)
-               : BattleFeatText.WitnessedPlayerDowned(_digest.DownedThePlayer, _engagement));
+               ? BattleFeatText.SubjectDownedThePlayer(_engagement, PlayerName)
+               : BattleFeatText.WitnessedPlayerDowned(_digest.DownedThePlayer, _engagement, PlayerName));
 
          if (_digest.TollToMention > 0)
             lines.Add(BattleFeatText.WitnessedToll(_digest.TollToMention, _engagement));

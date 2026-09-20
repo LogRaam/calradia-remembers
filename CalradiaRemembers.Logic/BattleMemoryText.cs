@@ -65,16 +65,31 @@ namespace CalradiaRemembers.Logic
         ///   allies beside them), so the memory reads as a shared victory rather than crediting the player alone,
         ///   the player report where lords congratulated a solo triumph after an army siege.
         /// </summary>
-        public static string AllySummary(bool playerWon, string placeClause, bool sharedEffort)
+        public static string AllySummary(bool playerWon, string placeClause, bool sharedEffort, string playerName = null)
         {
+            string who = NameOrPlayer(playerName);
+
             if (playerWon)
                 return sharedEffort
-                    ? $"Fought at your side when we broke the enemy together{placeClause}."
-                    : $"Fought at your side when you broke the enemy{placeClause}.";
+                    ? $"Fought at {who}'s side when we broke the enemy together{placeClause}."
+                    : $"Fought at {who}'s side when they broke the enemy{placeClause}.";
 
             return sharedEffort
-                ? $"Fought at your side when we stood against the enemy{placeClause}."
-                : $"Fought at your side when you stood against the enemy{placeClause}.";
+                ? $"Fought at {who}'s side when we stood against the enemy{placeClause}."
+                : $"Fought at {who}'s side when they stood against the enemy{placeClause}.";
         }
+
+        /// <summary>
+        ///   The player as a memory should name them: their own name, or "the player" when the host cannot supply it.
+        ///   <para>
+        ///     reminensce (Nexus, 19/09/2026) watched Chief Rolan claim the PLAYER's defeat at Vladiv as his own and
+        ///     throw the player's words back at them. These lines are rendered under "YOUR HISTORY WITH THIS PLAYER"
+        ///     in a prompt whose every other "you" is the character themselves, so a memory reading "Fought at your
+        ///     side when you broke the enemy" asked the model to flip the meaning of "you" for three lines and flip
+        ///     it back afterwards. Naming the player costs a few characters and removes the question.
+        ///   </para>
+        /// </summary>
+        public static string NameOrPlayer(string playerName)
+            => string.IsNullOrWhiteSpace(playerName) ? "the player" : playerName.Trim();
     }
 }

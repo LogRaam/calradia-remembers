@@ -945,8 +945,10 @@ namespace CalradiaRemembers.Mapping
       /// <summary>
       ///   True when the player's forces beat this NPC in a battle within the recency window. Read
       ///   from the profile memory the battle feeder already stamps on a defeated enemy lord
-      ///   ("…saw you put their host to flight"), so no new persisted state is needed. Kept in sync
-      ///   with <c>WorldEventFeeders.RecordBattlePerformanceIntoProfiles</c>.
+      ///   ("...saw them put my host to flight"), so no new persisted state is needed. Kept in sync
+      ///   with <c>WorldEventFeeders.RecordBattlePerformanceIntoProfiles</c>. BOTH phrasings are matched:
+      ///   memories written before 20/09/2026 say "put their host to flight" and sit in every existing save,
+      ///   and a lord who beat the player then must not stop reading as beaten now.
       /// </summary>
       private static bool LostBattleToPlayerRecently(NpcProfile profile)
       {
@@ -956,10 +958,10 @@ namespace CalradiaRemembers.Mapping
          {
             if (today - e.gameDay > RecentDefeatWindowDays) continue;
 
-            if (!string.IsNullOrEmpty(e.summary) &&
-                e.summary.IndexOf("put their host to flight",
-                   StringComparison.OrdinalIgnoreCase) >=
-                0)
+            if (string.IsNullOrEmpty(e.summary)) continue;
+
+            if (e.summary.IndexOf("put my host to flight", StringComparison.OrdinalIgnoreCase) >= 0
+                || e.summary.IndexOf("put their host to flight", StringComparison.OrdinalIgnoreCase) >= 0)
                return true;
          }
 

@@ -18,13 +18,25 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class BattleMemoryTextTests
     {
+        // WHOSE "YOU" (reminensce, Nexus, 19/09/2026). These lines are read under "YOUR HISTORY WITH THIS PLAYER",
+        // in a prompt whose every other "you" is the character themselves, and a lord took the player's defeat for
+        // his own. They name the player now. "We ... together" survives the change: a shared victory is still
+        // shared, and "we" cannot be mistaken for either party alone.
+        [Test]
+        public void GIVEN_no_player_name_WHEN_writing_the_ally_line_THEN_it_falls_back_to_naming_them_the_player()
+        {
+            BattleMemoryText.AllySummary(playerWon: true, placeClause: "", sharedEffort: false)
+                .Should().Be("Fought at the player's side when they broke the enemy.")
+                .And.NotContain("your");
+        }
+
         // The victory wording is what earns the Respect stance bump alongside it; if this phrase drifts,
         // a companion's own memory of a won battle would read wrong even though the stance still moved.
         [Test]
         public void GIVEN_a_won_solo_battle_WHEN_writing_the_ally_line_THEN_it_credits_the_player()
         {
-            BattleMemoryText.AllySummary(playerWon: true, placeClause: "", sharedEffort: false)
-                .Should().Be("Fought at your side when you broke the enemy.");
+            BattleMemoryText.AllySummary(playerWon: true, placeClause: "", sharedEffort: false, playerName: "Adam")
+                .Should().Be("Fought at Adam's side when they broke the enemy.");
         }
 
         // A loss must still leave a "stood with you" memory, not silence: fighting a losing battle
@@ -32,8 +44,8 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_lost_solo_battle_WHEN_writing_the_ally_line_THEN_it_reads_as_standing_together()
         {
-            BattleMemoryText.AllySummary(playerWon: false, placeClause: "", sharedEffort: false)
-                .Should().Be("Fought at your side when you stood against the enemy.");
+            BattleMemoryText.AllySummary(playerWon: false, placeClause: "", sharedEffort: false, playerName: "Adam")
+                .Should().Be("Fought at Adam's side when they stood against the enemy.");
         }
 
         // The place clause arrives pre-shaped (leading space, no trailing period) so it slots in before the
@@ -41,8 +53,8 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_named_place_WHEN_writing_the_ally_line_THEN_the_place_clause_is_appended_cleanly()
         {
-            BattleMemoryText.AllySummary(playerWon: true, placeClause: " near Pravend", sharedEffort: false)
-                .Should().Be("Fought at your side when you broke the enemy near Pravend.");
+            BattleMemoryText.AllySummary(playerWon: true, placeClause: " near Pravend", sharedEffort: false, playerName: "Adam")
+                .Should().Be("Fought at Adam's side when they broke the enemy near Pravend.");
         }
 
         // Player report 17/08/2026: a siege won as part of an army had lords congratulate a SOLO triumph. When the
@@ -50,8 +62,8 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_shared_effort_win_WHEN_writing_the_ally_line_THEN_it_reads_as_a_joint_victory()
         {
-            BattleMemoryText.AllySummary(playerWon: true, placeClause: " at the siege of Redwall", sharedEffort: true)
-                .Should().Be("Fought at your side when we broke the enemy together at the siege of Redwall.");
+            BattleMemoryText.AllySummary(playerWon: true, placeClause: " at the siege of Redwall", sharedEffort: true, playerName: "Adam")
+                .Should().Be("Fought at Adam's side when we broke the enemy together at the siege of Redwall.");
         }
 
         // The core of the siege fix: an assault is named as a siege, a raid as a raid, and only an actual field
