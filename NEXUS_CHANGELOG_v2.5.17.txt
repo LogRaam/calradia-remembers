@@ -1,0 +1,15 @@
+Version 2.5.17
+
+One player report, fixed on three fronts. If a character walks up to you, they now remember, for the whole conversation, that it was them who came to you.
+
+Fixed
+
+- A lord who rode out to find you no longer talks, a turn later, as though you had come to him. The prompt said who approached whom once, at the start, and never again, so from your second reply the character had only the conversation itself to go on, where the most recent voice is yours. Smaller local models felt this most: they would quietly take your side of the exchange as their own. The fact is now restated every turn, in the compact prompt as well as the full one.
+
+- On the compact prompt, a character could claim your prisoners as their own. The line naming you as the holder of the captives lives in a section the compact prompt leaves out, so nothing there said whose they were. It now carries one short line saying they are yours, and only when you actually hold someone.
+
+- The prompt cache was dying on the second turn of every conversation a character started. Two pieces of text that only exist on the first turn were sitting in the part of the prompt that is meant never to change, so the cache written on turn one could not be read on turn two. If you use a cloud model, those conversations were being billed at full price twice. Both have moved.
+
+Notes
+
+- Nothing here changes your save format and nothing needs a new game.

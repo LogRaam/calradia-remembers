@@ -2,6 +2,31 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.17.. 2026-09-19
+
+One player report, two causes, and a hole in the guard that should have caught the second.
+
+### Fixed
+- **A character who sought the player out spoke, one turn later, as though the player had come to THEM**
+  (Fakade, on a local model through LM Studio: "it says that it knows they approached me, and the dialogue
+  begins normally. I respond, then the AI treats the conversation as if I approached them"). The only sentence
+  stating who approached whom was the interception directive, which the host consumes on read, so from turn two
+  the prompt said nothing and the transcript's most recent voice was the player's.
+  `EncounterContext.NpcSoughtThePlayer` is the standing fact, restated every turn, Lean included;
+  `InterceptionBehavior` remembers the seeker until the conversation ends (never persisted) and
+  `ForgetConversationSeeker` clears it as the next one opens.
+- **His prisoner example had a second cause.** The line naming the player as the captives' holder lives in the
+  prisoner-bargain teaching, which Lean drops entirely, so on a compact prompt nothing said whose they were and
+  the character claimed them as its own spoils of war. One short line now says it, Lean only, only when the
+  player holds any.
+- **The prompt cache died on turn two of every conversation an NPC began.** `InterceptionReason` and
+  `LlmFormatFeedbackNote` are one-shot facts and sat ABOVE the `CURRENT ENCOUNTER:` marker: exactly the defect
+  `IsConversationOpening` had in September. Both moved to the per-turn tail.
+  **`PromptCacheTurnStabilityTests` listed seven booleans and no one-shot strings, so the fixture written to
+  catch this class of bug could not see either of them.** It now covers them and `NpcSoughtThePlayer`.
+
+`cr.testall` gains `approach_framing`.
+
 ## v2.5.16.. 2026-09-19
 
 Grievances that remember being answered, duels that finally act on the grudge that drove them, and a player who
