@@ -94,7 +94,7 @@ namespace CalradiaRemembers.Tests.Maps
       [Test]
       public void GIVEN_a_save_key_in_the_committed_map_WHEN_the_code_no_longer_writes_it_THEN_the_suite_refuses_it()
       {
-         if (!SourceTree.IsReachable) Assert.Ignore("The source trees are not reachable from this runner.");
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
 
          RefuseAVanishedSaveKey();
       }

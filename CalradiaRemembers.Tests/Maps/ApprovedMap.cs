@@ -32,7 +32,10 @@ namespace CalradiaRemembers.Tests.Maps
       public static void Verify(string repoRelativePath, string generated)
       {
          if (!SourceTree.IsReachable)
-            Assert.Ignore("The source trees are not reachable from this runner (an NCrunch workspace copy), so the map cannot be regenerated here. `dotnet test` checks it.");
+            Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}, so regenerating this map here would describe a system "
+                        + "that is missing a whole layer. This is what an NCrunch workspace looks like: it copies only what the "
+                        + "test project REFERENCES, and the mod is deliberately not referenced. Run `dotnet test`, or "
+                        + "Tools/Update-Maps.ps1.");
 
          string path = Path.Combine(SourceTree.ModRepo!, repoRelativePath.Replace('/', Path.DirectorySeparatorChar));
          string fresh = Normalize(generated);

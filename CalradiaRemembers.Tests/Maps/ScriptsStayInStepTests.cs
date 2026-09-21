@@ -65,7 +65,7 @@ namespace CalradiaRemembers.Tests.Maps
 
       private static string Script(string repoRelativePath)
       {
-         if (!SourceTree.IsReachable) Assert.Ignore("The repository is not reachable from this runner.");
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
 
          string path = Path.Combine(SourceTree.ModRepo!, repoRelativePath.Replace('/', Path.DirectorySeparatorChar));
 

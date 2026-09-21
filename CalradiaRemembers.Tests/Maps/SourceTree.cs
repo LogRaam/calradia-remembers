@@ -81,8 +81,38 @@ namespace CalradiaRemembers.Tests.Maps
          }
       }
 
-      /// <summary>True when both source trees can be read. NCrunch builds from a workspace copy that does not carry them.</summary>
-      public static bool IsReachable => ModRepo != null && SdkRepo != null;
+      /// <summary>
+      ///   True when all THREE source trees can be read in full. Finding the solution file is not enough, and that
+      ///   gap is what Gabriel hit on 21/09/2026: six map tests failed in NCrunch while `dotnet test` was green.
+      ///   NCrunch builds from a workspace copy containing only what the test project REFERENCES, and the test
+      ///   project deliberately does not reference the mod (net472, engine-bound, unbuildable here). So the mod's
+      ///   sources were absent, the maps regenerated without that whole layer, and the comparison failed for a
+      ///   reason that had nothing to do with the code.
+      ///   <para>
+      ///     Checked by anchor file rather than by runner name: whatever copies the tree, a map is only meaningful
+      ///     when every layer it describes is actually there.
+      ///   </para>
+      /// </summary>
+      public static bool IsReachable => MissingAnchor == null;
+
+      /// <summary>The first layer whose sources are not where they should be, or null when all three are present.</summary>
+      public static string? MissingAnchor
+      {
+         get
+         {
+            if (ModRepo == null) return "the mod repository (no CalradiaRemembers.slnx above this assembly)";
+            if (SdkRepo == null) return $"the SDK repository (no '{SdkFolder}' beside the mod)";
+
+            foreach ((string what, string path) in new[] {
+                        ("the mod", Path.Combine(ModRepo, "CalradiaRemembers", "GameState", "BannerlordGameStateBridge.cs")),
+                        ("Logic", Path.Combine(ModRepo, "CalradiaRemembers.Logic", "ChronicleCalendar.cs")),
+                        ("the SDK", Path.Combine(SdkRepo!, "NpcMemoryService.Core", "Prompts", "PromptBuilder.cs"))
+                     })
+               if (!File.Exists(path)) return $"{what} (expected {path})";
+
+            return null;
+         }
+      }
 
       /// <summary>Every production file of the mod, of Logic and of the SDK core. No tests, no tools, no bin/obj.</summary>
       public static IReadOnlyList<SourceFile> Production => ProductionLazy.Value;
