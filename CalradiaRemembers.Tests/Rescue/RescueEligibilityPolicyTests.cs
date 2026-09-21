@@ -88,5 +88,35 @@ namespace CalradiaRemembers.Tests.Rescue
 
             isRescue.Should().BeFalse();
         }
-    }
+    
+        #region which endings can be a rescue at all (Lordfadooboo, 20/09/2026)
+
+        // THE REPORT: he beat the deserters holding Lady Mesui, vanilla opened its own "the lord thanks you"
+        // encounter, he got the clan relation points, and when he later spoke to her she had "no knowledge of
+        // ever being held prisoner, being rescued, or even knowing who i was". The mod listened only for the
+        // engine freeing a prisoner itself. When the winner is the PLAYER, vanilla asks instead, and letting
+        // them go is ByChoice, which is the common case and was being dropped whole.
+        [Test]
+        public void GIVEN_the_player_chose_to_free_them_after_winning_WHEN_weighing_the_release_THEN_it_can_be_a_rescue()
+        {
+            RescueEligibilityPolicy.CanBeARescue(RescueEligibilityPolicy.ReleaseKind.ByChoice).Should().BeTrue();
+        }
+
+        // The engine's own release, when no winner wants the prisoner, stays a rescue as it always was.
+        [Test]
+        public void GIVEN_the_engine_freed_them_after_the_battle_WHEN_weighing_the_release_THEN_it_can_be_a_rescue()
+        {
+            RescueEligibilityPolicy.CanBeARescue(RescueEligibilityPolicy.ReleaseKind.AfterBattle).Should().BeTrue();
+        }
+
+        // A ransom, a peace, an escape or a death owes the player nothing, and crediting one would put a debt
+        // in someone's mouth that the player never earned: the failure mode of a memory mod.
+        [Test]
+        public void GIVEN_any_other_ending_WHEN_weighing_the_release_THEN_it_is_never_a_rescue()
+        {
+            RescueEligibilityPolicy.CanBeARescue(RescueEligibilityPolicy.ReleaseKind.Other).Should().BeFalse();
+        }
+
+        #endregion
+}
 }

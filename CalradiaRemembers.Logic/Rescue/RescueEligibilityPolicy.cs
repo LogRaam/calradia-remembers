@@ -45,6 +45,34 @@ namespace CalradiaRemembers.Logic.Rescue
         }
 
         /// <summary>
+        ///   How a captivity ended, as the engine tells it (one value per
+        ///   <c>TaleWorlds.CampaignSystem.Actions.EndCaptivityDetail</c>). Mapped by the host, so this pure rule
+        ///   can say which endings are a RESCUE without the Logic layer knowing the engine.
+        /// </summary>
+        public enum ReleaseKind
+        {
+            /// <summary>The engine freed them itself when their captor's party was beaten: nobody chose it.</summary>
+            AfterBattle,
+
+            /// <summary>
+            ///   Someone CHOSE to let them go. After a battle the player won, that someone is the player, in the
+            ///   very conversation vanilla opens to ask (<c>ConversationContext.FreeOrCapturePrisonerHero</c>):
+            ///   the freed lord walks up and thanks them. Lordfadooboo (Nexus, 20/09/2026) rescued Lady Mesui from
+            ///   deserters exactly this way, "the vanilla encounter where the lord approaches you and thanks you
+            ///   happened and i got the clan relation points", and she remembered none of it, because only
+            ///   <see cref="AfterBattle" /> was listened for. The battle guard below is what keeps this honest:
+            ///   releasing someone the player has held in their own dungeon is a pardon, not a rescue.
+            /// </summary>
+            ByChoice,
+
+            /// <summary>Ransomed, freed at a peace, escaped, dead, or bought out: none of them a rescue by the player.</summary>
+            Other
+        }
+
+        /// <summary>Whether this ending can be a rescue at all, before the battle and prisoner facts are weighed.</summary>
+        public static bool CanBeARescue(ReleaseKind kind) => kind is ReleaseKind.AfterBattle or ReleaseKind.ByChoice;
+
+        /// <summary>
         ///   True only when the player won the battle (<c>PlayerWonBattle</c>), the prisoner was
         ///   released as a direct result of it (<c>ReleasedAfterBattle</c>), the freed prisoner is
         ///   a lord (<c>PrisonerIsLord</c>), and the prisoner is neither a bandit

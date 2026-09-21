@@ -89,12 +89,27 @@ namespace CalradiaRemembers.Rescue
 
         private void OnHeroPrisonerReleased(Hero prisoner, PartyBase party, IFaction faction, EndCaptivityDetail detail, bool showNotification)
         {
-            if (detail != EndCaptivityDetail.ReleasedAfterBattle) return;
+            // TWO ways a beaten captor's prisoner goes free, and we listened for one. The engine frees them
+            // itself (ReleasedAfterBattle) only when no winner wants them; when the winner is the PLAYER, vanilla
+            // opens the free-or-capture conversation instead and letting them go is ReleasedByChoice. That is the
+            // common case, and the one Lordfadooboo hit (Nexus, 20/09/2026): Lady Mesui thanked him on the spot,
+            // in vanilla, and remembered nothing of it afterwards. The battle guard downstream
+            // (BelongsToDefeatedSide) is what keeps this a rescue: freeing someone out of the player's OWN
+            // dungeon leaves their captor party on the winning side, so it is never credited here.
+            if (!RescueEligibilityPolicy.CanBeARescue(KindOf(detail))) return;
             if (prisoner == null || !prisoner.IsLord || prisoner == Hero.MainHero) return;
 
             _pending.Add(new PendingRelease {Prisoner = prisoner, CaptorParty = party, CaptorFaction = faction});
             if (_pending.Count > MaxPendingBuffer) _pending.RemoveAt(0);
         }
+
+        /// <summary>The engine's own reason for the release, as the pure policy names it.</summary>
+        private static RescueEligibilityPolicy.ReleaseKind KindOf(EndCaptivityDetail detail)
+            => detail switch {
+                EndCaptivityDetail.ReleasedAfterBattle => RescueEligibilityPolicy.ReleaseKind.AfterBattle,
+                EndCaptivityDetail.ReleasedByChoice => RescueEligibilityPolicy.ReleaseKind.ByChoice,
+                _ => RescueEligibilityPolicy.ReleaseKind.Other
+            };
 
         private void OnMapEventEnded(MapEvent mapEvent)
         {
