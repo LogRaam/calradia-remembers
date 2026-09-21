@@ -23,6 +23,8 @@ using TaleWorlds.Localization;
 
 #endregion
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.WorldEvents
 {
    /// <summary>
@@ -571,7 +573,9 @@ namespace CalradiaRemembers.WorldEvents
          if (target is not {IsAlive: true}) return null;
 
          int regard = plotter.GetRelation(Hero.MainHero);
-         bool allied = target.GetRelation(Hero.MainHero) >= 20 || target.MapFaction != null && target.MapFaction == Hero.MainHero.MapFaction;
+         // The same rung the plotter is weighed on, and it was a bare 20 here until 21/09/2026.
+         bool allied = new VanillaRelation(target.GetRelation(Hero.MainHero)).IsTrusted
+                    || (target.MapFaction != null && target.MapFaction == Hero.MainHero.MapFaction);
 
          return SchemeAgentPolicy.CanRecruitPlayer(scheme.State, regard, allied)
             ? scheme

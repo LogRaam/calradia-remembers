@@ -10,6 +10,8 @@
 // (the same lord passed twice must not count twice, M10) and a quorum rule (a one-seat binding council should
 // not pass or block a motion alone); today it counts a bare stance list with neither. Do not wire it as is.
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic.Assemblies
 {
     /// <summary>Turns per-member facts into a stance, and a set of stances into a carries/blocked verdict.</summary>
@@ -18,7 +20,7 @@ namespace CalradiaRemembers.Logic.Assemblies
         // ── Tuning (TUNABLE: adjust once play-tested) ──────────────────────────
 
         /// <summary>At or above this regard, a member backs the player willingly even when the motion costs them.</summary>
-        public const int WarmRegard = 20;
+        public const int WarmRegard = Regard.WarmTier;
 
         /// <summary>Below this regard, a member who is also hurt by the motion turns to open opposition (m7: a floor of DECENT regard, not a loyalty threshold).</summary>
         public const int DecentRegardFloor = 0;

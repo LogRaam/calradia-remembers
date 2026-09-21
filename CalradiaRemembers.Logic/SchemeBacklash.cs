@@ -9,6 +9,8 @@ using System;
 
 #endregion
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic
 {
     /// <summary>
@@ -43,8 +45,8 @@ namespace CalradiaRemembers.Logic
             => Math.Max(16, Math.Min(34, 25 + honor * 3 - calculating * 2));
 
         // Relation tiers, matching the rest of the mod's "a friend" / "an enemy" thresholds.
-        private const int FriendThreshold = 10;
-        private const int EnemyThreshold = -10;
+        private const int FriendThreshold = VanillaRelation.FriendTier;
+        private const int EnemyThreshold = VanillaRelation.EnemyTier;
 
         /// <summary>
         ///   The hit the target's regard for the player takes when an abetted plot reaches an outcome

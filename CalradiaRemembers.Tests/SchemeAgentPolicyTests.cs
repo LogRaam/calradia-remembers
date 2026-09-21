@@ -66,7 +66,7 @@ namespace CalradiaRemembers.Tests
          FluentActions.Invoking(() => SchemeAgentPolicy.ExposeToTarget(null)).Should().NotThrow();
       }
 
-      // Pins MinPlotterRegard=20 as a genuine gate, not decoration: "the plotter must trust the player at least
+      // Pins MinPlotterRelation=20 as a genuine gate, not decoration: "the plotter must trust the player at least
       // this much to involve them in something illicit". Without this floor, a near-stranger could be recruited
       // into treason/sabotage, cheapening the "trusted confidant" framing and surfacing scheme_assist prompt
       // teaching for a relationship that hasn't earned it.
@@ -222,13 +222,13 @@ namespace CalradiaRemembers.Tests
          SchemeAgentPolicy.CanWarnTarget(SchemeState.Failed).Should().BeFalse();
       }
 
-      // Pins the floor as INCLUSIVE: MinPlotterRegard's own doc says "must trust the player AT LEAST this much",
+      // Pins the floor as INCLUSIVE: MinPlotterRelation's own doc says "must trust the player AT LEAST this much",
       // so a plotter sitting exactly on the threshold should already qualify. Paired with the below-floor test,
       // this fixes the boundary precisely against a future retune.
       [Test]
       public void GIVEN_regard_exactly_at_the_floor_WHEN_checking_THEN_it_passes()
       {
-         SchemeAgentPolicy.CanRecruitPlayer(SchemeState.Progressing, SchemeAgentPolicy.MinPlotterRegard, false)
+         SchemeAgentPolicy.CanRecruitPlayer(SchemeState.Progressing, SchemeAgentPolicy.MinPlotterRelation, false)
                           .Should().BeTrue();
       }
 

@@ -23,6 +23,8 @@ using TaleWorlds.Library;
 
 #endregion
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.RealmTidings
 {
    /// <summary>Weekly: a friendly lord relays a real piece of realm news to the player by unbidden letter.</summary>
@@ -32,7 +34,7 @@ namespace CalradiaRemembers.RealmTidings
       // friendly-letter gates (a marriage solicitation needs 20, a battle-ally congratulation 20); the name
       // resolver labels >= 10 "a friend (genuine regard)", so this keeps realm tidings a notch above that,
       // a courtesy between actual friends. Named so Gabriel can retune it in one place.
-      private const int MinRegardToWrite = 20;
+      private const int MinRegardToWrite = Regard.WarmTier;
 
       // How many of the events a writer plausibly knows to score per pass. The player accumulates many
       // correspondents; a small cap keeps the weekly sweep cheap while still covering the events that matter

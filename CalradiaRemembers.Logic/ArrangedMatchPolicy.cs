@@ -6,6 +6,8 @@
 // judgment call: a player report (CarolusIV, Nexus, 2026-07-25) noted their local model "gets confused
 // a lot" and must not be talkable into an unwarranted match.
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic
 {
     /// <summary>
@@ -56,7 +58,7 @@ namespace CalradiaRemembers.Logic
         ///   Regard at or above which a family consents to the match freely, regard being the mod's own
         ///   personal-regard ledger for the target clan's head. Tunable; Gabriel adjusts by feel.
         /// </summary>
-        public const int ConsentRegardThreshold = 30;
+        public const int ConsentRegardThreshold = Regard.ConfidingTier;
 
         /// <summary>
         ///   Decides consent. A family weighs two things: how much they think of the player (regard),

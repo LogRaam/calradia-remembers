@@ -1,5 +1,7 @@
 // Code written by Gabriel Mailhot, 21/06/2026.
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic
 {
    /// <summary>
@@ -11,8 +13,14 @@ namespace CalradiaRemembers.Logic
       /// <summary>How far the player's help advances the scheme in one stroke.</summary>
       public const int AidProgressBoost = 30;
 
-      /// <summary>The plotter must trust the player at least this much to involve them in something illicit.</summary>
-      public const int MinPlotterRegard = 20;
+      /// <summary>
+      ///   The plotter must trust the player at least this much to involve them in something illicit. RENAMED from
+      ///   MinPlotterRegard on 21/09/2026: it is fed <c>plotter.GetRelation(player)</c>, the ENGINE's ledger, and
+      ///   "regard" is the word this mod uses for its OWN (NpcProfile.ReputationWithPlayer). The two are different
+      ///   numbers for the same pair of people, and a name that lies about which one is read is how lord recruitment
+      ///   came to gate on the wrong ledger for months.
+      /// </summary>
+      public const int MinPlotterRelation = VanillaRelation.TrustedTier;
 
       /// <summary>
       ///   Applies the player's help to a scheme in place: it gets under way if freshly plotted, then
@@ -38,12 +46,12 @@ namespace CalradiaRemembers.Logic
       ///   regards the player highly enough to trust them with it, and the player is not allied with
       ///   the target (one does not ask the fox to mind the henhouse).
       /// </summary>
-      public static bool CanRecruitPlayer(SchemeState state, int plotterRegardForPlayer, bool playerAlliedWithTarget)
+      public static bool CanRecruitPlayer(SchemeState state, int plotterRelationWithPlayer, bool playerAlliedWithTarget)
       {
          if (state != SchemeState.Plotted && state != SchemeState.Progressing) return false;
          if (playerAlliedWithTarget) return false;
 
-         return plotterRegardForPlayer >= MinPlotterRegard;
+         return new VanillaRelation(plotterRelationWithPlayer).IsTrusted;
       }
 
       /// <summary>

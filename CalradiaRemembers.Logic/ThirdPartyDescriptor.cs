@@ -4,6 +4,8 @@
 // place that person. Pure so the relation thresholds and the kin/clan/faction gating of gossip — used
 // on every message that names someone, and silent when they drift — stay protected by tests.
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic
 {
     /// <summary>How confidently an NPC could say where a third party is, from their social tie alone.</summary>
@@ -71,10 +73,14 @@ namespace CalradiaRemembers.Logic
 
     public static class ThirdPartyDescriptor
     {
-        private const int FriendThreshold = 10;
-        private const int EnemyThreshold = -10;
-        private const int CloseThreshold = 30;
-        private const int BitterThreshold = -30;
+        // THE WORDS THE MODEL READS, on the rungs the game already decides by. Gabriel's own example of a
+        // duplication nobody could see (20/09/2026): "FriendThreshold" was a private constant here, in
+        // RelationshipsBuilder and in SchemeBacklash, all three at 10, and answering "how friendly is a friend" meant
+        // reading five files. One home now; no value moved.
+        private const int FriendThreshold = VanillaRelation.FriendTier;
+        private const int EnemyThreshold = VanillaRelation.EnemyTier;
+        private const int CloseThreshold = VanillaRelation.CloseTier;
+        private const int BitterThreshold = VanillaRelation.BitterTier;
 
         /// <summary>
         ///   The label for how the NPC regards <c>other</c>. Kinship wins first, then the relation

@@ -4,6 +4,8 @@
 // avoid jealousy). This is the pure decision only: whether a companion could ever confide, and whether the weekly
 // roll fires this week. Spawning the audience, the popup, and any refusal cooldown bookkeeping are engine glue.
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic
 {
     /// <summary>Pure rules for a companion's secret affection confession (eligibility plus the weekly roll).</summary>
@@ -13,7 +15,7 @@ namespace CalradiaRemembers.Logic
         ///   Minimum regard at the GROUNDED pacing: the level the mod is balanced around, unchanged since this
         ///   shipped. See <see cref="MinRegardFor" /> for why the other two settings sit lower.
         /// </summary>
-        public const int MinRegard = 50;
+        public const int MinRegard = Regard.DevotedTier;
 
         /// <summary>
         ///   The bond a companion needs before they would ever confide, under the player's chosen Relationship

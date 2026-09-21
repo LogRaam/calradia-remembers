@@ -113,9 +113,9 @@ cannot. Each one moved into a rule adds a column here.
 
 <details><summary>The thresholds not yet represented</summary>
 
-- `ArrangedMatchPolicy.ConsentRegardThreshold = 30`
+- `ArrangedMatchPolicy.ConsentRegardThreshold = Regard.ConfidingTier`
 - `AssemblyConsentPolicy.DecentRegardFloor = 0`
-- `AssemblyConsentPolicy.WarmRegard = 20`
+- `AssemblyConsentPolicy.WarmRegard = Regard.WarmTier`
 - `AssemblyRsvpPolicy.HeedRegardFloor = -20`
 - `AssemblyRsvpPolicy.ParleyRegardFloor = -60`
 - `AssemblyRsvpPolicy.WorthTravelRegard = 10`
@@ -125,7 +125,7 @@ cannot. Each one moved into a rule adds a column here.
 - `CommitmentPolicy.BreachedRelationPenalty = -12`
 - `CommitmentPolicy.FulfilledRelationBonus = 6`
 - `CompanionRapportBehavior.RelationSoftCap = 40`
-- `CompanionSecretAffectionPolicy.MinRegard = 50`
+- `CompanionSecretAffectionPolicy.MinRegard = Regard.DevotedTier`
 - `CouncilAttendancePolicy.HostileRegardFloor = AssemblyRsvpPolicy.HeedRegardFloor`
 - `CouncilTributeBehavior.BrokenTributeRelationHit = -15`
 - `CourtActionPolicy.GiveTroopsMinRelation = 0`
@@ -136,7 +136,7 @@ cannot. Each one moved into a rule adds a column here.
 - `CourtActionPolicy.SpendInfluenceMinRelation = 0`
 - `CourtActionPolicy.TroopLoanMinRelation = 20`
 - `CourtActionPolicy.TroopLoanRelationDivisor = 5`
-- `DiscretionPolicy.ConfidingRegardFloor = 30`
+- `DiscretionPolicy.ConfidingRegardFloor = Standing.Regard.ConfidingTier`
 - `DivorceConsequencePolicy.LowRegardThreshold = -10`
 - `DivorceConsequencePolicy.SpouseGrudgeLowRegardBonus = 15`
 - `DivorceConsequencePolicy.SpouseMutualReliefRelationNudge = 5`
@@ -157,7 +157,7 @@ cannot. Each one moved into a rule adds a column here.
 - `FirstImpressionResolver.KnownRelationThreshold = 10`
 - `GrudgePolicy.BaseRigidityAtNeutralRegard = 50`
 - `GrudgeResolutionService.ResolvedRelationBump = 4`
-- `HeldSecretPolicy.ConfidantRegardFloor = 20`
+- `HeldSecretPolicy.ConfidantRegardFloor = Standing.Regard.WarmTier`
 - `HeldSecretPolicy.LeverageRegardCeiling = -10`
 - `JealousPartyResolver.RivalRelationThreshold = VanillaRelation.TrustedTier`
 - `JealousyBehavior.CompetitionRelationDecay = 2`
@@ -180,14 +180,14 @@ cannot. Each one moved into a rule adds a column here.
 - `ProfileMutator.EstrangedReconcileRelation = 30`
 - `QuestFactory.MaxRewardRelation = 10`
 - `QuestFailureLeniencyPolicy.BanditFailureRegardPenalty = 1`
-- `RealmTidingsBehavior.MinRegardToWrite = 20`
+- `RealmTidingsBehavior.MinRegardToWrite = Regard.WarmTier`
 - `RescueGratitudePolicy.FamilyRegard = 6`
 - `RescueGratitudePolicy.FriendRegard = 3`
 - `RescueGratitudePolicy.FriendRelationThreshold = VanillaRelation.TrustedTier`
 - `RescueGratitudePolicy.SelfRegard = 12`
 - `RideWithMeEligibilityPolicy.RegardFloor = 30`
 - `RomanticRegisterPolicy.InterestRegardFloor = 5`
-- `SchemeAgentPolicy.MinPlotterRegard = 20`
+- `SchemeAgentPolicy.MinPlotterRelation = VanillaRelation.TrustedTier`
 - `SecretPropagationPolicy.FriendRelationFloor = VanillaRelation.TrustedTier`
 - `SeductionEligibilityPolicy.RegardFloor = 30`
 - `SeductionEligibilityPolicy.RegardOpennessPerPoint = 1`

@@ -11,6 +11,8 @@ using TaleWorlds.CampaignSystem;
 
 #endregion
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Mapping
 {
    /// <summary>
@@ -21,8 +23,10 @@ namespace CalradiaRemembers.Mapping
    /// </summary>
    public static class RelationshipsBuilder
    {
-      private const int EnemyThreshold = -10;
-      private const int FriendThreshold = 10;
+      // Same rungs as the words the model reads (ThirdPartyDescriptor) and as the scheme backlash: one home since
+      // 21/09/2026, same values.
+      private const int EnemyThreshold = VanillaRelation.EnemyTier;
+      private const int FriendThreshold = VanillaRelation.FriendTier;
       private const int MaxEntries = 6;
 
       public static string Build(Hero hero)

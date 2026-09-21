@@ -27,10 +27,10 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | `DefaultCooldownDays` | `CompanionAudiencePacingRules` = CompanionAudienceTopicPolicy.GlobalCooldownDays; `InterceptionPacingRules` = 30; `LetterTriggerEvaluator` = 15; `WarCouncilTriggerPolicy` = 3 |
 | `DeliveryDays` | `CompanionHappinessBehavior` = 3; `StanceConsequenceBehavior` = 3 |
 | `EndLingerSeconds` | `CaptiveEscapeMissionLogic` = 4f; `DuelMissionLogic` = 4f; `TownDuelMissionLogic` = 4f |
-| `EnemyThreshold` | `RelationshipsBuilder` = -10; `SchemeBacklash` = -10; `ThirdPartyDescriptor` = -10 |
+| `EnemyThreshold` | `RelationshipsBuilder` = VanillaRelation.EnemyTier; `SchemeBacklash` = VanillaRelation.EnemyTier; `ThirdPartyDescriptor` = VanillaRelation.EnemyTier |
 | `EscortSize` | `CompanionMissionBehavior` = 8; `TravelingParty` = 3 |
 | `FallbackFrames` | `ChatSceneStager` = 60; `CouncilConversationStager` = 60 |
-| `FriendThreshold` | `RelationshipsBuilder` = 10; `SchemeBacklash` = 10; `ThirdPartyDescriptor` = 10 |
+| `FriendThreshold` | `RelationshipsBuilder` = VanillaRelation.FriendTier; `SchemeBacklash` = VanillaRelation.FriendTier; `ThirdPartyDescriptor` = VanillaRelation.FriendTier |
 | `HonorWeight` | `CompanionRapport` = 3; `SilenceOrderPolicy` = 2 |
 | `LowRegardThreshold` | `DivorceConsequencePolicy` = -10; `ExecutedKinRules` = -10 |
 | `Magnitude` | `SeasonalChronicleBehavior` = SeasonalTurnPolicy.Magnitude; `SeasonalTurnPolicy` = 45; `WorldClaimPolicy` = 25 |
@@ -610,7 +610,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 |---|---|---|
 | `MaxEventsScanned` | 8 | (no summary) |
 | `MaxRelayedIdsRemembered` | 30 | (no summary) |
-| `MinRegardToWrite` | 20 | (no summary) |
+| `MinRegardToWrite` | Regard.WarmTier | (no summary) |
 
 ### RecruitmentPricing
 
@@ -622,8 +622,8 @@ to share a word; sometimes it is one concept that should have one home. Either w
 
 | Constant | Value | What it is |
 |---|---|---|
-| `EnemyThreshold` | -10 | (no summary) |
-| `FriendThreshold` | 10 | (no summary) |
+| `EnemyThreshold` | VanillaRelation.EnemyTier | (no summary) |
+| `FriendThreshold` | VanillaRelation.FriendTier | (no summary) |
 | `MaxEntries` | 6 | (no summary) |
 
 ### ReleasePrisonerVerb
@@ -915,14 +915,14 @@ to share a word; sometimes it is one concept that should have one home. Either w
 
 | Constant | Value | What it is |
 |---|---|---|
-| `ConsentRegardThreshold` | 30 | Regard at or above which a family consents to the match freely, regard being the mod's own personal-regard ledger for the target clan's head. |
+| `ConsentRegardThreshold` | Regard.ConfidingTier | Regard at or above which a family consents to the match freely, regard being the mod's own personal-regard ledger for the target clan's head. |
 
 ### AssemblyConsentPolicy
 
 | Constant | Value | What it is |
 |---|---|---|
 | `DecentRegardFloor` | 0 | Below this regard, a member who is also hurt by the motion turns to open opposition (m7: a floor of DECENT regard, not a loyalty threshold). |
-| `WarmRegard` | 20 | At or above this regard, a member backs the player willingly even when the motion costs them. |
+| `WarmRegard` | Regard.WarmTier | At or above this regard, a member backs the player willingly even when the motion costs them. |
 
 ### AssemblyDistanceTiers
 
@@ -1303,7 +1303,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | Constant | Value | What it is |
 |---|---|---|
 | `MaxWeeklyChancePercent` | 40 | Cap on the weekly chance a fully-bonded companion finally confides. |
-| `MinRegard` | 50 | Minimum regard at the GROUNDED pacing: the level the mod is balanced around, unchanged since this shipped. |
+| `MinRegard` | Regard.DevotedTier | Minimum regard at the GROUNDED pacing: the level the mod is balanced around, unchanged since this shipped. |
 | `RefusalCooldownDays` | 60 | After the player turns the audience popup away, do not ask again for this many days. |
 
 ### CompetitionSelector
@@ -2345,7 +2345,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | Constant | Value | What it is |
 |---|---|---|
 | `AidProgressBoost` | 30 | How far the player's help advances the scheme in one stroke. |
-| `MinPlotterRegard` | 20 | The plotter must trust the player at least this much to involve them in something illicit. |
+| `MinPlotterRelation` | VanillaRelation.TrustedTier | The plotter must trust the player at least this much to involve them in something illicit. |
 
 ### SchemeBacklash
 
@@ -2354,8 +2354,8 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | `AbettorEnemyPenalty` | 6 | Caught moving against an existing enemy — half-expected, so it stings least. |
 | `AbettorFriendPenalty` | 18 | Caught betraying a friend (of another realm) — a grave personal treachery. |
 | `AbettorNeutralPenalty` | 12 | Caught moving against someone the player had no quarrel with. |
-| `EnemyThreshold` | -10 | (no summary) |
-| `FriendThreshold` | 10 | (no summary) |
+| `EnemyThreshold` | VanillaRelation.EnemyTier | (no summary) |
+| `FriendThreshold` | VanillaRelation.FriendTier | (no summary) |
 
 ### SeasonalTurnPolicy
 
@@ -2546,10 +2546,10 @@ to share a word; sometimes it is one concept that should have one home. Either w
 
 | Constant | Value | What it is |
 |---|---|---|
-| `BitterThreshold` | -30 | (no summary) |
-| `CloseThreshold` | 30 | (no summary) |
-| `EnemyThreshold` | -10 | (no summary) |
-| `FriendThreshold` | 10 | (no summary) |
+| `BitterThreshold` | VanillaRelation.BitterTier | (no summary) |
+| `CloseThreshold` | VanillaRelation.CloseTier | (no summary) |
+| `EnemyThreshold` | VanillaRelation.EnemyTier | (no summary) |
+| `FriendThreshold` | VanillaRelation.FriendTier | (no summary) |
 
 ### Tier2GrudgeRules
 
@@ -2721,13 +2721,13 @@ to share a word; sometimes it is one concept that should have one home. Either w
 
 | Constant | Value | What it is |
 |---|---|---|
-| `ConfidingRegardFloor` | 30 | Regard at or above which a guarded matter may be spoken of. |
+| `ConfidingRegardFloor` | Standing.Regard.ConfidingTier | Regard at or above which a guarded matter may be spoken of. |
 
 ### HeldSecretPolicy
 
 | Constant | Value | What it is |
 |---|---|---|
-| `ConfidantRegardFloor` | 20 | At or above this personal regard, the NPC counts the player a real friend and keeps the secret in trust. |
+| `ConfidantRegardFloor` | Standing.Regard.WarmTier | At or above this personal regard, the NPC counts the player a real friend and keeps the secret in trust. |
 | `LeverageRegardCeiling` | -10 | At or below this personal regard, quiet distrust curdles into temptation to use the secret. |
 
 ### HouseStandingFacts
