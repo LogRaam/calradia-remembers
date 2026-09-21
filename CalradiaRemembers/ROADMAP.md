@@ -72,11 +72,16 @@ a village can only speak of a recent passage.
 - **The degradation is the mod's job, never the model's.** A villager reports direction and timing well (that
   is what a person on the land would know), numbers coarsely, and identities only when the banner or culture is
   one they would recognise. The prompt receives already-degraded facts; the character voices them and invents
-  nothing. This is the rule the whole mod rests on and it is the part of fkasad's design that must NOT be
-  handed to the model, his "drunk peasant who makes up a story" included: a FALSE report is a false fact set
-  the mod builds deliberately, flagged as false, never an improvisation.
+  nothing.
+- **NOBODY LIES (RATIFIED, Gabriel 2026-09-20).** fkasad's drunk peasant, who invents a story to squeeze a coin
+  out of the player, is cut, and so is the enemy village that misleads. Gabriel's reason is about how the mod is
+  judged, not about the fiction: *"les joueurs recherchent la pertinence d'un LLM. Un mensonge peut laisser
+  croire que le LLM se trompe."* A player cannot tell a character who lied from a model that failed, so every
+  invented fact is read as a defect of the mod. **Vagueness, ignorance and refusal are the whole range**: "I saw
+  nothing", "it was dark and I was asleep", "ask me again when you have done something for this village". Those
+  cost the player the same information and cost us nothing in trust. See [[feedback_npcs_never_lie]].
 - **Willingness:** friendly or paid talks; a neutral wants a reason (coin, food, a cleared bandit nest);
-  an enemy village refuses, or misleads. Reuses regard, gold and the existing gating verbs.
+  an enemy village refuses outright. Reuses regard, gold and the existing gating verbs.
 - **The payoff is a decision, not a bonus:** the player learns where to ride. Optionally the sighting is
   recorded as a `WorldEvent` so it can circulate and other systems can read it.
 
