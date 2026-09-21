@@ -30,6 +30,7 @@ using CalradiaRemembers.Stance;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
+using NpcMemoryService.Core.Calendar;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
@@ -637,8 +638,7 @@ namespace CalradiaRemembers.GameState
 
       public string GetSeasonName()
       {
-         // Bannerlord year = 84 campaign days (21 per season).
-         var dayOfYear = (int) (CampaignTime.Now.ToDays % 84);
+         var dayOfYear = (int) (CampaignTime.Now.ToDays % CalradianCalendar.DaysPerYear);
 
          if (dayOfYear < 21) return "Spring";
          if (dayOfYear < 42) return "Summer";

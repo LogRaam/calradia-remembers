@@ -13,6 +13,7 @@ using TaleWorlds.CampaignSystem;
 
 using NpcMemoryService.Core.Standing;
 
+using NpcMemoryService.Core.Calendar;
 namespace CalradiaRemembers.Mapping
 {
    /// <summary>
@@ -209,8 +210,8 @@ namespace CalradiaRemembers.Mapping
             if (daysAgo < 0 || daysAgo > 8400) return "";
 
             string when = daysAgo < 1 ? "this very day"
-               : daysAgo < 84 ? $"{(int) daysAgo} days ago"
-               : $"about {(int) (daysAgo / 84)} year(s) ago"; // Calradian year = 84 days
+               : daysAgo < CalradianCalendar.DaysPerYear ? $"{(int) daysAgo} days ago"
+               : $"about {(int) (daysAgo / CalradianCalendar.DaysPerYear)} year(s) ago";
 
             string cause;
             switch (kin.DeathMark.ToString())

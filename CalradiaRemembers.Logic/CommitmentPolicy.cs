@@ -18,13 +18,14 @@ using CalradiaRemembers.Logic.Assemblies;
 
 #endregion
 
+using NpcMemoryService.Core.Calendar;
 namespace CalradiaRemembers.Logic
 {
     /// <summary>Pure math and tuning for a TrackedCommitment's deadline and its fulfilled/breached consequences.</summary>
     public static class CommitmentPolicy
     {
         /// <summary>Tuning: how many in-game days a pledge has to be honored — roughly one season.</summary>
-        public const int DeadlineDays = 21;
+        public const int DeadlineDays = CalradianCalendar.DaysPerSeason;
 
         /// <summary>Tuning: relation/stance boost applied to the promisor toward the player on fulfillment.</summary>
         public const int FulfilledRelationBonus = 6;

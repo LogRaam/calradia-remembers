@@ -11,6 +11,8 @@ using System;
 
 #endregion
 
+using NpcMemoryService.Core.Calendar;
+
 namespace CalradiaRemembers.Logic
 {
     /// <summary>
@@ -20,8 +22,8 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public static class MeetingGapDescriber
     {
-        private const int SeasonDays = 21;
-        private const int YearDays = 84;
+        private const int SeasonDays = CalradianCalendar.DaysPerSeason;
+        private const int YearDays = CalradianCalendar.DaysPerYear;
 
         /// <summary>
         ///   Days up to and including this are treated as too recent to remark on. A week or less between

@@ -12,6 +12,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 
 #endregion
 
+using NpcMemoryService.Core.Calendar;
 namespace CalradiaRemembers.Commoners
 {
    /// <summary>
@@ -22,8 +23,8 @@ namespace CalradiaRemembers.Commoners
    /// </summary>
    public static class RumorGenerator
    {
-      // Recent-death window in game days (Calradian year = 84 days).
-      private const int DeathWindowDays = 21;
+      // Recent-death window: one Calradian season.
+      private const int DeathWindowDays = CalradianCalendar.DaysPerSeason;
 
       // Maximum entries scanned in DeadOrDisabledHeroes to avoid frame spikes in
       // long campaigns where the collection can be very large.

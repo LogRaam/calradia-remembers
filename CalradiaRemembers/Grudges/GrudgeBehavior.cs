@@ -19,6 +19,7 @@ using TaleWorlds.Localization;
 
 #endregion
 
+using NpcMemoryService.Core.Calendar;
 namespace CalradiaRemembers.Grudges
 {
    /// <summary>
@@ -257,7 +258,7 @@ namespace CalradiaRemembers.Grudges
       ///   survives near-term dynastic inheritance, while ancient closed history stops growing the ledger and the
       ///   save without bound.
       /// </summary>
-      private const int ResolvedGrudgeRetentionDays = 168;
+      private const int ResolvedGrudgeRetentionDays = 2 * CalradianCalendar.DaysPerYear;
 
       /// <summary>Drops grudges resolved longer ago than <see cref="ResolvedGrudgeRetentionDays" />. Main-thread (save); never throws.</summary>
       private void PruneLongResolved()

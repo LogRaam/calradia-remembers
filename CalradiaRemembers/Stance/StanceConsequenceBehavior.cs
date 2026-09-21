@@ -23,13 +23,14 @@ using TaleWorlds.Library;
 
 #endregion
 
+using NpcMemoryService.Core.Calendar;
 namespace CalradiaRemembers.Stance
 {
    /// <summary>Weekly: turns a hardened stance into an unbidden letter (open enmity, or genuine friendship).</summary>
    public sealed class StanceConsequenceBehavior : CampaignBehaviorBase
    {
       // A lord won't reach out more than once every three weeks, however the player keeps provoking them.
-      private const int LetterCooldownDays = 21;
+      private const int LetterCooldownDays = CalradianCalendar.DaysPerSeason;
 
       // Courier time for an unbidden stance letter.
       private const int DeliveryDays = 3;

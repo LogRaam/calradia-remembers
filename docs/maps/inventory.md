@@ -8,7 +8,7 @@ sentence beside each type is the first sentence of its own doc comment; `(no sum
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 416 types in 55 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 757 types in 25 namespaces, 2 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 237 types in 16 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -1641,6 +1641,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SingleCallBenchReport` | public class | Aggregates single-call bench results into a majority-per-scenario scoreboard. |
 | `SingleCallBenchResult` | public class | One single-call bench run: the authored prose, both tag sets, and their agreement (or a failure note). |
 | `SingleCallBenchScenario` | public class | A single-call bench setup: facts + player line the model composes a reply from, then self-tags. |
+
+### NpcMemoryService.Core.Calendar (1)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `CalradianCalendar` | public static class | The length of a season and a year in this world, shared by everything that counts days. |
 
 ### NpcMemoryService.Core.Captivity (4)
 

@@ -6,16 +6,22 @@
 // 07/08/2026: season / ordinal / within-year math moved here so the letter-archive thread headers
 // (LetterThreadAssembler) render dates from the SAME calendar the chronicle uses.
 
+using NpcMemoryService.Core.Calendar;
+
 namespace CalradiaRemembers.Logic
 {
     /// <summary>The shared calendar constants and year math for the player chronicle and letter archive.</summary>
     public static class ChronicleCalendar
     {
+        // ONE HOME since 21/09/2026, and it had to be the SDK: the prompt builder restated the calendar in its own
+        // literals precisely because it cannot reference Logic, while Logic can reference it. Every caller of these
+        // two names keeps working; they simply stopped being a second copy.
+
         /// <summary>In-game days in one Calradian year, as used throughout the chronicle.</summary>
-        public const int DaysPerYear = 84;
+        public const int DaysPerYear = CalradianCalendar.DaysPerYear;
 
         /// <summary>In-game days in one Calradian season (four seasons make a year).</summary>
-        public const int DaysPerSeason = 21;
+        public const int DaysPerSeason = CalradianCalendar.DaysPerSeason;
 
         private static readonly string[] SeasonNames = { "spring", "summer", "autumn", "winter" };
 

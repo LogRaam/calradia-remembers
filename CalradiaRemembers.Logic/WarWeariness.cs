@@ -5,6 +5,7 @@
 // before wanting out (a brave, hardened soul endures far more than a cautious one); real rest slowly eases the
 // toll. The engine maps game events to the drivers and persists the score; this stays pure and unit-tested.
 
+using NpcMemoryService.Core.Calendar;
 namespace CalradiaRemembers.Logic
 {
     /// <summary>How worn down by war a companion is — the bands the accumulating score falls into.</summary>
@@ -68,7 +69,7 @@ namespace CalradiaRemembers.Logic
         ///   to leave in their first two years, no matter how hard the toll. Player report 2026-07-25: a
         ///   22-year-old companion with under a year of service asked to retire.
         /// </summary>
-        public const int MinServiceDays = 168;
+        public const int MinServiceDays = 2 * CalradianCalendar.DaysPerYear;
 
         public static int Clamp(int score) => score < Min ? Min : score > Max ? Max : score;
 

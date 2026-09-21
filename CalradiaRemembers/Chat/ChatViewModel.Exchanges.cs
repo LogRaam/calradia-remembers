@@ -36,6 +36,7 @@ using TaleWorlds.CampaignSystem;
 
 #endregion
 
+using NpcMemoryService.Core.Calendar;
 namespace CalradiaRemembers.Chat
 {
    public sealed partial class ChatViewModel
@@ -1227,7 +1228,7 @@ namespace CalradiaRemembers.Chat
                // every flirt ever meant two flirts three years apart read as an ongoing courtship. Window it to
                // roughly a Calradian year so only sustained recent interest establishes a pattern. (Includes
                // today's, just applied.)
-               const int romanticPatternWindowDays = 84;
+               const int romanticPatternWindowDays = CalradianCalendar.DaysPerYear;
                int romanticEvents = profile.Events.Count(e =>
                   (e.type is NotableEventType.Flirt or NotableEventType.Intimacy)
                   && gameDay - e.gameDay <= romanticPatternWindowDays);

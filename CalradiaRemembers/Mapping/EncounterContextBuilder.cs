@@ -58,6 +58,7 @@ using TraitFacts = CalradiaRemembers.Logic.Grudges.TraitFacts;
 
 #endregion
 
+using NpcMemoryService.Core.Calendar;
 namespace CalradiaRemembers.Mapping
 {
    /// <summary>
@@ -72,7 +73,7 @@ namespace CalradiaRemembers.Mapping
       ///   defiance: one Calradian season (21 days; see ChronicleCalendar). Older losses fade from the power
       ///   calculus. The comment here said "a season's quarter" until 21/09/2026, which was simply wrong.
       /// </summary>
-      private const int RecentDefeatWindowDays = 21;
+      private const int RecentDefeatWindowDays = CalradianCalendar.DaysPerSeason;
 
       /// <summary>
       ///   Candidate pool size for the message-relevant world-fact scan (<see cref="ResolveQueryRelevantFacts" />):
