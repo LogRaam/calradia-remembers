@@ -80,6 +80,10 @@ namespace CalradiaRemembers.Behaviors
       // instead of fired as a detached Task, so a summary survives a save/quit/crash and is replayed on load.
       public readonly ConversationSummaryQueueRunner ConvSummaryQueue = new();
 
+      // ONE kept conversation, owned by the behavior. The words of the LAST chat, so a player who stepped out
+      // mid-negotiation steps back into it rather than starting the bargain again (fkasad, 20/09/2026).
+      public readonly ConversationResumeStore ConvResume = new();
+
       // ONE QuestDeedTracker, owned by the behavior.
       public readonly QuestDeedTracker QuestTracker = new();
       public readonly BannerlordNpcMemoryStore Store = new();
@@ -154,6 +158,9 @@ namespace CalradiaRemembers.Behaviors
          // Additive, distinct key: the durable conversation-summary queue. Its own load degrades to empty, so a
          // save written before this feature (no such key) opens fine.
          ConvSummaryQueue.SyncData(dataStore);
+         // The words of the last conversation, so an interrupted one can be stepped back into. Same additive
+         // key and same tolerant load: an older save has nothing kept, which is exactly the old behaviour.
+         ConvResume.SyncData(dataStore);
          // B1: persisted subject/global correspondence-interest dampers. Same additive/graceful contract.
          LetterEvaluator.SyncData(dataStore);
       }

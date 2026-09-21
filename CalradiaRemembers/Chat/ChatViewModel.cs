@@ -229,6 +229,11 @@ namespace CalradiaRemembers.Chat
       private bool _conversationStartedRaised;   // Extension Surface: CrConversation.Started fired at most once
       private bool _conversationEndedRaised;      // Extension Surface: CrConversation.Ended fired at most once
 
+      // The memory event this conversation wrote when it closed, or the one it INHERITED by resuming an earlier
+      // sitting. Carried so a conversation the player stepped out of and came back to leaves one memory rather
+      // than two: without it, the NPC would remember a single afternoon as two separate talks.
+      private string _conversationAnchorId = "";
+
       // The witness the player is currently addressing (sticky). Null = main NPC.
       private string _currentSpeakerHeroId;
       private CaptiveSceneDirector _director;
@@ -2604,6 +2609,7 @@ namespace CalradiaRemembers.Chat
             .Identified();
 
          profile.Events.Add(baseEvent);
+         _conversationAnchorId = baseEvent.Id;
          behavior.Store.Set(profile);
          ModLog.Info($"[CONV MEMORY] conversation recap recorded for {profile.Name} " + $"({_playerTurnsThisSession} player turn(s)).");
 
@@ -2624,6 +2630,37 @@ namespace CalradiaRemembers.Chat
             PlayerName = player,
             ReplyLanguage = ModSettings.ReplyLanguage,
             EnqueuedDay = gameDay
+         });
+      }
+
+      /// <summary>
+      ///   Keeps this conversation's words so the player can step back into it, which is the whole of fkasad's
+      ///   report (20/09/2026): roleplay takes longer than a battle, he quits mid-negotiation to live his life,
+      ///   and comes back to an NPC who remembers TALKING to him but not what was said, so the bargain starts
+      ///   over.
+      ///   <para>
+      ///     Runs on every ordinary close, including one too slight to have written a memory: the player who
+      ///     exchanged two lines and quit is the same player. The anchor is then empty, which the resume path
+      ///     reads as "this sitting has no memory event of its own yet".
+      ///   </para>
+      ///   <para>
+      ///     A staged scene keeps nothing. A captive scene, a captor scene and the companion briefing each open
+      ///     with their own staging, and the briefing's words must never reach the person it is about, which is
+      ///     the same reason <see cref="FinalizeConversationMemory" /> excludes it.
+      ///   </para>
+      /// </summary>
+      public void KeepConversationForResume()
+      {
+         if (_mode != ChatMode.Conversation || IsCompanionBriefingChat) return;
+
+         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         string heroId = _npcHero?.StringId;
+         if (behavior?.ConvResume == null || string.IsNullOrEmpty(heroId)) return;
+
+         behavior.ConvResume.Keep(_transcript, new ConversationResumeIdentity {
+            HeroId = heroId,
+            GameDay = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0,
+            AnchorId = _conversationAnchorId
          });
       }
 

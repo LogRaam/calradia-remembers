@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 416 types in 55 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 417 types in 55 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 762 types in 25 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
@@ -145,7 +145,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 
-### CalradiaRemembers.Chat (41)
+### CalradiaRemembers.Chat (42)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -166,6 +166,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatViewModel` | public class, partial over 6 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
+| `ConversationResumeStore` | public class | Holds at most one ConversationResumeSnapshot and persists it with the campaign. |
 | `ConversationSummaryQueueRunner` | public class | Owns the persisted ConversationSummaryQueue and drains it off the main thread. |
 | `ConversationSummaryService` | public static class | Generates and applies the rich LLM summary that replaces a base captive/conversation memory. |
 | `CouncilConversationStager` | public static class | Opens a council (ChatManager.OpenForCouncil) over a 3D conversation scene rather than as a pushed screen over the world map. |

@@ -398,6 +398,11 @@ namespace CalradiaRemembers.Chat
             // Extension Surface: hand the attributed transcript to any third-party listener as the conversation
             // closes. Independent of the memory finalizers above so a listener sees even a slight conversation.
             SafeStep(() => ActiveViewModel?.RaiseConversationEndedEvent(), "RaiseConversationEndedEvent");
+            // Keep the words themselves, so a conversation the player stepped out of can be stepped back into
+            // (fkasad, 20/09/2026). AFTER FinalizeConversationMemory, because what is kept carries the memory
+            // event that close just wrote: a resumed sitting comes back to that same event instead of leaving
+            // the NPC remembering one afternoon as two.
+            SafeStep(() => ActiveViewModel?.KeepConversationForResume(), "KeepConversationForResume");
 
             // Free every character tableau (GPU render-target) before releasing the movie, so no portrait
             // survives the close regardless of engine teardown timing.
