@@ -28,7 +28,11 @@ namespace CalradiaRemembers.Logic
     /// <summary>The engine-gathered facts a lord-recruitment decision rests on — pure to reason over.</summary>
     public sealed class LordRecruitmentFacts
     {
-        /// <summary>The lord's personal relation toward the player.</summary>
+        /// <summary>
+        ///   The lord's personal regard for the player: the MOD's own ledger
+        ///   (<c>NpcProfile.ReputationWithPlayer</c>, what the player built in conversation), falling back to the
+        ///   vanilla relation only for a lord who has no profile yet. Gabriel's ruling, 21/09/2026.
+        /// </summary>
         public int Relation { get; set; }
 
         /// <summary>The player's clan tier (0–6).</summary>
@@ -66,7 +70,12 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public static class LordRecruitment
     {
-        /// <summary>Trust must be genuinely deep, not merely friendly, to uproot a lord from their house.</summary>
+        /// <summary>
+        ///   Trust must be genuinely deep, not merely friendly, to uproot a lord from their house. On the MOD's own
+        ///   regard ledger (see <see cref="LordRecruitmentFacts.Relation" />), at the same "deep bond" mark as
+        ///   <c>NotableRecruitmentPolicy.RegardFloor</c> and <c>PrisonerRecruitmentPolicy.RegardFloor</c>, which is
+        ///   what the notable policy's doc always claimed and what only became true on 21/09/2026.
+        /// </summary>
         public const int MinRelation = 60;
 
         /// <summary>At or below this relation toward their liege, a lord is estranged enough to consider leaving.</summary>

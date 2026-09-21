@@ -215,5 +215,22 @@ namespace CalradiaRemembers.Tests
          };
 
       #endregion
-   }
+   
+        #region which ledger the trust is read from (Gabriel's ruling, 21/09/2026)
+
+        // THE TWO-LEDGER RULE, finally applied here. This gate read VANILLA relation while its two siblings
+        // (NotableRecruitmentPolicy, PrisonerRecruitmentPolicy) read the mod's own ReputationWithPlayer at the same
+        // mark of 60, and the notable policy's doc claimed all three matched. A lord befriended across a whole
+        // campaign IN CONVERSATION could stand at 80 of the regard this mod exists to build and still be refused,
+        // because vanilla had never heard of any of it. The host now reads the mod ledger (with vanilla as the
+        // fallback for a lord who has no profile yet); the pure gate is unchanged, and this pins the mark it shares.
+        [Test]
+        public void GIVEN_the_deep_bond_mark_WHEN_compared_with_the_other_two_recruitment_gates_THEN_all_three_agree()
+        {
+            LordRecruitment.MinRelation.Should().Be(NotableRecruitmentPolicy.RegardFloor);
+            LordRecruitment.MinRelation.Should().Be(PrisonerRecruitmentPolicy.RegardFloor);
+        }
+
+        #endregion
+}
 }

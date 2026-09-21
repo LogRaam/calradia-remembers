@@ -3,6 +3,7 @@
 #region
 
 using System.Linq;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
 
@@ -33,7 +34,15 @@ namespace CalradiaRemembers.GameState
          bool hasLiege = liege != null && liege != lord;
 
          return new LordRecruitmentFacts {
-            Relation = lord.GetRelation(Hero.MainHero),
+            // THE MOD'S OWN LEDGER, per the two-ledger rule and Gabriel's ruling of 21/09/2026. This read was
+            // vanilla `GetRelation` while its two sibling policies (NotableRecruitmentPolicy, PrisonerRecruitmentPolicy)
+            // gated on `ReputationWithPlayer` at the same "deep bond" mark of 60, and the notable policy's own doc
+            // claimed all three matched. They did not: a lord you had spent a campaign befriending IN CHAT could sit
+            // at 80 of the regard this mod builds and still be refused, because vanilla had never heard of any of it.
+            // Found by reading docs/maps/constants.md (21/09/2026). Vanilla relation stays the FALLBACK for a lord
+            // with no profile yet, the same shape CourtActionResolver already uses for arranged-match consent.
+            Relation = NpcMemoryCampaignBehavior.Instance?.Store?.Get(lord.StringId)?.ReputationWithPlayer
+                       ?? lord.GetRelation(Hero.MainHero),
             PlayerClanTier = Clan.PlayerClan?.Tier ?? 0,
             LordClanTier = clan?.Tier ?? 0,
             LordIsLandless = clan?.Settlements == null || !clan.Settlements.Any(s => s.IsTown || s.IsCastle),
