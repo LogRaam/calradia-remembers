@@ -111,8 +111,11 @@ An unchanged map is information too: the dimension it watches did not move.
 - `event-listeners.md` names the reasons a listener's FILE mentions; it does not know the engine's full list, so it
   shows "names one of them", not "names one of seven".
 - `shared-state.md` lists where a lifetime has to be decided. It cannot tell which value is stale.
-- These tests are Ignored under NCrunch: it works from a workspace copy, which carries project sources but not
-  necessarily the committed map they would be compared with. Run them with `dotnet test`, or `Tools/Update-Maps.ps1`.
+- These tests are Ignored under any runner that works from a COPY of the sources, NCrunch included. A workspace
+  copy carries a project's sources, because those are project items; it carries neither `.git` nor the maps
+  themselves, which belong to no project. So such a runner can regenerate a map perfectly and have nothing to
+  compare it with. The check is for `.git` in both repositories, which needs no knowledge of the runner. Run
+  them with `dotnet test`, or `Tools/Update-Maps.ps1`.
 
 ## Adding a map
 

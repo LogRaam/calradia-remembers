@@ -112,6 +112,17 @@ namespace CalradiaRemembers.Tests.Maps
             if (ModRepo == null) return "the mod repository (no CalradiaRemembers.slnx above this assembly)";
             if (SdkRepo == null) return $"the SDK repository (no '{SdkFolder}' beside the mod)";
 
+            // THE ONE SIGNAL THAT NEEDS NO KNOWLEDGE OF THE RUNNER, and the one that would have caught this the
+            // first time. A build workspace carries a project's SOURCES, because they are project items; it does
+            // not carry .git, and it does not carry docs/maps or RULES.md either, which are project items in no
+            // project at all. So a runner working from a copy can regenerate a map perfectly and then have
+            // nothing to compare it with. Checking for the repository itself covers every copying runner, named
+            // or not, present or future.
+            foreach ((string what, string repo) in new[] {("the mod", ModRepo), ("the SDK", SdkRepo!)})
+               if (!Directory.Exists(Path.Combine(repo, ".git")))
+                  return $"{what} REPOSITORY (no .git in {repo}), which means this is a copy of the sources rather "
+                       + "than the working tree, and the committed maps are not here to compare with";
+
             foreach ((string what, string path) in new[] {
                         ("the mod", Path.Combine(ModRepo, "CalradiaRemembers", "GameState", "BannerlordGameStateBridge.cs")),
                         ("Logic", Path.Combine(ModRepo, "CalradiaRemembers.Logic", "ChronicleCalendar.cs")),
