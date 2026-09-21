@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 416 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 757 types in 25 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 762 types in 25 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1387,7 +1387,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompanionServiceTransferFacts` | public record | Everything the gate needs, as plain facts the caller reads off the live game. |
 | `CompanionServiceTransferPolicy` | public static class | The pure gate behind take_into_service. |
 
-### CalradiaRemembers.Logic.Conversation (11)
+### CalradiaRemembers.Logic.Conversation (16)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1397,6 +1397,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatClosePlan` | public static class | Which steps a close runs, in order. |
 | `ChatCloseStep` | public enum | One step of a chat close, in the order it runs. |
 | `ConversationCast` | public class | The live cast of a conversation: the anchor and every other present character, each Active or Witness, with the moves that shift that boundary (Promote / Demote). |
+| `ConversationResumeFacts` | public class | What is known when a chat is about to open, against what was kept when the last one closed. |
+| `ConversationResumeIdentity` | public class | Whose conversation this is and when it was had. |
+| `ConversationResumePolicy` | public static class | Decides whether the kept conversation belongs in the chat that is opening. |
+| `ConversationResumeSnapshot` | public class | The words of one conversation, kept across a save. |
+| `ConversationResumeVerdict` | public enum | Why a kept conversation was or was not picked up again. |
 | `EnsembleFloorPolicy` | public static class | Decides whether an ensemble beat left a question hanging, and who in the room should answer it. |
 | `ReturnMove` | public enum | What the pending briefing return should do on this tick. |
 | `SilenceOrderContext` | public class | Everything SilenceOrderPolicy.Resolve weighs to decide whether a silence order lands. |
