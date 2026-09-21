@@ -112,8 +112,9 @@ prompt's sections in order, every verb with each place it must be declared, and 
 
 - **They cannot go stale while the suite is green.** `MapsAreCurrentTests` regenerates each map and fails when the
   committed copy differs. A failure there is never a bug in the code: the code moved and the map did not.
-  Regenerate, and commit the map WITH the change:
-  `CR_UPDATE_MAPS=1 dotnet test CalradiaRemembers.Tests -p:NCrunch=1 --filter "FullyQualifiedName~Maps"`
+  Regenerate with `.\Tools\Update-Maps.ps1` (it prints what moved, and the full diff of anything short
+  enough to read), then commit the map WITH the change. Raw form:
+  `CR_UPDATE_MAPS=1 dotnet test CalradiaRemembers.Tests -p:NCrunch=1 --filter "FullyQualifiedName~Maps"`.
 - **Look before you add.** Before a new threshold, policy, guard, event listener, prompt section or verb, read the
   map that would show it if it already existed (`constants.md` opens with the names declared in more than one
   type). Say in the commit message what you found, even when it is "nothing like it exists". Gabriel's words: "je

@@ -47,9 +47,18 @@ the player report it answers.
 
 It is never a bug in the code under test. The code moved and the map did not.
 
+```powershell
+.\Tools\Update-Maps.ps1
 ```
-CR_UPDATE_MAPS=1 dotnet test CalradiaRemembers.Tests -p:NCrunch=1 --filter "FullyQualifiedName~Maps"
-```
+
+It regenerates every map and then PRINTS what moved: the counts for each map, and the full diff of any change short
+enough to read (40 lines or less), which is most of them. Read that, then commit the maps with the change. Under the
+hood it is `CR_UPDATE_MAPS=1 dotnet test CalradiaRemembers.Tests -p:NCrunch=1 --filter "FullyQualifiedName~Maps"`; the
+script exists because that env var cannot be set inline in PowerShell, and because NCrunch cannot regenerate at all
+(it builds from a workspace copy with no source tree, so the Maps tests are Ignored there). Use `dotnet test`, or this.
+
+If a SAVE KEY disappeared, the script refuses and rewrites nothing: see the contract note below, and re-run with
+`-AllowSaveKeyRemoval` only when you mean it.
 
 Then commit the regenerated map WITH the change that moved it. Its diff is the architectural summary of that change:
 a new threshold appears beside the ones that already exist, a new edge between two namespaces is one line, a prompt
