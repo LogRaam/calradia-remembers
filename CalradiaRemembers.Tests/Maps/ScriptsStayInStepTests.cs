@@ -12,9 +12,16 @@
 // script keeps running, cheerfully regenerating nothing, and the failure looks like "the maps are stale again" rather
 // than "the script is broken". Reading a text file is in-process and instant, so the coupling is pinned here.
 
+// A NOTE ON NCRUNCH, because it cost an afternoon and three wrong diagnoses on 21/09/2026. Every Maps fixture
+// calls Assert.Ignore when it cannot see the working tree, and NCrunch reports an ignored test as INCONCLUSIVE,
+// which it counts as a failure unless "Consider inconclusive tests as passing" is set. So the guards were firing
+// correctly all along and the panel stayed red, which sent me looking for three mechanisms that were not there.
+// The setting is now in CalradiaRemembers.Tests.v3.ncrunchproject (and the SDK's). That file is per machine and
+// gitignored, so a fresh clone needs it again, and the symptom to recognise is a green `dotnet test` beside a red
+// NCrunch with "reported an inconclusive result" in its trace output.
+
 #region
 
-using System.Reflection;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -62,59 +69,7 @@ namespace CalradiaRemembers.Tests.Maps
          script.Should().NotContain("Set-Content -LiteralPath $outputPath", "that was the second generator, and it is gone");
       }
 
-      // AND THE RUNNER THAT MUST NOT RUN THEM AT ALL. These fixtures are an approval mechanism: they regenerate a
-      // document and compare it with the copy in the repository, which only means anything when the sources being
-      // read and the maps being compared are the working tree. NCrunch works from a copy, and on 21/09/2026 it
-      // failed all twenty of them in milliseconds, three times, each time for a different reason than the one I
-      // had guessed. They are excluded there by NCrunch's own config, the way an older test that needs the
-      // compiled mod assembly already was.
-      //
-      // The list is by NAME, so a map added later runs everywhere except where it was told to, and NCrunch goes
-      // red again for a reason that has nothing to do with the code. That is what this catches, at `dotnet test`
-      // time, where the answer is one line in a file rather than an afternoon of triage. The config is per
-      // machine and gitignored, so this says nothing where it is absent.
-      [Test]
-      public void GIVEN_a_map_test_that_cannot_run_under_NCrunch_WHEN_the_ignore_list_is_read_THEN_it_is_named_there()
-      {
-         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
-
-         string path = Path.Combine(SourceTree.ModRepo!, "CalradiaRemembers.Tests", "CalradiaRemembers.Tests.v3.ncrunchproject");
-
-         if (!File.Exists(path)) Assert.Ignore("no NCrunch config on this machine, so there is nothing to keep in step");
-
-         string config = File.ReadAllText(path);
-
-         List<string> missing = MapFixtures()
-                               .SelectMany(t => t.GetMethods())
-                               .Where(m => m.GetCustomAttributes(typeof(TestAttribute), false).Length > 0)
-                               .Select(m => $"{m.DeclaringType!.FullName}.{m.Name}")
-                               .Where(name => !config.Contains(name))
-                               .OrderBy(name => name, StringComparer.Ordinal)
-                               .ToList();
-
-         missing.Should().BeEmpty("these map tests would run under NCrunch, which cannot see the repository they "
-                                + "compare against, and would fail there for no reason: "
-                                + string.Join(", ", missing));
-      }
-
       #region private
-
-      /// <summary>
-      ///   Every fixture in the Maps namespace, read WITHOUT letting a partial assembly bring the test down.
-      ///   <c>Assembly.GetTypes()</c> throws <see cref="ReflectionTypeLoadException" /> when any single type in
-      ///   the assembly cannot be loaded, and under a runner working from a workspace copy that is an ordinary
-      ///   state rather than a bug: a type whose base class lives in an assembly the workspace does not carry
-      ///   fails to load, and the whole scan dies with it, in milliseconds, for a reason that has nothing to do
-      ///   with what is being asserted. The exception carries the types it DID load, which is what this reads.
-      /// </summary>
-      private static IEnumerable<Type> MapFixtures()
-      {
-         Type[] loaded;
-         try { loaded = typeof(ScriptsStayInStepTests).Assembly.GetTypes(); }
-         catch (ReflectionTypeLoadException ex) { loaded = ex.Types; }
-
-         return loaded.Where(t => t != null && t.Namespace == typeof(MapsAreCurrentTests).Namespace);
-      }
 
       private static string Script(string repoRelativePath)
       {
