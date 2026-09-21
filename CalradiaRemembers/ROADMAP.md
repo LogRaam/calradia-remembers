@@ -32,6 +32,73 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## GUARDRAIL SHIPPED 2026-09-20, PILLAR SCOPED NOT BUILT: a rendezvous the game can actually keep
+
+yozakura12 (Nexus, 19/09/2026): *"During conversations, NPCs tell me when and where to meet them. However, when
+I go to the designated location at the appointed time, the NPC isn't there. Consequently, the NPC gets upset,
+claiming I didn't keep the promise. Does this game actually have a meet-up feature?"*
+
+It does not. The character invented the appointment, its own `[EVENT]` memory recorded the promise, and the
+player was punished for a meeting nobody could have kept. That is the one failure this mod cannot afford: the
+whole pitch is that what is remembered is true.
+
+### Done: the guardrail (SDK, 2026-09-20)
+
+`PromptBuilder.AppendNoAppointments`, always on, Full and Lean: never fix a place and a time, offer what exists
+instead (ask now, write a letter, speak again when paths cross), and **never reproach the player for a missed
+meeting, whoever seemed to arrange it**. The second half outlives the guardrail: promises made before it exists
+sit in every save already written, and they keep surfacing. Pinned by `NoAppointmentsTests`.
+
+### Scoped: increment 1, people who are already there
+
+The expensive half of a rendezvous is making the OTHER party travel. Taking a lord's party off its army, its
+siege or its own quest, and handing control back cleanly, is the kind of thing that breaks other mods. So
+increment 1 buys the whole feeling without steering anyone: it is offered **only to people the game already
+keeps in one place**.
+
+- **Who may agree:** a settlement notable, a tavern wanderer, a governor, a companion or clan member living in
+  a fief the player owns, a spouse or close kin at home, a prisoner the player holds. Not a roaming lord: to
+  him the guardrail still applies, and he says he will write instead.
+- **What is agreed:** a SETTLEMENT and a WINDOW IN DAYS, never an hour. The player cannot be held to a clock
+  they cannot see, and a window ("before the week is out") is both honest and forgiving. The NPC names the
+  window; three to seven days is the band to start from.
+- **How it is recorded:** a rendezvous is a two-sided promise, unlike every existing `TrackedCommitment`
+  (which is something the NPC owes the player). Decide at build time whether it becomes a new
+  `CommitmentKind.MeetAt` with `TargetId` holding the settlement id, or its own small ledger. Additive save
+  key either way; a save written before it reads no rendezvous, which is the truth.
+- **The verb:** `set_rendezvous` (place, days), taught ONLY when the speaker is one of the eligible kinds and
+  the place is one they are actually tied to. The teaching states the constraint, so the model proposes only
+  what the game can keep, which is what the guardrail forbids everywhere else.
+- **Arrival, which is the whole payoff:** the player walks into the settlement inside the window and the
+  person asks for a word. This reuses `FiefAudienceBehavior` wholesale, the channel that already stages "X
+  would have a word with you" inside a fief, with the rendezvous as the trigger and its purpose as the opener.
+  No new hosting, no new screen.
+- **Missing it:** past the window the rendezvous is Missed, and NOW the reproach is earned: the NPC may raise
+  it once, cold, and it costs a little personal regard. Never a grudge on its own (grudges are for real
+  wrongs, and a missed meeting is not one).
+- **The NPC failing:** captured, dead, or the settlement besieged or taken. The rendezvous is BrokenByNpc, the
+  NPC apologises when next met, and the player may hold it against THEM. Never silence, and never blame.
+- **Journal:** one entry, mirroring how quests are already mirrored, or the player has to remember for the
+  game.
+- **Verification:** pure policy tests (eligibility, window arithmetic, the four end states) plus a
+  `cr.testall rendezvous` that plants one, walks the real arrival path, asserts the audience fires, and cleans
+  up. Play-verification is the honest gate here, since the payoff is a scene.
+
+### Increment 2, deliberately later: a lord who rides to meet you
+
+Only once increment 1 is play-verified. This is the one that touches campaign AI (`SetMoveGoToSettlement`,
+holding him there, and giving the AI back cleanly), and it must refuse the moment the lord is in an army, a
+siege, a war march or a vanilla quest of his own. Related, and worth reading first: the ESCORT pillar already
+scoped in this file, which has the same "the arrival IS the scene" shape.
+
+### Open questions for Gabriel
+
+- Does missing a rendezvous cost regard, or only a cold line? (Proposed: a small regard hit, no grudge.)
+- Who names the window, the NPC alone or the player in the exchange?
+- Is a kept meeting worth anything by itself (a little warmth), or is the scene its own reward?
+
+---
+
 ## BUILT 2026-09-15/16, NOT RELEASED: the prompt cache, Compact, and the knowledge audit
 
 Three days of work that share one shape: **a rule was written down, and nothing asserted it.** Every item
