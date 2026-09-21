@@ -49,6 +49,34 @@ the behaviour index: a change inside a method leaves no structural trace, but a 
 test. The last five are lenses, one per family of bug this project has actually had; each generator's header names
 the player report it answers.
 
+## Which tests INFORM, and which BLOCK
+
+They are not all the same kind of test, and treating them as one kind is how this stops working.
+
+**Informing.** `inventory`, `dependencies`, the two rules files, `constants`, `event-listeners`, `prompt-sections`,
+`verbs`, `shared-state`. These fail, you regenerate, you read the diff, you commit. Whatever the code now says
+becomes the new truth. Their whole value is the two seconds of attention the diff buys, and that value decays: the
+real risk here is not a wrong map, it is a reflex. Regenerate-and-commit becomes muscle memory within weeks, and then
+these are green paperwork.
+
+**Blocking.** `save-format`'s vanished-key guard, and the two ratchets in
+[`RatchetTests`](../../CalradiaRemembers.Tests/Maps/RatchetTests.cs). These do NOT accept what the code now says.
+Regenerating does not make them green; only changing the code, or writing down on purpose why the rule no longer
+holds, does.
+
+- A save key that vanished. Every campaign in progress loses that data on its next load, and nothing else notices.
+- A namespace newly caught in a dependency cycle. Every other structural change can be an improvement; this one
+  cannot. Inside a cycle nothing can be understood, tested or moved alone.
+- A regard threshold newly written as a bare number. That is the duplication this whole folder exists to catch,
+  in its most literal form: one more private copy of a rung that already has a name.
+
+The two ratchets hold a BASELINE, not a standard: 46 namespaces are in a cycle today and 74 of the 91 regard
+thresholds are bare numbers. Neither is acceptable; both may only shrink. When one does, its test says so and asks
+for the baseline to be lowered in the same commit, so the mess being worked off cannot quietly become the target.
+
+`decisions-regard.md` sits between the two. It is an informing map by mechanism, but a changed cell in it is a
+changed behaviour, so in practice a diff there is read like a blocking failure.
+
 ## When a Maps test fails
 
 It is never a bug in the code under test. The code moved and the map did not.
@@ -63,8 +91,12 @@ hood it is `CR_UPDATE_MAPS=1 dotnet test CalradiaRemembers.Tests -p:NCrunch=1 --
 script exists because that env var cannot be set inline in PowerShell, and because NCrunch cannot regenerate at all
 (it builds from a workspace copy with no source tree, so the Maps tests are Ignored there). Use `dotnet test`, or this.
 
-If a SAVE KEY disappeared, the script refuses and rewrites nothing: see the contract note below, and re-run with
+If a SAVE KEY disappeared, the script refuses and rewrites nothing: see the contract note above, and re-run with
 `-AllowSaveKeyRemoval` only when you mean it.
+
+A RATCHET failure is not fixable this way at all. The script will report it and leave it red, because there is no
+copy to bring up to date: either the edge is broken and the namespace leaves the cycle, or the threshold points at a
+named rung, or the baseline is raised by hand with the reason in the commit message.
 
 Then commit the regenerated map WITH the change that moved it. Its diff is the architectural summary of that change:
 a new threshold appears beside the ones that already exist, a new edge between two namespaces is one line, a prompt
