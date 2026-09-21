@@ -32,10 +32,9 @@ namespace CalradiaRemembers.Tests.Maps
       public static void Verify(string repoRelativePath, string generated)
       {
          if (!SourceTree.IsReachable)
-            Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}, so regenerating this map here would describe a system "
-                        + "that is missing a whole layer. This is what an NCrunch workspace looks like: it copies only what the "
-                        + "test project REFERENCES, and the mod is deliberately not referenced. Run `dotnet test`, or "
-                        + "Tools/Update-Maps.ps1.");
+            Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}, so a comparison made here would say nothing about the code: "
+                        + "either a whole layer is missing from the generation, or the committed map being compared with is not "
+                        + "the one in the repository. Run `dotnet test`, or Tools/Update-Maps.ps1.");
 
          string path = Path.Combine(SourceTree.ModRepo!, repoRelativePath.Replace('/', Path.DirectorySeparatorChar));
          string fresh = Normalize(generated);

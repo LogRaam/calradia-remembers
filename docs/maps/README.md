@@ -89,7 +89,7 @@ It regenerates every map and then PRINTS what moved: the counts for each map, an
 enough to read (40 lines or less), which is most of them. Read that, then commit the maps with the change. Under the
 hood it is `CR_UPDATE_MAPS=1 dotnet test CalradiaRemembers.Tests -p:NCrunch=1 --filter "FullyQualifiedName~Maps"`; the
 script exists because that env var cannot be set inline in PowerShell, and because NCrunch cannot regenerate at all
-(it builds from a workspace copy with no source tree, so the Maps tests are Ignored there). Use `dotnet test`, or this.
+(it works from a workspace copy, so the Maps tests are Ignored there). Use `dotnet test`, or this.
 
 If a SAVE KEY disappeared, the script refuses and rewrites nothing: see the contract note above, and re-run with
 `-AllowSaveKeyRemoval` only when you mean it.
@@ -111,7 +111,8 @@ An unchanged map is information too: the dimension it watches did not move.
 - `event-listeners.md` names the reasons a listener's FILE mentions; it does not know the engine's full list, so it
   shows "names one of them", not "names one of seven".
 - `shared-state.md` lists where a lifetime has to be decided. It cannot tell which value is stale.
-- Under NCrunch the source trees are not in the workspace copy, so these tests are Ignored there. `dotnet test` runs them.
+- These tests are Ignored under NCrunch: it works from a workspace copy, which carries project sources but not
+  necessarily the committed map they would be compared with. Run them with `dotnet test`, or `Tools/Update-Maps.ps1`.
 
 ## Adding a map
 

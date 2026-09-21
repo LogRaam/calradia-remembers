@@ -82,15 +82,16 @@ namespace CalradiaRemembers.Tests.Maps
       }
 
       /// <summary>
-      ///   True when all THREE source trees can be read in full. Finding the solution file is not enough, and that
-      ///   gap is what Gabriel hit on 21/09/2026: six map tests failed in NCrunch while `dotnet test` was green.
-      ///   NCrunch builds from a workspace copy containing only what the test project REFERENCES, and the test
-      ///   project deliberately does not reference the mod (net472, engine-bound, unbuildable here). So the mod's
-      ///   sources were absent, the maps regenerated without that whole layer, and the comparison failed for a
-      ///   reason that had nothing to do with the code.
+      ///   True when the runner is working on the real tree and all THREE source bases can be read in full. Both
+      ///   halves are needed, and each was learned the hard way on 21/09/2026, when map tests failed in NCrunch while
+      ///   `dotnet test` was green. First the mod's sources were absent, because NCrunch builds from a workspace copy
+      ///   of what the test project REFERENCES and the test project deliberately does not reference the mod (net472,
+      ///   engine-bound, unbuildable here), so the maps regenerated without a whole layer. Then, once that was
+      ///   guarded, the comparison failed the other way: a workspace carries project SOURCES, but a committed map is
+      ///   not part of any project, so a fresh generation was being held against a stale copy of the map.
       ///   <para>
-      ///     Checked by anchor file rather than by runner name: whatever copies the tree, a map is only meaningful
-      ///     when every layer it describes is actually there.
+      ///     Hence both a runner check and an anchor check. A map is only meaningful when every layer it describes is
+      ///     there AND the copy it is compared with is the one in the repository.
       ///   </para>
       /// </summary>
       public static bool IsReachable => MissingAnchor == null;
@@ -100,6 +101,14 @@ namespace CalradiaRemembers.Tests.Maps
       {
          get
          {
+            // NCrunch FIRST, before any anchor is looked for. Which tree it hands a test is not ours to predict: it
+            // may point at the original solution, or at its own workspace copy, and that copy carries the SOURCES of
+            // the projects it builds but not necessarily a current copy of a committed MAP, which is not part of any
+            // project. Comparing a fresh generation against a stale copy fails for a reason that has nothing to do
+            // with the code, which is exactly what Gabriel saw twice. These tests belong to `dotnet test`.
+            if (Environment.GetEnvironmentVariable("NCrunch") == "1")
+               return "a runner that works from a workspace copy (NCrunch)";
+
             if (ModRepo == null) return "the mod repository (no CalradiaRemembers.slnx above this assembly)";
             if (SdkRepo == null) return $"the SDK repository (no '{SdkFolder}' beside the mod)";
 
