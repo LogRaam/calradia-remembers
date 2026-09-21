@@ -62,6 +62,58 @@ namespace CalradiaRemembers.Tests.Maps
       public void GIVEN_the_source_as_it_stands_WHEN_the_shared_state_is_regenerated_THEN_it_matches_the_committed_map()
          => ApprovedMap.Verify(SharedStateMap.Path, Generated(SharedStateMap.Generate));
 
+      #region the two contracts
+
+      // These two are not views of the code, they are promises made to people outside it: every player with a
+      // campaign in progress, and every modder with a bridge already shipped.
+      [Test]
+      public void GIVEN_the_source_as_it_stands_WHEN_the_save_format_is_regenerated_THEN_it_matches_the_committed_map()
+      {
+         // The guard runs HERE as well as in its own test below, because in update mode this test rewrites the
+         // committed map, and no runner promises which of the two goes first. A vanished key must be refused before
+         // the evidence of it is overwritten.
+         RefuseAVanishedSaveKey();
+         ApprovedMap.Verify(SaveFormatMap.Path, Generated(SaveFormatMap.Generate));
+      }
+
+      [Test]
+      public void GIVEN_the_source_as_it_stands_WHEN_the_modder_api_is_regenerated_THEN_it_matches_the_committed_map()
+         => ApprovedMap.Verify(ModderApiMap.Path, Generated(ModderApiMap.Generate));
+
+      // THE ONE CHANGE A REGENERATION MAY NOT ABSORB. Every other map accepts whatever the code now says; that is
+      // what regenerating means. A save key that vanishes is a player's letters, grudges or marriage silently never
+      // read again on their next load, and nothing else in the suite would notice. Gabriel's hard rule is additive
+      // keys only, so this fails in update mode too, until the removal is declared on purpose.
+      [Test]
+      public void GIVEN_a_save_key_in_the_committed_map_WHEN_the_code_no_longer_writes_it_THEN_the_suite_refuses_it()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore("The source trees are not reachable from this runner.");
+
+         RefuseAVanishedSaveKey();
+      }
+
+      private static void RefuseAVanishedSaveKey()
+      {
+         if (!SourceTree.IsReachable) return;
+
+         string committedPath = Path.Combine(SourceTree.ModRepo!, SaveFormatMap.Path.Replace('/', Path.DirectorySeparatorChar));
+         if (!File.Exists(committedPath)) return; // nothing committed yet, nothing to protect
+         if (Environment.GetEnvironmentVariable(AllowSaveKeyRemoval) == "1") return; // declared on purpose
+
+         HashSet<string> before = SaveFormatMap.KeysListedIn(File.ReadAllText(committedPath));
+         HashSet<string> now = SaveFormatMap.KeysListedIn(SaveFormatMap.Generate(SourceTree.Production));
+         List<string> gone = before.Where(k => !now.Contains(k)).OrderBy(k => k, StringComparer.Ordinal).ToList();
+
+         Assert.That(gone, Is.Empty,
+            "These save keys were written by a shipped version and are no longer written: " + string.Join(", ", gone)
+          + $". Every campaign in progress loses that data on its next load. If that is truly intended, set {AllowSaveKeyRemoval}=1 "
+          + "for the regeneration and say why in the commit.");
+      }
+
+      private const string AllowSaveKeyRemoval = "CR_ALLOW_SAVE_KEY_REMOVAL";
+
+      #endregion
+
       #region private
 
       /// <summary>Under a runner that cannot see the sources there is nothing to generate; Verify turns that into Ignore.</summary>

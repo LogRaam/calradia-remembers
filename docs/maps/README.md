@@ -22,6 +22,15 @@ nothing is committed until it is green.
 | [`prompt-sections.md`](prompt-sections.md) | In what order is the prompt written, what is cached, what is per-turn, what does Compact drop? |
 | [`verbs.md`](verbs.md) | Is this action declared everywhere it has to be? |
 | [`shared-state.md`](shared-state.md) | What outlives the call that wrote it, and so has a lifetime somebody must decide? |
+| [`save-format.md`](save-format.md) | **Contract.** What does the mod write into a player's campaign? Every save key and every saveable type id. |
+| [`modder-api.md`](modder-api.md) | **Contract.** What are other people's mods built against? Every public member under an `Extension` folder. |
+
+The last two are not views, they are promises made to people outside the project: a player with a campaign in
+progress, and a modder with a bridge already shipped. A line removed from `modder-api.md` is a breaking change and
+belongs in the release notes under "For modders". A KEY removed from `save-format.md` is the one change a
+regeneration will not absorb: the suite refuses it, update mode included, until it is declared on purpose with
+`CR_ALLOW_SAVE_KEY_REMOVAL=1` and explained in the commit. Gabriel's hard rule is additive keys only, because a
+renamed key is a player's data silently never read again, and nothing fails when it happens.
 
 The first two are the generic net: a mechanism nobody planned a map for still adds a type or an edge. The rules are
 the behaviour index: a change inside a method leaves no structural trace, but a behaviour that matters is held by a

@@ -120,6 +120,10 @@ prompt's sections in order, every verb with each place it must be declared, and 
   ne vois pas si on est en train de creer un doublon parce que le concept existe deja ailleurs."
 - **Read the map's diff before the code's.** A new line in `dependencies.md` is a namespace that has started to
   know another. A new line in `shared-state.md` is a lifetime somebody has to decide.
+- **Two of the maps are contracts, not views.** `save-format.md` (every save key, every saveable type id) and
+  `modder-api.md` (every public member under an `Extension` folder). A line removed from the API map is a breaking
+  change for bridges already shipped: name it in the release notes under "For modders". A KEY removed from the
+  save map is refused by the suite even in update mode, until `CR_ALLOW_SAVE_KEY_REMOVAL=1` declares it on purpose.
 - The maps cover the SDK too and live in THIS repository, the umbrella. An SDK-only change can therefore turn a
   mod test red; that is intended, since both suites run on every change.
 
