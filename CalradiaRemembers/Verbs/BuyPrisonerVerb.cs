@@ -63,6 +63,7 @@ namespace CalradiaRemembers.Verbs
             sb.AppendLine("target: the captive's name, exactly as listed above");
             sb.AppendLine("price: the agreed denars");
             sb.AppendLine("[/ACTION]");
+            sb.AppendLine("The purchase moves the coin itself. Never also emit give_gold or take_gold for it.");
             sb.AppendLine();
 
             return sb.ToString();
@@ -81,7 +82,21 @@ namespace CalradiaRemembers.Verbs
                 Hero captive = ResolvePlayerHeldPrisonerByName(targetName);
 
                 if (captive == null)
+                {
+                    // WRONG WAY ROUND, and custody says so (Lordfadooboo, 21/09/2026): the player asked to BUY,
+                    // the model heard "buy" and emitted the verb for the NPC buying. If the named captive is in
+                    // this lord's own cage, there is exactly one trade this can be, so run it rather than refuse
+                    // a sale the player already agreed and paid for in the fiction.
+                    if (PrisonerTradePolicy.DirectionFor(false, CourtActionResolver.ResolveHeldPrisonerByName(targetName, npcHero) != null)
+                        == PrisonerTradePolicy.TradeDirection.NpcSellsToPlayer)
+                    {
+                        ModLog.Info($"[ACTION] buy_prisoner named a captive {npcHero.Name} holds; running it as sell_prisoner.");
+
+                        return new SellPrisonerVerb().Execute(action, ctx);
+                    }
+
                     return ActionOutcome.Refused("(You hold no such captive to sell.)");
+                }
 
                 // A CAPTIVE HE ASKED FOR IS A DELIVERY, NOT A SALE (Lordfadooboo, 18/09/2026). A Khuzait lord
                 // asked for a Nord lord in chains; the player brought one and typed the handover, and the model
@@ -275,6 +290,9 @@ namespace CalradiaRemembers.Verbs
         }
 
         /// <summary>Tolerant name match among the player's held hero captives.</summary>
+        /// <summary>Whether the player themselves holds the captive this name points at; the mirror redirect in SellPrisonerVerb asks this.</summary>
+        internal static bool PlayerHoldsCaptiveNamed(string name) => ResolvePlayerHeldPrisonerByName(name) != null;
+
         internal static Hero ResolvePlayerHeldPrisonerByName(string name)
         {
             if (string.IsNullOrWhiteSpace(name)) return null;

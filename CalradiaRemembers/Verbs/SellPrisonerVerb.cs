@@ -55,6 +55,8 @@ namespace CalradiaRemembers.Verbs
             sb.AppendLine("target: the captive's name, exactly as listed above");
             sb.AppendLine("price: the agreed denars");
             sb.AppendLine("[/ACTION]");
+            sb.AppendLine("The sale moves the coin itself. Never also emit take_gold or give_gold for it, or the");
+            sb.AppendLine("player pays twice for one captive.");
             sb.AppendLine();
 
             return sb.ToString();
@@ -73,7 +75,18 @@ namespace CalradiaRemembers.Verbs
                 Hero captive = CourtActionResolver.ResolveHeldPrisonerByName(targetName, npcHero);
 
                 if (captive == null || !CourtActionResolver.CanRelease(captive, npcHero))
+                {
+                    // The mirror of the redirect in BuyPrisonerVerb: if the named captive is in the PLAYER's own
+                    // hands, the only trade on the table is the NPC buying them.
+                    if (captive == null && BuyPrisonerVerb.PlayerHoldsCaptiveNamed(targetName))
+                    {
+                        ModLog.Info($"[ACTION] sell_prisoner named a captive the player holds; running it as buy_prisoner.");
+
+                        return new BuyPrisonerVerb().Execute(action, ctx);
+                    }
+
                     return ActionOutcome.Refused($"({npcHero.Name} holds no such captive to sell.)");
+                }
 
                 action.Parameters.TryGetValue("price", out string priceStr);
                 int.TryParse(priceStr?.Trim(), out int proposed);

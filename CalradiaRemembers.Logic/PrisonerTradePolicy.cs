@@ -11,6 +11,38 @@ namespace CalradiaRemembers.Logic
    /// <summary>Pure price discipline for a prisoner sale, either direction. See the file header.</summary>
    public static class PrisonerTradePolicy
    {
+      /// <summary>Which way a prisoner trade actually runs, read from WHO HOLDS the named captive.</summary>
+      public enum TradeDirection
+      {
+         /// <summary>The player holds them, so the NPC is buying: buy_prisoner.</summary>
+         NpcBuysFromPlayer,
+
+         /// <summary>The NPC's clan holds them, so the NPC is selling: sell_prisoner.</summary>
+         NpcSellsToPlayer,
+
+         /// <summary>Nobody named in this conversation holds them; there is no trade to make.</summary>
+         NoTrade
+      }
+
+      /// <summary>
+      ///   The direction the trade MUST take, whatever verb the model reached for. Custody is a fact and the
+      ///   label is a word: if the captive stands in the NPC's own cage, the NPC can only be selling.
+      ///   <para>
+      ///     Lordfadooboo (Nexus, 21/09/2026), trying to buy a Nord lord from a Khuzait one: "twice now i speak
+      ///     with him, he states his price and agrees to the transfer, and delivers a text that suggests that the
+      ///     transaction is complete, but then i get a CR message that says 'you hold no such captive to sell' but
+      ///     im not selling a captive, im buying one. and then the transaction gets blocked even though my money
+      ///     is already taken." The model heard the player say "buy" and emitted buy_prisoner, which is the
+      ///     mirror verb: buy_prisoner is the NPC buying FROM the player. Both verbs were taught, both specs name
+      ///     the other as their anti-pattern, and it picked the wrong one anyway, because "buy" is the word the
+      ///     player used. Teaching harder was never going to settle this; custody settles it.
+      ///   </para>
+      /// </summary>
+      public static TradeDirection DirectionFor(bool playerHoldsTarget, bool npcClanHoldsTarget)
+         => playerHoldsTarget ? TradeDirection.NpcBuysFromPlayer
+          : npcClanHoldsTarget ? TradeDirection.NpcSellsToPlayer
+          : TradeDirection.NoTrade;
+
       /// <summary>TUNE: no captive ever trades for less than this, whatever the ransom model says.</summary>
       public const int MinPrice = 50;
 

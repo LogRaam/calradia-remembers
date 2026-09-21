@@ -99,5 +99,45 @@ namespace CalradiaRemembers.Tests
         {
             PrisonerTradePolicy.MinAcceptablePayment(ransomAnchor: 0).Should().Be(200);
         }
-    }
+    
+      #region which way the trade actually runs (Lordfadooboo, 21/09/2026)
+
+      // THE REPORT: he tried to BUY a Nord lord from a Khuzait one. The model heard the player's word "buy" and
+      // emitted buy_prisoner, which is the mirror verb (the NPC buying FROM the player), so the bridge answered
+      // "you hold no such captive to sell" while his gold had already gone. Both verbs were taught and each spec
+      // already names the other as its anti-pattern: teaching harder was not going to settle it. Custody does.
+      [Test]
+      public void GIVEN_the_captive_stands_in_the_npcs_own_cage_WHEN_reading_the_trade_THEN_the_npc_can_only_be_selling()
+      {
+         PrisonerTradePolicy.DirectionFor(playerHoldsTarget: false, npcClanHoldsTarget: true)
+                            .Should().Be(PrisonerTradePolicy.TradeDirection.NpcSellsToPlayer);
+      }
+
+      [Test]
+      public void GIVEN_the_player_holds_the_captive_WHEN_reading_the_trade_THEN_the_npc_can_only_be_buying()
+      {
+         PrisonerTradePolicy.DirectionFor(playerHoldsTarget: true, npcClanHoldsTarget: false)
+                            .Should().Be(PrisonerTradePolicy.TradeDirection.NpcBuysFromPlayer);
+      }
+
+      // A NAME NEITHER SIDE HOLDS is a hallucinated captive, and must stay a refusal: redirecting it would
+      // invent a trade out of nothing, which is worse than the bug being fixed.
+      [Test]
+      public void GIVEN_nobody_here_holds_that_captive_WHEN_reading_the_trade_THEN_there_is_no_trade_to_run()
+      {
+         PrisonerTradePolicy.DirectionFor(playerHoldsTarget: false, npcClanHoldsTarget: false)
+                            .Should().Be(PrisonerTradePolicy.TradeDirection.NoTrade);
+      }
+
+      // The player's own captive wins when both look true (a stale read on the other side): the player's party
+      // roster is the one custody fact the mod reads directly rather than inferring.
+      [Test]
+      public void GIVEN_both_sides_appear_to_hold_them_WHEN_reading_the_trade_THEN_the_players_own_roster_decides()
+      {
+         PrisonerTradePolicy.DirectionFor(playerHoldsTarget: true, npcClanHoldsTarget: true)
+                            .Should().Be(PrisonerTradePolicy.TradeDirection.NpcBuysFromPlayer);
+      }
+
+      #endregion
+}
 }
