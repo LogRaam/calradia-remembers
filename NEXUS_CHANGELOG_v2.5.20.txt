@@ -1,6 +1,12 @@
 Version 2.5.20
 
-Two fixes you can feel, one of them a conversation that has quietly been impossible since July, plus groundwork that does not change the game but should make the next months of fixes faster and safer.
+Four changes you can feel, one of them a conversation that has quietly been impossible since July, plus groundwork that does not change the game but should make the next months of fixes faster and safer.
+
+New
+
+- The conversation you stepped out of is still there when you come back. Roleplaying takes longer than a battle, and a negotiation often outlasts a sitting: you closed the chat, saved, quit, and on reload the character remembered talking to you but not a word of what was said, so the bargain started from the beginning. Reopen the chat with the same person on the same day and the exchange comes back, both on screen and in what the character knows, so you carry on from the last thing said. Open a chat with somebody else first and it is gone, because that conversation is over. Only the last one is kept, and only for that day.
+
+- You can duel in a castle. Lords are met in castles more often than anywhere else, and a courtyard is as good a place to cross blades as a town square. The duel was offered there and then quietly refused: you agreed to fight and nothing happened. It works now.
 
 Fixed
 
@@ -18,4 +24,4 @@ For modders
 
 Notes
 
-- Nothing here changes your save format and nothing needs a new game.
+- Your existing saves load exactly as they are and nothing needs a new game. Saving now also keeps the words of your last conversation, which an older version of the mod would simply ignore.

@@ -1,11 +1,33 @@
-# Changelog.. Calradia Remembers
+﻿# Changelog.. Calradia Remembers
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.5.20.. 2026-09-21
 
-Two player-facing fixes, one of them a verb that has been unreachable since July, and a day of work on the thing
-underneath: views of the system, generated from its own source, that a test keeps honest.
+Four player-facing changes, one of them a verb that has been unreachable since July and another a conversation
+that survives a break, plus a day of work on the thing underneath: views of the system, generated from its own
+source, that a test keeps honest.
+
+### Added
+- **A conversation you stepped out of is still there when you come back** (fkasad, 20/09/2026: "I quit the chat,
+  save and close the game and live my life. Then come back and reload... He remembers talking to me but most of
+  what we said is gone. I need to restart the negociation from the begining"). Roleplay outlasts a play session,
+  and CR kept the SUMMARY of a conversation and dropped its words, which is right for one that ended and wrong
+  for one that was merely interrupted. The last conversation now rides in the save (`CR_ConversationResume`,
+  additive, tolerant): reopen with the SAME person on the SAME day and the exchange comes back, in the bubbles
+  and in what the character knows, because the transcript IS the prompt (`ComposeSessionFor` rebuilds each
+  session from it before every call, so one stored fact restores both). Opening any chat consumes it, which is
+  the report's own rule and makes "he has not talked to anyone else since" need no bookkeeping. One afternoon
+  stays one memory: the resumed sitting inherits the event the first close wrote rather than adding a second,
+  and the summary queue now lets a fuller account replace a shorter one still pending for the same anchor.
+- **A duel can be fought in a castle.** `DuelEligibilityResolver` stopped demanding `IsTown` on 10/09/2026 on
+  FloatingMammal's report that castles never offered the duel; `TownDuelBehavior.Arm` kept demanding it and was
+  never reconciled, so in a castle the duel was offered, armed, and then silently refused. The game's own data
+  settles it: `castle_complex` owns a `center` location, the Castle Courtyard. A village answers to
+  `village_center`, so the existing "has a duelling ground" test already excluded everything with nowhere to
+  fight, and the kind test was redundant as well as wrong. The diagnostic commands were measuring their own
+  construction (`cr.duel_arm` mimicked the venue choice with an `IsTown` test of its own and so could never have
+  found this); both now go through the real path, and the success log names the ground.
 
 ### Fixed
 - **`grudge_terms` could never be emitted.** The verb had a class, a teaching, a registry entry and a `cr.testall`
