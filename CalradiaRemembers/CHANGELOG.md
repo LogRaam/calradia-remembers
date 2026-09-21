@@ -29,6 +29,22 @@ model could not see it when it mattered.
   `AppendNoAppointments`, always on: never fix a place and a time, offer what exists instead, and never reproach
   the player for a missed meeting whoever seemed to arrange it. That second half outlives the guardrail, since
   the promises already in saves keep surfacing. A real rendezvous is scoped in `ROADMAP.md`.
+- **Buying a prisoner ran the trade backwards** (Lordfadooboo, 21/09/2026: "he states his price and agrees to
+  the transfer... but then i get a CR message that says 'you hold no such captive to sell' but im not selling a
+  captive, im buying one. and then the transaction gets blocked even though my money is already taken"). The
+  model heard the player say "buy" and emitted `buy_prisoner`, the mirror verb (the NPC buying FROM the
+  player). Both verbs were taught and each spec already names the other as its anti-pattern, so teaching harder
+  was not the answer. Custody is: `PrisonerTradePolicy.DirectionFor` reads WHO HOLDS the named captive, and
+  either verb given the other side's captive now runs the trade that actually exists. A name neither side holds
+  stays a refusal, since redirecting that would invent a trade. Both teachings also forbid a separate
+  `give_gold`/`take_gold`, which is how his purse emptied with nothing to show for it.
+- **For modders: `{{variable}}` providers were being called off the main thread** (tashmetu, 21/09/2026, who
+  asked before it bit him: his `{{bc_player}}` reads `Hero.MainHero` and `Campaign.Current` live). The mod calls
+  `ChatAsync` inside a `Task.Run` and the prompt is built at the top of it, so a provider ran on a thread-pool
+  thread while the simulation ran. Both context builders (conversation and letter) now resolve every registered
+  variable first, on the game's own thread, and pass the values in through
+  `EncounterContext.ExternalPromptVariables`; with those set the builder calls no provider at all.
+  `PromptVariableRegistry.Compose` is public so any host can do the same. No bridge needs to change.
 - **A rescue the player CHOSE was not counted as a rescue** (Lordfadooboo: he hunted the deserter band holding
   Lady Mesui, the vanilla thank-you encounter fired, and she later had "no knowledge of ever being held
   prisoner, being rescued, or even knowing who i was"). The ledger listened for one of the engine's seven
