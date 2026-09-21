@@ -9,6 +9,12 @@ the test FAILS when the committed copy no longer matches the code. That failing 
 have been: this mod cannot be built on a CI server (it needs the game's DLLs), but the suite runs on every change and
 nothing is committed until it is green.
 
+**Explaining the method to someone outside this project?** There is a write-up of the approach itself (the
+problem it answers, the trigger, what it does not solve, and how to start) at
+https://claude.ai/code/artifact/77578734-d506-4fee-8b87-f715be8dc307 . It is written for colleagues working
+with AI on other code bases, and it is a shareable page rather than a file in this repo, so it carries no
+project internals.
+
 ## What to read, and when
 
 | Map | Read it to answer |
