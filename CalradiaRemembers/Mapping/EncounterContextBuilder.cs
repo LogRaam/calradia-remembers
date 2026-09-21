@@ -40,6 +40,7 @@ using CalradiaRemembers.Stance;
 using CalradiaRemembers.Verbs;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Knowledge;
+using NpcMemoryService.Core.Extension;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using TaleWorlds.CampaignSystem;
@@ -582,6 +583,11 @@ namespace CalradiaRemembers.Mapping
             // Set AFTER the line above on purpose: resolving the reason is what records the seeker, so on the
             // first turn this reads the fact that call just wrote, and on every later turn it reads it again.
             NpcSoughtThePlayer = InterceptionBehavior.Instance?.SoughtThePlayerThisConversation(hero) ?? false,
+            // Resolved HERE, on the game's own thread, rather than inside the prompt builder: the chat call runs
+            // the builder inside a Task.Run, and a third-party {{variable}} provider that reads Hero.MainHero or
+            // Campaign.Current live (tashmetu's bridge does, on purpose) must never be handed a thread-pool
+            // thread while the simulation runs. Context building is always on the main thread.
+            ExternalPromptVariables = ResolveExternalPromptVariables(hero, profile),
             // C5 feedback loop: consumed on read like InterceptionReason, so only pull it on a real LLM turn,
             // never on the dead open-time build (which would swallow the nudge before the model ever sees it).
             LlmFormatFeedbackNote = resolveInterception
@@ -1722,6 +1728,28 @@ namespace CalradiaRemembers.Mapping
             return string.Join("\n", lines);
          }
          catch { return null; }
+      }
+
+      /// <summary>
+      ///   Every third-party <c>{{variable}}</c>, resolved now, on this thread. Never throws: a bridge whose
+      ///   provider fails must cost the conversation nothing (the registry already guards each provider, so this
+      ///   is the belt to its braces), and an empty map simply means no bridge registered anything.
+      /// </summary>
+      private static IReadOnlyDictionary<string, string> ResolveExternalPromptVariables(Hero hero, NpcProfile profile)
+      {
+         try
+         {
+            return PromptVariableRegistry.Compose(new PromptVarFacts {
+               NpcId = profile?.Id ?? hero?.StringId ?? "",
+               RelationToPlayer = profile?.ReputationWithPlayer ?? 0
+            });
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[PROMPTVAR] resolving third-party variables failed: {ex.GetType().Name}: {ex.Message}");
+
+            return new Dictionary<string, string>();
+         }
       }
 
       /// <summary>
@@ -3346,7 +3374,10 @@ namespace CalradiaRemembers.Mapping
 
             return new EncounterContext {
                PlayerStatus = ResolvePlayerStatus(hero, profile, bridge),
-               SharedRealmName = bridge.GetSharedRealmName(hero)
+               SharedRealmName = bridge.GetSharedRealmName(hero),
+               // Letters take the same Task.Run path as a conversation, so a third-party variable provider must
+               // be resolved here, on this thread, exactly as in Build (tashmetu, 21/09/2026).
+               ExternalPromptVariables = ResolveExternalPromptVariables(hero, profile)
             };
          }
          catch (Exception ex)
