@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 21/09/2026.
+﻿// Code written by Gabriel Mailhot, 21/09/2026.
 // What these pin: that the scripts a human runs still say the same words the code listens for.
 //
 // Gabriel, 21/09/2026: "un framework de test unitaire n'est qu'un runner.. tu pourrais lancer dotnet test ou le script
@@ -14,6 +14,7 @@
 
 #region
 
+using System.Reflection;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -83,15 +84,13 @@ namespace CalradiaRemembers.Tests.Maps
 
          string config = File.ReadAllText(path);
 
-         List<string> missing = typeof(ScriptsStayInStepTests).Assembly
-                                                              .GetTypes()
-                                                              .Where(t => t.Namespace == typeof(MapsAreCurrentTests).Namespace)
-                                                              .SelectMany(t => t.GetMethods())
-                                                              .Where(m => m.GetCustomAttributes(typeof(TestAttribute), false).Length > 0)
-                                                              .Select(m => $"{m.DeclaringType!.FullName}.{m.Name}")
-                                                              .Where(name => !config.Contains(name))
-                                                              .OrderBy(name => name, StringComparer.Ordinal)
-                                                              .ToList();
+         List<string> missing = MapFixtures()
+                               .SelectMany(t => t.GetMethods())
+                               .Where(m => m.GetCustomAttributes(typeof(TestAttribute), false).Length > 0)
+                               .Select(m => $"{m.DeclaringType!.FullName}.{m.Name}")
+                               .Where(name => !config.Contains(name))
+                               .OrderBy(name => name, StringComparer.Ordinal)
+                               .ToList();
 
          missing.Should().BeEmpty("these map tests would run under NCrunch, which cannot see the repository they "
                                 + "compare against, and would fail there for no reason: "
@@ -99,6 +98,23 @@ namespace CalradiaRemembers.Tests.Maps
       }
 
       #region private
+
+      /// <summary>
+      ///   Every fixture in the Maps namespace, read WITHOUT letting a partial assembly bring the test down.
+      ///   <c>Assembly.GetTypes()</c> throws <see cref="ReflectionTypeLoadException" /> when any single type in
+      ///   the assembly cannot be loaded, and under a runner working from a workspace copy that is an ordinary
+      ///   state rather than a bug: a type whose base class lives in an assembly the workspace does not carry
+      ///   fails to load, and the whole scan dies with it, in milliseconds, for a reason that has nothing to do
+      ///   with what is being asserted. The exception carries the types it DID load, which is what this reads.
+      /// </summary>
+      private static IEnumerable<Type> MapFixtures()
+      {
+         Type[] loaded;
+         try { loaded = typeof(ScriptsStayInStepTests).Assembly.GetTypes(); }
+         catch (ReflectionTypeLoadException ex) { loaded = ex.Types; }
+
+         return loaded.Where(t => t != null && t.Namespace == typeof(MapsAreCurrentTests).Namespace);
+      }
 
       private static string Script(string repoRelativePath)
       {
