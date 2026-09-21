@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 14/07/2026.
+﻿// Code written by Gabriel Mailhot, 14/07/2026.
 
 #region
 
@@ -201,16 +201,15 @@ namespace CalradiaRemembers
 
          if (opponent == null) return "No living lord found to duel.";
 
-         // Resolved from where the player stands, so the command exercises the SAME venue choice the chat does
-         // rather than a hard-coded one (a town-only bug would otherwise never show up here).
-         DuelVenue venue = Settlement.CurrentSettlement is {IsTown: true}
-            ? DuelVenue.TownGates
-            : Settlement.CurrentSettlement != null
-               ? DuelVenue.NotNow
-               : DuelVenue.Wilderness;
+         // Resolved BY THE REAL RESOLVER, which is the whole point of the command: it must exercise the same
+         // venue choice the chat does, or a bug in that choice can never show up here. It used to mimic it
+         // with its own IsTown test instead, and so could not have found the castle case (offered by the
+         // resolver since 10/09/2026, refused by the staging until 21/09/2026) however often it was run. This
+         // is the "a guard that measures its own construction" failure, in a diagnostic command.
+         DuelVenue venue = DuelEligibilityResolver.VenueForPlayerNow();
 
          if (!DuelStagingSupport.CanStage(venue))
-            return "No duel can be staged where you stand (a village or castle has no scene for it; leave to the open map or enter a town).";
+            return "No duel can be staged where you stand (at sea there is no ground to fight on; come ashore).";
 
          DuelCoordinator.Arm(opponent, DuelReason.HonourAffront, venue, npcIssuedChallenge, 0, null);
 
@@ -221,9 +220,9 @@ namespace CalradiaRemembers
 
       /// <summary>
       ///   cr.duel_town [name]
-      ///   Stages the TOWN duel directly, bypassing <see cref="DuelCoordinator" /> entirely: stand inside a town
-      ///   (on the town menu, not in a scene) and this opens the town-centre scene, injects the named lord among
-      ///   the crowd, and starts the non-lethal duel. Use it to isolate the SCENE staging (does he spawn, does
+      ///   Stages the SETTLEMENT duel directly, bypassing <see cref="DuelCoordinator" /> entirely: stand inside a
+      ///   town or a castle (on its menu, not in a scene) and this opens the centre scene (a town square or a
+      ///   castle courtyard), injects the named lord among the crowd, and starts the non-lethal duel. Use it to isolate the SCENE staging (does he spawn, does
       ///   the fight start, does the knockout return you to the town) from the deferral and the inquiry, which
       ///   cr.duel_arm covers. Watch the log for the "[DUEL] injected" and "[DUEL] town duel started" lines.
       /// </summary>
@@ -232,8 +231,11 @@ namespace CalradiaRemembers
       {
          if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
 
-         if (Settlement.CurrentSettlement is not {IsTown: true})
-            return "You must be inside a TOWN (a village or castle has no town-centre scene to duel in).";
+         // No kind test of its own: TownDuelBehavior.Arm asks the real questions (inside, and a "center"
+         // location to open) and says which one failed. A castle courtyard IS such a location, which this
+         // command denied for two months on a claim the game's own data contradicts.
+         if (Settlement.CurrentSettlement == null)
+            return "You must be inside a town or a castle (stand on its menu, not in a scene).";
 
          Hero opponent = ResolveHero(args)
                       ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.IsAlive && !h.IsPrisoner);

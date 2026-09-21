@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 10/07/2026.
+﻿// Code written by Gabriel Mailhot, 10/07/2026.
 
 #region
 
@@ -226,6 +226,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("fief_audience", Severity.Light, "Player wish (Fakade, roadmap): road-only InterceptionBehavior needs a field party to move, so anyone without one (ladies, notables, a garrisoned lord standing around in a fief) never got a turn. Finds a real partyless hero standing in a live settlement; asserts the pure gate (FiefAudiencePolicy.ChooseFiefValid) raises nothing for a no-reason fact set; seeds a fresh, high-reach, player-involving WorldEvent so the SAME live fact HeardRecentPlayerDeed the road path reads is real, not fabricated; drives the REAL candidate scan (FiefAudienceBehavior.DebugScanAndStamp, never the live UI inquiry, never an LLM call) and asserts it offers that NPC with a fief-valid trigger; then asserts the SAME NPC asked again is WITHHELD by the per-NPC cooldown the offer itself just stamped. Removes the seeded WorldEvent and clears the stamped cooldown afterwards", TestFiefAudience),
          new SelfTest("interception_grudge_appreciation", Severity.Light, "Two new proactive channels for the mod's two signature event-anchored affect ledgers (design brief 2026-08-20): a lord who holds a live, significant grudge against the PLAYER rides out/asks for a word to air it (Grudge), and one who holds a significant, recent appreciation of the player does likewise to acknowledge it (AppreciationOwed), on BOTH the road (InterceptionBehavior) and the fief-audience channel (FiefAudienceBehavior), since both reuse the SAME InterceptionPolicy.Choose. Seeds a real Grudge (TryPlant) on a clean-slate lord and asserts InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer finds it (false before planting), the pure InterceptionPolicy.Choose surfaces Grudge, and Grudge is fief-valid; does the same for a real Appreciation and AppreciationOwed; then asserts the priority pin (Grudge outranks AppreciationOwed when both hold on the same facts, mirroring InterceptionPolicyTests). Removes the seeded grudge afterwards (mirrors appreciation_flow/companion_gratitude: no removal API exists for an appreciation, so it is left, exactly like every other appreciation-seeding self-test)", TestInterceptionGrudgeAppreciation),
          new SelfTest("grudge_answered", Severity.Light, "Player report (Zivkyn, 18/09/2026): a lord kept asking why the player killed his kin, months later, however often it had been explained, and kept riding out to confront the player about it. Plants a real grudge against the player on a clean-slate lord and makes it a VENDETTA, asserts it drives an interception and hear_account is offered, then runs hear_account through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes) and asserts: the grudge is answered with the account, still a vendetta and exactly as heavy, the lord's built GrudgeNote now carries the account and the do-not-ask-again instruction, the interception no longer fires, and hear_account is no longer offered. No LLM call. Clears the lord's grudges afterwards", TestGrudgeAnswered),
+         new SelfTest("duel_venue_here", Severity.Light, "Player reports (FloatingMammal 10/09/2026, yozakura12 17, 18 and 20/09/2026): the duel was offered in places it could not be staged, and staged in places the engine could not open. Reports where the player is standing RIGHT NOW (settlement, town or castle, inside the walls or merely on it, and whether it owns the 'center' location a duel opens) and asserts the two halves agree: that a town or a castle really does own a duelling ground in THIS install, and that the venue the resolver chooses is the one the staging would accept. Skips on the open map, so walk into a castle and run it there. No duel is armed and no scene is opened", TestDuelVenueHere),
          new SelfTest("conversation_resume", Severity.Light, "Player report (fkasad, 20/09/2026): roleplay takes longer than a battle, so he quits mid-negotiation, saves, closes the game, comes back, and the lord remembers TALKING to him but not a word of what was said, so the bargain starts over. Drives the REAL store the chat uses (NpcMemoryCampaignBehavior.ConvResume): keeps a built transcript against a real lord, then asserts it comes back whole for the same lord on the same day with its memory anchor, that the SAME open cannot take it twice, and that it is refused and DISCARDED for another lord, another day, or a staged scene, which is the report's own 'deleted as soon as you open a new chat' rule. No LLM call, no window opened. Forgets whatever it kept afterwards", TestConversationResume),
          new SelfTest("approach_framing", Severity.Light, "Player report (Fakade, 19/09/2026, local model): a lord rode out to him, then from the next turn spoke as though the player had come to HIM. The opening directive is consumed on read, so who sought whom was in the prompt once and never again. Stashes a real fief-audience reason on a lord, builds the encounter context twice through the REAL builder, and asserts the directive fires on the first build and is spent on the second while NpcSoughtThePlayer stays true on both; then asserts opening a new conversation (ForgetConversationSeeker) clears it. Leaves no pursuit behind", TestApproachFraming),
          new SelfTest("realm_departure", Severity.Light, "Player report (tashmetu, 19/09/2026): expelled from his kingdom by another mod after a lost war, he kept getting letters as if he still belonged. Records a departure from a real kingdom the way the kingdom-change feeder now marks every one, and asserts WorldEventFeeders.DaysSincePlayerLeft finds it and silences that ruler's service offer (ServiceOfferPolicy.RulerMayWrite), then removes it and asserts the ruler may write again. Also asserts the service-offer premise follows the player's LIVE realm. No LLM call, mutates nothing it does not remove", TestRealmDeparture),
@@ -12174,6 +12175,51 @@ namespace CalradiaRemembers.Diagnostics
          string premise = ServiceOfferPolicy.Premise(realm.Name.ToString(), playerRealm);
          t.Note($"player realm={playerRealm ?? "(none)"}; premise={premise}");
          t.Expect("thePremiseFollowsTheLiveRealm", playerRealm == null ? premise.Contains("serves no realm") : premise.Contains(playerRealm), true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Where a duel would be fought from where the player is standing, and whether the two halves of that
+      ///   decision agree. The pure half (DuelStagingSupportTests) pins the rule; what only a live game can
+      ///   answer is whether THIS install's castle really owns the "center" location the rule assumes, which is
+      ///   a claim read off SandBox/ModuleData/location_complex_templates.xml and never yet walked.
+      ///   <para>
+      ///     It reports rather than merely passing, because three crash reports in four days all turned on a
+      ///     fact nobody had written down: where the player actually was.
+      ///   </para>
+      /// </summary>
+      private static string TestDuelVenueHere(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("duel_venue_here");
+
+         Settlement here = Settlement.CurrentSettlement;
+         if (t.Skip(here == null, "on the open map; walk into a town or a castle and run this there")) return t.Line();
+
+         bool inside = TaleWorlds.CampaignSystem.Encounters.PlayerEncounter.InsideSettlement;
+         bool hasGround = here.LocationComplex?.GetLocationWithId("center") != null;
+         bool atSea = MobileParty.MainParty?.IsCurrentlyAtSea ?? false;
+         DuelVenue venue = DuelEligibilityResolver.VenueForPlayerNow();
+
+         t.Note($"{here.Name}: town={here.IsTown}, castle={here.IsCastle}, village={here.IsVillage}, "
+              + $"inside={inside}, duellingGround={hasGround}, atSea={atSea}, venue={venue}");
+
+         // THE CLAIM THAT WIDENED THE FEATURE, checked against the running engine rather than against a data
+         // file I read. If a castle in this install owns no "center", the castle duel must go back to the open
+         // field, and this is what would say so.
+         if (here.IsTown || here.IsCastle)
+            t.Expect("aTownOrCastleOwnsADuellingGround", hasGround, true);
+
+         if (here.IsVillage)
+            t.Expect("aVillageDoesNot", hasGround, false);
+
+         // AND THE TWO HALVES AGREE. Offered where it cannot be staged is FloatingMammal's report inverted,
+         // and staged where it cannot be opened is yozakura12's.
+         t.Expect("theVenueMatchesWhatTheStagingWouldAccept",
+            venue == DuelVenue.TownGates,
+            !atSea && DuelStagingSupport.CanHoldATownDuel(inside, hasGround));
+
+         t.Expect("andThatVenueHasABuiltMission", DuelStagingSupport.CanStage(venue), !atSea);
 
          return t.Line();
       }

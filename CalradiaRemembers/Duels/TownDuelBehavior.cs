@@ -1,7 +1,7 @@
-// Code written by Gabriel Mailhot, 22/07/2026.
-// Duels pillar: staging a duel INSIDE a town. This matters more than it sounds, because most conversations in
-// this mod happen in a settlement, and until now the duel verb was only ever taught on the open map (see
-// DuelStagingSupport), so most players would never meet the feature at all.
+﻿// Code written by Gabriel Mailhot, 22/07/2026.
+// Duels pillar: staging a duel INSIDE a settlement, a town square or a castle courtyard. This matters more than
+// it sounds, because most conversations in this mod happen in a settlement, and until now the duel verb was only
+// ever taught on the open map (see DuelStagingSupport), so most players would never meet the feature at all.
 // There is no second scene to invent: the town-centre street ambush already solved this exact problem, and its
 // recipe is proven in game (TownAmbushBehavior). This is that recipe with one consented opponent instead of a
 // gang, and non-lethality on top:
@@ -18,6 +18,7 @@
 
 using System;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Duels;
 using SandBox;
 using SandBox.Missions.AgentBehaviors;
 using TaleWorlds.CampaignSystem;
@@ -46,8 +47,9 @@ namespace CalradiaRemembers.Duels
       public static Agent OpponentAgent { get; private set; }
 
       /// <summary>
-      ///   Arms a town duel against <paramref name="opponent" /> and opens the town centre. Must be called with
-      ///   the player inside a TOWN and no mission running. Returns a human line for the caller; the fight
+      ///   Arms a settlement duel against <paramref name="opponent" /> and opens its centre: a town square or
+      ///   a castle courtyard, both of which the game calls the "center" location. Must be called with the player
+      ///   INSIDE that settlement and no mission running. Returns a human line for the caller; the fight
       ///   itself is attached later, from the Mission.AfterStart postfix. On any failure the pending state is
       ///   cleared, so a botched launch cannot leave a duel armed against the next mission the player opens.
       /// </summary>
@@ -62,30 +64,43 @@ namespace CalradiaRemembers.Duels
          // The callers now resolve the WILDERNESS venue for that case, so arriving here at all means something
          // upstream disagreed, and the honest answer is to say so rather than hand the engine a state it does
          // not support.
-         if (Settlement.CurrentSettlement is not {IsTown: true} || !PlayerEncounter.InsideSettlement)
+         //
+         // WHAT IS NO LONGER ASKED IS THE SETTLEMENT'S KIND. This line also demanded IsTown, and was the only
+         // place that did: DuelEligibilityResolver stopped asking on 10/09/2026 (FloatingMammal reported that
+         // castles never offered the duel at all, and a castle courtyard is as good a place to fight as a town
+         // square). The two halves were never reconciled, so in a castle the duel was OFFERED, armed, and then
+         // refused here, and the player watched nothing happen. The game's own data settles which half was
+         // right: SandBox/ModuleData/location_complex_templates.xml gives castle_complex a location with id
+         // "center", the Castle Courtyard (scene aserai_castle_002). A village's is "village_center" and a
+         // hideout's is "hideout_center", so the centre test below already excludes everything that has no
+         // ground to fight on, and the kind test was both redundant and wrong. Gabriel ratified the castle on
+         // 21/09/2026 and will walk it in game.
+         if (Settlement.CurrentSettlement == null || !PlayerEncounter.InsideSettlement)
          {
-            ModLog.Error("[DUEL] refused a town duel from outside the walls (settlement="
+            ModLog.Error("[DUEL] refused a settlement duel from outside the walls (settlement="
                        + (Settlement.CurrentSettlement?.Name?.ToString() ?? "none")
                        + ", inside=" + PlayerEncounter.InsideSettlement
                        + "); the open field is the venue for this.");
 
-            return "A town duel needs the player to be inside a town.";
+            return "A settlement duel needs the player to be inside a town or a castle.";
          }
          if (Mission.Current != null) return "A mission is already running.";
 
          // THE SCENE HAS TO EXIST BEFORE THE ENGINE IS ASKED TO LOAD IT. GetLocationWithId returns null for a
-         // settlement whose complex carries no "center", which a modded or total-conversion town may well not
-         // — and a null went straight into CreateAndOpenMissionController, where the engine crashed loading
-         // the scene rather than refusing it (player report, 17/09/2026). A missing venue is a thing to say,
-         // not a thing to hand to the engine.
+         // settlement whose complex carries no "center", which a village, a hideout, and a modded or
+         // total-conversion town may well not have, and a null went straight into
+         // CreateAndOpenMissionController, where the engine crashed loading the scene rather than refusing it
+         // (player report, 17/09/2026). A missing venue is a thing to say, not a thing to hand to the engine.
          //
          // The same test DuelEligibilityResolver uses to decide whether to OFFER the duel at all, which is the
-         // point: it was already right, and this path was asking a different question.
+         // point: it was already right, and this path was asking a different question. Now both ask this one,
+         // through the same pure rule, so a settlement that is offered a duel is a settlement that can hold it.
          Location centre = LocationComplex.Current?.GetLocationWithId("center");
 
-         if (centre == null || PlayerEncounter.LocationEncounter == null)
+         if (!DuelStagingSupport.CanHoldATownDuel(PlayerEncounter.InsideSettlement, centre != null)
+          || PlayerEncounter.LocationEncounter == null)
          {
-            ModLog.Error($"[DUEL] {Settlement.CurrentSettlement?.Name} has no town centre to fight in "
+            ModLog.Error($"[DUEL] {Settlement.CurrentSettlement?.Name} has no duelling ground to fight in "
                        + $"(centre={centre != null}, encounter={PlayerEncounter.LocationEncounter != null}); refused.");
 
             return $"There is nowhere in {Settlement.CurrentSettlement?.Name} to hold a duel.";
@@ -97,8 +112,15 @@ namespace CalradiaRemembers.Duels
             _pendingOnDuelEnd = onDuelEnd;
             OpponentAgent = null;
 
+            // NAMES THE GROUND, because the one thing three crash reports never told us is WHERE the player
+            // was standing. yozakura12's log (20/09/2026) said only "opening the town centre", and the whole
+            // triage then turned on guessing whether his "fortress" was a town or a castle. The next report
+            // will say it.
+            Settlement here = Settlement.CurrentSettlement;
+            ModLog.Info($"[DUEL] settlement duel armed against {opponent.Name}; opening {here?.Name}'s "
+                      + $"'{centre.StringId}' (town={here?.IsTown}, castle={here?.IsCastle}).");
+
             PlayerEncounter.LocationEncounter.CreateAndOpenMissionController(centre);
-            ModLog.Info($"[DUEL] town duel armed against {opponent.Name}; opening the town centre.");
 
             return $"You step out to meet {opponent.Name}. The loser is knocked out, not killed.";
          }

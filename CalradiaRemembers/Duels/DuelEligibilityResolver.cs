@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 22/07/2026.
+﻿// Code written by Gabriel Mailhot, 22/07/2026.
 // ONE resolver, TWO callers, so they can never quietly diverge: EncounterContextBuilder asks it at PROMPT time
 // (whether to teach the challenge_duel verb this turn) and the chat action handler asks it again at COMMIT time,
 // right before it actually opens the duel mission. "The prompt is advice, the bridge is law": the context is
@@ -44,8 +44,6 @@ namespace CalradiaRemembers.Duels
             Hero player = Hero.MainHero;
             if (npc == null || profile == null || player == null) return false;
 
-            Settlement here = Settlement.CurrentSettlement;
-            bool atSea = MobileParty.MainParty?.IsCurrentlyAtSea ?? false;
             // THE SAME QUESTION THE COORDINATOR ASKS, asked here in the same words. It used to be asked twice
             // and differently: this line passed "is there a settlement at all" and then narrowed to NotNow,
             // while DuelCoordinator passed "does the settlement own a centre" and narrowed to nothing. So on
@@ -54,7 +52,8 @@ namespace CalradiaRemembers.Duels
             //
             // The narrowing goes with it: standing outside the walls is not a reason to refuse a duel, it is
             // a reason to fight in the open field, which is what Choose already answers.
-            venue = DuelVenuePolicy.Choose(atSea, PlayerCanFightADuelHere(here));
+            // Composed in ONE place (VenueForPlayerNow), so nothing can compose it slightly differently again.
+            venue = VenueForPlayerNow();
 
             var ctx = new DuelChallengeContext {
                Challenger = DuelChallenger.Player,
@@ -146,6 +145,24 @@ namespace CalradiaRemembers.Duels
                here?.LocationComplex?.GetLocationWithId("center") != null);
          }
          catch { return false; }
+      }
+
+      /// <summary>
+      ///   The venue a duel armed RIGHT NOW would be fought at, composed exactly as <c>CanDuelNow</c> composes
+      ///   it. It exists so the diagnostic commands stop mimicking that composition with a test of their own:
+      ///   <c>cr.duel_arm</c> used to read <c>IsTown</c> and could therefore never reproduce the castle case,
+      ///   which is the "a guard that measures its own construction" failure in a tool whose entire job is to
+      ///   reproduce. Anything that wants to know where a duel would happen asks here.
+      /// </summary>
+      public static DuelVenue VenueForPlayerNow()
+      {
+         try
+         {
+            return DuelVenuePolicy.Choose(
+               MobileParty.MainParty?.IsCurrentlyAtSea ?? false,
+               PlayerCanFightADuelHere(Settlement.CurrentSettlement));
+         }
+         catch { return DuelVenue.Wilderness; }
       }
 
       public static string VenueLabel(DuelVenue venue)

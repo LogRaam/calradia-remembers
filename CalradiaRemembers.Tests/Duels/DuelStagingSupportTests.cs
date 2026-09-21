@@ -76,6 +76,34 @@ namespace CalradiaRemembers.Tests.Duels
          DuelStagingSupport.CanHoldATownDuel(true, false).Should().BeFalse();
       }
 
+      // A CASTLE COURTYARD IS A DUELLING GROUND, and this rule has always said so: it asks whether there is
+      // ground to fight on, never what KIND of settlement owns it. The staging path disagreed for two months.
+      // DuelEligibilityResolver stopped demanding IsTown on 10/09/2026, on FloatingMammal's report that
+      // castles never offered the duel at all ("none of the lords I 'challenged' to a duel went anywhere other
+      // than a dialogue driven event"), but TownDuelBehavior.Arm kept demanding it, so in a castle the duel
+      // was offered, armed, and then silently refused. The game's own data settles it: castle_complex in
+      // SandBox/ModuleData/location_complex_templates.xml owns a location with id "center", the Castle
+      // Courtyard. Gabriel ratified the castle venue on 21/09/2026.
+      [Test]
+      public void GIVEN_the_player_inside_a_castle_whose_courtyard_is_its_centre_WHEN_asked_THEN_the_duel_can_be_held_there()
+      {
+         DuelStagingSupport.CanHoldATownDuel(true, true).Should()
+                           .BeTrue("a castle courtyard is as good a place to cross blades as a town square, and the "
+                                 + "engine opens it by the same location id");
+      }
+
+      // AND A VILLAGE STILL CANNOT, which is what makes dropping the settlement-kind test safe rather than
+      // merely simpler. A village's walkable location is "village_center", not "center", so asking the engine
+      // for a duelling ground already excludes it: there is no kind test left to forget to update, and no
+      // village duel opened by omission.
+      [Test]
+      public void GIVEN_a_village_whose_centre_is_not_the_one_a_duel_opens_WHEN_asked_THEN_no_duel_can_be_held_there()
+      {
+         DuelStagingSupport.CanHoldATownDuel(true, false).Should()
+                           .BeFalse("a village answers to 'village_center' and a hideout to 'hideout_center', so "
+                                  + "neither owns the ground this duel opens");
+      }
+
       // And a refusal here is never the end of the duel: the wilderness is still a venue that can be staged,
       // which is what makes routing the outside case to the open field the right answer rather than a fallback.
       [Test]
