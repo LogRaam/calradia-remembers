@@ -11,11 +11,6 @@ Fixed
 - Characters stop arranging meetings the game cannot keep. Several of you were told to be at a place at a time, went there, found nobody, and were then blamed for breaking a promise. There is no meeting system in the mod; the character was inventing one. They now offer what actually exists (ask you now, write to you, speak again when your paths cross), and they will never reproach you for a missed meeting, including the ones promised before this version.
 
 - Rescuing someone is remembered again. If you hunt down the party holding a prisoner and free them, they now remember it, and so does their family. Until now this only worked in the rarer case where the game freed the prisoner on its own; when you were the one who won the fight and chose to let them go, which is what normally happens, nothing was recorded, and the person you rescued met you later as a stranger. Freeing someone you had yourself taken prisoner is still a pardon, not a rescue, and is not counted as one.
-- Buying a prisoner from a lord works. If you agreed a price for a captive the lord holds, the trade could run backwards and be refused with "you hold no such captive to sell", after your gold had already gone. Who actually holds the captive now decides which way the trade runs, whatever wording was used, and the sale moves the coin itself so you are never charged twice.
-
-For modders
-
-- Variable providers registered through the modder API are now resolved on the game's own thread, before the prompt build is handed to a background task, and their values are passed in. If your provider reads live game state such as Hero.MainHero or Campaign.Current, it was being called from a thread-pool thread until now. Nothing in your code needs to change.
 
 Notes
 

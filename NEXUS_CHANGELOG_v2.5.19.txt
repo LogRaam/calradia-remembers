@@ -1,0 +1,17 @@
+Version 2.5.19
+
+Two fixes that missed the 2.5.18 upload by minutes. One is a player report, the other comes from a bridge-mod author who asked the right question before it caused any harm.
+
+Fixed
+
+- Buying a prisoner from a lord works. If you agreed a price for a captive the lord was holding, the trade could run the wrong way round and be refused with "you hold no such captive to sell", after your gold had already gone. The character heard you say "buy" and reached for the wrong half of the deal. Who actually holds the captive now decides which way the trade runs, whatever words were used, and the sale moves the coin itself, so you are never charged twice for one captive.
+
+For modders
+
+- Variable providers registered through the modder API now run on the game's own thread. The mod builds the prompt inside a background task, so a provider was being called from a thread-pool thread while the simulation was running. If yours reads live game state, such as the player hero or the campaign, that was unsafe even when nothing visibly broke. Both paths that build a prompt, conversation and letter, now resolve every registered variable first, on the game thread, and hand the values over; the builder then calls no provider at all. Nothing in your code needs to change.
+
+Notes
+
+- Nothing here changes your save format and nothing needs a new game.
+
+- If you already have 2.5.18, this is a small top-up, not a re-download of anything you were missing.
