@@ -69,6 +69,14 @@ keeps in one place**.
 - **The verb:** `set_rendezvous` (place, days), taught ONLY when the speaker is one of the eligible kinds and
   the place is one they are actually tied to. The teaching states the constraint, so the model proposes only
   what the game can keep, which is what the guardrail forbids everywhere else.
+- **Who names the window (RATIFIED, Gabriel 2026-09-20):** when the meeting belongs to a QUEST, the NPC names
+  it, because the quest owns its own deadline and two deadlines on one promise is one too many. A meeting
+  arranged outside a quest can be settled between them in the conversation.
+- **What a kept meeting is worth (RATIFIED, Gabriel 2026-09-20):** the scene is its own reward, no warmth
+  bonus for turning up. **But arriving must CLOSE a quest when the meeting was a step of one**, which is the
+  real work in this bullet: the arrival becomes a completion route alongside `[QUEST_COMPLETE]`, or the
+  player keeps a task in their journal that the scene already settled. Decide at build time whether the
+  arrival completes it directly or hands the NPC the chance to complete it in the scene it opens.
 - **Arrival, which is the whole payoff:** the player walks into the settlement inside the window and the
   person asks for a word. This reuses `FiefAudienceBehavior` wholesale, the channel that already stages "X
   would have a word with you" inside a fief, with the rendezvous as the trigger and its purpose as the opener.
@@ -77,9 +85,12 @@ keeps in one place**.
   reproach is earned: the NPC may raise it once, cold. It costs a little personal regard **except with a
   friend or with family**, who are disappointed and say so but think nothing worse of you. Never a grudge on
   its own (grudges are for real wrongs, and a missed meeting is not one). The two exemptions have existing
-  shapes to reuse rather than invent: family via `HouseholdKinPolicy.FamilyOf`, friendship via the mod's own
-  "a friend" tier, which sits at a relation of 10 in `SchemeBacklash` and at 20 in `RescueGratitudePolicy`,
-  so **pick one and state it in the policy's doc** rather than adding a third number.
+  shapes to reuse rather than invent: family via `HouseholdKinPolicy.FamilyOf`, friendship at a relation of
+  **10**, the mod's baseline "is this a friend at all" bar (`ThirdPartyDescriptor`, `RelationshipsBuilder`,
+  `SchemeBacklash`). The 20 seen in `DivorceProcessBehavior` and `RescueGratitudePolicy` is a different
+  question, "is this one of the CLOSEST few", used where a list has to be cut to three or five, and the
+  rescue one does not even measure the relation with the PLAYER. Asked here: is this person a friend of the
+  player's. So 10, and no third number.
 - **The NPC failing:** captured, dead, or the settlement besieged or taken. The rendezvous is BrokenByNpc, the
   NPC apologises when next met, and the player may hold it against THEM. Never silence, and never blame.
 - **Journal:** one entry, mirroring how quests are already mirrored, or the player has to remember for the
@@ -97,8 +108,7 @@ scoped in this file, which has the same "the arrival IS the scene" shape.
 
 ### Open questions for Gabriel
 
-- Who names the window, the NPC alone or the player in the exchange?
-- Is a kept meeting worth anything by itself (a little warmth), or is the scene its own reward?
+None left. The increment is ready to scope into build steps when Gabriel calls for it.
 
 ---
 
