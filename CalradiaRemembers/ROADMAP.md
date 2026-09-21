@@ -32,6 +32,72 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## SCOPED 2026-09-20 (player proposal, reframed by Gabriel), NOT BUILT: ask the village which way they went
+
+fkasad (Nexus, 20/09/2026) proposed a long, carefully structured "talk to the village elders" feature: villagers
+as human scouts who describe a passing army in vague sensory terms, filtered through their own skills and then
+through the player's, with combat and movement bonuses on top, growing into a scouting network and an ambush
+interface.
+
+**What we take, and why it is not what he proposed.** Estimating an army's composition is something vanilla
+already does better: the player hovers a trail and reads exact numbers. A villager saying "many horsemen" is
+strictly less, and hiding the vanilla readout to make room for it would punish the player for our taste in
+design. What the interface does NOT reliably give is the thing a player actually wants when they have LOST
+somebody: who passed, when, which way, and whether they were carrying captives. That changes a decision (where
+do I ride now) instead of duplicating a tooltip, and it plugs straight into the pillars we already have: a
+captured companion, a nemesis to hunt, a lord who slipped away. Gabriel, 2026-09-20: "j'aime l'idee de
+retrouver quelqu'un."
+
+### The data is real (verified against the decompiled engine, 1.4.8)
+
+`TaleWorlds.CampaignSystem.Track` carries `Position`, `Direction`, `PartyName`, `Culture`, `Speed`,
+`NumberOfAllMembers`, `NumberOfMenWithHorse` / `WithoutHorse`, `NumberOfPackAnimals`, **`NumberOfPrisoners`**,
+`CreationTime`, `Life` and `PartyType`. `MapTracksCampaignBehavior` keeps them in a private `_allTracks` list
+(a `[SaveableField]`, so they survive a save) plus a `LocatorGrid<Track>` for position queries; only
+`DetectedTracks` is public, and that is the player's own detection, not what a villager saw. So the reader
+reflects the private list (resolve BY NAME, degrade to a logged no-op, own try/catch: the same defensive shape
+as the two Harmony guards). Tracks expire on their own, which hands us the right narrative bound for free:
+a village can only speak of a recent passage.
+
+### Increment 1, the only one worth building first
+
+- **Who answers:** a village notable, and a villager in a village scene. A tavern keeper in a town is a natural
+  second step, not the first.
+- **What the player asks:** what has passed near here lately. Not "how strong were they".
+- **What the mod computes,** from the real tracks within a radius of the settlement, freshest first: who
+  (`PartyName` / `Culture` / `PartyType`), when (banded: this morning, yesterday, a few days back), **which
+  way** (the direction turned into a landmark, "toward the ford", "north, on the Amprela road", using the
+  nearest settlement in that bearing rather than a compass degree), whether they were mounted or on foot, a
+  COARSE size band, and **whether they had prisoners with them**.
+- **The degradation is the mod's job, never the model's.** A villager reports direction and timing well (that
+  is what a person on the land would know), numbers coarsely, and identities only when the banner or culture is
+  one they would recognise. The prompt receives already-degraded facts; the character voices them and invents
+  nothing. This is the rule the whole mod rests on and it is the part of fkasad's design that must NOT be
+  handed to the model, his "drunk peasant who makes up a story" included: a FALSE report is a false fact set
+  the mod builds deliberately, flagged as false, never an improvisation.
+- **Willingness:** friendly or paid talks; a neutral wants a reason (coin, food, a cleared bandit nest);
+  an enemy village refuses, or misleads. Reuses regard, gold and the existing gating verbs.
+- **The payoff is a decision, not a bonus:** the player learns where to ride. Optionally the sighting is
+  recorded as a `WorldEvent` so it can circulate and other systems can read it.
+
+### Deliberately NOT in scope
+
+- Combat, morale, speed or evasion bonuses. That is balance, not memory and speech, and it is where we collide
+  with other mods. If it is ever wanted, expose the intel through the Extension Surface and let a mechanics mod
+  consume it.
+- Hiding or replacing the vanilla track readout.
+- Army-composition estimation as a feature in its own right.
+- Party scouts, the Balance of Power analyst, and the ambush interface: fkasad's own "expanding the scope",
+  worth revisiting only once the village version is play-verified.
+
+### Open questions
+
+- Does a bribe change what they tell you, or only whether they tell you?
+- Should a sighting persist as a `WorldEvent` (so it can be gossiped about later), or stay ephemeral?
+- Village notable only, or any villager in the scene?
+
+---
+
 ## GUARDRAIL SHIPPED 2026-09-20, PILLAR SCOPED NOT BUILT: a rendezvous the game can actually keep
 
 yozakura12 (Nexus, 19/09/2026): *"During conversations, NPCs tell me when and where to meet them. However, when
