@@ -6,6 +6,8 @@
 // gate beyond recognizing the kinship: an execution is always public and always wounds a close kin,
 // there is no benign case the way CaptiveAbuse's Severity 0 is benign.
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic.Grudges
 {
     /// <summary>
@@ -70,7 +72,7 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   Tuning: at/below this prior regard for the player, the kin already disliked them, so the
         ///   killing is nursed HARDER (mirrors <see cref="Tier2GrudgeRules.DeliveredPrisonerLowRegardThreshold" />).
         /// </summary>
-        public const int LowRegardThreshold = -10;
+        public const int LowRegardThreshold = VanillaRelation.EnemyTier;
 
         /// <summary>The ceiling any proposal is clamped to, matching every other magnitude's 0..100 scale.</summary>
         public const int MaxMagnitude = 100;

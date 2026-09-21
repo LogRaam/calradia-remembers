@@ -137,7 +137,7 @@ cannot. Each one moved into a rule adds a column here.
 - `CourtActionPolicy.TroopLoanMinRelation = 20`
 - `CourtActionPolicy.TroopLoanRelationDivisor = 5`
 - `DiscretionPolicy.ConfidingRegardFloor = Standing.Regard.ConfidingTier`
-- `DivorceConsequencePolicy.LowRegardThreshold = -10`
+- `DivorceConsequencePolicy.LowRegardThreshold = VanillaRelation.EnemyTier`
 - `DivorceConsequencePolicy.SpouseGrudgeLowRegardBonus = 15`
 - `DivorceConsequencePolicy.SpouseMutualReliefRelationNudge = 5`
 - `DivorceConsequencePolicy.UnblessedFamilyGratitudeRelationNudge = 15`
@@ -149,7 +149,7 @@ cannot. Each one moved into a rule adds a column here.
 - `DivorcePolicy.MutualExSpousePlayerRelationHit = -5`
 - `DivorcePolicy.TerminatedNpcPlayerRelationHit = -5`
 - `ExecutedKinRules.LowRegardBonus = 10`
-- `ExecutedKinRules.LowRegardThreshold = -10`
+- `ExecutedKinRules.LowRegardThreshold = VanillaRelation.EnemyTier`
 - `ExpulsionPolicy.RelationHit = -30`
 - `ExternalMissionRules.MaxRewardRelation = 10`
 - `FeudRelationPolicy.SlanderRelationBonus = 2`
@@ -200,7 +200,7 @@ cannot. Each one moved into a rule adds a column here.
 - `StanceGatePolicy.RecruitRespectRelationBypass = 80`
 - `StanceGatePolicy.RespectRelationBypass = 30`
 - `Tier2GrudgeRules.DeliveredPrisonerLowRegardBonus = 10`
-- `Tier2GrudgeRules.DeliveredPrisonerLowRegardThreshold = -10`
+- `Tier2GrudgeRules.DeliveredPrisonerLowRegardThreshold = VanillaRelation.EnemyTier`
 - `ViolenceConsequencePolicy.AssaultRelationHit = -50`
 - `ViolenceConsequencePolicy.AttemptedMurderRelationHit = -100`
 - `ViolenceConsequencePolicy.RobRelationHit = -30`

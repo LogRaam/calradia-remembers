@@ -4,6 +4,8 @@
 // deltas, marriage-blessed flags) onto these DTOs. See the morning report for exactly where each rule
 // would be called from.
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic.Grudges
 {
    /// <summary>
@@ -169,7 +171,7 @@ namespace CalradiaRemembers.Logic.Grudges
       ///   Tuning: at/below this prior regard for the player, the captive already disliked them, so the betrayal is
       ///   nursed HARDER (mirrors <see cref="DivorceConsequencePolicy.LowRegardThreshold" />).
       /// </summary>
-      public const int DeliveredPrisonerLowRegardThreshold = -10;
+      public const int DeliveredPrisonerLowRegardThreshold = VanillaRelation.EnemyTier;
 
       /// <summary>
       ///   Tuning: magnitude when delivered to the captive's own foe ("you sold me to my enemy") — the heavier, headline

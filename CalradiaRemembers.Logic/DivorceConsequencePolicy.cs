@@ -9,6 +9,8 @@ using System;
 
 #endregion
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic
 {
    /// <summary>
@@ -161,7 +163,14 @@ namespace CalradiaRemembers.Logic
       ///   is nursed HARDER (a modest magnitude bump; actual rigidity is still computed downstream by
       ///   <c>GrudgePolicy.RigidityAt</c> from this same regard).
       /// </summary>
-      public const int LowRegardThreshold = -10;
+      /// <summary>
+      ///   At or below this the wronged party ALREADY counted the player an enemy, and the wound is nursed harder.
+      ///   The rung is <see cref="VanillaRelation.EnemyTier" />, shared since 21/09/2026 with
+      ///   <c>ExecutedKinRules</c> and <c>Tier2GrudgeRules</c>, which had each written the same -10 under their own
+      ///   name. The three BONUSES are deliberately NOT shared: 15 here against 10 there, and whether a betrayed
+      ///   spouse should nurse it harder than a dead kinsman's brother is a tuning question, not a duplication.
+      /// </summary>
+      public const int LowRegardThreshold = VanillaRelation.EnemyTier;
 
       /// <summary>
       ///   Tuning: the small relief nudge for a spouse who acquiesced to the divorce (mutual consent softens even the one

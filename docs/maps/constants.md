@@ -32,7 +32,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | `FallbackFrames` | `ChatSceneStager` = 60; `CouncilConversationStager` = 60 |
 | `FriendThreshold` | `RelationshipsBuilder` = VanillaRelation.FriendTier; `SchemeBacklash` = VanillaRelation.FriendTier; `ThirdPartyDescriptor` = VanillaRelation.FriendTier |
 | `HonorWeight` | `CompanionRapport` = 3; `SilenceOrderPolicy` = 2 |
-| `LowRegardThreshold` | `DivorceConsequencePolicy` = -10; `ExecutedKinRules` = -10 |
+| `LowRegardThreshold` | `DivorceConsequencePolicy` = VanillaRelation.EnemyTier; `ExecutedKinRules` = VanillaRelation.EnemyTier |
 | `Magnitude` | `SeasonalChronicleBehavior` = SeasonalTurnPolicy.Magnitude; `SeasonalTurnPolicy` = 45; `WorldClaimPolicy` = 25 |
 | `MagnitudeFloor` | `AppreciationPolicy` = 15; `GrudgePolicy` = 15 |
 | `Max` | `CompanionBaseline` = 82; `CompanionHappiness` = 100; `WarWeariness` = 100 |
@@ -1475,7 +1475,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 |---|---|---|
 | `DirectFamilyGrudgeMagnitude` | 35 | Tuning: the grudge magnitude for each qualifying immediate-family member (father, mother, siblings, children) of the repudiated spouse. |
 | `FriendGrudgeMagnitude` | 30 | Tuning: the grudge magnitude for each of the repudiated spouse's three best (living) friends. |
-| `LowRegardThreshold` | -10 | Tuning: at/below this prior regard for the player, the repudiated spouse already disliked them, so the grudge is nursed HARDER (a modest magnitude bump; actual rigidity is still computed downstream by GrudgePolicy.Rigidi... |
+| `LowRegardThreshold` | VanillaRelation.EnemyTier | Tuning: at/below this prior regard for the player, the repudiated spouse already disliked them, so the grudge is nursed HARDER (a modest magnitude bump; actual rigidity is still computed downstream by GrudgePolicy.Rigidi... |
 | `SpouseGrudgeBaseMagnitude` | 55 | Tuning: the repudiated spouse's grudge magnitude before the low-regard bonus. |
 | `SpouseGrudgeLowRegardBonus` | 15 | Tuning: the magnitude bump applied when DivorceFacts.SpouseRegardForPlayer is at/below LowRegardThreshold. |
 | `SpouseMutualReliefRelationNudge` | 5 | Tuning: the small relief nudge for a spouse who acquiesced to the divorce (mutual consent softens even the one party closest to it — they wanted this too). |
@@ -1626,7 +1626,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 |---|---|---|
 | `ChildOrSpouseMagnitude` | 90 | Tuning: magnitude for the tightest bonds, a spouse or a child of the executed lord. |
 | `LowRegardBonus` | 10 | Tuning: the magnitude bump applied when ExecutedKinFacts.KinRegardForPlayer is at/below LowRegardThreshold (mirrors Tier2GrudgeRules.DeliveredPrisonerLowRegardBonus). |
-| `LowRegardThreshold` | -10 | Tuning: at/below this prior regard for the player, the kin already disliked them, so the killing is nursed HARDER (mirrors Tier2GrudgeRules.DeliveredPrisonerLowRegardThreshold). |
+| `LowRegardThreshold` | VanillaRelation.EnemyTier | Tuning: at/below this prior regard for the player, the kin already disliked them, so the killing is nursed HARDER (mirrors Tier2GrudgeRules.DeliveredPrisonerLowRegardThreshold). |
 | `MaxMagnitude` | 100 | The ceiling any proposal is clamped to, matching every other magnitude's 0..100 scale. |
 | `SiblingOrParentMagnitude` | 75 | Tuning: magnitude for a parent or a sibling, still severe but a step lighter than the tightest bonds. |
 
@@ -2560,7 +2560,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | `CaptiveAbuseMaxMagnitude` | CaptiveAbuseMagnitudePerSeverity * 3 + CaptiveAbusePlayerPerpetratorBonus | The ceiling this rule can ever propose: Severity 3 (grievous) with the player as direct perpetrator. |
 | `CaptiveAbusePlayerPerpetratorBonus` | 15 | Tuning: flat bonus added when the player was the direct perpetrator, not merely present for a captor's act. |
 | `DeliveredPrisonerLowRegardBonus` | 10 | Tuning: the magnitude bump applied when DeliveredPrisonerFacts.CaptiveRegardForPlayer is at/below DeliveredPrisonerLowRegardThreshold (mirrors DivorceConsequencePolicy.SpouseGrudgeLowRegardBonus). |
-| `DeliveredPrisonerLowRegardThreshold` | -10 | Tuning: at/below this prior regard for the player, the captive already disliked them, so the betrayal is nursed HARDER (mirrors DivorceConsequencePolicy.LowRegardThreshold). |
+| `DeliveredPrisonerLowRegardThreshold` | VanillaRelation.EnemyTier | Tuning: at/below this prior regard for the player, the captive already disliked them, so the betrayal is nursed HARDER (mirrors DivorceConsequencePolicy.LowRegardThreshold). |
 | `DeliveredPrisonerToEnemyMagnitude` | 65 | Tuning: magnitude when delivered to the captive's own foe ("you sold me to my enemy") — the heavier, headline case. |
 | `SwayExposedBaseMagnitude` | 20 | Tuning: base magnitude once the rumour has reached the target, before scaling with sway strength. |
 | `SwayExposedMagnitudeFraction` | 0.5 | Tuning: how much of the sway's own magnitude carries over into the grudge (a fraction: a sway is a lesser wound than being sold or abused). |
