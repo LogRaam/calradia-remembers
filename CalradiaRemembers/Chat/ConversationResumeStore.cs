@@ -27,6 +27,22 @@ using TaleWorlds.CampaignSystem;
 namespace CalradiaRemembers.Chat
 {
    /// <summary>
+   ///   Which kind of chat is being opened. It exists for one decision: whether the conversation kept from last
+   ///   time may be picked up again. Every open CONSUMES what was kept ("deleted as soon as you open a new
+   ///   chat"), and only an ordinary conversation puts it back on the screen. A staged scene, a captive
+   ///   encounter, a companion briefing, a council, a post-duel meeting, each opens with its own staging and its
+   ///   own opening cue, which a resumed exchange would contradict.
+   /// </summary>
+   public enum ChatOpening
+   {
+      /// <summary>Anything opened programmatically with its own staging. The default, so a new scene never inherits a resume by omission.</summary>
+      Staged,
+
+      /// <summary>The player walked up and started talking: the vanilla dialogue entry, which is the case the report describes.</summary>
+      OrdinaryConversation
+   }
+
+   /// <summary>
    ///   Holds at most one <see cref="ConversationResumeSnapshot" /> and persists it with the campaign. Additive
    ///   key, tolerant load: a save written before this feature simply has nothing kept.
    /// </summary>

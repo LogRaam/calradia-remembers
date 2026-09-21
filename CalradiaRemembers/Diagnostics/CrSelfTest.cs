@@ -226,6 +226,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("fief_audience", Severity.Light, "Player wish (Fakade, roadmap): road-only InterceptionBehavior needs a field party to move, so anyone without one (ladies, notables, a garrisoned lord standing around in a fief) never got a turn. Finds a real partyless hero standing in a live settlement; asserts the pure gate (FiefAudiencePolicy.ChooseFiefValid) raises nothing for a no-reason fact set; seeds a fresh, high-reach, player-involving WorldEvent so the SAME live fact HeardRecentPlayerDeed the road path reads is real, not fabricated; drives the REAL candidate scan (FiefAudienceBehavior.DebugScanAndStamp, never the live UI inquiry, never an LLM call) and asserts it offers that NPC with a fief-valid trigger; then asserts the SAME NPC asked again is WITHHELD by the per-NPC cooldown the offer itself just stamped. Removes the seeded WorldEvent and clears the stamped cooldown afterwards", TestFiefAudience),
          new SelfTest("interception_grudge_appreciation", Severity.Light, "Two new proactive channels for the mod's two signature event-anchored affect ledgers (design brief 2026-08-20): a lord who holds a live, significant grudge against the PLAYER rides out/asks for a word to air it (Grudge), and one who holds a significant, recent appreciation of the player does likewise to acknowledge it (AppreciationOwed), on BOTH the road (InterceptionBehavior) and the fief-audience channel (FiefAudienceBehavior), since both reuse the SAME InterceptionPolicy.Choose. Seeds a real Grudge (TryPlant) on a clean-slate lord and asserts InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer finds it (false before planting), the pure InterceptionPolicy.Choose surfaces Grudge, and Grudge is fief-valid; does the same for a real Appreciation and AppreciationOwed; then asserts the priority pin (Grudge outranks AppreciationOwed when both hold on the same facts, mirroring InterceptionPolicyTests). Removes the seeded grudge afterwards (mirrors appreciation_flow/companion_gratitude: no removal API exists for an appreciation, so it is left, exactly like every other appreciation-seeding self-test)", TestInterceptionGrudgeAppreciation),
          new SelfTest("grudge_answered", Severity.Light, "Player report (Zivkyn, 18/09/2026): a lord kept asking why the player killed his kin, months later, however often it had been explained, and kept riding out to confront the player about it. Plants a real grudge against the player on a clean-slate lord and makes it a VENDETTA, asserts it drives an interception and hear_account is offered, then runs hear_account through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes) and asserts: the grudge is answered with the account, still a vendetta and exactly as heavy, the lord's built GrudgeNote now carries the account and the do-not-ask-again instruction, the interception no longer fires, and hear_account is no longer offered. No LLM call. Clears the lord's grudges afterwards", TestGrudgeAnswered),
+         new SelfTest("conversation_resume", Severity.Light, "Player report (fkasad, 20/09/2026): roleplay takes longer than a battle, so he quits mid-negotiation, saves, closes the game, comes back, and the lord remembers TALKING to him but not a word of what was said, so the bargain starts over. Drives the REAL store the chat uses (NpcMemoryCampaignBehavior.ConvResume): keeps a built transcript against a real lord, then asserts it comes back whole for the same lord on the same day with its memory anchor, that the SAME open cannot take it twice, and that it is refused and DISCARDED for another lord, another day, or a staged scene, which is the report's own 'deleted as soon as you open a new chat' rule. No LLM call, no window opened. Forgets whatever it kept afterwards", TestConversationResume),
          new SelfTest("approach_framing", Severity.Light, "Player report (Fakade, 19/09/2026, local model): a lord rode out to him, then from the next turn spoke as though the player had come to HIM. The opening directive is consumed on read, so who sought whom was in the prompt once and never again. Stashes a real fief-audience reason on a lord, builds the encounter context twice through the REAL builder, and asserts the directive fires on the first build and is spent on the second while NpcSoughtThePlayer stays true on both; then asserts opening a new conversation (ForgetConversationSeeker) clears it. Leaves no pursuit behind", TestApproachFraming),
          new SelfTest("realm_departure", Severity.Light, "Player report (tashmetu, 19/09/2026): expelled from his kingdom by another mod after a lost war, he kept getting letters as if he still belonged. Records a departure from a real kingdom the way the kingdom-change feeder now marks every one, and asserts WorldEventFeeders.DaysSincePlayerLeft finds it and silences that ruler's service offer (ServiceOfferPolicy.RulerMayWrite), then removes it and asserts the ruler may write again. Also asserts the service-offer premise follows the player's LIVE realm. No LLM call, mutates nothing it does not remove", TestRealmDeparture),
          new SelfTest("interception_nemesis_bounty", Severity.Light, "A third proactive channel, the announcement/discoverability layer on top of the EXISTING scripted hero_main_options nemesis bounty offer (roadmap piece 2, player wish, subsumes the 'tavern rumour: Coll raids near X' wish since the lord tells the player directly): a lord whose region is plagued by a nemesis he is eligible to bounty seeks the player out to name him and where he operates, never settling the bounty itself in this channel. Mints a nemesis anchored to a REAL lord's own region (MintBountyEligibleNemesis) and asserts InterceptionBehavior.HasNemesisBountyToOffer reuses the SAME NemesisBountyDialogFlow.FindEligibleNemesisFor gate the scripted offer uses (never a re-derived one), that the Detail names the nemesis, that the pure InterceptionPolicy.Choose surfaces NemesisBounty, that it is fief-valid, and the priority pin (a live grudge against the PLAYER still outranks it, mirroring InterceptionPolicyTests). Marks the minted identity dead afterwards", TestInterceptionNemesisBounty),
@@ -12176,6 +12177,88 @@ namespace CalradiaRemembers.Diagnostics
 
          return t.Line();
       }
+
+      /// <summary>
+      ///   A conversation the player stepped out of, through the REAL store the chat opens and closes against.
+      ///   The pure half (ConversationResumeSnapshotTests, ConversationResumePolicyTests) covers what is kept and
+      ///   when it may be picked up; what only the engine can get wrong is that the behavior actually owns a
+      ///   store, that keeping and consuming go through that one instance, and that a refused consume CLEARS it
+      ///   rather than leaving it for the next chat, which is the half of the rule a pure test cannot see.
+      /// </summary>
+      private static string TestConversationResume(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("conversation_resume");
+
+         if (t.Abort(behavior?.ConvResume == null, "no conversation-resume store on the behavior")) return t.Line();
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && h.IsLord && h.IsAlive).Take(2).ToList();
+         if (t.Skip(lords.Count < 2, "need two living lords")) return t.Line();
+
+         Hero lord = lords[0];
+         Hero another = lords[1];
+         var today = (int) CampaignTime.Now.ToDays;
+         const string anchor = "[SELFTEST]-anchor";
+
+         try
+         {
+            // Same lord, same day: the whole request. The words come back, and so does the memory event the
+            // first sitting wrote, without which closing again would leave the lord remembering one afternoon
+            // as two separate talks.
+            behavior.ConvResume.Keep(TheKeptNegotiation(lord), Identity(lord, today, anchor));
+            ConversationResumeSnapshot resumed = behavior.ConvResume.Consume(lord.StringId, today, true);
+
+            t.Expect("theExchangeComesBack", resumed != null, true);
+            t.Expect("everyWordOfIt", resumed?.Lines.Count ?? 0, 3);
+            t.Expect("itStillKnowsWhoseItIs", resumed?.HeroId, lord.StringId);
+            t.Expect("andWhichMemoryItAlreadyWrote", resumed?.AnchorId, anchor);
+            t.Expect("theLastWordIsTheOneHeIsAnswering", resumed?.Lines.Last().Text?.EndsWith("Say the figure.") ?? false, true);
+
+            // Taken once. A second open must find nothing, or a conversation would be replayed into every
+            // chat the player opens for the rest of the day.
+            t.Expect("theSameExchangeIsNotHandedOutTwice", behavior.ConvResume.Consume(lord.StringId, today, true) == null, true);
+
+            // Another lord: refused, AND discarded. The discard is the point ("deleted as soon as you open a
+            // new chat"): if it merely failed to match, the words would be waiting when the player came back
+            // to the first lord, having meanwhile been somewhere else entirely.
+            behavior.ConvResume.Keep(TheKeptNegotiation(lord), Identity(lord, today, anchor));
+            t.Expect("anotherLordIsRefused", behavior.ConvResume.Consume(another.StringId, today, true) == null, true);
+            t.Expect("andTheWordsAreGoneRatherThanWaiting", behavior.ConvResume.Consume(lord.StringId, today, true) == null, true);
+
+            // Another day: the conversation genuinely ended and lives in the lord's memory now.
+            behavior.ConvResume.Keep(TheKeptNegotiation(lord), Identity(lord, today, anchor));
+            t.Expect("tomorrowIsRefused", behavior.ConvResume.Consume(lord.StringId, today + 1, true) == null, true);
+
+            // A staged scene (a captive encounter, a briefing, a council) opens with its own cue.
+            behavior.ConvResume.Keep(TheKeptNegotiation(lord), Identity(lord, today, anchor));
+            t.Expect("aStagedSceneIsRefused", behavior.ConvResume.Consume(lord.StringId, today, false) == null, true);
+
+            // Nothing said, nothing kept: a chat opened and closed in silence must not leave an empty capture
+            // that the next open "resumes" into a blank exchange while claiming continuity.
+            behavior.ConvResume.Keep(new ConversationTranscript(), Identity(lord, today, anchor));
+            t.Expect("aSilentChatKeepsNothing", behavior.ConvResume.HasKeptConversation, false);
+         }
+         finally
+         {
+            behavior.ConvResume.Forget();
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>An unfinished bargain, three lines, for the resume self-test.</summary>
+      private static ConversationTranscript TheKeptNegotiation(Hero lord)
+      {
+         var transcript = new ConversationTranscript();
+         transcript.Record(new TranscriptLine {IsPlayer = true, SpeakerName = "You", Text = "[SELFTEST] Then take my silver and hold the place for my banner."});
+         transcript.Record(new TranscriptLine {SpeakerHeroId = lord.StringId, SpeakerName = lord.Name?.ToString(), Text = "[SELFTEST] \"You ask me to trade a fief for a purse.\""});
+         transcript.Record(new TranscriptLine {SpeakerHeroId = lord.StringId, SpeakerName = lord.Name?.ToString(), Text = "[SELFTEST] Say the figure."});
+
+         return transcript;
+      }
+
+      private static ConversationResumeIdentity Identity(Hero lord, int day, string anchorId)
+         => new ConversationResumeIdentity {HeroId = lord.StringId, GameDay = day, AnchorId = anchorId};
 
       /// <summary>
       ///   An answered grievance, end to end in the engine. The pure half (AnsweredGrievanceTests) covers the rules and

@@ -76,13 +76,15 @@ namespace CalradiaRemembers.Tests
 
         // STAKE: the anchor key (ProfileId, AnchorDay, AnchorSummary) identifies ONE base event. Without dedup,
         // a duplicate enqueue call would queue the same enrichment twice and the worker would burn an extra LLM
-        // call rewriting a memory that is about to be rewritten again anyway.
+        // call rewriting a memory that is about to be rewritten again anyway. The repeat here says no MORE than
+        // the job already queued, which is what makes it a repeat; the test below it covers the one case where
+        // a second offer is worth taking.
         [Test]
         public void GIVEN_the_same_anchor_key_enqueued_twice_WHEN_enqueuing_THEN_only_one_copy_is_kept()
         {
             var queue = new ConversationSummaryQueue();
             PendingSummaryJob job = MakeJob(profileId: "npc_1", anchorDay: 10, anchorSummary: "Spoke with X.");
-            PendingSummaryJob duplicate = MakeJob(profileId: "npc_1", anchorDay: 10, anchorSummary: "Spoke with X.", transcript: "a different transcript");
+            PendingSummaryJob duplicate = MakeJob(profileId: "npc_1", anchorDay: 10, anchorSummary: "Spoke with X.", transcript: "Player: Hi");
 
             SummaryEnqueueOutcome first = queue.Enqueue(job);
             SummaryEnqueueOutcome second = queue.Enqueue(duplicate);
@@ -90,6 +92,43 @@ namespace CalradiaRemembers.Tests
             first.Should().Be(SummaryEnqueueOutcome.Added);
             second.Should().Be(SummaryEnqueueOutcome.Deduplicated);
             queue.Count.Should().Be(1);
+        }
+
+        // STAKE: fkasad's resumed conversation (Nexus, 20/09/2026). He steps out of a negotiation, the game is
+        // saved and closed while that conversation's summary job is still pending, he comes back, picks the
+        // negotiation up where it stopped, says more, and closes again. Both sittings are ONE afternoon and
+        // carry the same anchor, so plain deduplication would keep the FIRST job: the NPC would be left
+        // remembering the first half of a conversation the player lived through whole, which is precisely the
+        // complaint the resume feature exists to answer.
+        [Test]
+        public void GIVEN_a_conversation_resumed_and_closed_again_WHEN_its_summary_is_offered_THEN_the_fuller_account_takes_the_place_of_the_shorter_one()
+        {
+            var queue = new ConversationSummaryQueue();
+            PendingSummaryJob firstSitting = MakeJob(anchorId: "one-afternoon", transcript: "Player: Name your price.");
+            PendingSummaryJob wholeAfternoon =
+                MakeJob(anchorId: "one-afternoon", transcript: "Player: Name your price.\nX: Ten thousand.\nPlayer: Done.");
+
+            queue.Enqueue(firstSitting);
+            SummaryEnqueueOutcome second = queue.Enqueue(wholeAfternoon);
+
+            second.Should().Be(SummaryEnqueueOutcome.ReplacedWithMore);
+            queue.Count.Should().Be(1, "it is still one conversation, and it must still cost one call");
+            queue.NextPending().Transcript.Should().Contain("Done.", "the bargain the player actually struck is in the second half");
+        }
+
+        // AND THE SWAP MUST NOT HAND A DEAD ENDPOINT A FRESH BUDGET. A job that has already failed twice against
+        // an LLM that is not answering keeps those attempts when the fuller transcript takes its place;
+        // otherwise resuming a conversation would quietly reset the retry counter and the queue would grind
+        // against the same dead endpoint forever, which is the failure the attempt cap exists to prevent.
+        [Test]
+        public void GIVEN_the_job_being_replaced_had_already_failed_WHEN_the_fuller_one_takes_its_place_THEN_it_inherits_those_attempts()
+        {
+            var queue = new ConversationSummaryQueue();
+            queue.Enqueue(MakeJob(anchorId: "one-afternoon", transcript: "short", attempts: 2));
+
+            queue.Enqueue(MakeJob(anchorId: "one-afternoon", transcript: "a much longer transcript"));
+
+            queue.NextPending().Attempts.Should().Be(2);
         }
 
         // ── Cap ──────────────────────────────────────────────────────────────

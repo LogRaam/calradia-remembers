@@ -26,6 +26,15 @@ namespace CalradiaRemembers.Logic
         /// <summary>Not added: a job with the same (ProfileId, AnchorDay, AnchorSummary) was already queued.</summary>
         Deduplicated,
 
+        /// <summary>
+        ///   A job for the same anchor was already queued and this one carries MORE of the conversation, so it
+        ///   took its place. This is the resumed conversation (fkasad, 20/09/2026): the player steps out of a
+        ///   negotiation, its summary job is still pending, he steps back in, says more, and closes again. Plain
+        ///   deduplication would keep the FIRST job and the NPC would remember only the first half of an
+        ///   afternoon he lived through whole.
+        /// </summary>
+        ReplacedWithMore,
+
         /// <summary>Added, but the queue was at capacity, so the OLDEST job was dropped to make room.</summary>
         AddedOldestDropped
     }
@@ -70,8 +79,21 @@ namespace CalradiaRemembers.Logic
         {
             if (job == null) throw new ArgumentNullException(nameof(job));
 
-            if (IndexOfMatch(job) >= 0)
-                return SummaryEnqueueOutcome.Deduplicated;
+            int existing = IndexOfMatch(job);
+            if (existing >= 0)
+            {
+                // A resumed conversation closes a second time with the SAME anchor and more of the transcript.
+                // Keeping the first job would enrich the memory from half the afternoon; keeping the longer one
+                // is strictly better, and it inherits the attempts already spent so a dead endpoint still gets
+                // no fresh retry budget out of the swap.
+                if ((job.Transcript?.Length ?? 0) <= (_jobs[existing].Transcript?.Length ?? 0))
+                    return SummaryEnqueueOutcome.Deduplicated;
+
+                job.Attempts = _jobs[existing].Attempts;
+                _jobs[existing] = job;
+
+                return SummaryEnqueueOutcome.ReplacedWithMore;
+            }
 
             bool droppedOldest = false;
             if (_jobs.Count >= _maxJobs)

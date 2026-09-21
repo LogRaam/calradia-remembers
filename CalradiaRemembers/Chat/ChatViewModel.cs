@@ -2583,7 +2583,12 @@ namespace CalradiaRemembers.Chat
          if (_conversationMemoryFinalized || _mode != ChatMode.Conversation || IsCompanionBriefingChat) return;
          _conversationMemoryFinalized = true;
 
-         if (!ConversationMemoryRules.DeservesFallbackMemory(_playerTurnsThisSession, _playerCharsThisSession)) return;
+         // A RESUMED sitting is already owed a memory: the earlier half of the same afternoon earned one, and
+         // what the player added after his break belongs in it however little it was. The slightness rule is
+         // for a chat that was opened and idled in, which is a different thing from a conversation continued.
+         bool resumed = !string.IsNullOrEmpty(_conversationAnchorId);
+
+         if (!resumed && !ConversationMemoryRules.DeservesFallbackMemory(_playerTurnsThisSession, _playerCharsThisSession)) return;
 
          var behavior = NpcMemoryCampaignBehavior.Instance;
          // Nemesis audit RC2: this wrote to DialogFlow.Profile, a session-lifetime cache set only by an
@@ -2605,13 +2610,21 @@ namespace CalradiaRemembers.Chat
          // IDENTIFIED, because stage 2 below comes back for this exact event later. Without an identity it
          // is found by value, and its value is "Spoke with {player}." on today's date — which two sittings on
          // one day share exactly (audit, 15/09/2026).
-         NotableEvent baseEvent = new NotableEvent(gameDay, NotableEventType.Other, $"Spoke with {player}.")
-            .Identified();
+         // A conversation the player stepped out of and came back to carries the event the FIRST sitting wrote,
+         // and comes back to it instead of adding another: one afternoon is one memory, and two would also mean
+         // two summary calls writing over each other. IndexOfAnchor answers -1 when that event is gone (folded
+         // away by memory compression while the player was away), and then a fresh one is right after all.
+         int inherited = resumed ? profile.IndexOfAnchor(_conversationAnchorId, null) : -1;
+         NotableEvent baseEvent = inherited >= 0
+            ? profile.Events[inherited]
+            : new NotableEvent(gameDay, NotableEventType.Other, $"Spoke with {player}.").Identified();
 
-         profile.Events.Add(baseEvent);
+         if (inherited < 0) profile.Events.Add(baseEvent);
+
          _conversationAnchorId = baseEvent.Id;
          behavior.Store.Set(profile);
-         ModLog.Info($"[CONV MEMORY] conversation recap recorded for {profile.Name} " + $"({_playerTurnsThisSession} player turn(s)).");
+         ModLog.Info($"[CONV MEMORY] conversation recap {(inherited >= 0 ? "continued" : "recorded")} for {profile.Name} "
+                   + $"({_playerTurnsThisSession} player turn(s)).");
 
          // Stage 2, the rich summary, via a DURABLE queue instead of a detached Task: the job is persisted
          // with the campaign, drained in the background, and replayed on load, so a plan or promise the NPC
@@ -2631,6 +2644,38 @@ namespace CalradiaRemembers.Chat
             ReplyLanguage = ModSettings.ReplyLanguage,
             EnqueuedDay = gameDay
          });
+      }
+
+      /// <summary>
+      ///   Puts back the conversation the player stepped out of: the words into the transcript (so the NPC's
+      ///   next reply continues the exchange rather than meeting a stranger), the bubbles onto the screen (so
+      ///   the player reads what he already said), and the memory anchor onto this sitting (so closing again
+      ///   enriches the one event rather than writing a second).
+      ///   <para>
+      ///     Called on EVERY open, because consuming is half the rule: a kept conversation that did not match
+      ///     this chat must not be waiting for the next one. The verdict itself is
+      ///     <see cref="ConversationResumePolicy" />'s, which refuses another hero, another day, and any staged
+      ///     scene.
+      ///   </para>
+      /// </summary>
+      public void ResumeKeptConversation(ChatOpening opening)
+      {
+         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         if (behavior?.ConvResume == null) return;
+
+         ConversationResumeSnapshot kept = behavior.ConvResume.Consume(
+            _npcHero?.StringId,
+            behavior.GameStateBridge?.GetCurrentGameDay() ?? 0,
+            opening == ChatOpening.OrdinaryConversation);
+
+         if (kept == null) return;
+
+         // The same two steps the post-duel scene already uses, in the same order: seed the transcript (LLM
+         // continuity), then render it (what the player sees). ReplayTranscriptToMessages never re-records, so
+         // the lines cannot be doubled.
+         _transcript.SeedFrom(kept.ToTranscript());
+         ReplayTranscriptToMessages();
+         _conversationAnchorId = kept.AnchorId ?? "";
       }
 
       /// <summary>

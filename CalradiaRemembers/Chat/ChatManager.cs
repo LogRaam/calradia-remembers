@@ -486,7 +486,7 @@ namespace CalradiaRemembers.Chat
          }
       }
 
-      public static void Open(string npcName = null, bool forceClassicSkin = false)
+      public static void Open(string npcName = null, bool forceClassicSkin = false, ChatOpening opening = ChatOpening.Staged)
       {
          // "Already open" must mean a window that is actually THERE. A layer recorded against a screen that has
          // since gone is a ghost, and refusing on its account cost a player every conversation for the rest of
@@ -543,6 +543,12 @@ namespace CalradiaRemembers.Chat
          // so a forced-pushed council is correctly skipped even while HostMode itself stays Overlay.
          if (!_activeIsPushed)
             SafeStep(() => MapSceneSuspender.Suspend(_hostScreen), "SuspendMapScene");
+
+         // Every open consumes what the last close kept; only an ordinary conversation puts it back on the
+         // screen (fkasad, 20/09/2026: "deleted as soon as you open a new chat"). Here, not in
+         // GenerateChatWindow, because the staged openers all call Open FIRST and then stage themselves on top:
+         // a resumed exchange must be discarded before ActivatePostDuel or a captive scene writes its own.
+         SafeStep(() => ActiveViewModel?.ResumeKeptConversation(opening), "ResumeKeptConversation");
 
          ModLog.Info($"Chat window opened on {_hostScreen.GetType().Name} with NPC '{npcName ?? "(none)"}'.");
          ModLog.Info($"[VRAM] open (baseline) | {VramProbe.Describe()}");

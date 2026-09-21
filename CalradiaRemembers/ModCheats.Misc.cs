@@ -259,7 +259,8 @@ namespace CalradiaRemembers
       {
          try
          {
-            ChatManager.Open();
+            // The dev door onto the ordinary conversation, so it behaves like one, resume included.
+            ChatManager.Open(opening: ChatOpening.OrdinaryConversation);
 
             return "Chat window opened.";
          }

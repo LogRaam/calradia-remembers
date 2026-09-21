@@ -622,7 +622,10 @@ namespace CalradiaRemembers.Dialogue
             string npcName = hero.Name?.ToString() ?? "the lord";
             ModLog.Info($"Attempting to open chat for NPC: {npcName}");
 
-            ChatManager.Open(npcName);
+            // The one entry that is an ordinary conversation: the player walked up and started talking. It is
+            // therefore the one that may pick up a conversation he stepped out of earlier today (fkasad,
+            // 20/09/2026). Every other opener stages a scene of its own and takes the default.
+            ChatManager.Open(npcName, opening: ChatOpening.OrdinaryConversation);
             ModLog.Info("ChatManager.Open() has been called");
 
             ChatViewModel vm = ChatManager.ActiveViewModel;
