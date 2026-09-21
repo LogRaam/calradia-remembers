@@ -73,9 +73,13 @@ keeps in one place**.
   person asks for a word. This reuses `FiefAudienceBehavior` wholesale, the channel that already stages "X
   would have a word with you" inside a fief, with the rendezvous as the trigger and its purpose as the opener.
   No new hosting, no new screen.
-- **Missing it:** past the window the rendezvous is Missed, and NOW the reproach is earned: the NPC may raise
-  it once, cold, and it costs a little personal regard. Never a grudge on its own (grudges are for real
-  wrongs, and a missed meeting is not one).
+- **Missing it (RATIFIED, Gabriel 2026-09-20):** past the window the rendezvous is Missed, and NOW the
+  reproach is earned: the NPC may raise it once, cold. It costs a little personal regard **except with a
+  friend or with family**, who are disappointed and say so but think nothing worse of you. Never a grudge on
+  its own (grudges are for real wrongs, and a missed meeting is not one). The two exemptions have existing
+  shapes to reuse rather than invent: family via `HouseholdKinPolicy.FamilyOf`, friendship via the mod's own
+  "a friend" tier, which sits at a relation of 10 in `SchemeBacklash` and at 20 in `RescueGratitudePolicy`,
+  so **pick one and state it in the policy's doc** rather than adding a third number.
 - **The NPC failing:** captured, dead, or the settlement besieged or taken. The rendezvous is BrokenByNpc, the
   NPC apologises when next met, and the player may hold it against THEM. Never silence, and never blame.
 - **Journal:** one entry, mirroring how quests are already mirrored, or the player has to remember for the
@@ -93,7 +97,6 @@ scoped in this file, which has the same "the arrival IS the scene" shape.
 
 ### Open questions for Gabriel
 
-- Does missing a rendezvous cost regard, or only a cold line? (Proposed: a small regard hit, no grudge.)
 - Who names the window, the NPC alone or the player in the exchange?
 - Is a kept meeting worth anything by itself (a little warmth), or is the scene its own reward?
 
