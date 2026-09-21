@@ -9,6 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Roslyn, SYNTAX ONLY: the Maps fixtures parse the SOURCE of the mod, of Logic and of the SDK to
+         regenerate docs/maps and RULES.md, and fail when the committed copy no longer matches. Syntax
+         needs no TaleWorlds reference, so the engine-bound mod is mapped like everything else, and unlike
+         reflection it keeps the XML doc comments, which are what make a map readable. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="NUnit" Version="4.6.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
@@ -28,14 +33,10 @@
        three tests were red there while green on the command line. Copying them makes the file reachable the
        same way in every runner, and CopyToOutputDirectory is what NCrunch honours. -->
   <ItemGroup>
-    <None Include="../CalradiaRemembers/ModuleData/world.txt"
-          Link="ShippedNarrative/world.txt" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../CalradiaRemembers/ModuleData/behavior_guidelines.txt"
-          Link="ShippedNarrative/behavior_guidelines.txt" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../CalradiaRemembers/ModuleData/player_description.txt"
-          Link="ShippedNarrative/player_description.txt" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../CalradiaRemembers/ModuleData/post_history_instructions.txt"
-          Link="ShippedNarrative/post_history_instructions.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../CalradiaRemembers/ModuleData/world.txt" Link="ShippedNarrative/world.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../CalradiaRemembers/ModuleData/behavior_guidelines.txt" Link="ShippedNarrative/behavior_guidelines.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../CalradiaRemembers/ModuleData/player_description.txt" Link="ShippedNarrative/player_description.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../CalradiaRemembers/ModuleData/post_history_instructions.txt" Link="ShippedNarrative/post_history_instructions.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

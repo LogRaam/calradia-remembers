@@ -96,22 +96,32 @@ Key design decisions:
 
 ## Prompt sections (PromptBuilder, in order)
 
-1. NPC identity + persona
-2. Traits / behavior guidelines
-3. Romantic profile (gated: AdultLevel != Off)
-4. Discovered traits — what player already knows (gated: AdultLevel != Off)
-5. Relationships (top-5 friends, top-5 enemies, family, liege, faction leader)
-6. Cultural traditions
-7. Current stance (relation score → natural language)
-8. YOUR QUESTS (gated: EnableQuests — outstanding / done-ready / past, with verified evidence)
-9. Narrative (world.txt, player_description.txt)
-10. Response format instructions
-11. Action instructions (change_relation / give_gold / take_gold)
-12. Discovery instructions (gated: AdultLevel != Off)
-13. Quest instructions (gated: EnableQuests — [QUEST] vocabulary + [QUEST_COMPLETE] rules)
-14. CURRENT ENCOUNTER (scene, war status, player status, days since last meeting)
-15. NAMES MENTIONED (only when playerMessage contains matching hero name tokens)
-16. Conversation history (ChatSession.Messages)
+**Read `docs/maps/prompt-sections.md`. It is generated from `BuildSystemPrompt` and a test fails when it is stale.**
+It lists every section in the order it is written, which side of the cache marker it falls on, what gates it, and
+whether Compact drops it. A hand-written list of sixteen sections stood here until 2026-09-21; the real prompt had
+grown to well over a hundred calls, and nothing had ever made the list keep up. That is the reason the maps exist.
+
+---
+
+## The maps: how to see the whole system (Gabriel, 2026-09-21)
+
+`docs/maps/` holds views of the system generated from its own source: every type, every dependency between
+namespaces, every rule the tests state (`RULES.md`), every numeric constant, every engine event listened to, the
+prompt's sections in order, every verb with each place it must be declared, and everything static that can change.
+`docs/maps/README.md` says what each one answers and what none of them can see.
+
+- **They cannot go stale while the suite is green.** `MapsAreCurrentTests` regenerates each map and fails when the
+  committed copy differs. A failure there is never a bug in the code: the code moved and the map did not.
+  Regenerate, and commit the map WITH the change:
+  `CR_UPDATE_MAPS=1 dotnet test CalradiaRemembers.Tests -p:NCrunch=1 --filter "FullyQualifiedName~Maps"`
+- **Look before you add.** Before a new threshold, policy, guard, event listener, prompt section or verb, read the
+  map that would show it if it already existed (`constants.md` opens with the names declared in more than one
+  type). Say in the commit message what you found, even when it is "nothing like it exists". Gabriel's words: "je
+  ne vois pas si on est en train de creer un doublon parce que le concept existe deja ailleurs."
+- **Read the map's diff before the code's.** A new line in `dependencies.md` is a namespace that has started to
+  know another. A new line in `shared-state.md` is a lifetime somebody has to decide.
+- The maps cover the SDK too and live in THIS repository, the umbrella. An SDK-only change can therefore turn a
+  mod test red; that is intended, since both suites run on every change.
 
 ---
 

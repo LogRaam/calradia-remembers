@@ -1,6 +1,11 @@
-<#
+﻿<#
 .SYNOPSIS
   Writes RULES.md: everything the mod promises to do, as its own tests state it.
+
+  SINCE 2026-09-21 THE GENERATOR IS CalradiaRemembers.Tests/Maps/RulesMap.cs, and a test fails when RULES.md is
+  stale. This script had said "Regenerate it whenever the suite changes" and nobody did: it sat ten days and six
+  hundred rules behind. Without -Filter it now just runs that generator. With -Filter it still prints matching
+  fixtures to the console, which is a viewer and writes nothing.
 
 .DESCRIPTION
   Gabriel, 2026-09-10: "en bonus, je peux mieux comprendre la logique implementee car les tests expriment des
@@ -159,6 +164,8 @@ foreach ($group in $sections.Keys) {
 if ($Filter) {
    Write-Output $out.ToString()
 } else {
-   Set-Content -LiteralPath $outputPath -Value $out.ToString() -Encoding UTF8
-   Write-Output "RULES.md written: $ruleCount rules, $($files.Count) fixtures, $unnamedCount not stated as rules."
+   # One generator, not two: the C# one is what the suite checks RULES.md against, so it is the one that writes it.
+   $env:CR_UPDATE_MAPS = "1"
+   try { dotnet test (Join-Path $repo "CalradiaRemembers.Tests") -p:NCrunch=1 --filter "FullyQualifiedName~Maps" }
+   finally { Remove-Item Env:CR_UPDATE_MAPS -ErrorAction SilentlyContinue }
 }

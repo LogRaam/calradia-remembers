@@ -1,0 +1,57 @@
+# The maps: views of the system, generated from its own source
+
+Gabriel, 21/09/2026: *"Plus le projet grossit, plus c'est difficile pour moi de voir l'ensemble du systeme... si on
+implemente une regle dans le code, je ne vois pas si on est en train de creer un doublon parce que le concept existe
+deja ailleurs."*
+
+Nothing in this folder is written by hand except this file. Every map is regenerated from the source by a test, and
+the test FAILS when the committed copy no longer matches the code. That failing test is the trigger a pipeline would
+have been: this mod cannot be built on a CI server (it needs the game's DLLs), but the suite runs on every change and
+nothing is committed until it is green.
+
+## What to read, and when
+
+| Map | Read it to answer |
+|---|---|
+| [`inventory.md`](inventory.md) | Does this concept already exist, and where does it live? Every type, by layer and namespace, with one sentence each. Also the files of 1000 lines and more. |
+| [`dependencies.md`](dependencies.md) | Who knows whom? Cycles first, then who uses the most and who is used the most, then every edge. |
+| [`../../RULES.md`](../../RULES.md) | What does the MOD promise to do? Every test name as a sentence, with each fixture's reason for existing. |
+| [`rules-sdk.md`](rules-sdk.md) | The same for the SDK. |
+| [`constants.md`](constants.md) | Is there already a number for this? Opens with the NAMES declared in more than one type. |
+| [`event-listeners.md`](event-listeners.md) | What does the mod hear from the engine, and which of an event's reasons does each listener name? |
+| [`prompt-sections.md`](prompt-sections.md) | In what order is the prompt written, what is cached, what is per-turn, what does Compact drop? |
+| [`verbs.md`](verbs.md) | Is this action declared everywhere it has to be? |
+| [`shared-state.md`](shared-state.md) | What outlives the call that wrote it, and so has a lifetime somebody must decide? |
+
+The first two are the generic net: a mechanism nobody planned a map for still adds a type or an edge. The rules are
+the behaviour index: a change inside a method leaves no structural trace, but a behaviour that matters is held by a
+test. The last five are lenses, one per family of bug this project has actually had; each generator's header names
+the player report it answers.
+
+## When a Maps test fails
+
+It is never a bug in the code under test. The code moved and the map did not.
+
+```
+CR_UPDATE_MAPS=1 dotnet test CalradiaRemembers.Tests -p:NCrunch=1 --filter "FullyQualifiedName~Maps"
+```
+
+Then commit the regenerated map WITH the change that moved it. Its diff is the architectural summary of that change:
+a new threshold appears beside the ones that already exist, a new edge between two namespaces is one line, a prompt
+section that moved across the cache marker changes its `Zone`. Read the map's diff before the code's.
+
+An unchanged map is information too: the dimension it watches did not move.
+
+## What the maps cannot see
+
+- A behaviour that changed with no test changing. That is not a gap in the maps; it is a missing test.
+- Dependencies are read from `using` directives. A fully qualified name is missed and an unused import is counted.
+- `event-listeners.md` names the reasons a listener's FILE mentions; it does not know the engine's full list, so it
+  shows "names one of them", not "names one of seven".
+- `shared-state.md` lists where a lifetime has to be decided. It cannot tell which value is stale.
+- Under NCrunch the source trees are not in the workspace copy, so these tests are Ignored there. `dotnet test` runs them.
+
+## Adding a map
+
+A generator in `CalradiaRemembers.Tests/Maps`, one test in `MapsAreCurrentTests`, one row in the table above. Add
+one when a family of bug has shown itself twice, not before: a map nobody reads is one more thing to regenerate.
