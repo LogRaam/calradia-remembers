@@ -22,8 +22,14 @@ nothing is committed until it is green.
 | [`prompt-sections.md`](prompt-sections.md) | In what order is the prompt written, what is cached, what is per-turn, what does Compact drop? |
 | [`verbs.md`](verbs.md) | Is this action declared everywhere it has to be? |
 | [`shared-state.md`](shared-state.md) | What outlives the call that wrote it, and so has a lifetime somebody must decide? |
+| [`decisions-regard.md`](decisions-regard.md) | **The two-minute view.** What does each rung of the regard scale actually decide? Real calls, swept from -100 to +100, plus where each rule turns. |
 | [`save-format.md`](save-format.md) | **Contract.** What does the mod write into a player's campaign? Every save key and every saveable type id. |
 | [`modder-api.md`](modder-api.md) | **Contract.** What are other people's mods built against? Every public member under an `Extension` folder. |
+
+`decisions-regard.md` is the only one that RUNS the code rather than reading it, so a changed cell there is a changed
+behaviour, not a moved declaration. It is also the safety net for giving regard a type: that refactor must not move a
+single cell. Its last section counts the rules it can sweep against the thresholds that exist, and that gap is the
+measure of the "fetch the value and compare it yourself" habit. It should shrink.
 
 The last two are not views, they are promises made to people outside the project: a player with a campaign in
 progress, and a modder with a bridge already shipped. A line removed from `modder-api.md` is a breaking change and

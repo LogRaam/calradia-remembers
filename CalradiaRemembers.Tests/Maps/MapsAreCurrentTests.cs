@@ -62,6 +62,13 @@ namespace CalradiaRemembers.Tests.Maps
       public void GIVEN_the_source_as_it_stands_WHEN_the_shared_state_is_regenerated_THEN_it_matches_the_committed_map()
          => ApprovedMap.Verify(SharedStateMap.Path, Generated(SharedStateMap.Generate));
 
+      // THE DECISION TABLE. Not a list of declarations but a sweep of the real rules across the whole scale, so a
+      // changed cell is a changed behaviour. It is the view Gabriel asked for (one page, two minutes) and the safety
+      // net for giving regard a type: see ROADMAP.md.
+      [Test]
+      public void GIVEN_the_rules_as_they_stand_WHEN_the_regard_scale_is_swept_THEN_every_decision_matches_the_committed_table()
+         => ApprovedMap.Verify(RegardDecisionsMap.Path, SourceTree.IsReachable ? RegardDecisionsMap.Generate() : "");
+
       #region the two contracts
 
       // These two are not views of the code, they are promises made to people outside it: every player with a

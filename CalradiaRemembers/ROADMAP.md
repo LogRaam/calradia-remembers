@@ -60,6 +60,15 @@ that direction.
 
 ### The one system-wide problem: the regard vocabulary
 
+**Measured 21/09/2026, and now tracked:** `docs/maps/decisions-regard.md` can sweep **12** rules across the scale,
+against **91** regard-named thresholds that exist. The other 79 are compared inline, at the place that wants the
+answer, so there is nothing to call and nothing to measure. That gap IS the problem, in one number: the decision is
+taken about the value instead of being asked of it. Three rules already turn at exactly +20 under three names, and
+10 of the 12 swept rules do not say which ledger they read.
+
+The table is also the safety net for the fix: turning regard into a type must not move a single cell in it.
+
+
 Some thirty policies each mint a private number for the same few rungs (friend 10/15/20, close 30, love 50, deep
 bond 60, disliked -10, hostile -20/-30) under names like WarmRegard, ConfidantRegardFloor, StandingFloor,
 FriendRelationFloor, BestFriendThreshold, and about half never say WHICH LEDGER they read. Worse, the words do not
