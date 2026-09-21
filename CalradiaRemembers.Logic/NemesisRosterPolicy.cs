@@ -45,10 +45,10 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>TUNE: a Calradian year in campaign days (an 84-day year), the floor of the respawn cooldown.</summary>
-        public const int RespawnCooldownMinDays = CalradianCalendar.DaysPerYear;
+        public static int RespawnCooldownMinDays => WorldCalendar.DaysPerYear;
 
         /// <summary>TUNE: three Calradian years, the ceiling of the respawn cooldown rolled at a nemesis's death.</summary>
-        public const int RespawnCooldownMaxDays = 3 * CalradianCalendar.DaysPerYear;
+        public static int RespawnCooldownMaxDays => 3 * WorldCalendar.DaysPerYear;
 
         /// <summary>
         ///   True when a nemesis of <paramref name="bandCultureKey"/> was recently killed and his

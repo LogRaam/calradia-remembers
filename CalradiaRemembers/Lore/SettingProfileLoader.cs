@@ -14,6 +14,7 @@ using NpcMemoryService.Core.Prompts;
 
 #endregion
 
+using NpcMemoryService.Core.Calendar;
 namespace CalradiaRemembers.Lore
 {
     /// <summary>
@@ -43,10 +44,16 @@ namespace CalradiaRemembers.Lore
             (string name, string adjective, System.Collections.Generic.IReadOnlyList<string> cultures) =
                 SettingProfileDefaults.Resolve(profile);
 
+            (int daysPerSeason, int seasonsPerYear) = SettingProfileDefaults.ResolveCalendar(profile);
+            WorldCalendar.DaysPerSeason = daysPerSeason;
+            WorldCalendar.SeasonsPerYear = seasonsPerYear;
+
             PromptLore.WorldName = name;
             PromptLore.WorldAdjective = adjective;
             PromptLore.PatriarchalCultures = cultures;
-            ModLog.Info($"  Setting profile{(useCustom ? " (custom)" : "")}: world '{name}' ({adjective}); {cultures.Count} patriarchal culture(s).");
+            ModLog.Info($"  Setting profile{(useCustom ? " (custom)" : "")}: world '{name}' ({adjective}); "
+                      + $"a year of {WorldCalendar.DaysPerYear} days ({seasonsPerYear} seasons of {daysPerSeason}); "
+                      + $"{cultures.Count} patriarchal culture(s).");
         }
     }
 }

@@ -25,7 +25,7 @@ namespace CalradiaRemembers.Logic
     public static class CommitmentPolicy
     {
         /// <summary>Tuning: how many in-game days a pledge has to be honored — roughly one season.</summary>
-        public const int DeadlineDays = CalradianCalendar.DaysPerSeason;
+        public static int DeadlineDays => WorldCalendar.DaysPerSeason;
 
         /// <summary>Tuning: relation/stance boost applied to the promisor toward the player on fulfillment.</summary>
         public const int FulfilledRelationBonus = 6;

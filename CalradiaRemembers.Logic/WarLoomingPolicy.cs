@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Logic
       ///   model's eyes: without this, a fresh peace would immediately be announced as war-about-to-return. Roughly
       ///   a quarter of a Calradian year (84-day year).
       /// </summary>
-      public const int MinPeaceDays = CalradianCalendar.DaysPerSeason;
+      public static int MinPeaceDays => WorldCalendar.DaysPerSeason;
 
       /// <summary>
       ///   Tuning: in-game days that must pass before the SAME kingdom pair may have another looming-war event

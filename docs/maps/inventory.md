@@ -1646,7 +1646,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Type | Kind | What it is |
 |---|---|---|
-| `CalradianCalendar` | public static class | The length of a season and a year in this world, shared by everything that counts days. |
+| `WorldCalendar` | public static class | The length of a season and a year in the host's world, read by everything that counts days. |
 
 ### NpcMemoryService.Core.Captivity (4)
 

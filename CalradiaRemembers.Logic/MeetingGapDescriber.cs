@@ -22,8 +22,8 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public static class MeetingGapDescriber
     {
-        private const int SeasonDays = CalradianCalendar.DaysPerSeason;
-        private const int YearDays = CalradianCalendar.DaysPerYear;
+        private static int SeasonDays => WorldCalendar.DaysPerSeason;
+        private static int YearDays => WorldCalendar.DaysPerYear;
 
         /// <summary>
         ///   Days up to and including this are treated as too recent to remark on. A week or less between

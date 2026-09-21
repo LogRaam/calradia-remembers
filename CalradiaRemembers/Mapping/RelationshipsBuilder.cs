@@ -210,8 +210,8 @@ namespace CalradiaRemembers.Mapping
             if (daysAgo < 0 || daysAgo > 8400) return "";
 
             string when = daysAgo < 1 ? "this very day"
-               : daysAgo < CalradianCalendar.DaysPerYear ? $"{(int) daysAgo} days ago"
-               : $"about {(int) (daysAgo / CalradianCalendar.DaysPerYear)} year(s) ago";
+               : daysAgo < WorldCalendar.DaysPerYear ? $"{(int) daysAgo} days ago"
+               : $"about {(int) (daysAgo / WorldCalendar.DaysPerYear)} year(s) ago";
 
             string cause;
             switch (kin.DeathMark.ToString())

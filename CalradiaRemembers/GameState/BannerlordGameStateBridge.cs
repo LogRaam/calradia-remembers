@@ -638,7 +638,7 @@ namespace CalradiaRemembers.GameState
 
       public string GetSeasonName()
       {
-         var dayOfYear = (int) (CampaignTime.Now.ToDays % CalradianCalendar.DaysPerYear);
+         var dayOfYear = (int) (CampaignTime.Now.ToDays % WorldCalendar.DaysPerYear);
 
          if (dayOfYear < 21) return "Spring";
          if (dayOfYear < 42) return "Summer";

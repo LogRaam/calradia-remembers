@@ -18,10 +18,10 @@ namespace CalradiaRemembers.Logic
         // two names keeps working; they simply stopped being a second copy.
 
         /// <summary>In-game days in one Calradian year, as used throughout the chronicle.</summary>
-        public const int DaysPerYear = CalradianCalendar.DaysPerYear;
+        public static int DaysPerYear => WorldCalendar.DaysPerYear;
 
         /// <summary>In-game days in one Calradian season (four seasons make a year).</summary>
-        public const int DaysPerSeason = CalradianCalendar.DaysPerSeason;
+        public static int DaysPerSeason => WorldCalendar.DaysPerSeason;
 
         private static readonly string[] SeasonNames = { "spring", "summer", "autumn", "winter" };
 

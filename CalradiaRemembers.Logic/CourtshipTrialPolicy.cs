@@ -23,7 +23,7 @@ namespace CalradiaRemembers.Logic
       ///   campaign of ordinary play. A single named constant so the behavior, the self-test, and these unit
       ///   tests can never drift onto different terms.
       /// </summary>
-      public const int TrialDays = 2 * ChronicleCalendar.DaysPerSeason;
+      public static int TrialDays => 2 * ChronicleCalendar.DaysPerSeason;
 
       /// <summary>
       ///   True when a tracked courtship trial has been SERVED and should now open the match: the prospect is

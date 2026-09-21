@@ -73,7 +73,7 @@ namespace CalradiaRemembers.Mapping
       ///   defiance: one Calradian season (21 days; see ChronicleCalendar). Older losses fade from the power
       ///   calculus. The comment here said "a season's quarter" until 21/09/2026, which was simply wrong.
       /// </summary>
-      private const int RecentDefeatWindowDays = CalradianCalendar.DaysPerSeason;
+      private static int RecentDefeatWindowDays => WorldCalendar.DaysPerSeason;
 
       /// <summary>
       ///   Candidate pool size for the message-relevant world-fact scan (<see cref="ResolveQueryRelevantFacts" />):

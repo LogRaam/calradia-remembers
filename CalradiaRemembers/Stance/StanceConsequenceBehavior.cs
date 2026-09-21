@@ -30,7 +30,7 @@ namespace CalradiaRemembers.Stance
    public sealed class StanceConsequenceBehavior : CampaignBehaviorBase
    {
       // A lord won't reach out more than once every three weeks, however the player keeps provoking them.
-      private const int LetterCooldownDays = CalradianCalendar.DaysPerSeason;
+      private static int LetterCooldownDays => WorldCalendar.DaysPerSeason;
 
       // Courier time for an unbidden stance letter.
       private const int DeliveryDays = 3;

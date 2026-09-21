@@ -102,7 +102,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Commitments` | 9 | 8 |
 | `CalradiaRemembers.Bastards` | 9 | 4 |
 | `CalradiaRemembers.OpenPartnerLover` | 9 | 0 |
-| `CalradiaRemembers.Lore` | 7 | 4 |
+| `CalradiaRemembers.Lore` | 8 | 4 |
 | `CalradiaRemembers.Rescue` | 7 | 1 |
 | `CalradiaRemembers.Commoners` | 6 | 2 |
 | `CalradiaRemembers.Memory` | 6 | 2 |
@@ -147,8 +147,8 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.UI.Spike` | 1 | 1 |
 | `NpcMemoryService.Core.Memory` | 1 | 1 |
 | `NpcMemoryService.Core.Storage` | 1 | 1 |
+| `NpcMemoryService.Core.Calendar` | 0 | 9 |
 | `NpcMemoryService.Core.Standing` | 0 | 9 |
-| `NpcMemoryService.Core.Calendar` | 0 | 8 |
 | `CalradiaRemembers.Portraits` | 0 | 5 |
 | `CalradiaRemembers.Travel` | 0 | 5 |
 | `NpcMemoryService.Core.Extension` | 0 | 5 |
@@ -431,7 +431,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 ### CalradiaRemembers.Lore
 
-- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Settings`, `CalradiaRemembers.Storage`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`
+- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Settings`, `CalradiaRemembers.Storage`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.WorldAlmanac`
 
 ### CalradiaRemembers.Map
@@ -587,7 +587,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 ### NpcMemoryService.Core.Calendar
 
 - uses: nothing
-- used by: `CalradiaRemembers.Chat`, `CalradiaRemembers.Commoners`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Stance`, `NpcMemoryService.Core.Prompts`
+- used by: `CalradiaRemembers.Chat`, `CalradiaRemembers.Commoners`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Stance`, `NpcMemoryService.Core.Prompts`
 
 ### NpcMemoryService.Core.Captivity
 

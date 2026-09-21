@@ -24,7 +24,7 @@ namespace CalradiaRemembers.Commoners
    public static class RumorGenerator
    {
       // Recent-death window: one Calradian season.
-      private const int DeathWindowDays = CalradianCalendar.DaysPerSeason;
+      private static int DeathWindowDays => WorldCalendar.DaysPerSeason;
 
       // Maximum entries scanned in DeadOrDisabledHeroes to avoid frame spikes in
       // long campaigns where the collection can be very large.

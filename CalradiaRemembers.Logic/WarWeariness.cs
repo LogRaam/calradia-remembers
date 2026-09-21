@@ -69,7 +69,7 @@ namespace CalradiaRemembers.Logic
         ///   to leave in their first two years, no matter how hard the toll. Player report 2026-07-25: a
         ///   22-year-old companion with under a year of service asked to retire.
         /// </summary>
-        public const int MinServiceDays = 2 * CalradianCalendar.DaysPerYear;
+        public static int MinServiceDays => 2 * WorldCalendar.DaysPerYear;
 
         public static int Clamp(int score) => score < Min ? Min : score > Max ? Max : score;
 

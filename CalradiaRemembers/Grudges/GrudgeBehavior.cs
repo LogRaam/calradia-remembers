@@ -258,7 +258,7 @@ namespace CalradiaRemembers.Grudges
       ///   survives near-term dynastic inheritance, while ancient closed history stops growing the ledger and the
       ///   save without bound.
       /// </summary>
-      private const int ResolvedGrudgeRetentionDays = 2 * CalradianCalendar.DaysPerYear;
+      private static int ResolvedGrudgeRetentionDays => 2 * WorldCalendar.DaysPerYear;
 
       /// <summary>Drops grudges resolved longer ago than <see cref="ResolvedGrudgeRetentionDays" />. Main-thread (save); never throws.</summary>
       private void PruneLongResolved()

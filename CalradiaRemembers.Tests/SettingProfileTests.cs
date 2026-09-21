@@ -93,5 +93,43 @@ namespace CalradiaRemembers.Tests
          name.Should().Be("Calradia");
          cultures.Should().BeEquivalentTo(SettingProfileDefaults.PatriarchalCultures);
       }
-   }
+   
+      #region the calendar a total conversion may bring with it (21/09/2026)
+
+      // A conversion could already rename the world; its YEAR was still 84 days long, so every "a season ago" and
+      // "about 2 year(s) ago" the mod wrote was wrong for it. Absent fields keep Calradia, which is what every
+      // existing install has.
+      [Test]
+      public void GIVEN_no_calendar_override_WHEN_resolved_THEN_it_is_Calradia()
+      {
+         SettingProfileDefaults.ResolveCalendar(null).Should().Be((21, 4));
+         SettingProfileDefaults.ResolveCalendar(new SettingProfile()).Should().Be((21, 4));
+      }
+
+      [Test]
+      public void GIVEN_a_world_with_its_own_calendar_WHEN_resolved_THEN_the_override_is_taken()
+      {
+         SettingProfile profile = new() {DaysPerSeason = 30, SeasonsPerYear = 12};
+
+         SettingProfileDefaults.ResolveCalendar(profile).Should().Be((30, 12));
+      }
+
+      // Half an override is honest and must work: a world with longer seasons but still four of them.
+      [Test]
+      public void GIVEN_only_one_of_the_two_WHEN_resolved_THEN_the_other_keeps_its_default()
+      {
+         SettingProfileDefaults.ResolveCalendar(new SettingProfile {DaysPerSeason = 40}).Should().Be((40, 4));
+         SettingProfileDefaults.ResolveCalendar(new SettingProfile {SeasonsPerYear = 2}).Should().Be((21, 2));
+      }
+
+      // A TYPO MUST NOT STOP TIME: every recency window in the mod divides by these.
+      [Test]
+      public void GIVEN_a_nonsense_calendar_WHEN_resolved_THEN_Calradia_is_kept()
+      {
+         SettingProfileDefaults.ResolveCalendar(new SettingProfile {DaysPerSeason = 0, SeasonsPerYear = -1})
+                               .Should().Be((21, 4));
+      }
+
+      #endregion
+}
 }
