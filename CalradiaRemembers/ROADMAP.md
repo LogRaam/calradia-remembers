@@ -32,6 +32,81 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## FOUND 2026-09-21 by reading the generated maps, NOT ACTED ON: one concept under several names
+
+The maps (`docs/maps/`, see its README) show a duplicate when two declarations share a NAME. They cannot show the
+same concept under DIFFERENT names; that needs judgement. So a fresh agent read `constants.md` and `inventory.md`
+end to end, opened the source for its candidates, and ruled each one "one concept", "two honest questions", or "the
+owner must rule". I re-checked the ones marked VERIFIED below myself. Nothing here has been changed in the code.
+
+**A fact that reframes several of these:** `CalradiaRemembers.Logic` already references the SDK, so anything both need
+can live in the SDK. Several doc comments justify a copy with "the SDK cannot reference Logic", which is true only in
+that direction.
+
+### Probably real defects, small
+
+- **Rescue gratitude reaches infants.** `RescueBehavior.ResolveFamily` does not exclude children, where every grudge
+  path does; a baby records a memory and warms to the player. (Read in the source 2026-09-20.)
+- **Lord recruitment is judged on the wrong ledger. VERIFIED.** `LordRecruitment.MinRelation = 60` is fed vanilla
+  `GetRelation`; `NotableRecruitmentPolicy.RegardFloor` and `PrisonerRecruitmentPolicy.RegardFloor`, both 60, read
+  `ReputationWithPlayer`, and the notable's own doc says the three "match". The durable rule is to judge on the MOD
+  ledger. Needs Gabriel's ruling.
+- **The 10000 single-payment clamp lives in five places. VERIFIED.** Two bare literals in the bridge (give_gold
+  `:1508`, take_gold `:3734`) and three named constants (`BastardBlackmailPolicy`, `GoldPledgePolicy`,
+  `HushMoneyPolicy`). The blackmail doc itself says a demand above the clamp can never be settled; changing the
+  literal alone is that bug.
+- **A comment that is wrong:** `EncounterContextBuilder.RecentDefeatWindowDays = 21` calls it "a season's quarter";
+  21 days is a whole Calradian season.
+
+### The one system-wide problem: the regard vocabulary
+
+Some thirty policies each mint a private number for the same few rungs (friend 10/15/20, close 30, love 50, deep
+bond 60, disliked -10, hostile -20/-30) under names like WarmRegard, ConfidantRegardFloor, StandingFloor,
+FriendRelationFloor, BestFriendThreshold, and about half never say WHICH LEDGER they read. Worse, the words do not
+track the ledger: facts named `...Regard` are fed vanilla relation (`KinRegardForPlayer`, `CaptiveRegardForPlayer`)
+while facts named `RelationToPlayer` are fed the mod's own. `RegardBands` fixed this for the WORDS a character
+reads (2026-07-04); the DECISIONS never got the same treatment. Proposed: `RegardTiers` (mod ledger, in the SDK
+beside `RegardBands`) and `VanillaRelationTiers`, with each policy keeping its constant but declaring it
+`= RegardTiers.Friend` or a deliberate local number with a stated reason. "Is A a close friend of B" alone is
+vanilla relation >= 20 under four names with three private scans of every living hero
+(`RescueGratitudePolicy`, `SecretPropagationPolicy`, `DivorceProcessBehavior`, `JealousPartyResolver`).
+
+### Contained consolidations, one to eight files each
+
+- **Prior dislike deepens a wound**: the same three lines in `DivorceConsequencePolicy`, `ExecutedKinRules` and
+  `Tier2GrudgeRules`, bonus 15 in one and 10 in the others with nothing saying why.
+- **The Calradian calendar** (season 21, year 84): `ChronicleCalendar` exists and four files use it; everywhere
+  else it is a literal or hidden inside a tuning value (168, 252, 42, 63). Its home must be the SDK, since
+  `PromptBuilder` restates it too.
+- **Map distance to travel days**: `LetterGenerationService.DistancePerTravelDay` calls itself "the single
+  conversion" and `PlayerLetterService.MapUnitsPerDay` is a second one that has already drifted. A third convention
+  (`CouncilAttendanceResolver`, 5 units an hour) and the real courier speed (6.5) disagree with both.
+- **Courier speed 6.5** under three names; `TravelingParty.BaseSpeed` is public and read by nothing.
+- **"Close kin of X"** enumerated at least seven times with different filters and different caps (4 vs 3).
+- **A hero's five traits**: five carrier types (two identical `TraitFacts`) and eight private `TraitLevel` readers.
+- **News reach**: `InterceptionBehavior.GossipMagnitudeThreshold = 55` and four feeders pinned at 55 by a comment;
+  raising the bar silently mutes tournaments and exploits. About twenty bare literals in `WorldEventFeeders`.
+- **Two stagers**: `CouncilConversationStager` says it "mirrors ChatSceneStager"; council is the `ChatSceneKind`
+  that was never added.
+- **An unfinished convergence**: `CouncilAttendancePolicy` says it consolidates three policies; two are still live
+  and measure "too far" differently, and `AssemblyArrivalPolicy` appears to have no production caller.
+- **Mirror enums** kept for a dependency that points the other way (`PlayerDressBand`/`PlayerDressState`,
+  `EscapeOutcome`/`CaptiveEscapeResolution`).
+- **"Vendetta" means two things**: `GrudgePolicy.VendettaRigidity = 100` (never decays, never resolves) and
+  `CaptorReleasePolicy.VendettaGrudgeFloor = 40` (a MAGNITUDE, on grudges the first calls ordinary). Given the
+  ruling that a vendetta stays unforgivable, the shared word is a trap; rename the second.
+
+### Deliberately twins: leave them, and say so
+
+Grudges and Appreciations mirror each other on purpose ("Trait direction is the MIRROR of GrudgePolicy"). Do NOT
+merge their constants: `CalculatingFormationFloorPerLevel = 5` has the same name in both and the OPPOSITE effect,
+raising one floor and lowering the other. What does want one home there is the scaffolding (`TraitFacts`,
+`MigrationCandidate`, `MaxCauseLength`, `PerNpcCap`). Also honest and documented: `StipendPolicy`/`TributePolicy`,
+`HostagePolicy`/`NonAggressionPactPolicy`, the three journal bridges, and the three neglect windows (7/14/30), which
+are rungs of one ladder.
+
+---
+
 ## SCOPED 2026-09-20 (player proposal, reframed by Gabriel), NOT BUILT: ask the village which way they went
 
 fkasad (Nexus, 20/09/2026) proposed a long, carefully structured "talk to the village elders" feature: villagers
