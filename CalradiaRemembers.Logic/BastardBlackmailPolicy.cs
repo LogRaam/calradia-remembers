@@ -31,7 +31,7 @@ namespace CalradiaRemembers.Logic
         ///   the player's gold was taken with no silence bought and no message; <see cref="MaxDemand" /> must
         ///   never exceed it. Kept here as a named constant so the coupling is explicit and test-guarded.
         /// </summary>
-        public const int MaxSinglePaymentSettlement = 10000;
+        public const int MaxSinglePaymentSettlement = GoldTransferLimit.MaxSingleTransfer;
 
         /// <summary>
         ///   A ceiling so the demand never becomes ruinous in one stroke AND stays settleable in a single

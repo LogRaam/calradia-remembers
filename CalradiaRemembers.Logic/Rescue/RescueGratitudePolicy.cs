@@ -28,6 +28,16 @@ namespace CalradiaRemembers.Logic.Rescue
         /// <summary>True when <paramref name="relationToRescued"/> is high enough to count as a friendship.</summary>
         public static bool QualifiesAsFriend(int relationToRescued) => relationToRescued >= FriendRelationThreshold;
 
+        /// <summary>
+        ///   Whether someone tied to the rescued prisoner can feel the debt at all. A child cannot: gratitude here is a
+        ///   MEMORY plus regard ("You freed my father from the deserters. My house owes you a debt."), and an infant
+        ///   neither knows what happened nor has a house to pledge. Every grudge path already gated on adulthood
+        ///   (ExecutedKinGrudgeBehavior, DivorceProcessBehavior); the rescue path did not, and a critical read of the
+        ///   generated maps found it (21/09/2026): a baby recorded the memory and warmed to the player. The child grows
+        ///   up to meet a stranger, which is the truth.
+        /// </summary>
+        public static bool CanFeelTheDebt(bool isChild) => !isChild;
+
         /// <summary>Resolves the gratitude an NPC feels for a rescue, based on their tie to the rescued prisoner.</summary>
         public static RescueGratitude GratitudeFor(RescueTie tie)
         {

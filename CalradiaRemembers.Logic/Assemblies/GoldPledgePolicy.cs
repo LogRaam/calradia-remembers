@@ -20,7 +20,7 @@ namespace CalradiaRemembers.Logic.Assemblies
     public static class GoldPledgePolicy
     {
         /// <summary>The same ceiling the 1:1 give_gold bridge already applies (BannerlordGameStateBridge.ExecuteGiveGold): no single pledge exceeds this, however large the LLM's proposal.</summary>
-        public const int MaxPayable = 10000;
+        public const int MaxPayable = GoldTransferLimit.MaxSingleTransfer;
 
         /// <summary>
         ///   The real amount the lift may hand over: the LOWEST of what was proposed, what the giver actually

@@ -224,6 +224,7 @@ namespace CalradiaRemembers.Rescue
             void Add(Hero h, string label)
             {
                 if (h == null || !h.IsAlive || h == Hero.MainHero || h == prisoner) return;
+                if (!RescueGratitudePolicy.CanFeelTheDebt(h.IsChild)) return;
                 if (list.Any(x => x.hero == h)) return;
                 list.Add((h, label));
             }
@@ -246,6 +247,7 @@ namespace CalradiaRemembers.Rescue
         {
             return Hero.AllAliveHeroes
                 .Where(h => h != prisoner && h != Hero.MainHero && h.IsLord && !h.IsHumanPlayerCharacter)
+                .Where(h => RescueGratitudePolicy.CanFeelTheDebt(h.IsChild))
                 .Where(h => !excludeIds.Contains(h.StringId))
                 .Where(h => RescueGratitudePolicy.QualifiesAsFriend(prisoner.GetRelation(h)))
                 .OrderByDescending(h => prisoner.GetRelation(h))

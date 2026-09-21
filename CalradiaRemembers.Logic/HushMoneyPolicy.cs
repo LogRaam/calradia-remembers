@@ -13,8 +13,12 @@ namespace CalradiaRemembers.Logic
       /// <summary>The least a hush payment can be, so a lord never settles for a pittance the LLM lowballed. Tuning.</summary>
       public const int MinPayment = 250;
 
-      /// <summary>The most a single hush payment can be, so a hallucinated demand cannot bankrupt the player. Tuning.</summary>
-      public const int MaxPayment = 10000;
+      /// <summary>
+      ///   The most a single hush payment can be, so a hallucinated demand cannot bankrupt the player. It may be tuned
+      ///   LOWER than the bridge's own ceiling, never higher: take_gold would clamp the payment and the silence would
+      ///   be paid for and not bought (the same trap BastardBlackmailPolicy documents).
+      /// </summary>
+      public const int MaxPayment = GoldTransferLimit.MaxSingleTransfer;
 
       /// <summary>How long, in days, a paid lord holds his peace before the leverage framing may press for coin again. Tuning.</summary>
       public const int CooldownDays = 14;

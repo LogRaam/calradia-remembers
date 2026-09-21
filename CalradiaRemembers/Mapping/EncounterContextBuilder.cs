@@ -69,7 +69,8 @@ namespace CalradiaRemembers.Mapping
    {
       /// <summary>
       ///   How many in-game days a battlefield defeat stays "fresh" enough to temper a lord's
-      ///   defiance — roughly a season's quarter. Older losses fade from the power calculus.
+      ///   defiance: one Calradian season (21 days; see ChronicleCalendar). Older losses fade from the power
+      ///   calculus. The comment here said "a season's quarter" until 21/09/2026, which was simply wrong.
       /// </summary>
       private const int RecentDefeatWindowDays = 21;
 

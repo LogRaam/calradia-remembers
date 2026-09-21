@@ -40,7 +40,7 @@ A hole is not always a bug (a bridge-native action has no verb class), but every
 | `grant_blessing` | yes | yes | yes |  |  |  | 3 |
 | `grant_fief` | yes | yes | yes |  |  | yes | 3 |
 | `grant_stipend` | yes | yes | yes |  |  | yes | 3 |
-| `grudge_terms` |  |  |  | `GrudgeTermsVerb` | yes | yes |  |
+| `grudge_terms` | yes | yes | yes | `GrudgeTermsVerb` | yes | yes | 3 |
 | `harm_prisoner` | yes | yes | yes |  |  |  | 3 |
 | `hear_account` | yes | yes | yes | `HearAccountVerb` | yes | yes | 3 |
 | `impregnation_risk` | yes | yes | yes |  |  |  | 3 |

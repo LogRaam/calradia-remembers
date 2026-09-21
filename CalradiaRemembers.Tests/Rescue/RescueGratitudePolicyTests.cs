@@ -68,5 +68,27 @@ namespace CalradiaRemembers.Tests.Rescue
         {
             RescueGratitudePolicy.QualifiesAsFriend(RescueGratitudePolicy.FriendRelationThreshold).Should().BeTrue();
         }
-    }
+    
+        #region who can feel a debt at all (found by reading the maps, 21/09/2026)
+
+        // A RESCUE IS A MEMORY, and an infant has none to keep: the line this path writes is "You freed my father
+        // from the deserters. My house owes you a debt." A child neither understood what happened nor has a house to
+        // pledge. Every grudge path already gated on adulthood (ExecutedKinGrudgeBehavior, DivorceProcessBehavior);
+        // this one did not, so a baby warmed to the player and kept the memory, then grew up owing a debt nobody
+        // could have explained to them.
+        [Test]
+        public void GIVEN_a_child_of_the_rescued_prisoner_WHEN_the_debt_is_weighed_THEN_they_cannot_feel_it()
+        {
+            RescueGratitudePolicy.CanFeelTheDebt(isChild: true).Should().BeFalse();
+        }
+
+        // And the gate must not quietly swallow the people the rescue is FOR: an adult relative is the whole point.
+        [Test]
+        public void GIVEN_an_adult_relative_WHEN_the_debt_is_weighed_THEN_they_feel_it_as_before()
+        {
+            RescueGratitudePolicy.CanFeelTheDebt(isChild: false).Should().BeTrue();
+        }
+
+        #endregion
+}
 }
