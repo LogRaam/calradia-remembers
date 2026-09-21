@@ -6981,8 +6981,14 @@ namespace CalradiaRemembers.Diagnostics
             CalradiaRemembers.Battles.BattleFeatReporter.BuildReport(endToEnd, "open battle");
          string subjectLines = string.Join(" | ", report.LinesFor(lords[0].StringId));
 
+         // NAMED, not "you". reminensce's report (2.5.18) was a lord taking the PLAYER's defeat for his own,
+         // because memory lines under YOUR HISTORY WITH THIS PLAYER said "you" while the whole prompt says "you"
+         // to mean the NPC. Every new memory names the player instead, so the line to look for is his name. This
+         // assertion still read the old wording and only surfaced now, which is what a testall is for.
+         string whoThePlayerIs = Hero.MainHero?.Name?.ToString() ?? "the player";
+
          t.Note($"subjectLines={subjectLines}");
-         t.Expect("the man who downed the player says so himself", subjectLines.Contains("I put you down myself"), true);
+         t.Expect("the man who downed the player says so himself", subjectLines.Contains($"I put {whoThePlayerIs} down myself"), true);
          t.Expect("he does not report himself in the third person",
             subjectLines.Contains($"I saw {lords[0].Name}"), false);
 
@@ -10863,7 +10869,7 @@ namespace CalradiaRemembers.Diagnostics
 
          NpcProfile profile = GetOrCreate(behavior, npc);
          var world = new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()};
-         EncounterContext ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, "hello");
+         EncounterContext ctx;
 
          try
          {
@@ -10873,6 +10879,14 @@ namespace CalradiaRemembers.Diagnostics
             // prompt is being built for.
             CrPrompt.RegisterVariable(name, facts => $"selftest-marker-{facts.NpcId}");
             CrPrompt.RegisterVariable(throwingName, _ => throw new InvalidOperationException("[SELFTEST] deliberate throw"));
+
+            // REGISTER FIRST, THEN BUILD THE CONTEXT, which is the order the game itself uses and was not the
+            // order this test used. Since 2.5.19 (tashmetu: a modder's {{variables}} came out empty) providers
+            // are resolved on the GAME THREAD while the context is built, and the prompt reads what the context
+            // carries rather than composing them itself. So a context built BEFORE registration carries an empty
+            // set that wins over the registry, and the marker could never land. A real bridge registers at module
+            // load, long before any conversation, which is why nothing was broken but this.
+            ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, "hello");
 
             string prompt = null;
             Exception thrown = null;
@@ -10903,6 +10917,9 @@ namespace CalradiaRemembers.Diagnostics
             // real player name CR itself supplies always takes precedence, so a third-party mod can never
             // shadow a core token.
             CrPrompt.RegisterVariable(builtInName, _ => "IMPOSTOR-VALUE-SHOULD-NEVER-APPEAR");
+
+            // Same reason as above: the collision has to be present in the context the prompt reads.
+            ctx = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, "hello");
 
             const string playerName = "SelfTestPlayer";
             var collisionBuilder = new PromptBuilder {
@@ -13058,14 +13075,17 @@ namespace CalradiaRemembers.Diagnostics
          NpcProfile profile = GetOrCreate(behavior, companion);
          int eventsBefore = profile.Events.Count;
          int today = behavior.GameStateBridge.GetCurrentGameDay();
-         string expected = BattleMemoryText.AllySummary(true, "", false);
+         // Built the way the recorder builds it, player name included (BattleMemoryText.NameOrPlayer, 2.5.18).
+         // Without the name this matched nothing: the assertion below failed, and the cleanup at the end of this
+         // test quietly removed nothing, leaving a planted memory in the campaign every time it ran.
+         string expected = BattleMemoryText.AllySummary(true, "", false, Hero.MainHero?.Name?.ToString() ?? "the player");
 
          int gained = WorldEventFeeders.DebugRecordCompanionBattleMemories(true);
 
          profile = behavior.Store.Get(companion.StringId);
          t.Note($"{companion.Name}: events {eventsBefore}->{profile.Events.Count}, companionsGained={gained}, last='{profile.Events.LastOrDefault()?.summary ?? "(none)"}'");
          t.Expect("companionGainedMemory", profile.Events.Count > eventsBefore, true);
-         t.Expect("memoryReadsFoughtBeside", profile.Events.Last().summary.Contains("Fought at your side"), true);
+         t.Expect("theMemoryNamesThePlayerHeFoughtBeside", profile.Events.Last().summary == expected, true);
 
          // Cleanup: drop only the ally memory this test planted (this exact summary, dated today), then return the
          // borrowed companion so the test does not quietly conscript someone.
