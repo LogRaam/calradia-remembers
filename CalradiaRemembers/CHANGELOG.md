@@ -2,6 +2,53 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.20.. 2026-09-21
+
+Two player-facing fixes, one of them a verb that has been unreachable since July, and a day of work on the thing
+underneath: views of the system, generated from its own source, that a test keeps honest.
+
+### Fixed
+- **`grudge_terms` could never be emitted.** The verb had a class, a teaching, a registry entry and a `cr.testall`
+  self-test, and was in NEITHER `GameActionCatalog` NOR the bridge's `HandledActionTypes`. The parity self-test
+  compares exactly those two, so it saw nothing wrong. The interpreter only learns what the catalogue lists, so in
+  the two-call mode every player runs, no character could emit it: asking a lord what would mend a grievance
+  (`Grudge.ResolutionHintDiscovered` has no other writer) has been impossible since it shipped in July. Found by
+  `docs/maps/verbs.md` on the day that map was built.
+- **Lord recruitment read the wrong ledger** (Gabriel's ruling, 21/09/2026). It gated on vanilla `GetRelation` while
+  `NotableRecruitmentPolicy` and `PrisonerRecruitmentPolicy` gated on `ReputationWithPlayer` at the same mark of 60,
+  and the notable policy's doc claimed all three matched. A lord befriended across a campaign IN CONVERSATION could
+  stand at 80 of the mod's own regard and be refused to his face. Vanilla relation stays the fallback for a lord
+  with no profile yet.
+- **Rescue gratitude reached infants.** Every grudge path already gated on adulthood; the rescue path did not, so a
+  baby recorded "my house owes you a debt". Both the family and friends passes now go through
+  `RescueGratitudePolicy.CanFeelTheDebt`.
+- **The 10000-denar single-transfer ceiling lived in five places** under four spellings, two of them bare literals in
+  the bridge where it is actually enforced. `BastardBlackmailPolicy`'s own doc explains the trap: a demand above what
+  one `take_gold` carries is structurally impayable, so the gold goes and no silence is bought. One home
+  (`GoldTransferLimit`); each policy may still be tuned LOWER, none can drift above the bridge.
+
+### For modders
+- **A total conversion may bring its own calendar.** `setting.json` gains `daysPerSeason` and `seasonsPerYear` beside
+  the world's name and adjective it already carried. Until now a conversion could rename the world while its year
+  stayed 84 days long, so every "a season ago" the mod wrote was wrong for it. Absent or nonsense values keep
+  Calradia's 21-day season and four-season year, so a stock install is unchanged.
+
+### Under the hood
+- **`docs/maps/`: eleven generated views of the system**, regenerated from the source by the test suite and compared
+  with the committed copy, so they cannot rot while the suite is green (there is no CI that can build this mod; the
+  suite is the trigger). Every type and namespace, every dependency edge with its cycles, every numeric constant,
+  every engine event listened to, the prompt's sections in order with their cache zone, every verb with all seven
+  places it must be declared, everything static that can change, a swept decision table for the regard scale, and
+  two CONTRACTS: every save key (a key that disappears is refused outright, since a renamed key silently loses a
+  player's data) and the whole modder API. `RULES.md`, which existed and had sat ten days stale, is generated the
+  same way now.
+- **Duplicated knowledge, consolidated where it was found:** `Regard` and `VanillaRelation` give the two -100..100
+  ledgers one home each for their rungs, so "how friendly is a friend" stops being answered in seven places;
+  `WorldCalendar` does the same for the season and the year. No tuning value moved, and the swept decision table is
+  the witness: across the whole batch it changed only where a declaration stopped being a bare number.
+- `SchemeAgentPolicy.MinPlotterRegard` is renamed `MinPlotterRelation`: it reads the engine's ledger, and "regard"
+  is this mod's word for its own. That kind of lie is how lord recruitment came to gate on the wrong one.
+
 ## v2.5.19.. 2026-09-21
 
 Two fixes that missed the 2.5.18 upload by minutes, one from a player and one from a modder who asked the right
