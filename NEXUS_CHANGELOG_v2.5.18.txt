@@ -1,0 +1,17 @@
+Version 2.5.18
+
+Four player reports. Three of them turned out to be the same thing: something the prompt said once, in a place the character could no longer see by the time it mattered.
+
+Fixed
+
+- Characters no longer take your side of the conversation for their own. One player sent the reasoning his local model prints, which showed it exactly: on the first turn the character knew it had sought him out over the captive he held, and two turns later it was speaking as the one holding her. The prompt did say who is who, but near the top, and on a small model with a short context that part is the first to be dropped. The last thing a character reads before answering is now who it is, who you are, and that your deeds, your captives and your claims are yours. If you hold prisoners, it says so there too.
+
+- A lord no longer claims your defeat as his own. The memories a character keeps of battles were written speaking to you, so "you" in them meant you, while "you" everywhere else in the prompt means the character. New memories name you outright, and characters are told how to read the older ones, so existing saves are covered too.
+
+- Characters stop arranging meetings the game cannot keep. Several of you were told to be at a place at a time, went there, found nobody, and were then blamed for breaking a promise. There is no meeting system in the mod; the character was inventing one. They now offer what actually exists (ask you now, write to you, speak again when your paths cross), and they will never reproach you for a missed meeting, including the ones promised before this version.
+
+- Rescuing someone is remembered again. If you hunt down the party holding a prisoner and free them, they now remember it, and so does their family. Until now this only worked in the rarer case where the game freed the prisoner on its own; when you were the one who won the fight and chose to let them go, which is what normally happens, nothing was recorded, and the person you rescued met you later as a stranger. Freeing someone you had yourself taken prisoner is still a pardon, not a rescue, and is not counted as one.
+
+Notes
+
+- Nothing here changes your save format and nothing needs a new game.

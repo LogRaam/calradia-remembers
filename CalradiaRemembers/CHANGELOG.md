@@ -2,6 +2,42 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.18.. 2026-09-20
+
+Four player reports, and three of them are the same class of bug: a fact the prompt stated ONCE, somewhere the
+model could not see it when it mattered.
+
+### Fixed
+- **A character took the player's side of the matter for its own** (Fakade, on gemma-4-e4b through LM Studio,
+  who pasted the model's own reasoning). Turn one: "Goal: I sought this meeting. The matter is 'Arthur took Lady
+  Debana captive'". Turn two, after he confirms he holds her: "He challenges Diasca's right to hold her
+  captive". The identity contract existed, near the TOP of the prompt: thousands of characters back for a 4B
+  model on a short context, and the first stretch such a context drops. `AppendRoleAnchor` now restates it at
+  the point of highest recency, right before the format reminder, naming both parties and whose deeds, captives
+  and claims are whose (3 lines Full, 2 Lean). A captor who has not been told the prisoner's name still does not
+  get it there. The held-captives line moves from Lean-only to both.
+- **A lord took the PLAYER's defeat for his own** (reminensce, with Complex Characters injecting a taunt about
+  it in the vanilla dialogue first). CR never reads vanilla dialogue, so that was not the source: the memory
+  lines were. They said "you" meaning the player ("Faced you in battle and saw you put their host to flight",
+  mixing both parties in one sentence) inside a prompt whose every other "you" is the character. New memories
+  name the player (`BattleMemoryText.NameOrPlayer`); `AppendHistory` states the convention for memories already
+  in saves; `EventSubjectNormalizer` swaps "the player" for their name as a model-written `[EVENT]` is stored,
+  and the teaching asks for the name. `LostBattleToPlayerRecently` matches both the old and the new phrasing.
+- **Characters arranged meetings the game cannot keep** (yozakura12: "when I go to the designated location at
+  the appointed time, the NPC isn't there. Consequently, the NPC gets upset, claiming I didn't keep the
+  promise"). There is no rendezvous in this mod; the character invented one and the player was punished for it.
+  `AppendNoAppointments`, always on: never fix a place and a time, offer what exists instead, and never reproach
+  the player for a missed meeting whoever seemed to arrange it. That second half outlives the guardrail, since
+  the promises already in saves keep surfacing. A real rendezvous is scoped in `ROADMAP.md`.
+- **A rescue the player CHOSE was not counted as a rescue** (Lordfadooboo: he hunted the deserter band holding
+  Lady Mesui, the vanilla thank-you encounter fired, and she later had "no knowledge of ever being held
+  prisoner, being rescued, or even knowing who i was"). The ledger listened for one of the engine's seven
+  endings: `ReleasedAfterBattle`, which is the engine freeing a prisoner ITSELF when no winner wants them. When
+  the winner is the player, vanilla asks instead, and letting them go is `ReleasedByChoice`: the common case,
+  dropped whole. Both count now (`RescueEligibilityPolicy.CanBeARescue`); the defeated-side guard still keeps a
+  pardon from the player's own dungeon out of it. Verified against the decompiled engine that the release fires
+  before `MapEventEnded` in both paths, so the buffering order was right and is unchanged.
+
 ## v2.5.17.. 2026-09-19
 
 One player report, two causes, and a hole in the guard that should have caught the second.
