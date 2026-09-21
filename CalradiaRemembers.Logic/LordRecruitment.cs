@@ -4,6 +4,8 @@
 // the lord, and the lord being genuinely vulnerable) and their tuning stay protected by tests; they
 // guard a powerful action and would break in silence.
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic
 {
     /// <summary>Why a lord cannot (yet) be recruited — <see cref="LordRecruitmentBlock.None"/> means they can.</summary>
@@ -76,7 +78,7 @@ namespace CalradiaRemembers.Logic
         ///   <c>NotableRecruitmentPolicy.RegardFloor</c> and <c>PrisonerRecruitmentPolicy.RegardFloor</c>, which is
         ///   what the notable policy's doc always claimed and what only became true on 21/09/2026.
         /// </summary>
-        public const int MinRelation = 60;
+        public const int MinRelation = Regard.DeepBondTier;
 
         /// <summary>At or below this relation toward their liege, a lord is estranged enough to consider leaving.</summary>
         public const int LiegeResentmentThreshold = -20;

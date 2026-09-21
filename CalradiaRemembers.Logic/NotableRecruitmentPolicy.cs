@@ -19,6 +19,8 @@
 
 #endregion
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic
 {
    /// <summary>Why a notable cannot (yet) be recruited as a companion, or <see cref="None" /> when they can.</summary>
@@ -59,7 +61,7 @@ namespace CalradiaRemembers.Logic
       ///   <see cref="PrisonerRecruitmentPolicy.RegardFloor" />: uprooting a gang leader or headman from the
       ///   standing they hold in their town is a sustained investment, never a quick exploit.
       /// </summary>
-      public const int RegardFloor = 60;
+      public const int RegardFloor = Regard.DeepBondTier;
 
       /// <summary>
       ///   TUNE: the one-off relation bonus applied between the new companion and the player when a notable is

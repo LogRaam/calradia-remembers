@@ -6,13 +6,19 @@
 // the rest (a true friend of the PLAYER guards it and never spreads, decided by HeldSecretPolicy; picking an actual
 // friend; the random roll), so the spread stays a slow trickle, not a broadcast.
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic
 {
    /// <summary>The numeric contract for how a held secret-lover identity trickles from a knowing lord to his friends.</summary>
    public static class SecretPropagationPolicy
    {
-      /// <summary>The relation a hero needs toward the teller to count as a friend close enough to be told. Tuning.</summary>
-      public const int FriendRelationFloor = 20;
+      /// <summary>
+      ///   The relation a hero needs toward the teller to count as a friend close enough to be told. ONE HOME since
+      ///   21/09/2026 (<see cref="VanillaRelation.TrustedTier" />), shared with rescue gratitude, a spouse's closest
+      ///   friends and a suitor's associates, which had each minted it at 20. The value did not move.
+      /// </summary>
+      public const int FriendRelationFloor = VanillaRelation.TrustedTier;
 
       /// <summary>The per-day chance a knowing lord (who is not the player's own confidant) lets the secret slip to one friend. Tuning: low, so it stays a trickle.</summary>
       public const int DailySpreadChancePercent = 8;

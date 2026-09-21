@@ -21,6 +21,8 @@
 
 #endregion
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic
 {
    /// <summary>Why a held prisoner cannot (yet) be recruited, or <see cref="None" /> when they can.</summary>
@@ -51,7 +53,7 @@ namespace CalradiaRemembers.Logic
       ///   matching <see cref="LordRecruitment.MinRelation" />: a captured enemy lord starts hostile, so
       ///   reaching this is a sustained investment, never a quick exploit.
       /// </summary>
-      public const int RegardFloor = 60;
+      public const int RegardFloor = Regard.DeepBondTier;
 
       /// <summary>The blocking reason, or <see cref="PrisonerRecruitmentBlock.None" /> when the prisoner can be recruited.</summary>
       public static PrisonerRecruitmentBlock Evaluate(bool heldByPlayer, bool isClanLeader, int regard)

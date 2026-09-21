@@ -8,7 +8,7 @@ sentence beside each type is the first sentence of its own doc comment; `(no sum
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 416 types in 55 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 757 types in 25 namespaces, 2 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 235 types in 15 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 237 types in 16 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -1911,6 +1911,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NpcChatService` | public class | Orchestrates a single NPC dialogue turn: builds the prompt → calls the LLM → parses the response → updates the session. |
 | `ProfileMutator` | public static class | Applies the structured outcome of an LLM dialogue turn (a ParsedResponse) to an NpcProfile. |
 | `ReasoningTraceBackfill` | public static class | Heals a profile whose stored prose carries a leaked reasoning trace: each event summary and the background context are run through ReasoningTraceStripper. |
+
+### NpcMemoryService.Core.Standing (2)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `Regard` | public struct | What one character personally thinks of the player on the MOD's ledger (NpcProfile.ReputationWithPlayer, -100 to 100), built by what passes between them in conversation. |
+| `VanillaRelation` | public struct | How two people stand with each other on the ENGINE's ledger (Hero.GetRelation), -100 to 100. |
 
 ### NpcMemoryService.Core.Storage (4)
 

@@ -81,13 +81,13 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.GameState` | 28 | 14 |
 | `CalradiaRemembers.Letters` | 23 | 8 |
 | `CalradiaRemembers.Behaviors` | 21 | 36 |
-| `CalradiaRemembers.Marriage` | 17 | 8 |
+| `CalradiaRemembers.Marriage` | 18 | 8 |
 | `CalradiaRemembers.Verbs` | 16 | 7 |
 | `CalradiaRemembers.Missions` | 15 | 10 |
 | `CalradiaRemembers.Quests` | 14 | 9 |
+| `CalradiaRemembers.Jealousy` | 14 | 8 |
 | `CalradiaRemembers.WorldAlmanac` | 14 | 2 |
 | `CalradiaRemembers.WorldEvents` | 13 | 28 |
-| `CalradiaRemembers.Jealousy` | 13 | 8 |
 | `CalradiaRemembers.Interception` | 13 | 7 |
 | `CalradiaRemembers.Duels` | 13 | 4 |
 | `CalradiaRemembers.Encyclopedia` | 13 | 0 |
@@ -117,6 +117,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Scenarios` | 4 | 2 |
 | `NpcMemoryService.Core.Captivity` | 4 | 2 |
 | `CalradiaRemembers.WarCouncil` | 4 | 1 |
+| `CalradiaRemembers.Logic` | 3 | 45 |
 | `CalradiaRemembers.Storage` | 3 | 22 |
 | `NpcMemoryService.Core.Prompts` | 3 | 13 |
 | `CalradiaRemembers.Logic.Assemblies` | 3 | 10 |
@@ -124,7 +125,6 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `NpcMemoryService.Core.Knowledge` | 3 | 4 |
 | `NpcMemoryService.Core.Compression` | 3 | 2 |
 | `NpcMemoryService.Core.Models` | 2 | 53 |
-| `CalradiaRemembers.Logic` | 2 | 45 |
 | `NpcMemoryService.Core.Parsing` | 2 | 8 |
 | `CalradiaRemembers.Retainer` | 2 | 6 |
 | `CalradiaRemembers.Escort` | 2 | 5 |
@@ -143,12 +143,14 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Conversation` | 1 | 3 |
 | `CalradiaRemembers.UI` | 1 | 3 |
 | `NpcMemoryService.Core.LlmClient.OpenRouter` | 1 | 2 |
+| `CalradiaRemembers.Logic.Rescue` | 1 | 1 |
 | `CalradiaRemembers.UI.Spike` | 1 | 1 |
 | `NpcMemoryService.Core.Memory` | 1 | 1 |
 | `NpcMemoryService.Core.Storage` | 1 | 1 |
 | `CalradiaRemembers.Portraits` | 0 | 5 |
 | `CalradiaRemembers.Travel` | 0 | 5 |
 | `NpcMemoryService.Core.Extension` | 0 | 5 |
+| `NpcMemoryService.Core.Standing` | 0 | 4 |
 | `CalradiaRemembers.Logic.Companions` | 0 | 3 |
 | `CalradiaRemembers.Logic.Escort` | 0 | 3 |
 | `CalradiaRemembers.Logic.Social` | 0 | 3 |
@@ -165,7 +167,6 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Items` | 0 | 1 |
 | `CalradiaRemembers.Logic.MissionResult` | 0 | 1 |
 | `CalradiaRemembers.Logic.Prisoners` | 0 | 1 |
-| `CalradiaRemembers.Logic.Rescue` | 0 | 1 |
 | `CalradiaRemembers.Logic.Tournaments` | 0 | 1 |
 | `CalradiaRemembers.Logic.Violence` | 0 | 1 |
 | `NpcMemoryService.Core.Mood` | 0 | 0 |
@@ -289,7 +290,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 ### CalradiaRemembers.Jealousy
 
-- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Social`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`
+- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Social`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Bastards`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.OpenPartnerLover`
 
 ### CalradiaRemembers.Letters
@@ -299,7 +300,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 ### CalradiaRemembers.Logic
 
-- uses: `CalradiaRemembers.Logic.Assemblies`, `NpcMemoryService.Core.Models`
+- uses: `CalradiaRemembers.Logic.Assemblies`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Standing`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Appearance`, `CalradiaRemembers.Assemblies`, `CalradiaRemembers.Bastards`, `CalradiaRemembers.Battles`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Chronicle`, `CalradiaRemembers.Commitments`, `CalradiaRemembers.Commoners`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Duels`, `CalradiaRemembers.Dynasty`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.GUI`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Items`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Assemblies`, `CalradiaRemembers.Logic.Battles`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Memory`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Nemesis`, `CalradiaRemembers.OpenPartnerLover`, `CalradiaRemembers.Quests`, `CalradiaRemembers.RealmTidings`, `CalradiaRemembers.Retainer`, `CalradiaRemembers.Scenarios`, `CalradiaRemembers.Services`, `CalradiaRemembers.Settings`, `CalradiaRemembers.Stance`, `CalradiaRemembers.Tournaments`, `CalradiaRemembers.UI`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.Violence`, `CalradiaRemembers.WarCouncil`, `CalradiaRemembers.Witnesses`, `CalradiaRemembers.WorldAlmanac`, `CalradiaRemembers.WorldEvents`
 
 ### CalradiaRemembers.Logic.Actions
@@ -394,7 +395,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 ### CalradiaRemembers.Logic.Rescue
 
-- uses: nothing
+- uses: `NpcMemoryService.Core.Standing`
 - used by: `CalradiaRemembers.Rescue`
 
 ### CalradiaRemembers.Logic.Social
@@ -444,7 +445,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 ### CalradiaRemembers.Marriage
 
-- uses: `CalradiaRemembers.Appreciations`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Escort`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Retainer`, `CalradiaRemembers.Services`, `CalradiaRemembers.Storage`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`
+- uses: `CalradiaRemembers.Appreciations`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Escort`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Retainer`, `CalradiaRemembers.Services`, `CalradiaRemembers.Storage`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Verbs`
 
 ### CalradiaRemembers.Memory
@@ -641,6 +642,11 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 - uses: `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.LlmClient.OpenRouter`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Parsing`, `NpcMemoryService.Core.Prompts`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Chronicle`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Rescue`, `CalradiaRemembers.Services`, `CalradiaRemembers.Stance`, `NpcMemoryService.Core.Captivity`, `NpcMemoryService.Core.Compression`, `NpcMemoryService.Core.Models`
+
+### NpcMemoryService.Core.Standing
+
+- uses: nothing
+- used by: `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Rescue`, `CalradiaRemembers.Marriage`
 
 ### NpcMemoryService.Core.Storage
 

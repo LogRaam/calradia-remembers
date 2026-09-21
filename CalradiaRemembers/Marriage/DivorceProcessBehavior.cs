@@ -18,6 +18,7 @@ using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Standing;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -43,7 +44,7 @@ namespace CalradiaRemembers.Marriage
       ///   above <c>ContextualNameResolver</c>'s own "friend (genuine regard)" bar of 10, since these three are meant
       ///   to be the CLOSEST bonds, not merely cordial acquaintances.
       /// </summary>
-      private const int BestFriendThreshold = 20;
+      private const int BestFriendThreshold = VanillaRelation.TrustedTier;
 
       /// <summary>
       ///   Appreciations pillar: the fixed formation magnitude for a DivorceGratitude plant — comparable to

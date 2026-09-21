@@ -4,6 +4,8 @@
 
 #endregion
 
+using NpcMemoryService.Core.Standing;
+
 namespace CalradiaRemembers.Logic.Rescue
 {
     /// <summary>
@@ -22,11 +24,16 @@ namespace CalradiaRemembers.Logic.Rescue
         /// <summary>Regard points granted to a friend of the rescued prisoner.</summary>
         public const int FriendRegard = 3;
 
-        /// <summary>Relation at/above this counts as a friend of the rescued prisoner.</summary>
-        public const int FriendRelationThreshold = 20;
+        /// <summary>
+        ///   Relation at/above this counts as a friend of the rescued prisoner. ONE HOME since 21/09/2026
+        ///   (<see cref="VanillaRelation.TrustedTier" />): the same question, "is this hero close enough to X to owe
+        ///   or be told something", had been minted separately here, in SecretPropagationPolicy, in
+        ///   DivorceProcessBehavior and in JealousPartyResolver, all four at 20. The value did not move.
+        /// </summary>
+        public const int FriendRelationThreshold = VanillaRelation.TrustedTier;
 
         /// <summary>True when <paramref name="relationToRescued"/> is high enough to count as a friendship.</summary>
-        public static bool QualifiesAsFriend(int relationToRescued) => relationToRescued >= FriendRelationThreshold;
+        public static bool QualifiesAsFriend(int relationToRescued) => new VanillaRelation(relationToRescued).IsTrusted;
 
         /// <summary>
         ///   Whether someone tied to the rescued prisoner can feel the debt at all. A child cannot: gratitude here is a

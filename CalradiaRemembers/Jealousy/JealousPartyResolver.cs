@@ -6,6 +6,7 @@ using System;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Marriage;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Standing;
 using TaleWorlds.CampaignSystem;
 
 #endregion
@@ -31,7 +32,7 @@ namespace CalradiaRemembers.Jealousy
       // A rival suitor must be at least a genuine associate of the courted NPC (NPC<->NPC
       // relation), since the game does not model NPC desire — we infer it from "close enough
       // to plausibly have wanted them, and able to marry them".
-      private const int RivalRelationThreshold = 20;
+      private const int RivalRelationThreshold = VanillaRelation.TrustedTier;
 
       // A spurned admirer must have carried real attraction to the player (0..100 scale).
       private const int SpurnedAttractionThreshold = 55;
