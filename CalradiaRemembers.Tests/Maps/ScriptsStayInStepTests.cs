@@ -61,6 +61,43 @@ namespace CalradiaRemembers.Tests.Maps
          script.Should().NotContain("Set-Content -LiteralPath $outputPath", "that was the second generator, and it is gone");
       }
 
+      // AND THE RUNNER THAT MUST NOT RUN THEM AT ALL. These fixtures are an approval mechanism: they regenerate a
+      // document and compare it with the copy in the repository, which only means anything when the sources being
+      // read and the maps being compared are the working tree. NCrunch works from a copy, and on 21/09/2026 it
+      // failed all twenty of them in milliseconds, three times, each time for a different reason than the one I
+      // had guessed. They are excluded there by NCrunch's own config, the way an older test that needs the
+      // compiled mod assembly already was.
+      //
+      // The list is by NAME, so a map added later runs everywhere except where it was told to, and NCrunch goes
+      // red again for a reason that has nothing to do with the code. That is what this catches, at `dotnet test`
+      // time, where the answer is one line in a file rather than an afternoon of triage. The config is per
+      // machine and gitignored, so this says nothing where it is absent.
+      [Test]
+      public void GIVEN_a_map_test_that_cannot_run_under_NCrunch_WHEN_the_ignore_list_is_read_THEN_it_is_named_there()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         string path = Path.Combine(SourceTree.ModRepo!, "CalradiaRemembers.Tests", "CalradiaRemembers.Tests.v3.ncrunchproject");
+
+         if (!File.Exists(path)) Assert.Ignore("no NCrunch config on this machine, so there is nothing to keep in step");
+
+         string config = File.ReadAllText(path);
+
+         List<string> missing = typeof(ScriptsStayInStepTests).Assembly
+                                                              .GetTypes()
+                                                              .Where(t => t.Namespace == typeof(MapsAreCurrentTests).Namespace)
+                                                              .SelectMany(t => t.GetMethods())
+                                                              .Where(m => m.GetCustomAttributes(typeof(TestAttribute), false).Length > 0)
+                                                              .Select(m => $"{m.DeclaringType!.FullName}.{m.Name}")
+                                                              .Where(name => !config.Contains(name))
+                                                              .OrderBy(name => name, StringComparer.Ordinal)
+                                                              .ToList();
+
+         missing.Should().BeEmpty("these map tests would run under NCrunch, which cannot see the repository they "
+                                + "compare against, and would fail there for no reason: "
+                                + string.Join(", ", missing));
+      }
+
       #region private
 
       private static string Script(string repoRelativePath)
