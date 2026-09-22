@@ -29,6 +29,18 @@ source, that a test keeps honest.
   construction (`cr.duel_arm` mimicked the venue choice with an `IsTown` test of its own and so could never have
   found this); both now go through the real path, and the success log names the ground.
 
+- **A partner can accept that you keep others, without it becoming an open relationship** (yozakura12,
+  22/09/2026: "accepting the player having multiple wives is not the same as agreeing to a reciprocal open
+  relationship... The player may have multiple wives/consorts, but each wife remains exclusive to the player").
+  New verb `accept_other_partners`, distinct from `open_relationship` in the catalogue, in the prompt and in what
+  it does: open terms are reciprocal and suppress her jealousy outright, this is her consent to HIS other loves
+  and changes only what jealousy COSTS her. `JealousyTrack` gives the system three prices instead of two, the new
+  one a factor on the betrayal band (5/13/20 against 10/25/40 and 3/6/8) with a floor at `Regard.WaryTier`: she
+  can come to resent it, never to hate him for it, and once there the grievance costs only the scene, which is
+  what he asked to keep. `PluralAcceptancePolicy` is Gabriel's ruling that the culture sets the PRICE, not a
+  veto: a people who already share ask nothing extra, a people who call it betrayal ask for devotion. An act
+  OUTSIDE what she accepted is a betrayal at full price whoever she is.
+
 ### Fixed
 - **`grudge_terms` could never be emitted.** The verb had a class, a teaching, a registry entry and a `cr.testall`
   self-test, and was in NEITHER `GameActionCatalog` NOR the bridge's `HandledActionTypes`. The parity self-test
@@ -50,6 +62,15 @@ source, that a test keeps honest.
   (`GoldTransferLimit`); each policy may still be tuned LOWER, none can drift above the bridge.
 
 ### For modders
+- **A closed plural house is now expressible.** `jealousy_cultures.json` gains `outsidePartnersAllowed` (default
+  true, so nothing moves). `patriarchalHousehold` was carrying two facts at once, that a people keeps plural
+  households AND that a neglected wife of that people strays; yozakura12 wanted the first without the second.
+  `IsHaremCulture` now requires both.
+- **The chronicle stops losing a chapter when a fed fact is retracted** (tashmetu, 22/09/2026, flagging before
+  publishing that his bridge is the first caller anywhere to use `Feed.Retract`). The illuminator's bookmark was
+  a COUNT into the deed list, exact only while that list could grow; retract a deed already written up and the
+  next illumination started one entry too far in and silently skipped a new one. It is now an IDENTITY, found
+  again wherever the deed moved to, with the count as the fallback for older saves.
 - **A total conversion may bring its own calendar.** `setting.json` gains `daysPerSeason` and `seasonsPerYear` beside
   the world's name and adjective it already carried. Until now a conversion could rename the world while its year
   stayed 84 days long, so every "a season ago" the mod wrote was wrong for it. Absent or nonsense values keep

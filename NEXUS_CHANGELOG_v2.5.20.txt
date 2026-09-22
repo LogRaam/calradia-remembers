@@ -1,12 +1,14 @@
-Version 2.5.20
+﻿Version 2.5.20
 
-Four changes you can feel, one of them a conversation that has quietly been impossible since July, plus groundwork that does not change the game but should make the next months of fixes faster and safer.
+Five changes you can feel, one of them a conversation that has quietly been impossible since July, plus groundwork that does not change the game but should make the next months of fixes faster and safer.
 
 New
 
 - The conversation you stepped out of is still there when you come back. Roleplaying takes longer than a battle, and a negotiation often outlasts a sitting: you closed the chat, saved, quit, and on reload the character remembered talking to you but not a word of what was said, so the bargain started from the beginning. Reopen the chat with the same person on the same day and the exchange comes back, both on screen and in what the character knows, so you carry on from the last thing said. Open a chat with somebody else first and it is gone, because that conversation is over. Only the last one is kept, and only for that day.
 
 - You can duel in a castle. Lords are met in castles more often than anywhere else, and a courtyard is as good a place to cross blades as a town square. The duel was offered there and then quietly refused: you agreed to fight and nothing happened. It works now.
+
+- A wife or consort can accept that you keep others, and still be herself about it. Until now the only thing close was an open relationship, where both of you are free and she is simply no longer jealous. That is not the same arrangement, and it was being reached for whenever a conversation turned to accepting other wives. She can now say plainly that she accepts your other partners while she remains yours alone, and it does not make her serene: she can still be jealous, still demand her place as the first among them, still tell you what it takes from her. What changes is the cost. A partner who never agreed still takes the full wound. One whose own people keep plural households barely feels it, as before. One who agreed against the custom of her own people takes about half, and can cool to real wariness but never to hatred, and once she is that cold the quarrel costs her nothing further while still being had out loud. Whether she can be asked at all depends on her people and on her devotion to you: where marriage is held to one alone, only a woman deeply devoted will bear it. And accepting a household is not a blank cheque, so a woman you never told her about is still a betrayal at full price.
 
 Fixed
 
@@ -19,6 +21,10 @@ Fixed
 - A payment cap that existed in five places now exists in one. The limit on what a single transfer can carry was written out separately in several files, and a blackmail demand above it could take your gold without buying anything.
 
 For modders
+
+- A closed plural house can now be described. jealousy_cultures.json accepts outsidePartnersAllowed, and leaving it out changes nothing. Until now patriarchalHousehold meant two things at once: that a people keeps several spouses, and that a neglected wife of that people takes a secret lover. Set outsidePartnersAllowed to false and you keep the first without the second.
+
+- The chronicle no longer skips an entry when a bridge mod withdraws a fact it had already written up. Only relevant if you are feeding world events from another mod and retracting them.
 
 - A total conversion can now set its own calendar. setting.json accepts daysPerSeason and seasonsPerYear beside the world name and adjective it already supported. Until now a conversion could rename the world, but its year was still 84 days long, so every "a season ago" a character said was wrong for it. Leave the fields out and nothing changes.
 
