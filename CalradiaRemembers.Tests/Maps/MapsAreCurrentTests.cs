@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 21/09/2026.
+﻿// Code written by Gabriel Mailhot, 21/09/2026.
 // What these pin: that the generated views of the system are the views of THIS code, not of last week's.
 //
 // Gabriel, 21/09/2026: "ces cartes doivent etre regenerees a chaque changement de code. Normalement ce serait un
@@ -61,6 +61,13 @@ namespace CalradiaRemembers.Tests.Maps
       [Test]
       public void GIVEN_the_source_as_it_stands_WHEN_the_shared_state_is_regenerated_THEN_it_matches_the_committed_map()
          => ApprovedMap.Verify(SharedStateMap.Path, Generated(SharedStateMap.Generate));
+
+      // THE PAIRING LENS, asked for by Gabriel on 22/09/2026 after a triage that needed five separate reads to
+      // settle whether one audit line meant anything: what TEACHES a verb, what the bridge DEMANDS of it, and
+      // which other verbs can change the answer between the two.
+      [Test]
+      public void GIVEN_the_source_as_it_stands_WHEN_the_gates_are_regenerated_THEN_they_match_the_committed_map()
+         => ApprovedMap.Verify(GatesMap.Path, Generated(GatesMap.Generate));
 
       // THE DECISION TABLE. Not a list of declarations but a sweep of the real rules across the whole scale, so a
       // changed cell is a changed behaviour. It is the view Gabriel asked for (one page, two minutes) and the safety

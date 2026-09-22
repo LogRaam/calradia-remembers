@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 11/07/2026.
+﻿// Code written by Gabriel Mailhot, 11/07/2026.
 
 #region
 
@@ -595,6 +595,7 @@ namespace CalradiaRemembers.Chat
                NpcIsRidingWithPlayer = context.NpcIsRidingWithPlayer,
                LordRecruitEligible = context.LordRecruitEligible,
                CompanionOnErrand = context.CompanionOnErrand,
+               OpenRelationshipEligible = context.OpenRelationshipEligible,
                ConsortEligible = context.ConsortEligible,
                SecretLoverEligible = context.SecretLoverEligible,
                LoveMatchEligible = context.LoveMatchEligible,

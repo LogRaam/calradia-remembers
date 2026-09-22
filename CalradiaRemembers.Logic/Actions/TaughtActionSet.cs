@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 06/08/2026.
+﻿// Code written by Gabriel Mailhot, 06/08/2026.
 // v1.34.2 resilience: log-only observability for the 1:1 action bridge (audit Pattern 1, downgraded to
 // log-only). The bridge executes any parsed [ACTION] token without checking it was actually TAUGHT this turn.
 // The full ENFORCING whitelist is deferred (real regression risk: the taught set must exactly mirror the
@@ -71,6 +71,15 @@ namespace CalradiaRemembers.Logic.Actions
       // ── romance ──
       public bool ConsortEligible;
       public bool SecretLoverEligible;
+
+      /// <summary>
+      ///   AppendOpenRelationshipProposal is written, so open_relationship is taught. Missing from this mirror
+      ///   until 22/09/2026, which is not a harmless omission: the audit reports anything absent here as
+      ///   "executed but was not taught this turn", so the verb could never execute without a line saying it
+      ///   had been hallucinated. yozakura12's log carried exactly that line, and the triage it caused ended in
+      ///   the wrong place (docs/maps/verbs.md shows sixteen more verbs in the same state).
+      /// </summary>
+      public bool OpenRelationshipEligible;
       public bool LoveMatchEligible;
 
       /// <summary>Both matchmaker kin lists (MatchmakerNpcKin and MatchmakerPlayerKin) are present: arrange_marriage is taught.</summary>
@@ -226,6 +235,7 @@ namespace CalradiaRemembers.Logic.Actions
          if (facts.CompanionOnErrand) set.Add("recall_companion");
 
          // Romance.
+         if (facts.OpenRelationshipEligible) set.Add("open_relationship");
          if (facts.ConsortEligible) set.Add("take_as_consort");
          if (facts.SecretLoverEligible) set.Add("take_as_secret_lover");
          if (facts.LoveMatchEligible) set.Add("marry");

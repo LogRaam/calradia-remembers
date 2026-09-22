@@ -1,0 +1,400 @@
+﻿// Code written by Gabriel Mailhot, 22/09/2026.
+// docs/maps/gates.md: what OPENS a verb, what the bridge DEMANDS of it, and what can change the answer between
+// the two.
+//
+// verbs.md answers "is this action declared everywhere it has to be". It cannot answer the question that cost a
+// whole triage on 21-22/09/2026, which is whether the condition that TEACHES a verb and the condition the bridge
+// ENFORCES on it are the same condition. yozakura12's log said open_relationship "executed but was not taught
+// this turn", and settling what that meant took five separate reads: the audit's mirror, the teaching gate, the
+// prompt section's cache zone, the bridge's own guard, and finally the order actions run in. Gabriel asked for
+// the lens that makes that one line to read.
+//
+// THE THIRD COLUMN IS THE ONE THAT MATTERS, and it is the one I did not think of unaided. A teaching gate is
+// resolved when the ENCOUNTER CONTEXT is built, at the start of a turn; a bridge guard runs when the action is
+// dispatched, at the end of it. In between, the turn's OTHER actions run in sequence and write to the world. So
+// a verb whose gate reads state that another verb writes can be honestly untaught and honestly executable in
+// the same turn, and no amount of staring at either half shows it. open_relationship's gate reads
+// Romantic.IsConsort and Romantic.Status; take_as_consort's executor writes exactly those two.
+//
+// WHAT IT DOES NOT DO. It puts two conditions on one line; it does not judge whether they say the same thing.
+// And the third column names a POSSIBILITY, not an event: that one verb can invalidate another's gate is a
+// property of the code, not a claim about anyone's save. Both are the same bargain every map here makes.
+
+#region
+
+using System.Text;
+using System.Text.RegularExpressions;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+#endregion
+
+namespace CalradiaRemembers.Tests.Maps
+{
+   internal static class GatesMap
+   {
+      public const string Path = "docs/maps/gates.md";
+
+      private const string BridgeFile = "GameState/BannerlordGameStateBridge.cs";
+      private const string PromptFile = "Prompts/PromptBuilder.cs";
+      private const string ContextFile = "Mapping/EncounterContextBuilder.cs";
+
+      public static string Generate(IReadOnlyList<SourceFile> files)
+      {
+         SourceFile? bridge = files.FirstOrDefault(f => f.RelativePath.EndsWith(BridgeFile, StringComparison.Ordinal));
+         SourceFile? prompt = files.FirstOrDefault(f => f.RelativePath.EndsWith(PromptFile, StringComparison.Ordinal));
+         SourceFile? context = files.FirstOrDefault(f => f.RelativePath.EndsWith(ContextFile, StringComparison.Ordinal));
+
+         var sb = new StringBuilder();
+         Header(sb);
+
+         if (bridge == null || prompt == null)
+         {
+            sb.AppendLine("The bridge or the prompt builder could not be found, so nothing can be paired here.");
+
+            return sb.ToString();
+         }
+
+         Dictionary<string, string> executorOf = ExecutorPerAction(bridge);
+         Dictionary<string, MethodDeclarationSyntax> bridgeMethods = MethodsOf(bridge);
+         Dictionary<string, List<string>> writes = WritesPerExecutor(bridgeMethods);
+         Dictionary<string, List<string>> resolverReads = ResolverReads(context);
+
+         var rows = new List<Gate>();
+
+         foreach ((string action, string executor) in executorOf.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+         {
+            (string where, string condition) = TeachingOf(prompt, action);
+            List<string> reads = DependsOn(condition, resolverReads);
+
+            rows.Add(new Gate {
+               Action = action,
+               Executor = executor,
+               TaughtIn = where,
+               TaughtWhen = condition,
+               Refusals = bridgeMethods.TryGetValue(executor, out MethodDeclarationSyntax? m) ? Refusals(m) : new List<string>(),
+               DependsOn = reads
+            });
+         }
+
+         foreach (Gate r in rows)
+         {
+            (List<string> who, List<string> shared) = WhoWrites(r.DependsOn, executorOf, writes, r.Action);
+            r.InvalidatedBy = who;
+            r.Shared = shared;
+         }
+
+         AppendWorthALook(sb, rows);
+         AppendEveryAction(sb, rows);
+
+         return sb.ToString();
+      }
+
+      #region private
+
+      private sealed class Gate
+      {
+         public string Action = "";
+         public string Executor = "";
+         public string TaughtIn = "";
+         public string TaughtWhen = "";
+         public List<string> Refusals = new();
+         public List<string> DependsOn = new();
+         public List<string> InvalidatedBy = new();
+         public List<string> Shared = new();
+      }
+
+      private static void Header(StringBuilder sb)
+      {
+         sb.AppendLine("# Gates: what opens a verb, and what the bridge demands of it");
+         sb.AppendLine();
+         sb.AppendLine("GENERATED by the Maps fixtures in `CalradiaRemembers.Tests/Maps`. Do not edit. A test fails when this file");
+         sb.AppendLine("no longer matches the code; see `docs/maps/README.md`.");
+         sb.AppendLine();
+         sb.AppendLine("`verbs.md` says whether an action is DECLARED everywhere it must be. This says whether the condition that");
+         sb.AppendLine("TEACHES it and the condition the bridge ENFORCES on it are the same condition, and what can change the");
+         sb.AppendLine("answer between them.");
+         sb.AppendLine();
+         sb.AppendLine("- **Taught when**: the guard on the prompt section that names this action (`\"type: <action>\"`), read from");
+         sb.AppendLine("  the section's own early returns and from the `if` around its call.");
+         sb.AppendLine("- **The bridge refuses when**: every `ActionOutcome.Refused` the executor can return. These are the");
+         sb.AppendLine("  promises the verb can break.");
+         sb.AppendLine("- **Can be invalidated mid-turn by**: other actions whose executor WRITES state this action's teaching");
+         sb.AppendLine("  gate READS. The context is built at the start of a turn and the bridge runs at the end of it, so such an");
+         sb.AppendLine("  action can be honestly untaught and honestly executable in the same turn. A POSSIBILITY in the code,");
+         sb.AppendLine("  never a claim that it happened.");
+         sb.AppendLine();
+         sb.AppendLine("Two conditions on one line do not prove they agree. That comparison is the reader's, and it is the whole");
+         sb.AppendLine("point of putting them there.");
+         sb.AppendLine();
+      }
+
+      private static void AppendWorthALook(StringBuilder sb, List<Gate> rows)
+      {
+         sb.AppendLine("## Worth a look");
+         sb.AppendLine();
+
+         List<Gate> unguarded = rows.Where(r => r.TaughtWhen.Length > 0 && r.Refusals.Count == 0).ToList();
+         List<Gate> untaught = rows.Where(r => r.TaughtWhen.Length == 0 && r.Refusals.Count > 0).ToList();
+         List<Gate> racy = rows.Where(r => r.InvalidatedBy.Count > 0).ToList();
+
+         Bucket(sb, "Taught under a condition, refused by nothing", unguarded,
+            "The prompt decides alone. Fine for an action that cannot fail, and the shape of an empty promise otherwise: the "
+          + "model is told it may, and the bridge never re-checks that it still may by the time it runs.");
+
+         Bucket(sb, "Refused by the bridge, taught with no gate of its own", untaught,
+            "The model is taught this every turn the section is written and the bridge turns it away on the facts. Fine when "
+          + "the refusal is rare; an empty promise when it is not (the join_party rule).");
+
+         Bucket(sb, "A gate another action can invalidate in the same turn", racy,
+            "Not a defect by itself. It is the reason an \"executed but was not taught this turn\" audit line can be true "
+          + "AND the code correct, which is exactly the trap that cost a triage on 22/09/2026.");
+      }
+
+      private static void Bucket(StringBuilder sb, string title, List<Gate> rows, string why)
+      {
+         sb.AppendLine($"### {title} ({rows.Count})");
+         sb.AppendLine();
+         sb.AppendLine(why);
+         sb.AppendLine();
+
+         if (rows.Count == 0)
+         {
+            sb.AppendLine("None.");
+            sb.AppendLine();
+
+            return;
+         }
+
+         foreach (Gate r in rows)
+            sb.AppendLine(r.InvalidatedBy.Count > 0
+                             ? $"- `{r.Action}` <- {string.Join(", ", r.InvalidatedBy.Select(a => $"`{a}`"))} (via {string.Join(", ", r.Shared)})"
+                             : $"- `{r.Action}`");
+
+         sb.AppendLine();
+      }
+
+      private static void AppendEveryAction(StringBuilder sb, List<Gate> rows)
+      {
+         sb.AppendLine("## Every action the bridge dispatches");
+         sb.AppendLine();
+
+         foreach (Gate r in rows)
+         {
+            sb.AppendLine($"### {r.Action}");
+            sb.AppendLine();
+            sb.AppendLine($"- executor: `{r.Executor}`");
+            sb.AppendLine($"- taught in: {(r.TaughtIn.Length == 0 ? "no prompt section names it" : $"`{r.TaughtIn}`")}");
+            sb.AppendLine($"- taught when: {(r.TaughtWhen.Length == 0 ? "no gate found" : $"`{r.TaughtWhen}`")}");
+
+            if (r.InvalidatedBy.Count > 0)
+               sb.AppendLine($"- can be invalidated mid-turn by: {string.Join(", ", r.InvalidatedBy.Select(a => $"`{a}`"))}"
+                           + $", each of which writes {string.Join(", ", r.Shared.Select(d => $"`{d}`"))}");
+
+            if (r.Refusals.Count == 0) sb.AppendLine("- the bridge refuses: never");
+            else
+            {
+               sb.AppendLine("- the bridge refuses:");
+               foreach (string refusal in r.Refusals) sb.AppendLine($"  - {refusal}");
+            }
+
+            sb.AppendLine();
+         }
+      }
+
+      /// <summary>Each action string in the dispatch switch, mapped to the executor its section calls.</summary>
+      private static Dictionary<string, string> ExecutorPerAction(SourceFile bridge)
+      {
+         var map = new Dictionary<string, string>(StringComparer.Ordinal);
+
+         foreach (SwitchSectionSyntax section in bridge.Root.DescendantNodes().OfType<SwitchSectionSyntax>())
+         {
+            string executor = section.DescendantNodes()
+                                     .OfType<InvocationExpressionSyntax>()
+                                     .Select(i => NameOfCall(i))
+                                     .FirstOrDefault(n => n.StartsWith("Execute", StringComparison.Ordinal)) ?? "";
+
+            if (executor.Length == 0) continue;
+
+            foreach (CaseSwitchLabelSyntax label in section.Labels.OfType<CaseSwitchLabelSyntax>())
+               if (label.Value is LiteralExpressionSyntax {Token.Value: string action} && action.Length > 0)
+                  map[action] = executor;
+         }
+
+         return map;
+      }
+
+      private static Dictionary<string, MethodDeclarationSyntax> MethodsOf(SourceFile file)
+      {
+         var byName = new Dictionary<string, MethodDeclarationSyntax>(StringComparer.Ordinal);
+
+         foreach (MethodDeclarationSyntax m in file.Root.DescendantNodes().OfType<MethodDeclarationSyntax>())
+            byName[m.Identifier.Text] = m;
+
+         return byName;
+      }
+
+      /// <summary>Every member an executor ASSIGNS, by the last name in the assignment target (`profile.Romantic.IsConsort` -> IsConsort).</summary>
+      private static Dictionary<string, List<string>> WritesPerExecutor(Dictionary<string, MethodDeclarationSyntax> methods)
+      {
+         var writes = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+         foreach ((string name, MethodDeclarationSyntax m) in methods)
+         {
+            if (!name.StartsWith("Execute", StringComparison.Ordinal)) continue;
+
+            writes[name] = m.DescendantNodes()
+                            .OfType<AssignmentExpressionSyntax>()
+                            .Select(a => a.Left as MemberAccessExpressionSyntax)
+                            .Where(left => left != null)
+                            .Select(left => left!.Name.Identifier.Text)
+                            .Distinct(StringComparer.Ordinal)
+                            .OrderBy(n => n, StringComparer.Ordinal)
+                            .ToList();
+         }
+
+         return writes;
+      }
+
+      /// <summary>
+      ///   Each EncounterContext flag to the members its resolver reads, so a gate written as
+      ///   <c>context?.OpenRelationshipEligible</c> can still say what it actually depends on.
+      /// </summary>
+      private static Dictionary<string, List<string>> ResolverReads(SourceFile? context)
+      {
+         var reads = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+         if (context == null) return reads;
+
+         Dictionary<string, MethodDeclarationSyntax> methods = MethodsOf(context);
+
+         foreach (AssignmentExpressionSyntax a in context.Root.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+         {
+            if (a.Left is not IdentifierNameSyntax flag) continue;
+            if (a.Right is not InvocationExpressionSyntax call) continue;
+
+            string resolver = NameOfCall(call);
+            if (!methods.TryGetValue(resolver, out MethodDeclarationSyntax? m)) continue;
+
+            reads[flag.Identifier.Text] = m.DescendantNodes()
+                                           .OfType<MemberAccessExpressionSyntax>()
+                                           .Select(x => x.Name.Identifier.Text)
+                                           .Distinct(StringComparer.Ordinal)
+                                           .OrderBy(n => n, StringComparer.Ordinal)
+                                           .ToList();
+         }
+
+         return reads;
+      }
+
+      /// <summary>The prompt section that names this action in a string literal, and the guard on it.</summary>
+      private static (string where, string condition) TeachingOf(SourceFile prompt, string action)
+      {
+         foreach (MethodDeclarationSyntax m in prompt.Root.DescendantNodes().OfType<MethodDeclarationSyntax>())
+         {
+            bool names = m.DescendantNodes()
+                          .OfType<LiteralExpressionSyntax>()
+                          .Any(l => l.Token.Value is string s && s.Contains("type: " + action, StringComparison.Ordinal));
+
+            if (!names) continue;
+
+            var guards = new List<string>();
+
+            // The section's own early returns, which is where most of them live.
+            foreach (IfStatementSyntax iff in m.DescendantNodes().OfType<IfStatementSyntax>())
+            {
+               if (!Returns(iff.Statement)) continue;
+
+               string cond = Flatten(iff.Condition.ToString());
+               if (cond.Contains("context", StringComparison.OrdinalIgnoreCase)) guards.Add(cond);
+            }
+
+            // And the `if` around the call, for the sections gated by their caller.
+            foreach (InvocationExpressionSyntax call in prompt.Root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            {
+               if (NameOfCall(call) != m.Identifier.Text) continue;
+
+               IfStatementSyntax? outer = call.Ancestors().OfType<IfStatementSyntax>().FirstOrDefault();
+               if (outer != null) guards.Add(Flatten(outer.Condition.ToString()));
+            }
+
+            return (m.Identifier.Text, string.Join(" AND ", guards.Distinct(StringComparer.Ordinal)));
+         }
+
+         return ("", "");
+      }
+
+      private static bool Returns(StatementSyntax statement)
+         => statement is ReturnStatementSyntax
+         || (statement is BlockSyntax b && b.Statements.Count == 1 && b.Statements[0] is ReturnStatementSyntax);
+
+      /// <summary>Every `ActionOutcome.Refused` an executor can return, by its message.</summary>
+      private static List<string> Refusals(MethodDeclarationSyntax m)
+         => m.DescendantNodes()
+             .OfType<InvocationExpressionSyntax>()
+             .Where(i => NameOfCall(i) == "Refused")
+             .Select(i => i.ArgumentList.Arguments.Count > 0 ? Flatten(i.ArgumentList.Arguments[0].ToString()) : "")
+             .Where(s => s.Length > 0)
+             .Distinct(StringComparer.Ordinal)
+             .ToList();
+
+      /// <summary>The members a teaching gate depends on: those it names, plus those its context flag's resolver reads.</summary>
+      private static List<string> DependsOn(string condition, Dictionary<string, List<string>> resolverReads)
+      {
+         if (condition.Length == 0) return new List<string>();
+
+         var named = Regex.Matches(condition, @"\.(\w+)").Select(mm => mm.Groups[1].Value).ToList();
+         var all = new List<string>(named);
+
+         foreach (string flag in named)
+            if (resolverReads.TryGetValue(flag, out List<string>? deeper))
+               all.AddRange(deeper);
+
+         return all.Distinct(StringComparer.Ordinal).OrderBy(n => n, StringComparer.Ordinal).ToList();
+      }
+
+      /// <summary>Other actions whose executor writes one of the members this gate depends on.</summary>
+      private static (List<string> who, List<string> shared) WhoWrites(
+         List<string> reads, Dictionary<string, string> executorOf, Dictionary<string, List<string>> writes, string self)
+      {
+         var none = (new List<string>(), new List<string>());
+         if (reads.Count == 0) return none;
+
+         var readSet = new HashSet<string>(reads, StringComparer.Ordinal);
+         var who = new List<string>();
+         var shared = new HashSet<string>(StringComparer.Ordinal);
+
+         foreach ((string action, string executor) in executorOf)
+         {
+            if (action == self) continue;
+            if (!writes.TryGetValue(executor, out List<string>? written)) continue;
+
+            List<string> both = written.Where(readSet.Contains).ToList();
+            if (both.Count == 0) continue;
+
+            who.Add(action);
+            foreach (string m in both) shared.Add(m);
+         }
+
+         return who.Count == 0
+            ? none
+            : (who.Distinct(StringComparer.Ordinal).OrderBy(a => a, StringComparer.Ordinal).ToList(),
+               shared.OrderBy(m => m, StringComparer.Ordinal).ToList());
+      }
+
+      private static string NameOfCall(InvocationExpressionSyntax call)
+         => call.Expression switch {
+            IdentifierNameSyntax id => id.Identifier.Text,
+            MemberAccessExpressionSyntax ma => ma.Name.Identifier.Text,
+            _ => ""
+         };
+
+      private static string Flatten(string text)
+      {
+         string one = Regex.Replace(text, @"\s+", " ").Trim();
+
+         return one.Length <= 150 ? one : one.Substring(0, 150) + "...";
+      }
+
+      #endregion
+   }
+}

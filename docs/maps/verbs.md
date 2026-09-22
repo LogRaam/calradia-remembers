@@ -53,7 +53,7 @@ A hole is not always a bug (a bridge-native action has no verb class), but every
 | `make_amends` | yes | yes | yes | `MakeAmendsVerb` | yes | yes | 3 |
 | `marry` | yes | yes | yes |  |  | yes | 3 |
 | `mediate_peace` | yes | yes | yes |  |  |  | 3 |
-| `open_relationship` | yes | yes | yes |  |  |  | 3 |
+| `open_relationship` | yes | yes | yes |  |  | yes | 3 |
 | `part_ways` | yes | yes | yes |  |  | yes | 3 |
 | `pay_blackmail` | yes | yes | yes |  |  |  | 3 |
 | `pay_for_silence` | yes | yes | yes | `PayForSilenceVerb` | yes |  | 3 |

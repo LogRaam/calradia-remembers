@@ -27,6 +27,7 @@ project internals.
 | [`event-listeners.md`](event-listeners.md) | What does the mod hear from the engine, and which of an event's reasons does each listener name? |
 | [`prompt-sections.md`](prompt-sections.md) | In what order is the prompt written, what is cached, what is per-turn, what does Compact drop? |
 | [`verbs.md`](verbs.md) | Is this action declared everywhere it has to be? |
+| [`gates.md`](gates.md) | What OPENS this verb, what the bridge DEMANDS of it, and which other verbs can change the answer between the two? The pairing lens: a teaching gate is resolved when the context is built, a bridge guard runs when the action is dispatched, and the turn's other actions run in between. |
 | [`shared-state.md`](shared-state.md) | What outlives the call that wrote it, and so has a lifetime somebody must decide? |
 | [`decisions-regard.md`](decisions-regard.md) | **The two-minute view.** What does each rung of the regard scale actually decide? Real calls, swept from -100 to +100, plus where each rule turns. |
 | [`save-format.md`](save-format.md) | **Contract.** What does the mod write into a player's campaign? Every save key and every saveable type id. |
@@ -44,6 +45,8 @@ regeneration will not absorb: the suite refuses it, update mode included, until 
 `CR_ALLOW_SAVE_KEY_REMOVAL=1` and explained in the commit. Gabriel's hard rule is additive keys only, because a
 renamed key is a player's data silently never read again, and nothing fails when it happens.
 
+`gates.md` is the only one that pairs two halves of the same decision rather than listing one thing. It exists because settling whether a single audit line meant anything took five separate reads on 22/09/2026, and because the fact that actually mattered, that another verb in the same turn can invalidate a verb's teaching gate, was in none of them.
+
 The first two are the generic net: a mechanism nobody planned a map for still adds a type or an edge. The rules are
 the behaviour index: a change inside a method leaves no structural trace, but a behaviour that matters is held by a
 test. The last five are lenses, one per family of bug this project has actually had; each generator's header names
@@ -54,7 +57,7 @@ the player report it answers.
 They are not all the same kind of test, and treating them as one kind is how this stops working.
 
 **Informing.** `inventory`, `dependencies`, the two rules files, `constants`, `event-listeners`, `prompt-sections`,
-`verbs`, `shared-state`. These fail, you regenerate, you read the diff, you commit. Whatever the code now says
+`verbs`, `gates`, `shared-state`. These fail, you regenerate, you read the diff, you commit. Whatever the code now says
 becomes the new truth. Their whole value is the two seconds of attention the diff buys, and that value decays: the
 real risk here is not a wrong map, it is a reflex. Regenerate-and-commit becomes muscle memory within weeks, and then
 these are green paperwork.
