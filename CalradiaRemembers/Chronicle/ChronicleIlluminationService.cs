@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 19/06/2026.
+﻿// Code written by Gabriel Mailhot, 19/06/2026.
 // v1.2 chronicle: drives the optional LLM "illumination" tier. The chronicle is a LIVING manuscript:
 // Extend illuminates only the deeds added since the last pass (cheap, append, with continuity);
 // RewriteAll redoes the whole thing (e.g. after editing chronicle_style.txt). State persists via
@@ -7,6 +7,8 @@
 #region
 
 using System;
+using System.Linq;
+using CalradiaRemembers.Logic.Chronicle;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -57,7 +59,15 @@ namespace CalradiaRemembers.Chronicle
             IReadOnlyList<WorldEvent> deeds = WorldEventStore.Instance?.GetPlayerChronicle();
             if (deeds == null || deeds.Count == 0) return "There are no deeds to illuminate yet.";
 
-            int from = rewriteAll ? 0 : Math.Min(ChronicleBehavior.Instance.IlluminatedThroughCount, deeds.Count);
+            // RESUMED BY IDENTITY, not by count. The count alone was exact only while the deed list could only
+            // grow, which stopped being true when a bridge mod started calling Feed.Retract (tashmetu,
+            // 22/09/2026): a retracted deed that had already been written up shifted every index after it, and
+            // the next chapter silently lost an entry.
+            int from = rewriteAll
+               ? 0
+               : ChronicleResumePolicy.ResumeFrom(deeds.Select(MarkOf).ToList(),
+                                                  ChronicleBehavior.Instance.IlluminatedThroughMark,
+                                                  ChronicleBehavior.Instance.IlluminatedThroughCount);
             if (!rewriteAll && from >= deeds.Count) return "The chronicle is already up to date.";
 
             string deedText = BuildDeedText(deeds, from);
@@ -87,6 +97,7 @@ namespace CalradiaRemembers.Chronicle
                         ? result.Trim()
                         : b.IlluminatedText.TrimEnd() + "\n\n" + result.Trim();
                     b.IlluminatedThroughCount = total;
+                    b.IlluminatedThroughMark = total > 0 ? MarkOf(deeds[total - 1]) : "";
                 }
                 else ModLog.Error("[CHRONICLE] illumination returned empty.");
 
@@ -96,6 +107,10 @@ namespace CalradiaRemembers.Chronicle
 
             return rewriteAll ? "Rewriting the whole chronicle.." : "The chronicler takes up the latest deeds..";
         }
+
+        /// <summary>A deed's fingerprint, built from the same line the chronicle would print for it.</summary>
+        private static string MarkOf(WorldEvent e)
+            => ChronicleResumePolicy.Mark(e.Day, string.IsNullOrWhiteSpace(e.ChronicleLine) ? e.Summary : e.ChronicleLine);
 
         private static string BuildDeedText(IReadOnlyList<WorldEvent> deeds, int from)
         {

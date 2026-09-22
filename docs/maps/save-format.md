@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (75)
+## Keys (76)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -27,6 +27,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_Bastards_v1bytes` | `BastardBehavior` | constant `SaveKey` |
 | `CalradiaRemembers_CaptiveGear_v1bytes` | `CaptiveGearBehavior` | constant `SaveKey` |
 | `CalradiaRemembers_ChronicleText_v1bytes` | `ChronicleBehavior` | constant `TextKey` |
+| `CalradiaRemembers_ChronicleThroughMark_v1` | `ChronicleBehavior` | constant `MarkKey` |
 | `CalradiaRemembers_ChronicleThrough_v1` | `ChronicleBehavior` | constant `CountKey` |
 | `CalradiaRemembers_Commitments_v1bytes` | `CommitmentBehavior` | constant `SaveKey` |
 | `CalradiaRemembers_CompanionAffectionAsked_v1` | `CompanionAffectionBehavior` | constant `CooldownSaveKey` |

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 418 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 765 types in 25 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 766 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1382,6 +1382,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CombatFeatTier` | public enum | How remarkable a deed is, which decides how far word of it may travel. |
 | `CombatProwessPolicy` | public static class | Rates a single victory: an exploit, a plain deed, or something nobody would remark on. |
 | `CombatantFacts` | public class | The fighting facts of one combatant, as the game itself knows them; the policy turns these into a prowess score. |
+
+### CalradiaRemembers.Logic.Chronicle (1)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `ChronicleResumePolicy` | public static class | Decides which deed the illuminator should resume from, given what it wrote last time. |
 
 ### CalradiaRemembers.Logic.Companions (4)
 

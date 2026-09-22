@@ -103,10 +103,10 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Bastards` | 9 | 4 |
 | `CalradiaRemembers.OpenPartnerLover` | 9 | 0 |
 | `CalradiaRemembers.Lore` | 8 | 4 |
+| `CalradiaRemembers.Chronicle` | 7 | 1 |
 | `CalradiaRemembers.Rescue` | 7 | 1 |
 | `CalradiaRemembers.Commoners` | 6 | 2 |
 | `CalradiaRemembers.Memory` | 6 | 2 |
-| `CalradiaRemembers.Chronicle` | 6 | 1 |
 | `CalradiaRemembers.RealmTidings` | 6 | 1 |
 | `NpcMemoryService.Core.Services` | 5 | 17 |
 | `CalradiaRemembers.Witnesses` | 5 | 6 |
@@ -161,6 +161,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Styles` | 0 | 2 |
 | `CalradiaRemembers.Logic.WorldAlmanac` | 0 | 2 |
 | `CalradiaRemembers.Logic.Appreciations.TraitFacts` | 0 | 1 |
+| `CalradiaRemembers.Logic.Chronicle` | 0 | 1 |
 | `CalradiaRemembers.Logic.Diagnostics` | 0 | 1 |
 | `CalradiaRemembers.Logic.Extension` | 0 | 1 |
 | `CalradiaRemembers.Logic.Grudges.TraitFacts` | 0 | 1 |
@@ -216,7 +217,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 ### CalradiaRemembers.Chronicle
 
-- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Logic`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.Services`
+- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Chronicle`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.Services`
 - used by: `CalradiaRemembers`
 
 ### CalradiaRemembers.Commitments
@@ -328,6 +329,11 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 - uses: `CalradiaRemembers.Logic`
 - used by: `CalradiaRemembers.Battles`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Tournaments`, `CalradiaRemembers.Violence`
+
+### CalradiaRemembers.Logic.Chronicle
+
+- uses: nothing
+- used by: `CalradiaRemembers.Chronicle`
 
 ### CalradiaRemembers.Logic.Companions
 

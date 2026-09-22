@@ -1,8 +1,9 @@
-// Code written by Gabriel Mailhot, 19/06/2026.
+﻿// Code written by Gabriel Mailhot, 19/06/2026.
 
 #region
 
 using System;
+using CalradiaRemembers.Logic.Chronicle;
 using System.Text;
 using TaleWorlds.CampaignSystem;
 
@@ -21,6 +22,14 @@ namespace CalradiaRemembers.Chronicle
       private const string CountKey = "CalradiaRemembers_ChronicleThrough_v1";
 
       private const string TextKey = "CalradiaRemembers_ChronicleText_v1bytes";
+
+      // ADDITIVE, and the reason it exists is worth carrying: the count above indexes into a list that could
+      // only grow until tashmetu's bridge became the first caller anywhere to use Feed.Retract (22/09/2026).
+      // Remove a deed the chronicle has already written up and the count points one entry too far in, so the
+      // next illumination skips a deed that was never written. This names the last deed actually written, so
+      // it can be found again wherever it has moved to. Absent on older saves, where the count is used exactly
+      // as before.
+      private const string MarkKey = "CalradiaRemembers_ChronicleThroughMark_v1";
       public static ChronicleBehavior Instance;
 
       public ChronicleBehavior()
@@ -30,6 +39,9 @@ namespace CalradiaRemembers.Chronicle
 
       public string IlluminatedText { get; set; } = "";
       public int IlluminatedThroughCount { get; set; }
+
+      /// <summary>The fingerprint of the last deed written up (<see cref="ChronicleResumePolicy.Mark" />), or empty.</summary>
+      public string IlluminatedThroughMark { get; set; } = "";
 
       public override void RegisterEvents() { }
 
@@ -46,6 +58,13 @@ namespace CalradiaRemembers.Chronicle
             catch
             {
                /* non-fatal */
+            }
+
+            string mark = IlluminatedThroughMark ?? "";
+            try { dataStore.SyncData(MarkKey, ref mark); }
+            catch
+            {
+               /* non-fatal: the count still answers, as it did before this key existed */
             }
          }
          else
@@ -67,6 +86,15 @@ namespace CalradiaRemembers.Chronicle
             {
                /* absent */
             }
+
+            var mark = "";
+            try { dataStore.SyncData(MarkKey, ref mark); }
+            catch
+            {
+               /* absent in a save written before the mark: the count is used, exactly as it was */
+            }
+
+            IlluminatedThroughMark = mark ?? "";
 
             IlluminatedThroughCount = count;
          }
