@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 22/08/2026.
+﻿// Code written by Gabriel Mailhot, 22/08/2026.
 
 #region
 
@@ -92,6 +92,7 @@ namespace CalradiaRemembers.Logic
             case "take_as_consort": return "Taken as consort";
             case "take_as_secret_lover": return "A secret lover";
             case "open_relationship": return "The bond opened";
+            case "accept_other_partners": return "A plural household accepted";
             case "close_relationship": return "The bond closed";
             case "end_affair": return "An affair ended";
             case "end_marriage":

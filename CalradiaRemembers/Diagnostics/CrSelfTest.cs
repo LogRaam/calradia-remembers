@@ -227,6 +227,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("interception_grudge_appreciation", Severity.Light, "Two new proactive channels for the mod's two signature event-anchored affect ledgers (design brief 2026-08-20): a lord who holds a live, significant grudge against the PLAYER rides out/asks for a word to air it (Grudge), and one who holds a significant, recent appreciation of the player does likewise to acknowledge it (AppreciationOwed), on BOTH the road (InterceptionBehavior) and the fief-audience channel (FiefAudienceBehavior), since both reuse the SAME InterceptionPolicy.Choose. Seeds a real Grudge (TryPlant) on a clean-slate lord and asserts InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer finds it (false before planting), the pure InterceptionPolicy.Choose surfaces Grudge, and Grudge is fief-valid; does the same for a real Appreciation and AppreciationOwed; then asserts the priority pin (Grudge outranks AppreciationOwed when both hold on the same facts, mirroring InterceptionPolicyTests). Removes the seeded grudge afterwards (mirrors appreciation_flow/companion_gratitude: no removal API exists for an appreciation, so it is left, exactly like every other appreciation-seeding self-test)", TestInterceptionGrudgeAppreciation),
          new SelfTest("grudge_answered", Severity.Light, "Player report (Zivkyn, 18/09/2026): a lord kept asking why the player killed his kin, months later, however often it had been explained, and kept riding out to confront the player about it. Plants a real grudge against the player on a clean-slate lord and makes it a VENDETTA, asserts it drives an interception and hear_account is offered, then runs hear_account through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes) and asserts: the grudge is answered with the account, still a vendetta and exactly as heavy, the lord's built GrudgeNote now carries the account and the do-not-ask-again instruction, the interception no longer fires, and hear_account is no longer offered. No LLM call. Clears the lord's grudges afterwards", TestGrudgeAnswered),
          new SelfTest("duel_venue_here", Severity.Light, "Player reports (FloatingMammal 10/09/2026, yozakura12 17, 18 and 20/09/2026): the duel was offered in places it could not be staged, and staged in places the engine could not open. Reports where the player is standing RIGHT NOW (settlement, town or castle, inside the walls or merely on it, and whether it owns the 'center' location a duel opens) and asserts the two halves agree: that a town or a castle really does own a duelling ground in THIS install, and that the venue the resolver chooses is the one the staging would accept. Skips on the open map, so walk into a castle and run it there. No duel is armed and no scene is opened", TestDuelVenueHere),
+         new SelfTest("plural_acceptance", Severity.Light, "Player report (yozakura12, 22/09/2026): playing with multiple spouses, jealousy cost the full betrayal price even for a wife who says in her own voice that she accepts the harem, and the only thing close to that state was open_relationship, which is RECIPROCAL and suppresses her jealousy outright. Borrows a lady as a committed consort, sets her regard to devotion, and runs accept_other_partners through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes): asserts her word is recorded, that it is NOT reciprocal open terms, that the jealousy track moves from Betrayal to AcceptedAgainstCulture, that saying it twice is refused, and that a woman who is no partner of the player is refused. Restores her bond, her regard and her acceptance", TestPluralAcceptance),
          new SelfTest("conversation_resume", Severity.Light, "Player report (fkasad, 20/09/2026): roleplay takes longer than a battle, so he quits mid-negotiation, saves, closes the game, comes back, and the lord remembers TALKING to him but not a word of what was said, so the bargain starts over. Drives the REAL store the chat uses (NpcMemoryCampaignBehavior.ConvResume): keeps a built transcript against a real lord, then asserts it comes back whole for the same lord on the same day with its memory anchor, that the SAME open cannot take it twice, and that it is refused and DISCARDED for another lord, another day, or a staged scene, which is the report's own 'deleted as soon as you open a new chat' rule. No LLM call, no window opened. Forgets whatever it kept afterwards", TestConversationResume),
          new SelfTest("approach_framing", Severity.Light, "Player report (Fakade, 19/09/2026, local model): a lord rode out to him, then from the next turn spoke as though the player had come to HIM. The opening directive is consumed on read, so who sought whom was in the prompt once and never again. Stashes a real fief-audience reason on a lord, builds the encounter context twice through the REAL builder, and asserts the directive fires on the first build and is spent on the second while NpcSoughtThePlayer stays true on both; then asserts opening a new conversation (ForgetConversationSeeker) clears it. Leaves no pursuit behind", TestApproachFraming),
          new SelfTest("realm_departure", Severity.Light, "Player report (tashmetu, 19/09/2026): expelled from his kingdom by another mod after a lost war, he kept getting letters as if he still belonged. Records a departure from a real kingdom the way the kingdom-change feeder now marks every one, and asserts WorldEventFeeders.DaysSincePlayerLeft finds it and silences that ruler's service offer (ServiceOfferPolicy.RulerMayWrite), then removes it and asserts the ruler may write again. Also asserts the service-offer premise follows the player's LIVE realm. No LLM call, mutates nothing it does not remove", TestRealmDeparture),
@@ -12240,6 +12241,77 @@ namespace CalradiaRemembers.Diagnostics
 
          return t.Line();
       }
+
+      /// <summary>
+      ///   A partner accepting the player's other loves, end to end in the engine. The pure halves
+      ///   (PluralAcceptancePolicyTests, AcceptedPluralJealousyTests) cover who may be asked and what it costs;
+      ///   what only the engine can get wrong is that the bridge routes the verb at all, that its guard reads
+      ///   the SAME facts the teaching gate did, and that her word lands on the profile the store persists.
+      /// </summary>
+      private static string TestPluralAcceptance(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("plural_acceptance");
+
+         if (t.Abort(behavior?.Store == null || Hero.MainHero == null, "no store or no player hero")) return t.Line();
+
+         Hero lady = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsAlive && h.IsLord
+                                                          && h != Hero.MainHero.Spouse);
+
+         if (t.Skip(lady == null, "no lady free to borrow as a consort")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, lady);
+         RomanticProfile savedRomantic = profile.Romantic;
+         int savedRegard = profile.ReputationWithPlayer;
+
+         try
+         {
+            // A woman who is no partner of the player cannot accept a household she is not in. Asked FIRST,
+            // while the borrowed bond is not yet in place, so the refusal is the real one.
+            profile.Romantic = null;
+            ActionOutcome stranger = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "accept_other_partners"}, lady, new ActionContext(profile, null));
+
+            t.Expect("aWomanWhoIsNoPartnerIsRefused", stranger?.WasRefused, true);
+
+            // Now a committed consort, devoted enough to bear it against an exclusive custom.
+            profile.Romantic = new RomanticProfile {IsConsort = true, Status = RomanticStatus.Committed};
+            profile.ReputationWithPlayer = PluralAcceptancePolicy.DevotionRequiredAgainstCulture;
+
+            JealousyTrack before = TrackFor(profile, lady);
+
+            ActionOutcome accepted = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "accept_other_partners"}, lady, new ActionContext(profile, null));
+
+            t.Expect("herWordIsTaken", accepted != null && !accepted.WasRefused, true);
+            t.Expect("andRecordedOnHerProfile", behavior.Store.Get(lady.StringId)?.Romantic?.AcceptsPlayersOtherPartners, true);
+            t.Expect("andItIsNotReciprocalOpenTerms", profile.Romantic.IsOpenArrangement, false);
+
+            JealousyTrack after = TrackFor(profile, lady);
+            t.Note($"{lady.Name}: track {before} -> {after}");
+            t.Expect("theJealousyTrackSoftens", after, JealousyTrack.AcceptedAgainstCulture);
+
+            ActionOutcome twice = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "accept_other_partners"}, lady, new ActionContext(profile, null));
+
+            t.Expect("sayingItTwiceIsRefused", twice?.WasRefused, true);
+         }
+         finally
+         {
+            profile.Romantic = savedRomantic;
+            profile.ReputationWithPlayer = savedRegard;
+            behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>The track the jealousy system would put this partner on right now, read the way it reads it.</summary>
+      private static JealousyTrack TrackFor(NpcProfile profile, Hero lady)
+         => JealousyTrackPolicy.For(new JealousyTrackFacts {
+            CultureToleratesSharing = JealousyCultureLoader.GetCulture(lady?.Culture?.Name?.ToString())
+                                                           .ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0),
+            PartnerAcceptedTheArrangement = profile?.Romantic?.AcceptsPlayersOtherPartners ?? false
+         });
 
       /// <summary>
       ///   A conversation the player stepped out of, through the REAL store the chat opens and closes against.

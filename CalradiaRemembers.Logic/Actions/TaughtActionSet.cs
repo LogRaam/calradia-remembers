@@ -80,6 +80,9 @@ namespace CalradiaRemembers.Logic.Actions
       ///   the wrong place (docs/maps/verbs.md shows sixteen more verbs in the same state).
       /// </summary>
       public bool OpenRelationshipEligible;
+
+      /// <summary>AppendPluralAcceptance is written, so accept_other_partners is taught.</summary>
+      public bool AcceptOtherPartnersEligible;
       public bool LoveMatchEligible;
 
       /// <summary>Both matchmaker kin lists (MatchmakerNpcKin and MatchmakerPlayerKin) are present: arrange_marriage is taught.</summary>
@@ -236,6 +239,7 @@ namespace CalradiaRemembers.Logic.Actions
 
          // Romance.
          if (facts.OpenRelationshipEligible) set.Add("open_relationship");
+         if (facts.AcceptOtherPartnersEligible) set.Add("accept_other_partners");
          if (facts.ConsortEligible) set.Add("take_as_consort");
          if (facts.SecretLoverEligible) set.Add("take_as_secret_lover");
          if (facts.LoveMatchEligible) set.Add("marry");

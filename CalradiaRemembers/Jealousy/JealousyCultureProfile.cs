@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 20/06/2026.
+﻿// Code written by Gabriel Mailhot, 20/06/2026.
 
 #region
 
@@ -55,8 +55,16 @@ namespace CalradiaRemembers.Jealousy
       [JsonProperty("patriarchalHousehold")]
       public bool PatriarchalHousehold { get; set; }
 
+      /// <summary>
+      ///   Whether a partner of this people may take someone OUTSIDE the household. Absent means true, which
+      ///   is what every culture did before this field existed. Set false for a CLOSED plural house: several
+      ///   spouses, each faithful inward (yozakura12, 22/09/2026).
+      /// </summary>
+      [JsonProperty("outsidePartnersAllowed")]
+      public bool OutsidePartnersAllowed { get; set; } = true;
+
       /// <summary>Parses this DTO into the pure, testable culture value object.</summary>
       public JealousyCulture ToCulture()
-         => JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = ExclusivityOutrage, PolygamyEliteTier = PolygamyEliteTier, HierarchySensitivity = HierarchySensitivity, EquityExpectation = EquityExpectation, PromptHint = PromptHint, PatriarchalHousehold = PatriarchalHousehold});
+         => JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = ExclusivityOutrage, PolygamyEliteTier = PolygamyEliteTier, HierarchySensitivity = HierarchySensitivity, EquityExpectation = EquityExpectation, PromptHint = PromptHint, PatriarchalHousehold = PatriarchalHousehold, OutsidePartnersAllowed = OutsidePartnersAllowed});
    }
 }

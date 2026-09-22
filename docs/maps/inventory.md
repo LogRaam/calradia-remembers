@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 418 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 766 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 768 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -743,7 +743,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (474)
+### CalradiaRemembers.Logic (476)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1072,6 +1072,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlayerNameRevealPolicy` | public static class | Detects the prisoner naming themselves to their captor. |
 | `PlayerStandingFacts` | public class | Plain, engine-agnostic carrier of everything needed to place the player beside one NPC. Each flag is a fact the engine can answer directly, never a conclusion. |
 | `PlayerStandingPolicy` | public static class | Places the player beside one NPC, from facts the engine can answer directly. |
+| `PluralAcceptanceFacts` | public class | What is known about a partner when deciding whether she may be asked to accept a plural household. |
+| `PluralAcceptancePolicy` | public static class | Decides whether the acceptance of a plural household can honestly be offered to this partner. |
 | `PortraitCapPolicy` | public static class | The VRAM policy for character portraits, pure and engine-free. |
 | `PowerBalance` | public static class | Produces the POWER BALANCE prompt note for a lord: how the military/political imbalance should colour their candor — calibrated realism, never servility. |
 | `PowerBalanceFacts` | public class | The raw, engine-gathered facts of the power differential between the player's realm and a lord NPC — pure to reason over. |

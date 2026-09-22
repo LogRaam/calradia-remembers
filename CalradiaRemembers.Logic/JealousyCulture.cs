@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 20/06/2026.
+﻿// Code written by Gabriel Mailhot, 20/06/2026.
 
 #region
 
@@ -39,7 +39,8 @@ namespace CalradiaRemembers.Logic
                               bool equityExpectation,
                               int polygamyEliteTier,
                               string promptHint,
-                              bool patriarchalHousehold)
+                              bool patriarchalHousehold,
+                              bool outsidePartnersAllowed)
       {
          Outrage = outrage;
          Hierarchy = hierarchy;
@@ -47,11 +48,12 @@ namespace CalradiaRemembers.Logic
          PolygamyEliteTier = polygamyEliteTier;
          PromptHint = promptHint ?? "";
          PatriarchalHousehold = patriarchalHousehold;
+         OutsidePartnersAllowed = outsidePartnersAllowed;
       }
 
       /// <summary>The strictly-monogamous fallback used for any culture not present in the file.</summary>
       public static JealousyCulture Monogamous { get; } =
-         new(JealousyOutrage.High, JealousyHierarchy.Low, false, 99, "", false);
+         new(JealousyOutrage.High, JealousyHierarchy.Low, false, 99, "", false, true);
 
       /// <summary>True when the offence is UNEQUAL treatment of partners rather than rank itself (Aserai).</summary>
       public bool EquityExpectation { get; }
@@ -72,6 +74,20 @@ namespace CalradiaRemembers.Logic
       /// </summary>
       public bool PatriarchalHousehold { get; }
 
+      /// <summary>
+      ///   Whether a partner of this people may take someone OUTSIDE the household at all. True by default,
+      ///   which is the behaviour every culture had before 22/09/2026.
+      ///   <para>
+      ///     yozakura12 asked for the distinction and was right that the file could not express it: "The
+      ///     current patriarchalHousehold setting does not align with this goal, as it allows for the
+      ///     possibility of wives taking secret lovers." One field was carrying two separate facts, that a
+      ///     people keeps plural households AND that a neglected wife of that people strays. Set
+      ///     <c>outsidePartnersAllowed: false</c> and the first survives without the second: a closed house,
+      ///     plural but faithful inward.
+      ///   </para>
+      /// </summary>
+      public bool OutsidePartnersAllowed { get; }
+
       /// <summary>One-sentence cultural framing injected into the jealous party's reaction prompt.</summary>
       public string PromptHint { get; }
 
@@ -83,7 +99,7 @@ namespace CalradiaRemembers.Logic
       ///   is culture-level (no clan tier): the elite-tier gate governs WHO shares partners, not whether the
       ///   people are a harem culture at all.
       /// </summary>
-      public bool IsHaremCulture => Outrage != JealousyOutrage.High && PatriarchalHousehold;
+      public bool IsHaremCulture => Outrage != JealousyOutrage.High && PatriarchalHousehold && OutsidePartnersAllowed;
 
       /// <summary>
       ///   Builds a culture from the raw JSON values. Unrecognised or missing strings degrade to
@@ -119,6 +135,9 @@ namespace CalradiaRemembers.Logic
 
          /// <summary>The household is patriarchal, which colours who may take another partner.</summary>
          public bool PatriarchalHousehold { get; set; }
+
+         /// <summary>A partner of this people may look outside the household. True unless the file says otherwise.</summary>
+         public bool OutsidePartnersAllowed { get; set; } = true;
       }
 
       /// <summary>Reads one culture's written rules into the rule the mod actually applies.</summary>
@@ -132,7 +151,8 @@ namespace CalradiaRemembers.Logic
             raw.EquityExpectation,
             raw.PolygamyEliteTier,
             raw.PromptHint,
-            raw.PatriarchalHousehold);
+            raw.PatriarchalHousehold,
+            raw.OutsidePartnersAllowed);
       }
 
       /// <summary>

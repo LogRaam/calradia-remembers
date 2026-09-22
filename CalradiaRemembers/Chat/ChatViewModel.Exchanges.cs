@@ -596,6 +596,7 @@ namespace CalradiaRemembers.Chat
                LordRecruitEligible = context.LordRecruitEligible,
                CompanionOnErrand = context.CompanionOnErrand,
                OpenRelationshipEligible = context.OpenRelationshipEligible,
+               AcceptOtherPartnersEligible = context.AcceptOtherPartnersEligible,
                ConsortEligible = context.ConsortEligible,
                SecretLoverEligible = context.SecretLoverEligible,
                LoveMatchEligible = context.LoveMatchEligible,

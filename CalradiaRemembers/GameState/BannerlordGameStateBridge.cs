@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 10/07/2026.
+﻿// Code written by Gabriel Mailhot, 10/07/2026.
 
 #region
 
@@ -222,6 +222,7 @@ namespace CalradiaRemembers.GameState
          "change_relation", "give_gold", "take_gold", "pay_blackmail", "join_party", "join_as_mercenary",
          "end_mercenary", "join_as_vassal", "mediate_peace", "join_clan", "scheme_assist", "scheme_heed",
          "marry", "take_as_consort", "take_as_secret_lover", "open_relationship", "close_relationship",
+         "accept_other_partners",
          "end_affair", "give_item", "give_prisoner", "free_prisoner", "execute_prisoner", "execute_player",
          "turn_nemesis", "recruit_prisoner", "recruit_notable",
          "take_into_service", "grant_blessing", "arrange_marriage",
@@ -274,6 +275,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteTakeAsSecretLover(npcHero, context);
             case "open_relationship":
                return ExecuteOpenRelationship(npcHero, context);
+            case "accept_other_partners":
+               return ExecuteAcceptOtherPartners(npcHero, context);
             case "close_relationship":
                return ExecuteCloseRelationship(npcHero, context);
             case "end_affair":
@@ -3580,6 +3583,65 @@ namespace CalradiaRemembers.GameState
       ///   anything less is refused, never a silent no-op. Mirrors <see cref="ExecuteTakeAsConsort" />'s
       ///   commitment path (mod-tracked only, no engine marriage call), with a hard partner-only guard.
       /// </summary>
+      /// <summary>
+      ///   accept_other_partners (22/09/2026, yozakura12): this committed partner accepts that the PLAYER keeps
+      ///   other partners, while she herself remains his alone. A CLOSED, one-sided household, and deliberately
+      ///   not <see cref="ExecuteOpenRelationship" />, which is reciprocal and suppresses her jealousy outright.
+      ///   This only changes what jealousy COSTS her (<see cref="Logic.JealousyTrackPolicy" />): she keeps her
+      ///   anger, her confrontations and her memories, and stops sliding toward hatred over an arrangement she
+      ///   agreed to. GUARD (the bridge is law): the same <see cref="PluralAcceptancePolicy" /> the teaching was
+      ///   gated on, re-asked here, so a verb the model reached for out of turn is refused in her own words.
+      /// </summary>
+      private static ActionOutcome ExecuteAcceptOtherPartners(Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null || context?.Profile == null) return null;
+
+            NpcProfile profile = context.Profile;
+            PluralAcceptanceFacts facts = PluralAcceptanceFactsFor(npcHero, profile);
+
+            if (!PluralAcceptancePolicy.CanBeOffered(facts))
+               return ActionOutcome.Refused($"({npcHero.Name} cannot accept such a household: {PluralAcceptancePolicy.WhyNot(facts)}.)");
+
+            profile.Romantic.AcceptsPlayersOtherPartners = true;
+            NpcMemoryCampaignBehavior.Instance?.Store?.Set(profile);
+
+            ModLog.Info($"[ACTION] accept_other_partners: {npcHero.Name} accepts the player's other partners, remaining his alone.");
+
+            var msg = $"{npcHero.Name} accepts that you keep others, and remains yours alone.";
+            MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
+
+            return new ActionOutcome(msg, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"ExecuteAcceptOtherPartners failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   The facts <see cref="PluralAcceptancePolicy" /> judges, read once so the TEACHING gate and the BRIDGE
+      ///   guard cannot drift apart: docs/maps/gates.md exists because they had, elsewhere.
+      /// </summary>
+      internal static PluralAcceptanceFacts PluralAcceptanceFactsFor(Hero npcHero, NpcProfile profile)
+      {
+         bool isSpouse = npcHero == Hero.MainHero?.Spouse;
+         bool committed = profile?.Romantic != null
+                       && (profile.Romantic.IsConsort || profile.Romantic.Status == RomanticStatus.Committed);
+
+         return new PluralAcceptanceFacts {
+            IsCommittedPartner = profile?.Romantic != null && (isSpouse || committed),
+            AlreadyAccepted = profile?.Romantic?.AcceptsPlayersOtherPartners ?? false,
+            AlreadyOnOpenTerms = profile?.Romantic?.IsOpenArrangement ?? false,
+            CultureToleratesSharing = JealousyCultureLoader.GetCulture(npcHero?.Culture?.Name?.ToString())
+                                                           .ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0),
+            RegardWithPlayer = profile?.ReputationWithPlayer ?? 0
+         };
+      }
+
       private static ActionOutcome ExecuteOpenRelationship(Hero npcHero, ActionContext context)
       {
          try

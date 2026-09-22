@@ -74,6 +74,14 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - SilentRefusalMessages.DivorceNoDemandPending(npcHero.Name.ToString())
   - $"(The marriage could not be ended: {reason}.)"
 
+### accept_other_partners
+
+- executor: `ExecuteAcceptOtherPartners`
+- taught in: `AppendPluralAcceptance`
+- taught when: `context?.AcceptOtherPartnersEligible != true AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- the bridge refuses:
+  - $"({npcHero.Name} cannot accept such a household: {PluralAcceptancePolicy.WhyNot(facts)}.)"
+
 ### admit_secret_lover
 
 - executor: `Execute`

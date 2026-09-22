@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 11/07/2026.
+﻿// Code written by Gabriel Mailhot, 11/07/2026.
 
 #region
 
@@ -621,6 +621,7 @@ namespace CalradiaRemembers.Mapping
             ConsortEligible = ResolveConsortEligible(hero, profile),
             SecretLoverEligible = ResolveSecretLoverEligible(hero, profile),
             OpenRelationshipEligible = ResolveOpenRelationshipEligible(hero, profile),
+            AcceptOtherPartnersEligible = ResolveAcceptOtherPartnersEligible(hero, profile),
             PartnerLoverKnown = ResolvePartnerLoverKnown(profile),
             PartnerLoverName = ResolvePartnerLoverName(profile),
             PartnerLoverIsSecret = profile?.Romantic?.LoverIsSecret ?? false,
@@ -1452,6 +1453,21 @@ namespace CalradiaRemembers.Mapping
       ///   flirtation. The bridge re-validates the same guard at execution (the prompt is advice, the bridge is
       ///   law).
       /// </summary>
+      /// <summary>
+      ///   Plural acceptance (22/09/2026, yozakura12): true when this committed partner may be asked to accept
+      ///   that the PLAYER keeps others while she remains his alone. Asks the SAME pure rule the bridge asks at
+      ///   execution, through the SAME facts, so the prompt cannot promise what the bridge refuses: the two
+      ///   halves of open_relationship's decision had drifted apart, and docs/maps/gates.md exists because of it.
+      /// </summary>
+      private static bool ResolveAcceptOtherPartnersEligible(Hero hero, NpcProfile profile)
+      {
+         try
+         {
+            return PluralAcceptancePolicy.CanBeOffered(BannerlordGameStateBridge.PluralAcceptanceFactsFor(hero, profile));
+         }
+         catch { return false; }
+      }
+
       private static bool ResolveOpenRelationshipEligible(Hero hero, NpcProfile profile)
       {
          if (hero == null || Hero.MainHero == null) return false;
