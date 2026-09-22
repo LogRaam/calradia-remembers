@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 418 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 762 types in 25 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 765 types in 25 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -743,7 +743,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (471)
+### CalradiaRemembers.Logic (474)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -953,6 +953,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyOutrage` | public enum | How strongly a romantic act elsewhere reads as a betrayal for this culture. |
 | `JealousyReaction` | public static class | The pure tuning behind a jealousy reaction: the relation hit (Severity), the chance of a confronting letter (LetterChance), and the in-character grievance / letter framing. |
 | `JealousyReactionPolicy` | public static class | Decides whether a romantic act, witnessed or private, draws a jealous reaction this time. |
+| `JealousyTrack` | public enum | Which of the three prices a jealous partner pays. |
+| `JealousyTrackFacts` | public class | What is known about a jealous partner when her price is being decided. |
+| `JealousyTrackPolicy` | public static class | Chooses the jealousy track from what the partner's people hold and what she herself agreed to. |
 | `JealousyTriggerPolicy` | public static class | Pure gate deciding whether a recorded romantic act is plausible COURTSHIP worth a jealous reaction. |
 | `KeepPeaceBreachPolicy` | public static class | Decides whether a freshly declared war breaches a promisor's "keep the peace" oath. |
 | `KeywordToken` | public class | One parsed keyword: a Verb (uppercased, e.g. |

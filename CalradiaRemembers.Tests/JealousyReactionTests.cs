@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 20/06/2026.
+﻿// Code written by Gabriel Mailhot, 20/06/2026.
 // Protects the jealousy reaction barèmes: the relation hit, the letter likelihood, and the
 // betrayal-vs-competition framing. These numbers and phrasings shape how the mechanic FEELS and
 // regress in silence — a wrong scale or a swapped branch never throws.
@@ -29,9 +29,9 @@ namespace CalradiaRemembers.Tests
          JealousyCulture monogamous = JealousyCulture.Monogamous;
 
          //Act/Assert — exclusive partner, NOT competition.
-         JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Flirt, false, monogamous).Should().Be(10);
-         JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Intimacy, false, monogamous).Should().Be(25);
-         JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Marriage, false, monogamous).Should().Be(40);
+         JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Flirt, JealousyTrack.Betrayal, monogamous).Should().Be(10);
+         JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Intimacy, JealousyTrack.Betrayal, monogamous).Should().Be(25);
+         JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Marriage, JealousyTrack.Betrayal, monogamous).Should().Be(40);
       }
 
       // Guards the core betrayal-vs-competition split: a sharing-culture partner (see
@@ -45,8 +45,8 @@ namespace CalradiaRemembers.Tests
          JealousyCulture monogamous = JealousyCulture.Monogamous;
 
          //Act
-         int betrayal    = JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Intimacy, false, monogamous);
-         int competition = JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Intimacy, true,  monogamous);
+         int betrayal    = JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Intimacy, JealousyTrack.Betrayal, monogamous);
+         int competition = JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Intimacy, JealousyTrack.Competition,  monogamous);
 
          //Assert
          competition.Should().Be(6);
@@ -65,8 +65,8 @@ namespace CalradiaRemembers.Tests
          JealousyCulture high = JealousyCulture.Monogamous;
 
          //Act/Assert
-         JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Marriage, true, low)
-            .Should().Be(JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Marriage, true, high));
+         JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Marriage, JealousyTrack.Competition, low)
+            .Should().Be(JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Marriage, JealousyTrack.Competition, high));
       }
 
       // Pins Scale()'s never-to-zero floor (Math.Max(1, ...)) for SpouseOfCourted, the strongest and
@@ -81,9 +81,9 @@ namespace CalradiaRemembers.Tests
          JealousyCulture low    = JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""});      // ×0.7
 
          //Act/Assert
-         JealousyReaction.Severity(JealousStake.SpouseOfCourted, RomanticActTier.Intimacy, false, high).Should().Be(20);
-         JealousyReaction.Severity(JealousStake.SpouseOfCourted, RomanticActTier.Intimacy, false, medium).Should().Be(17);
-         JealousyReaction.Severity(JealousStake.SpouseOfCourted, RomanticActTier.Intimacy, false, low).Should().Be(14);
+         JealousyReaction.Severity(JealousStake.SpouseOfCourted, RomanticActTier.Intimacy, JealousyTrack.Betrayal, high).Should().Be(20);
+         JealousyReaction.Severity(JealousStake.SpouseOfCourted, RomanticActTier.Intimacy, JealousyTrack.Betrayal, medium).Should().Be(17);
+         JealousyReaction.Severity(JealousStake.SpouseOfCourted, RomanticActTier.Intimacy, JealousyTrack.Betrayal, low).Should().Be(14);
       }
 
       // Pins the base values (RivalSuitor 15, SpurnedAdmirer 5) at High outrage, the last two
@@ -95,8 +95,8 @@ namespace CalradiaRemembers.Tests
          JealousyCulture high = JealousyCulture.Monogamous;
 
          //Act/Assert
-         JealousyReaction.Severity(JealousStake.RivalSuitor, RomanticActTier.Intimacy, false, high).Should().Be(15);
-         JealousyReaction.Severity(JealousStake.SpurnedAdmirer, RomanticActTier.Flirt, false, high).Should().Be(5);
+         JealousyReaction.Severity(JealousStake.RivalSuitor, RomanticActTier.Intimacy, JealousyTrack.Betrayal, high).Should().Be(15);
+         JealousyReaction.Severity(JealousStake.SpurnedAdmirer, RomanticActTier.Flirt, JealousyTrack.Betrayal, high).Should().Be(5);
       }
 
       // ── Letter likelihood ──────────────────────────────────────────────────
@@ -179,11 +179,11 @@ namespace CalradiaRemembers.Tests
          JealousyCulture monogamous = JealousyCulture.Monogamous;
 
          //Act/Assert: quieter than a betrayed exclusive partner at every tier.
-         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Flirt, false, monogamous).Should().Be(5);
-         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Intimacy, false, monogamous).Should().Be(12);
-         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Marriage, false, monogamous).Should().Be(20);
-         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Marriage, false, monogamous)
-                         .Should().BeLessThan(JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Marriage, false, monogamous));
+         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Flirt, JealousyTrack.Betrayal, monogamous).Should().Be(5);
+         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Intimacy, JealousyTrack.Betrayal, monogamous).Should().Be(12);
+         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Marriage, JealousyTrack.Betrayal, monogamous).Should().Be(20);
+         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Marriage, JealousyTrack.Betrayal, monogamous)
+                         .Should().BeLessThan(JealousyReaction.Severity(JealousStake.PlayerPartner, RomanticActTier.Marriage, JealousyTrack.Betrayal, monogamous));
       }
 
       // Unlike every other stake, SecretLover severity deliberately skips Scale() ("the bond is
@@ -197,7 +197,7 @@ namespace CalradiaRemembers.Tests
          JealousyCulture permissive = JealousyCulture.FromRaw(new JealousyCulture.JealousyCultureRaw {ExclusivityOutrage = "Low", PolygamyEliteTier = 0, HierarchySensitivity = "Low", EquityExpectation = false, PromptHint = ""});
 
          //Act/Assert
-         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Intimacy, false, permissive).Should().Be(12);
+         JealousyReaction.Severity(JealousStake.SecretLover, RomanticActTier.Intimacy, JealousyTrack.Betrayal, permissive).Should().Be(12);
       }
 
       // The entire point of the secret-lover stake (CHANGELOG v1.30.3: "kept hidden... Never a

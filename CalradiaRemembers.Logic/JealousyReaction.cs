@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 20/06/2026.
+﻿// Code written by Gabriel Mailhot, 20/06/2026.
 // Extracted from the mod (Sprint 24 jealousy): the reaction barèmes — how hard a jealous party
 // turns on the player, how likely they are to write, and the grievance/letter framing. Pure so the
 // numbers (which break silently) and the betrayal-vs-competition split stay protected by tests.
@@ -12,6 +12,26 @@ using System;
 namespace CalradiaRemembers.Logic
 {
     /// <summary>
+    ///   Which of the three prices a jealous partner pays. It replaces a bool named <c>competition</c>, which
+    ///   had come to answer a different question from the one its name asked once a third case existed.
+    /// </summary>
+    public enum JealousyTrack
+    {
+        /// <summary>Her people call this betrayal and she never agreed to it. The full price, and the old default.</summary>
+        Betrayal,
+
+        /// <summary>
+        ///   Her people call it betrayal and she agreed anyway (yozakura12, 22/09/2026). Softer than betrayal,
+        ///   because her word is worth something in a mod where what a character says is true; dearer than
+        ///   competition, because she is bearing what her own custom condemns and a Khuzait is not.
+        /// </summary>
+        AcceptedAgainstCulture,
+
+        /// <summary>Her own people share partners, so the grievance is rank and attention rather than betrayal.</summary>
+        Competition
+    }
+
+    /// <summary>
     ///   The pure tuning behind a jealousy reaction: the relation hit (<see cref="Severity" />),
     ///   the chance of a confronting letter (<see cref="LetterChance" />), and the in-character
     ///   grievance / letter framing. The host supplies the resolved stake, act tier, whether the
@@ -24,7 +44,7 @@ namespace CalradiaRemembers.Logic
         ///   exclusive partner cuts deepest; the same partner in a sharing culture merely competes.
         ///   Exclusivity-stake hits are lightly scaled by the culture's outrage, never to zero.
         /// </summary>
-        public static int Severity(JealousStake stake, RomanticActTier tier, bool competition, JealousyCulture culture)
+        public static int Severity(JealousStake stake, RomanticActTier tier, JealousyTrack track, JealousyCulture culture)
         {
             int b;
             switch (stake)
@@ -33,9 +53,15 @@ namespace CalradiaRemembers.Logic
                     b = tier == RomanticActTier.Flirt ? 8 : tier == RomanticActTier.Intimacy ? 20 : 22;
                     return Scale(b, culture);
                 case JealousStake.PlayerPartner:
-                    if (competition)
+                    if (track == JealousyTrack.Competition)
                         return tier == RomanticActTier.Flirt ? 3 : tier == RomanticActTier.Intimacy ? 6 : 8;
-                    return tier == RomanticActTier.Flirt ? 10 : tier == RomanticActTier.Intimacy ? 25 : 40;
+
+                    b = tier == RomanticActTier.Flirt ? 10 : tier == RomanticActTier.Intimacy ? 25 : 40;
+
+                    // A FACTOR, not a third band written out. Three more literals would be three more numbers
+                    // nobody could tie back to the two they sit between, and the whole point of this track is
+                    // that it IS the betrayal price, borne more lightly by someone who chose to bear it.
+                    return track == JealousyTrack.AcceptedAgainstCulture ? Soften(b) : b;
                 case JealousStake.RivalSuitor:
                     b = tier == RomanticActTier.Flirt ? 6 : tier == RomanticActTier.Intimacy ? 15 : 18;
                     return Scale(b, culture);
@@ -113,6 +139,19 @@ namespace CalradiaRemembers.Logic
                            $"{hint} Write as the spurned — bitter, reproachful, or vengeful.";
             }
         }
+
+        /// <summary>
+        ///   How much of the betrayal price a partner still pays once she has accepted the arrangement against
+        ///   her own culture: half, rounded away from zero so the middle tier lands on 13 rather than 12. Half
+        ///   puts her at 5/13/20 against 10/25/40 and 3/6/8, which is the same register as the secret-lover
+        ///   band one case down ("a discreet bond wounds quietly: real hurt, milder than a betrayed open
+        ///   partner"). Gabriel, 22/09/2026: "une femme qui accepte malgre que sa culture veut le contraire
+        ///   pourrait etre un peu plus tolerante."
+        /// </summary>
+        public const float AcceptedAgainstCultureFactor = 0.5f;
+
+        private static int Soften(int baseValue)
+            => Math.Max(1, (int) Math.Round(baseValue * AcceptedAgainstCultureFactor, MidpointRounding.AwayFromZero));
 
         /// <summary>Light cultural scaling for stakes where exclusivity stance modulates intensity (never to zero).</summary>
         private static int Scale(int baseValue, JealousyCulture culture)

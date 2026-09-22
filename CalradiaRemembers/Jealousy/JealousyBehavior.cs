@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 10/07/2026.
+﻿// Code written by Gabriel Mailhot, 10/07/2026.
 
 #region
 
@@ -372,14 +372,28 @@ namespace CalradiaRemembers.Jealousy
             return;
          }
 
+         // WHICH OF THE THREE PRICES, decided in one place (JealousyTrackPolicy) so the severity and the floor
+         // below can never disagree about which partner this is. Her culture, then her own word: a woman of an
+         // exclusive people who SAID she accepts the arrangement bears it more lightly than one who never did,
+         // and still more heavily than one whose people share partners as a matter of course (yozakura12,
+         // 22/09/2026; Gabriel's ruling the same day: the culture sets the price, not a veto).
+         JealousyTrack track = JealousyTrackPolicy.For(new JealousyTrackFacts {
+            CultureToleratesSharing = competition,
+            PartnerAcceptedTheArrangement = profile.Romantic?.AcceptsPlayersOtherPartners ?? false
+         });
+
          // A wound of the heart, not clan politics — routed to this NPC's PERSONAL regard
          // (ReputationWithPlayer), not the vanilla clan-relation ledger.
-         int delta = -JealousyReaction.Severity(stake, tier, competition, culture);
+         int delta = -JealousyReaction.Severity(stake, tier, track, culture);
 
          // Player report 2026-09-12: a partner whose culture ACCEPTS the arrangement still slid without end.
          // By their own custom the grievance is rank, not betrayal, so it may cool them completely and must
-         // not manufacture hatred - see JealousyReactionPolicy.SharingRankFloor.
-         if (competition) delta = JealousyReactionPolicy.SharingRankDelta(profile.ReputationWithPlayer, delta);
+         // not manufacture hatred - see JealousyReactionPolicy.SharingRankFloor. A partner who accepted against
+         // her own culture has a floor too, lower than hers: wary, not hostile.
+         if (track == JealousyTrack.Competition)
+            delta = JealousyReactionPolicy.SharingRankDelta(profile.ReputationWithPlayer, delta);
+         else if (track == JealousyTrack.AcceptedAgainstCulture)
+            delta = JealousyReactionPolicy.AcceptedAgainstCultureDelta(profile.ReputationWithPlayer, delta);
 
          if (delta < 0)
             ProfileMutator.ApplyReputationDelta(profile, delta);

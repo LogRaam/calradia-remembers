@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 17/07/2026.
+﻿// Code written by Gabriel Mailhot, 17/07/2026.
 // Jealousy, witnessed-reaction gate (romance audit M-J1/M-J2). When the player courts someone in front of
 // witnesses, word travels, but "not every flirt travels": a probability roll decides. Two bugs lived here. M-J2:
 // that roll was applied even to a MARRIAGE-tier act (a public wedding, a consort openly taken), so a spouse had
@@ -12,6 +12,7 @@
 #endregion
 
 using System;
+using NpcMemoryService.Core.Standing;
 
 namespace CalradiaRemembers.Logic
 {
@@ -52,6 +53,36 @@ namespace CalradiaRemembers.Logic
             if (currentRegard <= SharingRankFloor) return 0;
 
             return Math.Max(rawDelta, SharingRankFloor - currentRegard);
+        }
+
+        /// <summary>
+        ///   How low the regard of a partner who accepted the arrangement AGAINST HER OWN CULTURE may be driven
+        ///   by the player taking further partners: wary, not hostile.
+        ///   <para>
+        ///     The competition floor above is zero, because a woman whose own people share partners should
+        ///     never be made an enemy by a custom they keep. This one is owed more room than that: she is
+        ///     bearing what her people call betrayal, and years of it may leave her genuinely cold. It is owed
+        ///     less room than a real betrayal, which keeps the full -100, because she did agree.
+        ///   </para>
+        ///   <para>
+        ///     A rung that already has a name rather than a new number: <see cref="Regard.WaryTier" /> is where
+        ///     this mod already says warmth has turned to wariness.
+        ///   </para>
+        /// </summary>
+        public static int AcceptedAgainstCultureFloor => Regard.WaryTier;
+
+        /// <summary>
+        ///   The regard such a partner actually loses, after the floor. Returns 0 once she has reached it, so
+        ///   the grievance stops costing regard and costs only the scene: the anger, the confrontation, the
+        ///   memory and the letter all still happen, which is what yozakura12 asked to keep ("Keep the angry
+        ///   dialogue, confrontations, and jealousy memories even if Relation loss is reduced").
+        /// </summary>
+        public static int AcceptedAgainstCultureDelta(int currentRegard, int rawDelta)
+        {
+            if (rawDelta >= 0) return rawDelta;
+            if (currentRegard <= AcceptedAgainstCultureFloor) return 0;
+
+            return Math.Max(rawDelta, AcceptedAgainstCultureFloor - currentRegard);
         }
 
         /// <summary>
