@@ -643,10 +643,13 @@ CalradiaRemembers.Feed.Record(new ExternalWorldEvent {
     SourceMod = "GrandRaces",
     Summary   = "Dellio of Pravend won the autumn race and a purse of 5000 denars.",
     Magnitude = 40,
-    FactionIds = new[] { "empire" },
+    FactionIds = new[] { "vlandia" },
+    PlaceId   = "town_V3",
 });[/code]
 
 From that moment, lords who would plausibly have heard speak of it.. as [i]hearsay[/i], hedged by distance and faction, exactly like the news CR records on its own. Your mod needs to know [i]nothing[/i] about CR's memory system, its prompts, or its save format.
+
+Tell CR [b]where[/b] it happened ([i]PlaceId[/i], a settlement id) and those nearby hear it first; name the heroes it is about ([i]HeroIds[/i]) and they can speak of it themselves. To check your feed without playing it out, [i]cr.heard <name> <event id>[/i] in the console says whether that character has heard it, why, for how many more days, or what would reach them. See the HOWTO_WorldEvents guide shipped with the mod.
 
 Facts can also [b]change[/b]. For things that aren't one-off events but standing state.. a settlement that moves, a character renamed, a place that ceases to exist.. [i]Feed.Update(...)[/i] replaces a previous entry by its id, and [i]Feed.Retract(id)[/i] removes one that is no longer true, so the world's gossip stays current instead of repeating something stale.
 
