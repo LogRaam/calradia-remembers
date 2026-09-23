@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 418 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 768 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 770 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1224,7 +1224,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
 
-### CalradiaRemembers.Logic.Actions (10)
+### CalradiaRemembers.Logic.Actions (12)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1236,6 +1236,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ManualActionFacts` | public class | Plain facts about the current conversation NPC and the player's own state, gathered from the SAME policies and EncounterContext fields the Action Interpreter's teaching gates already compute. |
 | `ManualActionGroup` | public enum | How a manual action's entries are grouped in the menu, in display order. |
 | `ManualActionParameterKind` | public enum | What follow-up the menu must raise before the action can be built: a plain amount, an item from the player's roster, a fief name, a party role, a companion-mission kind, an enemy faction, or nothing at all (the action ca... |
+| `ManualActionState` | public enum | Where one manual action stands in this conversation, for the three ranks the panel shows. |
+| `ManualActionStatus` | public class | One catalogue entry with where it stands, and why when it is closed. |
 | `TaughtActionFacts` | public struct | The eligibility facts that decide which conditional 1:1 [ACTION] verbs a single conversation turn teaches. |
 | `TaughtActionSet` | public static class | BEST-EFFORT, LOG-ONLY. Returns the set of 1:1 [ACTION] type keys taught on a single ordinary (non-council) conversation turn, so the host can OBSERVE, without refusing, an [ACTION] that executed yet was never taught (aud... |
 

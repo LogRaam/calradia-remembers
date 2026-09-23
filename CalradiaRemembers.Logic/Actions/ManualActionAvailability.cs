@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 21/08/2026.
+﻿// Code written by Gabriel Mailhot, 21/08/2026.
 // Manual action-injection menu: the availability half. Pure and engine-free, so it is fully unit-testable:
 // given a plain snapshot of facts about the CURRENT conversation NPC and the player's own state, decides
 // exactly which ManualActionCatalog entries the menu may offer right now. The mod-side resolver
@@ -10,6 +10,7 @@
 #region
 
 using System.Collections.Generic;
+using System.Linq;
 
 #endregion
 
@@ -111,6 +112,36 @@ namespace CalradiaRemembers.Logic.Actions
       public bool PlayerHasGiveableItems { get; set; }
    }
 
+   /// <summary>Where one manual action stands in this conversation, for the three ranks the panel shows.</summary>
+   public enum ManualActionState
+   {
+      /// <summary>He may ask for it now, and the panel lets him inject it.</summary>
+      Open,
+
+      /// <summary>It applies to her, but not as things stand. The reason names what would have to change.</summary>
+      Blocked,
+
+      /// <summary>It does not apply to WHO SHE IS, and no play this afternoon changes that.</summary>
+      NotForThisPerson
+   }
+
+   /// <summary>One catalogue entry with where it stands, and why when it is closed.</summary>
+   public sealed class ManualActionStatus
+   {
+      public ManualActionStatus(ManualActionEntry entry, ManualActionState state, string reason)
+      {
+         Entry = entry;
+         State = state;
+         Reason = reason ?? "";
+      }
+
+      public ManualActionEntry Entry { get; }
+      public ManualActionState State { get; }
+
+      /// <summary>Plain player language, empty when <see cref="State" /> is <see cref="ManualActionState.Open" />.</summary>
+      public string Reason { get; }
+   }
+
    /// <summary>
    ///   Decides, from a <see cref="ManualActionFacts" /> snapshot, exactly which <see cref="ManualActionCatalog" />
    ///   entries the manual menu may offer for THIS conversation right now. Every entry returned still passes
@@ -120,51 +151,108 @@ namespace CalradiaRemembers.Logic.Actions
    /// </summary>
    public static class ManualActionAvailability
    {
+      /// <summary>
+      ///   What may be offered right now. A VIEW of <see cref="Describe" />, never a second decision: the panel
+      ///   and the menu read one answer, so neither can offer what the other would refuse. Two surfaces over one
+      ///   decision is the drift this repository spent 21-22/09/2026 learning about, twice.
+      /// </summary>
       public static IReadOnlyList<ManualActionEntry> GetAvailable(ManualActionFacts facts)
+         => Describe(facts).Where(s => s.State == ManualActionState.Open).Select(s => s.Entry).ToList();
+
+      /// <summary>
+      ///   Every catalogue entry, with where it stands and why when it is closed. The panel's whole content.
+      ///   <para>
+      ///     WHEN IN DOUBT, BLOCKED. Several facts here fold "who she is" and "where things stand" into one
+      ///     boolean, and there is no honest way to split them without richer facts. Where that happens the
+      ///     answer is Blocked, deliberately, because it is the weaker claim: calling something merely
+      ///     out of reach when it will in fact never happen only leaves a row in the middle rank, while calling
+      ///     it impossible when it was one errand away is a lie the player will act on. NotForThisPerson is used
+      ///     only where an IDENTITY fact says so outright.
+      ///   </para>
+      /// </summary>
+      public static IReadOnlyList<ManualActionStatus> Describe(ManualActionFacts facts)
       {
-         var result = new List<ManualActionEntry>();
+         var result = new List<ManualActionStatus>();
 
-         if (facts == null) return result;
-
-         // Coin & goods: take_gold carries no precondition beyond a live conversation (already guaranteed by
-         // the menu only ever opening in one), so it is always offered.
-         result.Add(ManualActionCatalog.TakeGold);
-         if (facts.PlayerHasGiveableItems) result.Add(ManualActionCatalog.GiveItem);
-         if (facts.CanSpendInfluence) result.Add(ManualActionCatalog.SpendInfluence);
-
-         // Prisoner: only ever shown when THIS NPC is a hero prisoner the player themselves holds.
-         if (facts.NpcIsPlayerPrisoner)
+         // A NULL SNAPSHOT IS NOT AN EMPTY WORLD. It means the situation could not be read, and the shipped
+         // contract is that nothing is offered then (GetAvailable(null) has always been empty). Substituting a
+         // blank facts object would have turned "unknown" into "a world where the player owns nothing", and
+         // offered take_gold on the strength of it. The existing null test caught exactly that.
+         if (facts == null)
          {
-            result.Add(ManualActionCatalog.ExecutePrisoner);
-            result.Add(ManualActionCatalog.FreePrisoner);
-            if (facts.CanRecruitPrisoner) result.Add(ManualActionCatalog.RecruitPrisoner);
+            foreach (ManualActionEntry entry in ManualActionCatalog.All)
+               result.Add(new ManualActionStatus(entry, ManualActionState.Blocked, "the moment cannot be read just now"));
+
+            return result;
          }
 
-         // Companion / party.
-         if (facts.NpcCanBeDispatchedOnMission) result.Add(ManualActionCatalog.DispatchMission);
-         if (facts.NpcCanBeAssignedPartyRole) result.Add(ManualActionCatalog.AssignPartyRole);
-         if (facts.NpcIsPlayerCompanion && facts.NpcIsAwayOnErrand) result.Add(ManualActionCatalog.RecallCompanion);
-         if (facts.NpcCanRejoinParty) result.Add(ManualActionCatalog.RejoinParty);
-         if (facts.NpcCanEscortPlayer) result.Add(ManualActionCatalog.FollowMe);
-         if (facts.NpcIsEscortingPlayer) result.Add(ManualActionCatalog.DismissEscort);
-         if (facts.NpcCanRideWithPlayer) result.Add(ManualActionCatalog.RideWithMe);
-         if (facts.NpcIsRidingWithPlayer) result.Add(ManualActionCatalog.PartWays);
-         if (facts.NpcCanBeChallengedToDuel) result.Add(ManualActionCatalog.ChallengeDuel);
-         if (facts.NpcIsPlayerCompanion && facts.CompanionIsDiscontented) result.Add(ManualActionCatalog.ReassureCompanion);
+         void Open(ManualActionEntry e) => result.Add(new ManualActionStatus(e, ManualActionState.Open, ""));
+         void Blocked(ManualActionEntry e, string why) => result.Add(new ManualActionStatus(e, ManualActionState.Blocked, why));
+         void NotHer(ManualActionEntry e, string why) => result.Add(new ManualActionStatus(e, ManualActionState.NotForThisPerson, why));
+
+         void When(bool ok, ManualActionEntry e, string why)
+         {
+            if (ok) Open(e);
+            else Blocked(e, why);
+         }
+
+         // Coin and goods. Taking gold needs nothing but a live conversation, which the panel only opens in.
+         Open(ManualActionCatalog.TakeGold);
+         When(facts.PlayerHasGiveableItems, ManualActionCatalog.GiveItem, "you are carrying nothing worth handing over");
+         When(facts.CanSpendInfluence, ManualActionCatalog.SpendInfluence, "you have no influence to spend on them");
+
+         // Prisoner. The gate is WHO SHE IS, so someone who is not your captive is in the bottom rank outright.
+         if (!facts.NpcIsPlayerPrisoner)
+         {
+            const string notYours = "they are not your prisoner";
+            NotHer(ManualActionCatalog.ExecutePrisoner, notYours);
+            NotHer(ManualActionCatalog.FreePrisoner, notYours);
+            NotHer(ManualActionCatalog.RecruitPrisoner, notYours);
+         }
+         else
+         {
+            Open(ManualActionCatalog.ExecutePrisoner);
+            Open(ManualActionCatalog.FreePrisoner);
+            When(facts.CanRecruitPrisoner, ManualActionCatalog.RecruitPrisoner, "they will not take your colours yet");
+         }
+
+         // Companion and party.
+         When(facts.NpcCanBeDispatchedOnMission, ManualActionCatalog.DispatchMission, "there is nothing you could send them to do just now");
+         When(facts.NpcCanBeAssignedPartyRole, ManualActionCatalog.AssignPartyRole, "they hold no place in your party that a role could be given to");
+
+         if (!facts.NpcIsPlayerCompanion)
+         {
+            const string notYours = "they are not one of your companions";
+            NotHer(ManualActionCatalog.RecallCompanion, notYours);
+            NotHer(ManualActionCatalog.ReassureCompanion, notYours);
+         }
+         else
+         {
+            When(facts.NpcIsAwayOnErrand, ManualActionCatalog.RecallCompanion, "they are at your side already, not away on an errand");
+            When(facts.CompanionIsDiscontented, ManualActionCatalog.ReassureCompanion, "they are content enough just now");
+         }
+
+         When(facts.NpcCanRejoinParty, ManualActionCatalog.RejoinParty, "there is no place waiting in your party for them to return to");
+         When(facts.NpcCanEscortPlayer, ManualActionCatalog.FollowMe, "they are not free to walk at your side");
+         When(facts.NpcIsEscortingPlayer, ManualActionCatalog.DismissEscort, "they are not escorting you");
+         When(facts.NpcCanRideWithPlayer, ManualActionCatalog.RideWithMe, "they are not free to ride with your party");
+         When(facts.NpcIsRidingWithPlayer, ManualActionCatalog.PartWays, "they are not riding with you");
+         When(facts.NpcCanBeChallengedToDuel, ManualActionCatalog.ChallengeDuel, "there is nowhere here the two of you could cross blades");
 
          // Governance.
-         if (facts.NpcCanBeGrantedFief) result.Add(ManualActionCatalog.GrantFief);
-         if (facts.NpcCanHaveFiefRevoked) result.Add(ManualActionCatalog.RevokeFief);
-         if (facts.NpcCanBeAppointedGovernor) result.Add(ManualActionCatalog.AppointGovernor);
-         if (facts.NpcCanBeGrantedStipend) result.Add(ManualActionCatalog.GrantStipend);
-         if (facts.CanGiveTroops) result.Add(ManualActionCatalog.GiveTroops);
+         When(facts.NpcCanBeGrantedFief, ManualActionCatalog.GrantFief, "you have no fief in your gift for them");
+         When(facts.NpcCanHaveFiefRevoked, ManualActionCatalog.RevokeFief, "they hold no fief of yours to take back");
+         When(facts.NpcCanBeAppointedGovernor, ManualActionCatalog.AppointGovernor, "you have no seat wanting a governor they could take");
+         When(facts.NpcCanBeGrantedStipend, ManualActionCatalog.GrantStipend, "they are not someone you could set a stipend upon");
+         When(facts.CanGiveTroops, ManualActionCatalog.GiveTroops, "you have no soldiers to spare them");
 
-         // Diplomacy / recruitment.
-         if (facts.PlayerCanMediatePeace) result.Add(ManualActionCatalog.MediatePeace);
-         if (facts.CanRecruitNotable) result.Add(ManualActionCatalog.RecruitNotable);
-         if (facts.CompanionAskingPrice.HasValue) result.Add(ManualActionCatalog.JoinParty);
+         // Diplomacy and recruitment.
+         When(facts.PlayerCanMediatePeace, ManualActionCatalog.MediatePeace, "there is no war of theirs you could stand between");
+         When(facts.CanRecruitNotable, ManualActionCatalog.RecruitNotable, "they are not a notable you could bring into your service");
+         When(facts.CompanionAskingPrice.HasValue, ManualActionCatalog.JoinParty, "they are not for hire");
 
          return result;
       }
+
    }
 }
