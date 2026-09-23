@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 11/07/2026.
+﻿// Code written by Gabriel Mailhot, 11/07/2026.
 
 #region
 
@@ -13,6 +13,7 @@ using CalradiaRemembers.Grudges;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Logic.Duels;
@@ -286,6 +287,12 @@ namespace CalradiaRemembers.Chat
       // A left panel mirroring cr.memory: what this NPC remembers of the player.
       // Rebuilt from the persisted profile each time it opens.
       private MBBindingList<MemoryEntryViewModel> _memories;
+
+      // The Actions panel's rows, rebuilt whenever it opens and after every turn: what the player may ask of
+      // this person, what is merely out of reach, and what will never apply to them (fkasad, 22/09/2026).
+      private MBBindingList<ActionRowViewModel> _actionRows;
+      private bool _isActionsPanelOpen;
+      private bool _neverRowsExpanded;
       private string _memoryPanelTitle = "Shared memories";
       private MBBindingList<ChatMessageViewModel> _messages;
 
@@ -458,6 +465,7 @@ namespace CalradiaRemembers.Chat
       {
          _messages = new MBBindingList<ChatMessageViewModel>();
          _memories = new MBBindingList<MemoryEntryViewModel>();
+         _actionRows = new MBBindingList<ActionRowViewModel>();
 
          // A character tableau is a GPU render-target; one per transcript line exhausts VRAM on a long scene
          // (the create_render_texture crash). On every insertion, collapse to at most one live portrait per
@@ -629,6 +637,42 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       [DataSourceProperty]
       public bool IsGameMenuButtonVisible => _mode == ChatMode.Conversation && !_captorScene;
+
+      /// <summary>The Actions panel's rows, in reading order: sections, rank headings, and the lines themselves.</summary>
+      [DataSourceProperty]
+      public MBBindingList<ActionRowViewModel> ActionRows
+      {
+         get => _actionRows;
+         set
+         {
+            if (_actionRows == value) return;
+            _actionRows = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>True while the Actions panel is open.</summary>
+      [DataSourceProperty]
+      public bool IsActionsPanelOpen
+      {
+         get => _isActionsPanelOpen;
+         set
+         {
+            if (_isActionsPanelOpen == value) return;
+            _isActionsPanelOpen = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>Actions panel art: the illuminated background (JPG, needs CorrectRedBlue like the others).</summary>
+      [DataSourceProperty]
+      public string ActionsBackgroundPath => System.IO.Path.Combine(
+         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_actions.jpg");
+
+      /// <summary>Actions panel art: the padlock beside a shut line (transparent PNG, NO CorrectRedBlue).</summary>
+      [DataSourceProperty]
+      public string ActionsLockPath => System.IO.Path.Combine(
+         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_lock.png");
 
       /// <summary>True while the left "shared memories" panel is open (a read-only view of what this NPC remembers).</summary>
       [DataSourceProperty]
@@ -1885,6 +1929,7 @@ namespace CalradiaRemembers.Chat
       {
          if (!_isMemoryPanelOpen) return;
          IsMemoryPanelOpen = false;
+         IsActionsPanelOpen = false;
       }
 
       /// <summary>The portrait panel's "Close" button.</summary>
@@ -1936,7 +1981,103 @@ namespace CalradiaRemembers.Chat
       ///   Injected deterministically through the same bridge an LLM-proposed action would use (see
       ///   <see cref="ManualActionMenuController" />), never through the LLM.
       /// </summary>
-      public void ExecuteOpenActionMenu() => _actionMenu.Execute(this, _confirmation);
+      public void ExecuteOpenActionMenu()
+      {
+         if (_isActionsPanelOpen)
+         {
+            IsActionsPanelOpen = false;
+
+            return;
+         }
+
+         if (_isMemoryPanelOpen) IsMemoryPanelOpen = false; // one panel at a time over the conversation
+         if (_isPortraitPanelOpen) IsPortraitPanelOpen = false;
+
+         RefreshActionRows();
+         IsActionsPanelOpen = true;
+      }
+
+      /// <summary>The panel's Close plaque, and the one the escape path uses.</summary>
+      public void ExecuteCloseActionsPanel() => IsActionsPanelOpen = false;
+
+      /// <summary>
+      ///   Rebuilds the panel's rows from the live conversation. Cheap and synchronous: no LLM call, no world
+      ///   change, just the same facts the injection menu resolves, read into player language.
+      ///   <para>
+      ///     fkasad (22/09/2026) asked the model what the mod could do and got charm instead of facts, because a
+      ///     model asked about the rules reasons about its own prompt. The mod knows with certainty, so the mod
+      ///     answers: ManualActionAvailability.Describe, rendered.
+      ///   </para>
+      /// </summary>
+      private void RefreshActionRows()
+      {
+         try
+         {
+            _actionRows.Clear();
+
+            IReadOnlyList<ManualActionStatus> statuses = _actionMenu.DescribeFor(this);
+
+            _actionRows.Add(new ActionRowViewModel("What you may ask of them", "", ActionRowKind.Section));
+
+            var open = statuses.Where(x => x.State == ManualActionState.Open).ToList();
+            var blocked = statuses.Where(x => x.State == ManualActionState.Blocked).ToList();
+            var never = statuses.Where(x => x.State == ManualActionState.NotForThisPerson).ToList();
+
+            if (open.Count == 0)
+               _actionRows.Add(new ActionRowViewModel("There is nothing you can ask of them just now.", "", ActionRowKind.Heading));
+
+            foreach (ManualActionStatus status in open)
+            {
+               ManualActionEntry entry = status.Entry;
+               _actionRows.Add(new ActionRowViewModel(entry.DisplayLabel, "", ActionRowKind.Askable, () => PickAction(entry)));
+            }
+
+            if (blocked.Count > 0)
+            {
+               _actionRows.Add(new ActionRowViewModel("Not as things stand", "", ActionRowKind.Heading));
+
+               foreach (ManualActionStatus status in blocked)
+                  _actionRows.Add(new ActionRowViewModel(status.Entry.DisplayLabel, status.Reason, ActionRowKind.Shut));
+            }
+
+            if (never.Count > 0)
+            {
+               // FOLDED BY DEFAULT. For most characters this rank is most of the catalogue, and it is context
+               // rather than a list of things to go and do: a commoner will never be granted a fief and no play
+               // this afternoon changes it. One line, opened by whoever wants it.
+               string heading = _neverRowsExpanded
+                  ? "Never, because of who they are"
+                  : $"{never.Count} things they will never do, because of who they are";
+
+               _actionRows.Add(new ActionRowViewModel(heading, "", ActionRowKind.Heading, ToggleNeverRows));
+
+               if (_neverRowsExpanded)
+                  foreach (ManualActionStatus status in never)
+                     _actionRows.Add(new ActionRowViewModel(status.Entry.DisplayLabel, status.Reason, ActionRowKind.Shut));
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"RefreshActionRows failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      private void ToggleNeverRows()
+      {
+         _neverRowsExpanded = !_neverRowsExpanded;
+         RefreshActionRows();
+      }
+
+      /// <summary>
+      ///   The link at the end of an open line. Hands the entry back to the controller, which re-resolves the
+      ///   facts before acting: the panel was drawn a moment ago and the world moves. Closes the panel, because
+      ///   whatever happens next has just made the list stale.
+      /// </summary>
+      private void PickAction(ManualActionEntry entry)
+      {
+         IsActionsPanelOpen = false;
+         _actionMenu.Pick(this, _confirmation, entry);
+      }
 
       /// <summary>
       ///   The "&lt;" button: opens the left REVIEW panel — a wrapped, read-only view of what you have typed

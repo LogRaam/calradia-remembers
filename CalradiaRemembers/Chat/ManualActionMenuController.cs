@@ -1,4 +1,4 @@
-// Code written by Gabriel Mailhot, 21/08/2026.
+﻿// Code written by Gabriel Mailhot, 21/08/2026.
 // Manual action-injection menu (the third icon, beside the purse and the quill): lets the player EMIT AN
 // ACTION BY HAND against the current conversation NPC, for when the Action Interpreter missed a deed or is
 // turned off entirely. The player picks from the actions POSSIBLE RIGHT NOW; the pick is injected through
@@ -58,6 +58,68 @@ namespace CalradiaRemembers.Chat
       private static readonly string[] MissionLabels = {"Gather news", "Spy", "Steal", "Barter", "Envoy"};
       private static readonly string[] PartyRoles = {"scout", "engineer", "quartermaster", "surgeon"};
       private static readonly string[] PartyRoleLabels = {"Scout", "Engineer", "Quartermaster", "Surgeon"};
+
+      /// <summary>
+      ///   Every catalogue entry with where it stands against THIS conversation, for the Actions panel. Resolves
+      ///   the facts through the same <c>ResolveFacts</c> the menu uses, so the panel cannot describe a different
+      ///   world from the one the injection will act in.
+      /// </summary>
+      public IReadOnlyList<ManualActionStatus> DescribeFor(IManualActionMenuHost host)
+      {
+         try
+         {
+            Hero npc = host?.Npc;
+            IGameStateBridge bridge = NpcMemoryCampaignBehavior.Instance?.GameStateBridge;
+
+            if (npc == null || bridge == null) return ManualActionAvailability.Describe(null);
+
+            return ManualActionAvailability.Describe(ResolveFacts(npc, host.Profile, bridge));
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"DescribeFor failed: {ex.GetType().Name}: {ex.Message}");
+
+            return ManualActionAvailability.Describe(null);
+         }
+      }
+
+      /// <summary>
+      ///   Takes one entry the player picked in the panel, exactly as picking it in the menu would.
+      ///   <para>
+      ///     The facts are resolved AGAIN here rather than carried from the panel. The panel was built when it
+      ///     was opened, and the world moves: an entry that was open then may not be now, and the whole design
+      ///     of this mod is that the bridge is law and the surface is advice. Re-asking costs nothing and
+      ///     removes a whole family of stale-panel bugs.
+      ///   </para>
+      /// </summary>
+      public void Pick(IManualActionMenuHost host, ActionConfirmationController confirmation, ManualActionEntry entry)
+      {
+         if (host == null || confirmation == null || entry == null) return;
+
+         try
+         {
+            Hero npc = host.Npc;
+            IGameStateBridge bridge = NpcMemoryCampaignBehavior.Instance?.GameStateBridge;
+
+            if (npc == null || bridge == null) return;
+
+            NpcProfile profile = host.Profile;
+            ManualActionFacts facts = ResolveFacts(npc, profile, bridge);
+
+            if (!ManualActionAvailability.GetAvailable(facts).Any(e => e.Type == entry.Type))
+            {
+               ModLog.Info($"[ACTIONS] '{entry.Type}' was picked but is no longer open; the world moved since the panel was drawn.");
+
+               return;
+            }
+
+            BeginParameterCapture(host, confirmation, entry, npc, profile, facts);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"Pick failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
 
       /// <summary>Opens the menu of actions possible right now against the conversation NPC.</summary>
       public void Execute(IManualActionMenuHost host, ActionConfirmationController confirmation)

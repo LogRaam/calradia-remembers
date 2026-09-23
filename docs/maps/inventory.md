@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 418 types in 55 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 421 types in 55 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 770 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
@@ -145,13 +145,16 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 
-### CalradiaRemembers.Chat (43)
+### CalradiaRemembers.Chat (46)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionConfirmationController` | internal class | Owns the in-chat action-confirmation feature so it no longer threads through the shared ChatViewModel partials (which forced a surgical-commit dance every release), mirroring RoundTableController. |
 | `ActionDisposition` | internal enum | What the action loop should do with a coin/commit action after the confirmation controller preprocesses it. |
 | `ActionInterpreterComposer` | public static class | The UI-agnostic core of the PROSE + INTERPRETER composition, shared by BOTH the live chat (ChatViewModel) and the cr.rp_bench roleplay bench so the two feed the ACTION INTERPRETER through ONE code path (same prompt, same... |
+| `ActionRowKind` | public enum | What a row IS, which is the only thing the template needs to know to lay it out. |
+| `ActionRowViewModel` | public class | One row of the Actions panel, bound by the prefab's item template. |
+| `ActionsScrollablePanel` | public class | A plain ScrollablePanel for the actions list. |
 | `CaptiveScenePayload` | public class | The captive-scene specifics; both the victim direction and the captor direction read these. |
 | `CaptiveSceneText` | public static class | Builds the opening and setting text for a captive scene. |
 | `ChatInputWidget` | public class | The chat's quick-input field. |

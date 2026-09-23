@@ -1,4 +1,4 @@
-<Prefab>
+﻿<Prefab>
   <Constants>
     <Constant Name="Chat.Width"  Value="700" />
     <Constant Name="Avatar.Size" Value="55" />
@@ -897,6 +897,234 @@
           </Children>
         </ButtonWidget>
 
+      </Children>
+    </Widget>
+
+    <!-- ACTIONS panel, opened by the syringe tile. Replaces the vanilla multi-selection inquiry that used to
+         list the injectable actions: it says the same thing and three more (what is merely out of reach and
+         why, what will never apply to this person, and later what they may do unasked). fkasad, 22/09/2026,
+         had gone to the LLM to ask what the mod could do; the mod knows with certainty, so the mod answers.
+
+         The art (cr_actions.jpg, ~1043x1500) bakes the title, the subtitle, the left ornamental band and the
+         bottom Close plaque, so this is the image plus an overlaid text column and a Close hit-box. Panel sized
+         to the art's aspect (520 wide -> 748 tall, first pass); TODO tune the four margins in game against the
+         real anchoring, exactly as the Memories panel's own note says. -->
+    <Widget Id="ActionsPanel"
+            WidthSizePolicy="Fixed"
+            HeightSizePolicy="Fixed"
+            SuggestedWidth="520"
+            SuggestedHeight="748"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            PositionXOffset="-750"
+            IsVisible="@IsActionsPanelOpen">
+      <Children>
+
+        <!-- CorrectRedBlue=true: JPGs read with red and blue swapped in this engine, same as every other
+             painted background here. The padlock is a PNG and takes the opposite treatment, below. -->
+        <CrRuntimeImageWidget Id="ActionsBackground"
+                              WidthSizePolicy="StretchToParent"
+                              HeightSizePolicy="StretchToParent"
+                              ImagePath="@ActionsBackgroundPath"
+                              CorrectRedBlue="true"
+                              IsDisabled="true" />
+
+        <!-- No title or subtitle widgets: "ACTIONS" and "What would you like to ask of them?" are painted into
+             the art (Gabriel, 22/09/2026), and a second copy would double them. -->
+
+        <Widget Id="ActionsListArea"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                VerticalAlignment="Top"
+                MarginTop="170"
+                MarginBottom="80"
+                MarginLeft="140"
+                MarginRight="45">
+          <Children>
+            <ActionsScrollablePanel Id="ActionsScrollPanel"
+                                    WidthSizePolicy="StretchToParent"
+                                    HeightSizePolicy="StretchToParent"
+                                    MarginRight="8"
+                                    AutoHideScrollBars="true"
+                                    ClipRect="ActionsClipRect"
+                                    InnerPanel="ActionsClipRect\ActionsList"
+                                    VerticalScrollbar="..\ActionsScrollbar\Scrollbar">
+              <Children>
+                <Widget Id="ActionsClipRect"
+                        WidthSizePolicy="StretchToParent"
+                        HeightSizePolicy="StretchToParent"
+                        ClipContents="true">
+                  <Children>
+                    <NavigatableListPanel Id="ActionsList"
+                                          DataSource="{ActionRows}"
+                                          WidthSizePolicy="StretchToParent"
+                                          HeightSizePolicy="CoverChildren"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Top"
+                                          StackLayout.LayoutMethod="VerticalTopToBottom">
+                      <ItemTemplate>
+                        <ListPanel Id="ActionRow"
+                                   WidthSizePolicy="StretchToParent"
+                                   HeightSizePolicy="CoverChildren"
+                                   HorizontalAlignment="Left"
+                                   MarginTop="6"
+                                   MarginBottom="4"
+                                   MarginRight="6"
+                                   StackLayout.LayoutMethod="VerticalTopToBottom">
+                          <Children>
+
+                            <!-- A SECTION: one of the two big titles that split the list. -->
+                            <TextWidget Id="ActionSectionTitle"
+                                        WidthSizePolicy="StretchToParent"
+                                        HeightSizePolicy="CoverChildren"
+                                        MarginTop="14"
+                                        MarginBottom="4"
+                                        IsVisible="@IsSection"
+                                        Brush="CR.Letter.Body.Plain"
+                                        Brush.FontSize="22"
+                                        Brush.FontColor="#3b2a1aFF"
+                                        Brush.TextHorizontalAlignment="Left"
+                                        Text="@Label"
+                                        IsDisabled="true" />
+
+                            <!-- A RANK HEADING. Clickable, because the bottom rank folds; the others simply
+                                 ignore the click, since their row carries no action. -->
+                            <ButtonWidget Id="ActionHeadingButton"
+                                          WidthSizePolicy="StretchToParent"
+                                          HeightSizePolicy="CoverChildren"
+                                          MarginTop="10"
+                                          IsVisible="@IsHeading"
+                                          IsEnabled="@IsHeading"
+                                          DoNotPassEventsToChildren="true"
+                                          Command.Click="ExecuteActivate">
+                              <Children>
+                                <TextWidget Id="ActionHeadingText"
+                                            WidthSizePolicy="StretchToParent"
+                                            HeightSizePolicy="CoverChildren"
+                                            Brush="CR.Letter.Body.Plain"
+                                            Brush.FontSize="17"
+                                            Brush.FontColor="#6b5a45FF"
+                                            Brush.TextHorizontalAlignment="Left"
+                                            Text="@Label"
+                                            IsDisabled="true" />
+                              </Children>
+                            </ButtonWidget>
+
+                            <!-- THE LINE ITSELF: the label, then the affordance column on the right. A link
+                                 when the player may ask for it, a padlock when it is shut, and neither when it
+                                 is something they may simply do unasked. -->
+                            <ListPanel Id="ActionLineRow"
+                                       WidthSizePolicy="StretchToParent"
+                                       HeightSizePolicy="CoverChildren"
+                                       HorizontalAlignment="Left"
+                                       IsVisible="@IsLine"
+                                       StackLayout.LayoutMethod="HorizontalLeftToRight">
+                              <Children>
+                                <TextWidget Id="ActionLabel"
+                                            WidthSizePolicy="Fixed"
+                                            SuggestedWidth="210"
+                                            HeightSizePolicy="CoverChildren"
+                                            Brush="CR.Letter.Body.Plain"
+                                            Brush.FontSize="16"
+                                            Brush.FontColor="#3b2a1aFF"
+                                            Brush.TextHorizontalAlignment="Left"
+                                            Text="@Label"
+                                            IsDisabled="true" />
+
+                                <ButtonWidget Id="ActionAskLink"
+                                              WidthSizePolicy="CoverChildren"
+                                              HeightSizePolicy="CoverChildren"
+                                              MarginLeft="8"
+                                              IsVisible="@CanAsk"
+                                              DoNotPassEventsToChildren="true"
+                                              Command.Click="ExecuteActivate">
+                                  <Children>
+                                    <TextWidget Id="ActionAskText"
+                                                WidthSizePolicy="CoverChildren"
+                                                HeightSizePolicy="CoverChildren"
+                                                Brush="CR.Letter.Body.Plain"
+                                                Brush.FontSize="15"
+                                                Brush.FontColor="#7a1f1fFF"
+                                                Brush.TextHorizontalAlignment="Left"
+                                                Text="@AskText"
+                                                IsDisabled="true" />
+                                  </Children>
+                                </ButtonWidget>
+
+                                <!-- PNG, so NO CorrectRedBlue: the opposite of the JPG backgrounds. Path comes
+                                     from the ROW, because this template binds against the row. -->
+                                <CrRuntimeImageWidget Id="ActionLock"
+                                                      WidthSizePolicy="Fixed"
+                                                      HeightSizePolicy="Fixed"
+                                                      SuggestedWidth="14"
+                                                      SuggestedHeight="18"
+                                                      MarginLeft="8"
+                                                      MarginTop="2"
+                                                      IsVisible="@IsShut"
+                                                      ImagePath="@LockPath"
+                                                      CorrectRedBlue="false"
+                                                      IsDisabled="true" />
+                              </Children>
+                            </ListPanel>
+
+                            <!-- WHY IT IS SHUT, in the player's own terms and muted, under the line it explains. -->
+                            <TextWidget Id="ActionReason"
+                                        WidthSizePolicy="StretchToParent"
+                                        HeightSizePolicy="CoverChildren"
+                                        MarginLeft="10"
+                                        IsVisible="@HasReason"
+                                        Brush="CR.Letter.Body.Plain"
+                                        Brush.FontSize="14"
+                                        Brush.FontColor="#6b5a45FF"
+                                        Brush.TextHorizontalAlignment="Left"
+                                        Text="@Reason"
+                                        IsDisabled="true" />
+                          </Children>
+                        </ListPanel>
+                      </ItemTemplate>
+                    </NavigatableListPanel>
+                  </Children>
+                </Widget>
+              </Children>
+            </ActionsScrollablePanel>
+
+            <Widget Id="ActionsScrollbar"
+                    WidthSizePolicy="Fixed"
+                    HeightSizePolicy="StretchToParent"
+                    SuggestedWidth="8"
+                    HorizontalAlignment="Right">
+              <Children>
+                <ScrollbarWidget Id="Scrollbar"
+                                 WidthSizePolicy="StretchToParent"
+                                 HeightSizePolicy="StretchToParent"
+                                 AlignmentAxis="Vertical"
+                                 Handle="Handle">
+                  <Children>
+                    <Widget Id="Handle"
+                            WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="Fixed"
+                            SuggestedHeight="40"
+                            Sprite="BlankWhiteSquare_9"
+                            Color="#6b5a4588" />
+                  </Children>
+                </ScrollbarWidget>
+              </Children>
+            </Widget>
+          </Children>
+        </Widget>
+
+        <!-- Hit-box over the painted Close plaque at the foot of the art. -->
+        <ButtonWidget Id="ActionsCloseButton"
+                      WidthSizePolicy="Fixed"
+                      HeightSizePolicy="Fixed"
+                      SuggestedWidth="220"
+                      SuggestedHeight="40"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Bottom"
+                      PositionXOffset="35"
+                      PositionYOffset="-26"
+                      DoNotPassEventsToChildren="true"
+                      Command.Click="ExecuteCloseActionsPanel" />
       </Children>
     </Widget>
 
