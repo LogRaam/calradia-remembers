@@ -30,14 +30,8 @@ namespace CalradiaRemembers.WorldEvents
    {
       // Lifetime bounds and the awareness/confidence model live in CalradiaRemembers.Logic
       // (WorldEventPruner, RumorAwareness) where they are pure and unit-tested. The only piece that
-      // must stay here is the geo bonus — it reads map distance, which is engine-specific.
-      private const int GeoBonusMax = 25; // proximity bonus when the event happened on the doorstep
-
-      // M-G6 (regard audit): the SUBJECT of an event (named in its ActorIds) is far likelier to catch wind of it
-      // than a distant bystander. Without this bonus, the target of a sway scored no higher than a stranger, so a
-      // cross-faction target (no faction bonus) never crossed the awareness threshold and SwayExposed's Tier-2
-      // teeth almost never bit. A concerned party gets a fixed lift.
-      private const int ConcernedPartyBonus = 25;
+      // must stay here is the geo bonus's DISTANCE scaling, which reads the map; its ceiling
+      // (RumorAwareness.GeoBonusMax) and the concerned-party lift live in Logic with the rest.
 
       private const string SaveKey = "CalradiaRemembers_WorldEvents_v1bytes";
       public static WorldEventStore Instance;
@@ -80,7 +74,7 @@ namespace CalradiaRemembers.WorldEvents
       public IReadOnlyList<WorldEvent> GetKnownEvents(Hero observer, int today, int max)
          => observer == null
             ? Array.Empty<WorldEvent>()
-            : GetKnown(ObserverPosition(observer), observer.MapFaction?.StringId, today, max);
+            : GetKnown(ObserverPosition(observer), observer.MapFaction?.StringId, today, max, observer.StringId);
 
       /// <summary>The events a settlement's locals would have heard of (commoner intel).</summary>
       public IReadOnlyList<WorldEvent> GetKnownEventsAt(Settlement settlement, int today, int max)
@@ -92,7 +86,7 @@ namespace CalradiaRemembers.WorldEvents
       public IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> GetKnownEventsRated(Hero observer, int today, int max)
          => observer == null
             ? Array.Empty<(WorldEvent, RumorConfidence)>()
-            : GetKnownRated(ObserverPosition(observer), observer.MapFaction?.StringId, today, max);
+            : GetKnownRated(ObserverPosition(observer), observer.MapFaction?.StringId, today, max, observer.StringId);
 
       /// <summary>Known events tagged with confidence for a settlement's locals.</summary>
       public IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> GetKnownEventsRatedAt(Settlement settlement, int today, int max)
@@ -136,7 +130,34 @@ namespace CalradiaRemembers.WorldEvents
 
       /// <summary>True when <paramref name="observer" /> would by now have heard of <paramref name="e" />.</summary>
       public bool IsAwareOf(Hero observer, WorldEvent e, int today)
-         => observer != null && e != null && RumorAwareness.Knows(AwarenessScore(e, today, ObserverPosition(observer), observer.MapFaction?.StringId, observer.StringId));
+         => observer != null && e != null && Explain(observer, e, today).Knows;
+
+      /// <summary>
+      ///   The awareness verdict for one hero and one event, with its terms: the same arithmetic the prompt's
+      ///   queries gate on, exposed for diagnostics (cr.heard) so a modder can see WHY a fed fact is or is not
+      ///   known without talking to the character.
+      /// </summary>
+      public RumorAwarenessBreakdown Explain(Hero observer, WorldEvent e, int today)
+         => observer == null || e == null
+            ? null
+            : Explain(e, today, ObserverPosition(observer), observer.MapFaction?.StringId, observer.StringId);
+
+      /// <summary>
+      ///   Every stored event with <paramref name="observer" />'s verdict on it, best score first. Diagnostic only:
+      ///   the prompt never reads the unheard ones.
+      /// </summary>
+      public IReadOnlyList<(WorldEvent Event, RumorAwarenessBreakdown Verdict)> ExplainAll(Hero observer, int today)
+      {
+         if (observer == null || _events.Count == 0) return Array.Empty<(WorldEvent, RumorAwarenessBreakdown)>();
+
+         Vec2? pos = ObserverPosition(observer);
+         string factionId = observer.MapFaction?.StringId;
+
+         return _events
+                .Select(e => (e, v: Explain(e, today, pos, factionId, observer.StringId)))
+                .OrderByDescending(t => t.v.Score)
+                .ToList();
+      }
 
       // ── Recording ─────────────────────────────────────────────────────────
 
@@ -213,10 +234,10 @@ namespace CalradiaRemembers.WorldEvents
 
          float d = s.GetPosition2D.Distance(obs.Value);
 
-         if (d <= 50f) return GeoBonusMax;
+         if (d <= 50f) return RumorAwareness.GeoBonusMax;
          if (d >= 300f) return 0;
 
-         return (int) (GeoBonusMax * (1f - (d - 50f) / 250f));
+         return (int) (RumorAwareness.GeoBonusMax * (1f - (d - 50f) / 250f));
       }
 
       private static Vec2? ObserverPosition(Hero h)
@@ -229,25 +250,28 @@ namespace CalradiaRemembers.WorldEvents
 
       // Engine glue: gather the facts (faction match, geo bonus from map distance, age) and let the
       // pure RumorAwareness model score them.
-      private int AwarenessScore(WorldEvent e, int today, Vec2? obsPos, string factionId, string observerId = null)
+      //
+      // M-G6: a concerned party (the event names them in ActorIds) is much likelier to hear of it. Since 2.5.21 the
+      // hero-facing prompt queries pass the observer too (tashmetu: a bridge names the heroes of a siege in
+      // HeroIds, and the besieged lord could not speak of it while the sway check said he knew). Settlement
+      // queries have no observer and pass null.
+      private RumorAwarenessBreakdown Explain(WorldEvent e, int today, Vec2? obsPos, string factionId, string observerId)
       {
          bool factionMatches = factionId != null && e.FactionIds != null && e.FactionIds.Contains(factionId);
-         int score = RumorAwareness.Score(e.Magnitude, factionMatches, GeoProximityBonus(obsPos, e.PlaceId), today - e.Day);
+         bool concerned = observerId != null && e.ActorIds != null && e.ActorIds.Contains(observerId);
 
-         // M-G6: a concerned party (the event names them in ActorIds) is much likelier to hear of it. Optional, so
-         // the general prompt-awareness paths (GetKnown) that pass no observer id keep their existing scoring.
-         if (observerId != null && e.ActorIds != null && e.ActorIds.Contains(observerId))
-            score += ConcernedPartyBonus;
-
-         return score;
+         return RumorAwareness.Explain(e.Magnitude, factionMatches, GeoProximityBonus(obsPos, e.PlaceId), concerned, today - e.Day);
       }
 
-      private IReadOnlyList<WorldEvent> GetKnown(Vec2? pos, string factionId, int today, int max)
+      private int AwarenessScore(WorldEvent e, int today, Vec2? obsPos, string factionId, string observerId)
+         => Explain(e, today, obsPos, factionId, observerId).Score;
+
+      private IReadOnlyList<WorldEvent> GetKnown(Vec2? pos, string factionId, int today, int max, string observerId = null)
       {
          if (_events.Count == 0) return Array.Empty<WorldEvent>();
 
          return _events
-                .Select(e => (e, score: AwarenessScore(e, today, pos, factionId)))
+                .Select(e => (e, score: AwarenessScore(e, today, pos, factionId, observerId)))
                 .Where(t => RumorAwareness.Knows(t.score))
                 .OrderByDescending(t => t.score)
                 .Take(max)
@@ -255,12 +279,12 @@ namespace CalradiaRemembers.WorldEvents
                 .ToList();
       }
 
-      private IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> GetKnownRated(Vec2? pos, string factionId, int today, int max)
+      private IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> GetKnownRated(Vec2? pos, string factionId, int today, int max, string observerId = null)
       {
          if (_events.Count == 0) return Array.Empty<(WorldEvent, RumorConfidence)>();
 
          return _events
-                .Select(e => (e, score: AwarenessScore(e, today, pos, factionId)))
+                .Select(e => (e, score: AwarenessScore(e, today, pos, factionId, observerId)))
                 .Where(t => RumorAwareness.Knows(t.score))
                 .OrderByDescending(t => t.score)
                 .Take(max)

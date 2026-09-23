@@ -13,7 +13,11 @@ using System.Collections.Generic;
 
 namespace CalradiaRemembers
 {
-   /// <summary>How long a fed event lives: a <see cref="Rumor" /> ages out, a <see cref="Deed" /> is kept.</summary>
+   /// <summary>
+   ///   How long a fed event is STORED: a <see cref="Rumor" /> is pruned after a few weeks, a <see cref="Deed" />
+   ///   is kept (under its own cap), so dedup on its id holds for good. Who hears it, and for how long, follows the
+   ///   same recency curve for both.
+   /// </summary>
    public enum ExternalEventLifetime
    {
       Rumor,
@@ -67,7 +71,18 @@ namespace CalradiaRemembers
       /// <summary>Faction (kingdom/clan) StringIds the fact is relevant to; CR keeps only those that resolve.</summary>
       public List<string> FactionIds { get; set; } = new();
 
-      /// <summary>Whether the fact ages out as a rumour or is kept as a deed.</summary>
+      /// <summary>
+      ///   The StringId of the settlement (town, castle or village) where it happened, or null. CR keeps it only
+      ///   if it resolves. Characters near that place are likelier to have heard it, the nearer the likelier:
+      ///   without a place, distance plays no part and only magnitude, realm and naming carry the news.
+      /// </summary>
+      public string PlaceId { get; set; }
+
+      /// <summary>
+      ///   Whether the stored fact is pruned after a few weeks (<see cref="ExternalEventLifetime.Rumor" />) or
+      ///   kept (<see cref="ExternalEventLifetime.Deed" />). This governs STORAGE only: characters stop bringing
+      ///   either up on the same recency curve.
+      /// </summary>
       public ExternalEventLifetime Lifetime { get; set; } = ExternalEventLifetime.Rumor;
 
       /// <summary>The feeding mod's id — REQUIRED, for provenance, throttling, and muting a misbehaving source.</summary>

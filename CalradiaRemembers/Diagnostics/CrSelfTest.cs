@@ -295,6 +295,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("bastard_scandal_culture", Severity.Heavy, "discover a bastard -> assert the scandal magnitude is culture-scaled", TestBastardScandalCulture),
          new SelfTest("feed_ingest", Severity.Light, "Feed.Record an external event -> assert stored + a re-send is deduped", TestFeedIngest),
          new SelfTest("feed_update", Severity.Light, "Feed.Update upserts a fed fact by id, Feed.Retract removes it (mutable entries)", TestFeedUpdate),
+         new SelfTest("heard_diagnostic", Severity.Light, "Asked by a bridge author (tashmetu, 23/09/2026): how to check that a fed event reached a given character without talking to them. Feeds through the REAL Feed door and asserts: a real PlaceId is kept and a bogus one dropped, a realm tag reaches a lord of that realm, cr.heard's verdict agrees with the prompt's own query, and a lord NAMED in HeroIds can now speak of a faint fact a bystander has not heard (the M-G6 lift reached only the sway and jealousy checks before 2.5.21). Retracts what it feeds.", TestHeardDiagnostic),
          new SelfTest("conversation_session_sequencing", Severity.Light, "Mechanical (Heroes Voices TTS request): drive the REAL internal CrConversation.RaiseStarted/RaiseLineSpoken/RaiseEnded twice in a row -> assert Started/LineSpoken/Ended of one session share the same non-empty SessionId, LineIndex runs 0 then 1, and a second RaiseStarted mints a DIFFERENT SessionId with LineIndex reset to 0. Unsubscribes its handlers afterwards. No LLM, mutates nothing persistent.", TestConversationSessionSequencing),
          new SelfTest("mission_register", Severity.Heavy, "MissionBoard.Register an external mission -> assert issued + dedup + Complete stamps it", TestMissionRegister),
          new SelfTest("mission_reward", Severity.Heavy, "MissionBoard FULL LOOP -> register -> Complete -> player reports to giver -> assert reward PAID + quest Completed", TestMissionRewardLoop),
@@ -3953,6 +3954,87 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("retracted", ret, FeedResult.Retracted);
          t.Expect("goneAfterRetract", goneAfterRetract, true);
          t.Expect("retractMissingIsNotFound", retAgain, FeedResult.NotFound);
+
+         return t.Line();
+      }
+
+      private static string TestHeardDiagnostic(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("heard_diagnostic");
+
+         WorldEventStore store = WorldEventStore.Instance;
+
+         if (t.Abort(store == null, "WorldEventStore not active")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.MapFaction != null
+                                                           && (h.PartyBelongedTo != null || h.CurrentSettlement != null));
+
+         if (t.Skip(lord == null, "no free lord with a realm and a position")) return t.Line();
+
+         Settlement place = lord.CurrentSettlement ?? Settlement.All?.FirstOrDefault(x => x.IsTown);
+
+         if (t.Skip(place == null, "no settlement to place the news at")) return t.Line();
+
+         // Its own source, so repeated testall runs on one day never meet the SelfTest quota other tests share.
+         const string source = "SelfTestHeard";
+         string suffix = Guid.NewGuid().ToString("N");
+         string placedId = "selftest_heard_placed_" + suffix;
+         string bogusId = "selftest_heard_bogus_" + suffix;
+         string namedId = "selftest_heard_named_" + suffix;
+         var today = (int) CampaignTime.Now.ToDays;
+
+         try
+         {
+            Feed.Record(new ExternalWorldEvent {
+               Id = placedId, SourceMod = source, Summary = "[SELFTEST] a siege was laid and lifted", Magnitude = 60,
+               FactionIds = new List<string> {lord.MapFaction.StringId}, PlaceId = place.StringId
+            });
+            WorldEvent placed = store.GetById(placedId);
+
+            if (t.Abort(placed == null, "the placed event was not recorded")) return t.Line();
+
+            t.Expect("aRealPlaceIsKept", placed.PlaceId, place.StringId);
+
+            RumorAwarenessBreakdown verdict = store.Explain(lord, placed, today);
+            t.Note($"{lord.Name} at {place.Name}: {verdict.Describe()}");
+            t.Expect("theRealmTagReachesALordOfThatRealm", verdict.FactionMatches, true);
+            t.Expect("heHasHeardIt", verdict.Knows, true);
+            if (lord.CurrentSettlement == place) t.Expect("beingThereCountsFully", verdict.GeoBonus, RumorAwareness.GeoBonusMax);
+
+            // The console must never say "heard" about a fact the prompt would not give him, or the reverse.
+            t.Expect("cr.heardAgreesWithThePrompt", store.GetKnownEvents(lord, today, 1000).Any(e => e.Id == placedId), verdict.Knows);
+
+            Feed.Record(new ExternalWorldEvent {
+               Id = bogusId, SourceMod = source, Summary = "[SELFTEST] something happened somewhere", Magnitude = 10,
+               PlaceId = "no_such_settlement_selftest"
+            });
+            t.Expect("aBogusPlaceIsDroppedNotKept", store.GetById(bogusId) != null && store.GetById(bogusId).PlaceId == null, true);
+
+            // Magnitude 30, untagged: under the threshold for anyone but the one it names.
+            Feed.Record(new ExternalWorldEvent {
+               Id = namedId, SourceMod = source, Summary = "[SELFTEST] a quiet word about one lord", Magnitude = 30,
+               HeroIds = new List<string> {lord.StringId}
+            });
+            WorldEvent named = store.GetById(namedId);
+
+            if (t.Abort(named == null, "the named event was not recorded")) return t.Line();
+
+            t.Expect("theLordItNamesCanSpeakOfIt", store.GetKnownEventsRated(lord, today, 1000).Any(x => x.Event.Id == namedId), true);
+
+            Hero bystander = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != lord && h.IsLord);
+            if (bystander != null) t.Expect("aBystanderHasNotHeardIt", store.IsAwareOf(bystander, named, today), false);
+
+            // The command itself, by the lord's name. A namesake may resolve first, so only the id is asserted.
+            string report = ModCheats.Heard(new List<string> {lord.Name.ToString(), placedId});
+            t.Note("cr.heard: " + Preview(report));
+            t.Expect("cr.heardReportsTheEvent", report != null && report.Contains(placedId), true);
+         }
+         finally
+         {
+            Feed.Retract(placedId);
+            Feed.Retract(bogusId);
+            Feed.Retract(namedId);
+         }
 
          return t.Line();
       }

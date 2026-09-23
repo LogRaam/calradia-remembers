@@ -168,25 +168,125 @@ namespace CalradiaRemembers
             ? string.Join(" ", args).Trim()
             : "The grey mare of Lord Caladog won the Pravend races; heavy purses changed hands.";
 
+         // Tagged the way a bridge should tag: the realm and the place. Until 2.5.21 this fed magnitude 30 with no
+         // tag at all, which is under the awareness threshold on its first day, so nobody could ever mention it.
+         string realmId = Hero.MainHero?.MapFaction?.StringId;
+         Settlement place = NearestSettlementToPlayer();
          var e = new ExternalWorldEvent {
             Id = "feedtest_" + Guid.NewGuid().ToString("N"),
             SourceMod = "ConsoleTest",
             Summary = summary,
-            Magnitude = 30,
+            Magnitude = 60,
+            FactionIds = realmId != null ? new List<string> {realmId} : new List<string>(),
+            PlaceId = place?.StringId,
             Lifetime = ExternalEventLifetime.Rumor
          };
 
          FeedResult result = Feed.Record(e);
 
-         return $"Feed.Record -> {result}. The world-event store now holds {WorldEventStore.Instance?.Count ?? 0} event(s).\n" +
-                "NOTE: this is a DEVELOPER / MODDER test of CR's inbound Feed API -- the same door OTHER MODS use to push " +
-                "world events into CR. It is not a way to script your own lore in normal play.\n" +
-                "Whether an NPC mentions it follows CR's normal hearsay rules: only someone who would PLAUSIBLY have heard " +
-                "it (by distance, faction, and how recent it is) may bring it up, and only as hearsay when it fits the talk " +
-                "-- they never recite it. To draw it out, ASK a nearby NPC about recent news. A bare test rumour with no " +
-                "faction or hero tag reaches fewer people than a real, tagged event would.\n" +
-                "To make ONE specific NPC remember a fact directly (no hearsay), use cr.memory_add instead -- that writes " +
-                "straight into their memory.";
+         return $"Feed.Record -> {result} (id {e.Id}, magnitude {e.Magnitude}, realm {realmId ?? "none"}, place {place?.Name?.ToString() ?? "none"}). "
+                + $"The world-event store now holds {WorldEventStore.Instance?.Count ?? 0} event(s).\n"
+                + FedEventReach.Describe(e.Magnitude, realmId != null, place != null) + "\n"
+                + $"Check who has heard it: cr.heard <name> {e.Id}\n"
+                + "NOTE: this is a DEVELOPER / MODDER test of CR's inbound Feed API -- the same door OTHER MODS use to push "
+                + "world events into CR. A character who has heard it brings it up as hearsay when it fits the talk; ASK "
+                + "about recent news to draw it out. To make ONE specific NPC remember a fact directly, use cr.memory_add.";
+      }
+
+      /// <summary>
+      ///   cr.heard [name] [event-id | all]
+      ///   Whether a character has heard the stored world events, and why, from the same arithmetic the prompt
+      ///   gates on. Nothing is copied into a character's memory: awareness is recomputed at every prompt, so this
+      ///   verdict IS the answer. Asked for by a bridge author (tashmetu, 23/09/2026) testing fed events.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("heard", "cr")]
+      public static string Heard(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+
+         var store = WorldEventStore.Instance;
+
+         if (store == null) return "World-event store is not active.";
+
+         List<string> tokens = args?.Where(a => !string.IsNullOrWhiteSpace(a)).ToList() ?? new List<string>();
+         string eventId = null;
+         var all = false;
+
+         if (tokens.Count > 0 && string.Equals(tokens[tokens.Count - 1], "all", StringComparison.OrdinalIgnoreCase))
+         {
+            all = true;
+            tokens.RemoveAt(tokens.Count - 1);
+         }
+         else if (tokens.Count > 0 && store.GetById(tokens[tokens.Count - 1]) != null)
+         {
+            eventId = tokens[tokens.Count - 1];
+            tokens.RemoveAt(tokens.Count - 1);
+         }
+         else if (tokens.Count > 1 && ResolveHero(tokens) == null && ResolveHero(tokens.Take(tokens.Count - 1)) != null)
+         {
+            return $"No event with id '{tokens[tokens.Count - 1]}' is in the store. It was never recorded (see the [FEED] line in "
+                   + "CalradiaRemembers.log for the result), or it was retracted, or a Rumor older than "
+                   + $"{WorldEventPruner.RumorWindowDays} days was pruned.";
+         }
+
+         Hero hero = ResolveHero(tokens);
+
+         if (hero == null) return "No character found. Pass a name fragment or start a conversation first. Usage: cr.heard [name] [event-id | all]";
+
+         var today = (int) CampaignTime.Now.ToDays;
+         IReadOnlyList<(WorldEvent Event, RumorAwarenessBreakdown Verdict)> verdicts = store.ExplainAll(hero, today);
+         List<WorldEvent> heard = verdicts.Where(v => v.Verdict.Knows).Select(v => v.Event).ToList();
+
+         var sb = new System.Text.StringBuilder();
+         sb.AppendLine($"{hero.Name} (realm id {hero.MapFaction?.StringId ?? "none"}), day {today}: has heard {heard.Count} of the {verdicts.Count} stored event(s). "
+                       + "The news block of a prompt draws from the best 6 heard; a question naming an event's people or realm can bring up any heard one.");
+
+         IEnumerable<(WorldEvent Event, RumorAwarenessBreakdown Verdict)> shown = eventId != null
+            ? verdicts.Where(v => v.Event.Id == eventId)
+            : all
+               ? verdicts.Take(30)
+               : verdicts.Where(v => v.Event.SourceMod != null).Take(20);
+
+         var any = false;
+
+         foreach ((WorldEvent e, RumorAwarenessBreakdown v) in shown)
+         {
+            any = true;
+            string place = e.PlaceId != null
+               ? ", at " + (Settlement.Find(e.PlaceId)?.Name?.ToString() ?? e.PlaceId)
+               : "";
+            string summary = e.Summary != null && e.Summary.Length > 120
+               ? e.Summary.Substring(0, 117) + "..."
+               : e.Summary;
+            int rank = heard.IndexOf(e);
+
+            sb.AppendLine($"- {e.Id} [{e.SourceMod ?? "CR"}, day {e.Day}, magnitude {e.Magnitude}{place}{(e.IsPersistentDeed ? ", deed" : "")}]: {summary}");
+            sb.AppendLine("    " + v.Describe()
+                          + (rank >= 0 ? $" Ranks #{rank + 1} of what they have heard." : "")
+                          + (e.InvolvesPlayer ? " It names the player, so it reaches them as a deed of yours, not as news." : ""));
+         }
+
+         if (!any)
+            sb.AppendLine(all || eventId != null
+                             ? "Nothing to show."
+                             : "No event fed by another mod is in the store. Add 'all' to see CR's own events too.");
+
+         return sb.ToString().TrimEnd();
+      }
+
+      /// <summary>The settlement the player is in, else the nearest town, castle or village to their party.</summary>
+      private static Settlement NearestSettlementToPlayer()
+      {
+         if (Hero.MainHero?.CurrentSettlement != null) return Hero.MainHero.CurrentSettlement;
+
+         Vec2? pos = TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.GetPosition2D;
+
+         if (pos == null) return null;
+
+         return (Settlement.All ?? Enumerable.Empty<Settlement>())
+                .Where(s => s.IsTown || s.IsCastle || s.IsVillage)
+                .OrderBy(s => s.GetPosition2D.DistanceSquared(pos.Value))
+                .FirstOrDefault();
       }
 
       /// <summary>
@@ -222,25 +322,38 @@ namespace CalradiaRemembers
             taggedNames.Add(name);
          }
 
+         // And the place, the same way: the longest settlement name in the text, so "Sargot" is not beaten by a
+         // village whose name happens to be inside it. Without a place, distance could not carry the news at all.
+         Settlement place = (Settlement.All ?? Enumerable.Empty<Settlement>())
+                            .Where(s => (s.IsTown || s.IsCastle || s.IsVillage) && !string.IsNullOrWhiteSpace(s.Name?.ToString())
+                                        && summary.IndexOf(s.Name.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
+                            .OrderByDescending(s => s.Name.ToString().Length)
+                            .FirstOrDefault();
+
          var e = new ExternalWorldEvent {
             Id = "playerevent_" + Guid.NewGuid().ToString("N"),
             SourceMod = "PlayerConsole",
             Summary = summary,
             Magnitude = 50,
             FactionIds = factionIds,
+            PlaceId = place?.StringId,
             Lifetime = ExternalEventLifetime.Rumor
          };
 
          FeedResult result = Feed.Record(e);
 
          string tagged = taggedNames.Count > 0
-            ? $"Tagged faction(s): {string.Join(", ", taggedNames)}. "
-            : "No kingdom named in the text, so it spreads as general realm news. ";
+            ? $"Tagged realm(s): {string.Join(", ", taggedNames)}. "
+            : "No kingdom named in the text. ";
+         tagged += place != null
+            ? $"Placed at {place.Name}. "
+            : "No settlement named in the text. ";
 
-         return $"Feed.Record -> {result}. {tagged}The world-event store now holds {WorldEventStore.Instance?.Count ?? 0} event(s).\n" +
-                "It spreads by CR's hearsay rules: an NPC who'd PLAUSIBLY have heard it (distance, faction, recency) may " +
-                "bring it up, as hearsay, when it fits the talk -- they never recite it. ASK a nearby NPC about recent news " +
-                "to draw it out. To make ONE specific NPC remember a fact directly (no hearsay), use cr.memory_add instead.";
+         return $"Feed.Record -> {result}. {tagged}The world-event store now holds {WorldEventStore.Instance?.Count ?? 0} event(s).\n"
+                + FedEventReach.Describe(e.Magnitude, factionIds.Count > 0, place != null) + "\n"
+                + "Name a kingdom or a settlement in the text to carry it further and longer. A character who has heard it "
+                + "may bring it up, as hearsay, when it fits the talk -- they never recite it. ASK about recent news to draw it "
+                + $"out, or check with cr.heard <name> {e.Id}. To make ONE specific NPC remember a fact directly, use cr.memory_add.";
       }
 
       /// <summary>

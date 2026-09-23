@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 421 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 770 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 772 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -59,7 +59,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrTranscriptLine` | public class | One attributed line of a conversation, as delivered in CrConversationLog. |
 | `ExternalActionParam` | public class | One named parameter an ExternalActionSpec accepts, taught to the LLM by name and meaning. |
 | `ExternalActionSpec` | public class | Everything a third-party mod supplies to register one executable conversation action through CrActions.Register. |
-| `ExternalEventLifetime` | public enum | How long a fed event lives: a Rumor ages out, a Deed is kept. |
+| `ExternalEventLifetime` | public enum | How long a fed event is STORED: a Rumor is pruned after a few weeks, a Deed is kept (under its own cap), so dedup on its id holds for good. |
 | `ExternalMission` | public class | One mission a third-party mod wants CR to set the player. |
 | `ExternalWorldEvent` | public class | One world fact a third-party mod wants CR to know about. |
 | `Feed` | public static class | The public, one-way inbound API: a third-party mod calls Record to feed CR a world fact. |
@@ -746,7 +746,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (476)
+### CalradiaRemembers.Logic (478)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -903,6 +903,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ExternalMissionRules` | public static class | The normalisation rules every externally-registered player mission passes through. |
 | `EyeColorBands` | public static class | The words for Bannerlord's eye-colour gradient, banded from the slider offset. |
 | `FactionGuidelinesPolicy` | public static class | Narrows the FACTION BEHAVIOR section of a behaviour-guidelines text to the headings that could apply to one character. |
+| `FedEventReach` | public static class | How far and how long a fed event carries, in the three observer situations the tags create: a stranger far away, a member of a tagged realm, and someone at the event's place. |
 | `FeudRelationOutcome` | public class | The relation deltas a resolved scheme turns into: how hard the plotter/target bond sours, how much the target's close allies cool toward the plotter, and how many allies feel it. |
 | `FeudRelationPolicy` | public static class | Turns a resolved scheme (its kind and how it ended) into the relation deltas that make the feud VISIBLE and let vanilla diplomacy escalate on its own. |
 | `FiefAudienceCandidate` | public class | One partyless hero standing in the settlement who qualifies for a fief audience, and why. |
@@ -1136,6 +1137,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RoundTableIntentDetector` | public static class | Pure rules for detecting a round-table "open the floor to everyone" intent in player text. |
 | `RoundTablePolicy` | public static class | Pure turn-order and cap arithmetic for a round-table burst. |
 | `RumorAwareness` | public static class | The pure awareness model: how far news of an event carries, and how surely it has reached a given observer. |
+| `RumorAwarenessBreakdown` | public class | One observer's awareness of one event, with every term that produced it. |
 | `RumorConfidence` | public enum | How surely a rumour has reached an observer — derived from the awareness score. |
 | `ScatteredLootItem` | public class | One item taken from the player on a fled bandit escape, scattered among that culture's bands until recovered. |
 | `ScatteredLootLedger` | public class | Save-serializable carrier for every item currently scattered among bandit bands, awaiting recovery. |

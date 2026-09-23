@@ -7,6 +7,7 @@ using System.Linq;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.WorldEvents;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Settlements;
 
 #endregion
 
@@ -59,7 +60,10 @@ namespace CalradiaRemembers
 
          WorldEvent worldEvent = Build(e, summary, today);
          store.Record(worldEvent);
-         ModLog.Info($"[FEED] {e.SourceMod} recorded a world event (mag {worldEvent.Magnitude}, {worldEvent.ActorIds.Count} hero ref(s)): {summary}");
+         ModLog.Info($"[FEED] {e.SourceMod} recorded a world event (id {worldEvent.Id}, mag {worldEvent.Magnitude}, {worldEvent.ActorIds.Count} hero ref(s), {worldEvent.FactionIds.Count} faction ref(s), place {worldEvent.PlaceId ?? "none"}): {summary}");
+
+         if (!string.IsNullOrEmpty(e.PlaceId) && worldEvent.PlaceId == null)
+            ModLog.Info($"[FEED] {e.SourceMod}: PlaceId '{e.PlaceId}' is not a settlement StringId, so the event was kept without a place.");
 
          return FeedResult.Recorded;
       }
@@ -129,6 +133,7 @@ namespace CalradiaRemembers
             Magnitude = ExternalEventRules.ClampMagnitude(e.Magnitude),
             Summary = summary,
             SourceMod = e.SourceMod,
+            PlaceId = ResolveSettlement(e.PlaceId),
             ActorIds = ResolveHeroes(e.HeroIds),
             FactionIds = ResolveFactions(e.FactionIds),
             InvolvesPlayer = Hero.MainHero != null && e.HeroIds != null && e.HeroIds.Contains(Hero.MainHero.StringId),
@@ -168,6 +173,12 @@ namespace CalradiaRemembers
 
          return kept;
       }
+
+      /// <summary>The id if it names a real settlement, else null: resolve-or-drop, like the hero and faction ids.</summary>
+      private static string ResolveSettlement(string id)
+         => !string.IsNullOrEmpty(id) && Settlement.All?.Any(s => s.StringId == id) == true
+            ? id
+            : null;
 
       /// <summary>Keeps only the ids that resolve to a real hero (alive or dead) — resolve-or-drop.</summary>
       private static List<string> ResolveHeroes(IEnumerable<string> ids)

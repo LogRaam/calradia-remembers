@@ -494,12 +494,12 @@ cr.remove_kink <kink> [name]         # remove a kink
 
 ---
 
-## Current state (2026-09-19)
+## Current state (2026-09-23)
 
 > Short on purpose. The detail lives in `CHANGELOG.md`, the `NEXUS_CHANGELOG_*.txt` files and git; this says
 > only where things stand and what is NOT safe to assume.
 
-**Shipped: v2.5.20 is CUT, not yet live** (grudge_terms reachable at last, lord recruitment on the mod ledger, rescue gratitude gated on adulthood, the payment ceiling in one home, a conversion may bring its own calendar, and the generated maps underneath it all). NOT yet run in game. v2.5.19 is LIVE on Nexus (Gabriel, 2026-09-21): the prisoner trade decided by CUSTODY, and modder `{{variable}}` providers resolved on the game thread. v2.5.18 before it (role anchor, whose "you" in memories, the no-appointments guardrail, a chosen rescue counted). **DURABLE: once Gabriel says a version is live, that number is FROZEN. Open the next one; never re-cut a published number** (learned 2026-09-21, when I folded two fixes into an already-published 2.5.18 and had to reissue them as 2.5.19). NOT yet released: the four map-found fixes and `grudge_terms` reaching the interpreter at last. Verify a live version by asking Gabriel
+**v2.5.20 is LIVE on Nexus (Gabriel, 2026-09-23)**, so 2.5.20 is frozen and new work goes to **2.5.21** (open: the Actions panel Inc 1-2, and the fed-world-event work for tashmetu: `PlaceId`, named heroes hear it in the prompt, `cr.heard`). 2.5.20 carried grudge_terms reachable at last, lord recruitment on the mod ledger, rescue gratitude gated on adulthood, the payment ceiling in one home, a conversion's own calendar, the conversation resume, the castle duel and the plural household. v2.5.19 is LIVE on Nexus (Gabriel, 2026-09-21): the prisoner trade decided by CUSTODY, and modder `{{variable}}` providers resolved on the game thread. v2.5.18 before it (role anchor, whose "you" in memories, the no-appointments guardrail, a chosen rescue counted). **DURABLE: once Gabriel says a version is live, that number is FROZEN. Open the next one; never re-cut a published number** (learned 2026-09-21, when I folded two fixes into an already-published 2.5.18 and had to reissue them as 2.5.19). Verify a live version by asking Gabriel
 to paste text or a screenshot: `SubModule.xml` is NOT evidence and WebFetch on Nexus is 403 (Cloudflare).
 v2.5.11 was built and never uploaded. The 2.5.14 archive was rebuilt three times before upload to fold in
 three fixes found after the first cut; the shipped one is MOD `d082528` / SDK `86ca836`.

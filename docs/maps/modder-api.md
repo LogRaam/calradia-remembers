@@ -141,7 +141,7 @@ _Everything a third-party mod supplies to register one executable conversation a
 
 ### ExternalEventLifetime
 
-_How long a fed event lives: a Rumor ages out, a Deed is kept._
+_How long a fed event is STORED: a Rumor is pruned after a few weeks, a Deed is kept (under its own cap), so dedup on its id holds for good._
 
 - `Deed`
 - `Rumor`
@@ -170,6 +170,7 @@ _One world fact a third-party mod wants CR to know about._
 - `int Magnitude { get; set; }`
 - `string Category { get; set; }`
 - `string Id { get; set; }`
+- `string PlaceId { get; set; }`
 - `string SourceMod { get; set; }`
 - `string Summary { get; set; }`
 

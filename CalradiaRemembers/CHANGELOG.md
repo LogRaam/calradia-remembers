@@ -2,6 +2,36 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.21.. unreleased
+
+### For modders
+- **Fed world events can say where they happened, the heroes they name can speak of them, and a console command
+  says who has heard what** (tashmetu, 23/09/2026, designing a test pass for a bridge feeding sieges, executions
+  and rebellions: "Is there any console command or save-file way to check whether a specific event I fed has
+  actually propagated to a given NPC's own memory yet?"). Answering him from the code turned up three gaps.
+  - **`ExternalWorldEvent.PlaceId`** (additive, `ApiVersion` unchanged). The awareness model always had a
+    proximity term, but `Feed` never set a place, so distance played no part in a fed event. Resolve-or-drop like
+    the other ids, and the `[FEED]` log line now names the id, the refs and the place, plus a line when a
+    PlaceId did not resolve.
+  - **A hero named in `HeroIds` now hears it in conversation too.** The M-G6 concerned-party lift (+25, after
+    recency) reached only `IsAwareOf` (sway exposure, jealousy); the prompt queries passed no observer, so the
+    besieged lord of a faint siege report could not speak of it while the sway check said he knew. The hero-facing
+    queries now pass the observer; settlement queries (commoners) have none and are unchanged. This applies to CR's
+    own events as well: a lord named in a battle now hears of his own battle more readily.
+  - **`cr.heard [name] [event-id|all]`**: the verdict from `RumorAwareness.Explain`, the same call the prompt's
+    queries now score through (so the console cannot disagree with the prompt): score, each term, days left,
+    "faded" versus "could never hear it", and which tags would reach them. `GeoBonusMax` and `ConcernedPartyBonus`
+    moved from the store into `RumorAwareness` to make that one path. New modder guide `Extension/HOWTO_WorldEvents.md`.
+- **`cr.feed_test` fed a fact nobody could ever hear.** Magnitude 30 with no tag is under the awareness threshold on
+  its first day, while the console said it "reaches fewer people". It now feeds magnitude 60 tagged with the
+  player's realm and the nearest settlement, and prints how far and how long it carries (`FedEventReach`, from the
+  same arithmetic). `cr.world_event` (the player tool) now also takes the settlement named in its text as the place
+  and prints the same reach line instead of "spreads as general realm news", which an untagged magnitude 50 fact
+  did for one day only.
+- `ExternalEventLifetime` now documents what it really decides: STORAGE (a Rumor is pruned at 42 days, a Deed is
+  kept, so dedup on its id holds for good). Both fade from conversation on the same 40-day curve. Deliberately not
+  changed: making a Deed talked about longer would be a design change to the awareness model, not a fix.
+
 ## v2.5.20.. 2026-09-21
 
 Four player-facing changes, one of them a verb that has been unreachable since July and another a conversation

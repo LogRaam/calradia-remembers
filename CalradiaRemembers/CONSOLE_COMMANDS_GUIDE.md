@@ -183,12 +183,17 @@ Each of these stages a feature so it can be checked in one step. They mutate the
 | Letters / couriers | `cr.letter`, `cr.letter_compose`, `cr.letter_read`, `cr.letter_reply`, `cr.letter_where`, `cr.courier`, `cr.courier_slow` |
 | Captivity / ambush | `cr.capture`, `cr.ambush`, `cr.ambush_lose`, `cr.ambush_gate`, `cr.ambush_scene`, `cr.ambush_audience`, `cr.escape_force` |
 | Adult scenes (Hardcore) | `cr.crc_scene`, `cr.captor_scene`, `cr.bandit_scene`, `cr.bandit_queen`, `cr.add_kink`, `cr.remove_kink` |
-| Witnesses / world events | `cr.witness`, `cr.witnesses`, `cr.deed_heard`, `cr.realm_news`, **`cr.feed_test`** |
+| Witnesses / world events | `cr.witness`, `cr.witnesses`, `cr.deed_heard`, `cr.realm_news`, **`cr.feed_test`**, **`cr.heard`** |
 | Chronicle (regenerate) | `cr.chronicle_illuminate`, `cr.chronicle_rewrite` |
 
 > **`cr.feed_test`** is the developer test of CR's *inbound Feed API*.. the door **other mods** use to
 > push world events into CR. It is the test counterpart of the player-facing `cr.world_event` (Part 1).
 > If you just want to inject your own rumour, use `cr.world_event`.
+>
+> **`cr.heard [name] [event-id|all]`** says whether a character has heard the stored world events and why:
+> the score, each term behind it, how many days they keep it, or which tags would reach them. Nothing is
+> copied into a character's memory (awareness is recomputed at every prompt), so this verdict is the answer.
+> Modders: see `Extension/HOWTO_WorldEvents.md`.
 
 ---
 

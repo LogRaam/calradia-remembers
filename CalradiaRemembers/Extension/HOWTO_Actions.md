@@ -227,7 +227,8 @@ flight, so you may retry when the player next has the floor. Call it on the main
 `CrActions` is the door for an executable deed. Three others cover different needs:
 
 - **World events**: `Feed.Record` lets you push a fact into CR's world (a battle, a marriage, a
-  political shift) for NPCs to know about, without an executable verb.
+  political shift) for NPCs to know about, without an executable verb. See `HOWTO_WorldEvents.md`
+  for who hears it, for how long, and how to check it with `cr.heard`.
 - **Conversation lifecycle**: `CrConversation` (see `HOWTO_Voicing.md`) lets you listen to when a
   conversation opens, closes, and each line as it is spoken, for a voice-over, subtitle, or logging
   addon.

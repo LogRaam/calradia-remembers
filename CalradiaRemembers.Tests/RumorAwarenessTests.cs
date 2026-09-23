@@ -156,5 +156,75 @@ namespace CalradiaRemembers.Tests
          RumorAwareness.Knows(RumorAwareness.Threshold).Should().BeTrue();
          RumorAwareness.Knows(RumorAwareness.Threshold - 1).Should().BeFalse();
       }
+
+      // ── Explanation, named parties, fade day ───────────────────────────────
+
+      // The diagnostic cr.heard prints Explain's score, and the prompt gates on the same call. If the two ever
+      // computed differently, a modder would be told "heard" about a fact the character cannot speak of.
+      [Test]
+      public void GIVEN_an_unnamed_observer_WHEN_explained_THEN_the_score_is_the_plain_awareness_score()
+      {
+         //Arrange/Act
+         RumorAwarenessBreakdown explained = RumorAwareness.Explain(60, factionMatches: true, geoBonus: 10, concernedParty: false, ageDays: 5);
+
+         //Assert
+         explained.Score.Should().Be(RumorAwareness.Score(60, true, 10, 5));
+         explained.Knows.Should().BeTrue();
+      }
+
+      // M-G6: the subject of an event hears of it where a bystander would not. tashmetu's bridge names the
+      // heroes of a siege or an execution in HeroIds; until 2.5.21 that lift only reached the sway and jealousy
+      // checks, never the prompt, so the besieged lord himself could not speak of a faint report of his own siege.
+      [Test]
+      public void GIVEN_a_faint_fresh_event_WHEN_the_observer_is_named_in_it_THEN_the_flat_bonus_carries_it_over_the_threshold()
+      {
+         //Arrange/Act
+         RumorAwarenessBreakdown bystander = RumorAwareness.Explain(30, false, 0, concernedParty: false, ageDays: 0);
+         RumorAwarenessBreakdown named     = RumorAwareness.Explain(30, false, 0, concernedParty: true,  ageDays: 0);
+
+         //Assert
+         bystander.Knows.Should().BeFalse();
+         named.Score.Should().Be(30 + RumorAwareness.ConcernedPartyBonus);
+         named.Knows.Should().BeTrue();
+      }
+
+      // The bonus is added AFTER recency on purpose: a named party remembers longer, but news that has faded to
+      // nothing must stay faded, or every lord named in any event would carry it forever.
+      [Test]
+      public void GIVEN_news_past_the_recency_window_WHEN_the_observer_is_named_THEN_the_bonus_alone_cannot_carry_it()
+      {
+         //Arrange/Act
+         RumorAwarenessBreakdown named = RumorAwareness.Explain(80, true, RumorAwareness.GeoBonusMax, concernedParty: true, ageDays: RumorAwareness.RecencyWindowDays);
+
+         //Assert
+         named.Score.Should().Be(RumorAwareness.ConcernedPartyBonus);
+         named.Knows.Should().BeFalse();
+      }
+
+      // The window the answer to tashmetu quoted ("magnitude 60 plus a realm tag is known about 16 days"): a
+      // modder plans a test pass on this number, so it is pinned rather than recomputed by hand each time.
+      [Test]
+      public void GIVEN_a_realm_tagged_magnitude_60_event_WHEN_its_fade_day_is_asked_THEN_its_own_people_hold_it_sixteen_days()
+      {
+         //Arrange/Act/Assert
+         RumorAwareness.LastAgeKnown(60, factionMatches: true, geoBonus: 0, concernedParty: false).Should().Be(16);
+      }
+
+      // A named party keeps faint news for about a week: the bonus lengthens the fade, it does not freeze it.
+      [Test]
+      public void GIVEN_a_faint_event_naming_the_observer_WHEN_its_fade_day_is_asked_THEN_they_hold_it_six_days()
+      {
+         //Arrange/Act/Assert
+         RumorAwareness.LastAgeKnown(30, false, 0, concernedParty: true).Should().Be(6);
+      }
+
+      // What cr.feed_test used to feed (magnitude 30, no tag): under the threshold even on its first day, so NO
+      // character could ever mention it while the console said it "reaches fewer people".
+      [Test]
+      public void GIVEN_an_untagged_magnitude_30_event_WHEN_its_fade_day_is_asked_THEN_nobody_ever_hears_it()
+      {
+         //Arrange/Act/Assert
+         RumorAwareness.LastAgeKnown(30, false, 0, false).Should().Be(-1);
+      }
    }
 }
