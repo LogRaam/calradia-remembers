@@ -173,7 +173,7 @@ namespace CalradiaRemembers.Tests
       }
 
       // M-G6: the subject of an event hears of it where a bystander would not. tashmetu's bridge names the
-      // heroes of a siege or an execution in HeroIds; until 2.5.21 that lift only reached the sway and jealousy
+      // heroes of a siege or an execution in HeroIds; until 2.5.22 that lift only reached the sway and jealousy
       // checks, never the prompt, so the besieged lord himself could not speak of a faint report of his own siege.
       [Test]
       public void GIVEN_a_faint_fresh_event_WHEN_the_observer_is_named_in_it_THEN_the_flat_bonus_carries_it_over_the_threshold()

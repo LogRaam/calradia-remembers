@@ -54,6 +54,25 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.actions_panel [on|off]
+      ///   Switches the Actions panel on or off for this session (not saved). It ships off in 2.5.22 because its
+      ///   layout has not been seen in game; off, the Actions tile opens the vanilla menu. It is drawn only by the
+      ///   Classic skin (cr.skin classic), so every other skin keeps the menu either way.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("actions_panel", "cr")]
+      public static string ActionsPanel(List<string> args)
+      {
+         string arg = args != null && args.Count > 0 ? args[0].Trim().ToLowerInvariant() : "";
+
+         if (arg == "on") ChatViewModel.ActionsPanelSwitchedOn = true;
+         else if (arg == "off") ChatViewModel.ActionsPanelSwitchedOn = false;
+         else if (arg != "") return "Usage: cr.actions_panel [on|off]";
+
+         return $"Actions panel: {(ChatViewModel.ActionsPanelSwitchedOn ? "ON" : "OFF (the tile opens the vanilla menu)")}. "
+                + "Only the Classic skin draws it (cr.skin classic); cr.reload_ui re-reads its layout on an open chat.";
+      }
+
+      /// <summary>
       ///   cr.reload_ui
       ///   Dev hot-reload for the chat/memories/letter prefabs: re-reads any changed prefab XML from the DEPLOYED
       ///   module folder and, if the chat OR the letter book is open, rebuilds its widget tree in place (same

@@ -8,7 +8,7 @@ The door is one-way: you push facts in and never read CR's internals. Everything
 validated at the door.
 
 `PlaceId`, the "named heroes hear it" rule in conversation and the
-`cr.heard` command arrived in **2.5.21**.
+`cr.heard` command arrived in **2.5.22**.
 
 ---
 

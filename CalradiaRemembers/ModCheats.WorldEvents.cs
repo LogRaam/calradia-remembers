@@ -168,7 +168,7 @@ namespace CalradiaRemembers
             ? string.Join(" ", args).Trim()
             : "The grey mare of Lord Caladog won the Pravend races; heavy purses changed hands.";
 
-         // Tagged the way a bridge should tag: the realm and the place. Until 2.5.21 this fed magnitude 30 with no
+         // Tagged the way a bridge should tag: the realm and the place. Until 2.5.22 this fed magnitude 30 with no
          // tag at all, which is under the awareness threshold on its first day, so nobody could ever mention it.
          string realmId = Hero.MainHero?.MapFaction?.StringId;
          Settlement place = NearestSettlementToPlayer();

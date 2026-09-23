@@ -251,7 +251,7 @@ namespace CalradiaRemembers.WorldEvents
       // Engine glue: gather the facts (faction match, geo bonus from map distance, age) and let the
       // pure RumorAwareness model score them.
       //
-      // M-G6: a concerned party (the event names them in ActorIds) is much likelier to hear of it. Since 2.5.21 the
+      // M-G6: a concerned party (the event names them in ActorIds) is much likelier to hear of it. Since 2.5.22 the
       // hero-facing prompt queries pass the observer too (tashmetu: a bridge names the heroes of a siege in
       // HeroIds, and the besieged lord could not speak of it while the sway check said he knew). Settlement
       // queries have no observer and pass null.

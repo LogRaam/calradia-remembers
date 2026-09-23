@@ -1,0 +1,25 @@
+﻿Version 2.5.22
+
+A small release, mostly for people who build on Calradia Remembers from other mods. If you only play, the one thing you may notice is the console command for world news, which now tells you how far your news will actually travel.
+
+Changed
+
+- cr.world_event now reads a settlement named in your text as the place it happened, so the people around it are the likeliest to have heard, and it tells you plainly how far and how long the news will carry. Before, a line naming no kingdom was heard by nobody after its first day, while the command said it would spread across the realm.
+
+- A lord named in a piece of news hears of it more readily and can speak of it himself. A lord who took part in a battle is likelier to talk about his own battle than a stranger to it.
+
+For modders
+
+- ExternalWorldEvent has a new PlaceId field: the StringId of the settlement where it happened. Characters near it are likelier to have heard it, the nearer the likelier. Until now distance played no part in a fed event. It is optional, and leaving it out changes nothing. An id that does not name a settlement is dropped, and the log says so.
+
+- Heroes you list in HeroIds now hear of the event themselves and can bring it up in conversation. Before, that only counted in a few hidden checks.
+
+- New console command cr.heard <name> <event id>. It tells you whether that character has heard a given event, and why: the score, each thing that went into it, how many more days they will keep it, or, if they could never hear it, which tags would reach them. Nothing is copied into a character's memory: awareness is worked out afresh every time they speak, so this answer is the real one. Without an id it lists every event your mod has fed; add "all" to include the mod's own news.
+
+- cr.feed_test now feeds a properly tagged test event (your realm and the nearest settlement) and prints how far it will carry. Before, it fed one that nobody could ever hear.
+
+- A new guide ships in the mod folder, Extension/HOWTO_WorldEvents.md: who hears a fed event, for how long, what Rumor and Deed really change (how long the entry is stored, not how long it is talked about), and how to test your bridge.
+
+Notes
+
+- Your existing saves load exactly as they are and nothing needs a new game.

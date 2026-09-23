@@ -39,7 +39,7 @@ namespace CalradiaRemembers.Tests
          text.Should().Contain("people of the tagged realm(s) for 16 day(s)");
       }
 
-      // A place is new for fed events in 2.5.21: magnitude 50 alone lasts one day, at the place about two weeks.
+      // A place is new for fed events in 2.5.22: magnitude 50 alone lasts one day, at the place about two weeks.
       [Test]
       public void GIVEN_a_placed_magnitude_50_fact_WHEN_its_reach_is_described_THEN_the_place_carries_it_longer_than_magnitude_alone()
       {

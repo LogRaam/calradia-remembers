@@ -293,6 +293,12 @@ namespace CalradiaRemembers.Chat
       private MBBindingList<ActionRowViewModel> _actionRows;
       private bool _isActionsPanelOpen;
       private bool _neverRowsExpanded;
+
+      /// <summary>
+      ///   Dev switch for the Actions panel (cr.actions_panel), off by default and not saved: the panel ships
+      ///   dormant in 2.5.22 until its layout has been seen in game.
+      /// </summary>
+      internal static bool ActionsPanelSwitchedOn;
       private string _memoryPanelTitle = "Shared memories";
       private MBBindingList<ChatMessageViewModel> _messages;
 
@@ -1983,6 +1989,15 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public void ExecuteOpenActionMenu()
       {
+         // Off by default in 2.5.22 (not yet seen in game), and only the Classic prefab draws the panel: every
+         // other case keeps the vanilla menu, which works in every skin. See ActionsPanelGate.
+         if (!ActionsPanelGate.OpensPanel(ActionsPanelSwitchedOn, ChatManager.ActiveSkin == ChatManager.ClassicSkin))
+         {
+            _actionMenu.Execute(this, _confirmation);
+
+            return;
+         }
+
          if (_isActionsPanelOpen)
          {
             IsActionsPanelOpen = false;

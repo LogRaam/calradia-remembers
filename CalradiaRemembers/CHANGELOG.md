@@ -2,7 +2,21 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.5.21.. unreleased
+## v2.5.22.. 2026-09-23
+
+A modder release: fed world events can carry a place, and a console command says who has heard what. 2.5.21 was
+skipped (Gabriel's numbering). The Actions panel built on 22/09 ships dormant, and the cut caught a defect in it.
+
+### Fixed before it shipped
+- **The Actions tile would have opened nothing in the default skin.** The new Actions panel (fkasad, 22/09/2026,
+  increments 1-2) is drawn only by the Classic chat prefab, but the tile that opens it sits in every skin and
+  `ExecuteOpenActionMenu` sent every click to the panel. The Manuscript skin ("Dark Leather") is the MCM DEFAULT, so
+  most players would have lost manual action injection entirely. Found reading the prefabs at the cut.
+  `ActionsPanelGate` now sends the tile to the panel only when the panel is switched on AND the open skin draws it;
+  otherwise the vanilla menu opens, as in 2.5.20.
+- **The panel ships switched off** (Gabriel, 23/09/2026): its layout was built blind and has not been seen in game.
+  `cr.actions_panel on` turns it on for the session in the Classic skin (`cr.skin classic`), `cr.reload_ui` re-reads
+  its layout on an open chat. Players see no change from 2.5.20.
 
 ### For modders
 - **Fed world events can say where they happened, the heroes they name can speak of them, and a console command
