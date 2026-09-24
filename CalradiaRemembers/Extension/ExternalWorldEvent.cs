@@ -65,17 +65,20 @@ namespace CalradiaRemembers
       /// <summary>How far the news carries (0..100); CR clamps it.</summary>
       public int Magnitude { get; set; }
 
-      /// <summary>Hero StringIds the fact involves; CR keeps only those that resolve to real heroes.</summary>
+      /// <summary>
+      ///   Hero StringIds the fact CONCERNS (the owner of a besieged town, the victim of an execution); CR keeps only
+      ///   those that resolve to real heroes. A named hero hears of it more readily, and it surfaces when the player
+      ///   speaks of them. Naming the player here does not make it the player's deed (it did before 2.5.23).
+      /// </summary>
       public List<string> HeroIds { get; set; } = new();
 
       /// <summary>
-      ///   True when the PLAYER is the one who did this (an execution by their decree, a town they took). The fact
-      ///   then becomes the player's own deed: it enters their chronicle, and characters who hear of it speak of it
-      ///   as something the player did. Leave it false (the default) for news that merely concerns the player,
-      ///   such as a siege of a town they own. Naming the player in <see cref="HeroIds" /> alone no longer makes it
-      ///   their deed (it did before 2.5.23).
+      ///   Hero StringIds of whoever DID it (the besieger, the executioner, the lord who took the town); may be empty.
+      ///   Actors count as concerned too, so there is no need to repeat them in <see cref="HeroIds" />. List them
+      ///   whoever they are: when the PLAYER is among them, CR files the fact as the player's own deed (their
+      ///   chronicle, spoken of as something they did), so a bridge never has to ask whether an actor is the player.
       /// </summary>
-      public bool PlayerIsActor { get; set; }
+      public List<string> ActorHeroIds { get; set; } = new();
 
       /// <summary>Faction (kingdom/clan) StringIds the fact is relevant to; CR keeps only those that resolve.</summary>
       public List<string> FactionIds { get; set; } = new();

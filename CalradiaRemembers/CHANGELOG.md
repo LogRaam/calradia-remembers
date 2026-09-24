@@ -5,13 +5,17 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.5.23.. unreleased
 
 ### For modders
-- **Naming the player in `HeroIds` no longer makes a fed event the player's own deed; `ExternalWorldEvent.PlayerIsActor`
-  does** (tashmetu, 23/09/2026, wiring `PlaceId` into the Bellum bridge; found reading his `EventFeeder`). `Feed` set
+- **Naming the player in `HeroIds` no longer makes a fed event the player's own deed; the player among the new
+  `ExternalWorldEvent.ActorHeroIds` does** (tashmetu, 23/09/2026, wiring `PlaceId` into the Bellum bridge; found reading his `EventFeeder`). `Feed` set
   `InvolvesPlayer` whenever the player's id was among the heroes, and the bridge names a besieged, raided or revolting
   town's OWNER there. When the owner was the player, the siege left the news, entered the player's chronicle, and
   characters told it back to the player as something they had done. Being named is being concerned, not being the
-  one who acted: `ExternalEventRules.IsPlayersOwnDeed` now reads only the feeder's explicit word. BEHAVIOUR CHANGE
-  for a bridge that relied on the old inference to file the player's deeds: set `PlayerIsActor = true`. Nothing in
+  one who acted. A first cut added a `PlayerIsActor` flag; replaced before release (Gabriel, 23/09/2026, asking which
+  shape the single-responsibility principle favours): a flag makes every bridge ask "is this the player?", a CR concern
+  leaking into the feeder. `ActorHeroIds` lets the bridge describe ROLES (who did it, who it concerns) and
+  `ExternalEventRules.IsPlayersOwnDeed` decides what is the player's. Actors also count as concerned (awareness lift,
+  message relevance). BEHAVIOUR CHANGE for a bridge that relied on the old inference to file the player's deeds: list
+  the player among `ActorHeroIds`. Nothing in
   CR itself relied on it (every internal `Feed` caller checked). Additive member, `ApiVersion` unchanged.
   `cr.testall feed_player_named` drives both halves through the real door.
 

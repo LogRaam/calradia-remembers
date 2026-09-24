@@ -8,7 +8,7 @@ The door is one-way: you push facts in and never read CR's internals. Everything
 validated at the door.
 
 `PlaceId`, the "named heroes hear it" rule in conversation and the
-`cr.heard` command arrived in **2.5.22**; `PlayerIsActor` in **2.5.23**.
+`cr.heard` command arrived in **2.5.22**; `ActorHeroIds` in **2.5.23**.
 
 ---
 
@@ -21,9 +21,9 @@ FeedResult r = CalradiaRemembers.Feed.Record(new ExternalWorldEvent {
     Summary    = "The siege of Sargot was broken after forty days.",
     Magnitude  = 70,                               // 0..100, how far the news carries
     FactionIds = new List<string> { "vlandia" },   // KINGDOM ids (see 3)
-    HeroIds    = new List<string> { "lord_4_1" },  // the heroes it is about
+    HeroIds    = new List<string> { "lord_4_1" },  // the heroes it CONCERNS (the town's lord)
+    ActorHeroIds = new List<string> { "lord_1_1" },// whoever DID it (the besieger), see 3
     PlaceId    = "town_V1",                        // the settlement where it happened
-    PlayerIsActor = false,                         // true only if the PLAYER did it (see 3)
     Lifetime   = ExternalEventLifetime.Rumor,
 });
 ```
@@ -82,11 +82,13 @@ with its summary (a place name, "siege").
 - **`HeroIds` is who the fact is ABOUT.** A named hero hears it more readily. The main effect, though,
   is that the event surfaces when the player mentions that hero. Naming the player there is fine (the
   owner of a besieged town, say): it stays news.
-- **`PlayerIsActor` is for what the player DID** (an execution by their decree, a town they took). Set it
-  and the event becomes the player's own deed: it enters their chronicle, and characters speak of it as
-  something the player did. Before 2.5.23, naming the player in `HeroIds` was enough to do this, which
-  turned a siege of the player's own town into "a deed of yours". Set it by reflection if your bridge
-  must also run on older versions.
+- **`ActorHeroIds` is who DID it** (the besieger, the executioner). List them whoever they are; actors
+  count as concerned too. When the player is among them, CR files the event as the player's own deed:
+  it enters their chronicle, and characters speak of it as something the player did. Your bridge never
+  has to check for the player itself. Before 2.5.23 the player's id in `HeroIds` was enough to do
+  this, which turned a siege of the player's own town into "a deed of yours". Set it by reflection if
+  your bridge must also run on older versions (on those, leave the player out of `HeroIds` unless they
+  acted).
 - **Give it a place.** Without `PlaceId`, distance plays no part, and only magnitude, realm and naming
   carry the news.
 

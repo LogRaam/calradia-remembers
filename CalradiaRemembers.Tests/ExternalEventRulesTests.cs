@@ -86,19 +86,32 @@ namespace CalradiaRemembers.Tests
 
         // tashmetu's Bellum bridge names a besieged town's OWNER in HeroIds. When the player owns it, the siege
         // became "a deed of yours": it left the news, entered the player's chronicle, and characters told it back
-        // to the player as something the player had done. Named is concerned, not the one who acted.
+        // to the player as something the player had done. The besieger acted; the owner is only concerned.
         [Test]
-        public void GIVEN_the_player_only_named_as_the_owner_of_a_besieged_town_WHEN_fed_THEN_it_is_news_not_their_deed()
+        public void GIVEN_a_siege_of_the_players_town_by_a_lord_WHEN_fed_THEN_it_is_news_not_the_players_deed()
         {
-            ExternalEventRules.IsPlayersOwnDeed(playerIsActor: false).Should().BeFalse("naming the player in HeroIds is not saying they acted");
+            var besiegers = new[] {"lord_besieger"};
+
+            ExternalEventRules.IsPlayersOwnDeed(besiegers, "main_hero").Should().BeFalse("the player owns the town; the lord did the besieging");
         }
 
-        // The other half: a bridge reporting something the player DID (an execution by the player's decree) says
-        // so, and it becomes the player's deed, heard of by others as such, whether or not it also names the player in HeroIds.
+        // The other half: a lord executed by the player's decree. The bridge lists the executioner among the actors
+        // as it would for anyone, without ever asking whether that is the player, and CR files it as the player's deed.
         [Test]
-        public void GIVEN_the_feeder_declares_the_player_acted_WHEN_fed_THEN_it_is_the_players_own_deed()
+        public void GIVEN_an_execution_by_the_players_decree_WHEN_fed_THEN_it_is_the_players_own_deed()
         {
-            ExternalEventRules.IsPlayersOwnDeed(playerIsActor: true).Should().BeTrue();
+            var executioners = new[] {"main_hero"};
+
+            ExternalEventRules.IsPlayersOwnDeed(executioners, "main_hero").Should().BeTrue();
+        }
+
+        // Most fed facts name no actor at all (a crown losing its grip, a village's harvest). They are news, and a
+        // bridge that never fills the field must not have anything filed as the player's.
+        [Test]
+        public void GIVEN_a_fact_with_no_actors_WHEN_fed_THEN_it_is_news()
+        {
+            ExternalEventRules.IsPlayersOwnDeed(null, "main_hero").Should().BeFalse();
+            ExternalEventRules.IsPlayersOwnDeed(new string[0], "main_hero").Should().BeFalse();
         }
     }
 }
