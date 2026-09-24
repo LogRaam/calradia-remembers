@@ -107,7 +107,89 @@ never re-record (and may later `Update` or `Retract`), and `Rumor` for everythin
 
 ---
 
-## 5. Testing your bridge
+## 5. Worked examples
+
+Each one is a situation, the call that describes it, and what CR then does with it. The code uses the
+game's own objects, the way a bridge has them at hand; the names in comments are vanilla ids.
+
+### A siege of a town the player owns
+
+Lucon (`lord_1_1`) lays siege to Sargot (`town_V1`), which the player holds.
+
+```csharp
+Feed.Record(new ExternalWorldEvent {
+    Id           = "mybridge_siege_" + town.StringId,      // stable, no day: the siege is a standing fact
+    SourceMod    = "MyBridge",
+    Summary      = town.Name + ", held by " + town.Owner.Name + ", is under siege by " + besieger.Name + ".",
+    Magnitude    = 85,
+    HeroIds      = new List<string> { town.Owner.StringId },   // the player: CONCERNED, did nothing
+    ActorHeroIds = new List<string> { besieger.StringId },     // Lucon: he is the one besieging
+    FactionIds   = new List<string> { town.MapFaction.StringId, besieger.MapFaction.StringId },
+    PlaceId      = town.StringId,
+    Lifetime     = ExternalEventLifetime.Deed,
+});
+// ...and when the siege ends, however it ends:
+Feed.Retract("mybridge_siege_" + town.StringId);
+```
+
+What CR does: it is **news**, not the player's deed, because the player is not among the actors. Anyone
+in Calradia has heard it for 16 days, people of either realm for 21, and people of either realm near
+Sargot for 25. Lucon, named and of a tagged realm, has it for 30 days wherever he is. Once retracted, nobody speaks of it
+as still going on.
+
+Before 2.5.23, the player's id in `HeroIds` made this "a deed of yours". On older versions, leave the
+player out.
+
+### An execution by the player's decree
+
+The player has a captive lord put to death in the dungeon of Usanc Castle (`castle_V1`).
+
+```csharp
+Feed.Record(new ExternalWorldEvent {
+    Id           = "mybridge_execution_" + victim.StringId,
+    SourceMod    = "MyBridge",
+    Summary      = "By decree, " + executioner.Name + " has executed " + victim.Name + ".",
+    Magnitude    = 88,
+    HeroIds      = new List<string> { victim.StringId },       // the one it was done to
+    ActorHeroIds = new List<string> { executioner.StringId },  // here the player, but list them whoever they are
+    FactionIds   = new List<string> { victim.MapFaction.StringId },
+    PlaceId      = victim.CurrentSettlement?.StringId,         // the dungeon he died in (still set when
+                                                               // HeroKilledEvent fires); null if carried in a party
+    Lifetime     = ExternalEventLifetime.Deed,
+});
+```
+
+What CR does: the player is among the actors, so it is **the player's own deed**. It enters their
+chronicle, and characters who have heard of it speak of it as something the player did, in the part of
+their prompt about the player's reputation. The bridge never checks for the player; the same line
+reports an execution by any lord, and then it is ordinary news.
+
+### A village's harvest failing
+
+Calioc (`village_V1_1`, near Sargot) produces half its usual output. Nobody did it.
+
+```csharp
+Feed.Record(new ExternalWorldEvent {
+    Id         = "mybridge_harvest_" + village.StringId + "_" + day,   // a moment: the day belongs in the id
+    SourceMod  = "MyBridge",
+    Summary    = village.Name + " has fallen off and brings in barely half its usual harvest.",
+    Magnitude  = 35,
+    HeroIds    = new List<string> { village.Owner.StringId },
+    FactionIds = new List<string> { village.MapFaction.StringId },
+    PlaceId    = village.StringId,
+    Lifetime   = ExternalEventLifetime.Rumor,                          // no actors: news, and it may age out
+});
+```
+
+What CR does: a small matter, and it stays local. A stranger far away never hears of it. A stranger near
+Calioc, or someone of its realm anywhere, has it for 6 days. Someone of its realm near Calioc has it for
+16 days. The village's owner, being named, hears of it more readily wherever he is. This is where
+`PlaceId` matters most: at high magnitudes everyone hears the news anyway, and the place only adds a few
+days.
+
+---
+
+## 6. Testing your bridge
 
 - **Was it recorded?** `CalradiaRemembers.log` gets one line per record:
   `[FEED] MyBridge recorded a world event (id ..., mag 70, 1 hero ref(s), 1 faction ref(s), place town_V1): ...`
