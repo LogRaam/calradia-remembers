@@ -2,7 +2,9 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.5.23.. unreleased
+## v2.5.23.. 2026-09-23
+
+A modder release, from reviewing the Bellum bridge: fed events now say who DID a thing, apart from who it concerns.
 
 ### For modders
 - **Naming the player in `HeroIds` no longer makes a fed event the player's own deed; the player among the new
@@ -15,9 +17,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   leaking into the feeder. `ActorHeroIds` lets the bridge describe ROLES (who did it, who it concerns) and
   `ExternalEventRules.IsPlayersOwnDeed` decides what is the player's. Actors also count as concerned (awareness lift,
   message relevance). BEHAVIOUR CHANGE for a bridge that relied on the old inference to file the player's deeds: list
-  the player among `ActorHeroIds`. Nothing in
-  CR itself relied on it (every internal `Feed` caller checked). Additive member, `ApiVersion` unchanged.
+  the player among `ActorHeroIds`. Nothing in CR itself relied on it (every internal `Feed` caller checked). Additive member, `ApiVersion` unchanged.
   `cr.testall feed_player_named` drives both halves through the real door.
+- **The modder guides ship at last**, in `Modules/CalradiaRemembers/Docs` (`HOWTO_WorldEvents`, `HOWTO_Actions`,
+  `HOWTO_Voicing`, `EXTENSION_API`). The Nexus page said "See the HOWTO_Voicing guide shipped with the mod" and
+  nothing copied them; found cutting this release by checking the archive for the guide the changelog promised.
+  The csproj deploy step now copies them, so the archive, built from the deployed folder, carries them.
+- **`Extension/HOWTO_WorldEvents.md` gains three worked examples** (situation, call, what CR does): a siege of the
+  player's town, an execution by the player's decree, a village's failing harvest. Ids checked against the game's
+  data; `KillCharacterAction` decompiled to confirm the victim's dungeon is still readable when `HeroKilledEvent` fires.
 
 ## v2.5.22.. 2026-09-23
 

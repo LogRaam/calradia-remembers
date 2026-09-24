@@ -193,7 +193,7 @@ Each of these stages a feature so it can be checked in one step. They mutate the
 > **`cr.heard [name] [event-id|all]`** says whether a character has heard the stored world events and why:
 > the score, each term behind it, how many days they keep it, or which tags would reach them. Nothing is
 > copied into a character's memory (awareness is recomputed at every prompt), so this verdict is the answer.
-> Modders: see `Extension/HOWTO_WorldEvents.md`.
+> Modders: see `Docs/HOWTO_WorldEvents.md` in the mod folder.
 
 ---
 

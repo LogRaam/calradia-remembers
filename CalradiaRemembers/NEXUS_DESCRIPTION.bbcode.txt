@@ -649,7 +649,7 @@ CalradiaRemembers.Feed.Record(new ExternalWorldEvent {
 
 From that moment, lords who would plausibly have heard speak of it.. as [i]hearsay[/i], hedged by distance and faction, exactly like the news CR records on its own. Your mod needs to know [i]nothing[/i] about CR's memory system, its prompts, or its save format.
 
-Tell CR [b]where[/b] it happened ([i]PlaceId[/i], a settlement id) and those nearby hear it first; name the heroes it is about ([i]HeroIds[/i]) and they can speak of it themselves. To check your feed without playing it out, [i]cr.heard <name> <event id>[/i] in the console says whether that character has heard it, why, for how many more days, or what would reach them. See the HOWTO_WorldEvents guide shipped with the mod.
+Tell CR [b]where[/b] it happened ([i]PlaceId[/i], a settlement id) and those nearby hear it first; name the heroes it is about ([i]HeroIds[/i]) and they can speak of it themselves; name who [b]did[/b] it ([i]ActorHeroIds[/i]) and, when that is the player, CR files it as the player's own deed, so your mod never has to check for the player. To check your feed without playing it out, [i]cr.heard <name> <event id>[/i] in the console says whether that character has heard it, why, for how many more days, or what would reach them. See the HOWTO_WorldEvents guide in the mod's Docs folder.
 
 Facts can also [b]change[/b]. For things that aren't one-off events but standing state.. a settlement that moves, a character renamed, a place that ceases to exist.. [i]Feed.Update(...)[/i] replaces a previous entry by its id, and [i]Feed.Retract(id)[/i] removes one that is no longer true, so the world's gossip stays current instead of repeating something stale.
 
@@ -709,7 +709,7 @@ CalradiaRemembers.CrConversation.Ended += log => {
 
 [i]Started[/i] hands you the character's id, the loaded save's stable id, and the in-game day the moment a conversation opens.. early enough to recall and inject the right memories before the first prompt is built. [i]Ended[/i] hands you the full transcript, every line attributed to its speaker, including the third-party witnesses who spoke up.. so who-said-what is never a guess. Every subscriber runs under a guard: a handler that throws is isolated and can never break the conversation. (Read [i]CrNpcMemory.ApiVersion[/i] first if you reach these by reflection.)
 
-For a voice-over, subtitle, or lip-sync mod, [i]CrConversation.LineSpoken[/i] fires once per displayed line in real time, carrying the clean words, the speaker's id, gender, and culture, and.. new in this release.. a unique per-conversation id and a line index, so you can group and order a whole exchange (including the multi-participant scenes where several characters speak). See the HOWTO_Voicing guide shipped with the mod.
+For a voice-over, subtitle, or lip-sync mod, [i]CrConversation.LineSpoken[/i] fires once per displayed line in real time, carrying the clean words, the speaker's id, gender, and culture, and.. new in this release.. a unique per-conversation id and a line index, so you can group and order a whole exchange (including the multi-participant scenes where several characters speak). See the HOWTO_Voicing guide in the mod's Docs folder.
 
 [b][color=#e69138]…and give a character new things to DO[/color][/b]
 The newest door lets your mod add a real, executable [b]action[/b] a character can take mid-conversation.. its own verb, taught to the model and dispatched by your mod.. with no Harmony patching of CR's internals:
@@ -727,7 +727,7 @@ CalradiaRemembers.CrActions.Register(new ExternalActionSpec {
     SourceMod   = "MyMod"
 });[/code]
 
-One call teaches the action to the interpreter, the single-call path, and the 1:1 prose prompt, and routes it through CR's own dispatch.. exactly like a built-in verb. Your Execute callback reasons over the same engine-agnostic facts as the rest of the SDK (a hero StringId, not a game object) and returns a result CR turns into the chat outcome; [i]CrActions.Unregister[/i] undoes it. A companion door, [i]CrPrompt.RegisterVariable("my_state", facts => "...")[/i], feeds a live value your mod computes into any {{my_state}} token in the prompt.. CR's own variables always win a name clash, and a provider that throws is isolated. See the HOWTO_Actions guide shipped with the mod.
+One call teaches the action to the interpreter, the single-call path, and the 1:1 prose prompt, and routes it through CR's own dispatch.. exactly like a built-in verb. Your Execute callback reasons over the same engine-agnostic facts as the rest of the SDK (a hero StringId, not a game object) and returns a result CR turns into the chat outcome; [i]CrActions.Unregister[/i] undoes it. A companion door, [i]CrPrompt.RegisterVariable("my_state", facts => "...")[/i], feeds a live value your mod computes into any {{my_state}} token in the prompt.. CR's own variables always win a name clash, and a provider that throws is isolated. See the HOWTO_Actions guide in the mod's Docs folder.
 
 If you would like to plug a mod into any of these doors, get in touch.. I would love to help.
 

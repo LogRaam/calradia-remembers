@@ -1,0 +1,21 @@
+﻿Version 2.5.23
+
+A small release for people who build on Calradia Remembers from other mods. If you only play, nothing changes for you, except that news fed by another mod about a town you own is no longer mistaken for something you did.
+
+Fixed
+
+- A siege, raid or revolt at a town you own, reported by another mod, was treated as your own deed: it left the realm's news, went into your chronicle, and characters spoke of it to you as something you had done. Being the owner of the town under siege is not the same as having besieged it. It is now ordinary news, and your own deeds are still yours.
+
+For modders
+
+- ExternalWorldEvent has a new field, ActorHeroIds: the heroes who DID the thing (the besieger, the raider, the executioner). HeroIds stays the list of heroes the fact concerns (the owner of the town, the victim). List actors whoever they are. When the player is among them, Calradia Remembers files the fact as the player's own deed, so your mod never has to check whether someone is the player. Actors count as concerned too, so there is no need to repeat them in HeroIds.
+
+- Behaviour change: naming the player in HeroIds no longer makes a fact the player's deed. If your mod relied on that to report something the player did, put the player in ActorHeroIds instead. Nothing else changes, and the field is optional.
+
+- The modder guides now actually ship with the mod, in its Docs folder (Modules/CalradiaRemembers/Docs): HOWTO_WorldEvents, HOWTO_Actions, HOWTO_Voicing and EXTENSION_API. This page has long said they were shipped with the mod; they were not, until now. Sorry to anyone who went looking.
+
+- HOWTO_WorldEvents now has three worked examples: a siege of the player's town, an execution by the player's decree, and a village's failing harvest. Each shows the call and what Calradia Remembers then does with it: who hears of it, for how long, and whether it is news or the player's deed.
+
+Notes
+
+- Your existing saves load exactly as they are and nothing needs a new game.
