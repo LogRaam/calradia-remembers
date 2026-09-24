@@ -83,5 +83,22 @@ namespace CalradiaRemembers.Tests
             ExternalEventRules.WithinDailyQuota(ExternalEventRules.MaxPerSourcePerDay - 1).Should().BeTrue();
             ExternalEventRules.WithinDailyQuota(ExternalEventRules.MaxPerSourcePerDay).Should().BeFalse();
         }
+
+        // tashmetu's Bellum bridge names a besieged town's OWNER in HeroIds. When the player owns it, the siege
+        // became "a deed of yours": it left the news, entered the player's chronicle, and characters told it back
+        // to the player as something the player had done. Named is concerned, not the one who acted.
+        [Test]
+        public void GIVEN_the_player_only_named_as_the_owner_of_a_besieged_town_WHEN_fed_THEN_it_is_news_not_their_deed()
+        {
+            ExternalEventRules.IsPlayersOwnDeed(playerIsActor: false).Should().BeFalse("naming the player in HeroIds is not saying they acted");
+        }
+
+        // The other half: a bridge reporting something the player DID (an execution by the player's decree) says
+        // so, and it becomes the player's deed, heard of by others as such, whether or not it also names the player in HeroIds.
+        [Test]
+        public void GIVEN_the_feeder_declares_the_player_acted_WHEN_fed_THEN_it_is_the_players_own_deed()
+        {
+            ExternalEventRules.IsPlayersOwnDeed(playerIsActor: true).Should().BeTrue();
+        }
     }
 }

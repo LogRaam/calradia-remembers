@@ -296,6 +296,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("feed_ingest", Severity.Light, "Feed.Record an external event -> assert stored + a re-send is deduped", TestFeedIngest),
          new SelfTest("feed_update", Severity.Light, "Feed.Update upserts a fed fact by id, Feed.Retract removes it (mutable entries)", TestFeedUpdate),
          new SelfTest("heard_diagnostic", Severity.Light, "Asked by a bridge author (tashmetu, 23/09/2026): how to check that a fed event reached a given character without talking to them. Feeds through the REAL Feed door and asserts: a real PlaceId is kept and a bogus one dropped, a realm tag reaches a lord of that realm, cr.heard's verdict agrees with the prompt's own query, and a lord NAMED in HeroIds can now speak of a faint fact a bystander has not heard (the M-G6 lift reached only the sway and jealousy checks before 2.5.22). Retracts what it feeds.", TestHeardDiagnostic),
+         new SelfTest("feed_player_named", Severity.Light, "tashmetu's Bellum bridge names a besieged town's OWNER in HeroIds (23/09/2026). When that owner was the player, CR filed the siege as the player's own deed: out of the news, into the chronicle, told back to the player as something they did. Feeds through the REAL Feed door and asserts: naming the player alone leaves it news (not in the chronicle, heard by a lord of the realm as news), and only PlayerIsActor makes it the player's deed. Retracts what it feeds.", TestFeedPlayerNamed),
          new SelfTest("conversation_session_sequencing", Severity.Light, "Mechanical (Heroes Voices TTS request): drive the REAL internal CrConversation.RaiseStarted/RaiseLineSpoken/RaiseEnded twice in a row -> assert Started/LineSpoken/Ended of one session share the same non-empty SessionId, LineIndex runs 0 then 1, and a second RaiseStarted mints a DIFFERENT SessionId with LineIndex reset to 0. Unsubscribes its handlers afterwards. No LLM, mutates nothing persistent.", TestConversationSessionSequencing),
          new SelfTest("mission_register", Severity.Heavy, "MissionBoard.Register an external mission -> assert issued + dedup + Complete stamps it", TestMissionRegister),
          new SelfTest("mission_reward", Severity.Heavy, "MissionBoard FULL LOOP -> register -> Complete -> player reports to giver -> assert reward PAID + quest Completed", TestMissionRewardLoop),
@@ -4034,6 +4035,62 @@ namespace CalradiaRemembers.Diagnostics
             Feed.Retract(placedId);
             Feed.Retract(bogusId);
             Feed.Retract(namedId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestFeedPlayerNamed(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("feed_player_named");
+
+         WorldEventStore store = WorldEventStore.Instance;
+
+         if (t.Abort(store == null, "WorldEventStore not active")) return t.Line();
+         if (t.Skip(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.MapFaction != null);
+
+         if (t.Skip(lord == null, "no free lord with a realm")) return t.Line();
+
+         const string source = "SelfTestPlayerNamed";
+         string suffix = Guid.NewGuid().ToString("N");
+         string namedId = "selftest_named_" + suffix;
+         string actedId = "selftest_acted_" + suffix;
+         var today = (int) CampaignTime.Now.ToDays;
+
+         try
+         {
+            // The Bellum shape: a siege of a town the PLAYER owns, the owner named among the heroes.
+            Feed.Record(new ExternalWorldEvent {
+               Id = namedId, SourceMod = source, Summary = "[SELFTEST] a town held by the player is under siege", Magnitude = 85,
+               HeroIds = new List<string> {Hero.MainHero.StringId, lord.StringId},
+               FactionIds = new List<string> {lord.MapFaction.StringId}
+            });
+            WorldEvent named = store.GetById(namedId);
+
+            if (t.Abort(named == null, "the named event was not recorded")) return t.Line();
+
+            t.Expect("namingThePlayerDoesNotMakeItTheirDeed", named.InvolvesPlayer, false);
+            t.Expect("itStaysOutOfTheirChronicle", store.GetPlayerChronicle().Any(e => e.Id == namedId), false);
+            t.Expect("aLordOfTheRealmHearsItAsNews", store.GetKnownEvents(lord, today, 1000).Any(e => e.Id == namedId), true);
+
+            // The other half: the bridge says the player DID it.
+            Feed.Record(new ExternalWorldEvent {
+               Id = actedId, SourceMod = source, Summary = "[SELFTEST] the player had a lord executed", Magnitude = 85,
+               HeroIds = new List<string> {lord.StringId}, PlayerIsActor = true
+            });
+            WorldEvent acted = store.GetById(actedId);
+
+            if (t.Abort(acted == null, "the acted event was not recorded")) return t.Line();
+
+            t.Expect("playerIsActorMakesItTheirDeed", acted.InvolvesPlayer, true);
+            t.Expect("itEntersTheirChronicle", store.GetPlayerChronicle().Any(e => e.Id == actedId), true);
+         }
+         finally
+         {
+            Feed.Retract(namedId);
+            Feed.Retract(actedId);
          }
 
          return t.Line();

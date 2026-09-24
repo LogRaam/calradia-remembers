@@ -2,6 +2,19 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.23.. unreleased
+
+### For modders
+- **Naming the player in `HeroIds` no longer makes a fed event the player's own deed; `ExternalWorldEvent.PlayerIsActor`
+  does** (tashmetu, 23/09/2026, wiring `PlaceId` into the Bellum bridge; found reading his `EventFeeder`). `Feed` set
+  `InvolvesPlayer` whenever the player's id was among the heroes, and the bridge names a besieged, raided or revolting
+  town's OWNER there. When the owner was the player, the siege left the news, entered the player's chronicle, and
+  characters told it back to the player as something they had done. Being named is being concerned, not being the
+  one who acted: `ExternalEventRules.IsPlayersOwnDeed` now reads only the feeder's explicit word. BEHAVIOUR CHANGE
+  for a bridge that relied on the old inference to file the player's deeds: set `PlayerIsActor = true`. Nothing in
+  CR itself relied on it (every internal `Feed` caller checked). Additive member, `ApiVersion` unchanged.
+  `cr.testall feed_player_named` drives both halves through the real door.
+
 ## v2.5.22.. 2026-09-23
 
 A modder release: fed world events can carry a place, and a console command says who has heard what. 2.5.21 was

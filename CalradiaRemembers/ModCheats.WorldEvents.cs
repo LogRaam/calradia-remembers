@@ -263,7 +263,7 @@ namespace CalradiaRemembers
             sb.AppendLine($"- {e.Id} [{e.SourceMod ?? "CR"}, day {e.Day}, magnitude {e.Magnitude}{place}{(e.IsPersistentDeed ? ", deed" : "")}]: {summary}");
             sb.AppendLine("    " + v.Describe()
                           + (rank >= 0 ? $" Ranks #{rank + 1} of what they have heard." : "")
-                          + (e.InvolvesPlayer ? " It names the player, so it reaches them as a deed of yours, not as news." : ""));
+                          + (e.InvolvesPlayer ? " It is fed as the player's own deed (PlayerIsActor), so it reaches them as a deed of yours, not as news." : ""));
          }
 
          if (!any)

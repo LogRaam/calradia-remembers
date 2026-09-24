@@ -68,6 +68,15 @@ namespace CalradiaRemembers
       /// <summary>Hero StringIds the fact involves; CR keeps only those that resolve to real heroes.</summary>
       public List<string> HeroIds { get; set; } = new();
 
+      /// <summary>
+      ///   True when the PLAYER is the one who did this (an execution by their decree, a town they took). The fact
+      ///   then becomes the player's own deed: it enters their chronicle, and characters who hear of it speak of it
+      ///   as something the player did. Leave it false (the default) for news that merely concerns the player,
+      ///   such as a siege of a town they own. Naming the player in <see cref="HeroIds" /> alone no longer makes it
+      ///   their deed (it did before 2.5.23).
+      /// </summary>
+      public bool PlayerIsActor { get; set; }
+
       /// <summary>Faction (kingdom/clan) StringIds the fact is relevant to; CR keeps only those that resolve.</summary>
       public List<string> FactionIds { get; set; } = new();
 

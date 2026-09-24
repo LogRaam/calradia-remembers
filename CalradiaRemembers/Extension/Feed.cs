@@ -136,7 +136,7 @@ namespace CalradiaRemembers
             PlaceId = ResolveSettlement(e.PlaceId),
             ActorIds = ResolveHeroes(e.HeroIds),
             FactionIds = ResolveFactions(e.FactionIds),
-            InvolvesPlayer = Hero.MainHero != null && e.HeroIds != null && e.HeroIds.Contains(Hero.MainHero.StringId),
+            InvolvesPlayer = ExternalEventRules.IsPlayersOwnDeed(e.PlayerIsActor),
             IsPersistentDeed = e.Lifetime == ExternalEventLifetime.Deed
          };
 

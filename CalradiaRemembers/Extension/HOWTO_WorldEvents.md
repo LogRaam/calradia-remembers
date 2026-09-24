@@ -8,7 +8,7 @@ The door is one-way: you push facts in and never read CR's internals. Everything
 validated at the door.
 
 `PlaceId`, the "named heroes hear it" rule in conversation and the
-`cr.heard` command arrived in **2.5.22**.
+`cr.heard` command arrived in **2.5.22**; `PlayerIsActor` in **2.5.23**.
 
 ---
 
@@ -23,6 +23,7 @@ FeedResult r = CalradiaRemembers.Feed.Record(new ExternalWorldEvent {
     FactionIds = new List<string> { "vlandia" },   // KINGDOM ids (see 3)
     HeroIds    = new List<string> { "lord_4_1" },  // the heroes it is about
     PlaceId    = "town_V1",                        // the settlement where it happened
+    PlayerIsActor = false,                         // true only if the PLAYER did it (see 3)
     Lifetime   = ExternalEventLifetime.Rumor,
 });
 ```
@@ -74,14 +75,18 @@ with its summary (a place name, "siege").
 
 ---
 
-## 3. Tagging, the three things that go wrong
+## 3. Tagging, the things that go wrong
 
 - **Tag the kingdom, not the clan.** A lord's realm is his kingdom whenever his clan has one, so a
   clan id in `FactionIds` only matches clans that belong to no kingdom.
 - **`HeroIds` is who the fact is ABOUT.** A named hero hears it more readily. The main effect, though,
-  is that the event surfaces when the player mentions that hero. Only put the PLAYER's id there for
-  the player's own deed: it turns the event into the player's chronicle, told back to the player as
-  something they did, not as news.
+  is that the event surfaces when the player mentions that hero. Naming the player there is fine (the
+  owner of a besieged town, say): it stays news.
+- **`PlayerIsActor` is for what the player DID** (an execution by their decree, a town they took). Set it
+  and the event becomes the player's own deed: it enters their chronicle, and characters speak of it as
+  something the player did. Before 2.5.23, naming the player in `HeroIds` was enough to do this, which
+  turned a siege of the player's own town into "a deed of yours". Set it by reflection if your bridge
+  must also run on older versions.
 - **Give it a place.** Without `PlaceId`, distance plays no part, and only magnitude, realm and naming
   carry the news.
 

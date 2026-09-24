@@ -41,6 +41,14 @@ namespace CalradiaRemembers.Logic
                 : trimmed.Substring(0, MaxSummaryChars);
         }
 
+        /// <summary>
+        ///   Whether a fed fact is the PLAYER'S OWN DEED (their chronicle, told back to them as something they did)
+        ///   rather than news. Only the feeder's explicit word decides it. Until 2.5.23 the player's id in HeroIds
+        ///   decided it, and a bridge naming a besieged town's OWNER turned a siege of the player's town into a deed
+        ///   of the player's (tashmetu, 23/09/2026). Being named is being concerned, not being the one who acted.
+        /// </summary>
+        public static bool IsPlayersOwnDeed(bool playerIsActor) => playerIsActor;
+
         /// <summary>True while a source is still within its daily quota (the host counts its sends this day).</summary>
         public static bool WithinDailyQuota(int sentToday) => sentToday < MaxPerSourcePerDay;
     }

@@ -166,6 +166,7 @@ _One world fact a third-party mod wants CR to know about._
 - `ExternalEventLifetime Lifetime { get; set; }`
 - `List<string> FactionIds { get; set; }`
 - `List<string> HeroIds { get; set; }`
+- `bool PlayerIsActor { get; set; }`
 - `int Day { get; set; }`
 - `int Magnitude { get; set; }`
 - `string Category { get; set; }`
