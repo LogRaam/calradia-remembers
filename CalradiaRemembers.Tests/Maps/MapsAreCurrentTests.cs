@@ -92,7 +92,24 @@ namespace CalradiaRemembers.Tests.Maps
 
       [Test]
       public void GIVEN_the_source_as_it_stands_WHEN_the_modder_api_is_regenerated_THEN_it_matches_the_committed_map()
-         => ApprovedMap.Verify(ModderApiMap.Path, Generated(ModderApiMap.Generate));
+      {
+         // Same reasoning as the save format: refuse before update mode can rewrite anything, then record the released
+         // snapshot if this run is a release cut.
+         RefuseAVanishedApiMember();
+         ApprovedMap.Verify(ModderApiMap.Path, Generated(ModderApiMap.Generate));
+         RecordTheReleasedApiIfAsked();
+      }
+
+      // THE SECOND CHANGE A REGENERATION MAY NOT ABSORB (23/09/2026). A public member that SHIPPED and is no longer
+      // there is a bridge already on Nexus failing on a player's machine. The baseline is the surface as released, not
+      // the committed map, so a member added and withdrawn between two releases passes freely.
+      [Test]
+      public void GIVEN_a_released_modder_api_member_WHEN_the_code_no_longer_has_it_THEN_the_suite_refuses_it()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         RefuseAVanishedApiMember();
+      }
 
       // THE ONE CHANGE A REGENERATION MAY NOT ABSORB. Every other map accepts whatever the code now says; that is
       // what regenerating means. A save key that vanishes is a player's letters, grudges or marriage silently never
@@ -125,6 +142,37 @@ namespace CalradiaRemembers.Tests.Maps
       }
 
       private const string AllowSaveKeyRemoval = "CR_ALLOW_SAVE_KEY_REMOVAL";
+
+      private static void RefuseAVanishedApiMember()
+      {
+         if (!SourceTree.IsReachable) return;
+
+         string releasedPath = RepoPath(ModderApiGuard.ReleasedPath);
+         if (!File.Exists(releasedPath)) return; // no release recorded yet, nothing to protect
+         if (Environment.GetEnvironmentVariable(ModderApiGuard.AllowRemovalVariable) == "1") return; // declared on purpose
+
+         string released = File.ReadAllText(releasedPath);
+         List<string> gone = ModderApiGuard.Vanished(released, ModderApiMap.Generate(SourceTree.Production));
+
+         Assert.That(gone, Is.Empty,
+            $"These public members shipped in {ModderApiGuard.ReleasedVersionOf(released)} and are no longer there:\n  "
+          + string.Join("\n  ", gone)
+          + "\nA bridge built on them breaks on a player's machine. Put the member back (mark it [Obsolete] and keep it working "
+          + $"if it must go), or, if removing it is truly intended, set {ModderApiGuard.AllowRemovalVariable}=1 "
+          + "(Tools/Update-Maps.ps1 -AllowApiRemoval), name it under \"For modders\" in the release notes, and say why in the commit.");
+      }
+
+      private static void RecordTheReleasedApiIfAsked()
+      {
+         if (!SourceTree.IsReachable || Environment.GetEnvironmentVariable(ModderApiGuard.RecordVariable) != "1") return;
+
+         string version = ModderApiGuard.VersionIn(File.ReadAllText(RepoPath("SubModule.xml")));
+         File.WriteAllText(RepoPath(ModderApiGuard.ReleasedPath),
+                           ModderApiGuard.Snapshot(ModderApiMap.Generate(SourceTree.Production).Replace("\r\n", "\n"), version));
+      }
+
+      private static string RepoPath(string repoRelativePath)
+         => Path.Combine(SourceTree.ModRepo!, repoRelativePath.Replace('/', Path.DirectorySeparatorChar));
 
       #endregion
 

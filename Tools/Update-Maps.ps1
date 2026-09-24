@@ -22,6 +22,16 @@
   progress silently loses that data on its next load, so the suite refuses it until you say you meant it. Pass this
   only when you did, and say why in the commit message.
 
+.PARAMETER AllowApiRemoval
+  The second change a regeneration will NOT absorb (23/09/2026). A public member of the modder API that SHIPPED and
+  is no longer there breaks every bridge built on it, so the suite refuses it until you say you meant it. Members
+  added and withdrawn between two releases are not affected. Pass this only when a released member truly goes, name
+  it under "For modders" in the release notes, and say why in the commit.
+
+.PARAMETER RecordReleasedApi
+  At a RELEASE CUT only: records the modder API as it is being shipped (docs/maps/modder-api-released.md, with the
+  version from SubModule.xml) as the new baseline the guard above protects. A plain regeneration never touches it.
+
 .EXAMPLE
   .\Tools\Update-Maps.ps1
   Regenerates, then prints which maps moved and the full diff of the small ones.
@@ -29,10 +39,16 @@
 .EXAMPLE
   .\Tools\Update-Maps.ps1 -AllowSaveKeyRemoval
   The same, for a release where a save key is deliberately retired.
+
+.EXAMPLE
+  .\Tools\Update-Maps.ps1 -RecordReleasedApi
+  At a release cut, after bumping SubModule.xml: regenerates and records the shipped modder API.
 #>
 [CmdletBinding()]
 param(
-   [switch] $AllowSaveKeyRemoval
+   [switch] $AllowSaveKeyRemoval,
+   [switch] $AllowApiRemoval,
+   [switch] $RecordReleasedApi
 )
 
 $ErrorActionPreference = "Stop"
@@ -49,6 +65,8 @@ Write-Host "Regenerating the maps from the code..." -ForegroundColor Cyan
 
 $env:CR_UPDATE_MAPS = "1"
 if ($AllowSaveKeyRemoval) { $env:CR_ALLOW_SAVE_KEY_REMOVAL = "1" }
+if ($AllowApiRemoval) { $env:CR_ALLOW_API_REMOVAL = "1" }
+if ($RecordReleasedApi) { $env:CR_RECORD_RELEASED_API = "1" }
 
 try {
    $output = & dotnet test $tests -p:NCrunch=1 --filter "FullyQualifiedName~Maps" 2>&1
@@ -57,14 +75,18 @@ try {
 finally {
    Remove-Item Env:CR_UPDATE_MAPS -ErrorAction SilentlyContinue
    Remove-Item Env:CR_ALLOW_SAVE_KEY_REMOVAL -ErrorAction SilentlyContinue
+   Remove-Item Env:CR_ALLOW_API_REMOVAL -ErrorAction SilentlyContinue
+   Remove-Item Env:CR_RECORD_RELEASED_API -ErrorAction SilentlyContinue
 }
 
 if ($failed) {
-   $output | Select-String -Pattern "no longer written|error|Failed" | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+   $output | Select-String -Pattern "no longer written|no longer there|error|Failed" | ForEach-Object { Write-Host $_ -ForegroundColor Red }
    Write-Host ""
    Write-Host "The regeneration was REFUSED, so nothing was rewritten." -ForegroundColor Red
    Write-Host "If a save key is listed above, a campaign in progress would lose that data. Re-run with" -ForegroundColor Red
    Write-Host "-AllowSaveKeyRemoval only if you truly mean to retire it, and say why in the commit." -ForegroundColor Red
+   Write-Host "If a modder API member is listed, a bridge already shipped would break. Re-run with" -ForegroundColor Red
+   Write-Host "-AllowApiRemoval only if it truly goes, and name it under 'For modders' in the release notes." -ForegroundColor Red
 
    exit 1
 }

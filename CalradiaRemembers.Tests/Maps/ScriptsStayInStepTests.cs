@@ -47,6 +47,17 @@ namespace CalradiaRemembers.Tests.Maps
       public void GIVEN_the_approval_script_WHEN_read_THEN_its_save_key_switch_matches_the_guard()
          => Script(UpdateMaps).Should().Contain("CR_ALLOW_SAVE_KEY_REMOVAL");
 
+      // The modder API's two switches, same reasoning: a script offering a switch the guard no longer reads would let
+      // a shipped member go silently, or record a release baseline that never gets written.
+      [Test]
+      public void GIVEN_the_approval_script_WHEN_read_THEN_its_modder_api_switches_match_the_guard()
+      {
+         string script = Script(UpdateMaps);
+
+         script.Should().Contain($"$env:{ModderApiGuard.AllowRemovalVariable} = \"1\"");
+         script.Should().Contain($"$env:{ModderApiGuard.RecordVariable} = \"1\"");
+      }
+
       // The filter has to select the Maps fixtures. Narrow it by accident (a renamed namespace, a typo) and the
       // script runs a handful of tests, regenerates a handful of maps, and reports success.
       [Test]

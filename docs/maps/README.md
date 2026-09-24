@@ -39,8 +39,9 @@ single cell. Its last section counts the rules it can sweep against the threshol
 measure of the "fetch the value and compare it yourself" habit. It should shrink.
 
 The last two are not views, they are promises made to people outside the project: a player with a campaign in
-progress, and a modder with a bridge already shipped. A line removed from `modder-api.md` is a breaking change and
-belongs in the release notes under "For modders". A KEY removed from `save-format.md` is the one change a
+progress, and a modder with a bridge already shipped. A MEMBER that shipped and is removed from `modder-api.md` is
+refused the same way (since 23/09/2026, see below): the guard compares with `modder-api-released.md`, the surface as
+last RELEASED, so a member added and withdrawn between two releases passes freely. A KEY removed from `save-format.md` is the one change a
 regeneration will not absorb: the suite refuses it, update mode included, until it is declared on purpose with
 `CR_ALLOW_SAVE_KEY_REMOVAL=1` and explained in the commit. Gabriel's hard rule is additive keys only, because a
 renamed key is a player's data silently never read again, and nothing fails when it happens.
@@ -62,12 +63,18 @@ becomes the new truth. Their whole value is the two seconds of attention the dif
 real risk here is not a wrong map, it is a reflex. Regenerate-and-commit becomes muscle memory within weeks, and then
 these are green paperwork.
 
-**Blocking.** `save-format`'s vanished-key guard, and the two ratchets in
+**Blocking.** `save-format`'s vanished-key guard, the modder API's vanished-member guard, and the two ratchets in
 [`RatchetTests`](../../CalradiaRemembers.Tests/Maps/RatchetTests.cs). These do NOT accept what the code now says.
 Regenerating does not make them green; only changing the code, or writing down on purpose why the rule no longer
 holds, does.
 
 - A save key that vanished. Every campaign in progress loses that data on its next load, and nothing else notices.
+- A modder API member that SHIPPED and vanished (or changed signature, which is the same thing to a compiled caller).
+  A bridge already on Nexus breaks on a player's machine, and the report reaches its author, not us. Built on
+  23/09/2026 after `ExternalWorldEvent.PlayerIsActor` left the API map with no sound at all: harmless that time (it had
+  never shipped), silent all the same. Demonstrated the same day by renaming `PlaceId` to `Place`: a plain
+  regeneration was refused with "These public members shipped in v2.5.23 and are no longer there: ExternalWorldEvent:
+  string PlaceId { get; set; }". The pinned decisions are in `ModderApiGuardTests`.
 - A namespace newly caught in a dependency cycle. Every other structural change can be an improvement; this one
   cannot. Inside a cycle nothing can be understood, tested or moved alone.
 - A regard threshold newly written as a bare number. That is the duplication this whole folder exists to catch,
@@ -95,7 +102,13 @@ script exists because that env var cannot be set inline in PowerShell, and becau
 (it works from a workspace copy, so the Maps tests are Ignored there). Use `dotnet test`, or this.
 
 If a SAVE KEY disappeared, the script refuses and rewrites nothing: see the contract note above, and re-run with
-`-AllowSaveKeyRemoval` only when you mean it.
+`-AllowSaveKeyRemoval` only when you mean it. A SHIPPED API MEMBER that disappeared is refused the same way: put it
+back (mark it `[Obsolete]` and keep it working if it must go), or re-run with `-AllowApiRemoval` and name it under
+"For modders" in the release notes.
+
+**At every release cut**, after bumping `SubModule.xml`, run `.\Tools\Update-Maps.ps1 -RecordReleasedApi`. It records
+the surface being shipped in `modder-api-released.md` with its version, and that becomes what the guard protects. A
+plain regeneration never touches that file: if it did, it would absorb the very removal it exists to refuse.
 
 A RATCHET failure is not fixable this way at all. The script will report it and leave it red, because there is no
 copy to bring up to date: either the edge is broken and the namespace leaves the cycle, or the threshold points at a
