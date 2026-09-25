@@ -82,5 +82,19 @@ namespace CalradiaRemembers.Logic.Conversation
 
          return ConversationResumeVerdict.Resume;
       }
+
+      /// <summary>
+      ///   Whether the chat now closing may be kept for a later resume: only one that OPENED as an ordinary
+      ///   conversation, the one kind <see cref="Decide" /> will ever put back, and never the companion briefing.
+      ///   <para>
+      ///     yozakura12, 24/09/2026: a council closed with "kept 23 line(s)" under its anchor's id. The close side
+      ///     excluded the briefing and the captive mode by name, and a council is neither, so a whole sitting
+      ///     would have been replayed into a private word with the anchor that same day, the other councillors'
+      ///     lines included. Asking what the chat OPENED as makes the two sides one rule, so a staged scene added
+      ///     later cannot be missed the same way.
+      ///   </para>
+      /// </summary>
+      public static bool MayBeKeptOnClose(bool openedAsOrdinaryConversation, bool isCompanionBriefing)
+         => openedAsOrdinaryConversation && !isCompanionBriefing;
    }
 }

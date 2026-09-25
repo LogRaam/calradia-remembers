@@ -2816,6 +2816,8 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public void ResumeKeptConversation(ChatOpening opening)
       {
+         _openedAs = opening; // the close side keeps only what this side could ever put back
+
          NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
          if (behavior?.ConvResume == null) return;
 
@@ -2833,6 +2835,10 @@ namespace CalradiaRemembers.Chat
          ReplayTranscriptToMessages();
          _conversationAnchorId = kept.AnchorId ?? "";
       }
+
+      // How this chat opened, recorded by ResumeKeptConversation (every open passes through it). Staged by default,
+      // so a chat that somehow skipped it keeps nothing rather than something it could not resume.
+      private ChatOpening _openedAs = ChatOpening.Staged;
 
       /// <summary>
       ///   Keeps this conversation's words so the player can step back into it, which is the whole of fkasad's
@@ -2852,7 +2858,8 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public void KeepConversationForResume()
       {
-         if (_mode != ChatMode.Conversation || IsCompanionBriefingChat) return;
+         if (_mode != ChatMode.Conversation) return;
+         if (!ConversationResumePolicy.MayBeKeptOnClose(_openedAs == ChatOpening.OrdinaryConversation, IsCompanionBriefingChat)) return;
 
          NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
          string heroId = _npcHero?.StringId;

@@ -132,6 +132,31 @@ namespace CalradiaRemembers.Tests.Conversation
          ConversationResumePolicy.Decide(everythingWrong).Should().Be(ConversationResumeVerdict.NothingKept);
       }
 
+      // yozakura12, 24/09/2026: a council with two companions closed and "kept 23 line(s)" under the anchor.
+      // Talking to that companion alone the same day would then have replayed the whole sitting, the other
+      // councillor's lines included, into a private word. Only a chat that opened as an ordinary conversation is
+      // the kind the resume will ever put back, so it is the only kind worth keeping.
+      [Test]
+      public void GIVEN_a_council_sitting_WHEN_it_closes_THEN_nothing_is_kept_for_a_private_word_later()
+      {
+         ConversationResumePolicy.MayBeKeptOnClose(openedAsOrdinaryConversation: false, isCompanionBriefing: false).Should().BeFalse();
+      }
+
+      // fkasad's case, unchanged: the player walked up, talked, and stepped out.
+      [Test]
+      public void GIVEN_an_ordinary_conversation_WHEN_it_closes_THEN_it_is_kept()
+      {
+         ConversationResumePolicy.MayBeKeptOnClose(openedAsOrdinaryConversation: true, isCompanionBriefing: false).Should().BeTrue();
+      }
+
+      // The briefing's words are about somebody else and must never be put back where that person could read them,
+      // however the chat was opened.
+      [Test]
+      public void GIVEN_a_companion_briefing_WHEN_it_closes_THEN_nothing_is_kept()
+      {
+         ConversationResumePolicy.MayBeKeptOnClose(openedAsOrdinaryConversation: true, isCompanionBriefing: true).Should().BeFalse();
+      }
+
       #region private
 
       /// <summary>fkasad's own case with one fact changed, so each test says only what it is about.</summary>

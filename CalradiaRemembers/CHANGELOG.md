@@ -2,6 +2,24 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.24.. unreleased
+
+### Fixed
+- **A council sitting was kept for the conversation resume** (yozakura12, 24/09/2026, whose log showed "[CONV RESUME]
+  kept 23 line(s)" as a two-companion council closed). The close side excluded the companion briefing and the captive
+  mode by name; a council is neither and runs in the ordinary conversation mode, so its transcript was kept under the
+  anchor's id. Opening a private word with that companion the same day would have replayed the whole sitting into
+  it, the other councillor's lines included. `ConversationResumePolicy.MayBeKeptOnClose` now asks what the chat
+  OPENED as: only an ordinary conversation, the one kind the resume ever puts back, is kept. One rule for both sides,
+  so a staged scene added later cannot be missed the same way.
+- Not changed, and why: the rest of that report is the council working as designed. A council turn is ONE model call
+  that writes the whole table as a scene; `CouncilPromptBuilder` requires every member to speak at least once and
+  allows a second block for cross-talk after everyone has spoken, so "Kari, Bella, Kari" and "Kari, Bella, Bella,
+  Kari" are one reply each, rendered bubble by bubble (the parser was checked: one bubble per [SPEAKER] block). The
+  "fallback (intercept line never fired)" open and the "orphaned staged mission" close are the two safety nets for a
+  conversation that never got the engine's start token, both doing their job. Whether the model's scene itself
+  repeats earlier lines needs the text; asked for `CalradiaRemembers_story.log`.
+
 ## v2.5.23.. 2026-09-23
 
 A modder release, from reviewing the Bellum bridge: fed events now say who DID a thing, apart from who it concerns.
