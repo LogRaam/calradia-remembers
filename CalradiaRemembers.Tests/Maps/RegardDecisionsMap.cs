@@ -25,6 +25,7 @@ using Microsoft.CodeAnalysis;
 using System.Text;
 using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Prompts;
+using NpcMemoryService.Core.Standing;
 
 #endregion
 
@@ -335,14 +336,24 @@ namespace CalradiaRemembers.Tests.Maps
             }
       }
 
+      /// <summary>
+      ///   A parameter this map sweeps: one of the two ledger TYPES (a fact: the compiler holds every caller to it), or
+      ///   a plain int NAMED for regard, relation or reputation that is not a change to it (a reward, a hit).
+      /// </summary>
       private static bool IsRegardParameter(ParameterInfo parameter)
-         => parameter.ParameterType == typeof(int)
-         && RegardParameterNames.Any(n => parameter.Name?.Contains(n, StringComparison.OrdinalIgnoreCase) == true);
+         => parameter.ParameterType == typeof(Regard)
+         || parameter.ParameterType == typeof(VanillaRelation)
+         || (parameter.ParameterType == typeof(int)
+             && RegardParameterNames.Any(n => parameter.Name?.Contains(n, StringComparison.OrdinalIgnoreCase) == true)
+             && !NotAPointOnTheScale.Any(x => parameter.Name?.Contains(x, StringComparison.OrdinalIgnoreCase) == true));
 
       private static string Invoke(MethodInfo method, ParameterInfo sweep, int value)
       {
+         object swept = sweep.ParameterType == typeof(Regard) ? new Regard(value)
+                      : sweep.ParameterType == typeof(VanillaRelation) ? new VanillaRelation(value)
+                      : value;
          object?[] arguments = method.GetParameters()
-                                     .Select(p => p == sweep ? value : p.HasDefaultValue ? p.DefaultValue : null)
+                                     .Select(p => p == sweep ? swept : p.HasDefaultValue ? p.DefaultValue : null)
                                      .ToArray();
 
          try
@@ -367,14 +378,25 @@ namespace CalradiaRemembers.Tests.Maps
       ///   mod's own; one that names GetRelation or "vanilla" means the engine's. Most say neither, and that is the
       ///   finding, not a shortcoming of this map.
       /// </summary>
+      /// <summary>
+      ///   Which ledger the rule reads, and HOW that is known (Gabriel, 26/09/2026: a map that mixes detection modes
+      ///   says, per line, which produced it). From the parameter's TYPE when it is <see cref="Regard" /> or
+      ///   <see cref="VanillaRelation" />: a fact the compiler enforces on every caller. Otherwise from what the doc
+      ///   says, which is only text, and "?" when it says nothing.
+      /// </summary>
       private static string LedgerOf(Type type, MethodInfo method)
       {
-         string text = (DocOf(type, method) + " " + DocOf(type, null)).ToLowerInvariant();
+         ParameterInfo? typed = method.GetParameters().FirstOrDefault(p => p.ParameterType == typeof(Regard) || p.ParameterType == typeof(VanillaRelation));
+         if (typed != null) return typed.ParameterType == typeof(Regard) ? "mod (type)" : "vanilla (type)";
+
+         // The WHOLE doc, not its first sentence (26/09/2026: a ledger named past the first sentence was silently
+         // missed, the second silent error the maps showed that day).
+         string text = (DocOf(type, method, whole: true) + " " + DocOf(type, null, whole: true)).ToLowerInvariant();
 
          bool mod = text.Contains("reputationwithplayer") || text.Contains("personal regard") || text.Contains("mod's own");
          bool vanilla = text.Contains("getrelation") || text.Contains("vanilla relation") || text.Contains("engine relation");
 
-         return mod && vanilla ? "both named" : mod ? "mod" : vanilla ? "vanilla" : "?";
+         return mod && vanilla ? "both named (doc)" : mod ? "mod (doc)" : vanilla ? "vanilla (doc)" : "?";
       }
 
       private static string SummaryOf(Type type, MethodInfo method)
@@ -388,7 +410,7 @@ namespace CalradiaRemembers.Tests.Maps
       ///   The doc comment for a type or a method, read from the SOURCE (the compiler drops them from the assembly,
       ///   and the XML file beside it is not guaranteed to be there).
       /// </summary>
-      private static string DocOf(Type type, MethodInfo? method)
+      private static string DocOf(Type type, MethodInfo? method, bool whole = false)
       {
          if (!SourceTree.IsReachable) return "";
 
@@ -400,13 +422,13 @@ namespace CalradiaRemembers.Tests.Maps
 
             if (declaration == null) continue;
 
-            if (method == null) return DocText.FirstSentenceOf(declaration);
+            if (method == null) return whole ? DocText.AllOf(declaration) : DocText.FirstSentenceOf(declaration);
 
             var declared = declaration.DescendantNodes()
                                       .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>()
                                       .FirstOrDefault(m => m.Identifier.Text == method.Name);
 
-            if (declared != null) return DocText.FirstSentenceOf(declared);
+            if (declared != null) return whole ? DocText.AllOf(declared) : DocText.FirstSentenceOf(declared);
          }
 
          return "";

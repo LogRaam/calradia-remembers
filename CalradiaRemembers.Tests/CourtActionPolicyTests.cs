@@ -13,6 +13,7 @@
 using System.Collections.Generic;
 using CalradiaRemembers.Logic;
 using FluentAssertions;
+using NpcMemoryService.Core.Standing;
 using NUnit.Framework;
 
 #endregion
@@ -30,8 +31,8 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_zero_or_negative_relation_WHEN_computing_the_influence_grant_THEN_it_is_zero()
       {
-         CourtActionPolicy.InfluenceGrant(0).Should().Be(0);
-         CourtActionPolicy.InfluenceGrant(-10).Should().Be(0);
+         CourtActionPolicy.InfluenceGrant(new VanillaRelation(0)).Should().Be(0);
+         CourtActionPolicy.InfluenceGrant(new VanillaRelation(-10)).Should().Be(0);
       }
 
       // Pins the exact formula (base + relation/divisor) so the number the LLM is taught to promise in
@@ -40,8 +41,8 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_modest_relation_WHEN_computing_the_influence_grant_THEN_it_scales_with_relation()
       {
          //Arrange: base 5 + relation/10.
-         CourtActionPolicy.InfluenceGrant(10).Should().Be(6);
-         CourtActionPolicy.InfluenceGrant(30).Should().Be(8);
+         CourtActionPolicy.InfluenceGrant(new VanillaRelation(10)).Should().Be(6);
+         CourtActionPolicy.InfluenceGrant(new VanillaRelation(30)).Should().Be(8);
       }
 
       // Without the hard cap, an extremely deep bond could funnel unbounded influence to the player each
@@ -49,7 +50,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_very_deep_relation_WHEN_computing_the_influence_grant_THEN_it_is_capped()
       {
-         CourtActionPolicy.InfluenceGrant(200).Should().Be(CourtActionPolicy.InfluenceMaxGrant);
+         CourtActionPolicy.InfluenceGrant(new VanillaRelation(200)).Should().Be(CourtActionPolicy.InfluenceMaxGrant);
       }
 
       // Pins the ordinary "yes" case as a control for the buffer-multiplier boundary tests below.

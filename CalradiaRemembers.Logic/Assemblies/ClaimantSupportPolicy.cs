@@ -108,7 +108,7 @@ namespace CalradiaRemembers.Logic.Assemblies
             if (!backerInPlayerKingdom)
                 return new ClaimantSupportResult(ClaimantSupportOutcome.NotInPlayerKingdom, 0);
 
-            int amount = CalradiaRemembers.Logic.CourtActionPolicy.InfluenceGrant(relation);
+            int amount = CalradiaRemembers.Logic.CourtActionPolicy.InfluenceGrant(new NpcMemoryService.Core.Standing.VanillaRelation(relation));
 
             if (amount <= 0 || !CalradiaRemembers.Logic.CourtActionPolicy.CanAffordInfluenceGrant(backerInfluence, amount))
                 return new ClaimantSupportResult(ClaimantSupportOutcome.CannotAfford, amount);

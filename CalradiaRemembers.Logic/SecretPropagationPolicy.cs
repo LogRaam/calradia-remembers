@@ -24,6 +24,6 @@ namespace CalradiaRemembers.Logic
       public const int DailySpreadChancePercent = 8;
 
       /// <summary>True when this relation is warm enough that the teller would confide the secret to that hero.</summary>
-      public static bool IsFriend(int relation) => relation >= FriendRelationFloor;
+      public static bool IsFriend(VanillaRelation relation) => relation.Points >= FriendRelationFloor;
    }
 }

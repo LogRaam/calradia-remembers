@@ -14,6 +14,7 @@
 
 using CalradiaRemembers.Logic;
 using FluentAssertions;
+using NpcMemoryService.Core.Standing;
 using NUnit.Framework;
 
 #endregion
@@ -92,14 +93,14 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_relations_at_each_threshold_WHEN_banded_THEN_they_read_as_expected()
       {
          //Arrange/Act/Assert
-         CompanionRapport.Band(30).Should().Be(RapportBand.Close);
-         CompanionRapport.Band(29).Should().Be(RapportBand.Cordial);
-         CompanionRapport.Band(10).Should().Be(RapportBand.Cordial);
-         CompanionRapport.Band(9).Should().Be(RapportBand.Neutral);
-         CompanionRapport.Band(-9).Should().Be(RapportBand.Neutral);
-         CompanionRapport.Band(-10).Should().Be(RapportBand.Tense);
-         CompanionRapport.Band(-29).Should().Be(RapportBand.Tense);
-         CompanionRapport.Band(-30).Should().Be(RapportBand.Feud);
+         CompanionRapport.Band(new VanillaRelation(30)).Should().Be(RapportBand.Close);
+         CompanionRapport.Band(new VanillaRelation(29)).Should().Be(RapportBand.Cordial);
+         CompanionRapport.Band(new VanillaRelation(10)).Should().Be(RapportBand.Cordial);
+         CompanionRapport.Band(new VanillaRelation(9)).Should().Be(RapportBand.Neutral);
+         CompanionRapport.Band(new VanillaRelation(-9)).Should().Be(RapportBand.Neutral);
+         CompanionRapport.Band(new VanillaRelation(-10)).Should().Be(RapportBand.Tense);
+         CompanionRapport.Band(new VanillaRelation(-29)).Should().Be(RapportBand.Tense);
+         CompanionRapport.Band(new VanillaRelation(-30)).Should().Be(RapportBand.Feud);
       }
 
       // ── Worth raising ──────────────────────────────────────────────────────
@@ -112,9 +113,9 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_strong_feeling_either_way_WHEN_asked_THEN_it_is_worth_raising()
       {
          //Arrange/Act/Assert — a warm friendship and a bitter feud both merit a word; a mild standing does not.
-         CompanionRapport.WorthRaising(CompanionRapport.RaiseThreshold).Should().BeTrue();
-         CompanionRapport.WorthRaising(-CompanionRapport.RaiseThreshold).Should().BeTrue();
-         CompanionRapport.WorthRaising(10).Should().BeFalse();
+         CompanionRapport.WorthRaising(new VanillaRelation(CompanionRapport.RaiseThreshold)).Should().BeTrue();
+         CompanionRapport.WorthRaising(new VanillaRelation(-CompanionRapport.RaiseThreshold)).Should().BeTrue();
+         CompanionRapport.WorthRaising(new VanillaRelation(10)).Should().BeFalse();
       }
 
       // ── Marriage gate ──────────────────────────────────────────────────────

@@ -7,6 +7,7 @@
 #region
 
 using System;
+using NpcMemoryService.Core.Standing;
 
 #endregion
 
@@ -76,12 +77,14 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>The band two companions' accumulated mutual relation falls into.</summary>
-        public static RapportBand Band(int relation)
+        public static RapportBand Band(VanillaRelation relation)
         {
-            if (relation >= 30) return RapportBand.Close;
-            if (relation >= 10) return RapportBand.Cordial;
-            if (relation >= -9) return RapportBand.Neutral;
-            if (relation >= -29) return RapportBand.Tense;
+            // Two companions' feeling for EACH OTHER is the engine's ledger (Hero.GetRelation), so the type says so
+            // and the rungs are its own (26/09/2026: they were 30, 10, -9 and -29 written in place; the same values).
+            if (relation.Points >= VanillaRelation.CloseTier) return RapportBand.Close;
+            if (relation.Points >= VanillaRelation.FriendTier) return RapportBand.Cordial;
+            if (relation.Points > VanillaRelation.EnemyTier) return RapportBand.Neutral;
+            if (relation.Points > VanillaRelation.BitterTier) return RapportBand.Tense;
             return RapportBand.Feud;
         }
 
@@ -89,7 +92,7 @@ namespace CalradiaRemembers.Logic
         public const int RaiseThreshold = 25;
 
         /// <summary>True when two companions feel strongly enough about each other (warm OR bitter) to mention it.</summary>
-        public static bool WorthRaising(int relation) => relation >= RaiseThreshold || relation <= -RaiseThreshold;
+        public static bool WorthRaising(VanillaRelation relation) => relation.Points >= RaiseThreshold || relation.Points <= -RaiseThreshold;
 
         /// <summary>Mutual warmth two companions must reach before they would consider marrying.</summary>
         public const int MarriageThreshold = 40;

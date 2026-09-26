@@ -51,7 +51,8 @@ namespace CalradiaRemembers.Logic
       ///   marriage bar, capped. Linear on purpose, so the wound tracks the truth of the moment: a bride at 45
       ///   regard was nearly won and forms a faint, fast-fading grievance, while one dragged to the altar at
       ///   -20 starts near the ceiling. Zero when the union is not forced at all, so a caller may apply this
-      ///   unconditionally after any wedding.
+      ///   unconditionally after any wedding. BOTH LEDGERS, on purpose: <paramref name="bestRegard" /> is the better of
+      ///   the mod's own ReputationWithPlayer and the engine's GetRelation, as a bride won on either counts as won.
       /// </summary>
       public static int GrudgeMagnitude(int bestRegard)
          => GrudgeMagnitude(bestRegard, MarriageEligibility.MarriageEligibilityThreshold);

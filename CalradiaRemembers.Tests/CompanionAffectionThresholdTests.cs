@@ -20,6 +20,7 @@
 
 using CalradiaRemembers.Logic;
 using FluentAssertions;
+using NpcMemoryService.Core.Standing;
 using NUnit.Framework;
 
 #endregion
@@ -83,9 +84,9 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_companion_who_just_cleared_the_bar_WHEN_rolling_THEN_the_curve_starts_the_same_everywhere()
         {
             int atGrounded = CompanionSecretAffectionPolicy.WeeklyChancePercent(
-                CompanionSecretAffectionPolicy.MinRegardFor(RelationWarmth.Normal), RelationWarmth.Normal);
+                new Regard(CompanionSecretAffectionPolicy.MinRegardFor(RelationWarmth.Normal)), RelationWarmth.Normal);
             int atStoryteller = CompanionSecretAffectionPolicy.WeeklyChancePercent(
-                CompanionSecretAffectionPolicy.MinRegardFor(RelationWarmth.VeryEasy), RelationWarmth.VeryEasy);
+                new Regard(CompanionSecretAffectionPolicy.MinRegardFor(RelationWarmth.VeryEasy)), RelationWarmth.VeryEasy);
 
             atStoryteller.Should().Be(atGrounded);
         }

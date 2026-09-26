@@ -14,6 +14,7 @@
 
 using CalradiaRemembers.Logic;
 using FluentAssertions;
+using NpcMemoryService.Core.Standing;
 using NUnit.Framework;
 
 #endregion
@@ -30,7 +31,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_barely_unhappy_marriage_WHEN_asking_the_required_bond_THEN_the_full_trust_is_needed()
       {
          // Barely unhappy: only someone deeply trusted could talk them into so scandalous a step.
-         DivorcePolicy.RequiredPlayerBond(DivorcePolicy.UnhappyThreshold).Should().Be(DivorcePolicy.BondThreshold);
+         DivorcePolicy.RequiredPlayerBond(new VanillaRelation(DivorcePolicy.UnhappyThreshold)).Should().Be(DivorcePolicy.BondThreshold);
       }
 
       // Confirms the Nordic discount is an allowlist, not a default: a culture absent from NordicCultureIds
@@ -235,8 +236,8 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_wretched_marriage_WHEN_asking_the_required_bond_THEN_no_bond_is_needed_at_all()
       {
          // Deeply miserable: they seize the door once anyone opens it (Gabriel: a flat 30 was incoherent).
-         DivorcePolicy.RequiredPlayerBond(DivorcePolicy.MiseryNeedingNoBond).Should().Be(0);
-         DivorcePolicy.RequiredPlayerBond(-80).Should().Be(0);
+         DivorcePolicy.RequiredPlayerBond(new VanillaRelation(DivorcePolicy.MiseryNeedingNoBond)).Should().Be(0);
+         DivorcePolicy.RequiredPlayerBond(new VanillaRelation(-80)).Should().Be(0);
       }
 
       // Pins the other half of the resistance math: a Delayed roll must push the end day back by exactly
@@ -316,7 +317,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_misery_between_the_anchors_WHEN_asking_the_required_bond_THEN_it_slides_down_linearly()
       {
          int midMisery = (DivorcePolicy.UnhappyThreshold + DivorcePolicy.MiseryNeedingNoBond) / 2;
-         int required = DivorcePolicy.RequiredPlayerBond(midMisery);
+         int required = DivorcePolicy.RequiredPlayerBond(new VanillaRelation(midMisery));
          required.Should().BeGreaterThan(0);
          required.Should().BeLessThan(DivorcePolicy.BondThreshold);
       }

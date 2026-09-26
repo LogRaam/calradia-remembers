@@ -1371,7 +1371,7 @@ namespace CalradiaRemembers.Mapping
             other = c;
          }
 
-         if (other == null || !CompanionRapport.WorthRaising(strongest)) return null;
+         if (other == null || !CompanionRapport.WorthRaising(new NpcMemoryService.Core.Standing.VanillaRelation(strongest))) return null;
 
          return strongest > 0
             ? $"You think highly of your fellow companion {other.Name} — you value riding at their side."

@@ -33,7 +33,7 @@ namespace CalradiaRemembers.Logic.Rescue
         public const int FriendRelationThreshold = VanillaRelation.TrustedTier;
 
         /// <summary>True when <paramref name="relationToRescued"/> is high enough to count as a friendship.</summary>
-        public static bool QualifiesAsFriend(int relationToRescued) => new VanillaRelation(relationToRescued).IsTrusted;
+        public static bool QualifiesAsFriend(VanillaRelation relationToRescued) => relationToRescued.IsTrusted;
 
         /// <summary>
         ///   Whether someone tied to the rescued prisoner can feel the debt at all. A child cannot: gratitude here is a

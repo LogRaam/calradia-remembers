@@ -6978,7 +6978,7 @@ namespace CalradiaRemembers.Diagnostics
          foreach (Hero cand in Hero.AllAliveHeroes.Where(h => h != null && h != Hero.MainHero && h.IsLord && !h.IsPrisoner))
          {
             if (Hero.AllAliveHeroes.Any(f => f != null && f != cand && f != Hero.MainHero && !f.IsPrisoner
-                   && CalradiaRemembers.Logic.SecretPropagationPolicy.IsFriend(cand.GetRelation(f))))
+                   && CalradiaRemembers.Logic.SecretPropagationPolicy.IsFriend(new NpcMemoryService.Core.Standing.VanillaRelation(cand.GetRelation(f)))))
             {
                teller = cand;
                break;

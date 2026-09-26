@@ -10,6 +10,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NpcMemoryService.Core.Standing;
 
 namespace CalradiaRemembers.Logic
 {
@@ -44,11 +45,12 @@ namespace CalradiaRemembers.Logic
         ///   (<see cref="InfluenceBaseGrant" /> + relation / <see cref="InfluenceRelationDivisor" />),
         ///   capped at <see cref="InfluenceMaxGrant" />. Relation below zero grants nothing.
         /// </summary>
-        public static int InfluenceGrant(int relation)
+        public static int InfluenceGrant(VanillaRelation relation)
         {
-            if (relation <= 0) return 0;
+            // The lord's relation with the player on the ENGINE's ledger (Hero.GetRelation), which every caller reads.
+            if (relation.Points <= 0) return 0;
 
-            int amount = InfluenceBaseGrant + relation / InfluenceRelationDivisor;
+            int amount = InfluenceBaseGrant + relation.Points / InfluenceRelationDivisor;
 
             return Math.Min(amount, InfluenceMaxGrant);
         }

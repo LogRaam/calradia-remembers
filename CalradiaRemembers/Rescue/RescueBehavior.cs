@@ -249,7 +249,7 @@ namespace CalradiaRemembers.Rescue
                 .Where(h => h != prisoner && h != Hero.MainHero && h.IsLord && !h.IsHumanPlayerCharacter)
                 .Where(h => RescueGratitudePolicy.CanFeelTheDebt(h.IsChild))
                 .Where(h => !excludeIds.Contains(h.StringId))
-                .Where(h => RescueGratitudePolicy.QualifiesAsFriend(prisoner.GetRelation(h)))
+                .Where(h => RescueGratitudePolicy.QualifiesAsFriend(new NpcMemoryService.Core.Standing.VanillaRelation(prisoner.GetRelation(h))))
                 .OrderByDescending(h => prisoner.GetRelation(h))
                 .Take(MaxFriends)
                 .ToList();

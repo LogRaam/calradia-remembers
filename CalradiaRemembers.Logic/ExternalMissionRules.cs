@@ -40,13 +40,17 @@ namespace CalradiaRemembers.Logic
                     ? MaxRewardGold
                     : gold;
 
-        /// <summary>Clamps a promised relation reward into CR's gated quest-reward range.</summary>
-        public static int ClampRewardRelation(int relation)
-            => relation < 0
+        /// <summary>
+        ///   Clamps a promised relation reward into CR's gated quest-reward range. The parameter is a CHANGE promised to
+        ///   the player's relation, not a point on either ledger (26/09/2026: it was called "relation", and the regard
+        ///   map swept it as a decision on the scale).
+        /// </summary>
+        public static int ClampRewardRelation(int reward)
+            => reward < 0
                 ? 0
-                : relation > MaxRewardRelation
+                : reward > MaxRewardRelation
                     ? MaxRewardRelation
-                    : relation;
+                    : reward;
 
         /// <summary>
         ///   Trims and bounds a title to its blob-safe length. Null or whitespace returns null, which the

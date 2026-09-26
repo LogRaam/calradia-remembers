@@ -157,7 +157,7 @@ namespace CalradiaRemembers.Logic
       ///   <see cref="ReconciliationThreshold" /> for why the bar sits above
       ///   <see cref="DivorcePolicy.UnhappyThreshold" /> rather than at it.
       /// </summary>
-      public static bool IsReconciled(int spouseRelationWithPlayer) => spouseRelationWithPlayer >= ReconciliationThreshold;
+      public static bool IsReconciled(NpcMemoryService.Core.Standing.Regard spouseRelationWithPlayer) => spouseRelationWithPlayer.Points >= ReconciliationThreshold;
 
       /// <summary>
       ///   True when a refused-but-still-pressing spouse should stop merely demanding and BEGIN an

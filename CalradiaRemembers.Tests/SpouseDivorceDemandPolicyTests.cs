@@ -13,6 +13,7 @@
 
 using CalradiaRemembers.Logic;
 using FluentAssertions;
+using NpcMemoryService.Core.Standing;
 using NUnit.Framework;
 
 #endregion
@@ -355,7 +356,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_relation_at_the_reconciliation_threshold_WHEN_checking_reconciliation_THEN_it_is_reconciled()
       {
-         SpouseDivorceDemandPolicy.IsReconciled(SpouseDivorceDemandPolicy.ReconciliationThreshold).Should().BeTrue();
+         SpouseDivorceDemandPolicy.IsReconciled(new Regard(SpouseDivorceDemandPolicy.ReconciliationThreshold)).Should().BeTrue();
       }
 
       // Pins the boundary one point short: an estrangement must keep running until the relation genuinely
@@ -363,7 +364,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_relation_one_below_the_reconciliation_threshold_WHEN_checking_reconciliation_THEN_it_is_not_reconciled()
       {
-         SpouseDivorceDemandPolicy.IsReconciled(SpouseDivorceDemandPolicy.ReconciliationThreshold - 1).Should().BeFalse();
+         SpouseDivorceDemandPolicy.IsReconciled(new Regard(SpouseDivorceDemandPolicy.ReconciliationThreshold - 1)).Should().BeFalse();
       }
 
       // Without this hysteresis gap, a spouse who merely stops being counted "unhappy" (crossing
@@ -374,7 +375,7 @@ namespace CalradiaRemembers.Tests
       {
          // The hysteresis gap itself: recovering just past DivorcePolicy.UnhappyThreshold (no longer
          // "unhappy") is deliberately NOT enough on its own to count as reconciled.
-         SpouseDivorceDemandPolicy.IsReconciled(DivorcePolicy.UnhappyThreshold + 1).Should().BeFalse();
+         SpouseDivorceDemandPolicy.IsReconciled(new Regard(DivorcePolicy.UnhappyThreshold + 1)).Should().BeFalse();
       }
    }
 }

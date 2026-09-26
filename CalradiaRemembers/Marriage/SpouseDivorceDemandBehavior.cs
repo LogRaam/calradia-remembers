@@ -645,7 +645,7 @@ namespace CalradiaRemembers.Marriage
             // fresh start (refusal count reset), like every other resolution path.
             int reconcileRegard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouseId)?.ReputationWithPlayer
                                   ?? spouse.GetRelation(Hero.MainHero);
-            if (SpouseDivorceDemandPolicy.IsReconciled(reconcileRegard))
+            if (SpouseDivorceDemandPolicy.IsReconciled(new NpcMemoryService.Core.Standing.Regard(reconcileRegard)))
             {
                ClearDemandCycle(spouseId);
                _refusalCount.Remove(spouseId);
@@ -759,7 +759,7 @@ namespace CalradiaRemembers.Marriage
             // off the walk-out even when the vanilla number lags behind.
             int reconcileRegard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouseId)?.ReputationWithPlayer
                                   ?? spouse.GetRelation(Hero.MainHero);
-            if (SpouseDivorceDemandPolicy.IsReconciled(reconcileRegard))
+            if (SpouseDivorceDemandPolicy.IsReconciled(new NpcMemoryService.Core.Standing.Regard(reconcileRegard)))
             {
                Hero reconciledSpouse = spouse;
                SafeRun.Step($"SpouseDivorceDemandBehavior.SweepEscalations.Reconciled({spouseId})",

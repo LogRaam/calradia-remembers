@@ -10,6 +10,7 @@
 
 using CalradiaRemembers.Logic.Rescue;
 using FluentAssertions;
+using NpcMemoryService.Core.Standing;
 using NUnit.Framework;
 
 #endregion
@@ -58,7 +59,7 @@ namespace CalradiaRemembers.Tests.Rescue
         [Test]
         public void GIVEN_a_relation_one_below_the_friend_threshold_WHEN_checking_friendship_THEN_it_does_not_qualify()
         {
-            RescueGratitudePolicy.QualifiesAsFriend(RescueGratitudePolicy.FriendRelationThreshold - 1).Should().BeFalse();
+            RescueGratitudePolicy.QualifiesAsFriend(new VanillaRelation(RescueGratitudePolicy.FriendRelationThreshold - 1)).Should().BeFalse();
         }
 
         // Paired with the test above, fixes the threshold as INCLUSIVE, so a future retune of
@@ -66,7 +67,7 @@ namespace CalradiaRemembers.Tests.Rescue
         [Test]
         public void GIVEN_a_relation_at_the_friend_threshold_WHEN_checking_friendship_THEN_it_qualifies()
         {
-            RescueGratitudePolicy.QualifiesAsFriend(RescueGratitudePolicy.FriendRelationThreshold).Should().BeTrue();
+            RescueGratitudePolicy.QualifiesAsFriend(new VanillaRelation(RescueGratitudePolicy.FriendRelationThreshold)).Should().BeTrue();
         }
     
         #region who can feel a debt at all (found by reading the maps, 21/09/2026)

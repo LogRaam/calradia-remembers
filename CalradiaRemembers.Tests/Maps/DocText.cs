@@ -37,6 +37,22 @@ namespace CalradiaRemembers.Tests.Maps
          return Shorten(FirstSentence(text));
       }
 
+      /// <summary>
+      ///   The member's WHOLE doc comment (summary, params, remarks), flattened, or "". For a judgement that must read
+      ///   everything the author wrote, where <see cref="FirstSentenceOf" /> is for a one-line cell: the regard map read
+      ///   only the first sentence to tell which ledger a rule reads, and a ledger named later was silently missed.
+      /// </summary>
+      public static string AllOf(SyntaxNode member)
+      {
+         IEnumerable<string> parts = member.GetLeadingTrivia()
+                                           .Select(t => t.GetStructure())
+                                           .OfType<DocumentationCommentTriviaSyntax>()
+                                           .SelectMany(d => d.Content.OfType<XmlElementSyntax>())
+                                           .Select(e => Flatten(e.Content));
+
+         return Regex.Replace(string.Join(" ", parts), @"\s+", " ").Trim();
+      }
+
       /// <summary>Text safe to put in a Markdown table cell.</summary>
       public static string Cell(string text) => text.Replace("|", "\\|");
 

@@ -368,7 +368,7 @@ namespace CalradiaRemembers.Chat
             int relation = hero.GetRelation(Hero.MainHero);
             if (relation < CourtActionPolicy.InfluenceMinRelation) continue;
 
-            int amount = CourtActionPolicy.InfluenceGrant(relation);
+            int amount = CourtActionPolicy.InfluenceGrant(new NpcMemoryService.Core.Standing.VanillaRelation(relation));
             if (amount <= 0) continue;
             if (!CourtActionPolicy.CanAffordInfluenceGrant(giver.Influence, amount)) continue;
 
@@ -410,7 +410,7 @@ namespace CalradiaRemembers.Chat
             if (backer.Kingdom == null || Clan.PlayerClan?.Kingdom == null || backer.Kingdom != Clan.PlayerClan.Kingdom) continue;
 
             int relation = hero.GetRelation(Hero.MainHero);
-            int amount = CourtActionPolicy.InfluenceGrant(relation);
+            int amount = CourtActionPolicy.InfluenceGrant(new NpcMemoryService.Core.Standing.VanillaRelation(relation));
             if (amount <= 0) continue;
             if (!CourtActionPolicy.CanAffordInfluenceGrant(backer.Influence, amount)) continue;
 

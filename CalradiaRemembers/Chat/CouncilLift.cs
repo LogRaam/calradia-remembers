@@ -906,7 +906,7 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         int amount = CourtActionPolicy.InfluenceGrant(relation);
+         int amount = CourtActionPolicy.InfluenceGrant(new NpcMemoryService.Core.Standing.VanillaRelation(relation));
 
          if (amount <= 0 || !CourtActionPolicy.CanAffordInfluenceGrant(giver.Influence, amount))
          {

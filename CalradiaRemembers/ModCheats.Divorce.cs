@@ -41,7 +41,7 @@ namespace CalradiaRemembers
             var sb = new StringBuilder();
             sb.AppendLine($"{npc.Name} — end_marriage eligibility: {(eligible ? "ELIGIBLE" : $"refused ({reason})")}");
             sb.AppendLine($"  married={facts.NpcIsMarried} relationWithSpouse={facts.NpcRelationWithSpouse} (unhappy<= {DivorcePolicy.UnhappyThreshold}) " +
-                          $"relationWithPlayer={facts.NpcRelationWithPlayer} (needs>= {DivorcePolicy.RequiredPlayerBond(facts.NpcRelationWithSpouse)}, slides with misery" +
+                          $"relationWithPlayer={facts.NpcRelationWithPlayer} (needs>= {DivorcePolicy.RequiredPlayerBond(new NpcMemoryService.Core.Standing.VanillaRelation(facts.NpcRelationWithSpouse))}, slides with misery" +
                           $"{(facts.NpcIsRomanticallyBoundToPlayer ? "; WAIVED: romantically bound to you" : "")})");
             sb.AppendLine($"  eitherPregnant={facts.EitherPregnant} eitherPrisoner={facts.EitherPrisoner} " +
                           $"leavingSpouse[clanLeader={facts.LeavingSpouseIsClanLeader} leadsParty={facts.LeavingSpouseLeadsParty} governs={facts.LeavingSpouseGoverns}]");

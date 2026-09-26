@@ -10,6 +10,7 @@
 
 using CalradiaRemembers.Logic;
 using FluentAssertions;
+using NpcMemoryService.Core.Standing;
 using NUnit.Framework;
 
 #endregion
@@ -94,7 +95,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(40, 5)]
         public void GIVEN_a_regard_WHEN_computing_the_weekly_chance_THEN_it_scales_and_clamps(int regard, int expected)
         {
-            CompanionSecretAffectionPolicy.WeeklyChancePercent(regard).Should().Be(expected);
+            CompanionSecretAffectionPolicy.WeeklyChancePercent(new Regard(regard)).Should().Be(expected);
         }
 
         // CompanionAffectionBehavior.OnWeeklyTick feeds MBRandom.RandomInt(100) straight into this
@@ -107,7 +108,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(99, false)]
         public void GIVEN_regard_sixty_with_a_chance_of_twenty_five_WHEN_rolling_THEN_only_the_bottom_quarter_confides(int roll, bool confides)
         {
-            CompanionSecretAffectionPolicy.ShouldConfideThisWeek(60, roll).Should().Be(confides);
+            CompanionSecretAffectionPolicy.ShouldConfideThisWeek(new Regard(60), roll).Should().Be(confides);
         }
 
         // MBRandom.RandomInt(100) is always non-negative in practice, but this pins a defensive floor
@@ -116,7 +117,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_negative_roll_WHEN_deciding_THEN_the_companion_does_not_confide()
         {
-            CompanionSecretAffectionPolicy.ShouldConfideThisWeek(60, -1).Should().BeFalse();
+            CompanionSecretAffectionPolicy.ShouldConfideThisWeek(new Regard(60), -1).Should().BeFalse();
         }
     }
 }

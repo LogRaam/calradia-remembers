@@ -145,7 +145,7 @@ namespace CalradiaRemembers.Missions
                NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(companion.StringId);
                if (profile == null) return;
 
-               if (!CompanionSecretAffectionPolicy.ShouldConfideThisWeek(profile.ReputationWithPlayer, MBRandom.RandomInt(100), ModSettings.RelationWarmth))
+               if (!CompanionSecretAffectionPolicy.ShouldConfideThisWeek(new NpcMemoryService.Core.Standing.Regard(profile.ReputationWithPlayer), MBRandom.RandomInt(100), ModSettings.RelationWarmth))
                   return;
 
                RequestAudience(companion);

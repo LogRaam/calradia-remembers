@@ -119,18 +119,18 @@ namespace CalradiaRemembers.Logic
         ///   Given eligibility, the weekly chance (percent) this companion finally confides, scaling with how far
         ///   the bond runs beyond MinRegard: clamp((regard - MinRegard) * 2 + 5, 5, MaxWeeklyChancePercent).
         /// </summary>
-        public static int WeeklyChancePercent(int regard, RelationWarmth warmth = RelationWarmth.Normal)
+        public static int WeeklyChancePercent(Regard regard, RelationWarmth warmth = RelationWarmth.Normal)
         {
             // Measured from the ACTIVE threshold, not the Grounded one, so the curve keeps its shape at every
             // pacing: a companion who has just cleared the bar confides rarely, and grows bolder from there.
-            int raw = (regard - MinRegardFor(warmth)) * 2 + 5;
+            int raw = (regard.Points - MinRegardFor(warmth)) * 2 + 5;
             if (raw < 5) return 5;
             if (raw > MaxWeeklyChancePercent) return MaxWeeklyChancePercent;
             return raw;
         }
 
         /// <summary>True when a 0..99 roll lands within this week's chance.</summary>
-        public static bool ShouldConfideThisWeek(int regard, int roll, RelationWarmth warmth = RelationWarmth.Normal)
+        public static bool ShouldConfideThisWeek(Regard regard, int roll, RelationWarmth warmth = RelationWarmth.Normal)
             => roll >= 0 && roll < WeeklyChancePercent(regard, warmth);
     }
 }

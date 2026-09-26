@@ -84,7 +84,7 @@ namespace CalradiaRemembers.GameState
          int relation = npc.GetRelation(Hero.MainHero);
          if (relation < CourtActionPolicy.InfluenceMinRelation) return false;
 
-         int candidate = CourtActionPolicy.InfluenceGrant(relation);
+         int candidate = CourtActionPolicy.InfluenceGrant(new NpcMemoryService.Core.Standing.VanillaRelation(relation));
          if (candidate <= 0) return false;
          if (!CourtActionPolicy.CanAffordInfluenceGrant(giver.Influence, candidate)) return false;
          if (!CourtActionPolicy.CooldownElapsed(LastMarkerDay(profile, InfluenceMarker), Today(), CourtActionPolicy.InfluenceCooldownDays)) return false;
@@ -236,7 +236,7 @@ namespace CalradiaRemembers.GameState
          if (relation < CourtActionPolicy.SpendInfluenceMinRelation) return false;
          if (!CourtActionPolicy.ClanNeedsInfluence(recipient.Influence)) return false;
 
-         int candidate = CourtActionPolicy.InfluenceGrant(relation);
+         int candidate = CourtActionPolicy.InfluenceGrant(new NpcMemoryService.Core.Standing.VanillaRelation(relation));
          if (candidate <= 0) return false;
 
          Clan giver = Clan.PlayerClan;

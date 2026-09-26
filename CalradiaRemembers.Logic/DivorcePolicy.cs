@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using NpcMemoryService.Core.Standing;
 
 #endregion
 
@@ -269,7 +270,7 @@ namespace CalradiaRemembers.Logic
 
          // The bond gate SLIDES with marital misery, and love overrides it entirely: an NPC courting
          // the player leaves FOR them, and a deeply wretched one needs no urging from a friend at all.
-         if (!facts.NpcIsRomanticallyBoundToPlayer && facts.NpcRelationWithPlayer < RequiredPlayerBond(facts.NpcRelationWithSpouse))
+         if (!facts.NpcIsRomanticallyBoundToPlayer && facts.NpcRelationWithPlayer < RequiredPlayerBond(new VanillaRelation(facts.NpcRelationWithSpouse)))
          {
             reason = "the bond with the player is not deep enough for so unhappy a step";
 
@@ -322,18 +323,19 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>
       ///   The player-bond an NPC needs before agreeing to end their marriage, SLIDING with how miserable
-      ///   the marriage is (Gabriel, 2026-07-03: a flat 30 was incoherent — the NPC divorces for THEMSELVES
+      ///   the marriage is (Gabriel, 2026-07-03: a flat 30 was incoherent, the NPC divorces for THEMSELVES
       ///   first). Barely unhappy (at <see cref="UnhappyThreshold" />) needs the full
       ///   <see cref="BondThreshold" />; the requirement falls linearly to zero at
       ///   <see cref="MiseryNeedingNoBond" />.
       /// </summary>
-      public static int RequiredPlayerBond(int relationWithSpouse)
+      public static int RequiredPlayerBond(VanillaRelation relationWithSpouse)
       {
-         if (relationWithSpouse >= UnhappyThreshold) return BondThreshold;
-         if (relationWithSpouse <= MiseryNeedingNoBond) return 0;
+         // The NPC's relation with their SPOUSE is the engine's ledger (Hero.GetRelation).
+         if (relationWithSpouse.Points >= UnhappyThreshold) return BondThreshold;
+         if (relationWithSpouse.Points <= MiseryNeedingNoBond) return 0;
 
          double span = UnhappyThreshold - MiseryNeedingNoBond;
-         double misery = UnhappyThreshold - relationWithSpouse;
+         double misery = UnhappyThreshold - relationWithSpouse.Points;
 
          return (int) Math.Round(BondThreshold * (1 - misery / span));
       }
