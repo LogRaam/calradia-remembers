@@ -29,5 +29,20 @@ namespace CalradiaRemembers.Logic
                 or NotableEventType.Jealousy => false,
             _ => true
         };
+
+        /// <summary>
+        ///   Reframes one NPC's memory for the heir: the predecessor's private history is dropped, the rest kept,
+        ///   and the profile marks whose standing it inherited and what that person was to the heir. Split out of
+        ///   SuccessionBehavior.Apply (26/09/2026) so the cr.testall check can run it on a DETACHED profile: the old
+        ///   test ran the real Apply, which reframed every profile in the player's save.
+        /// </summary>
+        public static void Reframe(NpcProfile profile, string predecessorName, string kinship)
+        {
+            if (profile == null) return;
+
+            profile.Events.RemoveAll(e => !SurvivesSuccession(e.type));
+            profile.InheritedFromName = predecessorName;
+            profile.InheritedKinship = kinship;
+        }
     }
 }

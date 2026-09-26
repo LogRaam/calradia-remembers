@@ -200,7 +200,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
          new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
-         new SelfTest("succession", Severity.Light, "seed private+public events -> Apply -> assert private dropped", TestSuccession),
+         new SelfTest("succession", Severity.Light, "reframe a DETACHED profile for an heir -> assert private dropped, save untouched", TestSuccession),
          new SelfTest("succession_switch", Severity.Light, "Wallace1067 (25/09/2026): switching the active character with The Original Player Switcher was read as a death each way, and the reframe deleted private memories across the whole save twice. Reads the REAL classifier on live heroes, touching nothing: the living player is a switch, a dead hero a death, a disabled one a retirement.", TestSuccessionSwitch),
          new SelfTest("recruit", Severity.Heavy, "eligible lord -> join_clan -> assert he moved into your clan", TestRecruit),
          new SelfTest("teach_skill", Severity.Light, "find a live NPC with a skill at or above TeachSkillPolicy.TeacherSkillFloor -> drive the REAL bridge teach_skill once (clean cooldown) -> assert real skill XP landed on the player, a second immediate lesson from the same NPC is refused by the cooldown, and an unrecognised skill name is refused rather than faked. Restores the player's skill level and the NPC's cooldown stamp afterwards", TestTeachSkill),
@@ -13778,28 +13778,34 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Skip(subject == null, "no lord to seed a profile on")) return t.Line();
 
-         // Seed a deterministic profile: one PRIVATE event (dropped by succession) + one PUBLIC event (kept)
-         NpcProfile profile = GetOrCreate(behavior, subject);
-         int day = behavior.GameStateBridge.GetCurrentGameDay();
-         profile.Events.Add(new NotableEvent(day, NotableEventType.Captivity, "[SELFTEST] private captivity memory"));
-         profile.Events.Add(new NotableEvent(day, NotableEventType.Conflict, "[SELFTEST] public political dealing"));
-         behavior.Store.Set(profile);
+         // A DETACHED profile, built from the lord but never stored. Until 26/09/2026 this test ran the real
+         // SuccessionBehavior.Apply, which reframed EVERY profile in the player's save (private memories erased, all
+         // marked inherited) and wrote a succession into the chronicle: running cr.testall on a real save damaged it.
+         // Apply is now one loop over SuccessionMemoryPolicy.Reframe, so reframing a copy proves the same rule.
+         NpcProfile stored = behavior.Store.Get(subject.StringId);
+         int storedEventsBefore = stored?.Events.Count ?? -1;
+         string storedInheritedBefore = stored?.InheritedFromName;
 
-         profile = behavior.Store.Get(subject.StringId);
-         int publicBefore = profile.Events.Count(e => SuccessionMemoryPolicy.SurvivesSuccession(e.type));
+         NpcProfile copy = HeroProfileMapper.FromHero(subject);
+         int day = behavior.GameStateBridge.GetCurrentGameDay();
+         copy.Events.Add(new NotableEvent(day, NotableEventType.Captivity, "[SELFTEST] private captivity memory"));
+         copy.Events.Add(new NotableEvent(day, NotableEventType.Conflict, "[SELFTEST] public political dealing"));
+         int publicBefore = copy.Events.Count(e => SuccessionMemoryPolicy.SurvivesSuccession(e.type));
          var predName = Hero.MainHero.Name?.ToString();
 
-         // Apply — mutates ALL profiles in the store (heir inherits standing, not private history)
-         int touched = SuccessionBehavior.Instance.Apply(Hero.MainHero, heir);
+         SuccessionMemoryPolicy.Reframe(copy, predName, SuccessionBehavior.ResolveKinship(Hero.MainHero, heir));
 
-         NpcProfile after = behavior.Store.Get(subject.StringId);
-         int privateAfter = after.Events.Count(e => !SuccessionMemoryPolicy.SurvivesSuccession(e.type));
-         int publicAfter = after.Events.Count(e => SuccessionMemoryPolicy.SurvivesSuccession(e.type));
+         int privateAfter = copy.Events.Count(e => !SuccessionMemoryPolicy.SurvivesSuccession(e.type));
+         int publicAfter = copy.Events.Count(e => SuccessionMemoryPolicy.SurvivesSuccession(e.type));
 
-         t.Note($"subject={subject.Name}, heir={heir.Name}, {touched} profiles, inherited='{after.InheritedFromName}'");
+         t.Note($"subject={subject.Name}, heir={heir.Name}, kinship='{copy.InheritedKinship}'");
          t.Expect("privateDropped", privateAfter == 0, true);
          t.Expect("publicKept", publicAfter == publicBefore && publicAfter >= 1, true);
-         t.Expect("inheritedSet", after.InheritedFromName == predName, true);
+         t.Expect("inheritedSet", copy.InheritedFromName == predName, true);
+
+         // The save itself is untouched.
+         NpcProfile storedAfter = behavior.Store.Get(subject.StringId);
+         t.Expect("saveUntouched", (storedAfter?.Events.Count ?? -1) == storedEventsBefore && storedAfter?.InheritedFromName == storedInheritedBefore, true);
 
          return t.Line();
       }

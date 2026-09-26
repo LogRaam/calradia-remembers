@@ -2,6 +2,14 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.26.. unreleased
+
+### Fixed
+- **`cr.testall succession` no longer damages the save it runs on.** It ran the real `SuccessionBehavior.Apply`,
+  which reframes EVERY stored profile (private memories erased, all marked inherited from the current character) and
+  writes a succession into the chronicle. The per-profile rule is now `SuccessionMemoryPolicy.Reframe` (unit-tested),
+  `Apply` is a loop over it, and the self-test reframes a detached copy and asserts the save is untouched.
+
 ## v2.5.25.. 2026-09-26
 
 ### Fixed

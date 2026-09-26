@@ -24,6 +24,23 @@ namespace CalradiaRemembers.Tests
     {
         // ── Event inheritance ───────────────────────────────────────────────
 
+        // The whole reframe of one profile, as Apply runs it on every profile in the store: private history gone,
+        // standing kept, and the heir named as inheriting from the predecessor. Tested here so the in-game check no
+        // longer has to run the real, save-wide Apply to prove it.
+        [Test]
+        public void GIVEN_a_profile_with_private_and_public_history_WHEN_reframed_THEN_only_the_public_survives_and_the_inheritance_is_named()
+        {
+            var profile = new NpcProfile {Id = "n", Name = "Derthert", Faction = "Vlandia", Clan = "dey Meroc"};
+            profile.Events.Add(new NotableEvent(10, NotableEventType.Intimacy, "a night together"));
+            profile.Events.Add(new NotableEvent(11, NotableEventType.Agreement, "a pact sealed"));
+
+            SuccessionMemoryPolicy.Reframe(profile, "Arwa", "mother");
+
+            profile.Events.Should().ContainSingle().Which.type.Should().Be(NotableEventType.Agreement);
+            profile.InheritedFromName.Should().Be("Arwa");
+            profile.InheritedKinship.Should().Be("mother");
+        }
+
         // These four event types are the predecessor's private history. Left uninherited on purpose: a leak
         // would have an NPC recall the late ruler's flirtations, intimacy, captivity, or jealousy to their
         // own child, which SuccessionMemoryPolicy's header calls out as exactly the immersion break to avoid.

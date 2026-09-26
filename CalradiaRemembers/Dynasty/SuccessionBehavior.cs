@@ -81,9 +81,7 @@ namespace CalradiaRemembers.Dynasty
                 if (p == null) continue;
 
                 // The heir inherits the standing, not the private history.
-                p.Events.RemoveAll(e => !SuccessionMemoryPolicy.SurvivesSuccession(e.type));
-                p.InheritedFromName = predName;
-                p.InheritedKinship = kinship;
+                SuccessionMemoryPolicy.Reframe(p, predName, kinship);
                 store.Set(p);
                 n++;
             }
@@ -122,7 +120,7 @@ namespace CalradiaRemembers.Dynasty
             catch (Exception ex) { ModLog.Error($"[SUCCESSION] chronicle record failed: {ex.GetType().Name}: {ex.Message}"); }
         }
 
-        private static string ResolveKinship(Hero predecessor, Hero heir)
+        internal static string ResolveKinship(Hero predecessor, Hero heir)
         {
             bool parent  = heir.Father == predecessor || heir.Mother == predecessor;
             bool sibling = heir.Siblings != null && heir.Siblings.Contains(predecessor);
