@@ -98,6 +98,27 @@ namespace CalradiaRemembers.Logic
          };
       }
 
+      /// <summary>What the warrant reads, in plain words: the distinct charges, joined ("treason and flight from arrest").</summary>
+      public static string Describe(IEnumerable<ArrestCharge> charges)
+      {
+         List<string> words = (charges ?? Enumerable.Empty<ArrestCharge>()).Distinct().Select(Words).ToList();
+         if (words.Count == 0) return "crimes against the realm";
+         if (words.Count == 1) return words[0];
+
+         return string.Join(", ", words.Take(words.Count - 1)) + " and " + words[words.Count - 1];
+      }
+
+      private static string Words(ArrestCharge charge) => charge switch
+      {
+         ArrestCharge.TreasonLetter => "treason",
+         ArrestCharge.KilledRealmMember => "the killing of a member of the realm",
+         ArrestCharge.AssaultedRealmMember => "violence against a member of the realm",
+         ArrestCharge.RobbedRealmMember => "robbery of a member of the realm",
+         ArrestCharge.SevereCrimeRating => "crimes against the realm",
+         ArrestCharge.FledArrest => "flight from arrest",
+         _ => "crimes against the realm"
+      };
+
       /// <summary>TUNE: how heavily each charge weighs on the sentence, in days.</summary>
       public static int Weight(ArrestCharge charge) => charge switch
       {

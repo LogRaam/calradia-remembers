@@ -103,6 +103,8 @@ namespace CalradiaRemembers.Travel
       ///   Spawns a fast, lightly-escorted custom party at <paramref name="spawnPos" />, belonging to the
       ///   player's clan, with a mounted escort drawn from <paramref name="preferredCulture" /> (falling
       ///   back to the player's culture). Returns null on failure. The caller steers and tracks it.
+      ///   <paramref name="ownerClan" /> and <paramref name="ownerHero" /> give the party to someone else (the
+      ///   sergeants ride in their liege's colours); left null, it is the player's, as every courier is.
       /// </summary>
       public static MobileParty Spawn(Vec2 spawnPos,
                                       Settlement home,
@@ -110,7 +112,9 @@ namespace CalradiaRemembers.Travel
                                       float speed,
                                       CultureObject preferredCulture,
                                       bool avoidHostile,
-                                      int escortSize = EscortSize)
+                                      int escortSize = EscortSize,
+                                      Clan ownerClan = null,
+                                      Hero ownerHero = null)
       {
          TroopRoster roster = BuildEscortRoster(preferredCulture, escortSize);
 
@@ -119,10 +123,10 @@ namespace CalradiaRemembers.Travel
             1f,
             home,
             name,
-            Clan.PlayerClan,
+            ownerClan ?? Clan.PlayerClan,
             roster,
             TroopRoster.CreateDummyTroopRoster(),
-            Hero.MainHero,
+            ownerHero ?? Hero.MainHero,
             null,
             null,
             speed,

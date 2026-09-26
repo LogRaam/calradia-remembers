@@ -64,6 +64,16 @@ namespace CalradiaRemembers.Tests
          ArrestPolicy.ChargeFor(ViolentAct.Kill, ViolenceVerdict.Forbidden).Should().BeNull();
       }
 
+      // The warrant says what the player answers for, in words, so the arrest is never a mystery.
+      [Test]
+      public void GIVEN_charges_WHEN_the_warrant_is_read_THEN_it_names_them_in_plain_words()
+      {
+         ArrestPolicy.Describe(new[] {ArrestCharge.TreasonLetter}).Should().Be("treason");
+         ArrestPolicy.Describe(new[] {ArrestCharge.TreasonLetter, ArrestCharge.RobbedRealmMember, ArrestCharge.FledArrest})
+                     .Should().Be("treason, robbery of a member of the realm and flight from arrest");
+         ArrestPolicy.Describe(null).Should().Be("crimes against the realm");
+      }
+
       // ── The council ────────────────────────────────────────────────────────
 
       // Gabriel: the liege and the vassals who hate the player most.
