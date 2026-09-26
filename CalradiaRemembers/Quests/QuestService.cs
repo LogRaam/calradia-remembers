@@ -653,6 +653,10 @@ namespace CalradiaRemembers.Quests
             case QuestType.ExecuteEnemy: return $"kill {q.TargetHeroName}";
             case QuestType.NemesisBounty: return $"capture or kill {q.TargetHeroName}";
             case QuestType.RescuePrisoner: return $"free {q.TargetHeroName}";
+            case QuestType.DeliverPrisoner:
+                return !string.IsNullOrWhiteSpace(q.TargetHeroName)
+                    ? $"take {q.TargetHeroName} prisoner and bring them into the giver's hands"
+                    : $"bring them a captive lord of {q.TargetFactionName}";
             case QuestType.DeliverLetter: return $"carry a message to {q.TargetHeroName}";
             case QuestType.ProvideGold: return "provide financial support for your child";
             case QuestType.DeliverItems:

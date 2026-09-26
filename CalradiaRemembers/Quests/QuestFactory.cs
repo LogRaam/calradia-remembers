@@ -75,6 +75,19 @@ namespace CalradiaRemembers.Quests
          if (!ResolveReward(quest, proposal, giver)) return null;
          if (!ResolveTargets(quest, proposal, giver)) return null;
 
+         // A capture asked in PEACE is a rival wanted in the giver's own hands (blackmail, vengeance, a scheme), not a
+         // war errand: issued as the delivery it is, completed by handing him over, and never voided by a peace
+         // (Gabriel's ruling on FloatingMammal's report, 25/09/2026; CaptureQuestPolicy).
+         if (quest.Type == QuestType.CapturePrisoner)
+         {
+            Hero target = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+            bool atWar = giver.MapFaction != null && target?.MapFaction != null
+                         && FactionManager.IsAtWarAgainstFaction(giver.MapFaction, target.MapFaction);
+            quest.Type = CaptureQuestPolicy.TypeToIssue(quest.Type, atWar);
+            if (quest.Type == QuestType.DeliverPrisoner)
+               ModLog.Info($"[QUEST] {giver.Name} asked for {quest.TargetHeroName} captured in peace: issued as a delivery into their hands.");
+         }
+
          // non_aggression_pact's own gate (CalradiaRemembers.Logic.Assemblies.NonAggressionPactPolicy's own
          // header): refuse a hostile CR-generated deed at the EMISSION point, never narrate it then silently
          // drop it later. Checked LAST, after every other target/reward binding has already succeeded, so the

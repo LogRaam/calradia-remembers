@@ -12,6 +12,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   it, the other councillor's lines included. `ConversationResumePolicy.MayBeKeptOnClose` now asks what the chat
   OPENED as: only an ordinary conversation, the one kind the resume ever puts back, is kept. One rule for both sides,
   so a staged scene added later cannot be missed the same way.
+- **A lord may ask you to capture a rival in peace, and the task holds** (FloatingMammal, 25/09/2026: "A lord tasked
+  me with capturing his rival, but no quest was generated. When I brought the prisoner to him the text in brackets told
+  me that there was no such bargain between us"). The capture was created, then voided the next day in silence by the
+  rule that sets a war errand aside once peace holds, since there had never been a war; and handing the prisoner over
+  settled nothing, since only a delivery bargain can be settled that way. Gabriel's ruling: two different tasks. In
+  war, capturing an enemy is a war errand, set aside if the war ends (unchanged). In peace, capturing a rival
+  (blackmail, vengeance, a scheme) is untouched by any war. `CaptureQuestPolicy`: a capture asked in peace is issued
+  as the DELIVERY it is (take him, bring him into my hands), completed by handing him over. The refusal now says the
+  captive "stays with you" rather than "in your hold" (a mercenary carries his prisoner himself), and a delivery reads
+  as one in the journal.
 - **A family that arranged the match is no longer affronted by it** (found tracing zhenja1's report; Gabriel's ruling,
   25/09/2026). Every marriage without a CR blessing record was judged unblessed: -40 on the spouse's whole family and
   UnblessedMarriage grudges on its kin. But a marriage the base game makes always had the family's consent (the clan

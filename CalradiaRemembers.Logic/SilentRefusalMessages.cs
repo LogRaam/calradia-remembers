@@ -45,7 +45,7 @@ namespace CalradiaRemembers.Logic
         /// <summary>No outstanding DeliverPrisoner bargain matches the give_prisoner the model just emitted.</summary>
         public static string GivePrisonerNoBargain()
         {
-            return "(There is no such bargain between us; the captive stays in your hold.)";
+            return "(There is no such bargain between us; the captive stays with you.)";
         }
 
         /// <summary>The prompt's give_item named no item at all (neither a picked item id nor a free-text name).</summary>
