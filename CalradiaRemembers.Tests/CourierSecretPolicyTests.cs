@@ -153,6 +153,25 @@ namespace CalradiaRemembers.Tests
          CourierSecretPolicy.WhoGetsTheSecret(null).Kind.Should().Be(SecretHandoffKind.Nobody);
       }
 
+      // ── What the sender remembers ──────────────────────────────────────────
+
+      // raphareish: the sender, asked about a lost letter, said they had "been busy". They now remember the honest cause.
+      [TestCase(CourierLoss.InterceptedByBandits, "The courier carrying my letter to Arwa was taken by bandits on the road.")]
+      [TestCase(CourierLoss.InterceptedByEnemy, "The courier carrying my letter to Arwa was taken by enemies of my house.")]
+      [TestCase(CourierLoss.Lost, "The courier carrying my letter to Arwa never arrived.")]
+      public void GIVEN_a_lost_courier_WHEN_its_sender_remembers_THEN_they_know_what_happened(CourierLoss loss, string expected)
+      {
+         CourierSecretPolicy.SenderLossMemory(loss, "Arwa", resent: false).Should().Be(expected);
+      }
+
+      // Gabriel: the letter goes again until it arrives, and its sender knows they sent it again.
+      [Test]
+      public void GIVEN_the_letter_was_sent_again_WHEN_its_sender_remembers_THEN_they_know_it_went_again()
+      {
+         CourierSecretPolicy.SenderLossMemory(CourierLoss.InterceptedByBandits, "Arwa", resent: true)
+                            .Should().EndWith("; I sent the letter again.");
+      }
+
       // ── How long a secret matters ──────────────────────────────────────────
 
       // Gabriel: limited in time. Within its shelf life a secret still has weight...

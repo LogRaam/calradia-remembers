@@ -104,7 +104,8 @@ namespace CalradiaRemembers.Letters
             // profile, so he later denied ever having written it. Records the letter's actual substance as
             // the sender's own first-person memory instead. profile IS the letter's author here (whether an
             // initial letter or a PlayerLetterReply, both arrive to the player through this one site).
-            LetterMemoryFinalizer.RecordLetterMemory(profile, letter.Reason, letter.Content, true, today, behavior);
+            // Already remembered when it was sent (26/09/2026); only a letter an older save queued lands here.
+            LetterMemoryFinalizer.RememberSending(profile, letter, today, behavior);
 
             // This letter now joins the readable archive. The correspondence history is unbounded by design
             // (nothing is evicted); the byte[] profile store carries the full thread. See LetterArchivePolicy.

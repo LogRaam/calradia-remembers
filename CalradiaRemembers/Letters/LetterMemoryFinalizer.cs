@@ -65,6 +65,19 @@ namespace CalradiaRemembers.Letters
             _ = GenerateAndApplyAsync(behavior, profile.Id, baseEvent, content, npcIsSender, playerName);
         }
 
+        /// <summary>
+        ///   The sender's memory of writing <paramref name="letter" />, recorded ONCE: at dispatch since 26/09/2026
+        ///   (raphareish: a letter lost on the road left its sender no memory of it, so asked about it they said
+        ///   they had "been busy"), else on delivery for a letter an older save queued before this existed.
+        /// </summary>
+        public static void RememberSending(NpcProfile profile, PendingLetter letter, int today, NpcMemoryCampaignBehavior behavior)
+        {
+            if (profile == null || letter == null || letter.SenderRemembers) return;
+
+            letter.SenderRemembers = true;
+            RecordLetterMemory(profile, letter.Reason, letter.Content, true, today, behavior);
+        }
+
         #region private
 
         private static async Task GenerateAndApplyAsync(

@@ -452,7 +452,32 @@ namespace CalradiaRemembers.Letters
             if (profile == null) continue;
 
             if (PlayerToNpcCourierLost(store, profile, partyId, byBandit)) return;
-            if (NpcToPlayerReplyCourierLost(store, profile, partyId, byBandit)) return;
+            if (NpcToPlayerReplyCourierLost(store, profile, partyId, destroyer)) return;
+         }
+      }
+
+      /// <summary>
+      ///   What took a courier sent by <paramref name="courierClan" />: bandits, a troop at war with that clan, or
+      ///   anything else (CourierSecretPolicy.Classify on the facts read here).
+      /// </summary>
+      internal static CourierLoss ClassifyLoss(PartyBase destroyer, Clan courierClan)
+      {
+         try
+         {
+            IFaction destroyerRealm = destroyer?.MapFaction;
+            IFaction courierRealm = courierClan?.MapFaction ?? courierClan;
+
+            return CourierSecretPolicy.Classify(new CourierLossFacts {
+               DestroyerIsBandit = destroyer?.MobileParty is {IsBandit: true},
+               DestroyerAtWarWithCourierClan = destroyerRealm != null && courierRealm != null && destroyerRealm != courierRealm
+                                               && FactionManager.IsAtWarAgainstFaction(destroyerRealm, courierRealm)
+            });
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COURIER] could not tell what took a courier: {ex.GetType().Name}: {ex.Message}");
+
+            return CourierLoss.Lost;
          }
       }
 
@@ -1267,15 +1292,25 @@ namespace CalradiaRemembers.Letters
             OfferResend(resendStore, resendProfile, letter, byBandit: false);
       }
 
-      private static bool NpcToPlayerReplyCourierLost(BannerlordNpcMemoryStore store, NpcProfile profile, string partyId, bool byBandit)
+      private static bool NpcToPlayerReplyCourierLost(BannerlordNpcMemoryStore store, NpcProfile profile, string partyId, PartyBase destroyer)
       {
          PendingLetter reply = profile.SentLetters.FirstOrDefault(l => l.CourierPartyId == partyId && !l.IsDelivered && !l.IsLost);
 
          if (reply == null) return false;
 
+         Hero sender = Hero.FindFirst(h => h != null && h.StringId == profile.Id);
+         CourierLoss loss = ClassifyLoss(destroyer, sender?.Clan);
+         bool byBandit = loss == CourierLoss.InterceptedByBandits;
+
          reply.IsLost = true;
          reply.CourierPartyId = null;
          ActiveCourierIds.Remove(partyId);
+
+         // The sender knows the courier never arrived, and why (raphareish, 24/09/2026: asked about a letter lost on
+         // the road, a sender said he had "been busy", because nothing of it was left anywhere).
+         var today = (int) CampaignTime.Now.ToDays;
+         profile.Events.Add(new NotableEvent(today, NotableEventType.Other,
+            CourierSecretPolicy.SenderLossMemory(loss, Hero.MainHero?.Name?.ToString(), resent: false)));
          store.Set(profile);
 
          string how = byBandit ? "was waylaid" : "was lost on the road"; // 1.10: honest cause

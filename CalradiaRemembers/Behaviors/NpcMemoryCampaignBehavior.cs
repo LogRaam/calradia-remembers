@@ -511,6 +511,14 @@ namespace CalradiaRemembers.Behaviors
                   continue;
                }
 
+               // The letter leaves today: its sender remembers writing it from now on, whether it then rides with a
+               // courier or on the date-based fallback, and whatever befalls it on the road (raphareish, 24/09/2026).
+               if (!letter.SenderRemembers && !string.IsNullOrWhiteSpace(letter.Content))
+               {
+                  LetterMemoryFinalizer.RememberSending(profile, letter, today, this);
+                  changed = true;
+               }
+
                if (CourierService.TrySpawnReplyCourier(letter, sender, escorted: profile.EscortedChannel))
                   changed = true;
             }

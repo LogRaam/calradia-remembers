@@ -135,6 +135,24 @@ namespace CalradiaRemembers.Logic
          return new SecretHandoff {Kind = SecretHandoffKind.Lord, HeroId = hero};
       }
 
+      /// <summary>
+      ///   What the sender remembers when the courier carrying their letter to the player is lost: first person, the
+      ///   honest cause, and that it went again when it did. raphareish: without it, a sender asked about the letter
+      ///   said they had "been busy".
+      /// </summary>
+      public static string SenderLossMemory(CourierLoss loss, string playerName, bool resent)
+      {
+         string player = string.IsNullOrWhiteSpace(playerName) ? "the player" : playerName.Trim();
+         string what = loss switch
+         {
+            CourierLoss.InterceptedByBandits => $"The courier carrying my letter to {player} was taken by bandits on the road",
+            CourierLoss.InterceptedByEnemy => $"The courier carrying my letter to {player} was taken by enemies of my house",
+            _ => $"The courier carrying my letter to {player} never arrived"
+         };
+
+         return resent ? $"{what}; I sent the letter again." : $"{what}.";
+      }
+
       /// <summary>True once a secret captured on <paramref name="capturedDay" /> is past its shelf life.</summary>
       public static bool IsStale(int capturedDay, int today) => today - capturedDay >= SecretShelfLifeDays;
 
