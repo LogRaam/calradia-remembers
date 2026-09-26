@@ -12,6 +12,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   it, the other councillor's lines included. `ConversationResumePolicy.MayBeKeptOnClose` now asks what the chat
   OPENED as: only an ordinary conversation, the one kind the resume ever puts back, is kept. One rule for both sides,
   so a staged scene added later cannot be missed the same way.
+- **A new spouse remembers the wedding, and how little she knows you** (zhenja1, 25/09/2026: after accepting a vanilla
+  marriage offer, his bride spoke at their first word "almost like she'd been part of my house the whole time"; fkasad
+  suggested preparing the bride for that meeting). Nothing wrote the marriage onto the spouse, and a spouse with an
+  empty history is told "you are already married and share a life", a line meant for campaigns that start with one.
+  The marriage listener now writes the wedding through `CrNpcMemory.AddMemory` (which creates her profile if needed),
+  worded by `WeddingMemoryText` from what is true at the wedding: with a history of talks, simply "Were wed to X"; an
+  arranged match with someone met once, newlyweds who "hardly know each other yet"; never met, "still strangers to
+  each other". Applies to marriages made from this version on; a marriage already made has no date to recover.
+  `cr.testall marry_companion` asserts the memory through the real engine event.
 - **For modders: `PromptVarFacts.Lean`** (tashmetu, 25/09/2026: in "Compact prompt for small models" CR trims its own
   sections while a bridge's `{{variables}}` went in whole, and he was reading `ModSettings.LeanPrompt` by reflection to
   find out). True when the prompt the value goes into is built Compact. It is the level of THAT prompt, not the setting

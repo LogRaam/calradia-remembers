@@ -6385,6 +6385,10 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          t.Expect("playerWedCompanion", Hero.MainHero.Spouse == companion, true);
+         // zhenja1 (25/09/2026): a new spouse must carry the wedding in her own memory, or her first conversation reads
+         // an empty history as "already married and sharing a life". The engine event, not the verb, writes it.
+         t.Expect("theSpouseRemembersTheWedding",
+                  behavior.Store.Get(companion.StringId)?.Events?.Any(e => e.summary != null && e.summary.StartsWith("Were wed to")) == true, true);
          t.Expect("exCompanionNowLord", companion.Occupation == Occupation.Lord, true);
          t.Expect("exCompanionNotPlayerCompanion", companion.IsPlayerCompanion, false);
          t.Expect("exCompanionInPlayerClan", companion.Clan == Clan.PlayerClan, true);

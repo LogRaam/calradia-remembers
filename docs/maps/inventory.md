@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 421 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 778 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 780 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -746,7 +746,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (483)
+### CalradiaRemembers.Logic (485)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1223,6 +1223,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WarSides` | public struct | The two sides of one war declaration, as faction ids. |
 | `WarWeariness` | public static class | Pure war-weariness arithmetic: clamp, the per-event tolls, rest recovery, the Valor-scaled retirement tolerance, banding, the "wants to retire" test, and the retirement shape by landedness. |
 | `WearinessBand` | public enum | How worn down by war a companion is — the bands the accumulating score falls into. |
+| `WeddingFacts` | public class | What is known about a match at the moment of the wedding. |
+| `WeddingMemoryText` | public static class | Words the new spouse's memory of the wedding. |
 | `WitnessDedup` | public static class | Decides whether two WitnessEntry values denote the same present witness. |
 | `WitnessDensity` | public enum | How many ambient hero witnesses a conversation gathers. |
 | `WitnessPresencePolicy` | public static class | Thins a gathered list of ambient hero witnesses according to the player's chosen WitnessDensity. |

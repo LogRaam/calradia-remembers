@@ -348,6 +348,8 @@ namespace CalradiaRemembers.Marriage
 
          if (spouse == null) return;
 
+         RememberTheWedding(spouse);
+
          Clan family = spouse.Clan;
 
          // M-B1: read the RECORD, not just a bare "is there a blessing" flag, so the +40 warm swing only lands on
@@ -401,6 +403,36 @@ namespace CalradiaRemembers.Marriage
          StoryLog.WriteNarration(msg);
          ModLog.Info($"[MARRIAGE] {(approved ? "APPROVED" : "UNAPPROVED")} marriage to {spouse.Name}: " +
                      $"{clan} — {affected} kin moved ({warmed} warmed, {cooled} cooled).");
+      }
+
+      /// <summary>
+      ///   Writes the wedding onto the new spouse's own memory. Nothing did before, so a spouse married through a
+      ///   vanilla offer came to her first conversation with an empty history, which the prompt reads as "already
+      ///   married and sharing a life" (zhenja1, 25/09/2026). Read here, BEFORE the marriage moves her into the
+      ///   player's clan, so "another house" is still her birth clan. Through CR's own public memory door, which
+      ///   creates her profile properly if she has none yet. Never throws: a missed memory must not stop a wedding.
+      /// </summary>
+      private static void RememberTheWedding(Hero spouse)
+      {
+         try
+         {
+            NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouse.StringId);
+            string line = WeddingMemoryText.For(new WeddingFacts {
+               PlayerName = Hero.MainHero?.Name?.ToString() ?? "",
+               HaveSharedHistory = profile?.Events != null && profile.Events.Count > 0,
+               HaveMet = spouse.HasMet,
+               FromAnotherHouse = spouse.Clan != null && spouse.Clan != Clan.PlayerClan
+            });
+
+            MemoryResult result = CrNpcMemory.AddMemory(new CrMemoryEntry {
+               NpcId = spouse.StringId, Summary = line, Kind = "Agreement", DaysAgo = 0, SourceMod = "CalradiaRemembers"
+            });
+            ModLog.Info($"[MARRIAGE] {spouse.Name} remembers the wedding ({result}): {line}");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MARRIAGE] wedding memory failed for {spouse?.Name}: {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       #endregion
