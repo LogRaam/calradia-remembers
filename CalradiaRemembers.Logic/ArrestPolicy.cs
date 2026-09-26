@@ -47,7 +47,10 @@ namespace CalradiaRemembers.Logic
       SevereCrimeRating,
 
       /// <summary>They fled or fought the sergeants sent to arrest them.</summary>
-      FledArrest
+      FledArrest,
+
+      /// <summary>They attacked the realm's merchants or fishers in peace (a brigand, a pirate).</summary>
+      Brigandage
    }
 
    /// <summary>Where the player stands in their realm.</summary>
@@ -116,6 +119,7 @@ namespace CalradiaRemembers.Logic
          ArrestCharge.RobbedRealmMember => "robbery of a member of the realm",
          ArrestCharge.SevereCrimeRating => "crimes against the realm",
          ArrestCharge.FledArrest => "flight from arrest",
+         ArrestCharge.Brigandage => "brigandage against the realm's merchants",
          _ => "crimes against the realm"
       };
 
@@ -128,6 +132,7 @@ namespace CalradiaRemembers.Logic
          ArrestCharge.RobbedRealmMember => 10,
          ArrestCharge.SevereCrimeRating => 10,
          ArrestCharge.FledArrest => 15,
+         ArrestCharge.Brigandage => 20,
          _ => 0
       };
 
@@ -262,6 +267,29 @@ namespace CalradiaRemembers.Logic
          ReleaseDay = 0;
          PrisonSettlementId = null;
          if (!Charges.Contains(ArrestCharge.FledArrest)) Charges.Add(ArrestCharge.FledArrest);
+      }
+
+      /// <summary>
+      ///   An outlaw caught on a realm's bounty: handed to that realm's sovereign and tried there, whatever case was open
+      ///   (Gabriel: a captured pirate goes to the sovereign who wanted them). The charges the realm holds join the case;
+      ///   the bounty is collected.
+      /// </summary>
+      public void CaughtOnBounty(string sovereignId, IEnumerable<ArrestCharge> charges)
+      {
+         if (Stage == ArrestStage.OnTrial || Stage == ArrestStage.Imprisoned) return;
+
+         Stage = ArrestStage.OnTrial;
+         LiegeId = sovereignId;
+         BountyOnHead = false;
+         TrialOpened = false;
+         foreach (ArrestCharge c in charges ?? Enumerable.Empty<ArrestCharge>())
+            if (!Charges.Contains(c)) Charges.Add(c);
+      }
+
+      /// <summary>The realm the player fled pardons them: the outlawry and its charges are gone.</summary>
+      public void Pardon()
+      {
+         if (Stage == ArrestStage.Outlaw) Clear();
       }
 
       /// <summary>

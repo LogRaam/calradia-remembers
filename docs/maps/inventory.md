@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 427 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 805 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 810 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -757,7 +757,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (509)
+### CalradiaRemembers.Logic (514)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -800,6 +800,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BattleSetting` | public enum | What kind of engagement a battle was, for naming it correctly (a siege is not a field battle). |
 | `BirthLetterPolicy` | public static class | Pure rules for which letters a birth to the player's child should trigger. |
 | `BodyHurtPolicy` | public static class | How badly hurt somebody is, on the SDK's four bands, from the engine's own numbers. |
+| `Bounty` | public class | A realm's price on the player's head. |
+| `BountyReason` | public enum | Why a realm has put a price on the player's head. |
+| `BrigandageFacts` | public class | What was attacked, for brigandage. |
 | `CaptiveActionOutcomePolicy` | public static class | Decides whether the player's physical attempt in a captive scene lands, this turn. |
 | `CaptiveEncounterPolicy` | public static class | The pure decisions behind a captive encounter: the per-tick probability a captor acts (EncounterProbability) and the intent the scene takes (SelectIntent). |
 | `CaptiveEscapeResolution` | public enum | How a captive-escape encounter resolved. |
@@ -961,6 +964,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HolderGearLedger` | public class | Serializable ledger of every holder's accumulated gear stock. |
 | `HolderGearStock` | public class | Everything a single holder Hero has accumulated from the player's escapes, additive across however many times the player has fled that holder's hold. |
 | `HouseholdKinPolicy` | public static class | Decides who in the player's house is family, and therefore never a retainer to be given away. |
+| `HuntMode` | public enum | How the realm comes after an outlaw. |
 | `HushMoneyPolicy` | public static class | The numeric contract for hush money paid to a lord who holds the player's secret-lover identity. |
 | `ILetterIntentionWorld` | public interface | The live-world signals the per-reason staleness decision needs, keyed by the letter's sender id. |
 | `IManagedPortrait` | public interface | A UI element that owns exactly one character portrait — which, on screen, is backed by a GPU render-target (a character tableau). |
@@ -1080,6 +1084,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `OpenPartnerLoverPolicy` | public static class | Pure rules for an OPEN partner autonomously taking a lover of her own: the neglect-scaled weekly chance that she strays, and whether a given candidate is a plausible lover. |
 | `OpenRelationshipPolicy` | public static class | Pure gate: does a reciprocal open-relationship arrangement suppress this partner's jealousy? |
 | `OrientationParser` | public static class | Parses a human orientation word (plus common synonyms) to a SexualOrientation. |
+| `OutlawPolicy` | public static class | The rules of outlawry, bounties and amnesty. |
 | `OverdueOutcome` | public enum | What the daily overdue sweep should do once a commitment's deadline lapses. |
 | `OverlayNeighbour` | public class | One layer beside the chat, as the arbiter needs to see it. |
 | `PanelTickSuppressionCounter` | public class | A reference count of how many CR panels currently need the vanilla settlement-visual tick suppressed (the mod wires this to a Harmony guard: while the count is above zero, SettlementVisualManager.OnTick is skipped so its... |
