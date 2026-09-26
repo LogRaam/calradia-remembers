@@ -23,6 +23,13 @@
 // the player serves ArrestPolicy.PrisonDays in those cells and is released when they run out. A council that rose
 // without a verdict (the window closed, a save interrupted it) is judged by the bench's regard
 // (TrialVerdictPolicy.DefaultConviction), so closing the window is no escape. Breaking out is: an escape is a flight.
+//
+// Inc 5, the outlaw (OutlawPolicy): a flight (refusing the warrant, beating off the sergeants, breaking out) puts the
+// realm's price on the player's head. A vassal leaves the kingdom, a mercenary its contract; the player then leads an
+// independent clan, and the realm's crime rating is raised past the game's own war threshold, so the game itself makes
+// war on them: the realm's lords and troops are real enemies who can beat and take them. Each week, each realm with a
+// bounty may declare an amnesty (a low chance): the bounty is lifted, the crime rating cleared, the war ended, and a
+// fled outlaw pardoned.
 
 #region
 
@@ -143,6 +150,7 @@ namespace CalradiaRemembers.Arrests
       public override void RegisterEvents()
       {
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+         CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
          CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
          CampaignEvents.TickEvent.AddNonSerializedListener(this, OnTick);
          CampaignEvents.OnBeforeSaveEvent.AddNonSerializedListener(this, DespawnSergeants);
@@ -226,6 +234,7 @@ namespace CalradiaRemembers.Arrests
          {
             _state = JsonConvert.DeserializeObject<SavedState>(Encoding.UTF8.GetString(loaded)) ?? new SavedState();
             _state.Case ??= new ArrestCase();
+            _state.Bounties ??= new List<Bounty>();
          }
          catch (Exception ex)
          {
@@ -380,9 +389,83 @@ namespace CalradiaRemembers.Arrests
       /// <summary>The player refuses the warrant, or fights the sergeants off: an outlaw. What follows is Inc 5.</summary>
       private void Refuse()
       {
+         IFaction realm = Liege()?.MapFaction;
          Case.Flee();
          MBInformationManager.AddQuickInformation(new TextObject("You refuse the warrant. From this day you are an outlaw, and there is a price on your head."));
          ModLog.Info("[ARREST] the player refuses the warrant: outlaw, with a bounty.");
+         BecomeOutlaw(realm, BountyReason.Flight);
+      }
+
+      /// <summary>
+      ///   The realm puts a price on the player's head. A player sworn to it leaves it (a vassal the kingdom, a
+      ///   mercenary the contract), which leaves them leading an independent clan; the realm's crime rating is then
+      ///   raised past the game's own war threshold, and the game makes war on that clan. Never throws.
+      /// </summary>
+      internal void BecomeOutlaw(IFaction realm, BountyReason reason)
+      {
+         try
+         {
+            if (realm == null || Clan.PlayerClan == null) return;
+
+            OutlawPolicy.Place(_state.Bounties, realm.StringId, reason, Today);
+
+            if (Clan.PlayerClan.Kingdom != null && Clan.PlayerClan.Kingdom == realm)
+            {
+               if (Clan.PlayerClan.IsUnderMercenaryService) ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(Clan.PlayerClan);
+               else ChangeKingdomAction.ApplyByLeaveKingdom(Clan.PlayerClan);
+               ModLog.Info($"[ARREST] the outlaw leaves {realm.Name}.");
+            }
+
+            MakeWanted(realm);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ARREST] outlawing the player failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Raises the realm's crime rating past the game's war threshold. For a player leading an independent clan the
+      ///   game then declares war itself (ChangeCrimeRatingAction's own rule); a sworn vassal only becomes wanted.
+      /// </summary>
+      private static void MakeWanted(IFaction realm)
+      {
+         float threshold = Campaign.Current?.Models?.CrimeModel?.DeclareWarCrimeRatingThreshold ?? 60f;
+         float needed = threshold + 5f - realm.MainHeroCrimeRating;
+         if (needed > 0f) ChangeCrimeRatingAction.Apply(realm, needed);
+      }
+
+      /// <summary>
+      ///   Each week, each realm with a price on the player's head may declare an amnesty (OutlawPolicy): the bounty
+      ///   is lifted, the crime rating cleared, the war it brought ended, and an outlaw who fled that realm pardoned.
+      /// </summary>
+      private void OnWeeklyTick()
+      {
+         try
+         {
+            foreach (Bounty bounty in _state.Bounties.ToList())
+            {
+               if (!OutlawPolicy.AmnestyDeclared(MBRandom.RandomFloat)) continue;
+
+               IFaction realm = Campaign.Current?.Factions?.FirstOrDefault(f => f.StringId == bounty.RealmId);
+               _state.Bounties.Remove(bounty);
+               if (realm == null) continue;
+
+               if (realm.MainHeroCrimeRating > 0f) ChangeCrimeRatingAction.Apply(realm, -realm.MainHeroCrimeRating);
+               IFaction mine = Hero.MainHero?.MapFaction;
+               if (mine != null && mine != realm && realm.IsAtWarWith(mine) && mine.Leader == Hero.MainHero && Clan.PlayerClan.Kingdom == null)
+                  MakePeaceAction.Apply(realm, mine);
+
+               if (Case.Stage == ArrestStage.Outlaw && Liege()?.MapFaction == realm) Case.Pardon();
+
+               MBInformationManager.AddQuickInformation(new TextObject($"{realm.Name} has declared an amnesty. The price on your head there is lifted."));
+               ModLog.Info($"[ARREST] amnesty from {realm.Name}: bounty lifted.");
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ARREST] weekly amnesty failed: {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       /// <summary>
@@ -406,9 +489,11 @@ namespace CalradiaRemembers.Arrests
                return;
             }
 
+            IFaction fledRealm = Liege()?.MapFaction;
             Case.Escape();
             MBInformationManager.AddQuickInformation(new TextObject("You have broken out of the law's hold. From this day you are an outlaw, and there is a price on your head."));
             ModLog.Info("[ARREST] the player escaped the law's hold: outlaw, with a bounty.");
+            BecomeOutlaw(fledRealm, BountyReason.Flight);
 
             return;
          }
@@ -540,6 +625,9 @@ namespace CalradiaRemembers.Arrests
       {
          public ArrestCase Case { get; set; } = new();
          public bool CrimeWasSevere { get; set; }
+
+         /// <summary>Every realm's price on the player's head.</summary>
+         public List<Bounty> Bounties { get; set; } = new();
       }
 
       #endregion
