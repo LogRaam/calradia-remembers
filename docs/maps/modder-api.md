@@ -272,6 +272,7 @@ _An externally-defined conversation verb: its name (the [ACTION] "type:" it answ
 _The engine-agnostic facts a registered prompt-variable provider (see PromptVariableRegistry) reasons over._
 
 - `IReadOnlyDictionary<string, string>? Extra { get; set; }`
+- `bool Lean { get; set; }`
 - `int RelationToPlayer { get; set; }`
 - `string NpcId { get; set; }`
 

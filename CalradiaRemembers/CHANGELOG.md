@@ -12,6 +12,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   it, the other councillor's lines included. `ConversationResumePolicy.MayBeKeptOnClose` now asks what the chat
   OPENED as: only an ordinary conversation, the one kind the resume ever puts back, is kept. One rule for both sides,
   so a staged scene added later cannot be missed the same way.
+- **For modders: `PromptVarFacts.Lean`** (tashmetu, 25/09/2026: in "Compact prompt for small models" CR trims its own
+  sections while a bridge's `{{variables}}` went in whole, and he was reading `ModSettings.LeanPrompt` by reflection to
+  find out). True when the prompt the value goes into is built Compact. It is the level of THAT prompt, not the setting
+  alone: `Build` computes the level once and hands the same value to the prompt and to the providers, and a letter,
+  always built in full, says false. Additive; the modder-api map gains one line. `cr_patch` text is still static.
 - **Switching characters with another mod was treated as the player's death, and erased memories** (Wallace1067,
   25/09/2026, with The Original Player Switcher: "switching out logs a death for the original character, switching
   back logs a death for the temporary one", with "[SUCCESSION] reframed 24 profile(s)" each way). `SuccessionBehavior`

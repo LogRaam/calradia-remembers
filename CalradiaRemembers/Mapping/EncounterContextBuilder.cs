@@ -333,6 +333,9 @@ namespace CalradiaRemembers.Mapping
          EncounterContext knowledge = KnowledgeContextFor(hero, profile);
          OwnVenturesFacts ventures = BuildOwnVentures(hero);
 
+         // Read once: the prompt's own level and the level third-party variables are told must be the same.
+         LeanPromptLevel leanLevel = ModSettings.LeanPrompt ? LeanPromptLevel.Lean : LeanPromptLevel.Full;
+
          return new() {
             PlayerStatus = playerStatus,
             SharedRealmName = bridge.GetSharedRealmName(hero),
@@ -411,9 +414,7 @@ namespace CalradiaRemembers.Mapping
             CaptiveVictimIsFemale = captiveVictimIsFemale,
             CompanionAudience = companionAudience,
             AudienceRetirementIsLanded = audienceRetirementIsLanded,
-            LeanLevel = ModSettings.LeanPrompt
-               ? LeanPromptLevel.Lean
-               : LeanPromptLevel.Full,
+            LeanLevel = leanLevel,
             IsFinalSceneBeat = isFinalSceneBeat,
             SceneStage = sceneStage,
             AggressorKind = aggressorKind,
@@ -589,7 +590,7 @@ namespace CalradiaRemembers.Mapping
             // the builder inside a Task.Run, and a third-party {{variable}} provider that reads Hero.MainHero or
             // Campaign.Current live (tashmetu's bridge does, on purpose) must never be handed a thread-pool
             // thread while the simulation runs. Context building is always on the main thread.
-            ExternalPromptVariables = ResolveExternalPromptVariables(hero, profile),
+            ExternalPromptVariables = ResolveExternalPromptVariables(hero, profile, leanLevel),
             // C5 feedback loop: consumed on read like InterceptionReason, so only pull it on a real LLM turn,
             // never on the dead open-time build (which would swallow the nudge before the model ever sees it).
             LlmFormatFeedbackNote = resolveInterception
@@ -1753,13 +1754,15 @@ namespace CalradiaRemembers.Mapping
       ///   provider fails must cost the conversation nothing (the registry already guards each provider, so this
       ///   is the belt to its braces), and an empty map simply means no bridge registered anything.
       /// </summary>
-      private static IReadOnlyDictionary<string, string> ResolveExternalPromptVariables(Hero hero, NpcProfile profile)
+      private static IReadOnlyDictionary<string, string> ResolveExternalPromptVariables(Hero hero, NpcProfile profile, LeanPromptLevel leanLevel)
       {
          try
          {
             return PromptVariableRegistry.Compose(new PromptVarFacts {
                NpcId = profile?.Id ?? hero?.StringId ?? "",
-               RelationToPlayer = profile?.ReputationWithPlayer ?? 0
+               RelationToPlayer = profile?.ReputationWithPlayer ?? 0,
+               // The level of the prompt these values go into, so a bridge can shrink with CR (tashmetu, 25/09/2026).
+               Lean = leanLevel == LeanPromptLevel.Lean
             });
          }
          catch (Exception ex)
@@ -3395,7 +3398,8 @@ namespace CalradiaRemembers.Mapping
                SharedRealmName = bridge.GetSharedRealmName(hero),
                // Letters take the same Task.Run path as a conversation, so a third-party variable provider must
                // be resolved here, on this thread, exactly as in Build (tashmetu, 21/09/2026).
-               ExternalPromptVariables = ResolveExternalPromptVariables(hero, profile)
+               // A letter is built in full (its LeanLevel is left at the default), so its variables are too.
+               ExternalPromptVariables = ResolveExternalPromptVariables(hero, profile, LeanPromptLevel.Full)
             };
          }
          catch (Exception ex)

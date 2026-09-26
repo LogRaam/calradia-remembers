@@ -172,8 +172,10 @@ CrPrompt.RegisterVariable("bc_court_state", facts =>
 });
 ```
 
-The provider is called once per prompt build, with an engine-agnostic `PromptVarFacts` (`NpcId` and
-`RelationToPlayer`, the same personal regard `VerbFacts` carries). It gets no live `Hero`, kingdom,
+The provider is called once per prompt build, with an engine-agnostic `PromptVarFacts` (`NpcId`,
+`RelationToPlayer`, the same personal regard `VerbFacts` carries, and, since 2.5.24, `Lean`: true when
+this prompt is being built Compact for a small model, so shorten your text the way CR shortens its own;
+a letter is always built in full). It gets no live `Hero`, kingdom,
 or other CR type: `BuildPromptVariables` only has the NPC's profile and the current encounter on
 hand at that point, so re-resolve whatever engine state you need from `NpcId` yourself.
 
