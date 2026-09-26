@@ -38,6 +38,9 @@ namespace CalradiaRemembers.Chat
       /// <summary>What the wanted captive is to the lord, or null.</summary>
       public string WantedStake { get; set; }
 
+      /// <summary>True when the lord wants the captive back and free; false when he wants him in his own custody.</summary>
+      public bool WantsCaptiveBack { get; set; } = true;
+
       /// <summary>The gold that would even the offered exchange, seen from the player.</summary>
       public int ExchangeGoldToPlayer { get; set; }
 
@@ -109,6 +112,7 @@ namespace CalradiaRemembers.Chat
                PlayerName = Hero.MainHero?.Name?.ToString() ?? "",
                WantedCaptiveName = _envoy.Mandate.WantedCaptiveName,
                WantedCaptiveStake = _envoy.WantedStake,
+               WantsCaptiveBack = _envoy.WantsCaptiveBack,
                RansomCeiling = _envoy.Mandate.RansomCeiling,
                ExchangeCaptiveName = string.IsNullOrWhiteSpace(_envoy.Mandate.ExchangeCaptiveName) ? null : _envoy.Mandate.ExchangeCaptiveName,
                ExchangeGoldToPlayer = _envoy.ExchangeGoldToPlayer,

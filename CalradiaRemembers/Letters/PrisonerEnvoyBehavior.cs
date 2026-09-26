@@ -37,7 +37,8 @@ namespace CalradiaRemembers.Letters
 
       public static PrisonerEnvoyBehavior Instance { get; private set; }
 
-      // captive hero id -> the day an envoy last came (or was sent) about them.
+      // "captiveId|lordId" -> the day that lord's envoy last came (or was sent) about that captive. Per pair, so a
+      // father's envoy and a bitter enemy's can each come about the same prisoner (fkasad, increment 4).
       private Dictionary<string, int> _lastEnvoyDay = new();
 
       // The envoy waiting for the player to be free enough to receive him. In memory only: a reload before the
@@ -54,16 +55,18 @@ namespace CalradiaRemembers.Letters
       public override void RegisterEvents()
          => CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
 
-      /// <summary>Whether an envoy may come about this captive today (the letter evaluator asks before offering one).</summary>
-      public bool EnvoyMayCome(string captiveId)
-         => !string.IsNullOrEmpty(captiveId)
-            && PrisonerExchangePolicy.EnvoyMayCome(_lastEnvoyDay.TryGetValue(captiveId, out int d) ? d : (int?) null, Today);
+      /// <summary>Whether this lord's envoy may come about this captive today (the letter evaluator asks first).</summary>
+      public bool EnvoyMayCome(string captiveId, string lordId)
+         => !string.IsNullOrEmpty(captiveId) && !string.IsNullOrEmpty(lordId)
+            && PrisonerExchangePolicy.EnvoyMayCome(_lastEnvoyDay.TryGetValue(Key(captiveId, lordId), out int d) ? d : (int?) null, Today);
+
+      private static string Key(string captiveId, string lordId) => captiveId + "|" + lordId;
 
       /// <summary>
       ///   Sends <paramref name="lord" />'s envoy about <paramref name="captive" />, offering up to
       ///   <paramref name="ransomCeiling" />. The cooldown starts now; the popup comes when the player is free.
       /// </summary>
-      public void Send(Hero lord, Hero captive, int ransomCeiling, string stake)
+      public void Send(Hero lord, Hero captive, int ransomCeiling, string stake, bool wantsCaptiveBack)
       {
          if (lord == null || captive == null || _pending != null) return;
 
@@ -80,7 +83,7 @@ namespace CalradiaRemembers.Letters
             exchangeGold = PrisonerExchangePolicy.GoldToSettle(BuyPrisonerVerb.RansomAnchor(captive), BuyPrisonerVerb.RansomAnchor(counterpart));
          }
 
-         _lastEnvoyDay[captive.StringId] = Today;
+         _lastEnvoyDay[Key(captive.StringId, lord.StringId)] = Today;
          _pending = new PendingEnvoy {
             LordId = lord.StringId,
             CaptiveId = captive.StringId,
@@ -88,6 +91,7 @@ namespace CalradiaRemembers.Letters
                LordId = lord.StringId,
                LordRealm = lord.MapFaction?.Name?.ToString(),
                WantedStake = stake,
+               WantsCaptiveBack = wantsCaptiveBack,
                ExchangeGoldToPlayer = exchangeGold,
                Mandate = mandate
             }

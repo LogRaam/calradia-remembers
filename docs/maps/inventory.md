@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 424 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 786 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 789 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -749,7 +749,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (491)
+### CalradiaRemembers.Logic (494)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1096,6 +1096,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PreferenceStrength` | public enum | How firmly a stated correspondence preference should move the interest dial. |
 | `PregnancyNotePolicy` | public static class | Turns a mother's pregnancy facts into the second-person line the NPC identity prompt renders, so she is AWARE of her own pregnancy and never denies it (see file header for the bug this fixes). |
 | `PregnancyPolicy` | public static class | Pure gates around a pregnancy's whole lifecycle when the campaign's Life/Death Cycle option is disabled (Bannerlord's own "no aging / no death" creation option, which also silently disables vanilla's offspring delivery -... |
+| `PrisonerBuyerCandidate` | public class | One lord who might want the captive. |
+| `PrisonerBuyerPolicy` | public static class | Orders who may send an envoy about a captive, and says what each wants. |
+| `PrisonerBuyerRole` | public enum | What a prospective buyer is to the captive. |
 | `PrisonerDeedTarget` | public class | What captive an NPC is asking for: a specific hero (HeroId) when named, otherwise any lord of a faction (FactionId). |
 | `PrisonerExchangePolicy` | public static class | The rules of a prisoner exchange. |
 | `PrisonerOfferAvailabilityPolicy` | public static class | Whether a lord's written offer for a prisoner can still be honoured, and if not, why not. |

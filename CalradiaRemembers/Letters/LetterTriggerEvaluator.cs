@@ -14,6 +14,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using NpcMemoryService.Core.Standing;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Services;
@@ -477,7 +478,23 @@ namespace CalradiaRemembers.Letters
          {
             if (string.IsNullOrEmpty(captive?.StringId)) continue;
 
-            Hero buyer = ResolvePrisonerBuyer(captive);
+            // The first who may treat (PrisonerBuyerPolicy's order: the captive's house, a parent of another house, the
+            // realm, a bitter enemy in the player's own realm), whose own envoy is not on cooldown for this captive and
+            // who can pay a fair price. Since 25/09/2026 the offer comes as an ENVOY, never a letter (fkasad; Gabriel).
+            int anchor = BuyPrisonerVerb.RansomAnchor(captive);
+            Hero buyer = null;
+            var buyerRole = PrisonerBuyerRole.House;
+            foreach ((Hero prospect, PrisonerBuyerRole role) in ResolvePrisonerBuyers(captive))
+            {
+               if (PrisonerEnvoyBehavior.Instance?.EnvoyMayCome(captive.StringId, prospect.StringId) != true) continue;
+               if (prospect.Gold < PrisonerTradePolicy.MinAcceptablePayment(anchor)) continue; // cannot pay a fair price
+
+               buyer = prospect;
+               buyerRole = role;
+
+               break;
+            }
+
             if (buyer == null) continue;
 
             // A buyer needs a profile to carry cadence + memory; create one if the player has never met them
@@ -501,18 +518,10 @@ namespace CalradiaRemembers.Letters
                   break;
                }
 
+            // A letter an older save still has pending about this captive is honoured: no envoy on top of it.
             if (alreadyOffered) continue;
 
-            // Since 25/09/2026 the offer comes as an ENVOY, not a letter (fkasad; Gabriel: always an envoy), paced per
-            // captive by the envoy's own cooldown. The check above still honours a letter an older save has pending.
-            if (PrisonerEnvoyBehavior.Instance?.EnvoyMayCome(captive.StringId) != true) continue;
-
-            int anchor = BuyPrisonerVerb.RansomAnchor(captive);
-            if (buyer.Gold < PrisonerTradePolicy.MinAcceptablePayment(anchor)) continue; // cannot pay a fair price
-
             int amount = PrisonerOfferPolicy.OfferAmount(anchor, personalStake: true);
-            string context = $"The player holds {captive.Name} prisoner. {DescribeBuyerStake(buyer, captive)} " +
-                             $"You are writing to buy {captive.Name} from the player, and you offer {amount} denars for them.";
 
             int baseWeight = LetterWeights.BaseWeight(LetterReason.PrisonerOffer);
             int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = baseWeight, SenderInterest = buyerProfile.CorrespondenceInterest, SubjectInterest = GetSubjectInterest(LetterReason.PrisonerOffer), GlobalInterest = GlobalInterest});
@@ -529,12 +538,15 @@ namespace CalradiaRemembers.Letters
             Hero capturedBuyer = buyer;
             string capturedCaptiveId = captive.StringId;
             int capturedAmount = amount;
-            string capturedContext = context;
             Hero capturedCaptive = captive;
+            PrisonerBuyerRole capturedRole = buyerRole;
             release[candidate] = () =>
             {
-               // An envoy, carrying the same fair ceiling the letter named, who can also offer an exchange.
-               PrisonerEnvoyBehavior.Instance?.Send(capturedBuyer, capturedCaptive, capturedAmount, EnvoyStake(capturedBuyer, capturedCaptive));
+               // An envoy, carrying the same fair ceiling the letter named, who can also offer an exchange. Family and
+               // realm want the captive back; a bitter enemy wants him in his own hands.
+               PrisonerEnvoyBehavior.Instance?.Send(capturedBuyer, capturedCaptive, capturedAmount,
+                  PrisonerBuyerPolicy.Stake(capturedRole, capturedBuyer.Name?.ToString(), capturedCaptive.IsFemale),
+                  PrisonerBuyerPolicy.WantsCaptiveBack(capturedRole));
 
                ModLog.Info($"[LETTER] {capturedProfile.Name} sends an envoy about the player's prisoner {capturedCaptiveId} (up to {capturedAmount} denars).");
             };
@@ -626,25 +638,6 @@ namespace CalradiaRemembers.Letters
          }
       }
 
-      /// <summary>A short in-fiction line stating why this buyer wants the captive, fed into the letter's Context.</summary>
-      /// <summary>What the captive is to the lord, as the envoy's errand says it ("... holds X prisoner, {stake}."), or null.</summary>
-      private static string EnvoyStake(Hero buyer, Hero captive)
-      {
-         if (buyer?.Clan != null && buyer.Clan == captive?.Clan) return $"who is of {buyer.Name}'s own house";
-         if (buyer?.MapFaction != null && captive?.MapFaction != null && buyer.MapFaction == captive.MapFaction)
-            return $"who is of {buyer.Name}'s own realm";
-
-         return null;
-      }
-
-      private static string DescribeBuyerStake(Hero buyer, Hero captive)
-      {
-         if (buyer?.Clan != null && buyer.Clan == captive?.Clan) return "This prisoner is of your own house.";
-         if (buyer?.MapFaction != null && captive?.MapFaction != null && buyer.MapFaction == captive.MapFaction)
-            return "This prisoner is one of your own realm.";
-
-         return "You have your own reasons to want this prisoner in your hands.";
-      }
 
       /// <summary>The plain-words enticement a ServiceOffer dangles, fed into the letter's Context.</summary>
       private static string DescribeEnticement(ServiceEnticement enticement)
@@ -657,18 +650,44 @@ namespace CalradiaRemembers.Letters
          }
       }
 
-      /// <summary>The lord who would buy this captive: their own clan leader, else their realm's leader, else none.</summary>
-      private Hero ResolvePrisonerBuyer(Hero captive)
+      /// <summary>
+      ///   Everyone who might want this captive, in PrisonerBuyerPolicy's order. Until 25/09/2026 only the clan leader,
+      ///   else the realm's leader; fkasad asked for the two who were missing: a father whose daughter married into
+      ///   another house (her clan leader is now her husband's kin), and an ally who bitterly hates the prisoner. An
+      ///   "ally" is a lord of the player's own realm, the only side certain to be at peace with him.
+      /// </summary>
+      private List<(Hero Hero, PrisonerBuyerRole Role)> ResolvePrisonerBuyers(Hero captive)
       {
-         if (captive == null) return null;
+         var byId = new Dictionary<string, Hero>();
+         var facts = new List<PrisonerBuyerCandidate>();
 
-         Hero clanLeader = captive.Clan?.Leader;
-         if (IsEligibleBuyer(clanLeader, captive)) return clanLeader;
+         void Consider(Hero h, PrisonerBuyerRole role)
+         {
+            if (h?.StringId == null) return;
+            byId[h.StringId] = h;
+            facts.Add(new PrisonerBuyerCandidate {
+               HeroId = h.StringId, Role = role, CanTreat = IsEligibleBuyer(h, captive), RelationToCaptive = h.GetRelation(captive)
+            });
+         }
 
-         Hero factionLeader = captive.MapFaction?.Leader;
-         if (IsEligibleBuyer(factionLeader, captive)) return factionLeader;
+         if (captive == null) return new List<(Hero, PrisonerBuyerRole)>();
 
-         return null;
+         Consider(captive.Clan?.Leader, PrisonerBuyerRole.House);
+
+         // A parent of ANOTHER house: within the captive's own house the house head already speaks for the family.
+         foreach (Hero parent in new[] {captive.Father, captive.Mother})
+            if (parent != null && parent.Clan != captive.Clan)
+               Consider(parent, PrisonerBuyerRole.Parent);
+
+         Consider(captive.MapFaction?.Leader, PrisonerBuyerRole.Realm);
+
+         IFaction playerRealm = Hero.MainHero?.MapFaction;
+         if (playerRealm != null && playerRealm != captive.MapFaction)
+            foreach (Hero lord in Hero.AllAliveHeroes)
+               if (lord.IsLord && lord.MapFaction == playerRealm && lord != captive && lord.GetRelation(captive) <= VanillaRelation.BitterTier)
+                  Consider(lord, PrisonerBuyerRole.Enemy);
+
+         return PrisonerBuyerPolicy.Order(facts).Select(c => (byId[c.HeroId], c.Role)).ToList();
       }
 
       /// <summary>A buyer must be a living free lord, not the captive or the player, and not currently with the player.</summary>
