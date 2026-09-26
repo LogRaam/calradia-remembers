@@ -275,7 +275,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("end_conversation_guards_open_question", Severity.Light, "Mechanical: read the REAL taught end_conversation vocabulary -> its description forbids closing on a turn that awaits the player's reply (player report: NPCs ended while asking a question or making a request). No LLM.", TestEndConversationGuardsAwaitingReply),
          new SelfTest("hostage_breach_imprisons", Severity.Light, "Mechanical: seed a hostage term on a free lord, force the breach through the REAL ExecuteBreach path (TakePrisonerAction) -> the hostage is imprisoned; then release them so the campaign is untouched. Briefly jails and frees a test lord. No LLM.", TestHostageBreachImprisons),
          new SelfTest("claimant_support_evaluates", Severity.Light, "Mechanical: gather a real same-kingdom other-clan lord's facts and run the REAL ClaimantSupportPolicy via CouncilLift.EvaluateSupportClaimant (non-destructive, no influence moved) -> a valid backer lands on the amount decision (Applied/CannotAfford), never a WHO gate. No LLM.", TestClaimantSupportEvaluates),
-         new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): as a vassal or mercenary, a grave act opens a warrant in the liege's name (ArrestBehavior.Charge, silent) and the trial bench seats the liege first, then the realm's vassals who regard the player worst. Skips when the player serves no liege or rules a kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
+         new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_secret_travels", Severity.Light, "Courier secrets (raphareish 24/09/2026; Gabriel): an intercepted letter travels with its captors. Captures a [SELFTEST] letter onto a REAL bandit band, then has a real lord's party defeat the carrier (DebugDefeatCarrier, no LLM, no rumour) -> the secret leaves the band and the lord remembers what it said; a second capture defeated by the PLAYER's party is recovered unread. Removes the memory it added.", TestCourierSecretTravels),
          new SelfTest("courier_secret_reaction", Severity.Light, "Courier secrets Inc 4b (Gabriel: an action in proportion to the secret): runs the real reaction for another lord's letter read by a grudge-free lord -> NOTHING plants no grudge, AGAINST plants a LeakedLetter grudge on the letter's author, and the player (who wrote nothing) pays nothing. Clears the grudge it planted.", TestCourierSecretReaction),
@@ -9668,10 +9668,20 @@ namespace CalradiaRemembers.Diagnostics
          Arrests.ArrestBehavior arrests = Arrests.ArrestBehavior.Instance;
          if (t.Abort(arrests == null, "ArrestBehavior not active")) return t.Line();
 
-         Hero liege = Clan.PlayerClan?.Kingdom?.Leader;
-         bool canBeArrested = Logic.ArrestPolicy.CanBeArrested(Arrests.ArrestBehavior.Standing());
-         if (t.Skip(!canBeArrested || liege == null || liege == Hero.MainHero, "the player serves no liege (or rules a kingdom): no one could arrest them")) return t.Line();
+         // Arranged, never joined (Gabriel, 26/09/2026: the test must run whatever the player's standing): the player's
+         // own liege when they serve one, else the living ruler of another realm. The case is opened through the pure
+         // ArrestCase directly (the standing check lives in ArrestBehavior.Charge, not here), so the save's kingdoms,
+         // contracts and wars are never touched.
+         Hero ownLiege = Clan.PlayerClan?.Kingdom?.Leader;
+         bool servesALiege = Logic.ArrestPolicy.CanBeArrested(Arrests.ArrestBehavior.Standing()) && ownLiege != null && ownLiege != Hero.MainHero;
+         Hero liege = servesALiege
+            ? ownLiege
+            : Kingdom.All?.Where(k => k != null && !k.IsEliminated && k.Leader is {IsAlive: true} && k.Leader != Hero.MainHero)
+                     .Select(k => k.Leader).FirstOrDefault();
+
+         if (t.Skip(liege == null, "no living ruler of any realm to stand as the liege")) return t.Line();
          if (t.Skip(arrests.Case.Stage != Logic.ArrestStage.None, "a real case is already open on this save; not touching it")) return t.Line();
+         t.Note(servesALiege ? "the player's own liege" : "arranged: another realm's ruler stands as the liege");
 
          string snapshot = arrests.DebugSnapshot();
          try
