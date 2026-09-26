@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.6.1.. unreleased
+## v2.6.1.. 2026-09-26
 
 ### Added
 - **The end of a mercenary contract is judged by its circumstances** (fkasad's grid, Nexus 25/09/2026, ratified by
@@ -17,6 +17,18 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 - Maps: the first live RATCHET case. The bare-number regard ratchet caught the four new regard constants; they are
   SHIFTS on the ledger, not thresholds anything is compared against, so they are named as penalty and gratitude
   rather than the baseline raised.
+
+### Changed (code design, driven by the maps; no behaviour change)
+- **The regard map finds thresholds by what the code COMPARES, not only by name.** 33 regard thresholds written in
+  place were invisible to the name-based list; they are listed now (`ledger` or `named`) and ratcheted
+  (`RatchetTests.InlineRegardComparisonsOn26September`, 33 -> 27 the same day).
+- **`Regard.NeutralTier` (SDK)**, the line between goodwill and ill will; the trial's default verdict points at it.
+- **The "which ledger" column is read off types.** Ten regard rules said nothing about which ledger they read; each
+  now takes the one its callers really pass (`VanillaRelation` or `Regard`), so the compiler holds every caller to it.
+  `CompanionRapport.Band`'s rungs name `VanillaRelation`'s own tiers. A reward misnamed "relation" was renamed; the
+  map's doc fallback now reads the whole doc (it read only the first sentence).
+- **Maps that mix detection modes say, per line, which produced it** (`save-format.md` fact/name with the fact read
+  first, `gates.md`, `decisions-regard.md`), written into `docs/maps/README.md`.
 
 ## v2.6.0.. 2026-09-26
 
