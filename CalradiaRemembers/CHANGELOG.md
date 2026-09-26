@@ -2,7 +2,10 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.5.27.. unreleased
+## v2.6.0.. 2026-09-26
+
+Two new pillars from player reports and Gabriel's own design: letters that are never lost for good but can betray
+their writer, and arrests in the King's name (off by default, experimental).
 
 ### For modders (tashmetu, Nexus, 26/09/2026)
 - **character_overrides.json can key an entry on a hero's TEMPLATE.** A mercenary captain's StringId and name are
