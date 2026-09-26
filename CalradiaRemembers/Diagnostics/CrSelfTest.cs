@@ -275,6 +275,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("end_conversation_guards_open_question", Severity.Light, "Mechanical: read the REAL taught end_conversation vocabulary -> its description forbids closing on a turn that awaits the player's reply (player report: NPCs ended while asking a question or making a request). No LLM.", TestEndConversationGuardsAwaitingReply),
          new SelfTest("hostage_breach_imprisons", Severity.Light, "Mechanical: seed a hostage term on a free lord, force the breach through the REAL ExecuteBreach path (TakePrisonerAction) -> the hostage is imprisoned; then release them so the campaign is untouched. Briefly jails and frees a test lord. No LLM.", TestHostageBreachImprisons),
          new SelfTest("claimant_support_evaluates", Severity.Light, "Mechanical: gather a real same-kingdom other-clan lord's facts and run the REAL ClaimantSupportPolicy via CouncilLift.EvaluateSupportClaimant (non-destructive, no influence moved) -> a valid backer lands on the amount decision (Applied/CannotAfford), never a WHO gate. No LLM.", TestClaimantSupportEvaluates),
+         new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): as a vassal or mercenary, a grave act opens a warrant in the liege's name (ArrestBehavior.Charge, silent) and the trial bench seats the liege first, then the realm's vassals who regard the player worst. Skips when the player serves no liege or rules a kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
+         new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_secret_travels", Severity.Light, "Courier secrets (raphareish 24/09/2026; Gabriel): an intercepted letter travels with its captors. Captures a [SELFTEST] letter onto a REAL bandit band, then has a real lord's party defeat the carrier (DebugDefeatCarrier, no LLM, no rumour) -> the secret leaves the band and the lord remembers what it said; a second capture defeated by the PLAYER's party is recovered unread. Removes the memory it added.", TestCourierSecretTravels),
          new SelfTest("courier_secret_reaction", Severity.Light, "Courier secrets Inc 4b (Gabriel: an action in proportion to the secret): runs the real reaction for another lord's letter read by a grudge-free lord -> NOTHING plants no grudge, AGAINST plants a LeakedLetter grudge on the letter's author, and the player (who wrote nothing) pays nothing. Clears the grudge it planted.", TestCourierSecretReaction),
          new SelfTest("letter_offer_prisoner_ransom", Severity.Light, "Mechanical (PrisonerOffer accept): capture an in-party lord into the player's prison, make a buyer solvent, run the shared PrisonerRansomExecutor -> assert the sale succeeds, the captive leaves the player's prison, and the player is paid. Restores everything (frees the captive, reverts both purses). Skips if no capturable lord / no buyer. No LLM.", TestLetterOfferPrisonerRansom),
@@ -9659,6 +9661,56 @@ namespace CalradiaRemembers.Diagnostics
       ///   player's party is recovered unread. Runs without the model or the rumour (DebugDefeatCarrier), and removes
       ///   the memory it added.
       /// </summary>
+      private static string TestArrestWarrantAndBench(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("arrest_warrant_and_bench");
+
+         Arrests.ArrestBehavior arrests = Arrests.ArrestBehavior.Instance;
+         if (t.Abort(arrests == null, "ArrestBehavior not active")) return t.Line();
+
+         Hero liege = Clan.PlayerClan?.Kingdom?.Leader;
+         bool canBeArrested = Logic.ArrestPolicy.CanBeArrested(Arrests.ArrestBehavior.Standing());
+         if (t.Skip(!canBeArrested || liege == null || liege == Hero.MainHero, "the player serves no liege (or rules a kingdom): no one could arrest them")) return t.Line();
+         if (t.Skip(arrests.Case.Stage != Logic.ArrestStage.None, "a real case is already open on this save; not touching it")) return t.Line();
+
+         string snapshot = arrests.DebugSnapshot();
+         try
+         {
+            // The MCM gate is honoured by Charge; the self-test forces the case open through the pure case itself so it
+            // runs whatever the toggle says, then drives the bench from the live realm.
+            arrests.Case.Charge(Logic.ArrestCharge.TreasonLetter, liege.StringId, true);
+            t.Expect("warrantInTheLiegesName", arrests.Case.Stage == Logic.ArrestStage.WarrantOut && arrests.Case.LiegeId == liege.StringId, true);
+
+            List<Hero> bench = arrests.TrialBench();
+            t.Note($"liege={liege.Name}, bench={string.Join(", ", bench.Select(h => h.Name?.ToString()))}");
+            t.Expect("liegePresides", bench.Count > 0 && bench[0] == liege, true);
+            t.Expect("benchBounded", bench.Count <= 1 + Logic.ArrestPolicy.CouncilVassalSeats, true);
+         }
+         finally
+         {
+            arrests.DebugRestore(snapshot);
+         }
+
+         t.Expect("caseRestored", arrests.Case.Stage, Logic.ArrestStage.None);
+
+         return t.Line();
+      }
+
+      private static string TestBrigandagePatchAttached(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("brigandage_patch_attached");
+
+         System.Reflection.MethodBase target = Arrests.BrigandagePatch.TargetMethod();
+         if (t.Abort(target == null, "BeHostileAction.ApplyInternal does not exist on this game version")) return t.Line();
+
+         HarmonyLib.Patches info = HarmonyLib.Harmony.GetPatchInfo(target);
+         bool attached = info?.Prefixes.Any(p => p.PatchMethod.DeclaringType == typeof(Arrests.BrigandagePatch)) == true
+                         && info.Postfixes.Any(p => p.PatchMethod.DeclaringType == typeof(Arrests.BrigandagePatch));
+         t.Expect("prefixAndPostfixAttached", attached, true);
+
+         return t.Line();
+      }
+
       private static string TestCourierSecretTravels(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("courier_secret_travels");

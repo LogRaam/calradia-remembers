@@ -30,8 +30,8 @@ namespace CalradiaRemembers.Arrests
    [HarmonyPatch]
    public static class BrigandagePatch
    {
-      /// <summary>The engine's own hostile-act core, or null when this build does not have it.</summary>
-      private static MethodBase TargetMethod() => AccessTools.Method(typeof(BeHostileAction), "ApplyInternal");
+      /// <summary>The engine's own hostile-act core, or null when this build does not have it (cr.testall checks it is patched).</summary>
+      internal static MethodBase TargetMethod() => AccessTools.Method(typeof(BeHostileAction), "ApplyInternal");
 
       /// <summary>Skips the patch cleanly when the target does not exist in this game build.</summary>
       private static bool Prepare()
@@ -48,6 +48,7 @@ namespace CalradiaRemembers.Arrests
          __state = null;
          try
          {
+            if (!ModSettings.EnableArrests) return; // MCM, off by default
             if (attackerParty != PartyBase.MainParty || defenderParty?.MobileParty == null) return;
 
             MobileParty target = defenderParty.MobileParty;

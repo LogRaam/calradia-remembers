@@ -276,6 +276,17 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool AllowKillingCharacters { get; set; } = false;
 
+      // Arrests in the King's name (Gabriel, 26/09/2026): OFF by default (it can cost the player their fiefs and put
+      // them at war). Gates only what OPENS a case (a warrant, a brigandage); a case already open runs to its end, so
+      // turning it off mid-way never strands the player in a cell or an outlawry with no way out.
+      [SettingPropertyBool("Arrests and outlaws", RequireRestart = false, Order = 3,
+         HintText = "Off (default): no arrests. On: as a vassal or mercenary, a grave act (treason read in a letter, " +
+                    "violence against your own realm, a severe crime rating) brings a warrant and sergeants; surrender " +
+                    "means a trial before your liege's council, flight makes you an outlaw with a price on your head. " +
+                    "Attacking merchants or fishers in peace makes you a brigand. Never applies to a kingdom's ruler.")]
+      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      public bool EnableArrests { get; set; } = false;
+
       [SettingPropertyBool("Post-duel conversation", RequireRestart = false, Order = 0,
          HintText = "On (default): after a duel the conversation reopens and resumes what led to it. The loser concedes (a " +
                     "beaten character of honour may grant a favour you ask); the victor says what they now expect. Off: only " +

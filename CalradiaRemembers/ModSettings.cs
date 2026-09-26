@@ -157,6 +157,12 @@ namespace CalradiaRemembers
       public static bool AllowKillingCharacters => CrSettings.Instance?.AllowKillingCharacters ?? false;
 
       /// <summary>
+      ///   Arrests and outlaws (Gabriel, 26/09/2026): OFF by default. Gates only what opens a case (a warrant, a
+      ///   brigandage); a case already open runs to its end. Off when MCM is unavailable.
+      /// </summary>
+      public static bool EnableArrests => CrSettings.Instance?.EnableArrests ?? false;
+
+      /// <summary>
       ///   The player-chosen base folder for prompt/style overrides (MCM), or "" for the default ModuleData/Custom.
       ///   Read by <see cref="Mapping.NarrativeLoader.CustomBaseFolder" /> so a player can keep their edits outside
       ///   the module and survive an update that replaces it (player report v1.33.5).

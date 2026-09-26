@@ -107,6 +107,17 @@ namespace CalradiaRemembers.Arrests
       /// <summary>The player's case as it stands.</summary>
       internal ArrestCase Case => _state.Case;
 
+      /// <summary>Test seam (cr.testall): the whole saved state, as JSON, so a self-test can put it back exactly.</summary>
+      internal string DebugSnapshot() => JsonConvert.SerializeObject(_state, Formatting.None);
+
+      /// <summary>Test seam (cr.testall): restores a state taken by <see cref="DebugSnapshot" />.</summary>
+      internal void DebugRestore(string json)
+      {
+         _state = JsonConvert.DeserializeObject<SavedState>(json ?? "{}") ?? new SavedState();
+         _state.Case ??= new ArrestCase();
+         _state.Bounties ??= new List<Bounty>();
+      }
+
       /// <summary>True while the law holds the player: awaiting trial, or serving the sentence.</summary>
       internal bool HoldsPlayer => Case.Stage == ArrestStage.OnTrial || Case.Stage == ArrestStage.Imprisoned;
 
@@ -181,10 +192,13 @@ namespace CalradiaRemembers.Arrests
       ///   player who answers to no liege (a faction leader, or outside any realm). <paramref name="what" /> says it in
       ///   words, for the player and the log.
       /// </summary>
-      public void Charge(ArrestCharge charge, string what)
+      public void Charge(ArrestCharge charge, string what, bool notify = true)
       {
          try
          {
+            // MCM, off by default: nothing new is opened; a case already open still takes its charges.
+            if (!ModSettings.EnableArrests && Case.Stage == ArrestStage.None) return;
+
             Hero liege = Clan.PlayerClan?.Kingdom?.Leader;
             bool canBeArrested = ArrestPolicy.CanBeArrested(Standing()) && liege != null && liege != Hero.MainHero;
             bool wasOpen = Case.Stage != ArrestStage.None;
@@ -195,7 +209,8 @@ namespace CalradiaRemembers.Arrests
 
             if (!wasOpen && Case.Stage == ArrestStage.WarrantOut)
             {
-               MBInformationManager.AddQuickInformation(new TextObject($"Word reaches you: {liege.Name} has issued a warrant for your arrest, for {what}."));
+               if (notify)
+                  MBInformationManager.AddQuickInformation(new TextObject($"Word reaches you: {liege.Name} has issued a warrant for your arrest, for {what}."));
                ModLog.Info($"[ARREST] warrant in {liege.Name}'s name: {charge} ({what}).");
             }
             else

@@ -4,6 +4,33 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.5.27.. unreleased
 
+### Added
+- **Arrests in the King's name, trials, outlaws and brigands** (Gabriel's design, 26/09/2026; MCM "Arrests and
+  outlaws", OFF by default; never a kingdom's ruler).
+  - A vassal or mercenary who does something grave (a letter of theirs read as treason by a lord of their realm,
+    violence against a member of their realm, the game's crime rating turning severe there) gets a warrant in their
+    liege's name (`ArrestPolicy`, `ArrestCase`, `ArrestBehavior`, save key `CR_ArrestCase_v1bytes`).
+  - Sergeants in the liege's colours ride from the nearest town of the realm and read the warrant: surrender, or refuse.
+  - Surrender: the player alone is put in the liege's nearest cells, and tried by a COUNCIL over the captivity
+    (`CouncilScope.Trial`, the one council captivity does not block): the liege presides with the vassals who hate the
+    player most, wherever they are; the prompt makes the table the player's judges (SDK); the verdict is a new council
+    motion (`ResolutionKind.Verdict`) applied at the lift. Acquitted, every charge is wiped; convicted, prison for a
+    term the charges set, then release. A trial that rose without a verdict is decided by the bench's regard
+    (`TrialVerdictPolicy`), so closing the window is no escape. Ransom offers are suppressed while the law holds the
+    player; an escape is a flight.
+  - Flight (refusing, beating off the sergeants, breaking out): the player leaves the kingdom (a mercenary the
+    contract), a price is put on their head, and the realm's crime rating passes the game's own war threshold, so the
+    game itself makes war on the now independent clan (`OutlawPolicy`).
+  - Brigandage: attacking a caravan, a merchant ship or a fishing boat in peace outlaws the player; a merchant's sender
+    and receiver both put a price on their head, a fishing boat only its owner (`BrigandagePatch`, a Harmony hook on the
+    game's own hostile-act core).
+  - Bounty hunters engage the player (in the realm's colours against an independent clan, under an outlaw clan
+    against a sworn vassal). Taken, the player is handed to the sovereign who wanted them and tried by that realm.
+    Each realm may declare a rare amnesty (1% a week): bounty lifted, crime cleared, war ended, outlaw pardoned.
+  - The council's reply ceiling rises from 1500 to 3000 tokens (a reasoning model starved it, as it did the envoy).
+  - `cr.testall`: `arrest_warrant_and_bench`, `brigandage_patch_attached`. The trial over a settlement captivity, the
+    hunters and the handover have NOT been run in game.
+
 ### Changed
 - **Letters lost on the road: resent until they arrive, and an intercepted secret travels in the world.**
   raphareish (Nexus, 24/09/2026) asked whether a sender knows their letter was intercepted: asked about it, they said
