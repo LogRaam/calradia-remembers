@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 424 types in 55 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 426 types in 55 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 796 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
@@ -405,12 +405,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyCultureLoader` | public static class | Loads and caches jealousy_cultures.json from the mod's ModuleData folder, keyed by culture display name ("Khuzait", "Battania", …) to match Mapping.CulturalTraditionsLoader and stay interoperable with conversion mods. |
 | `JealousyCultureProfile` | public class | The on-disk shape of a culture's stance on romantic exclusivity, deserialized from jealousy_cultures.json. |
 
-### CalradiaRemembers.Letters (22)
+### CalradiaRemembers.Letters (24)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CaptiveEncounterService` | public static class | Sprint 17 — Captive Encounter System. |
+| `CarriedSecret` | public class | An intercepted letter, and where it is now. |
 | `CorrespondenceSignalService` | public static class | Applies a stated CorrespondencePreference to an NPC's running correspondence-interest dampers, in memory only. |
+| `CourierSecretBehavior` | public class | Follows intercepted letters from their captors to whoever ends up reading them. |
 | `CourierService` | public static class | Spawns and manages the visible courier party that carries a PlayerLetter from the player to its recipient. |
 | `CourierSpeedPatch` | public static class | Guarantees a minimum map speed for parties this mod identifies as couriers, so they are not slowed to a crawl (and starved) by the engine's terrain/night/size penalties on small custom parties. |
 | `HeroProximity` | public static class | One authoritative answer to "is this NPC effectively beside the player right now?" (delegates to PlayerPresenceResolver). |

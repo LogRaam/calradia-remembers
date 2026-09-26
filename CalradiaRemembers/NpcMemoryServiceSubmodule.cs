@@ -278,6 +278,9 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new FiefAudienceBehavior());
          // Prisoner exchange (fkasad, 25/09/2026): the envoy that replaced the PrisonerOffer letter.
          campaignStarter.AddBehavior(new Letters.PrisonerEnvoyBehavior());
+         // Courier secrets (raphareish, 24/09/2026; Gabriel): an intercepted letter travels with its captors to whoever
+         // beats them, and up to the lord who answers for that troop.
+         campaignStarter.AddBehavior(new Letters.CourierSecretBehavior());
          // War-weariness: wounds and captures accrue a toll on each companion (a SEPARATE axis from happiness);
          // rest eases it; a spent veteran asks for an honorable retirement — a landless one leaves, a landed one
          // (governor / party-leader) steps back from the field but stays in the clan. Pure model in Logic.

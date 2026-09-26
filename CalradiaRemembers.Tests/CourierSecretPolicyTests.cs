@@ -172,6 +172,26 @@ namespace CalradiaRemembers.Tests
                             .Should().EndWith("; I sent the letter again.");
       }
 
+      // ── What the reader remembers ──────────────────────────────────────────
+
+      // The lord who ends up with the letter knows whose it was, to whom, and what it said, so they can act on it.
+      [Test]
+      public void GIVEN_a_lord_comes_by_an_intercepted_letter_WHEN_they_remember_it_THEN_they_know_who_wrote_it_to_whom_and_what()
+      {
+         CourierSecretPolicy.ReaderMemory("Arwa", "Derthert", Substantive)
+                            .Should().Be($"A letter Arwa wrote to Derthert, taken from a courier on the road, came into my hands. It read: \"{Substantive}\"");
+      }
+
+      // A long letter is quoted, not copied whole into the reader's memory.
+      [Test]
+      public void GIVEN_a_long_letter_WHEN_its_reader_remembers_it_THEN_the_quote_is_cut()
+      {
+         string memory = CourierSecretPolicy.ReaderMemory("Arwa", "Derthert", new string('a', 1000));
+
+         memory.Should().EndWith("...\"");
+         memory.Length.Should().BeLessThan(CourierSecretPolicy.ReaderExcerptMaxChars + 150);
+      }
+
       // ── How long a secret matters ──────────────────────────────────────────
 
       // Gabriel: limited in time. Within its shelf life a secret still has weight...

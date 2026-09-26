@@ -1317,6 +1317,14 @@ namespace CalradiaRemembers.Letters
 
          MBInformationManager.AddQuickInformation(new TextObject(
             $"A courier from {reply.SenderName} {HowLost(loss)}. " + (resent ? $"{reply.SenderName} sends the letter again." : "Their letter is lost.")));
+
+         // Courier Inc 4a: what it said now travels with whoever took it.
+         if (CourierSecretPolicy.BecomesSecret(loss, reply.Content))
+            CourierSecretBehavior.Instance?.Capture(new CarriedSecret {
+               SenderId = profile.Id, SenderName = reply.SenderName ?? profile.Name,
+               RecipientId = Hero.MainHero?.StringId, RecipientName = Hero.MainHero?.Name?.ToString(),
+               Content = reply.Content, FromPlayer = false
+            }, destroyer, loss);
          ModLog.Info($"[COURIER-REPLY] destroyed ({(byBandit ? "waylaid" : "non-bandit")}): reply from {reply.SenderName} lost.");
 
          return true;
@@ -1342,8 +1350,14 @@ namespace CalradiaRemembers.Letters
          // could decline. The lost letter stays as history; a fresh one carries the same text.
          ResendAutomatically(store, profile, forward, loss);
 
-         // Intercepted-letter-leak Inc 1: a bandit waylay may spill a substantive letter's contents to a hostile hand.
-         TryLeakLostLetter(store, forward, byBandit);
+         // Courier Inc 4a (Gabriel, 26/09/2026): an intercepted letter with substance becomes a secret carried in the
+         // world (CourierSecretBehavior), replacing the old instant leak to an antagonist picked by a roll.
+         if (CourierSecretPolicy.BecomesSecret(loss, forward.Content))
+            CourierSecretBehavior.Instance?.Capture(new CarriedSecret {
+               SenderId = Hero.MainHero?.StringId, SenderName = Hero.MainHero?.Name?.ToString(),
+               RecipientId = forward.RecipientId, RecipientName = forward.RecipientName,
+               Content = forward.Content, FromPlayer = true
+            }, destroyer, loss);
 
          return true;
       }

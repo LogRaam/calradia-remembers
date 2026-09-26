@@ -153,6 +153,24 @@ namespace CalradiaRemembers.Logic
          return resent ? $"{what}; I sent the letter again." : $"{what}.";
       }
 
+      /// <summary>TUNE: the most of an intercepted letter a reader's memory quotes.</summary>
+      public const int ReaderExcerptMaxChars = 400;
+
+      /// <summary>
+      ///   What the lord who ends up with an intercepted letter remembers: whose letter to whom, how it came to them,
+      ///   and what it said, quoted (cut at <see cref="ReaderExcerptMaxChars" />). The quote is what lets them act on
+      ///   it later, in their own words, rather than on a vague "a letter was found".
+      /// </summary>
+      public static string ReaderMemory(string senderName, string recipientName, string content)
+      {
+         string sender = string.IsNullOrWhiteSpace(senderName) ? "someone" : senderName.Trim();
+         string recipient = string.IsNullOrWhiteSpace(recipientName) ? "another" : recipientName.Trim();
+         string text = (content ?? "").Trim().Replace('\r', ' ').Replace('\n', ' ');
+         if (text.Length > ReaderExcerptMaxChars) text = text.Substring(0, ReaderExcerptMaxChars).TrimEnd() + "...";
+
+         return $"A letter {sender} wrote to {recipient}, taken from a courier on the road, came into my hands. It read: \"{text}\"";
+      }
+
       /// <summary>True once a secret captured on <paramref name="capturedDay" /> is past its shelf life.</summary>
       public static bool IsStale(int capturedDay, int today) => today - capturedDay >= SecretShelfLifeDays;
 
