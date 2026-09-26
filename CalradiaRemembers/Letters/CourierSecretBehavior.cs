@@ -13,7 +13,8 @@
 //
 // Every decision is CourierSecretPolicy's (pure, tested); this is the engine half: reading parties, following the
 // carrier, and filing what the lord who ends up with it now knows. What that lord then DOES about it, in proportion to
-// what the letter says, is increment 4b. Additive save key.
+// what the letter says (increment 4b), is SecretReactionPolicy's, on one word the model gives from the reader's side.
+// Additive save key.
 
 #region
 
@@ -21,11 +22,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Chat;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
+using NpcMemoryService.Core.LlmClient;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -312,7 +319,7 @@ namespace CalradiaRemembers.Letters
 
       /// <summary>
       ///   A lord now holds the letter: they remember whose it was, to whom, and what it said, and word of it gets about.
-      ///   What they then do about it, in proportion to what it said, is increment 4b.
+      ///   Then they act on it, in proportion to what it said (JudgeAndReactAsync).
       /// </summary>
       private static void Learn(CarriedSecret secret, Hero reader)
       {
@@ -345,11 +352,113 @@ namespace CalradiaRemembers.Letters
             });
 
             ModLog.Info($"[SECRET] {reader.Name} now knows what {secret.SenderName} wrote to {secret.RecipientName}.");
+
+            _ = JudgeAndReactAsync(secret, reader.StringId);
          }
          catch (Exception ex)
          {
             ModLog.Error($"[SECRET] learning failed: {ex.GetType().Name}: {ex.Message}");
          }
+      }
+
+      /// <summary>
+      ///   Courier Inc 4b (Gabriel, 26/09/2026: an action "in proportion to the secret"). The model reads the letter as
+      ///   the reader and names in one word how it touches them; SecretReactionPolicy turns that into a grudge against
+      ///   its author, the player's renown, and, for a plot the player wrote, a letter confronting them. A failed or
+      ///   garbled call reads as Nothing: the player is never punished for a reply nobody could read.
+      /// </summary>
+      private static async Task JudgeAndReactAsync(CarriedSecret secret, string readerId)
+      {
+         try
+         {
+            NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+            ILlmClient client = behavior?.LlmServices?.HousekeepingClient;
+            Hero reader = Hero.FindFirst(h => h != null && h.StringId == readerId);
+            if (client == null || reader == null) return;
+
+            string liege = reader.MapFaction?.Leader != null && reader.MapFaction.Leader != reader ? reader.MapFaction.Leader.Name.ToString() : null;
+            string prompt = SeverityPrompt(reader.Name.ToString(), liege, secret);
+
+            string answer = null;
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+            {
+               var request = new LlmRequest {
+                  SystemPrompt = prompt,
+                  Messages = new[] {new LlmMessage(MessageRole.User, "One word.")},
+                  Parameters = new LlmParameters {MaxTokens = 3000, Creativity = 0.1f} // a ceiling: reasoning models think first
+               };
+               LlmResponse resp = await Task.Run(() => client.CompleteAsync(request, cts.Token)).ConfigureAwait(false);
+               if (resp is {IsSuccess: true}) answer = resp.Content;
+            }
+
+            await MainThreadDispatcher.SwitchToMainThread();
+
+            SecretSeverity severity = SecretReactionPolicy.Parse(answer);
+            ModLog.Info($"[SECRET] {reader.Name} reads {secret.SenderName}'s letter as {severity} (\"{answer?.Trim()}\").");
+            React(secret, reader, severity);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SECRET] judging the letter failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>The one-word question, asked from the reader's side.</summary>
+      private static string SeverityPrompt(string readerName, string liegeName, CarriedSecret secret)
+      {
+         var sb = new StringBuilder();
+         sb.AppendLine($"You are {readerName}. A letter {secret.SenderName} wrote to {secret.RecipientName}, taken from a courier on the road, has come into your hands. It reads:");
+         sb.AppendLine($"\"{secret.Content}\"");
+         sb.AppendLine();
+         sb.AppendLine($"How does this letter touch you, your house{(liegeName == null ? "" : $", or your liege {liegeName}")}? Answer with exactly one word:");
+         sb.AppendLine("NOTHING (it does not concern you)");
+         sb.AppendLine("EMBARRASSING (good gossip, but no harm to you)");
+         sb.AppendLine("AGAINST (it works against your interests or your house)");
+         sb.AppendLine("TREASON (it plots against you or your liege)");
+
+         return sb.ToString();
+      }
+
+      /// <summary>Applies SecretReactionPolicy's reaction on the game thread. Never throws.</summary>
+      internal static void React(CarriedSecret secret, Hero reader, SecretSeverity severity)
+      {
+         try
+         {
+            Hero author = secret.FromPlayer ? Hero.MainHero : Hero.FindFirst(h => h != null && h.StringId == secret.SenderId);
+            if (reader == null || author == null || author == reader) return;
+
+            int today = Today;
+            bool alreadyHeld = GrudgeBehavior.Instance?.LiveGrudgesFor(reader, today)?.Any(g => g.TargetId == author.StringId) ?? false;
+            SecretReaction reaction = SecretReactionPolicy.For(severity, secret.FromPlayer, alreadyHeld);
+
+            if (reaction.GrudgeMagnitude > 0)
+               GrudgeBehavior.Instance?.TryPlant(reader, author, GrudgeSource.LeakedLetter,
+                  severity == SecretSeverity.Treason
+                     ? $"Read a letter {author.Name} wrote to {secret.RecipientName}, taken on the road: it plotted against me or my liege."
+                     : $"Read a letter {author.Name} wrote to {secret.RecipientName}, taken on the road: it worked against me.",
+                  reaction.GrudgeMagnitude, knownToPlayer: secret.FromPlayer, today);
+
+            if (reaction.PlayerRenownPenalty > 0 && Hero.MainHero?.Clan != null)
+               GameState.RenownPenalty.Apply(Hero.MainHero, reaction.PlayerRenownPenalty);
+
+            if (reaction.ConfrontsPlayerByLetter) ConfrontPlayer(secret, reader, today);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SECRET] reaction failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>The reader writes to the player about the plot they read, grounded in its real words.</summary>
+      private static void ConfrontPlayer(CarriedSecret secret, Hero reader, int today)
+      {
+         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         if (behavior?.LlmServices == null || behavior.Store == null) return;
+
+         NpcProfile profile = behavior.Store.Get(reader.StringId) ?? HeroProfileMapper.FromHero(reader);
+         string context = $"A private letter the player sent to {secret.RecipientName} was taken from its courier on the road and came into your hands. "
+                          + $"It plots against you or your liege. It read: \"{secret.Content}\"";
+         LetterGenerationService.QueueInitialLetter(profile, reader, LetterReason.LeakedCorrespondence, context, behavior.LlmServices, behavior.Store, today);
       }
 
       #endregion

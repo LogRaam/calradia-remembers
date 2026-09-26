@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 426 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 796 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 799 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -751,7 +751,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (501)
+### CalradiaRemembers.Logic (504)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1188,6 +1188,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SecretLoverAdmissionPolicy` | public static class | Decides whether the player admitting a secret-lover bond to a given NPC reveals anything, and about whom. |
 | `SecretLoverLeakPolicy` | public static class | Gates when the EXISTENCE of a secret lover may begin to leak: after a delay, once, never before. |
 | `SecretPropagationPolicy` | public static class | The numeric contract for how a held secret-lover identity trickles from a knowing lord to his friends. |
+| `SecretReaction` | public class | What the reader does about it. |
+| `SecretReactionPolicy` | public static class | From the model's one-word reading to a severity, and from a severity to a reaction. |
+| `SecretSeverity` | public enum | How an intercepted letter touches the lord who read it. |
 | `SeductionDifficulty` | public enum | How narrowly a seduction cleared its bar. |
 | `SeductionEligibilityPolicy` | public static class | Decides whether a married NPC is seducible by the player: the first gate of the Stolen Love pillar. |
 | `SeductionFacts` | public class | Everything needed to judge whether a married NPC can be seduced by the player. |
