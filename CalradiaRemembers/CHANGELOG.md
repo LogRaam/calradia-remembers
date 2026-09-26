@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.5.25.. unreleased
+## v2.5.25.. 2026-09-26
 
 ### Fixed
 - **The envoy, from fkasad's first audiences (Nexus, 26/09/2026).**
