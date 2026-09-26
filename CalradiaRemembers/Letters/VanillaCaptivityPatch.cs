@@ -61,6 +61,15 @@ namespace CalradiaRemembers.Letters
          if (string.IsNullOrEmpty(menuId)) return true;
          if (!EscapeMenus.Contains(menuId) && !RansomMenus.Contains(menuId)) return true;
 
+         // Arrests (26/09/2026): a player held for trial, or serving a sentence, is never ransomed free by the captor.
+         // An escape stays the engine's own, and counts as a flight (ArrestBehavior).
+         if (RansomMenus.Contains(menuId) && Arrests.ArrestBehavior.Instance?.HoldsPlayer == true)
+         {
+            ModLog.Info($"[ARREST] vanilla ransom offer '{menuId}' suppressed: the player is held by the law.");
+
+            return false;
+         }
+
          // Only extend captivity where CR captive scenes can actually use the extra time.
          if (ModSettings.AdultContentLevel != AdultContentLevel.Hardcore) return true;
 

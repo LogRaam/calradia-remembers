@@ -242,6 +242,23 @@ namespace CalradiaRemembers.Tests
          c.Charges.Should().BeEmpty();
       }
 
+      // A prisoner who breaks out, awaiting trial or serving the sentence, has fled: an outlaw with a bounty.
+      [TestCase(false)]
+      [TestCase(true)]
+      public void GIVEN_a_held_player_WHEN_they_escape_THEN_they_are_an_outlaw_with_the_flight_charged(bool convictedFirst)
+      {
+         var c = new ArrestCase();
+         c.Charge(ArrestCharge.RobbedRealmMember, "king", true);
+         c.Taken();
+         if (convictedFirst) c.Verdict(true, 100);
+
+         c.Escape();
+
+         c.Stage.Should().Be(ArrestStage.Outlaw);
+         c.BountyOnHead.Should().BeTrue();
+         c.Charges.Should().Contain(ArrestCharge.FledArrest);
+      }
+
       // Steps out of order change nothing: no trial without a taking, no flight from a trial.
       [Test]
       public void GIVEN_a_step_out_of_order_WHEN_applied_THEN_the_case_is_unchanged()

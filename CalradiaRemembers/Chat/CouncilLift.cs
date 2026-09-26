@@ -94,6 +94,26 @@ namespace CalradiaRemembers.Chat
 
       #region private
 
+      /// <summary>
+      ///   A trial's verdict (arrests, 26/09/2026): read by TrialVerdictPolicy and handed to the player's case, which
+      ///   frees the player or sends them to serve the sentence. Applied at the lift, as every council decision is.
+      /// </summary>
+      private static void SettleVerdict(AssemblyLedger ledger, AssemblyResolutionEntry entry, Action<string, bool> report)
+      {
+         bool convicted = TrialVerdictPolicy.IsConviction(entry.Detail);
+         bool applied = Arrests.ArrestBehavior.Instance?.ApplyVerdict(convicted) == true;
+
+         if (!applied)
+         {
+            ledger.MarkFailed(entry.Id, "there is no trial awaiting a verdict");
+
+            return;
+         }
+
+         ledger.MarkApplied(entry.Id);
+         report?.Invoke(convicted ? "The council finds you guilty." : "The council acquits you.", !convicted);
+      }
+
       private static void Settle(AssemblyLedger ledger, AssemblyResolutionEntry entry, CouncilScope scope, NpcMemoryCampaignBehavior behavior, int gameDay, Action<string, bool> report, string parleyTargetFactionId = null)
       {
          // Faction-centric kinds (declare_war and its symmetric counterpart make_peace, ResolutionCatalog.IsFactionCentric)
@@ -103,9 +123,11 @@ namespace CalradiaRemembers.Chat
          // here would wrongly block a table decision that was never actually about them (e.g. a proposer who has
          // since left the roster must not sink a war, or a peace, the rest of the table still agreed to).
          // SettleDeclareWar/SettleMakePeace re-validate the actual subject of the pledge instead: the FACTIONS.
-         if (ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind peekedKind) && ResolutionCatalog.IsFactionCentric(peekedKind))
+         if (ResolutionCatalog.TryParseKey(entry.Kind, out ResolutionKind peekedKind) && ResolutionCatalog.HasNoSeatedActor(peekedKind))
          {
-            if (peekedKind == ResolutionKind.MakePeace)
+            if (peekedKind == ResolutionKind.Verdict)
+               SettleVerdict(ledger, entry, report);
+            else if (peekedKind == ResolutionKind.MakePeace)
                SettleMakePeace(ledger, entry, report, parleyTargetFactionId);
             else
                SettleDeclareWar(ledger, entry, report);

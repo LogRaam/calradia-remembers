@@ -98,7 +98,7 @@ namespace CalradiaRemembers.Chat
          if (behavior == null) return "No campaign is running.";
          if (Mission.Current != null) return "You cannot convene in the middle of a scene.";
 
-         string blocked = ChatManager.PreCouncilBlockReason();
+         string blocked = ChatManager.PreCouncilBlockReason(scope == CouncilScope.Trial);
          if (blocked != null) return blocked;
 
          List<Hero> seated = CouncilAttendanceResolver.SeatedInPersonHeroes(scope, parleyTargetFactionId);
@@ -106,7 +106,8 @@ namespace CalradiaRemembers.Chat
          if (seated.Count == 0)
             return $"Nobody is seated for a {scope} council right now (nobody available, or nobody of that house).";
 
-         Hero anchor = ResolveAnchor(seated, behavior);
+         // A trial is presided by the liege, the bench's first seat.
+         Hero anchor = scope == CouncilScope.Trial ? seated[0] : ResolveAnchor(seated, behavior);
 
          if (anchor == null) return "Could not seat an anchor for the council.";
 
@@ -183,7 +184,9 @@ namespace CalradiaRemembers.Chat
          var pending = new Pending {Scope = scope, ParleyTargetFactionId = parleyTargetFactionId};
 
          CharacterObject partner = anchor?.CharacterObject;
-         PartyBase partnerParty = anchor?.PartyBelongedTo?.Party;
+         // A trial is held for a captive player, like a captor's summons: the scene attaches to no field party (the
+         // liege may be anywhere; the accused is in his cells), exactly as a captive encounter does for a settlement captor.
+         PartyBase partnerParty = scope == CouncilScope.Trial ? null : anchor?.PartyBelongedTo?.Party;
 
          if (partner == null || Campaign.Current?.ConversationManager == null)
          {

@@ -64,7 +64,9 @@ namespace CalradiaRemembers.Chat
             // actor still refuses exactly like every other kind.
             bool isDeclareWar = string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DeclareWar), StringComparison.OrdinalIgnoreCase);
             bool isMakePeace = string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.MakePeace), StringComparison.OrdinalIgnoreCase);
-            int idx = isDeclareWar
+            // A trial's verdict is the bench's own, like a faction-centric decision: an omitted actor is the presiding lord.
+            bool isVerdict = string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.Verdict), StringComparison.OrdinalIgnoreCase);
+            int idx = isDeclareWar || isVerdict
                ? CouncilActorPolicy.ResolveDeclareWarActor(proposal.Actor, names)
                : isMakePeace
                   ? CouncilActorPolicy.ResolveMakePeaceActor(proposal.Actor, names)

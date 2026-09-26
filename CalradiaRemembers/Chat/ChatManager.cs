@@ -883,7 +883,7 @@ namespace CalradiaRemembers.Chat
 
          if (behavior == null) return "No campaign is running.";
 
-         string blocked = CouncilOpenBlockedReason(allowInScene);
+         string blocked = CouncilOpenBlockedReason(allowInScene, scope == CouncilScope.Trial);
          if (blocked != null) return blocked;
 
          List<Hero> seated = CouncilAttendanceResolver.SeatedInPersonHeroes(scope, parleyTargetFactionId);
@@ -916,7 +916,8 @@ namespace CalradiaRemembers.Chat
          var facts = seated
                     .Select(h => new CouncilSeatFacts(h.StringId, behavior.Store.Get(h.StringId)?.ReputationWithPlayer ?? 0))
                     .ToList();
-         int anchorIndex = CouncilAnchorPolicy.SelectAnchor(facts);
+         // A trial is presided by the liege, the bench's first seat; every other council picks its anchor by regard.
+         int anchorIndex = scope == CouncilScope.Trial ? 0 : CouncilAnchorPolicy.SelectAnchor(facts);
 
          if (anchorIndex < 0) return "Could not seat an anchor for the council.";
          Hero anchor = seated[anchorIndex];
@@ -987,11 +988,11 @@ namespace CalradiaRemembers.Chat
       ///   mission scene. <paramref name="allowInScene" /> is true only for the settlement-hosted council,
       ///   which is opened FROM inside its own Location mission on purpose.
       /// </summary>
-      private static string CouncilOpenBlockedReason(bool allowInScene)
+      private static string CouncilOpenBlockedReason(bool allowInScene, bool isTrial = false)
       {
          bool inScene = !allowInScene && Mission.Current != null;
 
-         switch (CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = IsOpen, PlayerIsPrisoner = Hero.MainHero?.IsPrisoner == true, InMissionScene = inScene}))
+         switch (CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = IsOpen, PlayerIsPrisoner = Hero.MainHero?.IsPrisoner == true, InMissionScene = inScene, IsTrial = isTrial}))
          {
             case CouncilAccessBlock.ChatAlreadyOpen: return "A conversation is already open. Close it before convening.";
             case CouncilAccessBlock.PlayerCaptive:   return "You cannot convene while you are held captive.";
@@ -1006,9 +1007,9 @@ namespace CalradiaRemembers.Chat
       ///   the scene check would tell nothing useful, and checking it here would need a second, separate call
       ///   once the mission is up anyway. Null when clear to proceed.
       /// </summary>
-      public static string PreCouncilBlockReason()
+      public static string PreCouncilBlockReason(bool isTrial = false)
       {
-         switch (CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = IsOpen, PlayerIsPrisoner = Hero.MainHero?.IsPrisoner == true, InMissionScene = false}))
+         switch (CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = IsOpen, PlayerIsPrisoner = Hero.MainHero?.IsPrisoner == true, InMissionScene = false, IsTrial = isTrial}))
          {
             case CouncilAccessBlock.ChatAlreadyOpen: return "A conversation is already open. Close it before convening.";
             case CouncilAccessBlock.PlayerCaptive:   return "You cannot convene while you are held captive.";
@@ -1025,6 +1026,7 @@ namespace CalradiaRemembers.Chat
             CouncilScope.WarCouncil => "an allied lord seated at this war council",
             CouncilScope.Parley => "the enemy leader this parley was sought with",
             CouncilScope.Party => "one riding with the player, seated at this council",
+            CouncilScope.Trial => "a lord of the realm, sitting in judgement of the player",
             _ => "a companion in the player's service, seated at this council"
          };
 

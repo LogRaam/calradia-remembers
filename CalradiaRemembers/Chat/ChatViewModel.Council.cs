@@ -894,6 +894,7 @@ namespace CalradiaRemembers.Chat
          CouncilScope.Family => CouncilSceneKind.Family,
          CouncilScope.WarCouncil => CouncilSceneKind.War,
          CouncilScope.Parley => CouncilSceneKind.War,
+         CouncilScope.Trial => CouncilSceneKind.War,
          CouncilScope.Assembly => CouncilSceneKind.Assembly,
          _ => CouncilSceneKind.Generic
       };
@@ -1067,7 +1068,9 @@ namespace CalradiaRemembers.Chat
                Messages = new[] {new LlmMessage(MessageRole.User, isOpener ? "(The council convenes; open the sitting.)" : playerMessage)},
                // A multi-speaker scene needs headroom for every member's full turn plus the resolution blocks;
                // council prose runs warm like an ordinary scene, not the interpreter's cold extraction.
-               Parameters = new LlmParameters {MaxTokens = 1500, Creativity = 0.8f}
+               // 3000, the chat's own ceiling (was 1500): a reasoning model spends much of a small budget thinking
+               // and the table then says nothing, the envoy's own failure (fkasad, 26/09/2026). A ceiling, not a target.
+               Parameters = new LlmParameters {MaxTokens = 3000, Creativity = 0.8f}
             };
 
             string raw = null;
@@ -1226,8 +1229,19 @@ namespace CalradiaRemembers.Chat
             Season = bridge?.GetSeasonName(),
             Place = Hero.MainHero?.CurrentSettlement?.Name?.ToString(),
             TranscriptSoFar = CouncilTranscriptLines(),
-            OfferedResolutionKinds = CurrentOfferedResolutionKinds()
+            OfferedResolutionKinds = CurrentOfferedResolutionKinds(),
+            TrialCharges = _councilScope == CouncilScope.Trial ? Logic.ArrestPolicy.Describe(Arrests.ArrestBehavior.Instance?.Case?.Charges) : null,
+            TrialPresiding = _councilScope == CouncilScope.Trial ? TrialPresidingName() : null
          };
+      }
+
+      /// <summary>The liege who presides over the player's trial, by name, or a neutral stand-in.</summary>
+      private static string TrialPresidingName()
+      {
+         string liegeId = Arrests.ArrestBehavior.Instance?.Case?.LiegeId;
+         Hero liege = string.IsNullOrEmpty(liegeId) ? null : Hero.FindFirst(h => h != null && h.StringId == liegeId);
+
+         return liege?.Name?.ToString() ?? "the presiding lord";
       }
 
       /// <summary>The recent conversation as Discord-style "Name: line" strings (the player is "You"), bounded to the last several turns to keep the prompt lean.</summary>

@@ -15,14 +15,26 @@
 // taken to the liege for trial; refuse, and be named an outlaw. Fighting them off is refusing. Like the couriers, the
 // sergeants are never saved: they are despawned before a save and ride out again after a load. What surrender and
 // refusal then set in motion (the trial, the outlaw) is Inc 4 and 5. Additive save key.
+//
+// Inc 4, the trial (Gabriel: captive, then judged; "le joueur doit sentir qu'il confronte une assemblee"): once the
+// player is in the liege's cells, the TRIAL council is convened over the captivity (CouncilScope.Trial, the one sitting
+// captivity does not block), seating the liege and the vassals who hate the player most. Its verdict is applied at the
+// lift (CouncilLift.SettleVerdict -> ApplyVerdict): acquitted, the charges are wiped and the player walks free; convicted,
+// the player serves ArrestPolicy.PrisonDays in those cells and is released when they run out. A council that rose
+// without a verdict (the window closed, a save interrupted it) is judged by the bench's regard
+// (TrialVerdictPolicy.DefaultConviction), so closing the window is no escape. Breaking out is: an escape is a flight.
 
 #region
 
 using System;
 using System.Linq;
 using System.Text;
+using System.Collections.Generic;
+using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Travel;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
@@ -32,6 +44,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
+using TaleWorlds.MountAndBlade;
 
 #endregion
 
@@ -59,6 +72,9 @@ namespace CalradiaRemembers.Arrests
       private string _sergeantsId;
       private bool _despawning;
 
+      // Set while the law itself frees the player, so the release is not mistaken for an escape.
+      private bool _freeing;
+
       public ArrestBehavior()
       {
          Instance = this;
@@ -66,6 +82,63 @@ namespace CalradiaRemembers.Arrests
 
       /// <summary>The player's case as it stands.</summary>
       internal ArrestCase Case => _state.Case;
+
+      /// <summary>True while the law holds the player: awaiting trial, or serving the sentence.</summary>
+      internal bool HoldsPlayer => Case.Stage == ArrestStage.OnTrial || Case.Stage == ArrestStage.Imprisoned;
+
+      /// <summary>
+      ///   The trial's bench: the liege first (who presides), then the vassals of the realm who regard the player worst
+      ///   on the mod's own ledger (ArrestPolicy.CouncilSeats), wherever they are. Empty with no liege.
+      /// </summary>
+      internal List<Hero> TrialBench()
+      {
+         var bench = new List<Hero>();
+         Hero liege = Liege();
+         if (liege == null) return bench;
+
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         IEnumerable<CouncilCandidate> vassals = (liege.Clan?.Kingdom?.Clans ?? Enumerable.Empty<Clan>())
+                                                 .Where(c => c != null && c != liege.Clan && c != Clan.PlayerClan && !c.IsEliminated)
+                                                 .Select(c => c.Leader)
+                                                 .Where(h => h is {IsAlive: true, IsPrisoner: false} && h != Hero.MainHero)
+                                                 .Select(h => new CouncilCandidate {HeroId = h.StringId, RegardForPlayer = store?.Get(h.StringId)?.ReputationWithPlayer ?? 0});
+
+         foreach (string id in ArrestPolicy.CouncilSeats(liege.StringId, vassals, Hero.MainHero?.StringId))
+         {
+            Hero h = Hero.FindFirst(x => x != null && x.StringId == id);
+            if (h != null) bench.Add(h);
+         }
+
+         return bench;
+      }
+
+      /// <summary>
+      ///   The council's verdict, applied at its lift. Acquitted: the charges are wiped and the player walks free.
+      ///   Convicted: they serve the sentence in the same cells. False when no trial awaits a verdict.
+      /// </summary>
+      internal bool ApplyVerdict(bool convicted)
+      {
+         if (Case.Stage != ArrestStage.OnTrial) return false;
+
+         Hero liege = Liege();
+         Settlement prison = Prison();
+         Case.Verdict(convicted, Today);
+
+         if (!convicted)
+         {
+            FreePlayer(liege);
+            MBInformationManager.AddQuickInformation(new TextObject("The council acquits you. The charges are dropped, and you walk free."));
+            ModLog.Info("[ARREST] the council acquits the player; the charges are wiped.");
+
+            return true;
+         }
+
+         int days = Case.ReleaseDay - Today;
+         MBInformationManager.AddQuickInformation(new TextObject($"The council finds you guilty. You are to serve {days} days in the cells of {prison?.Name?.ToString() ?? "your liege"}."));
+         ModLog.Info($"[ARREST] the council convicts the player: {days} days, release on day {Case.ReleaseDay}.");
+
+         return true;
+      }
 
       public override void RegisterEvents()
       {
@@ -180,11 +253,21 @@ namespace CalradiaRemembers.Arrests
          }
       }
 
-      /// <summary>While a warrant is out, the sergeants ride: sent if none are on the road, and steered at the player.</summary>
+      /// <summary>
+      ///   While a warrant is out, the sergeants ride. While the law holds the player, the trial is convened, the
+      ///   sentence runs out, or an escape is noticed.
+      /// </summary>
       private void OnHourlyTick()
       {
          try
          {
+            if (HoldsPlayer)
+            {
+               TickHeld();
+
+               return;
+            }
+
             if (Case.Stage != ArrestStage.WarrantOut)
             {
                DespawnSergeants();
@@ -301,6 +384,103 @@ namespace CalradiaRemembers.Arrests
          MBInformationManager.AddQuickInformation(new TextObject("You refuse the warrant. From this day you are an outlaw, and there is a price on your head."));
          ModLog.Info("[ARREST] the player refuses the warrant: outlaw, with a bounty.");
       }
+
+      /// <summary>
+      ///   One hour of the law's hold: an escape is a flight; the trial is convened once, when the player is in the
+      ///   cells and nothing else owns the screen; a council that rose without a verdict is judged by its bench's
+      ///   regard; a served sentence ends in release.
+      /// </summary>
+      private void TickHeld()
+      {
+         if (_freeing) return;
+
+         if (!Hero.MainHero.IsPrisoner)
+         {
+            // Never put in the cells at all (no town or castle could hold them): no one to escape from, so the case
+            // is dropped rather than turned into an outlawry the player never earned.
+            if (string.IsNullOrEmpty(Case.PrisonSettlementId))
+            {
+               Case.Verdict(false, Today);
+               ModLog.Info("[ARREST] the player was never held; the case is dropped.");
+
+               return;
+            }
+
+            Case.Escape();
+            MBInformationManager.AddQuickInformation(new TextObject("You have broken out of the law's hold. From this day you are an outlaw, and there is a price on your head."));
+            ModLog.Info("[ARREST] the player escaped the law's hold: outlaw, with a bounty.");
+
+            return;
+         }
+
+         if (Case.Stage == ArrestStage.Imprisoned)
+         {
+            if (!Case.SentenceServed(Today)) return;
+
+            Hero liege = Liege();
+            Case.Release();
+            FreePlayer(liege);
+            MBInformationManager.AddQuickInformation(new TextObject("Your sentence is served. The gaolers open the door, and you are free."));
+            ModLog.Info("[ARREST] sentence served; the player is released.");
+
+            return;
+         }
+
+         // On trial. Nothing may be forced over another screen.
+         if (ChatManager.IsOpen || CouncilConversationStager.IsStaging || ChatSceneStager.IsStaging || Mission.Current != null) return;
+
+         if (Case.TrialOpened)
+         {
+            // The council was convened and has risen, and no verdict reached the case: the bench decides in the
+            // accused's absence, on its own regard. Closing the window never buys an acquittal.
+            var store = NpcMemoryCampaignBehavior.Instance?.Store;
+            List<int> regards = TrialBench().Select(h => store?.Get(h.StringId)?.ReputationWithPlayer ?? 0).ToList();
+            bool convicted = TrialVerdictPolicy.DefaultConviction(regards);
+            ModLog.Info($"[ARREST] the trial rose without a verdict; the bench decides in the player's absence: {(convicted ? "guilty" : "acquitted")}.");
+            ApplyVerdict(convicted);
+
+            return;
+         }
+
+         if (TrialBench().Count == 0)
+         {
+            // No liege to answer to any more (dead, gone): the case cannot be tried, and the player is let go.
+            ModLog.Info("[ARREST] no bench can be seated (no liege); the case is dropped.");
+            ApplyVerdict(false);
+
+            return;
+         }
+
+         Case.TrialOpened = true;
+         string result = CouncilConversationStager.StageCouncil(CouncilScope.Trial);
+         if (result == null || !result.StartsWith("Convening", StringComparison.Ordinal))
+         {
+            Case.TrialOpened = false; // refused for now (another screen, a staging in flight): try again next hour
+            ModLog.Info($"[ARREST] the trial could not be convened yet: {result}");
+
+            return;
+         }
+
+         MBInformationManager.AddQuickInformation(new TextObject($"You are brought in chains before {Liege()?.Name?.ToString() ?? "your liege"}'s council."));
+         ModLog.Info("[ARREST] the trial is convened.");
+      }
+
+      /// <summary>Ends the player's captivity at the law's own hand (acquittal, or the sentence served).</summary>
+      private void FreePlayer(Hero liege)
+      {
+         if (!Hero.MainHero.IsPrisoner) return;
+
+         _freeing = true;
+         try { EndCaptivityAction.ApplyByReleasedByChoice(Hero.MainHero, liege); }
+         catch (Exception ex) { ModLog.Error($"[ARREST] releasing the player failed: {ex.GetType().Name}: {ex.Message}"); }
+         finally { _freeing = false; }
+      }
+
+      private Hero Liege() => string.IsNullOrEmpty(Case.LiegeId) ? null : Hero.FindFirst(h => h != null && h.StringId == Case.LiegeId);
+
+      private Settlement Prison() => string.IsNullOrEmpty(Case.PrisonSettlementId) ? null : Settlement.Find(Case.PrisonSettlementId);
+
+      private static int Today => (int) CampaignTime.Now.ToDays;
 
       /// <summary>
       ///   Sends the sergeants from the liege's realm's town nearest the player (else from the liege's own position), in

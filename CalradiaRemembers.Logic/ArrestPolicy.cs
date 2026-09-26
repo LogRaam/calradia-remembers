@@ -205,6 +205,9 @@ namespace CalradiaRemembers.Logic
       /// <summary>The town or castle whose cells hold the player, from the taking to the release.</summary>
       public string PrisonSettlementId { get; set; }
 
+      /// <summary>True once the trial's council has been convened; a council that rose without a verdict is then judged by default.</summary>
+      public bool TrialOpened { get; set; }
+
       /// <summary>
       ///   A grave act. With no case open it brings a warrant in <paramref name="liegeId" />'s name; with one open, it is
       ///   one more charge on it. A player who cannot be arrested is not charged.
@@ -242,6 +245,23 @@ namespace CalradiaRemembers.Logic
 
          Stage = ArrestStage.OnTrial;
          BountyOnHead = false;
+         TrialOpened = false;
+      }
+
+      /// <summary>
+      ///   The player broke out while awaiting trial or serving the sentence: a flight like any other, so an outlaw with
+      ///   a bounty and the flight charged.
+      /// </summary>
+      public void Escape()
+      {
+         if (Stage != ArrestStage.OnTrial && Stage != ArrestStage.Imprisoned) return;
+
+         Stage = ArrestStage.Outlaw;
+         BountyOnHead = true;
+         TrialOpened = false;
+         ReleaseDay = 0;
+         PrisonSettlementId = null;
+         if (!Charges.Contains(ArrestCharge.FledArrest)) Charges.Add(ArrestCharge.FledArrest);
       }
 
       /// <summary>
@@ -280,6 +300,7 @@ namespace CalradiaRemembers.Logic
          BountyOnHead = false;
          ReleaseDay = 0;
          PrisonSettlementId = null;
+         TrialOpened = false;
       }
    }
 }

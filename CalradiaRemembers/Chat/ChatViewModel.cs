@@ -1354,6 +1354,7 @@ namespace CalradiaRemembers.Chat
             CouncilScope.WarCouncil => "War council",
             CouncilScope.Parley => "Parley",
             CouncilScope.Party => "Council of those riding with you",
+            CouncilScope.Trial => "Trial: " + Logic.ArrestPolicy.Describe(Arrests.ArrestBehavior.Instance?.Case?.Charges),
             _ => "Council of companions"
          };
          PopulateCouncilParticipants();
@@ -1411,6 +1412,12 @@ namespace CalradiaRemembers.Chat
                "word, to speak of peace. Describe the meeting settling in, briefly, then let the counterpart open: " +
                "acknowledge why they came and ask what terms the player would offer. Wary, not friendly, they did " +
                "not come to surrender, only to hear.]",
+            CouncilScope.Trial =>
+               $"[The player is brought in chains before {TrialPresidingName()}'s council, to answer for " +
+               $"{Logic.ArrestPolicy.Describe(Arrests.ArrestBehavior.Instance?.Case?.Charges)}. Describe the hall and the bench, " +
+               $"briefly, then let {TrialPresidingName()} open the trial by reading the charges, and let EACH judge speak a " +
+               "first word to the accused, as hard or as fair as their regard runs. No verdict yet: the accused has not " +
+               "been heard.]",
             CouncilScope.Party =>
                "[The player has gathered everyone riding with them: their companions, and any kin or lords " +
                "travelling in the party, are together at the player's word. Describe the camp or hall settling in, " +

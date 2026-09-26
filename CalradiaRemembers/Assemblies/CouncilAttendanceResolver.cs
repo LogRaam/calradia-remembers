@@ -116,6 +116,10 @@ namespace CalradiaRemembers.Assemblies
       /// </summary>
       public static List<Hero> SeatedInPersonHeroes(CouncilScope scope, string parleyTargetFactionId = null)
       {
+         // A trial seats the bench its case names (the liege and the vassals who hate the player most), wherever
+         // they stand: they are summoned to judge (arrests, 26/09/2026).
+         if (scope == CouncilScope.Trial) return Arrests.ArrestBehavior.Instance?.TrialBench() ?? new List<Hero>();
+
          if (scope == CouncilScope.Parley) return CouncilRosterResolver.Seated(scope, parleyTargetFactionId);
 
          return Resolve(scope, DefaultThresholdDays, parleyTargetFactionId)
