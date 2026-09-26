@@ -4,6 +4,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.5.27.. unreleased
 
+### For modders (tashmetu, Nexus, 26/09/2026)
+- **character_overrides.json can key an entry on a hero's TEMPLATE.** A mercenary captain's StringId and name are
+  rolled per campaign, so an entry keyed on them stopped matching in every new game; an entry whose `id` is the template
+  the hero spawns from (`spc_skolderbrotva_leader_0`) now applies in any campaign (`CharacterOverrideSet.Resolve`: the
+  hero's own id first, then the template, then the name).
+- **cr.lore_status lists the prompt files read from Custom**, flags any whose shipped version is newer than the
+  player's copy (a Custom copy replaces the shipped file entirely, so CR's later changes stop reaching the player), and
+  says whether world.txt is sent at all: the Compact prompt drops it.
+
 ### Added
 - **Arrests in the King's name, trials, outlaws and brigands** (Gabriel's design, 26/09/2026; MCM "Arrests and
   outlaws", OFF by default; never a kingdom's ruler).

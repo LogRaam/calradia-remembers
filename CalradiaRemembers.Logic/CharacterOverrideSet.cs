@@ -30,12 +30,15 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>
         ///   The override for a hero, or null when none applies. A matching <paramref name="heroId"/>
-        ///   (StringId) always wins — the unambiguous key. Otherwise the first case-insensitive match on
-        ///   <paramref name="heroName"/> is used, UNLESS several entries share that name and none pins an
-        ///   id: that homonym can't be told apart, so it returns null (the caller should warn the author
-        ///   to add an <c>id</c>) rather than silently apply the wrong one.
+        ///   (StringId) always wins — the unambiguous key. Next, an entry whose id is the hero's
+        ///   <paramref name="templateId"/> (tashmetu, Nexus, 26/09/2026: a mercenary captain's StringId and name are
+        ///   rolled per campaign, "CharacterObject_2526", "Yahya of the Beni Zilal", but the template he is spawned
+        ///   from, "spc_skolderbrotva_leader_0", is the same in every game, so a pack keyed on it works everywhere).
+        ///   Otherwise the first case-insensitive match on <paramref name="heroName"/> is used, UNLESS several
+        ///   entries share that name and none pins an id: that homonym can't be told apart, so it returns null (the
+        ///   caller should warn the author to add an <c>id</c>) rather than silently apply the wrong one.
         /// </summary>
-        public CharacterOverride Resolve(string heroId, string heroName)
+        public CharacterOverride Resolve(string heroId, string heroName, string templateId = null)
         {
             if (!string.IsNullOrWhiteSpace(heroId))
             {
@@ -43,6 +46,14 @@ namespace CalradiaRemembers.Logic
                     !string.IsNullOrWhiteSpace(o.Id) &&
                     string.Equals(o.Id, heroId, StringComparison.OrdinalIgnoreCase));
                 if (byId != null) return byId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(templateId))
+            {
+                CharacterOverride byTemplate = _overrides.FirstOrDefault(o =>
+                    !string.IsNullOrWhiteSpace(o.Id) &&
+                    string.Equals(o.Id, templateId, StringComparison.OrdinalIgnoreCase));
+                if (byTemplate != null) return byTemplate;
             }
 
             if (string.IsNullOrWhiteSpace(heroName)) return null;

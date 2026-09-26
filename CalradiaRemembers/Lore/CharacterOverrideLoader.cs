@@ -116,7 +116,7 @@ namespace CalradiaRemembers.Lore
       public static CharacterOverride For(Hero hero)
          => hero == null
             ? null
-            : Set.Resolve(hero.StringId, hero.Name?.ToString());
+            : Set.Resolve(hero.StringId, hero.Name?.ToString(), hero.Template?.StringId);
 
       /// <summary>
       ///   Adds (or replaces) a single override at runtime, keyed by hero id/name, without touching

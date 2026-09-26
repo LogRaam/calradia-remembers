@@ -403,6 +403,7 @@ namespace CalradiaRemembers
          sb.AppendLine($"File: {CharacterOverrideLoader.LastLoadPath}  (exists: {(CharacterOverrideLoader.LastLoadFileExisted ? "yes" : "no")})");
          sb.AppendLine($"Loaded: {CharacterOverrideLoader.LastLoadCount} override(s)");
          sb.AppendLine($"Last parse error: {CharacterOverrideLoader.LastLoadError ?? "none"}");
+         AppendCustomPromptFiles(sb);
          sb.AppendLine("Resolution:");
 
          IReadOnlyList<CharacterOverride> entries = CharacterOverrideLoader.Set?.All;
@@ -424,6 +425,7 @@ namespace CalradiaRemembers
                matched = Hero.AllAliveHeroes.Any(h =>
                   h != null &&
                   ((!string.IsNullOrWhiteSpace(entry?.Id) && string.Equals(h.StringId, entry.Id, StringComparison.OrdinalIgnoreCase)) ||
+                   (!string.IsNullOrWhiteSpace(entry?.Id) && string.Equals(h.Template?.StringId, entry.Id, StringComparison.OrdinalIgnoreCase)) ||
                    (!string.IsNullOrWhiteSpace(entry?.Hero) && string.Equals(h.Name?.ToString(), entry.Hero, StringComparison.OrdinalIgnoreCase))));
             }
             catch
@@ -433,7 +435,7 @@ namespace CalradiaRemembers
 
             sb.AppendLine(matched
                ? $"  {label} -> matched"
-               : $"  {label} -> NO MATCH (check the exact in-game name, or add an \"id\")");
+               : $"  {label} -> NO MATCH (check the exact in-game name, or add an \"id\": the hero's id, or for a hero rolled per campaign, the template it spawns from)");
 
             // A matched entry can still do nothing, and that silence is what a player reads as "my character is
             // ignored": an entry with no authored field at all, or one whose only values nothing recognizes.
@@ -447,6 +449,48 @@ namespace CalradiaRemembers
          }
 
          return sb.ToString().TrimEnd();
+      }
+
+      /// <summary>
+      ///   tashmetu (Nexus, 26/09/2026): a copy in Custom replaces the shipped file entirely, so CR's later
+      ///   improvements to it silently stop reaching the player. Lists every prompt/lore file read from Custom,
+      ///   flags a shipped file NEWER than the player's copy (CR updated it since), and says whether world.txt is
+      ///   sent at all (the Compact prompt drops it, which is where a 33 KB world.txt "went").
+      /// </summary>
+      private static void AppendCustomPromptFiles(StringBuilder sb)
+      {
+         string[] files = {
+            "world.txt", "player_description.txt", "behavior_guidelines.txt", "behavior_guidelines_gangleader.txt",
+            "behavior_guidelines_notable.txt", "behavior_guidelines_wanderer.txt", "behavior_guidelines_companion.txt",
+            "post_history_instructions.txt", "setting.json", "cultural_traditions.json", "jealousy_cultures.json",
+            "character_overrides.json"
+         };
+
+         sb.AppendLine($"Custom folder: {Mapping.NarrativeLoader.CustomBaseFolder()}");
+         var fromCustom = 0;
+         foreach (string name in files)
+         {
+            try
+            {
+               string custom = System.IO.Path.Combine(Mapping.NarrativeLoader.CustomBaseFolder(), name);
+               if (!System.IO.File.Exists(custom)) continue;
+
+               fromCustom++;
+               string shipped = System.IO.Path.Combine(Mapping.NarrativeLoader.ModuleDataFolder(), name);
+               bool newer = System.IO.File.Exists(shipped) && System.IO.File.GetLastWriteTimeUtc(shipped) > System.IO.File.GetLastWriteTimeUtc(custom);
+               sb.AppendLine($"  from Custom: {name}" + (newer ? "  (the SHIPPED file is newer than your copy: CR has changed it since)" : ""));
+            }
+            catch
+            {
+               /* diagnostic only, never throw */
+            }
+         }
+
+         if (fromCustom == 0) sb.AppendLine("  no prompt file is read from Custom (every one is the shipped version)");
+
+         sb.AppendLine(ModSettings.LeanPrompt
+            ? "world.txt in one-to-one prompts: NOT SENT (the Compact prompt drops the world narrative to save tokens)"
+            : "world.txt in one-to-one prompts: sent (and in letters, which use the same prompt; never in the council)");
       }
 
       /// <summary>

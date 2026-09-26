@@ -232,6 +232,30 @@ namespace CalradiaRemembers.Tests
             set.Resolve(heroId: "lord_1", heroName: "Derthert").Hero.Should().Be("Someone Else");
         }
 
+        // tashmetu (Nexus, 26/09/2026): a mercenary captain's id and name are rolled per campaign, but his template is
+        // not. An entry keyed on the template applies in every game, even where the rolled name matches nothing.
+        [Test]
+        public void GIVEN_an_entry_keyed_on_the_template_WHEN_a_rolled_hero_is_resolved_THEN_it_applies()
+        {
+            var set = new CharacterOverrideSet(new[] { new CharacterOverride { Id = "spc_skolderbrotva_leader_0", Valor = 2 } });
+
+            set.Resolve(heroId: "CharacterObject_2526", heroName: "Yahya of the Beni Zilal", templateId: "spc_skolderbrotva_leader_0")
+               .Should().NotBeNull();
+        }
+
+        // The hero's own id is still the unambiguous key: it wins over an entry for the template he came from.
+        [Test]
+        public void GIVEN_entries_for_both_the_hero_and_his_template_WHEN_resolving_THEN_the_heros_own_wins()
+        {
+            var set = new CharacterOverrideSet(new[]
+            {
+                new CharacterOverride { Id = "spc_skolderbrotva_leader_0", Hero = "Template entry" },
+                new CharacterOverride { Id = "CharacterObject_2526", Hero = "Hero entry" }
+            });
+
+            set.Resolve("CharacterObject_2526", "Yahya", "spc_skolderbrotva_leader_0").Hero.Should().Be("Hero entry");
+        }
+
         // Most hand-authored entries will never carry an id (the file's basic example doesn't ask for one), so
         // plain name matching has to work on its own, and case-insensitively: an author typing "derthert" for
         // "Derthert" should not silently fail to apply the override they just wrote.
