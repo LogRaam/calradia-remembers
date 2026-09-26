@@ -8,7 +8,7 @@ sentence beside each type is the first sentence of its own doc comment; `(no sum
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 422 types in 55 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 783 types in 26 namespaces, 2 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -1910,7 +1910,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpeakerScriptGuard` | public static class | Cuts turns a reply wrote for OTHER people out of it. |
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
 
-### NpcMemoryService.Core.Prompts (27)
+### NpcMemoryService.Core.Prompts (29)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1920,6 +1920,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilMemberInput` | public class | One seated councillor for a CouncilPromptInput. |
 | `CouncilPromptBuilder` | public static class | Builds the system prompt for one council one-call group-scene turn. |
 | `CouncilPromptInput` | public class | Everything CouncilPromptBuilder.Build needs to assemble one council group-scene turn. |
+| `EnvoyPromptBuilder` | public static class | Builds the envoy's system prompt. |
+| `EnvoyPromptInput` | public class | Everything the envoy knows, composed by the host. |
 | `GameActionDefinition` | public class | One action that the LLM may emit in an [ACTION] section. |
 | `IPromptBuilder` | public interface | Assembles the system prompt for a single NPC dialogue turn. |
 | `KnowledgeBoundaryPolicy` | public static class | What a character may not claim to know, and may not claim to be able to do. |
