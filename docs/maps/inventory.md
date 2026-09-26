@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 422 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 783 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 423 types in 55 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 786 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -25,13 +25,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 2500+ | Mod | `Chat/ChatViewModel.Exchanges.cs` |
 | 2500+ | Mod | `Chat/CouncilLift.cs` |
 | 1500+ | Sdk | `Actions/ActionBenchCatalog.cs` |
+| 1500+ | Mod | `Chat/ChatManager.cs` |
 | 1500+ | Mod | `GameState/CourtActionResolver.cs` |
 | 1500+ | Mod | `Interception/InterceptionBehavior.cs` |
 | 1500+ | Mod | `Letters/CourierService.cs` |
 | 1500+ | Sdk | `Models/EncounterContext.cs` |
 | 1000+ | Sdk | `Actions/GameActionCatalog.cs` |
 | 1000+ | Logic | `Assemblies/ResolutionCatalog.cs` |
-| 1000+ | Mod | `Chat/ChatManager.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Council.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Helpers.cs` |
 | 1000+ | Mod | `Diagnostics/RoleplayBench.cs` |
@@ -145,7 +145,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 
-### CalradiaRemembers.Chat (46)
+### CalradiaRemembers.Chat (47)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -167,7 +167,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatScreen` | internal class | A minimal screen that carries the pre-built chat layer and takes focus when pushed. |
 | `ChatScrollablePanel` | public class | Custom ScrollablePanel that supports a deferred "scroll to bottom" request. |
 | `ChatSpeaker` | internal class | One participant of a chat exchange: the main NPC or a present witness, with the hero, stored profile and display colour used to route the turn and render the line. |
-| `ChatViewModel` | public class, partial over 6 files | (no summary) |
+| `ChatViewModel` | public class, partial over 7 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
 | `ConversationResumeStore` | public class | Holds at most one ConversationResumeSnapshot and persists it with the campaign. |
@@ -178,6 +178,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilEntry` | public static class | Shared "convene a council" logic behind the campaign-bar button (reachable on the map and inside a settlement). |
 | `CouncilLift` | internal static class | Settles a council's agreed pledges against the world as it stands now, reporting through a callback. |
 | `CouncilParticipantViewModel` | public class | One seated member of the bespoke COUNCIL window's left "CLAN JOUEUR" strip: a portrait tile (the anchor or a witness) with a seat label, clickable to open that hero's dossier. |
+| `EnvoyAudience` | public class | What an envoy audience carries: whose envoy, and the mandate he was given. |
 | `GameMenuOpener` | internal static class | Opens the vanilla escape/options menu over the chat, exactly as ESC does on the map. |
 | `IActionConfirmationHost` | internal interface | The exact set of view-model operations the action-confirmation flow (ActionConfirmationController) drives, so the controller depends on this seam rather than the whole ChatViewModel. |
 | `IManualActionMenuHost` | internal interface | The exact set of view-model operations the manual action-injection menu (ManualActionMenuController) drives, so the controller depends on this seam rather than the whole ChatViewModel, mirroring IOfferHost and IActionCon... |
@@ -747,7 +748,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (488)
+### CalradiaRemembers.Logic (491)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -892,6 +893,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DivorceProcess` | public class | One NPC's ongoing estrangement from their own spouse, begun at the player's urging: who, concerning which spouse, started when, due when, how many days of spousal resistance have already pushed the end day back, and wher... |
 | `DivorceProcessState` | public enum | The lifecycle of a divorce process. |
 | `DivorceResistanceOutcome` | public enum | The outcome of one day's spousal-resistance roll against an active DivorceProcess. |
+| `EnvoyDeal` | public class | A deal rebound to the mandate, ready for the bridge. |
+| `EnvoyMandate` | public class | What the lord authorised his envoy to settle. |
+| `EnvoyMandatePolicy` | public static class | Holds an envoy to his mandate, and names him. |
 | `EquipmentLoadoutPolicy` | public static class | Chooses which equipment loadout (civilian or battle) the notable-gear clause should read for a scene. |
 | `EquipmentModifierQualityPolicy` | public static class | Pure, engine-free mapping from an item modifier's plain facts to a GearQuality band. |
 | `EquipmentNotabilityPolicy` | public static class | Pure, engine-free scoring and phrasing of a hero's NOTABLE equipment. |

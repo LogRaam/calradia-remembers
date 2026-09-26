@@ -744,6 +744,35 @@ namespace CalradiaRemembers.Chat
       ///   first when none is live); this is what <see cref="ChatSceneStager" /> calls once its scene is up,
       ///   and the choke's fallback when a scene is already live.
       /// </summary>
+      /// <summary>
+      ///   Prisoner exchange, increment 3 (fkasad, 25/09/2026; Gabriel: an anonymous envoy announced by a popup): opens
+      ///   the envoy's audience. The chat has NO hero (the envoy is nobody's profile); it shows the envoy's name and
+      ///   <paramref name="portrait" />, a troop of the lord's own people, and the lord stays behind the scenes in
+      ///   <paramref name="envoy" /> for the deal. The DIRECT open: the staging path calls this once the scene is up.
+      /// </summary>
+      public static void OpenForEnvoyAudienceDirect(string envoyName, CharacterObject portrait, EnvoyAudience envoy)
+      {
+         if (envoy == null || string.IsNullOrWhiteSpace(envoyName))
+         {
+            ModLog.Error("[ENVOY] direct open refused: no envoy.");
+
+            return;
+         }
+
+         Open(envoyName);
+
+         if (ActiveViewModel == null)
+         {
+            ModLog.Notice($"{envoyName} could not be received. If it happens again, cr.chat_reset clears a stuck window.");
+
+            return;
+         }
+
+         ActiveViewModel.SetNpcName(envoyName);
+         if (portrait != null) ActiveViewModel.SetNpcPortraitCharacter(portrait);
+         ActiveViewModel.ActivateEnvoyAudience(envoy);
+      }
+
       public static void OpenForCompanionAudienceDirect(
          Hero companion, NpcProfile profile, CompanionAudienceReason reason, bool landed, string topicDetail = null)
       {

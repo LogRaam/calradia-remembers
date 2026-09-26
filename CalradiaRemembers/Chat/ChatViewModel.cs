@@ -2418,6 +2418,14 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         // An envoy's audience is its own pipeline too: his prompt, his mandate, his lord behind the scenes.
+         if (_envoy != null)
+         {
+            ExecuteSendEnvoyMessage(text);
+
+            return;
+         }
+
          // Spotlight pillar: once a witness has been drawn in, the scene is an ensemble and EVERY active voice
          // speaks this turn (the council model, but organic and scoped to who was pulled in). Ordinary scenes
          // only, never a captive/captor scene; a lone anchor (no promotion yet) keeps the single-speaker path below.
@@ -2730,6 +2738,14 @@ namespace CalradiaRemembers.Chat
 
       public void FinalizeConversationMemory()
       {
+         // An envoy audience has no hero of its own: its memory is the lord's, written by the deal or by this.
+         if (_envoy != null)
+         {
+            FinalizeEnvoyAudience();
+
+            return;
+         }
+
          // Companion-briefing pillar: never persist a memory event from the private briefing chat itself. Now
          // that it runs a REAL exchange, an ordinary conversation summary would land on the anchor's own
          // profile.Events, and a LATER conversation where this same companion is a WITNESS reads recent events
