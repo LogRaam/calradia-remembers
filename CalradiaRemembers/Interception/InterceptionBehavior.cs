@@ -1286,7 +1286,7 @@ namespace CalradiaRemembers.Interception
       ///   conversation, a settlement, an encounter, or a game menu, and with no CR chat already open or staging.
       ///   Forcing a conversation in any of those states is unsafe or nonsensical.
       /// </summary>
-      private static bool PlayerIsFreeOnMap()
+      internal static bool PlayerIsFreeOnMap()
       {
          if (Mission.Current != null) return false;
          if (Hero.OneToOneConversationHero != null) return false;

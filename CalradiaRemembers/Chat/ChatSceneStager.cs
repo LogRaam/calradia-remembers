@@ -122,6 +122,15 @@ namespace CalradiaRemembers.Chat
             OnInterceptLineReached,
             200);
 
+         // An envoy under a flag of truce: a neutral opener in his mouth, covered by the chat within a few frames.
+         starter.AddDialogLine(
+            "cr_envoy_stage_intercept",
+            "start", "cr_captive_stage_hold",
+            "I come under a flag of truce, with a message from my lord.",
+            () => IsStaging && _pending?.Kind == ChatSceneKind.EnvoyAudience,
+            OnInterceptLineReached,
+            200);
+
          // The meeting a briefing was for. The player asked for a moment and is coming back with his people;
          // the target has been waiting, so the opener is hers, not a fresh greeting.
          starter.AddDialogLine(
@@ -249,6 +258,23 @@ namespace CalradiaRemembers.Chat
       ///   AUTOMATICALLY over a VRAM-safe scene, so the player cannot dodge the meeting by backing out of a
       ///   vanilla menu. The interception opener is consumed when the chat's context is built.
       /// </summary>
+      /// <summary>
+      ///   Stages an envoy's audience (prisoner exchange, increment 3): no hero, <paramref name="portrait" /> (a troop of
+      ///   the lord's people) is the one in the shot, and the scene attaches to the player's own party, since the envoy
+      ///   came to him. Falls back to the direct open like every staged kind when no scene can load.
+      /// </summary>
+      public static void StageEnvoyAudience(string envoyName, CharacterObject portrait, EnvoyAudience envoy)
+      {
+         Open(new ChatSceneRequest {
+            Kind = ChatSceneKind.EnvoyAudience,
+            Partner = null,
+            PortraitCharacter = portrait,
+            AttachParty = PartyBase.MainParty,
+            Envoy = envoy,
+            EnvoyName = envoyName
+         });
+      }
+
       public static void StagePlainConversation(Hero lord)
       {
          Open(new ChatSceneRequest {
@@ -672,6 +698,11 @@ namespace CalradiaRemembers.Chat
             case ChatSceneKind.BriefedReturn:
                NpcMemoryCampaignBehavior.Instance?.DialogFlow?.OpenChatForBriefedReturn(
                   r.Partner, r.BriefedCompanions);
+
+               return;
+
+            case ChatSceneKind.EnvoyAudience:
+               ChatManager.OpenForEnvoyAudienceDirect(r.EnvoyName, r.PortraitCharacter, r.Envoy);
 
                return;
 

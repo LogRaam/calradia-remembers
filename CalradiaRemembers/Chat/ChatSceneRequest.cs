@@ -41,7 +41,13 @@ namespace CalradiaRemembers.Chat
       ///   gave his people their instructions, and is now brought back to the target with those people at his
       ///   side. See CompanionBriefingCoordinator.
       /// </summary>
-      BriefedReturn
+      BriefedReturn,
+
+      /// <summary>
+      ///   An anonymous envoy, come under a flag of truce to treat for a captive the player holds (prisoner exchange,
+      ///   fkasad 25/09/2026). No hero: a troop of the lord's people stands in the shot. See ChatManager.OpenForEnvoyAudienceDirect.
+      /// </summary>
+      EnvoyAudience
    }
 
    /// <summary>
@@ -92,6 +98,12 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>Set for <see cref="ChatSceneKind.PostDuel" />; null otherwise.</summary>
       public PostDuelPayload PostDuel;
+
+      /// <summary>Set for <see cref="ChatSceneKind.EnvoyAudience" />: the envoy's mandate and the lord behind him.</summary>
+      public EnvoyAudience Envoy;
+
+      /// <summary>Set for <see cref="ChatSceneKind.EnvoyAudience" />: how the envoy is shown ("Envoy of X").</summary>
+      public string EnvoyName;
    }
 
    /// <summary>The captive-scene specifics; both the victim direction and the captor direction read these.</summary>

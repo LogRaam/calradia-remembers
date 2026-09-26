@@ -503,6 +503,10 @@ namespace CalradiaRemembers.Letters
 
             if (alreadyOffered) continue;
 
+            // Since 25/09/2026 the offer comes as an ENVOY, not a letter (fkasad; Gabriel: always an envoy), paced per
+            // captive by the envoy's own cooldown. The check above still honours a letter an older save has pending.
+            if (PrisonerEnvoyBehavior.Instance?.EnvoyMayCome(captive.StringId) != true) continue;
+
             int anchor = BuyPrisonerVerb.RansomAnchor(captive);
             if (buyer.Gold < PrisonerTradePolicy.MinAcceptablePayment(anchor)) continue; // cannot pay a fair price
 
@@ -526,13 +530,13 @@ namespace CalradiaRemembers.Letters
             string capturedCaptiveId = captive.StringId;
             int capturedAmount = amount;
             string capturedContext = context;
+            Hero capturedCaptive = captive;
             release[candidate] = () =>
             {
-               LetterGenerationService.QueueInitialLetter(
-                  capturedProfile, capturedBuyer, LetterReason.PrisonerOffer, capturedContext,
-                  llmServices, store, today, capturedCaptiveId, capturedAmount);
+               // An envoy, carrying the same fair ceiling the letter named, who can also offer an exchange.
+               PrisonerEnvoyBehavior.Instance?.Send(capturedBuyer, capturedCaptive, capturedAmount, EnvoyStake(capturedBuyer, capturedCaptive));
 
-               ModLog.Info($"[LETTER] {capturedProfile.Name} offers {capturedAmount} denars for the player's prisoner {capturedCaptiveId}.");
+               ModLog.Info($"[LETTER] {capturedProfile.Name} sends an envoy about the player's prisoner {capturedCaptiveId} (up to {capturedAmount} denars).");
             };
          }
       }
@@ -623,6 +627,16 @@ namespace CalradiaRemembers.Letters
       }
 
       /// <summary>A short in-fiction line stating why this buyer wants the captive, fed into the letter's Context.</summary>
+      /// <summary>What the captive is to the lord, as the envoy's errand says it ("... holds X prisoner, {stake}."), or null.</summary>
+      private static string EnvoyStake(Hero buyer, Hero captive)
+      {
+         if (buyer?.Clan != null && buyer.Clan == captive?.Clan) return $"who is of {buyer.Name}'s own house";
+         if (buyer?.MapFaction != null && captive?.MapFaction != null && buyer.MapFaction == captive.MapFaction)
+            return $"who is of {buyer.Name}'s own realm";
+
+         return null;
+      }
+
       private static string DescribeBuyerStake(Hero buyer, Hero captive)
       {
          if (buyer?.Clan != null && buyer.Clan == captive?.Clan) return "This prisoner is of your own house.";

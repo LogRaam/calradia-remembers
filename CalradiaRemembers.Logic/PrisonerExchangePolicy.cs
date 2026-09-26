@@ -40,6 +40,9 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>The game's ransom valuation of this captive; zero or less when it could not be read.</summary>
       public int RansomAnchor { get; set; }
+
+      /// <summary>One of the player's own people (his clan's companions or kin), held by the other side.</summary>
+      public bool BelongsToPlayer { get; set; }
    }
 
    /// <summary>What happens to a captive once the other side has them.</summary>
@@ -84,9 +87,10 @@ namespace CalradiaRemembers.Logic
       }
 
       /// <summary>
-      ///   Which of the captives the other side holds it would offer against the one it wants back: the exchangeable
-      ///   one whose worth is closest to <paramref name="wantedAnchor" />, the dearer on a tie, then by id so the
-      ///   choice never flickers between two identical calls. Null when it holds nobody it could offer.
+      ///   Which of the captives the other side holds it would offer against the one it wants back. One of the PLAYER's
+      ///   own people first (getting his companion back is what an exchange is for, not a stranger's release), then
+      ///   the exchangeable one whose worth is closest to <paramref name="wantedAnchor" />, the dearer on a tie, then
+      ///   by id so the choice never flickers between two identical calls. Null when it holds nobody it could offer.
       /// </summary>
       public static ExchangeCaptiveFacts ChooseCounterpart(IEnumerable<ExchangeCaptiveFacts> theirHold, int wantedAnchor)
       {
@@ -94,7 +98,8 @@ namespace CalradiaRemembers.Logic
 
          return (theirHold ?? Enumerable.Empty<ExchangeCaptiveFacts>())
                 .Where(IsExchangeable)
-                .OrderBy(c => Math.Abs(Worth(c.RansomAnchor) - wanted))
+                .OrderByDescending(c => c.BelongsToPlayer)
+                .ThenBy(c => Math.Abs(Worth(c.RansomAnchor) - wanted))
                 .ThenByDescending(c => Worth(c.RansomAnchor))
                 .ThenBy(c => c.HeroId, StringComparer.Ordinal)
                 .FirstOrDefault();
@@ -107,6 +112,16 @@ namespace CalradiaRemembers.Logic
       /// </summary>
       public static ExchangeHandover HandoverTo(bool captiveBelongsToReceiver)
          => captiveBelongsToReceiver ? ExchangeHandover.Freed : ExchangeHandover.IntoCustody;
+
+      /// <summary>TUNE: days before another envoy may come about the same captive, whether the last was heard or not.</summary>
+      public const int EnvoyCooldownDays = 20;
+
+      /// <summary>
+      ///   Whether an envoy may come about this captive today: never before, or not within <see cref="EnvoyCooldownDays" />.
+      ///   A refused audience counts: an envoy turned away does not come back the next morning.
+      /// </summary>
+      public static bool EnvoyMayCome(int? lastEnvoyDay, int today)
+         => lastEnvoyDay is not int last || today - last >= EnvoyCooldownDays;
 
       private static int Worth(int anchor) => anchor > 0 ? anchor : PrisonerTradePolicy.FallbackAnchor;
    }

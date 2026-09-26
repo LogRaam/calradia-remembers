@@ -99,6 +99,37 @@ namespace CalradiaRemembers.Tests
          PrisonerExchangePolicy.ChooseCounterpart(held, 2000).Should().BeNull();
       }
 
+      // The natural exchange is the player's own companion for the lord's kinsman: offered first, even when a stranger
+      // the lord holds is closer in worth. A swap that frees some third lord would read as the envoy missing the point.
+      [Test]
+      public void GIVEN_the_other_side_holds_one_of_the_players_people_WHEN_it_chooses_what_to_offer_THEN_that_one_comes_first()
+      {
+         var held = new List<ExchangeCaptiveFacts> {
+            Lord("stranger_close", 2000),
+            new() {HeroId = "players_companion", IsHero = true, IsCompanion = true, RansomAnchor = 600, BelongsToPlayer = true}
+         };
+
+         PrisonerExchangePolicy.ChooseCounterpart(held, 2000).HeroId.Should().Be("players_companion");
+      }
+
+      // ── When an envoy may come ───────────────────────────────────────────
+
+      // The envoy replaces a letter, and a letter was never sent twice about one captive in quick succession: one
+      // envoy, then a while before the next, whether he was heard or turned away.
+      [Test]
+      public void GIVEN_an_envoy_came_about_a_captive_recently_WHEN_another_would_come_THEN_he_waits()
+      {
+         PrisonerExchangePolicy.EnvoyMayCome(lastEnvoyDay: 100, today: 100 + PrisonerExchangePolicy.EnvoyCooldownDays - 1).Should().BeFalse();
+         PrisonerExchangePolicy.EnvoyMayCome(100, 100 + PrisonerExchangePolicy.EnvoyCooldownDays).Should().BeTrue();
+      }
+
+      // The first envoy about a captive needs no wait.
+      [Test]
+      public void GIVEN_no_envoy_ever_came_about_a_captive_WHEN_one_would_come_THEN_he_may()
+      {
+         PrisonerExchangePolicy.EnvoyMayCome(null, 5).Should().BeTrue();
+      }
+
       // ── What becomes of each captive ─────────────────────────────────────
 
       // The whole point of an exchange (fkasad: "a father wishing to buy back his daughter"): the lord gets his own

@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 423 types in 55 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 424 types in 55 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 786 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
@@ -405,7 +405,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyCultureLoader` | public static class | Loads and caches jealousy_cultures.json from the mod's ModuleData folder, keyed by culture display name ("Khuzait", "Battania", …) to match Mapping.CulturalTraditionsLoader and stay interoperable with conversion mods. |
 | `JealousyCultureProfile` | public class | The on-disk shape of a culture's stance on romantic exclusivity, deserialized from jealousy_cultures.json. |
 
-### CalradiaRemembers.Letters (21)
+### CalradiaRemembers.Letters (22)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -428,6 +428,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterViewModel` | public class | View model for the dedicated courier window. |
 | `LetterWindowManager` | public static class | Show/hide lifecycle for the parchment courier window, composed on the shared crash-safe panel host. |
 | `PlayerLetterService` | public static class | Creates and queues letters from the player to NPCs, runs the daily delivery check, and marks delivered letters as read after the NPC's first response. |
+| `PrisonerEnvoyBehavior` | public class | Sends and announces envoys come to treat for a captive the player holds. |
 | `TaverneLetterBehavior` | public class | Registers a courier-hire option in the Tavern Keeper's service menu. |
 | `VanillaCaptivityPatch` | public static class | Suppresses the two vanilla events that cut a bandit captivity short before a Calradia Remembers captive scene gets a chance to fire: the captor's ransom offer ("he proposes to free you in return for N gold") — cancelled... |
 
