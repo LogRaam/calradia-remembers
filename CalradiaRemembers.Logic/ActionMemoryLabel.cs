@@ -57,6 +57,7 @@ namespace CalradiaRemembers.Logic
             case "give_prisoner": return "Prisoner handed over";
             case "buy_prisoner": return "Prisoner bought";
             case "sell_prisoner": return "Prisoner sold";
+            case "exchange_prisoners": return "Prisoners exchanged";
             case "turn_nemesis": return "Turned to your side";
             case "harm_prisoner": return "Harmed";
 

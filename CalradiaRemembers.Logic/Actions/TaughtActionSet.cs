@@ -187,6 +187,7 @@ namespace CalradiaRemembers.Logic.Actions
          "release_prisoner",
          "buy_prisoner",
          "sell_prisoner",
+         "exchange_prisoners",
          "end_marriage",
          "make_amends",
          "hear_account",

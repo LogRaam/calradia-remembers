@@ -86,6 +86,7 @@ namespace CalradiaRemembers.Verbs
          registry.Register(new ReleasePrisonerVerb());
          registry.Register(new BuyPrisonerVerb());
          registry.Register(new SellPrisonerVerb());
+         registry.Register(new ExchangePrisonersVerb());
          registry.Register(new EndMarriageVerb());
          registry.Register(new MakeAmendsVerb());
          registry.Register(new HearAccountVerb());

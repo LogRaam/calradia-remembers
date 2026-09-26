@@ -1076,6 +1076,40 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>True when the captor party/settlement holding this prisoner belongs to the given clan.</summary>
+      /// <summary>
+      ///   Every hero captive this NPC's clan holds that an EXCHANGE may put on the table: lords and companions,
+      ///   INCLUDING the player's own people. Unlike <see cref="HeldPrisonersOf" />, which keeps the player's household
+      ///   out of a sale ("never merchandise"), getting the player's own companion back is exactly what an exchange is
+      ///   for (fkasad, 25/09/2026). The player himself never.
+      /// </summary>
+      public static List<Hero> ExchangeablePrisonersHeldBy(Hero npc)
+      {
+         var result = new List<Hero>();
+         if (npc?.Clan == null) return result;
+
+         foreach (Hero h in Hero.AllAliveHeroes)
+         {
+            if (h == npc || h == Hero.MainHero || !h.IsPrisoner) continue;
+            if (!h.IsLord && h.CompanionOf == null && !h.IsWanderer) continue;
+            if (!IsHeldByClan(h, npc.Clan)) continue;
+
+            result.Add(h);
+         }
+
+         return result;
+      }
+
+      /// <summary>Tolerant name match among <see cref="ExchangeablePrisonersHeldBy" />. Null when nothing matches.</summary>
+      public static Hero ResolveExchangeableHeldByName(string name, Hero npc)
+      {
+         if (string.IsNullOrWhiteSpace(name)) return null;
+
+         string query = name.Trim();
+
+         return ExchangeablePrisonersHeldBy(npc).FirstOrDefault(h =>
+            h.Name != null && h.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
+      }
+
       private static bool IsHeldByClan(Hero prisoner, Clan clan)
       {
          PartyBase captor = prisoner.PartyBelongedToAsPrisoner;

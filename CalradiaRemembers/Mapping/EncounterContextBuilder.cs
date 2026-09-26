@@ -101,7 +101,7 @@ namespace CalradiaRemembers.Mapping
       private static readonly string[] GrudgeVerbs = {"make_amends", "grudge_terms", "hear_account"};
 
       // Prisoner trade (08/07/2026): the NPC may BUY a captive the player holds, or SELL one his clan holds.
-      private static readonly string[] PrisonerTradeVerbs = {"buy_prisoner", "sell_prisoner"};
+      private static readonly string[] PrisonerTradeVerbs = {"buy_prisoner", "sell_prisoner", "exchange_prisoners"};
 
       /// <summary>
       ///   04/07/2026: give_troops and spend_influence, the RECIPROCAL of the two court verbs above (the

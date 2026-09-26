@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 421 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 782 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 422 types in 55 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 783 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -661,13 +661,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSpikeScreen` | internal class | The one screen the probe uses, pushed BOTH ways so the measurement compares mechanisms rather than screens. |
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
 
-### CalradiaRemembers.Verbs (19)
+### CalradiaRemembers.Verbs (20)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `AdmitSecretLoverVerb` | public class | admit_secret_lover: the player confesses to this NPC that they are the hidden lover behind a whispered scandal; the NPC now privately knows the identity. |
 | `BuyPrisonerVerb` | public class | buy_prisoner: the NPC pays the player gold for a hero captive the player's party holds. |
 | `EndMarriageVerb` | public class | end_marriage: the player persuades the NPC to begin ending THEIR OWN marriage (never the player's own spouse — that is Phase 2, out of scope here). |
+| `ExchangePrisonersVerb` | public class | exchange_prisoners: the player gives a hero captive he holds and receives one the NPC's clan holds, with gold evening an uneven swap. |
 | `ExternalVerbAdapter` | public class | Wraps an externally-supplied ExternalVerbContract (an SDK-shaped, engine-agnostic verb defined by ANOTHER mod) as an IConversationVerb. |
 | `GiveInfluenceVerb` | public class | give_influence (RP with teeth, increment 1): a lord lends the player some of their own political weight at court. |
 | `GiveTroopsVerb` | public class | give_troops: the reciprocal of LendTroopsVerb, 04/07/2026 — the PLAYER reinforces a needy NPC's own (genuinely under-strength) party with some of their own soldiers. |
@@ -746,7 +747,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (487)
+### CalradiaRemembers.Logic (488)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -900,6 +901,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EstrangementProgressPolicy` | public static class | Paces a Stolen Love estrangement from its start day to the point the spouse is ready to leave, scaled by the seduction's SeductionDifficulty. |
 | `ExCompanionDivorcePolicy` | public static class | Pure decision for the divorce half of the marry-your-own-companion feature: whether a divorcing spouse is an ex-companion who must be returned to the free-wanderer pool rather than relocated to a birth clan. |
 | `ExchangeCaptiveFacts` | public class | What an exchange needs to know about one captive. |
+| `ExchangeHandover` | public enum | What happens to a captive once the other side has them. |
 | `ExternalEventRules` | public static class | The normalisation + quota rules every externally-fed world event passes through. |
 | `ExternalMissionRules` | public static class | The normalisation rules every externally-registered player mission passes through. |
 | `EyeColorBands` | public static class | The words for Bannerlord's eye-colour gradient, banded from the slider offset. |

@@ -222,6 +222,13 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - "(There is no marriage between you and this person to end.)"
   - $"(The marriage could not be ended: {reason}.)"
 
+### exchange_prisoners
+
+- executor: `Execute`
+- taught in: no prompt section names it
+- taught when: no gate found
+- the bridge refuses: never
+
 ### execute_player
 
 - executor: `ExecuteExecutePlayer`

@@ -230,7 +230,7 @@ namespace CalradiaRemembers.GameState
          "revoke_fief", "expel_from_clan", "grant_stipend", "swear_oath", "harm_prisoner", "impregnation_risk",
          "gather_news", "reassure_companion", "recall_companion", "follow_me", "dismiss_escort", "ride_with_me",
          "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
-         "release_prisoner", "buy_prisoner", "sell_prisoner", "end_marriage", "make_amends", "grudge_terms", "hear_account", "pledge_against",
+         "release_prisoner", "buy_prisoner", "sell_prisoner", "exchange_prisoners", "end_marriage", "make_amends", "grudge_terms", "hear_account", "pledge_against",
          "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill", "admit_secret_lover", "pay_for_silence",
          "rob_npc", "assault_npc", "kill_npc",
          // ChatViewModel chat-flow controls: real LLM-emittable actions, never dispatched by the switch below.
@@ -355,6 +355,8 @@ namespace CalradiaRemembers.GameState
             // holds, or sells one his clan holds, for gold clamped around the game's ransom valuation.
             case "buy_prisoner":
             case "sell_prisoner":
+            // exchange_prisoners (fkasad, 25/09/2026): one hero captive for another, gold evening an uneven swap.
+            case "exchange_prisoners":
             // end_marriage (DIVORCE, Phase 1) and make_amends (Grudges pillar, resolution half): both
             // DESIGNED for the IConversationVerb contract rather than migrated onto it — routed
             // identically to the four above.

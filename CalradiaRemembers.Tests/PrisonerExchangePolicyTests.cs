@@ -99,6 +99,24 @@ namespace CalradiaRemembers.Tests
          PrisonerExchangePolicy.ChooseCounterpart(held, 2000).Should().BeNull();
       }
 
+      // ── What becomes of each captive ─────────────────────────────────────
+
+      // The whole point of an exchange (fkasad: "a father wishing to buy back his daughter"): the lord gets his own
+      // back, free. Leaving her a prisoner in her own father's dungeon would be absurd.
+      [Test]
+      public void GIVEN_a_captive_handed_to_his_own_side_WHEN_the_exchange_is_done_THEN_he_goes_free()
+      {
+         PrisonerExchangePolicy.HandoverTo(captiveBelongsToReceiver: true).Should().Be(ExchangeHandover.Freed);
+      }
+
+      // A captive handed to a side he does not belong to is not freed by being traded: he changes gaolers, which is
+      // what an ally who hates him is paying for.
+      [Test]
+      public void GIVEN_a_captive_handed_to_a_side_not_his_own_WHEN_the_exchange_is_done_THEN_he_stays_a_prisoner_in_their_hands()
+      {
+         PrisonerExchangePolicy.HandoverTo(captiveBelongsToReceiver: false).Should().Be(ExchangeHandover.IntoCustody);
+      }
+
       private static ExchangeCaptiveFacts Lord(string id, int anchor)
          => new() {HeroId = id, IsHero = true, IsLord = true, RansomAnchor = anchor};
    }

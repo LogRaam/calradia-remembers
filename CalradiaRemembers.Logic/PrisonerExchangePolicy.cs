@@ -42,6 +42,16 @@ namespace CalradiaRemembers.Logic
       public int RansomAnchor { get; set; }
    }
 
+   /// <summary>What happens to a captive once the other side has them.</summary>
+   public enum ExchangeHandover
+   {
+      /// <summary>He belongs to the side receiving him: he is set free and goes home.</summary>
+      Freed,
+
+      /// <summary>He is not theirs: he passes into their custody, still a prisoner.</summary>
+      IntoCustody
+   }
+
    /// <summary>The rules of a prisoner exchange. See the file header.</summary>
    public static class PrisonerExchangePolicy
    {
@@ -89,6 +99,14 @@ namespace CalradiaRemembers.Logic
                 .ThenBy(c => c.HeroId, StringComparer.Ordinal)
                 .FirstOrDefault();
       }
+
+      /// <summary>
+      ///   An exchange is two sides getting their OWN people back, so a captive handed to the side he belongs to (his
+      ///   clan or his realm) walks free. One handed to a side he does not belong to (an ally who wants him, say) stays
+      ///   a prisoner, only in other hands.
+      /// </summary>
+      public static ExchangeHandover HandoverTo(bool captiveBelongsToReceiver)
+         => captiveBelongsToReceiver ? ExchangeHandover.Freed : ExchangeHandover.IntoCustody;
 
       private static int Worth(int anchor) => anchor > 0 ? anchor : PrisonerTradePolicy.FallbackAnchor;
    }
