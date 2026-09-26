@@ -8,6 +8,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using NpcMemoryService.Core.Standing;
 
 #endregion
 
@@ -37,7 +38,7 @@ namespace CalradiaRemembers.Logic.Assemblies
       {
          List<int> regards = seatRegards?.ToList() ?? new List<int>();
 
-         return regards.Count > 0 && regards.Average() < 0;
+         return regards.Count > 0 && regards.Average() < Regard.NeutralTier;
       }
    }
 }

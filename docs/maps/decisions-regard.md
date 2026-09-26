@@ -209,7 +209,7 @@ cannot. Each one moved into a rule adds a column here.
 
 ## Regard compared inline against a bare number
 
-**33 comparisons** read a regard value and compare it with a number written in place, no named
+**32 comparisons** read a regard value and compare it with a number written in place, no named
 constant at all. The list above cannot see these: it finds thresholds by the NAME of a constant, and there is
 none. Found by what the code compares: one side reads a ledger member (`ReputationWithPlayer`, `GetRelation`, `RelationToPlayer`, `RegardForPlayer`, `RegardTowardPlayer`)
 or a value named for regard, relation or reputation; the other side is a number.
@@ -248,6 +248,5 @@ or a value named for regard, relation or reputation; the other side is a number.
 - `PromptBuilder.AppendCaptivePlayerRules`: `relation >= 15` (named)
 - `PromptBuilder.AppendRomanticBoundary`: `npc.ReputationWithPlayer >= 10` (ledger)
 - `ThirdPartyDescriptor.Categorize`: `relation != 0` (named)
-- `TrialVerdictPolicy.DefaultConviction`: `regards.Average() < 0` (named)
 
 </details>
