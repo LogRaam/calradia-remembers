@@ -81,7 +81,7 @@ namespace CalradiaRemembers.Dynasty
                 if (p == null) continue;
 
                 // The heir inherits the standing, not the private history.
-                SuccessionMemoryPolicy.Reframe(p, predName, kinship);
+                SuccessionMemoryPolicy.Reframe(p, predName, kinship, kind == PlayerChangeKind.Retirement);
                 store.Set(p);
                 n++;
             }

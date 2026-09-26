@@ -39,6 +39,19 @@ namespace CalradiaRemembers.Tests
             profile.Events.Should().ContainSingle().Which.type.Should().Be(NotableEventType.Agreement);
             profile.InheritedFromName.Should().Be("Arwa");
             profile.InheritedKinship.Should().Be("mother");
+            profile.InheritedPredecessorRetired.Should().BeFalse();
+        }
+
+        // A retirement is carried onto the profile, so the prompt can say the predecessor still lives rather than
+        // calling a living hero dead.
+        [Test]
+        public void GIVEN_a_predecessor_who_retired_WHEN_reframed_THEN_the_profile_says_so()
+        {
+            var profile = new NpcProfile {Id = "n", Name = "Derthert", Faction = "Vlandia", Clan = "dey Meroc"};
+
+            SuccessionMemoryPolicy.Reframe(profile, "Arwa", "mother", predecessorRetired: true);
+
+            profile.InheritedPredecessorRetired.Should().BeTrue();
         }
 
         // These four event types are the predecessor's private history. Left uninherited on purpose: a leak

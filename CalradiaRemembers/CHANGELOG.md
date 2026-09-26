@@ -5,10 +5,21 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.5.26.. unreleased
 
 ### Fixed
+- **A retired predecessor is no longer called dead.** Since 2.5.24 the mod tells a retirement (or a character switch)
+  from a death, but the heir note in the prompt still said the predecessor "has died", a falsehood the player can
+  check. The profile now carries `InheritedPredecessorRetired` (SDK, additive, false on older profiles, which were all
+  read as deaths), and the note says the predecessor "has stepped down and still lives".
 - **`cr.testall succession` no longer damages the save it runs on.** It ran the real `SuccessionBehavior.Apply`,
   which reframes EVERY stored profile (private memories erased, all marked inherited from the current character) and
   writes a succession into the chronicle. The per-profile rule is now `SuccessionMemoryPolicy.Reframe` (unit-tested),
   `Apply` is a loop over it, and the self-test reframes a detached copy and asserts the save is untouched.
+
+### Added
+- **In-game tests for the prisoner trade of 2.5.24/2.5.25** (prisoner exchange, increment 5): `cr.testall`
+  `prisoner_ransom_home` (a captive bought by his own clan leader goes home free, the player paid the clamped price),
+  `prisoner_gift` (the envoy's gift deal moves no gold) and `exchange_prisoners` (real lords: the player's captive goes
+  home free, the other side's becomes the player's prisoner, the evening gold moves). Each restores both purses and
+  frees every captive it took. The envoy audience itself needs a model and stays untested in game.
 
 ## v2.5.25.. 2026-09-26
 

@@ -338,6 +338,9 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster", TestSupplyQuest),
          new SelfTest("courier_waylay", Severity.Heavy, "waylaid-letter resend: a waylaid letter keeps its typed text, and the Resend path re-queues a FRESH non-lost letter carrying the SAME content, so a waylaid letter never has to be retyped. Cleans up its test letters + courier (no popup)", TestCourierWaylayResend),
          new SelfTest("prisoner_trade", Severity.Heavy, "prisoner trade: take a real lord captive into the player's party -> real buy_prisoner via the bridge (an NPC lord buys him) -> assert the player was PAID (price clamped around the ransom anchor) and the captive left the player's custody -> cleanup frees him", TestPrisonerTrade),
+         new SelfTest("prisoner_ransom_home", Severity.Heavy, "fkasad (26/09/2026): a captive ransomed by his own count was put in his own side's cells and the game reported him escaped. Takes a real lord captive, has HIS OWN clan leader buy him through the real bridge -> asserts the player was paid the clamped price and the captive is FREE (ransomed home), not a prisoner of his own house. Restores both purses and frees him whatever happened.", TestPrisonerRansomHome),
+         new SelfTest("prisoner_gift", Severity.Heavy, "fkasad (26/09/2026): \"yours for 0 denars\" to an envoy paid the full budget. Takes a real lord captive and runs buy_prisoner as the envoy binds a gift (price 0, gift true) for his clan leader -> asserts NO gold moved and the captive went home. Restores both purses and frees him whatever happened.", TestPrisonerGift),
+         new SelfTest("exchange_prisoners", Severity.Heavy, "Prisoner exchange (fkasad, 25/09/2026): the player holds lord A, lord B's party holds lord C. Runs the real exchange_prisoners through the bridge as B -> asserts A (B's own kin) is FREE, C is now the PLAYER's prisoner, and the gold that evens the swap moved as PrisonerExchangePolicy says. Restores both purses and frees A and C whatever happened.", TestExchangePrisoners),
          new SelfTest("prisoner_custody_settlement", Severity.Heavy, "prisoner custody in a settlement (ransom-letter Accept-button fix): capture a real lord into the party, transfer him into a player-owned town/castle dungeon, and assert BuyPrisonerVerb.PlayerHeldHeroPrisoners still counts him there though he is no longer in the party -> cleanup frees him", TestPrisonerCustodySettlement),
          new SelfTest("appreciation_flow", Severity.Light, "plant a kindness -> assert it lives -> plant a strong grudge on the same holder -> assert the tarnished effective magnitude drops -> force backfill twice -> assert the second pass is a no-op", TestAppreciationFlow),
          new SelfTest("duel_cooldown", Severity.Light, "the duel COOLDOWN stamp (2026-07-22), unreachable by unit test since it writes to the live profile: drive the REAL applier on a FORFEITED duel (the case the anti-farm rule exists for, since a balked NPC pays the player RenownForCalledBluff) -> assert LastDuelDay closed on a DUCKED duel exactly as on a fought one, and that the policy reads the cooldown in the right direction (today blocked, the window's end clear, never-dueled never blocked). Restores the previous stamp", TestDuelCooldownStamp),
@@ -6521,6 +6524,177 @@ namespace CalradiaRemembers.Diagnostics
             {
                /* best-effort cleanup */
             }
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   A lord free in a party, not his clan's leader, whose clan leader is free, alive and not the player: the
+      ///   captive and the kinsman who will ransom him. Null when this campaign has no such pair.
+      /// </summary>
+      private static Hero CaptiveWithFreeClanLeader()
+         => Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && !h.IsChild && h.PartyBelongedTo != null
+            && h.Clan != null && h.Clan != Clan.PlayerClan && h.Clan.Leader != null && h.Clan.Leader != h
+            && h.Clan.Leader != Hero.MainHero && h.Clan.Leader.IsAlive && !h.Clan.Leader.IsPrisoner);
+
+      /// <summary>
+      ///   The own-side ransom, shared by prisoner_ransom_home and prisoner_gift: take the captive, have his clan
+      ///   leader run buy_prisoner with <paramref name="parameters" />, and report what the player was paid. Both
+      ///   purses are restored and the captive freed whatever happened.
+      /// </summary>
+      private static void RunOwnSideRansom(TestRun t, NpcMemoryCampaignBehavior behavior, Hero captive, Dictionary<string, string> parameters, Action<int, ActionOutcome> check)
+      {
+         Hero buyer = captive.Clan.Leader;
+         int playerGold0 = Hero.MainHero.Gold;
+         int buyerGold0 = buyer.Gold;
+
+         int ceiling = PrisonerTradePolicy.ClampPrice(999999, BuyPrisonerVerb.RansomAnchor(captive));
+         if (buyer.Gold < ceiling) buyer.ChangeHeroGold(ceiling - buyer.Gold); // solvent, so the clamp is what is proven
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, captive);
+
+         try
+         {
+            if (t.Abort(!captive.IsPrisoner, $"could not take {captive.Name} captive")) return;
+
+            parameters["target"] = captive.Name.ToString();
+            int before = Hero.MainHero.Gold;
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "buy_prisoner", Parameters = parameters}, buyer, new ActionContext(GetOrCreate(behavior, buyer), null));
+
+            t.Note($"captive={captive.Name}, his clan leader={buyer.Name}, outcome=\"{outcome?.Message}\"");
+            t.Expect("outcomePositive", outcome?.IsPositive == true && outcome.WasRefused == false, true);
+            t.Expect("captiveWentHomeFree", captive.IsPrisoner, false);
+            t.Expect("captiveLeftPlayerCustody", BuyPrisonerVerb.PlayerHeldHeroPrisoners().All(h => h != captive), true);
+            check(Hero.MainHero.Gold - before, outcome);
+         }
+         finally
+         {
+            try { if (captive.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(captive, buyer); }
+            catch { /* best-effort cleanup */ }
+
+            Hero.MainHero.ChangeHeroGold(playerGold0 - Hero.MainHero.Gold);
+            buyer.ChangeHeroGold(buyerGold0 - buyer.Gold);
+         }
+      }
+
+      /// <summary>
+      ///   fkasad (26/09/2026): a captive ransomed by his OWN count was transferred into his own side's cells, and the
+      ///   game reported him escaped. Bought by his own house, he now goes home free by ransom; this proves it on a
+      ///   real lord, with the player paid the clamped price all the same.
+      /// </summary>
+      private static string TestPrisonerRansomHome(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("prisoner_ransom_home");
+
+         if (t.Abort(Hero.MainHero == null || MobileParty.MainParty == null, "no player party")) return t.Line();
+
+         Hero captive = CaptiveWithFreeClanLeader();
+         if (t.Skip(captive == null, "no free lord whose clan leader is free to ransom him")) return t.Line();
+
+         int expected = PrisonerTradePolicy.ClampPrice(999999, BuyPrisonerVerb.RansomAnchor(captive));
+         RunOwnSideRansom(t, behavior, captive, new Dictionary<string, string> {["price"] = "999999"}, (paid, _) =>
+         {
+            t.Note($"paid={paid} (expected {expected})");
+            t.Expect("paidTheClampedPrice", paid == expected, true);
+         });
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   fkasad (26/09/2026): telling an envoy the prisoner was his for 0 denars paid him the whole budget. The
+      ///   envoy's binder now writes a gift (EnvoyMandatePolicy.Bind, unit-tested); this proves the verb honours it on
+      ///   a real lord: no gold moves, and the captive goes home.
+      /// </summary>
+      private static string TestPrisonerGift(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("prisoner_gift");
+
+         if (t.Abort(Hero.MainHero == null || MobileParty.MainParty == null, "no player party")) return t.Line();
+
+         Hero captive = CaptiveWithFreeClanLeader();
+         if (t.Skip(captive == null, "no free lord whose clan leader is free to receive him")) return t.Line();
+
+         // Exactly what the envoy's binder hands the bridge for "yours for nothing".
+         EnvoyDeal deal = EnvoyMandatePolicy.Bind("buy_prisoner", new Dictionary<string, string> {["price"] = "0"},
+            new EnvoyMandate {WantedCaptiveName = captive.Name.ToString(), RansomCeiling = 5000});
+
+         if (t.Abort(deal == null, "the envoy's binder produced no deal for a gift")) return t.Line();
+
+         RunOwnSideRansom(t, behavior, captive, new Dictionary<string, string>(deal.Parameters), (paid, outcome) =>
+         {
+            t.Note($"paid={paid}");
+            t.Expect("noGoldMoved", paid, 0);
+            t.Expect("toldItWasAGift", outcome?.Message?.Contains("for nothing") == true, true);
+         });
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The exchange end to end on real lords (fkasad, 25/09/2026; Gabriel: heroes only). The player takes lord A;
+      ///   lord B's own party takes lord C, of neither B's house nor the player's realm. B then trades C for A through
+      ///   the real bridge: A is B's kin and goes home FREE, C changes gaolers into the player's party, and the gold
+      ///   that evens the swap moves as PrisonerExchangePolicy.GoldToSettle says.
+      /// </summary>
+      private static string TestExchangePrisoners(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("exchange_prisoners");
+
+         if (t.Abort(Hero.MainHero == null || MobileParty.MainParty == null, "no player party")) return t.Line();
+
+         Hero a = CaptiveWithFreeClanLeader();
+         Hero b = a?.Clan.Leader;
+         if (t.Skip(a == null, "no free lord whose clan leader is free to trade for him")) return t.Line();
+         if (t.Skip(b.PartyBelongedTo?.Party == null || b.PartyBelongedTo.LeaderHero != b, $"{b.Name} leads no party to hold a captive in")) return t.Line();
+
+         IFaction playerRealm = Hero.MainHero.MapFaction;
+         Hero c = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h != a && h != b && h.IsLord && !h.IsPrisoner && !h.IsChild && h.PartyBelongedTo != null
+            && h.Clan != null && h.Clan != b.Clan && h.Clan != Clan.PlayerClan && h.Clan.Leader != h
+            && h.MapFaction != b.MapFaction && h.MapFaction != playerRealm);
+         if (t.Skip(c == null, "no third lord, of neither side, for B to hold")) return t.Line();
+
+         int playerGold0 = Hero.MainHero.Gold;
+         int bGold0 = b.Gold;
+         int gold = PrisonerExchangePolicy.GoldToSettle(BuyPrisonerVerb.RansomAnchor(a), BuyPrisonerVerb.RansomAnchor(c));
+         if (gold > 0 && b.Gold < gold) b.ChangeHeroGold(gold - b.Gold);
+         if (gold < 0 && Hero.MainHero.Gold < -gold) Hero.MainHero.ChangeHeroGold(-gold - Hero.MainHero.Gold);
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, a);
+         TakePrisonerAction.Apply(b.PartyBelongedTo.Party, c);
+
+         try
+         {
+            if (t.Abort(!a.IsPrisoner || !c.IsPrisoner, $"could not set the table ({a.Name} held={a.IsPrisoner}, {c.Name} held={c.IsPrisoner})")) return t.Line();
+
+            int before = Hero.MainHero.Gold;
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {
+                  Type = "exchange_prisoners",
+                  Parameters = new Dictionary<string, string> {["give"] = a.Name.ToString(), ["receive"] = c.Name.ToString()}
+               }, b, new ActionContext(GetOrCreate(behavior, b), null));
+
+            int paid = Hero.MainHero.Gold - before;
+            t.Note($"A={a.Name} (player's), B={b.Name}, C={c.Name} (B's), gold to the player {paid} (expected {gold}), outcome=\"{outcome?.Message}\"");
+            t.Expect("outcomePositive", outcome?.IsPositive == true && outcome.WasRefused == false, true);
+            t.Expect("kinWentHomeFree", a.IsPrisoner, false);
+            t.Expect("receivedIsThePlayersPrisoner", c.IsPrisoner && c.PartyBelongedToAsPrisoner == PartyBase.MainParty, true);
+            t.Expect("goldEvenedTheSwap", paid, gold);
+         }
+         finally
+         {
+            try { if (a.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(a, b); }
+            catch { /* best-effort cleanup */ }
+
+            try { if (c.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(c, Hero.MainHero); }
+            catch { /* best-effort cleanup */ }
+
+            Hero.MainHero.ChangeHeroGold(playerGold0 - Hero.MainHero.Gold);
+            b.ChangeHeroGold(bGold0 - b.Gold);
          }
 
          return t.Line();
