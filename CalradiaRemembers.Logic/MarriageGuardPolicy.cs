@@ -110,5 +110,17 @@ namespace CalradiaRemembers.Logic
                && !string.IsNullOrEmpty(blessedClanId)
                && !string.IsNullOrEmpty(spouseFamilyClanId)
                && blessedClanId == spouseFamilyClanId;
+
+        /// <summary>
+        ///   Whether the spouse's family approves the match. A marriage the BASE GAME made always had the family's
+        ///   consent: the clan head agreed the bargain, or the family offered the match itself. Only a marriage CR
+        ///   made (a conversation, a quest reward) can bypass the family, and only there does a blessing decide it.
+        ///   <para>
+        ///     Gabriel, 25/09/2026, on zhenja1's report: a family that OFFERED its daughter was being affronted
+        ///     (-40 and grudges) because CR held no blessing record for a match it never brokered.
+        ///   </para>
+        /// </summary>
+        public static bool FamilyApproves(bool madeThroughCr, bool hasRecord, string blessedClanId, string spouseFamilyClanId)
+            => !madeThroughCr || BlessingHonoursFamily(hasRecord, blessedClanId, spouseFamilyClanId);
     }
 }

@@ -12,6 +12,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   it, the other councillor's lines included. `ConversationResumePolicy.MayBeKeptOnClose` now asks what the chat
   OPENED as: only an ordinary conversation, the one kind the resume ever puts back, is kept. One rule for both sides,
   so a staged scene added later cannot be missed the same way.
+- **A family that arranged the match is no longer affronted by it** (found tracing zhenja1's report; Gabriel's ruling,
+  25/09/2026). Every marriage without a CR blessing record was judged unblessed: -40 on the spouse's whole family and
+  UnblessedMarriage grudges on its kin. But a marriage the base game makes always had the family's consent (the clan
+  head bargained it, or the family offered it). `MarriageGuardPolicy.FamilyApproves`: a marriage CR did not make is
+  approved; only one CR sealed (`MarriageApprovalBehavior.MarryThroughCr`: the marry verb, a marriage quest reward) is
+  still judged by its blessing, as before. The unblessed-grudge self-test now marries through CR's door.
 - **A new spouse remembers the wedding, and how little she knows you** (zhenja1, 25/09/2026: after accepting a vanilla
   marriage offer, his bride spoke at their first word "almost like she'd been part of my house the whole time"; fkasad
   suggested preparing the bride for that meeting). Nothing wrote the marriage onto the spouse, and a spouse with an

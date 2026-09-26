@@ -2975,7 +2975,7 @@ namespace CalradiaRemembers.GameState
             if (eligibleCompanionMatch && !TryPromoteCompanionForMarriage(npcHero, out string promotionRefusal))
                return ActionOutcome.Refused(promotionRefusal);
 
-            MarriageAction.Apply(player, npcHero);
+            MarriageApprovalBehavior.MarryThroughCr(player, npcHero);
 
             // "Marry your own companion": assert the engine actually sealed the union and the ex-companion's
             // state is coherent (a promoted Lord, no longer a companion, in the player's clan, wed to the player).
@@ -4579,7 +4579,7 @@ namespace CalradiaRemembers.GameState
          if (verdict != QuestRewardPayoutVerdict.Deliver)
             return DegradeHeavyReward(npcHero, profile, $"a marriage with {quest.MarriageSpouseName ?? "the promised spouse"}", atWar);
 
-         MarriageAction.Apply(Hero.MainHero, spouse);
+         MarriageApprovalBehavior.MarryThroughCr(Hero.MainHero, spouse);
          ModLog.Info($"[GRANT] marriage_reward: player wed {spouse.Name}, sealed on {npcHero.Name}'s own word (quest reward honored).");
 
          return new ActionOutcome($"{npcHero.Name} keeps their word: you and {spouse.Name} are wed.", true);

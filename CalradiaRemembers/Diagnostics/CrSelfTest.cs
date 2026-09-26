@@ -5607,8 +5607,9 @@ namespace CalradiaRemembers.Diagnostics
          GrudgeBehavior.Instance.ClearGrudgesFor(kin.StringId);
 
          // Deliberately NEVER call MarriageApprovalBehavior.Instance.Grant: this match is unblessed by
-         // construction, exercising the exact real path a fresh in-game match with no seeded blessing takes.
-         MarriageAction.Apply(Hero.MainHero, spouse);
+         // construction, exercising the exact real path a match CR seals with no seeded blessing takes. Through
+         // CR's own door: since 25/09/2026 a marriage the base game makes is approved by construction.
+         MarriageApprovalBehavior.MarryThroughCr(Hero.MainHero, spouse);
 
          if (t.Skip(Hero.MainHero.Spouse != spouse,
                 "could not seed the marriage on this campaign (native MarriageAction did not take)")) return t.Line();

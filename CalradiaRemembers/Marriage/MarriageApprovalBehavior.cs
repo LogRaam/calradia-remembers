@@ -365,7 +365,7 @@ namespace CalradiaRemembers.Marriage
             return;
          }
 
-         bool approved = MarriageGuardPolicy.BlessingHonoursFamily(record != null, record?.ClanId, family.StringId);
+         bool approved = MarriageGuardPolicy.FamilyApproves(_crIsMarrying, record != null, record?.ClanId, family.StringId);
          int baseDelta = approved
             ? ApprovedRelationBonus
             : UnapprovedRelationPenalty;
@@ -403,6 +403,21 @@ namespace CalradiaRemembers.Marriage
          StoryLog.WriteNarration(msg);
          ModLog.Info($"[MARRIAGE] {(approved ? "APPROVED" : "UNAPPROVED")} marriage to {spouse.Name}: " +
                      $"{clan} — {affected} kin moved ({warmed} warmed, {cooled} cooled).");
+      }
+
+      // True only while CR itself is sealing a marriage (MarryThroughCr). Anything else that marries the player is the
+      // base game, whose marriages always carry the family's consent. Main thread only, like every engine action.
+      private static bool _crIsMarrying;
+
+      /// <summary>
+      ///   Seals a marriage CR brokered (a conversation, a quest reward), so the family's reaction is judged by its
+      ///   blessing. The base game's own marriages never pass through here and are approved by construction.
+      /// </summary>
+      internal static void MarryThroughCr(Hero player, Hero spouse)
+      {
+         _crIsMarrying = true;
+         try { MarriageAction.Apply(player, spouse); }
+         finally { _crIsMarrying = false; }
       }
 
       /// <summary>

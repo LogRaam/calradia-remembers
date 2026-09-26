@@ -96,5 +96,24 @@ namespace CalradiaRemembers.Tests
          MarriageGuardPolicy.BlessingHonoursFamily(true, null, "clan_A").Should().BeFalse();
          MarriageGuardPolicy.BlessingHonoursFamily(true, "clan_A", null).Should().BeFalse();
       }
+
+      // Gabriel, 25/09/2026 (zhenja1's report): a marriage the base game made always had the family's consent, the
+      // clan head bargained it or the family offered it. Treating it as unblessed chilled the very family that
+      // proposed the match by 40 and planted grudges on its kin.
+      [Test]
+      public void GIVEN_a_marriage_the_base_game_arranged_WHEN_the_family_reacts_THEN_it_approves_without_any_blessing_record()
+      {
+         MarriageGuardPolicy.FamilyApproves(madeThroughCr: false, hasRecord: false, blessedClanId: null, spouseFamilyClanId: "clan_A")
+            .Should().BeTrue();
+      }
+
+      // The case the blessing exists for: a match sealed in conversation, going around the family. It is still
+      // judged by whether that family blessed it.
+      [Test]
+      public void GIVEN_a_marriage_made_in_conversation_WHEN_the_family_never_blessed_it_THEN_it_does_not_approve()
+      {
+         MarriageGuardPolicy.FamilyApproves(true, false, null, "clan_A").Should().BeFalse();
+         MarriageGuardPolicy.FamilyApproves(true, true, "clan_A", "clan_A").Should().BeTrue();
+      }
    }
 }
