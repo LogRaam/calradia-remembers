@@ -1,0 +1,37 @@
+﻿Version 2.5.24
+
+Prisoners can now be exchanged, and a lord who wants one of his own back sends an envoy to negotiate with you instead of a letter. Plus a day of fixes from your reports: a capture asked in peace, a bride who spoke as if she had always been yours, a family affronted by a match it offered itself, and switching characters with another mod.
+
+New
+
+- Prisoner exchange. You can trade a captive lord, vassal or companion you hold for one the other side holds (never common soldiers). When the two are far apart in worth, the side that gets the more valuable one pays the difference in gold. A captive going back to his own side walks free, and one of your own companions rejoins you; a captive handed to a side he does not belong to simply changes gaolers. You can propose it in conversation with any lord whose house holds a captive, while you hold one yourself.
+
+- Envoys instead of ransom letters. When a lord wants back a captive you hold, he no longer writes: he sends an envoy under a flag of truce, announced when you are free on the map, who speaks in his lord's name and can actually negotiate a ransom or an exchange with you. The envoy is never the lord himself, and cannot promise anything beyond what his lord sent him for. Besides the captive's own house and realm, a father whose daughter married into another house may send one, and so may a lord of your own realm who bitterly hates the captive and wants him in his own cells.
+
+Fixed
+
+- A lord who asks you to capture a rival in peace (for blackmail, revenge, a scheme) now gives you a task that holds: take the rival and bring him into his hands. It was being cancelled the next day as if it were a war errand, and handing the prisoner over was refused. Capturing an enemy in war is unchanged: done when you take him, set aside if the war ends.
+
+- A new wife or husband remembers the wedding. After a marriage arranged through the base game, your spouse had no memory of it and spoke as if you had shared a life for years. They now remember the match, and whether you had ever met: newlyweds, sometimes still strangers.
+
+- A family that arranged the match is no longer affronted by it. A marriage made through the base game (bargained with the head of the family, or offered by the family) was treated as unblessed, souring the whole family and planting grudges. Only a marriage sealed in conversation without the family's blessing still offends them.
+
+- Switching characters with another mod (such as a player switcher) is no longer treated as your death. It was triggering a succession each way, which also erased characters' private memories of you. Only a real death or retirement does now, and a retirement is no longer recorded as a death.
+
+- Hiring on as a mercenary is no longer recorded as swearing fealty, so lords no longer speak of an oath your sellsword never took.
+
+- A council sitting is no longer saved as a private conversation with one of its members, which could have replayed the whole council into a later one-to-one talk.
+
+- Every time Calradia Remembers takes renown from you, it now writes a line saying so in its log, so you can see exactly what it took, and what it did not.
+
+For modders
+
+- ExternalWorldEvent has a new ActorHeroIds field: the heroes who DID the thing (the besieger, the executioner). When the player is among them, the fact is filed as the player's own deed. Naming the player in HeroIds (as the owner of a besieged town, say) no longer makes it their deed.
+
+- PromptVarFacts has a new Lean flag: true when the prompt your value goes into is being built Compact for a small model, so your tokens can shrink the way Calradia Remembers shrinks its own sections.
+
+- A new verb, exchange_prisoners. The Lean flag is documented in Docs/HOWTO_Actions.md.
+
+Notes
+
+- Your existing saves load exactly as they are and nothing needs a new game. The envoy and the exchange are new and have not yet been played through at length; reports welcome.

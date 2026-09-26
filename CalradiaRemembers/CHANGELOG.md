@@ -2,9 +2,39 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.5.24.. unreleased
+## v2.5.24.. 2026-09-25
+
+A day of player reports, and one pillar they asked for: prisoners can now be EXCHANGED, and a lord who wants a captive
+back sends an envoy to treat with the player instead of a letter.
+
+### Added
+- **Prisoner exchange, and an envoy instead of a ransom letter** (fkasad, 25/09/2026: a ransom offer was "merely an
+  offer that can be accepted or refused", "several llm calls for no interactions"; "a lord who wishes to retrieve one of
+  his own would dispatch a trusted agent to negotiate"). Gabriel's rulings: heroes only (lords, vassals, companions,
+  never troops); always an envoy, never the lord in person; anonymous; announced by a popup.
+  - `exchange_prisoners`, a new verb declared in every place the verbs map checks: the player gives a hero captive and
+    receives one the NPC's clan holds. `PrisonerExchangePolicy` (pure): even within 25% of the dearer captive's worth,
+    else the side that gets more pays the difference; the game's own ransom valuation, as the sale verbs use. A captive
+    handed to his own side is FREED (the engine's ransom path, the one that keeps a player companion from turning
+    fugitive; the player's own rejoins his party); otherwise he changes gaolers. Usable in ordinary chat too.
+  - The envoy (`PrisonerEnvoyBehavior`) replaces the PrisonerOffer letter, carrying the same fair ceiling. A popup when
+    the player stands free on the open map; a pipeline of its own (`EnvoyPromptBuilder`, SDK; `ChatViewModel.Envoy`),
+    as the council has, because the 1:1 prompt is built from a hero and would make the envoy speak AS the lord. No hero
+    in the chat, a troop of the lord's clan in the shot. `EnvoyMandatePolicy` rebinds whatever deal the model writes to
+    the lord's mandate before the bridge runs it in the LORD's name (his gold, his prisons, his memory). One envoy per
+    captive and lord every 20 days. Additive save key `CR_PrisonerEnvoys_v1bytes`. A letter an older save has pending
+    keeps its Accept button.
+  - Who may send one (`PrisonerBuyerPolicy`): the captive's house, a parent of ANOTHER house (a daughter married out),
+    the realm, and a lord of the player's own realm who bitterly hates the captive, who wants him in his own custody.
+  - NOT run in game yet; the scene staged with an anonymous troop is the part only play can confirm.
 
 ### Fixed
+- **The council never returned to the game thread after its model call** (found building the envoy on its shape).
+  Every other chat path awaits `MainThreadDispatcher.SwitchToMainThread()`; the council added its bubbles and applied
+  its regard shifts from a thread-pool thread while the simulation ran.
+- **Every renown penalty is logged** (a player asked whether CR caused his clan to lose whole tiers; it cannot: the
+  engine only raises a tier, and CR writes none). Three of the five penalties logged nothing; `RenownPenalty.Apply` now
+  writes a `[RENOWN]` line for each.
 - **A council sitting was kept for the conversation resume** (yozakura12, 24/09/2026, whose log showed "[CONV RESUME]
   kept 23 line(s)" as a two-companion council closed). The close side excluded the companion briefing and the captive
   mode by name; a council is neither and runs in the ordinary conversation mode, so its transcript was kept under the
@@ -52,6 +82,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   "retired", not "died"), anything else a switch, which reframes nothing and is logged. No suppression flag was
   needed: the engine's own state answers it for every switcher mod. Memories already erased in the reporter's save
   cannot be restored. `cr.testall succession_switch` classifies live heroes without applying anything.
+- **Maps: a shipped modder API member may not vanish.** A blocking guard: `docs/maps/modder-api-released.md` holds the
+  surface as released, recorded at each cut (`Tools/Update-Maps.ps1 -RecordReleasedApi`); a released member that
+  disappears or changes signature fails the suite, update mode included.
 - **Hiring on as a mercenary was recorded as swearing fealty** (tashmetu, 25/09/2026: his sellsword was told by
   Derthert "I've heard word you swore fealty"). `OnClanChangedKingdom` sent `JoinAsMercenary` down the vassalage path,
   so the news read "swore fealty" and the chronicle "bent the knee"; the leaving side already had its own contract

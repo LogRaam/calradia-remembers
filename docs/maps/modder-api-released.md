@@ -1,4 +1,4 @@
-Released in v2.5.23
+Released in v2.5.24
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -277,6 +277,7 @@ _An externally-defined conversation verb: its name (the [ACTION] "type:" it answ
 _The engine-agnostic facts a registered prompt-variable provider (see PromptVariableRegistry) reasons over._
 
 - `IReadOnlyDictionary<string, string>? Extra { get; set; }`
+- `bool Lean { get; set; }`
 - `int RelationToPlayer { get; set; }`
 - `string NpcId { get; set; }`
 
