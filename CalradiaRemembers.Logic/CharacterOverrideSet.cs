@@ -30,7 +30,7 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>
         ///   The override for a hero, or null when none applies. A matching <paramref name="heroId"/>
-        ///   (StringId) always wins — the unambiguous key. Next, an entry whose id is the hero's
+        ///   (StringId) always wins: the unambiguous key. Next, an entry whose id is the hero's
         ///   <paramref name="templateId"/> (tashmetu, Nexus, 26/09/2026: a mercenary captain's StringId and name are
         ///   rolled per campaign, "CharacterObject_2526", "Yahya of the Beni Zilal", but the template he is spawned
         ///   from, "spc_skolderbrotva_leader_0", is the same in every game, so a pack keyed on it works everywhere).
