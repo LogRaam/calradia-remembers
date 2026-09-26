@@ -87,9 +87,11 @@ namespace CalradiaRemembers.Tests.Maps
                                                        .GroupBy(v => v.Identifier.Text)
                                                        .ToDictionary(g => g.Key, g => StringOf(g.First().Initializer!.Value)!);
 
-            foreach ((string name, string value) in constants.Where(c => c.Key.Contains("SaveKey", StringComparison.Ordinal)))
-               Add(found, value, OwnerOfField(file, name), $"constant `{name}`");
-
+            // TWO DETECTION MODES, AND EACH LINE SAYS WHICH (Gabriel, 26/09/2026: "toute carte qui melange deux modes de
+            // detection devrait dire, pour chaque ligne, lequel l'a produite"). The SyncData call is the FACT; a constant
+            // named *SaveKey* is found by its NAME, for a key handed to a helper that makes the call. A key both find is
+            // labelled by the fact, which is read first so it wins; before 26/09/2026 the name pass ran first and a key the
+            // call itself confirmed read as though only its name had.
             foreach (InvocationExpressionSyntax call in file.Root.DescendantNodes().OfType<InvocationExpressionSyntax>())
             {
                if (call.Expression is not MemberAccessExpressionSyntax {Name.Identifier.Text: "SyncData"}) continue;
@@ -98,10 +100,13 @@ namespace CalradiaRemembers.Tests.Maps
                string owner = call.Ancestors().OfType<BaseTypeDeclarationSyntax>().LastOrDefault()?.Identifier.Text ?? "(none)";
 
                if (StringOf(first) is { } literal)
-                  Add(found, literal, owner, "literal at the call");
+                  Add(found, literal, owner, "literal at the SyncData call (fact)");
                else if (first is IdentifierNameSyntax id && constants.TryGetValue(id.Identifier.Text, out string? value))
-                  Add(found, value, owner, $"constant `{id.Identifier.Text}`");
+                  Add(found, value, owner, $"constant `{id.Identifier.Text}` passed to SyncData (fact)");
             }
+
+            foreach ((string name, string value) in constants.Where(c => c.Key.Contains("SaveKey", StringComparison.Ordinal)))
+               Add(found, value, OwnerOfField(file, name), $"constant `{name}`, found by its name (name)");
          }
 
          return found.Values.ToList();

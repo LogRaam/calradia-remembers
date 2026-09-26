@@ -11,86 +11,86 @@ this file is refused by the suite, regeneration included, until it is declared o
 
 | Key | Written by | Declared as |
 |---|---|---|
-| `CR_AmbushChiefId` | `AmbushCaptivityBehavior` | literal at the call |
-| `CR_AmbushConvoyPartyId` | `AmbushCaptivityBehavior` | literal at the call |
-| `CR_AmbushPaymasterId` | `AmbushCaptivityBehavior` | literal at the call |
-| `CR_AmbushPendingLordId` | `AmbushCaptivityBehavior` | literal at the call |
-| `CR_ArrestCase_v1bytes` | `ArrestBehavior` | constant `SaveKey` |
-| `CR_ConvSummaryQueue` | `ConversationSummaryQueueRunner` | constant `SaveKey` |
-| `CR_ConversationResume` | `ConversationResumeStore` | constant `SaveKey` |
-| `CR_CourierSecrets_v1bytes` | `CourierSecretBehavior` | constant `SaveKey` |
-| `CR_MercenaryDeparture_v1bytes` | `MercenaryReputationBehavior` | constant `SaveKey` |
-| `CR_NemesisActiveCaptorId` | `NemesisBehavior` | literal at the call |
-| `CR_PrisonerEnvoys_v1bytes` | `PrisonerEnvoyBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_AppearanceProse_v1bytes` | `AppearanceProseBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_Appreciations_v1bytes` | `AppreciationBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_Assembly_v1bytes` | `AssemblyBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_AudienceTopicState_v1bytes` | `CompanionAudienceTopicBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_BastardLastSeason_v1` | `BastardBehavior` | constant `LastSeasonSaveKey` |
-| `CalradiaRemembers_BastardsBlackmail_v1bytes` | `BastardBehavior` | constant `SaveKeyBlackmail` |
-| `CalradiaRemembers_Bastards_v1bytes` | `BastardBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_CaptiveGear_v1bytes` | `CaptiveGearBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_ChronicleText_v1bytes` | `ChronicleBehavior` | constant `TextKey` |
-| `CalradiaRemembers_ChronicleThroughMark_v1` | `ChronicleBehavior` | constant `MarkKey` |
-| `CalradiaRemembers_ChronicleThrough_v1` | `ChronicleBehavior` | constant `CountKey` |
-| `CalradiaRemembers_Commitments_v1bytes` | `CommitmentBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_CompanionAffectionAsked_v1` | `CompanionAffectionBehavior` | constant `CooldownSaveKey` |
-| `CalradiaRemembers_CompanionFarewellDay_v1` | `CompanionHappinessBehavior` | constant `FarewellSaveKey` |
-| `CalradiaRemembers_CompanionHeardDay_v1` | `CompanionHappinessBehavior` | constant `HeardSaveKey` |
-| `CalradiaRemembers_CompanionMissions_v2bytes` | `CompanionMissionBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_CompanionRefusals_v1` | `CompanionHappinessBehavior` | constant `RefusalsSaveKey` |
-| `CalradiaRemembers_CompanionReports_v1bytes` | `CompanionMissionBehavior` | constant `SaveKeyReports` |
-| `CalradiaRemembers_CouncilHostages_v1bytes` | `CouncilHostageBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_CouncilPacts_v1bytes` | `CouncilPactBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_CouncilSession_v1bytes` | `CouncilSessionBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_CouncilStipends_v1bytes` | `CouncilStipendBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_CouncilTributes_v1bytes` | `CouncilTributeBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_CouncilTroopDeliveries_v1bytes` | `CouncilTroopDeliveryBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_CouncilWards_v1bytes` | `CouncilWardBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_CourtshipTrials_v1bytes` | `CourtshipTrialBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_CrExpectingMothers_v1` | `PregnancyBirthBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_CrLoverChildren_v1` | `PregnancyBirthBehavior` | constant `LoverChildSaveKey` |
-| `CalradiaRemembers_Divorce_v1bytes` | `DivorceProcessBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_FiefAudienceCooldown_v1bytes` | `FiefAudienceBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_FollowEscorts_v1bytes` | `FollowMeBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_Grudges_v1bytes` | `GrudgeBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_InterceptMatters_v1bytes` | `InterceptionBehavior` | constant `MatterSaveKey` |
-| `CalradiaRemembers_InterceptPursuit_v1bytes` | `InterceptionBehavior` | constant `PursuitSaveKey` |
-| `CalradiaRemembers_Intercept_v1bytes` | `InterceptionBehavior` | constant `CooldownSaveKey` |
-| `CalradiaRemembers_Jealousy_v1` | `JealousyBehavior` | constant `LegacySaveKey` |
-| `CalradiaRemembers_Jealousy_v2bytes` | `JealousyBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_LetterPacing_v1bytes` | `LetterTriggerEvaluator` | constant `LetterPacingSaveKey` |
-| `CalradiaRemembers_MarriageAppliedSwings_v1` | `MarriageApprovalBehavior` | constant `AppliedSwingsSaveKey` |
-| `CalradiaRemembers_MarriageApprovals_v1` | `MarriageApprovalBehavior` | constant `LegacySaveKey` |
-| `CalradiaRemembers_MarriageApprovals_v2bytes` | `MarriageApprovalBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_Nemesis_v1bytes` | `NemesisBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_NpcProfiles_v1` | `BannerlordNpcMemoryStore` | constant `SaveKey` |
-| `CalradiaRemembers_NpcProfiles_v2bytes` | `BannerlordNpcMemoryStore` | constant `SaveKeyBytes` |
-| `CalradiaRemembers_Rescues_v1` | `RescueBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_Retainers_v1bytes` | `RetainerBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_ScatteredLoot_v1bytes` | `ScatteredLootBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_Scenarios_v1` | `ScenarioBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_SchemeAutoCooldown_v1bytes` | `SchemeStore` | constant `CooldownSaveKey` |
-| `CalradiaRemembers_Schemes_v1bytes` | `SchemeStore` | constant `SaveKey` |
-| `CalradiaRemembers_SecretLoverHush_v1bytes` | `SecretLoverGossipBehavior` | constant `HushSaveKey` |
-| `CalradiaRemembers_SecretLoverKnown_v1bytes` | `SecretLoverGossipBehavior` | constant `KnownSaveKey` |
-| `CalradiaRemembers_SecretLoverLeaks_v1bytes` | `SecretLoverGossipBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_SpouseDivorceAnnounceCycle_v1` | `SpouseDivorceDemandBehavior` | constant `AnnounceCycleSaveKey` |
-| `CalradiaRemembers_SpouseDivorceAnnounceRetries_v1` | `SpouseDivorceDemandBehavior` | constant `AnnounceRetriesSaveKey` |
-| `CalradiaRemembers_SpouseDivorceDemand_v1` | `SpouseDivorceDemandBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_SpouseDivorceEscalation_v1` | `SpouseDivorceDemandBehavior` | constant `EscalationSaveKey` |
-| `CalradiaRemembers_SpouseDivorceRefusalCount_v1` | `SpouseDivorceDemandBehavior` | constant `RefusalCountSaveKey` |
-| `CalradiaRemembers_StolenLoveEstrangement_v1bytes` | `NpcMarriageEstrangementBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_SwayExposure_v1bytes` | `SwayExposureBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_TournamentRivalry_v1bytes` | `TournamentRivalryBehavior` | constant `SaveKey` |
-| `CalradiaRemembers_WarCouncilLastOfferDay_v1` | `WarCouncilOfferBehavior` | constant `LastOfferDaySaveKey` |
-| `CalradiaRemembers_WearinessDeclined_v1` | `WarWearinessBehavior` | constant `DeclinedSaveKey` |
-| `CalradiaRemembers_WearinessForcedBack_v1` | `WarWearinessBehavior` | constant `ForcedBackSaveKey` |
-| `CalradiaRemembers_WearinessServedSince_v1` | `WarWearinessBehavior` | constant `ServedSinceSaveKey` |
-| `CalradiaRemembers_WearinessWounded_v1` | `WarWearinessBehavior` | constant `WoundCountedSaveKey` |
-| `CalradiaRemembers_WorldEvents_v1bytes` | `WorldEventStore` | constant `SaveKey` |
-| `cr_chronicle_lastSeason` | `SeasonalChronicleBehavior` | literal at the call |
-| `cr_chronicle_lastSeen` | `SeasonalChronicleBehavior` | literal at the call |
+| `CR_AmbushChiefId` | `AmbushCaptivityBehavior` | literal at the SyncData call (fact) |
+| `CR_AmbushConvoyPartyId` | `AmbushCaptivityBehavior` | literal at the SyncData call (fact) |
+| `CR_AmbushPaymasterId` | `AmbushCaptivityBehavior` | literal at the SyncData call (fact) |
+| `CR_AmbushPendingLordId` | `AmbushCaptivityBehavior` | literal at the SyncData call (fact) |
+| `CR_ArrestCase_v1bytes` | `ArrestBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CR_ConvSummaryQueue` | `ConversationSummaryQueueRunner` | constant `SaveKey` passed to SyncData (fact) |
+| `CR_ConversationResume` | `ConversationResumeStore` | constant `SaveKey` passed to SyncData (fact) |
+| `CR_CourierSecrets_v1bytes` | `CourierSecretBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CR_MercenaryDeparture_v1bytes` | `MercenaryReputationBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CR_NemesisActiveCaptorId` | `NemesisBehavior` | literal at the SyncData call (fact) |
+| `CR_PrisonerEnvoys_v1bytes` | `PrisonerEnvoyBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_AppearanceProse_v1bytes` | `AppearanceProseBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_Appreciations_v1bytes` | `AppreciationBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_Assembly_v1bytes` | `AssemblyBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_AudienceTopicState_v1bytes` | `CompanionAudienceTopicBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_BastardLastSeason_v1` | `BastardBehavior` | constant `LastSeasonSaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_BastardsBlackmail_v1bytes` | `BastardBehavior` | constant `SaveKeyBlackmail` passed to SyncData (fact) |
+| `CalradiaRemembers_Bastards_v1bytes` | `BastardBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CaptiveGear_v1bytes` | `CaptiveGearBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_ChronicleText_v1bytes` | `ChronicleBehavior` | constant `TextKey` passed to SyncData (fact) |
+| `CalradiaRemembers_ChronicleThroughMark_v1` | `ChronicleBehavior` | constant `MarkKey` passed to SyncData (fact) |
+| `CalradiaRemembers_ChronicleThrough_v1` | `ChronicleBehavior` | constant `CountKey` passed to SyncData (fact) |
+| `CalradiaRemembers_Commitments_v1bytes` | `CommitmentBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CompanionAffectionAsked_v1` | `CompanionAffectionBehavior` | constant `CooldownSaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CompanionFarewellDay_v1` | `CompanionHappinessBehavior` | constant `FarewellSaveKey`, found by its name (name) |
+| `CalradiaRemembers_CompanionHeardDay_v1` | `CompanionHappinessBehavior` | constant `HeardSaveKey`, found by its name (name) |
+| `CalradiaRemembers_CompanionMissions_v2bytes` | `CompanionMissionBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CompanionRefusals_v1` | `CompanionHappinessBehavior` | constant `RefusalsSaveKey`, found by its name (name) |
+| `CalradiaRemembers_CompanionReports_v1bytes` | `CompanionMissionBehavior` | constant `SaveKeyReports` passed to SyncData (fact) |
+| `CalradiaRemembers_CouncilHostages_v1bytes` | `CouncilHostageBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CouncilPacts_v1bytes` | `CouncilPactBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CouncilSession_v1bytes` | `CouncilSessionBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CouncilStipends_v1bytes` | `CouncilStipendBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CouncilTributes_v1bytes` | `CouncilTributeBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CouncilTroopDeliveries_v1bytes` | `CouncilTroopDeliveryBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CouncilWards_v1bytes` | `CouncilWardBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CourtshipTrials_v1bytes` | `CourtshipTrialBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CrExpectingMothers_v1` | `PregnancyBirthBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_CrLoverChildren_v1` | `PregnancyBirthBehavior` | constant `LoverChildSaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_Divorce_v1bytes` | `DivorceProcessBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_FiefAudienceCooldown_v1bytes` | `FiefAudienceBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_FollowEscorts_v1bytes` | `FollowMeBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_Grudges_v1bytes` | `GrudgeBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_InterceptMatters_v1bytes` | `InterceptionBehavior` | constant `MatterSaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_InterceptPursuit_v1bytes` | `InterceptionBehavior` | constant `PursuitSaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_Intercept_v1bytes` | `InterceptionBehavior` | constant `CooldownSaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_Jealousy_v1` | `JealousyBehavior` | constant `LegacySaveKey`, found by its name (name) |
+| `CalradiaRemembers_Jealousy_v2bytes` | `JealousyBehavior` | constant `SaveKey`, found by its name (name) |
+| `CalradiaRemembers_LetterPacing_v1bytes` | `LetterTriggerEvaluator` | constant `LetterPacingSaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_MarriageAppliedSwings_v1` | `MarriageApprovalBehavior` | constant `AppliedSwingsSaveKey`, found by its name (name) |
+| `CalradiaRemembers_MarriageApprovals_v1` | `MarriageApprovalBehavior` | constant `LegacySaveKey`, found by its name (name) |
+| `CalradiaRemembers_MarriageApprovals_v2bytes` | `MarriageApprovalBehavior` | constant `SaveKey`, found by its name (name) |
+| `CalradiaRemembers_Nemesis_v1bytes` | `NemesisBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_NpcProfiles_v1` | `BannerlordNpcMemoryStore` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_NpcProfiles_v2bytes` | `BannerlordNpcMemoryStore` | constant `SaveKeyBytes` passed to SyncData (fact) |
+| `CalradiaRemembers_Rescues_v1` | `RescueBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_Retainers_v1bytes` | `RetainerBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_ScatteredLoot_v1bytes` | `ScatteredLootBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_Scenarios_v1` | `ScenarioBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_SchemeAutoCooldown_v1bytes` | `SchemeStore` | constant `CooldownSaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_Schemes_v1bytes` | `SchemeStore` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_SecretLoverHush_v1bytes` | `SecretLoverGossipBehavior` | constant `HushSaveKey`, found by its name (name) |
+| `CalradiaRemembers_SecretLoverKnown_v1bytes` | `SecretLoverGossipBehavior` | constant `KnownSaveKey`, found by its name (name) |
+| `CalradiaRemembers_SecretLoverLeaks_v1bytes` | `SecretLoverGossipBehavior` | constant `SaveKey`, found by its name (name) |
+| `CalradiaRemembers_SpouseDivorceAnnounceCycle_v1` | `SpouseDivorceDemandBehavior` | constant `AnnounceCycleSaveKey`, found by its name (name) |
+| `CalradiaRemembers_SpouseDivorceAnnounceRetries_v1` | `SpouseDivorceDemandBehavior` | constant `AnnounceRetriesSaveKey`, found by its name (name) |
+| `CalradiaRemembers_SpouseDivorceDemand_v1` | `SpouseDivorceDemandBehavior` | constant `SaveKey`, found by its name (name) |
+| `CalradiaRemembers_SpouseDivorceEscalation_v1` | `SpouseDivorceDemandBehavior` | constant `EscalationSaveKey`, found by its name (name) |
+| `CalradiaRemembers_SpouseDivorceRefusalCount_v1` | `SpouseDivorceDemandBehavior` | constant `RefusalCountSaveKey`, found by its name (name) |
+| `CalradiaRemembers_StolenLoveEstrangement_v1bytes` | `NpcMarriageEstrangementBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_SwayExposure_v1bytes` | `SwayExposureBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_TournamentRivalry_v1bytes` | `TournamentRivalryBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_WarCouncilLastOfferDay_v1` | `WarCouncilOfferBehavior` | constant `LastOfferDaySaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_WearinessDeclined_v1` | `WarWearinessBehavior` | constant `DeclinedSaveKey`, found by its name (name) |
+| `CalradiaRemembers_WearinessForcedBack_v1` | `WarWearinessBehavior` | constant `ForcedBackSaveKey`, found by its name (name) |
+| `CalradiaRemembers_WearinessServedSince_v1` | `WarWearinessBehavior` | constant `ServedSinceSaveKey`, found by its name (name) |
+| `CalradiaRemembers_WearinessWounded_v1` | `WarWearinessBehavior` | constant `WoundCountedSaveKey`, found by its name (name) |
+| `CalradiaRemembers_WorldEvents_v1bytes` | `WorldEventStore` | constant `SaveKey` passed to SyncData (fact) |
+| `cr_chronicle_lastSeason` | `SeasonalChronicleBehavior` | literal at the SyncData call (fact) |
+| `cr_chronicle_lastSeen` | `SeasonalChronicleBehavior` | literal at the SyncData call (fact) |
 
 ## Saveable type ids
 

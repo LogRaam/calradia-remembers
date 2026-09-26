@@ -304,8 +304,10 @@ namespace CalradiaRemembers.Tests.Maps
             {
                if (!Returns(iff.Statement)) continue;
 
+               // Found by a WORD: only an early return that mentions "context" is kept. Each guard says which of the
+               // two ways found it (Gabriel, 26/09/2026: a map that mixes detection modes says which, per line).
                string cond = Flatten(iff.Condition.ToString());
-               if (cond.Contains("context", StringComparison.OrdinalIgnoreCase)) guards.Add(cond);
+               if (cond.Contains("context", StringComparison.OrdinalIgnoreCase)) guards.Add(cond + " [early return naming context]");
             }
 
             // And the `if` around the call, for the sections gated by their caller.
@@ -314,7 +316,7 @@ namespace CalradiaRemembers.Tests.Maps
                if (NameOfCall(call) != m.Identifier.Text) continue;
 
                IfStatementSyntax? outer = call.Ancestors().OfType<IfStatementSyntax>().FirstOrDefault();
-               if (outer != null) guards.Add(Flatten(outer.Condition.ToString()));
+               if (outer != null) guards.Add(Flatten(outer.Condition.ToString()) + " [the caller's if]");
             }
 
             return (m.Identifier.Text, string.Join(" AND ", guards.Distinct(StringComparer.Ordinal)));

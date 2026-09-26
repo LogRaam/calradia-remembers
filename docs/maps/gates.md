@@ -78,7 +78,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteAcceptOtherPartners`
 - taught in: `AppendPluralAcceptance`
-- taught when: `context?.AcceptOtherPartnersEligible != true AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.AcceptOtherPartnersEligible != true [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} cannot accept such a household: {PluralAcceptancePolicy.WhyNot(facts)}.)"
 
@@ -93,7 +93,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteAppointGovernor`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} is not of your clan, and cannot govern one of its fiefs.)"
   - SilentRefusalMessages.AppointGovernorMissingFief()
@@ -109,7 +109,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteArrangeMarriage`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - SilentRefusalMessages.ArrangeMarriageMissingKin()
   - $"(No unwed kin of your own clan answers to '{playerKinName}'.)"
@@ -131,7 +131,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteAssignPartyRole`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - SilentRefusalMessages.AssignPartyRoleMissingRole()
   - $"({npcHero.Name} does not ride in your party, and can hold no post in it.)"
@@ -147,14 +147,14 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteChangeRelation`
 - taught in: `AppendWitnesses`
-- taught when: `context?.Witnesses == null || context.Witnesses.Count == 0 AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.Witnesses == null || context.Witnesses.Count == 0 [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses: never
 
 ### close_relationship
 
 - executor: `ExecuteCloseRelationship`
 - taught in: `AppendPartnerLoverKnown`
-- taught when: `context?.PartnerLoverKnown != true AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.PartnerLoverKnown != true [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - can be invalidated mid-turn by: `end_affair`, each of which writes `LoverKnownToPlayer`, `TakenLoverId`
 - the bridge refuses:
   - $"({npcHero.Name} has no bond with you to close.)"
@@ -174,7 +174,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteDismissEscort`
 - taught in: `AppendDismissEscort`
-- taught when: `context?.NpcIsEscortingPlayer != true`
+- taught when: `context?.NpcIsEscortingPlayer != true [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} is not riding with you: {failReason})"
 
@@ -182,7 +182,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteDispatchMission`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - SilentRefusalMessages.DispatchMissionMissingErrand()
   - $"({npcHero.Name} is not one of your companions to send.)"
@@ -194,7 +194,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteEndAffair`
 - taught in: `AppendPartnerLoverKnown`
-- taught when: `context?.PartnerLoverKnown != true AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.PartnerLoverKnown != true [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} has no lover to give up.)"
 
@@ -209,7 +209,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteEndMercenary`
 - taught in: `AppendMercenaryEnd`
-- taught when: `context?.PlayerIsMercenary != true AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.PlayerIsMercenary != true [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - "(You are not serving anyone as a mercenary.)"
 
@@ -249,7 +249,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteExpelFromClan`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - "(You no longer lead your clan, and cannot cast anyone out of it.)"
   - $"({npcHero.Name} is not one of your clan's companions to cast out.)"
@@ -260,7 +260,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteFollowMe`
 - taught in: `AppendFollowMe`
-- taught when: `context?.NpcCanEscortPlayer != true AND context!.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.NpcCanEscortPlayer != true [early return naming context] AND context!.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} cannot ride with you right now: {failReason})"
 
@@ -268,7 +268,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteFreePrisoner`
 - taught in: `AppendPrisonerFreedomBargain`
-- taught when: `context?.PlayerStatus != PlayerStatusVsNpc.NpcIsCaptive`
+- taught when: `context?.PlayerStatus != PlayerStatusVsNpc.NpcIsCaptive [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} is not yours to set free.)"
 
@@ -288,7 +288,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteGiveGold`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - SilentRefusalMessages.GiveGoldNoValidSum()
   - SilentRefusalMessages.GiveGoldGiverInsolvent(npcHero.Name.ToString())
@@ -297,14 +297,14 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `Execute`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses: never
 
 ### give_item
 
 - executor: `ExecuteGiveItem`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - SilentRefusalMessages.GiveItemNoneNamed()
   - "(You don't seem to have anything like that to give.)"
@@ -315,7 +315,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteGivePrisoner`
 - taught in: `AppendDeliverPrisoner`
-- taught when: `context?.PlayerStatus == PlayerStatusVsNpc.Captive AND LeanPromptPolicy.Include(PromptSection.DeliverPrisonerOffer, lean) && encounterContext?.WarStatus is DiplomaticStatus.AtWar or DiplomaticStatus.AtPeac...`
+- taught when: `context?.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context] AND LeanPromptPolicy.Include(PromptSection.DeliverPrisonerOffer, lean) && encounterContext?.WarStatus is DiplomaticStatus.AtWar or DiplomaticStatus.AtPeac... [the caller's if]`
 - the bridge refuses:
   - SilentRefusalMessages.GivePrisonerNoBargain()
   - $"(You do not hold {anyBargain.TargetHeroName ?? "the captive"} I asked for.)"
@@ -325,14 +325,14 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `Execute`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses: never
 
 ### grant_blessing
 
 - executor: `ExecuteGrantBlessing`
 - taught in: `AppendMarriage`
-- taught when: `context == null || string.IsNullOrWhiteSpace(context.MarriageProspects) AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context == null || string.IsNullOrWhiteSpace(context.MarriageProspects) [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - can be invalidated mid-turn by: `join_clan`, `recruit_prisoner`, `turn_nemesis`, each of which writes `Clan`
 - the bridge refuses:
   - "(You are already wed — the blessing cannot apply.)"
@@ -346,7 +346,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteGrantFief`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} is of your own house; a crown fief is granted across houses.)"
   - SilentRefusalMessages.GrantFiefMissingFief()
@@ -359,7 +359,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteGrantStipend`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} is not a companion of your clan to keep on a stipend.)"
   - SilentRefusalMessages.GrantStipendMissingAmount()
@@ -392,14 +392,14 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteImpregnationRisk`
 - taught in: `AppendImpregnationRisk`
-- taught when: `PlayerIsFemale AND context.ConceptionRisk == ConceptionRisk.PlayerCanConceive`
+- taught when: `PlayerIsFemale [the caller's if] AND context.ConceptionRisk == ConceptionRisk.PlayerCanConceive [the caller's if]`
 - the bridge refuses: never
 
 ### join_as_mercenary
 
 - executor: `ExecuteJoinAsMercenary`
 - taught in: `AppendMercenaryOffer`
-- taught when: `context!.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context!.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} does not belong to a kingdom.)"
   - $"(Your clan is already sworn to {playerClan.Kingdom.Name}. " + "Settle that obligation first.)"
@@ -409,7 +409,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteJoinAsVassal`
 - taught in: `AppendVassalOffer`
-- taught when: `context!.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context!.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} does not belong to a kingdom.)"
   - $"({npcHero.Name} does not rule {kingdom.Name}; only the ruler's word can swear your clan to their banner.)"
@@ -420,7 +420,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteJoinClan`
 - taught in: `AppendLordRecruitment`
-- taught when: `context?.LordRecruitEligible != true AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.LordRecruitEligible != true [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} will not leave their house to join yours — not yet.)"
   - $"({npcHero.Name} does not respect you enough to throw in their lot with you. Earn their esteem first.)"
@@ -430,7 +430,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteJoinParty`
 - taught in: `AppendRecruitment`
-- taught when: `context?.CompanionAskingPrice is not int asking || asking <= 0 AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.CompanionAskingPrice is not int asking || asking <= 0 [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} is not free to take service.)"
   - $"(Your clan cannot support another companion — limit {clan.CompanionLimit}.)"
@@ -447,7 +447,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `Execute`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses: never
 
 ### make_amends
@@ -461,7 +461,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteMarry`
 - taught in: `AppendLoveMatchProposalEligible`
-- taught when: `context?.LoveMatchEligible == true`
+- taught when: `context?.LoveMatchEligible == true [the caller's if]`
 - the bridge refuses:
   - "(You are already wed — no second marriage can be sealed in law.)"
   - $"({npcHero.Name} belongs to your own clan — custom forbids it.)"
@@ -475,7 +475,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteMediatePeace`
 - taught in: `AppendMediatePeaceOffer`
-- taught when: `context?.PlayerCanMediatePeace != true AND context!.IsRoundTableTurn || context.IsCouncilNarratorTurn AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.PlayerCanMediatePeace != true [early return naming context] AND context!.IsRoundTableTurn || context.IsCouncilNarratorTurn [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} speaks for no realm, and cannot be brought to a peace they do not command.)"
   - $"(Which realm is the peace to be brokered with? {npcHero.Name}'s war has no named enemy here.)"
@@ -489,7 +489,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteOpenRelationship`
 - taught in: `AppendOpenRelationshipProposal`
-- taught when: `context?.OpenRelationshipEligible != true AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.OpenRelationshipEligible != true [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - can be invalidated mid-turn by: `close_relationship`, `give_prisoner`, `marry`, `take_as_consort`, `take_as_secret_lover`, each of which writes `IsConsort`, `IsOpenArrangement`, `Status`
 - the bridge refuses:
   - $"({npcHero.Name} has no bond with you to open.)"
@@ -500,7 +500,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecutePartWays`
 - taught in: `AppendPartWays`
-- taught when: `context?.NpcIsRidingWithPlayer != true AND context!.PlayerStatus == PlayerStatusVsNpc.Captive AND context.IsRoundTableTurn || context.IsCouncilNarratorTurn`
+- taught when: `context?.NpcIsRidingWithPlayer != true [early return naming context] AND context!.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context] AND context.IsRoundTableTurn || context.IsCouncilNarratorTurn [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} is not riding in your party: {report})"
 
@@ -517,7 +517,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `Execute`
 - taught in: `AppendHeldSecret`
-- taught when: `context == null || string.IsNullOrWhiteSpace(context.HeldSecretLoverSubject) AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context == null || string.IsNullOrWhiteSpace(context.HeldSecretLoverSubject) [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - can be invalidated mid-turn by: `join_clan`, `recruit_prisoner`, `turn_nemesis`, each of which writes `Clan`
 - the bridge refuses: never
 
@@ -525,7 +525,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecutePledgeAgainst`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} already has a pledge outstanding — one vow at a time.)"
   - "(No rival by that name is known to pledge against.)"
@@ -542,7 +542,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteRecallCompanion`
 - taught in: `AppendCompanionRecallOffer`
-- taught when: `context?.CompanionOnErrand != true`
+- taught when: `context?.CompanionOnErrand != true [early return naming context]`
 - can be invalidated mid-turn by: `join_clan`, `recruit_prisoner`, `turn_nemesis`, each of which writes `Clan`
 - the bridge refuses: never
 
@@ -550,7 +550,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteRecruitNotable`
 - taught in: `AppendRecruitNotable`
-- taught when: `context?.CanRecruitNotable != true AND context.IsCaptorScene AND context.IsRoundTableTurn || context.IsCouncilNarratorTurn`
+- taught when: `context?.CanRecruitNotable != true [early return naming context] AND context.IsCaptorScene [early return naming context] AND context.IsRoundTableTurn || context.IsCouncilNarratorTurn [early return naming context]`
 - can be invalidated mid-turn by: `join_clan`, `recruit_prisoner`, `turn_nemesis`, each of which writes `Clan`
 - the bridge refuses:
   - $"({npcHero.Name} is not a settlement notable, and cannot hand over a post they do not hold.)"
@@ -564,7 +564,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteRecruitPrisoner`
 - taught in: `AppendRecruitPrisoner`
-- taught when: `context?.CanRecruitPrisoner != true AND context.IsCaptorScene AND context.IsRoundTableTurn || context.IsCouncilNarratorTurn`
+- taught when: `context?.CanRecruitPrisoner != true [early return naming context] AND context.IsCaptorScene [early return naming context] AND context.IsRoundTableTurn || context.IsCouncilNarratorTurn [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} is not a prisoner you hold, and cannot swear to your clan from a cell that is not yours.)"
   - $"({npcHero.Name} leads the house of {npcHero.Clan?.Name?.ToString() ?? "their birth"}; a lord cannot dissolve their own clan into yours with a word.)...
@@ -574,7 +574,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteRejoinParty`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} is held prisoner and cannot travel to you.)"
   - $"({npcHero.Name} is not one of your companions to recall.)"
@@ -585,14 +585,14 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `Execute`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses: never
 
 ### revoke_fief
 
 - executor: `ExecuteRevokeFief`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} holds no separate house whose fief you could revoke.)"
   - SilentRefusalMessages.RevokeFiefMissingFief()
@@ -604,7 +604,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteRideWithMe`
 - taught in: `AppendRideWithMe`
-- taught when: `context?.NpcCanRideWithPlayer != true AND context!.PlayerStatus == PlayerStatusVsNpc.Captive AND context.IsRoundTableTurn || context.IsCouncilNarratorTurn`
+- taught when: `context?.NpcCanRideWithPlayer != true [early return naming context] AND context!.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context] AND context.IsRoundTableTurn || context.IsCouncilNarratorTurn [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} cannot ride in your party right now.)"
   - $"({npcHero.Name} leads their own party; they would ride ALONGSIDE you with follow_me, not inside your party.)"
@@ -622,7 +622,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteSchemeAssist`
 - taught in: `AppendSchemeRecruitment`
-- taught when: `context!.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context!.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - "(There is no plot of theirs you could help with just now.)"
 
@@ -630,7 +630,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteSchemeHeed`
 - taught in: `AppendSchemeWarning`
-- taught when: `context?.SchemeTargetsThisNpc != true AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.SchemeTargetsThisNpc != true [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - "(There is no plot against them you could warn of just now.)"
 
@@ -659,7 +659,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteSwearOath`
 - taught in: `AppendEncounterContext`
-- taught when: `context == null`
+- taught when: `context == null [early return naming context]`
 - the bridge refuses:
   - SilentRefusalMessages.SwearOathMissingKind()
   - $"({npcHero.Name} has already given their word on another matter, and will swear no second oath until it is settled.)"
@@ -674,7 +674,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteTakeAsConsort`
 - taught in: `AppendConsortProposal`
-- taught when: `context?.ConsortEligible != true AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.ConsortEligible != true [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - can be invalidated mid-turn by: `give_prisoner`, `marry`, `take_as_secret_lover`, each of which writes `Status`
 - the bridge refuses:
   - $"({npcHero.Name} has no romantic connection to build upon.)"
@@ -685,7 +685,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteTakeAsSecretLover`
 - taught in: `AppendSecretLoverProposal`
-- taught when: `context?.SecretLoverEligible != true AND context.PlayerStatus == PlayerStatusVsNpc.Captive`
+- taught when: `context?.SecretLoverEligible != true [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - SecretBondEligibility.Describe(verdict, npcHero.Name?.ToString())
 
@@ -702,7 +702,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteTakeIntoService`
 - taught in: `AppendTakeIntoService`
-- taught when: `string.IsNullOrWhiteSpace(context?.CompanionsOfferableToThisLord) AND context!.IsCaptorScene AND context.IsRoundTableTurn || context.IsCouncilNarratorTurn`
+- taught when: `string.IsNullOrWhiteSpace(context?.CompanionsOfferableToThisLord) [early return naming context] AND context!.IsCaptorScene [early return naming context] AND context.IsRoundTableTurn || context.IsCouncilNarratorTurn [early return naming context]`
 - can be invalidated mid-turn by: `join_clan`, `recruit_prisoner`, `turn_nemesis`, each of which writes `Clan`
 - the bridge refuses:
   - $"({npcHero.Name} holds no household of their own to take anyone into.)"
@@ -720,7 +720,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteTeachSkill`
 - taught in: `AppendTeachSkill`
-- taught when: `context?.TeachableSkills is not {Count: > 0} skills AND context.IsCaptorScene AND context.PlayerStatus == PlayerStatusVsNpc.Captive AND context.IsRoundTableTurn || context.IsCouncilNarratorTurn`
+- taught when: `context?.TeachableSkills is not {Count: > 0} skills [early return naming context] AND context.IsCaptorScene [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context] AND context.IsRoundTableTurn || context.IsCouncilNarratorTurn [early return naming context]`
 - the bridge refuses:
   - SilentRefusalMessages.TeachSkillNoSkillNamed()
   - $"(You know no skill called '{skillName}' to teach.)"

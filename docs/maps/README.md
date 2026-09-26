@@ -133,7 +133,20 @@ An unchanged map is information too: the dimension it watches did not move.
   compare it with. The check is for `.git` in both repositories, which needs no knowledge of the runner. Run
   them with `dotnet test`, or `Tools/Update-Maps.ps1`.
 
+- A map that finds things by their NAME is wrong in both directions (26/09/2026). Loudly, when a name misleads it
+  into a false positive (the regard ratchet counted four regard DELTAS as thresholds; the fix was better names).
+  Silently, when something it should see has no such name (33 regard thresholds compared inline, with no constant,
+  were invisible to the name-based list until `decisions-regard.md` also read what the code COMPARES). Pair a
+  name-based detector with one that reads a fact wherever a fact exists.
+
 ## Adding a map
 
 A generator in `CalradiaRemembers.Tests/Maps`, one test in `MapsAreCurrentTests`, one row in the table above. Add
 one when a family of bug has shown itself twice, not before: a map nobody reads is one more thing to regenerate.
+
+**A map that mixes detection modes says, for every line, which one produced it** (Gabriel, 26/09/2026). A fact (a
+call, an attribute, an import, a value actually compared) and a name (a constant called `*SaveKey*`, a local called
+`regards`) are not equally sure, and a reader deciding what to trust needs to know which is which. Today:
+`save-format.md` marks each key `(fact)` or `(name)`, and a key both find is labelled by the fact;
+`decisions-regard.md` marks each inline comparison `ledger` or `named`; `gates.md` marks each guard `[the caller's
+if]` or `[early return naming context]`.
