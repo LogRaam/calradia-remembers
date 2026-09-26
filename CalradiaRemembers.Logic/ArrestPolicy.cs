@@ -202,6 +202,9 @@ namespace CalradiaRemembers.Logic
       /// <summary>The day the sentence ends, while imprisoned.</summary>
       public int ReleaseDay { get; set; }
 
+      /// <summary>The town or castle whose cells hold the player, from the taking to the release.</summary>
+      public string PrisonSettlementId { get; set; }
+
       /// <summary>
       ///   A grave act. With no case open it brings a warrant in <paramref name="liegeId" />'s name; with one open, it is
       ///   one more charge on it. A player who cannot be arrested is not charged.
@@ -276,6 +279,7 @@ namespace CalradiaRemembers.Logic
          LiegeId = null;
          BountyOnHead = false;
          ReleaseDay = 0;
+         PrisonSettlementId = null;
       }
    }
 }

@@ -26,6 +26,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Travel;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
@@ -242,11 +243,55 @@ namespace CalradiaRemembers.Arrests
          ModLog.Info($"[ARREST] the sergeants reach the player and read the warrant ({charges}).");
       }
 
-      /// <summary>The player gives themselves up. What follows (the road to the liege, the trial) is Inc 4.</summary>
+      /// <summary>
+      ///   The player gives themselves up and is taken, alone (the party waits, as the engine keeps it for any captive
+      ///   player), to the cells of the liege's town or castle nearest them, there to be tried (Gabriel, 26/09/2026:
+      ///   captive, then judged).
+      /// </summary>
       private void Surrender()
       {
          Case.Taken();
          ModLog.Info("[ARREST] the player surrenders to the sergeants.");
+         TakeToPrison();
+      }
+
+      /// <summary>
+      ///   Puts the player in the cells of the liege's own town or castle nearest them (else any of the realm's). The
+      ///   engine handles a settlement captor natively: the player waits in its dungeon, the party frozen until release.
+      /// </summary>
+      private void TakeToPrison()
+      {
+         try
+         {
+            Hero liege = Hero.FindFirst(h => h != null && h.StringId == Case.LiegeId);
+            MobileParty main = MobileParty.MainParty;
+            if (liege == null || main == null || Hero.MainHero.IsPrisoner) return;
+
+            Vec2 at = main.GetPosition2D;
+            Settlement prison = Settlement.All
+                                          .Where(s => (s.IsTown || s.IsCastle) && s.Party != null && s.OwnerClan == liege.Clan)
+                                          .OrderBy(s => s.GetPosition2D.Distance(at))
+                                          .FirstOrDefault()
+                                ?? Settlement.All
+                                             .Where(s => (s.IsTown || s.IsCastle) && s.Party != null && s.MapFaction == liege.MapFaction)
+                                             .OrderBy(s => s.GetPosition2D.Distance(at))
+                                             .FirstOrDefault();
+            if (prison == null)
+            {
+               ModLog.Error("[ARREST] no town or castle of the realm to hold the player in; the arrest cannot proceed.");
+
+               return;
+            }
+
+            Case.PrisonSettlementId = prison.StringId;
+            TakePrisonerAction.Apply(prison.Party, Hero.MainHero);
+            MBInformationManager.AddQuickInformation(new TextObject($"The sergeants take you to {prison.Name}, to answer before {liege.Name}."));
+            ModLog.Info($"[ARREST] the player is held in {prison.Name} to await trial (captive={Hero.MainHero.IsPrisoner}).");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ARREST] taking the player to prison failed: {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       /// <summary>The player refuses the warrant, or fights the sergeants off: an outlaw. What follows is Inc 5.</summary>
