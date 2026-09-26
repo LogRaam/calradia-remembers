@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 424 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 790 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 796 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -749,7 +749,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (495)
+### CalradiaRemembers.Logic (501)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -871,7 +871,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilSceneTerrain` | public enum | The terrain bucket a council scene image cares about: only Desert and Steppe get their own art (dunes, open grass); every other engine TerrainType (Forest, Mountain, Plain, Snow, Water...) shares one "forest/mountains" i... |
 | `CouncilVoiceMode` | public enum | How a council's turns are generated: together in one call, or each seated member their own. |
 | `CourierDispatchPolicy` | public static class | Pure gate for the reply-courier dispatch: whether a sender already has a courier on the road. |
+| `CourierLoss` | public enum | What happened to a courier that never arrived. |
+| `CourierLossFacts` | public class | What is known about whoever destroyed a courier. |
 | `CourierRationPolicy` | public static class | Decides when a courier's larder is refilled mid-errand. |
+| `CourierSecretPolicy` | public static class | The decisions a lost courier and its secret turn on. |
 | `CourierStuckPolicy` | public static class | Decides when a live courier's lack of movement stops being patience and becomes a jam. |
 | `CourierWaylayPolicy` | public static class | Pure rules for whether a single bandit party waylays a passing courier. |
 | `CourtActionPolicy` | public static class | Pure math and gates for the four "court action" verbs. |
@@ -1177,6 +1180,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SecretBondEligibility` | public static class | The single source of truth for whether a hidden bond may be taken up, and if not, why not. |
 | `SecretBondFacts` | public class | The plain facts the decision needs, read off the live campaign by whoever is asking. |
 | `SecretBondVerdict` | public enum | Why a hidden bond may or may not be taken up, in the order the doors are tried. |
+| `SecretDefeaterFacts` | public class | Who answers for the troop that defeated a secret's carrier. |
+| `SecretHandoff` | public class | Where a secret went, and to whom. |
+| `SecretHandoffKind` | public enum | How a carried secret changes hands. |
 | `SecretLoverAdmissionPolicy` | public static class | Decides whether the player admitting a secret-lover bond to a given NPC reveals anything, and about whom. |
 | `SecretLoverLeakPolicy` | public static class | Gates when the EXISTENCE of a secret lover may begin to leak: after a delay, once, never before. |
 | `SecretPropagationPolicy` | public static class | The numeric contract for how a held secret-lover identity trickles from a knowing lord to his friends. |
