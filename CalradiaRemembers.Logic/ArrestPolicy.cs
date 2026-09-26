@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Logic.Violence;
 
 #endregion
 
@@ -79,6 +80,23 @@ namespace CalradiaRemembers.Logic
       /// <summary>Only a vassal or a mercenary answers to a liege; a faction leader answers to no one.</summary>
       public static bool CanBeArrested(ArrestStandingFacts facts)
          => facts != null && !facts.IsFactionLeader && (facts.IsVassal || facts.IsMercenary);
+
+      /// <summary>
+      ///   The charge an act of violence against a member of the player's own realm brings, or null when nothing was
+      ///   attempted. A killing that failed is still an assault.
+      /// </summary>
+      public static ArrestCharge? ChargeFor(ViolentAct act, ViolenceVerdict verdict)
+      {
+         if (verdict != ViolenceVerdict.Succeeded && verdict != ViolenceVerdict.Failed) return null;
+
+         return act switch
+         {
+            ViolentAct.Kill => verdict == ViolenceVerdict.Succeeded ? ArrestCharge.KilledRealmMember : ArrestCharge.AssaultedRealmMember,
+            ViolentAct.Assault => ArrestCharge.AssaultedRealmMember,
+            ViolentAct.Rob => ArrestCharge.RobbedRealmMember,
+            _ => null
+         };
+      }
 
       /// <summary>TUNE: how heavily each charge weighs on the sentence, in days.</summary>
       public static int Weight(ArrestCharge charge) => charge switch

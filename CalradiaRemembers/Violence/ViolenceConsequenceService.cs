@@ -51,6 +51,14 @@ namespace CalradiaRemembers.Violence
 
             ModLog.Info($"[VIOLENCE] {act}/{verdict} on {victim.Name} ({exposure}): crime={cost.CrimeRating}, " +
                         $"regard={cost.RelationHit}, renown=-{cost.RenownLoss}, kinGrudge={cost.KinGrudgeMagnitude}.");
+
+            // Arrests (Gabriel, 26/09/2026): violence against a member of the player's own realm is a charge in the
+            // liege's name. A deed against a stranger's realm is that realm's crime rating, not an arrest by one's own.
+            if (victim.MapFaction != null && victim.MapFaction == Hero.MainHero.MapFaction)
+            {
+               Logic.ArrestCharge? charge = Logic.ArrestPolicy.ChargeFor(act, verdict);
+               if (charge != null) Arrests.ArrestBehavior.Instance?.Charge(charge.Value, $"violence against {victim.Name}");
+            }
          }
          catch (Exception ex) { ModLog.Error($"[VIOLENCE] applying consequences failed: {ex.GetType().Name}: {ex.Message}"); }
 

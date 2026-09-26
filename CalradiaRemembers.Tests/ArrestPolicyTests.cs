@@ -8,6 +8,7 @@
 
 using System.Collections.Generic;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Violence;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -41,6 +42,26 @@ namespace CalradiaRemembers.Tests
       {
          ArrestPolicy.CanBeArrested(new ArrestStandingFacts()).Should().BeFalse();
          ArrestPolicy.CanBeArrested(null).Should().BeFalse();
+      }
+
+      // ── What is grave ──────────────────────────────────────────────────────
+
+      // Violence against a member of the player's own realm is a charge; a killing that failed is still an assault.
+      [TestCase(ViolentAct.Kill, ViolenceVerdict.Succeeded, ArrestCharge.KilledRealmMember)]
+      [TestCase(ViolentAct.Kill, ViolenceVerdict.Failed, ArrestCharge.AssaultedRealmMember)]
+      [TestCase(ViolentAct.Assault, ViolenceVerdict.Succeeded, ArrestCharge.AssaultedRealmMember)]
+      [TestCase(ViolentAct.Assault, ViolenceVerdict.Failed, ArrestCharge.AssaultedRealmMember)]
+      [TestCase(ViolentAct.Rob, ViolenceVerdict.Succeeded, ArrestCharge.RobbedRealmMember)]
+      public void GIVEN_an_act_of_violence_WHEN_charged_THEN_it_is_the_matching_charge(ViolentAct act, ViolenceVerdict verdict, ArrestCharge expected)
+      {
+         ArrestPolicy.ChargeFor(act, verdict).Should().Be(expected);
+      }
+
+      // An act the campaign never allowed (killing with the toggle off) was never attempted, so nothing is charged.
+      [Test]
+      public void GIVEN_an_act_never_attempted_WHEN_charged_THEN_there_is_no_charge()
+      {
+         ArrestPolicy.ChargeFor(ViolentAct.Kill, ViolenceVerdict.Forbidden).Should().BeNull();
       }
 
       // ── The council ────────────────────────────────────────────────────────

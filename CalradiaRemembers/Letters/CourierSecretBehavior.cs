@@ -464,6 +464,11 @@ namespace CalradiaRemembers.Letters
                GameState.RenownPenalty.Apply(Hero.MainHero, reaction.PlayerRenownPenalty);
 
             if (reaction.ConfrontsPlayerByLetter) ConfrontPlayer(secret, reader, today);
+
+            // Arrests (Gabriel, 26/09/2026): a plot of the player's, read by a lord of the player's own realm, is treason
+            // answered in the liege's name.
+            if (severity == SecretSeverity.Treason && secret.FromPlayer && reader.MapFaction != null && reader.MapFaction == Hero.MainHero?.MapFaction)
+               Arrests.ArrestBehavior.Instance?.Charge(ArrestCharge.TreasonLetter, $"a letter of yours that {reader.Name} read as treason");
          }
          catch (Exception ex)
          {
