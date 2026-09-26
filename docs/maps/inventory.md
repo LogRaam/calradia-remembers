@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 421 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 780 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 782 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -746,7 +746,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (485)
+### CalradiaRemembers.Logic (487)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -899,6 +899,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EstrangementPhase` | public enum | Where a fraying marriage stands on its way from the first crack to a spouse ready to walk out. |
 | `EstrangementProgressPolicy` | public static class | Paces a Stolen Love estrangement from its start day to the point the spouse is ready to leave, scaled by the seduction's SeductionDifficulty. |
 | `ExCompanionDivorcePolicy` | public static class | Pure decision for the divorce half of the marry-your-own-companion feature: whether a divorcing spouse is an ex-companion who must be returned to the free-wanderer pool rather than relocated to a birth clan. |
+| `ExchangeCaptiveFacts` | public class | What an exchange needs to know about one captive. |
 | `ExternalEventRules` | public static class | The normalisation + quota rules every externally-fed world event passes through. |
 | `ExternalMissionRules` | public static class | The normalisation rules every externally-registered player mission passes through. |
 | `EyeColorBands` | public static class | The words for Bannerlord's eye-colour gradient, banded from the slider offset. |
@@ -1089,6 +1090,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PregnancyNotePolicy` | public static class | Turns a mother's pregnancy facts into the second-person line the NPC identity prompt renders, so she is AWARE of her own pregnancy and never denies it (see file header for the bug this fixes). |
 | `PregnancyPolicy` | public static class | Pure gates around a pregnancy's whole lifecycle when the campaign's Life/Death Cycle option is disabled (Bannerlord's own "no aging / no death" creation option, which also silently disables vanilla's offspring delivery -... |
 | `PrisonerDeedTarget` | public class | What captive an NPC is asking for: a specific hero (HeroId) when named, otherwise any lord of a faction (FactionId). |
+| `PrisonerExchangePolicy` | public static class | The rules of a prisoner exchange. |
 | `PrisonerOfferAvailabilityPolicy` | public static class | Whether a lord's written offer for a prisoner can still be honoured, and if not, why not. |
 | `PrisonerOfferBlock` | public enum | Why a lord's prisoner offer cannot be accepted, or None when it can. |
 | `PrisonerOfferPolicy` | public static class | The gold a PrisonerOffer letter names for the captive (clamped to the honest ransom band). |
