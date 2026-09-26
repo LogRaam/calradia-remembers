@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 426 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 798 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 804 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -751,7 +751,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (503)
+### CalradiaRemembers.Logic (509)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -772,6 +772,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ArrangedMatchConsent` | public enum | The outcome of asking a noble family whether they consent to an arranged cross-clan match. |
 | `ArrangedMatchFacts` | public struct | The facts an arranged-match decision needs. |
 | `ArrangedMatchPolicy` | public static class | Decides whether a target family consents to an arranged cross-clan marriage. |
+| `ArrestCase` | public class | The player's case, one at a time: the charges against them and where it stands. |
+| `ArrestCharge` | public enum | A grave act the player can be charged with. |
+| `ArrestPolicy` | public static class | The rules of an arrest. |
+| `ArrestStage` | public enum | Where an arrest stands. |
+| `ArrestStandingFacts` | public class | Where the player stands in their realm. |
 | `AuthoredTrait` | public enum | The five hand-authorable personality traits (mirrors the game's DefaultTraits set). |
 | `AutonomousSchemePolicy` | public static class | Pure eligibility, budget, and cooldown gates for the autonomous lord-scheme generator. |
 | `AwaitingReunionPolicy` | public static class | Pure timeout decision for a companion errand stuck in its AwaitingReunion phase. |
@@ -868,6 +873,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CorrespondenceInterestPolicy` | public static class | Turns the player's correspondence behaviour, explicit or implicit, into the InterestDeltas that a caller accumulates per sender/subject/globally and then clamps (ClampSender, ClampSubject, ClampGlobal) before handing the... |
 | `CorrespondencePreference` | public struct | A single correspondence preference the player has stated (typically parsed by CorrespondencePreferenceParser from a reply's control line). |
 | `CorrespondencePreferenceParser` | public static class | Parses the optional correspondence-preference control line an LLM may append to a reply, into a typed CorrespondencePreference. |
+| `CouncilCandidate` | public class | A vassal of the realm, and how they regard the player on the mod's own ledger. |
 | `CouncilSceneImagePolicy` | public static class | Picks the scene-image BASENAME (no extension, no path) for a council's thinking placeholder, from the council's own TYPE first and the player's location second. |
 | `CouncilSceneKind` | public enum | The image family a council's TYPE calls for, independent of terrain. |
 | `CouncilSceneTerrain` | public enum | The terrain bucket a council scene image cares about: only Desert and Steppe get their own art (dunes, open grass); every other engine TerrainType (Forest, Mountain, Plain, Snow, Water...) shares one "forest/mountains" i... |
