@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.5.26.. unreleased
+## v2.5.26.. 2026-09-26
 
 ### Fixed
 - **A retired predecessor is no longer called dead.** Since 2.5.24 the mod tells a retirement (or a character switch)

@@ -1,0 +1,17 @@
+﻿Version 2.5.26
+
+A small update: a fix for inherited characters, and safer in-game self-tests.
+
+Fixed
+
+- If your character retires (or you switch to another character with a mod), the people who knew your predecessor no longer speak of them as dead. They now know your predecessor stepped down and still lives.
+
+- The succession self-test in cr.testall no longer changes the save you run it on. It used to run a real succession, erasing characters' private memories of you. If you ran cr.testall on a real save before this version, that save may have lost those memories.
+
+New
+
+- cr.testall now checks the prisoner trade from the last two updates on real lords: a captive ransomed by his own family goes home free, a captive given away costs nothing, and an exchange of two captives works both ways. Each test puts everything back as it was.
+
+Notes
+
+- Your existing saves load as they are.
