@@ -280,10 +280,9 @@ namespace CalradiaRemembers.Settings
       // them at war). Gates only what OPENS a case (a warrant, a brigandage); a case already open runs to its end, so
       // turning it off mid-way never strands the player in a cell or an outlawry with no way out.
       [SettingPropertyBool("Arrests and outlaws", RequireRestart = false, Order = 3,
-         HintText = "Off (default): no arrests. On: as a vassal or mercenary, a grave act (treason read in a letter, " +
-                    "violence against your own realm, a severe crime rating) brings a warrant and sergeants; surrender " +
-                    "means a trial before your liege's council, flight makes you an outlaw with a price on your head. " +
-                    "Attacking merchants or fishers in peace makes you a brigand. Never applies to a kingdom's ruler.")]
+         HintText = "Off (default). On: as a vassal or mercenary, a grave act brings a warrant: surrender and face your " +
+                    "liege's council, or flee as an outlaw with a price on your head. Robbing merchants in peace " +
+                    "makes you a brigand. Never a kingdom's ruler.")]
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool EnableArrests { get; set; } = false;
 
@@ -492,9 +491,8 @@ namespace CalradiaRemembers.Settings
       // per-band waylay roll compounds over a long trip. A distance-independent cap now blunts that; this toggle
       // is the total opt-out for a player who never wants a letter intercepted at all. Off = today's behaviour.
       [SettingPropertyBool("Invulnerable Couriers", RequireRestart = false, Order = 11,
-         HintText = "Off: couriers (yours and those sent to you) can be intercepted by bandits, or by troops at war " +
-                    "with the sender's clan. A lost letter is always sent again, and an intercepted letter that says " +
-                    "something worth hiding travels with its captors to whoever defeats them. On: no interception.")]
+         HintText = "Off: couriers can be intercepted by bandits or by the sender's enemies. A lost letter is sent " +
+                    "again, and what it said travels with its captors to whoever beats them. On: no interception.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool InvulnerableCouriers { get; set; } = false;
 
