@@ -277,6 +277,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("claimant_support_evaluates", Severity.Light, "Mechanical: gather a real same-kingdom other-clan lord's facts and run the REAL ClaimantSupportPolicy via CouncilLift.EvaluateSupportClaimant (non-destructive, no influence moved) -> a valid backer lands on the amount decision (Applied/CannotAfford), never a WHO gate. No LLM.", TestClaimantSupportEvaluates),
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
+         new SelfTest("transient_party_registry", Severity.Light, "The one service for the mod's transient parties (26/09/2026, the event-listeners map's proposal): spawns two real throwaway parties and tracks them under a test role. A party the registry RELEASES leaves the map and is never reported as a loss; a party destroyed by anything else is reported to its owner exactly once. Both parties are gone at the end.", TestTransientPartyRegistry),
          new SelfTest("mercenary_departure_judged", Severity.Light, "fkasad's grid (25/09/2026): reads a real realm's war footing (at war, its strength against its enemies' combined strength) and judges how the end of a mercenary contract with it would be taken, without applying anything. Asserts a realm at peace is AtPeace and a realm at war is judged ReleasedInVictory or Abandoned as its strength says. No regard, memory or news is written.", TestMercenaryDepartureJudged),
          new SelfTest("courier_secret_travels", Severity.Light, "Courier secrets (raphareish 24/09/2026; Gabriel): an intercepted letter travels with its captors. Captures a [SELFTEST] letter onto a REAL bandit band, then has a real lord's party defeat the carrier (DebugDefeatCarrier, no LLM, no rumour) -> the secret leaves the band and the lord remembers what it said; a second capture defeated by the PLAYER's party is recovered unread. Removes the memory it added.", TestCourierSecretTravels),
          new SelfTest("courier_secret_reaction", Severity.Light, "Courier secrets Inc 4b (Gabriel: an action in proportion to the secret): runs the real reaction for another lord's letter read by a grudge-free lord -> NOTHING plants no grudge, AGAINST plants a LeakedLetter grudge on the letter's author, and the player (who wrote nothing) pays nothing. Clears the grudge it planted.", TestCourierSecretReaction),
@@ -9662,6 +9663,48 @@ namespace CalradiaRemembers.Diagnostics
       ///   player's party is recovered unread. Runs without the model or the rumour (DebugDefeatCarrier), and removes
       ///   the memory it added.
       /// </summary>
+      private static string TestTransientPartyRegistry(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("transient_party_registry");
+
+         Travel.TransientPartyRegistry registry = Travel.TransientPartyRegistry.Instance;
+         MobileParty main = MobileParty.MainParty;
+         if (t.Abort(registry == null || main == null, "TransientPartyRegistry not active, or no player party")) return t.Line();
+
+         const string role = "selftest.transient";
+         TaleWorlds.Library.Vec2 at = main.GetPosition2D;
+         MobileParty released = Travel.TravelingParty.Spawn(at, null, new TextObject("[SELFTEST] released"), 5f, Hero.MainHero.Culture, true, 2);
+         MobileParty lost = Travel.TravelingParty.Spawn(at, null, new TextObject("[SELFTEST] lost"), 5f, Hero.MainHero.Culture, true, 2);
+         if (t.Abort(released == null || lost == null, "could not spawn the throwaway parties")) return t.Line();
+
+         var reported = new List<string>();
+         try
+         {
+            registry.Track(released, role, "a", (p, _) => reported.Add(p.StringId));
+            registry.Track(lost, role, "b", (p, _) => reported.Add(p.StringId));
+            t.Expect("bothTracked", registry.OfRole(role).Count, 2);
+            t.Expect("foundByTag", registry.WithTag(role, "b") == lost, true);
+
+            // Released by the registry: off the map, never a loss.
+            registry.Release(released);
+            t.Expect("releasedLeftTheMap", released.IsActive, false);
+            t.Expect("releaseIsNotALoss", reported.Contains(released.StringId), false);
+
+            // Destroyed by anything else: its owner hears of it, once.
+            Travel.TravelingParty.Destroy(lost);
+            t.Expect("lossReportedOnce", reported.Count(id => id == lost.StringId), 1);
+            t.Expect("nothingLeftTracked", registry.OfRole(role).Count, 0);
+         }
+         finally
+         {
+            if (released.IsActive) Travel.TravelingParty.Destroy(released);
+            if (lost.IsActive) Travel.TravelingParty.Destroy(lost);
+            registry.ReleaseRole(role);
+         }
+
+         return t.Line();
+      }
+
       private static string TestMercenaryDepartureJudged(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("mercenary_departure_judged");

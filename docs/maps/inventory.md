@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 429 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 813 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 430 types in 56 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 815 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -647,10 +647,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TournamentOutcomeCapture` | internal static class | Reads the real arena bracket at tournament end into a TournamentResult and feeds the lords' memories. |
 | `TournamentRivalryBehavior` | public class | Tallies arena head-to-heads and crystallizes a standing rivalry (worthy or bitter) once enough have been fought. |
 
-### CalradiaRemembers.Travel (1)
+### CalradiaRemembers.Travel (2)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `TransientPartyRegistry` | public class | Tracks the mod's transient parties, despawns them before a save, and reports a true loss to their owner. |
 | `TravelingParty` | public static class | Low-level, stateless helpers for a visible, fast, defeatable travelling party — the mechanics behind the letter courier, now shared with the companion news-errand. |
 
 ### CalradiaRemembers.UI (6)
@@ -759,7 +760,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (517)
+### CalradiaRemembers.Logic (519)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1256,6 +1257,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TrackedCommitment` | public class | One NPC's promise TO THE PLAYER: who promised, concerning whom, of what kind, issued and due when, and where it stands. |
 | `TraitBand` | public static class | Maps a Bannerlord trait level (the small signed integer hero.GetTraitLevel returns, roughly -2..+2) to the plain band word ("low"/"moderate"/"high") the action interpreter's context digest uses to describe a character's... |
 | `TranscriptLine` | public class | One attributed line of conversation history, as it was recorded. |
+| `TransientPartyEntry` | public class | One tracked transient party. |
+| `TransientPartyLedger` | public class | Which transient party is whose. |
 | `TruncationFallbackPolicy` | public static class | Decides whether a PROSE turn should be redone on the configured fallback model. |
 | `TrystPolicy` | public static class | Pure rule for a taken lover being met when the player is away: the modest weekly chance a tryst happens. |
 | `UndeliverableCause` | public enum | Why a letter could not be delivered, in the order the courier would learn of it. |

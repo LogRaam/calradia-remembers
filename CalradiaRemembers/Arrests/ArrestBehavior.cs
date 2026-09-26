@@ -82,15 +82,13 @@ namespace CalradiaRemembers.Arrests
 
       private SavedState _state = new();
 
-      // The sergeants on the road now. Never saved: despawned before a save, sent again after a load.
-      private string _sergeantsId;
-      private bool _despawning;
+      // The sergeants and bounty hunters on the road are TransientPartyRegistry's (26/09/2026): it despawns them before a
+      // save and tells this behavior when one is truly destroyed. Never saved; sent again after a load.
+      private const string SergeantsRole = "arrest.sergeants";
+      private const string HuntersRole = "arrest.hunters";
 
       // Set while the law itself frees the player, so the release is not mistaken for an escape.
       private bool _freeing;
-
-      // The bounty hunters on the road, party id -> the realm that sent them. Never saved (despawned before a save).
-      private readonly Dictionary<string, string> _hunters = new();
 
       // realm id -> the day its last band was sent, so a lost band is not replaced the next morning.
       private readonly Dictionary<string, int> _huntersSentDay = new();
@@ -181,10 +179,7 @@ namespace CalradiaRemembers.Arrests
          CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
          CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
          CampaignEvents.TickEvent.AddNonSerializedListener(this, OnTick);
-         CampaignEvents.OnBeforeSaveEvent.AddNonSerializedListener(this, DespawnSergeants);
-         CampaignEvents.OnBeforeSaveEvent.AddNonSerializedListener(this, DespawnHunters);
          CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
-         CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnPartyDestroyed);
       }
 
       /// <summary>
@@ -346,7 +341,7 @@ namespace CalradiaRemembers.Arrests
       {
          try
          {
-            if (Case.Stage != ArrestStage.WarrantOut || string.IsNullOrEmpty(_sergeantsId)) return;
+            if (Case.Stage != ArrestStage.WarrantOut) return;
 
             MobileParty sergeants = Sergeants();
             MobileParty main = MobileParty.MainParty;
@@ -605,12 +600,9 @@ namespace CalradiaRemembers.Arrests
          MobileParty main = MobileParty.MainParty;
          if (main == null || Hero.MainHero.IsPrisoner || main.IsCurrentlyAtSea || _state.Bounties.Count == 0) return;
 
-         foreach (string dead in _hunters.Keys.Where(id => FindParty(id) == null).ToList()) _hunters.Remove(dead);
-
          foreach (Bounty bounty in _state.Bounties.ToList())
          {
-            string huntersId = _hunters.FirstOrDefault(h => h.Value == bounty.RealmId).Key;
-            MobileParty hunters = huntersId == null ? null : FindParty(huntersId);
+            MobileParty hunters = TransientPartyRegistry.Instance?.WithTag(HuntersRole, bounty.RealmId);
 
             if (hunters == null)
             {
@@ -656,7 +648,7 @@ namespace CalradiaRemembers.Arrests
             SergeantSpeed, sovereign.Culture, false, strength, colours, sovereign);
          if (hunters == null) return null;
 
-         _hunters[hunters.StringId] = realmId;
+         TransientPartyRegistry.Instance?.Track(hunters, HuntersRole, realmId);
          _huntersSentDay[realmId] = Today;
          MBInformationManager.AddQuickInformation(new TextObject($"Word reaches you: {realm.Name} has sent bounty hunters after you."));
          ModLog.Info($"[ARREST] {realm.Name} sends {strength} bounty hunters from {origin.Name} (under {colours.Name}).");
@@ -675,7 +667,8 @@ namespace CalradiaRemembers.Arrests
             if (prisoner != Hero.MainHero || capturer == null || HoldsPlayer) return;
 
             string realmId = null;
-            if (capturer.MobileParty != null && _hunters.TryGetValue(capturer.MobileParty.StringId, out string huntersRealm)) realmId = huntersRealm;
+            TransientPartyEntry hunterEntry = TransientPartyRegistry.Instance?.EntryOf(capturer.MobileParty);
+            if (hunterEntry?.Role == HuntersRole) realmId = hunterEntry.Tag;
             else if (capturer.MapFaction != null && _state.Bounties.Any(b => b.RealmId == capturer.MapFaction.StringId)) realmId = capturer.MapFaction.StringId;
 
             if (realmId == null) return;
@@ -739,24 +732,8 @@ namespace CalradiaRemembers.Arrests
          }
       }
 
-      private static MobileParty FindParty(string id)
-         => string.IsNullOrEmpty(id) ? null : MobileParty.All.FirstOrDefault(p => p.StringId == id && p.IsActive);
-
-      /// <summary>Takes every band of hunters off the map (before a save, or once the player is held).</summary>
-      private void DespawnHunters()
-      {
-         foreach (string id in _hunters.Keys.ToList())
-         {
-            MobileParty hunters = FindParty(id);
-            _hunters.Remove(id);
-            if (hunters == null) continue;
-
-            _despawning = true;
-            try { TravelingParty.Destroy(hunters); }
-            catch (Exception ex) { ModLog.Error($"[ARREST] despawning hunters failed: {ex.GetType().Name}: {ex.Message}"); }
-            finally { _despawning = false; }
-         }
-      }
+      /// <summary>Takes every band of hunters off the map (once the player is held; a save is the registry's own).</summary>
+      private static void DespawnHunters() => TransientPartyRegistry.Instance?.ReleaseRole(HuntersRole);
 
       /// <summary>Ends the player's captivity at the law's own hand (acquittal, or the sentence served).</summary>
       private void FreePlayer(Hero liege)
@@ -796,34 +773,20 @@ namespace CalradiaRemembers.Arrests
             SergeantSpeed, liege.Culture, false, SergeantCount, liege.Clan, liege);
          if (sergeants == null) return null;
 
-         _sergeantsId = sergeants.StringId;
+         TransientPartyRegistry.Instance?.Track(sergeants, SergeantsRole, onDestroyed: OnSergeantsDestroyed);
          ModLog.Info($"[ARREST] sergeants of {liege.Name} ride from {origin?.Name?.ToString() ?? "the liege's side"} after the player.");
 
          return sergeants;
       }
 
-      private MobileParty Sergeants()
-         => string.IsNullOrEmpty(_sergeantsId) ? null : MobileParty.All.FirstOrDefault(p => p.StringId == _sergeantsId && p.IsActive);
+      private static MobileParty Sergeants() => TransientPartyRegistry.Instance?.OfRole(SergeantsRole).FirstOrDefault();
 
-      /// <summary>Takes the sergeants off the map (before a save, on arrival, or once no warrant is out).</summary>
-      private void DespawnSergeants()
+      /// <summary>Takes the sergeants off the map (on arrival, or once no warrant is out; a save is the registry's own).</summary>
+      private static void DespawnSergeants() => TransientPartyRegistry.Instance?.ReleaseRole(SergeantsRole);
+
+      /// <summary>Beating the sergeants off is refusing the warrant (the registry reports only a TRUE loss).</summary>
+      private void OnSergeantsDestroyed(MobileParty destroyed, PartyBase destroyer)
       {
-         MobileParty sergeants = Sergeants();
-         _sergeantsId = null;
-         if (sergeants == null) return;
-
-         _despawning = true;
-         try { TravelingParty.Destroy(sergeants); }
-         catch (Exception ex) { ModLog.Error($"[ARREST] despawning the sergeants failed: {ex.GetType().Name}: {ex.Message}"); }
-         finally { _despawning = false; }
-      }
-
-      /// <summary>Beating the sergeants off is refusing the warrant.</summary>
-      private void OnPartyDestroyed(MobileParty destroyed, PartyBase destroyer)
-      {
-         if (_despawning || destroyed == null || destroyed.StringId != _sergeantsId) return;
-
-         _sergeantsId = null;
          bool byPlayer = destroyer == PartyBase.MainParty || destroyer?.MobileParty?.ActualClan == Clan.PlayerClan;
          if (byPlayer && Case.Stage == ArrestStage.WarrantOut) Refuse();
       }

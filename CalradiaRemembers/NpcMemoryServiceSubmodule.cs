@@ -281,6 +281,9 @@ namespace CalradiaRemembers
          // Courier secrets (raphareish, 24/09/2026; Gabriel): an intercepted letter travels with its captors to whoever
          // beats them, and up to the lord who answers for that troop.
          campaignStarter.AddBehavior(new Letters.CourierSecretBehavior());
+         // The mod's transient parties (sergeants, bounty hunters): one save despawn, one loss report (26/09/2026, the
+         // event-listeners map's proposal). Before its owners.
+         campaignStarter.AddBehavior(new Travel.TransientPartyRegistry());
          // Arrests in the King's name (Gabriel, 26/09/2026): the player's case, opened by a grave act.
          campaignStarter.AddBehavior(new Arrests.ArrestBehavior());
          // fkasad's grid (25/09/2026): a mercenary contract's end judged by the realm's situation.
