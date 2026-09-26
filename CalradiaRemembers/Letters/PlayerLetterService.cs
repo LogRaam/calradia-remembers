@@ -74,7 +74,8 @@ namespace CalradiaRemembers.Letters
       public static (bool Deliverable, int DeliveryDays) CreateAndQueue(NpcProfile recipientProfile,
                                        string content,
                                        int today,
-                                       BannerlordNpcMemoryStore store)
+                                       BannerlordNpcMemoryStore store,
+                                       bool resent = false)
       {
          int deliveryDays = ComputeDeliveryDays(recipientProfile);
          var letter = new PlayerLetter {
@@ -82,7 +83,8 @@ namespace CalradiaRemembers.Letters
             RecipientName = recipientProfile.Name,
             Content = content,
             SentOnDay = today,
-            DeliveryDay = today + deliveryDays
+            DeliveryDay = today + deliveryDays,
+            Resent = resent
          };
 
          recipientProfile.ReceivedPlayerLetters.Add(letter);
@@ -112,7 +114,7 @@ namespace CalradiaRemembers.Letters
          // Spawn a visible courier carrying this letter. On success the courier drives
          // delivery (on arrival); on spawn failure the date-based fallback delivers. An escorted
          // correspondence thread (the player paid for a guard) rides immune to interception.
-         CourierService.TrySpawnCourier(letter, recipient, escorted: recipientProfile.EscortedChannel);
+         CourierService.TrySpawnCourier(letter, recipient, escorted: recipientProfile.EscortedChannel || letter.Resent);
 
          store.Set(recipientProfile);
          ModLog.Info($"[PLAYER LETTER] queued to {recipientProfile.Name} — " + $"delivery day {today + deliveryDays} ({deliveryDays}d), " + $"courier={letter.CourierPartyId ?? "none"}.");

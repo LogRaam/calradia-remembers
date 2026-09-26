@@ -3544,6 +3544,7 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("waylaidLetterKeepsItsText", lost.Content, tag);
          t.Expect("resendQueuedFreshLetter", resent != null, true);
          t.Expect("resendPreservedContent", resent?.Content, tag);
+         t.Expect("resendRidesGuarded", resent?.Resent, true); // Gabriel 26/09/2026: sent again until it arrives
 
          string courierId = resent?.CourierPartyId;
          profile.ReceivedPlayerLetters.RemoveAll(l => l.Content == tag);

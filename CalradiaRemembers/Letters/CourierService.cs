@@ -440,18 +440,15 @@ namespace CalradiaRemembers.Letters
 
          ForgetWaylayRolls(partyId);
 
-         // 1.10 (courier audit): only call it a "waylay by bandits" when a BANDIT band actually destroyed the
-         // courier. Any other cause (starvation despite rations, caught in a battle, a despawn) gets a neutral
-         // "lost on the road" message instead of a false bandit tale.
-         bool byBandit = destroyer?.MobileParty is {IsBandit: true};
-
+         // 1.10 (courier audit): the honest cause of the loss is read per direction from the destroyer
+         // (ClassifyLoss: bandits, a troop at war with the courier's clan, or anything else), never a false bandit tale.
          foreach (string id in store.ListIds())
          {
             NpcProfile profile = store.Get(id);
 
             if (profile == null) continue;
 
-            if (PlayerToNpcCourierLost(store, profile, partyId, byBandit)) return;
+            if (PlayerToNpcCourierLost(store, profile, partyId, destroyer)) return;
             if (NpcToPlayerReplyCourierLost(store, profile, partyId, destroyer)) return;
          }
       }
@@ -577,7 +574,7 @@ namespace CalradiaRemembers.Letters
                   Hero recipient = Hero.FindFirst(h => h != null && h.StringId == letter.RecipientId);
                   Vec2? at = TakePosition(letter.CourierPartyId);
 
-                  if (!TrySpawnCourier(letter, recipient, spawnOverride: at, escorted: profile.EscortedChannel)) continue;
+                  if (!TrySpawnCourier(letter, recipient, spawnOverride: at, escorted: profile.EscortedChannel || letter.Resent)) continue;
                   respawned++;
                   changed = true;
                }
@@ -599,7 +596,7 @@ namespace CalradiaRemembers.Letters
 
                   Vec2? at = TakePosition(letter.CourierPartyId);
 
-                  if (!TrySpawnReplyCourier(letter, sender, at, profile.EscortedChannel))
+                  if (!TrySpawnReplyCourier(letter, sender, at, profile.EscortedChannel || letter.Resent))
                   {
                      // 1.6 (courier audit): the respawn failed, so the stale party id points at a courier that no
                      // longer exists. Clear it, so date-based delivery (which requires an empty CourierPartyId) can
@@ -1289,7 +1286,7 @@ namespace CalradiaRemembers.Letters
          // interception does. Only the courier-failed sites pass the store/profile; the "recipient dead/gone"
          // sites leave them null, where a resend would be pointless.
          if (resendStore != null && resendProfile != null)
-            OfferResend(resendStore, resendProfile, letter, byBandit: false);
+            ResendAutomatically(resendStore, resendProfile, letter, CourierLoss.Lost);
       }
 
       private static bool NpcToPlayerReplyCourierLost(BannerlordNpcMemoryStore store, NpcProfile profile, string partyId, PartyBase destroyer)
@@ -1302,7 +1299,12 @@ namespace CalradiaRemembers.Letters
          CourierLoss loss = ClassifyLoss(destroyer, sender?.Clan);
          bool byBandit = loss == CourierLoss.InterceptedByBandits;
 
-         reply.IsLost = true;
+         // Gabriel (26/09/2026): the letter goes again until it arrives. Not lost: its courier id is cleared, so the
+         // daily dispatch sends a fresh courier, guarded because it is a resend, and the date-based fallback still
+         // covers a courier that cannot be spawned. A dead sender's letter still dies with them, on that same tick.
+         bool resent = CourierSecretPolicy.IsResent(loss);
+         if (resent) reply.Resent = true;
+         else reply.IsLost = true;
          reply.CourierPartyId = null;
          ActiveCourierIds.Remove(partyId);
 
@@ -1310,21 +1312,24 @@ namespace CalradiaRemembers.Letters
          // the road, a sender said he had "been busy", because nothing of it was left anywhere).
          var today = (int) CampaignTime.Now.ToDays;
          profile.Events.Add(new NotableEvent(today, NotableEventType.Other,
-            CourierSecretPolicy.SenderLossMemory(loss, Hero.MainHero?.Name?.ToString(), resent: false)));
+            CourierSecretPolicy.SenderLossMemory(loss, Hero.MainHero?.Name?.ToString(), resent)));
          store.Set(profile);
 
-         string how = byBandit ? "was waylaid" : "was lost on the road"; // 1.10: honest cause
-         MBInformationManager.AddQuickInformation(new TextObject($"A courier from {reply.SenderName} {how}. Their letter is lost."));
+         MBInformationManager.AddQuickInformation(new TextObject(
+            $"A courier from {reply.SenderName} {HowLost(loss)}. " + (resent ? $"{reply.SenderName} sends the letter again." : "Their letter is lost.")));
          ModLog.Info($"[COURIER-REPLY] destroyed ({(byBandit ? "waylaid" : "non-bandit")}): reply from {reply.SenderName} lost.");
 
          return true;
       }
 
-      private static bool PlayerToNpcCourierLost(BannerlordNpcMemoryStore store, NpcProfile profile, string partyId, bool byBandit)
+      private static bool PlayerToNpcCourierLost(BannerlordNpcMemoryStore store, NpcProfile profile, string partyId, PartyBase destroyer)
       {
          PlayerLetter forward = profile.ReceivedPlayerLetters.FirstOrDefault(l => l.CourierPartyId == partyId && !l.IsDelivered && !l.IsLost);
 
          if (forward == null) return false;
+
+         CourierLoss loss = ClassifyLoss(destroyer, Clan.PlayerClan);
+         bool byBandit = loss == CourierLoss.InterceptedByBandits;
 
          forward.IsLost = true;
          forward.CourierPartyId = null;
@@ -1333,10 +1338,9 @@ namespace CalradiaRemembers.Letters
 
          ModLog.Info($"[COURIER] destroyed ({(byBandit ? "waylaid" : "non-bandit")}): letter to {forward.RecipientName} lost.");
 
-         // Player report: losing the TYPED letter is the frustrating part. The text is preserved on the letter,
-         // so offer a one-click resend rather than making the player retype it. The loss still happened (the
-         // stakes stay), but the writing is never wasted.
-         OfferResend(store, profile, forward, byBandit);
+         // Gabriel (26/09/2026): the letter goes again until it arrives, no longer on a Send-again prompt the player
+         // could decline. The lost letter stays as history; a fresh one carries the same text.
+         ResendAutomatically(store, profile, forward, loss);
 
          // Intercepted-letter-leak Inc 1: a bandit waylay may spill a substantive letter's contents to a hostile hand.
          TryLeakLostLetter(store, forward, byBandit);
@@ -1484,28 +1488,32 @@ namespace CalradiaRemembers.Letters
          => ResolveLeakAntagonist(recipientId)?.Name?.ToString();
 
       /// <summary>Asks the player whether to send a lost letter again, re-dispatching it with the same text.</summary>
-      private static void OfferResend(BannerlordNpcMemoryStore store, NpcProfile profile, PlayerLetter letter, bool byBandit = true)
+      /// <summary>The honest cause of a courier's loss, as the player is told it (1.10: never invent bandits).</summary>
+      private static string HowLost(CourierLoss loss) => loss switch
+      {
+         CourierLoss.InterceptedByBandits => "was waylaid by bandits",
+         CourierLoss.InterceptedByEnemy => "was taken by enemy soldiers",
+         _ => "was lost on the road"
+      };
+
+      /// <summary>
+      ///   A player letter whose courier was lost goes again at once, with the same text, on a guarded courier
+      ///   (Gabriel, 26/09/2026: sent again until it arrives). Replaces the old Send-again prompt.
+      /// </summary>
+      private static void ResendAutomatically(BannerlordNpcMemoryStore store, NpcProfile profile, PlayerLetter letter, CourierLoss loss)
       {
          try
          {
-            // 1.10: honest framing, so the prompt does not invent bandits when the courier was lost some other way.
-            string cause = byBandit
-               ? "was waylaid by bandits and the letter did not arrive"
-               : "was lost on the road and the letter did not arrive";
-            InformationManager.ShowInquiry(new InquiryData(
-               byBandit ? "Letter Waylaid" : "Letter Lost",
-               $"Your courier to {letter.RecipientName} {cause}. Send it again? Your message is kept.",
-               true, true, "Send again", "Let it go",
-               () => ResendWaylaidLetter(store, profile, letter),
-               () => MBInformationManager.AddQuickInformation(new TextObject($"The letter to {letter.RecipientName} is abandoned."))));
+            MBInformationManager.AddQuickInformation(new TextObject($"Your courier to {letter.RecipientName} {HowLost(loss)}."));
+            ResendWaylaidLetter(store, profile, letter);
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[COURIER] OfferResend failed: {ex.GetType().Name}: {ex.Message}");
+            ModLog.Error($"[COURIER] ResendAutomatically failed: {ex.GetType().Name}: {ex.Message}");
          }
       }
 
-      /// <summary>Revives a waylaid letter (same content) and sends a fresh courier; falls back to date delivery.</summary>
+      /// <summary>Re-queues a lost letter (same content) on a fresh, guarded courier; falls back to date delivery.</summary>
       private static void ResendWaylaidLetter(BannerlordNpcMemoryStore store, NpcProfile profile, PlayerLetter letter)
       {
          try
@@ -1521,8 +1529,8 @@ namespace CalradiaRemembers.Letters
             // SentOnDay/DeliveryDay are init-only, so re-queue a FRESH letter carrying the same text rather than
             // revive the lost one; CreateAndQueue recomputes the delay and dispatches a new courier. The old lost
             // letter stays as history.
-            PlayerLetterService.CreateAndQueue(profile, letter.Content, (int) CampaignTime.Now.ToDays, store);
-            MBInformationManager.AddQuickInformation(new TextObject($"A fresh courier carries your letter to {letter.RecipientName}."));
+            PlayerLetterService.CreateAndQueue(profile, letter.Content, (int) CampaignTime.Now.ToDays, store, resent: true);
+            MBInformationManager.AddQuickInformation(new TextObject($"A fresh, guarded courier carries your letter to {letter.RecipientName}."));
             ModLog.Info($"[COURIER] resent waylaid letter to {letter.RecipientName}.");
          }
          catch (Exception ex)

@@ -519,7 +519,7 @@ namespace CalradiaRemembers.Behaviors
                   changed = true;
                }
 
-               if (CourierService.TrySpawnReplyCourier(letter, sender, escorted: profile.EscortedChannel))
+               if (CourierService.TrySpawnReplyCourier(letter, sender, escorted: profile.EscortedChannel || letter.Resent))
                   changed = true;
             }
 
