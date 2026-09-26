@@ -2,6 +2,32 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.27.. unreleased
+
+### Changed
+- **Letters lost on the road: resent until they arrive, and an intercepted secret travels in the world.**
+  raphareish (Nexus, 24/09/2026) asked whether a sender knows their letter was intercepted: asked about it, they said
+  they had "been busy". The sender's memory of writing was recorded only on delivery, so a lost letter left nothing.
+  Gabriel's rulings (26/09/2026), in five increments:
+  - `CourierSecretPolicy` (pure): what took the courier (bandits, a troop at war with the courier's clan, or anything
+    else), what becomes a secret (intercepted AND with substance, always, no roll), who takes up a carried secret
+    when its carrier is beaten, a 60-day shelf life, and the lines the sender and the reader remember.
+  - The sender remembers writing when the letter is SENT (`LetterMemoryFinalizer.RememberSending`, once, via the
+    additive `PendingLetter.SenderRemembers`), and what befell the courier.
+  - A lost letter goes again until it arrives, both directions, on a guarded courier (`Resent`, additive on both
+    letter types); the Send-again prompt is gone. The player is told the honest cause.
+  - `CourierSecretBehavior` (additive save key `CR_CourierSecrets_v1bytes`): bandits carry the letter, another band
+    carries it on, a band going home leaves it in its hideout; any other troop that beats the carrier sends it up to
+    the lord who answers for it (leader, else owner, else the owner of its home settlement: a Pravend patrol,
+    Pravend's owner); an enemy troop hands it to its lord at once. The player's side beating the carrier, or clearing
+    the hideout, recovers it unread.
+  - The lord who reads it remembers what it said, word gets about, and one call asks how it touches them
+    (`SecretReactionPolicy`): against their interests, a grudge on the author (and a little renown if the player
+    wrote it); treason, a sharp grudge, more renown, and a letter confronting the player who wrote it.
+  - MCM: "Intercepted letters can leak" and its 35% roll are gone; "Invulnerable Couriers" is the one switch.
+    `cr.testall`: `courier_secret_travels`, `courier_secret_reaction` replace the two old leak tests;
+    `courier_waylay` asserts the resend rides guarded.
+
 ## v2.5.26.. 2026-09-26
 
 ### Fixed

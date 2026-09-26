@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 426 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 799 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 798 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -751,7 +751,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (504)
+### CalradiaRemembers.Logic (503)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -992,9 +992,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterDistancePolicy` | public static class | The distance (in courier travel days) at which a spouse or consort may write to lament the player's absence, as a graduated CHANCE: none while near, rising between NearDays and FarDays, and capped at MaxChancePercent so... |
 | `LetterFontPolicy` | public static class | Decides whether the parchment letter view should swap its decorative Latin font (Galahad) for a plain, glyph-complete one. |
 | `LetterIntentionPolicy` | public static class | Pure per-reason decision: does the intention that motivated this letter still hold at delivery time? |
-| `LetterLeakAntagonistPolicy` | public static class | Picks which antagonist a leaked letter reaches, from pre-scanned candidate lists. |
 | `LetterLeakConsequencePolicy` | public static class | The grudge magnitude and renown cost a fired letter-leak (Inc 2) applies. |
-| `LetterLeakPolicy` | public static class | Decides whether an intercepted (bandit-waylaid) player letter leaks its contents to an antagonist. |
+| `LetterLeakPolicy` | public static class | The substance bar an intercepted letter must clear to be anyone's secret. |
 | `LetterMailboxPolicy` | public static class | Chooses which single unprompted letter, if any, reaches the player right now: a budgeted, weight-ordered, anti-starvation, occasionally-diverse pick over a set of candidates the caller has already decided are eligible to... |
 | `LetterPacing` | public enum | How much unprompted NPC correspondence reaches the player. |
 | `LetterPacingRules` | public static class | Turns the player's chosen pacing into the budget that actually governs the mailbox. |

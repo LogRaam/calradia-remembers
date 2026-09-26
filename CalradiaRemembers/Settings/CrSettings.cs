@@ -481,19 +481,15 @@ namespace CalradiaRemembers.Settings
       // per-band waylay roll compounds over a long trip. A distance-independent cap now blunts that; this toggle
       // is the total opt-out for a player who never wants a letter intercepted at all. Off = today's behaviour.
       [SettingPropertyBool("Invulnerable Couriers", RequireRestart = false, Order = 11,
-         HintText = "Off: your letter couriers can be waylaid by bandits on the road (as advertised). On: your " +
-                    "letters always get through, no interception.")]
+         HintText = "Off: couriers (yours and those sent to you) can be intercepted by bandits, or by troops at war " +
+                    "with the sender's clan. A lost letter is always sent again, and an intercepted letter that says " +
+                    "something worth hiding travels with its captors to whoever defeats them. On: no interception.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool InvulnerableCouriers { get; set; } = false;
 
-      // Intercepted-letter-leak Inc 1 (player report 2026-08-24): OFF ships today's behaviour (a waylaid letter is
-      // simply lost). On: a bandit-waylaid letter of real substance has a bounded chance its contents fall into a
-      // hostile hand, who writes to the player to exploit them.
-      [SettingPropertyBool("Intercepted letters can leak", RequireRestart = false, Order = 12,
-         HintText = "Off (default): a letter waylaid by bandits is simply lost. On: a substantive intercepted letter " +
-                    "has a chance its contents fall into a hostile lord's hands, who then writes to exploit them.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
-      public bool InterceptedLettersCanLeak { get; set; } = false;
+      // "Intercepted letters can leak" (Order 12) is gone since 26/09/2026: Gabriel ruled that an intercepted letter
+      // with substance ALWAYS becomes a secret carried in the world (CourierSecretBehavior); the one switch left is
+      // Invulnerable Couriers above.
 
       // Player request (2026-08-04, "AI Executes" mod parity): a captive under torture wanted the scene able to
       // end their character for real. High-stakes and IRREVERSIBLE (game over, or heir succession), so this is

@@ -275,8 +275,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("end_conversation_guards_open_question", Severity.Light, "Mechanical: read the REAL taught end_conversation vocabulary -> its description forbids closing on a turn that awaits the player's reply (player report: NPCs ended while asking a question or making a request). No LLM.", TestEndConversationGuardsAwaitingReply),
          new SelfTest("hostage_breach_imprisons", Severity.Light, "Mechanical: seed a hostage term on a free lord, force the breach through the REAL ExecuteBreach path (TakePrisonerAction) -> the hostage is imprisoned; then release them so the campaign is untouched. Briefly jails and frees a test lord. No LLM.", TestHostageBreachImprisons),
          new SelfTest("claimant_support_evaluates", Severity.Light, "Mechanical: gather a real same-kingdom other-clan lord's facts and run the REAL ClaimantSupportPolicy via CouncilLift.EvaluateSupportClaimant (non-destructive, no influence moved) -> a valid backer lands on the amount decision (Applied/CannotAfford), never a WHO gate. No LLM.", TestClaimantSupportEvaluates),
-         new SelfTest("letter_leak_evaluates", Severity.Light, "Mechanical: run the REAL leak antagonist scan (grudges + hostile lords) via CourierService.DebugEvaluateLeakAntagonist (non-destructive, nothing queued) and confirm the pure LetterLeakPolicy fires when enabled+bandit+substance+antagonist. Skips a peaceful campaign. No LLM.", TestLetterLeakEvaluates),
-         new SelfTest("letter_leak_consequences", Severity.Light, "Mechanical (Inc 2): apply a fired leak's lasting consequences via CourierService.DebugApplyLeakConsequences on a grudge-free lord -> assert a LeakedLetter grudge against the player was planted AND the player lost renown, then clear the planted grudge and restore the renown. Skips if no grudge-free lord exists. No LLM.", TestLetterLeakConsequences),
+         new SelfTest("courier_secret_travels", Severity.Light, "Courier secrets (raphareish 24/09/2026; Gabriel): an intercepted letter travels with its captors. Captures a [SELFTEST] letter onto a REAL bandit band, then has a real lord's party defeat the carrier (DebugDefeatCarrier, no LLM, no rumour) -> the secret leaves the band and the lord remembers what it said; a second capture defeated by the PLAYER's party is recovered unread. Removes the memory it added.", TestCourierSecretTravels),
+         new SelfTest("courier_secret_reaction", Severity.Light, "Courier secrets Inc 4b (Gabriel: an action in proportion to the secret): runs the real reaction for another lord's letter read by a grudge-free lord -> NOTHING plants no grudge, AGAINST plants a LeakedLetter grudge on the letter's author, and the player (who wrote nothing) pays nothing. Clears the grudge it planted.", TestCourierSecretReaction),
          new SelfTest("letter_offer_prisoner_ransom", Severity.Light, "Mechanical (PrisonerOffer accept): capture an in-party lord into the player's prison, make a buyer solvent, run the shared PrisonerRansomExecutor -> assert the sale succeeds, the captive leaves the player's prison, and the player is paid. Restores everything (frees the captive, reverts both purses). Skips if no capturable lord / no buyer. No LLM.", TestLetterOfferPrisonerRansom),
          new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
          new SelfTest("external_action_registration", Severity.Light, "Extension Surface (CrActions.Register): a third-party mod's one-call registration door. Registers a dummy external action -> asserts it appears in GameActionCatalog.Types, BannerlordGameStateBridge.HandledActionTypes, and LlmServices.DebugActionVocabulary (the 1:1 prose prompt); drives it through the REAL bridge (ExecuteAction with an unmatched type falls through to VerbRegistry.Instance.Execute) and asserts the dummy Execute callback's own message/success came back; asserts a duplicate Name, a reserved chat-flow-control Name (end_conversation), and a null-Execute spec are all rejected. Unregisters in a finally so nothing registered here can leak into a later test or a real prompt", TestExternalActionRegistration),
@@ -9653,62 +9653,106 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
-      // Intercepted-letter-leak Inc 1: the leak DECISION is pure (LetterLeakPolicy), but the antagonist SCAN is
-      // engine (grudges + hostile lords). Drives the REAL scan via CourierService.DebugEvaluateLeakAntagonist
-      // (non-destructive: nothing is queued), and confirms the pure decision fires when every condition is met.
-      // Skips a peaceful campaign with no hostile lord or grudge-holder to leak to.
-      private static string TestLetterLeakEvaluates(NpcMemoryCampaignBehavior behavior)
+      /// <summary>
+      ///   Courier secrets end to end on real parties: a [SELFTEST] letter is captured onto a real bandit band, a real
+      ///   lord's party defeats the band and the lord remembers what the letter said; a second one defeated by the
+      ///   player's party is recovered unread. Runs without the model or the rumour (DebugDefeatCarrier), and removes
+      ///   the memory it added.
+      /// </summary>
+      private static string TestCourierSecretTravels(NpcMemoryCampaignBehavior behavior)
       {
-         var t = new TestRun("letter_leak_evaluates");
+         var t = new TestRun("courier_secret_travels");
 
-         Hero recipient = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero);
-         string antagonist = CourierService.DebugEvaluateLeakAntagonist(recipient?.StringId);
+         CourierSecretBehavior secrets = CourierSecretBehavior.Instance;
+         if (t.Abort(secrets == null || Hero.MainHero == null, "CourierSecretBehavior not active")) return t.Line();
 
-         if (t.Skip(antagonist == null, "no hostile lord or grudge-holder in this campaign to leak to")) return t.Line();
+         MobileParty band = MobileParty.AllBanditParties.FirstOrDefault(p => p is {IsActive: true} && p.Party != null);
+         Hero reader = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Clan != Clan.PlayerClan && h.PartyBelongedTo?.LeaderHero == h);
 
-         t.Note($"antagonist={antagonist}");
-         bool leaksWhenAllMet = LetterLeakPolicy.ShouldLeak(new LetterLeakPolicy.LeakFacts {Enabled = true, ByBandit = true, HasSubstance = true, AntagonistAvailable = true, Chance = LetterLeakPolicy.DefaultLeakChance, Roll = 0.0});
-         t.Expect("realScanFoundAntagonist", !string.IsNullOrEmpty(antagonist), true);
-         t.Expect("policyLeaksWhenEnabledAndAllMet", leaksWhenAllMet, true);
+         if (t.Skip(band == null, "no bandit band on the map to carry a letter")) return t.Line();
+         if (t.Skip(reader == null, "no lord leading a party to defeat the band")) return t.Line();
+
+         const string tag = "[SELFTEST-SECRET]";
+         CarriedSecret Letter() => new() {
+            SenderId = Hero.MainHero.StringId, SenderName = Hero.MainHero.Name.ToString(),
+            RecipientId = "cr_selftest_nobody", RecipientName = "a selftest recipient",
+            Content = tag + " I would see your brother removed from the council before the spring muster.", FromPlayer = true
+         };
+
+         try
+         {
+            // Taken by bandits: the band carries it.
+            CarriedSecret first = Letter();
+            secrets.Capture(first, band.Party, CourierLoss.InterceptedByBandits);
+            t.Expect("carriedByTheBand", secrets.Secrets.Any(s => s == first && s.CarrierPartyId == band.StringId), true);
+
+            // A lord's party beats the band: it goes up to that lord, who remembers what it said.
+            secrets.DebugDefeatCarrier(band.StringId, reader.PartyBelongedTo.Party);
+            NpcProfile profile = behavior.Store.Get(reader.StringId);
+            t.Expect("leftTheBand", secrets.Secrets.Contains(first), false);
+            t.Expect("readerRemembersWhatItSaid", profile?.Events.Any(e => e.summary != null && e.summary.Contains(tag)) == true, true);
+
+            // The player's own party beats the band: the letter is recovered, read by no one.
+            CarriedSecret second = Letter();
+            secrets.Capture(second, band.Party, CourierLoss.InterceptedByBandits);
+            secrets.DebugDefeatCarrier(band.StringId, PartyBase.MainParty);
+            t.Expect("recoveredByThePlayer", secrets.Secrets.Contains(second), false);
+            t.Note($"band={band.Name}, reader={reader.Name}");
+         }
+         finally
+         {
+            NpcProfile profile = behavior.Store.Get(reader.StringId);
+            if (profile != null)
+            {
+               profile.Events.RemoveAll(e => e.summary != null && e.summary.Contains(tag));
+               behavior.Store.Set(profile);
+            }
+
+            secrets.DebugForgetTagged(tag);
+         }
 
          return t.Line();
       }
 
-      // Inc 2: a fired leak must LAST, not end at the one exploiting letter. Drives the real consequence path
-      // (CourierService.ApplyLeakConsequences) on a grudge-free lord and asserts both halves land: the antagonist
-      // forms a LeakedLetter grudge against the player (the grudge system then escalates it), and the player loses
-      // renown as their private words become known. Chooses a grudge-free lord so the cleanup removes only what it
-      // plants, and restores the renown, so a test run never leaves the live campaign changed.
-      private static string TestLetterLeakConsequences(NpcMemoryCampaignBehavior behavior)
+      /// <summary>
+      ///   The reader's proportionate reaction (courier Inc 4b), without the model: another lord's letter read by a
+      ///   grudge-free lord. NOTHING plants nothing; AGAINST plants a LeakedLetter grudge on the letter's author, and the
+      ///   player, who wrote nothing, pays no renown. Clears the grudge it planted.
+      /// </summary>
+      private static string TestCourierSecretReaction(NpcMemoryCampaignBehavior behavior)
       {
-         var t = new TestRun("letter_leak_consequences");
+         var t = new TestRun("courier_secret_reaction");
 
-         Hero player = Hero.MainHero;
          var today = (int) CampaignTime.Now.ToDays;
+         Hero reader = GrudgeCapableLord(GrudgeSource.LeakedLetter, Logic.LetterLeakConsequencePolicy.GrudgeMagnitude(false), today);
+         Hero author = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h != reader && h.IsLord && h.IsAlive);
 
-         // A first leak plants magnitude 15, which is EXACTLY the base formation floor, so any lord with Mercy at
-         // all forgives it outright. The consequence is real, the test just has to ask it of someone who grudges.
-         Hero antagonist = GrudgeCapableLord(GrudgeSource.LeakedLetter,
-            Logic.LetterLeakConsequencePolicy.GrudgeMagnitude(false), today);
+         if (t.Skip(reader == null || author == null || Hero.MainHero?.Clan == null, "no grudge-free, unforgiving lord and another lord to test the reaction on")) return t.Line();
 
-         if (t.Skip(antagonist == null || player?.Clan == null, "no grudge-free, unforgiving lord (or no player clan) to test the leak consequences on")) return t.Line();
+         var secret = new CarriedSecret {
+            SenderId = author.StringId, SenderName = author.Name.ToString(),
+            RecipientId = Hero.MainHero.StringId, RecipientName = Hero.MainHero.Name.ToString(),
+            Content = "[SELFTEST] Your cousin's lands would be better in my hands, and yours.", FromPlayer = false
+         };
 
-         float renownBefore = player.Clan.Renown;
+         float renownBefore = Hero.MainHero.Clan.Renown;
+         try
+         {
+            bool Holds() => GrudgeBehavior.Instance?.LiveGrudgesFor(reader, today)?.Any(g => g.TargetId == author.StringId && g.Source == GrudgeSource.LeakedLetter) ?? false;
 
-         CourierService.DebugApplyLeakConsequences(antagonist, today);
+            CourierSecretBehavior.React(secret, reader, SecretSeverity.Nothing);
+            t.Expect("nothingPlantsNothing", Holds(), false);
 
-         bool grudgePlanted = GrudgeBehavior.Instance?.LiveGrudgesFor(antagonist, today)
-                                 ?.Any(g => g.TargetId == player.StringId && g.Source == GrudgeSource.LeakedLetter) ?? false;
-         float renownAfter = player.Clan.Renown;
-
-         t.Expect("leakedLetterGrudgePlanted", grudgePlanted, true);
-         t.Expect("playerLostRenown", renownAfter < renownBefore, true);
-         t.Note($"{antagonist.Name} now holds a LeakedLetter grudge; player renown {renownBefore:0.#} -> {renownAfter:0.#}.");
-
-         // Cleanup: the antagonist was grudge-free, so clearing removes only the one just planted; restore renown.
-         GrudgeBehavior.Instance?.ClearGrudgesFor(antagonist.StringId);
-         float restore = renownBefore - player.Clan.Renown;
-         if (restore != 0f) GainRenownAction.Apply(player, restore, true);
+            CourierSecretBehavior.React(secret, reader, SecretSeverity.AgainstInterests);
+            t.Expect("againstPlantsAGrudgeOnTheAuthor", Holds(), true);
+            t.Expect("playerPaysNothing", Hero.MainHero.Clan.Renown, renownBefore);
+            t.Note($"reader={reader.Name}, author={author.Name}");
+         }
+         finally
+         {
+            GrudgeBehavior.Instance?.ClearGrudgesFor(reader.StringId); // grudge-free before, so only what was planted
+         }
 
          return t.Line();
       }

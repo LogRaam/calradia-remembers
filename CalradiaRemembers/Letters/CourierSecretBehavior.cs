@@ -127,6 +127,23 @@ namespace CalradiaRemembers.Letters
          }
       }
 
+      /// <summary>
+      ///   Test seam (cr.testall): the band <paramref name="carrierPartyId" /> is beaten by <paramref name="victor" />
+      ///   without being destroyed, and its secrets pass on exactly as a real defeat would, minus the model's judgement
+      ///   and the rumour, so a self-test leaves no trace in the world.
+      /// </summary>
+      internal void DebugDefeatCarrier(string carrierPartyId, PartyBase victor)
+      {
+         foreach (CarriedSecret secret in _secrets.Where(s => s.CarrierPartyId == carrierPartyId).ToList())
+         {
+            _secrets.Remove(secret);
+            HandOff(secret, victor, live: false);
+         }
+      }
+
+      /// <summary>Test seam (cr.testall): drops every secret whose content carries <paramref name="tag" />.</summary>
+      internal void DebugForgetTagged(string tag) => _secrets.RemoveAll(s => s.Content != null && s.Content.Contains(tag));
+
       public override void SyncData(IDataStore dataStore)
       {
          if (dataStore.IsSaving)
@@ -254,8 +271,11 @@ namespace CalradiaRemembers.Letters
          }
       }
 
-      /// <summary>Passes a secret to whoever answers for <paramref name="party" />, as CourierSecretPolicy decides.</summary>
-      private void HandOff(CarriedSecret secret, PartyBase party)
+      /// <summary>
+      ///   Passes a secret to whoever answers for <paramref name="party" />, as CourierSecretPolicy decides.
+      ///   <paramref name="live" /> false (cr.testall) skips the model's judgement and the rumour.
+      /// </summary>
+      private void HandOff(CarriedSecret secret, PartyBase party, bool live = true)
       {
          SecretHandoff handoff = CourierSecretPolicy.WhoGetsTheSecret(DefeaterFacts(party, secret));
 
@@ -274,7 +294,7 @@ namespace CalradiaRemembers.Letters
                break;
             case SecretHandoffKind.Lord:
                Hero reader = Hero.FindFirst(h => h != null && h.StringId == handoff.HeroId);
-               if (reader is {IsAlive: true}) Learn(secret, reader);
+               if (reader is {IsAlive: true}) Learn(secret, reader, live);
 
                break;
             default:
@@ -321,7 +341,7 @@ namespace CalradiaRemembers.Letters
       ///   A lord now holds the letter: they remember whose it was, to whom, and what it said, and word of it gets about.
       ///   Then they act on it, in proportion to what it said (JudgeAndReactAsync).
       /// </summary>
-      private static void Learn(CarriedSecret secret, Hero reader)
+      private static void Learn(CarriedSecret secret, Hero reader, bool live = true)
       {
          try
          {
@@ -339,6 +359,8 @@ namespace CalradiaRemembers.Letters
             profile.Events.Add(new NotableEvent(today, NotableEventType.Other,
                CourierSecretPolicy.ReaderMemory(secret.SenderName, secret.RecipientName, secret.Content)));
             behavior.Store.Set(profile);
+
+            if (!live) return;
 
             WorldEventStore.Instance?.Record(new WorldEvent {
                Type = WorldEventType.Other,

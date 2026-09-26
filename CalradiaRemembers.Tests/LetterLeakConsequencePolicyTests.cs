@@ -1,7 +1,7 @@
 // Code written by Gabriel Mailhot, 25/08/2026.
 // Intercepted-letter-leak Inc 2: once a leak fires, these are the two magnitudes its lasting consequences use,
 // the grudge the antagonist forms and the renown the player loses as their words become known. This is the ONLY
-// place those numbers are pinned, and the courier code that applies them (CourierService.ApplyLeakConsequences)
+// place those numbers are pinned, and the courier code that applies them (SecretReactionPolicy, for a letter read against the reader's interests)
 // trusts this policy for both. If the scaling is wrong, a bitter enemy who reads your secret costs no more than a
 // stranger's mild hostility (the leak has no teeth), or a rare, default-off event turns punishing out of proportion.
 
