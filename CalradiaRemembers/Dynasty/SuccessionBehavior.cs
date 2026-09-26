@@ -32,14 +32,39 @@ namespace CalradiaRemembers.Dynasty
         public override void SyncData(IDataStore dataStore) { }
 
         private void OnPlayerCharacterChanged(Hero oldPlayer, Hero newPlayer, MobileParty newMainParty, bool isMainPartyChanged)
-            => Apply(oldPlayer, newPlayer);
+        {
+            // Only a real succession reframes memories: the reframe DELETES private history for good. Another mod
+            // switching who the player controls (Wallace1067, The Original Player Switcher) is no death, and was
+            // wiping real memories from the whole save each way. See SuccessionTrigger.
+            PlayerChangeKind kind = ClassifyChange(oldPlayer);
+
+            if (!SuccessionTrigger.IsSuccession(kind))
+            {
+                ModLog.Info($"[SUCCESSION] the player character changed from {oldPlayer?.Name} to {newPlayer?.Name}, but "
+                          + $"{oldPlayer?.Name} is alive and active: a switch, not a succession. Nothing reframed.");
+
+                return;
+            }
+
+            Apply(oldPlayer, newPlayer, kind);
+        }
+
+        /// <summary>
+        ///   What the change meant, read from the predecessor's own state when the event fires: vanilla kills him
+        ///   before handing over on a death, and disables him on a retirement (ApplyHeirSelectionAction, decompiled).
+        /// </summary>
+        public static PlayerChangeKind ClassifyChange(Hero oldPlayer)
+            => SuccessionTrigger.Classify(new PlayerChangeFacts {
+                PredecessorIsDead = oldPlayer != null && oldPlayer.IsDead,
+                PredecessorIsRetired = oldPlayer != null && oldPlayer.HeroState == Hero.CharacterStates.Disabled
+            });
 
         /// <summary>
         ///   Reframes every stored profile: drops the predecessor's private events, keeps the rest, and
         ///   marks the history inherited from <paramref name="predecessor"/> (with the kinship word).
         ///   Returns how many profiles were touched. Public so a console command can simulate it.
         /// </summary>
-        public int Apply(Hero predecessor, Hero heir)
+        public int Apply(Hero predecessor, Hero heir, PlayerChangeKind kind = PlayerChangeKind.Death)
         {
             if (predecessor == null || heir == null || predecessor == heir) return 0;
 
@@ -63,7 +88,7 @@ namespace CalradiaRemembers.Dynasty
                 n++;
             }
 
-            RecordChronicleSuccession(predecessor, heir);
+            RecordChronicleSuccession(predecessor, heir, kind);
 
             ModLog.Info($"[SUCCESSION] reframed {n} profile(s): the heir is {predName}'s {kinship}.");
             return n;
@@ -73,19 +98,25 @@ namespace CalradiaRemembers.Dynasty
         ///   The chronicle itself does not reset on death — it simply keeps writing, now of the heir's own
         ///   deeds, with this one line marking the turn. Naturally a once-per-reign event; never throws.
         /// </summary>
-        private static void RecordChronicleSuccession(Hero predecessor, Hero heir)
+        private static void RecordChronicleSuccession(Hero predecessor, Hero heir, PlayerChangeKind kind)
         {
             try
             {
                 string pronoun = predecessor.IsFemale ? "her" : "his";
+                bool retired = kind == PlayerChangeKind.Retirement;
                 WorldEventStore.Instance?.Record(new WorldEvent {
                     Type = WorldEventType.PlayerFeat,
                     Day = (int) CampaignTime.Now.ToDays,
                     Magnitude = 80,
                     InvolvesPlayer = true,
-                    Summary = $"{predecessor.Name} died, and {heir.Name} took up the succession.",
+                    // A retired predecessor is alive: saying he died would be a checkable falsehood.
+                    Summary = retired
+                        ? $"{predecessor.Name} retired, and {heir.Name} took up the succession."
+                        : $"{predecessor.Name} died, and {heir.Name} took up the succession.",
                     ActorIds = new List<string> {predecessor.StringId, heir.StringId},
-                    ChronicleLine = $"here ended the days of {predecessor.Name}; the chronicle passes to {heir.Name}, of {pronoun} blood"
+                    ChronicleLine = retired
+                        ? $"here {predecessor.Name} laid down the sword; the chronicle passes to {heir.Name}, of {pronoun} blood"
+                        : $"here ended the days of {predecessor.Name}; the chronicle passes to {heir.Name}, of {pronoun} blood"
                 });
             }
             catch (Exception ex) { ModLog.Error($"[SUCCESSION] chronicle record failed: {ex.GetType().Name}: {ex.Message}"); }

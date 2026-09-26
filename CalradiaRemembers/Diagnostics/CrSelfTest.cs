@@ -201,6 +201,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
          new SelfTest("scheme_warn", Severity.Light, "ForcePlot -> TargetHeeds -> assert plotter/target relation deltas", TestSchemeWarn),
          new SelfTest("succession", Severity.Light, "seed private+public events -> Apply -> assert private dropped", TestSuccession),
+         new SelfTest("succession_switch", Severity.Light, "Wallace1067 (25/09/2026): switching the active character with The Original Player Switcher was read as a death each way, and the reframe deleted private memories across the whole save twice. Reads the REAL classifier on live heroes, touching nothing: the living player is a switch, a dead hero a death, a disabled one a retirement.", TestSuccessionSwitch),
          new SelfTest("recruit", Severity.Heavy, "eligible lord -> join_clan -> assert he moved into your clan", TestRecruit),
          new SelfTest("teach_skill", Severity.Light, "find a live NPC with a skill at or above TeachSkillPolicy.TeacherSkillFloor -> drive the REAL bridge teach_skill once (clean cooldown) -> assert real skill XP landed on the player, a second immediate lesson from the same NPC is refused by the cooldown, and an unrecognised skill name is refused rather than faked. Restores the player's skill level and the NPC's cooldown stamp afterwards", TestTeachSkill),
          new SelfTest("take_into_service", Severity.Heavy, "the MIRROR direction (13/09/2026, Gabriel's ruling 'un seigneur doit pouvoir recruter'): every other recruiting verb brings somebody INTO the player's household, this one gives somebody away. Finds a spare player companion the pure gate says is free to go and an other-clan lord, runs the REAL bridge take_into_service -> asserts the companion LEFT the player's clan, JOINED the lord's, is NOT a fugitive (the whole reason the executor uses RemoveCompanionAction.ApplyAfterQuest and never ApplyByFire, which runs MakeHeroFugitiveAction), and gained the starting relation with their new lord. Then puts them back and ASSERTS THE RESTORE, so a broken restore is reported rather than quietly costing a real companion. Skips when the campaign has no spare companion or no other-clan lord", TestTakeIntoService),
@@ -13733,6 +13734,26 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("fired", fired, true);
          t.Expect("lettersQueued", lettersAfter, lettersBefore + 1);
          t.Expect("namesThreat", namesThreat, true);
+
+         return t.Line();
+      }
+
+      private static string TestSuccessionSwitch(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("succession_switch");
+
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         // What a player switcher hands over: a predecessor who is alive and active. Classified only, never applied.
+         t.Expect("aLivingPredecessorIsASwitch", SuccessionBehavior.ClassifyChange(Hero.MainHero), PlayerChangeKind.Switch);
+
+         Hero dead = Hero.DeadOrDisabledHeroes?.FirstOrDefault(h => h.IsDead);
+         if (dead != null) t.Expect("aDeadPredecessorIsADeath", SuccessionBehavior.ClassifyChange(dead), PlayerChangeKind.Death);
+         else t.Note("no dead hero in this save to classify");
+
+         Hero disabled = Hero.DeadOrDisabledHeroes?.FirstOrDefault(h => h.HeroState == Hero.CharacterStates.Disabled);
+         if (disabled != null) t.Expect("aDisabledPredecessorIsARetirement", SuccessionBehavior.ClassifyChange(disabled), PlayerChangeKind.Retirement);
+         else t.Note("no disabled hero in this save to classify");
 
          return t.Line();
       }

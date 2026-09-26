@@ -12,6 +12,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   it, the other councillor's lines included. `ConversationResumePolicy.MayBeKeptOnClose` now asks what the chat
   OPENED as: only an ordinary conversation, the one kind the resume ever puts back, is kept. One rule for both sides,
   so a staged scene added later cannot be missed the same way.
+- **Switching characters with another mod was treated as the player's death, and erased memories** (Wallace1067,
+  25/09/2026, with The Original Player Switcher: "switching out logs a death for the original character, switching
+  back logs a death for the temporary one", with "[SUCCESSION] reframed 24 profile(s)" each way). `SuccessionBehavior`
+  read EVERY `OnPlayerCharacterChanged` as a death, and the reframe is not a notice: it DELETES the predecessor's
+  private history from every NPC and marks the rest inherited. Decompiled `ApplyHeirSelectionAction`: vanilla KILLS
+  the old hero before handing over on a death and DISABLES him on a retirement, so his state when the event fires
+  says which. `SuccessionTrigger.Classify` reads it: dead is a death, disabled a retirement (now chronicled as
+  "retired", not "died"), anything else a switch, which reframes nothing and is logged. No suppression flag was
+  needed: the engine's own state answers it for every switcher mod. Memories already erased in the reporter's save
+  cannot be restored. `cr.testall succession_switch` classifies live heroes without applying anything.
 - **Hiring on as a mercenary was recorded as swearing fealty** (tashmetu, 25/09/2026: his sellsword was told by
   Derthert "I've heard word you swore fealty"). `OnClanChangedKingdom` sent `JoinAsMercenary` down the vassalage path,
   so the news read "swore fealty" and the chronicle "bent the knee"; the leaving side already had its own contract

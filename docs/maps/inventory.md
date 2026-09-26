@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 421 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 775 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 778 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -746,7 +746,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (480)
+### CalradiaRemembers.Logic (483)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1066,6 +1066,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PeaceMediationBlock` | public enum | Why the player cannot (yet) mediate peace with this leader, or None when they can. |
 | `PeaceMediationPolicy` | public static class | The pure gate behind mediate_peace. |
 | `PendingSummaryJob` | public class | One pending "write the rich summary and replace the base event" job, captured as plain data so it can be persisted (a later increment wires it into SyncData) and replayed after a game reload. |
+| `PlayerChangeFacts` | public class | The predecessor's state when the change fired. |
+| `PlayerChangeKind` | public enum | What a change of player character was. |
 | `PlayerDeedValence` | public static class | Classifies a player's deed from the observer's point of view, from two facts the host has already resolved against the game (faction membership, kinship). |
 | `PlayerDivorceConsentFacts` | public class | Every already-resolved fact PlayerDivorceConsentPolicy.SpouseConsents needs. |
 | `PlayerDivorceConsentPolicy` | public static class | Pure gate deciding whether the player's own spouse would ALSO have wanted this marriage to end (mutual consent), when the PLAYER is the one who initiates the split. |
@@ -1199,6 +1201,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StolenSpouseGrudgePolicy` | public static class | Sizes the jilted spouse's personal grudge against the player when a stolen-love affair ends their marriage. |
 | `SuccessionKinship` | public static class | Maps a predecessor's family relation to the heir into the word an NPC would use. |
 | `SuccessionMemoryPolicy` | public static class | The rule for which recorded events survive a succession (are inherited by the heir). |
+| `SuccessionTrigger` | public static class | Classifies a change of player character, so only a real succession reframes memories. |
 | `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
 | `SwayStance` | public enum | The stance a sway_opinion action asked for, once its raw token is read strictly. |
 | `SwayStanceParser` | public static class | Reads a sway_opinion stance token against a strict whitelist. |
