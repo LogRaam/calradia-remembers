@@ -1086,6 +1086,11 @@ namespace CalradiaRemembers.Chat
                catch (Exception ex) { error = $"{ex.GetType().Name}: {ex.Message}"; }
             }
 
+            // Back on the game's own thread before touching the window or the world. Every other chat path does this
+            // after its model call; the council did not, so its bubbles were added and its regard shifts applied from a
+            // thread-pool thread while the simulation ran (found building the envoy on the same shape, 25/09/2026).
+            await MainThreadDispatcher.SwitchToMainThread();
+
             if (string.IsNullOrWhiteSpace(raw))
             {
                ModLog.Error($"[COUNCIL] turn failed: {error}");
