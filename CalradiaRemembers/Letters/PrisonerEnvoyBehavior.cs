@@ -93,6 +93,7 @@ namespace CalradiaRemembers.Letters
                WantedStake = stake,
                WantsCaptiveBack = wantsCaptiveBack,
                ExchangeGoldToPlayer = exchangeGold,
+               OpeningOffer = EnvoyMandatePolicy.OpeningOffer(ransomCeiling, PrisonerTradePolicy.MinAcceptablePayment(BuyPrisonerVerb.RansomAnchor(captive))),
                Mandate = mandate
             }
          };
@@ -151,8 +152,9 @@ namespace CalradiaRemembers.Letters
          Hero lord = Hero.FindFirst(h => h != null && h.StringId == envoy.LordId);
          bool stillHeld = BuyPrisonerVerb.PlayerHeldHeroPrisoners().Any(h => h.StringId == envoy.CaptiveId);
 
-         // The world moved while the envoy rode: the lord is gone, or the captive is no longer the player's.
-         if (lord == null || !lord.IsAlive || !stillHeld)
+         // The world moved while the envoy rode: the lord is gone or himself a prisoner (fkasad, 26/09/2026: his queen's
+         // envoy came while she sat in a cell, and no deal could run in her name), or the captive is no longer the player's.
+         if (lord == null || !lord.IsAlive || lord.IsPrisoner || !stillHeld)
          {
             ModLog.Info("[ENVOY] the envoy turned back: the lord or the captive is no longer where the errand assumed.");
 

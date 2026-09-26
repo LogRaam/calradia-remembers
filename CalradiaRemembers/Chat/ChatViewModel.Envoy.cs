@@ -41,6 +41,9 @@ namespace CalradiaRemembers.Chat
       /// <summary>True when the lord wants the captive back and free; false when he wants him in his own custody.</summary>
       public bool WantsCaptiveBack { get; set; } = true;
 
+      /// <summary>What the envoy offers first (half his ceiling, never below the honest floor), or 0 on an older save.</summary>
+      public int OpeningOffer { get; set; }
+
       /// <summary>The gold that would even the offered exchange, seen from the player.</summary>
       public int ExchangeGoldToPlayer { get; set; }
 
@@ -54,6 +57,12 @@ namespace CalradiaRemembers.Chat
    public sealed partial class ChatViewModel
    {
       private EnvoyAudience _envoy;
+
+      /// <summary>
+      ///   The last envoy prompt sent, for cr.prompt_dump: the envoy is no hero, so the dump has nobody to rebuild it
+      ///   from (fkasad, 26/09/2026: "no such character, and nobody is being spoken to" mid-audience).
+      /// </summary>
+      internal static string LastEnvoyPrompt { get; private set; }
 
       /// <summary>True while this chat is an envoy's audience.</summary>
       internal bool IsEnvoyAudience => _envoy != null;
@@ -114,6 +123,7 @@ namespace CalradiaRemembers.Chat
                WantedCaptiveStake = _envoy.WantedStake,
                WantsCaptiveBack = _envoy.WantsCaptiveBack,
                RansomCeiling = _envoy.Mandate.RansomCeiling,
+               OpeningOffer = _envoy.OpeningOffer,
                ExchangeCaptiveName = string.IsNullOrWhiteSpace(_envoy.Mandate.ExchangeCaptiveName) ? null : _envoy.Mandate.ExchangeCaptiveName,
                ExchangeGoldToPlayer = _envoy.ExchangeGoldToPlayer,
                LordRegardWords = EnvoyMandatePolicy.RegardWords(RegardBands.Describe(lordProfile?.ReputationWithPlayer ?? 0)),
@@ -121,10 +131,23 @@ namespace CalradiaRemembers.Chat
                TranscriptSoFar = EnvoyTranscriptLines()
             };
 
+            string systemPrompt = EnvoyPromptBuilder.Build(input);
+            LastEnvoyPrompt = systemPrompt;
+            ModLog.Info($"[ENVOY] turn for {lord.Name}'s envoy ({(isOpener ? "opening" : "reply")}, prompt {systemPrompt.Length} chars).");
+            if (ModSettings.VerboseLogging)
+            {
+               ModLog.Info("=== ENVOY PROMPT START ===");
+               ModLog.Info(systemPrompt);
+               ModLog.Info("=== ENVOY PROMPT END ===");
+            }
+
+            // The chat's own ceiling, not a small one: a reasoning model spends most of a small budget thinking and
+            // returns no reply at all (fkasad, 26/09/2026, on a local reasoning model: 700 left "the envoy hesitates"
+            // on every turn while the server showed a finished thought). A ceiling, not a target.
             var request = new LlmRequest {
-               SystemPrompt = EnvoyPromptBuilder.Build(input),
+               SystemPrompt = systemPrompt,
                Messages = new[] {new LlmMessage(MessageRole.User, isOpener ? "(The envoy is admitted, and speaks first.)" : playerMessage)},
-               Parameters = new LlmParameters {MaxTokens = 700, Creativity = 0.7f}
+               Parameters = new LlmParameters {MaxTokens = 3000, Creativity = 0.7f}
             };
 
             string raw = null;
@@ -137,6 +160,8 @@ namespace CalradiaRemembers.Chat
                   LlmResponse resp = await Task.Run(() => behavior.LlmServices.LlmClient.CompleteAsync(request, cts.Token)).ConfigureAwait(false);
                   if (resp is {IsSuccess: true}) raw = resp.Content;
                   else error = resp?.ErrorMessage ?? "no result";
+                  if (resp is {IsSuccess: true} && string.IsNullOrWhiteSpace(raw))
+                     error = $"the model returned an empty reply (finish_reason: {resp.FinishReason ?? "unknown"}); a reasoning model may have spent its budget thinking";
                }
                catch (Exception ex) { error = $"{ex.GetType().Name}: {ex.Message}"; }
             }
@@ -147,7 +172,7 @@ namespace CalradiaRemembers.Chat
 
             if (string.IsNullOrWhiteSpace(raw))
             {
-               ModLog.Error($"[ENVOY] turn failed: {error}");
+               ModLog.Error($"[ENVOY] turn failed: {error ?? "empty reply"}");
                ReplacePlaceholder(placeholder, "(The envoy hesitates, and waits for you to speak.)", EnvoySpeaker());
 
                return;

@@ -57,6 +57,38 @@ namespace CalradiaRemembers.Tests
                            .Parameters["price"].Should().Be("1800");
       }
 
+      // fkasad (Nexus, 26/09/2026): "Of course the prisoner is yours for 0 denars", and 20,000 came in all the same. A
+      // player who gives the captive away has agreed a price, and it is nothing: the lord pays nothing, and the deal is
+      // marked a gift so the sale verb does not lift it to its floor.
+      [TestCase("0")]
+      [TestCase("free")]
+      [TestCase("nothing")]
+      public void GIVEN_a_captive_given_for_nothing_WHEN_bound_THEN_it_is_a_gift_and_no_gold_moves(string price)
+      {
+         EnvoyDeal deal = EnvoyMandatePolicy.Bind("buy_prisoner", new Dictionary<string, string> {["price"] = price}, Mandate());
+
+         deal.Parameters["price"].Should().Be("0");
+         deal.Parameters["gift"].Should().Be("true");
+      }
+
+      // A paid ransom is never marked a gift, so the sale's honest floor still protects the player.
+      [Test]
+      public void GIVEN_a_paid_ransom_WHEN_bound_THEN_it_is_not_a_gift()
+      {
+         EnvoyMandatePolicy.Bind("buy_prisoner", new Dictionary<string, string> {["price"] = "900"}, Mandate())
+                           .Parameters.Should().NotContainKey("gift");
+      }
+
+      // fkasad: "the NPC should kick off negotiations by making an offer... maybe start at 50% of the budget". The
+      // envoy opens at half his ceiling, never below the price a sale may honestly go for, never above the ceiling.
+      [TestCase(1800, 400, 900)]
+      [TestCase(1800, 1200, 1200)]
+      [TestCase(1000, 1500, 1000)]
+      public void GIVEN_a_ceiling_and_an_honest_floor_WHEN_the_envoy_opens_THEN_he_offers_half_the_ceiling_within_both(int ceiling, int floor, int expected)
+      {
+         EnvoyMandatePolicy.OpeningOffer(ceiling, floor).Should().Be(expected);
+      }
+
       // A model naming another captive cannot redirect the lord's gold: the target is always the one he was sent for.
       [Test]
       public void GIVEN_a_ransom_naming_another_captive_WHEN_bound_THEN_it_is_for_the_wanted_captive_all_the_same()

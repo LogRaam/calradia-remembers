@@ -54,6 +54,28 @@ namespace CalradiaRemembers.Logic
             : $"with {bandPhrase}";
 
       /// <summary>
+      ///   What the envoy opens with (fkasad, 26/09/2026: the one who asks makes the first offer): half his ceiling,
+      ///   never below the honest floor a sale may go for, never above the ceiling itself.
+      /// </summary>
+      public static int OpeningOffer(int ransomCeiling, int honestFloor)
+         => Math.Min(ransomCeiling, Math.Max(honestFloor, ransomCeiling / 2));
+
+      private static readonly string[] GiftWords = {"free", "nothing", "gift", "none"};
+
+      /// <summary>A written price that means the captive is given away: zero, or a word for nothing.</summary>
+      private static bool IsGift(string written)
+      {
+         string w = written?.Trim().ToLowerInvariant();
+         if (string.IsNullOrEmpty(w)) return false;
+         if (int.TryParse(w, out int n)) return n == 0;
+
+         foreach (string word in GiftWords)
+            if (w.Contains(word)) return true;
+
+         return false;
+      }
+
+      /// <summary>
       ///   The deal the bridge may run, or null when what the envoy wrote is outside his mandate (another action,
       ///   an exchange his lord cannot make). The captive is always the wanted one; a ransom is capped at the ceiling
       ///   and, when no usable price was written, offered at the ceiling rather than dropped (the envoy said it was
@@ -69,6 +91,14 @@ namespace CalradiaRemembers.Logic
          {
             string written = null;
             parameters?.TryGetValue("price", out written);
+
+            // Given away (fkasad, 26/09/2026: "yours for 0 denars" paid the full ceiling): a gift, and no gold moves.
+            if (IsGift(written))
+               return new EnvoyDeal {
+                  Type = "buy_prisoner",
+                  Parameters = new Dictionary<string, string> {["target"] = mandate.WantedCaptiveName, ["price"] = "0", ["gift"] = "true"}
+               };
+
             int price = int.TryParse(written?.Trim(), out int p) && p > 0 ? Math.Min(p, mandate.RansomCeiling) : mandate.RansomCeiling;
 
             return new EnvoyDeal {

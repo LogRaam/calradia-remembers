@@ -128,6 +128,17 @@ namespace CalradiaRemembers.Verbs
                 int anchor = RansomAnchor(captive);
                 int price = PrisonerTradePolicy.ClampPrice(proposed, anchor);
 
+                // Given away, not sold (fkasad, 26/09/2026: "yours for 0 denars" to his own queen's envoy paid him the
+                // full ceiling). Only a "gift" the player agreed skips the price; the envoy's binder sets it.
+                bool gift = action.Parameters.TryGetValue("gift", out string giftStr) && string.Equals(giftStr?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
+
+                // Bought by his OWN side (his house, his realm), the captive goes home free (fkasad, 26/09/2026: his own
+                // count ransomed him, and the game then reported him "escaped", because a lord held captive by his own
+                // side is let go by the engine). The ransom path, as the exchange takes, the one that keeps a player
+                // companion from turning fugitive. Bought by anyone else, he changes gaolers.
+                bool goesHome = (captive.Clan != null && captive.Clan == npcHero.Clan)
+                                || (captive.MapFaction != null && captive.MapFaction == npcHero.MapFaction);
+
                 // Captured BEFORE the transfer (the grudge rule reads the captive's prior regard).
                 int captiveRegardForPlayer = captive.GetRelation(Hero.MainHero);
 
@@ -135,8 +146,8 @@ namespace CalradiaRemembers.Verbs
                 // A buyer with nowhere to keep a prisoner is REFUSED here, never paid: the old code fell back
                 // to AddToCounts(-1) on the PLAYER's roster, which deleted the captive and left them a
                 // prisoner of no one (IsPrisoner with no captor party, verified state corruption).
-                PartyBase dest = ResolveCaptorPrison(npcHero);
-                if (dest == null)
+                PartyBase dest = goesHome ? null : ResolveCaptorPrison(npcHero);
+                if (!goesHome && dest == null)
                     return ActionOutcome.Refused($"({npcHero.Name} has no party or holding to keep a prisoner in.)");
 
                 // NPC solvency: GiveGoldAction self-clamps a payment to the payer's purse, so a broke buyer
@@ -144,8 +155,8 @@ namespace CalradiaRemembers.Verbs
                 // agreed price. Pay the TRUE amount the buyer can raise, and REFUSE below the honest floor
                 // rather than hand a valuable captive over for a pittance.
                 int floor = PrisonerTradePolicy.MinAcceptablePayment(anchor);
-                int payment = Math.Min(price, npcHero.Gold);
-                if (payment < floor)
+                int payment = gift ? 0 : Math.Min(price, npcHero.Gold);
+                if (!gift && payment < floor)
                     return ActionOutcome.Refused($"({npcHero.Name} cannot raise a fair price for {captive.Name} and will not take them for a pittance.)");
 
                 CharacterObject captiveChar = captive.CharacterObject;
@@ -154,18 +165,25 @@ namespace CalradiaRemembers.Verbs
                 // changes hands into the buyer's custody (a real +1 to a real roster, never a phantom deletion).
                 // If the transfer still throws, the payment is refunded and the sale refused, never a silent
                 // half-trade (gold paid, no captive moved, player told nothing).
-                GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, payment);
+                if (payment > 0) GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, payment);
                 try
                 {
-                    // Source from where the captive is ACTUALLY held (the main party OR a settlement dungeon of the
-                    // player's), not a hardcoded main party: a captive left behind bars in the player's own town is
-                    // still theirs to sell, and transferring from the wrong roster would move nothing.
-                    PartyBase source = captive.PartyBelongedToAsPrisoner ?? MobileParty.MainParty?.Party;
-                    TransferPrisonerAction.Apply(captiveChar, source, dest);
+                    if (goesHome)
+                    {
+                        EndCaptivityAction.ApplyByRansom(captive, npcHero);
+                    }
+                    else
+                    {
+                        // Source from where the captive is ACTUALLY held (the main party OR a settlement dungeon of the
+                        // player's), not a hardcoded main party: a captive left behind bars in the player's own town is
+                        // still theirs to sell, and transferring from the wrong roster would move nothing.
+                        PartyBase source = captive.PartyBelongedToAsPrisoner ?? MobileParty.MainParty?.Party;
+                        TransferPrisonerAction.Apply(captiveChar, source, dest);
+                    }
                 }
                 catch (Exception transferEx)
                 {
-                    GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, payment); // refund the failed purchase
+                    if (payment > 0) GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, payment); // refund the failed purchase
                     ModLog.Error($"[ACTION] buy_prisoner transfer failed, payment refunded: {transferEx.GetType().Name}: {transferEx.Message}");
 
                     return ActionOutcome.Refused($"(The handover of {captive.Name} fell through. {npcHero.Name}'s payment is returned.)");
@@ -173,10 +191,14 @@ namespace CalradiaRemembers.Verbs
 
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
-                    $"Bought the captive {captive.Name} from the player for {payment} denars."));
+                    gift
+                        ? $"Received the captive {captive.Name} from the player as a gift, for nothing."
+                        : $"Bought the captive {captive.Name} from the player for {payment} denars."));
 
                 // The SOLD captive resents being traded like goods, heavier when sold to their own enemy.
                 // Guarded so a plant failure never claws back the sale that already succeeded.
+                // A captive who went home free has nothing to resent: he was ransomed, not sold.
+                if (!goesHome)
                 try
                 {
                     bool toEnemy = captive.MapFaction != null && npcHero.MapFaction != null &&
@@ -196,9 +218,12 @@ namespace CalradiaRemembers.Verbs
                     ModLog.Error($"[ACTION] buy_prisoner grudge plant failed: {ex.GetType().Name}: {ex.Message}");
                 }
 
-                ModLog.Info($"[ACTION] buy_prisoner: {npcHero.Name} bought {captive.Name} from the player for {payment} denars.");
+                ModLog.Info($"[ACTION] buy_prisoner: {npcHero.Name} {(gift ? "received" : "bought")} {captive.Name} from the player for {payment} denars{(goesHome ? ", and freed them" : "")}.");
 
-                return new ActionOutcome($"{npcHero.Name} pays you {payment} denars and takes {captive.Name} into their custody.", true);
+                string handed = goesHome ? $"and {captive.Name} goes home free" : $"and takes {captive.Name} into their custody";
+                return new ActionOutcome(gift
+                    ? $"You give {captive.Name} to {npcHero.Name} for nothing, {(goesHome ? $"and {captive.Name} goes home free" : $"into {npcHero.Name}'s custody")}."
+                    : $"{npcHero.Name} pays you {payment} denars {handed}.", true);
             }
             catch (Exception ex)
             {

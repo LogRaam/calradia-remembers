@@ -2,6 +2,23 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.5.25.. unreleased
+
+### Fixed
+- **The envoy, from fkasad's first audiences (Nexus, 26/09/2026).**
+  - "The envoy hesitates, and waits for you to speak" on most turns: the envoy's reply had a 700-token ceiling, and a
+    reasoning model spent it thinking and returned nothing (his server showed the finished thought). Now the chat's
+    own 3000 ceiling; an empty reply logs its finish reason.
+  - Nothing of the audience reached the log, and `cr.prompt_dump` answered "nobody is being spoken to": each turn now
+    logs a line, the full prompt under verbose logging, and `cr.prompt_dump` mid-audience writes the envoy's last prompt.
+  - "The prisoner is yours for 0 denars" paid the full ceiling (20,689): a price of 0 or "free" was read as no price. A
+    captive given away is now a gift, and no gold moves (`EnvoyMandatePolicy`, `buy_prisoner` `gift`).
+  - A captive ransomed by his OWN side was put in his own lord's cells, and the game reported him "escaped". He now
+    goes home free by ransom, as the exchange does, and bears no grudge for it. Applies to any `buy_prisoner`.
+  - The envoy opens with an offer (half the ceiling, never below the honest floor) and haggles, as fkasad asked; he
+    says an exchange is off the table when his lord holds none of the player's people; he no longer comes while his
+    lord is himself a prisoner.
+
 ## v2.5.24.. 2026-09-25
 
 A day of player reports, and one pillar they asked for: prisoners can now be EXCHANGED, and a lord who wants a captive

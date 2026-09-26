@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -37,6 +38,17 @@ namespace CalradiaRemembers
 
          string who = args is {Count: > 0} ? string.Join(" ", args).Trim() : null;
          Hero hero = PickSubject(who);
+
+         // An envoy is no hero: dump the last prompt his audience actually sent.
+         if (hero == null && who == null && ChatManager.ActiveViewModel?.IsEnvoyAudience == true && ChatViewModel.LastEnvoyPrompt != null)
+         {
+            string envoyPath = Path.Combine(
+               Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+               "Mount and Blade II Bannerlord", "Logs", "CalradiaRemembers_prompt_envoy.txt");
+            File.WriteAllText(envoyPath, ChatViewModel.LastEnvoyPrompt);
+
+            return $"cr.prompt_dump: the envoy's last prompt ({ChatViewModel.LastEnvoyPrompt.Length} chars) written to {envoyPath}";
+         }
 
          if (hero == null) return "cr.prompt_dump: no such character, and nobody is being spoken to.";
 
