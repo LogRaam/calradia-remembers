@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 421 types in 55 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 773 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 775 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 238 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -746,7 +746,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (478)
+### CalradiaRemembers.Logic (480)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1114,6 +1114,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestVoidReason` | public enum | Why QuestTargetVoidPolicy.ReasonToVoid would cancel a hero-bound quest, or None when it stands. |
 | `RapportBand` | public enum | How two companions stand with each other — banded from their accumulated mutual relation. |
 | `ReactionKind` | public enum | The kind of reaction one party has to a divorce. |
+| `RealmServiceLine` | public class | The news line, the chronicle line and the reach of the player's clan entering a realm's service. |
+| `RealmServiceWording` | public static class | Words the player's entry into a realm as what it was: an oath of fealty, or a hired contract. |
 | `RealmTidingsPolicy` | public static class | Pure subject-selection for a realm-tidings letter: given the world events a writer could relay and the ones they have already relayed, picks the single most worth-telling fresh event, or nothing. |
 | `RealmTidingsSalience` | public static class | Turns a world event's magnitude (how far the news carries, 0..100) and the writer's RumorConfidence in it into the opaque salience score RealmTidingsPolicy.RealmTidingsCandidate competes on. |
 | `ReasoningWirePolicy` | public static class | Decides whether a provider kind expects the reasoning-effort keyword serialized as the top-level reasoning_effort string rather than OpenRouter's nested reasoning object. |

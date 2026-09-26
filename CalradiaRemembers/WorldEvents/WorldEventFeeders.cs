@@ -696,8 +696,13 @@ namespace CalradiaRemembers.WorldEvents
             switch (detail)
             {
                case ChangeKingdomAction.ChangeKingdomActionDetail.JoinKingdom:
+                  RecordEntryIntoService(newKingdom, asMercenary: false);
+
+                  break;
                case ChangeKingdomAction.ChangeKingdomActionDetail.JoinAsMercenary:
-                  RecordVassalage(newKingdom);
+                  // A hired company swears nothing (tashmetu, 25/09/2026: a king told his sellsword "I've heard word
+                  // you swore fealty"). The matching start of RecordMercenaryContractEnd below.
+                  RecordEntryIntoService(newKingdom, asMercenary: true);
 
                   break;
                case ChangeKingdomAction.ChangeKingdomActionDetail.JoinKingdomByDefection:
@@ -732,20 +737,21 @@ namespace CalradiaRemembers.WorldEvents
          catch (Exception ex) { ModLog.Error($"[WORLD] kingdom-change feeder failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
-      private void RecordVassalage(Kingdom kingdom)
+      /// <summary>The player's clan entered a realm's service, as a sworn vassal or a hired company; RealmServiceWording words it.</summary>
+      private void RecordEntryIntoService(Kingdom kingdom, bool asMercenary)
       {
          if (kingdom == null) return;
          Hero ruler = kingdom.Leader;
-         string rulerName = ruler?.Name?.ToString() ?? "the crown";
+         RealmServiceLine line = RealmServiceWording.Joined(asMercenary, PlayerName, kingdom.Name?.ToString(), ruler?.Name?.ToString());
          Store.Record(new WorldEvent {
             Type = WorldEventType.PlayerFeat,
             Day = Today,
-            Magnitude = 55,
+            Magnitude = line.Magnitude,
             InvolvesPlayer = true,
-            Summary = $"{PlayerName} swore fealty to {kingdom.Name}.",
+            Summary = line.Summary,
             ActorIds = Ids(Hero.MainHero, ruler),
             FactionIds = new List<string> {kingdom.StringId},
-            ChronicleLine = $"{PlayerName} bent the knee and swore fealty to {rulerName} of {kingdom.Name}"
+            ChronicleLine = line.ChronicleLine
          });
       }
 

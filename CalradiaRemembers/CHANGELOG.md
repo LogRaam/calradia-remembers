@@ -12,6 +12,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   it, the other councillor's lines included. `ConversationResumePolicy.MayBeKeptOnClose` now asks what the chat
   OPENED as: only an ordinary conversation, the one kind the resume ever puts back, is kept. One rule for both sides,
   so a staged scene added later cannot be missed the same way.
+- **Hiring on as a mercenary was recorded as swearing fealty** (tashmetu, 25/09/2026: his sellsword was told by
+  Derthert "I've heard word you swore fealty"). `OnClanChangedKingdom` sent `JoinAsMercenary` down the vassalage path,
+  so the news read "swore fealty" and the chronicle "bent the knee"; the leaving side already had its own contract
+  wording. `RealmServiceWording.Joined` now words the start as what it is ("took service with ... as a mercenary
+  captain", chronicled "for coin and not for oath"), at a smaller reach than an oath (35 against 55, never below the
+  contract END's 30). Covers vanilla hiring and CR's own `join_as_mercenary`, since both fire the same engine event.
 - Not changed, and why: the rest of that report is the council working as designed. A council turn is ONE model call
   that writes the whole table as a scene; `CouncilPromptBuilder` requires every member to speak at least once and
   allows a second block for cross-talk after everyone has spoken, so "Kari, Bella, Kari" and "Kari, Bella, Bella,
