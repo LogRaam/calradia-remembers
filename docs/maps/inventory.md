@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 428 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 810 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 429 types in 56 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 813 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -735,12 +735,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StrategicAssessmentContextBuilder` | public static class | Chooses the advisor and gathers the player's strategic context from the live campaign. |
 | `StrategicAssessmentService` | public static class | Populates a Balance of Power view model's Strategic Assessment: offline summary, cached counsel, or a fresh async LLM call. |
 
-### CalradiaRemembers.WorldEvents (10)
+### CalradiaRemembers.WorldEvents (11)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ChronicleWriter` | public static class | Turns WorldEventStore.GetPlayerChronicle into a medieval-chronicle text and writes it to CalradiaRemembers_chronicle.log. |
 | `ConversationEventFeeder` | public static class | Records social outcomes of CR conversations into the world-event store. |
+| `MercenaryReputationBehavior` | public class | Judges the end of the player's mercenary contracts, and remembers them. |
 | `SchemeStore` | public class | Drives the v1.3 feud schemes: bitter rivals quietly plot against one another, the plots mature or collapse mechanically each day, and word of them spreads through the rumour network. |
 | `SecretLoverGossipBehavior` | public class | Once a secret lover has been secret long enough, an anonymous whisper of its EXISTENCE may begin to circulate (identity never leaks). |
 | `WorldClaimInjector` | public static class | Adopts the claims an NPC made in conversation into the world, as low-weight rumours that travel the same road every other piece of news travels. |
@@ -758,7 +759,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (514)
+### CalradiaRemembers.Logic (517)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1045,6 +1046,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MeetingGapDescriber` | public static class | Turns a "days since the NPC last saw the player" count into a prompt-ready note, or null when the gap is too short (or unknown) to be worth remarking on. |
 | `MemoryCompressionPolicy` | public static class | Pure timing policy for when to run the LLM memory compressor: below the threshold it never runs, and above it, it runs at most once per handful of new events so a fruitless pass (the model kept everything) cannot turn in... |
 | `MemoryDayFormatter` | public static class | Renders a memory event's absolute game day as player-readable text: the raw day number plus a relative hint ("today", "yesterday", "N days ago"). |
+| `MercenaryDepartureFacts` | public class | The realm's situation when the contract ended. |
+| `MercenaryDeparturePolicy` | public static class | The rules of a mercenary's departure. |
+| `MercenaryDepartureVerdict` | public enum | How a realm takes the end of the player's mercenary contract. |
 | `MercenaryEnlistmentPolicy` | public static class | Pure gate for the join_as_mercenary action: whether the player's clan may take mercenary service under the kingdom in question right now, the two facts both the prompt teaching and the bridge's execution guard must agree... |
 | `MercenaryReleasePolicy` | public static class | Pure gate for the end_mercenary action: whether the player's clan is truly under mercenary service right now, the one fact both the prompt teaching (EncounterContext.PlayerIsMercenary) and the bridge's execution guard mu... |
 | `MirrorReconcileDecision` | public enum | What to do with one quest-journal mirror at session launch. |

@@ -277,6 +277,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("claimant_support_evaluates", Severity.Light, "Mechanical: gather a real same-kingdom other-clan lord's facts and run the REAL ClaimantSupportPolicy via CouncilLift.EvaluateSupportClaimant (non-destructive, no influence moved) -> a valid backer lands on the amount decision (Applied/CannotAfford), never a WHO gate. No LLM.", TestClaimantSupportEvaluates),
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
+         new SelfTest("mercenary_departure_judged", Severity.Light, "fkasad's grid (25/09/2026): reads a real realm's war footing (at war, its strength against its enemies' combined strength) and judges how the end of a mercenary contract with it would be taken, without applying anything. Asserts a realm at peace is AtPeace and a realm at war is judged ReleasedInVictory or Abandoned as its strength says. No regard, memory or news is written.", TestMercenaryDepartureJudged),
          new SelfTest("courier_secret_travels", Severity.Light, "Courier secrets (raphareish 24/09/2026; Gabriel): an intercepted letter travels with its captors. Captures a [SELFTEST] letter onto a REAL bandit band, then has a real lord's party defeat the carrier (DebugDefeatCarrier, no LLM, no rumour) -> the secret leaves the band and the lord remembers what it said; a second capture defeated by the PLAYER's party is recovered unread. Removes the memory it added.", TestCourierSecretTravels),
          new SelfTest("courier_secret_reaction", Severity.Light, "Courier secrets Inc 4b (Gabriel: an action in proportion to the secret): runs the real reaction for another lord's letter read by a grudge-free lord -> NOTHING plants no grudge, AGAINST plants a LeakedLetter grudge on the letter's author, and the player (who wrote nothing) pays nothing. Clears the grudge it planted.", TestCourierSecretReaction),
          new SelfTest("letter_offer_prisoner_ransom", Severity.Light, "Mechanical (PrisonerOffer accept): capture an in-party lord into the player's prison, make a buyer solvent, run the shared PrisonerRansomExecutor -> assert the sale succeeds, the captive leaves the player's prison, and the player is paid. Restores everything (frees the captive, reverts both purses). Skips if no capturable lord / no buyer. No LLM.", TestLetterOfferPrisonerRansom),
@@ -9661,6 +9662,30 @@ namespace CalradiaRemembers.Diagnostics
       ///   player's party is recovered unread. Runs without the model or the rumour (DebugDefeatCarrier), and removes
       ///   the memory it added.
       /// </summary>
+      private static string TestMercenaryDepartureJudged(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("mercenary_departure_judged");
+
+         WorldEvents.MercenaryReputationBehavior mercs = WorldEvents.MercenaryReputationBehavior.Instance;
+         if (t.Abort(mercs == null, "MercenaryReputationBehavior not active")) return t.Line();
+
+         var judged = 0;
+         foreach (Kingdom k in Kingdom.All.Where(k => k != null && !k.IsEliminated).Take(6))
+         {
+            (Logic.MercenaryDepartureVerdict verdict, bool atWar, float own, float enemies) = mercs.DebugJudge(k);
+            Logic.MercenaryDepartureVerdict expected = !atWar
+               ? Logic.MercenaryDepartureVerdict.AtPeace
+               : Logic.MercenaryDeparturePolicy.IsLosing(own, enemies) ? Logic.MercenaryDepartureVerdict.Abandoned : Logic.MercenaryDepartureVerdict.ReleasedInVictory;
+            t.Note($"{k.Name}: {verdict} (at war {atWar}, {own:0} vs {enemies:0})");
+            t.Expect($"judged_{k.StringId}", verdict, expected);
+            judged++;
+         }
+
+         t.Expect("someRealmJudged", judged > 0, true);
+
+         return t.Line();
+      }
+
       private static string TestArrestWarrantAndBench(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("arrest_warrant_and_bench");

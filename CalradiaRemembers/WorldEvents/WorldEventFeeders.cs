@@ -697,21 +697,26 @@ namespace CalradiaRemembers.WorldEvents
             {
                case ChangeKingdomAction.ChangeKingdomActionDetail.JoinKingdom:
                   RecordEntryIntoService(newKingdom, asMercenary: false);
+                  MercenaryReputationBehavior.Instance?.OnJoined(newKingdom); // fkasad: a recent departure may become a betrayal
 
                   break;
                case ChangeKingdomAction.ChangeKingdomActionDetail.JoinAsMercenary:
                   // A hired company swears nothing (tashmetu, 25/09/2026: a king told his sellsword "I've heard word
                   // you swore fealty"). The matching start of RecordMercenaryContractEnd below.
                   RecordEntryIntoService(newKingdom, asMercenary: true);
+                  MercenaryReputationBehavior.Instance?.OnJoined(newKingdom);
 
                   break;
                case ChangeKingdomAction.ChangeKingdomActionDetail.JoinKingdomByDefection:
                   RecordDefection(oldKingdom, newKingdom);
+                  MercenaryReputationBehavior.Instance?.OnJoined(newKingdom);
 
                   break;
                case ChangeKingdomAction.ChangeKingdomActionDetail.LeaveAsMercenary:
                   ModLog.Info($"[WORLD] player clan left {oldKingdom?.Name} (detail={detail}); CR observed this vanilla event, it did not initiate it.");
-                  RecordMercenaryContractEnd(oldKingdom);
+                  // fkasad's grid (25/09/2026): the realm's situation judges the departure; the plain contract end
+                  // only when nothing could be judged.
+                  if (MercenaryReputationBehavior.Instance?.OnLeft(oldKingdom) != true) RecordMercenaryContractEnd(oldKingdom);
 
                   break;
                case ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom:

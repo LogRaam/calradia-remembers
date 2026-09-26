@@ -283,6 +283,8 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new Letters.CourierSecretBehavior());
          // Arrests in the King's name (Gabriel, 26/09/2026): the player's case, opened by a grave act.
          campaignStarter.AddBehavior(new Arrests.ArrestBehavior());
+         // fkasad's grid (25/09/2026): a mercenary contract's end judged by the realm's situation.
+         campaignStarter.AddBehavior(new WorldEvents.MercenaryReputationBehavior());
          // War-weariness: wounds and captures accrue a toll on each companion (a SEPARATE axis from happiness);
          // rest eases it; a spent veteran asks for an honorable retirement — a landless one leaves, a landed one
          // (governor / party-leader) steps back from the field but stays in the clan. Pure model in Logic.

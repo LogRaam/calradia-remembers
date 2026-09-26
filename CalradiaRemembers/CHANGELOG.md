@@ -2,6 +2,22 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.6.1.. unreleased
+
+### Added
+- **The end of a mercenary contract is judged by its circumstances** (fkasad's grid, Nexus 25/09/2026, ratified by
+  Gabriel; Zivkyn's report that NPCs called a sellsword an oathbreaker was the 2.5.24 fealty wording, already fixed).
+  `MercenaryDeparturePolicy` (pure, 9 tests) and `MercenaryReputationBehavior` (additive save key
+  `CR_MercenaryDeparture_v1bytes`): the realm at peace, no fault; at war and winning (its strength at least 90% of
+  its enemies' combined), let go with thanks (+3 regard); at war and losing, abandoned (-8); going over to its enemy
+  within 30 days, a betrayal (-20, charging only the difference); doubled against a company of the realm's own
+  culture. Every clan leader of the realm remembers it (regard and memory) and word gets about in the verdict's own
+  words. Coming to a realm of one's own people in a war it is losing is remembered well (+5). `cr.testall
+  mercenary_departure_judged` judges real realms without applying anything.
+- Maps: the first live RATCHET case. The bare-number regard ratchet caught the four new regard constants; they are
+  SHIFTS on the ledger, not thresholds anything is compared against, so they are named as penalty and gratitude
+  rather than the baseline raised.
+
 ## v2.6.0.. 2026-09-26
 
 Two new pillars from player reports and Gabriel's own design: letters that are never lost for good but can betray
