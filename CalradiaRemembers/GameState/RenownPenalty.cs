@@ -41,6 +41,12 @@ namespace CalradiaRemembers.GameState
 
          clan.Renown -= taken;
 
+         // One line for every penalty, whichever feature took it (three of the five callers logged nothing). A player
+         // who loses renown can then read exactly what CR took and when, and what it did not (a player asked, 25/09/2026,
+         // whether CR was the cause of whole clan tiers vanishing; it cannot be, see the file header, but he had no way
+         // to see that for himself).
+         ModLog.Info($"[RENOWN] took {taken:0.#} renown from {clan.Name} (now {clan.Renown:0.#}); the clan tier is never lowered by CR.");
+
          return taken;
       }
    }
