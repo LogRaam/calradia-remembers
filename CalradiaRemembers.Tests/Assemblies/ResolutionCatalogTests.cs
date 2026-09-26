@@ -254,12 +254,20 @@ namespace CalradiaRemembers.Tests.Assemblies
         }
 
         // M4 (Family had ZERO catalogue kinds): every scope, Family included, must expose at least one executable
-        // kind, or a family council could seat and debate yet never act. Quest is universal, so every scope has it.
+        // kind, or a family council could seat and debate yet never act. Quest is universal to every council that
+        // governs; a TRIAL (arrests, 26/09/2026) sets no one a task, and its one business is the verdict.
         [Test]
         public void GIVEN_any_scope_WHEN_asked_for_executable_kinds_THEN_quest_is_always_offered()
         {
-            foreach (CouncilScope scope in Enum.GetValues(typeof(CouncilScope)).Cast<CouncilScope>())
+            foreach (CouncilScope scope in Enum.GetValues(typeof(CouncilScope)).Cast<CouncilScope>().Where(s => s != CouncilScope.Trial))
                 ResolutionCatalog.ExecutableKindKeysForScope(scope).Should().Contain("quest");
+        }
+
+        [Test]
+        public void GIVEN_a_trial_WHEN_asked_for_executable_kinds_THEN_only_the_verdict_is_offered()
+        {
+            ResolutionCatalog.ExecutableKindKeysForScope(CouncilScope.Trial).Should().Equal("verdict");
+            ResolutionCatalog.HasNoSeatedActor(ResolutionKind.Verdict).Should().BeTrue();
         }
 
         // The runtime executor keys on the literal string "quest" (CouncilResolutionPolicy.QuestKind). This pins

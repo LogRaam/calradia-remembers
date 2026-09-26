@@ -43,6 +43,12 @@ namespace CalradiaRemembers.Logic.Assemblies
 
            /// <summary>A mission scene owns the screen.</summary>
            public bool InMissionScene { get; set; }
+
+           /// <summary>
+           ///   The sitting is a TRIAL, held for a captive player by definition (arrests, 26/09/2026): the one
+           ///   council captivity does not block.
+           /// </summary>
+           public bool IsTrial { get; set; }
         }
 
         /// <summary>
@@ -59,7 +65,7 @@ namespace CalradiaRemembers.Logic.Assemblies
            bool inMissionScene = facts.InMissionScene;
 
             if (chatAlreadyOpen) return CouncilAccessBlock.ChatAlreadyOpen;
-            if (playerIsPrisoner) return CouncilAccessBlock.PlayerCaptive;
+            if (playerIsPrisoner && !facts.IsTrial) return CouncilAccessBlock.PlayerCaptive;
             if (inMissionScene) return CouncilAccessBlock.InScene;
 
             return CouncilAccessBlock.None;

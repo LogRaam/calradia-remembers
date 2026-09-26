@@ -49,5 +49,17 @@ namespace CalradiaRemembers.Tests.Assemblies
         public void GIVEN_a_mission_scene_and_a_free_unengaged_player_WHEN_evaluated_THEN_it_blocks_as_in_scene()
             => CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = false, PlayerIsPrisoner = false, InMissionScene = true})
                 .Should().Be(CouncilAccessBlock.InScene);
+
+        // Arrests (26/09/2026): a TRIAL is held for a captive player by definition, the one sitting captivity does
+        // not block. Every other guard still holds: an open chat still blocks it.
+        [Test]
+        public void GIVEN_a_captive_player_WHEN_a_trial_is_evaluated_THEN_captivity_does_not_block_it()
+            => CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {PlayerIsPrisoner = true, IsTrial = true})
+                .Should().Be(CouncilAccessBlock.None);
+
+        [Test]
+        public void GIVEN_a_chat_already_open_WHEN_a_trial_is_evaluated_THEN_it_still_blocks()
+            => CouncilAccessPolicy.Evaluate(new CouncilAccessPolicy.CouncilAccessFacts {ChatAlreadyOpen = true, PlayerIsPrisoner = true, IsTrial = true})
+                .Should().Be(CouncilAccessBlock.ChatAlreadyOpen);
     }
 }

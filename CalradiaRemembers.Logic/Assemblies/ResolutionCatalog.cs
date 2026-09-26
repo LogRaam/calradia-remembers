@@ -383,7 +383,15 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   seated vassal's own promise, not a decision about two FACTIONS the way DeclareWar/MakePeace are, so
         ///   it keeps the ordinary seated-member re-validation at the lift.
         /// </summary>
-        SupportClaimant
+        SupportClaimant,
+
+        /// <summary>
+        ///   A TRIAL's only motion (arrests, 26/09/2026): the council pronounces the accused player convicted or
+        ///   acquitted, in its detail. Like the faction-centric kinds it is the table's own judgement, not a seated
+        ///   member's promise, so it has no seated actor to re-validate (see <see cref="HasNoSeatedActor" />), and
+        ///   it is read by <c>TrialVerdictPolicy.IsConviction</c>.
+        /// </summary>
+        Verdict
     }
 
     /// <summary>The world conditions a motion needs before it may be offered. Combined per motion.</summary>
@@ -865,7 +873,11 @@ namespace CalradiaRemembers.Logic.Assemblies
             // ClanLords/Companions/Family, where a seated member is either the player's own house already or a
             // hired hand with no house of their own to throw behind the player).
             new ResolutionDefinition(ResolutionKind.SupportClaimant, CouncilScope.WarCouncil,
-                "Pledge support for your claim", ResolutionRequirement.AnySeatedMemberCanSupportClaimant)
+                "Pledge support for your claim", ResolutionRequirement.AnySeatedMemberCanSupportClaimant),
+
+            // Arrests (26/09/2026): the trial's one motion, always open while the trial sits.
+            new ResolutionDefinition(ResolutionKind.Verdict, CouncilScope.Trial,
+                "Pronounce the verdict", ResolutionRequirement.None)
         };
 
         /// <summary>The definition for one scoped menu kind. Every menu kind (all but <see cref="ResolutionKind.Quest" />) has exactly one entry.</summary>
@@ -911,6 +923,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case ResolutionKind.NonAggressionPact:    return "non_aggression_pact";
                 case ResolutionKind.SponsorWard:           return "sponsor_ward";
                 case ResolutionKind.SupportClaimant:        return "support_claimant";
+                case ResolutionKind.Verdict:                return "verdict";
                 default:                               return kind.ToString().ToLowerInvariant();
             }
         }
@@ -1016,7 +1029,8 @@ namespace CalradiaRemembers.Logic.Assemblies
             || kind == ResolutionKind.LendTroops || kind == ResolutionKind.SwearOath
             || kind == ResolutionKind.GiveHostage || kind == ResolutionKind.GiveTroops
             || kind == ResolutionKind.NonAggressionPact || kind == ResolutionKind.SponsorWard
-            || kind == ResolutionKind.GiveItem || kind == ResolutionKind.SupportClaimant;
+            || kind == ResolutionKind.GiveItem || kind == ResolutionKind.SupportClaimant
+            || kind == ResolutionKind.Verdict;
 
         /// <summary>
         ///   True for a FACTION-CENTRIC kind (<see cref="ResolutionKind.DeclareWar" /> and its symmetric
@@ -1031,6 +1045,14 @@ namespace CalradiaRemembers.Logic.Assemblies
             => kind == ResolutionKind.DeclareWar || kind == ResolutionKind.MakePeace;
 
         /// <summary>
+        ///   True for a kind decided by the TABLE rather than promised by one seated member: the faction-centric
+        ///   kinds, and a trial's <see cref="ResolutionKind.Verdict" />. The lift skips the seated-member
+        ///   re-validation for these and dispatches straight to their own executor.
+        /// </summary>
+        public static bool HasNoSeatedActor(ResolutionKind kind)
+            => IsFactionCentric(kind) || kind == ResolutionKind.Verdict;
+
+        /// <summary>
         ///   The string keys of the kinds a council of <paramref name="scope" /> may currently ACT on: the
         ///   universal <see cref="ResolutionKind.Quest" /> plus any scoped menu kind whose executor has landed
         ///   (none yet). This is the set the prompt offers, so every scope, Family included, has at least one
@@ -1038,7 +1060,8 @@ namespace CalradiaRemembers.Logic.Assemblies
         /// </summary>
         public static IEnumerable<string> ExecutableKindKeysForScope(CouncilScope scope)
         {
-            yield return KeyOf(ResolutionKind.Quest);
+            // A trial sets no one a task: its only business is the verdict.
+            if (scope != CouncilScope.Trial) yield return KeyOf(ResolutionKind.Quest);
 
             foreach (ResolutionDefinition d in ForScope(scope))
                 if (IsExecutable(d.Kind))

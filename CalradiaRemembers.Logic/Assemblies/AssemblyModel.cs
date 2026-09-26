@@ -67,7 +67,16 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   2026-08-25). Unlike Family/ClanLords (which seat kin wherever they stand), this seats only those
         ///   actually in the party. Appended last to preserve the persisted ordinals of existing saves.
         /// </summary>
-        Party
+        Party,
+
+        /// <summary>
+        ///   A TRIAL (arrests, Gabriel 26/09/2026: "le joueur doit sentir qu'il confronte une assemblee"): the player,
+        ///   held captive, stands before their liege and the vassals who hate them most, to answer for the charges of
+        ///   their arrest. The one scope that seats a FIXED roster named by the case (the liege and the most hostile
+        ///   vassals, wherever they are: they are summoned to judge), the one that may sit while the player is a
+        ///   prisoner, and the one whose only motion is the verdict. Appended last: the enum is persisted by ordinal.
+        /// </summary>
+        Trial
     }
 
     /// <summary>

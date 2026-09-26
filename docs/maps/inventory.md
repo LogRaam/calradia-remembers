@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 427 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 804 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 805 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1309,7 +1309,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestOutcomeFacts` | public class | A terminated InformalQuest (Completed), as read by the engine-side scan. |
 | `TraitFacts` | public class | A hero's trait levels relevant to appreciation formation and decay: Generosity and Mercy (a warm heart remembers a favour more readily and for longer), Calculating (a cold ledger-keeper is less moved by a mere kindness),... |
 
-### CalradiaRemembers.Logic.Assemblies (108)
+### CalradiaRemembers.Logic.Assemblies (109)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1416,6 +1416,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StipendPolicy` | public static class | Pure policy for grant_stipend: the amount clamp, the escrow cost, and the affordability gate. |
 | `TierTroopCounts` | public struct | A party's healthy, non-hero troop count bucketed into three tiers. |
 | `TravelOutcome` | public enum | What happens to an EnRoute invitee re-checked against the live world. |
+| `TrialVerdictPolicy` | public static class | Reads a trial's verdict, and decides one when the council rose without it. |
 | `TributePolicy` | public static class | Pure policy for tribute: the daily-amount clamp, the fixed term, and the pay-as-you-go affordability check. |
 | `WarCouncilTriggerPolicy` | public static class | Decides whether the war-council offer should be surfaced after an army action. |
 | `WardCandidateFacts` | public struct | The flattened facts about one candidate companion needed to judge them ward-eligible. |
