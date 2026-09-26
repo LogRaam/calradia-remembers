@@ -206,3 +206,48 @@ cannot. Each one moved into a rule adds a column here.
 - `ViolenceConsequencePolicy.RobRelationHit = -30`
 
 </details>
+
+## Regard compared inline against a bare number
+
+**33 comparisons** read a regard value and compare it with a number written in place, no named
+constant at all. The list above cannot see these: it finds thresholds by the NAME of a constant, and there is
+none. Found by what the code compares: one side reads a ledger member (`ReputationWithPlayer`, `GetRelation`, `RelationToPlayer`, `RegardForPlayer`, `RegardTowardPlayer`)
+or a value named for regard, relation or reputation; the other side is a number.
+
+<details><summary>The inline comparisons</summary>
+
+- `ActionInterpreterContextBuilder.FormatRegard`: `regard >= 0` (named)
+- `BannerlordGameStateBridge.GrantQuestReward`: `relation > 0` (named)
+- `CampaignWorld.SenderStillAdverseToPlayer`: `regard < 0` (named)
+- `CompanionRapport.Band`: `relation >= -29` (named)
+- `CompanionRapport.Band`: `relation >= -9` (named)
+- `CompanionRapport.Band`: `relation >= 10` (named)
+- `CompanionRapport.Band`: `relation >= 30` (named)
+- `CouncilPromptBuilder.FormatRegard`: `regard >= 0` (named)
+- `CourtActionPolicy.InfluenceGrant`: `relation <= 0` (named)
+- `CourtActionPolicy.TroopLoanCount`: `relation <= 0` (named)
+- `CrSelfTest.TestDivorceProcess`: `h.GetRelation(spouse) >= 20` (ledger)
+- `CrSelfTest.TestGrudgeSway`: `npc.GetRelation(target) <= -90` (ledger)
+- `CrSelfTest.TestRpSway`: `npc.GetRelation(target) <= -90` (ledger)
+- `CrSelfTest.TestSchemeAssist`: `h.GetRelation(Hero.MainHero) < 20` (ledger)
+- `EncounterContextBuilder.ResolveConsortEligible`: `profile.ReputationWithPlayer >= 60` (ledger)
+- `ExternalMissionRules.ClampRewardRelation`: `relation < 0` (named)
+- `InterceptionBehavior.IsHostileToPlayer`: `lord.GetRelation(Hero.MainHero) <= -20` (ledger)
+- `LetterTriggerEvaluator.CollectAwaitingReplies`: `profile.ReputationWithPlayer < 15` (ledger)
+- `LetterTriggerEvaluator.CollectMarriageSolicitations`: `profile.ReputationWithPlayer < 20` (ledger)
+- `LetterTriggerEvaluator.CollectRomanticCorrespondence`: `profile.ReputationWithPlayer < 15` (ledger)
+- `LetterTriggerEvaluator.CollectServiceOffers`: `profile.ReputationWithPlayer < 30` (ledger)
+- `LetterTriggerEvaluator.NpcCongratulatePlayerForTournamentVictory`: `profile.ReputationWithPlayer < 10` (ledger)
+- `LetterTriggerEvaluator.NpcCongratulatePlayerOnBattleVictory`: `profile.ReputationWithPlayer < 20` (ledger)
+- `ProfileMutator.AdvanceRomanticStatus`: `relation <= -30` (named)
+- `ProfileMutator.AdvanceRomanticStatus`: `relation >= 10` (named)
+- `ProfileMutator.AdvanceRomanticStatus`: `relation >= 20` (named)
+- `ProfileMutator.AdvanceRomanticStatus`: `relation >= 5` (named)
+- `PromptBuilder.AppendCaptivePlayerRules`: `relation <= -20` (named)
+- `PromptBuilder.AppendCaptivePlayerRules`: `relation <= -5` (named)
+- `PromptBuilder.AppendCaptivePlayerRules`: `relation >= 15` (named)
+- `PromptBuilder.AppendRomanticBoundary`: `npc.ReputationWithPlayer >= 10` (ledger)
+- `ThirdPartyDescriptor.Categorize`: `relation != 0` (named)
+- `TrialVerdictPolicy.DefaultConviction`: `regards.Average() < 0` (named)
+
+</details>

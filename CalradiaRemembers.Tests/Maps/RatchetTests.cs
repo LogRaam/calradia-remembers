@@ -117,6 +117,32 @@ namespace CalradiaRemembers.Tests.Maps
 
       #region private
 
+      /// <summary>
+      ///   Regard compared INLINE against a bare number on 26/09/2026: 33 (20 through a ledger member, 13 through a value
+      ///   named for regard). The silent half of the bare-number measure above (Gabriel, 26/09/2026: a map that is
+      ///   wrong without anyone noticing): that one counts CONSTANTS by their name, so a threshold written in place, with
+      ///   no constant at all, was invisible to it. May only go down.
+      /// </summary>
+      private const int InlineRegardComparisonsOn26September = 33;
+
+      // THE SILENT HALF, ratcheted the same way: a rung compared in place is the same duplication as a bare constant,
+      // only harder to see.
+      [Test]
+      public void GIVEN_regard_compared_inline_against_a_bare_number_WHEN_counted_THEN_there_are_no_more_than_before()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         int inline = RegardDecisionsMap.InlineRegardComparisons().Count();
+
+         inline.Should().BeLessThanOrEqualTo(InlineRegardComparisonsOn26September,
+            $"a regard value is compared in place with a bare number ({inline} against a baseline of "
+          + $"{InlineRegardComparisonsOn26September}). Point it at a rung on Regard or VanillaRelation instead; "
+          + "docs/maps/decisions-regard.md lists every one under \"Regard compared inline\".");
+
+         if (inline < InlineRegardComparisonsOn26September)
+            Assert.Warn($"{InlineRegardComparisonsOn26September - inline} inline comparison(s) moved onto a named rung: lower the baseline to {inline}.");
+      }
+
       /// <summary>Every namespace the dependency map puts in a cycle, read off the map the suite keeps current.</summary>
       private static HashSet<string> Tangled()
       {

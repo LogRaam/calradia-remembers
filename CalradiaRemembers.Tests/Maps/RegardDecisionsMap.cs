@@ -70,6 +70,7 @@ namespace CalradiaRemembers.Tests.Maps
          AppendTable(sb, decisions);
          AppendBoundaries(sb, decisions);
          AppendWhatIsMissing(sb, decisions.Count);
+         AppendInlineComparisons(sb);
 
          return sb.ToString();
       }
@@ -161,6 +162,127 @@ namespace CalradiaRemembers.Tests.Maps
          sb.AppendLine("</details>");
          sb.AppendLine();
       }
+
+      /// <summary>
+      ///   The members that ARE the two ledgers: reading one of these is reading regard, whatever the surrounding code
+      ///   calls it. The fact the name-based list above cannot see (26/09/2026).
+      /// </summary>
+      private static readonly string[] LedgerMembers = {"ReputationWithPlayer", "GetRelation", "RelationToPlayer", "RegardForPlayer", "RegardTowardPlayer"};
+
+      /// <summary>
+      ///   THE SILENT GAP IN THE LIST ABOVE (Gabriel, 26/09/2026: "une carte qui se trompe silencieusement, parce
+      ///   qu'un nom ment"). That list finds a threshold by the NAME of a constant, so a rung compared inline with no
+      ///   constant at all (`regards.Average() &lt; 0`, found in TrialVerdictPolicy the day this was written) is
+      ///   invisible to it, and to the ratchet that counts it. This reads what the code COMPARES instead: every
+      ///   comparison between a bare number and a value read off a ledger member, or a value named for regard.
+      ///   Listed by owner and member, never by line, so an unrelated edit above does not churn the map.
+      /// </summary>
+      private static void AppendInlineComparisons(StringBuilder sb)
+      {
+         List<string> found = InlineRegardComparisons().ToList();
+
+         sb.AppendLine("## Regard compared inline against a bare number");
+         sb.AppendLine();
+         sb.AppendLine($"**{found.Count} comparisons** read a regard value and compare it with a number written in place, no named");
+         sb.AppendLine("constant at all. The list above cannot see these: it finds thresholds by the NAME of a constant, and there is");
+         sb.AppendLine("none. Found by what the code compares: one side reads a ledger member (" + string.Join(", ", LedgerMembers.Select(m => $"`{m}`")) + ")");
+         sb.AppendLine("or a value named for regard, relation or reputation; the other side is a number.");
+         sb.AppendLine();
+         sb.AppendLine("<details><summary>The inline comparisons</summary>");
+         sb.AppendLine();
+
+         foreach (string comparison in found) sb.AppendLine($"- {comparison}");
+
+         sb.AppendLine();
+         sb.AppendLine("</details>");
+         sb.AppendLine();
+      }
+
+      /// <summary>Every inline comparison of a regard value with a bare number, as `Owner.Member`: `expression`.</summary>
+      internal static IEnumerable<string> InlineRegardComparisons()
+      {
+         if (!SourceTree.IsReachable) yield break;
+
+         var seen = new SortedSet<string>(StringComparer.Ordinal);
+
+         foreach (SourceFile file in SourceTree.Production)
+            foreach (var binary in file.Root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax>())
+            {
+               if (!IsComparison(binary)) continue;
+
+               bool leftNumber = IsBareNumber(binary.Left), rightNumber = IsBareNumber(binary.Right);
+               if (leftNumber == rightNumber) continue; // two numbers, or no number: not a threshold
+
+               Microsoft.CodeAnalysis.SyntaxNode read = leftNumber ? binary.Right : binary.Left;
+               string how = ReadsRegard(read);
+               if (how == null) continue;
+
+               string owner = binary.Ancestors().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.BaseTypeDeclarationSyntax>().FirstOrDefault()?.Identifier.Text ?? "?";
+               string member = binary.Ancestors().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MemberDeclarationSyntax>()
+                                     .Select(MemberName).FirstOrDefault(n => n != null) ?? "?";
+               string expression = System.Text.RegularExpressions.Regex.Replace(binary.ToString(), @"\s+", " ");
+
+               seen.Add($"`{owner}.{member}`: `{expression}` ({how})");
+            }
+
+         foreach (string entry in seen) yield return entry;
+      }
+
+      private static bool IsComparison(Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax binary)
+         => binary.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.LessThanExpression)
+         || binary.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.LessThanOrEqualExpression)
+         || binary.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.GreaterThanExpression)
+         || binary.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.GreaterThanOrEqualExpression)
+         || binary.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.EqualsExpression)
+         || binary.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.NotEqualsExpression);
+
+      /// <summary>A numeric literal, signed or not (`-20`, `0`, `5f`).</summary>
+      private static bool IsBareNumber(Microsoft.CodeAnalysis.SyntaxNode node)
+      {
+         if (node is Microsoft.CodeAnalysis.CSharp.Syntax.PrefixUnaryExpressionSyntax unary) node = unary.Operand;
+         if (node is Microsoft.CodeAnalysis.CSharp.Syntax.ParenthesizedExpressionSyntax paren) node = paren.Expression;
+
+         return node is Microsoft.CodeAnalysis.CSharp.Syntax.LiteralExpressionSyntax literal
+                && literal.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.NumericLiteralExpression);
+      }
+
+      /// <summary>
+      ///   Names that carry regard in their name but hold a CHANGE to it (a reward, a hit, a nudge, a shift) or a
+      ///   derived tier, never a point on the scale: a sign test on them is not a rung. The fallback's own filter.
+      /// </summary>
+      private static readonly string[] NotAPointOnTheScale = {"Reward", "Hit", "Nudge", "Shift", "Delta", "Change", "Tier", "Resistance"};
+
+      /// <summary>
+      ///   How the expression reads regard, or null when it does not: "ledger" when it names one of the two ledgers'
+      ///   own members (a fact), "named" when only an identifier NAMED for regard, relation or reputation says so (the
+      ///   fallback for a value carried in a local, such as a list of regards; name-based, so it can be wrong in both
+      ///   directions, and is marked as such). A count or length of such a collection is not a regard.
+      /// </summary>
+      private static string? ReadsRegard(Microsoft.CodeAnalysis.SyntaxNode node)
+      {
+         if (node is Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax access
+             && access.Name.Identifier.Text is "Count" or "Length")
+            return null;
+
+         var ids = node.DescendantNodesAndSelf().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.IdentifierNameSyntax>()
+                       .Select(id => id.Identifier.Text).ToList();
+
+         if (ids.Any(name => LedgerMembers.Contains(name, StringComparer.Ordinal))) return "ledger";
+
+         bool named = ids.Any(name => RegardParameterNames.Any(n => name.Contains(n, StringComparison.OrdinalIgnoreCase))
+                                      && !NotAPointOnTheScale.Any(x => name.Contains(x, StringComparison.OrdinalIgnoreCase)));
+
+         return named ? "named" : null;
+      }
+
+      private static string? MemberName(Microsoft.CodeAnalysis.CSharp.Syntax.MemberDeclarationSyntax member) => member switch
+      {
+         Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax m => m.Identifier.Text,
+         Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax p => p.Identifier.Text,
+         Microsoft.CodeAnalysis.CSharp.Syntax.ConstructorDeclarationSyntax c => c.Identifier.Text,
+         Microsoft.CodeAnalysis.CSharp.Syntax.FieldDeclarationSyntax f => f.Declaration.Variables.FirstOrDefault()?.Identifier.Text,
+         _ => null
+      };
 
       /// <summary>Every numeric constant whose NAME says it is a point on one of the two scales.</summary>
       private static IEnumerable<string> RegardThresholds()
