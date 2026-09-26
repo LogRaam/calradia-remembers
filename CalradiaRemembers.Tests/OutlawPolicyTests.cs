@@ -69,6 +69,32 @@ namespace CalradiaRemembers.Tests
          OutlawPolicy.AmnestyDeclared(0.5).Should().BeFalse();
       }
 
+      // Hunters ride in a number close to the player's own, so the fight is real but winnable, within bounds.
+      [TestCase(5, OutlawPolicy.MinHunters)]
+      [TestCase(50, 40)]
+      [TestCase(500, OutlawPolicy.MaxHunters)]
+      public void GIVEN_the_players_number_WHEN_a_realm_sends_hunters_THEN_they_ride_close_to_it_within_bounds(int playerSize, int expected)
+      {
+         OutlawPolicy.HunterStrength(playerSize).Should().Be(expected);
+      }
+
+      // A lost band is not replaced the next morning.
+      [Test]
+      public void GIVEN_a_lost_band_WHEN_new_hunters_are_asked_for_THEN_they_come_only_after_the_cooldown()
+      {
+         OutlawPolicy.MaySendHunters(null, 5).Should().BeTrue();
+         OutlawPolicy.MaySendHunters(100, 100 + OutlawPolicy.HunterCooldownDays - 1).Should().BeFalse();
+         OutlawPolicy.MaySendHunters(100, 100 + OutlawPolicy.HunterCooldownDays).Should().BeTrue();
+      }
+
+      // The bounty's cause is the charge at trial: a flight, or brigandage.
+      [Test]
+      public void GIVEN_a_bounty_WHEN_its_captive_is_tried_THEN_its_cause_is_the_charge()
+      {
+         OutlawPolicy.ChargeFor(BountyReason.Flight).Should().Be(ArrestCharge.FledArrest);
+         OutlawPolicy.ChargeFor(BountyReason.Brigandage).Should().Be(ArrestCharge.Brigandage);
+      }
+
       // One price per realm: a second crime against the same realm does not double the hunt.
       [Test]
       public void GIVEN_a_realm_with_a_bounty_already_WHEN_another_is_placed_THEN_it_keeps_one()

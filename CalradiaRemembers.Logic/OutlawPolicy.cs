@@ -66,6 +66,32 @@ namespace CalradiaRemembers.Logic
    /// <summary>The rules of outlawry, bounties and amnesty. Pure.</summary>
    public static class OutlawPolicy
    {
+      /// <summary>TUNE: the fewest men a band of bounty hunters rides with.</summary>
+      public const int MinHunters = 15;
+
+      /// <summary>TUNE: the most men a band of bounty hunters rides with.</summary>
+      public const int MaxHunters = 60;
+
+      /// <summary>TUNE: days before a realm sends new hunters after its last band was lost.</summary>
+      public const int HunterCooldownDays = 10;
+
+      /// <summary>
+      ///   How many hunters a realm sends: about four in five of the player's own number, so a fight is real but
+      ///   winnable, within <see cref="MinHunters" /> and <see cref="MaxHunters" />.
+      /// </summary>
+      public static int HunterStrength(int playerPartySize)
+         => Math.Max(MinHunters, Math.Min(MaxHunters, (int) Math.Round(playerPartySize * 0.8)));
+
+      /// <summary>True when a realm may send new hunters, <see cref="HunterCooldownDays" /> after its last band.</summary>
+      public static bool MaySendHunters(int? lastSentDay, int today)
+         => lastSentDay is not int last || today - last >= HunterCooldownDays;
+
+      /// <summary>
+      ///   The charges a realm's bounty brings to trial: a flight from that realm's own law, or brigandage against it.
+      /// </summary>
+      public static ArrestCharge ChargeFor(BountyReason reason)
+         => reason == BountyReason.Flight ? ArrestCharge.FledArrest : ArrestCharge.Brigandage;
+
       /// <summary>TUNE: the chance, each week and for each realm, that it declares an amnesty (about 40% over a year).</summary>
       public const double AmnestyWeeklyChance = 0.01;
 

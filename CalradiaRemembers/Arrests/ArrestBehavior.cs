@@ -30,6 +30,13 @@
 // war on them: the realm's lords and troops are real enemies who can beat and take them. Each week, each realm with a
 // bounty may declare an amnesty (a low chance): the bounty is lifted, the crime rating cleared, the war ended, and a
 // fled outlaw pardoned.
+//
+// Hunters: each realm with a bounty sends a band of bounty hunters (OutlawPolicy.HunterStrength) that rides to ENGAGE
+// the player, a real fight. A player leading an independent clan is at war with the realm, so the band rides in the
+// realm's own colours; a player still sworn to a kingdom cannot be warred on alone, so the band rides under an outlaw
+// clan instead (OutlawPolicy.ModeFor). Beaten, the player is taken; whoever takes them (the hunters, or any party of a
+// realm that wants them), the bounty is collected and the player handed to that realm's sovereign, to be tried by
+// that realm's council, the bounty's cause charged. Like the sergeants, hunters are never saved.
 
 #region
 
@@ -81,6 +88,16 @@ namespace CalradiaRemembers.Arrests
 
       // Set while the law itself frees the player, so the release is not mistaken for an escape.
       private bool _freeing;
+
+      // The bounty hunters on the road, party id -> the realm that sent them. Never saved (despawned before a save).
+      private readonly Dictionary<string, string> _hunters = new();
+
+      // realm id -> the day its last band was sent, so a lost band is not replaced the next morning.
+      private readonly Dictionary<string, int> _huntersSentDay = new();
+
+      // The realm whose bounty the player was just taken on, handed over on the next hour (never inside the battle's
+      // own capture call, which is still running when the capture event fires).
+      private string _pendingHandoverRealmId;
 
       public ArrestBehavior()
       {
@@ -154,6 +171,8 @@ namespace CalradiaRemembers.Arrests
          CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
          CampaignEvents.TickEvent.AddNonSerializedListener(this, OnTick);
          CampaignEvents.OnBeforeSaveEvent.AddNonSerializedListener(this, DespawnSergeants);
+         CampaignEvents.OnBeforeSaveEvent.AddNonSerializedListener(this, DespawnHunters);
+         CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
          CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnPartyDestroyed);
       }
 
@@ -270,12 +289,23 @@ namespace CalradiaRemembers.Arrests
       {
          try
          {
+            if (_pendingHandoverRealmId != null)
+            {
+               HandOverToSovereign();
+
+               return;
+            }
+
             if (HoldsPlayer)
             {
+               // A band is taken off only once it no longer holds the player (the handover moved them to the cells).
+               if (PlayerCaptivity.CaptorParty?.IsSettlement == true) DespawnHunters();
                TickHeld();
 
                return;
             }
+
+            TickHunters();
 
             if (Case.Stage != ArrestStage.WarrantOut)
             {
@@ -548,6 +578,169 @@ namespace CalradiaRemembers.Arrests
 
          MBInformationManager.AddQuickInformation(new TextObject($"You are brought in chains before {Liege()?.Name?.ToString() ?? "your liege"}'s council."));
          ModLog.Info("[ARREST] the trial is convened.");
+      }
+
+      /// <summary>
+      ///   Each realm with a bounty keeps one band of hunters on the player's trail, sent again only after a cooldown
+      ///   once a band is lost, and steered each hour to engage the player. Nothing while the player is at sea or a
+      ///   prisoner.
+      /// </summary>
+      private void TickHunters()
+      {
+         MobileParty main = MobileParty.MainParty;
+         if (main == null || Hero.MainHero.IsPrisoner || main.IsCurrentlyAtSea || _state.Bounties.Count == 0) return;
+
+         foreach (string dead in _hunters.Keys.Where(id => FindParty(id) == null).ToList()) _hunters.Remove(dead);
+
+         foreach (Bounty bounty in _state.Bounties.ToList())
+         {
+            string huntersId = _hunters.FirstOrDefault(h => h.Value == bounty.RealmId).Key;
+            MobileParty hunters = huntersId == null ? null : FindParty(huntersId);
+
+            if (hunters == null)
+            {
+               int? last = _huntersSentDay.TryGetValue(bounty.RealmId, out int d) ? d : (int?) null;
+               if (!OutlawPolicy.MaySendHunters(last, Today)) continue;
+
+               hunters = SendHunters(bounty.RealmId);
+               if (hunters == null) continue;
+            }
+
+            hunters.Ai.SetDoNotMakeNewDecisions(false);
+            hunters.SetMoveEngageParty(main, MobileParty.NavigationType.Default);
+            hunters.Ai.SetDoNotMakeNewDecisions(true);
+         }
+      }
+
+      /// <summary>
+      ///   Sends a realm's bounty hunters from its town nearest the player: in the realm's own colours against an
+      ///   independent clan it is at war with, under an outlaw clan against a player still sworn to a kingdom.
+      /// </summary>
+      private MobileParty SendHunters(string realmId)
+      {
+         IFaction realm = Campaign.Current?.Factions?.FirstOrDefault(f => f.StringId == realmId);
+         MobileParty main = MobileParty.MainParty;
+         Hero sovereign = realm?.Leader;
+         if (realm == null || main == null || sovereign == null) return null;
+
+         bool independent = Clan.PlayerClan?.Kingdom == null;
+         Clan colours = OutlawPolicy.ModeFor(independent) == HuntMode.War
+            ? sovereign.Clan
+            : Clan.BanditFactions?.FirstOrDefault(c => c.StringId == "looters") ?? Clan.BanditFactions?.FirstOrDefault();
+         if (colours == null) return null;
+
+         Vec2 player = main.GetPosition2D;
+         Settlement origin = Settlement.All
+                                       .Where(s => s.IsTown && s.MapFaction == realm)
+                                       .OrderBy(s => s.GetPosition2D.Distance(player))
+                                       .FirstOrDefault();
+         if (origin == null) return null;
+
+         int strength = OutlawPolicy.HunterStrength(main.MemberRoster?.TotalManCount ?? 0);
+         MobileParty hunters = TravelingParty.Spawn(origin.GetPosition2D, origin, new TextObject($"Bounty hunters of {realm.Name}"),
+            SergeantSpeed, sovereign.Culture, false, strength, colours, sovereign);
+         if (hunters == null) return null;
+
+         _hunters[hunters.StringId] = realmId;
+         _huntersSentDay[realmId] = Today;
+         MBInformationManager.AddQuickInformation(new TextObject($"Word reaches you: {realm.Name} has sent bounty hunters after you."));
+         ModLog.Info($"[ARREST] {realm.Name} sends {strength} bounty hunters from {origin.Name} (under {colours.Name}).");
+
+         return hunters;
+      }
+
+      /// <summary>
+      ///   The player is taken. If by a realm that wants them (its hunters, or any of its parties), the bounty is
+      ///   collected and the handover to that realm's sovereign is armed for the next hour.
+      /// </summary>
+      private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner)
+      {
+         try
+         {
+            if (prisoner != Hero.MainHero || capturer == null || HoldsPlayer) return;
+
+            string realmId = null;
+            if (capturer.MobileParty != null && _hunters.TryGetValue(capturer.MobileParty.StringId, out string huntersRealm)) realmId = huntersRealm;
+            else if (capturer.MapFaction != null && _state.Bounties.Any(b => b.RealmId == capturer.MapFaction.StringId)) realmId = capturer.MapFaction.StringId;
+
+            if (realmId == null) return;
+
+            _pendingHandoverRealmId = realmId;
+            ModLog.Info($"[ARREST] the player is taken on {realmId}'s bounty by {capturer.Name}.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ARREST] reading the capture failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Hands a player taken on a bounty to the realm's sovereign: the bounty is collected, the case is opened in
+      ///   that sovereign's name with the bounty's cause charged, and the player is moved to the cells of the
+      ///   sovereign's nearest town or castle, where TickHeld convenes the trial.
+      /// </summary>
+      private void HandOverToSovereign()
+      {
+         string realmId = _pendingHandoverRealmId;
+         _pendingHandoverRealmId = null;
+
+         try
+         {
+            if (!Hero.MainHero.IsPrisoner) return;
+
+            IFaction realm = Campaign.Current?.Factions?.FirstOrDefault(f => f.StringId == realmId);
+            Bounty bounty = _state.Bounties.FirstOrDefault(b => b.RealmId == realmId);
+            Hero sovereign = realm?.Leader;
+            if (realm == null || bounty == null || sovereign == null) return;
+
+            _state.Bounties.Remove(bounty);
+            Case.CaughtOnBounty(sovereign.StringId, new[] {OutlawPolicy.ChargeFor(bounty.Reason)});
+
+            Vec2 at = MobileParty.MainParty?.GetPosition2D ?? sovereign.GetMapPoint()?.Position.ToVec2() ?? Vec2.Zero;
+            Settlement prison = Settlement.All
+                                          .Where(s => (s.IsTown || s.IsCastle) && s.Party != null && s.OwnerClan == sovereign.Clan)
+                                          .OrderBy(s => s.GetPosition2D.Distance(at))
+                                          .FirstOrDefault()
+                                ?? Settlement.All
+                                             .Where(s => (s.IsTown || s.IsCastle) && s.Party != null && s.MapFaction == realm)
+                                             .OrderBy(s => s.GetPosition2D.Distance(at))
+                                             .FirstOrDefault();
+            if (prison != null)
+            {
+               Case.PrisonSettlementId = prison.StringId;
+               PlayerCaptivity.CaptorParty = prison.Party; // the engine's own custody transfer
+            }
+
+            // Only now, the player out of their hands: a band still holding its captive is never taken off the map.
+            if (prison != null) DespawnHunters();
+
+            MBInformationManager.AddQuickInformation(new TextObject(
+               $"The price on your head is collected. You are handed over to {sovereign.Name}, to be tried in {prison?.Name?.ToString() ?? "their hall"}."));
+            ModLog.Info($"[ARREST] handed over to {sovereign.Name} for trial in {prison?.Name?.ToString() ?? "(no prison found)"}.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ARREST] handing the player over failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      private static MobileParty FindParty(string id)
+         => string.IsNullOrEmpty(id) ? null : MobileParty.All.FirstOrDefault(p => p.StringId == id && p.IsActive);
+
+      /// <summary>Takes every band of hunters off the map (before a save, or once the player is held).</summary>
+      private void DespawnHunters()
+      {
+         foreach (string id in _hunters.Keys.ToList())
+         {
+            MobileParty hunters = FindParty(id);
+            _hunters.Remove(id);
+            if (hunters == null) continue;
+
+            _despawning = true;
+            try { TravelingParty.Destroy(hunters); }
+            catch (Exception ex) { ModLog.Error($"[ARREST] despawning hunters failed: {ex.GetType().Name}: {ex.Message}"); }
+            finally { _despawning = false; }
+         }
       }
 
       /// <summary>Ends the player's captivity at the law's own hand (acquittal, or the sentence served).</summary>
