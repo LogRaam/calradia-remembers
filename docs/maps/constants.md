@@ -2883,7 +2883,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | Constant | Value | What it is |
 |---|---|---|
 | `ConfidingTier` | 30 | Warm enough to be told something held close, to mediate a peace, or to bless a match. |
-| `CoolTier` | -5 | Cool: no goodwill left toward the player, what a captor is told at this point. |
+| `CoolTier` | -6 | Cool: no goodwill left toward the player, what a captor is told at this point. |
 | `CordialTier` | 5 | Past cold politeness into actual goodwill. |
 | `DeepBondTier` | 60 | Deep enough to uproot a life: the mark lord, notable and prisoner recruitment all share. |
 | `DevotedTier` | 50 | Warm enough for a companion's own heart to be in it. |

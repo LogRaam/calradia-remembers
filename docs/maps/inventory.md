@@ -1985,7 +1985,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PromptLore` | public static class | The setting's name, adjective, and which cultures read as patriarchal — used by the prompt sections. |
 | `PromptSection` | public enum | The heavy, always-on system-prompt sections a lean prompt may drop to save tokens. |
 | `PromptVariableExpander` | public static class | Expands {{token}} placeholders in player-authored prompt text against a lookup of known variables (NPC name, player name, and the like), matching the "macro" convention SillyTavern users already know from {{char}}/{{user... |
-| `RegardBands` | public static class | The single canonical banding of Models.NpcProfile.ReputationWithPlayer into the 14 named tiers first established by the encyclopedia's "Personal regard" row (EncyclopediaHeroPagePersonalRelationMixin.Describe). |
+| `RegardBands` | public static class | The single canonical banding of Models.NpcProfile.ReputationWithPlayer into the 15 named tiers (14 first established by the encyclopedia's "Personal regard" row (EncyclopediaHeroPagePersonalRelationMixin.Describe), plus... |
 | `SingleCallExtractionPromptBuilder` | public static class | Builds the single-call composer+extractor system prompt used by the spike (cr.single_call_probe). |
 | `VerbCatalogPolicy` | public static class | Decides which verbs the GAME ACTIONS catalogue lists, by reading back what the finished prompt already taught. |
 
