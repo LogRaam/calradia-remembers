@@ -730,6 +730,12 @@ namespace CalradiaRemembers.WorldEvents
 
                   break;
                case ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom:
+                  ModLog.Info($"[WORLD] player clan left {oldKingdom?.Name} (detail={detail}); CR observed this vanilla event, it did not initiate it.");
+                  // fkasad (24/09/2026): a vassal holding no fief is judged by the mercenary grid, the oath counted;
+                  // the plain departure when it holds fiefs, the realm is at peace, or nothing could be judged.
+                  if (MercenaryReputationBehavior.Instance?.OnLeftAsVassal(oldKingdom) != true) RecordDeparture(oldKingdom);
+
+                  break;
                case ChangeKingdomAction.ChangeKingdomActionDetail.LeaveWithRebellion:
                   ModLog.Info($"[WORLD] player clan left {oldKingdom?.Name} (detail={detail}); CR observed this vanilla event, it did not initiate it.");
                   RecordDeparture(oldKingdom);
@@ -795,7 +801,7 @@ namespace CalradiaRemembers.WorldEvents
          Store.Record(new WorldEvent {
             Type = WorldEventType.PlayerFeat,
             Day = Today,
-            Magnitude = 55,
+            Magnitude = MercenaryDeparturePolicy.PlainVassalDepartureMagnitude,
             InvolvesPlayer = true,
             Summary = $"{PlayerName} left {kingdom.Name}.",
             ActorIds = Ids(Hero.MainHero),

@@ -135,5 +135,73 @@ namespace CalradiaRemembers.Tests
          MercenaryDeparturePolicy.CompanySummary(MercenaryDepartureVerdict.Abandoned, "The Brotherhood of the Woods", "Battania")
                                  .Should().StartWith("The Brotherhood of the Woods abandoned");
       }
+
+      // ── A vassal with no fief (fkasad, Nexus, 24/09/2026) ──────────────────────────────────────────────────────
+      //
+      // "Should also apply when leaving as vassal with no fief. (The departure of the faction with its fief is final
+      // and amounts to a declaration of war; therefore, no penalty is necessary.)" A vassal who leaves with fiefs takes
+      // them to war against the realm, and that war is the consequence. One who leaves with nothing walks out as a
+      // mercenary would, but had sworn an oath: the same grid, with the oath counting as much as kinship does.
+
+      // fkasad's line: the grid judges only the vassal who holds no fief.
+      [Test]
+      public void GIVEN_a_vassal_leaving_WHEN_asked_whether_the_grid_judges_it_THEN_only_one_holding_no_fief_is_judged()
+      {
+         MercenaryDeparturePolicy.JudgesAVassalsDeparture(fiefsHeld: 0).Should().BeTrue();
+         MercenaryDeparturePolicy.JudgesAVassalsDeparture(fiefsHeld: 1).Should().BeFalse();
+      }
+
+      // The oath weighs like kinship: a sworn vassal who abandons a losing war costs twice a hired company, and a
+      // sworn vassal of the realm's own people three times. Never more: -60 is already near the bottom of the ledger.
+      [TestCase(MercenaryDepartureVerdict.Abandoned, false, -16)]
+      [TestCase(MercenaryDepartureVerdict.Abandoned, true, -24)]
+      [TestCase(MercenaryDepartureVerdict.Betrayal, false, -40)]
+      [TestCase(MercenaryDepartureVerdict.Betrayal, true, -60)]
+      public void GIVEN_a_sworn_vassal_WHEN_the_departure_is_charged_THEN_the_oath_weighs_like_kinship(
+         MercenaryDepartureVerdict verdict, bool sameCulture, int expected)
+      {
+         MercenaryDeparturePolicy.RegardShift(verdict, sameCulture, sworn: true).Should().Be(expected);
+      }
+
+      // A company let go with the war won is thanked; a vassal who renounces an oath while the war goes well is not.
+      // No fault is charged (fkasad: winning, no penalty), but no thanks either.
+      [Test]
+      public void GIVEN_a_sworn_vassal_leaving_a_winning_war_WHEN_charged_THEN_there_is_neither_fault_nor_thanks()
+      {
+         MercenaryDeparturePolicy.RegardShift(MercenaryDepartureVerdict.ReleasedInVictory, false, sworn: true).Should().Be(0);
+         MercenaryDeparturePolicy.RegardShift(MercenaryDepartureVerdict.AtPeace, true, sworn: true).Should().Be(0);
+      }
+
+      // Going over to the enemy after renouncing the oath is charged only the difference, as for a company.
+      [Test]
+      public void GIVEN_a_sworn_vassals_abandonment_upgraded_to_betrayal_WHEN_charged_THEN_only_the_difference_is_added()
+      {
+         int upgrade = MercenaryDeparturePolicy.BetrayalUpgradeShift(MercenaryDepartureVerdict.Abandoned, true, sworn: true);
+
+         (MercenaryDeparturePolicy.RegardShift(MercenaryDepartureVerdict.Abandoned, true, sworn: true) + upgrade)
+            .Should().Be(MercenaryDeparturePolicy.RegardShift(MercenaryDepartureVerdict.Betrayal, true, sworn: true));
+      }
+
+      // A vassal swore fealty: the words the world hears say an oath was renounced, never a contract ended (the very
+      // confusion Zivkyn reported, the other way round).
+      [Test]
+      public void GIVEN_a_sworn_vassal_WHEN_the_departure_is_worded_THEN_it_speaks_of_the_oath_not_of_a_company()
+      {
+         MercenaryDeparturePolicy.VassalSummary(MercenaryDepartureVerdict.Abandoned, "Arwa", "Vlandia")
+                                 .Should().Be("Arwa renounced fealty to Vlandia in the middle of a losing war.");
+         MercenaryDeparturePolicy.VassalSummary(MercenaryDepartureVerdict.Betrayal, "Arwa", "Vlandia", "Sturgia")
+                                 .Should().Be("Arwa renounced fealty to Vlandia in the middle of the war and went over to its enemy, Sturgia.");
+         MercenaryDeparturePolicy.VassalLordMemory(MercenaryDepartureVerdict.Abandoned, "Arwa")
+                                 .Should().Contain("swore to us").And.NotContain("company");
+      }
+
+      // Word of a sworn vassal's departure carries at least as far as the plain "left the realm" news it replaces.
+      [TestCase(MercenaryDepartureVerdict.ReleasedInVictory)]
+      [TestCase(MercenaryDepartureVerdict.Abandoned)]
+      [TestCase(MercenaryDepartureVerdict.Betrayal)]
+      public void GIVEN_a_sworn_vassals_departure_WHEN_its_reach_is_asked_THEN_it_is_never_less_than_a_plain_departure(MercenaryDepartureVerdict verdict)
+      {
+         MercenaryDeparturePolicy.VassalMagnitude(verdict).Should().BeGreaterThanOrEqualTo(MercenaryDeparturePolicy.PlainVassalDepartureMagnitude);
+      }
 }
 }

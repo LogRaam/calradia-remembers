@@ -12,6 +12,8 @@
 //   - The GAME's own companies are judged by the same grid (Zivkyn, Nexus: "why does nobody resent the
 //     Skolderbrotva?"): the realm's lords take it out on the company's leader through the game's own relation (the
 //     mod's regard is toward the player only), and word goes about only of an abandonment or a betrayal.
+//   - The player leaving a realm as a VASSAL holding no fief is judged by the same grid, the oath weighing like
+//     kinship (fkasad, 24/09/2026). One who leaves with fiefs takes them to war against the realm: not judged here.
 //
 // Additive save keys.
 
@@ -91,6 +93,49 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       /// <summary>
+      ///   The player's clan left <paramref name="kingdom" /> as a vassal. Holding no fief, the departure is judged by
+      ///   the grid with the oath counted, and kept for a later betrayal. Returns true when the judged news was
+      ///   recorded; false when the caller must record the plain departure (fiefs held, the realm at peace, or a
+      ///   failure).
+      /// </summary>
+      public bool OnLeftAsVassal(Kingdom kingdom)
+      {
+         try
+         {
+            if (kingdom == null) return false;
+
+            int fiefs = Clan.PlayerClan?.Fiefs?.Count ?? 0;
+            if (!MercenaryDeparturePolicy.JudgesAVassalsDeparture(fiefs))
+            {
+               ModLog.Info($"[MERCENARY] left {kingdom.Name} as a vassal holding {fiefs} fief(s): the war that follows is the consequence, not judged.");
+
+               return false;
+            }
+
+            (bool atWar, float own, float enemies) = WarFooting(kingdom);
+            MercenaryDepartureVerdict verdict = MercenaryDeparturePolicy.Judge(new MercenaryDepartureFacts {
+               EmployerAtWar = atWar, EmployerStrength = own, EnemiesStrength = enemies
+            });
+            bool sameCulture = SameCulture(kingdom);
+
+            _last = new Departure {KingdomId = kingdom.StringId, Day = Today, Verdict = verdict, SameCulture = sameCulture, Sworn = true};
+            ModLog.Info($"[MERCENARY] left {kingdom.Name} as a vassal holding no fief: {verdict} (at war {atWar}, strength {own:0} vs {enemies:0}, same culture {sameCulture}).");
+
+            if (verdict == MercenaryDepartureVerdict.AtPeace) return false;
+
+            Remember(kingdom, verdict, MercenaryDeparturePolicy.RegardShift(verdict, sameCulture, sworn: true), null, sworn: true);
+
+            return true;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MERCENARY] judging the vassal's departure failed: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
+      }
+
+      /// <summary>
       ///   The player's clan took service with <paramref name="kingdom" /> (as a company or a vassal): a recent
       ///   departure from its enemy becomes a betrayal, and coming to one's own people in a losing war is remembered.
       /// </summary>
@@ -107,8 +152,8 @@ namespace CalradiaRemembers.WorldEvents
 
                if (former != null && MercenaryDeparturePolicy.IsBetrayal(_last.Day, Today, atWarWithFormer))
                {
-                  int upgrade = MercenaryDeparturePolicy.BetrayalUpgradeShift(_last.Verdict, _last.SameCulture);
-                  Remember(former, MercenaryDepartureVerdict.Betrayal, upgrade, kingdom.Name?.ToString());
+                  int upgrade = MercenaryDeparturePolicy.BetrayalUpgradeShift(_last.Verdict, _last.SameCulture, _last.Sworn);
+                  Remember(former, MercenaryDepartureVerdict.Betrayal, upgrade, kingdom.Name?.ToString(), _last.Sworn, departure: false);
                   ModLog.Info($"[MERCENARY] joining {kingdom.Name} turns the departure from {former.Name} into a betrayal ({upgrade} regard).");
                }
 
@@ -156,6 +201,20 @@ namespace CalradiaRemembers.WorldEvents
          MercenaryDepartureVerdict verdict = MercenaryDeparturePolicy.Judge(new MercenaryDepartureFacts {EmployerAtWar = atWar, EmployerStrength = own, EnemiesStrength = enemies});
 
          return (verdict, MercenaryDeparturePolicy.CompanySummary(verdict, company?.Name?.ToString(), kingdom?.Name?.ToString()));
+      }
+
+      /// <summary>
+      ///   Test seam (cr.testall): how the player leaving <paramref name="kingdom" /> as a vassal would be taken right
+      ///   now, WITHOUT applying anything: whether the grid judges it (no fief held), the verdict, and the regard shift.
+      /// </summary>
+      internal (bool Judged, MercenaryDepartureVerdict Verdict, int Shift, string Summary) DebugJudgeVassal(Kingdom kingdom)
+      {
+         bool judged = MercenaryDeparturePolicy.JudgesAVassalsDeparture(Clan.PlayerClan?.Fiefs?.Count ?? 0);
+         (bool atWar, float own, float enemies) = WarFooting(kingdom);
+         MercenaryDepartureVerdict verdict = MercenaryDeparturePolicy.Judge(new MercenaryDepartureFacts {EmployerAtWar = atWar, EmployerStrength = own, EnemiesStrength = enemies});
+
+         return (judged, verdict, MercenaryDeparturePolicy.RegardShift(verdict, SameCulture(kingdom), sworn: true),
+                 MercenaryDeparturePolicy.VassalSummary(verdict, PlayerName, kingdom?.Name?.ToString()));
       }
 
       /// <summary>
@@ -251,21 +310,34 @@ namespace CalradiaRemembers.WorldEvents
             .Where(h => h is {IsAlive: true} && h != Hero.MainHero)
             .OrderByDescending(h => h == kingdom.Leader);
 
-      /// <summary>The realm's lords take the verdict to heart (regard and memory), and word of it gets about.</summary>
-      private static void Remember(Kingdom kingdom, MercenaryDepartureVerdict verdict, int regardShift, string enemyName)
+      /// <summary>
+      ///   The realm's lords take the verdict to heart (regard and memory), and word of it gets about. A
+      ///   <paramref name="sworn" /> vassal's departure is worded as a renounced oath, and marked as the player leaving
+      ///   the realm (it replaces the plain departure news, which carried that mark), unless it is only the later
+      ///   upgrade to a betrayal.
+      /// </summary>
+      private static void Remember(Kingdom kingdom, MercenaryDepartureVerdict verdict, int regardShift, string enemyName, bool sworn = false, bool departure = true)
       {
-         string memory = MercenaryDeparturePolicy.LordMemory(verdict, PlayerName, enemyName);
+         string realm = kingdom.Name?.ToString();
+         string memory = sworn
+            ? MercenaryDeparturePolicy.VassalLordMemory(verdict, PlayerName, enemyName)
+            : MercenaryDeparturePolicy.LordMemory(verdict, PlayerName, enemyName);
          ShiftLords(kingdom, regardShift, memory);
 
          WorldEventStore.Instance?.Record(new WorldEvent {
             Type = WorldEventType.PlayerFeat,
             Day = Today,
-            Magnitude = MercenaryDeparturePolicy.Magnitude(verdict),
+            Magnitude = sworn ? MercenaryDeparturePolicy.VassalMagnitude(verdict) : MercenaryDeparturePolicy.Magnitude(verdict),
             InvolvesPlayer = true,
-            Summary = MercenaryDeparturePolicy.Summary(verdict, PlayerName, kingdom.Name?.ToString(), enemyName),
+            Summary = sworn
+               ? MercenaryDeparturePolicy.VassalSummary(verdict, PlayerName, realm, enemyName)
+               : MercenaryDeparturePolicy.Summary(verdict, PlayerName, realm, enemyName),
             ActorIds = new List<string> {Hero.MainHero?.StringId}.Where(id => id != null).ToList(),
             FactionIds = new List<string> {kingdom.StringId},
-            ChronicleLine = MercenaryDeparturePolicy.ChronicleLine(verdict, PlayerName, kingdom.Name?.ToString(), enemyName)
+            ChronicleLine = sworn
+               ? MercenaryDeparturePolicy.VassalChronicleLine(verdict, PlayerName, realm, enemyName)
+               : MercenaryDeparturePolicy.ChronicleLine(verdict, PlayerName, realm, enemyName),
+            Status = sworn && departure ? WorldEventFeeders.PlayerLeftRealmStatus : null
          });
       }
 
@@ -376,6 +448,9 @@ namespace CalradiaRemembers.WorldEvents
          public int Day { get; set; }
          public MercenaryDepartureVerdict Verdict { get; set; }
          public bool SameCulture { get; set; }
+
+         /// <summary>A vassal's departure (the oath counted), not a company's; absent in saves before 2.6.6, so false.</summary>
+         public bool Sworn { get; set; }
       }
 
       #endregion

@@ -9,6 +9,8 @@
 //     is judged when it happens, and upgraded if the player joins the enemy soon after.
 //   - Of the employer's own culture: the penalty doubles. "That's on you, a mercenary shouldn't leave family."
 //   - And the reverse: coming to the aid of a realm of one's own people, in a war it is losing, is remembered well.
+//   - A VASSAL holding no fief is judged by the same grid (fkasad, 24/09/2026), the oath weighing like kinship; one
+//     who leaves with fiefs takes them to war against the realm, and that war is the consequence.
 //
 // Pure: the verdict, its weight on the lords' regard, and the words the world and the lords remember it in.
 
@@ -93,23 +95,34 @@ namespace CalradiaRemembers.Logic
       public static bool IsBetrayal(int departedDay, int today, bool newRealmAtWarWithFormer)
          => newRealmAtWarWithFormer && today - departedDay >= 0 && today - departedDay <= BetrayalWindowDays;
 
-      /// <summary>What the verdict costs (or earns) with the realm's lords; a penalty doubles for a company of their own people.</summary>
-      public static int RegardShift(MercenaryDepartureVerdict verdict, bool sameCulture)
+      /// <summary>
+      ///   What the verdict costs (or earns) with the realm's lords. A penalty is multiplied once for a company of their
+      ///   own people and once more for a <paramref name="sworn" /> vassal: the oath weighs like kinship (x1, x2, x3).
+      ///   A sworn vassal is never thanked for leaving.
+      /// </summary>
+      public static int RegardShift(MercenaryDepartureVerdict verdict, bool sameCulture, bool sworn = false)
       {
          int shift = verdict switch
          {
-            MercenaryDepartureVerdict.ReleasedInVictory => ReleasedGratitude,
+            MercenaryDepartureVerdict.ReleasedInVictory => sworn ? 0 : ReleasedGratitude,
             MercenaryDepartureVerdict.Abandoned => AbandonedPenalty,
             MercenaryDepartureVerdict.Betrayal => BetrayalPenalty,
             _ => 0
          };
 
-         return shift < 0 && sameCulture ? shift * 2 : shift;
+         return shift < 0 ? shift * (1 + (sameCulture ? 1 : 0) + (sworn ? 1 : 0)) : shift;
       }
 
       /// <summary>The additional regard lost when a departure already judged is upgraded to a betrayal.</summary>
-      public static int BetrayalUpgradeShift(MercenaryDepartureVerdict judgedAtDeparture, bool sameCulture)
-         => RegardShift(MercenaryDepartureVerdict.Betrayal, sameCulture) - RegardShift(judgedAtDeparture, sameCulture);
+      public static int BetrayalUpgradeShift(MercenaryDepartureVerdict judgedAtDeparture, bool sameCulture, bool sworn = false)
+         => RegardShift(MercenaryDepartureVerdict.Betrayal, sameCulture, sworn) - RegardShift(judgedAtDeparture, sameCulture, sworn);
+
+      /// <summary>
+      ///   Whether the grid judges a vassal's departure (fkasad, 24/09/2026): only one who holds no fief. A vassal who
+      ///   leaves with fiefs takes them to war against the realm, "and that amounts to a declaration of war; therefore,
+      ///   no penalty is necessary".
+      /// </summary>
+      public static bool JudgesAVassalsDeparture(int fiefsHeld) => fiefsHeld == 0;
 
       /// <summary>True when a company of the realm's own people comes to its aid in a war it is losing.</summary>
       public static bool IsAidOfKin(bool sameCulture, bool realmLosing) => sameCulture && realmLosing;
@@ -194,6 +207,41 @@ namespace CalradiaRemembers.Logic
             ? char.ToUpperInvariant(name[0]) + name.Substring(1)
             : "The " + name;
       }
+
+      /// <summary>How far the plain "left the realm" news carries, which a sworn vassal's judged departure replaces.</summary>
+      public const int PlainVassalDepartureMagnitude = 55;
+
+      /// <summary>How far word of a sworn vassal's departure carries: never less than the plain departure it replaces.</summary>
+      public static int VassalMagnitude(MercenaryDepartureVerdict verdict) => Math.Max(PlainVassalDepartureMagnitude, Magnitude(verdict));
+
+      /// <summary>The news line about a vassal holding no fief who renounced fealty, as characters hear it.</summary>
+      public static string VassalSummary(MercenaryDepartureVerdict verdict, string player, string realm, string enemy = null)
+         => verdict switch
+         {
+            MercenaryDepartureVerdict.Abandoned => $"{player} renounced fealty to {realm} in the middle of a losing war.",
+            MercenaryDepartureVerdict.Betrayal => $"{player} renounced fealty to {realm} in the middle of the war and went over to its enemy{(string.IsNullOrWhiteSpace(enemy) ? "" : ", " + enemy)}.",
+            MercenaryDepartureVerdict.ReleasedInVictory => $"{player} renounced fealty to {realm} while its war was going well.",
+            _ => $"{player} renounced fealty to {realm}."
+         };
+
+      /// <summary>The chronicler's line about a vassal holding no fief who renounced fealty.</summary>
+      public static string VassalChronicleLine(MercenaryDepartureVerdict verdict, string player, string realm, string enemy = null)
+         => verdict switch
+         {
+            MercenaryDepartureVerdict.Abandoned => $"{player} forsook {realm} in a losing war, and the oath was broken",
+            MercenaryDepartureVerdict.Betrayal => $"{player} broke faith with {realm} and went over to its enemy{(string.IsNullOrWhiteSpace(enemy) ? "" : " " + enemy)} in the middle of the war",
+            _ => $"{player} forsook {realm}, and the oath was broken"
+         };
+
+      /// <summary>What a lord of the realm remembers of a sworn vassal's departure, in the first person; null at peace.</summary>
+      public static string VassalLordMemory(MercenaryDepartureVerdict verdict, string player, string enemy = null)
+         => verdict switch
+         {
+            MercenaryDepartureVerdict.ReleasedInVictory => $"{player} swore to us, then renounced the oath in the middle of a war.",
+            MercenaryDepartureVerdict.Abandoned => $"{player} swore to us, then renounced the oath while the war was going against us.",
+            MercenaryDepartureVerdict.Betrayal => $"{player} swore to us, then broke the oath in the middle of the war and went over to the enemy{(string.IsNullOrWhiteSpace(enemy) ? "" : ", " + enemy)}.",
+            _ => null
+         };
 
       /// <summary>What the lords of a realm remember of a company of their own people come to their aid.</summary>
       public static string AidOfKinMemory(string player)

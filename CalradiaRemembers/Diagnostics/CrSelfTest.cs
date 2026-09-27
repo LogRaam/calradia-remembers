@@ -279,6 +279,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
+         new SelfTest("vassal_departure_judged", Severity.Light, "fkasad (24/09/2026): a vassal holding no fief who leaves a realm at war is judged like a mercenary, the oath weighing like kinship; one holding fiefs is not (the war that follows is the consequence). Judges leaving the player's realm (or any realm) right now WITHOUT applying anything: judged only with no fief, the news speaks of the oath, and a sworn vassal is never thanked.", TestVassalDepartureJudged),
          new SelfTest("mercenary_company_judged", Severity.Light, "Zivkyn (Nexus): the game's own mercenary companies change sides mid-war and nobody resents them. Finds a real company in a realm's pay and judges its departure by fkasad's grid WITHOUT applying anything: the verdict follows the realm's footing, and the news line names the company and the realm.", TestMercenaryCompanyJudged),
          new SelfTest("faction_block_realm", Severity.Light, "tashmetu (27/09/2026): a companion's or a notable's realm is not their people's, and pulled another people's FACTION BEHAVIOR block into their prompt (or retitled theirs). Reads real heroes: a lord of a kingdom of his own culture keeps that realm for the choice; a hero living in a realm of another culture gets none. Read-only.", TestFactionBlockRealm),
          new SelfTest("council_seat_note", Severity.Light, "The council's per-seat door for other mods (tashmetu, Bellum Civile bridge, 26/09/2026): registers a throwaway {{variable}}, then resolves a council_seat template for two real lords. Each seat must carry ITS OWN value (the provider is told which seat, and that it writes for a council seat), a seat whose variable comes back empty carries no note, and with no template no note exists at all. The variable is unregistered at the end.", TestCouncilSeatNote),
@@ -9727,11 +9728,31 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
-      ///   Courier secrets end to end on real parties: a [SELFTEST] letter is captured onto a real bandit band, a real
-      ///   lord's party defeats the band and the lord remembers what the letter said; a second one defeated by the
-      ///   player's party is recovered unread. Runs without the model or the rumour (DebugDefeatCarrier), and removes
-      ///   the memory it added.
+      ///   The player leaving a realm as a vassal holding no fief (fkasad): judged by the mercenary grid with the oath
+      ///   counted, WITHOUT applying anything. Skips when the player serves no realm.
       /// </summary>
+      private static string TestVassalDepartureJudged(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("vassal_departure_judged");
+
+         Kingdom realm = Clan.PlayerClan?.Kingdom ?? Kingdom.All.FirstOrDefault(k => k != null && !k.IsEliminated);
+         if (t.Skip(realm == null, "no realm to judge a departure from")) return t.Line();
+         if (t.Abort(WorldEvents.MercenaryReputationBehavior.Instance == null, "the mercenary behaviour is not running")) return t.Line();
+
+         (bool judged, MercenaryDepartureVerdict verdict, int shift, string summary) = WorldEvents.MercenaryReputationBehavior.Instance.DebugJudgeVassal(realm);
+         int fiefs = Clan.PlayerClan?.Fiefs?.Count ?? 0;
+
+         t.Note($"{realm.Name}, {fiefs} fief(s) held: judged {judged}, {verdict}, shift {shift}; \"{summary}\"");
+         t.Expect("judgedOnlyWithNoFief", judged, fiefs == 0);
+         t.Expect("theNewsSpeaksOfTheOath", summary.Contains("renounced fealty"), true);
+         t.Expect("aSwornVassalIsNeverThanked", shift <= 0, true);
+         t.Expect("aFaultWeighsAtLeastDouble", verdict == MercenaryDepartureVerdict.Abandoned || verdict == MercenaryDepartureVerdict.Betrayal
+            ? shift <= 2 * MercenaryDeparturePolicy.AbandonedPenalty
+            : shift == 0, true);
+
+         return t.Line();
+      }
+
       private static string TestMercenaryCompanyJudged(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("mercenary_company_judged");
@@ -9951,6 +9972,12 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      /// <summary>
+      ///   Courier secrets end to end on real parties: a [SELFTEST] letter is captured onto a real bandit band, a real
+      ///   lord's party defeats the band and the lord remembers what the letter said; a second one defeated by the
+      ///   player's party is recovered unread. Runs without the model or the rumour (DebugDefeatCarrier), and removes
+      ///   the memory it added.
+      /// </summary>
       private static string TestCourierSecretTravels(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("courier_secret_travels");
