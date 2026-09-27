@@ -1053,7 +1053,7 @@ namespace CalradiaRemembers.Letters
             if (IsWithPlayer(hero)) continue; // travelling companion, no letter needed
 
             // Friendly NPCs congratulate; rivals or hostiles might challenge.
-            if (profile.ReputationWithPlayer < Regard.FondTier) continue;
+            if (profile.ReputationWithPlayer < Regard.FriendlyTier) continue;
 
             profile.LetterCandidates.Add(new LetterCandidateIntent {
                Reason = LetterReason.TournamentVictory,

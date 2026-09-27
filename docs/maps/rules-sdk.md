@@ -2306,7 +2306,7 @@ _that the two scales stay two, and that their rungs keep the values the game alr
 - GIVEN the warm rungs, WHEN read, THEN they are where the code had them
 - GIVEN a regard, WHEN described, THEN it speaks with the bands own words
 - GIVEN the mod rungs, WHEN compared with the spoken bands, THEN two align and two knowingly do not
-- GIVEN the fond and cool rungs, WHEN compared with the spoken bands, THEN each turns where its word turns
+- GIVEN the friendly and cool rungs, WHEN compared with the spoken bands, THEN each turns where its word turns
 - GIVEN the two ledgers, WHEN held as types, THEN neither can be passed where the other is meant
 
 ### StationGuidelinesTests.cs

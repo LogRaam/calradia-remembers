@@ -2887,7 +2887,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | `CordialTier` | 5 | Past cold politeness into actual goodwill. |
 | `DeepBondTier` | 60 | Deep enough to uproot a life: the mark lord, notable and prisoner recruitment all share. |
 | `DevotedTier` | 50 | Warm enough for a companion's own heart to be in it. |
-| `FondTier` | 10 | Fond: enough for a flirt to turn into courtship, for a romantic advance not to be refused outright, or for a victory to be worth a letter of congratulation. |
+| `FriendlyTier` | 10 | Friendly: enough for a flirt to turn into courtship, for a romantic advance not to be refused outright, or for a victory to be worth a letter of congratulation. |
 | `GenuineTier` | 15 | Genuine regard, RegardBands' own word from this point (aligned): enough for a lover to keep writing, or for a captor to remember an interest from before the capture. |
 | `HostileTier` | -55 | Cold enough that only the barest dealings remain. |
 | `NeutralTier` | 0 | The line between goodwill and ill will: above it a character leans toward the player, below it against. |
