@@ -2,6 +2,34 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.6.4.. 2026-09-27
+
+### For modders (tashmetu, Nexus, 27/09/2026)
+- **A character's FACTION BEHAVIOR block is chosen by their own people.** The realm helped choose the "If you are
+  from ..." block for everyone, but a companion's realm is the player's and a notable's, wanderer's or gang leader's
+  is whoever holds the town: a Battanian companion of the "Kingdom of Rhodok" read the Rhodok block too, and a
+  Vlandian notable read "If you are from Kingdom of Prueba reino:" above Vlandian text. The realm now counts only when
+  its culture is the character's (`FactionGuidelinesPolicy.RealmOfOwnPeople`), and the culture alone is tried first.
+  A lord's runtime-renamed realm (Bellum Civile) still retitles his own block. `cr.testall faction_block_realm`.
+- **cr_patch `!block <people>`** replaces, adds or removes one "If you are from ..." block by its heading, with the
+  lines under it up to the next directive; a new people is placed inside the FACTION BEHAVIOR section. No more
+  `!remove`-ing a section line by line, where a line CR later rewords stays behind. cr_patch and its directives are
+  documented in HOWTO_Actions, section 7 (they never were).
+
+### Fixed
+- **A refusal's reason is a rule of the game, not a story** (the rest of tashmetu's ransom report). The note every
+  refusal leaves for the model said the deed did not happen, never that its reason is a rule: the model explained an
+  empty purse as a seized treasury and remembered it. It now says not to explain the reason within the world nor to
+  remember it as something that happened (`ActionRefusalNote`, all refusals at once).
+- Four refusals written as small scenes are plain statements: an execution or real harm the game does not allow,
+  killing turned off in the settings ("You could not bring yourself to end ..." also put a hesitation in the player's
+  head), and two captive handovers that "fell through".
+- **One payment per deal, for every verb that moves its own coin**: a give_gold or take_gold beside buying, selling
+  or exchanging a captive, paying for silence, paying blackmail or a robbery is dropped as the same payment
+  (`TurnPaymentPolicy`); 2.6.3 covered captive sales only.
+- **Buying a captive yourself**: the price band is known before a figure is named, and the receipt says why the
+  figure paid differs from the one asked, above as well as below (`PriceDifferenceNote`).
+
 ## v2.6.3.. 2026-09-27
 
 ### Fixed
