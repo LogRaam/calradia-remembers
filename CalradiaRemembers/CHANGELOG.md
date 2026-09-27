@@ -15,6 +15,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   a round or two of haggling.
 - **An exchange's gold is explained**: it evens out the two captives' worth and is not a ransom offer, so it no
   longer reads oddly beside the opening ransom figure.
+- **No envoy from the player's own house, and no captive offered for himself** (2.6.4): the player's own heir came
+  "under a flag of truce" to buy the player's captive, and offered "another Rex Derthert", the same man, in exchange.
+  A lord of the player's own clan never sends an envoy (`PrisonerBuyerCandidate.IsOfPlayersClan`), the wanted captive is
+  never his own counterpart (`ExchangeCaptiveFacts.IsTheWantedCaptive`), and a companion or clan member is no longer
+  taught to exchange the player's own prisoners for the player's own prisoners (`PrisonerExchangePolicy.IsAnotherSide`).
 
 ### Maps
 - A silent error fixed: `shared-state.md` listed a readonly static as a collection whose contents change whenever its

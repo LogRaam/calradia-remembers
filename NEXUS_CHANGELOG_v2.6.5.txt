@@ -1,12 +1,13 @@
 ﻿Version 2.6.5
 
-Three fixes to the envoys who come to buy back a captive.
+Four fixes to the envoys who come to buy back a captive.
 
 Fixed
 
 - A captive is given away only when you say so. Before, accepting an envoy's final offer with something like "I will return him" could be taken as giving the captive for nothing. Now a plain yes closes the deal at the envoy's last offer, and only your own words ("free", "for nothing", "no ransom") make it a gift.
 - The envoy no longer tells you the most their lord will pay. They haggle, and they may accept your figure if it is within what they were allowed.
-- When an envoy offers an exchange of captives with gold added, they now explain that the gold evens out what the two captives are worth, so it no longer reads oddly beside the ransom offer. (Thank you, tashmetu, for all three.)
+- When an envoy offers an exchange of captives with gold added, they now explain that the gold evens out what the two captives are worth, so it no longer reads oddly beside the ransom offer.
+- A lord of your own clan no longer sends an envoy to buy your own captive, and an envoy no longer offers the very captive it came for as an exchange. Companions and members of your own clan are no longer offered prisoner exchanges either: there is nobody to trade with inside your own house. (Thank you, tashmetu, for all four.)
 
 Notes
 
