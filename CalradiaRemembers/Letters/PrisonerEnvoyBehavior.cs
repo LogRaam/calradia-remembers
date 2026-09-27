@@ -185,6 +185,7 @@ namespace CalradiaRemembers.Letters
          var facts = held.Select(h => new ExchangeCaptiveFacts {
             HeroId = h.StringId,
             IsHero = true,
+            IsTheWantedCaptive = h == wanted,
             IsLord = h.IsLord,
             IsCompanion = h.CompanionOf != null || h.IsWanderer,
             IsAlive = h.IsAlive,

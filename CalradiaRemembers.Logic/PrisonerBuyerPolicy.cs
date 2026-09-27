@@ -48,6 +48,12 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>His relation to the captive (vanilla, -100..100). Only an Enemy's is read.</summary>
       public int RelationToCaptive { get; set; }
+
+      /// <summary>
+      ///   Of the player's own clan. Such a lord asks in person and never sends an envoy to his own family (tashmetu,
+      ///   27/09/2026: the player's own heir came "under a flag of truce" to buy the player's captive).
+      /// </summary>
+      public bool IsOfPlayersClan { get; set; }
    }
 
    /// <summary>Orders who may send an envoy about a captive, and says what each wants. Pure.</summary>
@@ -60,7 +66,7 @@ namespace CalradiaRemembers.Logic
       /// </summary>
       public static List<PrisonerBuyerCandidate> Order(IEnumerable<PrisonerBuyerCandidate> candidates)
          => (candidates ?? Enumerable.Empty<PrisonerBuyerCandidate>())
-            .Where(c => c != null && c.CanTreat && !string.IsNullOrEmpty(c.HeroId))
+            .Where(c => c != null && c.CanTreat && !c.IsOfPlayersClan && !string.IsNullOrEmpty(c.HeroId))
             .Where(c => c.Role != PrisonerBuyerRole.Enemy || c.RelationToCaptive <= VanillaRelation.BitterTier)
             .OrderBy(c => (int) c.Role)
             .ThenBy(c => c.RelationToCaptive)

@@ -112,6 +112,28 @@ namespace CalradiaRemembers.Tests
          PrisonerExchangePolicy.ChooseCounterpart(held, 2000).HeroId.Should().Be("players_companion");
       }
 
+      // tashmetu (2.6.4): the envoy offered, as an exchange, "another Rex Derthert": the very captive it came for. The one
+      // wanted is never his own counterpart.
+      [Test]
+      public void GIVEN_the_wanted_captive_among_their_hold_WHEN_it_chooses_what_to_offer_THEN_it_never_offers_him_for_himself()
+      {
+         ExchangeCaptiveFacts himself = Lord("derthert", 2000);
+         himself.IsTheWantedCaptive = true;
+
+         PrisonerExchangePolicy.ChooseCounterpart(new List<ExchangeCaptiveFacts> {himself}, 2000).Should().BeNull();
+         PrisonerExchangePolicy.ChooseCounterpart(new List<ExchangeCaptiveFacts> {himself, Lord("other", 900)}, 2000).HeroId.Should().Be("other");
+      }
+
+      // The same fault in a private word (found with tashmetu's report, 27/09/2026): for a member of the player's own
+      // clan, "the captives his clan holds" ARE the player's, so the player was offered his own prisoners in exchange for
+      // his own prisoners. There is no other side to trade with inside one house.
+      [Test]
+      public void GIVEN_someone_of_the_players_own_clan_WHEN_asked_whether_captives_can_be_exchanged_with_them_THEN_they_cannot()
+      {
+         PrisonerExchangePolicy.IsAnotherSide(npcIsOfPlayersClan: true).Should().BeFalse();
+         PrisonerExchangePolicy.IsAnotherSide(npcIsOfPlayersClan: false).Should().BeTrue();
+      }
+
       // ── When an envoy may come ───────────────────────────────────────────
 
       // The envoy replaces a letter, and a letter was never sent twice about one captive in quick succession: one

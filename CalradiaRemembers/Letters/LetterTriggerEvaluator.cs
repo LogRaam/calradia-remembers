@@ -666,7 +666,8 @@ namespace CalradiaRemembers.Letters
             if (h?.StringId == null) return;
             byId[h.StringId] = h;
             facts.Add(new PrisonerBuyerCandidate {
-               HeroId = h.StringId, Role = role, CanTreat = IsEligibleBuyer(h, captive), RelationToCaptive = h.GetRelation(captive)
+               HeroId = h.StringId, Role = role, CanTreat = IsEligibleBuyer(h, captive), RelationToCaptive = h.GetRelation(captive),
+               IsOfPlayersClan = h.Clan != null && h.Clan == Clan.PlayerClan
             });
          }
 

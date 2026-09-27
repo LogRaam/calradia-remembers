@@ -26,6 +26,12 @@ namespace CalradiaRemembers.Logic
       /// <summary>A named hero, not a troop in a prison roster.</summary>
       public bool IsHero { get; set; }
 
+      /// <summary>
+      ///   The very captive the other side wants back. Never his own counterpart (tashmetu, 27/09/2026: an envoy offered
+      ///   "another Rex Derthert" in exchange for Rex Derthert).
+      /// </summary>
+      public bool IsTheWantedCaptive { get; set; }
+
       /// <summary>A lord or lady of a noble clan (a vassal is one).</summary>
       public bool IsLord { get; set; }
 
@@ -87,6 +93,12 @@ namespace CalradiaRemembers.Logic
       }
 
       /// <summary>
+      ///   Whether the one spoken to is another side at all. For the player's own clan, "the captives his clan holds" are
+      ///   the player's own, so an exchange would trade the player's prisoners for the player's prisoners.
+      /// </summary>
+      public static bool IsAnotherSide(bool npcIsOfPlayersClan) => !npcIsOfPlayersClan;
+
+      /// <summary>
       ///   Which of the captives the other side holds it would offer against the one it wants back. One of the PLAYER's
       ///   own people first (getting his companion back is what an exchange is for, not a stranger's release), then
       ///   the exchangeable one whose worth is closest to <paramref name="wantedAnchor" />, the dearer on a tie, then
@@ -98,6 +110,7 @@ namespace CalradiaRemembers.Logic
 
          return (theirHold ?? Enumerable.Empty<ExchangeCaptiveFacts>())
                 .Where(IsExchangeable)
+                .Where(c => !c.IsTheWantedCaptive)
                 .OrderByDescending(c => c.BelongsToPlayer)
                 .ThenBy(c => Math.Abs(Worth(c.RansomAnchor) - wanted))
                 .ThenByDescending(c => Worth(c.RansomAnchor))

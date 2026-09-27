@@ -61,6 +61,19 @@ namespace CalradiaRemembers.Tests
          PrisonerBuyerPolicy.Order(new[] {C("captive_king", PrisonerBuyerRole.Realm, canTreat: false)}).Should().BeEmpty();
       }
 
+      // tashmetu (Nexus, 27/09/2026, 2.6.4): an "envoy of Lord Tribidan", the player's own heir of the player's own clan,
+      // came under a flag of truce to buy a captive the player holds. Someone of the player's own house asks in person;
+      // he never sends an envoy to treat with his own family.
+      [Test]
+      public void GIVEN_a_lord_of_the_players_own_clan_WHEN_buyers_are_ordered_THEN_he_sends_no_envoy()
+      {
+         var own = C("tribidan", PrisonerBuyerRole.Enemy);
+         own.RelationToCaptive = -60;
+         own.IsOfPlayersClan = true;
+
+         PrisonerBuyerPolicy.Order(new[] {own}).Should().BeEmpty();
+      }
+
       // One lord can be two things (a house head who is also the ruler): he is listed once, as the nearer tie.
       [Test]
       public void GIVEN_a_lord_who_is_both_house_and_realm_WHEN_buyers_are_ordered_THEN_he_is_listed_once_as_the_house()

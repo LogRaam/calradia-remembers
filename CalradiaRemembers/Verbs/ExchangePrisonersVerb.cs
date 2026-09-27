@@ -35,7 +35,9 @@ namespace CalradiaRemembers.Verbs
         public string Name => "exchange_prisoners";
 
         public bool IsEligible(VerbContext ctx)
-            => ctx?.Npc != null && TheirSide(ctx.Npc).Count > 0 && PlayerSide().Count > 0;
+            => ctx?.Npc != null
+               && PrisonerExchangePolicy.IsAnotherSide(ctx.Npc.Clan != null && ctx.Npc.Clan == Clan.PlayerClan)
+               && TheirSide(ctx.Npc).Count > 0 && PlayerSide().Count > 0;
 
         public string TeachingText(VerbContext ctx)
         {
