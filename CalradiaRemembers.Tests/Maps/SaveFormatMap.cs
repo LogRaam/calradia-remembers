@@ -57,6 +57,18 @@ namespace CalradiaRemembers.Tests.Maps
          return sb.ToString();
       }
 
+      /// <summary>
+      ///   The keys only a constant's NAME vouches for: nothing shows them reaching SyncData, directly or through a
+      ///   helper. Each is either a key whose helper the map cannot follow, or a dead constant whose data is no longer
+      ///   saved at all; either way the map's word for it is a guess.
+      /// </summary>
+      public static List<string> KeysFoundOnlyByName(IReadOnlyList<SourceFile> files)
+         => KeysOf(files.Where(f => f.Layer == Layer.Mod).ToList())
+            .Where(k => k.DeclaredAs.EndsWith("(name)", StringComparison.Ordinal))
+            .Select(k => $"{k.Owner}: {k.Value}")
+            .OrderBy(k => k, StringComparer.Ordinal)
+            .ToList();
+
       /// <summary>The keys a committed or a freshly generated map lists, for the may-not-disappear guard.</summary>
       public static HashSet<string> KeysListedIn(string mapText)
       {
@@ -72,11 +84,14 @@ namespace CalradiaRemembers.Tests.Maps
 
       /// <summary>
       ///   A save key is a string that reaches SyncData. Three ways it gets there: written as a literal at the call, held
-      ///   in a constant the call names, or held in a constant named *SaveKey* and handed to a helper that makes the call.
+      ///   in a constant the call names, or handed to a HELPER that makes the call (a method whose parameter reaches
+      ///   SyncData, followed through helpers calling helpers). A constant named *SaveKey* that none of these reaches is
+      ///   still listed, found by its name alone, so the map never loses a key it cannot follow.
       /// </summary>
       private static List<SaveKey> KeysOf(List<SourceFile> files)
       {
          var found = new Dictionary<(string, string), SaveKey>();
+         Dictionary<(string Type, string Method), HashSet<int>> helpers = SyncHelpers(files);
 
          foreach (SourceFile file in files)
          {
@@ -105,12 +120,91 @@ namespace CalradiaRemembers.Tests.Maps
                   Add(found, value, owner, $"constant `{id.Identifier.Text}` passed to SyncData (fact)");
             }
 
+            // Through a helper: the 20 keys that read "found by its name" until 27/09/2026 all went this way.
+            foreach (InvocationExpressionSyntax call in file.Root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            {
+               if (HelperCalled(call, helpers) is not { } helper) continue;
+
+               string owner = call.Ancestors().OfType<BaseTypeDeclarationSyntax>().LastOrDefault()?.Identifier.Text ?? "(none)";
+               foreach (int index in helpers[helper])
+               {
+                  ExpressionSyntax? argument = call.ArgumentList.Arguments.ElementAtOrDefault(index)?.Expression;
+
+                  if (StringOf(argument) is { } literal)
+                     Add(found, literal, owner, $"literal passed to `{helper.Method}`, which reaches SyncData (fact)");
+                  else if (argument is IdentifierNameSyntax id && constants.TryGetValue(id.Identifier.Text, out string? value))
+                     Add(found, value, owner, $"constant `{id.Identifier.Text}` passed to `{helper.Method}`, which reaches SyncData (fact)");
+               }
+            }
+
             foreach ((string name, string value) in constants.Where(c => c.Key.Contains("SaveKey", StringComparison.Ordinal)))
                Add(found, value, OwnerOfField(file, name), $"constant `{name}`, found by its name (name)");
          }
 
          return found.Values.ToList();
       }
+
+      /// <summary>
+      ///   Every method one of whose parameters reaches SyncData as its key, with the parameter positions: first the
+      ///   methods that pass a parameter straight to SyncData, then, until nothing changes, those that pass one on to
+      ///   such a method.
+      /// </summary>
+      private static Dictionary<(string Type, string Method), HashSet<int>> SyncHelpers(List<SourceFile> files)
+      {
+         var helpers = new Dictionary<(string Type, string Method), HashSet<int>>();
+         List<InvocationExpressionSyntax> calls = files.SelectMany(f => f.Root.DescendantNodes().OfType<InvocationExpressionSyntax>()).ToList();
+
+         bool changed = true;
+         while (changed)
+         {
+            changed = false;
+            foreach (InvocationExpressionSyntax call in calls)
+            {
+               bool direct = call.Expression is MemberAccessExpressionSyntax {Name.Identifier.Text: "SyncData"};
+               (string Type, string Method)? viaHelper = direct ? null : HelperCalled(call, helpers);
+               if (!direct && viaHelper == null) continue;
+
+               IEnumerable<int> keyPositions = direct ? new[] {0} : helpers[viaHelper!.Value].ToList();
+               if (call.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault() is not { } method) continue;
+
+               (string, string) enclosing = (TypeOf(method), method.Identifier.Text);
+               foreach (int position in keyPositions)
+               {
+                  if (call.ArgumentList.Arguments.ElementAtOrDefault(position)?.Expression is not IdentifierNameSyntax id) continue;
+
+                  int parameter = method.ParameterList.Parameters.IndexOf(p => p.Identifier.Text == id.Identifier.Text);
+                  if (parameter < 0) continue;
+
+                  if (!helpers.TryGetValue(enclosing, out HashSet<int>? set)) helpers[enclosing] = set = new HashSet<int>();
+                  if (set.Add(parameter)) changed = true;
+               }
+            }
+         }
+
+         return helpers;
+      }
+
+      /// <summary>
+      ///   The helper a call names, if any. Named with no receiver, only a helper of the caller's own type; named as
+      ///   Type.Method, only that type's. Never by the method name alone, so an unrelated Save or Load elsewhere is
+      ///   not taken for one.
+      /// </summary>
+      private static (string Type, string Method)? HelperCalled(InvocationExpressionSyntax call, Dictionary<(string Type, string Method), HashSet<int>> helpers)
+      {
+         (string Type, string Method)? key = call.Expression switch
+         {
+            IdentifierNameSyntax name when call.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault() is { } type
+               => (type.Identifier.Text, name.Identifier.Text),
+            MemberAccessExpressionSyntax {Expression: IdentifierNameSyntax receiver} member
+               => (receiver.Identifier.Text, member.Name.Identifier.Text),
+            _ => null
+         };
+
+         return key is { } k && helpers.ContainsKey(k) ? k : null;
+      }
+
+      private static string TypeOf(MethodDeclarationSyntax method)
+         => method.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault()?.Identifier.Text ?? "(none)";
 
       private static void Add(Dictionary<(string, string), SaveKey> found, string value, string owner, string declaredAs)
       {

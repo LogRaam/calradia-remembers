@@ -147,6 +147,22 @@ namespace CalradiaRemembers.Tests.Maps
             Assert.Warn($"{InlineRegardComparisonsOn26September - inline} inline comparison(s) moved onto a named rung: lower the baseline to {inline}.");
       }
 
+      // A SAVE KEY THE MAP ONLY GUESSES AT (27/09/2026). The save-format map is a contract with every campaign in
+      // progress, and 20 of its keys were listed only because their constant was NAMED *SaveKey*: nothing showed them
+      // reaching the save. Following them through the helpers that make the call proved all 20. From here a key found
+      // by its name alone means one of two things, both worth stopping for: a helper the map cannot follow (teach it),
+      // or a constant whose data is no longer saved at all, which is a player's data silently dropped.
+      [Test]
+      public void GIVEN_the_save_keys_WHEN_mapped_THEN_every_one_is_shown_reaching_the_save()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         SaveFormatMap.KeysFoundOnlyByName(SourceTree.Production)
+                      .Should().BeEmpty("the map can vouch for these keys only by their constant's name. Either they reach "
+                                      + "SyncData through a helper the map does not follow (teach SaveFormatMap.SyncHelpers), or "
+                                      + "nothing saves them any more, and a campaign in progress loses that data on its next load.");
+      }
+
       /// <summary>Every namespace the dependency map puts in a cycle, read off the map the suite keeps current.</summary>
       private static HashSet<string> Tangled()
       {

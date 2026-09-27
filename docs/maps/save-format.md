@@ -36,10 +36,10 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_ChronicleThrough_v1` | `ChronicleBehavior` | constant `CountKey` passed to SyncData (fact) |
 | `CalradiaRemembers_Commitments_v1bytes` | `CommitmentBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_CompanionAffectionAsked_v1` | `CompanionAffectionBehavior` | constant `CooldownSaveKey` passed to SyncData (fact) |
-| `CalradiaRemembers_CompanionFarewellDay_v1` | `CompanionHappinessBehavior` | constant `FarewellSaveKey`, found by its name (name) |
-| `CalradiaRemembers_CompanionHeardDay_v1` | `CompanionHappinessBehavior` | constant `HeardSaveKey`, found by its name (name) |
+| `CalradiaRemembers_CompanionFarewellDay_v1` | `CompanionHappinessBehavior` | constant `FarewellSaveKey` passed to `SyncDict`, which reaches SyncData (fact) |
+| `CalradiaRemembers_CompanionHeardDay_v1` | `CompanionHappinessBehavior` | constant `HeardSaveKey` passed to `SyncDict`, which reaches SyncData (fact) |
 | `CalradiaRemembers_CompanionMissions_v2bytes` | `CompanionMissionBehavior` | constant `SaveKey` passed to SyncData (fact) |
-| `CalradiaRemembers_CompanionRefusals_v1` | `CompanionHappinessBehavior` | constant `RefusalsSaveKey`, found by its name (name) |
+| `CalradiaRemembers_CompanionRefusals_v1` | `CompanionHappinessBehavior` | constant `RefusalsSaveKey` passed to `SyncDict`, which reaches SyncData (fact) |
 | `CalradiaRemembers_CompanionReports_v1bytes` | `CompanionMissionBehavior` | constant `SaveKeyReports` passed to SyncData (fact) |
 | `CalradiaRemembers_CouncilHostages_v1bytes` | `CouncilHostageBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_CouncilPacts_v1bytes` | `CouncilPactBehavior` | constant `SaveKey` passed to SyncData (fact) |
@@ -58,12 +58,12 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_InterceptMatters_v1bytes` | `InterceptionBehavior` | constant `MatterSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_InterceptPursuit_v1bytes` | `InterceptionBehavior` | constant `PursuitSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_Intercept_v1bytes` | `InterceptionBehavior` | constant `CooldownSaveKey` passed to SyncData (fact) |
-| `CalradiaRemembers_Jealousy_v1` | `JealousyBehavior` | constant `LegacySaveKey`, found by its name (name) |
-| `CalradiaRemembers_Jealousy_v2bytes` | `JealousyBehavior` | constant `SaveKey`, found by its name (name) |
+| `CalradiaRemembers_Jealousy_v1` | `JealousyBehavior` | constant `LegacySaveKey` passed to `Load`, which reaches SyncData (fact) |
+| `CalradiaRemembers_Jealousy_v2bytes` | `JealousyBehavior` | constant `SaveKey` passed to `Save`, which reaches SyncData (fact) |
 | `CalradiaRemembers_LetterPacing_v1bytes` | `LetterTriggerEvaluator` | constant `LetterPacingSaveKey` passed to SyncData (fact) |
-| `CalradiaRemembers_MarriageAppliedSwings_v1` | `MarriageApprovalBehavior` | constant `AppliedSwingsSaveKey`, found by its name (name) |
-| `CalradiaRemembers_MarriageApprovals_v1` | `MarriageApprovalBehavior` | constant `LegacySaveKey`, found by its name (name) |
-| `CalradiaRemembers_MarriageApprovals_v2bytes` | `MarriageApprovalBehavior` | constant `SaveKey`, found by its name (name) |
+| `CalradiaRemembers_MarriageAppliedSwings_v1` | `MarriageApprovalBehavior` | constant `AppliedSwingsSaveKey` passed to `Save`, which reaches SyncData (fact) |
+| `CalradiaRemembers_MarriageApprovals_v1` | `MarriageApprovalBehavior` | constant `LegacySaveKey` passed to `Load`, which reaches SyncData (fact) |
+| `CalradiaRemembers_MarriageApprovals_v2bytes` | `MarriageApprovalBehavior` | constant `SaveKey` passed to `Save`, which reaches SyncData (fact) |
 | `CalradiaRemembers_Nemesis_v1bytes` | `NemesisBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_NpcProfiles_v1` | `BannerlordNpcMemoryStore` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_NpcProfiles_v2bytes` | `BannerlordNpcMemoryStore` | constant `SaveKeyBytes` passed to SyncData (fact) |
@@ -73,22 +73,22 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_Scenarios_v1` | `ScenarioBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_SchemeAutoCooldown_v1bytes` | `SchemeStore` | constant `CooldownSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_Schemes_v1bytes` | `SchemeStore` | constant `SaveKey` passed to SyncData (fact) |
-| `CalradiaRemembers_SecretLoverHush_v1bytes` | `SecretLoverGossipBehavior` | constant `HushSaveKey`, found by its name (name) |
-| `CalradiaRemembers_SecretLoverKnown_v1bytes` | `SecretLoverGossipBehavior` | constant `KnownSaveKey`, found by its name (name) |
-| `CalradiaRemembers_SecretLoverLeaks_v1bytes` | `SecretLoverGossipBehavior` | constant `SaveKey`, found by its name (name) |
-| `CalradiaRemembers_SpouseDivorceAnnounceCycle_v1` | `SpouseDivorceDemandBehavior` | constant `AnnounceCycleSaveKey`, found by its name (name) |
-| `CalradiaRemembers_SpouseDivorceAnnounceRetries_v1` | `SpouseDivorceDemandBehavior` | constant `AnnounceRetriesSaveKey`, found by its name (name) |
-| `CalradiaRemembers_SpouseDivorceDemand_v1` | `SpouseDivorceDemandBehavior` | constant `SaveKey`, found by its name (name) |
-| `CalradiaRemembers_SpouseDivorceEscalation_v1` | `SpouseDivorceDemandBehavior` | constant `EscalationSaveKey`, found by its name (name) |
-| `CalradiaRemembers_SpouseDivorceRefusalCount_v1` | `SpouseDivorceDemandBehavior` | constant `RefusalCountSaveKey`, found by its name (name) |
+| `CalradiaRemembers_SecretLoverHush_v1bytes` | `SecretLoverGossipBehavior` | constant `HushSaveKey` passed to `SaveDict`, which reaches SyncData (fact) |
+| `CalradiaRemembers_SecretLoverKnown_v1bytes` | `SecretLoverGossipBehavior` | constant `KnownSaveKey` passed to `SaveLedger`, which reaches SyncData (fact) |
+| `CalradiaRemembers_SecretLoverLeaks_v1bytes` | `SecretLoverGossipBehavior` | constant `SaveKey` passed to `SaveLedger`, which reaches SyncData (fact) |
+| `CalradiaRemembers_SpouseDivorceAnnounceCycle_v1` | `SpouseDivorceDemandBehavior` | constant `AnnounceCycleSaveKey` passed to `SyncDictionary`, which reaches SyncData (fact) |
+| `CalradiaRemembers_SpouseDivorceAnnounceRetries_v1` | `SpouseDivorceDemandBehavior` | constant `AnnounceRetriesSaveKey` passed to `SyncDictionary`, which reaches SyncData (fact) |
+| `CalradiaRemembers_SpouseDivorceDemand_v1` | `SpouseDivorceDemandBehavior` | constant `SaveKey` passed to `SyncDictionary`, which reaches SyncData (fact) |
+| `CalradiaRemembers_SpouseDivorceEscalation_v1` | `SpouseDivorceDemandBehavior` | constant `EscalationSaveKey` passed to `SyncDictionary`, which reaches SyncData (fact) |
+| `CalradiaRemembers_SpouseDivorceRefusalCount_v1` | `SpouseDivorceDemandBehavior` | constant `RefusalCountSaveKey` passed to `SyncDictionary`, which reaches SyncData (fact) |
 | `CalradiaRemembers_StolenLoveEstrangement_v1bytes` | `NpcMarriageEstrangementBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_SwayExposure_v1bytes` | `SwayExposureBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_TournamentRivalry_v1bytes` | `TournamentRivalryBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_WarCouncilLastOfferDay_v1` | `WarCouncilOfferBehavior` | constant `LastOfferDaySaveKey` passed to SyncData (fact) |
-| `CalradiaRemembers_WearinessDeclined_v1` | `WarWearinessBehavior` | constant `DeclinedSaveKey`, found by its name (name) |
-| `CalradiaRemembers_WearinessForcedBack_v1` | `WarWearinessBehavior` | constant `ForcedBackSaveKey`, found by its name (name) |
-| `CalradiaRemembers_WearinessServedSince_v1` | `WarWearinessBehavior` | constant `ServedSinceSaveKey`, found by its name (name) |
-| `CalradiaRemembers_WearinessWounded_v1` | `WarWearinessBehavior` | constant `WoundCountedSaveKey`, found by its name (name) |
+| `CalradiaRemembers_WearinessDeclined_v1` | `WarWearinessBehavior` | constant `DeclinedSaveKey` passed to `SyncDict`, which reaches SyncData (fact) |
+| `CalradiaRemembers_WearinessForcedBack_v1` | `WarWearinessBehavior` | constant `ForcedBackSaveKey` passed to `SyncDict`, which reaches SyncData (fact) |
+| `CalradiaRemembers_WearinessServedSince_v1` | `WarWearinessBehavior` | constant `ServedSinceSaveKey` passed to `SyncDict`, which reaches SyncData (fact) |
+| `CalradiaRemembers_WearinessWounded_v1` | `WarWearinessBehavior` | constant `WoundCountedSaveKey` passed to `SyncDict`, which reaches SyncData (fact) |
 | `CalradiaRemembers_WorldEvents_v1bytes` | `WorldEventStore` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_chronicle_lastSeason` | `SeasonalChronicleBehavior` | literal at the SyncData call (fact) |
 | `cr_chronicle_lastSeen` | `SeasonalChronicleBehavior` | literal at the SyncData call (fact) |
