@@ -6692,7 +6692,8 @@ namespace CalradiaRemembers.Diagnostics
 
          // Exactly what the envoy's binder hands the bridge for "yours for nothing".
          EnvoyDeal deal = EnvoyMandatePolicy.Bind("buy_prisoner", new Dictionary<string, string> {["price"] = "0"},
-            new EnvoyMandate {WantedCaptiveName = captive.Name.ToString(), RansomCeiling = 5000});
+            new EnvoyMandate {WantedCaptiveName = captive.Name.ToString(), RansomCeiling = 5000},
+            new EnvoyTurnFacts {PlayerLine = "He is yours for nothing."});
 
          if (t.Abort(deal == null, "the envoy's binder produced no deal for a gift")) return t.Line();
 

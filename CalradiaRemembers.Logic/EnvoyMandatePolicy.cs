@@ -27,6 +27,16 @@ namespace CalradiaRemembers.Logic
       public string ExchangeCaptiveName { get; set; } = "";
    }
 
+   /// <summary>What the turn that produced a deal said: the facts a gift and a plain acceptance are read from.</summary>
+   public sealed class EnvoyTurnFacts
+   {
+      /// <summary>The player's own line this turn. A gift is theirs to make, in their words, never the model's.</summary>
+      public string PlayerLine { get; set; }
+
+      /// <summary>The last sum the envoy named in the parley, or null: what a plain acceptance agrees to.</summary>
+      public int? LastOfferNamed { get; set; }
+   }
+
    /// <summary>A deal rebound to the mandate, ready for the bridge.</summary>
    public sealed class EnvoyDeal
    {
@@ -75,13 +85,39 @@ namespace CalradiaRemembers.Logic
          return false;
       }
 
+      private static readonly string[] PlayerGiftWords =
+         {"for nothing", "for free", "free", "no ransom", "without ransom", "no payment", "without payment", "gift",
+          "keep your gold", "keep your coin", "keep your money", "zero"};
+
+      /// <summary>
+      ///   Whether the PLAYER's own words give the captive away: a word for nothing, or a sum of 0, and no other sum
+      ///   named ("900 and he goes free" is a price). tashmetu (27/09/2026): "i will return him", said to a final offer,
+      ///   was settled as a gift because the model wrote 0.
+      /// </summary>
+      public static bool PlayerGivesAway(string playerLine)
+      {
+         string line = playerLine?.ToLowerInvariant();
+         if (string.IsNullOrWhiteSpace(line)) return false;
+         if (SpokenFigure.LastIn(line, 10) != null) return false; // "no one" is not a price
+
+         if (System.Text.RegularExpressions.Regex.IsMatch(line, @"(^|[^\d])0([^\d]|$)")) return true;
+
+         foreach (string word in PlayerGiftWords)
+            if (System.Text.RegularExpressions.Regex.IsMatch(line, @"\b" + System.Text.RegularExpressions.Regex.Escape(word) + @"\b"))
+               return true;
+
+         return false;
+      }
+
       /// <summary>
       ///   The deal the bridge may run, or null when what the envoy wrote is outside his mandate (another action,
-      ///   an exchange his lord cannot make). The captive is always the wanted one; a ransom is capped at the ceiling
-      ///   and, when no usable price was written, offered at the ceiling rather than dropped (the envoy said it was
-      ///   agreed, and the sale verb still clamps it to the honest band).
+      ///   an exchange his lord cannot make). The captive is always the wanted one; a ransom is capped at the ceiling.
+      ///   A gift needs the player's own words (<see cref="PlayerGivesAway" />); without a usable price, a ransom closes
+      ///   at the envoy's last offer, else at the ceiling rather than dropped (the envoy said it was agreed, and the sale
+      ///   verb still clamps it to the honest band).
       /// </summary>
-      public static EnvoyDeal Bind(string actionType, IReadOnlyDictionary<string, string> parameters, EnvoyMandate mandate)
+      public static EnvoyDeal Bind(string actionType, IReadOnlyDictionary<string, string> parameters, EnvoyMandate mandate,
+                                   EnvoyTurnFacts turn = null)
       {
          if (mandate == null || string.IsNullOrWhiteSpace(mandate.WantedCaptiveName) || string.IsNullOrWhiteSpace(actionType)) return null;
 
@@ -92,14 +128,19 @@ namespace CalradiaRemembers.Logic
             string written = null;
             parameters?.TryGetValue("price", out written);
 
-            // Given away (fkasad, 26/09/2026: "yours for 0 denars" paid the full ceiling): a gift, and no gold moves.
-            if (IsGift(written))
+            // Given away (fkasad, 26/09/2026: "yours for 0 denars" paid the full ceiling): a gift, and no gold moves. The
+            // PLAYER must have said so (tashmetu, 27/09/2026): the model writing 0 is not the player giving him away.
+            if (IsGift(written) && PlayerGivesAway(turn?.PlayerLine))
                return new EnvoyDeal {
                   Type = "buy_prisoner",
                   Parameters = new Dictionary<string, string> {["target"] = mandate.WantedCaptiveName, ["price"] = "0", ["gift"] = "true"}
                };
 
-            int price = int.TryParse(written?.Trim(), out int p) && p > 0 ? Math.Min(p, mandate.RansomCeiling) : mandate.RansomCeiling;
+            int price = int.TryParse(written?.Trim(), out int p) && p > 0
+               ? Math.Min(p, mandate.RansomCeiling)
+               : turn?.LastOfferNamed is int last && last > 0
+                  ? Math.Min(last, mandate.RansomCeiling)
+                  : mandate.RansomCeiling;
 
             return new EnvoyDeal {
                Type = "buy_prisoner",

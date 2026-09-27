@@ -60,15 +60,51 @@ namespace CalradiaRemembers.Tests
       // fkasad (Nexus, 26/09/2026): "Of course the prisoner is yours for 0 denars", and 20,000 came in all the same. A
       // player who gives the captive away has agreed a price, and it is nothing: the lord pays nothing, and the deal is
       // marked a gift so the sale verb does not lift it to its floor.
-      [TestCase("0")]
-      [TestCase("free")]
-      [TestCase("nothing")]
-      public void GIVEN_a_captive_given_for_nothing_WHEN_bound_THEN_it_is_a_gift_and_no_gold_moves(string price)
+      [TestCase("0", "Of course the prisoner is yours for 0 denars.")]
+      [TestCase("free", "Take him. He goes free.")]
+      [TestCase("nothing", "He is yours for nothing.")]
+      public void GIVEN_a_captive_given_for_nothing_WHEN_bound_THEN_it_is_a_gift_and_no_gold_moves(string price, string playerLine)
       {
-         EnvoyDeal deal = EnvoyMandatePolicy.Bind("buy_prisoner", new Dictionary<string, string> {["price"] = price}, Mandate());
+         EnvoyDeal deal = EnvoyMandatePolicy.Bind("buy_prisoner", new Dictionary<string, string> {["price"] = price}, Mandate(),
+            new EnvoyTurnFacts {PlayerLine = playerLine});
 
          deal.Parameters["price"].Should().Be("0");
          deal.Parameters["gift"].Should().Be("true");
+      }
+
+      // tashmetu (Nexus, 27/09/2026, on 2.5.25): "a final offer of eleven thousand five hundred", the player answered "i
+      // will return him", the envoy wrote price 0, and the captive went home for nothing. A gift is the PLAYER's to make,
+      // in so many words; a plain acceptance closes at the last offer on the table.
+      [Test]
+      public void GIVEN_a_plain_acceptance_of_a_final_offer_WHEN_the_envoy_writes_zero_THEN_it_closes_at_that_offer_not_as_a_gift()
+      {
+         var mandate = new EnvoyMandate {WantedCaptiveName = "Baro Vartin", RansomCeiling = 12000};
+
+         EnvoyDeal deal = EnvoyMandatePolicy.Bind("buy_prisoner", new Dictionary<string, string> {["price"] = "0"}, mandate,
+            new EnvoyTurnFacts {PlayerLine = "i will return him", LastOfferNamed = 11500});
+
+         deal.Parameters["price"].Should().Be("11500");
+         deal.Parameters.Should().NotContainKey("gift");
+      }
+
+      // The model wrote "free", but the player named a price: the figure the player named stands, never a gift.
+      [Test]
+      public void GIVEN_the_player_named_a_price_WHEN_the_envoy_writes_free_THEN_it_is_not_a_gift()
+      {
+         EnvoyDeal deal = EnvoyMandatePolicy.Bind("buy_prisoner", new Dictionary<string, string> {["price"] = "free"}, Mandate(),
+            new EnvoyTurnFacts {PlayerLine = "Fine, 900 and he goes free.", LastOfferNamed = 900});
+
+         deal.Parameters["price"].Should().Be("900");
+         deal.Parameters.Should().NotContainKey("gift");
+      }
+
+      // No usable figure written, but an offer was on the table: that offer, not the ceiling.
+      [Test]
+      public void GIVEN_no_usable_price_and_an_offer_on_the_table_WHEN_bound_THEN_it_closes_at_that_offer()
+      {
+         EnvoyMandatePolicy.Bind("buy_prisoner", new Dictionary<string, string> {["price"] = "the agreed sum"}, Mandate(),
+               new EnvoyTurnFacts {PlayerLine = "Agreed.", LastOfferNamed = 1200})
+            .Parameters["price"].Should().Be("1200");
       }
 
       // A paid ransom is never marked a gift, so the sale's honest floor still protects the player.

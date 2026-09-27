@@ -63,6 +63,12 @@ namespace CalradiaRemembers.Tests.Maps
 
       private sealed record Entry(Layer Layer, string Owner, string Member, string Type, string Kind);
 
+      /// <summary>A type through which the contents cannot be changed: IReadOnly*, IEnumerable, Immutable*.</summary>
+      private static bool IsReadOnlyView(string type)
+         => type.StartsWith("IReadOnly", StringComparison.Ordinal)
+            || type.StartsWith("IEnumerable", StringComparison.Ordinal)
+            || type.StartsWith("Immutable", StringComparison.Ordinal);
+
       private static List<Entry> EntriesOf(IReadOnlyList<SourceFile> files)
       {
          var found = new List<Entry>();
@@ -79,6 +85,11 @@ namespace CalradiaRemembers.Tests.Maps
 
                // A readonly reference to a collection is still a place where contents change.
                if (isReadonly && !MutableCollections.Any(c => type.Contains(c, StringComparison.Ordinal))) continue;
+
+               // ...unless it is held through a read-only view. "IReadOnlyDictionary" contains "Dictionary", so until
+               // 27/09/2026 six read-only tables were listed here as contents that change: a line that was wrong without
+               // anyone noticing, found when a new lookup table was typed read-only and stayed on the map.
+               if (isReadonly && IsReadOnlyView(type)) continue;
 
                foreach (VariableDeclaratorSyntax variable in field.Declaration.Variables)
                   found.Add(new Entry(file.Layer, OwnerOf(field), variable.Identifier.Text, type, isReadonly ? "collection, contents change" : "field"));

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 431 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 816 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 818 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 241 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -761,7 +761,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (520)
+### CalradiaRemembers.Logic (522)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -922,6 +922,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EnvoyDeal` | public class | A deal rebound to the mandate, ready for the bridge. |
 | `EnvoyMandate` | public class | What the lord authorised his envoy to settle. |
 | `EnvoyMandatePolicy` | public static class | Holds an envoy to his mandate, and names him. |
+| `EnvoyTurnFacts` | public class | What the turn that produced a deal said: the facts a gift and a plain acceptance are read from. |
 | `EquipmentLoadoutPolicy` | public static class | Chooses which equipment loadout (civilian or battle) the notable-gear clause should read for a scene. |
 | `EquipmentModifierQualityPolicy` | public static class | Pure, engine-free mapping from an item modifier's plain facts to a GearQuality band. |
 | `EquipmentNotabilityPolicy` | public static class | Pure, engine-free scoring and phrasing of a hero's NOTABLE equipment. |
@@ -1231,6 +1232,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SilentRefusalMessages` | public static class | Wording for the bridge executor refusal branches that used to return null. |
 | `SpeakerNamesakePolicy` | public static class | Decides whether a hero matched in the player's message is merely a namesake of the character being spoken to. |
 | `SpeakerProfileSelector` | public static class | Chooses which stored profile represents the NPC currently speaking, so a memory never ends up on the wrong person. |
+| `SpokenFigure` | public static class | Reads the last sum named in a line of speech. |
 | `SpouseDivorceDemandFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldDemand needs. |
 | `SpouseDivorceDemandPolicy` | public static class | Pure gate deciding whether the player's own spouse is unhappy enough to raise a divorce demand this evaluation period. |
 | `SpouseDivorceEscalationFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldEscalate needs. |

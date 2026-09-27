@@ -187,7 +187,7 @@ namespace CalradiaRemembers.Chat
             RecordTranscript(false, _npcName, null, line);
             StoryLog.WriteNpcLine(_npcName, line);
 
-            SettleEnvoyDeal(parsed.Actions, lord, lordProfile, behavior);
+            SettleEnvoyDeal(parsed.Actions, lord, lordProfile, behavior, isOpener ? null : playerMessage);
 
             ChatManager.ScrollToBottom();
          }
@@ -207,7 +207,8 @@ namespace CalradiaRemembers.Chat
       ///   Runs at most one deal, rebound to the mandate, through the bridge in the LORD's name (his gold, his prisons,
       ///   his profile for the memory the verb writes). Anything outside the mandate is logged and ignored.
       /// </summary>
-      private void SettleEnvoyDeal(IReadOnlyList<GameAction> actions, Hero lord, NpcProfile lordProfile, NpcMemoryCampaignBehavior behavior)
+      private void SettleEnvoyDeal(IReadOnlyList<GameAction> actions, Hero lord, NpcProfile lordProfile, NpcMemoryCampaignBehavior behavior,
+                                   string playerLine)
       {
          if (actions == null || _envoy.Settled || behavior?.GameStateBridge == null) return;
 
@@ -219,7 +220,10 @@ namespace CalradiaRemembers.Chat
 
          foreach (GameAction written in actions)
          {
-            EnvoyDeal deal = EnvoyMandatePolicy.Bind(written?.Type, written?.Parameters, _envoy.Mandate);
+            // What this turn said (tashmetu, 27/09/2026): a gift is the player's to make in so many words, and a plain
+            // acceptance takes the envoy's last offer.
+            EnvoyDeal deal = EnvoyMandatePolicy.Bind(written?.Type, written?.Parameters, _envoy.Mandate,
+               new EnvoyTurnFacts {PlayerLine = playerLine, LastOfferNamed = LastEnvoyOffer()});
             if (deal == null)
             {
                ModLog.Info($"[ENVOY] ignored '{written?.Type}': outside the envoy's mandate.");
@@ -264,6 +268,21 @@ namespace CalradiaRemembers.Chat
 
             return null;
          }
+      }
+
+      /// <summary>The last sum the envoy named in this parley (its own lines, newest first), or null.</summary>
+      private int? LastEnvoyOffer()
+      {
+         for (int i = _transcript.Lines.Count - 1; i >= 0; i--)
+         {
+            var l = _transcript.Lines[i];
+            if (l == null || l.IsPlayer || l.IsNarration || string.IsNullOrWhiteSpace(l.Text)) continue;
+
+            int? figure = SpokenFigure.LastIn(l.Text, 100);
+            if (figure != null) return figure;
+         }
+
+         return null;
       }
 
       /// <summary>The parley so far, "Name: line", bounded like the council's.</summary>
