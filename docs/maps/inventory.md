@@ -28,13 +28,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1500+ | Mod | `Chat/ChatManager.cs` |
 | 1500+ | Mod | `GameState/CourtActionResolver.cs` |
 | 1500+ | Mod | `Interception/InterceptionBehavior.cs` |
-| 1500+ | Mod | `Letters/CourierService.cs` |
 | 1500+ | Sdk | `Models/EncounterContext.cs` |
 | 1000+ | Sdk | `Actions/GameActionCatalog.cs` |
 | 1000+ | Logic | `Assemblies/ResolutionCatalog.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Council.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Helpers.cs` |
 | 1000+ | Mod | `Diagnostics/RoleplayBench.cs` |
+| 1000+ | Mod | `Letters/CourierService.cs` |
 | 1000+ | Mod | `Letters/LetterTriggerEvaluator.cs` |
 | 1000+ | Sdk | `Parsing/SectionResponseParser.cs` |
 | 1000+ | Mod | `Services/LlmServices.cs` |

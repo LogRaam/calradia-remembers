@@ -277,6 +277,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("claimant_support_evaluates", Severity.Light, "Mechanical: gather a real same-kingdom other-clan lord's facts and run the REAL ClaimantSupportPolicy via CouncilLift.EvaluateSupportClaimant (non-destructive, no influence moved) -> a valid backer lands on the amount decision (Applied/CannotAfford), never a WHO gate. No LLM.", TestClaimantSupportEvaluates),
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
+         new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
          new SelfTest("transient_party_registry", Severity.Light, "The one service for the mod's transient parties (26/09/2026, the event-listeners map's proposal): spawns two real throwaway parties and tracks them under a test role. A party the registry RELEASES leaves the map and is never reported as a loss; a party destroyed by anything else is reported to its owner exactly once. Both parties are gone at the end.", TestTransientPartyRegistry),
          new SelfTest("mercenary_departure_judged", Severity.Light, "fkasad's grid (25/09/2026): reads a real realm's war footing (at war, its strength against its enemies' combined strength) and judges how the end of a mercenary contract with it would be taken, without applying anything. Asserts a realm at peace is AtPeace and a realm at war is judged ReleasedInVictory or Abandoned as its strength says. No regard, memory or news is written.", TestMercenaryDepartureJudged),
          new SelfTest("courier_secret_travels", Severity.Light, "Courier secrets (raphareish 24/09/2026; Gabriel): an intercepted letter travels with its captors. Captures a [SELFTEST] letter onto a REAL bandit band, then has a real lord's party defeat the carrier (DebugDefeatCarrier, no LLM, no rumour) -> the secret leaves the band and the lord remembers what it said; a second capture defeated by the PLAYER's party is recovered unread. Removes the memory it added.", TestCourierSecretTravels),
@@ -3507,6 +3508,64 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("bothPlanted", vsPlayer && vsCaptor, true);
          t.Expect("playerGrudgeLive", playerGrudge, true);
          t.Expect("captorRevengeGrudgeLive", captorGrudge, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Couriers through a save: the registry's despawn and restore, driven without saving, leave the letter in
+      ///   flight on a live courier where the old one stood.
+      /// </summary>
+      private static string TestCourierSaveRestore(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("courier_save_restore");
+
+         Travel.TransientPartyRegistry registry = Travel.TransientPartyRegistry.Instance;
+         Hero recipient = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && CourierService.CanReceiveLetter(h));
+
+         if (t.Skip(registry == null, "the transient-party registry is not running")) return t.Line();
+         if (t.Skip(recipient == null, "no live lord to stand as a letter recipient")) return t.Line();
+
+         const string tag = "CR_SELFTEST_SAVE_RESTORE";
+         NpcProfile profile = GetOrCreate(behavior, recipient);
+         var today = (int) CampaignTime.Now.ToDays;
+         var letter = new PlayerLetter {
+            RecipientId = profile.Id, RecipientName = profile.Name, Content = tag, SentOnDay = today, DeliveryDay = today + 8
+         };
+         profile.ReceivedPlayerLetters.Add(letter);
+         behavior.Store.Set(profile);
+
+         try
+         {
+            if (t.Skip(!CourierService.TrySpawnCourier(letter, recipient), "no courier could be spawned to that lord (no land route)")) return t.Line();
+
+            MobileParty before = MobileParty.All.FirstOrDefault(p => p.StringId == letter.CourierPartyId);
+            if (t.Skip(before == null, "the courier did not appear on the map")) return t.Line();
+
+            TaleWorlds.Library.Vec2 stood = before.GetPosition2D;
+            t.Expect("courierIsTracked", registry.EntryOf(before)?.Role, CourierService.CourierRole);
+
+            registry.DebugSaveCycle();
+
+            PlayerLetter after = behavior.Store.Get(profile.Id)?.ReceivedPlayerLetters.FirstOrDefault(l => l.Content == tag);
+            MobileParty courier = string.IsNullOrEmpty(after?.CourierPartyId) ? null : MobileParty.All.FirstOrDefault(p => p.StringId == after.CourierPartyId && p.IsActive);
+            t.Note($"recipient={recipient.Name}, old={stood}, new={courier?.GetPosition2D}");
+            t.Expect("letterStillInFlight", after != null && !after.IsLost && !after.IsDelivered, true);
+            t.Expect("aLiveCourierCarriesIt", courier != null && !ReferenceEquals(courier, before) && !before.IsActive, true);
+            t.Expect("restoredWhereItStood", courier != null && courier.GetPosition2D.Distance(stood) < 1f, true);
+            t.Expect("stillACourier", courier != null && CourierService.IsCourier(courier.StringId), true);
+            t.Expect("stillTracked", courier != null && registry.EntryOf(courier)?.Role == CourierService.CourierRole, true);
+         }
+         finally
+         {
+            // Letters first, so the courier's removal matches no letter and fires no loss.
+            string courierId = behavior.Store.Get(profile.Id)?.ReceivedPlayerLetters.FirstOrDefault(l => l.Content == tag)?.CourierPartyId;
+            NpcProfile fresh = behavior.Store.Get(profile.Id);
+            fresh?.ReceivedPlayerLetters.RemoveAll(l => l.Content == tag);
+            if (fresh != null) behavior.Store.Set(fresh);
+            MobileParty cp = string.IsNullOrEmpty(courierId) ? null : MobileParty.All.FirstOrDefault(p => p.StringId == courierId && p.IsActive);
+            if (cp != null) TravelingParty.Destroy(cp);
+         }
 
          return t.Line();
       }

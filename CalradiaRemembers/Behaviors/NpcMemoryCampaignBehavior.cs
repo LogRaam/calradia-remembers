@@ -113,8 +113,6 @@ namespace CalradiaRemembers.Behaviors
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(
             this, OnDailyTick);
          // Sprint 12c: detect when a player-letter courier is destroyed in transit.
-         CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(
-            this, OnMobilePartyDestroyed);
          // Sprint 12c: deliver promptly when a courier enters the recipient's settlement.
          CampaignEvents.SettlementEntered.AddNonSerializedListener(
             this, OnSettlementEntered);
@@ -138,10 +136,6 @@ namespace CalradiaRemembers.Behaviors
             this, OnHourlyTick);
          // Save safety: keep courier parties out of the .sav (a mod party in an odd state
          // can corrupt the native load). Despawn before the save, respawn once it is over.
-         CampaignEvents.OnBeforeSaveEvent.AddNonSerializedListener(
-            this, OnBeforeSave);
-         CampaignEvents.OnSaveOverEvent.AddNonSerializedListener(
-            this, OnSaveOver);
          // Close a giver's open quests the instant they are slain, instead of leaving them
          // stuck in the journal until the next reload (the daily pass is the safety net).
          CampaignEvents.HeroKilledEvent.AddNonSerializedListener(
@@ -193,10 +187,6 @@ namespace CalradiaRemembers.Behaviors
                ModLog.Info($"    [{ev.type}] Day {ev.gameDay}: {ev.summary}");
          }
       }
-
-      /// <summary>Removes all courier parties just before the world is serialized.</summary>
-      private void OnBeforeSave()
-         => CourierService.DespawnAll(Store);
 
       /// <summary>
       ///   Runs the quest lifecycle pass once per game day: expire overdue quests
@@ -252,22 +242,9 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnHourlyTick.LetterMutationQueue.Drain", Letters.LetterMutationQueue.DrainOnMainThread);
       }
 
-      /// <summary>
-      ///   When any mobile party is destroyed, check whether it was a letter courier
-      ///   and, if so, mark the carried letter lost (handled in CourierService).
-      /// </summary>
-      private void OnMobilePartyDestroyed(MobileParty destroyed, PartyBase destroyer)
-      {
-         // 1.10: pass the destroyer so a non-bandit loss is not misreported as a bandit waylay. 1.11: guard so a
-         // failure here never breaks the engine's own party-destruction pipeline.
-         if (destroyed == null) return;
-         SafeRun.Step("OnMobilePartyDestroyed.HandlePartyDestroyed",
-            () => CourierService.HandlePartyDestroyed(destroyed, Store, destroyer));
-      }
-
-      /// <summary>Restores the in-flight couriers the pre-save despawn removed.</summary>
-      private void OnSaveOver(bool isSuccessful, string saveName)
-         => CourierService.RespawnInFlight(Store);
+      // Couriers are TransientPartyRegistry's since 26/09/2026: it takes them off the map before a save, puts them back
+      // where they stood after it, and reports a true loss (CourierService.HandlePartyDestroyed). The three listeners
+      // that did this here (OnBeforeSave, OnSaveOver, MobilePartyDestroyed) went with the move.
 
 
       // ── Session launched ──────────────────────────────────────────────────

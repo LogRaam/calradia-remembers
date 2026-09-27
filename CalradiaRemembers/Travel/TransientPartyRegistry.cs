@@ -1,11 +1,12 @@
 // Code written by Gabriel Mailhot, 26/09/2026.
-// The one service for the mod's TRANSIENT parties (sergeants, bounty hunters; couriers later): parties spawned for a
+// The one service for the mod's TRANSIENT parties (couriers, sergeants, bounty hunters): parties spawned for a
 // job and never saved. The event-listeners map showed the same shape copied in each owner (a despawn listener on
 // OnBeforeSaveEvent, a MobilePartyDestroyed listener, a flag so the mod's own despawn is not read as a loss), which is
 // the map proposing an architecture change (Gabriel, 26/09/2026). One listener of each now, here.
 //
 //   - An owner spawns its party as before (TravelingParty.Spawn) and hands it to Track, with a role, an optional tag,
-//     and what to do if the party is truly destroyed (beaten, starved).
+//     and what to do if the party is truly destroyed (beaten, starved). Couriers, sergeants and bounty hunters all
+//     ride through here since 26/09/2026.
 //   - Before every save, every tracked party is taken off the map; owners send them again after a load, as they
 //     always did, since a transient party is never in the save.
 //   - Release takes one off the map on the owner's word; that despawn is never reported as a loss.
@@ -159,8 +160,10 @@ namespace CalradiaRemembers.Travel
          foreach (Pending p in pending)
             try
             {
+               // An owner whose spawn tracks its own parties (the couriers) has already tracked this one, with
+               // handlers bound to the NEW party; those win over the old ones carried here.
                MobileParty again = p.Restore(p.Position);
-               if (again != null) Track(again, p.Role, p.Tag, p.OnDestroyed, p.Restore);
+               if (again != null && _ledger.Find(again.StringId) == null) Track(again, p.Role, p.Tag, p.OnDestroyed, p.Restore);
             }
             catch (Exception ex)
             {
