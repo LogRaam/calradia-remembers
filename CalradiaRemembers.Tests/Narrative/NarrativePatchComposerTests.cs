@@ -196,5 +196,61 @@ You are a seafarer of raider stock.";
          => NarrativePatchComposer.Compose(Base, patches);
 
       #endregion
-   }
+   
+      // tashmetu (Nexus, 27/09/2026): to change ONE culture block he had to !remove the whole section line by line and
+      // write it back, 50 lines across five files, and any line CR later rewords would silently stay behind as a stray
+      // sentence. "!block" replaces or adds one "If you are from ..." block by its HEADING, whatever its lines say.
+      private const string WithCultures =
+         "=== FACTION BEHAVIOR ===\n\nIf you are from Vlandia:\nYou believe in knightly honor.\nYou prize the tourney.\n\n"
+       + "If you are from Battania:\nYou come from a proud clan culture.\n\n=== CLOSING ===\nStay in character.";
+
+      private static string ComposeOver(string baseText, params NarrativePatch[] patches)
+         => NarrativePatchComposer.Compose(baseText, patches);
+
+      // The block is replaced by its heading: every line of the old one goes, however it was worded, and nothing else moves.
+      [Test]
+      public void GIVEN_a_block_directive_for_an_existing_heading_WHEN_composed_THEN_that_block_alone_is_replaced()
+      {
+         string text = ComposeOver(WithCultures, Patch("Rhodoks", "!block If you are from Vlandia:\nYou serve a lord of the mountain roads."));
+
+         text.Should().Contain("If you are from Vlandia:\nYou serve a lord of the mountain roads.");
+         text.Should().NotContain("knightly honor").And.NotContain("tourney");
+         text.Should().Contain("You come from a proud clan culture.").And.Contain("=== CLOSING ===");
+      }
+
+      // A NEW people goes INSIDE the faction section, where each character is shown only their own block. Appended at
+      // the end under a contribution heading, it would be read by everyone as general guidance.
+      [Test]
+      public void GIVEN_a_block_directive_for_a_new_heading_WHEN_composed_THEN_it_joins_the_faction_section()
+      {
+         string text = ComposeOver(WithCultures, Patch("Rhodoks", "!block the Rhodoks\nYou are a pikeman of the mountain cantons."));
+
+         int block = text.IndexOf("If you are from the Rhodoks:", System.StringComparison.Ordinal);
+         block.Should().BeGreaterThan(text.IndexOf("=== FACTION BEHAVIOR ===", System.StringComparison.Ordinal));
+         block.Should().BeLessThan(text.IndexOf("=== CLOSING ===", System.StringComparison.Ordinal));
+         text.Should().Contain("You are a pikeman of the mountain cantons.");
+         text.Should().NotContain(NarrativePatchComposer.ContributionHeading);
+      }
+
+      // A block directive with nothing under it takes that people's block out.
+      [Test]
+      public void GIVEN_an_empty_block_directive_WHEN_composed_THEN_that_block_is_removed()
+      {
+         string text = ComposeOver(WithCultures, Patch("TOR", "!block Battania"));
+
+         text.Should().NotContain("If you are from Battania:").And.NotContain("proud clan culture");
+         text.Should().Contain("knightly honor");
+      }
+
+      // Several blocks in one patch: each ends where the next directive begins.
+      [Test]
+      public void GIVEN_two_block_directives_in_one_patch_WHEN_composed_THEN_each_gets_its_own_lines()
+      {
+         string text = ComposeOver(WithCultures,
+            Patch("Rhodoks", "!block Vlandia\nKnights of the west.\n!block Battania\nMen of the forest."));
+
+         text.Should().Contain("If you are from Vlandia:\nKnights of the west.");
+         text.Should().Contain("If you are from Battania:\nMen of the forest.");
+      }
+}
 }

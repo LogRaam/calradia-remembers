@@ -85,6 +85,17 @@ namespace CalradiaRemembers.Logic.Narrative
       public const string ContributionHeading = "=== FURTHER GUIDANCE ===";
 
       /// <summary>
+      ///   Replaces, adds or removes ONE "If you are from ..." block by its heading: "!block Vlandia" or "!block If you
+      ///   are from Vlandia:", then the block's lines, up to the next directive or the end of the patch. No lines
+      ///   removes the block. A new people is placed inside the FACTION BEHAVIOR section, where each character is shown
+      ///   only their own block. tashmetu (Nexus, 27/09/2026): changing one block meant !remove-ing a whole section
+      ///   line by line and writing it back, and any line CR later reworded stayed behind as a stray sentence.
+      /// </summary>
+      public const string BlockDirective = "!block";
+
+      private const string BlockPrefix = "If you are from ";
+
+      /// <summary>
       ///   The mod's own <paramref name="baseText" /> with each patch applied after it, in the order given,
       ///   which the caller takes from the launcher. A patch that says nothing changes nothing.
       /// </summary>
@@ -101,12 +112,39 @@ namespace CalradiaRemembers.Logic.Narrative
             // something above it to be separated from.
             var boundaryPending = true;
 
+            // A "!block" being collected: its heading line and the lines under it, applied when the next directive
+            // (or the end of the patch) closes it.
+            string blockHeading = null;
+            var blockBody = new List<string>();
+
             foreach (string raw in SplitLines(patch.Text))
             {
                string line = raw ?? "";
                string trimmed = line.Trim();
 
                if (trimmed.StartsWith(CommentPrefix, StringComparison.Ordinal)) continue;
+
+               if (blockHeading != null && trimmed.StartsWith("!", StringComparison.Ordinal))
+               {
+                  ApplyBlock(lines, blockHeading, blockBody);
+                  blockHeading = null;
+                  touched = true;
+               }
+
+               if (IsBlockDirective(trimmed))
+               {
+                  blockHeading = BlockHeadingFrom(trimmed.Substring(BlockDirective.Length).Trim());
+                  blockBody = new List<string>();
+
+                  continue;
+               }
+
+               if (blockHeading != null)
+               {
+                  blockBody.Add(line);
+
+                  continue;
+               }
 
                if (trimmed.Equals(ReplaceDirective, StringComparison.OrdinalIgnoreCase))
                {
@@ -150,6 +188,12 @@ namespace CalradiaRemembers.Logic.Narrative
                // so a file of nothing but comments and spacing leaves the shipped bytes untouched.
                if (trimmed.Length > 0) touched = true;
             }
+
+            if (blockHeading != null)
+            {
+               ApplyBlock(lines, blockHeading, blockBody);
+               touched = true;
+            }
          }
 
          // NOBODY CONTRIBUTED, SO NOTHING IS TOUCHED, not even the line endings. Composing rewrites CRLF to LF
@@ -161,6 +205,88 @@ namespace CalradiaRemembers.Logic.Narrative
       }
 
       #region private
+
+      private static bool IsBlockDirective(string trimmed)
+         => trimmed.Equals(BlockDirective, StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith(BlockDirective + " ", StringComparison.OrdinalIgnoreCase);
+
+      /// <summary>"Vlandia" or "If you are from Vlandia:" both give "If you are from Vlandia:".</summary>
+      private static string BlockHeadingFrom(string argument)
+      {
+         string people = argument.StartsWith(BlockPrefix, StringComparison.OrdinalIgnoreCase)
+            ? argument.Substring(BlockPrefix.Length)
+            : argument;
+
+         return BlockPrefix + people.Trim().TrimEnd(':').Trim() + ":";
+      }
+
+      /// <summary>The people a heading names, compared loosely: case, a trailing colon and a leading "the" do not count.</summary>
+      private static string BlockKey(string headingLine)
+      {
+         string key = headingLine.Trim();
+         if (key.StartsWith(BlockPrefix, StringComparison.OrdinalIgnoreCase)) key = key.Substring(BlockPrefix.Length);
+         key = key.Trim().TrimEnd(':').Trim().ToLowerInvariant();
+
+         return key.StartsWith("the ", StringComparison.Ordinal) ? key.Substring(4).Trim() : key;
+      }
+
+      private static bool IsBlockHeading(string line)
+         => line != null && line.TrimStart().StartsWith(BlockPrefix, StringComparison.OrdinalIgnoreCase);
+
+      /// <summary>
+      ///   Replaces the block under <paramref name="heading" /> with <paramref name="body" />, removes it when the body is
+      ///   empty, or adds it at the end of the FACTION BEHAVIOR section when no such block exists. A block runs from its
+      ///   heading to the next heading or "=== " section.
+      /// </summary>
+      private static void ApplyBlock(List<string> lines, string heading, List<string> body)
+      {
+         List<string> text = body.ToList();
+         while (text.Count > 0 && string.IsNullOrWhiteSpace(text[text.Count - 1])) text.RemoveAt(text.Count - 1);
+         while (text.Count > 0 && string.IsNullOrWhiteSpace(text[0])) text.RemoveAt(0);
+
+         string key = BlockKey(heading);
+         int at = lines.FindIndex(l => IsBlockHeading(l) && BlockKey(l) == key);
+
+         var replacement = new List<string>();
+         if (text.Count > 0)
+         {
+            replacement.Add(heading);
+            replacement.AddRange(text);
+            replacement.Add("");
+         }
+
+         if (at >= 0)
+         {
+            int end = at + 1;
+            while (end < lines.Count && !IsBlockHeading(lines[end]) && !lines[end].TrimStart().StartsWith("=== ", StringComparison.Ordinal))
+               end++;
+
+            lines.RemoveRange(at, end - at);
+            lines.InsertRange(at, replacement);
+
+            return;
+         }
+
+         if (replacement.Count == 0) return; // removing a block that is not there changes nothing
+
+         int section = lines.FindIndex(l => l.Trim() == FactionGuidelinesPolicy.SectionHeading);
+         if (section < 0)
+         {
+            lines.Add("");
+            lines.Add(FactionGuidelinesPolicy.SectionHeading);
+            lines.Add("");
+            lines.AddRange(replacement);
+
+            return;
+         }
+
+         int sectionEnd = section + 1;
+         while (sectionEnd < lines.Count && !lines[sectionEnd].TrimStart().StartsWith("=== ", StringComparison.Ordinal))
+            sectionEnd++;
+
+         replacement.Insert(0, "");
+         lines.InsertRange(sectionEnd, replacement);
+      }
 
       private static string[] SplitLines(string text)
          => text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');

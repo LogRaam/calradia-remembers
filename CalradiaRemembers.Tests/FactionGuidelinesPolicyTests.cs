@@ -241,5 +241,45 @@ You are a seafarer of raider stock.";
         }
 
         #endregion
-    }
+    
+        // tashmetu (Nexus, 27/09/2026). A companion's realm is the player's, and a notable's is whoever holds the town:
+        // for anyone but a lord of his own people, the realm is not his. Matched on culture PLUS realm, a Battanian
+        // companion of a player serving the "Kingdom of Rhodok" read the Rhodok block as well as his own, because
+        // "rhodok" is in the realm's name. His own culture decides first; the realm only settles what the culture
+        // cannot (the Empire's split).
+        [Test]
+        public void GIVEN_a_battanian_serving_a_realm_named_for_another_people_WHEN_narrowed_THEN_only_his_own_people_are_kept()
+        {
+            string withRhodoks = Guidelines + "\n\nIf you are from the Rhodoks:\nYou are a pikeman of the mountain cantons.";
+
+            string text = FactionGuidelinesPolicy.NarrowToOwnCulture(withRhodoks, "Battania", "Kingdom of Rhodok");
+
+            text.Should().Contain("proud clan culture");
+            text.Should().NotContain("pikeman of the mountain cantons");
+        }
+
+        // The realm counts as the character's own only when it is his people's: its culture is his. Otherwise the
+        // caller passes no realm at all, so it can neither pull in a block nor retitle one.
+        [Test]
+        public void GIVEN_a_realm_of_another_culture_WHEN_asking_whose_realm_it_is_THEN_it_is_not_the_characters_own()
+        {
+            FactionGuidelinesPolicy.RealmOfOwnPeople("Kingdom of Prueba reino", realmCultureId: "battania", characterCultureId: "vlandia")
+                                   .Should().BeNull();
+            FactionGuidelinesPolicy.RealmOfOwnPeople("Kingdom of Wercheg", realmCultureId: "vlandia", characterCultureId: "vlandia")
+                                   .Should().Be("Kingdom of Wercheg");
+            FactionGuidelinesPolicy.RealmOfOwnPeople("Kingdom of Wercheg", realmCultureId: null, characterCultureId: "vlandia")
+                                   .Should().BeNull();
+        }
+
+        // tashmetu's second case: a Vlandian notable in the player's own kingdom read "If you are from Kingdom of
+        // Prueba reino:" above Vlandian text. With no realm of his own people, the heading stays his people's.
+        [Test]
+        public void GIVEN_a_vlandian_in_a_realm_not_of_his_people_WHEN_narrowed_THEN_the_heading_keeps_his_peoples_name()
+        {
+            string text = Narrow("Vlandia", FactionGuidelinesPolicy.RealmOfOwnPeople("Kingdom of Prueba reino", "battania", "vlandia"));
+
+            text.Should().Contain("If you are from Vlandia:");
+            text.Should().NotContain("Prueba reino");
+        }
+}
 }

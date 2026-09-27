@@ -15,6 +15,12 @@
 // culture away entirely, the partial pass keeps every heading his identity touches - two, not eight. Only
 // a character who matches nothing at all, which in practice means a total conversion's own culture, has
 // the section dropped: a Wood Elf has no business being told about Vlandian knightly honour either.
+//
+// CULTURE FIRST, and the realm only when it is the character's OWN people's (tashmetu, Nexus, 27/09/2026). A
+// companion's realm is the player's and a notable's is whoever holds the town, so matching on culture plus realm
+// handed a Battanian companion of the "Kingdom of Rhodok" the Rhodok block too, and retitled a Vlandian notable's
+// block "If you are from Kingdom of Prueba reino:". The caller now passes a realm only when its culture is the
+// character's (RealmOfOwnPeople), and the culture alone is tried before the realm is consulted at all.
 
 #region
 
@@ -49,6 +55,21 @@ namespace CalradiaRemembers.Logic
         ///   or renamed it), when it has no headings to choose between, or when the character is unknown -
         ///   every one of which keeps a hand-edited file working exactly as it did.
         /// </summary>
+        /// <summary>
+        ///   The realm's name when it is the character's OWN people's (its culture is theirs), otherwise null. Only such
+        ///   a realm may help choose their block or retitle it: a companion serving the player, or a notable in a town
+        ///   another people holds, lives in a realm that is not theirs.
+        /// </summary>
+        public static string RealmOfOwnPeople(string realmName, string realmCultureId, string characterCultureId)
+        {
+            if (string.IsNullOrWhiteSpace(realmName) || string.IsNullOrWhiteSpace(realmCultureId)
+                || string.IsNullOrWhiteSpace(characterCultureId)) return null;
+
+            return string.Equals(realmCultureId.Trim(), characterCultureId.Trim(), StringComparison.OrdinalIgnoreCase)
+                ? realmName
+                : null;
+        }
+
         public static string NarrowToOwnCulture(string guidelines, string cultureName, string factionName)
         {
             if (string.IsNullOrWhiteSpace(guidelines)) return guidelines;
@@ -65,10 +86,20 @@ namespace CalradiaRemembers.Logic
             List<string> blocks = SplitBlocks(section);
             if (blocks.Count == 0) return guidelines;
 
-            List<string> kept = blocks.Where(b => Applies(b, identity, requireAll: true)).ToList();
+            // The culture decides first; the realm only settles what the culture alone cannot (the Empire's split).
+            string culture = Identity(cultureName, null);
+            List<string> kept = culture.Length > 0
+                ? blocks.Where(b => Applies(b, culture, requireAll: true)).ToList()
+                : new List<string>();
+
+            if (kept.Count == 0)
+                kept = blocks.Where(b => Applies(b, identity, requireAll: true)).ToList();
 
             // Nothing matched outright: keep whatever the identity TOUCHES rather than stripping the
             // character's culture out of the prompt. An Imperial with no realm lands here.
+            if (kept.Count == 0 && culture.Length > 0)
+                kept = blocks.Where(b => Applies(b, culture, requireAll: false)).ToList();
+
             if (kept.Count == 0)
                 kept = blocks.Where(b => Applies(b, identity, requireAll: false)).ToList();
 

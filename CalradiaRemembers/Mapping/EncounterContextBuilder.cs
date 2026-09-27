@@ -4143,8 +4143,11 @@ namespace CalradiaRemembers.Mapping
          // so a lord receives the same text he always did, minus the seven cultures he is not.
          if (string.IsNullOrWhiteSpace(text)) text = NarrativeLoader.BehaviorGuidelines;
 
+         // The realm only when it is the character's own people's (tashmetu, 27/09/2026): a companion's realm is
+         // the player's and a notable's is whoever holds the town, and neither may pull in or retitle a block.
          return FactionGuidelinesPolicy.NarrowToOwnCulture(
-            text, hero.Culture?.Name?.ToString(), hero.MapFaction?.Name?.ToString());
+            text, hero.Culture?.Name?.ToString(),
+            FactionGuidelinesPolicy.RealmOfOwnPeople(hero.MapFaction?.Name?.ToString(), hero.MapFaction?.Culture?.StringId, hero.Culture?.StringId));
       }
 
       /// <summary>
