@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (80)
+## Keys (81)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -19,6 +19,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CR_ConvSummaryQueue` | `ConversationSummaryQueueRunner` | constant `SaveKey` passed to SyncData (fact) |
 | `CR_ConversationResume` | `ConversationResumeStore` | constant `SaveKey` passed to SyncData (fact) |
 | `CR_CourierSecrets_v1bytes` | `CourierSecretBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CR_MercenaryCompanyDepartures_v1bytes` | `MercenaryReputationBehavior` | constant `CompaniesSaveKey` passed to SyncData (fact) |
 | `CR_MercenaryDeparture_v1bytes` | `MercenaryReputationBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CR_NemesisActiveCaptorId` | `NemesisBehavior` | literal at the SyncData call (fact) |
 | `CR_PrisonerEnvoys_v1bytes` | `PrisonerEnvoyBehavior` | constant `SaveKey` passed to SyncData (fact) |

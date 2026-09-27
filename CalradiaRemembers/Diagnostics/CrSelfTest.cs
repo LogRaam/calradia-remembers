@@ -279,6 +279,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
+         new SelfTest("mercenary_company_judged", Severity.Light, "Zivkyn (Nexus): the game's own mercenary companies change sides mid-war and nobody resents them. Finds a real company in a realm's pay and judges its departure by fkasad's grid WITHOUT applying anything: the verdict follows the realm's footing, and the news line names the company and the realm.", TestMercenaryCompanyJudged),
          new SelfTest("faction_block_realm", Severity.Light, "tashmetu (27/09/2026): a companion's or a notable's realm is not their people's, and pulled another people's FACTION BEHAVIOR block into their prompt (or retitled theirs). Reads real heroes: a lord of a kingdom of his own culture keeps that realm for the choice; a hero living in a realm of another culture gets none. Read-only.", TestFactionBlockRealm),
          new SelfTest("council_seat_note", Severity.Light, "The council's per-seat door for other mods (tashmetu, Bellum Civile bridge, 26/09/2026): registers a throwaway {{variable}}, then resolves a council_seat template for two real lords. Each seat must carry ITS OWN value (the provider is told which seat, and that it writes for a council seat), a seat whose variable comes back empty carries no note, and with no template no note exists at all. The variable is unregistered at the end.", TestCouncilSeatNote),
          new SelfTest("transient_party_registry", Severity.Light, "The one service for the mod's transient parties (26/09/2026, the event-listeners map's proposal): spawns two real throwaway parties and tracks them under a test role. A party the registry RELEASES leaves the map and is never reported as a loss; a party destroyed by anything else is reported to its owner exactly once. Both parties are gone at the end.", TestTransientPartyRegistry),
@@ -9731,6 +9732,25 @@ namespace CalradiaRemembers.Diagnostics
       ///   player's party is recovered unread. Runs without the model or the rumour (DebugDefeatCarrier), and removes
       ///   the memory it added.
       /// </summary>
+      private static string TestMercenaryCompanyJudged(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("mercenary_company_judged");
+
+         Clan company = Clan.All.FirstOrDefault(c => c != null && c != Clan.PlayerClan && c.IsUnderMercenaryService && c.Kingdom != null && c.Leader != null);
+         if (t.Skip(company == null, "no company of the game is in a realm's pay right now")) return t.Line();
+         if (t.Abort(WorldEvents.MercenaryReputationBehavior.Instance == null, "the mercenary behaviour is not running")) return t.Line();
+
+         (MercenaryDepartureVerdict verdict, string summary) = WorldEvents.MercenaryReputationBehavior.Instance.DebugJudgeCompany(company, company.Kingdom);
+
+         t.Note($"{company.Name} in {company.Kingdom.Name}'s pay: {verdict}; \"{summary}\"");
+         t.Expect("theNewsNamesTheCompany", summary.Contains(company.Name.ToString()), true);
+         t.Expect("theNewsNamesTheRealm", summary.Contains(company.Kingdom.Name.ToString()), true);
+         t.Expect("onlyAbandonmentOrBetrayalIsNews", MercenaryDeparturePolicy.CompanyDepartureIsNews(verdict),
+            verdict == MercenaryDepartureVerdict.Abandoned || verdict == MercenaryDepartureVerdict.Betrayal);
+
+         return t.Line();
+      }
+
       private static string TestFactionBlockRealm(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("faction_block_realm");

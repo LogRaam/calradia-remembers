@@ -9,8 +9,11 @@
 //   - The departure is kept for BetrayalWindowDays: joining the former employer's enemy within it upgrades the verdict
 //     to a betrayal, charging only the difference.
 //   - Joining a realm of one's own people in a war it is losing is remembered well by its lords.
+//   - The GAME's own companies are judged by the same grid (Zivkyn, Nexus: "why does nobody resent the
+//     Skolderbrotva?"): the realm's lords take it out on the company's leader through the game's own relation (the
+//     mod's regard is toward the player only), and word goes about only of an abandonment or a betrayal.
 //
-// Additive save key.
+// Additive save keys.
 
 #region
 
@@ -33,6 +36,11 @@ namespace CalradiaRemembers.WorldEvents
    public sealed class MercenaryReputationBehavior : CampaignBehaviorBase
    {
       private const string SaveKey = "CR_MercenaryDeparture_v1bytes";
+
+      // The game's companies: their last departure, by clan id, kept for BetrayalWindowDays (additive key, 27/09/2026).
+      private const string CompaniesSaveKey = "CR_MercenaryCompanyDepartures_v1bytes";
+
+      private Dictionary<string, Departure> _companies = new();
 
       public static MercenaryReputationBehavior Instance { get; private set; }
 
@@ -118,6 +126,39 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       /// <summary>
+      ///   One of the GAME's mercenary companies left a realm, took a new contract, or both at once. Judged by the same
+      ///   grid as the player's: the realm's lords take it out on the company's leader (the game's relation), word goes
+      ///   about of an abandonment or a betrayal, and joining the former employer's enemy within the window is a betrayal.
+      /// </summary>
+      public void OnCompanyChangedKingdom(Clan company, Kingdom oldKingdom, Kingdom newKingdom, bool leftAsMercenary, bool joinedAsMercenary)
+      {
+         try
+         {
+            if (company == null || company == Clan.PlayerClan || company.Leader == null) return;
+
+            // Straight over to the former employer's enemy in one step: one piece of news (the betrayal), not two.
+            bool straightToEnemy = joinedAsMercenary && oldKingdom != null && newKingdom != null && newKingdom != oldKingdom
+                                   && FactionManager.IsAtWarAgainstFaction(newKingdom, oldKingdom);
+
+            if (oldKingdom != null && (leftAsMercenary || joinedAsMercenary)) JudgeCompanyDeparture(company, oldKingdom, announce: !straightToEnemy);
+            if (joinedAsMercenary && newKingdom != null) JudgeCompanyNewService(company, newKingdom);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[MERCENARY] judging {company?.Name}'s change of contract failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>Test seam (cr.testall): how <paramref name="company" /> leaving <paramref name="kingdom" /> now would be judged and worded, applying nothing.</summary>
+      internal (MercenaryDepartureVerdict Verdict, string Summary) DebugJudgeCompany(Clan company, Kingdom kingdom)
+      {
+         (bool atWar, float own, float enemies) = WarFooting(kingdom);
+         MercenaryDepartureVerdict verdict = MercenaryDeparturePolicy.Judge(new MercenaryDepartureFacts {EmployerAtWar = atWar, EmployerStrength = own, EnemiesStrength = enemies});
+
+         return (verdict, MercenaryDeparturePolicy.CompanySummary(verdict, company?.Name?.ToString(), kingdom?.Name?.ToString()));
+      }
+
+      /// <summary>
       ///   Test seam (cr.testall): the verdict a contract with <paramref name="kingdom" /> would end on right now, and
       ///   the realm's footing, WITHOUT applying anything (no regard, no memory, no news).
       /// </summary>
@@ -144,8 +185,31 @@ namespace CalradiaRemembers.WorldEvents
             try { dataStore.SyncData(SaveKey, ref bytes); }
             catch (Exception ex) { ModLog.Error($"[MERCENARY] save failed: {ex.GetType().Name}: {ex.Message}"); }
 
+            byte[] companies;
+            try { companies = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_companies, Formatting.None)); }
+            catch (Exception ex)
+            {
+               ModLog.Error($"[MERCENARY] companies serialize failed, persisting none this save. {ex.GetType().Name}: {ex.Message}");
+               companies = Encoding.UTF8.GetBytes("{}");
+            }
+
+            try { dataStore.SyncData(CompaniesSaveKey, ref companies); }
+            catch (Exception ex) { ModLog.Error($"[MERCENARY] companies save failed: {ex.GetType().Name}: {ex.Message}"); }
+
             return;
          }
+
+         byte[] loadedCompanies = null;
+         try { dataStore.SyncData(CompaniesSaveKey, ref loadedCompanies); }
+         catch
+         {
+            /* key absent in older saves */
+         }
+
+         _companies = new Dictionary<string, Departure>();
+         if (loadedCompanies is {Length: > 0})
+            try { _companies = JsonConvert.DeserializeObject<Dictionary<string, Departure>>(Encoding.UTF8.GetString(loadedCompanies)) ?? new Dictionary<string, Departure>(); }
+            catch (Exception ex) { ModLog.Error($"[MERCENARY] companies load failed, their departures are dropped. {ex.GetType().Name}: {ex.Message}"); }
 
          byte[] loaded = null;
          try { dataStore.SyncData(SaveKey, ref loaded); }
@@ -242,6 +306,67 @@ namespace CalradiaRemembers.WorldEvents
             if (memory != null) profile.Events.Add(new NotableEvent(Today, NotableEventType.Other, memory));
             store.Set(profile);
          }
+      }
+
+      /// <summary>A company's departure from <paramref name="kingdom" />, judged, taken out on its leader, and kept for a betrayal.</summary>
+      private void JudgeCompanyDeparture(Clan company, Kingdom kingdom, bool announce)
+      {
+         (bool atWar, float own, float enemies) = WarFooting(kingdom);
+         MercenaryDepartureVerdict verdict = MercenaryDeparturePolicy.Judge(new MercenaryDepartureFacts {
+            EmployerAtWar = atWar, EmployerStrength = own, EnemiesStrength = enemies
+         });
+         bool sameCulture = company.Culture != null && company.Culture == kingdom.Culture;
+
+         ShiftLordsTowardCompany(kingdom, company, MercenaryDeparturePolicy.RegardShift(verdict, sameCulture));
+         if (announce && MercenaryDeparturePolicy.CompanyDepartureIsNews(verdict)) RecordCompanyNews(company, kingdom, verdict, null);
+
+         foreach (string stale in _companies.Where(d => Today - d.Value.Day > MercenaryDeparturePolicy.BetrayalWindowDays).Select(d => d.Key).ToList())
+            _companies.Remove(stale);
+         _companies[company.StringId] = new Departure {KingdomId = kingdom.StringId, Day = Today, Verdict = verdict, SameCulture = sameCulture};
+
+         ModLog.Info($"[MERCENARY] company {company.Name} left {kingdom.Name}: {verdict} (at war {atWar}, strength {own:0} vs {enemies:0}).");
+      }
+
+      /// <summary>A company took a new contract: going over to its former employer's enemy within the window is a betrayal.</summary>
+      private void JudgeCompanyNewService(Clan company, Kingdom kingdom)
+      {
+         if (!_companies.TryGetValue(company.StringId, out Departure last)) return;
+
+         Kingdom former = Kingdom.All?.FirstOrDefault(k => k.StringId == last.KingdomId);
+         bool atWarWithFormer = former != null && former != kingdom && FactionManager.IsAtWarAgainstFaction(kingdom, former);
+         _companies.Remove(company.StringId);
+
+         if (former == null || !MercenaryDeparturePolicy.IsBetrayal(last.Day, Today, atWarWithFormer)) return;
+
+         ShiftLordsTowardCompany(former, company, MercenaryDeparturePolicy.BetrayalUpgradeShift(last.Verdict, last.SameCulture));
+         RecordCompanyNews(company, former, MercenaryDepartureVerdict.Betrayal, kingdom.Name?.ToString());
+         ModLog.Info($"[MERCENARY] company {company.Name} went over to {kingdom.Name}, {former.Name}'s enemy: a betrayal.");
+      }
+
+      /// <summary>The realm's lords take it out on the company's leader, through the game's own relation.</summary>
+      private static void ShiftLordsTowardCompany(Kingdom kingdom, Clan company, int shift)
+      {
+         if (shift == 0 || company.Leader == null) return;
+
+         foreach (Hero lord in RealmLords(kingdom).Where(h => h.Clan != company))
+            TaleWorlds.CampaignSystem.Actions.ChangeRelationAction.ApplyRelationChangeBetweenHeroes(lord, company.Leader, shift, false);
+      }
+
+      private static void RecordCompanyNews(Clan company, Kingdom kingdom, MercenaryDepartureVerdict verdict, string enemyName)
+      {
+         Kingdom enemy = enemyName == null ? null : Kingdom.All?.FirstOrDefault(k => k.Name?.ToString() == enemyName);
+         var factions = new List<string> {kingdom.StringId};
+         if (enemy != null) factions.Add(enemy.StringId);
+
+         WorldEventStore.Instance?.Record(new WorldEvent {
+            Type = WorldEventType.Other,
+            Day = Today,
+            Magnitude = MercenaryDeparturePolicy.Magnitude(verdict),
+            Summary = MercenaryDeparturePolicy.CompanySummary(verdict, company.Name?.ToString(), kingdom.Name?.ToString(), enemyName),
+            ActorIds = new List<string> {company.Leader?.StringId}.Where(id => id != null).ToList(),
+            FactionIds = factions,
+            ChronicleLine = MercenaryDeparturePolicy.CompanyChronicleLine(verdict, company.Name?.ToString(), kingdom.Name?.ToString(), enemyName)
+         });
       }
 
       /// <summary>The last contract the player left, kept for a later betrayal.</summary>

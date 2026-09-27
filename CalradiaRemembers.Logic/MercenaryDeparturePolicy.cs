@@ -153,6 +153,48 @@ namespace CalradiaRemembers.Logic
             _ => null
          };
 
+      /// <summary>
+      ///   Whether one of the GAME's companies leaving a realm is news (Zivkyn, Nexus: "why does nobody resent the
+      ///   Skolderbrotva?"). Only abandonment and betrayal: companies change contracts often, and a peaceful end or a
+      ///   departure with the war won is not something the realm's lords talk about.
+      /// </summary>
+      public static bool CompanyDepartureIsNews(MercenaryDepartureVerdict verdict)
+         => verdict == MercenaryDepartureVerdict.Abandoned || verdict == MercenaryDepartureVerdict.Betrayal;
+
+      /// <summary>The news line about one of the game's companies, as characters hear it.</summary>
+      public static string CompanySummary(MercenaryDepartureVerdict verdict, string company, string realm, string enemy = null)
+      {
+         string who = CompanyName(company);
+
+         return verdict switch
+         {
+            MercenaryDepartureVerdict.Abandoned => $"{who} abandoned {realm} in the middle of a losing war, and kept the pay.",
+            MercenaryDepartureVerdict.Betrayal => $"{who} left {realm}'s service in the middle of the war and went over to its enemy{(string.IsNullOrWhiteSpace(enemy) ? "" : ", " + enemy)}.",
+            MercenaryDepartureVerdict.ReleasedInVictory => $"{who} left {realm}'s service with the war well in hand.",
+            _ => $"{who}'s contract with {realm} came to an end."
+         };
+      }
+
+      /// <summary>The chronicler's line about one of the game's companies.</summary>
+      public static string CompanyChronicleLine(MercenaryDepartureVerdict verdict, string company, string realm, string enemy = null)
+      {
+         string who = CompanyName(company);
+
+         return verdict == MercenaryDepartureVerdict.Betrayal
+            ? $"{who} turned from {realm} to its enemy{(string.IsNullOrWhiteSpace(enemy) ? "" : " " + enemy)} in the middle of the war"
+            : $"{who} left {realm} to a losing war, and kept the pay";
+      }
+
+      /// <summary>"Skolderbrotva" reads "The Skolderbrotva"; a name that already opens with its article keeps it.</summary>
+      private static string CompanyName(string company)
+      {
+         string name = string.IsNullOrWhiteSpace(company) ? "a mercenary company" : company.Trim();
+
+         return name.StartsWith("the ", System.StringComparison.OrdinalIgnoreCase) || name.StartsWith("a ", System.StringComparison.OrdinalIgnoreCase)
+            ? char.ToUpperInvariant(name[0]) + name.Substring(1)
+            : "The " + name;
+      }
+
       /// <summary>What the lords of a realm remember of a company of their own people come to their aid.</summary>
       public static string AidOfKinMemory(string player)
          => $"{player}, one of our own people, brought the company to our aid while the war was going against us.";

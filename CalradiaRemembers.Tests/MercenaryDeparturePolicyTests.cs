@@ -100,5 +100,40 @@ namespace CalradiaRemembers.Tests
          summary.Should().NotContain("oath").And.NotContain("fealty");
          MercenaryDeparturePolicy.LordMemory(MercenaryDepartureVerdict.AtPeace, "Brennoc").Should().BeNull();
       }
-   }
+   
+      // ── The game's own companies (Zivkyn, Nexus: "why does nobody resent the Skolderbrotva?") ─────────────────
+      //
+      // The grid judged only the PLAYER's company. The game's mercenary clans change sides in the middle of a war, and
+      // no lord of the realm they left ever held it against them. The same grid now judges them, but word of it goes
+      // about only when there is something to hold: companies change contracts often, and a peaceful end or a
+      // departure with the war won is not news.
+
+      [TestCase(MercenaryDepartureVerdict.Abandoned, true)]
+      [TestCase(MercenaryDepartureVerdict.Betrayal, true)]
+      [TestCase(MercenaryDepartureVerdict.AtPeace, false)]
+      [TestCase(MercenaryDepartureVerdict.ReleasedInVictory, false)]
+      public void GIVEN_a_company_departure_WHEN_asked_whether_it_is_news_THEN_only_abandonment_and_betrayal_are(
+         MercenaryDepartureVerdict verdict, bool news)
+      {
+         MercenaryDeparturePolicy.CompanyDepartureIsNews(verdict).Should().Be(news);
+      }
+
+      // Zivkyn's case, in the words the realm's lords will hear.
+      [Test]
+      public void GIVEN_a_company_that_went_over_to_the_enemy_WHEN_worded_THEN_it_names_the_company_the_realm_and_the_enemy()
+      {
+         MercenaryDeparturePolicy.CompanySummary(MercenaryDepartureVerdict.Betrayal, "Skolderbrotva", "Vlandia", "Sturgia")
+                                 .Should().Be("The Skolderbrotva left Vlandia's service in the middle of the war and went over to its enemy, Sturgia.");
+         MercenaryDeparturePolicy.CompanySummary(MercenaryDepartureVerdict.Abandoned, "Skolderbrotva", "Vlandia")
+                                 .Should().Be("The Skolderbrotva abandoned Vlandia in the middle of a losing war, and kept the pay.");
+      }
+
+      // A company whose name already carries its article is not given a second one.
+      [Test]
+      public void GIVEN_a_company_named_with_its_article_WHEN_worded_THEN_the_article_is_not_doubled()
+      {
+         MercenaryDeparturePolicy.CompanySummary(MercenaryDepartureVerdict.Abandoned, "The Brotherhood of the Woods", "Battania")
+                                 .Should().StartWith("The Brotherhood of the Woods abandoned");
+      }
+}
 }

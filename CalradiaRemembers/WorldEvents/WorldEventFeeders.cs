@@ -690,7 +690,17 @@ namespace CalradiaRemembers.WorldEvents
       private void OnClanChangedKingdom(
          Clan clan, Kingdom oldKingdom, Kingdom newKingdom, ChangeKingdomAction.ChangeKingdomActionDetail detail, bool showNotification)
       {
-         if (clan == null || clan != Clan.PlayerClan || Store == null) return;
+         // The GAME's own companies (Zivkyn: "why does nobody resent the Skolderbrotva?"), judged by fkasad's grid.
+         if (clan != null && clan != Clan.PlayerClan)
+         {
+            bool left = detail == ChangeKingdomAction.ChangeKingdomActionDetail.LeaveAsMercenary;
+            bool joined = detail == ChangeKingdomAction.ChangeKingdomActionDetail.JoinAsMercenary;
+            if (left || joined) MercenaryReputationBehavior.Instance?.OnCompanyChangedKingdom(clan, oldKingdom, newKingdom, left, joined);
+
+            return;
+         }
+
+         if (clan == null || Store == null) return;
          try
          {
             switch (detail)
