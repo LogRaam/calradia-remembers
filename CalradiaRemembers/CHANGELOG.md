@@ -2,6 +2,24 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.6.3.. 2026-09-27
+
+### Fixed
+- **A captive's ransom is paid once, at the figure the buyer could really pay, and says so** (tashmetu, Nexus,
+  27/09/2026, on 2.5.25). A lord named "fifteen thousand denars ... I will pay it now"; the game paid 5098 (the price
+  is held to three times the captive's ransom value, then to the buyer's purse), then attempted a SECOND payment from
+  a give_gold the model had also emitted. Its refusal, "(... reaches for a purse that holds nothing ...)", was read by
+  the model as a fact, and the lord accused the player of seizing her treasury and remembered it.
+  - buy_prisoner's teaching gives, per captive, the most THIS buyer can pay, or that they cannot raise a fair price
+    (`PrisonerTradePolicy.MostABuyerCanPay`), so the figure is known before it is named.
+  - A payment short of the figure named says why (`ShortfallNote`): all the buyer could raise, or the most such a
+    captive fetches.
+  - A give_gold or take_gold in a turn that also buys or sells a captive is dropped as the same payment written twice
+    (`IsPaymentForATradeThisTurn`), whichever came first.
+  - The empty-purse refusal is a plain statement: "(<giver> has no coin to give, so none changed hands.)".
+  - Tests: `PrisonerTradePaymentTests` (11); `cr.testall prisoner_ransom_home` asserts the player is told why the
+    figure named was not paid.
+
 ## v2.6.2.. 2026-09-27
 
 ### For modders (tashmetu, Nexus, 26/09/2026)
