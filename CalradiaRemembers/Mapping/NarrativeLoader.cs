@@ -29,12 +29,19 @@ namespace CalradiaRemembers.Mapping
       public static string PostHistoryInstructions { get; private set; } = "";
       public static string WorldDescription { get; private set; } = "";
 
+      /// <summary>
+      ///   council_seat.txt: a template expanded once per seated council member with that member's own variables
+      ///   (CouncilSeatNoteResolver). CR ships none; it exists for other mods, through cr_patch (tashmetu, 26/09/2026).
+      /// </summary>
+      public static string CouncilSeatTemplate { get; private set; } = "";
+
       public static void Load()
       {
          WorldDescription = ReadFile("world.txt", "world description");
          PlayerDescription = ReadFile("player_description.txt", "player description");
          BehaviorGuidelines = ReadFile("behavior_guidelines.txt", "behavior guidelines");
          PostHistoryInstructions = ReadFile("post_history_instructions.txt", "post-history instructions");
+         CouncilSeatTemplate = ReadFile("council_seat.txt", "council seat");
 
          _stationGuidelines.Clear();
          foreach (string station in new[] {"gangleader", "notable", "wanderer", "companion"})

@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 430 types in 56 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 431 types in 56 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 815 types in 26 namespaces, 2 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 240 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 241 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -458,11 +458,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (13)
+### CalradiaRemembers.Mapping (14)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ContextualNameResolver` | public static class | Scans the player's message for hero names and produces a ready-to-inject hint block for the LLM system prompt. |
+| `CouncilSeatNoteResolver` | internal static class | Resolves one council seat's modder note from council_seat.txt and that seat's own variables. |
 | `CulturalTraditionsLoader` | public static class | Loads and caches the cultural_traditions.json file from the mod's own ModuleData folder (and, if present, ModuleData/Custom first). |
 | `EncounterContextBuilder` | public static class | Constructs an EncounterContext for a given NPC, using the game state bridge for live data and the stored profile for historical data (last-meeting computation). |
 | `FirstImpressionResolver` | public static class | Builds the ready-to-inject "first impression" line for a barely-known noble, or null. |
@@ -1955,7 +1956,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpeakerScriptGuard` | public static class | Cuts turns a reply wrote for OTHER people out of it. |
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
 
-### NpcMemoryService.Core.Prompts (29)
+### NpcMemoryService.Core.Prompts (30)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1965,6 +1966,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilMemberInput` | public class | One seated councillor for a CouncilPromptInput. |
 | `CouncilPromptBuilder` | public static class | Builds the system prompt for one council one-call group-scene turn. |
 | `CouncilPromptInput` | public class | Everything CouncilPromptBuilder.Build needs to assemble one council group-scene turn. |
+| `CouncilSeatNote` | public static class | Composes one council seat's modder note from the council_seat template and that seat's variables. |
 | `EnvoyPromptBuilder` | public static class | Builds the envoy's system prompt. |
 | `EnvoyPromptInput` | public class | Everything the envoy knows, composed by the host. |
 | `GameActionDefinition` | public class | One action that the LLM may emit in an [ACTION] section. |

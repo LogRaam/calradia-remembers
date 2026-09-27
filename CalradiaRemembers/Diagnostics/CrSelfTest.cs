@@ -279,6 +279,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
+         new SelfTest("council_seat_note", Severity.Light, "The council's per-seat door for other mods (tashmetu, Bellum Civile bridge, 26/09/2026): registers a throwaway {{variable}}, then resolves a council_seat template for two real lords. Each seat must carry ITS OWN value (the provider is told which seat, and that it writes for a council seat), a seat whose variable comes back empty carries no note, and with no template no note exists at all. The variable is unregistered at the end.", TestCouncilSeatNote),
          new SelfTest("transient_party_registry", Severity.Light, "The one service for the mod's transient parties (26/09/2026, the event-listeners map's proposal): spawns two real throwaway parties and tracks them under a test role. A party the registry RELEASES leaves the map and is never reported as a loss; a party destroyed by anything else is reported to its owner exactly once. Both parties are gone at the end.", TestTransientPartyRegistry),
          new SelfTest("mercenary_departure_judged", Severity.Light, "fkasad's grid (25/09/2026): reads a real realm's war footing (at war, its strength against its enemies' combined strength) and judges how the end of a mercenary contract with it would be taken, without applying anything. Asserts a realm at peace is AtPeace and a realm at war is judged ReleasedInVictory or Abandoned as its strength says. No regard, memory or news is written.", TestMercenaryDepartureJudged),
          new SelfTest("courier_secret_travels", Severity.Light, "Courier secrets (raphareish 24/09/2026; Gabriel): an intercepted letter travels with its captors. Captures a [SELFTEST] letter onto a REAL bandit band, then has a real lord's party defeat the carrier (DebugDefeatCarrier, no LLM, no rumour) -> the secret leaves the band and the lord remembers what it said; a second capture defeated by the PLAYER's party is recovered unread. Removes the memory it added.", TestCourierSecretTravels),
@@ -9726,6 +9727,40 @@ namespace CalradiaRemembers.Diagnostics
       ///   player's party is recovered unread. Runs without the model or the rumour (DebugDefeatCarrier), and removes
       ///   the memory it added.
       /// </summary>
+      private static string TestCouncilSeatNote(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("council_seat_note");
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && h.IsLord).Take(2).ToList();
+         if (t.Skip(lords.Count < 2, "need two living lords to seat")) return t.Line();
+
+         const string variable = "cr_selftest_seat";
+         const string template = "=== FURTHER GUIDANCE ===\n{{char}}: {{" + variable + "}}";
+         string silentSeat = lords[1].StringId;
+         CrPrompt.RegisterVariable(variable, facts => facts.NpcId == silentSeat ? "" : $"seat {facts.NpcId}, council={facts.CouncilSeat}.");
+
+         try
+         {
+            string first = Mapping.CouncilSeatNoteResolver.Resolve(lords[0], behavior.Store.Get(lords[0].StringId), lords[0].Name.ToString(), template);
+            string second = Mapping.CouncilSeatNoteResolver.Resolve(lords[1], behavior.Store.Get(lords[1].StringId), lords[1].Name.ToString(), template);
+            string none = Mapping.CouncilSeatNoteResolver.Resolve(lords[0], null, lords[0].Name.ToString(), "");
+
+            t.Note($"first=\"{first}\" second=\"{second}\"");
+            t.Expect("aSeatCarriesItsOwnValue", first?.Contains($"seat {lords[0].StringId}") == true, true);
+            t.Expect("theProviderKnowsItIsASeat", first?.Contains("council=True") == true, true);
+            t.Expect("theSeatIsNamed", first?.StartsWith(lords[0].Name.ToString()) == true, true);
+            t.Expect("theHeadingIsDropped", first?.Contains("===") == true, false);
+            t.Expect("anEmptyValueLeavesOnlyWhatTheTemplateWrote", second, lords[1].Name + ":");
+            t.Expect("noTemplateNoNote", none, null);
+         }
+         finally
+         {
+            CrPrompt.Unregister(variable);
+         }
+
+         return t.Line();
+      }
+
       private static string TestTransientPartyRegistry(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("transient_party_registry");

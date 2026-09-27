@@ -185,6 +185,39 @@ replace your own provider (the last registration wins); call `CrPrompt.Unregiste
 to remove it. Neither call throws on a bad input (null/blank name, null provider): they are
 silently ignored.
 
+### 6a. Variables at the council table, one seat at a time (since 2.6.2)
+
+The council is one prompt voicing the whole table, and it does not read `behavior_guidelines.txt`
+or the other prompt files. To give each seated member your own text, contribute a template:
+
+```
+YourModule/ModuleData/cr_patch/council_seat.txt
+```
+
+It merges like any other `cr_patch` file (load order, `!remove`, `!replace`, `!#` comments). CR
+ships no `council_seat.txt` of its own, so without a contribution nothing changes and no provider
+is called for the council at all.
+
+For EACH seated member, CR expands the template with that member's own variables and prints the
+result under that member's roster line, announced as "<Name>'s own view (not common knowledge; it
+shows only when the matter touches it)". Your provider is called once per seat, on the game
+thread, with `facts.NpcId` = that seat and `facts.CouncilSeat = true`. Two things differ from a
+private word:
+
+- **Write in the third person.** At this table "you" means the PLAYER ("remembers of you",
+  "regard toward the player"). Use the seat's name, or he/she, never "you" for the seat. Check
+  `facts.CouncilSeat` and phrase accordingly.
+- **Keep it short.** A seat's note is cut at a sentence past 700 characters, and a table seats up
+  to six. `facts.Lean` still tells you when the player runs the Compact prompt.
+
+`{{char}}` is the seat's name and `{{user}}` the player's. Headings (`=== ...`) and blank lines are
+dropped. A seat whose text comes out empty carries no note.
+
+```
+!# council_seat.txt: Bellum Civile's view of each seat
+{{bc_temper}}
+```
+
 ---
 
 ## 6b. Make the NPC voice the outcome (ActionResult.Recap / CrConversation.PromptReply)

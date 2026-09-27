@@ -354,7 +354,7 @@ namespace CalradiaRemembers
       ///   cr.reload_prompts
       ///   Reloads the prompt/lore DATA files from disk (Custom-first) without relaunching, for modders iterating
       ///   on a total-overhaul: the narrative texts (world.txt, player_description.txt, behavior_guidelines*.txt,
-      ///   post_history_instructions.txt), setting.json, cultural_traditions.json, and jealousy_cultures.json.
+      ///   post_history_instructions.txt, council_seat.txt), setting.json, cultural_traditions.json, and jealousy_cultures.json.
       ///   These are otherwise read only at session launch, so an edit needed a save reload before; cr.reload_lore
       ///   covers ONLY character_overrides.json, which is why editing a prompt file and running reload_lore looked
       ///   like the Custom folder was ignored. Styles are read per use, so they need no reload (just re-pick one).
@@ -462,8 +462,8 @@ namespace CalradiaRemembers
          string[] files = {
             "world.txt", "player_description.txt", "behavior_guidelines.txt", "behavior_guidelines_gangleader.txt",
             "behavior_guidelines_notable.txt", "behavior_guidelines_wanderer.txt", "behavior_guidelines_companion.txt",
-            "post_history_instructions.txt", "setting.json", "cultural_traditions.json", "jealousy_cultures.json",
-            "character_overrides.json"
+            "post_history_instructions.txt", "council_seat.txt", "setting.json", "cultural_traditions.json",
+            "jealousy_cultures.json", "character_overrides.json"
          };
 
          sb.AppendLine($"Custom folder: {Mapping.NarrativeLoader.CustomBaseFolder()}");

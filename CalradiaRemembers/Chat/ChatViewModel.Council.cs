@@ -1214,7 +1214,10 @@ namespace CalradiaRemembers.Chat
                // Discretion fails closed and nothing held as Secret reaches the room.
                Knowledge = ComposeSeatKnowledge(hero, p),
                Culture = hero?.Culture?.StringId,
-               Age = hero != null ? (int?) hero.Age : null // so a seated child/youth is voiced true to their years
+               Age = hero != null ? (int?) hero.Age : null, // so a seated child/youth is voiced true to their years
+               // Another mod's view of THIS seat (council_seat.txt through cr_patch), resolved here on the game
+               // thread with this seat's own variables (tashmetu, 26/09/2026). Null unless a mod contributes one.
+               ModderNote = Mapping.CouncilSeatNoteResolver.Resolve(hero, p, names[i])
             });
          }
 
