@@ -58,6 +58,7 @@ using CalradiaRemembers.Travel;
 using CalradiaRemembers.WorldAlmanac;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
+using NpcMemoryService.Core.Standing;
 using NpcMemoryService.Core.Actions;
 using NpcMemoryService.Core.Captivity;
 using NpcMemoryService.Core.Extension;
@@ -3512,6 +3513,9 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      /// <summary>Test arrangement, not a rung: a relation this close to the engine's -100 floor leaves no room for a measurable drop.</summary>
+      private const int NearTheEngineFloor = -90;
+
       /// <summary>
       ///   Couriers through a save: the registry's despawn and restore, driven without saving, leave the letter in
       ///   flight on a live courier where the old one stood.
@@ -3890,7 +3894,7 @@ namespace CalradiaRemembers.Diagnostics
 
          Hero bestFriendCandidate = Hero.AllAliveHeroes
                                         .Where(h => h != null && h != spouse && h != npc && h != Hero.MainHero && !directFamilyCandidates.Contains(h))
-                                        .Where(h => h.GetRelation(spouse) >= 20)
+                                        .Where(h => h.GetRelation(spouse) >= VanillaRelation.TrustedTier)
                                         .OrderByDescending(h => h.GetRelation(spouse))
                                         .FirstOrDefault();
 
@@ -5478,7 +5482,7 @@ namespace CalradiaRemembers.Diagnostics
 
          // SelectSwayTarget picks the most-negative rival, which can already sit at the -100 engine floor
          // where a further drop clamps to nothing, give the relation headroom, mirrors TestRpSway.
-         if (npc.GetRelation(target) <= -90)
+         if (npc.GetRelation(target) <= NearTheEngineFloor)
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, -50 - npc.GetRelation(target), false);
 
          var today = (int) CampaignTime.Now.ToDays;
@@ -10197,7 +10201,7 @@ namespace CalradiaRemembers.Diagnostics
 
          // SelectSwayTarget picks the most-negative rival, which can already sit at the -100 engine floor
          // where a further drop clamps to nothing. Give the relation headroom so the delta is measurable.
-         if (npc.GetRelation(target) <= -90)
+         if (npc.GetRelation(target) <= NearTheEngineFloor)
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, -50 - npc.GetRelation(target), false);
 
          int relBefore = npc.GetRelation(target);
@@ -10321,7 +10325,7 @@ namespace CalradiaRemembers.Diagnostics
             h != Hero.MainHero && h.IsLord && h.Clan != Clan.PlayerClan && Free(h));
          // The target must NOT be allied with the player (relation < 20, different faction)
          Hero target = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != plotter && h != Hero.MainHero && h.IsLord && h.MapFaction != Hero.MainHero?.MapFaction && h.GetRelation(Hero.MainHero) < 20 && h.Clan != plotter?.Clan && Free(h));
+            h != plotter && h != Hero.MainHero && h.IsLord && h.MapFaction != Hero.MainHero?.MapFaction && h.GetRelation(Hero.MainHero) < VanillaRelation.TrustedTier && h.Clan != plotter?.Clan && Free(h));
 
          if (t.Skip(plotter == null || target == null, "need a fresh plotter + non-allied target (none unentangled)")) return t.Line();
 

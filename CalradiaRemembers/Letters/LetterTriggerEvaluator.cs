@@ -250,7 +250,7 @@ namespace CalradiaRemembers.Letters
             if (profile?.Romantic == null) continue;
             // M-R1: an ACTIVE romance (courting or deeper); Estranged/Broken must not draw romantic letters.
             if (!profile.Romantic.Status.IsCourtingOrDeeper()) continue;
-            if (profile.ReputationWithPlayer < 15) continue;
+            if (profile.ReputationWithPlayer < Regard.GenuineTier) continue;
 
             Hero hero = Hero.FindFirst(h => h.StringId == id);
 
@@ -301,7 +301,7 @@ namespace CalradiaRemembers.Letters
             if (profile?.Romantic == null) continue;
             // M-R1: an ACTIVE romance (courting or deeper); Estranged/Broken must not draw romantic letters.
             if (!profile.Romantic.Status.IsCourtingOrDeeper()) continue;
-            if (profile.ReputationWithPlayer < 15) continue;
+            if (profile.ReputationWithPlayer < Regard.GenuineTier) continue;
 
             Hero hero = Hero.FindFirst(h => h.StringId == id);
 
@@ -406,7 +406,7 @@ namespace CalradiaRemembers.Letters
             NpcProfile profile = store.Get(id);
 
             if (profile == null) continue;
-            if (profile.ReputationWithPlayer < 20) continue;
+            if (profile.ReputationWithPlayer < Regard.WarmTier) continue;
 
             Hero hero = Hero.FindFirst(h => h.StringId == id);
 
@@ -575,7 +575,7 @@ namespace CalradiaRemembers.Letters
             NpcProfile profile = store.Get(id);
 
             if (profile == null) continue;
-            if (profile.ReputationWithPlayer < 30) continue; // they must genuinely rate the player to poach them
+            if (profile.ReputationWithPlayer < Regard.ConfidingTier) continue; // they must genuinely rate the player to poach them
 
             Hero hero = Hero.FindFirst(h => h.StringId == id);
 
@@ -1053,7 +1053,7 @@ namespace CalradiaRemembers.Letters
             if (IsWithPlayer(hero)) continue; // travelling companion, no letter needed
 
             // Friendly NPCs congratulate; rivals or hostiles might challenge.
-            if (profile.ReputationWithPlayer < 10) continue;
+            if (profile.ReputationWithPlayer < Regard.FondTier) continue;
 
             profile.LetterCandidates.Add(new LetterCandidateIntent {
                Reason = LetterReason.TournamentVictory,
@@ -1093,7 +1093,7 @@ namespace CalradiaRemembers.Letters
             // Ally of the player (same faction or high personal regard) celebrates.
             bool sameOrAllied = hero.MapFaction != null && hero.MapFaction == Hero.MainHero?.MapFaction;
 
-            if (!sameOrAllied || profile.ReputationWithPlayer < 20) continue;
+            if (!sameOrAllied || profile.ReputationWithPlayer < Regard.WarmTier) continue;
 
             profile.LetterCandidates.Add(new LetterCandidateIntent {
                Reason = LetterReason.BattleVictory,

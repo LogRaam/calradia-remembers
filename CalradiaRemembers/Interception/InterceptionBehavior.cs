@@ -28,6 +28,7 @@ using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
+using NpcMemoryService.Core.Standing;
 
 #endregion
 
@@ -1150,7 +1151,7 @@ namespace CalradiaRemembers.Interception
 
             if (lf != null && pf != null && lf != pf && FactionManager.IsAtWarAgainstFaction(lf, pf)) return true;
 
-            return lord.GetRelation(Hero.MainHero) <= -20;
+            return lord.GetRelation(Hero.MainHero) <= VanillaRelation.WaryTier;
          }
          catch { return false; }
       }

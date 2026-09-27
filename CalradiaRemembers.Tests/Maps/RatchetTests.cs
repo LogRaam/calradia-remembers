@@ -123,9 +123,11 @@ namespace CalradiaRemembers.Tests.Maps
       ///   28 once CompanionRapport.Band took a VanillaRelation and its four rungs were named; 27 once
       ///   ExternalMissionRules' reward stopped being called a "relation". The silent half of the bare-number measure above (Gabriel, 26/09/2026: a map that is
       ///   wrong without anyone noticing): that one counts CONSTANTS by their name, so a threshold written in place, with
-      ///   no constant at all, was invisible to it. May only go down.
+      ///   no constant at all, was invisible to it. 0 later that day: every one points at a rung (six new ones, no value
+      ///   moved), a quest reward's amount stopped being called a "relation", and a sign printed for display stopped
+      ///   counting as a decision. At zero this is no longer a ratchet but a wall: the next inline threshold fails.
       /// </summary>
-      private const int InlineRegardComparisonsOn26September = 27;
+      private const int InlineRegardComparisonsOn26September = 0;
 
       // THE SILENT HALF, ratcheted the same way: a rung compared in place is the same duplication as a bare constant,
       // only harder to see.

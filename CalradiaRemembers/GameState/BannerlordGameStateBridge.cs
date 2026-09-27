@@ -711,7 +711,7 @@ namespace CalradiaRemembers.GameState
          }
       }
 
-      public ActionOutcome GrantQuestReward(Hero npcHero, NpcProfile profile, int gold, int relation)
+      public ActionOutcome GrantQuestReward(Hero npcHero, NpcProfile profile, int gold, int rewardRelation)
       {
          if (npcHero == null || Hero.MainHero == null || profile == null) return null;
 
@@ -724,7 +724,7 @@ namespace CalradiaRemembers.GameState
             parts.Add($"{amount} denars");
          }
 
-         if (relation > 0)
+         if (rewardRelation > 0)
          {
             // Verified reward: applied straight to the personal score, bypassing the RelationGate cooldown/cap
             // (the deed was confirmed by real game events). 5.1: through the single clamp path ApplyReputationDelta.
@@ -732,10 +732,10 @@ namespace CalradiaRemembers.GameState
             // cooldown; a verified reward is a separate channel, and stamping it silently gated a warm chat's +1 to
             // 0 for 8h after a turn-in. Reward and conversation are independent, so the reward leaves the clock be.
             int before = profile.ReputationWithPlayer;
-            ProfileMutator.ApplyReputationDelta(profile, relation);
+            ProfileMutator.ApplyReputationDelta(profile, rewardRelation);
             int after = profile.ReputationWithPlayer;
             if (after != before) parts.Add($"+{after - before} regard");
-            ModLog.Info($"[QUEST] reward relation: {npcHero.Name} {before}→{after} (+{relation} promised)");
+            ModLog.Info($"[QUEST] reward relation: {npcHero.Name} {before}→{after} (+{rewardRelation} promised)");
          }
 
          if (parts.Count == 0) return null;

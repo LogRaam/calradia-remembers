@@ -138,7 +138,7 @@ namespace CalradiaRemembers.GameState
         ///   the relation cooldown and cap — the deed was confirmed by real game events.
         ///   Returns a combined outcome for the chat, or null when nothing was granted.
         /// </summary>
-        ActionOutcome GrantQuestReward(Hero npcHero, NpcProfile profile, int gold, int relation);
+        ActionOutcome GrantQuestReward(Hero npcHero, NpcProfile profile, int gold, int rewardRelation);
 
         /// <summary>
         ///   Honors a non-monetary bargain reward (<see cref="RewardGrant" />) the moment its

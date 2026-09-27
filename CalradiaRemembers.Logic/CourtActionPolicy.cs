@@ -48,7 +48,7 @@ namespace CalradiaRemembers.Logic
         public static int InfluenceGrant(VanillaRelation relation)
         {
             // The lord's relation with the player on the ENGINE's ledger (Hero.GetRelation), which every caller reads.
-            if (relation.Points <= 0) return 0;
+            if (relation.Points <= VanillaRelation.NeutralTier) return 0;
 
             int amount = InfluenceBaseGrant + relation.Points / InfluenceRelationDivisor;
 
@@ -117,7 +117,7 @@ namespace CalradiaRemembers.Logic
            int npcTotalRegularTroops = facts.NpcTotalRegularTroops;
            int playerRoom = facts.PlayerRoom;
 
-            if (relation <= 0 || npcTotalRegularTroops <= 0 || playerRoom <= 0) return 0;
+            if (relation <= VanillaRelation.NeutralTier || npcTotalRegularTroops <= 0 || playerRoom <= 0) return 0;
 
             int desired = Math.Min(relation / TroopLoanRelationDivisor, TroopLoanMaxCount);
             int mustKeep = (int) Math.Ceiling(npcTotalRegularTroops * TroopLoanMinRetainFraction);

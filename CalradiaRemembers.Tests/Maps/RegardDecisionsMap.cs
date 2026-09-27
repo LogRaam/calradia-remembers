@@ -217,6 +217,7 @@ namespace CalradiaRemembers.Tests.Maps
                Microsoft.CodeAnalysis.SyntaxNode read = leftNumber ? binary.Right : binary.Left;
                string how = ReadsRegard(read);
                if (how == null) continue;
+               if (PicksASignToPrint(binary)) continue;
 
                string owner = binary.Ancestors().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.BaseTypeDeclarationSyntax>().FirstOrDefault()?.Identifier.Text ?? "?";
                string member = binary.Ancestors().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MemberDeclarationSyntax>()
@@ -228,6 +229,28 @@ namespace CalradiaRemembers.Tests.Maps
 
          foreach (string entry in seen) yield return entry;
       }
+
+      /// <summary>
+      ///   A comparison with zero whose only use is to choose between two strings (<c>regard >= 0 ? "+" : ""</c>):
+      ///   it prints a sign, it decides nothing about the character. Found 26/09/2026 when the two FormatRegard
+      ///   helpers were the last "thresholds" left once every real one pointed at a rung.
+      /// </summary>
+      private static bool PicksASignToPrint(Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax binary)
+      {
+         Microsoft.CodeAnalysis.SyntaxNode number = IsBareNumber(binary.Left) ? binary.Left : binary.Right;
+         if (number.ToString().Trim() != "0") return false;
+
+         Microsoft.CodeAnalysis.SyntaxNode node = binary;
+         while (node.Parent is Microsoft.CodeAnalysis.CSharp.Syntax.ParenthesizedExpressionSyntax) node = node.Parent;
+
+         return node.Parent is Microsoft.CodeAnalysis.CSharp.Syntax.ConditionalExpressionSyntax conditional
+                && conditional.Condition == node
+                && IsText(conditional.WhenTrue) && IsText(conditional.WhenFalse);
+      }
+
+      private static bool IsText(Microsoft.CodeAnalysis.SyntaxNode node)
+         => node.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.StringLiteralExpression)
+            || node.ToString() is "string.Empty" or "String.Empty";
 
       private static bool IsComparison(Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax binary)
          => binary.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.LessThanExpression)

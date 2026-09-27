@@ -16,6 +16,7 @@ using CalradiaRemembers.Stance;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using NpcMemoryService.Core.Standing;
 
 #endregion
 
@@ -114,7 +115,7 @@ namespace CalradiaRemembers.Letters
                 if (StillAtWar(sender)) return true;
                 int regard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(senderId)?.ReputationWithPlayer ?? 0;
 
-                return regard < 0;
+                return regard < Regard.NeutralTier;
             }
 
             private static Hero HeroById(string id)

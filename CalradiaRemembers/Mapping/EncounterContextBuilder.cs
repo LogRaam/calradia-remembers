@@ -55,6 +55,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Settlements.Workshops;
 using TaleWorlds.Core;
 using TraitFacts = CalradiaRemembers.Logic.Grudges.TraitFacts;
+using NpcMemoryService.Core.Standing;
 
 #endregion
 
@@ -1521,7 +1522,7 @@ namespace CalradiaRemembers.Mapping
          if (!status.IsIntimateOrDeeper()) return false;
          if (status == RomanticStatus.Committed) return false;
 
-         return profile.ReputationWithPlayer >= 60;
+         return profile.ReputationWithPlayer >= Regard.DeepBondTier;
       }
 
       /// <summary>

@@ -115,7 +115,7 @@ namespace CalradiaRemembers.Logic
             if (relation <= BitterThreshold) return $"a bitter enemy ({DescribeRelation(relation)})";
             if (relation <= EnemyThreshold) return $"an enemy ({DescribeRelation(relation)})";
             if (sameClan) return "a member of your clan";
-            if (relation != 0) return $"an acquaintance ({DescribeRelation(relation)})";
+            if (relation != VanillaRelation.NeutralTier) return $"an acquaintance ({DescribeRelation(relation)})";
 
             return "not personally known to you";
         }
