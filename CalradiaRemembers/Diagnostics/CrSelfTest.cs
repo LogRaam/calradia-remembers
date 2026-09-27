@@ -9703,12 +9703,14 @@ namespace CalradiaRemembers.Diagnostics
             {
                TaleWorlds.Library.Vec2 stood = restored.GetPosition2D;
                string oldId = restored.StringId;
+               MobileParty original = restored;
                registry.Track(restored, role, "c", (p, _) => reported.Add(p.StringId),
                   pos => Travel.TravelingParty.Spawn(pos, null, new TextObject("[SELFTEST] restored"), 5f, Hero.MainHero.Culture, true, 2));
                registry.DebugSaveCycle();
 
                MobileParty back = registry.WithTag(role, "c");
-               t.Expect("restoredAfterTheSave", back != null && back.StringId != oldId, true);
+               // A NEW party (the engine may hand it the freed id again, so compare the objects, not the ids).
+               t.Expect("restoredAfterTheSave", back != null && !ReferenceEquals(back, original) && back.IsActive && !original.IsActive, true);
                t.Expect("restoredWhereItStood", back != null && back.GetPosition2D.Distance(stood) < 1f, true);
                t.Expect("saveDespawnIsNotALoss", reported.Contains(oldId), false);
                restored = back;
