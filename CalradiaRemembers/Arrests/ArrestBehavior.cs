@@ -644,16 +644,27 @@ namespace CalradiaRemembers.Arrests
          if (origin == null) return null;
 
          int strength = OutlawPolicy.HunterStrength(main.MemberRoster?.TotalManCount ?? 0);
-         MobileParty hunters = TravelingParty.Spawn(origin.GetPosition2D, origin, new TextObject($"Bounty hunters of {realm.Name}"),
-            SergeantSpeed, sovereign.Culture, false, strength, colours, sovereign);
+         MobileParty hunters = SpawnHunters(realm, origin.GetPosition2D, origin, strength, colours);
          if (hunters == null) return null;
 
-         TransientPartyRegistry.Instance?.Track(hunters, HuntersRole, realmId);
+         // Restored where they stood once a save is over, so a save never sends them back to their town.
+         TransientPartyRegistry.Instance?.Track(hunters, HuntersRole, realmId,
+            onRestore: at => SpawnHunters(realm, at, origin, strength, colours));
          _huntersSentDay[realmId] = Today;
          MBInformationManager.AddQuickInformation(new TextObject($"Word reaches you: {realm.Name} has sent bounty hunters after you."));
          ModLog.Info($"[ARREST] {realm.Name} sends {strength} bounty hunters from {origin.Name} (under {colours.Name}).");
 
          return hunters;
+      }
+
+      /// <summary>A band of the realm's bounty hunters, spawned at <paramref name="at" /> (the registry tracks it).</summary>
+      private static MobileParty SpawnHunters(IFaction realm, Vec2 at, Settlement home, int strength, Clan colours)
+      {
+         Hero sovereign = realm?.Leader;
+         if (sovereign == null || colours == null) return null;
+
+         return TravelingParty.Spawn(at, home, new TextObject($"Bounty hunters of {realm.Name}"),
+            SergeantSpeed, sovereign.Culture, false, strength, colours, sovereign);
       }
 
       /// <summary>
@@ -769,15 +780,25 @@ namespace CalradiaRemembers.Arrests
                                        .FirstOrDefault();
          Vec2 from = origin?.GetPosition2D ?? liege.GetMapPoint()?.Position.ToVec2() ?? player;
 
-         MobileParty sergeants = TravelingParty.Spawn(from, origin ?? liege.HomeSettlement, new TextObject($"Sergeants of {liege.Name}"),
-            SergeantSpeed, liege.Culture, false, SergeantCount, liege.Clan, liege);
+         MobileParty sergeants = SpawnSergeants(liege, from, origin ?? liege.HomeSettlement);
          if (sergeants == null) return null;
 
-         TransientPartyRegistry.Instance?.Track(sergeants, SergeantsRole, onDestroyed: OnSergeantsDestroyed);
+         // Restored where they stood once a save is over (26/09/2026: before, a save sent them back to their town on
+         // the next hour, so with frequent autosaves sergeants riding from far off might never reach the player).
+         Settlement home = origin ?? liege.HomeSettlement;
+         TransientPartyRegistry.Instance?.Track(sergeants, SergeantsRole, onDestroyed: OnSergeantsDestroyed,
+            onRestore: at => SpawnSergeants(liege, at, home));
          ModLog.Info($"[ARREST] sergeants of {liege.Name} ride from {origin?.Name?.ToString() ?? "the liege's side"} after the player.");
 
          return sergeants;
       }
+
+      /// <summary>The liege's sergeants, spawned at <paramref name="at" /> (the registry tracks them).</summary>
+      private static MobileParty SpawnSergeants(Hero liege, Vec2 at, Settlement home)
+         => liege == null
+            ? null
+            : TravelingParty.Spawn(at, home, new TextObject($"Sergeants of {liege.Name}"),
+               SergeantSpeed, liege.Culture, false, SergeantCount, liege.Clan, liege);
 
       private static MobileParty Sergeants() => TransientPartyRegistry.Instance?.OfRole(SergeantsRole).FirstOrDefault();
 

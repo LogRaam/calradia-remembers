@@ -9678,6 +9678,7 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Abort(released == null || lost == null, "could not spawn the throwaway parties")) return t.Line();
 
          var reported = new List<string>();
+         MobileParty restored = null;
          try
          {
             registry.Track(released, role, "a", (p, _) => reported.Add(p.StringId));
@@ -9694,12 +9695,31 @@ namespace CalradiaRemembers.Diagnostics
             Travel.TravelingParty.Destroy(lost);
             t.Expect("lossReportedOnce", reported.Count(id => id == lost.StringId), 1);
             t.Expect("nothingLeftTracked", registry.OfRole(role).Count, 0);
+
+            // A save's despawn and restore: a party tracked with a restore comes back where it stood, tracked again,
+            // and the despawn is not a loss (the sergeants' and hunters' fix, 26/09/2026).
+            restored = Travel.TravelingParty.Spawn(at, null, new TextObject("[SELFTEST] restored"), 5f, Hero.MainHero.Culture, true, 2);
+            if (restored != null)
+            {
+               TaleWorlds.Library.Vec2 stood = restored.GetPosition2D;
+               string oldId = restored.StringId;
+               registry.Track(restored, role, "c", (p, _) => reported.Add(p.StringId),
+                  pos => Travel.TravelingParty.Spawn(pos, null, new TextObject("[SELFTEST] restored"), 5f, Hero.MainHero.Culture, true, 2));
+               registry.DebugSaveCycle();
+
+               MobileParty back = registry.WithTag(role, "c");
+               t.Expect("restoredAfterTheSave", back != null && back.StringId != oldId, true);
+               t.Expect("restoredWhereItStood", back != null && back.GetPosition2D.Distance(stood) < 1f, true);
+               t.Expect("saveDespawnIsNotALoss", reported.Contains(oldId), false);
+               restored = back;
+            }
          }
          finally
          {
             if (released.IsActive) Travel.TravelingParty.Destroy(released);
             if (lost.IsActive) Travel.TravelingParty.Destroy(lost);
             registry.ReleaseRole(role);
+            if (restored is {IsActive: true}) Travel.TravelingParty.Destroy(restored);
          }
 
          return t.Line();
