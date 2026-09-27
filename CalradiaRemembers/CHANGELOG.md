@@ -2,6 +2,41 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.6.2.. 2026-09-27
+
+### For modders (tashmetu, Nexus, 26/09/2026)
+- **The council can carry your text, one seat at a time.** The council prompt carried no modder text at all (no
+  behavior_guidelines, no cr_patch, no `{{variables}}`), so a bridge's view of a lord never reached the table.
+  Contribute `ModuleData/cr_patch/council_seat.txt`: for each seated member CR expands it with that member's own
+  variables, on the game thread, and prints it under that member's roster line as "<Name>'s own view (not common
+  knowledge; it shows only when the matter touches it)" (SDK `CouncilSeatNote`, `CouncilMemberInput.ModderNote`; mod
+  `CouncilSeatNoteResolver`). New `PromptVarFacts.CouncilSeat` (added member, nothing removed): "you" is the PLAYER at
+  that table, so write about the seat in the third person. A note is cut at a sentence past 700 characters. CR ships
+  no council_seat.txt: without a contribution nothing changes and no provider is called. HOWTO_Actions section 6a;
+  `cr.reload_prompts` and `cr.lore_status` know the file; `cr.testall council_seat_note`.
+
+### Fixed
+- **Sergeants and bounty hunters no longer ride back to their town on every save.** A save took them off the map and
+  sent a fresh band from the town on the next hour, so with frequent autosaves a band riding from far off might never
+  reach the player. They are now put back where they stood once the save is over, the couriers' own recipe, now
+  shared by all three (`TransientPartyRegistry`).
+
+### Changed
+- **"friendly regard"** is the word from 10 to 14 on the personal-regard scale (was "cordial regard"), where a flirt
+  can turn into courtship (`Regard.FriendlyTier`); also on the encyclopedia's personal-regard row. No rule moved.
+- **A captor at exactly -5 regard is no longer told they bear the player no goodwill**: that note starts at -6
+  (`Regard.CoolTier`), where the scale stops saying "neutral".
+
+### Code design (driven by the maps; no behaviour change)
+- **One service for the mod's transient parties** (couriers, sergeants, bounty hunters: `TransientPartyRegistry` over
+  the pure `TransientPartyLedger`, 6 tests). The event-listeners map showed the same save lifecycle copied three
+  times; it is now one listener of each kind. The engine REUSES a destroyed party's id, so a restored courier clears
+  the old id's escort and waylay state first. `cr.testall transient_party_registry`, `courier_save_restore`.
+- **Every regard threshold written in place now points at a named rung** (27 to 0): new `Regard.FriendlyTier`,
+  `GenuineTier`, `CoolTier`, `SouredTier`, `VanillaRelation.NeutralTier`, `WaryTier`. The inline ratchet is now a
+  wall: the next threshold written in place fails the suite. A quest reward's amount stopped being called a
+  "relation", and a sign printed for display stopped counting as a decision.
+
 ## v2.6.1.. 2026-09-26
 
 ### Added

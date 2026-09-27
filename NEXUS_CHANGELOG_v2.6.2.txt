@@ -1,0 +1,24 @@
+﻿Version 2.6.2
+
+A small update: arrest parties that keep up with you, a gentler word on the regard scale, and a new door for other mods at the council table.
+
+Fixed
+
+- Sergeants and bounty hunters no longer ride back to their town every time the game saves. With frequent autosaves, a band coming from far off could never reach you. They now pick up where they stood, as couriers always did. (Arrests remain off by default in the mod options.)
+
+Changed
+
+- A character who likes you a little, between cordial and genuine regard, is now described as holding you in "friendly regard", on the encyclopedia page as in conversation. That is the point where a flirt can turn into courtship.
+- A captor who is merely neutral toward you is no longer told they bear you no goodwill.
+
+For modders
+
+- The council can now carry your text, one seat at a time. Contribute ModuleData/cr_patch/council_seat.txt: for each lord at the table, Calradia Remembers fills it with that lord's own {{variables}} and shows it under their place at the table, as their own view. PromptVarFacts has a new CouncilSeat flag: at the council, "you" means the player, so write about the lord in the third person. Details in HOWTO_Actions, section 6a. (Thank you, tashmetu.)
+
+Developer tools
+
+- Behind the scenes, couriers, sergeants and bounty hunters now share one service, and every regard threshold in the code is a named step on the scale. Nothing else changes in play.
+
+Notes
+
+- Your existing saves load as they are.
