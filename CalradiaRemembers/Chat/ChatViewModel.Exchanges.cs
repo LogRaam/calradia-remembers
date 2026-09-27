@@ -1289,6 +1289,10 @@ namespace CalradiaRemembers.Chat
                bool hasJoinParty = response.Actions.Any(a =>
                   string.Equals(a.Type, "join_party", StringComparison.OrdinalIgnoreCase));
 
+               // Same shape for a captive traded this turn (tashmetu, 27/09/2026): the trade moves the coin itself,
+               // so a give_gold or take_gold beside it ("I will pay it now") is the same payment written twice.
+               List<string> actionTypesThisTurn = response.Actions.Select(a => a?.Type).ToList();
+
                // M-R3: at content Off an intimacy [EVENT] is a hallucination (the romance system is disabled), so
                // it must not grant the RelationGate's intimacy-tier boost (+3, cooldown bypassed). Downgrade it so
                // change_relation is gated as a routine gain, matching the status arc being frozen off above.
@@ -1377,6 +1381,13 @@ namespace CalradiaRemembers.Chat
                          StringComparison.OrdinalIgnoreCase))
                   {
                      ModLog.Info("[ACTION] take_gold dropped — join_party in the same response already transfers the hire payment.");
+
+                     continue;
+                  }
+
+                  if (PrisonerTradePolicy.IsPaymentForATradeThisTurn(action.Type, actionTypesThisTurn))
+                  {
+                     ModLog.Info($"[ACTION] {action.Type} dropped: a captive traded in the same response already moves the coin.");
 
                      continue;
                   }

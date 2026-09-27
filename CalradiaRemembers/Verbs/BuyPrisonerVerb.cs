@@ -53,8 +53,17 @@ namespace CalradiaRemembers.Verbs
             sb.AppendLine("and you may offer to BUY one for gold,");
             sb.AppendLine("if the man or woman is worth something to you (an enemy of your realm to lock away,");
             sb.AppendLine("kin to ransom home, leverage over a rival house):");
+            // The most this buyer can really pay, stated BEFORE they name a figure (tashmetu, 27/09/2026: a lord
+            // offered fifteen thousand she did not have, and the game paid 5098).
             foreach (Hero captive in held.Take(3))
-                sb.AppendLine($"- {captive.Name} (a fair price would be around {RansomAnchor(captive)} denars)");
+            {
+                int anchor = RansomAnchor(captive);
+                int most = PrisonerTradePolicy.MostABuyerCanPay(anchor, ctx.Npc.Gold);
+                string means = most < PrisonerTradePolicy.MinAcceptablePayment(anchor)
+                    ? "you cannot raise a fair price for them"
+                    : $"the most you can pay is {most}";
+                sb.AppendLine($"- {captive.Name} (a fair price would be around {anchor} denars; {means})");
+            }
             sb.AppendLine("Negotiate the figure in conversation like the lord you are; pay a premium only for");
             sb.AppendLine("someone you truly want. When you and the player have AGREED on the sale, and only");
             sb.AppendLine("then, emit:");
@@ -155,6 +164,7 @@ namespace CalradiaRemembers.Verbs
                 // agreed price. Pay the TRUE amount the buyer can raise, and REFUSE below the honest floor
                 // rather than hand a valuable captive over for a pittance.
                 int floor = PrisonerTradePolicy.MinAcceptablePayment(anchor);
+                bool limitedByPurse = !gift && npcHero.Gold < price;
                 int payment = gift ? 0 : Math.Min(price, npcHero.Gold);
                 if (!gift && payment < floor)
                     return ActionOutcome.Refused($"({npcHero.Name} cannot raise a fair price for {captive.Name} and will not take them for a pittance.)");
@@ -223,7 +233,7 @@ namespace CalradiaRemembers.Verbs
                 string handed = goesHome ? $"and {captive.Name} goes home free" : $"and takes {captive.Name} into their custody";
                 return new ActionOutcome(gift
                     ? $"You give {captive.Name} to {npcHero.Name} for nothing, {(goesHome ? $"and {captive.Name} goes home free" : $"into {npcHero.Name}'s custody")}."
-                    : $"{npcHero.Name} pays you {payment} denars {handed}.", true);
+                    : $"{npcHero.Name} pays you {payment} denars{PrisonerTradePolicy.ShortfallNote(proposed, payment, limitedByPurse, npcHero.Name.ToString())} {handed}.", true);
             }
             catch (Exception ex)
             {

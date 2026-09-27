@@ -345,7 +345,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster", TestSupplyQuest),
          new SelfTest("courier_waylay", Severity.Heavy, "waylaid-letter resend: a waylaid letter keeps its typed text, and the Resend path re-queues a FRESH non-lost letter carrying the SAME content, so a waylaid letter never has to be retyped. Cleans up its test letters + courier (no popup)", TestCourierWaylayResend),
          new SelfTest("prisoner_trade", Severity.Heavy, "prisoner trade: take a real lord captive into the player's party -> real buy_prisoner via the bridge (an NPC lord buys him) -> assert the player was PAID (price clamped around the ransom anchor) and the captive left the player's custody -> cleanup frees him", TestPrisonerTrade),
-         new SelfTest("prisoner_ransom_home", Severity.Heavy, "fkasad (26/09/2026): a captive ransomed by his own count was put in his own side's cells and the game reported him escaped. Takes a real lord captive, has HIS OWN clan leader buy him through the real bridge -> asserts the player was paid the clamped price and the captive is FREE (ransomed home), not a prisoner of his own house. Restores both purses and frees him whatever happened.", TestPrisonerRansomHome),
+         new SelfTest("prisoner_ransom_home", Severity.Heavy, "fkasad (26/09/2026): a captive ransomed by his own count was put in his own side's cells and the game reported him escaped. Takes a real lord captive, has HIS OWN clan leader buy him through the real bridge -> asserts the player was paid the clamped price, was told why it fell short of the 999999 named (tashmetu), and the captive is FREE (ransomed home), not a prisoner of his own house. Restores both purses and frees him whatever happened.", TestPrisonerRansomHome),
          new SelfTest("prisoner_gift", Severity.Heavy, "fkasad (26/09/2026): \"yours for 0 denars\" to an envoy paid the full budget. Takes a real lord captive and runs buy_prisoner as the envoy binds a gift (price 0, gift true) for his clan leader -> asserts NO gold moved and the captive went home. Restores both purses and frees him whatever happened.", TestPrisonerGift),
          new SelfTest("exchange_prisoners", Severity.Heavy, "Prisoner exchange (fkasad, 25/09/2026): the player holds lord A, lord B's party holds lord C. Runs the real exchange_prisoners through the bridge as B -> asserts A (B's own kin) is FREE, C is now the PLAYER's prisoner, and the gold that evens the swap moved as PrisonerExchangePolicy says. Restores both purses and frees A and C whatever happened.", TestExchangePrisoners),
          new SelfTest("prisoner_custody_settlement", Severity.Heavy, "prisoner custody in a settlement (ransom-letter Accept-button fix): capture a real lord into the party, transfer him into a player-owned town/castle dungeon, and assert BuyPrisonerVerb.PlayerHeldHeroPrisoners still counts him there though he is no longer in the party -> cleanup frees him", TestPrisonerCustodySettlement),
@@ -6664,10 +6664,12 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(captive == null, "no free lord whose clan leader is free to ransom him")) return t.Line();
 
          int expected = PrisonerTradePolicy.ClampPrice(999999, BuyPrisonerVerb.RansomAnchor(captive));
-         RunOwnSideRansom(t, behavior, captive, new Dictionary<string, string> {["price"] = "999999"}, (paid, _) =>
+         RunOwnSideRansom(t, behavior, captive, new Dictionary<string, string> {["price"] = "999999"}, (paid, outcome) =>
          {
-            t.Note($"paid={paid} (expected {expected})");
+            t.Note($"paid={paid} (expected {expected}); told: {outcome?.Message}");
             t.Expect("paidTheClampedPrice", paid == expected, true);
+            // tashmetu (27/09/2026): a figure paid short of the one named says why, so nobody invents a reason.
+            t.Expect("toldWhyLessWasPaid", outcome?.Message?.Contains("(not the 999999 named: ") == true, true);
          });
 
          return t.Line();

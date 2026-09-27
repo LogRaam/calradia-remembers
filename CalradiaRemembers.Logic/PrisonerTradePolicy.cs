@@ -6,6 +6,14 @@
 // can haggle within reason yet never talk a lord into absurdity. Opens the bounty-hunting loop (a lord wants a
 // prisoner and names a price; the player captures and sells).
 
+#region
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+#endregion
+
 namespace CalradiaRemembers.Logic
 {
    /// <summary>Pure price discipline for a prisoner sale, either direction. See the file header.</summary>
@@ -73,6 +81,50 @@ namespace CalradiaRemembers.Logic
          if (proposedPrice > ceiling) return ceiling;
 
          return proposedPrice;
+      }
+
+      /// <summary>
+      ///   The most a buyer can actually pay for this captive: the price ceiling, or their purse when it holds less.
+      ///   Taught BEFORE the buyer names a figure (tashmetu, 27/09/2026: a lord offered fifteen thousand denars she
+      ///   did not have, and the game paid 5098), per Gabriel's ruling that the model declares already knowing the
+      ///   gating rather than being refuted after.
+      /// </summary>
+      public static int MostABuyerCanPay(int ransomAnchor, int buyerGold)
+      {
+         int ceiling = ClampPrice(int.MaxValue, ransomAnchor);
+
+         return Math.Max(0, Math.Min(ceiling, buyerGold));
+      }
+
+      /// <summary>
+      ///   What to add to a payment's notice when less was paid than the figure named, and why: all the buyer could
+      ///   raise, or the most such a captive fetches. Empty when the figure named was paid, or none was named. Read by
+      ///   the player and by the model, so neither invents a reason for the difference.
+      /// </summary>
+      public static string ShortfallNote(int named, int paid, bool limitedByPurse, string buyerName)
+      {
+         if (named <= 0 || paid >= named) return "";
+
+         return limitedByPurse
+            ? $" (not the {named} named: that is all {buyerName} could raise)"
+            : $" (not the {named} named: that is the most such a captive fetches)";
+      }
+
+      /// <summary>The trades that move their own coin: a separate give_gold or take_gold beside them is the same payment.</summary>
+      private static readonly string[] TradesCarryingCoin = {"buy_prisoner", "sell_prisoner"};
+
+      /// <summary>
+      ///   True when <paramref name="actionType" /> is a give_gold or take_gold emitted in a turn that also trades a
+      ///   captive: the trade already moves the coin, so this is the same payment written twice, whichever came first
+      ///   (tashmetu, 27/09/2026: a ransom paid, then a second payment attempted from an emptied purse).
+      /// </summary>
+      public static bool IsPaymentForATradeThisTurn(string actionType, IEnumerable<string> actionTypesThisTurn)
+      {
+         bool payment = string.Equals(actionType, "give_gold", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(actionType, "take_gold", StringComparison.OrdinalIgnoreCase);
+         if (!payment || actionTypesThisTurn == null) return false;
+
+         return actionTypesThisTurn.Any(t => TradesCarryingCoin.Any(trade => string.Equals(t, trade, StringComparison.OrdinalIgnoreCase)));
       }
 
       /// <summary>

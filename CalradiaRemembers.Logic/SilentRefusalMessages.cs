@@ -24,10 +24,14 @@ namespace CalradiaRemembers.Logic
             return "(No sum was named, so no coin changed hands.)";
         }
 
-        /// <summary>The NPC offering gold does not hold any to give.</summary>
+        /// <summary>
+        ///   The NPC offering gold does not hold any to give. Plain on purpose (tashmetu, 27/09/2026): it used to read
+        ///   "reaches for a purse that holds nothing", a small scene the model took as a fact of the world, and a lord
+        ///   whose purse a ransom had just emptied accused the player of seizing her treasury.
+        /// </summary>
         public static string GiveGoldGiverInsolvent(string giverName)
         {
-            return $"({giverName} reaches for a purse that holds nothing; no coin changes hands.)";
+            return $"({giverName} has no coin to give, so none changed hands.)";
         }
 
         /// <summary>The prompt's take_gold carried no amount that parsed, or a non-positive one.</summary>
