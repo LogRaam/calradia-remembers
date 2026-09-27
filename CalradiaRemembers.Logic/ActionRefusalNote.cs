@@ -8,6 +8,10 @@
 // happened, and unless the refusal reaches the transcript it is replayed as accomplished into every prompt
 // rebuilt afterwards and the following turns build on the lie. Same pattern as a declined confirmation
 // (ActionConfirmationController.DeclineAction).
+//
+// And the REASON is a rule, not a story (tashmetu, 27/09/2026): a refusal saying a lord's purse held nothing was
+// explained in the world by the model (the player had seized her treasury), cost the player her regard, and became
+// her memory. The note now says so, for every refusal at once.
 
 namespace CalradiaRemembers.Logic
 {
@@ -27,7 +31,9 @@ namespace CalradiaRemembers.Logic
 
             return string.IsNullOrEmpty(reason)
                 ? "(Out of character: the game refused that. It did not happen. Do not treat it as done.)"
-                : $"(Out of character: the game refused that — {reason} It did not happen. Do not treat it as done.)";
+                : $"(Out of character: the game refused that: {reason} It did not happen. Do not treat it as done. "
+                  + "That reason is a rule of the game, not an event in the story: do not explain it within the world, "
+                  + "and do not remember it as something that happened.)";
         }
     }
 }

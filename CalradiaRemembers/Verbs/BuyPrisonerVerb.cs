@@ -196,7 +196,7 @@ namespace CalradiaRemembers.Verbs
                     if (payment > 0) GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, payment); // refund the failed purchase
                     ModLog.Error($"[ACTION] buy_prisoner transfer failed, payment refunded: {transferEx.GetType().Name}: {transferEx.Message}");
 
-                    return ActionOutcome.Refused($"(The handover of {captive.Name} fell through. {npcHero.Name}'s payment is returned.)");
+                    return ActionOutcome.Refused($"({captive.Name} could not be handed over, so nothing changed hands; {npcHero.Name}'s payment is returned.)");
                 }
 
                 var today = (int) CampaignTime.Now.ToDays;
@@ -233,7 +233,7 @@ namespace CalradiaRemembers.Verbs
                 string handed = goesHome ? $"and {captive.Name} goes home free" : $"and takes {captive.Name} into their custody";
                 return new ActionOutcome(gift
                     ? $"You give {captive.Name} to {npcHero.Name} for nothing, {(goesHome ? $"and {captive.Name} goes home free" : $"into {npcHero.Name}'s custody")}."
-                    : $"{npcHero.Name} pays you {payment} denars{PrisonerTradePolicy.ShortfallNote(proposed, payment, limitedByPurse, npcHero.Name.ToString())} {handed}.", true);
+                    : $"{npcHero.Name} pays you {payment} denars{PrisonerTradePolicy.PriceDifferenceNote(proposed, payment, limitedByPurse, npcHero.Name.ToString())} {handed}.", true);
             }
             catch (Exception ex)
             {

@@ -51,7 +51,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_named_figure_was_paid_WHEN_noting_the_payment_THEN_there_is_nothing_to_add()
       {
-         PrisonerTradePolicy.ShortfallNote(named: 800, paid: 800, limitedByPurse: false, buyerName: "Ingunde").Should().BeEmpty();
+         PrisonerTradePolicy.PriceDifferenceNote(named: 800, paid: 800, limitedByPurse: false, buyerName: "Ingunde").Should().BeEmpty();
       }
 
       // tashmetu's case: fifteen thousand named, 5098 paid, because that was all she had. The player and the model
@@ -59,22 +59,31 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_less_was_paid_because_the_purse_ran_out_WHEN_noting_the_payment_THEN_it_says_so()
       {
-         PrisonerTradePolicy.ShortfallNote(named: 15000, paid: 5098, limitedByPurse: true, buyerName: "Domina Ingunde")
+         PrisonerTradePolicy.PriceDifferenceNote(named: 15000, paid: 5098, limitedByPurse: true, buyerName: "Domina Ingunde")
                             .Should().Be(" (not the 15000 named: that is all Domina Ingunde could raise)");
       }
 
       [Test]
       public void GIVEN_less_was_paid_because_of_the_ceiling_WHEN_noting_the_payment_THEN_it_says_so()
       {
-         PrisonerTradePolicy.ShortfallNote(named: 15000, paid: 3000, limitedByPurse: false, buyerName: "Domina Ingunde")
+         PrisonerTradePolicy.PriceDifferenceNote(named: 15000, paid: 3000, limitedByPurse: false, buyerName: "Domina Ingunde")
                             .Should().Be(" (not the 15000 named: that is the most such a captive fetches)");
+      }
+
+      // The other way round, when the PLAYER buys: a lord asking less than the floor is held to it, and the player,
+      // who pays more than was asked, is told why rather than left to think the lord cheated.
+      [Test]
+      public void GIVEN_more_was_paid_because_of_the_floor_WHEN_noting_the_payment_THEN_it_says_so()
+      {
+         PrisonerTradePolicy.PriceDifferenceNote(named: 100, paid: 400, limitedByPurse: false, buyerName: "you")
+                            .Should().Be(" (not the 100 named: that is the least such a captive fetches)");
       }
 
       // No figure named (a bare "price" that did not parse) is no shortfall to explain.
       [Test]
       public void GIVEN_no_figure_was_named_WHEN_noting_the_payment_THEN_there_is_nothing_to_add()
       {
-         PrisonerTradePolicy.ShortfallNote(named: 0, paid: 400, limitedByPurse: false, buyerName: "Ingunde").Should().BeEmpty();
+         PrisonerTradePolicy.PriceDifferenceNote(named: 0, paid: 400, limitedByPurse: false, buyerName: "Ingunde").Should().BeEmpty();
       }
 
       // The double payment itself: a captive bought or sold in this turn carries its own coin, so a give_gold or
@@ -83,22 +92,33 @@ namespace CalradiaRemembers.Tests
       [TestCase("take_gold")]
       public void GIVEN_a_captive_traded_this_turn_WHEN_a_separate_payment_is_also_emitted_THEN_it_is_the_same_payment(string payment)
       {
-         PrisonerTradePolicy.IsPaymentForATradeThisTurn(payment, new[] {"buy_prisoner", payment}).Should().BeTrue();
-         PrisonerTradePolicy.IsPaymentForATradeThisTurn(payment, new[] {payment, "sell_prisoner"}).Should().BeTrue();
+         TurnPaymentPolicy.IsSamePaymentAsADealThisTurn(payment, new[] {"buy_prisoner", payment}).Should().BeTrue();
+         TurnPaymentPolicy.IsSamePaymentAsADealThisTurn(payment, new[] {payment, "sell_prisoner"}).Should().BeTrue();
       }
 
-      // Without a trade in the turn, gold is gold: a gift, a loan repaid, a bribe.
+      // The same fault waits beside every verb that moves its own coin, not only a captive's sale.
+      [TestCase("exchange_prisoners")]
+      [TestCase("pay_for_silence")]
+      [TestCase("pay_blackmail")]
+      [TestCase("rob_npc")]
+      public void GIVEN_another_deal_moving_its_own_coin_WHEN_gold_is_also_emitted_THEN_it_is_the_same_payment(string deal)
+      {
+         TurnPaymentPolicy.IsSamePaymentAsADealThisTurn("take_gold", new[] {deal, "take_gold"}).Should().BeTrue();
+         TurnPaymentPolicy.IsSamePaymentAsADealThisTurn("give_gold", new[] {"give_gold", deal}).Should().BeTrue();
+      }
+
+      // Without a deal in the turn, gold is gold: a gift, a loan repaid, a bribe.
       [Test]
       public void GIVEN_no_captive_traded_this_turn_WHEN_gold_is_given_THEN_it_stands()
       {
-         PrisonerTradePolicy.IsPaymentForATradeThisTurn("give_gold", new[] {"give_gold", "change_relation"}).Should().BeFalse();
+         TurnPaymentPolicy.IsSamePaymentAsADealThisTurn("give_gold", new[] {"give_gold", "change_relation"}).Should().BeFalse();
       }
 
       // The trade itself is never mistaken for a separate payment.
       [Test]
       public void GIVEN_a_captive_traded_this_turn_WHEN_reading_the_trade_itself_THEN_it_is_not_a_separate_payment()
       {
-         PrisonerTradePolicy.IsPaymentForATradeThisTurn("buy_prisoner", new[] {"buy_prisoner", "give_gold"}).Should().BeFalse();
+         TurnPaymentPolicy.IsSamePaymentAsADealThisTurn("buy_prisoner", new[] {"buy_prisoner", "give_gold"}).Should().BeFalse();
       }
    }
 }

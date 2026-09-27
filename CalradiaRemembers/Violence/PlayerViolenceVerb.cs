@@ -65,7 +65,7 @@ namespace CalradiaRemembers.Violence
             // Re-read the toggle here, not at teaching time: a campaign with killing off must never lose a life,
             // whatever the exchange narrated.
             if (!ViolencePolicy.IsPermitted(_act, ModSettings.AllowKillingCharacters))
-               return ActionOutcome.Refused($"(You could not bring yourself to end {target.Name}. Nothing happened.)");
+               return ActionOutcome.Refused($"(This game's settings do not allow killing, so {target.Name} was not killed.)");
 
             // A killing is the one irreversible act here, and the MODEL decides it happened. So the player, not the
             // model, has the last word: ask, and only then strike. The inquiry is asynchronous while Execute must

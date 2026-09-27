@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 431 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 815 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 816 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 241 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -761,7 +761,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (519)
+### CalradiaRemembers.Logic (520)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1262,6 +1262,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TransientPartyLedger` | public class | Which transient party is whose. |
 | `TruncationFallbackPolicy` | public static class | Decides whether a PROSE turn should be redone on the configured fallback model. |
 | `TrystPolicy` | public static class | Pure rule for a taken lover being met when the player is away: the modest weekly chance a tryst happens. |
+| `TurnPaymentPolicy` | public static class | Whether a give_gold or take_gold is the same payment as a deal written in the same turn. |
 | `UndeliverableCause` | public enum | Why a letter could not be delivered, in the order the courier would learn of it. |
 | `UndeliverableReasonDescriber` | public static class | Turns an undeliverable letter's cause into the specific line the player is told. |
 | `UnknownActionNotice` | public static class | Builds the wording and the diagnostic record for an [ACTION] the bridge refused because its type is not a real mod verb. |

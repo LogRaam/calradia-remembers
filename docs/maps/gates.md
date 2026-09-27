@@ -235,7 +235,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - taught in: `AppendCaptorExecutionRule`
 - taught when: no gate found
 - the bridge refuses:
-  - "(Your fate was not truly sealed here. Nothing happened.)"
+  - "(The game does not allow an execution here, so none took place.)"
 
 ### execute_prisoner
 
@@ -379,7 +379,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - taught in: `AppendHarmPrisonerAction`
 - taught when: no gate found
 - the bridge refuses:
-  - "(No true harm befalls you here. Nothing happened.)"
+  - "(The game does not allow real harm here, so none was done.)"
 
 ### hear_account
 

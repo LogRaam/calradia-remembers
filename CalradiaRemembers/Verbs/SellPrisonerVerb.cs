@@ -45,8 +45,13 @@ namespace CalradiaRemembers.Verbs
             sb.AppendLine("SELL_PRISONER, SELLING A CAPTIVE YOU HOLD TO THE PLAYER:");
             sb.AppendLine("Your clan holds these captives, and the player might offer to BUY one from you");
             sb.AppendLine("(for ransom, for a bounty they hunt, or for purposes of their own):");
+            // The band the price is held to, stated BEFORE a figure is named (tashmetu, 27/09/2026, the buy side).
             foreach (Hero captive in held)
-                sb.AppendLine($"- {captive.Name} (a fair price would be around {BuyPrisonerVerb.RansomAnchor(captive)} denars)");
+            {
+                int anchor = BuyPrisonerVerb.RansomAnchor(captive);
+                sb.AppendLine($"- {captive.Name} (a fair price would be around {anchor} denars; the price can be no less than "
+                              + $"{PrisonerTradePolicy.MinAcceptablePayment(anchor)} nor more than {PrisonerTradePolicy.MaxPrice(anchor)})");
+            }
             sb.AppendLine("Sell only if it serves you; a captive of value to your realm is not parted with");
             sb.AppendLine("lightly, and never below what they are worth. When you and the player have AGREED");
             sb.AppendLine("on the sale, and only then, emit:");
@@ -132,7 +137,8 @@ namespace CalradiaRemembers.Verbs
 
                 ModLog.Info($"[ACTION] sell_prisoner: {npcHero.Name} sold {captive.Name} to the player for {price} denars.");
 
-                return new ActionOutcome($"You pay {price} denars, and {captive.Name} is delivered into your custody.", true);
+                return new ActionOutcome($"You pay {price} denars{PrisonerTradePolicy.PriceDifferenceNote(proposed, price, false, "you")}, "
+                                         + $"and {captive.Name} is delivered into your custody.", true);
             }
             catch (Exception ex)
             {

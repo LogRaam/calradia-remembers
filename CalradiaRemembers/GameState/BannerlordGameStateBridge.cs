@@ -1324,7 +1324,7 @@ namespace CalradiaRemembers.GameState
                            $"captive={playerIsCaptiveOfThisCaptor}, hardcore={ModSettings.AdultContentLevel == AdultContentLevel.Hardcore}, " +
                            $"deathAllowed={!CampaignOptions.IsLifeDeathCycleDisabled}).");
 
-               return ActionOutcome.Refused("(Your fate was not truly sealed here. Nothing happened.)");
+               return ActionOutcome.Refused("(The game does not allow an execution here, so none took place.)");
             }
 
             string npcName = npcHero.Name?.ToString() ?? "your captor";
@@ -2523,7 +2523,7 @@ namespace CalradiaRemembers.GameState
             ModLog.Info($"[ACTION] harm_prisoner refused by HarmPrisonerPolicy (captive={playerIsCaptiveOfCaptor}, " +
                         $"sceneActive={_captiveSceneActive}, hardcore={hardcore}).");
 
-            return ActionOutcome.Refused("(No true harm befalls you here. Nothing happened.)");
+            return ActionOutcome.Refused("(The game does not allow real harm here, so none was done.)");
          }
 
          action.Parameters.TryGetValue("severity", out string severity);

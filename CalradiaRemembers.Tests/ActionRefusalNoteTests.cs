@@ -34,6 +34,20 @@ namespace CalradiaRemembers.Tests
          note.Should().Contain("Do not treat it as done.");
       }
 
+      // tashmetu (Nexus, 27/09/2026): a refused second payment said the lord's purse held nothing, and the model
+      // EXPLAINED it in the world (the player had seized her treasury), lost her regard over it, and remembered it.
+      // The note already said the deed did not happen; it never said the REASON is a rule of the game rather than
+      // something that happened in the story. It must, or every refusal is a seed for an invented event.
+      [Test]
+      public void GIVEN_a_refusal_with_a_reason_WHEN_building_the_note_THEN_the_reason_is_not_to_be_explained_or_remembered_as_an_event()
+      {
+         string note = ActionRefusalNote.For(true, "(Domina Ingunde has no coin to give, so none changed hands.)");
+
+         note.Should().Contain("That reason is a rule of the game, not an event in the story");
+         note.Should().Contain("do not explain it within the world");
+         note.Should().Contain("do not remember it as something that happened");
+      }
+
       // The gate itself: an action the bridge carried out must leave the transcript alone. A note on a
       // successful action would tell the model its own accomplished deed never happened, which is the exact
       // fault this class exists to prevent, inverted.

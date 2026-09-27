@@ -142,7 +142,7 @@ namespace CalradiaRemembers.Verbs
                     Refund(gold, npcHero);
                     ModLog.Error($"[ACTION] exchange_prisoners: handing over {give.Name} failed, nothing exchanged: {ex.GetType().Name}: {ex.Message}");
 
-                    return ActionOutcome.Refused("(The exchange fell through before anyone changed hands.)");
+                    return ActionOutcome.Refused("(The exchange could not be carried out; no captive and no gold changed hands.)");
                 }
 
                 try

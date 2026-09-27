@@ -1289,8 +1289,8 @@ namespace CalradiaRemembers.Chat
                bool hasJoinParty = response.Actions.Any(a =>
                   string.Equals(a.Type, "join_party", StringComparison.OrdinalIgnoreCase));
 
-               // Same shape for a captive traded this turn (tashmetu, 27/09/2026): the trade moves the coin itself,
-               // so a give_gold or take_gold beside it ("I will pay it now") is the same payment written twice.
+               // Same shape for every deal that moves its own coin (tashmetu, 27/09/2026: a captive ransomed): a
+               // give_gold or take_gold beside it ("I will pay it now") is the same payment written twice.
                List<string> actionTypesThisTurn = response.Actions.Select(a => a?.Type).ToList();
 
                // M-R3: at content Off an intimacy [EVENT] is a hallucination (the romance system is disabled), so
@@ -1385,9 +1385,9 @@ namespace CalradiaRemembers.Chat
                      continue;
                   }
 
-                  if (PrisonerTradePolicy.IsPaymentForATradeThisTurn(action.Type, actionTypesThisTurn))
+                  if (TurnPaymentPolicy.IsSamePaymentAsADealThisTurn(action.Type, actionTypesThisTurn))
                   {
-                     ModLog.Info($"[ACTION] {action.Type} dropped: a captive traded in the same response already moves the coin.");
+                     ModLog.Info($"[ACTION] {action.Type} dropped: a deal in the same response already moves the coin.");
 
                      continue;
                   }
