@@ -2,6 +2,25 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.6.5.. 2026-09-27
+
+### Fixed (tashmetu, Nexus, 27/09/2026: the prisoner envoy)
+- **A captive is given away only when the player says so.** An envoy's "final offer of eleven thousand five hundred"
+  was answered "i will return him", the envoy wrote price 0, and the captive went home for nothing. A gift now needs
+  the player's own words (free, for nothing, no ransom, or 0, with no other sum named: `EnvoyMandatePolicy.PlayerGivesAway`);
+  a plain acceptance closes at the envoy's last offer, read from its own lines in digits or in words
+  (`SpokenFigure.LastIn`). The envoy's prompt says the same (SDK).
+- **The envoy keeps its ceiling to itself.** It told a player "my lord's final authority extends only to 4,839" and
+  then offered less than the player's figure: it now never names the ceiling, and may accept a figure within it after
+  a round or two of haggling.
+- **An exchange's gold is explained**: it evens out the two captives' worth and is not a ransom offer, so it no
+  longer reads oddly beside the opening ransom figure.
+
+### Maps
+- A silent error fixed: `shared-state.md` listed a readonly static as a collection whose contents change whenever its
+  type CONTAINED "Dictionary" or "List", so six read-only tables (IReadOnlyDictionary, IReadOnlyList) were listed
+  wrongly. Read-only views are recognised now (307 statics can change, not 313).
+
 ## v2.6.4.. 2026-09-27
 
 ### For modders (tashmetu, Nexus, 27/09/2026)
