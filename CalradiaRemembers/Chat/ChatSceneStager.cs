@@ -34,7 +34,8 @@ namespace CalradiaRemembers.Chat
    ///   <see cref="Open" /> (or one of the Stage* builders that wrap it) instead of a ChatManager leaf open; it
    ///   starts a conversation with the partner and, once the scene is loaded (polled by <see cref="Tick" /> from
    ///   the submodule's per-frame hook), opens the chat over it. Falls back to the direct open only when a scene
-   ///   is already live (clean), when the player is at sea (no scene can load), or when there is no partner.
+   ///   is already live (clean) or when there is no partner. At sea, where no scene can load, the conversation
+   ///   WAITS FOR LANDFALL (StagingHostPolicy) rather than opening over the live naval map.
    /// </summary>
    public static class ChatSceneStager
    {
@@ -66,6 +67,11 @@ namespace CalradiaRemembers.Chat
 
       private static ChatSceneRequest _pending;
       private static int _settleFrames;
+
+      // Conversations asked for at sea, received one at a time once the player is ashore (Windmolen, 28/09/2026).
+      // Not saved: a save made at sea loses them, and the moment is simply missed (an envoy is held by its own
+      // behaviour and does not come at sea in the first place).
+      private static readonly List<ChatSceneRequest> _awaitingLandfall = new List<ChatSceneRequest>();
 
       /// <summary>StringId of a companion whose staged audience scene should bring them beside the player once its agents exist; null when none is pending.</summary>
       internal static string PendingAudienceCompanionId;
@@ -161,6 +167,24 @@ namespace CalradiaRemembers.Chat
       public static void Open(ChatSceneRequest request)
       {
          if (request == null) return;
+
+         StagingRoute route = StagingHostPolicy.Route(new StagingHostFacts {
+            MissionLive = Mission.Current != null,
+            PartnerConversationLive = request.Partner != null && Hero.OneToOneConversationHero == request.Partner,
+            PlayerAtSea = MobileParty.MainParty?.IsCurrentlyAtSea == true
+         });
+
+         // AT SEA, WAIT FOR LANDFALL (Windmolen, Nexus, 28/09/2026: "the chat window opens but flickers a few
+         // seconds and then my game crashes. The last time it was a naval move."). No conversation scene can load
+         // on open water (the endless loading screen of 1.30.16), and the answer to that until 2.6.7 was to open
+         // the chat straight over the naval map, which keeps ticking underneath: the one host this door exists to
+         // refuse. Held here, it is received as soon as the player is ashore, over a scene like any other.
+         if (route == StagingRoute.WaitForLandfall)
+         {
+            WaitForLandfall(request);
+
+            return;
+         }
 
          // A scene is already live: the chat opens cleanly over it, so there is nothing to stage. This is the
          // one generalization the door makes over the old per-path code (which only the companion audience did).
@@ -360,6 +384,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public static void Tick()
       {
+         ReceiveOneAwaitingLandfall();
          if (_pending == null) return;
          if (ChatManager.IsOpen)
          {
@@ -465,7 +490,62 @@ namespace CalradiaRemembers.Chat
          catch (Exception ex) { ModLog.Info($"[AUDIENCE STAGE] could not place the companion ({ex.GetType().Name}); left where they stand."); }
       }
 
+      /// <summary>
+      ///   Drops every conversation held for landfall, receiving none. Called when a campaign starts or loads: a held
+      ///   request carries heroes of the campaign it was asked in, and must never be received in another.
+      /// </summary>
+      public static void ForgetAwaitingLandfall() => _awaitingLandfall.Clear();
+
+      /// <summary>Test seam (cr.testall): how many conversations are held for landfall.</summary>
+      internal static int DebugAwaitingLandfallCount => _awaitingLandfall.Count;
+
+      /// <summary>Test seam (cr.testall): holds <paramref name="request" /> for landfall exactly as the door does at sea.</summary>
+      internal static void DebugWaitForLandfall(ChatSceneRequest request) => WaitForLandfall(request, announce: false);
+
+      /// <summary>Test seam (cr.testall): drops every held conversation, receiving none.</summary>
+      internal static void DebugClearAwaitingLandfall() => ForgetAwaitingLandfall();
+
       #region private
+
+      /// <summary>Holds <paramref name="request" /> until the player is ashore, once per kind and person, and says so.</summary>
+      private static void WaitForLandfall(ChatSceneRequest request, bool announce = true)
+      {
+         bool alreadyHeld = _awaitingLandfall.Exists(r => r.Kind == request.Kind && r.Partner == request.Partner && r.EnvoyName == request.EnvoyName);
+         if (!alreadyHeld) _awaitingLandfall.Add(request);
+
+         string who = request.Partner?.Name?.ToString() ?? request.EnvoyName ?? "Someone";
+         ModLog.Info($"[CHAT STAGE {request.Kind}] the player is at sea, where no conversation scene can load: {who} waits for landfall{(alreadyHeld ? " (already waiting)" : "")}.");
+         if (announce && !alreadyHeld) ModLog.Notice($"{who} will speak with you once you make landfall.");
+      }
+
+      /// <summary>Receives the oldest conversation held for landfall once the player is ashore and the screen is free.</summary>
+      private static void ReceiveOneAwaitingLandfall()
+      {
+         if (_awaitingLandfall.Count == 0) return;
+
+         bool mayReceive = StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {
+            PlayerAtSea = MobileParty.MainParty?.IsCurrentlyAtSea == true,
+            MissionLive = Mission.Current != null,
+            ConversationLive = Hero.OneToOneConversationHero != null,
+            ChatOpen = ChatManager.IsOpen,
+            AnotherSceneStaging = _pending != null
+         });
+         if (!mayReceive) return;
+
+         ChatSceneRequest request = _awaitingLandfall[0];
+         _awaitingLandfall.RemoveAt(0);
+
+         // A person who died or was taken in the meantime is not received; an envoy has no hero and always is.
+         if (request.Partner != null && (!request.Partner.IsAlive || request.Partner.IsPrisoner))
+         {
+            ModLog.Info($"[CHAT STAGE {request.Kind}] {request.Partner.Name} is no longer able to meet; the landfall meeting is dropped.");
+
+            return;
+         }
+
+         ModLog.Info($"[CHAT STAGE {request.Kind}] ashore: receiving the conversation held for landfall.");
+         Open(request);
+      }
 
       /// <summary>
       ///   Staging core: opens a map conversation with the request's partner (their <see cref="ChatSceneRequest.AttachParty" />
@@ -485,15 +565,12 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         // Never ask the engine for a conversation scene while the player is at sea. A map conversation is
-         // placed on the terrain under the party, and there is no scene for open water: the load never
-         // completes and the game sits on a loading screen forever (two player reports on v1.30.16). The
-         // direct open needs no scene at all, and stays VRAM-safe because ChatManager suspends the map
-         // scene on every open, staged or not. This is the choke point, so it covers every staged path.
+         // Never ask the engine for a conversation scene while the player is at sea: there is no scene for open
+         // water and the load never completes (two player reports on v1.30.16). Open() holds such a request for
+         // landfall before it gets here (2.6.7); this is the safety net should anything call in another way.
          if (MobileParty.MainParty?.IsCurrentlyAtSea == true)
          {
-            ModLog.Info($"[CHAT STAGE {request.Kind}] the player is at sea, where no conversation scene can load, opening directly on the map.");
-            OpenNow(request);
+            WaitForLandfall(request);
 
             return;
          }

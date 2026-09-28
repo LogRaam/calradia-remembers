@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 432 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 821 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 825 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 241 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -762,7 +762,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (525)
+### CalradiaRemembers.Logic (529)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1002,6 +1002,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `KinRecord` | public class | One person as the family tree sees them: who they are, their parents, and whom they married. |
 | `KinkParser` | public static class | Parses author-written kink names (case-insensitive) to Kink values. |
 | `KnowledgeTier` | public enum | How confidently an NPC could say where a third party is, from their social tie alone. |
+| `LandfallFacts` | public class | What decides whether a conversation waiting for landfall may be received now. |
 | `LetterAgeDescriber` | public static class | Renders how long ago a received letter was written, for the read window's heading. |
 | `LetterArchivePolicy` | public static class | Archive-membership rules for a contact's letter correspondence (retention is unbounded by design). |
 | `LetterBudget` | public class | The budget the mailbox scheduler (LetterMailboxPolicy) enforces: how many unprompted letters may land per rolling window, and how often a lower-weight candidate is let through anyway so the mailbox does not become a mono... |
@@ -1241,6 +1242,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpouseDivorceDemandPolicy` | public static class | Pure gate deciding whether the player's own spouse is unhappy enough to raise a divorce demand this evaluation period. |
 | `SpouseDivorceEscalationFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldEscalate needs. |
 | `StagingGracePolicy` | public static class | How long a staged meeting is given to show signs of life before the mod concludes nothing was staged and opens the chat directly. |
+| `StagingHostFacts` | public class | What the door sees when a conversation is asked for. |
+| `StagingHostPolicy` | public static class | The door's rules. |
+| `StagingRoute` | public enum | Where the door sends a conversation. |
 | `StanceAxis` | public enum | The four posture axes. |
 | `StanceBearingText` | public static class | Composes the numberless "Bearing:" encyclopedia line from an NPC's Trust/Respect/Fear stance axes. |
 | `StanceConsequence` | public enum | The one consequence an NPC's posture warrants this evaluation, or None. |

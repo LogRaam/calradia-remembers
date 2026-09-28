@@ -23,6 +23,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Verbs;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 
@@ -145,6 +146,10 @@ namespace CalradiaRemembers.Letters
       private void OnHourlyTick()
       {
          if (_pending == null || !InterceptionBehavior.PlayerIsFreeOnMap() || Hero.MainHero?.IsPrisoner == true) return;
+
+         // The envoy rides up; at sea he cannot (Windmolen, 28/09/2026: accepting him on a naval move crashed the
+         // game). He waits, and comes on the first hour the player is ashore.
+         if (!StagingHostPolicy.AnEnvoyCanReachThePlayer(MobileParty.MainParty?.IsCurrentlyAtSea == true)) return;
 
          PendingEnvoy envoy = _pending;
          _pending = null;

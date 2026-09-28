@@ -107,6 +107,9 @@ namespace CalradiaRemembers
          // Only register for campaign games (not custom battles, sieges, etc.)
          if (game.GameType is not Campaign) return;
 
+         // A meeting held for landfall belongs to the campaign it was asked in, never to the next one loaded.
+         Chat.ChatSceneStager.ForgetAwaitingLandfall();
+
          var campaignStarter = (CampaignGameStarter) gameStarterObject;
          // The ambush fires INSIDE the town (only there does the alley fight spawn combatants in the street). The
          // access model is registered NOT to block the ambush entry, but to bar the player re-entering a town for

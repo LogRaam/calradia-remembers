@@ -279,6 +279,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
+         new SelfTest("landfall_wait", Severity.Light, "Windmolen (Nexus, 28/09/2026): accepting an envoy on a naval move opened the chat over the live naval map, which flickered and crashed. At sea a conversation now waits for landfall and an envoy does not arrive. Reads the door's route for where the player stands, holds a real request as the door does at sea and checks it is held once. Opens nothing; the held request is dropped.", TestLandfallWait),
          new SelfTest("letter_regard", Severity.Light, "Lordfadooboo (Nexus, 28/09/2026): a dozen letters and the correspondent's regard had not moved. Drives the real apply path on a real character's profile: a warm letter earns +1, a second the same day earns nothing, a cold one costs 1, and the [LETTER_TONE] line is stripped from the letter. Regard and the letter clock are restored.", TestLetterRegard),
          new SelfTest("vassal_departure_judged", Severity.Light, "fkasad (24/09/2026): a vassal holding no fief who leaves a realm at war is judged like a mercenary, the oath weighing like kinship; one holding fiefs is not (the war that follows is the consequence). Judges leaving the player's realm (or any realm) right now WITHOUT applying anything: judged only with no fief, the news speaks of the oath, and a sworn vassal is never thanked.", TestVassalDepartureJudged),
          new SelfTest("mercenary_company_judged", Severity.Light, "Zivkyn (Nexus): the game's own mercenary companies change sides mid-war and nobody resents them. Finds a real company in a realm's pay and judges its departure by fkasad's grid WITHOUT applying anything: the verdict follows the realm's footing, and the news line names the company and the realm.", TestMercenaryCompanyJudged),
@@ -9724,6 +9725,40 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{backer.Name}: outcome={r.Outcome}, amount={r.Amount}");
          bool clearedWhoGates = r.Outcome == ClaimantSupportOutcome.Applied || r.Outcome == ClaimantSupportOutcome.CannotAfford;
          t.Expect("clearedWhoGatesToTheAmountDecision", clearedWhoGates, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   At sea a conversation waits for landfall (Windmolen): reads the door's real route for where the player
+      ///   stands, then holds a real request exactly as the door does at sea and checks it is held once, not twice.
+      ///   Nothing is opened; the held request is dropped at the end.
+      /// </summary>
+      private static string TestLandfallWait(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("landfall_wait");
+
+         Hero someone = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         if (t.Skip(someone == null, "no living free lord to hold a meeting with")) return t.Line();
+
+         bool atSea = MobileParty.MainParty?.IsCurrentlyAtSea == true;
+         StagingRoute route = StagingHostPolicy.Route(new StagingHostFacts {MissionLive = TaleWorlds.MountAndBlade.Mission.Current != null, PlayerAtSea = atSea});
+         t.Note($"player at sea: {atSea}; mission live: {TaleWorlds.MountAndBlade.Mission.Current != null}; route: {route}");
+         t.Expect("atSeaWithNothingLiveItWaits", route == StagingRoute.WaitForLandfall, atSea && TaleWorlds.MountAndBlade.Mission.Current == null);
+         t.Expect("anEnvoyComesOnlyAshore", StagingHostPolicy.AnEnvoyCanReachThePlayer(atSea), !atSea);
+
+         int before = Chat.ChatSceneStager.DebugAwaitingLandfallCount;
+         try
+         {
+            var request = new ChatSceneRequest {Kind = ChatSceneKind.PlainConversation, Partner = someone};
+            Chat.ChatSceneStager.DebugWaitForLandfall(request);
+            Chat.ChatSceneStager.DebugWaitForLandfall(request);
+            t.Expect("heldOnceNotTwice", Chat.ChatSceneStager.DebugAwaitingLandfallCount, before + 1);
+         }
+         finally
+         {
+            Chat.ChatSceneStager.DebugClearAwaitingLandfall();
+         }
 
          return t.Line();
       }
