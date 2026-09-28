@@ -485,6 +485,15 @@ namespace CalradiaRemembers.Letters
 
          if (string.IsNullOrWhiteSpace(rawDecision)) return;
 
+         // Lordfadooboo (28/09/2026): the reader's judgement of the letter moves their regard, reply or not (an
+         // insult is the letter most often passed over, and the one most worth judging).
+         LetterTone tone = LetterRegardPolicy.ParseTone(rawDecision);
+         LetterMutationQueue.Post(() =>
+         {
+            LetterRegardService.Apply(profile, tone, today);
+            store.Set(profile);
+         });
+
          // 5.1: PASS-vs-DELAY:N parsing lives in the pure, unit-tested LetterReplyDecisionParser now.
          LetterReplyDecision decision = LetterReplyDecisionParser.Parse(rawDecision);
          if (decision.Kind == LetterReplyKind.Pass)
@@ -499,7 +508,7 @@ namespace CalradiaRemembers.Letters
 
          // B1: the marker (if any) rides the SAME raw text as the DELAY/body parse above, so it must be stripped
          // out of the body before it is ever sent: it is metadata for the courier system, never letter prose.
-         string letterBody = StripCorrespondencePreferenceLine(decision.Body);
+         string letterBody = LetterRegardPolicy.StripToneLine(StripCorrespondencePreferenceLine(decision.Body));
          if (string.IsNullOrWhiteSpace(letterBody)) return;
 
          // B1: an explicit "write me less/more" stated in this reply. Parsed from the FULL raw text (not just
@@ -571,8 +580,13 @@ namespace CalradiaRemembers.Letters
          string message = LetterPromptBuilder.BuildReplyLetterMessage(
             profile, originalLetter.PlayerReply ?? "", originalLetter.Reason, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile));
 
-         string content = await CallLlmForLetterAsync(llmServices, profile, message);
+         string raw = await CallLlmForLetterAsync(llmServices, profile, message);
 
+         if (string.IsNullOrWhiteSpace(raw)) return;
+
+         // Lordfadooboo (28/09/2026): the player's answer to this character's letter is judged too.
+         LetterTone tone = LetterRegardPolicy.ParseTone(raw);
+         string content = LetterRegardPolicy.StripToneLine(raw);
          if (string.IsNullOrWhiteSpace(content)) return;
 
          int deliveryDays = ComputeDeliveryDays(giverHero);
@@ -591,6 +605,7 @@ namespace CalradiaRemembers.Letters
          LetterMutationQueue.Post(() =>
          {
             profile.SentLetters.Add(reply);
+            LetterRegardService.Apply(profile, tone, today);
             store.Set(profile);
             ModLog.Info($"[LETTER] reply queued from {profile.Name}, courier dispatches day {today}.");
          });

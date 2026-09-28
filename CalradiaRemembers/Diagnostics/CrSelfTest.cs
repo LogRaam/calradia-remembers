@@ -279,6 +279,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
+         new SelfTest("letter_regard", Severity.Light, "Lordfadooboo (Nexus, 28/09/2026): a dozen letters and the correspondent's regard had not moved. Drives the real apply path on a real character's profile: a warm letter earns +1, a second the same day earns nothing, a cold one costs 1, and the [LETTER_TONE] line is stripped from the letter. Regard and the letter clock are restored.", TestLetterRegard),
          new SelfTest("vassal_departure_judged", Severity.Light, "fkasad (24/09/2026): a vassal holding no fief who leaves a realm at war is judged like a mercenary, the oath weighing like kinship; one holding fiefs is not (the war that follows is the consequence). Judges leaving the player's realm (or any realm) right now WITHOUT applying anything: judged only with no fief, the news speaks of the oath, and a sworn vassal is never thanked.", TestVassalDepartureJudged),
          new SelfTest("mercenary_company_judged", Severity.Light, "Zivkyn (Nexus): the game's own mercenary companies change sides mid-war and nobody resents them. Finds a real company in a realm's pay and judges its departure by fkasad's grid WITHOUT applying anything: the verdict follows the realm's footing, and the news line names the company and the realm.", TestMercenaryCompanyJudged),
          new SelfTest("faction_block_realm", Severity.Light, "tashmetu (27/09/2026): a companion's or a notable's realm is not their people's, and pulled another people's FACTION BEHAVIOR block into their prompt (or retitled theirs). Reads real heroes: a lord of a kingdom of his own culture keeps that realm for the choice; a hero living in a realm of another culture gets none. Read-only.", TestFactionBlockRealm),
@@ -9723,6 +9724,50 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{backer.Name}: outcome={r.Outcome}, amount={r.Amount}");
          bool clearedWhoGates = r.Outcome == ClaimantSupportOutcome.Applied || r.Outcome == ClaimantSupportOutcome.CannotAfford;
          t.Expect("clearedWhoGatesToTheAmountDecision", clearedWhoGates, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Regard earned by letter (Lordfadooboo): drives the real apply path on a real character's profile. A warm
+      ///   letter earns +1, a second the same day earns nothing, a cold one costs 1, and the tone line never reaches
+      ///   the letter the player reads. The profile's regard and letter clock are put back.
+      /// </summary>
+      private static string TestLetterRegard(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("letter_regard");
+
+         var store = behavior?.Store;
+         if (t.Abort(store == null, "no profile store")) return t.Line();
+
+         NpcProfile profile = store.ListIds().Select(store.Get)
+                                   .FirstOrDefault(p => p != null && Hero.FindFirst(h => h.StringId == p.Id) is {IsAlive: true} h && h != Hero.MainHero);
+         if (t.Skip(profile == null, "no living character has a profile yet")) return t.Line();
+
+         int regardBefore = profile.ReputationWithPlayer;
+         int? clockBefore = profile.LastLetterRegardGainDay;
+         var today = (int) CampaignTime.Now.ToDays;
+         try
+         {
+            profile.ReputationWithPlayer = 0;
+            profile.LastLetterRegardGainDay = null;
+
+            int first = Letters.LetterRegardService.Apply(profile, LetterRegardPolicy.ParseTone("Dear friend...\n[LETTER_TONE] warmer"), today);
+            int second = Letters.LetterRegardService.Apply(profile, LetterTone.Warmer, today);
+            int cold = Letters.LetterRegardService.Apply(profile, LetterTone.Cooler, today);
+
+            t.Note($"{profile.Name}: warm {first:+#;-#;0}, warm again {second:+#;-#;0}, cold {cold:+#;-#;0}");
+            t.Expect("aWarmLetterEarnsAPoint", first, 1);
+            t.Expect("aSecondTheSameDayEarnsNothing", second, 0);
+            t.Expect("aColdLetterCostsAPoint", cold, -1);
+            t.Expect("theToneLineNeverReachesTheLetter", LetterRegardPolicy.StripToneLine("Well met.\n[LETTER_TONE] warmer"), "Well met.");
+         }
+         finally
+         {
+            profile.ReputationWithPlayer = regardBefore;
+            profile.LastLetterRegardGainDay = clockBefore;
+            store.Set(profile);
+         }
 
          return t.Line();
       }

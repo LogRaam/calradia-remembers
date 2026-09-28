@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 431 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 818 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 432 types in 56 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 821 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 241 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 14000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 14500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4000+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -412,7 +412,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyCultureLoader` | public static class | Loads and caches jealousy_cultures.json from the mod's ModuleData folder, keyed by culture display name ("Khuzait", "Battania", …) to match Mapping.CulturalTraditionsLoader and stay interoperable with conversion mods. |
 | `JealousyCultureProfile` | public class | The on-disk shape of a culture's stance on romantic exclusivity, deserialized from jealousy_cultures.json. |
 
-### CalradiaRemembers.Letters (24)
+### CalradiaRemembers.Letters (25)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -433,6 +433,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterMemoryFinalizer` | public static class | Records a letter's SUBSTANCE, not just its arrival, into the sender NPC's own memory. |
 | `LetterMutationQueue` | public static class | Marshals letter-generation mutations from LLM continuation threads onto the main game thread. |
 | `LetterPopupManager` | public static class | Presents a delivered letter to the player on the parchment courier window. |
+| `LetterRegardService` | public static class | Moves a letter reader's regard by their judgement of the player's letter. |
 | `LetterTriggerEvaluator` | public class | Listens to campaign events and evaluates daily conditions to decide when an NPC should initiate a letter to the player. |
 | `LetterViewModel` | public class | View model for the dedicated courier window. |
 | `LetterWindowManager` | public static class | Show/hide lifecycle for the parchment courier window, composed on the shared crash-safe panel host. |
@@ -761,7 +762,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (522)
+### CalradiaRemembers.Logic (525)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1018,11 +1019,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterMailboxPolicy` | public static class | Chooses which single unprompted letter, if any, reaches the player right now: a budgeted, weight-ordered, anti-starvation, occasionally-diverse pick over a set of candidates the caller has already decided are eligible to... |
 | `LetterPacing` | public enum | How much unprompted NPC correspondence reaches the player. |
 | `LetterPacingRules` | public static class | Turns the player's chosen pacing into the budget that actually governs the mailbox. |
+| `LetterRegardFacts` | public class | What a letter's worth is weighed against. |
+| `LetterRegardPolicy` | public static class | The worth of a letter to the reader's regard. |
 | `LetterReplyDecision` | public struct | The parsed outcome of an NPC's letter-reply decision. |
 | `LetterReplyDecisionParser` | public static class | Parses the terse control line an LLM returns when deciding whether an NPC answers the player's letter, into a typed LetterReplyDecision. |
 | `LetterReplyKind` | public enum | Whether the NPC answers the player's letter at all. |
 | `LetterThreadAssembler` | public static class | Builds the dated, chronological correspondence thread for one contact. |
 | `LetterThreadEntry` | public class | One line of the correspondence thread: a dated header and the letter body. |
+| `LetterTone` | public enum | How a letter left its reader feeling toward the player, as the reader judged it. |
 | `LetterWeights` | public static class | Turns a letter's LetterReason into the base weight the mailbox scheduler (LetterMailboxPolicy) competes on. |
 | `LetterWindowMode` | public enum | What the courier window is doing right now. |
 | `LlmCompatibilityMode` | public enum | How the host wants chat-completion sampling parameters shaped for the target model. |
