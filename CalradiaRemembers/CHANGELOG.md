@@ -2,6 +2,32 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.6.6.. 2026-09-28
+
+### New
+- **Regard earned by letter** (Lordfadooboo, Nexus, 28/09/2026: "exchanging letters with someone a dozen times and
+  yet when you meet them again they are still only a +1"). A letter may emit no [ACTION], so letters never moved regard
+  at all. The reader now judges each letter the player sends, in the call that already writes the reply, on a
+  `[LETTER_TONE] warmer|same|cooler` line (asked even when they decline to answer; stripped before the player reads the
+  letter). `LetterRegardPolicy`: a warm letter is +1 at most every 5 days per correspondent (3 on Warmer, 1 on Very
+  Easy), and letters alone stop at "friendly regard" (`Regard.FriendlyTier`); a cold or insulting one is -1 on no
+  timer, never past `Regard.WaryTier` by letters alone. `NpcProfile.LastLetterRegardGainDay` (SDK, additive).
+  `cr.testall letter_regard`.
+- **The game's own mercenary companies are judged when they leave a war** (Zivkyn: "why does nobody resent the
+  Skolderbrotva?"), by fkasad's 2.6.1 grid unchanged. The realm's lords take it out on the company's leader through the
+  game's relation (the mod's regard is toward the player only), and word goes about only of an abandonment or a
+  betrayal (`MercenaryDeparturePolicy.CompanyDepartureIsNews`). Save key `CR_MercenaryCompanyDepartures_v1bytes`
+  (additive). `cr.testall mercenary_company_judged`.
+- **A vassal holding no fief who leaves a war is judged like a mercenary** (fkasad: "Should also apply when leaving as
+  vassal with no fief"), the oath weighing like kinship: a fault x2, x3 for a vassal of the realm's own people, never
+  thanked for leaving a winning war, worded as a renounced oath. One who leaves with fiefs takes them to war against
+  the realm and is not judged; the plain departure news stands at peace. `cr.testall vassal_departure_judged`.
+
+### Maps
+- `save-format.md` now proves every key reaches the save: 20 keys were listed only because their constant was named
+  *SaveKey*. The map follows a key through the helpers that make the SyncData call, and a wall in `RatchetTests`
+  refuses a key found by its name alone from now on (a helper the map cannot follow, or data nothing saves any more).
+
 ## v2.6.5.. 2026-09-27
 
 ### Fixed (tashmetu, Nexus, 27/09/2026: the prisoner envoy)
