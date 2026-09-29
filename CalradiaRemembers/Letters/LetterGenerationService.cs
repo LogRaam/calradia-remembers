@@ -416,9 +416,14 @@ namespace CalradiaRemembers.Letters
       {
          if (llmServices?.ChatService == null) return;
 
+         // Gabriel (28/09/2026): a greater lord does not write in their own hand to one far below them. Read here,
+         // on the game thread, before the first await.
+         string writtenBy = CorrespondenceRank.WrittenByFor(giverHero, profile, reason);
+
          // Add a placeholder immediately so CanSendLetter sees a letter in-transit while the
          // LLM call is in flight, preventing duplicate letters from consecutive daily ticks.
          var placeholder = new PendingLetter {
+            WrittenBy = writtenBy,
             SenderId = profile.Id,
             SenderName = profile.Name,
             Reason = reason,
@@ -437,7 +442,7 @@ namespace CalradiaRemembers.Letters
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string message = LetterPromptBuilder.BuildInitialLetterMessage(
-            profile, reason, triggerContext, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile));
+            profile, reason, triggerContext, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy);
 
          string content = await CallLlmForLetterAsync(llmServices, profile, message);
 
@@ -478,8 +483,9 @@ namespace CalradiaRemembers.Letters
          if (string.IsNullOrWhiteSpace(playerLetter.Content)) return;
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
+         string writtenBy = CorrespondenceRank.WrittenByFor(senderHero, profile, LetterReason.PlayerLetterReply);
          string message = LetterPromptBuilder.BuildPlayerLetterReplyDecisionMessage(
-            profile, playerLetter.Content ?? "", playerName, WhereaboutsFor(profile), PlayerSituationFor(profile));
+            profile, playerLetter.Content ?? "", playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy);
 
          string rawDecision = await CallLlmForLetterAsync(llmServices, profile, message);
 
@@ -523,6 +529,7 @@ namespace CalradiaRemembers.Letters
             SenderName = profile.Name,
             Reason = LetterReason.PlayerLetterReply,
             Content = letterBody,
+            WrittenBy = writtenBy,
             SentOnDay = today,
             DispatchDay = dispatchDay,
             DeliveryDay = dispatchDay + travelDays, // fallback if courier lost before spawning
@@ -577,8 +584,9 @@ namespace CalradiaRemembers.Letters
          if (llmServices?.ChatService == null) return;
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
+         string writtenBy = CorrespondenceRank.WrittenByFor(giverHero, profile, originalLetter.Reason);
          string message = LetterPromptBuilder.BuildReplyLetterMessage(
-            profile, originalLetter.PlayerReply ?? "", originalLetter.Reason, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile));
+            profile, originalLetter.PlayerReply ?? "", originalLetter.Reason, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy);
 
          string raw = await CallLlmForLetterAsync(llmServices, profile, message);
 
@@ -595,6 +603,7 @@ namespace CalradiaRemembers.Letters
             SenderName = profile.Name,
             Reason = originalLetter.Reason,
             Content = content,
+            WrittenBy = writtenBy,
             SentOnDay = today,
             DispatchDay = today,
             DeliveryDay = today + deliveryDays,

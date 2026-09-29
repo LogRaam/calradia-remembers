@@ -570,7 +570,8 @@ namespace CalradiaRemembers.Letters
          _letter = letter;
          _profile = senderProfile;
          _state = new LetterComposerState(LetterWindowMode.Read);
-         _title = $"A LETTER FROM {(letter?.SenderName ?? senderProfile?.Name ?? "?").ToUpperInvariant()}";
+         // A letter written on a greater lord's behalf says so (Gabriel, 28/09/2026): "A LETTER FROM THE CHANCELLERY OF ...".
+         _title = $"A LETTER FROM {(letter?.WrittenBy ?? letter?.SenderName ?? senderProfile?.Name ?? "?").ToUpperInvariant()}";
          _senderHeading = ComposeSenderHeading(letter, senderProfile?.Name);
          _panelHeight = ReadHeight;
          ResolvePortrait(Hero.FindFirst(h => h.StringId == senderProfile?.Id));
@@ -600,7 +601,7 @@ namespace CalradiaRemembers.Letters
       /// </summary>
       private static string ComposeSenderHeading(PendingLetter letter, string fallbackName)
       {
-         var from = $"From {letter?.SenderName ?? fallbackName}";
+         var from = $"From {letter?.WrittenBy ?? letter?.SenderName ?? fallbackName}";
          string age = letter == null
             ? null
             : LetterAgeDescriber.Describe(letter.SentOnDay, (int) CampaignTime.Now.ToDays);

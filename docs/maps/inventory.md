@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 433 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 829 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 434 types in 56 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 831 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 241 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -412,12 +412,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyCultureLoader` | public static class | Loads and caches jealousy_cultures.json from the mod's ModuleData folder, keyed by culture display name ("Khuzait", "Battania", …) to match Mapping.CulturalTraditionsLoader and stay interoperable with conversion mods. |
 | `JealousyCultureProfile` | public class | The on-disk shape of a culture's stance on romantic exclusivity, deserialized from jealousy_cultures.json. |
 
-### CalradiaRemembers.Letters (25)
+### CalradiaRemembers.Letters (26)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CaptiveEncounterService` | public static class | Sprint 17 — Captive Encounter System. |
 | `CarriedSecret` | public class | An intercepted letter, and where it is now. |
+| `CorrespondenceRank` | public static class | The rule of rank, read from the live game. |
 | `CorrespondenceSignalService` | public static class | Applies a stated CorrespondencePreference to an NPC's running correspondence-interest dampers, in memory only. |
 | `CourierSecretBehavior` | public class | Follows intercepted letters from their captors to whoever ends up reading them. |
 | `CourierService` | public static class | Spawns and manages the visible courier party that carries a PlayerLetter from the player to its recipient. |
@@ -763,7 +764,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (529)
+### CalradiaRemembers.Logic (531)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -888,6 +889,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CorrespondenceInterestPolicy` | public static class | Turns the player's correspondence behaviour, explicit or implicit, into the InterestDeltas that a caller accumulates per sender/subject/globally and then clamps (ClampSender, ClampSubject, ClampGlobal) before handing the... |
 | `CorrespondencePreference` | public struct | A single correspondence preference the player has stated (typically parsed by CorrespondencePreferenceParser from a reply's control line). |
 | `CorrespondencePreferenceParser` | public static class | Parses the optional correspondence-preference control line an LLM may append to a reply, into a typed CorrespondencePreference. |
+| `CorrespondenceRankFacts` | public class | What decides whether a character deals with the player in person. |
+| `CorrespondenceRankPolicy` | public static class | The rule of rank in correspondence and meetings. |
 | `CouncilCandidate` | public class | A vassal of the realm, and how they regard the player on the mod's own ledger. |
 | `CouncilSceneImagePolicy` | public static class | Picks the scene-image BASENAME (no extension, no path) for a council's thinking placeholder, from the council's own TYPE first and the player's location second. |
 | `CouncilSceneKind` | public enum | The image family a council's TYPE calls for, independent of terrain. |

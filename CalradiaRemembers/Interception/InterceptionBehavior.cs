@@ -1505,6 +1505,10 @@ namespace CalradiaRemembers.Interception
             if (!CanRideOutToIntercept(p)) continue;     // committed to an army or locked in a fight: cannot break off to chase
             if (p.GetPosition2D.Distance(playerPos) > InterceptRange) continue;
 
+            // Gabriel (28/09/2026): an empress does not ride out herself after a landless newcomer. A greater lord is
+            // passed over, and another nearby lord may still come; the same rule as a letter written on their behalf.
+            if (!CorrespondenceRank.DealsInPerson(lord, NpcMemoryCampaignBehavior.Instance?.Store?.Get(lord.StringId), null)) continue;
+
             scanned++;
 
             bool holdsGrudge = HoldsLiveGrudgeAgainstPlayer(lord, today, out string grudgeCause);

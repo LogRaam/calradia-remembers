@@ -280,6 +280,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
+         new SelfTest("correspondence_rank", Severity.Light, "Gabriel (28/09/2026): the Empress wrote in her own hand to a landless newcomer, and rode out herself to find him. Reads a real ruler against the player as they stand: far above an unbonded player, her letters come from her chancellery (a title, no invented clerk) and she does not ride out in person; a love letter is always her own. Writes nothing.", TestCorrespondenceRank),
          new SelfTest("balance_survey", Severity.Light, "The balance-of-power survey (Gabriel, 28/09/2026: measure before building a balancing lever). Reads every living realm as the weekly survey does: one row each, fief shares adding up to the whole map, and rows that survive the survey file's round trip. Writes nothing.", TestBalanceSurvey),
          new SelfTest("landfall_wait", Severity.Light, "Windmolen (Nexus, 28/09/2026): accepting an envoy on a naval move opened the chat over the live naval map, which flickered and crashed. At sea a conversation now waits for landfall and an envoy does not arrive. Reads the door's route for where the player stands, holds a real request as the door does at sea and checks it is held once. Opens nothing; the held request is dropped.", TestLandfallWait),
          new SelfTest("letter_regard", Severity.Light, "Lordfadooboo (Nexus, 28/09/2026): a dozen letters and the correspondent's regard had not moved. Drives the real apply path on a real character's profile: a warm letter earns +1, a second the same day earns nothing, a cold one costs 1, and the [LETTER_TONE] line is stripped from the letter. Regard and the letter clock are restored.", TestLetterRegard),
@@ -9727,6 +9728,36 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{backer.Name}: outcome={r.Outcome}, amount={r.Amount}");
          bool clearedWhoGates = r.Outcome == ClaimantSupportOutcome.Applied || r.Outcome == ClaimantSupportOutcome.CannotAfford;
          t.Expect("clearedWhoGatesToTheAmountDecision", clearedWhoGates, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The rule of rank on real characters (Gabriel, 28/09/2026: the Empress wrote in her own hand to a landless
+      ///   newcomer). Reads a real ruler against the player as they stand: a ruler far above an unbonded player has her
+      ///   letters written by her chancellery and does not ride out herself; the two answers always agree. Writes nothing.
+      /// </summary>
+      private static string TestCorrespondenceRank(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("correspondence_rank");
+
+         Hero ruler = Kingdom.All.Where(k => k != null && !k.IsEliminated && k.Leader != null && k.Leader != Hero.MainHero)
+                             .Select(k => k.Leader).FirstOrDefault(h => h.IsAlive);
+         if (t.Skip(ruler == null, "no living ruler other than the player")) return t.Line();
+
+         NpcProfile profile = behavior?.Store?.Get(ruler.StringId);
+         CorrespondenceRankFacts f = Letters.CorrespondenceRank.Facts(ruler, profile, NpcMemoryService.Core.Models.LetterReason.QuestUpdate);
+         string writtenBy = Letters.CorrespondenceRank.WrittenByFor(ruler, profile, NpcMemoryService.Core.Models.LetterReason.QuestUpdate);
+         bool ridesOut = Letters.CorrespondenceRank.DealsInPerson(ruler, profile, null);
+
+         t.Note($"{ruler.Name} (ruler, tier {f.SenderClanTier}) to the player (tier {f.PlayerClanTier}, ruler {f.PlayerIsRuler}, bond {f.PersonalBond}, regard {f.Regard}): "
+              + $"written by {writtenBy ?? "her own hand"}; rides out in person {ridesOut}");
+         bool farBelow = !f.PlayerIsRuler && !f.PersonalBond && f.PlayerClanTier < CorrespondenceRankPolicy.TierARulerAddressesInPerson
+                         && f.Regard < NpcMemoryService.Core.Standing.Regard.ConfidingTier;
+         t.Expect("farBelowHerTheChancelleryWrites", writtenBy != null, farBelow);
+         t.Expect("theTitleNamesHerAndNoClerk", writtenBy == null || writtenBy.Contains(ruler.Name.ToString()), true);
+         t.Expect("sheRidesOutOnlyWhenSheWouldWriteHerself", ridesOut, writtenBy == null);
+         t.Expect("aLoveLetterIsAlwaysHerOwn", Letters.CorrespondenceRank.WrittenByFor(ruler, profile, NpcMemoryService.Core.Models.LetterReason.RomanticCorrespondence), null);
 
          return t.Line();
       }
