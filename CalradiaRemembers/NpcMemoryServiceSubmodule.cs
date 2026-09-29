@@ -165,6 +165,8 @@ namespace CalradiaRemembers
          // The seasonal historian writes INTO the store above, so it is registered after it (Gabriel's design,
          // 2026-09-12: one historian for the world, and no fourth memory store - the chronicle is WorldEvents).
          campaignStarter.AddBehavior(new WorldAlmanac.SeasonalChronicleBehavior());
+         // The balance-of-power survey (28/09/2026): a developer measurement, off until cr.balance_survey on.
+         campaignStarter.AddBehavior(new WorldAlmanac.BalanceSurveyBehavior());
          // Schemes (v1.3): bitter rivals plot against each other; the lifecycle is mechanical (pure
          // SchemeAdvancer), the effect is standing damage, and the player only ever hears of it as a
          // rumour fed to the world-event store. Registered AFTER WorldEventStore (it records into it).

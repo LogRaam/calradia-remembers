@@ -5,6 +5,7 @@
 using TaleWorlds.ModuleManager;
 using CalradiaRemembers.Storage;
 using System;
+using CalradiaRemembers.Logic.WorldAlmanac;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -279,6 +280,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
+         new SelfTest("balance_survey", Severity.Light, "The balance-of-power survey (Gabriel, 28/09/2026: measure before building a balancing lever). Reads every living realm as the weekly survey does: one row each, fief shares adding up to the whole map, and rows that survive the survey file's round trip. Writes nothing.", TestBalanceSurvey),
          new SelfTest("landfall_wait", Severity.Light, "Windmolen (Nexus, 28/09/2026): accepting an envoy on a naval move opened the chat over the live naval map, which flickered and crashed. At sea a conversation now waits for landfall and an envoy does not arrive. Reads the door's route for where the player stands, holds a real request as the door does at sea and checks it is held once. Opens nothing; the held request is dropped.", TestLandfallWait),
          new SelfTest("letter_regard", Severity.Light, "Lordfadooboo (Nexus, 28/09/2026): a dozen letters and the correspondent's regard had not moved. Drives the real apply path on a real character's profile: a warm letter earns +1, a second the same day earns nothing, a cold one costs 1, and the [LETTER_TONE] line is stripped from the letter. Regard and the letter clock are restored.", TestLetterRegard),
          new SelfTest("vassal_departure_judged", Severity.Light, "fkasad (24/09/2026): a vassal holding no fief who leaves a realm at war is judged like a mercenary, the oath weighing like kinship; one holding fiefs is not (the war that follows is the consequence). Judges leaving the player's realm (or any realm) right now WITHOUT applying anything: judged only with no fief, the news speaks of the oath, and a sworn vassal is never thanked.", TestVassalDepartureJudged),
@@ -9725,6 +9727,29 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{backer.Name}: outcome={r.Outcome}, amount={r.Amount}");
          bool clearedWhoGates = r.Outcome == ClaimantSupportOutcome.Applied || r.Outcome == ClaimantSupportOutcome.CannotAfford;
          t.Expect("clearedWhoGatesToTheAmountDecision", clearedWhoGates, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The balance-of-power survey reads the real world: one row per living realm, fief shares that add up to
+      ///   the whole map, and rows that survive the file round trip. Writes nothing.
+      /// </summary>
+      private static string TestBalanceSurvey(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("balance_survey");
+
+         List<SurveyRow> rows = WorldAlmanac.BalanceSurveyBehavior.Reading();
+         int living = Kingdom.All.Count(k => k != null && !k.IsEliminated);
+         if (t.Skip(rows.Count == 0, "no living realm to read")) return t.Line();
+
+         double shareSum = BalanceSurveyPolicy.Shares(rows).Values.Sum();
+         (List<SurveyRow> back, List<SurveyEvent> _) = BalanceSurveyPolicy.Parse(rows.Select(BalanceSurveyPolicy.ToLine));
+
+         t.Note($"{rows.Count} realm(s); leader share {BalanceSurveyPolicy.Shares(rows).Values.Max():P0}; file {WorldAlmanac.BalanceSurveyBehavior.FilePath}");
+         t.Expect("oneRowPerLivingRealm", rows.Count, living);
+         t.Expect("sharesMakeTheWholeMap", Math.Abs(shareSum - 1.0) < 0.001, true);
+         t.Expect("rowsSurviveTheFile", back.Count, rows.Count);
 
          return t.Line();
       }

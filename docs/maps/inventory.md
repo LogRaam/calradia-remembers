@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 432 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 825 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 433 types in 56 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 829 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 241 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -720,12 +720,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `WitnessResolver` | public static class | Determines which NPCs are present during a conversation and returns them as WitnessEntry objects for prompt injection. |
 
-### CalradiaRemembers.WorldAlmanac (13)
+### CalradiaRemembers.WorldAlmanac (14)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `BalanceOfPowerManager` | public static class | Show/hide lifecycle for the Balance of Power window, composed on the shared crash-safe panel host. |
 | `BalanceOfPowerViewModel` | public class | The whole "Balance of Power" dashboard as bindable data: the top-3 podium, the full ranked list, the key indicators, and the field totals. |
+| `BalanceSurveyBehavior` | public class | Records the balance of power week by week while switched on. |
 | `ClanBalanceOfPowerButtonVM` | public class | Data source for the Clan-screen Balance of Power button overlay: its label and open command. |
 | `ClanScreenBalanceOfPowerButton` | internal static class | Loads the "Balance of Power" button as an overlay movie on the Clan screen's layer (UIExtenderEx and a hand-built widget both failed to receive input on this build). |
 | `KingdomPowerFactsBuilder` | public static class | Builds a field of KingdomPowerFacts from the live campaign, one per living kingdom. |
@@ -1680,12 +1681,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ViolenceVerdict` | public enum | How an attempt ended. |
 | `ViolentAct` | public enum | What the player is attempting against an NPC, from least to most severe. |
 
-### CalradiaRemembers.Logic.WorldAlmanac (20)
+### CalradiaRemembers.Logic.WorldAlmanac (24)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `AdvisorKind` | public enum | Who is voicing the assessment: a trained companion strategist, or a common soldier standing in when no companion is at hand. |
 | `AdvisorTacticsTier` | public enum | How sharp a strategist's counsel is, deduced from their Tactics skill. |
+| `BalanceSurveyPolicy` | public static class | The survey's arithmetic and its file format. |
+| `BalanceSurveySummary` | public class | What a survey shows, from its first week to its last. |
 | `CalradiaWarState` | public class | The wars presently under way across Calradia (who fights whom): the ONLY conflicts the advisor may speak of. |
 | `KeyIndicators` | public class | The "at a glance" leaders on single measures, shown in the Key Indicators panel. |
 | `KingdomPowerFacts` | public class | The raw facts about one kingdom, gathered live from the campaign, that feed the Power Index. |
@@ -1702,6 +1705,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StrategicAdvisor` | public class | The voice of the Strategic Assessment: their name, culture, Tactics skill (which sets the counsel's quality), and whether they are a trained strategist or a plain soldier. |
 | `StrategicAssessmentPromptBuilder` | public static class | Builds the one-shot LLM prompt for the World Almanac's Strategic Assessment: a companion strategist counsels the player on how the realms stand, what is likely to come, and what to do. |
 | `StrategicAssessmentSummary` | public static class | The Strategic Assessment when the player travels ALONE (no companion, no soldiers): a plain, factual summary of the standings, composed WITHOUT an LLM call. |
+| `SurveyEvent` | public class | A diplomatic event: war, peace, alliance, alliance ended, call to war. |
+| `SurveyRow` | public class | One realm, one week. |
 | `TacticsAdvicePolicy` | public static class | Turns an advisor's Tactics skill into the QUALITY of their strategic counsel: a higher skill sees further and speaks with more precision, a lower one keeps it broad and hedged. |
 | `WarPair` | public class | One war under way between two realms, named, so the advisor can reason about the actual conflicts rather than inventing them. |
 

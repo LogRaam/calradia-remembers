@@ -184,6 +184,59 @@ namespace CalradiaRemembers
          return report;
       }
 
+      /// <summary>
+      ///   cr.balance_survey [on|off|now|report]
+      ///   The balance-of-power survey (Gabriel, 28/09/2026): measure whether one realm runs away with the map before
+      ///   any balancing lever is built. See BalanceSurveyBehavior.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("balance_survey", "cr")]
+      public static string BalanceSurvey(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+
+         BalanceSurveyBehavior survey = BalanceSurveyBehavior.Instance;
+         if (survey == null) return "The balance survey is not running in this campaign.";
+
+         string verb = args != null && args.Count > 0 ? args[0].ToLowerInvariant() : "";
+         switch (verb)
+         {
+            case "on":
+               survey.Switch(true);
+
+               return $"Balance survey ON: a reading every week, and every war, peace and alliance, into {BalanceSurveyBehavior.FilePath}. It stays on across saves until cr.balance_survey off.";
+            case "off":
+               survey.Switch(false);
+
+               return "Balance survey OFF. The file is kept; cr.balance_survey report still reads it.";
+            case "now":
+               survey.RecordReading();
+
+               return $"One reading taken into {BalanceSurveyBehavior.FilePath}.";
+            case "report":
+               (BalanceSurveySummary Summary, int Lines)? report = BalanceSurveyBehavior.Report();
+               if (report == null) return "No survey file yet for this campaign. cr.balance_survey on starts one.";
+
+               BalanceSurveySummary s = report.Value.Summary;
+               var sb = new StringBuilder();
+               sb.AppendLine($"=== Balance of power survey: {s.Weeks} reading(s), day {s.FirstDay} to {s.LastDay} ===");
+               sb.AppendLine($"  Realms            : {s.RealmsAtStart} at the start, {s.RealmsAtEnd} at the end");
+               sb.AppendLine($"  Leader (fiefs)    : {s.LeaderAtStart} {s.LeaderShareAtStart:P0} at the start; {s.LeaderAtEnd} {s.LeaderShareAtEnd:P0} at the end");
+               sb.AppendLine($"  Highest share     : {s.HighestLeader} {s.HighestLeaderShare:P0} on day {s.HighestLeaderDay}");
+               sb.AppendLine($"  Concentration     : {s.ConcentrationAtStart:0.00} at the start, {s.ConcentrationAtEnd:0.00} at the end (1/n = even, 1 = one realm holds all)");
+               sb.AppendLine($"  Wars              : {s.Wars} declared, {s.WarsOnLeader} of them on the leader of the day");
+               sb.AppendLine($"  Alliances         : {s.Alliances} formed, {s.AlliancesAgainstLeader} by realms at war with the leader; {s.CallsToWar} call(s) to war");
+               sb.AppendLine(s.Runaway
+                                ? $"  VERDICT           : RUNAWAY. {s.LeaderAtEnd} holds {s.LeaderShareAtEnd:P0} of the fiefs (threshold {BalanceSurveyPolicy.RunawayShare:P0}, or a climb of {BalanceSurveyPolicy.RunawayRise:P0})."
+                                : "  VERDICT           : no runaway so far.");
+               sb.AppendLine($"  File              : {BalanceSurveyBehavior.FilePath} ({report.Value.Lines} lines)");
+               ModLog.Info(sb.ToString());
+
+               return sb.ToString();
+            default:
+               return $"Balance survey is {(survey.IsOn ? "ON" : "OFF")}. File: {BalanceSurveyBehavior.FilePath}. Use on | off | now | report.";
+         }
+      }
+
       private static string Name(Dictionary<string, KingdomPowerFacts> byId, string id)
          => id != null && byId.TryGetValue(id, out KingdomPowerFacts f) ? f.KingdomName : id ?? "(none)";
    }
