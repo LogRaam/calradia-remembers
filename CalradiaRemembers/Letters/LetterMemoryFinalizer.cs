@@ -45,12 +45,14 @@ namespace CalradiaRemembers.Letters
             string content,
             bool npcIsSender,
             int today,
-            NpcMemoryCampaignBehavior behavior)
+            NpcMemoryCampaignBehavior behavior,
+            string writtenBy = null)
         {
             if (profile == null || behavior?.Store == null) return;
 
+            // Gabriel (28/09/2026): a letter the lord had written in their name is still theirs to remember.
             string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
-            string baseSummary = LetterMemoryPolicy.BaseMemory(reason, profile.Name, playerName, npcIsSender);
+            string baseSummary = LetterMemoryPolicy.BaseMemory(reason, profile.Name, playerName, npcIsSender, dictated: npcIsSender && !string.IsNullOrWhiteSpace(writtenBy));
 
             // Identified, because the enrichment below comes back for this exact event once the model has
             // read the letter — and two letters from the same person on one day are identical by value.
@@ -62,7 +64,7 @@ namespace CalradiaRemembers.Letters
             if (!LetterMemoryPolicy.ShouldRemember(reason)) return;
             if (string.IsNullOrWhiteSpace(content) || behavior.LlmServices?.HousekeepingClient == null) return;
 
-            _ = GenerateAndApplyAsync(behavior, profile.Id, baseEvent, content, npcIsSender, playerName);
+            _ = GenerateAndApplyAsync(behavior, profile.Id, baseEvent, content, npcIsSender, playerName, writtenBy);
         }
 
         /// <summary>
@@ -75,7 +77,7 @@ namespace CalradiaRemembers.Letters
             if (profile == null || letter == null || letter.SenderRemembers) return;
 
             letter.SenderRemembers = true;
-            RecordLetterMemory(profile, letter.Reason, letter.Content, true, today, behavior);
+            RecordLetterMemory(profile, letter.Reason, letter.Content, true, today, behavior, letter.WrittenBy);
         }
 
         #region private
@@ -86,7 +88,8 @@ namespace CalradiaRemembers.Letters
             NotableEvent baseEvent,
             string content,
             bool npcIsSender,
-            string playerName)
+            string playerName,
+            string writtenBy)
         {
             try
             {
@@ -100,7 +103,7 @@ namespace CalradiaRemembers.Letters
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
                 {
                     rich = await Task.Run(() => summarizer.SummarizeAsync(
-                                        npc, content, npcIsSender, playerName, ModSettings.ReplyLanguage, cts.Token))
+                                        npc, content, npcIsSender, playerName, ModSettings.ReplyLanguage, cts.Token, writtenBy))
                                      .ConfigureAwait(false);
                 }
 

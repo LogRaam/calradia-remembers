@@ -13559,13 +13559,20 @@ namespace CalradiaRemembers.Diagnostics
 
             t.Expect("theRealPathAddedOneEvent", fresh?.Events.Count, before + 1);
             t.Expect("theBaseEventIsTheExpectedPhrase", fresh?.Events.LastOrDefault()?.summary, expected);
+
+            // Gabriel (28/09/2026): a letter the lord had their chancellery write is still theirs to remember,
+            // through the same sending path every delivered letter takes.
+            var dictated = new PendingLetter {Reason = LetterReason.QuestUpdate, Content = "Her Majesty wishes to know how the matter stands.", WrittenBy = "the chancellery of Her Majesty Rhagaea"};
+            LetterMemoryFinalizer.RememberSending(fresh, dictated, today, behavior);
+            t.Expect("aDictatedLetterIsRememberedAsHadWritten", behavior.Store.Get(profile.Id)?.Events.LastOrDefault()?.summary,
+                     LetterMemoryPolicy.BaseMemory(LetterReason.QuestUpdate, profile.Name, playerName, true, dictated: true));
          }
          finally
          {
             NpcProfile cleanup = behavior.Store.Get(profile.Id);
             if (cleanup != null && cleanup.Events.Count > before)
             {
-               cleanup.Events.RemoveAt(cleanup.Events.Count - 1);
+               while (cleanup.Events.Count > before) cleanup.Events.RemoveAt(cleanup.Events.Count - 1);
                behavior.Store.Set(cleanup);
             }
          }

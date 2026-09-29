@@ -99,9 +99,11 @@ namespace CalradiaRemembers.Logic
                     if (!LetterArchivePolicy.IsArchived(l)) continue;
 
                     int day = ArchiveDay(l.SentOnDay, l.DeliveryDay);
+                    // A letter written in the contact's name (Gabriel, 28/09/2026) stays in their history, headed by
+                    // who put it on paper: "Letter from the chancellery of Her Majesty Rhagaea".
                     entries.Add((day, 0, new LetterThreadEntry(
                         LetterDirection.Incoming, day,
-                        Header(LetterDirection.Incoming, contactName, day), l.Content)));
+                        Header(LetterDirection.Incoming, string.IsNullOrWhiteSpace(l.WrittenBy) ? contactName : l.WrittenBy, day), l.Content)));
 
                     // The player's inline reply to this very letter, if they wrote one, dated to the day
                     // they received it (EffectiveDeliveredDay), so it threads directly after the letter.

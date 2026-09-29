@@ -54,6 +54,21 @@ namespace CalradiaRemembers.Tests
                 .Should().Be("Letter from Derthert, autumn of the 3rd year, day 43");
         }
 
+        // Gabriel (28/09/2026): a letter the Empress had her chancellery write belongs in her history with the
+        // player, and says who put it on paper, exactly as the window did when it arrived.
+        [Test]
+        public void GIVEN_a_letter_written_in_a_lords_name_WHEN_the_thread_is_built_THEN_it_is_in_the_lords_history_under_the_title()
+        {
+            PendingLetter dictated = Incoming(210, "Her Majesty wishes to know how the matter stands.");
+            dictated.WrittenBy = "the chancellery of Her Majesty Rhagaea";
+
+            IReadOnlyList<LetterThreadEntry> thread = LetterThreadAssembler.Build("Rhagaea", new[] {dictated}, null, cap: 0);
+
+            thread.Should().ContainSingle();
+            thread[0].Header.Should().StartWith("Letter from the chancellery of Her Majesty Rhagaea, autumn");
+            thread[0].Body.Should().Be("Her Majesty wishes to know how the matter stands.");
+        }
+
         // A letter the player sent must be attributed to the player, not the contact, or the thread would read
         // as if the NPC wrote both halves of the conversation.
         [Test]
