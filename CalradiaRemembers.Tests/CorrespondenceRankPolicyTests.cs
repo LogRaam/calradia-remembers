@@ -21,7 +21,7 @@ namespace CalradiaRemembers.Tests
    public sealed class CorrespondenceRankPolicyTests
    {
       private static CorrespondenceRankFacts Empress(int playerTier = 0, LetterReason? reason = LetterReason.QuestUpdate)
-         => new CorrespondenceRankFacts {SenderIsRuler = true, SenderClanTier = 6, PlayerClanTier = playerTier, Reason = reason};
+         => new CorrespondenceRankFacts {Sender = new Stature(6, isRuler: true), Player = new Stature(playerTier, isRuler: false), Reason = reason};
 
       // Gabriel's case: the Empress, and a landless newcomer.
       [Test]
@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_player_risen_to_a_great_house_or_a_throne_WHEN_a_ruler_writes_THEN_she_writes_herself()
       {
          CorrespondenceRankPolicy.DealsInPerson(Empress(CorrespondenceRankPolicy.TierARulerAddressesInPerson)).Should().BeTrue();
-         CorrespondenceRankPolicy.DealsInPerson(new CorrespondenceRankFacts {SenderIsRuler = true, SenderClanTier = 6, PlayerIsRuler = true}).Should().BeTrue();
+         CorrespondenceRankPolicy.DealsInPerson(new CorrespondenceRankFacts {Sender = new Stature(6, isRuler: true), Player = new Stature(0, isRuler: true)}).Should().BeTrue();
       }
 
       // Gabriel: "sauf pour les lettres d'amours". Love, marriage, family and what no clerk should read stay personal.
@@ -77,7 +77,7 @@ namespace CalradiaRemembers.Tests
       [TestCase(2, 4, true)]
       public void GIVEN_two_houses_WHEN_the_greater_writes_THEN_a_gap_of_two_tiers_brings_a_steward(int senderTier, int playerTier, bool inPerson)
       {
-         CorrespondenceRankPolicy.DealsInPerson(new CorrespondenceRankFacts {SenderClanTier = senderTier, PlayerClanTier = playerTier}).Should().Be(inPerson);
+         CorrespondenceRankPolicy.DealsInPerson(new CorrespondenceRankFacts {Sender = new Stature(senderTier, isRuler: false), Player = new Stature(playerTier, isRuler: false)}).Should().Be(inPerson);
       }
 
       // The same rule on the road: a meeting has no letter reason, and the Empress does not ride out after a newcomer.

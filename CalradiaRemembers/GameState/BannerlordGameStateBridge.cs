@@ -2159,7 +2159,7 @@ namespace CalradiaRemembers.GameState
             // them in deep trust. Regard reads the mod's OWN personal ledger (ReputationWithPlayer), falling back
             // to the vanilla relation when no profile exists for this leader.
             int regard = context?.Profile?.ReputationWithPlayer ?? npcHero.GetRelation(Hero.MainHero);
-            int playerTier = Clan.PlayerClan?.Tier ?? 0;
+            int playerTier = Mapping.StatureReader.Player.ClanTier;
 
             switch (PeaceMediationPolicy.Evaluate(true, true, regard, playerTier))
             {
@@ -3639,7 +3639,7 @@ namespace CalradiaRemembers.GameState
             AlreadyAccepted = profile?.Romantic?.AcceptsPlayersOtherPartners ?? false,
             AlreadyOnOpenTerms = profile?.Romantic?.IsOpenArrangement ?? false,
             CultureToleratesSharing = JealousyCultureLoader.GetCulture(npcHero?.Culture?.Name?.ToString())
-                                                           .ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0),
+                                                           .ToleratesSharedPartners(Mapping.StatureReader.Player.ClanTier),
             RegardWithPlayer = profile?.ReputationWithPlayer ?? 0
          };
       }

@@ -21,17 +21,11 @@ namespace CalradiaRemembers.Logic
    /// <summary>What decides whether a character deals with the player in person.</summary>
    public sealed class CorrespondenceRankFacts
    {
-      /// <summary>The character rules a realm.</summary>
-      public bool SenderIsRuler { get; set; }
+      /// <summary>The character's standing: their clan's tier, and whether they rule.</summary>
+      public Stature Sender { get; set; }
 
-      /// <summary>The tier of the character's clan (0 to 6).</summary>
-      public int SenderClanTier { get; set; }
-
-      /// <summary>The player rules a realm.</summary>
-      public bool PlayerIsRuler { get; set; }
-
-      /// <summary>The tier of the player's clan (0 to 6).</summary>
-      public int PlayerClanTier { get; set; }
+      /// <summary>The player's standing.</summary>
+      public Stature Player { get; set; }
 
       /// <summary>A romance, a spouse, or the family: never left to a clerk.</summary>
       public bool PersonalBond { get; set; }
@@ -50,17 +44,17 @@ namespace CalradiaRemembers.Logic
       public const int TierGapForAnIntermediary = 2;
 
       /// <summary>TUNE: the clan tier from which a ruler deals with the player in person (a great vassal).</summary>
-      public const int TierARulerAddressesInPerson = 4;
+      public const int TierARulerAddressesInPerson = Stature.GreatHouseTier;
 
       /// <summary>Whether the character writes to (or rides out to meet) the player in person, rather than through someone.</summary>
       public static bool DealsInPerson(CorrespondenceRankFacts f)
       {
          if (f == null) return true;
-         if (f.PersonalBond || f.Regard >= Regard.ConfidingTier || f.PlayerIsRuler) return true;
+         if (f.PersonalBond || f.Regard >= Regard.ConfidingTier || f.Player.IsRuler) return true;
          if (f.Reason.HasValue && IsPrivateMatter(f.Reason.Value)) return true;
-         if (f.SenderIsRuler) return f.PlayerClanTier >= TierARulerAddressesInPerson;
+         if (f.Sender.IsRuler) return f.Player.ClanTier >= TierARulerAddressesInPerson;
 
-         return f.SenderClanTier - f.PlayerClanTier < TierGapForAnIntermediary;
+         return f.Sender.TiersAbove(f.Player) < TierGapForAnIntermediary;
       }
 
       /// <summary>Letters never handed to a clerk: love, marriage and family, and what is too private to dictate.</summary>

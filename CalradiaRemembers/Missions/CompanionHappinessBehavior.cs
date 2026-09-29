@@ -260,7 +260,7 @@ namespace CalradiaRemembers.Missions
          // Serving a great house is an HONOUR: the happiness companions come to rest at rises with the standing
          // of the clan they serve, so an established player never has to nurse morale. The weekly drift home is
          // deliberately stronger than the ennui of idleness, so idleness ALONE can never carry anyone to the door.
-         int baseline = CompanionBaseline.From(Clan.PlayerClan?.Tier ?? 0);
+         int baseline = CompanionBaseline.From(Mapping.StatureReader.Player.ClanTier);
 
          // The camp's mood, which the player already tends (food, wages, victories), colours those who march in it.
          HappinessDriver? mood = PartyMoraleMood.DriverFor(MobileParty.MainParty?.Morale ?? 50f);

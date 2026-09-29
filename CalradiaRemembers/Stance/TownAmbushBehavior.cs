@@ -325,7 +325,7 @@ namespace CalradiaRemembers.Stance
       /// </summary>
       private static LocationCharacter CreateChief(CultureObject culture, LocationCharacter.CharacterRelations relation)
       {
-         int targetTier = AmbushPolicy.EliteChiefTier(Clan.PlayerClan?.Tier ?? 0);
+         int targetTier = AmbushPolicy.EliteChiefTier(Mapping.StatureReader.Player.ClanTier);
          CharacterObject troop = ResolveEliteChief(culture, targetTier) ?? FindThug() ?? FindThrowingThug();
          Monster monster = FaceGen.GetMonsterWithSuffix(troop.Race, "_settlement");
          AgentData data = new AgentData(new SimpleAgentOrigin(troop)).Monster(monster).NoHorses(true);

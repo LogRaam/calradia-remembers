@@ -45,7 +45,7 @@ namespace CalradiaRemembers.Mapping
             Calculating = npc.GetTraitLevel(DefaultTraits.Calculating),
             Generosity = npc.GetTraitLevel(DefaultTraits.Generosity),
             Valor = npc.GetTraitLevel(DefaultTraits.Valor),
-            PlayerClanTier = Clan.PlayerClan?.Tier ?? 0,
+            PlayerClanTier = StatureReader.Player.ClanTier,
             PlayerRenownBand = RenownBand(Clan.PlayerClan?.Renown ?? 0f),
             PlayerFiefCount = Clan.PlayerClan?.Fiefs?.Count ?? 0,
             SameFactionRival = IsSameFactionRival(npc),

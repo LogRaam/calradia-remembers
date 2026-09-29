@@ -488,7 +488,7 @@ namespace CalradiaRemembers.Chat
             bool npcIsFactionLeader = npc.IsFactionLeader;
             List<string> mediatableFactions = npcIsFactionLeader ? MediatableFactionsOf(npc) : new List<string>();
             int playerRegardWithLeader = profile?.ReputationWithPlayer ?? npc.GetRelation(Hero.MainHero);
-            int playerStatureTier = Clan.PlayerClan?.Tier ?? 0;
+            int playerStatureTier = Mapping.StatureReader.Player.ClanTier;
             bool playerCanMediatePeace = PeaceMediationPolicy.CanMediate(
                npcIsFactionLeader, mediatableFactions.Count > 0, playerRegardWithLeader, playerStatureTier);
 

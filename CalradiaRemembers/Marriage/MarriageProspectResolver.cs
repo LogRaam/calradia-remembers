@@ -61,8 +61,8 @@ namespace CalradiaRemembers.Marriage
             foreach (Hero c in candidates)
                sb.AppendLine($"  - {c.Name} ({DescribeKin(npc, c)}, age {(int) c.Age})");
 
-            int familyTier = npc.Clan?.Tier ?? 0;
-            int playerTier = player.Clan?.Tier ?? 0;
+            int familyTier = Mapping.StatureReader.Of(npc).ClanTier;
+            int playerTier = Mapping.StatureReader.Of(player).ClanTier;
             var playerRenown = (int) (player.Clan?.Renown ?? 0f);
             sb.Append($"Your house stands at clan tier {familyTier}. The player's clan stands at tier {playerTier} " +
                       $"(renown {playerRenown}). Weigh that gap, the player's proven deeds, and your own regard: a great " +

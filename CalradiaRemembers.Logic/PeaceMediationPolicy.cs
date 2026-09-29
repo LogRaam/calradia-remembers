@@ -58,7 +58,7 @@ namespace CalradiaRemembers.Logic
       ///   realms. Set at 3, the mark EncounterContext.PlayerClanTier's own doc names as "genuine nobility with a
       ///   fief": below it the player is a landless upstart with no standing to broker a peace between kingdoms.
       /// </summary>
-      public const int StatureTierFloor = 3;
+      public const int StatureTierFloor = Stature.LandedNobleTier;
 
       /// <summary>
       ///   TUNE: the personal regard (<c>NpcProfile.ReputationWithPlayer</c>, clamped [-100,100]) a faction leader

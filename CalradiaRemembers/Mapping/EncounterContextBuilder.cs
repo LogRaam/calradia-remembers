@@ -301,7 +301,7 @@ namespace CalradiaRemembers.Mapping
          bool npcIsFactionLeader = hero?.IsFactionLeader == true;
          string mediatablePeaceFactions = npcIsFactionLeader ? ResolveMediatablePeaceFactions(hero) : null;
          int playerRegardWithLeader = profile?.ReputationWithPlayer ?? (hero != null && Hero.MainHero != null ? hero.GetRelation(Hero.MainHero) : 0);
-         int playerStatureTier = Clan.PlayerClan?.Tier ?? 0;
+         int playerStatureTier = StatureReader.Player.ClanTier;
          bool playerCanMediatePeace = PeaceMediationPolicy.CanMediate(
             npcIsFactionLeader,
             !string.IsNullOrEmpty(mediatablePeaceFactions),
@@ -366,7 +366,7 @@ namespace CalradiaRemembers.Mapping
                : null,
             PlayerFatherName = FormatParent(Hero.MainHero?.Father),
             PlayerMotherName = FormatParent(Hero.MainHero?.Mother),
-            PlayerClanTier = Hero.MainHero?.Clan?.Tier ?? 0,
+            PlayerClanTier = StatureReader.Player.ClanTier,
             PlayerPartyTroopCount = ResolvePlayerPartyTroopCount(hero),
             NpcPartyTroopCount = ResolveNpcPartyTroopCount(hero),
             PlayerArenaRank = ResolveArenaRank(),
@@ -648,7 +648,7 @@ namespace CalradiaRemembers.Mapping
             // cannot disagree about who is grand enough to keep consorts.
             SharedPartnersAreCustomary =
                JealousyCultureLoader.GetCulture(hero?.Culture?.Name?.ToString())
-                                    .ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0),
+                                    .ToleratesSharedPartners(StatureReader.Player.ClanTier),
             PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
             QueryRelevantFactsBlock = ResolveQueryRelevantFacts(hero, playerMessage, (int) CampaignTime.Now.ToDays),
             CompanionOnErrand = ResolveCompanionOnErrand(hero),
@@ -987,7 +987,8 @@ namespace CalradiaRemembers.Mapping
 
             if (c == null) return false;
 
-            return c.Tier >= 3 || c.Influence >= 150f;
+            // "Important" is a house of landed nobility (Stature.LandedNobleTier, the 3 this line always held) or real sway.
+            return StatureReader.Player.IsLandedNoble || c.Influence >= 150f;
          }
          catch { return false; }
       }

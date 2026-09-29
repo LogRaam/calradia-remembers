@@ -68,7 +68,7 @@ namespace CalradiaRemembers.Mapping
                 Preferences      = RomanticProfilePolicy.DeterminePreferences(
                     rng, traits,
                     Jealousy.JealousyCultureLoader.GetCulture(hero.Culture?.Name?.ToString()),
-                    hero.Clan?.Tier ?? 0),
+                    StatureReader.Of(hero).ClanTier),
                 Kinks            = RomanticProfilePolicy.DetermineKinks(rng, traits)
             };
         }

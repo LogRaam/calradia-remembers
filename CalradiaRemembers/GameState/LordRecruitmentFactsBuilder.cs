@@ -43,8 +43,8 @@ namespace CalradiaRemembers.GameState
             // with no profile yet, the same shape CourtActionResolver already uses for arranged-match consent.
             Relation = NpcMemoryCampaignBehavior.Instance?.Store?.Get(lord.StringId)?.ReputationWithPlayer
                        ?? lord.GetRelation(Hero.MainHero),
-            PlayerClanTier = Clan.PlayerClan?.Tier ?? 0,
-            LordClanTier = clan?.Tier ?? 0,
+            PlayerClanTier = Mapping.StatureReader.Player.ClanTier,
+            LordClanTier = Mapping.StatureReader.OfClan(clan).ClanTier,
             LordIsLandless = clan?.Settlements == null || !clan.Settlements.Any(s => s.IsTown || s.IsCastle),
             LordClanWeakOrDestroyed = clan == null || clan.IsEliminated || clan.Heroes.Count(h => h is {IsAlive: true, IsLord: true}) <= 1,
             HasLiege = hasLiege,

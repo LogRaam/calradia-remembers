@@ -25,7 +25,7 @@ namespace CalradiaRemembers.Letters
       {
          if (DealsInPerson(sender, profile, reason)) return null;
 
-         return CorrespondenceRankPolicy.ScribeTitle(sender.Name?.ToString(), IsRuler(sender), sender.IsFemale);
+         return CorrespondenceRankPolicy.ScribeTitle(sender.Name?.ToString(), Mapping.StatureReader.Of(sender).IsRuler, sender.IsFemale);
       }
 
       /// <summary>The facts the rule reads, for the cr.testall seam.</summary>
@@ -34,17 +34,13 @@ namespace CalradiaRemembers.Letters
          Hero player = Hero.MainHero;
 
          return new CorrespondenceRankFacts {
-            SenderIsRuler = IsRuler(sender),
-            SenderClanTier = sender?.Clan?.Tier ?? 0,
-            PlayerIsRuler = IsRuler(player),
-            PlayerClanTier = Clan.PlayerClan?.Tier ?? 0,
+            Sender = Mapping.StatureReader.Of(sender),
+            Player = Mapping.StatureReader.Player,
             PersonalBond = PersonalBond(sender, player, profile),
             Regard = profile?.ReputationWithPlayer ?? 0,
             Reason = reason
          };
       }
-
-      private static bool IsRuler(Hero hero) => hero != null && hero.Clan?.Kingdom != null && hero.Clan.Kingdom.Leader == hero;
 
       /// <summary>A romance, a spouse, the player's own house, or close blood.</summary>
       private static bool PersonalBond(Hero sender, Hero player, NpcProfile profile)

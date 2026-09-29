@@ -121,7 +121,7 @@ namespace CalradiaRemembers.Tests.Maps
                  .ToHashSet(StringComparer.Ordinal);
 
       private static bool IsDiagnostics(SourceFile f)
-         => f.RelativePath.Contains("/Diagnostics/") || System.IO.Path.GetFileName(f.RelativePath).StartsWith("ModCheats", StringComparison.Ordinal);
+         => ("/" + f.RelativePath).Contains("/Diagnostics/") || System.IO.Path.GetFileName(f.RelativePath).StartsWith("ModCheats", StringComparison.Ordinal);
 
       /// <summary>A helper this short is read whole (its conditions decide its answer); a longer one only for what it returns.</summary>
       private const int WholeHelperStatements = 12;
@@ -176,10 +176,19 @@ namespace CalradiaRemembers.Tests.Maps
       {
          if (expression == null) yield break;
 
+         // A mod READER is where a fact is read from the game (StatureReader.Of, StatureReader.Player): the chain is keyed
+         // by the reader and what it was asked, whatever is taken from the answer, so every rule reading rank meets under
+         // one key.
+         foreach (MemberAccessExpressionSyntax access in expression.DescendantNodesAndSelf().OfType<MemberAccessExpressionSyntax>())
+         {
+            string reader = LastIdentifier(access.Expression);
+            if (reader != null && IsReader(reader)) yield return $"{reader}.{access.Name.Identifier.Text}";
+         }
+
          // The LAST link of each chain only: a.B.C and a?.B?.C both give B.C, never also a.B.
          foreach (MemberAccessExpressionSyntax access in expression.DescendantNodesAndSelf().OfType<MemberAccessExpressionSyntax>())
          {
-            if (IsInnerLink(access)) continue;
+            if (IsInnerLink(access) || ChainHasReader(access)) continue;
 
             string fact = Key(access.Expression, access.Name.Identifier.Text, access, logicTypes);
             if (fact != null) yield return fact;
@@ -232,6 +241,19 @@ namespace CalradiaRemembers.Tests.Maps
                foreach (string f in FactsIn(part, logicTypes, hop + 1)) yield return f;
          }
       }
+
+      private static bool IsReader(string name) => name.Length > "Reader".Length && name.EndsWith("Reader", StringComparison.Ordinal) && char.IsUpper(name[0]);
+
+      private static string LastIdentifier(ExpressionSyntax e)
+         => e switch {
+            IdentifierNameSyntax id => id.Identifier.Text,
+            MemberAccessExpressionSyntax m => m.Name.Identifier.Text,
+            _ => null
+         };
+
+      /// <summary>Whether the chain this link ends passes through a reader (it is then keyed by the reader instead).</summary>
+      private static bool ChainHasReader(ExpressionSyntax link)
+         => link.DescendantNodes().OfType<SimpleNameSyntax>().Any(n => IsReader(n.Identifier.Text));
 
       /// <summary>A link that another link of the same chain continues from (the "B" of "a.B.C" or of "a?.B?.C").</summary>
       private static bool IsInnerLink(ExpressionSyntax link)

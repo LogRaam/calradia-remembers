@@ -30,7 +30,7 @@ namespace CalradiaRemembers.Logic.Battles
         public const double StompRatio = 1.3;
 
         /// <summary>The clan tier at which a name is famous enough that beating its bearer is a story whatever the skills say. Tuning.</summary>
-        public const int FamousClanTier = 4;
+        public const int FamousClanTier = Stature.GreatHouseTier;
 
         /// <summary>
         ///   What this fighter is worth in a fight, from the numbers the game itself fights with: their best weapon

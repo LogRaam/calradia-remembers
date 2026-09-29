@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 434 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 831 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 435 types in 56 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 832 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 241 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -460,7 +460,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (14)
+### CalradiaRemembers.Mapping (15)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -477,6 +477,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RomanticProfileBuilder` | public static class | Builds a deterministic RomanticProfile for a Bannerlord Hero. |
 | `SeductionFactsMapper` | public static class | Builds SeductionFacts for a married NPC from live game state. |
 | `SettlementContextResolver` | public static class | Builds a ready-to-inject geography note for the LLM prompt from live map data. |
+| `StatureReader` | public static class | Reads a Stature from the live game. |
 | `Traits` | public class | (no summary) |
 
 ### CalradiaRemembers.Marriage (13)
@@ -764,7 +765,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (531)
+### CalradiaRemembers.Logic (532)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1258,6 +1259,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StanceGatePolicy` | public static class | Pure threshold policy for Fear-driven coercion (Stance mechanical behaviour-gating, increment 1). |
 | `StanceShift` | public class | One exchange's spoken nudges to the moveable axes (Affection is not moved here — it is the existing reputation, moved by change_relation). |
 | `StationGuidelinesPolicy` | public static class | Maps an NPC's occupation to the behavior-guidelines register that should voice them, and picks the concrete text through a fallback chain. |
+| `Stature` | public struct | A person's (or a house's) standing in the realm: their clan's tier, and whether they rule. |
 | `StolenLoveEstrangement` | public class | One married NPC whose marriage is coming apart because of an affair with the player: who they are, who they are married to, when the estrangement began, and how hard-won the seduction was (which paces how long the rift t... |
 | `StolenSpouseGrudgePolicy` | public static class | Sizes the jilted spouse's personal grudge against the player when a stolen-love affair ends their marriage. |
 | `SuccessionKinship` | public static class | Maps a predecessor's family relation to the heir into the word an NPC would use. |

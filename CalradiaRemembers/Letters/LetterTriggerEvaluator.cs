@@ -399,7 +399,7 @@ namespace CalradiaRemembers.Letters
          List<LetterCandidate> pool, Dictionary<LetterCandidate, Action> release)
       {
          if (Hero.MainHero?.Spouse != null) return; // player already wed
-         if (Clan.PlayerClan?.Tier < 1) return; // no standing
+         if (!Mapping.StatureReader.Player.IsEstablished) return; // no standing
 
          foreach (string id in store.ListIds())
          {

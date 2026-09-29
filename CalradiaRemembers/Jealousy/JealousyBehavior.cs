@@ -114,7 +114,7 @@ namespace CalradiaRemembers.Jealousy
          foreach (Hero h in partners)
          {
             JealousyCulture c = JealousyCultureLoader.GetCulture(h.Culture?.Name?.ToString());
-            sb.AppendLine($"  {h.Name} [{h.Culture?.Name}] tolerant={c.ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0)} " +
+            sb.AppendLine($"  {h.Name} [{h.Culture?.Name}] tolerant={c.ToleratesSharedPartners(Mapping.StatureReader.Player.ClanTier)} " +
                           $"neglect={NeglectDays(h, behavior, today)}d");
             _state.CompetitionCooldown.Remove(h.StringId); // clear cooldown so the forced pass can react
          }
@@ -355,7 +355,7 @@ namespace CalradiaRemembers.Jealousy
          // Minor (romance audit): polygamy is the PLAYER's elite privilege, so the sharing tolerance is gated on
          // the PLAYER's clan tier, not the jealous party's (a low-tier player is not "grand enough to keep consorts"
          // however high-born their partner, and vice versa).
-         bool competition = stake == JealousStake.PlayerPartner && culture.ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0);
+         bool competition = stake == JealousStake.PlayerPartner && culture.ToleratesSharedPartners(Mapping.StatureReader.Player.ClanTier);
 
          NpcProfile profile = behavior.Store.Get(pj.PartyId) ?? HeroProfileMapper.FromHero(party);
 
@@ -682,7 +682,7 @@ namespace CalradiaRemembers.Jealousy
                behavior.Store.Get(h.StringId)?.Romantic?.IsOpenArrangement ?? false);
             standings.Add(new PartnerStanding {
                PartnerId = h.StringId,
-               ToleratesSharing = c.ToleratesSharedPartners(Hero.MainHero?.Clan?.Tier ?? 0),
+               ToleratesSharing = c.ToleratesSharedPartners(Mapping.StatureReader.Player.ClanTier),
                NeglectDays = NeglectDays(h, behavior, today),
                OnCooldown = onCooldown,
                IsOpenArrangement = isOpen

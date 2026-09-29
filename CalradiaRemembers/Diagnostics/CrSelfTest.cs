@@ -9750,9 +9750,9 @@ namespace CalradiaRemembers.Diagnostics
          string writtenBy = Letters.CorrespondenceRank.WrittenByFor(ruler, profile, NpcMemoryService.Core.Models.LetterReason.QuestUpdate);
          bool ridesOut = Letters.CorrespondenceRank.DealsInPerson(ruler, profile, null);
 
-         t.Note($"{ruler.Name} (ruler, tier {f.SenderClanTier}) to the player (tier {f.PlayerClanTier}, ruler {f.PlayerIsRuler}, bond {f.PersonalBond}, regard {f.Regard}): "
+         t.Note($"{ruler.Name} ({f.Sender}) to the player ({f.Player}, bond {f.PersonalBond}, regard {f.Regard}): "
               + $"written by {writtenBy ?? "her own hand"}; rides out in person {ridesOut}");
-         bool farBelow = !f.PlayerIsRuler && !f.PersonalBond && f.PlayerClanTier < CorrespondenceRankPolicy.TierARulerAddressesInPerson
+         bool farBelow = !f.Player.IsRuler && !f.PersonalBond && f.Player.ClanTier < CorrespondenceRankPolicy.TierARulerAddressesInPerson
                          && f.Regard < NpcMemoryService.Core.Standing.Regard.ConfidingTier;
          t.Expect("farBelowHerTheChancelleryWrites", writtenBy != null, farBelow);
          t.Expect("theTitleNamesHerAndNoClerk", writtenBy == null || writtenBy.Contains(ruler.Name.ToString()), true);

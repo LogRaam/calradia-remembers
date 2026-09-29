@@ -403,9 +403,9 @@ namespace CalradiaRemembers.Bastards
       private static int ClanPrestige(Clan clan)
       {
          if (clan == null) return 0;
-         bool ruling = clan.Kingdom != null && clan.Kingdom.RulingClan == clan;
+         Logic.Stature house = Mapping.StatureReader.OfClan(clan);
 
-         return BastardPrestigePolicy.PrestigeScore(clan.Tier, (int) clan.Renown, ruling);
+         return BastardPrestigePolicy.PrestigeScore(house.ClanTier, (int) clan.Renown, house.IsRuler);
       }
 
       // ── Helpers ───────────────────────────────────────────────────────────
