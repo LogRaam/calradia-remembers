@@ -46,6 +46,12 @@ namespace CalradiaRemembers.Tests.Maps
       public void GIVEN_the_source_as_it_stands_WHEN_the_constants_are_regenerated_THEN_they_match_the_committed_map()
          => ApprovedMap.Verify(ConstantsMap.Path, Generated(ConstantsMap.Generate));
 
+      // THE CONCEPT LENS (Gabriel, 28/09/2026): a duplicated concept hides under other names, but reads the same fact of
+      // the game. Rank was a prestige score, a stature, a station and a tier, and only a lucky search found it.
+      [Test]
+      public void GIVEN_the_source_as_it_stands_WHEN_the_engine_facts_are_regenerated_THEN_they_match_the_committed_map()
+         => ApprovedMap.Verify(EngineFactsMap.Path, Generated(EngineFactsMap.Generate));
+
       [Test]
       public void GIVEN_the_source_as_it_stands_WHEN_the_event_listeners_are_regenerated_THEN_they_match_the_committed_map()
          => ApprovedMap.Verify(EventListenersMap.Path, Generated(EventListenersMap.Generate));

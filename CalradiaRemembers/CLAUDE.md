@@ -117,7 +117,8 @@ prompt's sections in order, every verb with each place it must be declared, and 
   `CR_UPDATE_MAPS=1 dotnet test CalradiaRemembers.Tests -p:NCrunch=1 --filter "FullyQualifiedName~Maps"`.
 - **Look before you add.** Before a new threshold, policy, guard, event listener, prompt section or verb, read the
   map that would show it if it already existed (`constants.md` opens with the names declared in more than one
-  type). Say in the commit message what you found, even when it is "nothing like it exists". Gabriel's words: "je
+  type; `engine-facts.md` shows the same CONCEPT under another name, by the fact of the game it reads: rank
+  was a prestige score, a stature, a station and a tier, and all of them read `Clan.Tier`). Say in the commit message what you found, even when it is "nothing like it exists". Gabriel's words: "je
   ne vois pas si on est en train de creer un doublon parce que le concept existe deja ailleurs."
 - **Read the map's diff before the code's.** A new line in `dependencies.md` is a namespace that has started to
   know another. A new line in `shared-state.md` is a lifetime somebody has to decide.
