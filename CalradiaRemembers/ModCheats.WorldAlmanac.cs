@@ -213,7 +213,7 @@ namespace CalradiaRemembers
 
                return $"One reading taken into {BalanceSurveyBehavior.FilePath}.";
             case "report":
-               (BalanceSurveySummary Summary, int Lines)? report = BalanceSurveyBehavior.Report();
+               (BalanceSurveySummary Summary, VramSummary Vram, int Lines)? report = BalanceSurveyBehavior.Report();
                if (report == null) return "No survey file yet for this campaign. cr.balance_survey on starts one.";
 
                BalanceSurveySummary s = report.Value.Summary;
@@ -228,6 +228,12 @@ namespace CalradiaRemembers
                sb.AppendLine(s.Runaway
                                 ? $"  VERDICT           : RUNAWAY. {s.LeaderAtEnd} holds {s.LeaderShareAtEnd:P0} of the fiefs (threshold {BalanceSurveyPolicy.RunawayShare:P0}, or a climb of {BalanceSurveyPolicy.RunawayRise:P0})."
                                 : "  VERDICT           : no runaway so far.");
+               VramSummary v = report.Value.Vram;
+               sb.AppendLine(v.Readings == 0
+                                ? "  Graphics memory   : no reading (older file, or the probe cannot read this machine's counters)"
+                                : $"  Graphics memory   : game {v.GameAtStartMb} MB -> {v.GameAtEndMb} MB (peak {v.GameHighestMb} MB, {v.MbPerGameDay:0.0} MB per game day); machine peak {v.SystemHighestMb} MB");
+               if (v.Readings > 1)
+                  sb.AppendLine($"                      grew {v.GrowthWhileCrLoadedNothingMb} MB while CR loaded nothing, {v.GrowthWhileCrLoadedMb} MB while it loaded textures ({v.CrTexturesAtStart} -> {v.CrTexturesAtEnd})");
                sb.AppendLine($"  File              : {BalanceSurveyBehavior.FilePath} ({report.Value.Lines} lines)");
                ModLog.Info(sb.ToString());
 

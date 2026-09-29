@@ -9782,6 +9782,11 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("sharesMakeTheWholeMap", Math.Abs(shareSum - 1.0) < 0.001, true);
          t.Expect("rowsSurviveTheFile", back.Count, rows.Count);
 
+         // The graphics-memory reading that now rides each week (29/09/2026): taken, or honestly marked unreadable (-1).
+         SurveyVram vram = WorldAlmanac.BalanceSurveyBehavior.VramReading();
+         t.Note($"graphics memory: game {vram.GameDedicatedMb} MB, shared {vram.GameSharedMb} MB, machine {vram.SystemDedicatedMb} MB; CR textures {vram.CrTextures}");
+         t.Expect("theMemoryLineSurvivesTheFile", BalanceSurveyPolicy.ParseVram(new[] {BalanceSurveyPolicy.ToLine(vram)}).Count, 1);
+
          return t.Line();
       }
 

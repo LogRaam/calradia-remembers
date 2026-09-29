@@ -43,6 +43,9 @@ namespace CalradiaRemembers.Portraits
         private static readonly Dictionary<string, (Sprite sprite, int width, int height)> Cache =
             new Dictionary<string, (Sprite, int, int)>();
 
+        /// <summary>How many textures CR has loaded from files this session (the balance survey reads it beside graphics memory).</summary>
+        public static int CachedCount => Cache.Count;
+
         private static FieldInfo Backing(string name)
             => typeof(SpritePart).GetField($"<{name}>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance);
 

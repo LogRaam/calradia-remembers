@@ -70,7 +70,7 @@ namespace CalradiaRemembers.WorldAlmanac
       public void RecordReading()
       {
          List<SurveyRow> rows = Reading();
-         Append(rows.Select(BalanceSurveyPolicy.ToLine));
+         Append(rows.Select(BalanceSurveyPolicy.ToLine).Concat(new[] {BalanceSurveyPolicy.ToLine(VramReading())}));
          ModLog.Info($"[SURVEY] day {Today}: {rows.Count} realm(s) read into {FilePath}.");
       }
 
@@ -95,15 +95,29 @@ namespace CalradiaRemembers.WorldAlmanac
          }).ToList();
       }
 
+      /// <summary>
+      ///   Graphics memory now, with the number of textures CR has loaded (29/09/2026: the overnight survey ended when the
+      ///   engine ran out of graphics memory, and nothing said who had been filling it).
+      /// </summary>
+      public static SurveyVram VramReading()
+      {
+         (long game, long shared, long system) = VramProbe.Read();
+
+         return new SurveyVram {
+            Day = Today, GameDedicatedMb = game, GameSharedMb = shared, SystemDedicatedMb = system,
+            CrTextures = Portraits.RuntimePortraitFactory.CachedCount
+         };
+      }
+
       /// <summary>Reads this campaign's survey file back and summarises it; null when there is no file yet.</summary>
-      public static (BalanceSurveySummary Summary, int Lines)? Report()
+      public static (BalanceSurveySummary Summary, VramSummary Vram, int Lines)? Report()
       {
          if (!File.Exists(FilePath)) return null;
 
          string[] lines = File.ReadAllLines(FilePath);
          (List<SurveyRow> rows, List<SurveyEvent> events) = BalanceSurveyPolicy.Parse(lines);
 
-         return (BalanceSurveyPolicy.Summarize(rows, events), lines.Length);
+         return (BalanceSurveyPolicy.Summarize(rows, events), BalanceSurveyPolicy.SummarizeVram(BalanceSurveyPolicy.ParseVram(lines)), lines.Length);
       }
 
       #region private

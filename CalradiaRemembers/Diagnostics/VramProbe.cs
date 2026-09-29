@@ -64,6 +64,39 @@ namespace CalradiaRemembers.Diagnostics
         }
 
         /// <summary>
+        ///   The same read as <see cref="Describe" />, as numbers for the balance survey (29/09/2026): the game's dedicated
+        ///   and shared memory and the machine's dedicated memory, in MB, -1 for each the probe cannot read. Never throws.
+        /// </summary>
+        public static (long GameDedicatedMb, long GameSharedMb, long SystemDedicatedMb) Read()
+        {
+            if (_disabled) return (-1, -1, -1);
+
+            try
+            {
+                if (!PerformanceCounterCategory.Exists(ProcessMemoryCategory))
+                {
+                    _disabled = true;
+
+                    return (-1, -1, -1);
+                }
+
+                long system = PerformanceCounterCategory.Exists(AdapterMemoryCategory)
+                    ? Mb(SumInstances(AdapterMemoryCategory, DedicatedUsageCounter, forThisProcessOnly: false))
+                    : -1;
+
+                return (Mb(SumInstances(ProcessMemoryCategory, DedicatedUsageCounter, forThisProcessOnly: true)),
+                        Mb(SumInstances(ProcessMemoryCategory, SharedUsageCounter, forThisProcessOnly: true)),
+                        system);
+            }
+            catch
+            {
+                _disabled = true;
+
+                return (-1, -1, -1);
+            }
+        }
+
+        /// <summary>
         ///   Sums a raw byte counter across GPU-memory instances. When <paramref name="forThisProcessOnly" /> is
         ///   set, only instances named for this process id are counted (the game's own usage); otherwise every
         ///   instance is summed (the whole adapter's usage).

@@ -80,6 +80,60 @@ namespace CalradiaRemembers.Tests
          s.CallsToWar.Should().Be(1);
       }
 
+      // Gabriel's overnight survey (29/09/2026) ended in a crash: the engine could not create a texture, "Not enough memory
+      // resources", and Windows' own display manager fell a second later. Nothing in the file said whether graphics
+      // memory had been climbing, or who was climbing it. Each reading now carries it, with the number of textures CR
+      // had loaded, so a climb with CR's count flat points at the game and one in step with it points at CR.
+      [Test]
+      public void GIVEN_a_night_of_readings_WHEN_graphics_memory_is_summarised_THEN_growth_is_split_by_whether_CR_loaded_anything()
+      {
+         var readings = new List<SurveyVram> {
+            new SurveyVram {Day = 7, GameDedicatedMb = 3000, CrTextures = 3},
+            new SurveyVram {Day = 14, GameDedicatedMb = 3400, CrTextures = 3},
+            new SurveyVram {Day = 21, GameDedicatedMb = 3500, CrTextures = 5},
+            new SurveyVram {Day = 28, GameDedicatedMb = 4100, CrTextures = 5}
+         };
+
+         VramSummary v = BalanceSurveyPolicy.SummarizeVram(readings);
+
+         v.Readings.Should().Be(4);
+         v.GameAtStartMb.Should().Be(3000);
+         v.GameAtEndMb.Should().Be(4100);
+         v.GameHighestMb.Should().Be(4100);
+         v.GrowthWhileCrLoadedNothingMb.Should().Be(1000);
+         v.GrowthWhileCrLoadedMb.Should().Be(100);
+         v.MbPerGameDay.Should().BeApproximately(1100.0 / 21.0, 1e-9);
+      }
+
+      // A reading the probe could not take (a locale without the counter, a probe disabled) is written as -1 and must
+      // not count as a fall to zero followed by a leap.
+      [Test]
+      public void GIVEN_readings_the_probe_could_not_take_WHEN_summarised_THEN_they_are_left_out()
+      {
+         var readings = new List<SurveyVram> {
+            new SurveyVram {Day = 7, GameDedicatedMb = 3000},
+            new SurveyVram {Day = 14, GameDedicatedMb = -1},
+            new SurveyVram {Day = 21, GameDedicatedMb = 3200}
+         };
+
+         VramSummary v = BalanceSurveyPolicy.SummarizeVram(readings);
+
+         v.Readings.Should().Be(2);
+         v.GrowthWhileCrLoadedNothingMb.Should().Be(200);
+      }
+
+      // The memory line joins the survey file without disturbing it: older readers skip a line they do not know, and
+      // it reads back exactly.
+      [Test]
+      public void GIVEN_a_memory_reading_WHEN_written_and_read_back_THEN_it_returns_and_the_realm_rows_are_untouched()
+      {
+         var vram = new SurveyVram {Day = 21, GameDedicatedMb = 5120, GameSharedMb = 300, SystemDedicatedMb = 7800, CrTextures = 4};
+         string[] lines = {BalanceSurveyPolicy.Header, BalanceSurveyPolicy.ToLine(vram)};
+
+         BalanceSurveyPolicy.ParseVram(lines).Should().ContainSingle().Which.SystemDedicatedMb.Should().Be(7800);
+         BalanceSurveyPolicy.Parse(lines).Rows.Should().BeEmpty();
+      }
+
       // The file must survive the session and read back exactly: a survey run over a long accelerated campaign is
       // read in a later session, possibly after a crash that tore the last line.
       [Test]

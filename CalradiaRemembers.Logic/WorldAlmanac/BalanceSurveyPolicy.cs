@@ -64,6 +64,48 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
       public bool AgainstLeader { get; set; }
    }
 
+   /// <summary>
+   ///   One reading of graphics memory, taken with each week's reading (29/09/2026: the overnight survey ended when the
+   ///   engine ran out of graphics memory, and nothing said who had been filling it). -1 where the probe could not read.
+   /// </summary>
+   public sealed class SurveyVram
+   {
+      public int Day { get; set; }
+
+      /// <summary>The game's own dedicated graphics memory, in MB.</summary>
+      public long GameDedicatedMb { get; set; } = -1;
+
+      /// <summary>The game's shared (system RAM used as graphics) memory, in MB.</summary>
+      public long GameSharedMb { get; set; } = -1;
+
+      /// <summary>The whole machine's dedicated graphics memory in use, in MB (other programs included).</summary>
+      public long SystemDedicatedMb { get; set; } = -1;
+
+      /// <summary>How many textures CR had loaded from files since the game started.</summary>
+      public int CrTextures { get; set; }
+   }
+
+   /// <summary>What the memory readings show across a survey.</summary>
+   public sealed class VramSummary
+   {
+      public int Readings { get; set; }
+      public long GameAtStartMb { get; set; }
+      public long GameAtEndMb { get; set; }
+      public long GameHighestMb { get; set; }
+      public long SystemHighestMb { get; set; }
+      public int CrTexturesAtStart { get; set; }
+      public int CrTexturesAtEnd { get; set; }
+
+      /// <summary>The game's growth between readings where CR loaded no texture: what the game (or the machine) did alone.</summary>
+      public long GrowthWhileCrLoadedNothingMb { get; set; }
+
+      /// <summary>The game's growth between readings where CR did load textures.</summary>
+      public long GrowthWhileCrLoadedMb { get; set; }
+
+      /// <summary>The game's average growth per game day, first reading to last.</summary>
+      public double MbPerGameDay { get; set; }
+   }
+
    /// <summary>What a survey shows, from its first week to its last.</summary>
    public sealed class BalanceSurveySummary
    {
@@ -175,6 +217,68 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
          return summary;
       }
 
+      /// <summary>
+      ///   Summarises the memory readings the probe could take: where the game started and ended, its peak, the machine's
+      ///   peak, and the game's growth split by whether CR loaded any texture between two readings.
+      /// </summary>
+      public static VramSummary SummarizeVram(IReadOnlyList<SurveyVram> readings)
+      {
+         List<SurveyVram> taken = (readings ?? new List<SurveyVram>()).Where(r => r != null && r.GameDedicatedMb >= 0)
+                                                                       .OrderBy(r => r.Day).ToList();
+         var summary = new VramSummary {Readings = taken.Count};
+         if (taken.Count == 0) return summary;
+
+         SurveyVram first = taken[0], last = taken[taken.Count - 1];
+         summary.GameAtStartMb = first.GameDedicatedMb;
+         summary.GameAtEndMb = last.GameDedicatedMb;
+         summary.GameHighestMb = taken.Max(r => r.GameDedicatedMb);
+         summary.SystemHighestMb = taken.Max(r => r.SystemDedicatedMb);
+         summary.CrTexturesAtStart = first.CrTextures;
+         summary.CrTexturesAtEnd = last.CrTextures;
+
+         for (var i = 1; i < taken.Count; i++)
+         {
+            long growth = taken[i].GameDedicatedMb - taken[i - 1].GameDedicatedMb;
+            if (taken[i].CrTextures == taken[i - 1].CrTextures) summary.GrowthWhileCrLoadedNothingMb += growth;
+            else summary.GrowthWhileCrLoadedMb += growth;
+         }
+
+         int days = last.Day - first.Day;
+         summary.MbPerGameDay = days > 0 ? (double) (last.GameDedicatedMb - first.GameDedicatedMb) / days : 0;
+
+         return summary;
+      }
+
+      /// <summary>A memory reading as one line of the survey file (a line older readers skip).</summary>
+      public static string ToLine(SurveyVram v)
+         => string.Join(Sep.ToString(), "V", v.Day.ToString(CultureInfo.InvariantCulture),
+                        v.GameDedicatedMb.ToString(CultureInfo.InvariantCulture), v.GameSharedMb.ToString(CultureInfo.InvariantCulture),
+                        v.SystemDedicatedMb.ToString(CultureInfo.InvariantCulture), v.CrTextures.ToString(CultureInfo.InvariantCulture));
+
+      /// <summary>Reads the memory lines back from a survey file; other lines, and torn ones, are skipped.</summary>
+      public static List<SurveyVram> ParseVram(IEnumerable<string> lines)
+      {
+         var readings = new List<SurveyVram>();
+         foreach (string line in lines ?? Enumerable.Empty<string>())
+         {
+            string[] f = (line ?? "").Split(Sep);
+            if (f.Length != 6 || f[0] != "V") continue;
+
+            try
+            {
+               readings.Add(new SurveyVram {
+                  Day = Int(f[1]), GameDedicatedMb = Long(f[2]), GameSharedMb = Long(f[3]), SystemDedicatedMb = Long(f[4]), CrTextures = Int(f[5])
+               });
+            }
+            catch (FormatException)
+            {
+               // torn by a crash mid-write: skipped
+            }
+         }
+
+         return readings;
+      }
+
       /// <summary>A kingdom row as one line of the survey file.</summary>
       public static string ToLine(SurveyRow r)
          => string.Join(Sep.ToString(), "K", r.Day.ToString(CultureInfo.InvariantCulture), Clean(r.KingdomId), Clean(r.KingdomName),
@@ -231,6 +335,8 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
       private static string Clean(string s) => (s ?? "").Replace(Sep, ',').Replace('\r', ' ').Replace('\n', ' ').Trim();
 
       private static int Int(string s) => int.Parse(s, NumberStyles.Integer, CultureInfo.InvariantCulture);
+
+      private static long Long(string s) => long.Parse(s, NumberStyles.Integer, CultureInfo.InvariantCulture);
 
       private static double Dbl(string s) => double.Parse(s, NumberStyles.Float, CultureInfo.InvariantCulture);
 

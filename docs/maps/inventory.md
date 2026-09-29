@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 435 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 832 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 834 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 241 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1686,7 +1686,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ViolenceVerdict` | public enum | How an attempt ended. |
 | `ViolentAct` | public enum | What the player is attempting against an NPC, from least to most severe. |
 
-### CalradiaRemembers.Logic.WorldAlmanac (24)
+### CalradiaRemembers.Logic.WorldAlmanac (26)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1712,7 +1712,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StrategicAssessmentSummary` | public static class | The Strategic Assessment when the player travels ALONE (no companion, no soldiers): a plain, factual summary of the standings, composed WITHOUT an LLM call. |
 | `SurveyEvent` | public class | A diplomatic event: war, peace, alliance, alliance ended, call to war. |
 | `SurveyRow` | public class | One realm, one week. |
+| `SurveyVram` | public class | One reading of graphics memory, taken with each week's reading (29/09/2026: the overnight survey ended when the engine ran out of graphics memory, and nothing said who had been filling it). -1 where the probe could not r... |
 | `TacticsAdvicePolicy` | public static class | Turns an advisor's Tactics skill into the QUALITY of their strategic counsel: a higher skill sees further and speaks with more precision, a lower one keeps it broad and hedged. |
+| `VramSummary` | public class | What the memory readings show across a survey. |
 | `WarPair` | public class | One war under way between two realms, named, so the advisor can reason about the actual conflicts rather than inventing them. |
 
 ### System.Runtime.CompilerServices (1)
