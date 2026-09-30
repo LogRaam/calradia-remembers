@@ -197,6 +197,8 @@ namespace CalradiaRemembers.Duels
             try { opponent.TeleportToPosition(dest); }
             catch (Exception ex) { ModLog.Info($"[DUEL] could not place the opponent ({ex.GetType().Name}); he closes from where he stands."); }
 
+         ArmThePlayer();
+
          fight.StartCustomFight(
             new List<Agent> {Mission.MainAgent},
             new List<Agent> {opponent},
@@ -204,6 +206,31 @@ namespace CalradiaRemembers.Duels
             false,
             OnFightEnd);
          ModLog.Info("[DUEL] town duel started in the town centre.");
+      }
+
+      /// <summary>
+      ///   The player takes up their own battle gear, as the opponent already has (Thoragoros1, Nexus, 29/09/2026: "He
+      ///   comes out dressed in his armor and weapons, and my character is using her civilian clothing"). The town scene
+      ///   dresses the player as a civilian and TownDuelBehavior spawns the opponent armed, so only the player's half
+      ///   was missing. The duel's scene closes when it is decided, so the town outfit returns with the next visit.
+      ///   Fail-soft: with no battle gear, or on any engine refusal, the duel is fought as the player stands.
+      /// </summary>
+      private void ArmThePlayer()
+      {
+         Agent player = Mission?.MainAgent;
+         Equipment battle = Hero.MainHero?.BattleEquipment;
+         if (player == null || battle == null || battle.IsEmpty()) return;
+
+         try
+         {
+            player.UpdateSpawnEquipmentAndRefreshVisuals(battle.Clone());
+            player.WieldInitialWeapons(Agent.WeaponWieldActionType.InstantAfterPickUp);
+            ModLog.Info("[DUEL] the player takes up their battle gear for the town duel.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Info($"[DUEL] could not arm the player ({ex.GetType().Name}: {ex.Message}); the duel is fought as they stand.");
+         }
       }
 
       /// <summary>
