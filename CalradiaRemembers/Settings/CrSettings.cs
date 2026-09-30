@@ -286,6 +286,14 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool EnableArrests { get; set; } = false;
 
+      // tashmetu (30/09/2026): a clan at +54 with the player, and its lord met him as a near-stranger.
+      [SettingPropertyBool("Clan standing warms first meetings", RequireRestart = false, Order = 4,
+         HintText = "On (default): someone whose clan already counts you a friend starts warmer toward you, once, up " +
+                    "to friendly regard; beyond that is earned in person. Someone you have offended keeps it. Off: " +
+                    "regard starts from zero with everyone.")]
+      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      public bool ClanStandingWarmsFirstMeetings { get; set; } = true;
+
       [SettingPropertyBool("Post-duel conversation", RequireRestart = false, Order = 0,
          HintText = "On (default): after a duel the conversation reopens and resumes what led to it. The loser concedes (a " +
                     "beaten character of honour may grant a favour you ask); the victor says what they now expect. Off: only " +

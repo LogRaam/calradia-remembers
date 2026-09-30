@@ -827,6 +827,10 @@ namespace CalradiaRemembers.Chat
             //    The personal score (ReputationWithPlayer) is our own per-NPC value
             //    and is left untouched here — only change_relation moves it. ──
             profile.ClanRelationWithPlayer = behavior.GameStateBridge.GetPlayerRelation(speaker.Hero);
+
+            // ... and, once, the warm start that standing is worth (tashmetu, 30/09/2026), before the prompt reads regard.
+            if (speaker.Hero != null)
+               Standing.ClanStandingSeedService.Apply(profile, profile.ClanRelationWithPlayer.Value, behavior.GameStateBridge.GetCurrentGameDay());
             if (speaker.IsMain)
                SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer.Value);
 

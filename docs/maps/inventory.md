@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 437 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 842 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 438 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 845 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 243 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -630,6 +630,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StanceService` | public static class | The single place stance is read from / written to an NpcProfile. |
 | `TownAmbushBehavior` | public class | On entering a town, an armed assassination may spring into a street fight in the town centre. |
 
+### CalradiaRemembers.Standing (1)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `ClanStandingSeedService` | public static class | Gives a character the one-time warm start their clan's standing with the player is worth. |
+
 ### CalradiaRemembers.Storage (2)
 
 | Type | Kind | What it is |
@@ -767,7 +773,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (540)
+### CalradiaRemembers.Logic (543)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -836,6 +842,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatFocusVerdict` | public enum | What the chat overlay should be doing with the input this frame. |
 | `ChatWindowLivenessPolicy` | public static class | Whether a recorded chat window is genuinely live, or a leftover that must not block the next one. |
 | `ChronicleCalendar` | public static class | The shared calendar constants and year math for the player chronicle and letter archive. |
+| `ClanStandingSeed` | public struct | What the clan's standing does to one character's regard. |
+| `ClanStandingSeedFacts` | public class | The facts the seed is decided on. |
+| `ClanStandingSeedPolicy` | public static class | Decides the one-time warm start a friendly clan gives. |
 | `CoercionOutcome` | public enum | How a coerced captive answers a freedom bargain, decided by their Fear/Respect and traits. |
 | `CoercionResult` | public class | The resolved answer: what happens to the bargain's terms, and what it costs in secret. |
 | `CoerciveSceneEventPolicy` | public static class | Decides whether a romantic [EVENT] emitted mid-scene must be discarded because the scene is coercive (the player is a captive, or holds the NPC captive). |

@@ -286,6 +286,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("correspondence_rank", Severity.Light, "Gabriel (28/09/2026): the Empress wrote in her own hand to a landless newcomer, and rode out herself to find him. Reads a real ruler against the player as they stand: far above an unbonded player, her letters come from her chancellery (a title, no invented clerk) and she does not ride out in person; a love letter is always her own. Writes nothing.", TestCorrespondenceRank),
          new SelfTest("balance_survey", Severity.Light, "The balance-of-power survey (Gabriel, 28/09/2026: measure before building a balancing lever). Reads every living realm as the weekly survey does: one row each, fief shares adding up to the whole map, and rows that survive the survey file's round trip. Writes nothing.", TestBalanceSurvey),
          new SelfTest("landfall_wait", Severity.Light, "Windmolen (Nexus, 28/09/2026): accepting an envoy on a naval move opened the chat over the live naval map, which flickered and crashed. At sea a conversation now waits for landfall and an envoy does not arrive. Reads the door's route for where the player stands, holds a real request as the door does at sea and checks it is held once. Opens nothing; the held request is dropped.", TestLandfallWait),
+         new SelfTest("clan_standing_seed", Severity.Light, "tashmetu (30/09/2026): a lord whose clan counted the player a friend (+54) met him as a near-stranger. Drives the real apply path on a real character's profile: a trusted friend's clan lifts regard from 0 to friendly regard once, a second meeting adds nothing, and a character the player offended keeps the offence. Regard and the seed are restored.", TestClanStandingSeed),
          new SelfTest("letter_regard", Severity.Light, "Lordfadooboo (Nexus, 28/09/2026): a dozen letters and the correspondent's regard had not moved. Drives the real apply path on a real character's profile: a warm letter earns +1, a second the same day earns nothing, a cold one costs 1, and the [LETTER_TONE] line is stripped from the letter. Regard and the letter clock are restored.", TestLetterRegard),
          new SelfTest("vassal_departure_judged", Severity.Light, "fkasad (24/09/2026): a vassal holding no fief who leaves a realm at war is judged like a mercenary, the oath weighing like kinship; one holding fiefs is not (the war that follows is the consequence). Judges leaving the player's realm (or any realm) right now WITHOUT applying anything: judged only with no fief, the news speaks of the oath, and a sworn vassal is never thanked.", TestVassalDepartureJudged),
          new SelfTest("mercenary_company_judged", Severity.Light, "Zivkyn (Nexus): the game's own mercenary companies change sides mid-war and nobody resents them. Finds a real company in a realm's pay and judges its departure by fkasad's grid WITHOUT applying anything: the verdict follows the realm's footing, and the news line names the company and the realm.", TestMercenaryCompanyJudged),
@@ -9938,6 +9939,48 @@ namespace CalradiaRemembers.Diagnostics
       ///   letter earns +1, a second the same day earns nothing, a cold one costs 1, and the tone line never reaches
       ///   the letter the player reads. The profile's regard and letter clock are put back.
       /// </summary>
+      private static string TestClanStandingSeed(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("clan_standing_seed");
+
+         var store = behavior?.Store;
+         if (t.Abort(store == null, "no profile store")) return t.Line();
+         if (t.Skip(!ModSettings.ClanStandingWarmsFirstMeetings, "the MCM option is off")) return t.Line();
+
+         NpcProfile profile = store.ListIds().Select(store.Get)
+                                   .FirstOrDefault(p => p != null && Hero.FindFirst(h => h.StringId == p.Id) is {IsAlive: true} h && h != Hero.MainHero);
+         if (t.Skip(profile == null, "no living character has a profile yet")) return t.Line();
+
+         int regardBefore = profile.ReputationWithPlayer;
+         int? seedBefore = profile.ClanStandingSeedDay;
+         var today = (int) CampaignTime.Now.ToDays;
+         try
+         {
+            profile.ReputationWithPlayer = NpcMemoryService.Core.Standing.Regard.NeutralTier;
+            profile.ClanStandingSeedDay = null;
+            int first = Standing.ClanStandingSeedService.Apply(profile, NpcMemoryService.Core.Standing.VanillaRelation.CloseTier, today);
+            int regardAfterFirst = profile.ReputationWithPlayer;
+            int second = Standing.ClanStandingSeedService.Apply(profile, NpcMemoryService.Core.Standing.VanillaRelation.CloseTier, today);
+
+            profile.ReputationWithPlayer = NpcMemoryService.Core.Standing.Regard.CoolTier;
+            profile.ClanStandingSeedDay = null;
+            int offended = Standing.ClanStandingSeedService.Apply(profile, NpcMemoryService.Core.Standing.VanillaRelation.CloseTier, today);
+
+            t.Note($"{profile.Name}: first {first:+#;-#;0} (regard {regardAfterFirst}), again {second:+#;-#;0}, offended {offended:+#;-#;0}");
+            t.Expect("aTrustedFriendsClanStartsFriendly", regardAfterFirst, NpcMemoryService.Core.Standing.Regard.FriendlyTier);
+            t.Expect("givenOnlyOnce", second, 0);
+            t.Expect("anOffenceStands", offended, 0);
+         }
+         finally
+         {
+            profile.ReputationWithPlayer = regardBefore;
+            profile.ClanStandingSeedDay = seedBefore;
+            store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
       private static string TestLetterRegard(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("letter_regard");

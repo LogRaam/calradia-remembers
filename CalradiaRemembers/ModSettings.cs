@@ -142,6 +142,12 @@ namespace CalradiaRemembers
       public static bool EnableJealousy => CrSettings.Instance?.EnableJealousy ?? true;
 
       /// <summary>
+      ///   A clan's standing gives its one-time warm start to personal regard (see <see cref="Logic.ClanStandingSeedPolicy" />).
+      ///   On by default.
+      /// </summary>
+      public static bool ClanStandingWarmsFirstMeetings => CrSettings.Instance?.ClanStandingWarmsFirstMeetings ?? true;
+
+      /// <summary>
       ///   Stolen Love pillar toggle, read live from the MCM menu. Off (default) keeps the shipped affair rule for
       ///   a married NPC; on turns the personality-gated seduction path on (see <see cref="Logic.SeductionEligibilityPolicy" />).
       /// </summary>

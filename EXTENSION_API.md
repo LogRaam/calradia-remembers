@@ -72,6 +72,11 @@ MemoryResult result = CrNpcMemory.AddMemory(new CrMemoryEntry
 Injected memories become ordinary profile events, so they surface in later conversations exactly like
 memories CR recorded itself, and are compacted over time by CR's own memory compressor.
 
+Call `AddMemory` (and `GetMemories`) on the **game thread**: from a campaign event, a tick, or a menu or
+button handler, never from a background task. An injected memory never moves regard by itself; it is
+something the character remembers and can speak from. Do not inject what CR already records on its own (a
+rescue from captivity, a battle, a tournament, a letter): the character would remember it twice.
+
 ### Regard changes (`CrNpcMemory.RegardChanged`, since 2.6.7)
 
 ```csharp
@@ -84,8 +89,10 @@ CrNpcMemory.RegardChanged += change =>
 Fired each time a character's **personal regard** for the player actually changes, whatever changed it: a
 conversation, a letter, a quest, a promise kept or broken, a grievance put to rest, jealousy, a rescue, a
 departure from their realm. `Cause` is one of `conversation`, `letter`, `quest`, `commitment`, `compensation`,
-`grudge`, `jealousy`, `divorce`, `rescue`, `stance`, `violence`, `departure`, `unspecified`; more may be added,
-so treat an unknown one as a change like any other. Raised on the game thread, after the change, each listener
+`grudge`, `jealousy`, `divorce`, `rescue`, `stance`, `violence`, `departure`, `clan_standing`, `unspecified`;
+more may be added, so treat an unknown one as a change like any other. `clan_standing` (since 2.6.8) is the
+one-time warm start a character's clan standing gives at a first meeting: it comes FROM the game's relation, so
+a mod mirroring regard into that relation should skip it. Raised on the game thread, after the change, each listener
 under its own guard.
 
 **Two numbers, two names.** CR keeps its own regard (what one character personally thinks of the player,
