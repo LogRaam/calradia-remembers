@@ -30,12 +30,15 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>Why this hero may not take this initiative, or None. The kind is named so the initiatives map lists the site.</summary>
-      public static InitiativeRefusal Check(Hero hero, InitiativeKind kind) => NpcInitiativeGate.Check(Facts(hero));
+      public static InitiativeRefusal Check(Hero hero, InitiativeKind kind) => NpcInitiativeGate.Check(Facts(hero), kind);
 
       /// <summary>The engine facts the gate reads. Age is Hero.IsChild, never inferred from rank (IsLord is an occupation).</summary>
       internal static InitiatorFacts Facts(Hero hero)
          => hero == null
             ? new InitiatorFacts {Exists = false}
-            : new InitiatorFacts {IsAlive = hero.IsAlive, IsChild = hero.IsChild, IsPrisoner = hero.IsPrisoner, IsPlayer = hero == Hero.MainHero};
+            : new InitiatorFacts {
+               IsAlive = hero.IsAlive, IsChild = hero.IsChild, IsPrisoner = hero.IsPrisoner, IsPlayer = hero == Hero.MainHero,
+               IsDisabled = hero.HeroState == Hero.CharacterStates.Disabled, Age = (int) hero.Age
+            };
    }
 }

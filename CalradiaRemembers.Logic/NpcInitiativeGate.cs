@@ -13,6 +13,17 @@
 // own conditions on top (a field party for a road interception, a lord's rank for an offer of service). What this gate
 // does NOT cover: a character ANSWERING the player (a child may reply to a letter the player sent), being the subject
 // of news, or standing in a conversation; and the verbs a model emits mid-conversation, which have their own gates.
+//
+// Maifailun (Nexus, 30/09/2026): a dead father sat at a council the player convened. Gabriel the same day: "s'asseoir
+// a la table devrait etre une action". So the gate covers ACTIONS, not only initiatives: taking a council seat asks it
+// too (CouncilSeat), with the council's own age (CouncilRosterPolicy.MinSeatAge) in place of the game's majority. A
+// hero the game has taken out of the world (disabled) acts no more than the dead.
+
+#region
+
+using CalradiaRemembers.Logic.Assemblies;
+
+#endregion
 
 namespace CalradiaRemembers.Logic
 {
@@ -41,7 +52,13 @@ namespace CalradiaRemembers.Logic
       RealmTidings,
 
       /// <summary>A seat on the council that tries the player.</summary>
-      TrialSeat
+      TrialSeat,
+
+      /// <summary>
+      ///   A seat at a council the player convenes: the player summons, the character comes and sits, and sitting is an
+      ///   action (Gabriel, 30/09/2026). Of age here means the council's own age, 13 (CouncilRosterPolicy.MinSeatAge).
+      /// </summary>
+      CouncilSeat
    }
 
    /// <summary>Why an initiative did not happen.</summary>
@@ -63,7 +80,10 @@ namespace CalradiaRemembers.Logic
       Child,
 
       /// <summary>The character is a prisoner: a captive sends no courier and rides out to no one.</summary>
-      Prisoner
+      Prisoner,
+
+      /// <summary>The game has taken the character out of the world (disabled): no whereabouts, no action.</summary>
+      OutOfTheWorld
    }
 
    /// <summary>The facts the gate reads about the character taking the initiative.</summary>
@@ -79,6 +99,12 @@ namespace CalradiaRemembers.Logic
 
       public bool IsPrisoner { get; set; }
 
+      /// <summary>Taken out of the world by the game (HeroState Disabled): not yet in play, or set aside by a mod.</summary>
+      public bool IsDisabled { get; set; }
+
+      /// <summary>Age in years, for a kind with its own age (a council seat). Null: only <see cref="IsChild" /> is known.</summary>
+      public int? Age { get; set; }
+
       public bool IsPlayer { get; set; }
    }
 
@@ -86,17 +112,32 @@ namespace CalradiaRemembers.Logic
    public static class NpcInitiativeGate
    {
       /// <summary>Why this character may not take the initiative, or None when they may. Checked in this order.</summary>
-      public static InitiativeRefusal Check(InitiatorFacts f)
+      public static InitiativeRefusal Check(InitiatorFacts f) => Check(f, InitiativeKind.Letter);
+
+      /// <summary>
+      ///   Why this character may not take this action, or None. Of age is the game's majority for every kind but a
+      ///   council seat, which takes the council's own age when the age is known.
+      /// </summary>
+      public static InitiativeRefusal Check(InitiatorFacts f, InitiativeKind kind)
       {
          if (f == null || !f.Exists) return InitiativeRefusal.NoOne;
          if (!f.IsAlive) return InitiativeRefusal.Dead;
+         if (f.IsDisabled) return InitiativeRefusal.OutOfTheWorld;
          if (f.IsPlayer) return InitiativeRefusal.IsThePlayer;
-         if (f.IsChild) return InitiativeRefusal.Child;
+         if (!IsOfAgeFor(f, kind)) return InitiativeRefusal.Child;
 
          return f.IsPrisoner ? InitiativeRefusal.Prisoner : InitiativeRefusal.None;
       }
 
       /// <summary>True when this character may take the initiative toward the player.</summary>
       public static bool Allows(InitiatorFacts f) => Check(f) == InitiativeRefusal.None;
+
+      /// <summary>True when this character may take this action.</summary>
+      public static bool Allows(InitiatorFacts f, InitiativeKind kind) => Check(f, kind) == InitiativeRefusal.None;
+
+      private static bool IsOfAgeFor(InitiatorFacts f, InitiativeKind kind)
+         => kind == InitiativeKind.CouncilSeat && f.Age.HasValue
+            ? CouncilRosterPolicy.IsOldEnoughToSit(f.Age.Value)
+            : !f.IsChild;
    }
 }

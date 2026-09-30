@@ -2394,10 +2394,10 @@ namespace CalradiaRemembers.Diagnostics
                      ?? Hero.DeadOrDisabledHeroes.FirstOrDefault(h => h != null && !h.IsAlive);
          if (dead != null)
          {
-            CouncilAttendanceResult deadVerdict =
-               CouncilAttendanceResolver.DebugDecideFor(dead, CouncilScope.ClanLords, CouncilAttendanceResolver.DefaultThresholdDays);
-            t.Note($"dead={dead.Name}: attendance={deadVerdict.Attendance}, reason={deadVerdict.Reason}");
-            t.Expect("theDeadNeverSit", deadVerdict.Reason, CouncilAttendanceReason.Dead);
+            // Sitting is an action (Gabriel, 30/09/2026): the one gate refuses it, before any seating rule.
+            InitiativeRefusal deadVerdict = Mapping.InitiativeGate.Check(dead, InitiativeKind.CouncilSeat);
+            t.Note($"dead={dead.Name}: the gate says {deadVerdict}");
+            t.Expect("theDeadNeverSit", deadVerdict, InitiativeRefusal.Dead);
             t.Expect("noDeadLordOfTheHouseAtTheTable",
                CouncilAttendanceResolver.SeatedInPersonHeroes(CouncilScope.ClanLords).Any(h => !h.IsAlive), false);
          }

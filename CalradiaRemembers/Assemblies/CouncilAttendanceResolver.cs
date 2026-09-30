@@ -120,7 +120,9 @@ namespace CalradiaRemembers.Assemblies
          // they stand: they are summoned to judge (arrests, 26/09/2026).
          if (scope == CouncilScope.Trial) return Arrests.ArrestBehavior.Instance?.TrialBench() ?? new List<Hero>();
 
-         if (scope == CouncilScope.Parley) return CouncilRosterResolver.Seated(scope, parleyTargetFactionId);
+         if (scope == CouncilScope.Parley)
+            return CouncilRosterResolver.Seated(scope, parleyTargetFactionId)
+                                        .Where(h => Mapping.InitiativeGate.Allows(h, Logic.InitiativeKind.CouncilSeat)).ToList();
 
          return Resolve(scope, DefaultThresholdDays, parleyTargetFactionId)
                .Where(s => s.Attendance == CouncilAttendance.InPerson)
@@ -150,6 +152,10 @@ namespace CalradiaRemembers.Assemblies
       {
          try
          {
+            // Sitting at the table is an action (Gabriel, 30/09/2026, after Maifailun's dead father took a seat): the
+            // dead, the disabled, the player and a child below the council's age never sit, whatever the scope.
+            if (!Mapping.InitiativeGate.Allows(hero, Logic.InitiativeKind.CouncilSeat)) return;
+
             CouncilAttendanceFacts facts = BuildFacts(hero, playerClan, scope, parleyTargetFactionId);
             CouncilAttendanceResult verdict = CouncilAttendancePolicy.Decide(facts, thresholdDays);
 
@@ -184,9 +190,6 @@ namespace CalradiaRemembers.Assemblies
          NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId);
 
          return new CouncilAttendanceFacts {
-            // A DISABLED hero (taken out of the world: not yet in play, or set aside by a mod such as a custom family's
-            // late parent) is as absent from the table as the dead, and has no whereabouts either.
-            IsDead = !hero.IsAlive || hero.HeroState == Hero.CharacterStates.Disabled,
             IsPrisoner = hero.IsPrisoner,
             IsInPlayerParty = isInPlayerParty,
             IsPlayerFaction = IsPlayerFactionMember(hero, playerClan),

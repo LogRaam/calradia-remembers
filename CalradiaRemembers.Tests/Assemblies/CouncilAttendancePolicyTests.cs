@@ -28,38 +28,16 @@ namespace CalradiaRemembers.Tests.Assemblies
                                                      bool parleyTarget = false,
                                                      double etaDays = 1d,
                                                      int relation = 0,
-                                                     bool atWar = false,
-                                                     bool dead = false)
+                                                     bool atWar = false)
             => new() {
-                IsDead = dead, IsPrisoner = prisoner, IsInPlayerParty = inParty, IsPlayerFaction = playerFaction,
+                IsPrisoner = prisoner, IsInPlayerParty = inParty, IsPlayerFaction = playerFaction,
                 IsParleyTarget = parleyTarget, EtaDays = etaDays, RelationToPlayer = relation,
                 AtWarWithPlayer = atWar
             };
 
         private static CouncilAttendanceResult Decide(CouncilAttendanceFacts f) => CouncilAttendancePolicy.Decide(f, ThresholdDays);
 
-        // ── The dead, before anything else ──────────────────────────────────
-
-        // Maifailun (Nexus, 30/09/2026, on 2.6.6): "my characters dead father is also partaking in the meeting". The
-        // game keeps the dead in a clan's list of heroes; a dead lord of the player's own house has no party and no
-        // settlement, so his travel estimate reads 0 days, which is exactly "near enough to attend in person".
-        [Test]
-        public void GIVEN_a_dead_lord_of_the_players_own_house_with_no_whereabouts_WHEN_deciding_THEN_he_never_sits()
-        {
-            CouncilAttendanceResult r = Decide(Facts(dead: true, playerFaction: true, etaDays: 0d));
-
-            r.Attendance.Should().Be(CouncilAttendance.Absent);
-            r.Reason.Should().Be(CouncilAttendanceReason.Dead);
-        }
-
-        // No seat of any kind: a parley counterpart who has died sends no envoy either.
-        [Test]
-        public void GIVEN_a_dead_parley_counterpart_WHEN_deciding_THEN_no_envoy_speaks_for_him()
-        {
-            Decide(Facts(dead: true, playerFaction: false, parleyTarget: true)).Attendance.Should().Be(CouncilAttendance.Absent);
-        }
-
-        // ── Prisoner guard ──────────────────────────────────────────────────
+        // ── Prisoner guard, wins first ──────────────────────────────────────
 
         // The most absolute bar: a prisoner cannot attend in any form, even riding in the player's own party or
         // belonging to the player's own faction. If this were checked after InParty, a captured travelling

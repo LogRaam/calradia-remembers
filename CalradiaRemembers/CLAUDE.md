@@ -124,7 +124,9 @@ prompt's sections in order, every verb with each place it must be declared, and 
   first, asks for an audience, rides out, threatens, sends killers) calls `Mapping.InitiativeGate.Allows(hero, InitiativeKind.X)`
   (alive, of age, free, not the player; `IsLord` is an occupation, never an age). `docs/maps/initiatives.md` lists every
   site; RatchetTests fails on a declared kind never asked, and on a letter added to `SentLetters` outside a gated file.
-  Nexusrrr's baby son asked to discuss warfare (30/09/2026) because one path forgot the age.
+  Nexusrrr's baby son asked to discuss warfare (30/09/2026) because one path forgot the age. **Answering a summons is
+  an action too** (Gabriel, 30/09/2026, after Maifailun's dead father sat at a council): a council seat asks the gate
+  (`InitiativeKind.CouncilSeat`, with the council's own age, 13), and so should any new path that seats a character.
 - **Read the map's diff before the code's.** A new line in `dependencies.md` is a namespace that has started to
   know another. A new line in `shared-state.md` is a lifetime somebody has to decide.
 - **Two of the maps are contracts, not views.** `save-format.md` (every save key, every saveable type id) and
