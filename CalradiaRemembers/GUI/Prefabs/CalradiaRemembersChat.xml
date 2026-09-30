@@ -1393,6 +1393,16 @@
                                         Brush.TextHorizontalAlignment="Left"
                                         Text="@PanelInfoFacts" IsVisible="@ShowPanelInfo" IsDisabled="true" />
 
+                        <!-- How they seem (the perceived image: self-esteem and the mood of the day, one sentence) -->
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                    MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                    Brush.TextHorizontalAlignment="Left" Text="How they seem"
+                                    IsVisible="@ShowPanelBearing" IsDisabled="true" />
+                        <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                        MarginTop="2" Brush="Default" Brush.FontSize="17" Brush.FontColor="#d8c8a8FF"
+                                        Brush.TextHorizontalAlignment="Left"
+                                        Text="@PanelBearing" IsVisible="@ShowPanelBearing" IsDisabled="true" />
+
                         <!-- Background (vanilla encyclopedia) -->
                         <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
                                     MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"

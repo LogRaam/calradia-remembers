@@ -353,7 +353,7 @@ miss that prompted it.
 
 ---
 
-## RULED 2026-09-30 (Gabriel + Lordfadooboo + Maifailun), BUILDING: SELF-ESTEEM, the mood finished, and the PERCEIVED IMAGE
+## RULED + BUILT 2026-09-30 (Gabriel + Lordfadooboo + Maifailun), NOT YET SEEN IN PLAY: SELF-ESTEEM, the mood finished, and the PERCEIVED IMAGE
 
 Lordfadooboo (Nexus, 29/09/2026): "what if npc's had a hidden internal regard for themselves? a lord who has been
 humbled regularly might have it lowered, and one who is doing well might have it higher. starting self esteem
@@ -401,6 +401,10 @@ self-regard those leave out, and it is the ground the mood of the day stands on.
 
 This settles the open question below ("should a mood be legible as a line of prose?"): yes, as ONE numberless
 sentence of how the character seems, never a bar.
+
+**Built 30/09/2026, all increments** (MOD 7d609b6, 530d04d, de2bb29, dc6d366 and the P1-P2 commit; SDK d2896f3,
+289ffcb, e6f6323 and the letter increment). cr.testall: mood_of_the_day, self_esteem. Not built: the council does not
+carry moods (still the open question below); the image is not in the encyclopedia (mood is only seen face to face).
 
 ## DESIGNED 2026-09-14 (Gabriel + player basildingleberry), NOT BUILT: THE MOOD OF THE DAY
 

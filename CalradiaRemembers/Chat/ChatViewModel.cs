@@ -1020,6 +1020,16 @@ namespace CalradiaRemembers.Chat
       [DataSourceProperty]
       public string PanelBackground { get; private set; } = "";
 
+      /// <summary>
+      ///   How the character seems (THE PERCEIVED IMAGE, 30/09/2026): his bearing and his day in one numberless sentence,
+      ///   composed by PerceivedImagePolicy, never a bar.
+      /// </summary>
+      [DataSourceProperty]
+      public string PanelBearing { get; private set; } = "";
+
+      [DataSourceProperty]
+      public bool ShowPanelBearing { get; private set; }
+
       /// <summary>The mod's authored backstory for this hero, when one is defined in the character files.</summary>
       [DataSourceProperty]
       public string PanelCharacter { get; private set; } = "";
@@ -3096,6 +3106,8 @@ namespace CalradiaRemembers.Chat
          OnPropertyChanged(nameof(PanelPortraitAdditionalArgs));
          OnPropertyChanged(nameof(ShowPanelInfo));
          OnPropertyChanged(nameof(ShowPanelBackground));
+         OnPropertyChanged(nameof(ShowPanelBearing));
+         OnPropertyChanged(nameof(PanelBearing));
          OnPropertyChanged(nameof(ShowPanelCharacter));
          OnPropertyChanged(nameof(ShowPanelAppearance));
          OnPropertyChanged(nameof(ShowPanelDiscoveries));
@@ -3662,6 +3674,8 @@ namespace CalradiaRemembers.Chat
       {
          ShowPanelInfo = false;
          ShowPanelBackground = false;
+         ShowPanelBearing = false;
+         PanelBearing = "";
          ShowPanelCharacter = false;
          ShowPanelAppearance = false;
          ShowPanelDiscoveries = false;
@@ -3698,6 +3712,10 @@ namespace CalradiaRemembers.Chat
          facts.Append("Relation: ").Append(hero.GetRelationWithPlayer().ToString("+#;-#;0")).Append('\n');
          facts.Append("Personal regard: ").Append($"{ThirdPartyDescriptor.DescribeRelation(regard)} ({regard:+#;-#;0})");
          PanelInfoFacts = facts.ToString();
+
+         // How they seem today (THE PERCEIVED IMAGE): self-esteem and the mood of the day, masks and all.
+         PanelBearing = Standing.PerceivedImageService.For(hero, profile) ?? "";
+         ShowPanelBearing = PanelBearing.Length > 0;
 
          // Vanilla encyclopedia background (the "Mina is a member of the Pethros…" paragraph). Hero.EncyclopediaText
          // is populated lazily by the encyclopedia manager, so it is empty when read cold from the chat: the static

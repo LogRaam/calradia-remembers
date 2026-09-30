@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 444 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 852 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 445 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 854 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -634,11 +634,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StanceService` | public static class | The single place stance is read from / written to an NpcProfile. |
 | `TownAmbushBehavior` | public class | On entering a town, an armed assassination may spring into a street fight in the town centre. |
 
-### CalradiaRemembers.Standing (3)
+### CalradiaRemembers.Standing (4)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ClanStandingSeedService` | public static class | Gives a character the one-time warm start their clan's standing with the player is worth. |
+| `PerceivedImageService` | public static class | How a character seems to the player, in one sentence. |
 | `SelfEsteemBehavior` | public class | Listens for battles, captivities, tournaments, fiefs and deaths, and records them on met characters. |
 | `SelfEsteemService` | public static class | Records what moves a character's self-esteem, and reads it back as a band. |
 
@@ -779,7 +780,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (550)
+### CalradiaRemembers.Logic (552)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1139,6 +1140,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PeaceMediationBlock` | public enum | Why the player cannot (yet) mediate peace with this leader, or None when they can. |
 | `PeaceMediationPolicy` | public static class | The pure gate behind mediate_peace. |
 | `PendingSummaryJob` | public class | One pending "write the rich summary and replace the base event" job, captured as plain data so it can be persisted (a later increment wires it into SyncData) and replayed after a game reload. |
+| `PerceivedImageFacts` | public class | What the image is composed from. |
+| `PerceivedImagePolicy` | public static class | Composes the perceived image. |
 | `PlayerChangeFacts` | public class | The predecessor's state when the change fired. |
 | `PlayerChangeKind` | public enum | What a change of player character was. |
 | `PlayerDeedValence` | public static class | Classifies a player's deed from the observer's point of view, from two facts the host has already resolved against the game (faction membership, kinship). |
