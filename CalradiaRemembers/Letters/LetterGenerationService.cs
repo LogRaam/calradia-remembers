@@ -60,23 +60,25 @@ namespace CalradiaRemembers.Letters
       ///   settled notable at their own home (a lord's lady with no party, previously read as "uncertain", so
       ///   her letters carried no place at all, which a player noticed as the location grounding "not working").
       /// </summary>
-      private static string WhereaboutsForHero(Hero hero)
+      private static string WhereaboutsForHero(Hero hero) => hero == null ? null : LetterWhereaboutsPolicy.ForWriter(WhereaboutsOf(hero));
+
+      /// <summary>Test seam (cr.testall): the phrase a letter places the player with right now.</summary>
+      internal static string DebugPlayerWhereabouts() => Hero.MainHero == null ? null : LetterWhereaboutsPolicy.ForPlayer(WhereaboutsOf(Hero.MainHero));
+
+      /// <summary>Where a hero is, as facts for LetterWhereaboutsPolicy (the writer's phrase and the player's differ).</summary>
+      private static WhereaboutsFacts WhereaboutsOf(Hero hero)
       {
-         if (hero == null) return null;
-
          var settlement = hero.CurrentSettlement ?? hero.StayingInSettlement;
-         if (settlement != null) return $"within {settlement.Name}";
-
          MobileParty party = hero.PartyBelongedTo;
-         if (party != null)
-            return party.Army != null
-               ? "on campaign with the army, in the field"
-               : "in the field, on the march with your own retinue";
 
-         // No settlement and no party: a settled notable/lady is at her own hall.
-         if (hero.HomeSettlement != null) return $"at home in {hero.HomeSettlement.Name}";
-
-         return null;
+         return new WhereaboutsFacts {
+            SettlementName = settlement?.Name?.ToString(),
+            InParty = party != null,
+            InArmy = party?.Army != null,
+            MenInParty = party?.MemberRoster?.TotalManCount ?? 0,
+            // No settlement and no party: a settled notable or lady is at her own hall.
+            HomeName = hero.HomeSettlement?.Name?.ToString()
+         };
       }
 
       /// <summary>
@@ -101,7 +103,9 @@ namespace CalradiaRemembers.Letters
                       "NOT tell them to come home, do not ask them to write to you, and do not speak as though they " +
                       "are far off. Speak to their being at your side.";
 
-            string playerWhere = WhereaboutsForHero(player);
+            // The PLAYER's own phrase, never the writer's (Lordfadooboo, 27/09/2026: "on the march with your own
+            // retinue" reused for the player told a wanderer the player rode with the wanderer's retinue).
+            string playerWhere = LetterWhereaboutsPolicy.ForPlayer(WhereaboutsOf(player));
             if (!string.IsNullOrWhiteSpace(playerWhere))
                return $"The player is presently {playerWhere}, apart from you.";
 

@@ -19,6 +19,29 @@ namespace CalradiaRemembers.Tests
    [TestFixture]
    public sealed class FiefAudiencePolicyTests
    {
+      // ── Who may ask ──────────────────────────────────────────────────────────
+
+      // Nexusrrr (Nexus, 28/09/2026): "my son is a 0-year-old baby, but he wants to discuss warfare with me. He must be
+      // a genius." The audience scanned everyone standing in the town with no party, a baby in the player's own
+      // household included, and a baby had "heard of" the player's latest battle. A child never asks for an audience,
+      // exactly as a child never writes the first letter.
+      [Test]
+      public void GIVEN_a_child_standing_in_the_town_WHEN_asked_whether_they_may_seek_an_audience_THEN_they_may_not()
+      {
+         FiefAudiencePolicy.MaySeekAudience(new FiefAudienceSeekerFacts {IsChild = true, StandsInThisSettlement = true}).Should().BeFalse();
+         FiefAudiencePolicy.MaySeekAudience(new FiefAudienceSeekerFacts {StandsInThisSettlement = true}).Should().BeTrue();
+      }
+
+      // The rest of who may ask, as it always was: someone standing right here, free, and with no field party of
+      // their own (a lord with one meets the player on the road instead).
+      [Test]
+      public void GIVEN_a_prisoner_a_party_leader_or_someone_elsewhere_WHEN_asked_THEN_none_seeks_an_audience_here()
+      {
+         FiefAudiencePolicy.MaySeekAudience(new FiefAudienceSeekerFacts {StandsInThisSettlement = true, IsPrisoner = true}).Should().BeFalse();
+         FiefAudiencePolicy.MaySeekAudience(new FiefAudienceSeekerFacts {StandsInThisSettlement = true, HasFieldParty = true}).Should().BeFalse();
+         FiefAudiencePolicy.MaySeekAudience(new FiefAudienceSeekerFacts()).Should().BeFalse();
+      }
+
       // ── IsFiefValid / ChooseFiefValid ────────────────────────────────────────
 
       // The whole point of this filter: TerritorialPatrol is written around a lord riding out to challenge a

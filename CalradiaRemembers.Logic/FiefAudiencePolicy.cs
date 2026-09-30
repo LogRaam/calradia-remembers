@@ -43,6 +43,22 @@ namespace CalradiaRemembers.Logic
         public string Detail { get; }
     }
 
+    /// <summary>Who a person standing in the settlement is, for whether they may ask for an audience at all.</summary>
+    public sealed class FiefAudienceSeekerFacts
+    {
+        /// <summary>They stand in the settlement the player just entered.</summary>
+        public bool StandsInThisSettlement { get; set; }
+
+        /// <summary>They are a prisoner.</summary>
+        public bool IsPrisoner { get; set; }
+
+        /// <summary>They lead or ride in a field party (such a one meets the player on the road instead).</summary>
+        public bool HasFieldParty { get; set; }
+
+        /// <summary>They are a child (Hero.IsChild): a child never asks for an audience, as a child never writes first.</summary>
+        public bool IsChild { get; set; }
+    }
+
     /// <summary>
     ///   Decides which of InterceptionPolicy's triggers make sense for someone with no field party, standing
     ///   where the player just walked in, and how often the fief-audience offer itself may fire for the same NPC.
@@ -51,6 +67,13 @@ namespace CalradiaRemembers.Logic
     {
         /// <summary>No prior offer recorded for a candidate.</summary>
         public const int NeverOffered = -1;
+
+        /// <summary>
+        ///   Whether this person may ask the player for an audience here: standing in this settlement, free, with no
+        ///   field party, and not a child (Nexusrrr, 28/09/2026: a baby son asked to discuss warfare).
+        /// </summary>
+        public static bool MaySeekAudience(FiefAudienceSeekerFacts f)
+            => f != null && f.StandsInThisSettlement && !f.IsPrisoner && !f.HasFieldParty && !f.IsChild;
 
         /// <summary>
         ///   Whether a trigger reads believably for someone already standing in the settlement.

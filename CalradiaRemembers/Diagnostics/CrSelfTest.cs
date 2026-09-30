@@ -280,6 +280,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
+         new SelfTest("letter_place_and_audience_age", Severity.Light, "Two reports (30/09/2026): Lordfadooboo's lone player placed \"on the march with your own retinue\" (the writer's) in a wanderer's letter, and Nexusrrr's baby son asking for an audience about warfare. Checks the phrase that places the player in a letter never borrows the writer's \"your\" and says alone when alone, and that no child is among those who may ask for an audience in any town. Read-only.", TestLetterAndAudienceSeekers),
          new SelfTest("regard_changed", Severity.Light, "The public regard-change door (29/09/2026, for tashmetu's bridge): raises a real character's regard by 1 and lowers it back through the one place regard changes, and checks a CrNpcMemory.RegardChanged listener hears both with before, after and cause. Regard is restored and the listener removed.", TestRegardChanged),
          new SelfTest("correspondence_rank", Severity.Light, "Gabriel (28/09/2026): the Empress wrote in her own hand to a landless newcomer, and rode out herself to find him. Reads a real ruler against the player as they stand: far above an unbonded player, her letters come from her chancellery (a title, no invented clerk) and she does not ride out in person; a love letter is always her own. Writes nothing.", TestCorrespondenceRank),
          new SelfTest("balance_survey", Severity.Light, "The balance-of-power survey (Gabriel, 28/09/2026: measure before building a balancing lever). Reads every living realm as the weekly survey does: one row each, fief shares adding up to the whole map, and rows that survive the survey file's round trip. Writes nothing.", TestBalanceSurvey),
@@ -9752,6 +9753,28 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{backer.Name}: outcome={r.Outcome}, amount={r.Amount}");
          bool clearedWhoGates = r.Outcome == ClaimantSupportOutcome.Applied || r.Outcome == ClaimantSupportOutcome.CannotAfford;
          t.Expect("clearedWhoGatesToTheAmountDecision", clearedWhoGates, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Two reports of 30/09/2026, read on the live game. Lordfadooboo: a letter placed the lone player "on the march
+      ///   with your own retinue" (the writer's). Nexusrrr: a baby son asked for an audience about warfare. Checks the
+      ///   phrase that places the player never borrows the writer's "your" (and says "alone" when the party is the player
+      ///   alone), and that no child is among those who may ask for an audience in any town. Writes nothing.
+      /// </summary>
+      private static string TestLetterAndAudienceSeekers(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("letter_place_and_audience_age");
+
+         string where = Letters.LetterGenerationService.DebugPlayerWhereabouts();
+         int men = MobileParty.MainParty?.MemberRoster?.TotalManCount ?? 0;
+         List<Hero> seekers = Settlement.All.Where(s => s.IsTown).SelectMany(Interception.FiefAudienceBehavior.DebugEligible).ToList();
+
+         t.Note($"player placed as \"{where ?? "(unsaid)"}\" ({men} in party); {seekers.Count} possible audience seekers across towns");
+         t.Expect("thePlayerNeverRidesWithTheWritersRetinue", where == null || !where.Contains("your"), true);
+         t.Expect("aLonePlayerRidesAlone", where == null || men != 1 || where.Contains("alone") || where.StartsWith("within"), true);
+         t.Expect("noChildAsksForAnAudience", seekers.Any(h => h.IsChild), false);
 
          return t.Line();
       }

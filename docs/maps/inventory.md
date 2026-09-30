@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 436 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 835 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 838 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 243 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -766,7 +766,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (533)
+### CalradiaRemembers.Logic (536)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -949,6 +949,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FeudRelationPolicy` | public static class | Turns a resolved scheme (its kind and how it ended) into the relation deltas that make the feud VISIBLE and let vanilla diplomacy escalate on its own. |
 | `FiefAudienceCandidate` | public class | One partyless hero standing in the settlement who qualifies for a fief audience, and why. |
 | `FiefAudiencePolicy` | public static class | Decides which of InterceptionPolicy's triggers make sense for someone with no field party, standing where the player just walked in, and how often the fief-audience offer itself may fire for the same NPC. |
+| `FiefAudienceSeekerFacts` | public class | Who a person standing in the settlement is, for whether they may ask for an audience at all. |
 | `FirstImpressionDescriber` | public static class | Renders a FirstImpressionDisposition as the prompt's "first impression" guidance. |
 | `FirstImpressionDisposition` | public enum | How a barely-known NPC opens toward the player, driven by their traits and the player's standing. |
 | `FirstImpressionInputs` | public class | The inputs that decide how a barely-known noble opens toward the player. |
@@ -1035,6 +1036,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterThreadEntry` | public class | One line of the correspondence thread: a dated header and the letter body. |
 | `LetterTone` | public enum | How a letter left its reader feeling toward the player, as the reader judged it. |
 | `LetterWeights` | public static class | Turns a letter's LetterReason into the base weight the mailbox scheduler (LetterMailboxPolicy) competes on. |
+| `LetterWhereaboutsPolicy` | public static class | The whereabouts wording of a letter. |
 | `LetterWindowMode` | public enum | What the courier window is doing right now. |
 | `LlmCompatibilityMode` | public enum | How the host wants chat-completion sampling parameters shaped for the target model. |
 | `LlmParameterPolicy` | public static class | Resolves the chat-completion parameter wire shape for a target model. |
@@ -1293,6 +1295,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WearinessBand` | public enum | How worn down by war a companion is — the bands the accumulating score falls into. |
 | `WeddingFacts` | public class | What is known about a match at the moment of the wedding. |
 | `WeddingMemoryText` | public static class | Words the new spouse's memory of the wedding. |
+| `WhereaboutsFacts` | public class | Where someone is, as the letter needs it. |
 | `WitnessDedup` | public static class | Decides whether two WitnessEntry values denote the same present witness. |
 | `WitnessDensity` | public enum | How many ambient hero witnesses a conversation gathers. |
 | `WitnessPresencePolicy` | public static class | Thins a gathered list of ambient hero witnesses according to the player's chosen WitnessDensity. |
