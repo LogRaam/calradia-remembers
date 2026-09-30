@@ -2,6 +2,56 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.6.7.. (not yet released)
+
+### Fixed
+- **The chat no longer opens over the naval map** (Windmolen, Nexus, 28/09/2026: "the chat window opens but flickers
+  a few seconds and then my game crashes. The last time it was a naval move."). At sea no conversation scene can load,
+  and the chat opened straight over the live naval map instead. A conversation asked for at sea now waits for landfall
+  (`StagingHostPolicy`), and a prisoner's envoy, who rides, only arrives once the player is ashore. `cr.testall
+  landfall_wait`.
+- **A provider pin with no provider left is named** (Windmolen, 29/09/2026: "unable to talk to characters... I have
+  tested my connection in game and there appears nothing wrong with it"). With providers pinned in MCM and fallbacks off,
+  OpenRouter answered "No endpoints found" once none of them served the model any more, and the chat said only that the
+  AI did not respond. It now says which model and how to fix it (`ProviderPinFailurePolicy`), and the MCM Test Connection
+  sends the same pin the chat sends, so it fails where the chat fails.
+- **In a town duel the player is armed too** (Thoragoros1, 29/09/2026: "He comes out dressed in his armor and weapons,
+  and my character is using her civilian clothing"). The opponent was spawned in battle gear, the player stayed in the
+  town's civilian outfit; the player now takes up their battle gear when the duel begins.
+
+### New
+- **Greater lords write through their household** (Gabriel, 28/09/2026: an empress wrote in her own hand to a landless
+  newcomer). A ruler, or a house two tiers above the player's, has the letter written by "the chancellery of Her Majesty
+  Rhagaea" or "the steward of Lord X" (a title, never an invented clerk), formal and in the third person, unless the
+  matter is private (love, marriage, family, threats, blackmail, a bribe), the bond personal, or the regard deep
+  (`CorrespondenceRankPolicy`). Such a letter stays in the lord's letter history, headed by who wrote it, and in the lord's
+  memory as a letter they had written. The same rule keeps a greater lord from riding out in person to intercept the
+  player. `cr.testall correspondence_rank`, `letter_memory`.
+
+### For modders
+- **`CrNpcMemory.RegardChanged`** (tashmetu, 29/09/2026): fired on every actual change of a character's personal regard
+  for the player, with before, after and the cause (`CrRegardChange`). Every change now goes through one place
+  (`ProfileMutator.ApplyReputationDelta`, with a `RegardCause`), guarded by a wall in the suite. CR never writes the
+  game's relation from regard; EXTENSION_API.md says why and how a mod may. Additive.
+- `RelationToPlayer` (`VerbFacts`, `PromptVarFacts`) is documented as CR's personal regard, never the game's relation;
+  EXTENSION_API.md names the prompt's two words for them ("your clan's standing", "your own personal regard").
+- Three regard sites that did not clamp to -100..100 (violence, a departure from a realm, an offer of service by letter)
+  now do.
+
+### Architecture
+- **Rank as a type**: `Stature` (clan tier and rulership, with the marks already in use named once: Established 1,
+  LandedNoble 3, GreatHouse 4) and `StatureReader`, the one place rank is read from the game. The duel's station moves
+  into it, pure and tested. No behaviour moves.
+
+### Developer tools
+- `cr.balance_survey on|off|now|report`: a weekly reading of every realm (fiefs, strength, wars, allies) and every war,
+  peace and alliance, with graphics memory beside each reading, written to `Logs\CR_BalanceSurvey_<campaign>.csv`.
+  First run (6.7 game years): no realm ran away with the map.
+- New `cr.testall` tests: `landfall_wait`, `balance_survey`, `correspondence_rank`, `regard_changed`; `letter_memory`
+  extended.
+- Maps: `engine-facts.md`, which fact of the game each rule reads (a duplicated concept hides under other names but reads
+  the same fact); `save-format.md` proves every key reaches the save.
+
 ## v2.6.6.. 2026-09-28
 
 ### New
