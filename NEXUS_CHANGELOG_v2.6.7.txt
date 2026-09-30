@@ -1,0 +1,16 @@
+﻿Version 2.6.7
+
+Two fixes from your reports, and one rule for every character who acts first.
+
+Fixed
+
+- A child no longer asks you for an audience, writes to you first, or takes any other initiative toward you. A baby son could ask to discuss warfare; worse, a child of another house could, in rare cases, send you a threat or hire killers. Every path where a character acts toward you on their own now checks the same things first: alive, of age, free, and not you. Children still answer when you speak to them. (Thank you, Nexusrrr.)
+- A letter no longer says you are riding "with your own retinue" (the writer's retinue) when you travel alone. It now says you ride alone, or at the head of your own company. (Thank you, Lordfadooboo.)
+
+Developer tools
+
+- New cr.testall tests: initiative_gate, letter_place_and_audience_age.
+
+Notes
+
+- Your existing saves load as they are.

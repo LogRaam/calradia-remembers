@@ -2,6 +2,28 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.6.7.. 2026-09-30
+
+### Fixed
+- **A child never takes the initiative toward the player** (Nexusrrr, Nexus, 28/09/2026: "my son is a 0-year-old baby,
+  but he wants to discuss warfare with me"). The fief audience checked no age, and an inventory of every path where a
+  character acts first (letters, road interceptions, audiences, stance consequences, ambushes, realm tidings, trial
+  seats) found about a dozen filters, two of them checking age, several trusting `Hero.IsLord`, which is an occupation
+  and not an age. The widest, a stance consequence, could write a threat, force a scheme or arm an attempt on the
+  player's life from a child of another house. Every path now asks one gate (`NpcInitiativeGate`, live side
+  `InitiativeGate`): alive, of age, free, not the player; each keeps its own conditions on top. An attempt armed by a
+  child before the gate existed is disarmed. Children still answer when spoken to. `cr.testall initiative_gate`,
+  `letter_place_and_audience_age`.
+- **A lone player no longer rides "with your own retinue"** (Lordfadooboo, Nexus: "a letter from them that mentioned my
+  riding in the field with THEIR retinue... i am alone"). The writer's own whereabouts phrase, addressed to the writer,
+  was reused for the player. The player's is now its own (`LetterWhereaboutsPolicy.ForPlayer`): riding alone when the
+  party is the player alone, at the head of their own company otherwise.
+
+### Architecture
+- `docs/maps/initiatives.md`: every initiative kind and the places that ask it, and every letter written straight into
+  the post with whether its file asks the gate. Two walls in `RatchetTests`: a kind declared and never asked, and a
+  letter added to `SentLetters` in a file that never asks.
+
 ## v2.6.6.. 2026-09-29
 
 ### Fixed
