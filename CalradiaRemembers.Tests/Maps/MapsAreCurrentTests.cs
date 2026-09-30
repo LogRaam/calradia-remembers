@@ -52,6 +52,12 @@ namespace CalradiaRemembers.Tests.Maps
       public void GIVEN_the_source_as_it_stands_WHEN_the_engine_facts_are_regenerated_THEN_they_match_the_committed_map()
          => ApprovedMap.Verify(EngineFactsMap.Path, Generated(EngineFactsMap.Generate));
 
+      // THE INITIATIVE LENS (Gabriel, 30/09/2026, after a baby son asked to discuss warfare): every path where a
+      // character acts toward the player, and the one gate each asks.
+      [Test]
+      public void GIVEN_the_source_as_it_stands_WHEN_the_initiatives_are_regenerated_THEN_they_match_the_committed_map()
+         => ApprovedMap.Verify(InitiativesMap.Path, Generated(InitiativesMap.Generate));
+
       [Test]
       public void GIVEN_the_source_as_it_stands_WHEN_the_event_listeners_are_regenerated_THEN_they_match_the_committed_map()
          => ApprovedMap.Verify(EventListenersMap.Path, Generated(EventListenersMap.Generate));

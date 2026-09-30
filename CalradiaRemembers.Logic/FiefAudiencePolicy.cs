@@ -73,7 +73,8 @@ namespace CalradiaRemembers.Logic
         ///   field party, and not a child (Nexusrrr, 28/09/2026: a baby son asked to discuss warfare).
         /// </summary>
         public static bool MaySeekAudience(FiefAudienceSeekerFacts f)
-            => f != null && f.StandsInThisSettlement && !f.IsPrisoner && !f.HasFieldParty && !f.IsChild;
+            => f != null && f.StandsInThisSettlement && !f.HasFieldParty
+               && NpcInitiativeGate.Allows(new InitiatorFacts {IsChild = f.IsChild, IsPrisoner = f.IsPrisoner});
 
         /// <summary>
         ///   Whether a trigger reads believably for someone already standing in the settlement.

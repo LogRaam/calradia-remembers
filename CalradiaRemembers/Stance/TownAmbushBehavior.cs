@@ -368,6 +368,15 @@ namespace CalradiaRemembers.Stance
 
             if (h is not {IsAlive: true}) continue;
 
+            // A child never sends killers (the one initiative gate, 30/09/2026): an attempt armed before the gate
+            // existed is disarmed rather than sprung.
+            if (Mapping.InitiativeGate.Check(h, Logic.InitiativeKind.Ambush) == Logic.InitiativeRefusal.Child)
+            {
+               Disarm(store, h);
+
+               continue;
+            }
+
             // C4: an armed attempt is not a one-way latch. A captor cannot send killers from his own cell, and a
             // lord the player has since won back must not have his months-old knife spring at the next town visit
             // while the prompt now says he is "genuinely glad to see you". Re-run the arming policy against his

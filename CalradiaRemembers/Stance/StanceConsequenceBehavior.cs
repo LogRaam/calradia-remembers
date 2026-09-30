@@ -243,8 +243,10 @@ namespace CalradiaRemembers.Stance
          }
       }
 
+      // The widest initiative in the mod (a letter, a scheme, or an armed attempt on the player), and until 30/09/2026 it
+      // checked no age at all: the one initiative gate now stands in front of it.
       private static bool CanWrite(Hero hero)
-         => hero is {IsAlive: true, IsPrisoner: false} && hero != Hero.MainHero && hero.Clan != Clan.PlayerClan;
+         => Mapping.InitiativeGate.Allows(hero, Logic.InitiativeKind.StanceConsequence) && hero.Clan != Clan.PlayerClan;
 
       /// <summary>The generic warm letter shared by Favor and a Warning with nothing real to name.</summary>
       private static string GenericFriendlyLetter()

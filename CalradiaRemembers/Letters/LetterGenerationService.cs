@@ -169,9 +169,9 @@ namespace CalradiaRemembers.Letters
          // Only ADULTS initiate correspondence: a child hero with a profile (the player talked to them once)
          // must never be swept up by a trigger loop into writing tournament congratulations, let alone anything
          // warmer. A child may still REPLY to a letter the player chooses to send them (QueueReplyLetter).
-         if (giverHero is {IsChild: true})
+         if (giverHero != null && !Mapping.InitiativeGate.Allows(giverHero, Logic.InitiativeKind.Letter, log: true))
          {
-            ModLog.Info($"[LETTER] refused: {profile?.Name} is a child and initiates no letters ({reason}).");
+            ModLog.Info($"[LETTER] refused: {profile?.Name} may not write first ({reason}).");
 
             return;
          }

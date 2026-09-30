@@ -557,6 +557,7 @@ namespace CalradiaRemembers.Bastards
       private static void SendDemandLetter(Hero mother, Hero child, int demand)
       {
          if (mother == null || child == null) return;
+         if (!Mapping.InitiativeGate.Allows(mother, Logic.InitiativeKind.Letter, log: true)) return;
 
          BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
 
@@ -588,6 +589,7 @@ namespace CalradiaRemembers.Bastards
          BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
 
          if (store == null || mother == null) return;
+         if (!Mapping.InitiativeGate.Allows(mother, Logic.InitiativeKind.Letter, log: true)) return;
 
          NpcProfile profile = store.Get(mother.StringId) ?? HeroProfileMapper.FromHero(mother);
          var today = (int) CampaignTime.Now.ToDays;

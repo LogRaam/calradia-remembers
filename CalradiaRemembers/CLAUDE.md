@@ -120,6 +120,11 @@ prompt's sections in order, every verb with each place it must be declared, and 
   type; `engine-facts.md` shows the same CONCEPT under another name, by the fact of the game it reads: rank
   was a prestige score, a stature, a station and a tier, and all of them read `Clan.Tier`). Say in the commit message what you found, even when it is "nothing like it exists". Gabriel's words: "je
   ne vois pas si on est en train de creer un doublon parce que le concept existe deja ailleurs."
+- **A character acting toward the player asks the one gate.** Any new path where an NPC takes the initiative (writes
+  first, asks for an audience, rides out, threatens, sends killers) calls `Mapping.InitiativeGate.Allows(hero, InitiativeKind.X)`
+  (alive, of age, free, not the player; `IsLord` is an occupation, never an age). `docs/maps/initiatives.md` lists every
+  site; RatchetTests fails on a declared kind never asked, and on a letter added to `SentLetters` outside a gated file.
+  Nexusrrr's baby son asked to discuss warfare (30/09/2026) because one path forgot the age.
 - **Read the map's diff before the code's.** A new line in `dependencies.md` is a namespace that has started to
   know another. A new line in `shared-state.md` is a lifetime somebody has to decide.
 - **Two of the maps are contracts, not views.** `save-format.md` (every save key, every saveable type id) and

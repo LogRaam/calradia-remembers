@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 436 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 838 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 437 types in 56 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 842 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 243 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -461,7 +461,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (15)
+### CalradiaRemembers.Mapping (16)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -471,6 +471,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EncounterContextBuilder` | public static class | Constructs an EncounterContext for a given NPC, using the game state bridge for live data and the stored profile for historical data (last-meeting computation). |
 | `FirstImpressionResolver` | public static class | Builds the ready-to-inject "first impression" line for a barely-known noble, or null. |
 | `HeroProfileMapper` | public static class | (no summary) |
+| `InitiativeGate` | public static class | The live-game side of the one initiative gate. |
 | `IntimacyBargainEligibility` | public static class | Resolves the adult-gated, archetype-filtered eligibility for the intimacy-as-currency dynamic. |
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
@@ -766,7 +767,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (536)
+### CalradiaRemembers.Logic (540)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -983,6 +984,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `IManagedPortrait` | public interface | A UI element that owns exactly one character portrait — which, on screen, is backed by a GPU render-target (a character tableau). |
 | `IRandomSource` | public interface | A source of bounded random integers. |
 | `IRumorRecord` | public interface | The minimum a stored world happening must expose for the pruner to reason about its lifetime: when it occurred and whether it is the player's own deed (kept long-term) or third-party rumour (aged out). |
+| `InitiativeKind` | public enum | The ways a character takes the initiative toward the player. |
+| `InitiativeRefusal` | public enum | Why an initiative did not happen. |
+| `InitiatorFacts` | public class | The facts the gate reads about the character taking the initiative. |
 | `InterceptionFacts` | public class | The facts a single candidate lord's interception decision rests on — engine-gathered, pure to reason over. |
 | `InterceptionPacing` | public enum | How readily lords ride out to meet the player on the road. |
 | `InterceptionPacingRules` | public static class | Turns the player's chosen pacing into the two numbers that actually govern how often a lord appears. |
@@ -1095,6 +1099,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NewsDestinationSelector` | public static class | Chooses which town a "bring me news about X" errand rides to. |
 | `NotableRecruitmentBlock` | public enum | Why a notable cannot (yet) be recruited as a companion, or None when they can. |
 | `NotableRecruitmentPolicy` | public static class | The pure gate behind recruit_notable. |
+| `NpcInitiativeGate` | public static class | The base conditions of every initiative toward the player. |
 | `NpcMemoryInjection` | public static class | The door rules an externally-injected NPC memory passes through before it enters the store. |
 | `NpcStance` | public class | A per-NPC stance toward the player. |
 | `OathKindParser` | public static class | Resolves a swear_oath resolution's oath_kind string to the whitelisted CommitmentKind it names. |

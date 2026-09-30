@@ -202,8 +202,7 @@ namespace CalradiaRemembers.RealmTidings
       ///   own personal-regard ledger (<see cref="NpcProfile.ReputationWithPlayer" />).
       /// </summary>
       private static bool CanRelay(Hero hero)
-         => hero is {IsAlive: true, IsPrisoner: false}
-            && hero != Hero.MainHero
+         => Mapping.InitiativeGate.Allows(hero, Logic.InitiativeKind.RealmTidings)
             && hero.IsLord
             && hero.Clan != null
             && hero.Clan != Clan.PlayerClan

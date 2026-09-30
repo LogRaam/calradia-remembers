@@ -163,6 +163,36 @@ namespace CalradiaRemembers.Tests.Maps
                                       + "nothing saves them any more, and a campaign in progress loses that data on its next load.");
       }
 
+      // EVERY INITIATIVE ASKS THE ONE GATE (30/09/2026). Nexusrrr's baby son asked to discuss warfare because the fief
+      // audience checked no age; an inventory found a dozen initiative paths and a dozen filters, two of them checking
+      // age. Two walls keep the gate's reach from eroding. First: a kind of initiative declared and never asked is a
+      // path someone meant to gate and did not.
+      [Test]
+      public void GIVEN_the_kinds_of_initiative_WHEN_the_game_code_is_read_THEN_every_kind_is_asked_somewhere()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         HashSet<string> asked = InitiativesMap.KindSites(SourceTree.Production).Select(k => k.Kind).ToHashSet(StringComparer.Ordinal);
+         List<string> neverAsked = Enum.GetNames(typeof(CalradiaRemembers.Logic.InitiativeKind)).Where(k => !asked.Contains(k)).ToList();
+
+         neverAsked.Should().BeEmpty("these kinds of initiative are declared but no game code asks the gate for them: "
+                                   + string.Join(", ", neverAsked) + ". Ask InitiativeGate where that initiative happens, or remove the kind.");
+      }
+
+      // Second: a letter written straight into a character's post, outside the letter pipeline, is an initiative the
+      // pipeline's own gate never saw (the stance consequence did exactly that, from anyone alive and free). Every such
+      // file must ask the gate itself.
+      [Test]
+      public void GIVEN_letters_written_straight_into_the_post_WHEN_read_THEN_every_such_file_asks_the_gate()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         List<string> unguarded = InitiativesMap.DirectLetterFiles(SourceTree.Production).Where(f => !f.AsksGate).Select(f => f.File).ToList();
+
+         unguarded.Should().BeEmpty("these files add a letter to a character's SentLetters without asking InitiativeGate, so a "
+                                  + "child or a captive could write first: " + string.Join(", ", unguarded));
+      }
+
       // REGARD CHANGES IN ONE PLACE (29/09/2026). CrNpcMemory.RegardChanged tells other mods of every change of a
       // character's regard for the player, and it can only do that because every change goes through
       // ProfileMutator.ApplyReputationDelta. On the day the event was built, six places wrote the value directly

@@ -1,0 +1,41 @@
+// Code written by Gabriel Mailhot, 30/09/2026.
+// Reads the facts NpcInitiativeGate (pure, tested) needs from the live game: every path where a character takes the
+// initiative toward the player asks here, naming its kind, so docs/maps/initiatives.md can list each one and the suite
+// can tell when a kind is declared but never asked (Gabriel, 30/09/2026, after a baby son asked to discuss warfare).
+
+#region
+
+using CalradiaRemembers.Logic;
+using TaleWorlds.CampaignSystem;
+
+#endregion
+
+namespace CalradiaRemembers.Mapping
+{
+   /// <summary>The live-game side of the one initiative gate.</summary>
+   public static class InitiativeGate
+   {
+      /// <summary>
+      ///   True when <paramref name="hero" /> may take this initiative toward the player. With <paramref name="log" />, a
+      ///   refused one-off initiative says why in the log; scans over many heroes leave it off.
+      /// </summary>
+      public static bool Allows(Hero hero, InitiativeKind kind, bool log = false)
+      {
+         InitiativeRefusal refusal = Check(hero, kind);
+         if (refusal == InitiativeRefusal.None) return true;
+
+         if (log) ModLog.Info($"[INITIATIVE] {kind} by {hero?.Name?.ToString() ?? "no one"} does not happen: {refusal}.");
+
+         return false;
+      }
+
+      /// <summary>Why this hero may not take this initiative, or None. The kind is named so the initiatives map lists the site.</summary>
+      public static InitiativeRefusal Check(Hero hero, InitiativeKind kind) => NpcInitiativeGate.Check(Facts(hero));
+
+      /// <summary>The engine facts the gate reads. Age is Hero.IsChild, never inferred from rank (IsLord is an occupation).</summary>
+      internal static InitiatorFacts Facts(Hero hero)
+         => hero == null
+            ? new InitiatorFacts {Exists = false}
+            : new InitiatorFacts {IsAlive = hero.IsAlive, IsChild = hero.IsChild, IsPrisoner = hero.IsPrisoner, IsPlayer = hero == Hero.MainHero};
+   }
+}

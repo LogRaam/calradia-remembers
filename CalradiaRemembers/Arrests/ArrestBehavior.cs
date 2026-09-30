@@ -133,7 +133,7 @@ namespace CalradiaRemembers.Arrests
          IEnumerable<CouncilCandidate> vassals = (liege.Clan?.Kingdom?.Clans ?? Enumerable.Empty<Clan>())
                                                  .Where(c => c != null && c != liege.Clan && c != Clan.PlayerClan && !c.IsEliminated)
                                                  .Select(c => c.Leader)
-                                                 .Where(h => h is {IsAlive: true, IsPrisoner: false} && h != Hero.MainHero)
+                                                 .Where(h => Mapping.InitiativeGate.Allows(h, Logic.InitiativeKind.TrialSeat)) // a clan leader may be under age
                                                  .Select(h => new CouncilCandidate {HeroId = h.StringId, RegardForPlayer = store?.Get(h.StringId)?.ReputationWithPlayer ?? 0});
 
          foreach (string id in ArrestPolicy.CouncilSeats(liege.StringId, vassals, Hero.MainHero?.StringId))
