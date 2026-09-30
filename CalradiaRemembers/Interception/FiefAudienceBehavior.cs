@@ -189,7 +189,7 @@ namespace CalradiaRemembers.Interception
 
       private static IEnumerable<Hero> EligibleHeroes(Settlement settlement)
          => Hero.AllAliveHeroes.Where(h =>
-            Mapping.InitiativeGate.Allows(h, Logic.InitiativeKind.FiefAudience)
+            Mapping.ActionGate.Allows(h, Logic.ActionKind.FiefAudience)
             && FiefAudiencePolicy.MaySeekAudience(new FiefAudienceSeekerFacts {
                StandsInThisSettlement = h.CurrentSettlement == settlement, IsPrisoner = h.IsPrisoner,
                HasFieldParty = h.PartyBelongedTo != null, IsChild = h.IsChild

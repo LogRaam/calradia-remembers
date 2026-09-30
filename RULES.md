@@ -4419,7 +4419,7 @@ _recruit_notable: the pure gate deciding whether a settlement NOTABLE (gang lead
 - GIVEN a beloved notable with no successor, WHEN evaluating, THEN the missing successor is reported over regard
 - GIVEN the starting relation bonus, WHEN read, THEN it is a modest positive below the deep bond mark
 
-### NpcInitiativeGateTests.cs
+### NpcActionGateTests.cs
 
 _The one door every character's initiative toward the player goes through (Gabriel, 30/09/2026, after Nexusrrr's baby son asked to discuss warfare). An inventory found about a dozen paths, each with its own filter, two of them checking age, several trusting Hero.IsLord (an occupation, not an age). If this gate lets a child through, a baby writes threats or sends killers; if it lets a prisoner through, a captive mails the player from his cell; if it lets the dead or the player through, the world acts in the name of someone who cannot act._
 

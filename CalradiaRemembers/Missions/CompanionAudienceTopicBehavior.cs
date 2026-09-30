@@ -339,7 +339,7 @@ namespace CalradiaRemembers.Missions
 
       private static IEnumerable<Hero> Companions()
          => Hero.AllAliveHeroes.Where(h =>
-            Mapping.InitiativeGate.Allows(h, Logic.InitiativeKind.CompanionAudience) && h.IsPlayerCompanion
+            Mapping.ActionGate.Allows(h, Logic.ActionKind.CompanionAudience) && h.IsPlayerCompanion
             && h.PartyBelongedTo == MobileParty.MainParty);
 
       private int CooldownDaysRemaining()

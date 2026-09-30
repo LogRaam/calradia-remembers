@@ -25,7 +25,7 @@ project internals.
 | [`rules-sdk.md`](rules-sdk.md) | The same for the SDK. |
 | [`constants.md`](constants.md) | Is there already a number for this? Opens with the NAMES declared in more than one type. |
 | [`engine-facts.md`](engine-facts.md) | Is this CONCEPT already somewhere, under another name? Which fact of the game each pure rule reads, and the facts read by more than one rule (rank was a prestige score, a stature, a station and a tier: all of them read `Clan.Tier`). Read from syntax, so keys are best guesses. |
-| [`initiatives.md`](initiatives.md) | Where does a character act toward the player (a letter, an audience, an interception, a threat), and does each path ask the one gate (alive, of age, free, not the player)? Also every letter written straight into the post. |
+| [`actions.md`](actions.md) | Where does a character act toward the player (a letter, an audience, an interception, a threat), and does each path ask the one gate (alive, of age, free, not the player)? Also every letter written straight into the post. |
 | [`event-listeners.md`](event-listeners.md) | What does the mod hear from the engine, and which of an event's reasons does each listener name? |
 | [`prompt-sections.md`](prompt-sections.md) | In what order is the prompt written, what is cached, what is per-turn, what does Compact drop? |
 | [`verbs.md`](verbs.md) | Is this action declared everywhere it has to be? |

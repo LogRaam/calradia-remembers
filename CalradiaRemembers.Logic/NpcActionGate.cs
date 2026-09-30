@@ -1,5 +1,6 @@
 // Code written by Gabriel Mailhot, 30/09/2026.
-// The one door every character's INITIATIVE toward the player goes through. Nexusrrr (Nexus, 28/09/2026): "my son is a
+// The one door every character's ACTION goes through (first built for initiatives toward the player; renamed from
+// NpcInitiativeGate on 30/09/2026 when Gabriel ruled that answering a summons is an action too, see below). Nexusrrr (Nexus, 28/09/2026): "my son is a
 // 0-year-old baby, but he wants to discuss warfare with me." Gabriel the same day: "Serait-ce mieux de faire une
 // composition ou toute action d'un NPC doit passer des conditions comme par exemple etre majeur? Si les conditions ne
 // sont pas respectees, l'action ne se concretise pas."
@@ -27,8 +28,8 @@ using CalradiaRemembers.Logic.Assemblies;
 
 namespace CalradiaRemembers.Logic
 {
-   /// <summary>The ways a character takes the initiative toward the player. Each path names its own.</summary>
-   public enum InitiativeKind
+   /// <summary>The ways a character acts: toward the player on their own, or when summoned. Each path names its own.</summary>
+   public enum ActionKind
    {
       /// <summary>An unprompted letter (any trigger), or one written straight into the post by a system.</summary>
       Letter,
@@ -61,8 +62,8 @@ namespace CalradiaRemembers.Logic
       CouncilSeat
    }
 
-   /// <summary>Why an initiative did not happen.</summary>
-   public enum InitiativeRefusal
+   /// <summary>Why an action did not happen.</summary>
+   public enum ActionRefusal
    {
       /// <summary>It may happen.</summary>
       None,
@@ -86,8 +87,8 @@ namespace CalradiaRemembers.Logic
       OutOfTheWorld
    }
 
-   /// <summary>The facts the gate reads about the character taking the initiative.</summary>
-   public sealed class InitiatorFacts
+   /// <summary>The facts the gate reads about the character who would act.</summary>
+   public sealed class ActorFacts
    {
       /// <summary>There is a character (false for a missing or unresolved one).</summary>
       public bool Exists { get; set; } = true;
@@ -108,35 +109,35 @@ namespace CalradiaRemembers.Logic
       public bool IsPlayer { get; set; }
    }
 
-   /// <summary>The base conditions of every initiative toward the player. Pure.</summary>
-   public static class NpcInitiativeGate
+   /// <summary>The base conditions of every action a character takes. Pure.</summary>
+   public static class NpcActionGate
    {
       /// <summary>Why this character may not take the initiative, or None when they may. Checked in this order.</summary>
-      public static InitiativeRefusal Check(InitiatorFacts f) => Check(f, InitiativeKind.Letter);
+      public static ActionRefusal Check(ActorFacts f) => Check(f, ActionKind.Letter);
 
       /// <summary>
       ///   Why this character may not take this action, or None. Of age is the game's majority for every kind but a
       ///   council seat, which takes the council's own age when the age is known.
       /// </summary>
-      public static InitiativeRefusal Check(InitiatorFacts f, InitiativeKind kind)
+      public static ActionRefusal Check(ActorFacts f, ActionKind kind)
       {
-         if (f == null || !f.Exists) return InitiativeRefusal.NoOne;
-         if (!f.IsAlive) return InitiativeRefusal.Dead;
-         if (f.IsDisabled) return InitiativeRefusal.OutOfTheWorld;
-         if (f.IsPlayer) return InitiativeRefusal.IsThePlayer;
-         if (!IsOfAgeFor(f, kind)) return InitiativeRefusal.Child;
+         if (f == null || !f.Exists) return ActionRefusal.NoOne;
+         if (!f.IsAlive) return ActionRefusal.Dead;
+         if (f.IsDisabled) return ActionRefusal.OutOfTheWorld;
+         if (f.IsPlayer) return ActionRefusal.IsThePlayer;
+         if (!IsOfAgeFor(f, kind)) return ActionRefusal.Child;
 
-         return f.IsPrisoner ? InitiativeRefusal.Prisoner : InitiativeRefusal.None;
+         return f.IsPrisoner ? ActionRefusal.Prisoner : ActionRefusal.None;
       }
 
       /// <summary>True when this character may take the initiative toward the player.</summary>
-      public static bool Allows(InitiatorFacts f) => Check(f) == InitiativeRefusal.None;
+      public static bool Allows(ActorFacts f) => Check(f) == ActionRefusal.None;
 
       /// <summary>True when this character may take this action.</summary>
-      public static bool Allows(InitiatorFacts f, InitiativeKind kind) => Check(f, kind) == InitiativeRefusal.None;
+      public static bool Allows(ActorFacts f, ActionKind kind) => Check(f, kind) == ActionRefusal.None;
 
-      private static bool IsOfAgeFor(InitiatorFacts f, InitiativeKind kind)
-         => kind == InitiativeKind.CouncilSeat && f.Age.HasValue
+      private static bool IsOfAgeFor(ActorFacts f, ActionKind kind)
+         => kind == ActionKind.CouncilSeat && f.Age.HasValue
             ? CouncilRosterPolicy.IsOldEnoughToSit(f.Age.Value)
             : !f.IsChild;
    }

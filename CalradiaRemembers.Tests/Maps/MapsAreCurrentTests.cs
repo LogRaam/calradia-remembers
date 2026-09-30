@@ -56,7 +56,7 @@ namespace CalradiaRemembers.Tests.Maps
       // character acts toward the player, and the one gate each asks.
       [Test]
       public void GIVEN_the_source_as_it_stands_WHEN_the_initiatives_are_regenerated_THEN_they_match_the_committed_map()
-         => ApprovedMap.Verify(InitiativesMap.Path, Generated(InitiativesMap.Generate));
+         => ApprovedMap.Verify(ActionsMap.Path, Generated(ActionsMap.Generate));
 
       [Test]
       public void GIVEN_the_source_as_it_stands_WHEN_the_event_listeners_are_regenerated_THEN_they_match_the_committed_map()

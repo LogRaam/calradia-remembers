@@ -370,7 +370,7 @@ namespace CalradiaRemembers.Stance
 
             // A child never sends killers (the one initiative gate, 30/09/2026): an attempt armed before the gate
             // existed is disarmed rather than sprung.
-            if (Mapping.InitiativeGate.Check(h, Logic.InitiativeKind.Ambush) == Logic.InitiativeRefusal.Child)
+            if (Mapping.ActionGate.Check(h, Logic.ActionKind.Ambush) == Logic.ActionRefusal.Child)
             {
                Disarm(store, h);
 

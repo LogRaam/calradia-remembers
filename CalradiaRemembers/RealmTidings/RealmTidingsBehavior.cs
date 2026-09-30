@@ -202,7 +202,7 @@ namespace CalradiaRemembers.RealmTidings
       ///   own personal-regard ledger (<see cref="NpcProfile.ReputationWithPlayer" />).
       /// </summary>
       private static bool CanRelay(Hero hero)
-         => Mapping.InitiativeGate.Allows(hero, Logic.InitiativeKind.RealmTidings)
+         => Mapping.ActionGate.Allows(hero, Logic.ActionKind.RealmTidings)
             && hero.IsLord
             && hero.Clan != null
             && hero.Clan != Clan.PlayerClan

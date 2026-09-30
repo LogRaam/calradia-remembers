@@ -369,7 +369,7 @@ namespace CalradiaRemembers.Missions
          _refusals.Remove(h.StringId);
 
          BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
-         NpcProfile profile = Mapping.InitiativeGate.Allows(h, Logic.InitiativeKind.Letter, log: true) ? store?.Get(h.StringId) : null;
+         NpcProfile profile = Mapping.ActionGate.Allows(h, Logic.ActionKind.Letter, log: true) ? store?.Get(h.StringId) : null;
          if (profile == null)
          {
             ModLog.Info($"[HAPPINESS] {h.Name} has no profile — they will leave on day {arriveDay} without a letter.");

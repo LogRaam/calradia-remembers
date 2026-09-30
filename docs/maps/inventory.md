@@ -465,13 +465,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Type | Kind | What it is |
 |---|---|---|
+| `ActionGate` | public static class | The live-game side of the one initiative gate. |
 | `ContextualNameResolver` | public static class | Scans the player's message for hero names and produces a ready-to-inject hint block for the LLM system prompt. |
 | `CouncilSeatNoteResolver` | internal static class | Resolves one council seat's modder note from council_seat.txt and that seat's own variables. |
 | `CulturalTraditionsLoader` | public static class | Loads and caches the cultural_traditions.json file from the mod's own ModuleData folder (and, if present, ModuleData/Custom first). |
 | `EncounterContextBuilder` | public static class | Constructs an EncounterContext for a given NPC, using the game state bridge for live data and the stored profile for historical data (last-meeting computation). |
 | `FirstImpressionResolver` | public static class | Builds the ready-to-inject "first impression" line for a barely-known noble, or null. |
 | `HeroProfileMapper` | public static class | (no summary) |
-| `InitiativeGate` | public static class | The live-game side of the one initiative gate. |
 | `IntimacyBargainEligibility` | public static class | Resolves the adult-gated, archetype-filtered eligibility for the intimacy-as-currency dynamic. |
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
@@ -780,9 +780,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AbandonReason` | public enum | Why an abandoned pursuit ended. |
 | `ActionInterpreterTiming` | public enum | When the PROSE + INTERPRETER action interpreter's tags are applied, relative to the reply the player already saw. |
 | `ActionInterpreterTimingPolicy` | public static class | Maps the "Actions Interpreter Timing" MCM dropdown value to ActionInterpreterTiming. |
+| `ActionKind` | public enum | The ways a character acts: toward the player on their own, or when summoned. |
 | `ActionMemoryLabel` | public static class | Turns a bridge action type into the short, player-facing label the Memories panel shows in blue beside a memory, so a journal entry that carries a REAL mechanical consequence (gold moved, a recruit, a fief granted, regar... |
+| `ActionRefusal` | public enum | Why an action did not happen. |
 | `ActionRefusalNote` | public static class | Turns a refused action outcome into the note the model must read, or nothing. |
 | `ActiveConflictsFormatter` | public static class | Renders the active-wars line, collapsing a run of wars that share a side onto one name. |
+| `ActorFacts` | public class | The facts the gate reads about the character who would act. |
 | `AddressedSpeakerDetector` | public static class | Heuristic detection of WHICH conversation participant the player is addressing in a typed message. |
 | `AffairDiscoveryPolicy` | public static class | Pure rules for a SECRET affair being discovered by the player: the tryst-scaled discovery chance and the gate that only a hidden, not-yet-known affair can be discovered. |
 | `AmbushEntryOutcome` | public enum | Why a player's town entry did or did not spring an armed ambush (host-logged for diagnosis). |
@@ -993,9 +996,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `IManagedPortrait` | public interface | A UI element that owns exactly one character portrait — which, on screen, is backed by a GPU render-target (a character tableau). |
 | `IRandomSource` | public interface | A source of bounded random integers. |
 | `IRumorRecord` | public interface | The minimum a stored world happening must expose for the pruner to reason about its lifetime: when it occurred and whether it is the player's own deed (kept long-term) or third-party rumour (aged out). |
-| `InitiativeKind` | public enum | The ways a character takes the initiative toward the player. |
-| `InitiativeRefusal` | public enum | Why an initiative did not happen. |
-| `InitiatorFacts` | public class | The facts the gate reads about the character taking the initiative. |
 | `InterceptionFacts` | public class | The facts a single candidate lord's interception decision rests on — engine-gathered, pure to reason over. |
 | `InterceptionPacing` | public enum | How readily lords ride out to meet the player on the road. |
 | `InterceptionPacingRules` | public static class | Turns the player's chosen pacing into the two numbers that actually govern how often a lord appears. |
@@ -1108,7 +1108,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NewsDestinationSelector` | public static class | Chooses which town a "bring me news about X" errand rides to. |
 | `NotableRecruitmentBlock` | public enum | Why a notable cannot (yet) be recruited as a companion, or None when they can. |
 | `NotableRecruitmentPolicy` | public static class | The pure gate behind recruit_notable. |
-| `NpcInitiativeGate` | public static class | The base conditions of every initiative toward the player. |
+| `NpcActionGate` | public static class | The base conditions of every action a character takes. |
 | `NpcMemoryInjection` | public static class | The door rules an externally-injected NPC memory passes through before it enters the store. |
 | `NpcStance` | public class | A per-NPC stance toward the player. |
 | `OathKindParser` | public static class | Resolves a swear_oath resolution's oath_kind string to the whitelisted CommitmentKind it names. |

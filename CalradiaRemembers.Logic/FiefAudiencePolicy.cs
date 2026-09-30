@@ -74,7 +74,7 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public static bool MaySeekAudience(FiefAudienceSeekerFacts f)
             => f != null && f.StandsInThisSettlement && !f.HasFieldParty
-               && NpcInitiativeGate.Allows(new InitiatorFacts {IsChild = f.IsChild, IsPrisoner = f.IsPrisoner});
+               && NpcActionGate.Allows(new ActorFacts {IsChild = f.IsChild, IsPrisoner = f.IsPrisoner});
 
         /// <summary>
         ///   Whether a trigger reads believably for someone already standing in the settlement.

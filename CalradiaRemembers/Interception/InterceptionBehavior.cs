@@ -1559,7 +1559,7 @@ namespace CalradiaRemembers.Interception
 
             Hero lord = p?.LeaderHero;
 
-            if (lord is not {IsLord: true} || !Mapping.InitiativeGate.Allows(lord, Logic.InitiativeKind.RoadInterception)) continue; // IsLord is a rank, never an age
+            if (lord is not {IsLord: true} || !Mapping.ActionGate.Allows(lord, Logic.ActionKind.RoadInterception)) continue; // IsLord is a rank, never an age
             if (p == main || p.IsBandit || p.MapFaction == null) continue;
             if (PlayerSharesArmyOrAttached(p)) continue; // player leads an army holding this party, or is attached to it
             if (!CanRideOutToIntercept(p)) continue;     // committed to an army or locked in a fight: cannot break off to chase

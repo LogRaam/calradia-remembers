@@ -172,11 +172,11 @@ namespace CalradiaRemembers.Tests.Maps
       {
          if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
 
-         HashSet<string> asked = InitiativesMap.KindSites(SourceTree.Production).Select(k => k.Kind).ToHashSet(StringComparer.Ordinal);
-         List<string> neverAsked = Enum.GetNames(typeof(CalradiaRemembers.Logic.InitiativeKind)).Where(k => !asked.Contains(k)).ToList();
+         HashSet<string> asked = ActionsMap.KindSites(SourceTree.Production).Select(k => k.Kind).ToHashSet(StringComparer.Ordinal);
+         List<string> neverAsked = Enum.GetNames(typeof(CalradiaRemembers.Logic.ActionKind)).Where(k => !asked.Contains(k)).ToList();
 
          neverAsked.Should().BeEmpty("these kinds of initiative are declared but no game code asks the gate for them: "
-                                   + string.Join(", ", neverAsked) + ". Ask InitiativeGate where that initiative happens, or remove the kind.");
+                                   + string.Join(", ", neverAsked) + ". Ask ActionGate where that initiative happens, or remove the kind.");
       }
 
       // Second: a letter written straight into a character's post, outside the letter pipeline, is an initiative the
@@ -187,9 +187,9 @@ namespace CalradiaRemembers.Tests.Maps
       {
          if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
 
-         List<string> unguarded = InitiativesMap.DirectLetterFiles(SourceTree.Production).Where(f => !f.AsksGate).Select(f => f.File).ToList();
+         List<string> unguarded = ActionsMap.DirectLetterFiles(SourceTree.Production).Where(f => !f.AsksGate).Select(f => f.File).ToList();
 
-         unguarded.Should().BeEmpty("these files add a letter to a character's SentLetters without asking InitiativeGate, so a "
+         unguarded.Should().BeEmpty("these files add a letter to a character's SentLetters without asking ActionGate, so a "
                                   + "child or a captive could write first: " + string.Join(", ", unguarded));
       }
 

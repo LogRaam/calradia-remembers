@@ -122,7 +122,7 @@ namespace CalradiaRemembers.Assemblies
 
          if (scope == CouncilScope.Parley)
             return CouncilRosterResolver.Seated(scope, parleyTargetFactionId)
-                                        .Where(h => Mapping.InitiativeGate.Allows(h, Logic.InitiativeKind.CouncilSeat)).ToList();
+                                        .Where(h => Mapping.ActionGate.Allows(h, Logic.ActionKind.CouncilSeat)).ToList();
 
          return Resolve(scope, DefaultThresholdDays, parleyTargetFactionId)
                .Where(s => s.Attendance == CouncilAttendance.InPerson)
@@ -154,7 +154,7 @@ namespace CalradiaRemembers.Assemblies
          {
             // Sitting at the table is an action (Gabriel, 30/09/2026, after Maifailun's dead father took a seat): the
             // dead, the disabled, the player and a child below the council's age never sit, whatever the scope.
-            if (!Mapping.InitiativeGate.Allows(hero, Logic.InitiativeKind.CouncilSeat)) return;
+            if (!Mapping.ActionGate.Allows(hero, Logic.ActionKind.CouncilSeat)) return;
 
             CouncilAttendanceFacts facts = BuildFacts(hero, playerClan, scope, parleyTargetFactionId);
             CouncilAttendanceResult verdict = CouncilAttendancePolicy.Decide(facts, thresholdDays);

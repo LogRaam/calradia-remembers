@@ -982,7 +982,7 @@ namespace CalradiaRemembers.Letters
 
          // The one initiative gate (30/09/2026): of age, alive, free, not the player. Several triggers trust IsLord,
          // which is a rank and not an age. A profile with no hero resolved keeps the cadence rule alone, as before.
-         if (hero != null && !Mapping.InitiativeGate.Allows(hero, Logic.InitiativeKind.Letter)) return false;
+         if (hero != null && !Mapping.ActionGate.Allows(hero, Logic.ActionKind.Letter)) return false;
 
          return LetterCadence.CanSendLetter(profile, today, cooldownDays);
       }
