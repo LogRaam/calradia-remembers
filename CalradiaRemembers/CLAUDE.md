@@ -127,6 +127,8 @@ prompt's sections in order, every verb with each place it must be declared, and 
   Nexusrrr's baby son asked to discuss warfare (30/09/2026) because one path forgot the age. **Answering a summons is
   an action too** (Gabriel, 30/09/2026, after Maifailun's dead father sat at a council): a council seat asks the gate
   (`ActionKind.CouncilSeat`, with the council's own age, 13), and so should any new path that seats a character.
+  **`Hero.IsAlive` is NOT presence**: a DISABLED hero reads alive, and `Clan.Heroes` keeps the dead and the disabled.
+  Ask `Mapping.HeroPresence.IsInTheWorld` for presence; a ratchet counts every bare `IsAlive` read.
 - **Read the map's diff before the code's.** A new line in `dependencies.md` is a namespace that has started to
   know another. A new line in `shared-state.md` is a lifetime somebody has to decide.
 - **Two of the maps are contracts, not views.** `save-format.md` (every save key, every saveable type id) and
