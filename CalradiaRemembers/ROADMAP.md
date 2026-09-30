@@ -353,6 +353,55 @@ miss that prompted it.
 
 ---
 
+## RULED 2026-09-30 (Gabriel + Lordfadooboo + Maifailun), BUILDING: SELF-ESTEEM, the mood finished, and the PERCEIVED IMAGE
+
+Lordfadooboo (Nexus, 29/09/2026): "what if npc's had a hidden internal regard for themselves? a lord who has been
+humbled regularly might have it lowered, and one who is doing well might have it higher. starting self esteem
+could be affected by station... randomized by character... it may have affects on their expectations when
+speaking to you and how they respond to failure... a character might become insecure with you and if its a
+romantic character, they might require you to tell them things they want to hear... vanilla personality traits
+might also play a part." Maifailun: "potentially regressing to traumas (too long captive wouldn't be so bold
+when talking)". Gabriel the next day: finish the mood of the day, build self-esteem, and let the two together
+make a PERCEIVED IMAGE of the character, shown in the chat's info panel.
+
+### What it is, against what exists
+
+The axes table under THE MOOD OF THE DAY below had no row for what a character thinks of HIMSELF. Stance is
+toward the player, contentment is toward service, traits are fixed, mood is today. Self-esteem is the durable
+self-regard those leave out, and it is the ground the mood of the day stands on.
+
+### Rulings (Gabriel, 30/09/2026: "suis tes recommandations")
+
+1. **Colour, never an outcome.** Mood's Ruling 1 extends to self-esteem: it shapes expectations, how a failure
+   is taken, whether a lover needs reassurance, and never decides what a character may do. What makes it
+   learnable instead of an invisible rule is the perceived image: the player can SEE a man is shaken.
+2. **The image shows what shows.** A proud or calculating man hides a shaken self-regard from a stranger; those
+   who know him (regard at friendly or better) see through. The image is itself a reward of the relationship.
+3. **Whose, and when.** Characters the player has met (a CR profile), moved by events recorded on that profile
+   from then on. Nobody keeps the self-regard of all Calradia for nothing (player experience over simulation).
+
+### Mechanics (first cut, tunable, all in Logic)
+
+- **Baseline**: rank (Stature: a ruler and a great house start higher, a wanderer lower), a personal draw seeded
+  by the hero (the same man every time), and traits (valour steadies, a calculating mind swings less).
+- **Events** move it: a battle lost or won at their head, a captivity (repeated captivities compound: the trauma),
+  a release, a tournament, a fief lost or gained, a death in the house, a duel with the player, and reassurance
+  from the player on a day they needed it.
+- **Recovery**: it drifts back toward the baseline, slowly.
+- **Bands, never numbers**: broken, shaken, steady, assured, proud.
+
+### Increments
+
+- M2 mood facts read from the game + the day's seed; M3 the mood line in the per-turn tail, traits colouring its
+  expression, wit rare; M4 the player moves it in conversation (a control line judged by the character,
+  stripped like [LETTER_TONE]; one band per turn, two per conversation); M5 letters and realm news carry it.
+- E1 the pure self-esteem policy; E2 events recorded on the profile; E3 the prompt; E4 it weighs the mood's draw.
+- P1 the perceived image (templates, no model call, updated as the mood moves); P2 shown in the chat info panel,
+  both skins.
+
+This settles the open question below ("should a mood be legible as a line of prose?"): yes, as ONE numberless
+sentence of how the character seems, never a bar.
+
 ## DESIGNED 2026-09-14 (Gabriel + player basildingleberry), NOT BUILT: THE MOOD OF THE DAY
 
 Promised publicly on the pinned Nexus roadmap since 2026-07-03 ("a mood randomizer that affects characters
