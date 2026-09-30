@@ -535,8 +535,12 @@ namespace CalradiaRemembers.Chat
          ChatSceneRequest request = _awaitingLandfall[0];
          _awaitingLandfall.RemoveAt(0);
 
-         // A person who died or was taken in the meantime is not received; an envoy has no hero and always is.
-         if (request.Partner != null && !Mapping.ActionGate.Allows(request.Partner, Logic.ActionKind.HeldScene))
+         // A person who died or was taken in the meantime is not received; an envoy has no hero and always is. A prisoner
+         // is received when the player holds him: a conversation with the player's own captive is exactly that
+         // (Gabriel, 30/09/2026: the captive rule must never block talking to a prisoner).
+         bool takenBySomeoneElse = request.Partner is {IsPrisoner: true}
+                                   && request.Partner.PartyBelongedToAsPrisoner != MobileParty.MainParty?.Party;
+         if (request.Partner != null && (!Mapping.ActionGate.Allows(request.Partner, Logic.ActionKind.HeldScene) || takenBySomeoneElse))
          {
             ModLog.Info($"[CHAT STAGE {request.Kind}] {request.Partner.Name} is no longer able to meet; the landfall meeting is dropped.");
 

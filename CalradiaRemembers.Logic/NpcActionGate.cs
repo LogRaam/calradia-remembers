@@ -69,12 +69,13 @@ namespace CalradiaRemembers.Logic
       /// <summary>A ruler issuing a warrant for the player's arrest; sergeants ride in their name.</summary>
       Warrant,
 
-      /// <summary>Standing in the room as a witness to a conversation, or brought along from the party. A child may.</summary>
+      /// <summary>Standing in the room as a witness to a conversation, or brought along from the party. A child or a captive may.</summary>
       Witness,
 
       /// <summary>
       ///   A scene held and received later (a conversation waiting for landfall): its partner is re-asked when it is
-      ///   received. A child may; a captive is not received (the held scene's own rule).
+      ///   received. A child or a captive may (a conversation with the player's own captive); one taken by someone else in
+      ///   the meantime is dropped by the stager's own rule.
       /// </summary>
       HeldScene,
 
@@ -211,8 +212,10 @@ namespace CalradiaRemembers.Logic
          }
       }
 
-      // A captive acts in no way but these: a marriage prospect (marriage's own rules decide) and a duel (a captive
-      // may be offered one for their freedom; the duel's own rules decide).
-      private static bool PrisonerMay(ActionKind kind) => kind == ActionKind.MarriageProspect || kind == ActionKind.Duel;
+      // Where a captive may still be: a marriage prospect (marriage's own rules decide), a duel (a captive may be offered
+      // one for their freedom), a witness in the room, and the partner of a held scene (a conversation with the player's
+      // own captive). Gabriel (30/09/2026): the captive rule must never block judging a prisoner or talking to one.
+      private static bool PrisonerMay(ActionKind kind)
+         => kind == ActionKind.MarriageProspect || kind == ActionKind.Duel || kind == ActionKind.Witness || kind == ActionKind.HeldScene;
    }
 }

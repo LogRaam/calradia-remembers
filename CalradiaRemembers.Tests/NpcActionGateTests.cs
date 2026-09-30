@@ -193,6 +193,22 @@ namespace CalradiaRemembers.Tests
          NpcActionGate.Check(new ActorFacts {IsDisabled = true}, ActionKind.CaptorScene).Should().Be(ActionRefusal.OutOfTheWorld);
       }
 
+      // Gabriel (30/09/2026): "le gating never captive pour les actions ne doit pas bloquer un jugement de prisonnier ou un
+      // chat avec un prisonnier." Talking with the player's own captive is a scene whose partner IS a prisoner; held for
+      // landfall at sea, it must still be received ashore.
+      [Test]
+      public void GIVEN_a_conversation_with_a_prisoner_held_for_landfall_WHEN_received_THEN_the_captive_is_not_refused()
+      {
+         NpcActionGate.Allows(new ActorFacts {IsPrisoner = true}, ActionKind.HeldScene).Should().BeTrue();
+      }
+
+      // A captive in the room still witnesses what is said there; witnesses never checked captivity before the gate.
+      [Test]
+      public void GIVEN_a_captive_in_the_room_WHEN_the_witnesses_are_gathered_THEN_the_captive_is_not_refused()
+      {
+         NpcActionGate.Allows(new ActorFacts {IsPrisoner = true}, ActionKind.Witness).Should().BeTrue();
+      }
+
       // The refusal a log names is the truest one: a dead child is dead, a captive child is a child.
       [Test]
       public void GIVEN_several_reasons_at_once_WHEN_checked_THEN_the_most_absolute_is_named()
