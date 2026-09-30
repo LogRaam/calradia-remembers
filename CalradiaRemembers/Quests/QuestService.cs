@@ -173,7 +173,8 @@ namespace CalradiaRemembers.Quests
             // fault, so no penalty), instead of leaving them stuck in the journal until the next reload
             // (which is all ReconcileOnSessionLaunch did). The HeroKilledEvent path closes them the
             // instant the giver is slain; this daily sweep is the safety net for anything it missed.
-            if (giverHero is not {IsAlive: true})
+            // Gone from the world counts too: the engine reads a disabled hero as alive, and their tasks stayed open.
+            if (!Mapping.HeroPresence.IsInTheWorld(giverHero))
             {
                CancelQuestsOfDeadGiver(profile, giverHero, gameDay, store);
 

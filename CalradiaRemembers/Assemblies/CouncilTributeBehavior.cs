@@ -86,7 +86,7 @@ namespace CalradiaRemembers.Assemblies
         {
             failReason = null;
 
-            if (payerLeader is not {IsAlive: true})
+            if (!Mapping.HeroPresence.IsInTheWorld(payerLeader))
             {
                 failReason = "they could not be found.";
 

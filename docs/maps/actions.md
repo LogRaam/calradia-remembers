@@ -14,13 +14,16 @@ the subject of news, and the verbs a model emits in conversation have their own 
 | Kind | Asked in |
 |---|---|
 | `Ambush` | `TownAmbushBehavior.FindArmedAssassin` |
+| `CaptorScene` | `AmbushCaptivityBehavior.ArrivedPaymasterFor`, `CaptiveEncounterService.CheckAndTrigger` |
 | `CompanionAudience` | `CompanionAudienceTopicBehavior.Companions` |
 | `CompanionMission` | `CompanionMissionBehavior.IsUsableCompanion` |
 | `CouncilSeat` | `CouncilAttendanceResolver.SeatedInPersonHeroes`, `CouncilAttendanceResolver.TryAppendSeat` |
 | `Duel` | `DuelEligibilityResolver.BothAbleToFight` |
+| `EnterService` | `BannerlordGameStateBridge.HouseholdOfferableTo` |
+| `Escort` | `FollowMeBehavior.TryStart` |
 | `FiefAudience` | `FiefAudienceBehavior.EligibleHeroes` |
 | `HeldScene` | `ChatSceneStager.ReceiveOneAwaitingLandfall` |
-| `Hostage` | `HostageCandidateResolver.IsEligible` |
+| `Hostage` | `CouncilHostageBehavior.TryStart`, `HostageCandidateResolver.IsEligible` |
 | `Letter` | `BastardBehavior.SendDemandLetter`, `BastardBehavior.SendMotherNote`, `CompanionHappinessBehavior.SendFarewell`, `LetterGenerationService.QueueInitialLetter`, `LetterTriggerEvaluator.CanSendLetter`, `PrisonerEnvoyBehavior.OnHourlyTick` |
 | `MarriageProspect` | `MarriageProspectResolver.Build`, `MarriageProspectResolver.ResolveCandidate` |
 | `RealmTidings` | `RealmTidingsBehavior.CanRelay` |
@@ -28,7 +31,7 @@ the subject of news, and the verbs a model emits in conversation have their own 
 | `RoadInterception` | `InterceptionBehavior.TryStartInterception` |
 | `StanceConsequence` | `StanceConsequenceBehavior.CanWrite` |
 | `TrialSeat` | `ArrestBehavior.TrialBench` |
-| `Ward` | `WardCandidateResolver.IsEligible` |
+| `Ward` | `CouncilWardBehavior.TryStart`, `WardCandidateResolver.IsEligible` |
 | `Warrant` | `ArrestBehavior.Charge` |
 | `Witness` | `WitnessResolver.GetPlayerCompanions`, `WitnessResolver.IsValidWitness`, `WitnessResolver.ResolveSceneCompanions` |
 
@@ -52,7 +55,7 @@ reads alive, and `Clan.Heroes` keeps both the dead and the disabled. A check tha
 the backlog (a baseline in `RatchetTests` that may only go down); many are bookkeeping ("is the subject of
 this memory still alive") where death alone is the question.
 
-325 reads in 89 files.
+313 reads in 85 files.
 
 | File | Reads |
 |---|---|
@@ -60,13 +63,10 @@ this memory still alive") where death alone is the question.
 | `Assemblies/AssemblyBehavior.cs` | 2 |
 | `Assemblies/AssemblyInvitationFactsBuilder.cs` | 3 |
 | `Assemblies/AssemblyMenuBehavior.cs` | 1 |
-| `Assemblies/CouncilHostageBehavior.cs` | 4 |
-| `Assemblies/CouncilPactBehavior.cs` | 2 |
+| `Assemblies/CouncilHostageBehavior.cs` | 1 |
 | `Assemblies/CouncilRosterResolver.cs` | 6 |
 | `Assemblies/CouncilStipendBehavior.cs` | 1 |
-| `Assemblies/CouncilTributeBehavior.cs` | 1 |
 | `Assemblies/CouncilTroopDeliveryBehavior.cs` | 2 |
-| `Assemblies/CouncilWardBehavior.cs` | 2 |
 | `Assemblies/HostageCandidateResolver.cs` | 2 |
 | `Assemblies/WardCandidateResolver.cs` | 2 |
 | `Bastards/BastardBehavior.cs` | 4 |
@@ -86,8 +86,7 @@ this memory still alive") where death alone is the question.
 | `Encyclopedia/EncyclopediaHeroPageAppearanceMixin.cs` | 1 |
 | `Encyclopedia/EncyclopediaHeroPageBearingMixin.cs` | 1 |
 | `Encyclopedia/EncyclopediaHeroPageHappinessMixin.cs` | 1 |
-| `Escort/FollowMeBehavior.cs` | 1 |
-| `GameState/BannerlordGameStateBridge.cs` | 29 |
+| `GameState/BannerlordGameStateBridge.cs` | 28 |
 | `GameState/CourtActionResolver.cs` | 16 |
 | `GameState/LordRecruitmentFactsBuilder.cs` | 2 |
 | `GameState/PregnancyService.cs` | 1 |
@@ -130,11 +129,11 @@ this memory still alive") where death alone is the question.
 | `Nemesis/NemesisTavernRumorDialogFlow.cs` | 2 |
 | `OpenPartnerLover/OpenPartnerLoverBehavior.cs` | 7 |
 | `Quests/QuestJournalBridge.cs` | 3 |
-| `Quests/QuestService.cs` | 2 |
+| `Quests/QuestService.cs` | 1 |
 | `Quests/ViableQuestScanner.cs` | 1 |
 | `Rescue/RescueBehavior.cs` | 3 |
 | `Retainer/RetainerBehavior.cs` | 4 |
-| `Stance/AmbushCaptivityBehavior.cs` | 8 |
+| `Stance/AmbushCaptivityBehavior.cs` | 7 |
 | `Stance/TownAmbushBehavior.cs` | 2 |
 | `Verbs/BuyPrisonerVerb.cs` | 1 |
 | `Verbs/ExchangePrisonersVerb.cs` | 2 |

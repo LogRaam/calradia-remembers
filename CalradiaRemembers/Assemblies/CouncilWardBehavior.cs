@@ -110,14 +110,14 @@ namespace CalradiaRemembers.Assemblies
         {
             failReason = null;
 
-            if (mentor is not {IsAlive: true})
+            if (!Mapping.HeroPresence.IsInTheWorld(mentor))
             {
                 failReason = "they could not be found.";
 
                 return false;
             }
 
-            if (protege is not {IsAlive: true})
+            if (!Mapping.ActionGate.Allows(protege, Logic.ActionKind.Ward))
             {
                 failReason = "the named companion could not be found.";
 

@@ -4199,7 +4199,7 @@ namespace CalradiaRemembers.GameState
 
          foreach (Hero h in playerClan.Heroes)
          {
-            if (h is not {IsAlive: true} || h.IsPrisoner) continue;
+            if (!Mapping.ActionGate.Allows(h, Logic.ActionKind.EnterService)) continue; // Clan.Heroes keeps the dead and the disabled
             if (h == Hero.MainHero || h == playerClan.Leader) continue;
             if (h == Hero.MainHero?.Spouse) continue;
             if (h.StringId != null && family.Contains(h.StringId)) continue;

@@ -166,6 +166,33 @@ namespace CalradiaRemembers.Tests
          NpcActionGate.Check(new ActorFacts {IsChild = true}, ActionKind.CompanionMission).Should().Be(ActionRefusal.Child);
       }
 
+      // A member of the player's household handed into a lord's service (take_into_service): the household list came
+      // from Clan.Heroes, which keeps the disabled; never a child or a captive either.
+      [Test]
+      public void GIVEN_a_household_member_WHEN_offered_into_a_lords_service_THEN_no_child_captive_or_absent_hero_is()
+      {
+         NpcActionGate.Check(new ActorFacts {IsChild = true}, ActionKind.EnterService).Should().Be(ActionRefusal.Child);
+         NpcActionGate.Check(new ActorFacts {IsDisabled = true}, ActionKind.EnterService).Should().Be(ActionRefusal.OutOfTheWorld);
+      }
+
+      // A lord riding at the player's side (follow_me): until now refused a captive or a child only by the accident
+      // that neither leads a party of their own.
+      [Test]
+      public void GIVEN_a_lord_asked_to_ride_with_the_player_WHEN_they_are_a_captive_or_a_child_THEN_they_do_not()
+      {
+         NpcActionGate.Check(new ActorFacts {IsPrisoner = true}, ActionKind.Escort).Should().Be(ActionRefusal.Prisoner);
+         NpcActionGate.Check(new ActorFacts {IsChild = true}, ActionKind.Escort).Should().Be(ActionRefusal.Child);
+      }
+
+      // The paymaster of an ambush, or a nemesis, facing the captive player: resolved from an id stored days before,
+      // so re-asked when the scene opens; one who has since been taken, or left the world, does not appear.
+      [Test]
+      public void GIVEN_a_captor_resolved_from_days_ago_WHEN_the_scene_opens_THEN_one_since_taken_or_gone_does_not_appear()
+      {
+         NpcActionGate.Check(new ActorFacts {IsPrisoner = true}, ActionKind.CaptorScene).Should().Be(ActionRefusal.Prisoner);
+         NpcActionGate.Check(new ActorFacts {IsDisabled = true}, ActionKind.CaptorScene).Should().Be(ActionRefusal.OutOfTheWorld);
+      }
+
       // The refusal a log names is the truest one: a dead child is dead, a captive child is a child.
       [Test]
       public void GIVEN_several_reasons_at_once_WHEN_checked_THEN_the_most_absolute_is_named()

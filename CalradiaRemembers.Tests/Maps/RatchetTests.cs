@@ -198,7 +198,7 @@ namespace CalradiaRemembers.Tests.Maps
       // chokepoint every letter the player sends goes through. The gated paths now ask ActionGate or HeroPresence; the
       // rest is a backlog, much of it bookkeeping where death alone is the question. A new bare read is how the next
       // one slips in: ask the gate for an act, HeroPresence for "is in the world", or raise the baseline and say why.
-      private const int BareIsAliveReadsOn30September = 325;
+      private const int BareIsAliveReadsOn30September = 313;
 
       [Test]
       public void GIVEN_reads_of_IsAlive_outside_the_two_doors_WHEN_counted_THEN_there_are_no_more_than_the_baseline()

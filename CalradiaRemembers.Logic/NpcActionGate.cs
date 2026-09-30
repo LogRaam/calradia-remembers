@@ -91,7 +91,16 @@ namespace CalradiaRemembers.Logic
       Duel,
 
       /// <summary>A companion sent on an errand across the map by the player.</summary>
-      CompanionMission
+      CompanionMission,
+
+      /// <summary>A member of the player's household handed into a lord's service (take_into_service).</summary>
+      EnterService,
+
+      /// <summary>A lord riding at the player's side for a term (follow_me).</summary>
+      Escort,
+
+      /// <summary>An ambush's paymaster or a nemesis facing the captive player, resolved from an id stored days before.</summary>
+      CaptorScene
    }
 
    /// <summary>Why an action did not happen.</summary>

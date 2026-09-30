@@ -261,12 +261,12 @@ namespace CalradiaRemembers.Assemblies
             // NPC resenting the player for THEIR OWN faction's attack makes no causal sense). The relation hit and
             // WorldEvent note, in contrast, apply either way, fault-agnostic - a shattered pact strains the
             // relationship regardless of who struck first.
-            if (playerAtFault && enemyLeader is {IsAlive: true} && Hero.MainHero != null)
+            if (playerAtFault && Mapping.HeroPresence.IsInTheWorld(enemyLeader) && Hero.MainHero != null)
                 GrudgeBehavior.Instance?.TryPlant(enemyLeader, Hero.MainHero, GrudgeSource.PactBroken,
                     "swore a pact of non-aggression with us, then broke it with steel", NonAggressionPactPolicy.BreachGrudgeMagnitude,
                     knownToPlayer: true, (int) CampaignTime.Now.ToDays);
 
-            if (enemyLeader is {IsAlive: true} && Hero.MainHero != null)
+            if (Mapping.HeroPresence.IsInTheWorld(enemyLeader) && Hero.MainHero != null)
                 ChangeRelationAction.ApplyRelationChangeBetweenHeroes(enemyLeader, Hero.MainHero, NonAggressionPactPolicy.BreachRelationHit, false);
 
             try

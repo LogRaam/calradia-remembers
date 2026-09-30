@@ -82,7 +82,7 @@ namespace CalradiaRemembers.Escort
         {
             failReason = null;
 
-            if (lord is not {IsAlive: true} || Hero.MainHero == null || MobileParty.MainParty == null)
+            if (!Mapping.ActionGate.Allows(lord, Logic.ActionKind.Escort) || Hero.MainHero == null || MobileParty.MainParty == null)
             {
                 failReason = "they could not be found.";
 

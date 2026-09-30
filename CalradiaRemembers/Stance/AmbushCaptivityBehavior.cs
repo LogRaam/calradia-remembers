@@ -87,7 +87,9 @@ namespace CalradiaRemembers.Stance
 
          Hero paymaster = Hero.FindFirst(h => h != null && h.StringId == _paymasterId);
 
-         return paymaster is {IsAlive: true}
+         // Resolved from an id stored at the capture: re-asked now (30/09/2026), since a paymaster taken or gone from the
+         // world in the meantime must not walk into the scene.
+         return Mapping.ActionGate.Allows(paymaster, Logic.ActionKind.CaptorScene)
             ? paymaster
             : null;
       }

@@ -115,14 +115,14 @@ namespace CalradiaRemembers.Assemblies
         {
             failReason = null;
 
-            if (pledger is not {IsAlive: true})
+            if (!Mapping.HeroPresence.IsInTheWorld(pledger))
             {
                 failReason = "they could not be found.";
 
                 return false;
             }
 
-            if (hostage is not {IsAlive: true})
+            if (!Mapping.ActionGate.Allows(hostage, Logic.ActionKind.Hostage))
             {
                 failReason = "the named kinsman could not be found.";
 
@@ -270,7 +270,7 @@ namespace CalradiaRemembers.Assemblies
             }
 
             Hero otherHomeLord = homeClan?.Heroes?.FirstOrDefault(hero =>
-                hero != hostage && hero is {IsAlive: true, IsPrisoner: false} && hero.PartyBelongedTo?.LeaderHero == hero);
+                hero != hostage && Mapping.HeroPresence.IsInTheWorld(hero) && !hero.IsPrisoner && hero.PartyBelongedTo?.LeaderHero == hero);
 
             if (otherHomeLord != null)
             {

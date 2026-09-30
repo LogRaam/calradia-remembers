@@ -195,6 +195,7 @@ namespace CalradiaRemembers.Letters
          // A nemesis (a persistent bandit boss who has taken the player before) overrides the band's
          // nonexistent hero leader, so the captive scene runs with HIM and his memory (Nemesis pillar).
          Hero nemesisCaptor = Nemesis.NemesisBehavior.Instance?.NemesisCaptorFor(captorParty);
+         if (nemesisCaptor != null && !Mapping.ActionGate.Allows(nemesisCaptor, Logic.ActionKind.CaptorScene)) nemesisCaptor = null;
          Hero captor = ambushPaymaster ?? nemesisCaptor ?? captorParty.LeaderHero;
 
          // Lazy re-attach (player report 2026-07-23): the capture-time nemesis mapping is process-only and a
