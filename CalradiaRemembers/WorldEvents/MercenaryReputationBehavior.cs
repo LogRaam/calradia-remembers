@@ -290,14 +290,7 @@ namespace CalradiaRemembers.WorldEvents
       #region private
 
       /// <summary>Whether the realm is at war, its own strength, and its enemies' combined strength.</summary>
-      private static (bool AtWar, float Own, float Enemies) WarFooting(Kingdom kingdom)
-      {
-         List<Kingdom> enemies = (Kingdom.All ?? new List<Kingdom>())
-                                 .Where(k => k != null && k != kingdom && !k.IsEliminated && FactionManager.IsAtWarAgainstFaction(k, kingdom))
-                                 .ToList();
-
-         return (enemies.Count > 0, kingdom.CurrentTotalStrength, enemies.Sum(k => k.CurrentTotalStrength));
-      }
+      private static (bool AtWar, float Own, float Enemies) WarFooting(Kingdom kingdom) => Mapping.RealmWarFooting.Of(kingdom);
 
       private static bool SameCulture(Kingdom kingdom)
          => kingdom?.Culture != null && Hero.MainHero?.Culture == kingdom.Culture;

@@ -516,6 +516,8 @@ namespace CalradiaRemembers.Mapping
             RidesAsRetainer = station.RidesAsRetainer,
             HereAndNow = knowledge.HereAndNow,
             PersonalBonds = knowledge.PersonalBonds,
+            DayMood = knowledge.DayMood,
+            WitPermitted = knowledge.WitPermitted,
             Audience = BuildListeningAudience(profile, witnesses),
             // follow_me: taught only when EscortEligibilityPolicy.CanEscort says the game can truly honour it
             // right now (see the computation just above the object initializer). dismiss_escort is the mirror,
@@ -2817,6 +2819,9 @@ namespace CalradiaRemembers.Mapping
          return below / (float) houses.Count;
       }
 
+      /// <summary>The house_means treasury band, for the mood of the day (DayMoodReader) to read the same purse.</summary>
+      internal static TreasuryBand ReadTreasuryFor(Clan clan) => clan == null ? TreasuryBand.Unknown : ReadTreasury(clan);
+
       private static TreasuryBand ReadTreasury(Clan clan)
       {
          float? rank = RankAmong(ComparableHouses(), clan, c => c.Gold);
@@ -2919,7 +2924,10 @@ namespace CalradiaRemembers.Mapping
          {
             return new OwnBodyFacts {
                Hurt = ReadHurt(hero),
-               IsMaimed = hero.IsDisabled
+               // Not Hero.IsDisabled: in the engine that is HeroState == Disabled, a hero TAKEN OUT OF THE WORLD, not
+               // a maiming (confirmed from the game's code, 30/09/2026). The game keeps no record of a lasting
+               // injury, so nothing is claimed; a mod that adds one can supply it here.
+               IsMaimed = false
             };
          }
          catch (Exception ex)
@@ -2935,6 +2943,9 @@ namespace CalradiaRemembers.Mapping
       ///   first version of this lived here inline and TWO of its four were impossible - see BodyHurtPolicy for
       ///   the seeded lord at 60% health who answered "I fare well enough".
       /// </summary>
+      /// <summary>The own_body hurt band, for the mood of the day (DayMoodReader) to read the same body.</summary>
+      internal static HurtBand ReadHurtFor(Hero hero) => ReadHurt(hero);
+
       private static HurtBand ReadHurt(Hero hero)
       {
          switch (BodyHurtPolicy.Read(hero.HitPoints, hero.MaxHitPoints, hero.IsWounded, hero.WoundedHealthLimit))
@@ -3348,6 +3359,7 @@ namespace CalradiaRemembers.Mapping
          MarketWordFacts marketWord = BuildMarketWord(hero);
          OwnVenturesFacts ventures = BuildOwnVentures(hero);
          PartyPost partyPost = ReadPartyPost(hero);
+         (NpcMemoryService.Core.Mood.DayMood? Mood, bool Wit) mood = DayMoodReader.Draw(hero);
 
          return new EncounterContext {
             // Carried on the context because the packs budget themselves by it. Build supplies its own level
@@ -3367,7 +3379,9 @@ namespace CalradiaRemembers.Mapping
             PartyStanding = BuildPartyStanding(hero),
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
-            RealmNews = BuildRealmNews(hero)
+            RealmNews = BuildRealmNews(hero),
+            DayMood = mood.Mood,
+            WitPermitted = mood.Wit
          };
       }
 

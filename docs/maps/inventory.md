@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 439 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 845 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 441 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 847 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 243 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -461,7 +461,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (17)
+### CalradiaRemembers.Mapping (19)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -469,6 +469,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ContextualNameResolver` | public static class | Scans the player's message for hero names and produces a ready-to-inject hint block for the LLM system prompt. |
 | `CouncilSeatNoteResolver` | internal static class | Resolves one council seat's modder note from council_seat.txt and that seat's own variables. |
 | `CulturalTraditionsLoader` | public static class | Loads and caches the cultural_traditions.json file from the mod's own ModuleData folder (and, if present, ModuleData/Custom first). |
+| `DayMoodReader` | public static class | Draws a character's mood of the day from the live game. |
 | `EncounterContextBuilder` | public static class | Constructs an EncounterContext for a given NPC, using the game state bridge for live data and the stored profile for historical data (last-meeting computation). |
 | `FirstImpressionResolver` | public static class | Builds the ready-to-inject "first impression" line for a barely-known noble, or null. |
 | `HeroPresence` | public static class | Whether a hero is in the world at all: alive, and not taken out of it by the game. |
@@ -476,6 +477,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `IntimacyBargainEligibility` | public static class | Resolves the adult-gated, archetype-filtered eligibility for the intimacy-as-currency dynamic. |
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
+| `RealmWarFooting` | public static class | Reads a realm's war footing from the live game. |
 | `RelationshipsBuilder` | public static class | Builds a human-readable RELATIONSHIPS block for an NPC from live game state. |
 | `RomanticProfileBuilder` | public static class | Builds a deterministic RomanticProfile for a Bannerlord Hero. |
 | `SeductionFactsMapper` | public static class | Builds SeductionFacts for a married NPC from live game state. |
@@ -774,7 +776,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (543)
+### CalradiaRemembers.Logic (545)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -922,6 +924,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CourtActionPolicy` | public static class | Pure math and gates for the four "court action" verbs. |
 | `CourtshipTrialPolicy` | public static class | Pure completion gate for a courtship trial (a marriage prospect riding with the player to be tested). |
 | `CrRecoveryAction` | public enum | A stuck CR subsystem the recovery command (cr.reset) can stand down. |
+| `DayMoodFactsPolicy` | public static class | Reads a character's day into the facts the mood draw weighs. |
+| `DayMoodReadings` | public class | What the host reads off the live game for a character's day. |
 | `DeedValence` | public enum | How a deed of the PLAYER's lands on an NPC who has only HEARD of it — the emotional colour the influence loop gives a lord who was not there. |
 | `DeliveryMatch` | public class | A delivery the player can make right now: the bargain it settles and the captive who settles it. |
 | `DeliveryQuestMatcher` | public static class | Decides which outstanding prisoner-delivery bargain a held captive settles. |
