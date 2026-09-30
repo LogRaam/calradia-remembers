@@ -72,6 +72,8 @@ namespace CalradiaRemembers.Assemblies
 
       private static bool IsEligible(Hero pledger, Hero candidate)
       {
+         if (!Mapping.ActionGate.Allows(candidate, Logic.ActionKind.Hostage)) return false;
+
          bool isClanChief = candidate.Clan != null && candidate.Clan.Leader == candidate;
 
          var facts = new HostageCandidateFacts {IsAlive = candidate.IsAlive, IsFree = !candidate.IsPrisoner, IsAdult = !candidate.IsChild, IsClanChief = isClanChief, IsSoleHeir = IsSoleHeir(pledger, candidate)};
@@ -91,7 +93,8 @@ namespace CalradiaRemembers.Assemblies
          Clan clan = pledger?.Clan;
          if (clan?.Heroes == null) return false;
 
-         List<Hero> otherAdults = clan.Heroes.Where(h => h != pledger && h is {IsAlive: true} && !h.IsChild).ToList();
+         // Clan.Heroes keeps the dead AND the disabled, and a disabled hero reads IsAlive: count only those in the world.
+         List<Hero> otherAdults = clan.Heroes.Where(h => h != pledger && Mapping.HeroPresence.IsInTheWorld(h) && !h.IsChild).ToList();
 
          return otherAdults.Count == 1 && otherAdults[0] == candidate;
       }

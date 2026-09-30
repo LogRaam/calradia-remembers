@@ -193,6 +193,29 @@ namespace CalradiaRemembers.Tests.Maps
                                   + "child or a captive could write first: " + string.Join(", ", unguarded));
       }
 
+      // IsAlive IS NOT "IN THE WORLD" (30/09/2026). Maifailun's dead father sat at a council; the inventory that followed
+      // found the engine counts a DISABLED hero as alive, and a dozen paths checking IsAlive alone, among them the
+      // chokepoint every letter the player sends goes through. The gated paths now ask ActionGate or HeroPresence; the
+      // rest is a backlog, much of it bookkeeping where death alone is the question. A new bare read is how the next
+      // one slips in: ask the gate for an act, HeroPresence for "is in the world", or raise the baseline and say why.
+      private const int BareIsAliveReadsOn30September = 325;
+
+      [Test]
+      public void GIVEN_reads_of_IsAlive_outside_the_two_doors_WHEN_counted_THEN_there_are_no_more_than_the_baseline()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         int bare = ActionsMap.BareIsAliveReads(SourceTree.Production).Sum(b => b.Count);
+
+         bare.Should().BeLessThanOrEqualTo(BareIsAliveReadsOn30September,
+            $"a hero's IsAlive is read on its own ({bare} against a baseline of {BareIsAliveReadsOn30September}), and a "
+          + "disabled hero reads alive. Ask Mapping.ActionGate for an act, Mapping.HeroPresence.IsInTheWorld for presence; "
+          + "if death alone is truly the question, raise the baseline here and say why. docs/maps/actions.md lists them.");
+
+         if (bare < BareIsAliveReadsOn30September)
+            Assert.Warn($"{BareIsAliveReadsOn30September - bare} bare IsAlive read(s) moved onto a door: lower the baseline to {bare}.");
+      }
+
       // REGARD CHANGES IN ONE PLACE (29/09/2026). CrNpcMemory.RegardChanged tells other mods of every change of a
       // character's regard for the player, and it can only do that because every change goes through
       // ProfileMutator.ApplyReputationDelta. On the day the event was built, six places wrote the value directly

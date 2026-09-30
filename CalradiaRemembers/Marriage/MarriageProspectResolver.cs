@@ -42,14 +42,14 @@ namespace CalradiaRemembers.Marriage
             var candidates = new List<Hero>();
             if (isLeader)
                foreach (Hero member in npc.Clan.Heroes.ToList())
-                  if (member is {IsAlive: true} && IsOfferableProspect(player, member))
+                  if (Mapping.ActionGate.Allows(member, Logic.ActionKind.MarriageProspect) && IsOfferableProspect(player, member))
                      candidates.Add(member);
 
             // A PARENT may bless their OWN child even when they do not head the clan — the
             // natural person a player approaches for a daughter's or son's hand.
             if (npc.Children != null)
                foreach (Hero child in npc.Children)
-                  if (child is {IsAlive: true} && child.Clan != Clan.PlayerClan && IsOfferableProspect(player, child) && !candidates.Contains(child))
+                  if (Mapping.ActionGate.Allows(child, Logic.ActionKind.MarriageProspect) && child.Clan != Clan.PlayerClan && IsOfferableProspect(player, child) && !candidates.Contains(child))
                      candidates.Add(child);
 
             if (candidates.Count == 0) return null;
@@ -124,9 +124,9 @@ namespace CalradiaRemembers.Marriage
       {
          if (npc == null || string.IsNullOrWhiteSpace(name)) return null;
          var pool = new List<Hero>();
-         if (npc.Clan != null) pool.AddRange(npc.Clan.Heroes.Where(h => h is {IsAlive: true}));
+         if (npc.Clan != null) pool.AddRange(npc.Clan.Heroes.Where(h => Mapping.ActionGate.Allows(h, Logic.ActionKind.MarriageProspect)));
          if (npc.Children != null)
-            pool.AddRange(npc.Children.Where(h => h is {IsAlive: true} && !pool.Contains(h)));
+            pool.AddRange(npc.Children.Where(h => Mapping.ActionGate.Allows(h, Logic.ActionKind.MarriageProspect) && !pool.Contains(h)));
 
          Hero exact = pool.FirstOrDefault(h => string.Equals(h.Name?.ToString(), name, StringComparison.OrdinalIgnoreCase));
          if (exact != null) return exact;

@@ -195,7 +195,9 @@ namespace CalradiaRemembers.Arrests
             if (!ModSettings.EnableArrests && Case.Stage == ArrestStage.None) return;
 
             Hero liege = Clan.PlayerClan?.Kingdom?.Leader;
-            bool canBeArrested = ArrestPolicy.CanBeArrested(Standing()) && liege != null && liege != Hero.MainHero;
+            // The warrant is the liege's act (30/09/2026): no warrant from a dead, absent, child or captive ruler. The
+            // trial bench already asked the gate; the warrant that leads to it did not ask anything.
+            bool canBeArrested = ArrestPolicy.CanBeArrested(Standing()) && Mapping.ActionGate.Allows(liege, Logic.ActionKind.Warrant, log: true);
             bool wasOpen = Case.Stage != ArrestStage.None;
 
             Case.Charge(charge, liege?.StringId, canBeArrested);

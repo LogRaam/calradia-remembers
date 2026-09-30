@@ -15,13 +15,22 @@ the subject of news, and the verbs a model emits in conversation have their own 
 |---|---|
 | `Ambush` | `TownAmbushBehavior.FindArmedAssassin` |
 | `CompanionAudience` | `CompanionAudienceTopicBehavior.Companions` |
+| `CompanionMission` | `CompanionMissionBehavior.IsUsableCompanion` |
 | `CouncilSeat` | `CouncilAttendanceResolver.SeatedInPersonHeroes`, `CouncilAttendanceResolver.TryAppendSeat` |
+| `Duel` | `DuelEligibilityResolver.BothAbleToFight` |
 | `FiefAudience` | `FiefAudienceBehavior.EligibleHeroes` |
-| `Letter` | `BastardBehavior.SendDemandLetter`, `BastardBehavior.SendMotherNote`, `CompanionHappinessBehavior.SendFarewell`, `LetterGenerationService.QueueInitialLetter`, `LetterTriggerEvaluator.CanSendLetter` |
+| `HeldScene` | `ChatSceneStager.ReceiveOneAwaitingLandfall` |
+| `Hostage` | `HostageCandidateResolver.IsEligible` |
+| `Letter` | `BastardBehavior.SendDemandLetter`, `BastardBehavior.SendMotherNote`, `CompanionHappinessBehavior.SendFarewell`, `LetterGenerationService.QueueInitialLetter`, `LetterTriggerEvaluator.CanSendLetter`, `PrisonerEnvoyBehavior.OnHourlyTick` |
+| `MarriageProspect` | `MarriageProspectResolver.Build`, `MarriageProspectResolver.ResolveCandidate` |
 | `RealmTidings` | `RealmTidingsBehavior.CanRelay` |
+| `ReceiveLetter` | `CourierService.CanReceiveLetter` |
 | `RoadInterception` | `InterceptionBehavior.TryStartInterception` |
 | `StanceConsequence` | `StanceConsequenceBehavior.CanWrite` |
 | `TrialSeat` | `ArrestBehavior.TrialBench` |
+| `Ward` | `WardCandidateResolver.IsEligible` |
+| `Warrant` | `ArrestBehavior.Charge` |
+| `Witness` | `WitnessResolver.GetPlayerCompanions`, `WitnessResolver.IsValidWitness`, `WitnessResolver.ResolveSceneCompanions` |
 
 ## Letters written straight into the post
 
@@ -34,3 +43,105 @@ gate never saw; the file must ask the gate itself.
 | `Letters/LetterGenerationService.cs` | yes |
 | `Missions/CompanionHappinessBehavior.cs` | yes |
 | `Stance/StanceConsequenceBehavior.cs` | yes |
+
+## `IsAlive` read on its own
+
+The engine's `Hero.IsAlive` means only "not dead": a hero the game has taken out of the world (disabled)
+reads alive, and `Clan.Heroes` keeps both the dead and the disabled. A check that means "may act" asks
+`ActionGate`; one that means "is in the world" asks `HeroPresence.IsInTheWorld`. What is left below is
+the backlog (a baseline in `RatchetTests` that may only go down); many are bookkeeping ("is the subject of
+this memory still alive") where death alone is the question.
+
+325 reads in 89 files.
+
+| File | Reads |
+|---|---|
+| `Appreciations/AppreciationBehavior.cs` | 1 |
+| `Assemblies/AssemblyBehavior.cs` | 2 |
+| `Assemblies/AssemblyInvitationFactsBuilder.cs` | 3 |
+| `Assemblies/AssemblyMenuBehavior.cs` | 1 |
+| `Assemblies/CouncilHostageBehavior.cs` | 4 |
+| `Assemblies/CouncilPactBehavior.cs` | 2 |
+| `Assemblies/CouncilRosterResolver.cs` | 6 |
+| `Assemblies/CouncilStipendBehavior.cs` | 1 |
+| `Assemblies/CouncilTributeBehavior.cs` | 1 |
+| `Assemblies/CouncilTroopDeliveryBehavior.cs` | 2 |
+| `Assemblies/CouncilWardBehavior.cs` | 2 |
+| `Assemblies/HostageCandidateResolver.cs` | 2 |
+| `Assemblies/WardCandidateResolver.cs` | 2 |
+| `Bastards/BastardBehavior.cs` | 4 |
+| `Behaviors/NpcMemoryCampaignBehavior.cs` | 2 |
+| `Chat/ChatManager.cs` | 1 |
+| `Chat/ChatViewModel.Council.cs` | 17 |
+| `Chat/ChatViewModel.Exchanges.cs` | 1 |
+| `Chat/ChatViewModel.cs` | 1 |
+| `Chat/CouncilLift.cs` | 15 |
+| `Chat/ManualActionMenuController.cs` | 6 |
+| `Commitments/CommitmentBehavior.cs` | 3 |
+| `Commitments/CommitmentJournalBridge.cs` | 1 |
+| `Companions/CompanionBriefingCoordinator.cs` | 1 |
+| `Dialogue/LlmDialogFlow.cs` | 2 |
+| `Duels/CaptiveGearBehavior.cs` | 1 |
+| `Duels/DuelEligibilityResolver.cs` | 1 |
+| `Encyclopedia/EncyclopediaHeroPageAppearanceMixin.cs` | 1 |
+| `Encyclopedia/EncyclopediaHeroPageBearingMixin.cs` | 1 |
+| `Encyclopedia/EncyclopediaHeroPageHappinessMixin.cs` | 1 |
+| `Escort/FollowMeBehavior.cs` | 1 |
+| `GameState/BannerlordGameStateBridge.cs` | 29 |
+| `GameState/CourtActionResolver.cs` | 16 |
+| `GameState/LordRecruitmentFactsBuilder.cs` | 2 |
+| `GameState/PregnancyService.cs` | 1 |
+| `GameState/RecruitmentPricing.cs` | 1 |
+| `Grudges/ExecutedKinGrudgeBehavior.cs` | 5 |
+| `Grudges/GrudgeBehavior.cs` | 1 |
+| `Grudges/SwayExposureBehavior.cs` | 1 |
+| `Interception/InterceptionBehavior.cs` | 4 |
+| `Jealousy/JealousPartyResolver.cs` | 4 |
+| `Jealousy/JealousyBehavior.cs` | 7 |
+| `Letters/CaptiveEncounterService.cs` | 2 |
+| `Letters/CourierSecretBehavior.cs` | 1 |
+| `Letters/CourierService.cs` | 5 |
+| `Letters/LetterDeliveryService.cs` | 1 |
+| `Letters/LetterTriggerEvaluator.cs` | 11 |
+| `Letters/PrisonerEnvoyBehavior.cs` | 2 |
+| `Mapping/EncounterContextBuilder.cs` | 30 |
+| `Mapping/HeroProfileMapper.cs` | 4 |
+| `Mapping/RelationshipsBuilder.cs` | 7 |
+| `Marriage/DivorceEligibilityResolver.cs` | 2 |
+| `Marriage/DivorceProcessBehavior.cs` | 3 |
+| `Marriage/MarriageApprovalBehavior.cs` | 3 |
+| `Marriage/MarriageDissolutionService.cs` | 2 |
+| `Marriage/MarriageProspectResolver.cs` | 2 |
+| `Marriage/MarryCompanionResolver.cs` | 3 |
+| `Marriage/MatchmakerResolver.cs` | 2 |
+| `Marriage/NpcMarriageEstrangementBehavior.cs` | 3 |
+| `Marriage/SpouseDivorceDemandBehavior.cs` | 5 |
+| `Memory/MemoryCompressionService.cs` | 2 |
+| `Missions/CompanionAffectionBehavior.cs` | 1 |
+| `Missions/CompanionAudienceTopicResolver.cs` | 1 |
+| `Missions/CompanionErrandJournalBridge.cs` | 1 |
+| `Missions/CompanionHappinessBehavior.cs` | 5 |
+| `Missions/CompanionMissionBehavior.cs` | 1 |
+| `Missions/CompanionRapportBehavior.cs` | 1 |
+| `Missions/WarWearinessBehavior.cs` | 2 |
+| `Nemesis/NemesisBehavior.cs` | 9 |
+| `Nemesis/NemesisBountyDialogFlow.cs` | 2 |
+| `Nemesis/NemesisResolutionBehavior.cs` | 3 |
+| `Nemesis/NemesisTavernRumorDialogFlow.cs` | 2 |
+| `OpenPartnerLover/OpenPartnerLoverBehavior.cs` | 7 |
+| `Quests/QuestJournalBridge.cs` | 3 |
+| `Quests/QuestService.cs` | 2 |
+| `Quests/ViableQuestScanner.cs` | 1 |
+| `Rescue/RescueBehavior.cs` | 3 |
+| `Retainer/RetainerBehavior.cs` | 4 |
+| `Stance/AmbushCaptivityBehavior.cs` | 8 |
+| `Stance/TownAmbushBehavior.cs` | 2 |
+| `Verbs/BuyPrisonerVerb.cs` | 1 |
+| `Verbs/ExchangePrisonersVerb.cs` | 2 |
+| `Violence/PlayerViolenceVerb.cs` | 1 |
+| `Violence/ViolenceConsequenceService.cs` | 1 |
+| `WorldAlmanac/KingdomPowerFactsBuilder.cs` | 2 |
+| `WorldAlmanac/StrategicAssessmentContextBuilder.cs` | 1 |
+| `WorldEvents/MercenaryReputationBehavior.cs` | 1 |
+| `WorldEvents/SchemeStore.cs` | 7 |
+| `WorldEvents/WorldEventFeeders.cs` | 1 |

@@ -406,7 +406,7 @@ namespace CalradiaRemembers.Missions
             : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == id);
 
       private static bool IsUsableCompanion(Hero h)
-         => h is {IsAlive: true} && (h.IsPlayerCompanion || h.Clan == Clan.PlayerClan) && h.PartyBelongedTo == MobileParty.MainParty;
+         => Mapping.ActionGate.Allows(h, Logic.ActionKind.CompanionMission) && (h.IsPlayerCompanion || h.Clan == Clan.PlayerClan) && h.PartyBelongedTo == MobileParty.MainParty;
 
       private static bool NearPlayer(MobileParty party)
          => MobileParty.MainParty != null && party.GetPosition2D.Distance(MobileParty.MainParty.GetPosition2D) < ArrivalDistance;

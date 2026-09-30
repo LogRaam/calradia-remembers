@@ -74,10 +74,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Romantic.Status` (5) | `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Settlement.GetPosition2D` (5) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
 | `Character.HeroObject` (4) | `CompanionCounselPolicy.Select`, `CouncilRosterPolicy.IsOldEnoughToSit`, `PartyCounselFacts`, `PrisonerCustodyPolicy.HeldByPlayer` |
-| `CharacterStates.Disabled` (4) | `ActorFacts`, `NpcActionGate.Check`, `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `Clan.Influence` (4) | `ClaimantBackerFacts`, `CourtActionPolicy.CanAffordInfluenceGrant`, `CourtActionPolicy.ClanNeedsInfluence`, `KingdomPowerFacts` |
 | `Hero.CompanionOf` (4) | `FactionGuidelinesPolicy.NarrowToOwnCulture`, `PrisonerExchangePolicy.IsExchangeable`, `StationGuidelinesPolicy.ResolveStationKey`, `StationGuidelinesPolicy.SelectStationText` |
-| `Hero.HeroState` (4) | `ActorFacts`, `NpcActionGate.Check`, `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `Hero.PartyBelongedToAsPrisoner` (4) | `GiftEquipFacts`, `GiftEquipPolicy.WearsOnBattleSet`, `HeroNaming`, `PrisonerRecruitmentPolicy.Evaluate` |
 | `Hero.StayingInSettlement` (4) | `EscortCostPolicy.EscortPremium`, `LetterWhereaboutsPolicy.ForPlayer`, `LetterWhereaboutsPolicy.ForWriter`, `WhereaboutsFacts` |
 | `MobileParty.MemberRoster` (4) | `CouncilTroopLoanPolicy.ComputeLoan`, `CourtActionPolicy.IsPartyWeakened`, `TroopGiftFacts`, `TroopLoanFacts` |
@@ -127,6 +125,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `BattleTypes.Raid` (2) | `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause` |
 | `BestFeat.Outcome` (2) | `BattleFeatText.SubjectBestedByPlayer`, `BattleFeatText.WitnessedFeat` |
 | `Case.LiegeId` (2) | `ArrestPolicy.CouncilSeats`, `TrialVerdictPolicy.DefaultConviction` |
+| `CharacterStates.Disabled` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice` (2) | `HireAgreementPolicy.AgreedPrice`, `HireAgreementPolicy.CanAfford` |
 | `EndCaptivityDetail.ReleasedAfterBattle` (2) | `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `EndCaptivityDetail.ReleasedByChoice` (2) | `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
@@ -138,6 +137,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `GatePosition.ToVec2` (2) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium` |
 | `Hero.CivilianEquipment` (2) | `GiftEquipFacts`, `PlayerDressPolicy.Classify` |
 | `Hero.Culture` (2) | `MercenaryDeparturePolicy.IsAidOfKin`, `MercenaryDeparturePolicy.RegardShift` |
+| `Hero.HeroState` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `Hero.IsDead` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `Hero.IsWanderer` (2) | `MarryCompanionFacts`, `PrisonerExchangePolicy.IsExchangeable` |
 | `Item.Tier` (2) | `HeldItem`, `ScatteredLootItem` |
@@ -195,7 +195,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 
 - `ActionInterpreterTimingPolicy.Parse`: `ActionInterpreterTimingSetting.SelectedValue`
 - `ActionRefusalNote.For`: `GameStateBridge.ExecuteAction`
-- `ActorFacts`: `CharacterStates.Disabled`, `Hero.Age`, `Hero.HeroState`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`
+- `ActorFacts`: `Hero.Age`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`
 - `AffairDiscoveryPolicy.IsDiscovered`: `Romantic.LoverIsSecret`, `Romantic.LoverKnownToPlayer`, `Romantic.LoverTrystCount`
 - `AmbushPolicy.EliteChiefTier`: `StatureReader.Player`
 - `AppearanceFacts`: `FaceColorReader.Read`, `Hero.Age`, `Hero.IsFemale`
@@ -427,7 +427,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `NemesisTurnFacts`: `Hero.GetTraitLevel`
 - `NewsDestinationSelector.Choose`: `GetPosition2D.Distance`, `MobileParty.GetPosition2D`, `Vec2.Zero`
 - `NotableRecruitmentFacts`: `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Power`
-- `NpcActionGate.Check`: `CharacterStates.Disabled`, `Hero.Age`, `Hero.HeroState`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`
+- `NpcActionGate.Check`: `Hero.Age`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`
 - `OathOfferFacts`: `Clan.Kingdom`, `Clan.Leader`, `Hero.Clan`, `Hero.Gold`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Kingdom.Leader`, `PartyBelongedTo.LeaderHero`
 - `ObserverStakeFacts`: `Hero.Clan`
 - `OfferFlowGate.Route`: `DialogFlow.Profile`

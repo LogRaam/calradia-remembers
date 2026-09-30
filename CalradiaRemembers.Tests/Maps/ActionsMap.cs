@@ -57,6 +57,23 @@ namespace CalradiaRemembers.Tests.Maps
             sb.AppendLine($"| `{file}` | {(asks ? "yes" : "**NO**")} |");
 
          sb.AppendLine();
+         sb.AppendLine("## `IsAlive` read on its own");
+         sb.AppendLine();
+         sb.AppendLine("The engine's `Hero.IsAlive` means only \"not dead\": a hero the game has taken out of the world (disabled)");
+         sb.AppendLine("reads alive, and `Clan.Heroes` keeps both the dead and the disabled. A check that means \"may act\" asks");
+         sb.AppendLine("`ActionGate`; one that means \"is in the world\" asks `HeroPresence.IsInTheWorld`. What is left below is");
+         sb.AppendLine("the backlog (a baseline in `RatchetTests` that may only go down); many are bookkeeping (\"is the subject of");
+         sb.AppendLine("this memory still alive\") where death alone is the question.");
+         sb.AppendLine();
+         List<(string File, int Count)> bare = BareIsAliveReads(files);
+         sb.AppendLine($"{bare.Sum(b => b.Count)} reads in {bare.Count} files.");
+         sb.AppendLine();
+         sb.AppendLine("| File | Reads |");
+         sb.AppendLine("|---|---|");
+         foreach ((string file, int count) in bare)
+            sb.AppendLine($"| `{file}` | {count} |");
+
+         sb.AppendLine();
 
          return sb.ToString();
       }
@@ -76,6 +93,19 @@ namespace CalradiaRemembers.Tests.Maps
                          .Any(i => i.Expression is MemberAccessExpressionSyntax {Name.Identifier.Text: "Add"} m
                                    && m.Expression.ToString().EndsWith("SentLetters", StringComparison.Ordinal)))
             .Select(f => (f.RelativePath, f.Text.Contains(Gate + ".Allows") || f.Text.Contains(Gate + ".Check")))
+            .OrderBy(x => x.Item1, StringComparer.Ordinal)
+            .ToList();
+
+      /// <summary>
+      ///   Game files that read <c>IsAlive</c> themselves instead of asking ActionGate or HeroPresence, with how many
+      ///   times. The two doors themselves are left out: they are where the read belongs.
+      /// </summary>
+      public static List<(string File, int Count)> BareIsAliveReads(IReadOnlyList<SourceFile> files)
+         => GameFiles(files)
+            .Where(f => !f.RelativePath.EndsWith("Mapping/ActionGate.cs", StringComparison.Ordinal)
+                        && !f.RelativePath.EndsWith("Mapping/HeroPresence.cs", StringComparison.Ordinal))
+            .Select(f => (f.RelativePath, f.Root.DescendantNodes().OfType<IdentifierNameSyntax>().Count(n => n.Identifier.Text == "IsAlive")))
+            .Where(x => x.Item2 > 0)
             .OrderBy(x => x.Item1, StringComparer.Ordinal)
             .ToList();
 

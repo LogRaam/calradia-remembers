@@ -107,10 +107,11 @@ namespace CalradiaRemembers.Letters
 
       /// <summary>
       ///   True when the recipient can actually receive a letter — alive, present, and
-      ///   not a prisoner. A dead, captured, or vanished recipient is undeliverable.
+      ///   not a prisoner. A dead, captured, or vanished recipient is undeliverable. Asks the one action gate
+      ///   (30/09/2026): the game counts a hero it has taken out of the world as alive, and one received letters.
       /// </summary>
       public static bool CanReceiveLetter(Hero recipient)
-         => recipient is {IsAlive: true, IsPrisoner: false} && ResolveCourierTarget(recipient) != null;
+         => Mapping.ActionGate.Allows(recipient, Logic.ActionKind.ReceiveLetter) && ResolveCourierTarget(recipient) != null;
 
       /// <summary>
       ///   HourlyTickParty handler. Handles both directions:

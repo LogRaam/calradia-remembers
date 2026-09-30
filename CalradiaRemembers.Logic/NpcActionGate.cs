@@ -59,7 +59,39 @@ namespace CalradiaRemembers.Logic
       ///   A seat at a council the player convenes: the player summons, the character comes and sits, and sitting is an
       ///   action (Gabriel, 30/09/2026). Of age here means the council's own age, 13 (CouncilRosterPolicy.MinSeatAge).
       /// </summary>
-      CouncilSeat
+      CouncilSeat,
+
+      // ── Added 30/09/2026 from the inventory of paths where a character acts or is placed before the player. ──
+
+      /// <summary>Receiving (and answering) a letter the PLAYER sent. A child may; a captive cannot be reached.</summary>
+      ReceiveLetter,
+
+      /// <summary>A ruler issuing a warrant for the player's arrest; sergeants ride in their name.</summary>
+      Warrant,
+
+      /// <summary>Standing in the room as a witness to a conversation, or brought along from the party. A child may.</summary>
+      Witness,
+
+      /// <summary>
+      ///   A scene held and received later (a conversation waiting for landfall): its partner is re-asked when it is
+      ///   received. A child may; a captive is not received (the held scene's own rule).
+      /// </summary>
+      HeldScene,
+
+      /// <summary>Being offered as a marriage prospect. Age and captivity are marriage's own rules.</summary>
+      MarriageProspect,
+
+      /// <summary>Being pledged as a hostage at a council: a free adult.</summary>
+      Hostage,
+
+      /// <summary>Being placed as a ward at a council. Age is the ward's own band (WardPolicy).</summary>
+      Ward,
+
+      /// <summary>Fighting the player in a duel. Never a child; captivity is the duel's own rule.</summary>
+      Duel,
+
+      /// <summary>A companion sent on an errand across the map by the player.</summary>
+      CompanionMission
    }
 
    /// <summary>Why an action did not happen.</summary>
@@ -127,7 +159,7 @@ namespace CalradiaRemembers.Logic
          if (f.IsPlayer) return ActionRefusal.IsThePlayer;
          if (!IsOfAgeFor(f, kind)) return ActionRefusal.Child;
 
-         return f.IsPrisoner ? ActionRefusal.Prisoner : ActionRefusal.None;
+         return f.IsPrisoner && !PrisonerMay(kind) ? ActionRefusal.Prisoner : ActionRefusal.None;
       }
 
       /// <summary>True when this character may take the initiative toward the player.</summary>
@@ -137,8 +169,41 @@ namespace CalradiaRemembers.Logic
       public static bool Allows(ActorFacts f, ActionKind kind) => Check(f, kind) == ActionRefusal.None;
 
       private static bool IsOfAgeFor(ActorFacts f, ActionKind kind)
-         => kind == ActionKind.CouncilSeat && f.Age.HasValue
-            ? CouncilRosterPolicy.IsOldEnoughToSit(f.Age.Value)
-            : !f.IsChild;
+         => AgeRuleFor(kind) switch {
+            AgeRule.None => true,
+            AgeRule.CouncilAge when f.Age.HasValue => CouncilRosterPolicy.IsOldEnoughToSit(f.Age.Value),
+            _ => !f.IsChild
+         };
+
+      private enum AgeRule
+      {
+         Majority,
+         CouncilAge,
+         None
+      }
+
+      // What "of age" means for each act. Majority (Hero.IsChild) unless the act says otherwise: a child may answer
+      // the player's letter, stand as a witness or be received in a held scene; a council seat takes the council's
+      // own age; marriage and wards keep their own age rules.
+      private static AgeRule AgeRuleFor(ActionKind kind)
+      {
+         switch (kind)
+         {
+            case ActionKind.CouncilSeat:
+               return AgeRule.CouncilAge;
+            case ActionKind.ReceiveLetter:
+            case ActionKind.Witness:
+            case ActionKind.HeldScene:
+            case ActionKind.MarriageProspect:
+            case ActionKind.Ward:
+               return AgeRule.None;
+            default:
+               return AgeRule.Majority;
+         }
+      }
+
+      // A captive acts in no way but these: a marriage prospect (marriage's own rules decide) and a duel (a captive
+      // may be offered one for their freedom; the duel's own rules decide).
+      private static bool PrisonerMay(ActionKind kind) => kind == ActionKind.MarriageProspect || kind == ActionKind.Duel;
    }
 }

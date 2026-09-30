@@ -241,7 +241,7 @@ namespace CalradiaRemembers.Witnesses
 
                Hero h = (agent.Character as CharacterObject)?.HeroObject;
 
-               if (h == null || h == Hero.MainHero || !h.IsAlive) continue;
+               if (h == null || !Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness)) continue;
                // A companion who IS the conversation NPC does not witness their own conversation.
                if (conversationNpc != null && h.StringId == conversationNpc.StringId) continue;
                if (h.PartyBelongedTo != MobileParty.MainParty) continue;
@@ -695,7 +695,7 @@ namespace CalradiaRemembers.Witnesses
             {
                Hero h = element.Character?.HeroObject;
 
-               if (h == null || h == Hero.MainHero || !h.IsAlive) continue;
+               if (h == null || !Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness)) continue;
                // Never offer the NPC you are actually talking to as a companion to bring: a party member
                // (a married-in spouse, a sibling) who IS the conversation partner would otherwise witness
                // their own conversation, and in a round table take a second turn as themselves.
@@ -721,8 +721,8 @@ namespace CalradiaRemembers.Witnesses
       /// </summary>
       private static bool IsValidWitness(Hero h, Hero npcHero, HashSet<string> knownIds)
       {
-         if (h is not {IsAlive: true}) return false;
-         if (h == Hero.MainHero || h == npcHero) return false;
+         if (!Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness)) return false;
+         if (h == npcHero) return false;
 
          return knownIds.Contains(h.StringId);
       }

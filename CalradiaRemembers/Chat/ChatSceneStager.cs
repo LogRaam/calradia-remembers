@@ -536,7 +536,7 @@ namespace CalradiaRemembers.Chat
          _awaitingLandfall.RemoveAt(0);
 
          // A person who died or was taken in the meantime is not received; an envoy has no hero and always is.
-         if (request.Partner != null && (!request.Partner.IsAlive || request.Partner.IsPrisoner))
+         if (request.Partner != null && !Mapping.ActionGate.Allows(request.Partner, Logic.ActionKind.HeldScene))
          {
             ModLog.Info($"[CHAT STAGE {request.Kind}] {request.Partner.Name} is no longer able to meet; the landfall meeting is dropped.");
 

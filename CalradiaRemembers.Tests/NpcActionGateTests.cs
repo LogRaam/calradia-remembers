@@ -88,6 +88,84 @@ namespace CalradiaRemembers.Tests
          NpcActionGate.Check(new ActorFacts {IsChild = true, Age = 14}, ActionKind.Letter).Should().Be(ActionRefusal.Child);
       }
 
+      // ── Per kind: every action refuses the dead, the disabled and the player; age and captivity depend on the act ──
+      // The engine counts a DISABLED hero as alive (Hero.IsAlive is only "not dead"), which is why every one of the
+      // paths below, each checking IsAlive alone, let a hero the game had taken out of the world through (inventory,
+      // 30/09/2026).
+
+      // A letter the player sends: a child may answer it (the gate's own exception since it was built), a disabled
+      // hero may not, and a captive still cannot be reached by a courier.
+      [Test]
+      public void GIVEN_the_player_writes_to_someone_WHEN_they_would_receive_it_THEN_a_child_may_a_captive_or_a_hero_out_of_the_world_may_not()
+      {
+         NpcActionGate.Allows(new ActorFacts {IsChild = true}, ActionKind.ReceiveLetter).Should().BeTrue();
+         NpcActionGate.Check(new ActorFacts {IsDisabled = true}, ActionKind.ReceiveLetter).Should().Be(ActionRefusal.OutOfTheWorld);
+         NpcActionGate.Check(new ActorFacts {IsPrisoner = true}, ActionKind.ReceiveLetter).Should().Be(ActionRefusal.Prisoner);
+      }
+
+      // A warrant is read in the liege's name and sergeants ride under it: no warrant from a dead, absent, child or
+      // captive ruler (the warrant stage checked nothing at all, while the trial bench already asked the gate).
+      [Test]
+      public void GIVEN_a_ruler_who_is_a_child_or_a_captive_WHEN_a_warrant_would_be_issued_in_their_name_THEN_none_is()
+      {
+         NpcActionGate.Check(new ActorFacts {IsChild = true}, ActionKind.Warrant).Should().Be(ActionRefusal.Child);
+         NpcActionGate.Check(new ActorFacts {IsPrisoner = true}, ActionKind.Warrant).Should().Be(ActionRefusal.Prisoner);
+      }
+
+      // A witness only stands in the room: the player's young son riding in the party may be present.
+      [Test]
+      public void GIVEN_a_child_riding_with_the_player_WHEN_a_conversation_gathers_its_witnesses_THEN_the_child_may_be_present()
+      {
+         NpcActionGate.Allows(new ActorFacts {IsChild = true}, ActionKind.Witness).Should().BeTrue();
+      }
+
+      // A scene held for landfall is received later: whoever it was with may no longer be in the world by then.
+      [Test]
+      public void GIVEN_a_scene_held_for_landfall_WHEN_its_partner_was_taken_out_of_the_world_meanwhile_THEN_it_is_not_received()
+      {
+         NpcActionGate.Check(new ActorFacts {IsDisabled = true}, ActionKind.HeldScene).Should().Be(ActionRefusal.OutOfTheWorld);
+      }
+
+      // Marriage has its own age rules (MarriageEligibility) and a captive's hand can still be offered; the gate adds
+      // only what the prospect lists lacked: the dead and the disabled are never offered.
+      [Test]
+      public void GIVEN_a_marriage_prospect_WHEN_offered_THEN_captivity_and_age_are_left_to_marriage_s_own_rules()
+      {
+         NpcActionGate.Allows(new ActorFacts {IsPrisoner = true, IsChild = true}, ActionKind.MarriageProspect).Should().BeTrue();
+         NpcActionGate.Check(new ActorFacts {IsDisabled = true}, ActionKind.MarriageProspect).Should().Be(ActionRefusal.OutOfTheWorld);
+      }
+
+      // A ward is young by definition (WardPolicy's own age band): the gate leaves age to it.
+      [Test]
+      public void GIVEN_a_young_ward_WHEN_placed_THEN_age_is_left_to_the_ward_s_own_band()
+      {
+         NpcActionGate.Allows(new ActorFacts {IsChild = true}, ActionKind.Ward).Should().BeTrue();
+      }
+
+      // A hostage is a free adult (HostageEligibilityPolicy); the gate agrees and adds the disabled.
+      [Test]
+      public void GIVEN_a_child_or_captive_relative_WHEN_pledged_as_a_hostage_THEN_they_are_not()
+      {
+         NpcActionGate.Check(new ActorFacts {IsChild = true}, ActionKind.Hostage).Should().Be(ActionRefusal.Child);
+         NpcActionGate.Check(new ActorFacts {IsPrisoner = true}, ActionKind.Hostage).Should().Be(ActionRefusal.Prisoner);
+      }
+
+      // A duel is never fought with a child; captivity is judged by the duel's own rules (a captive may be offered a
+      // duel for their freedom), so the gate does not refuse it.
+      [Test]
+      public void GIVEN_a_duel_WHEN_the_opponent_is_a_child_or_a_captive_THEN_the_child_is_refused_and_captivity_left_to_the_duel()
+      {
+         NpcActionGate.Check(new ActorFacts {IsChild = true}, ActionKind.Duel).Should().Be(ActionRefusal.Child);
+         NpcActionGate.Allows(new ActorFacts {IsPrisoner = true}, ActionKind.Duel).Should().BeTrue();
+      }
+
+      // A companion sent on an errand rides alone across the map: never a child.
+      [Test]
+      public void GIVEN_a_child_in_the_party_WHEN_the_player_would_send_them_on_a_mission_THEN_they_are_not_sent()
+      {
+         NpcActionGate.Check(new ActorFacts {IsChild = true}, ActionKind.CompanionMission).Should().Be(ActionRefusal.Child);
+      }
+
       // The refusal a log names is the truest one: a dead child is dead, a captive child is a child.
       [Test]
       public void GIVEN_several_reasons_at_once_WHEN_checked_THEN_the_most_absolute_is_named()

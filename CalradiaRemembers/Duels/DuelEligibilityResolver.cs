@@ -182,7 +182,7 @@ namespace CalradiaRemembers.Duels
       /// <summary>Both alive, of fighting age, and not wounded past fighting. Captivity is judged separately, not here.</summary>
       private static bool BothAbleToFight(Hero player, Hero npc)
          => player.IsAlive && !player.IsChild && !player.IsWounded &&
-            npc.IsAlive && !npc.IsChild && !npc.IsWounded;
+            Mapping.ActionGate.Allows(npc, Logic.ActionKind.Duel) && !npc.IsWounded;
 
       /// <summary>Either party currently holds the other prisoner, mirroring BannerlordGameStateBridge.BuildStandingFacts exactly.</summary>
       private static bool EitherHoldsOtherPrisoner(Hero player, Hero npc)

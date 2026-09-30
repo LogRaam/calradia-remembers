@@ -281,7 +281,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
-         new SelfTest("action_gate", Severity.Light, "The one gate every character's initiative toward the player asks (Gabriel, 30/09/2026, after a baby son asked to discuss warfare): alive, of age, free, not the player. On the live population: no child (lords by occupation included) and no captive may take any kind of initiative, the player takes none toward themselves, and a free adult lord may. Read-only.", TestActionGate),
+         new SelfTest("action_gate", Severity.Light, "The one gate every character's action asks (Gabriel, 30/09/2026: a baby son asked to discuss warfare, then a dead father sat at a council). On the live population: no child takes an adult's act (lords by occupation included), no child under 13 sits at a council, no captive acts outside marriage and duels, no one dead or disabled acts at all, the player never acts toward themselves, and a free adult lord may do everything. Read-only.", TestActionGate),
          new SelfTest("letter_place_and_audience_age", Severity.Light, "Two reports (30/09/2026): Lordfadooboo's lone player placed \"on the march with your own retinue\" (the writer's) in a wanderer's letter, and Nexusrrr's baby son asking for an audience about warfare. Checks the phrase that places the player in a letter never borrows the writer's \"your\" and says alone when alone, and that no child is among those who may ask for an audience in any town. Read-only.", TestLetterAndAudienceSeekers),
          new SelfTest("regard_changed", Severity.Light, "The public regard-change door (29/09/2026, for tashmetu's bridge): raises a real character's regard by 1 and lowers it back through the one place regard changes, and checks a CrNpcMemory.RegardChanged listener hears both with before, after and cause. Regard is restored and the listener removed.", TestRegardChanged),
          new SelfTest("correspondence_rank", Severity.Light, "Gabriel (28/09/2026): the Empress wrote in her own hand to a landless newcomer, and rode out herself to find him. Reads a real ruler against the player as they stand: far above an unbonded player, her letters come from her chancellery (a title, no invented clerk) and she does not ride out in person; a love letter is always her own. Writes nothing.", TestCorrespondenceRank),
@@ -9779,8 +9779,9 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
-      ///   The one initiative gate on the live world (30/09/2026): every child, every captive and the player are refused
-      ///   every kind of initiative, and a free adult lord is allowed. Reads the whole population. Writes nothing.
+      ///   The one action gate on the live world (30/09/2026): no child takes an adult's act, no captive acts outside the
+      ///   acts whose own rules judge captivity, no one dead or disabled acts at all, the player never acts toward
+      ///   themselves, and a free adult lord may do everything. Reads the whole population. Writes nothing.
       /// </summary>
       private static string TestActionGate(NpcMemoryCampaignBehavior behavior)
       {
@@ -9788,12 +9789,22 @@ namespace CalradiaRemembers.Diagnostics
 
          List<Hero> children = Hero.AllAliveHeroes.Where(h => h != null && h.IsChild).ToList();
          List<Hero> captives = Hero.AllAliveHeroes.Where(h => h != null && h.IsPrisoner && !h.IsChild).ToList();
+         // Out of the world: the dead, and the disabled the engine still calls alive (Clan.Heroes keeps both).
+         List<Hero> gone = Hero.DeadOrDisabledHeroes.Where(h => h != null && h != Hero.MainHero).ToList();
          Hero adult = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h.IsLord && !h.IsChild && !h.IsPrisoner);
          ActionKind[] kinds = (ActionKind[]) Enum.GetValues(typeof(ActionKind));
 
-         t.Note($"{children.Count} children ({children.Count(h => h.IsLord)} of them lords by occupation), {captives.Count} adult captives; adult probe {adult?.Name}");
-         t.Expect("noChildTakesAnyInitiative", children.Any(h => kinds.Any(k => Mapping.ActionGate.Allows(h, k))), false);
-         t.Expect("noCaptiveTakesAnyInitiative", captives.Any(h => kinds.Any(k => Mapping.ActionGate.Allows(h, k))), false);
+         // The acts a child may take (answer the player's letter, witness, a held scene, be offered in marriage or as a
+         // ward under those rules' own ages) and a council seat from 13; every other act is refused to every child.
+         var childMay = new HashSet<ActionKind> {ActionKind.ReceiveLetter, ActionKind.Witness, ActionKind.HeldScene, ActionKind.MarriageProspect, ActionKind.Ward, ActionKind.CouncilSeat};
+         // The acts a captive may take: offered in marriage, or a duel (each judged by its own rules).
+         var captiveMay = new HashSet<ActionKind> {ActionKind.MarriageProspect, ActionKind.Duel};
+
+         t.Note($"{children.Count} children ({children.Count(h => h.IsLord)} of them lords by occupation), {captives.Count} adult captives, {gone.Count} dead or disabled; adult probe {adult?.Name}");
+         t.Expect("noChildTakesAnAdultsAction", children.Any(h => kinds.Where(k => !childMay.Contains(k)).Any(k => Mapping.ActionGate.Allows(h, k))), false);
+         t.Expect("noYoungChildSitsAtACouncil", children.Any(h => h.Age < CouncilRosterPolicy.MinSeatAge && Mapping.ActionGate.Allows(h, ActionKind.CouncilSeat)), false);
+         t.Expect("noCaptiveActsOutsideItsOwnRules", captives.Any(h => kinds.Where(k => !captiveMay.Contains(k)).Any(k => Mapping.ActionGate.Allows(h, k))), false);
+         t.Expect("noOneOutOfTheWorldActs", gone.Any(h => kinds.Any(k => Mapping.ActionGate.Allows(h, k))), false);
          t.Expect("thePlayerTakesNoneTowardThemselves", kinds.Any(k => Mapping.ActionGate.Allows(Hero.MainHero, k)), false);
          t.Expect("aFreeAdultLordMay", adult == null || kinds.All(k => Mapping.ActionGate.Allows(adult, k)), true);
 

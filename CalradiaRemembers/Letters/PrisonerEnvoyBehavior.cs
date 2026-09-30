@@ -159,7 +159,8 @@ namespace CalradiaRemembers.Letters
 
          // The world moved while the envoy rode: the lord is gone or himself a prisoner (fkasad, 26/09/2026: his queen's
          // envoy came while she sat in a cell, and no deal could run in her name), or the captive is no longer the player's.
-         if (lord == null || !lord.IsAlive || lord.IsPrisoner || !stillHeld)
+         // Re-asked with the kind it was sent under: the lord may have been taken out of the world as the envoy rode.
+         if (!Mapping.ActionGate.Allows(lord, Logic.ActionKind.Letter) || !stillHeld)
          {
             ModLog.Info("[ENVOY] the envoy turned back: the lord or the captive is no longer where the errand assumed.");
 
