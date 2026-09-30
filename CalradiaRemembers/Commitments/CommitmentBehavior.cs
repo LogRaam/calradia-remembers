@@ -407,7 +407,7 @@ namespace CalradiaRemembers.Commitments
 
          int before = profile.ReputationWithPlayer;
          int after = ClampInt(before + CommitmentPolicy.FulfilledRelationBonus, -100, 100);
-         profile.ReputationWithPlayer = after;
+         NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, after - before, NpcMemoryService.Core.Standing.RegardCause.Commitment);
          profile.LastRelationGainHour = CampaignTime.Now.ToHours;
          StanceService.OnPromiseKept(profile); // Trust + a little Respect — a kept oath
 
@@ -506,7 +506,7 @@ namespace CalradiaRemembers.Commitments
 
          int before = profile.ReputationWithPlayer;
          int after = ClampInt(before + penalty, -100, 100);
-         profile.ReputationWithPlayer = after;
+         NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, after - before, NpcMemoryService.Core.Standing.RegardCause.Commitment);
          StanceService.OnPromiseBroken(profile); // a real trust crater
 
          if (witnessCount > 0 && promisor is {IsAlive: true})

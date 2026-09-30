@@ -80,6 +80,7 @@ _The public NPC-memory API. A caller identifies the NPC by its hero StringId (ne
 - `const int ApiVersion = 1`
 - `static IReadOnlyList<CrMemoryRecord> GetMemories(string npcId)`
 - `static MemoryResult AddMemory(CrMemoryEntry entry)`
+- `static event Action<CrRegardChange> RegardChanged`
 
 ### CrPrompt
 
@@ -87,6 +88,17 @@ _The public facade a third-party mod calls to register (or unregister) one live 
 
 - `static bool Unregister(string name)`
 - `static void RegisterVariable(string name, Func<PromptVarFacts, string> provider)`
+
+### CrRegardChange
+
+_One change of a character's personal regard for the player (see CrNpcMemory.RegardChanged)._
+
+- `int After { get; set; }`
+- `int Before { get; set; }`
+- `int GameDay { get; set; }`
+- `string Cause { get; set; }`
+- `string NpcId { get; set; }`
+- `string SaveId { get; set; }`
 
 ### CrSpeechLine
 

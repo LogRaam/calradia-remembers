@@ -476,7 +476,7 @@ namespace CalradiaRemembers.Letters
 
          if (p != null)
          {
-            p.ReputationWithPlayer += ServiceOfferPolicy.AcceptRelationWarmup;
+            NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(p, ServiceOfferPolicy.AcceptRelationWarmup, NpcMemoryService.Core.Standing.RegardCause.Letter);
             p.Events?.Add(new NotableEvent((int) CampaignTime.Now.ToDays, NotableEventType.Other,
                "The player received my offer of service warmly, though they have not yet left their lord."));
             behavior?.Store?.Set(p);

@@ -34,7 +34,7 @@ namespace CalradiaRemembers.Stance
          // still flow through StanceGate below.
          if (axis == StanceAxis.Affection)
          {
-            ProfileMutator.ApplyReputationDelta(p, delta);
+            ProfileMutator.ApplyReputationDelta(p, delta, NpcMemoryService.Core.Standing.RegardCause.Stance);
 
             return;
          }

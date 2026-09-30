@@ -212,7 +212,7 @@ namespace CalradiaRemembers.Grudges
             if (store == null) return;
 
             NpcProfile profile = store.Get(holder.StringId) ?? HeroProfileMapper.FromHero(holder);
-            ProfileMutator.ApplyReputationDelta(profile, ResolvedRelationBump);
+            ProfileMutator.ApplyReputationDelta(profile, ResolvedRelationBump, NpcMemoryService.Core.Standing.RegardCause.Grudge);
             profile.LastRelationGainHour = CampaignTime.Now.ToHours;
             store.Set(profile);
         }

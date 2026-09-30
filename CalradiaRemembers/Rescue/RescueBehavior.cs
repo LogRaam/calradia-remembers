@@ -205,7 +205,7 @@ namespace CalradiaRemembers.Rescue
             }
 
             RescueGratitude g = RescueGratitudePolicy.GratitudeFor(tie);
-            if (g.Magnitude != 0) ProfileMutator.ApplyReputationDelta(profile, g.Magnitude);
+            if (g.Magnitude != 0) ProfileMutator.ApplyReputationDelta(profile, g.Magnitude, NpcMemoryService.Core.Standing.RegardCause.Rescue);
             if (g.RecordMemory && !string.IsNullOrEmpty(memoryText))
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Other, memoryText));
 

@@ -732,7 +732,7 @@ namespace CalradiaRemembers.GameState
             // cooldown; a verified reward is a separate channel, and stamping it silently gated a warm chat's +1 to
             // 0 for 8h after a turn-in. Reward and conversation are independent, so the reward leaves the clock be.
             int before = profile.ReputationWithPlayer;
-            ProfileMutator.ApplyReputationDelta(profile, rewardRelation);
+            ProfileMutator.ApplyReputationDelta(profile, rewardRelation, NpcMemoryService.Core.Standing.RegardCause.Quest);
             int after = profile.ReputationWithPlayer;
             if (after != before) parts.Add($"+{after - before} regard");
             ModLog.Info($"[QUEST] reward relation: {npcHero.Name} {before}→{after} (+{rewardRelation} promised)");
@@ -965,8 +965,7 @@ namespace CalradiaRemembers.GameState
 
          if (quest.RewardRelation > 0)
          {
-            int before = profile.ReputationWithPlayer;
-            profile.ReputationWithPlayer = ClampInt(before + quest.RewardRelation, -100, 100);
+            ProfileMutator.ApplyReputationDelta(profile, quest.RewardRelation, NpcMemoryService.Core.Standing.RegardCause.Quest);
             profile.LastRelationGainHour = CampaignTime.Now.ToHours;
          }
 
@@ -1058,7 +1057,7 @@ namespace CalradiaRemembers.GameState
             {
                // The same small relief nudge DivorceConsequencePolicy gives a mutual-consent spouse in the
                // NPC-NPC case, applied to the CR-internal reputation ledger, not the vanilla relation above.
-               ProfileMutator.ApplyReputationDelta(profile, DivorceConsequencePolicy.SpouseMutualReliefRelationNudge);
+               ProfileMutator.ApplyReputationDelta(profile, DivorceConsequencePolicy.SpouseMutualReliefRelationNudge, NpcMemoryService.Core.Standing.RegardCause.Divorce);
                profile.Events.Add(new NotableEvent(today, NotableEventType.Agreement,
                   "The marriage ended, by mutual agreement, at my own asking."));
                NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
@@ -4610,7 +4609,7 @@ namespace CalradiaRemembers.GameState
             $"Could not honor the promise of {promiseLabel}: {cause}. The debt remains unpaid."));
 
          if (npcHero is {IsAlive: true}) GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, compensationGold, true);
-         if (profile != null) ProfileMutator.ApplyReputationDelta(profile, compensationRelation);
+         if (profile != null) ProfileMutator.ApplyReputationDelta(profile, compensationRelation, NpcMemoryService.Core.Standing.RegardCause.Compensation);
 
          ModLog.Info($"[GRANT] heavy reward could not be honored for {npcHero?.Name} ({promiseLabel}): {cause}. " +
                      $"Compensated {compensationGold}g/+{compensationRelation} regard.");
@@ -4889,7 +4888,7 @@ namespace CalradiaRemembers.GameState
          // 5.1: single clamp/stamp path. The gating (cooldown/cap/stamp) already happened in RelationGate above;
          // ApplyReputationDelta only clamps to [-100, 100], the one place that mutation is bounded.
          int before = context.Profile.ReputationWithPlayer;
-         ProfileMutator.ApplyReputationDelta(context.Profile, delta);
+         ProfileMutator.ApplyReputationDelta(context.Profile, delta, NpcMemoryService.Core.Standing.RegardCause.Conversation);
          int after = context.Profile.ReputationWithPlayer;
          ModLog.Info($"[ACTION] change_relation (personal): {npcHero.Name} {before}→{after} (delta {delta:+#;-#;0}, proposed {proposed:+#;-#;0})");
 

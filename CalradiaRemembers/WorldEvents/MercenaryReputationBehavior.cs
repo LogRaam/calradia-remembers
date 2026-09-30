@@ -374,7 +374,7 @@ namespace CalradiaRemembers.WorldEvents
                store.Set(profile);
             }
 
-            profile.ReputationWithPlayer += shift;
+            NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, shift, NpcMemoryService.Core.Standing.RegardCause.Departure);
             if (memory != null) profile.Events.Add(new NotableEvent(Today, NotableEventType.Other, memory));
             store.Set(profile);
          }

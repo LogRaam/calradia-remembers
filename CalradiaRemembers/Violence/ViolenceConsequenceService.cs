@@ -138,7 +138,7 @@ namespace CalradiaRemembers.Violence
          NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(victim.StringId);
          if (profile == null) return;
 
-         profile.ReputationWithPlayer += relationHit;
+         NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, relationHit, NpcMemoryService.Core.Standing.RegardCause.Violence);
          NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
       }
 

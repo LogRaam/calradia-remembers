@@ -396,7 +396,7 @@ namespace CalradiaRemembers.Jealousy
             delta = JealousyReactionPolicy.AcceptedAgainstCultureDelta(profile.ReputationWithPlayer, delta);
 
          if (delta < 0)
-            ProfileMutator.ApplyReputationDelta(profile, delta);
+            ProfileMutator.ApplyReputationDelta(profile, delta, NpcMemoryService.Core.Standing.RegardCause.Jealousy);
 
          // M-J5: a betrayal wounds the BOND, not just the regard. The player's own betrayed partner (their
          // primary partner, or their secret lover) sees their romantic status fall to Estranged (recoverable),
@@ -718,7 +718,7 @@ namespace CalradiaRemembers.Jealousy
          if (estrange)
          {
             profile.Romantic.Status = RomanticStatus.Estranged;
-            ProfileMutator.ApplyReputationDelta(profile, -EstrangeRelationHit); // a wound of the heart, not clan politics
+            ProfileMutator.ApplyReputationDelta(profile, -EstrangeRelationHit, NpcMemoryService.Core.Standing.RegardCause.Jealousy); // a wound of the heart, not clan politics
             profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy,
                "I am the first of this house, and you left me to wither while you doted on another. I withdraw what I gave you."));
             behavior.Store.Set(profile);
@@ -728,7 +728,7 @@ namespace CalradiaRemembers.Jealousy
             return;
          }
 
-         ProfileMutator.ApplyReputationDelta(profile, -CompetitionRelationDecay); // a wound of the heart, not clan politics
+         ProfileMutator.ApplyReputationDelta(profile, -CompetitionRelationDecay, NpcMemoryService.Core.Standing.RegardCause.Jealousy); // a wound of the heart, not clan politics
          profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy,
             culture.EquityExpectation
                ? "I am one of several, and I accept that — but I will not be treated as less. You favour another and slight me."

@@ -280,6 +280,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
+         new SelfTest("regard_changed", Severity.Light, "The public regard-change door (29/09/2026, for tashmetu's bridge): raises a real character's regard by 1 and lowers it back through the one place regard changes, and checks a CrNpcMemory.RegardChanged listener hears both with before, after and cause. Regard is restored and the listener removed.", TestRegardChanged),
          new SelfTest("correspondence_rank", Severity.Light, "Gabriel (28/09/2026): the Empress wrote in her own hand to a landless newcomer, and rode out herself to find him. Reads a real ruler against the player as they stand: far above an unbonded player, her letters come from her chancellery (a title, no invented clerk) and she does not ride out in person; a love letter is always her own. Writes nothing.", TestCorrespondenceRank),
          new SelfTest("balance_survey", Severity.Light, "The balance-of-power survey (Gabriel, 28/09/2026: measure before building a balancing lever). Reads every living realm as the weekly survey does: one row each, fief shares adding up to the whole map, and rows that survive the survey file's round trip. Writes nothing.", TestBalanceSurvey),
          new SelfTest("landfall_wait", Severity.Light, "Windmolen (Nexus, 28/09/2026): accepting an envoy on a naval move opened the chat over the live naval map, which flickered and crashed. At sea a conversation now waits for landfall and an envoy does not arrive. Reads the door's route for where the player stands, holds a real request as the door does at sea and checks it is held once. Opens nothing; the held request is dropped.", TestLandfallWait),
@@ -9728,6 +9729,45 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{backer.Name}: outcome={r.Outcome}, amount={r.Amount}");
          bool clearedWhoGates = r.Outcome == ClaimantSupportOutcome.Applied || r.Outcome == ClaimantSupportOutcome.CannotAfford;
          t.Expect("clearedWhoGatesToTheAmountDecision", clearedWhoGates, true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The public regard-change door (29/09/2026, for tashmetu): a real change of a real character's regard,
+      ///   through the one place regard changes, is heard by a CrNpcMemory.RegardChanged listener with its before,
+      ///   after and cause; the change is then undone (heard too) and the listener removed.
+      /// </summary>
+      private static string TestRegardChanged(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("regard_changed");
+
+         var store = behavior?.Store;
+         NpcProfile profile = store?.ListIds().Select(store.Get).FirstOrDefault(p => p != null);
+         if (t.Skip(profile == null, "no character profile yet")) return t.Line();
+
+         var heard = new List<CrRegardChange>();
+         void Listen(CrRegardChange c) => heard.Add(c);
+         int original = profile.ReputationWithPlayer;
+         profile.ReputationWithPlayer = 0; // a start with room both ways; restored below
+         int before = profile.ReputationWithPlayer;
+         CrNpcMemory.RegardChanged += Listen;
+         try
+         {
+            NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, 1, NpcMemoryService.Core.Standing.RegardCause.Unspecified);
+            NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, -1, NpcMemoryService.Core.Standing.RegardCause.Unspecified);
+         }
+         finally
+         {
+            CrNpcMemory.RegardChanged -= Listen;
+            profile.ReputationWithPlayer = original;
+            store.Set(profile);
+         }
+
+         t.Note($"{profile.Name}: heard {heard.Count} change(s): {string.Join(", ", heard.Select(c => $"{c.Before}->{c.After} ({c.Cause})"))}");
+         t.Expect("bothChangesAreHeard", heard.Count, 2);
+         t.Expect("theRiseIsHeardWithItsValues", heard.Count > 0 && heard[0].NpcId == profile.Id && heard[0].Before == before && heard[0].After == before + 1, true);
+         t.Expect("theCauseIsCarried", heard.Count > 0 ? heard[0].Cause : null, NpcMemoryService.Core.Standing.RegardCause.Unspecified);
 
          return t.Line();
       }

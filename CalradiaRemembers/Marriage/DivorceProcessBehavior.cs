@@ -206,7 +206,7 @@ namespace CalradiaRemembers.Marriage
          if (store == null) return;
 
          NpcProfile profile = store.Get(hero.StringId) ?? HeroProfileMapper.FromHero(hero);
-         ProfileMutator.ApplyReputationDelta(profile, relationNudge);
+         ProfileMutator.ApplyReputationDelta(profile, relationNudge, NpcMemoryService.Core.Standing.RegardCause.Divorce);
          profile.LastRelationGainHour = CampaignTime.Now.ToHours;
          store.Set(profile);
       }

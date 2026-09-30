@@ -248,7 +248,7 @@ namespace CalradiaRemembers.Quests
                CalradiaRemembers.Logic.QuestFailureLeniency leniency =
                   CalradiaRemembers.Logic.QuestFailureLeniencyPolicy.Resolve(quest.Type, DeadlineFailurePenalty);
 
-               ProfileMutator.ApplyReputationDelta(profile, -leniency.RegardPenalty); // 5.1: single clamp path.
+               ProfileMutator.ApplyReputationDelta(profile, -leniency.RegardPenalty, NpcMemoryService.Core.Standing.RegardCause.Quest); // 5.1: single clamp path.
 
                if (leniency.SpendPromiseTrust)
                   Stance.StanceService.OnPromiseBroken(profile); // a lapsed deadline is a broken word too
@@ -491,7 +491,7 @@ namespace CalradiaRemembers.Quests
          CalradiaRemembers.Logic.QuestFailureLeniency leniency =
             CalradiaRemembers.Logic.QuestFailureLeniencyPolicy.Resolve(quest.Type, AbandonPenalty);
 
-         ProfileMutator.ApplyReputationDelta(giver, -leniency.RegardPenalty); // 5.1: single clamp path.
+         ProfileMutator.ApplyReputationDelta(giver, -leniency.RegardPenalty, NpcMemoryService.Core.Standing.RegardCause.Quest); // 5.1: single clamp path.
          Hero giverHero = FindGiverHero(giver);
          QuestJournalBridge.CloseAsFailed(quest, giverHero, "You chose not to complete this task.");
 

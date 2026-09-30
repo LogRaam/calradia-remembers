@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 435 types in 56 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 436 types in 56 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 835 types in 26 namespaces, 2 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 241 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 243 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -42,7 +42,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (29)
+### CalradiaRemembers (30)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -55,6 +55,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrMemoryRecord` | public class | One memory CR already holds for an NPC, as read back through CrNpcMemory.GetMemories. |
 | `CrNpcMemory` | public static class | The public NPC-memory API. A caller identifies the NPC by its hero StringId (never a display name), reads its stored memories, and injects new ones. |
 | `CrPrompt` | public static class | The public facade a third-party mod calls to register (or unregister) one live prompt variable. |
+| `CrRegardChange` | public class | One change of a character's personal regard for the player (see CrNpcMemory.RegardChanged). |
 | `CrSpeechLine` | public class | One line as it is DISPLAYED in a conversation, delivered in real time by CrConversation.LineSpoken. |
 | `CrTranscriptLine` | public class | One attributed line of a conversation, as delivered in CrConversationLog. |
 | `ExternalActionParam` | public class | One named parameter an ExternalActionSpec accepts, taught to the LLM by name and meaning. |
@@ -2028,11 +2029,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ProfileMutator` | public static class | Applies the structured outcome of an LLM dialogue turn (a ParsedResponse) to an NpcProfile. |
 | `ReasoningTraceBackfill` | public static class | Heals a profile whose stored prose carries a leaked reasoning trace: each event summary and the background context are run through ReasoningTraceStripper. |
 
-### NpcMemoryService.Core.Standing (2)
+### NpcMemoryService.Core.Standing (4)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `Regard` | public struct | What one character personally thinks of the player on the MOD's ledger (NpcProfile.ReputationWithPlayer, -100 to 100), built by what passes between them in conversation. |
+| `RegardCause` | public static class | Why a character's regard for the player changed. |
+| `RegardChange` | public class | One change of a character's regard for the player. |
 | `VanillaRelation` | public struct | How two people stand with each other on the ENGINE's ledger (Hero.GetRelation), -100 to 100. |
 
 ### NpcMemoryService.Core.Storage (4)

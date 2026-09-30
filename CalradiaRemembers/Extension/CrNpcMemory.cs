@@ -6,6 +6,7 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
@@ -88,5 +89,63 @@ namespace CalradiaRemembers
 
          return MemoryResult.Added;
       }
+
+      /// <summary>
+      ///   Fired each time a character's PERSONAL REGARD for the player changes, whatever changed it (a conversation, a
+      ///   letter, a quest, a grievance put to rest, jealousy...), with the value before and after and the cause. Only
+      ///   an actual change is announced. Asked for through tashmetu (29/09/2026), for a player who wanted regard to
+      ///   move the game's own relation.
+      ///   <para>
+      ///     CR itself never writes the game's relation ("clan standing") from regard, on purpose: the native value is
+      ///     effectively clan-wide, and regard's pacing (a +1 cap, a cooldown) is what stops a player talking their way
+      ///     to the top. A listener that mirrors regard into it takes that balance on itself. Listeners only listen:
+      ///     each is called under its own guard, on the game thread, after the change has happened.
+      ///   </para>
+      /// </summary>
+      public static event Action<CrRegardChange> RegardChanged;
+
+      /// <summary>Re-raises the SDK's one regard-change notice as this public event (subscribed once, at module load).</summary>
+      internal static void ForwardRegardChange(NpcMemoryService.Core.Standing.RegardChange change)
+      {
+         Action<CrRegardChange> handlers = RegardChanged;
+         if (handlers == null || change == null) return;
+
+         var arg = new CrRegardChange {
+            NpcId = change.NpcId, Before = change.Before, After = change.After, Cause = change.Cause,
+            SaveId = CrConversation.CurrentSaveId(), GameDay = Campaign.Current != null ? (int) CampaignTime.Now.ToDays : 0
+         };
+
+         foreach (Delegate handler in handlers.GetInvocationList())
+            try { ((Action<CrRegardChange>) handler)(arg); }
+            catch (Exception ex)
+            {
+               ModLog.Error($"[MEMORY API] a RegardChanged subscriber threw and was isolated: {ex.GetType().Name}: {ex.Message}");
+            }
+      }
+   }
+
+   /// <summary>One change of a character's personal regard for the player (see <see cref="CrNpcMemory.RegardChanged" />).</summary>
+   public sealed class CrRegardChange
+   {
+      /// <summary>The character's hero StringId.</summary>
+      public string NpcId { get; set; }
+
+      /// <summary>The loaded campaign's unique id, as in the conversation events.</summary>
+      public string SaveId { get; set; }
+
+      /// <summary>The in-game day of the change.</summary>
+      public int GameDay { get; set; }
+
+      /// <summary>Regard before the change, -100 to 100 (CR's own ledger, never the game's relation).</summary>
+      public int Before { get; set; }
+
+      /// <summary>Regard after the change, -100 to 100. Never equal to <see cref="Before" />.</summary>
+      public int After { get; set; }
+
+      /// <summary>
+      ///   Why it changed: "conversation", "letter", "quest", "commitment", "compensation", "grudge", "jealousy",
+      ///   "divorce", "rescue", "stance", "violence", "departure" or "unspecified". New causes may be added.
+      /// </summary>
+      public string Cause { get; set; }
    }
 }

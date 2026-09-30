@@ -163,6 +163,31 @@ namespace CalradiaRemembers.Tests.Maps
                                       + "nothing saves them any more, and a campaign in progress loses that data on its next load.");
       }
 
+      // REGARD CHANGES IN ONE PLACE (29/09/2026). CrNpcMemory.RegardChanged tells other mods of every change of a
+      // character's regard for the player, and it can only do that because every change goes through
+      // ProfileMutator.ApplyReputationDelta. On the day the event was built, six places wrote the value directly
+      // (three of them without even clamping it to -100..100); all were routed through. A new direct write would be a
+      // change no listener hears, and a bridge that mirrors regard would silently drift out of step. A profile being
+      // built (an object initializer) is not a change, and the console's own test commands are left their freedom.
+      [Test]
+      public void GIVEN_the_code_that_changes_regard_WHEN_read_THEN_every_change_goes_through_the_one_place_listeners_hear()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         List<string> direct = SourceTree.Production
+                                         .Where(f => !f.RelativePath.EndsWith("ProfileMutator.cs", StringComparison.Ordinal)
+                                                     && !("/" + f.RelativePath).Contains("/Diagnostics/")
+                                                     && !System.IO.Path.GetFileName(f.RelativePath).StartsWith("ModCheats", StringComparison.Ordinal))
+                                         .SelectMany(f => f.Root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.AssignmentExpressionSyntax>()
+                                                           .Where(a => a.Left is Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax m
+                                                                       && m.Name.Identifier.Text == "ReputationWithPlayer")
+                                                           .Select(a => $"{f.RelativePath}: {a}"))
+                                         .ToList();
+
+         direct.Should().BeEmpty("regard is changed here without going through ProfileMutator.ApplyReputationDelta, so "
+                               + "CrNpcMemory.RegardChanged never hears it: " + string.Join("; ", direct));
+      }
+
       /// <summary>Every namespace the dependency map puts in a cycle, read off the map the suite keeps current.</summary>
       private static HashSet<string> Tangled()
       {

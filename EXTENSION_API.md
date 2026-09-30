@@ -72,6 +72,34 @@ MemoryResult result = CrNpcMemory.AddMemory(new CrMemoryEntry
 Injected memories become ordinary profile events, so they surface in later conversations exactly like
 memories CR recorded itself, and are compacted over time by CR's own memory compressor.
 
+### Regard changes (`CrNpcMemory.RegardChanged`, since 2.6.7)
+
+```csharp
+CrNpcMemory.RegardChanged += change =>
+{
+    // change.NpcId, change.Before, change.After (-100..100), change.Cause, change.GameDay, change.SaveId
+};
+```
+
+Fired each time a character's **personal regard** for the player actually changes, whatever changed it: a
+conversation, a letter, a quest, a promise kept or broken, a grievance put to rest, jealousy, a rescue, a
+departure from their realm. `Cause` is one of `conversation`, `letter`, `quest`, `commitment`, `compensation`,
+`grudge`, `jealousy`, `divorce`, `rescue`, `stance`, `violence`, `departure`, `unspecified`; more may be added,
+so treat an unknown one as a change like any other. Raised on the game thread, after the change, each listener
+under its own guard.
+
+**Two numbers, two names.** CR keeps its own regard (what one character personally thinks of the player,
+built in conversation) apart from the game's relation. In the prompt the game's value is called **"your clan's
+standing"** and CR's is **"your own personal regard"**; write prompt rules with those words, or the model may
+read the wrong number. `RelationToPlayer` in `VerbFacts` and `PromptVarFacts` is always CR's personal regard,
+never the game's relation.
+
+**CR never writes the game's relation from regard, on purpose.** The game's relation is effectively clan-wide
+(the engine resolves a lord's relation through his clan leader), and regard is paced (a +1 cap and a cooldown
+in conversation) precisely so a player cannot talk their way to the top. A mod that mirrors `RegardChanged` into
+the game's relation takes that balance on itself; do it from this event, never as a side effect of a prompt
+variable provider.
+
 ## Notes and limits (v1)
 
 - **Kinds you cannot spoof.** `FirstMeeting`, `Captivity`, and `Farewell` are engine-owned (they drive

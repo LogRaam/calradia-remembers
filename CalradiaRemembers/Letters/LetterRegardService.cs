@@ -33,7 +33,7 @@ namespace CalradiaRemembers.Letters
 
          if (shift != 0)
          {
-            ProfileMutator.ApplyReputationDelta(profile, shift);
+            ProfileMutator.ApplyReputationDelta(profile, shift, NpcMemoryService.Core.Standing.RegardCause.Letter);
             if (shift > 0) profile.LastLetterRegardGainDay = today;
          }
 

@@ -410,6 +410,10 @@ namespace CalradiaRemembers
          base.OnSubModuleLoad();
          Log($"{ModName} v1.9.0 loaded.");
 
+         // The one regard-change notice, re-raised as the public CrNpcMemory.RegardChanged (29/09/2026). Once per
+         // process: this runs once, and the SDK event is static.
+         NpcMemoryService.Core.Services.ProfileMutator.RegardChanged += CrNpcMemory.ForwardRegardChange;
+
          try
          {
             var harmony = new Harmony(ModuleId);
