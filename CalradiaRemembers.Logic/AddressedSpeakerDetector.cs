@@ -29,6 +29,12 @@ namespace CalradiaRemembers.Logic
     ///       never a stage direction that merely mentions them ("*glances at Martira*", "*points at Martira*")</item>
     ///   </list>
     ///   so the sticky addressee survives ordinary references to absent thirds.
+    ///   <para>
+    ///     Japanese and Chinese are written without spaces (yozakura12, 24/09/2026: 「カリー、聞かせてくれるか？」 never
+    ///     reached the witness カリー). For a name in those scripts, an address is the name opening the line followed by a
+    ///     comma or an exclamation or question mark, or the name closing the line after a comma; a name followed by a
+    ///     particle (カリーは, カリーのこと) is a mention.
+    ///   </para>
     /// </summary>
     public static class AddressedSpeakerDetector
     {
@@ -46,6 +52,28 @@ namespace CalradiaRemembers.Logic
         // "Olaf smiles") does not qualify.
         private static readonly HashSet<string> StageDirectionCues =
             new(StringComparer.OrdinalIgnoreCase) { "to", "addresses", "asks", "faces" };
+
+        // Punctuation that is never part of a name, Latin and CJK (full-width forms and corner brackets included).
+        private static readonly char[] Punctuation = {
+            ' ', '\t', '\n', '\r', ',', '.', '?', '!', '"', '\'', ':', ';', '(', ')', '*',
+            '\u3001', '\u3002', '\uFF0C', '\uFF0E', '\uFF1F', '\uFF01', '\uFF1A', '\uFF1B', '\uFF08', '\uFF09',
+            '\u300C', '\u300D', '\u300E', '\u300F', '\u201C', '\u201D', '\u2018', '\u2019', '\u2026'
+        };
+
+        // A comma, Latin, ideographic or full-width: the vocative mark in every script handled here.
+        private static readonly char[] Commas = {',', '\u3001', '\uFF0C'};
+
+        // What may follow a name that opens an unspaced line for it to be an address: a comma, or a call ("カリー！").
+        private static readonly char[] UnspacedVocativeMarks = {',', '\u3001', '\uFF0C', '!', '?', '\uFF01', '\uFF1F', '\u2026'};
+
+        // What may open or close a line around the words: quotation brackets, stage asterisks, spaces.
+        private static readonly char[] LineWrappers = {
+            ' ', '\t', '\n', '\r', '"', '\'', '*', '(', ')', '\uFF08', '\uFF09',
+            '\u300C', '\u300D', '\u300E', '\u300F', '\u201C', '\u201D', '\u2018', '\u2019'
+        };
+
+        // What may end a line after a closing name ("そうだろう、カリー？").
+        private static readonly char[] SentenceEnds = {'.', '!', '?', '\u3002', '\uFF01', '\uFF1F', '\u2026'};
 
         // Vocative tag words: a confirmation/tag that in ordinary speech precedes a tacked-on direct
         // address, usually with the comma dropped ("isn't that right Tezzeret?", "we ride at dawn aye
@@ -101,18 +129,20 @@ namespace CalradiaRemembers.Logic
             }
 
             // 2. Vocative — a participant name adjacent to a genuine address cue.
-            return MatchVocative(text, participants);
+            // 3. The same, for a name in a script written without spaces.
+            return MatchVocative(text, participants) ?? MatchUnspacedVocative(text, participants);
         }
 
         /// <summary>
         ///   The tokens of a name worth matching on: length >= 3 and not a connector
-        ///   ("Hophtalamos of the Hand" -> {hophtalamos}).
+        ///   ("Hophtalamos of the Hand" -> {hophtalamos}). A CJK name counts from two characters (エマ, 李明), and a
+        ///   middle dot separates its parts (カリー・ロス -> {カリー, ロス}).
         /// </summary>
         public static HashSet<string> DistinctiveNameTokens(string name)
         {
             var set = new HashSet<string>();
             foreach (string t in Tokenize(name))
-                if (t.Length >= 3 && !AddressStopWords.Contains(t))
+                if ((t.Length >= 3 || t.Length == 2 && IsUnspacedScript(t)) && !AddressStopWords.Contains(t))
                     set.Add(t);
 
             return set;
@@ -134,8 +164,51 @@ namespace CalradiaRemembers.Logic
         #region private
 
         private static string BareWord(string w)
-            => w.Trim(' ', '\t', '\n', '\r', ',', '.', '?', '!', '"', '\'', ':', ';', '(', ')', '*')
-                .ToLowerInvariant();
+            => w.Trim(Punctuation).ToLowerInvariant();
+
+        private static bool EndsWithComma(string w) => w.Length > 0 && Array.IndexOf(Commas, w[w.Length - 1]) >= 0;
+
+        /// <summary>Hiragana, katakana (full and half width) or CJK ideographs: scripts written without spaces.</summary>
+        private static bool IsUnspacedScript(string s)
+        {
+            foreach (char c in s)
+                if (c >= '\u3040' && c <= '\u30FF' || c >= '\u3400' && c <= '\u9FFF' || c >= '\uF900' && c <= '\uFAFF'
+                    || c >= '\uFF66' && c <= '\uFF9F')
+                    return true;
+
+            return false;
+        }
+
+        /// <summary>
+        ///   An address in a line with no spaces to split on: a CJK name opening the line and followed by a comma or a
+        ///   call mark, or closing the line right after a comma. The longest name wins, so カリー is not read as カリ.
+        /// </summary>
+        private static string MatchUnspacedVocative(string text, List<Participant> participants)
+        {
+            string line = text.Trim(LineWrappers);
+            string closing = line.TrimEnd(SentenceEnds).TrimEnd(LineWrappers).TrimEnd(SentenceEnds);
+            string bestId = null;
+            var bestLength = 0;
+
+            foreach (Participant p in participants)
+            foreach (string token in p.Tokens)
+            {
+                if (token.Length <= bestLength || !IsUnspacedScript(token)) continue;
+
+                bool opens = line.StartsWith(token, StringComparison.Ordinal)
+                             && (line.Length == token.Length || Array.IndexOf(UnspacedVocativeMarks, line[token.Length]) >= 0);
+                bool closes = closing.Length > token.Length
+                              && closing.EndsWith(token, StringComparison.Ordinal)
+                              && Array.IndexOf(Commas, closing[closing.Length - token.Length - 1]) >= 0;
+
+                if (!opens && !closes) continue;
+
+                bestId = p.Id;
+                bestLength = token.Length;
+            }
+
+            return bestId;
+        }
 
         /// <summary>
         ///   Matches a name inside a stage direction, but only when it is explicitly ADDRESSED
@@ -178,8 +251,8 @@ namespace CalradiaRemembers.Logic
                 if (bare.Length < 3) continue;
 
                 bool cue =
-                    words[i].EndsWith(",")                                             // "Martira, ..."
-                 || i > 0 && words[i - 1].EndsWith(",")                                 // "..., Martira, ..." / "..., Martira?"
+                    EndsWithComma(words[i])                                            // "Martira, ..."
+                 || i > 0 && EndsWithComma(words[i - 1])                                // "..., Martira, ..." / "..., Martira?"
                     && !AppositiveDescriptorNouns.Contains(BareWord(words[i - 1]))      // but NOT "your friend, Manteos"
                  || i > 0 && VocativeTagWords.Contains(BareWord(words[i - 1]))          // "... right Tezzeret?" (comma dropped)
                  || i + 1 < words.Length && BareWord(words[i + 1]) == "you"             // "Martira you ..."
@@ -201,8 +274,19 @@ namespace CalradiaRemembers.Logic
         private static string[] Tokenize(string s)
             => (s ?? "")
                .ToLowerInvariant()
-               .Split(new[] {' ', '\t', '\n', '\r', ',', '.', '?', '!', '"', '\'', ':', ';', '(', ')', '*'},
-                  StringSplitOptions.RemoveEmptyEntries);
+               .Split(NameSeparators, StringSplitOptions.RemoveEmptyEntries);
+
+        // Punctuation, plus the middle dots that join the parts of a CJK full name.
+        private static readonly char[] NameSeparators = Concat(Punctuation, '\u30FB', '\u00B7', '\uFF65');
+
+        private static char[] Concat(char[] a, params char[] b)
+        {
+            var all = new char[a.Length + b.Length];
+            a.CopyTo(all, 0);
+            b.CopyTo(all, a.Length);
+
+            return all;
+        }
 
         #endregion
     }
