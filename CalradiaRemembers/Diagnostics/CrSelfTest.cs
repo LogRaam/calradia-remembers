@@ -7621,10 +7621,19 @@ namespace CalradiaRemembers.Diagnostics
             // Compose-only seam: does NOT mark the matter raised, so re-runs stay deterministic.
             string context = Interception.InterceptionBehavior.Instance.DebugRecentMatterLetterContext(npc);
 
-            t.Note($"npc={npc.Name}");
+            // The letter raises the matter the ranking puts first, which in a long campaign may be one of the lord's
+            // own rather than the one seeded here (29/09/2026: after 6.7 accelerated years, Lucon had another matter
+            // that outranked the seed, and this test failed on a letter that was right). So it asks what the promise
+            // is: a SPECIFIC matter, one of the lord's real candidates, framed first-person when it was lived.
+            IReadOnlyList<Logic.Interception.RecentMatter> candidates = Interception.InterceptionBehavior.Instance.DebugBuildRecentMatters(npc);
+            Logic.Interception.RecentMatter chosen = context == null ? null : candidates.FirstOrDefault(m => context.Contains(m.Summary));
+
+            t.Note($"npc={npc.Name}, candidates={candidates.Count}, chosen={chosen?.Register.ToString() ?? "none"}");
             t.Expect("a missed-meeting letter context is composed", !string.IsNullOrEmpty(context), true);
-            t.Expect("it names the specific matter, not a generic deed", context != null && context.Contains(seed), true);
-            t.Expect("a lived matter is framed first-person", context != null && context.Contains("FIRST PERSON"), true);
+            t.Expect("the seeded memory is among the lord's matters", candidates.Any(m => m.Summary.Contains(seed)), true);
+            t.Expect("it names one specific matter, not a generic deed", chosen != null, true);
+            t.Expect("a lived matter is framed first-person",
+                     chosen == null || chosen.Register != Logic.Interception.RecentMatterRegister.LivedMemory || context.Contains("FIRST PERSON"), true);
          }
          finally
          {
@@ -7765,16 +7774,30 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Abort(seeded == 0, $"quest not seeded for {giver.Name}")) return t.Line();
 
-         behavior.GameStateBridge.ExecuteAction(
-            new GameAction {
-               Type = "take_gold",
-               Parameters = new Dictionary<string, string> {{"amount", "500"}}
-            },
-            giver, null);
+         // An empty purse refuses the payment, and the quest rightly stays open (29/09/2026: after a night of
+         // accelerated play the player had no gold, and this test failed on a refusal that was right). The purse is
+         // topped up for the payment, and both purses are put back as they were.
+         int playerGoldBefore = Hero.MainHero.Gold;
+         int giverGoldBefore = giver.Gold;
+         if (playerGoldBefore < 500) Hero.MainHero.ChangeHeroGold(500 - playerGoldBefore);
+         try
+         {
+            behavior.GameStateBridge.ExecuteAction(
+               new GameAction {
+                  Type = "take_gold",
+                  Parameters = new Dictionary<string, string> {{"amount", "500"}}
+               },
+               giver, null);
+         }
+         finally
+         {
+            Hero.MainHero.ChangeHeroGold(playerGoldBefore - Hero.MainHero.Gold);
+            giver.ChangeHeroGold(giverGoldBefore - giver.Gold);
+         }
 
          profile = behavior.Store.Get(giver.StringId);
          bool stillOpen = profile.ActiveQuests.Any(q => q.Type == QuestType.ProvideGold && q.IsOutstanding);
-         t.Note($"giver={giver.Name}");
+         t.Note($"giver={giver.Name}, player gold before={playerGoldBefore}");
          t.Expect("stamped", !stillOpen, true);
 
          return t.Line();
