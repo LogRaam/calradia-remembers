@@ -446,7 +446,8 @@ namespace CalradiaRemembers.Letters
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string message = LetterPromptBuilder.BuildInitialLetterMessage(
-            profile, reason, triggerContext, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy);
+            profile, reason, triggerContext, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy,
+            Mapping.DayMoodReader.Draw(giverHero).Mood);
 
          string content = await CallLlmForLetterAsync(llmServices, profile, message);
 
@@ -489,7 +490,8 @@ namespace CalradiaRemembers.Letters
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string writtenBy = CorrespondenceRank.WrittenByFor(senderHero, profile, LetterReason.PlayerLetterReply);
          string message = LetterPromptBuilder.BuildPlayerLetterReplyDecisionMessage(
-            profile, playerLetter.Content ?? "", playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy);
+            profile, playerLetter.Content ?? "", playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy,
+            Mapping.DayMoodReader.Draw(senderHero).Mood);
 
          string rawDecision = await CallLlmForLetterAsync(llmServices, profile, message);
 
@@ -590,7 +592,8 @@ namespace CalradiaRemembers.Letters
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string writtenBy = CorrespondenceRank.WrittenByFor(giverHero, profile, originalLetter.Reason);
          string message = LetterPromptBuilder.BuildReplyLetterMessage(
-            profile, originalLetter.PlayerReply ?? "", originalLetter.Reason, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy);
+            profile, originalLetter.PlayerReply ?? "", originalLetter.Reason, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy,
+            Mapping.DayMoodReader.Draw(giverHero).Mood);
 
          string raw = await CallLlmForLetterAsync(llmServices, profile, message);
 

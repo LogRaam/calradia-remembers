@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-373 rules read 289 facts.
+377 rules read 290 facts.
 
 ## Facts read by more than one rule
 
@@ -75,6 +75,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Settlement.GetPosition2D` (5) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
 | `Character.HeroObject` (4) | `CompanionCounselPolicy.Select`, `CouncilRosterPolicy.IsOldEnoughToSit`, `PartyCounselFacts`, `PrisonerCustodyPolicy.HeldByPlayer` |
 | `Clan.Influence` (4) | `ClaimantBackerFacts`, `CourtActionPolicy.CanAffordInfluenceGrant`, `CourtActionPolicy.ClanNeedsInfluence`, `KingdomPowerFacts` |
+| `DayMoodReader.Draw` (4) | `CorrespondencePreferenceParser.Parse`, `LetterRegardPolicy.ParseTone`, `LetterRegardPolicy.StripToneLine`, `LetterReplyDecisionParser.Parse` |
 | `Hero.CompanionOf` (4) | `FactionGuidelinesPolicy.NarrowToOwnCulture`, `PrisonerExchangePolicy.IsExchangeable`, `StationGuidelinesPolicy.ResolveStationKey`, `StationGuidelinesPolicy.SelectStationText` |
 | `Hero.PartyBelongedToAsPrisoner` (4) | `GiftEquipFacts`, `GiftEquipPolicy.WearsOnBattleSet`, `HeroNaming`, `PrisonerRecruitmentPolicy.Evaluate` |
 | `Hero.StayingInSettlement` (4) | `EscortCostPolicy.EscortPremium`, `LetterWhereaboutsPolicy.ForPlayer`, `LetterWhereaboutsPolicy.ForWriter`, `WhereaboutsFacts` |
@@ -276,6 +277,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ConversationCompressionPolicy.ThresholdFor`: `ModSettings.LeanPrompt`
 - `ConversationEndPolicy.NpcEndLocks`: `ModSettings.NpcCanEndConversation`
 - `ConversationResumeIdentity`: `GameStateBridge.GetCurrentGameDay`
+- `CorrespondencePreferenceParser.Parse`: `DayMoodReader.Draw`
 - `CorrespondenceRankFacts`: `Hero.Clan`, `Hero.Father`, `Hero.Mother`, `Hero.Spouse`, `StatureReader.Of`, `StatureReader.Player`, `Status.IsCuriousOrDeeper`
 - `CorrespondenceRankPolicy.DealsInPerson`: `Hero.Clan`, `Hero.Father`, `Hero.Mother`, `Hero.Spouse`, `StatureReader.Of`, `StatureReader.Player`, `Status.IsCuriousOrDeeper`
 - `CorrespondenceRankPolicy.ScribeTitle`: `Hero.IsFemale`, `StatureReader.Of`
@@ -394,6 +396,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `LetterMailboxPolicy.SelectNext`: `ModSettings.LettersFromNpcs`
 - `LetterPacingRules.BudgetFor`: `ModSettings.LettersFromNpcs`
 - `LetterRegardFacts`: `ModSettings.RelationWarmth`
+- `LetterRegardPolicy.ParseTone`: `DayMoodReader.Draw`
+- `LetterRegardPolicy.StripToneLine`: `DayMoodReader.Draw`
+- `LetterReplyDecisionParser.Parse`: `DayMoodReader.Draw`
 - `LetterWhereaboutsPolicy.ForPlayer`: `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `Hero.StayingInSettlement`, `MemberRoster.TotalManCount`, `MobileParty.Army`
 - `LetterWhereaboutsPolicy.ForWriter`: `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `Hero.StayingInSettlement`, `MemberRoster.TotalManCount`, `MobileParty.Army`
 - `LeverageArchetype`: `Hero.Clan`, `Hero.GetTraitLevel`, `Hero.IsFemale`, `ModSettings.AdultContentLevel`
