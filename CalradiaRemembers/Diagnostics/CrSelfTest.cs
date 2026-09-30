@@ -248,6 +248,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("companion_briefing", Severity.Light, "Companion-briefing pillar as it stands after the standing brief was dismantled (13/09/2026): the private word becomes a PRIVATE MEMORY on everyone who stood in it, and that memory never reaches the person it was about. Borrows a companion into the party if none rides along; picks a second, distinct living hero to stand in as the conversation's TARGET. Plants a real IsPrivate NotableEvent and drives the REAL EncounterContextBuilder.Build (no LLM call) for both heroes: asserts the companion's own prompt CARRIES it (they must act on what they were told) while it is ABSENT from the target's - the load-bearing property of the whole pillar, since BuildWitnessMemory is the single path by which one hero's memories reach another's prompt and it filters IsPrivate. Also asserts a NON-private event on the same companion DOES reach the target, so the test cannot pass by the memory simply never travelling. Removes the planted events in a finally and returns the borrowed companion", TestCompanionBriefing),
          new SelfTest("query_relevant_facts", Severity.Light, "Modder report: asking a lord a POINTED question about a specific third party got a hallucinated answer because the real fact ranked too low on ambient awareness (the small WorldRumorsBlock top-N) to ever be injected. Seeds a fresh, high-magnitude, faction-tagged WorldEvent naming a real third-party lord (guaranteed KNOWN regardless of map position), then drives the REAL EncounterContextBuilder.ResolveQueryRelevantFacts (no LLM call) once with a message naming that lord -> assert the seeded fact surfaces, and once with an unrelated message -> assert it does NOT (the knowledge-then-relevance gate, never omniscience). Removes the seeded event afterwards", TestQueryRelevantFacts),
          new SelfTest("war_council_offer", Severity.Light, "Mechanical: the war-council OFFER trigger's arm + policy + persisted-cooldown decision (WarCouncilOfferBehavior.DebugWouldOffer), WITHOUT opening the council UI. Arms the flag and asserts a notable action while leading an army WOULD offer, that not-in-army / non-notable / disarmed all refuse, and that stamping an offer today blocks a fresh one (cooldown) while a stale stamp clears it. Restores the flag + the persisted last-offer day", TestWarCouncilOffer),
+         new SelfTest("interception_holds_course", Severity.Light, "Lordfadooboo (Nexus, 30/09/2026): a lord announced as riding out to meet the player passed him by or rode into a city. Steers a real free lord party onto the player as a pursuit does and checks it is held on course (its own AI may not take the order back), then ends the steering and checks the party is its own again and told to think afresh. Refuses while a real pursuit runs.", TestInterceptionHoldsCourse),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
          new SelfTest("retainer_spike", Severity.Heavy, "FEASIBILITY SPIKE: take a real OTHER-CLAN, partyless lord/lady into MobileParty.MainParty via AddHeroToPartyAction, assert (a) they are in the main member roster and (b) their Hero.Clan is UNCHANGED (still their own, NOT the player clan) with occupation still Lord; drive one RunDailyObservation (this behavior's daily handler) and assert they SURVIVED it at peace (reports honestly - this drives only the mod's own daily seam, not vanilla's full party-spawn tick); assert the pure RetainerLeavePolicy forces a leave on war; then release and assert they left the roster and are partyless again. Restores all borrowed state; skips MANUAL when no partyless other-clan lord exists (a party-leading lord's own party would be disbanded, which is not cleanly reversible in a live campaign)", TestRetainerSpike),
          new SelfTest("ride_with_me", Severity.Heavy, "the PLAYER-FACING ride_with_me / part_ways path through the REAL bridge (not the raw mechanism the retainer_spike test drives): (e) while RetainerBehavior.Enabled is OFF the verb REFUSES and takes no one; (a) enabled, an idle at-peace other-clan lord ends up in MainParty.MemberRoster with Hero.Clan UNCHANGED (not the player clan); (b) a party-LEADING lord is REFUSED (that is follow_me's job) with their own party intact, proving the two verbs are mutually exclusive on the leads-a-party fact; (c) part_ways removes them (out of the roster, partyless, untracked); (d) the pure RetainerLeavePolicy forces a leave on war. Restores regard + the feature switch in a finally; skips MANUAL when no partyless at-peace other-clan lord exists to borrow", TestRideWithMe),
@@ -11044,6 +11045,29 @@ namespace CalradiaRemembers.Diagnostics
       ///     by an earlier version (without which a broken campaign stays broken forever).
       ///   </para>
       /// </summary>
+      private static string TestInterceptionHoldsCourse(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("interception_holds_course");
+
+         if (t.Abort(Interception.InterceptionBehavior.Instance == null, "interception behavior not initialized")) return t.Line();
+
+         MobileParty lordParty = MobileParty.All.FirstOrDefault(
+            p => p != null && p != MobileParty.MainParty && p.LeaderHero is {IsLord: true}
+                 && p.CurrentSettlement == null && p.Army == null && p.MapEvent == null && !p.IsCurrentlyAtSea);
+         if (t.Skip(lordParty == null, "no free lord party in the open field")) return t.Line();
+
+         var read = Interception.InterceptionBehavior.Instance.DebugSteerAndRelease(lordParty);
+         if (t.Skip(read == null, "a real pursuit is under way; not disturbing it")) return t.Line();
+
+         t.Note($"{lordParty.Name}: locked {read.Value.Locked}, on the player {read.Value.OnThePlayer}, free after {read.Value.FreeAfter}, thinks again {read.Value.ThinksAgainAfter}");
+         t.Expect("heIsHeldOnCourse", read.Value.Locked, true);
+         t.Expect("heRidesAtThePlayer", read.Value.OnThePlayer, true);
+         t.Expect("theChaseOverHisDecisionsAreHisOwn", read.Value.FreeAfter, true);
+         t.Expect("andHeIsToldToThinkAfresh", read.Value.ThinksAgainAfter, true);
+
+         return t.Line();
+      }
+
       private static string TestPartyRelease(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("party_release");

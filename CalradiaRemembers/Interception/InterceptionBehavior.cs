@@ -120,6 +120,10 @@ namespace CalradiaRemembers.Interception
       // toward the meeting, as the bug report described) from one who is genuinely being outrun or stalled.
       private float _lastPursuitDistance = -1f;
 
+      // The party SteerTowardPlayer holds on the player, kept apart from the pursuer's id so a lord who dies mid-chase
+      // (his party passing to someone else, or to no one) is still released. Not persisted: the restore re-steers.
+      private MobileParty _pursuitParty;
+
       // Once the meeting has been forced open for the active pursuer, this guards against re-opening it every
       // frame. Reset when a pursuit begins, is consumed by the chat, or is released.
       private bool _meetingOpened;
@@ -192,6 +196,10 @@ namespace CalradiaRemembers.Interception
          _activePursuerDetail = null;
          _meetingOpened = false;
          _lastPursuitDistance = -1f;
+
+         // The player reached him first (Lordfadooboo: "i usually have to run them down myself"): the chase is over,
+         // so his decisions are his own again.
+         EndPursuitSteering();
 
          // A fief audience never rode anywhere -- the NPC was already standing where the player walked in and
          // simply asked for a word. HeardOfDeed, Grudge, AppreciationOwed, and NemesisBounty are all stashed
@@ -464,6 +472,50 @@ namespace CalradiaRemembers.Interception
       }
 
       /// <summary>
+      ///   Sets <paramref name="party" /> on the player and HOLDS it there until the chase ends (Lordfadooboo, Nexus,
+      ///   30/09/2026: "i'll get a notification that says that a lord is riding out to meet me but... they are doing
+      ///   no such thing. passing me by or going into a city"). A bare SetMoveEngageParty is a nudge: the lord's own
+      ///   AI re-decides his business on its next cycle and the order is gone, while the notice already told the
+      ///   player he was coming. This is the lock dance FollowMeBehavior, the hunters and the couriers already use:
+      ///   release any lock, give the order, lock. Every end of a chase goes through <see cref="EndPursuitSteering" />,
+      ///   which hands him back (<see cref="ReleaseToVanillaAi" />), so the lock can never outlive the chase the way
+      ///   the starving-lord Hold once did.
+      /// </summary>
+      private void SteerTowardPlayer(MobileParty party)
+      {
+         if (party?.Ai == null || MobileParty.MainParty == null) return;
+
+         party.Ai.SetDoNotMakeNewDecisions(false);
+         party.SetMoveEngageParty(MobileParty.MainParty, MobileParty.NavigationType.Default);
+         party.Ai.SetDoNotMakeNewDecisions(true);
+         _pursuitParty = party;
+      }
+
+      /// <summary>Hands the party we were steering back to its own AI, whatever ended the chase. Safe to call twice.</summary>
+      private void EndPursuitSteering()
+      {
+         MobileParty party = _pursuitParty;
+         _pursuitParty = null;
+         ReleaseToVanillaAi(party);
+      }
+
+      /// <summary>
+      ///   cr.testall seam: steers a party onto the player exactly as a pursuit does, reads whether it is held on
+      ///   course, then ends the steering and reads whether it is its own again. Refuses while a real pursuit runs.
+      /// </summary>
+      internal (bool Locked, bool OnThePlayer, bool FreeAfter, bool ThinksAgainAfter)? DebugSteerAndRelease(MobileParty party)
+      {
+         if (party == null || _pursuitParty != null || _activePursuerId != null) return null;
+
+         SteerTowardPlayer(party);
+         bool locked = party.Ai.DoNotMakeNewDecisions;
+         bool onPlayer = party.TargetParty == MobileParty.MainParty;
+         EndPursuitSteering();
+
+         return (locked, onPlayer, !party.Ai.DoNotMakeNewDecisions, party.Ai.RethinkAtNextHourlyTick);
+      }
+
+      /// <summary>
       ///   Tells every lord party idling on <c>Hold</c> out in the open field to think again, and returns how many
       ///   were nudged. This is what rescues a campaign already broken by the old bug: without it, a party stranded
       ///   by an earlier version stays stranded for good, however well the cause is fixed. Safe by construction, a
@@ -576,6 +628,9 @@ namespace CalradiaRemembers.Interception
             ModLog.Info($"[INTERCEPT] saved pursuit of {pursuer?.Name} not restored (no longer possible); " +
                         "the remembered intent carries it.");
 
+            // The save may have kept his decisions locked on the player; they are his own again.
+            ReleaseToVanillaAi(pursuerParty);
+
             _activePursuerId = null;
             _activePursuerSince = -1;
             _activePursuerTrigger = InterceptionTrigger.None;
@@ -587,7 +642,7 @@ namespace CalradiaRemembers.Interception
             return;
          }
 
-         pursuerParty.SetMoveEngageParty(main, MobileParty.NavigationType.Default);
+         SteerTowardPlayer(pursuerParty);
          ModLog.Info($"[INTERCEPT] {pursuer.Name}'s pursuit restored after load ({_activePursuerTrigger}).");
       }
 
@@ -1183,7 +1238,8 @@ namespace CalradiaRemembers.Interception
          // with (a subordinate army member, a shared army, or an attached party).
          if (PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(lord.PartyBelongedTo)) return;
 
-         lord.PartyBelongedTo.SetMoveEngageParty(MobileParty.MainParty, MobileParty.NavigationType.Default);
+         EndPursuitSteering(); // a chase forced over another (cr.intercept) must not leave the first lord locked
+         SteerTowardPlayer(lord.PartyBelongedTo);
          _activePursuerId = lord.StringId;
          _activePursuerTrigger = trigger;
          _activePursuerDetail = detail;
@@ -1276,6 +1332,7 @@ namespace CalradiaRemembers.Interception
          // Clearing only our tracking left the vanilla SetMoveEngageParty in place and he kept shadowing the
          // player; but merely holding him was worse, because Hold is not a release, it is a command to stand
          // still, and he obeyed it until he starved (Fakade, 2026-07-13). He must be told to think again.
+         EndPursuitSteering();
          ReleaseToVanillaAi(pursuerParty);
 
          ChatSceneStager.StagePlainConversation(pursuer);
@@ -1341,8 +1398,10 @@ namespace CalradiaRemembers.Interception
          bool atSea = main != null && pursuerParty != null
                       && !InterceptionPolicy.CanMeetOnLand(main.IsCurrentlyAtSea, pursuerParty.IsCurrentlyAtSea);
 
+         // Called into an army mid-chase: his place is with it now (and a party we hold would stay out of it).
          bool invalid = pursuer is not {IsAlive: true} || pursuerParty == null || main == null
-                        || PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(pursuerParty) || atSea;
+                        || PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(pursuerParty) || atSea
+                        || pursuerParty.Army != null;
 
          float distance = pursuerParty != null && main != null
             ? pursuerParty.GetPosition2D.Distance(main.GetPosition2D)
@@ -1393,7 +1452,8 @@ namespace CalradiaRemembers.Interception
 
          // End the engage on any abandoned chase too, so a lord who timed out or was outrun stops bearing on the
          // player instead of trailing them indefinitely, and RESUMES his own plans rather than standing in the
-         // field. Null when the pursuer died (nothing to release).
+         // field. Null when the pursuer died; the party we were steering is released all the same.
+         EndPursuitSteering();
          ReleaseToVanillaAi(pursuerParty);
 
          _activePursuerId = null;
