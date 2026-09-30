@@ -45,6 +45,7 @@ namespace CalradiaRemembers.Mapping
       {
          (bool atWar, float own, float enemies) = RealmWarFooting.Of(hero.Clan?.Kingdom);
          Settlement here = hero.CurrentSettlement;
+         NpcMemoryService.Core.Models.NpcProfile profile = Behaviors.NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId);
 
          return new DayMoodReadings {
             Hurt = BodyHurt(hero),
@@ -55,7 +56,10 @@ namespace CalradiaRemembers.Mapping
             InTownOrCastle = here != null && (here.IsTown || here.IsCastle),
             UnderSiege = here?.IsUnderSiege ?? false,
             HourOfDay = (int) CampaignTime.Now.CurrentHourInDay,
-            IsPrisoner = hero.IsPrisoner
+            IsPrisoner = hero.IsPrisoner,
+            RecentBlow = Standing.SelfEsteemService.HasRecentBlow(profile),
+            RecentGladness = Standing.SelfEsteemService.HasRecentGladness(profile),
+            SelfEsteem = Standing.SelfEsteemService.BandFor(hero, profile)
          };
       }
 

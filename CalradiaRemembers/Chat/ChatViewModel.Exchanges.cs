@@ -1211,6 +1211,9 @@ namespace CalradiaRemembers.Chat
             // (words only colour; deeds prove). Persisted by the Store.Set below after actions run.
             StanceService.ApplyWordShift(profile, response.StanceShift);
             ConversationMood.Record(speaker.Hero?.StringId, response.StanceShift?.Mood ?? 0);
+            // A low man lifted by the player is reassured (self-esteem, 30/09/2026): once a turn, only when he needed it.
+            if (response.StanceShift?.Mood > 0 && Standing.SelfEsteemService.BandFor(speaker.Hero, profile) is NpcMemoryService.Core.Mood.SelfEsteemBand.Shaken or NpcMemoryService.Core.Mood.SelfEsteemBand.Broken)
+               Standing.SelfEsteemService.Record(speaker.Hero, Logic.SelfEsteemEvent.Reassured);
 
             // Jealousy (Sprint 24): a romantic act recorded this turn may provoke a staked
             // third party. Intimacy only when adult content is enabled. Witnesses present mean

@@ -91,6 +91,25 @@ namespace CalradiaRemembers.Tests
             Read(new DayMoodReadings {IsPrisoner = true}).IsCaptive.Should().BeTrue();
         }
 
+        // A blow of his own lately (a fief lost, a death in the house) or a gladness (a fief gained, a tournament won),
+        // recorded by self-esteem's events on his profile.
+        [Test]
+        public void GIVEN_a_recent_blow_or_gladness_WHEN_read_THEN_the_day_carries_it()
+        {
+            Read(new DayMoodReadings {RecentBlow = true}).PersonalBlow.Should().BeTrue();
+            Read(new DayMoodReadings {RecentGladness = true}).PersonalGladness.Should().BeTrue();
+        }
+
+        // Self-esteem shaken or broken reads low; assured or proud reads high; steady reads neither.
+        [Test]
+        public void GIVEN_his_self_esteem_WHEN_read_THEN_low_high_or_neither()
+        {
+            Read(new DayMoodReadings {SelfEsteem = SelfEsteemBand.Shaken}).SelfRegardLow.Should().BeTrue();
+            Read(new DayMoodReadings {SelfEsteem = SelfEsteemBand.Proud}).SelfRegardHigh.Should().BeTrue();
+            MoodFacts steady = Read(new DayMoodReadings {SelfEsteem = SelfEsteemBand.Steady});
+            (steady.SelfRegardLow || steady.SelfRegardHigh).Should().BeFalse();
+        }
+
         // Nothing read, nothing claimed: no readings is an ordinary day, not a crash.
         [Test]
         public void GIVEN_no_readings_WHEN_read_THEN_it_is_an_ordinary_day()

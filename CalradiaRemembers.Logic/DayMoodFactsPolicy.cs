@@ -5,8 +5,8 @@
 // reading the engine again. The realm's fortunes are measured the way the mercenary grid measures them
 // (MercenaryDeparturePolicy.IsLosing), so "losing a war" means one thing in the mod.
 //
-// Not read yet: a personal blow or gladness (a death in the house, a wedding). Self-esteem's events (increment E2)
-// record those on the profile, and this will read them from there.
+// A personal blow or gladness is recorded on the profile by self-esteem's events (E2); self-esteem itself leans the
+// draw (E4): the ground the day stands on.
 
 #region
 
@@ -49,6 +49,15 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>Held prisoner.</summary>
         public bool IsPrisoner { get; set; }
+
+        /// <summary>A blow of his own lately (a fief lost, a death in the house, a defeat, a captivity).</summary>
+        public bool RecentBlow { get; set; }
+
+        /// <summary>A gladness of his own lately (a fief gained, a tournament or a battle won).</summary>
+        public bool RecentGladness { get; set; }
+
+        /// <summary>How he regards himself lately; null when unknown.</summary>
+        public SelfEsteemBand? SelfEsteem { get; set; }
     }
 
     /// <summary>Reads a character's day into the facts the mood draw weighs. Pure.</summary>
@@ -74,7 +83,11 @@ namespace CalradiaRemembers.Logic
                 RealmHasLatelyWon = winning,
                 AtEase = r.InTownOrCastle && !r.UnderSiege,
                 IsDeepNight = r.HourOfDay >= 0 && r.HourOfDay < DeepNightEndsAtHour,
-                IsCaptive = r.IsPrisoner
+                IsCaptive = r.IsPrisoner,
+                PersonalBlow = r.RecentBlow,
+                PersonalGladness = r.RecentGladness,
+                SelfRegardLow = r.SelfEsteem == SelfEsteemBand.Shaken || r.SelfEsteem == SelfEsteemBand.Broken,
+                SelfRegardHigh = r.SelfEsteem == SelfEsteemBand.Assured || r.SelfEsteem == SelfEsteemBand.Proud
             };
         }
     }

@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 442 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 847 types in 26 namespaces, 2 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 245 types in 17 namespaces, 9 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 444 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 852 types in 26 namespaces, 2 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -634,11 +634,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StanceService` | public static class | The single place stance is read from / written to an NpcProfile. |
 | `TownAmbushBehavior` | public class | On entering a town, an armed assassination may spring into a street fight in the town centre. |
 
-### CalradiaRemembers.Standing (1)
+### CalradiaRemembers.Standing (3)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ClanStandingSeedService` | public static class | Gives a character the one-time warm start their clan's standing with the player is worth. |
+| `SelfEsteemBehavior` | public class | Listens for battles, captivities, tournaments, fiefs and deaths, and records them on met characters. |
+| `SelfEsteemService` | public static class | Records what moves a character's self-esteem, and reads it back as a band. |
 
 ### CalradiaRemembers.Storage (2)
 
@@ -777,7 +779,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (545)
+### CalradiaRemembers.Logic (550)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1253,6 +1255,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SeductionEligibilityPolicy` | public static class | Decides whether a married NPC is seducible by the player: the first gate of the Stolen Love pillar. |
 | `SeductionFacts` | public class | Everything needed to judge whether a married NPC can be seduced by the player. |
 | `SeductionVerdict` | public class | The verdict on one NPC: whether they can be seduced, why not when refused, and how hard it was. |
+| `SelfEsteemBaselineFacts` | public class | Who he is, for where he starts. |
+| `SelfEsteemEvent` | public enum | What befell a character that moves how he regards himself. |
+| `SelfEsteemPolicy` | public static class | Self-esteem's rules. |
+| `SelfEsteemState` | public class | What is kept on the character: the shift, the day it was last set, and his recent captivities. |
+| `SelfEsteemTemper` | public class | The traits that decide how easily it moves. |
 | `ServiceEnticement` | public enum | The kind of enticement a poaching lord dangles in a ServiceOffer letter. |
 | `ServiceOfferPolicy` | public static class | Chooses the ServiceOffer enticement and holds the light accept warm-up. |
 | `ServiceRole` | public enum | A model ROLE the player can route to its own provider. |
@@ -1982,7 +1989,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WitnessReaction` | public class | A brief visible reaction (gesture, expression, one short line) from a witness present during a conversation. |
 | `WorldState` | public class | Ambient world context injected into every NPC system prompt. |
 
-### NpcMemoryService.Core.Mood (5)
+### NpcMemoryService.Core.Mood (7)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1991,6 +1998,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MoodLadder` | public static class | The order the player can move a mood along, from bleakest to brightest. |
 | `MoodLine` | public static class | Composes the character's mood block for the prompt's per-turn tail. |
 | `MoodOfTheDay` | public static class | The pure draw. |
+| `SelfEsteemBand` | public enum | How a character regards himself lately. |
+| `SelfEsteemLine` | public static class | Composes the character's self-regard for the prompt. |
 
 ### NpcMemoryService.Core.Parsing (9)
 

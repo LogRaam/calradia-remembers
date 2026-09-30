@@ -93,6 +93,9 @@ namespace CalradiaRemembers.Duels
                _outcomeTranscript = null;
 
                DuelOutcomeApplier.Apply(reason, resolution, opponent, courtedHero, witnessCount);
+               // Self-esteem (30/09/2026): a duel with the player is won or lost in front of others.
+               if (resolution == DuelResolution.PlayerWon) Standing.SelfEsteemService.Record(opponent, Logic.SelfEsteemEvent.DuelLostToPlayer);
+               else if (resolution == DuelResolution.NpcWon) Standing.SelfEsteemService.Record(opponent, Logic.SelfEsteemEvent.DuelWonAgainstPlayer);
 
                // A duel actually FOUGHT resumes as a conversation: the loser hears the victor, and a victorious
                // player may press the beaten NPC for a favour. Only a real fight opens it (a forfeit was already

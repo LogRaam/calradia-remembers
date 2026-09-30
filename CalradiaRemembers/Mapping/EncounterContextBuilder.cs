@@ -519,6 +519,7 @@ namespace CalradiaRemembers.Mapping
             DayMood = knowledge.DayMood,
             WitPermitted = knowledge.WitPermitted,
             DayMoodNow = Chat.ConversationMood.NowFor(hero?.StringId, knowledge.DayMood),
+            SelfEsteem = knowledge.SelfEsteem,
             Audience = BuildListeningAudience(profile, witnesses),
             // follow_me: taught only when EscortEligibilityPolicy.CanEscort says the game can truly honour it
             // right now (see the computation just above the object initializer). dismiss_escort is the mirror,
@@ -3382,7 +3383,8 @@ namespace CalradiaRemembers.Mapping
             PersonalBonds = BuildPersonalBonds(hero, profile),
             RealmNews = BuildRealmNews(hero),
             DayMood = mood.Mood,
-            WitPermitted = mood.Wit
+            WitPermitted = mood.Wit,
+            SelfEsteem = Standing.SelfEsteemService.BandFor(hero, profile)
          };
       }
 

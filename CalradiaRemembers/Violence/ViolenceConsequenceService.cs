@@ -140,6 +140,7 @@ namespace CalradiaRemembers.Violence
 
          NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, relationHit, NpcMemoryService.Core.Standing.RegardCause.Violence);
          NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
+         Standing.SelfEsteemService.Record(victim, Logic.SelfEsteemEvent.Humiliated); // beaten or robbed by the player
       }
 
       // Blood and beatings make enemies of a family. Capped, so a large house does not bury the player under a

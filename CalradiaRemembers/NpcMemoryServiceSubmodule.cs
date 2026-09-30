@@ -126,6 +126,9 @@ namespace CalradiaRemembers
          // Dynastic succession: on player death, reframes every NPC's memory through the heir — drops the
          // predecessor's private history, keeps and marks the political/relational history as inherited.
          campaignStarter.AddBehavior(new SuccessionBehavior());
+         // Self-esteem (30/09/2026, Lordfadooboo): battles, captivities, tournaments, fiefs and deaths move how a met
+         // character regards himself; recorded on his profile, nothing saved of its own.
+         campaignStarter.AddBehavior(new Standing.SelfEsteemBehavior());
          // Marriage system (family-approval engine) — SHIPPED from v1.7.0. The approval chat path
          // (grant_blessing, Phase A.2a) now exists, and the consequence only ever lands on the
          // PLAYER's own marriage (OnBeforeHeroesMarried bails when the player is not a spouse), so
