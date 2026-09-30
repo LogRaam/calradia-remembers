@@ -633,6 +633,9 @@ namespace CalradiaRemembers.Services
       ///   uncensored) provider than roleplay via <see cref="ModelModePolicy.ResolveProviderPin" />. This round
       ///   the pin stays exactly as before, keyed off the active role's kind rather than a per-role dropdown.
       /// </summary>
+      /// <summary>The provider pin the active role's requests carry right now ("" when none, or not on OpenRouter).</summary>
+      internal static string ActiveProviderPin() => ResolveProviderPin();
+
       private static string ResolveProviderPin()
          => ActiveRoleKind() == ProviderKind.OpenRouter
             ? ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = ActiveMainRole(), Prose = ModSettings.OpenRouterProviderPin, Nsfw = ModSettings.OpenRouterNsfwProviderPin, Interpret = ""})

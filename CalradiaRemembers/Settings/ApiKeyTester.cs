@@ -257,8 +257,13 @@ namespace CalradiaRemembers.Settings
 
             // Stage 2 — a one-token completion per configured model (roleplay, then NSFW when
             // set) confirms the ids actually work before a scene depends on them.
+            // The SAME routing the chat sends (Windmolen, 29/09/2026: this test passed with no pin while every chat
+            // failed on his pin). The roleplay model rides the roleplay pin; another model the NSFW pin, or the
+            // roleplay pin when that is blank, as ModelModePolicy resolves it at runtime.
+            string prosePin = ModSettings.OpenRouterProviderPin;
+            string nsfwPin = string.IsNullOrWhiteSpace(ModSettings.OpenRouterNsfwProviderPin) ? prosePin : ModSettings.OpenRouterNsfwProviderPin;
             (title, body) = await TestConfiguredModelsAsync(
-               m => TestOpenRouterModelAsync(key, m),
+               m => TestOpenRouterModelAsync(key, m, string.Equals(m, model, StringComparison.Ordinal) ? prosePin : nsfwPin),
                model,
                "Your OpenRouter key is valid",
                "Your key is valid; check the exact ids at openrouter.ai/models.").ConfigureAwait(false);
@@ -358,9 +363,11 @@ namespace CalradiaRemembers.Settings
          }
       }
 
-      private static async Task<(bool ok, string err)> TestOpenRouterModelAsync(string key, string model)
+      private static async Task<(bool ok, string err)> TestOpenRouterModelAsync(string key, string model, string pin)
       {
-         string payload = "{\"model\":\"" + JsonEscape(model) + "\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":1}";
+         bool fallbacks = ModSettings.AllowOpenRouterProviderFallbacks;
+         string payload = "{\"model\":\"" + JsonEscape(model) + "\",\"messages\":[{\"role\":\"user\",\"content\":\"ping\"}],\"max_tokens\":1"
+                          + ProviderPinFailurePolicy.RoutingJson(pin, fallbacks) + "}";
 
          using (var req = new HttpRequestMessage(HttpMethod.Post, OpenRouterChatUrl))
          {
@@ -370,9 +377,11 @@ namespace CalradiaRemembers.Settings
             {
                string respBody = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-               return resp.IsSuccessStatusCode
-                  ? (true, null)
-                  : (false, ExtractError(respBody, (int) resp.StatusCode));
+               if (resp.IsSuccessStatusCode) return (true, null);
+
+               string err = ExtractError(respBody, (int) resp.StatusCode);
+
+               return (false, ProviderPinFailurePolicy.Explain(respBody, !string.IsNullOrWhiteSpace(pin), fallbacks) ?? err);
             }
          }
       }

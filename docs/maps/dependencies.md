@@ -105,12 +105,12 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Lore` | 8 | 4 |
 | `CalradiaRemembers.Chronicle` | 7 | 1 |
 | `CalradiaRemembers.Rescue` | 7 | 1 |
+| `CalradiaRemembers.Logic` | 6 | 47 |
 | `NpcMemoryService.Core.Services` | 6 | 17 |
 | `CalradiaRemembers.Commoners` | 6 | 2 |
 | `CalradiaRemembers.Memory` | 6 | 2 |
 | `CalradiaRemembers.RealmTidings` | 6 | 1 |
 | `CalradiaRemembers.Arrests` | 6 | 0 |
-| `CalradiaRemembers.Logic` | 5 | 47 |
 | `NpcMemoryService.Core.Prompts` | 5 | 13 |
 | `CalradiaRemembers.Witnesses` | 5 | 6 |
 | `CalradiaRemembers.Appreciations` | 4 | 12 |
@@ -144,7 +144,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Settings` | 1 | 4 |
 | `CalradiaRemembers.Logic.Conversation` | 1 | 3 |
 | `CalradiaRemembers.UI` | 1 | 3 |
-| `NpcMemoryService.Core.LlmClient.OpenRouter` | 1 | 2 |
+| `NpcMemoryService.Core.LlmClient.OpenRouter` | 1 | 3 |
 | `CalradiaRemembers.Logic.Rescue` | 1 | 1 |
 | `CalradiaRemembers.UI.Spike` | 1 | 1 |
 | `NpcMemoryService.Core.Memory` | 1 | 1 |
@@ -308,7 +308,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 ### CalradiaRemembers.Logic
 
-- uses: `CalradiaRemembers.Logic.Assemblies`, `CalradiaRemembers.Logic.Violence`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Standing`
+- uses: `CalradiaRemembers.Logic.Assemblies`, `CalradiaRemembers.Logic.Violence`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.LlmClient.OpenRouter`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Standing`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Appearance`, `CalradiaRemembers.Arrests`, `CalradiaRemembers.Assemblies`, `CalradiaRemembers.Bastards`, `CalradiaRemembers.Battles`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Chronicle`, `CalradiaRemembers.Commitments`, `CalradiaRemembers.Commoners`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Duels`, `CalradiaRemembers.Dynasty`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.GUI`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Items`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Assemblies`, `CalradiaRemembers.Logic.Battles`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Memory`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Nemesis`, `CalradiaRemembers.OpenPartnerLover`, `CalradiaRemembers.Quests`, `CalradiaRemembers.RealmTidings`, `CalradiaRemembers.Retainer`, `CalradiaRemembers.Scenarios`, `CalradiaRemembers.Services`, `CalradiaRemembers.Settings`, `CalradiaRemembers.Stance`, `CalradiaRemembers.Tournaments`, `CalradiaRemembers.Travel`, `CalradiaRemembers.UI`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.Violence`, `CalradiaRemembers.WarCouncil`, `CalradiaRemembers.Witnesses`, `CalradiaRemembers.WorldAlmanac`, `CalradiaRemembers.WorldEvents`
 
 ### CalradiaRemembers.Logic.Actions
@@ -629,7 +629,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 ### NpcMemoryService.Core.LlmClient.OpenRouter
 
 - uses: `NpcMemoryService.Core.Models`
-- used by: `CalradiaRemembers.Services`, `NpcMemoryService.Core.Services`
+- used by: `CalradiaRemembers.Logic`, `CalradiaRemembers.Services`, `NpcMemoryService.Core.Services`
 
 ### NpcMemoryService.Core.Memory
 

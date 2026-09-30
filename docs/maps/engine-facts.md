@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-363 rules read 286 facts.
+365 rules read 288 facts.
 
 ## Facts read by more than one rule
 
@@ -163,6 +163,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.ActionInterpreterProviderSelection` (2) | `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.AllowFiefAndMarriageQuestRewards` (2) | `FiefRewardFacts`, `MarriageRewardFacts` |
 | `ModSettings.AllowKillingCharacters` (2) | `ViolencePolicy.IsPermitted`, `ViolencePolicy.Resolve` |
+| `ModSettings.AllowOpenRouterProviderFallbacks` (2) | `ProviderPinFailurePolicy.Explain`, `ProviderPinFailurePolicy.RoutingJson` |
 | `ModSettings.CncProviderSelection` (2) | `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.HousekeepingProviderSelection` (2) | `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.LeanPrompt` (2) | `ConversationCompressionPolicy.ThresholdFor`, `TranscriptFold` |
@@ -464,6 +465,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `PrisonerTradePolicy.MinAcceptablePayment`: `Hero.CharacterObject`, `RansomValueCalculationModel.PrisonerRansomValue`
 - `PrisonerTradePolicy.MostABuyerCanPay`: `Hero.CharacterObject`, `Npc.Gold`, `RansomValueCalculationModel.PrisonerRansomValue`
 - `PrisonerTradePolicy.PriceDifferenceNote`: `Hero.Gold`
+- `ProviderPinFailurePolicy.Explain`: `HttpMethod.Post`, `ModSettings.AllowOpenRouterProviderFallbacks`
+- `ProviderPinFailurePolicy.RoutingJson`: `ModSettings.AllowOpenRouterProviderFallbacks`
 - `ProviderRolePolicy.ParseKind`: `Provider.SelectedValue`
 - `ProviderRolePolicy.ResolveRoleKind`: `Provider.SelectedValue`
 - `QuestMenuEntry`: `FactionManager.IsAtWarAgainstFaction`, `Hero.CurrentSettlement`, `Hero.MapFaction`, `Hero.Name`, `Kingdom.Leader`, `Settlement.GetPosition2D`, `Settlement.Name`, `Vec2.x`, `Vec2.y`

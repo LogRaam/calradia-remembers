@@ -38,8 +38,17 @@ namespace CalradiaRemembers.Chat
       ///   context is too short for the prompt). The exact error is in the log; this points a player who
       ///   has not enabled logging at the likely cause without spamming them every failure.
       /// </summary>
-      private static void NotifyLlmFailure(string reason = null)
+      private static void NotifyLlmFailure(string reason = null, string knownCause = null)
       {
+         // A cause CR can name (a provider pin with no endpoint left) is said plainly, every time, in place of the
+         // generic advice: Windmolen (29/09/2026) was told to check his model and endpoint while his pin was the fault.
+         if (!string.IsNullOrWhiteSpace(knownCause))
+         {
+            ModLog.Notice(knownCause);
+
+            return;
+         }
+
          if (_llmFailureHintShown) return;
          _llmFailureHintShown = true;
          // Surface the client's OWN reason when it has one (a timeout, a context-length or rate-limit error):

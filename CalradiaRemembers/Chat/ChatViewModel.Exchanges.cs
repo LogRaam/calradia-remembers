@@ -931,7 +931,9 @@ namespace CalradiaRemembers.Chat
                if (FellSilentAsEnsembleVoice(suppressGroupTail, placeholder, speaker, result.ErrorMessage)) return;
                ReplacePlaceholder(placeholder, "(My words escape me...)", speaker);
                ModLog.Error($"LLM call failed in {elapsedMs} ms: {result.ErrorMessage}");
-               NotifyLlmFailure(result.ErrorMessage);
+               // Windmolen (29/09/2026): a provider pin with no endpoint left read as "the AI did not respond".
+               NotifyLlmFailure(result.ErrorMessage, ProviderPinFailurePolicy.Explain(
+                  result.ErrorMessage, !string.IsNullOrWhiteSpace(Services.LlmServices.ActiveProviderPin()), ModSettings.AllowOpenRouterProviderFallbacks));
                RestoreInputAfterFailedTurn(playerMessage, suppressPlayerLine);
 
                return;

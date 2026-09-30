@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 435 types in 56 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 834 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 835 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 241 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -765,7 +765,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (532)
+### CalradiaRemembers.Logic (533)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1151,6 +1151,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ProvideGoodsPolicy` | public static class | Pure rules for a ProvideGoods supply task: category normalization, count clamp, satisfaction. |
 | `ProviderKind` | public enum | The concrete OpenAI-compatible service a request is sent to. |
 | `ProviderModelPolicy` | public static class | Whether a configured model id is a real choice for the provider a role is pointed at, and what to send when it is not. |
+| `ProviderPinFailurePolicy` | public static class | Recognises a dead end made by the player's provider pin, and builds the pin into a request. |
 | `ProviderRolePolicy` | public static class | Maps the per-role provider dropdown strings to a ProviderKind, honouring the "(default)" inherit sentinel. |
 | `PublicAffrontPolicy` | public static class | The rule behind "insults travel": when a conversation's relation drop, delivered before witnesses, becomes a circulating rumour, and how widely it carries. |
 | `QuestFailureLeniency` | public class | How a failed or abandoned quest is charged: whether it grudges, remembers a broken word, spends trust, and by how much regard. |
