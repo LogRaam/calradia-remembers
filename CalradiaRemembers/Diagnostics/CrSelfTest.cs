@@ -281,7 +281,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("arrest_warrant_and_bench", Severity.Light, "Arrests (Gabriel, 26/09/2026): a grave act opens a warrant in the liege's name and the trial bench seats the liege first, then the realm's vassals who regard the player worst. The liege is the player's own, or ARRANGED (another realm's living ruler) when the player serves none, without joining any kingdom. Puts the saved case back exactly (DebugSnapshot/DebugRestore); the sergeants, sent only on the hourly tick, never ride.", TestArrestWarrantAndBench),
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
-         new SelfTest("mood_of_the_day", Severity.Light, "The mood of the day, increment 2 (ROADMAP, ruled 14/09 and 30/09/2026): reads real characters' days off the game and draws their mood. The same man drawn twice today is the same mood; a captive never draws an ordinary day or high spirits; the player draws none. Read-only.", TestMoodOfTheDay),
+         new SelfTest("mood_of_the_day", Severity.Light, "The mood of the day (ROADMAP, ruled 14/09 and 30/09/2026): reads real characters' days off the game and draws their mood. The same man drawn twice today is the same mood; a captive never draws an ordinary day or high spirits; the player draws none; a lift in conversation moves it one band and a new conversation starts from the day again. Read-only.", TestMoodOfTheDay),
          new SelfTest("action_gate", Severity.Light, "The one gate every character's action asks (Gabriel, 30/09/2026: a baby son asked to discuss warfare, then a dead father sat at a council). On the live population: no child takes an adult's act (lords by occupation included), no child under 13 sits at a council, no captive acts outside marriage and duels, no one dead or disabled acts at all, the player never acts toward themselves, and a free adult lord may do everything. Read-only.", TestActionGate),
          new SelfTest("letter_place_and_audience_age", Severity.Light, "Two reports (30/09/2026): Lordfadooboo's lone player placed \"on the march with your own retinue\" (the writer's) in a wanderer's letter, and Nexusrrr's baby son asking for an audience about warfare. Checks the phrase that places the player in a letter never borrows the writer's \"your\" and says alone when alone, and that no child is among those who may ask for an audience in any town. Read-only.", TestLetterAndAudienceSeekers),
          new SelfTest("regard_changed", Severity.Light, "The public regard-change door (29/09/2026, for tashmetu's bridge): raises a real character's regard by 1 and lowers it back through the one place regard changes, and checks a CrNpcMemory.RegardChanged listener hears both with before, after and cause. Regard is restored and the listener removed.", TestRegardChanged),
@@ -9806,6 +9806,18 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          t.Expect("thePlayerDrawsNone", Mapping.DayMoodReader.Draw(Hero.MainHero).Mood.HasValue, false);
+
+         // Increment 4: the player moves it within a conversation, one band a turn, and a new conversation forgets it.
+         if (first.HasValue)
+         {
+            Chat.ConversationMood.Reset();
+            Chat.ConversationMood.Record(lord.StringId, 1);
+            NpcMemoryService.Core.Mood.DayMood? lifted = Chat.ConversationMood.NowFor(lord.StringId, first);
+            t.Note($"lifted once: {first} -> {lifted}");
+            t.Expect("aLiftMovesItOneBand", lifted == NpcMemoryService.Core.Mood.MoodLadder.Shift(first.Value, 1), true);
+            Chat.ConversationMood.Reset();
+            t.Expect("aNewConversationStartsFromTheDay", Chat.ConversationMood.NowFor(lord.StringId, first).HasValue, false);
+         }
 
          return t.Line();
       }

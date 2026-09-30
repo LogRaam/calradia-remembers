@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 441 types in 57 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 442 types in 57 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 847 types in 26 namespaces, 2 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 243 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 245 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -153,7 +153,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 
-### CalradiaRemembers.Chat (47)
+### CalradiaRemembers.Chat (48)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -178,6 +178,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatViewModel` | public class, partial over 7 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
+| `ConversationMood` | public static class | How far the player has moved each character's mood in the current conversation. |
 | `ConversationResumeStore` | public class | Holds at most one ConversationResumeSnapshot and persists it with the campaign. |
 | `ConversationSummaryQueueRunner` | public class | Owns the persisted ConversationSummaryQueue and drains it off the main thread. |
 | `ConversationSummaryService` | public static class | Generates and applies the rich LLM summary that replaces a base captive/conversation memory. |
@@ -1981,12 +1982,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WitnessReaction` | public class | A brief visible reaction (gesture, expression, one short line) from a witness present during a conversation. |
 | `WorldState` | public class | Ambient world context injected into every NPC system prompt. |
 
-### NpcMemoryService.Core.Mood (3)
+### NpcMemoryService.Core.Mood (5)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `DayMood` | public enum | What kind of day this character is having. |
 | `MoodFacts` | public record | How the day is pressing. |
+| `MoodLadder` | public static class | The order the player can move a mood along, from bleakest to brightest. |
+| `MoodLine` | public static class | Composes the character's mood block for the prompt's per-turn tail. |
 | `MoodOfTheDay` | public static class | The pure draw. |
 
 ### NpcMemoryService.Core.Parsing (9)

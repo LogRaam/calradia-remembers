@@ -1210,6 +1210,7 @@ namespace CalradiaRemembers.Chat
             // Stance: the LLM's spoken nudges to trust/respect/fear — capped hard and rate-limited
             // (words only colour; deeds prove). Persisted by the Store.Set below after actions run.
             StanceService.ApplyWordShift(profile, response.StanceShift);
+            ConversationMood.Record(speaker.Hero?.StringId, response.StanceShift?.Mood ?? 0);
 
             // Jealousy (Sprint 24): a romantic act recorded this turn may provoke a staked
             // third party. Intimacy only when adult content is enabled. Witnesses present mean

@@ -1330,6 +1330,7 @@ namespace CalradiaRemembers.Chat
       private static void GenerateChatWindow(string npcName, bool forceClassicSkin = false)
       {
          ActiveViewModel = new ChatViewModel {OnCloseRequested = Close};
+         ConversationMood.Reset(); // a new conversation starts again from each character's day
 
          var conversationHero = Hero.OneToOneConversationHero;
          if (conversationHero != null)

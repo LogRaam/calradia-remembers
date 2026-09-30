@@ -518,6 +518,7 @@ namespace CalradiaRemembers.Mapping
             PersonalBonds = knowledge.PersonalBonds,
             DayMood = knowledge.DayMood,
             WitPermitted = knowledge.WitPermitted,
+            DayMoodNow = Chat.ConversationMood.NowFor(hero?.StringId, knowledge.DayMood),
             Audience = BuildListeningAudience(profile, witnesses),
             // follow_me: taught only when EscortEligibilityPolicy.CanEscort says the game can truly honour it
             // right now (see the computation just above the object initializer). dismiss_escort is the mirror,
