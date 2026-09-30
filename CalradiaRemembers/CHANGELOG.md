@@ -2,7 +2,51 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.6.7.. 2026-09-30
+## v2.6.8.. 2026-09-30
+
+### Fixed
+- **A witness addressed by name in Japanese answers** (yozakura12, Nexus, 24/09/2026: 「カリー、聞かせてくれるか？」 stayed
+  with the main character and カリー never got a turn). `AddressedSpeakerDetector` split on spaces and read a Latin comma;
+  CJK punctuation is now understood, a name opening the line before 、 or ！/？ (or closing it after 、) is an address, a
+  name followed by a particle stays a mention, and two-character CJK names count.
+- **A lord announced as riding out to meet the player now does** (Lordfadooboo: "passing me by or going into a city").
+  The engage order was a bare nudge the lord's own AI took back on its next cycle; the lord is now held on course (the
+  AI lock the escort and the couriers use) and released on every end of the chase; one called into an army stands
+  down. `cr.testall interception_holds_course`.
+- **The dead no longer sit at a council** (Maifailun: "my characters dead father is also partaking in the meeting").
+  The game keeps the dead in a clan's heroes, and a dead lord's travel estimate read 0 days.
+- **Every action a character takes now asks one gate** (Gabriel, 30/09/2026: "s'asseoir a la table devrait etre une
+  action"). `InitiativeGate` became `ActionGate` with a rule per act, and reaches every path an inventory found: a
+  council seat, a letter the player sends (no longer received by a hero taken out of the world), a warrant (never from
+  a dead, disabled, child or captive ruler), witnesses, a held landfall scene, a prisoner's envoy on arrival, marriage
+  prospects, hostages and wards, duels, companion missions, take_into_service, follow_me, an ambush paymaster or a
+  nemesis at scene time, council pacts executed later, and quests of a giver gone from the world. The engine counts
+  a DISABLED hero as alive (`Hero.IsAlive` means only "not dead"); `HeroPresence.IsInTheWorld` is the one reading of
+  presence, and a ratchet counts every bare `IsAlive` read. `cr.testall action_gate` (renamed from initiative_gate),
+  `council_attendance`.
+- own_body read a "maiming" from `Hero.IsDisabled`, which is a hero taken out of the world; nothing is claimed now.
+
+### New
+- **A friendly clan warms a first meeting** (tashmetu): once per character, a clan counting the player a trusted
+  friend (+30) starts its member at friendly regard, a favourable one (+10) at cordial, never beyond, never lowering,
+  never over a personal offence. MCM "Clan standing warms first meetings", default on. `cr.testall clan_standing_seed`.
+- **The mood of the day, finished** (ROADMAP, 14/09 and 30/09/2026): read off the game (wounds, purse, the realm's
+  war, a hall or the field, the hour, captivity, a recent blow or gladness), the same man all day; one "YOUR DAY" line
+  in the per-turn tail that colours delivery and never decides; the player lifts or sours it during a conversation
+  (the character's own `mood:` line in `[STANCE]`, one band a turn, two a conversation); letters carry the writer's
+  day. `cr.testall mood_of_the_day`.
+- **Self-esteem** (Lordfadooboo, Maifailun): a met character's regard for himself, from station, a personal draw and
+  valour, moved by battles, captivities (each landing harder than the last), tournaments, fiefs, a death in the house,
+  duels with the player, violence, and reassurance; it mends with time and leans the mood of the day. A shaken
+  character is quicker to take offence and wants reassurance; a proud one expects deference. `cr.testall self_esteem`.
+- **How they seem**: the chat's character dossier (both skins) shows one numberless sentence of how the character
+  carries himself and how his day shows. A proud or calculating character hides a shaken spirit from strangers; those
+  who know him well see the strain beneath it.
+
+### For modders
+- `RegardChanged` has a new cause, `clan_standing` (it comes from the game's relation: a mirroring mod skips it).
+  EXTENSION_API.md: `AddMemory`/`GetMemories` are called on the game thread; an injected memory never moves regard.
+
 
 ### Fixed
 - **A child never takes the initiative toward the player** (Nexusrrr, Nexus, 28/09/2026: "my son is a 0-year-old baby,
