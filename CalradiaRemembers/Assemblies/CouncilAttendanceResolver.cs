@@ -184,6 +184,9 @@ namespace CalradiaRemembers.Assemblies
          NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId);
 
          return new CouncilAttendanceFacts {
+            // A DISABLED hero (taken out of the world: not yet in play, or set aside by a mod such as a custom family's
+            // late parent) is as absent from the table as the dead, and has no whereabouts either.
+            IsDead = !hero.IsAlive || hero.HeroState == Hero.CharacterStates.Disabled,
             IsPrisoner = hero.IsPrisoner,
             IsInPlayerParty = isInPlayerParty,
             IsPlayerFaction = IsPlayerFactionMember(hero, playerClan),

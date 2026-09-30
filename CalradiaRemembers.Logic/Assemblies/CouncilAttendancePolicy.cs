@@ -42,7 +42,10 @@ namespace CalradiaRemembers.Logic.Assemblies
         Declined,
 
         /// <summary>An other-faction candidate not sought for a parley: not a council candidate at all.</summary>
-        OtherFactionNotInvited
+        OtherFactionNotInvited,
+
+        /// <summary>Dead: the game keeps the dead in a clan's heroes, and they never sit (Maifailun, 30/09/2026).</summary>
+        Dead
     }
 
     /// <summary>
@@ -52,6 +55,12 @@ namespace CalradiaRemembers.Logic.Assemblies
     /// </summary>
     public readonly struct CouncilAttendanceFacts
     {
+        /// <summary>
+        ///   Dead. Checked before everything: a dead lord has no party and no settlement, so his travel estimate reads
+        ///   0 days, which without this read as "near enough to attend in person" (Maifailun's dead father, 30/09/2026).
+        /// </summary>
+        public bool IsDead { get; init; }
+
         /// <summary>Held prisoner right now. Bars every form of attendance, regardless of every other flag.</summary>
         public bool IsPrisoner { get; init; }
 
@@ -111,7 +120,7 @@ namespace CalradiaRemembers.Logic.Assemblies
         public const int HostileRegardFloor = AssemblyRsvpPolicy.HeedRegardFloor;
 
         /// <summary>
-        ///   Decides attendance in ratified order. (1) A prisoner is always Absent, before anything else. (2) A
+        ///   Decides attendance in ratified order. (0) The dead never sit. (1) A prisoner is always Absent. (2) A
         ///   candidate already in the player's party always attends InPerson, regardless of faction or distance.
         ///   (3) A parley target is always represented by an Ambassador; proximity and faction checks do not
         ///   apply to them. (4) The player's own faction attends InPerson only if willing (not at open war with
@@ -123,6 +132,8 @@ namespace CalradiaRemembers.Logic.Assemblies
         /// </summary>
         public static CouncilAttendanceResult Decide(CouncilAttendanceFacts facts, double thresholdDays)
         {
+            if (facts.IsDead)
+                return new CouncilAttendanceResult(CouncilAttendance.Absent, CouncilAttendanceReason.Dead);
             if (facts.IsPrisoner)
                 return new CouncilAttendanceResult(CouncilAttendance.Absent, CouncilAttendanceReason.Prisoner);
 

@@ -406,7 +406,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("assembly_arrival", Severity.Light, "Mechanical (ASSEMBLY Inc 1 slice 2): convenes + sets two lords EnRoute, then drives the two runtime transitions: one reaches the host and seats Present, the deadline turns the other into an ambassador; cancels after (no map travel, no LLM)", TestAssemblyArrival),
          new SelfTest("assembly_revalidate", Severity.Light, "Mechanical (ASSEMBLY Inc 1 robustness): the daily re-validation reads the live host + traveller state and leaves a healthy assembly intact (host/traveller edge combinations are pinned by the pure policy tests)", TestAssemblyRevalidate),
          new SelfTest("council_parley_snapshot", Severity.Light, "Mechanical (Parley council): CouncilSessionSnapshot's additive ParleyTargetFactionId field round-trips through the exact JsonConvert path CouncilSessionBehavior.SyncData uses, both WITH a value set and WITHOUT one present in the JSON at all (an old pre-Parley snapshot) -> the missing-field case must deserialize to null rather than throw. No live campaign state touched", TestCouncilParleySnapshot),
-         new SelfTest("council_attendance", Severity.Light, "Mechanical (Convergence Inc 2): drives the REAL CouncilAttendanceResolver.Resolve against the live campaign for CouncilScope.Party -> every hero it seats is InParty (skips if the party carries no other hero); then, mechanically, feeds CouncilAttendancePolicy.Decide a constructed far own-faction fact directly -> asserts Absent/TooFar and never Ambassador (the 'your own house never sends a stand-in' guarantee); a live prisoner, if any exists, resolves to Absent/Prisoner. No world mutation", TestCouncilAttendance),
+         new SelfTest("council_attendance", Severity.Light, "Mechanical (Convergence Inc 2; the dead never sit, Maifailun 30/09/2026): drives the REAL CouncilAttendanceResolver.Resolve against the live campaign for CouncilScope.Party -> every hero it seats is InParty (skips if the party carries no other hero); then, mechanically, feeds CouncilAttendancePolicy.Decide a constructed far own-faction fact directly -> asserts Absent/TooFar and never Ambassador (the 'your own house never sends a stand-in' guarantee); a live prisoner, if any exists, resolves to Absent/Prisoner. No world mutation", TestCouncilAttendance),
          new SelfTest("council_roster_swap", Severity.Light, "Mechanical (Convergence Inc 3a): for a live NON-parley scope (ClanLords), every hero CouncilAttendanceResolver.SeatedInPersonHeroes seats is independently re-judged InPerson via DebugDecideFor, no seated hero is a prisoner, and no Absent-rated candidate from the scope's own pool got seated (the 'war council felt magic' fix: a far own-faction lord is now absent). For Parley, asserts the helper is still a pure pass-through to the OLD CouncilRosterResolver.Seated (identical set), proving this increment left that scope untouched. Skips MANUAL when the campaign has no ClanLords candidate. No world mutation", TestCouncilRosterSwap),
          new SelfTest("envoy_identity", Severity.Light, "Mechanical (Convergence Inc 4): picks any live OTHER-faction kingdom leader, drives the REAL EnvoyFactory.Create -> asserts a non-null synthetic profile whose Name is 'Herald of {faction}', whose persona names both the faction and the leader, whose Id starts with 'cr_envoy_', and which was NEVER written to the store (Store.Get right after Create is null). Skips MANUAL when no other-faction kingdom has a live leader. No world mutation, nothing to clean up (never persisted)", TestEnvoyIdentity),
          new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate),
@@ -2386,6 +2386,24 @@ namespace CalradiaRemembers.Diagnostics
          else
          {
             t.Note("no live prisoner in this campaign (optional check skipped)");
+         }
+
+         // Maifailun (30/09/2026): a dead father sat at the table. The game keeps the dead in a clan's heroes; one of
+         // the player's own house is preferred, any dead hero proves the verdict otherwise.
+         Hero dead = Clan.PlayerClan?.Heroes?.FirstOrDefault(h => h != null && !h.IsAlive)
+                     ?? Hero.DeadOrDisabledHeroes.FirstOrDefault(h => h != null && !h.IsAlive);
+         if (dead != null)
+         {
+            CouncilAttendanceResult deadVerdict =
+               CouncilAttendanceResolver.DebugDecideFor(dead, CouncilScope.ClanLords, CouncilAttendanceResolver.DefaultThresholdDays);
+            t.Note($"dead={dead.Name}: attendance={deadVerdict.Attendance}, reason={deadVerdict.Reason}");
+            t.Expect("theDeadNeverSit", deadVerdict.Reason, CouncilAttendanceReason.Dead);
+            t.Expect("noDeadLordOfTheHouseAtTheTable",
+               CouncilAttendanceResolver.SeatedInPersonHeroes(CouncilScope.ClanLords).Any(h => !h.IsAlive), false);
+         }
+         else
+         {
+            t.Note("no dead hero in this campaign (optional check skipped)");
          }
 
          return t.Line();
