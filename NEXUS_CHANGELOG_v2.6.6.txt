@@ -1,12 +1,29 @@
 ﻿Version 2.6.6
 
-Three additions from your suggestions.
+Your suggestions and reports: regard by letter, the game's mercenaries judged, great lords who write through their household, and three fixes.
+
+Fixed
+
+- At sea, a conversation now waits until you make landfall. The chat used to open straight over the naval map, which could flicker and crash the game. A prisoner's envoy now only arrives once you are ashore. (Thank you, Windmolen.)
+- If you pinned providers in the OpenRouter options and none of them serves your model any more, the game now tells you so, names the model, and says how to fix it, instead of "the AI did not respond". The Test Connection button now uses your pinned providers too, so it fails where the chat fails. (Thank you, Windmolen.)
+- In a town duel, you now take up your own battle gear, as your opponent does, instead of fighting in your town clothes. (Thank you, Thoragoros1.)
 
 New
 
 - Letters now build regard. Before, you could exchange a dozen letters with someone and still meet them as near-strangers. Now the person reading your letter judges it: a warm letter raises their regard by a point, at most once every 5 days per correspondent (faster on the warmer relation settings). Letters alone take you as far as friendly regard; beyond that, you have to meet in person. A rude or insulting letter costs a point. (Thank you, Lordfadooboo.)
 - The game's own mercenary companies are now judged like yours. A company that leaves a realm in the middle of a losing war, or goes straight over to its enemy, is resented by that realm's lords, and word of it gets about. Ending a contract in peace, or with the war won, is not news. (Thank you, Zivkyn and fkasad.)
 - Leaving a realm as a vassal with no fief is judged like leaving a mercenary contract, except that you swore an oath: abandoning a losing war or going over to the enemy weighs twice as much, three times for a realm of your own people, and you are never thanked for leaving. A vassal who leaves with their fiefs takes them to war against the realm, and that war is the consequence. (Thank you, fkasad.)
+- Great lords write through their household. A ruler, or a lord of a much greater house than yours, no longer writes to you in their own hand: their chancellery or steward writes in their name, formally. Love letters, family matters and private affairs are still written in person, and so are letters from someone who has come to hold you dear. As your house rises, the great begin to write to you themselves. These letters stay in that lord's letter history, and the lord remembers having sent them. The same rule keeps a ruler from riding out in person to intercept a newcomer.
+
+For modders
+
+- New event CrNpcMemory.RegardChanged: fired on every change of a character's personal regard for the player, with the value before and after and the cause. Calradia Remembers never writes the game's own relation from regard; EXTENSION_API.md explains why, and how a mod may choose to. (Thank you, tashmetu.)
+- RelationToPlayer is now documented as the personal regard, never the game's relation. In the prompt, the game's value is called "your clan's standing" and ours "your own personal regard": use those words in your prompt rules.
+
+Developer tools
+
+- cr.balance_survey records the balance of power week by week (and graphics memory beside it) to a file in the Logs folder; cr.balance_survey report summarises it.
+- New cr.testall tests: mercenary_company_judged, vassal_departure_judged, letter_regard, landfall_wait, balance_survey, correspondence_rank, regard_changed.
 
 Notes
 
