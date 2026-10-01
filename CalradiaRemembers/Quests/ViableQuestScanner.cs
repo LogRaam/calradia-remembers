@@ -88,6 +88,9 @@ namespace CalradiaRemembers.Quests
          // 5. A letter always travels: a real recipient of the giver's own clan or circle, elsewhere.
          AddLetterEntry(entries, giver);
 
+         // 5b. Someone whose favour serves the giver, to be won over (Lordfadooboo, 01/10/2026).
+         AddEarnRegardEntry(entries, giver);
+
          // 6. A lord always needs supplies: horses for the cavalry, livestock or grain for the host. Always
          // groundable (the player can bring goods), so this personal task is always on the menu.
          entries.Add(new QuestMenuEntry {TypeToken = "provide_goods", TargetField = null, TargetName = null, Cue = "have the player bring you a supply of horses, livestock, or grain (set category + required_count)"});
@@ -173,6 +176,26 @@ namespace CalradiaRemembers.Quests
          if (captive == null) return;
 
          entries.Add(new QuestMenuEntry {TypeToken = "rescue_prisoner", TargetField = "target_hero", TargetName = captive.Name?.ToString(), Cue = $"{captive.Name} of your realm languishes in enemy hands"});
+      }
+
+      /// <summary>
+      ///   A person whose good graces serve the giver: his realm's ruler, else the head of his house. Offered only
+      ///   when the factory would bind them (EarnRegardPolicy: a living adult third person, something left to win).
+      /// </summary>
+      private static void AddEarnRegardEntry(List<QuestMenuEntry> entries, Hero giver)
+      {
+         Hero ruler = (giver?.MapFaction as Kingdom)?.Leader;
+         Hero head = giver?.Clan?.Leader;
+
+         foreach ((Hero who, string why) in new[] {(ruler, "your liege"), (head, "the head of your house")})
+         {
+            if (who == null || !EarnRegardPolicy.MayBeNamed(QuestFactory.RegardTargetFacts(who, giver))) continue;
+            if (EarnRegardPolicy.GoalFrom(QuestFactory.RegardFor(who)) == null) continue;
+
+            entries.Add(new QuestMenuEntry {TypeToken = "earn_regard", TargetField = "target_hero", TargetName = who.Name?.ToString(), Cue = $"the player should win the good graces of {who.Name}, {why}, whose favour serves you"});
+
+            return;
+         }
       }
 
       private static void AddLetterEntry(List<QuestMenuEntry> entries, Hero giver)

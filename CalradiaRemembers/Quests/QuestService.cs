@@ -701,6 +701,7 @@ namespace CalradiaRemembers.Quests
                     : $"deliver goods worth {q.RequiredItemValue} denars";
             case QuestType.ProvideGoods:
                 return $"bring {q.RequiredItemCount} {q.RequiredItemCategory}";
+            case QuestType.EarnRegard: return $"win the good graces of {q.TargetHeroName}";
             default: return "carry out a task";
          }
       }

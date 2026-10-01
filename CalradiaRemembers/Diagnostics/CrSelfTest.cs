@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("earn_regard_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): a lord asks the player to win the good graces of another. Issues the task through the real QuestFactory against a living lord of another clan, expects the baseline and a goal ten beyond it, expects one point short NOT to complete it and the goal to complete it through the real regard-change credit, then removes the task. Moves no regard.", TestEarnRegardQuest),
          new SelfTest("town_food_memory", Severity.Light, "fkasad and Lordfadooboo (Nexus, 01/10/2026): a hungry town remembers who fed it and who emptied its market. Reads every town's granary as the market listener does, and words the memory a real town would keep for a relief and for hoarding: placed in that town, naming it, a deed for the relief and a disgrace for the hoarding. Records nothing.", TestTownFoodMemory),
          new SelfTest("grain_relief_destination", Severity.Light, "fkasad (Nexus, 01/10/2026): grain a lord asked for while his town goes hungry feeds the town. Empties a real town's granary for a moment, expects its holder's grain to be routed there, then puts the stores back exactly. Records nothing, moves no grain.", TestGrainReliefDestination),
          new SelfTest("private_memory_injection", Severity.Light, "tashmetu (01/10/2026): another mod injects a memory said in confidence. Injects one through the public CrNpcMemory.AddMemory with Private set on a real met character, checks it is stored private (kept to private talk) and that an unmarked one stays public. Both are removed.", TestPrivateMemoryInjection),
@@ -8653,6 +8654,47 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestEarnRegardQuest(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("earn_regard_quest");
+
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan);
+         Hero target = giver == null ? null
+            : Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Clan != giver.Clan
+                                                     && Quests.QuestFactory.RegardFor(h) < EarnRegardPolicy.NothingLeftToWin);
+         if (t.Skip(giver == null || target == null, "no lord pair to give and receive the task")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         InformalQuest quest = Quests.QuestFactory.Create(new QuestProposal {Type = QuestType.EarnRegard, TargetHero = target.Name.ToString(), DeadlineDays = 5}, giver, today);
+         if (t.Abort(quest == null, $"the factory refused to bind {target.Name} for {giver.Name}")) return t.Line();
+
+         int baseline = Quests.QuestFactory.RegardFor(target);
+         t.Note($"{giver.Name} asks the player to win over {quest.TargetHeroName}: regard {quest.RegardBaseline} -> {quest.RegardGoal}, deadline {quest.DeadlineDay - today} days");
+         t.Expect("boundToTheTarget", quest.TargetHeroId, target.StringId);
+         t.Expect("baselineIsTheirRegardNow", quest.RegardBaseline, baseline);
+         t.Expect("goalIsTenBeyond", quest.RegardGoal, baseline + EarnRegardPolicy.RequiredGain);
+         t.Expect("aShortDeadlineIsLengthened", quest.DeadlineDay - today, EarnRegardPolicy.MinimumDays);
+
+         NpcProfile giverProfile = GetOrCreate(behavior, giver);
+         giverProfile.ActiveQuests.Add(quest);
+         behavior.Store.Set(giverProfile);
+         try
+         {
+            int shortOf = Quests.QuestDeedTracker.CreditRegard(target.StringId, quest.RegardGoal.Value - 1);
+            t.Expect("onePointShortDoesNotComplete", shortOf == 0 && quest.SatisfiedOnDay == null, true);
+
+            int reached = Quests.QuestDeedTracker.CreditRegard(target.StringId, quest.RegardGoal.Value);
+            t.Expect("theGoalCompletesIt", reached >= 1 && quest.SatisfiedOnDay == today, true);
+         }
+         finally
+         {
+            giverProfile.ActiveQuests.Remove(quest);
+            behavior.Store.Set(giverProfile);
+         }
 
          return t.Line();
       }

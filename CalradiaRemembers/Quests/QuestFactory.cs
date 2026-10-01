@@ -270,6 +270,48 @@ namespace CalradiaRemembers.Quests
          return true;
       }
 
+      /// <summary>
+      ///   Binds an earn_regard task (Lordfadooboo, 01/10/2026): a living adult third person, the regard they hold
+      ///   for the player now as the baseline, ten more as the goal, and at least a month to win it. Refused when
+      ///   that person already holds the player dear, since there would be nothing left to win.
+      /// </summary>
+      private static bool BindRegardToWin(InformalQuest quest, QuestProposal proposal, Hero giver)
+      {
+         if (!BindHero(quest, proposal.TargetHero, giver)) return false;
+
+         Hero target = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+         if (!EarnRegardPolicy.MayBeNamed(RegardTargetFacts(target, giver))) return false;
+
+         int baseline = RegardFor(target);
+         int? goal = EarnRegardPolicy.GoalFrom(baseline);
+         if (goal == null)
+         {
+            ModLog.Info($"[QUEST] earn_regard refused: {target.Name} already holds the player dear ({baseline}).");
+
+            return false;
+         }
+
+         quest.RegardBaseline = baseline;
+         quest.RegardGoal = goal;
+         int? days = EarnRegardPolicy.DeadlineDays(quest.DeadlineDay - quest.IssuedOnDay);
+         quest.DeadlineDay = days == null ? (int?) null : quest.IssuedOnDay + days.Value;
+
+         return true;
+      }
+
+      /// <summary>The facts EarnRegardPolicy judges a named person on.</summary>
+      internal static EarnRegardTargetFacts RegardTargetFacts(Hero target, Hero giver)
+         => new EarnRegardTargetFacts {
+            IsThePlayer = target != null && target == Hero.MainHero,
+            IsTheGiver = target != null && target == giver,
+            IsInTheWorld = Mapping.HeroPresence.IsInTheWorld(target),
+            IsAdult = target != null && !target.IsChild
+         };
+
+      /// <summary>The person's own regard for the player, on the mod's ledger; 0 for someone the player never met.</summary>
+      internal static int RegardFor(Hero target)
+         => target == null ? 0 : Behaviors.NpcMemoryCampaignBehavior.Instance?.Store?.Get(target.StringId)?.ReputationWithPlayer ?? 0;
+
       private static bool BindHero(InformalQuest quest, string name, Hero giver)
       {
          Hero h = ResolveHero(name, giver);
@@ -571,6 +613,9 @@ namespace CalradiaRemembers.Quests
 
             case QuestType.DeclareWar:
                return BindDeclarableWarTarget(quest, proposal.TargetFaction);
+
+            case QuestType.EarnRegard:
+               return BindRegardToWin(quest, proposal, giver);
 
             case QuestType.ScoutArmy:
                // Prefer a named army leader; fall back to any army of the named faction;

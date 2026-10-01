@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 447 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 863 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 865 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -782,7 +782,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (561)
+### CalradiaRemembers.Logic (563)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -951,6 +951,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DivorceProcess` | public class | One NPC's ongoing estrangement from their own spouse, begun at the player's urging: who, concerning which spouse, started when, due when, how many days of spousal resistance have already pushed the end day back, and wher... |
 | `DivorceProcessState` | public enum | The lifecycle of a divorce process. |
 | `DivorceResistanceOutcome` | public enum | The outcome of one day's spousal-resistance roll against an active DivorceProcess. |
+| `EarnRegardPolicy` | public static class | The rules of an earn_regard task. |
+| `EarnRegardTargetFacts` | public class | Who a giver may send the player to win over. |
 | `EnvoyDeal` | public class | A deal rebound to the mandate, ready for the bridge. |
 | `EnvoyMandate` | public class | What the lord authorised his envoy to settle. |
 | `EnvoyMandatePolicy` | public static class | Holds an envoy to his mandate, and names him. |

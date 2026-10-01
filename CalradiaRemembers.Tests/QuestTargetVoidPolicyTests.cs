@@ -29,6 +29,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(QuestType.ExecuteEnemy)]
         [TestCase(QuestType.DeliverLetter)]
         [TestCase(QuestType.DeliverPrisoner)]
+        [TestCase(QuestType.EarnRegard)] // a dead lord's good graces are won by nobody (Lordfadooboo, 01/10/2026)
         public void GIVEN_a_hero_bound_quest_WHEN_its_target_is_dead_THEN_it_voids(QuestType type)
         {
             QuestTargetVoidPolicy.ShouldVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = type, HasTargetHero = true, TargetResolved = true, TargetAlive = false, TargetIsPrisoner = false})
@@ -51,6 +52,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(QuestType.ExecuteEnemy)]
         [TestCase(QuestType.DeliverLetter)]
         [TestCase(QuestType.DeliverPrisoner)]
+        [TestCase(QuestType.EarnRegard)]
         public void GIVEN_a_hero_bound_quest_WHEN_its_target_is_alive_and_present_THEN_it_does_NOT_void(QuestType type)
         {
             QuestTargetVoidPolicy.ShouldVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = type, HasTargetHero = true, TargetResolved = true, TargetAlive = true, TargetIsPrisoner = true})
@@ -109,6 +111,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(QuestType.RescuePrisoner, true)]
         [TestCase(QuestType.DeliverLetter, true)]
         [TestCase(QuestType.DeliverPrisoner, true)]
+        [TestCase(QuestType.EarnRegard, true)]
         [TestCase(QuestType.NemesisBounty, false)]
         [TestCase(QuestType.BanditClear, false)]
         [TestCase(QuestType.DeclareWar, false)]

@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-391 rules read 297 facts.
+393 rules read 297 facts.
 
 ## Facts read by more than one rule
 
@@ -36,12 +36,12 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.GovernorOf` (13) | `AppointmentOfferFacts`, `CompanionAmbitionFacts`, `CompanionAmbitionPolicy.Select`, `CompanionChargeFacts`, `CompanionServiceTransferFacts`, `CompanionServiceTransferPolicy.Evaluate`, `DivorceBlockFacts`, `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `DivorcedSpouseFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts` |
 | `PartyBelongedTo.LeaderHero` (13) | `CompanionAmbitionFacts`, `CompanionAmbitionPolicy.Select`, `CompanionChargeFacts`, `CompanionRescuePolicy.ShouldAttempt`, `DivorceBlockFacts`, `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `DivorcedSpouseFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `OathOfferFacts`, `RejoinPartyFacts` |
 | `Hero.Father` (12) | `CorrespondenceRankFacts`, `CorrespondenceRankPolicy.DealsInPerson`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `MarryCompanionFacts`, `MeetingGapDescriber.Describe`, `ParentageFacts`, `PredecessorFacts`, `SuccessionMemoryPolicy.Reframe`, `ThirdPartyDescriptor.KnowledgeOf`, `ThirdPartyDescriptor.WhereaboutsClause`, `ThirdPartyFacts` |
+| `Hero.IsChild` (12) | `ActorFacts`, `CompanionMatchFacts`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `EarnRegardPolicy.MayBeNamed`, `EarnRegardTargetFacts`, `HostageCandidateFacts`, `HostageEligibilityPolicy.IsEligible`, `NotableRecruitmentFacts`, `NpcActionGate.Check`, `PrisonerExchangePolicy.IsExchangeable`, `RescueGratitudePolicy.CanFeelTheDebt` |
 | `Hero.Mother` (12) | `CorrespondenceRankFacts`, `CorrespondenceRankPolicy.DealsInPerson`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `MarryCompanionFacts`, `MeetingGapDescriber.Describe`, `ParentageFacts`, `PredecessorFacts`, `SuccessionMemoryPolicy.Reframe`, `ThirdPartyDescriptor.KnowledgeOf`, `ThirdPartyDescriptor.WhereaboutsClause`, `ThirdPartyFacts` |
 | `MobileParty.IsCurrentlyAtSea` (12) | `ChaseFacts`, `CourierGateFacts`, `DuelStagingSupport.CanStage`, `DuelVenuePolicy.Choose`, `InterceptionPolicy.CanMeetOnLand`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `LandfallFacts`, `LetterDeliveryPolicy.ShouldHoldDeliveryAtSea`, `PresenceDescriber.Describe`, `RoadAudienceFacts`, `StagingHostFacts`, `StagingHostPolicy.AnEnvoyCanReachThePlayer` |
 | `MobileParty.GetPosition2D` (11) | `BattleFacts`, `ChaseFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `CourierGateFacts`, `CourierStuckPolicy.HasMoved`, `EscortCostPolicy.EscortPremium`, `GeographyDescriber.Bearing`, `InterceptionFacts`, `InterceptionPolicy.Choose`, `NewsDestinationSelector.Choose` |
 | `StatureReader.Of` (11) | `ArrangedMatchFacts`, `CombatantFacts`, `CorrespondenceRankFacts`, `CorrespondenceRankPolicy.DealsInPerson`, `CorrespondenceRankPolicy.ScribeTitle`, `DuelAcceptanceContext`, `PerceivedImageFacts`, `RomanticProfilePolicy.DeterminePreferences`, `SelfEsteemBaselineFacts`, `SelfEsteemPolicy.BandOf`, `SelfEsteemPolicy.Current` |
 | `Hero.Gold` (10) | `BastardBlackmailPolicy.DemandAmount`, `GoldPledgePolicy.ClampPayable`, `HireAgreementPolicy.CanAfford`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `OathOfferFacts`, `PrisonerTradePolicy.PriceDifferenceNote`, `StipendOfferFacts`, `TributePolicy.CanPay`, `ViolencePolicy.RobberyTake` |
-| `Hero.IsChild` (10) | `ActorFacts`, `CompanionMatchFacts`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `HostageCandidateFacts`, `HostageEligibilityPolicy.IsEligible`, `NotableRecruitmentFacts`, `NpcActionGate.Check`, `PrisonerExchangePolicy.IsExchangeable`, `RescueGratitudePolicy.CanFeelTheDebt` |
 | `MemberRoster.TotalManCount` (10) | `CaptiveEncounterPolicy.BanditCollectiveParticipantCap`, `CaptiveEncounterPolicy.BanditWitnessCount`, `CaptiveEncounterPolicy.ShouldBanditSceneBeCollective`, `LetterWhereaboutsPolicy.ForPlayer`, `LetterWhereaboutsPolicy.ForWriter`, `OutlawPolicy.HunterStrength`, `PlayerForcePolicy.Resolve`, `TroopGiftFacts`, `TroopLoanFacts`, `WhereaboutsFacts` |
 | `MobileParty.SiegeEvent` (10) | `DeedRefusal`, `EscortContinuationPolicy.Describe`, `EscortContinuationPolicy.Resolve`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `EscortStandingFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `RoadAudienceFacts` |
 | `PartyBelongedToAsPrisoner.LeaderHero` (10) | `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `ExecutionFacts`, `HarmFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `PlayerStandingFacts`, `PlayerStandingPolicy.Resolve`, `RegardProposal` |
@@ -329,6 +329,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `DuelStagingSupport.ReadyToOpenTheSquare`: `Current.CurrentMenuContext`, `GameStateManager.ActiveState`
 - `DuelStagingSupport.StandsAsideFromTheDuel`: `Mission.MainAgent`, `Mission.PlayerTeam`
 - `DuelVenuePolicy.Choose`: `LocationComplex.GetLocationWithId`, `MobileParty.IsCurrentlyAtSea`, `PlayerEncounter.InsideSettlement`, `Settlement.CurrentSettlement`
+- `EarnRegardPolicy.MayBeNamed`: `Hero.IsChild`
+- `EarnRegardTargetFacts`: `Hero.IsChild`
 - `EquipmentLoadoutPolicy.PreferCivilianLoadout`: `GameStateBridge.GetCurrentScene`
 - `EquipmentModifierQualityPolicy.FromModifier`: `ItemModifier.PriceMultiplier`
 - `EquipmentNotabilityPolicy.ComposeWorn`: `GameStateBridge.GetCurrentScene`, `Hero.IsFemale`

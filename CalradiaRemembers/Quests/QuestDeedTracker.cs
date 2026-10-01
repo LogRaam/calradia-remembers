@@ -629,6 +629,43 @@ namespace CalradiaRemembers.Quests
       ///   A declare_war deed completes only when the PLAYER's own faction is the aggressor against the
       ///   demanded faction (WarDeclared fires with faction1 = declarer). Being attacked never counts.
       /// </summary>
+      /// <summary>
+      ///   The SDK's one regard-change notice (subscribed once, at module load): an earn_regard task whose target
+      ///   has just reached the goal is done. (No self-test guard: cr.testall's contract is a reload afterwards, and
+      ///   asking Diagnostics from here would tie Quests into it, which the dependency map flagged.)
+      /// </summary>
+      internal static void OnRegardChanged(NpcMemoryService.Core.Standing.RegardChange change)
+      {
+         try
+         {
+            if (change == null || Campaign.Current == null) return;
+
+            CreditRegard(change.NpcId, change.After);
+         }
+         catch (Exception ex) { ModLog.Error($"[QUEST] earn_regard check failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   Stamps every outstanding earn_regard task whose target is <paramref name="npcId" /> and whose goal
+      ///   <paramref name="regard" /> reaches (Lordfadooboo, 01/10/2026). Returns how many. Internal for cr.testall.
+      /// </summary>
+      internal static int CreditRegard(string npcId, int regard)
+      {
+         if (string.IsNullOrEmpty(npcId)) return 0;
+
+         int day = CurrentDay(), stamped = 0;
+         ForEachOutstandingQuest((profile, quest) =>
+         {
+            if (quest.Type != QuestType.EarnRegard || quest.TargetHeroId != npcId) return;
+            if (!EarnRegardPolicy.IsMet(regard, quest.RegardGoal)) return;
+
+            Stamp(profile, quest, $"Won the good graces of {quest.TargetHeroName} on day {day}", day);
+            stamped++;
+         });
+
+         return stamped;
+      }
+
       private void OnWarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail detail)
       {
          IFaction player = Hero.MainHero?.MapFaction;

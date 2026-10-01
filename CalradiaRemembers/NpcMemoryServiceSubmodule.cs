@@ -418,6 +418,8 @@ namespace CalradiaRemembers
          // The one regard-change notice, re-raised as the public CrNpcMemory.RegardChanged (29/09/2026). Once per
          // process: this runs once, and the SDK event is static.
          NpcMemoryService.Core.Services.ProfileMutator.RegardChanged += CrNpcMemory.ForwardRegardChange;
+         // The same notice completes an earn_regard task (Lordfadooboo, 01/10/2026). Static, so subscribed once here.
+         NpcMemoryService.Core.Services.ProfileMutator.RegardChanged += Quests.QuestDeedTracker.OnRegardChanged;
 
          try
          {
