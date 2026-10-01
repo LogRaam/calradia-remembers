@@ -108,6 +108,30 @@ namespace CalradiaRemembers.Quests
          return null;
       }
 
+      /// <summary>
+      ///   An outstanding arrange_match task whose lady <paramref name="authorizer" /> has the say over (her house's
+      ///   head, a parent, or she herself), with its giver (the suitor); null when none.
+      /// </summary>
+      public static LetterErrand FindOutstandingMatchFor(Hero authorizer, BannerlordNpcMemoryStore store)
+      {
+         if (authorizer == null || store == null) return null;
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile giver = store.Get(id);
+            if (giver == null || giver.Id == authorizer.StringId) continue;
+
+            foreach (InformalQuest q in giver.ActiveQuests.Where(q => q.Type == QuestType.ArrangeMatch && q.IsOutstanding))
+            {
+               Hero bride = Hero.FindFirst(h => h.StringId == q.TargetHeroId);
+               if (bride != null && (bride == authorizer || Marriage.MarriageProspectResolver.HasAuthority(authorizer, bride)))
+                  return new LetterErrand(giver, q);
+            }
+         }
+
+         return null;
+      }
+
       /// <summary>An outstanding scout_town task aimed at <paramref name="town" />, with its giver; null when none.</summary>
       public static LetterErrand FindOutstandingScoutFor(TaleWorlds.CampaignSystem.Settlements.Settlement town, BannerlordNpcMemoryStore store)
       {
@@ -227,7 +251,7 @@ namespace CalradiaRemembers.Quests
                // they vanished, and telling a player who just freed someone that their target is "gone from
                // the world" is exactly the bug being fixed here.
                CalradiaRemembers.Logic.QuestVoidReason voidReason = quest.IsOutstanding
-                  ? TargetLostToVoid(quest)
+                  ? TargetLostToVoid(quest, profile.Id)
                   : CalradiaRemembers.Logic.QuestVoidReason.None;
 
                if (voidReason != CalradiaRemembers.Logic.QuestVoidReason.None)
@@ -722,6 +746,7 @@ namespace CalradiaRemembers.Quests
             case QuestType.EarnRegard: return $"win the good graces of {q.TargetHeroName}";
             case QuestType.PleadCase: return $"plead their case before {q.TargetHeroName}";
             case QuestType.ReinforceGarrison: return $"bring {q.RequiredItemCount} soldiers for the garrison of {q.TargetSettlement}";
+            case QuestType.ArrangeMatch: return $"win {q.TargetHeroName} for them, and her family's consent";
             case QuestType.CraftWeapon: return $"forge them a {CalradiaRemembers.Logic.CraftWeaponPolicy.Label(CalradiaRemembers.Logic.CraftWeaponPolicy.KindOfKey(q.RequiredItemCategory))}";
             case QuestType.RecruitTroops: return $"bring {q.RequiredItemCount} fresh recruits of {q.RequiredCultureName ?? "their people"}";
             case QuestType.ScoutTown: return $"scout {q.TargetSettlement} from inside, through its gang leader";
@@ -880,13 +905,21 @@ namespace CalradiaRemembers.Quests
       ///   resolves the live hero state. Returns the REASON (not a plain bool) since v2.5.3, so the caller can
       ///   give the player an honest closure line instead of one wording for every case.
       /// </summary>
-      private static CalradiaRemembers.Logic.QuestVoidReason TargetLostToVoid(InformalQuest quest)
+      private static CalradiaRemembers.Logic.QuestVoidReason TargetLostToVoid(InformalQuest quest, string giverId)
       {
          if (string.IsNullOrEmpty(quest.TargetHeroId)) return CalradiaRemembers.Logic.QuestVoidReason.None;
 
          Hero target = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
 
-         return CalradiaRemembers.Logic.QuestTargetVoidPolicy.ReasonToVoid(new CalradiaRemembers.Logic.QuestTargetVoidPolicy.QuestTargetFacts {Type = quest.Type, HasTargetHero = true, TargetResolved = target != null, TargetAlive = target is {IsAlive: true}, TargetIsPrisoner = target is {IsPrisoner: true}});
+         // A match: either of the two wed to someone else (fkasad's matchmaker, 01/10/2026).
+         bool wedToAnother = false;
+         if (quest.Type == QuestType.ArrangeMatch && target != null)
+         {
+            Hero suitor = Hero.FindFirst(h => h.StringId == giverId);
+            wedToAnother = target.Spouse != null && target.Spouse != suitor || suitor?.Spouse != null && suitor.Spouse != target;
+         }
+
+         return CalradiaRemembers.Logic.QuestTargetVoidPolicy.ReasonToVoid(new CalradiaRemembers.Logic.QuestTargetVoidPolicy.QuestTargetFacts {Type = quest.Type, HasTargetHero = true, TargetResolved = target != null, TargetAlive = target is {IsAlive: true}, TargetIsPrisoner = target is {IsPrisoner: true}, WedToAnother = wedToAnother});
       }
 
       /// <summary>
@@ -899,6 +932,9 @@ namespace CalradiaRemembers.Quests
       /// </summary>
       private static string VoidClosureReason(CalradiaRemembers.Logic.QuestVoidReason reason)
       {
+         if (reason == CalradiaRemembers.Logic.QuestVoidReason.TargetWedElsewhere)
+            return "One of the two has wed another; the match can no longer be made. This task is set aside.";
+
          return reason == CalradiaRemembers.Logic.QuestVoidReason.RescueTargetFreed
             ? "The one you were to free is already out of captivity, however that came to pass. This task is set aside."
             : "The mark of this task is gone from the world. It can no longer be answered.";

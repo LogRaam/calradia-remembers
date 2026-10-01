@@ -43,7 +43,13 @@ namespace CalradiaRemembers.Logic
         ///   TargetVanished/TargetDead because the target is NOT gone from the world; the closure wording
         ///   must say so honestly, never that the target vanished.
         /// </summary>
-        RescueTargetFreed
+        RescueTargetFreed,
+
+        /// <summary>
+        ///   A match the player was to broker can no longer be made: the lady, or the suitor, has wed someone else
+        ///   (fkasad's matchmaker, 01/10/2026). No one's fault.
+        /// </summary>
+        TargetWedElsewhere
     }
 
     /// <summary>Decides whether a hero-bound quest should be voided because its target hero has left the world.</summary>
@@ -70,6 +76,7 @@ namespace CalradiaRemembers.Logic
                 case QuestType.EarnRegard:
                 case QuestType.PleadCase:
                 case QuestType.RansomEnvoy:
+                case QuestType.ArrangeMatch:
                     return true;
                 default:
                     return false;
@@ -126,6 +133,9 @@ namespace CalradiaRemembers.Logic
            ///   are not GONE, which is why that case gets its own reason.
            /// </summary>
            public bool TargetIsPrisoner { get; set; }
+
+           /// <summary>For a match: the lady or the suitor has wed someone else, so the match can no longer be made.</summary>
+           public bool WedToAnother { get; set; }
         }
 
         /// <summary>
@@ -152,6 +162,9 @@ namespace CalradiaRemembers.Logic
 
             // A rescue needs the captive still held; freed or escaped, there is no longer anyone to free, but
             // they are not GONE, so this gets its own reason (see QuestVoidReason.RescueTargetFreed).
+            // A match is impossible once either of them is wed to someone else (fkasad's matchmaker, 01/10/2026).
+            if (type == QuestType.ArrangeMatch && facts.WedToAnother) return QuestVoidReason.TargetWedElsewhere;
+
             // An envoy's man freed some other way is the same fact (fkasad's "safety wall", 01/10/2026).
             if ((type == QuestType.RescuePrisoner || type == QuestType.RansomEnvoy) && !targetIsPrisoner) return QuestVoidReason.RescueTargetFreed;
 

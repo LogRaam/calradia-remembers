@@ -172,6 +172,15 @@ namespace CalradiaRemembers.GameState
         /// </summary>
         ActionOutcome SettleTroopHandOver(NpcProfile giver, Hero giverHero, InformalQuest quest, TroopHandOver handOver);
 
+        /// <summary>The match some lord has sent the player to broker, when this character has the say over the lady; else null.</summary>
+        PendingMatch MatchToArrange(Hero authorizer);
+
+        /// <summary>
+        ///   The one with the say over the lady consented: re-checks the law, her heart and her family's consent, and
+        ///   weds them, or says why not.
+        /// </summary>
+        ActionOutcome SettleMatch(Hero authorizer);
+
         /// <summary>Whether some lord has sent the player to scout this town (an outstanding scout_town task).</summary>
         bool HasScoutTask(TaleWorlds.CampaignSystem.Settlements.Settlement town);
 

@@ -466,6 +466,45 @@ namespace CalradiaRemembers.GameState
          return new ArrangeMarriageVerdict(ArrangeMarriageResult.Wed, a, b, aClanBefore, bClanBefore);
       }
 
+      /// <summary>
+      ///   A match the player brokers between two other people (fkasad's matchmaker, Gabriel's "real" marriage,
+      ///   01/10/2026): the same law as <see cref="TryArrangeMarriage" /> (authority, the engine's legality, no
+      ///   captivity, no war between the houses), then <see cref="MatchmakerPolicy" />: her heart first, then her family's
+      ///   consent weighed on the suitor's house. With <paramref name="apply" /> the game weds them; without, it only
+      ///   answers (cr.testall).
+      /// </summary>
+      public static ArrangeMarriageVerdict TryArrangeThirdPartyMatch(Hero suitor, Hero bride, Hero authorizer, bool apply)
+      {
+         if (bride == null || suitor == null) return new ArrangeMarriageVerdict(ArrangeMarriageResult.NoTargetKin, suitor, bride, null, null);
+         if (bride != authorizer && !MarriageProspectResolver.HasAuthority(authorizer, bride))
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.NoAuthority, suitor, bride, null, null);
+         if (Campaign.Current?.Models?.MarriageModel?.IsCoupleSuitableForMarriage(suitor, bride) != true)
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.NotSuitable, suitor, bride, null, null);
+         if (!MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = suitor.IsPrisoner, PlayerPrisoner = bride.IsPrisoner, AtWarWithCandidate = HousesAtWar(suitor, bride)}))
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.BlockedByGuard, suitor, bride, null, null);
+
+         Hero head = authorizer ?? bride.Clan?.Leader;
+         int regard = head == null ? 0 : NpcMemoryCampaignBehavior.Instance?.Store?.Get(head.StringId)?.ReputationWithPlayer ?? head.GetRelation(Hero.MainHero);
+
+         MatchVerdict verdict = MatchmakerPolicy.Decide(new MatchFacts {
+            BrideRelationToSuitor = bride.GetRelation(suitor), OfAnotherHouse = bride.Clan != suitor.Clan,
+            FamilyRegardForThePlayer = regard, SuitorClanTier = suitor.Clan?.Tier ?? 0, BrideClanTier = bride.Clan?.Tier ?? 0
+         });
+
+         switch (verdict)
+         {
+            case MatchVerdict.NotWonOver: return new ArrangeMarriageVerdict(ArrangeMarriageResult.NotWonOver, suitor, bride, null, null);
+            case MatchVerdict.SameHouse: return new ArrangeMarriageVerdict(ArrangeMarriageResult.NotCrossClan, suitor, bride, null, null);
+            case MatchVerdict.FamilyRefuses: return new ArrangeMarriageVerdict(ArrangeMarriageResult.RefusedStanding, suitor, bride, null, null);
+         }
+
+         Clan suitorClanBefore = suitor.Clan;
+         Clan brideClanBefore = bride.Clan;
+         if (apply) MarriageAction.Apply(suitor, bride);
+
+         return new ArrangeMarriageVerdict(ArrangeMarriageResult.Wed, suitor, bride, suitorClanBefore, brideClanBefore);
+      }
+
       // ── appoint_governor (personal-command verb, council + 1:1, 2026-08-05) ──
 
       /// <summary>
@@ -1236,6 +1275,9 @@ namespace CalradiaRemembers.GameState
 
       /// <summary>The engine's own MarriageModel refuses the match (age, kinship, marital status, opposite sex).</summary>
       NotSuitable,
+
+      /// <summary>For a brokered match: she does not yet hold the suitor a friend; she must be won over first.</summary>
+      NotWonOver,
 
       /// <summary>The named target kin is already of the player's own clan (this feature is cross-clan only).</summary>
       NotCrossClan,

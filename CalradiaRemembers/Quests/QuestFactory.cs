@@ -675,6 +675,15 @@ namespace CalradiaRemembers.Quests
             case QuestType.ReinforceGarrison:
                return BindGarrison(quest, proposal, giver);
 
+            case QuestType.ArrangeMatch:
+               // fkasad (01/10/2026): the giver is the suitor; the one he would wed must be a lawful match for him, of
+               // another house, a living adult third person.
+               if (!BindHero(quest, proposal.TargetHero, giver)) return false;
+               Hero bride = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+
+               return EarnRegardPolicy.MayBeNamed(RegardTargetFacts(bride, giver)) && bride.Clan != giver.Clan
+                      && Campaign.Current?.Models?.MarriageModel?.IsCoupleSuitableForMarriage(giver, bride) == true;
+
             case QuestType.CraftWeapon:
                // Lordfadooboo (01/10/2026), with the kind as part of the deal (Gabriel): one weapon the smithy makes.
                string kind = CraftWeaponPolicy.Normalize(proposal.Category);

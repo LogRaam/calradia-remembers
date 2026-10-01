@@ -120,6 +120,13 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - $"({npcHero.Name} will not give {verdict.B.Name} to your house on your present standing.)"
   - $"({verdict.A.Name} and {verdict.B.Name} cannot be wed now: not across a war, nor from captivity.)"
 
+### arrange_match
+
+- executor: `Execute`
+- taught in: no prompt section names it
+- taught when: no gate found
+- the bridge refuses: never
+
 ### assault_npc
 
 - executor: `Execute`

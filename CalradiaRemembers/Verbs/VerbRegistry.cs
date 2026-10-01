@@ -84,6 +84,7 @@ namespace CalradiaRemembers.Verbs
          registry.Register(new ReinforceGarrisonVerb());
          registry.Register(new ShareIntelVerb());
          registry.Register(new DeliverRecruitsVerb());
+         registry.Register(new ArrangeMatchVerb());
          registry.Register(new SpendInfluenceVerb());
          registry.Register(new SwayOpinionVerb());
          registry.Register(new ReleasePrisonerVerb());

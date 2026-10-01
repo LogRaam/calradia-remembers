@@ -66,6 +66,8 @@ namespace CalradiaRemembers.Quests
          CampaignEvents.HeroPrisonerReleased.AddNonSerializedListener(this, OnHeroPrisonerReleased);
          CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
          CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
+         // A brokered match is done when the two are wed, however it comes about (fkasad, 01/10/2026).
+         CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, OnBeforeHeroesMarried);
          ModLog.Info("QuestDeedTracker subscribed to campaign events.");
       }
 
@@ -701,6 +703,21 @@ namespace CalradiaRemembers.Quests
          });
 
          return stamped;
+      }
+
+      private void OnBeforeHeroesMarried(Hero first, Hero second, bool showNotification)
+      {
+         if (first == null || second == null) return;
+
+         int day = CurrentDay();
+         ForEachOutstandingQuest((profile, quest) =>
+         {
+            if (quest.Type != QuestType.ArrangeMatch) return;
+
+            bool pair = profile.Id == first.StringId && quest.TargetHeroId == second.StringId
+                        || profile.Id == second.StringId && quest.TargetHeroId == first.StringId;
+            if (pair) Stamp(profile, quest, $"{profile.Name} and {quest.TargetHeroName} were wed on day {day}", day);
+         });
       }
 
       private void OnWarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail detail)

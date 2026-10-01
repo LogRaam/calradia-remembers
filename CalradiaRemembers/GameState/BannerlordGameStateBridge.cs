@@ -232,7 +232,7 @@ namespace CalradiaRemembers.GameState
          "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
          "release_prisoner", "buy_prisoner", "sell_prisoner", "exchange_prisoners", "end_marriage", "make_amends", "grudge_terms", "hear_account", "pledge_against",
          "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill", "admit_secret_lover", "pay_for_silence",
-         "rob_npc", "assault_npc", "kill_npc", "reinforce_garrison", "share_intel", "deliver_recruits",
+         "rob_npc", "assault_npc", "kill_npc", "reinforce_garrison", "share_intel", "deliver_recruits", "arrange_match",
          // ChatViewModel chat-flow controls: real LLM-emittable actions, never dispatched by the switch below.
          "witness_leaves", "request_privacy", "retire"
       };
@@ -355,6 +355,8 @@ namespace CalradiaRemembers.GameState
             case "share_intel":
             // deliver_recruits (Lordfadooboo, 01/10/2026): the fresh recruits a lord asked for, into his party.
             case "deliver_recruits":
+            // arrange_match (fkasad, 01/10/2026): a family giving a lady's hand to the suitor the player speaks for.
+            case "arrange_match":
             case "release_prisoner":
             // buy_prisoner / sell_prisoner (prisoner trade, 08/07/2026): the NPC buys a captive the player
             // holds, or sells one his clan holds, for gold clamped around the game's ransom valuation.
@@ -928,6 +930,64 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[QUEST] SettleSupplyQuest failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>The match some lord has sent the player to broker, when this character has the say over the lady (fkasad, 01/10/2026).</summary>
+      public PendingMatch MatchToArrange(Hero authorizer)
+      {
+         LetterErrand errand = QuestService.FindOutstandingMatchFor(authorizer, NpcMemoryCampaignBehavior.Instance?.Store);
+
+         return errand == null ? null : new PendingMatch {BrideName = errand.Quest.TargetHeroName, SuitorName = errand.Giver.Name};
+      }
+
+      /// <summary>
+      ///   arrange_match landed (fkasad's matchmaker, Gabriel's real marriage, 01/10/2026): the law, her heart, her
+      ///   family's consent, then the game weds them; the task itself is stamped by the marriage event.
+      /// </summary>
+      public ActionOutcome SettleMatch(Hero authorizer)
+      {
+         try
+         {
+            BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+            LetterErrand errand = QuestService.FindOutstandingMatchFor(authorizer, store);
+            if (errand == null) return ActionOutcome.Refused("(No match has been asked of you; nothing is promised.)");
+
+            Hero suitor = Hero.FindFirst(h => h.StringId == errand.Giver.Id);
+            Hero bride = Hero.FindFirst(h => h.StringId == errand.Quest.TargetHeroId);
+            ArrangeMarriageVerdict v = CourtActionResolver.TryArrangeThirdPartyMatch(suitor, bride, authorizer, apply: true);
+
+            switch (v.Result)
+            {
+               case ArrangeMarriageResult.NoAuthority: return ActionOutcome.Refused($"({authorizer.Name} has no say over {bride?.Name}'s hand.)");
+               case ArrangeMarriageResult.NotSuitable: return ActionOutcome.Refused($"({suitor?.Name} and {bride?.Name} cannot lawfully wed.)");
+               case ArrangeMarriageResult.BlockedByGuard: return ActionOutcome.Refused($"({suitor?.Name} and {bride?.Name} cannot be wed now: not across a war, nor from captivity.)");
+               case ArrangeMarriageResult.NotWonOver: return ActionOutcome.Refused($"({bride?.Name} does not yet hold {suitor?.Name} dear enough; she must be won over first.)");
+               case ArrangeMarriageResult.NotCrossClan: return ActionOutcome.Refused($"({suitor?.Name} and {bride?.Name} are of one house.)");
+               case ArrangeMarriageResult.RefusedStanding: return ActionOutcome.Refused($"({authorizer.Name} will not give {bride?.Name} to {suitor?.Name}'s house on your word as it stands.)");
+               case ArrangeMarriageResult.NoTargetKin: return ActionOutcome.Refused("(The match can no longer be found.)");
+            }
+
+            var day = (int) CampaignTime.Now.ToDays;
+            string player = Hero.MainHero?.Name?.ToString() ?? "the player";
+            foreach (Hero who in new[] {bride, authorizer}.Distinct())
+            {
+               NpcProfile p = store?.Get(who.StringId);
+               if (p == null) continue;
+               p.Events.Add(new NotableEvent(day, NotableEventType.Collaboration,
+                  who == bride ? $"{player} brokered my marriage to {suitor.Name}." : $"At {player}'s asking, I gave {bride.Name} in marriage to {suitor.Name}."));
+               store.Set(p);
+            }
+
+            ModLog.Info($"[QUEST] arrange_match: {suitor.Name} wed {bride.Name}, consent by {authorizer.Name}, brokered by the player.");
+
+            return new ActionOutcome($"{authorizer.Name} consents: {suitor.Name} and {bride.Name} are wed.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[QUEST] SettleMatch failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

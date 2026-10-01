@@ -115,6 +115,17 @@ namespace CalradiaRemembers.Quests
 
          entries.Add(new QuestMenuEntry {TypeToken = "provide_goods", TargetField = null, TargetName = null, Cue = "have the player bring you a supply of horses, livestock, or grain (set category + required_count)"});
 
+         // 7a. Someone an unwed lord would marry, of another house and at peace (fkasad's matchmaker, 01/10/2026).
+         if (giver.IsLord && giver.Spouse == null && !giver.IsChild)
+         {
+            Hero bride = Hero.AllAliveHeroes.FirstOrDefault(h => h.Clan != null && h.Clan != giver.Clan && h.Clan != Clan.PlayerClan && !h.IsPrisoner
+                                                                && h.Spouse == null && Mapping.HeroPresence.IsInTheWorld(h)
+                                                                && Campaign.Current.Models.MarriageModel.IsCoupleSuitableForMarriage(giver, h)
+                                                                && (h.MapFaction == null || giver.MapFaction == null || !FactionManager.IsAtWarAgainstFaction(h.MapFaction, giver.MapFaction)));
+            if (bride != null)
+               entries.Add(new QuestMenuEntry {TypeToken = "arrange_match", TargetField = "target_hero", TargetName = bride.Name?.ToString(), Cue = $"you would wed {bride.Name} of {bride.Clan.Name}: have the player win them over for you, then their family's consent"});
+         }
+
          // 7. A weapon forged by the player's own hand, of the kind you name (Lordfadooboo, 01/10/2026).
          if (giver.IsLord)
             entries.Add(new QuestMenuEntry {TypeToken = "craft_weapon", TargetField = null, TargetName = null, Cue = "have the player forge you a weapon at a smithy (set category to the weapon you want)"});

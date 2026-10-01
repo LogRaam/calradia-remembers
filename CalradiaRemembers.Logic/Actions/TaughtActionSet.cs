@@ -185,6 +185,7 @@ namespace CalradiaRemembers.Logic.Actions
          "reinforce_garrison",
          "share_intel",
          "deliver_recruits",
+         "arrange_match",
          "spend_influence",
          "sway_opinion",
          "release_prisoner",

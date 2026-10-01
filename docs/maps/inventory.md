@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 453 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 880 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 455 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 883 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -340,7 +340,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitData` | public struct | The flat portrait binding a widget renders from: image id, texture provider name, extra args. |
 | `PortraitTextureGuard` | public static class | The single gate for every character portrait the mod shows (chat lines, the courier letter). |
 
-### CalradiaRemembers.GameState (35)
+### CalradiaRemembers.GameState (36)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -366,6 +366,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ItemOffer` | public struct | One item the player offers to settle an item bargain: a roster item id and how many. |
 | `JsonCampaignState` | public static class | Shared byte[] JSON persistence for campaign behaviors, mirroring the pattern already proven in Storage.BannerlordNpcMemoryStore. |
 | `LordRecruitmentFactsBuilder` | public static class | Reads the live game state into a pure LordRecruitmentFacts for LordRecruitment. |
+| `PendingMatch` | public class | A match some lord has sent the player to broker, as the one with the say over the lady reads it. |
 | `PregnancyBirthBehavior` | public class | Tracks the mothers CR has made pregnant and, at birth, places their offspring in the MOTHER's clan. |
 | `PregnancyService` | public static class | Conception consequence for a vaginal act carried to completion (the impregnation_risk action). |
 | `RecruitmentPricing` | public static class | Decides whether an NPC is a genuinely recruitable wanderer and what their vanilla hiring price is. |
@@ -696,11 +697,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSpikeScreen` | internal class | The one screen the probe uses, pushed BOTH ways so the measurement compares mechanisms rather than screens. |
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
 
-### CalradiaRemembers.Verbs (23)
+### CalradiaRemembers.Verbs (24)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `AdmitSecretLoverVerb` | public class | admit_secret_lover: the player confesses to this NPC that they are the hidden lover behind a whispered scandal; the NPC now privately knows the identity. |
+| `ArrangeMatchVerb` | public class | arrange_match (fkasad, Nexus, 01/10/2026: "Playing wingman for a guy trying hard to get a girl married?"; Gabriel: a real marriage): the head of a lady's house (or the lady herself, when she answers for herself) gives he... |
 | `BuyPrisonerVerb` | public class | buy_prisoner: the NPC pays the player gold for a hero captive the player's party holds. |
 | `DeliverRecruitsVerb` | public class | deliver_recruits (Lordfadooboo, Nexus, 01/10/2026: "recruitment quests"): the player hands over the fresh recruits of his own people a lord asked for, and they join that lord's party. |
 | `EndMarriageVerb` | public class | end_marriage: the player persuades the NPC to begin ending THEIR OWN marriage (never the player's own spouse — that is Phase 2, out of scope here). |
@@ -788,7 +790,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (578)
+### CalradiaRemembers.Logic (581)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1099,6 +1101,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MarriageGuardPolicy` | public static class | Live-state guards a marriage or a marriage-blessing must satisfy, whatever the LLM proposed. |
 | `MarriageProspectPolicy` | public static class | Whether a house would put a given kin forward as a marriage prospect of its own accord. |
 | `MarryCompanionEligibilityPolicy` | public static class | Pure eligibility rule for the "marry your own companion" carve-out: which same-clan wanderer companion the mod would let the player wed despite the ordinary SameClan bar. |
+| `MatchFacts` | public class | What decides a match the player brokers between two other people. |
+| `MatchVerdict` | public enum | The answer to a brokered match. |
+| `MatchmakerPolicy` | public static class | The rules of a match the player brokers (arrange_match). |
 | `MeetingGapDescriber` | public static class | Turns a "days since the NPC last saw the player" count into a prompt-ready note, or null when the gap is too short (or unknown) to be worth remarking on. |
 | `MemoryCompressionPolicy` | public static class | Pure timing policy for when to run the LLM memory compressor: below the threshold it never runs, and above it, it runs at most once per handful of new events so a fruitless pass (the model kept everything) cannot turn in... |
 | `MemoryDayFormatter` | public static class | Renders a memory event's absolute game day as player-readable text: the raw day number plus a relative hint ("today", "yesterday", "N days ago"). |

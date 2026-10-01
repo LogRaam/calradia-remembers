@@ -116,6 +116,17 @@ namespace CalradiaRemembers.Tests
                 .Should().Be(QuestVoidReason.None);
         }
 
+        // fkasad's matchmaker (01/10/2026): once the lady, or the suitor, has wed someone else, the match cannot be made;
+        // no one's fault, so the task is set aside rather than lapsing into a broken word. Unwed, it stands.
+        [Test]
+        public void GIVEN_a_match_whose_lady_or_suitor_wed_another_WHEN_swept_THEN_it_is_voided_and_otherwise_stands()
+        {
+            QuestTargetVoidPolicy.ReasonToVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = QuestType.ArrangeMatch, HasTargetHero = true, TargetResolved = true, TargetAlive = true, WedToAnother = true})
+                .Should().Be(QuestVoidReason.TargetWedElsewhere);
+            QuestTargetVoidPolicy.ReasonToVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = QuestType.ArrangeMatch, HasTargetHero = true, TargetResolved = true, TargetAlive = true})
+                .Should().Be(QuestVoidReason.None);
+        }
+
         // Pins the exact hero-bound set the sweep acts on, so a future kind added to the enum does not silently
         // start (or stop) voiding without a deliberate choice recorded here.
         [TestCase(QuestType.CapturePrisoner, true)]
@@ -127,6 +138,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(QuestType.EarnRegard, true)]
         [TestCase(QuestType.PleadCase, true)]
         [TestCase(QuestType.RansomEnvoy, true)]
+        [TestCase(QuestType.ArrangeMatch, true)]
         [TestCase(QuestType.NemesisBounty, false)]
         [TestCase(QuestType.BanditClear, false)]
         [TestCase(QuestType.DeclareWar, false)]
