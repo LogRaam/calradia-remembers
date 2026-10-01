@@ -53,7 +53,7 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
   with ("bring my lad back alive, keep the change"); peace negotiated as a neutral third party.
 - (BUILT, MOD `3a2b37a`: scout_town, intel only.) Lowering a town's security through its gang leader, for gold: NOT built. Playing wingman for a courtship: NOT built, needs design (verification is the hard part).
   (The prison break is BUILT, MOD `1d53d71`: the vanilla break now counts as a rescue for the task and the freed lord.)
-- (BUILT, MOD `f4fe452`: recruit_troops.) A smithing task: NOT built, but VERIFIABLE: the game marks a player-forged weapon (`ItemObject.IsCraftedByPlayer`, checked 01/10/2026), so a give_item of one can complete it.
+- (BUILT, MOD `f4fe452`: recruit_troops.) A smithing task: BUILT (MOD `007fc21`, the kind named is part of the deal), VERIFIABLE: the game marks a player-forged weapon (`ItemObject.IsCraftedByPlayer`, checked 01/10/2026), so a give_item of one can complete it.
 
 ## FOUND 2026-09-21 by reading the generated maps, NOT ACTED ON: one concept under several names
 
