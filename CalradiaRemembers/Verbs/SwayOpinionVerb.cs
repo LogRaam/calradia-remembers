@@ -42,6 +42,8 @@ namespace CalradiaRemembers.Verbs
             sb.AppendLine("Emit this ONLY when you are TRULY persuaded, in character, on the strength of the case");
             sb.AppendLine("made, never merely to please the player or because they asked. A shallow or self-serving");
             sb.AppendLine("argument should not move you.");
+            sb.AppendLine("The player must have spoken of that person, by name, in this conversation: a greeting, a");
+            sb.AppendLine("compliment or a bow is no case about anyone, and the game refuses a sway nobody argued.");
             sb.AppendLine("If you are truly turning against them, emit the [ACTION] block this turn. Voicing");
             sb.AppendLine("agreement, or saying you might turn, without the action, changes nothing in the world.");
             sb.AppendLine("[ACTION]");
@@ -70,6 +72,15 @@ namespace CalradiaRemembers.Verbs
                 if (target == null)
                     return ActionOutcome.Refused("(No one by that name is known to sway an opinion of.)");
 
+                // A case about somebody names them (Maifailun, 01/10/2026: "you are most kind my lady" and a bow
+                // turned Lady Bolat against Lady Decantia, whom nobody had named).
+                if (!SwayGroundingPolicy.PlayerSpokeOf(ctx.ActionContext?.PlayerWordsThisConversation, target.Name?.ToString()))
+                {
+                    ModLog.Info($"[ACTION] sway_opinion refused: the player never spoke of {target.Name} in this conversation.");
+
+                    return ActionOutcome.Refused($"(Nothing was said of {target.Name} in this conversation; {npcHero.Name}'s regard for them stands.)");
+                }
+
                 if (!CourtActionResolver.SwayCooldownElapsed(profile, target.StringId))
                     return ActionOutcome.Refused($"({npcHero.Name}'s opinion of {target.Name} was only just moved; give it time.)");
 
@@ -89,8 +100,10 @@ namespace CalradiaRemembers.Verbs
 
                 string verb = against ? "turned against" : "warmed toward";
                 var today = (int) CampaignTime.Now.ToDays;
+                // The cooldown lives in CourtActionCooldowns only; the marker once written here showed in the
+                // Memories panel and reached the prompt. A memory names the player (2.5.18).
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
-                    $"At the player's word, {verb} {target.Name}. {CourtActionResolver.SwayMarker(target.StringId)}"));
+                    $"At {Hero.MainHero?.Name?.ToString() ?? "the player"}'s word, {verb} {target.Name}."));
                 CourtActionResolver.RecordCourtAction(profile, CourtActionResolver.SwayMarker(target.StringId), today); // M-B6
 
                 // Ambient gossip: bad blood (or a reconciliation) between two lords, third-party rumor fodder,

@@ -73,7 +73,7 @@ namespace CalradiaRemembers.Verbs
 
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
-                    $"Accepted {moved} soldiers from the player when their own ranks ran thin. {CourtActionResolver.GiveTroopsMarker}"));
+                    $"Accepted {moved} soldiers from the player when their own ranks ran thin."));
                 CourtActionResolver.RecordCourtAction(profile, CourtActionResolver.GiveTroopsMarker, today); // M-B6
 
                 AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, AppreciationSource.TroopsOrInfluenceSpentForThem,

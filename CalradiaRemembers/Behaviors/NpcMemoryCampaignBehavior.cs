@@ -273,6 +273,7 @@ namespace CalradiaRemembers.Behaviors
          // memories that ARE the model's leaked reasoning are scrubbed or replaced by a "faded" line.
          // Idempotent by construction, so it simply runs on every launch (a clean profile is a no-op).
          SafeRun.Step("OnSessionLaunched.ScrubLeakedReasoningTraces", ScrubLeakedReasoningTraces);
+         SafeRun.Step("OnSessionLaunched.ScrubCourtMarkers", ScrubCourtMarkers); // Maifailun, 01/10/2026
          SafeRun.Step("OnSessionLaunched.RefreshRelationships", RefreshRelationships);
          SafeRun.Step("OnSessionLaunched.RumorStore.Clear", RumorStore.Clear);
          // Companion-briefing pillar: what a briefing leaves behind is now an ordinary (private) memory on
@@ -395,6 +396,25 @@ namespace CalradiaRemembers.Behaviors
       ///   are healed in place. Only profiles that actually changed are re-persisted. Public so the
       ///   reasoning_scrub self-test can drive the exact launch step against a seeded store.
       /// </summary>
+      /// <summary>
+      ///   Moves the court verbs' old cooldown markers out of memory prose into CourtActionCooldowns, so the
+      ///   Memories panel and the prompt stop showing "[cr_sway:lord_1_1_2]". Idempotent, every launch.
+      /// </summary>
+      public void ScrubCourtMarkers()
+      {
+         var scrubbed = 0;
+         foreach (string id in Store.ListIds())
+         {
+            NpcProfile profile = Store.Get(id);
+            if (profile == null || !CourtMarkerText.Scrub(profile)) continue;
+
+            Store.Set(profile);
+            scrubbed++;
+         }
+
+         if (scrubbed > 0) ModLog.Info($"Moved court cooldown markers out of the memories of {scrubbed} profile(s).");
+      }
+
       public void ScrubLeakedReasoningTraces()
       {
          var scrubbed = 0;

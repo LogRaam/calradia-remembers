@@ -111,7 +111,7 @@ namespace CalradiaRemembers.Verbs
 
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
-                    $"Lent the player {amount} points of influence at court. {CourtActionResolver.InfluenceMarker}"));
+                    $"Lent the player {amount} points of influence at court."));
                 CourtActionResolver.RecordCourtAction(profile, CourtActionResolver.InfluenceMarker, today); // M-B6
 
                 ModLog.Info($"[ACTION] give_influence: {npcHero.Name} lent the player {amount} influence.");

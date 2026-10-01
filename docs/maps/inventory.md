@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 447 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 861 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 863 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -782,7 +782,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (559)
+### CalradiaRemembers.Logic (561)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -928,6 +928,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CourierStuckPolicy` | public static class | Decides when a live courier's lack of movement stops being patience and becomes a jam. |
 | `CourierWaylayPolicy` | public static class | Pure rules for whether a single bandit party waylays a passing courier. |
 | `CourtActionPolicy` | public static class | Pure math and gates for the four "court action" verbs. |
+| `CourtMarkerText` | public static class | The court verbs' hidden cooldown markers, as they were once written into memory text. |
 | `CourtshipTrialPolicy` | public static class | Pure completion gate for a courtship trial (a marriage prospect riding with the player to be tested). |
 | `CrRecoveryAction` | public enum | A stuck CR subsystem the recovery command (cr.reset) can stand down. |
 | `DayMoodFactsPolicy` | public static class | Reads a character's day into the facts the mood draw weighs. |
@@ -1307,6 +1308,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SuccessionMemoryPolicy` | public static class | The rule for which recorded events survive a succession (are inherited by the heir). |
 | `SuccessionTrigger` | public static class | Classifies a change of player character, so only a real succession reframes memories. |
 | `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
+| `SwayGroundingPolicy` | public static class | Whether the player actually spoke of the person a sway is about. |
 | `SwayStance` | public enum | The stance a sway_opinion action asked for, once its raw token is read strictly. |
 | `SwayStanceParser` | public static class | Reads a sway_opinion stance token against a strict whitelist. |
 | `TeachSkillPolicy` | public static class | Single source of truth for whether an NPC may teach a skill at all, and how much real XP a lesson actually grants once it does. |

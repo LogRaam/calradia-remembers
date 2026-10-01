@@ -333,7 +333,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("rp_troops", Severity.Heavy, "lord w/ healthy party -> lend_troops -> assert rosters moved + marker", TestRpTroops),
          new SelfTest("rp_give_troops", Severity.Heavy, "lord w/ under-strength party -> give_troops -> assert rosters moved + marker + appreciation planted", TestRpGiveTroops),
          new SelfTest("rp_spend_influence", Severity.Light, "needy lord's clan -> spend_influence -> assert clan influence moved + marker + appreciation planted + cooldown refuses repeat", TestRpSpendInfluence),
-         new SelfTest("rp_sway", Severity.Light, "NPC + 3rd hero -> sway_opinion(against) -> assert relation dropped + marker + world event + cooldown refuses repeat", TestRpSway),
+         new SelfTest("rp_sway", Severity.Light, "NPC + 3rd hero -> a sway the player never argued (no name said) is REFUSED with nothing moved (Maifailun, 01/10/2026); then a case naming the target -> sway_opinion(against) -> relation dropped + cooldown stamped with no marker in the memory text + world event + cooldown refuses repeat", TestRpSway),
          new SelfTest("rp_release", Severity.Heavy, "seed 3rd-party captive on a lord's party -> release_prisoner -> assert freed + relation bump", TestRpRelease),
          new SelfTest("commitment_is_memory_only", Severity.Light, "fire a real pledge_against -> assert the vow is REMEMBERED but not tracked as a quest: no ledger entry, no journal mirror, no relation change (2026-08-22: an NPC's vow is not a player quest)", TestCommitmentIsMemoryOnly),
          new SelfTest("divorce_process", Severity.Heavy, "married couple -> end_marriage -> force endDay -> tick -> assert dissolved + exSpouses + no one clanless + scandal + relation hits", TestDivorceProcess),
@@ -10770,8 +10770,8 @@ namespace CalradiaRemembers.Diagnostics
          int playerAfter = playerParty.MemberRoster.TotalManCount;
          NpcProfile after = behavior.Store.Get(lord.StringId);
          bool marked = after != null &&
-                       after.Events.Any(e =>
-                          !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.GiveTroopsMarker, StringComparison.Ordinal) >= 0);
+                       after.CourtActionCooldowns.ContainsKey(CourtActionResolver.GiveTroopsMarker)
+                       && !after.Events.Any(e => (e.summary ?? "").Contains("[cr_"));
 
          IReadOnlyList<Appreciation> appreciations = AppreciationBehavior.Instance?.AppreciationsFor(lord.StringId) ?? Array.Empty<Appreciation>();
          bool appreciationPlanted = appreciations.Any(a => a.Source == AppreciationSource.TroopsOrInfluenceSpentForThem && a.EventDay == today);
@@ -10807,8 +10807,8 @@ namespace CalradiaRemembers.Diagnostics
          float playerAfter = Clan.PlayerClan.Influence;
          NpcProfile after = behavior.Store.Get(giver.StringId);
          bool marked = after != null &&
-                       after.Events.Any(e =>
-                          !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.InfluenceMarker, StringComparison.Ordinal) >= 0);
+                       after.CourtActionCooldowns.ContainsKey(CourtActionResolver.InfluenceMarker)
+                       && !after.Events.Any(e => (e.summary ?? "").Contains("[cr_"));
 
          // The very same day, right after stamping the marker — the cooldown must refuse a repeat.
          ActionOutcome again = behavior.GameStateBridge.ExecuteAction(
@@ -10879,8 +10879,8 @@ namespace CalradiaRemembers.Diagnostics
          float playerAfter = Clan.PlayerClan.Influence;
          NpcProfile after = behavior.Store.Get(npc.StringId);
          bool marked = after != null &&
-                       after.Events.Any(e =>
-                          !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.SpendInfluenceMarker, StringComparison.Ordinal) >= 0);
+                       after.CourtActionCooldowns.ContainsKey(CourtActionResolver.SpendInfluenceMarker)
+                       && !after.Events.Any(e => (e.summary ?? "").Contains("[cr_"));
 
          IReadOnlyList<Appreciation> appreciations = AppreciationBehavior.Instance?.AppreciationsFor(npc.StringId) ?? Array.Empty<Appreciation>();
          bool appreciationPlanted = appreciations.Any(a => a.Source == AppreciationSource.TroopsOrInfluenceSpentForThem && a.EventDay == today);
@@ -10923,20 +10923,29 @@ namespace CalradiaRemembers.Diagnostics
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, -50 - npc.GetRelation(target), false);
 
          int relBefore = npc.GetRelation(target);
+
+         // Maifailun (01/10/2026): a bow is no case. The player never names the target: refused, nothing moves.
+         ActionOutcome unargued = behavior.GameStateBridge.ExecuteAction(
+            new GameAction {
+               Type = "sway_opinion",
+               Parameters = new Dictionary<string, string> {{"target", target.Name.ToString()}, {"stance", "against"}}
+            }, npc, new ActionContext(profile, null) {PlayerWordsThisConversation = "Have you enjoyed the tournament, my lady? *bows*"});
+         t.Expect("unarguedSwayRefused", unargued != null && !unargued.IsPositive && npc.GetRelation(target) == relBefore, true);
+
          int eventsBefore = WorldEventStore.Instance.Count;
 
          ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
             new GameAction {
                Type = "sway_opinion",
                Parameters = new Dictionary<string, string> {{"target", target.Name.ToString()}, {"stance", "against"}}
-            }, npc, new ActionContext(profile, null));
+            }, npc, new ActionContext(profile, null) {PlayerWordsThisConversation = $"{target.Name} has betrayed you."});
 
          int relAfter = npc.GetRelation(target);
          int eventsAfter = WorldEventStore.Instance.Count;
          NpcProfile after = behavior.Store.Get(npc.StringId);
          bool marked = after != null &&
-                       after.Events.Any(e =>
-                          !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.SwayMarker(target.StringId), StringComparison.Ordinal) >= 0);
+                       after.CourtActionCooldowns.ContainsKey(CourtActionResolver.SwayMarker(target.StringId))
+                       && !after.Events.Any(e => (e.summary ?? "").Contains("[cr_"));
 
          // Same pair, same day — the per-target cooldown must refuse a repeat.
          ActionOutcome again = behavior.GameStateBridge.ExecuteAction(
@@ -10981,8 +10990,8 @@ namespace CalradiaRemembers.Diagnostics
          int playerHeroesAfter = playerParty.MemberRoster.GetTroopRoster().Count(el => el.Character.IsHero);
          NpcProfile after = behavior.Store.Get(lord.StringId);
          bool marked = after != null &&
-                       after.Events.Any(e =>
-                          !string.IsNullOrEmpty(e.summary) && e.summary.IndexOf(CourtActionResolver.TroopsMarker, StringComparison.Ordinal) >= 0);
+                       after.CourtActionCooldowns.ContainsKey(CourtActionResolver.TroopsMarker)
+                       && !after.Events.Any(e => (e.summary ?? "").Contains("[cr_"));
 
          t.Note($"lord={lord.Name} expected={expected}, npcTroops {npcBefore}->{npcAfter}, playerTroops {playerBefore}->{playerAfter}");
          t.Expect("outcomePositive", outcome?.IsPositive, true);

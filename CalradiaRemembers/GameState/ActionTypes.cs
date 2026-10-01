@@ -29,6 +29,13 @@ namespace CalradiaRemembers.GameState
         ///   exactly this, so a bag-picked gift never depends on the LLM echoing the item's display name.
         /// </summary>
         public string OfferedItemId { get; set; }
+
+        /// <summary>
+        ///   Everything the player has said in this conversation, or null on a path that carries no conversation
+        ///   (a council lift, a manual menu, a self-test). A verb that acts "at the player's word" reads it to know
+        ///   the word was said (Maifailun, 01/10/2026: a bow turned a lady against someone nobody had named).
+        /// </summary>
+        public string PlayerWordsThisConversation { get; set; }
     }
 
     /// <summary>

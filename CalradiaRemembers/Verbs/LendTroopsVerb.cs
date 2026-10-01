@@ -120,7 +120,7 @@ namespace CalradiaRemembers.Verbs
 
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
-                    $"Reinforced the player's party with {moved} of my own soldiers, given to keep. {CourtActionResolver.TroopsMarker}"));
+                    $"Reinforced the player's party with {moved} of my own soldiers, given to keep."));
                 CourtActionResolver.RecordCourtAction(profile, CourtActionResolver.TroopsMarker, today); // M-B6
 
                 ModLog.Info($"[ACTION] lend_troops: {npcHero.Name} gave the player {moved} troops to keep.");
