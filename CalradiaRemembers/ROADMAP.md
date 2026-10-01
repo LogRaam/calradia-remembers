@@ -49,7 +49,7 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
   verb taught only there; garrison bands moved to `GarrisonStrength` (one home with the seat pack).
 
 **Still WISHED from the same thread, NOT built** (each needs its own design pass):
-- A neutral envoy hired by a lord to negotiate the release of one of his men from a realm the player is not at war
+- (BUILT, MOD `6dc06fe`: ransom_envoy, purse advanced, change kept.) A neutral envoy hired by a lord to negotiate the release of one of his men from a realm the player is not at war
   with ("bring my lad back alive, keep the change"); peace negotiated as a neutral third party.
 - Scout a city by ENTERING it and meeting its gang leader (intel, lowered security); playing wingman for a courtship.
   (The prison break is BUILT, MOD `1d53d71`: the vanilla break now counts as a rescue for the task and the freed lord.)
