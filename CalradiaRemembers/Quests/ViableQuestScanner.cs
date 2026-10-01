@@ -189,7 +189,13 @@ namespace CalradiaRemembers.Quests
             h.MapFaction == giver.MapFaction && h.IsLord && h.IsPrisoner && h != giver && h != Hero.MainHero);
          if (captive == null) return;
 
-         entries.Add(new QuestMenuEntry {TypeToken = "rescue_prisoner", TargetField = "target_hero", TargetName = captive.Name?.ToString(), Cue = $"{captive.Name} of your realm languishes in enemy hands"});
+         // Held in a town or castle's dungeon, the game's own prison break is a way in (01/10/2026): say so, so the
+         // giver can ask for exactly that.
+         string prison = captive.PartyBelongedToAsPrisoner?.Settlement?.Name?.ToString();
+         string cue = prison != null
+            ? $"{captive.Name} of your realm languishes in the prison of {prison}: the player may break them out, or take the place"
+            : $"{captive.Name} of your realm languishes in enemy hands";
+         entries.Add(new QuestMenuEntry {TypeToken = "rescue_prisoner", TargetField = "target_hero", TargetName = captive.Name?.ToString(), Cue = cue});
       }
 
       /// <summary>

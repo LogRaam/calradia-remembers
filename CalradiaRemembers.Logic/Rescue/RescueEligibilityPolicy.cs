@@ -42,6 +42,13 @@ namespace CalradiaRemembers.Logic.Rescue
 
            /// <summary>The freed prisoner IS the player. Nobody is rescued by themselves.</summary>
            public bool PrisonerIsPlayer { get; set; }
+
+           /// <summary>
+           ///   The player broke them out of a prison: the game's own prison break, which ends the captivity as an
+           ///   ESCAPE with the player named as the one who made it possible (01/10/2026). As much a rescue as a won
+           ///   battle, and the freed lord says so in vanilla ("I will remember your help").
+           /// </summary>
+           public bool BrokenOutByPlayer { get; set; }
         }
 
         /// <summary>
@@ -73,8 +80,9 @@ namespace CalradiaRemembers.Logic.Rescue
         public static bool CanBeARescue(ReleaseKind kind) => kind is ReleaseKind.AfterBattle or ReleaseKind.ByChoice;
 
         /// <summary>
-        ///   True only when the player won the battle (<c>PlayerWonBattle</c>), the prisoner was
-        ///   released as a direct result of it (<c>ReleasedAfterBattle</c>), the freed prisoner is
+        ///   True only when the player won the battle (<c>PlayerWonBattle</c>) and the prisoner was
+        ///   released as a direct result of it (<c>ReleasedAfterBattle</c>), or the player broke them out of a
+        ///   prison (<c>BrokenOutByPlayer</c>); and the freed prisoner is
         ///   a lord (<c>PrisonerIsLord</c>), and the prisoner is neither a bandit
         ///   (<c>PrisonerIsBandit</c>), a member of the player's own clan
         ///   (<c>PrisonerInPlayerClan</c>), nor the player (<c>PrisonerIsPlayer</c>).
@@ -90,8 +98,7 @@ namespace CalradiaRemembers.Logic.Rescue
            bool prisonerInPlayerClan = facts.PrisonerInPlayerClan;
            bool prisonerIsPlayer = facts.PrisonerIsPlayer;
 
-            return playerWonBattle
-                && releasedAfterBattle
+            return (playerWonBattle && releasedAfterBattle || facts.BrokenOutByPlayer)
                 && prisonerIsLord
                 && !prisonerIsBandit
                 && !prisonerInPlayerClan

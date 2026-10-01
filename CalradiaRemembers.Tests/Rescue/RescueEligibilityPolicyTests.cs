@@ -19,6 +19,25 @@ namespace CalradiaRemembers.Tests.Rescue
     [TestFixture]
     public sealed class RescueEligibilityPolicyTests
     {
+        // 01/10/2026: the game's own prison break frees a lord with the player named as the one who did it, and
+        // the lord says "I will remember your help" in vanilla, then remembered nothing of it in CR, because only a
+        // won battle counted. Breaking him out is as much a rescue, with no battle at all.
+        [Test]
+        public void GIVEN_the_player_broke_a_lord_out_of_prison_WHEN_judged_THEN_it_is_a_rescue_without_any_battle()
+        {
+            RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {BrokenOutByPlayer = true, PrisonerIsLord = true}).Should().BeTrue();
+        }
+
+        // The same exclusions hold for a prison break: a clanmate's freedom is family business, a bandit is no
+        // debt, and an escape nobody helped with (the lord slipped out alone) is no rescue by the player.
+        [Test]
+        public void GIVEN_a_prison_break_of_a_clanmate_or_a_bandit_or_an_unaided_escape_WHEN_judged_THEN_it_is_no_rescue()
+        {
+            RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {BrokenOutByPlayer = true, PrisonerIsLord = true, PrisonerInPlayerClan = true}).Should().BeFalse();
+            RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {BrokenOutByPlayer = true, PrisonerIsLord = true, PrisonerIsBandit = true}).Should().BeFalse();
+            RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {BrokenOutByPlayer = false, PrisonerIsLord = true}).Should().BeFalse();
+        }
+
         // The baseline positive case the whole rescue pillar exists for.
         [Test]
         public void GIVEN_a_lord_freed_after_a_battle_the_player_won_WHEN_evaluated_THEN_it_counts_as_a_rescue()

@@ -96,6 +96,15 @@ namespace CalradiaRemembers.Rescue
             // in vanilla, and remembered nothing of it afterwards. The battle guard downstream
             // (BelongsToDefeatedSide) is what keeps this a rescue: freeing someone out of the player's OWN
             // dungeon leaves their captor party on the winning side, so it is never credited here.
+            // The game's own prison break, with the player named as the one who did it (01/10/2026): a rescue
+            // with no battle to wait for, credited at once. A break is done by stealth, so it is not public.
+            if (PlayerPrisonBreakPatch.IsUnderway(prisoner, out _))
+            {
+                CreditRescue(prisoner, party, faction, false, (int) CampaignTime.Now.ToDays, brokenOut: true);
+
+                return;
+            }
+
             if (!RescueEligibilityPolicy.CanBeARescue(KindOf(detail))) return;
             if (prisoner == null || !prisoner.IsLord || prisoner == Hero.MainHero) return;
 
@@ -147,13 +156,13 @@ namespace CalradiaRemembers.Rescue
             }
         }
 
-        private void CreditRescue(Hero prisoner, PartyBase captorParty, IFaction captorFaction, bool publicAction, int today)
+        private void CreditRescue(Hero prisoner, PartyBase captorParty, IFaction captorFaction, bool publicAction, int today, bool brokenOut = false)
         {
             if (prisoner == null || _credited.Contains(prisoner.StringId)) return;
 
             bool prisonerIsBandit = prisoner.Clan != null && prisoner.Clan.IsBanditFaction;
             bool inPlayerClan = prisoner.Clan == Hero.MainHero?.Clan;
-            if (!RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {PlayerWonBattle = true, ReleasedAfterBattle = true, PrisonerIsLord = prisoner.IsLord, PrisonerIsBandit = prisonerIsBandit, PrisonerInPlayerClan = inPlayerClan, PrisonerIsPlayer = prisoner == Hero.MainHero}))
+            if (!RescueEligibilityPolicy.IsPlayerRescue(new RescueEligibilityPolicy.ReleaseFacts {PlayerWonBattle = !brokenOut, ReleasedAfterBattle = !brokenOut, BrokenOutByPlayer = brokenOut, PrisonerIsLord = prisoner.IsLord, PrisonerIsBandit = prisonerIsBandit, PrisonerInPlayerClan = inPlayerClan, PrisonerIsPlayer = prisoner == Hero.MainHero}))
                 return;
 
             _credited.Add(prisoner.StringId);

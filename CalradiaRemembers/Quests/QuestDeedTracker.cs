@@ -433,7 +433,9 @@ namespace CalradiaRemembers.Quests
             if (quest.Type != QuestType.RescuePrisoner) return;
             if (!string.Equals(quest.TargetHeroId, prisoner.StringId, StringComparison.Ordinal)) return;
 
-            Stamp(profile, quest, $"Freed {quest.TargetHeroName} from captivity on day {day}", day);
+            // A prison break names the prison (01/10/2026): the giver reads this back as the deed it was.
+            Mapping.PlayerPrisonBreakPatch.IsUnderway(prisoner, out string prison);
+            Stamp(profile, quest, RescueEvidence.Describe(quest.TargetHeroName, prison, day), day);
          });
       }
 
