@@ -30,7 +30,8 @@ namespace CalradiaRemembers.Tests.Maps
    public sealed class RatchetTests
    {
       /// <summary>
-      ///   Every namespace inside a cycle on 21/09/2026: 37 in the mod, 7 in the SDK, 2 in Logic. Nothing may join
+      ///   Every namespace inside a cycle on 21/09/2026: 37 in the mod, 7 in the SDK, 2 in Logic; on 01/10/2026 the
+      ///   corrected map (qualified names read too) showed 13 more that had always been there, and one new one. Nothing may join
       ///   them. Held as a SET rather than a count on purpose: splitting one namespace in two would raise a count
       ///   innocently, while a genuinely new entanglement always brings a name that was not here before.
       /// </summary>
@@ -51,7 +52,22 @@ namespace CalradiaRemembers.Tests.Maps
          "NpcMemoryService.Core.Actions", "NpcMemoryService.Core.LlmClient",
          "NpcMemoryService.Core.LlmClient.OpenRouter", "NpcMemoryService.Core.Models",
          "NpcMemoryService.Core.Parsing", "NpcMemoryService.Core.Prompts", "NpcMemoryService.Core.Services",
-         "CalradiaRemembers.Logic", "CalradiaRemembers.Logic.Assemblies"
+         "CalradiaRemembers.Logic", "CalradiaRemembers.Logic.Assemblies",
+
+         // INVISIBLE UNTIL 01/10/2026, NOT NEW. The dependency map read only `using` directives, so a namespace called by
+         // QUALIFIED name (Settings.CrSettings, Violence.X) never showed its edge. Gabriel asked for the map review that
+         // found it; the corrected map, run on the exact 2.6.7 sources (mod dc99b73, SDK 9977098), already showed every
+         // name below in a cycle. Added as they were found, so the wall is honest from here on.
+         "CalradiaRemembers", "CalradiaRemembers.Arrests", "CalradiaRemembers.Chronicle", "CalradiaRemembers.Map",
+         "CalradiaRemembers.OpenPartnerLover", "CalradiaRemembers.Rescue", "CalradiaRemembers.Settings",
+         "CalradiaRemembers.Styles", "CalradiaRemembers.Violence", "CalradiaRemembers.WarCouncil",
+         "NpcMemoryService.Core.Knowledge", "NpcMemoryService.Core.Memory", "NpcMemoryService.Core.Standing",
+
+         // NEW on 30/09/2026, accepted (Gabriel, 01/10/2026): the self-esteem, clan warm start and perceived image readers.
+         // They read the live game like Mapping (rank, presence, the day's mood) and the profile store (Behaviors), and
+         // the chat, Mapping, Duels and Violence call them, so they sit in the mod's core group by nature. Folding them
+         // into Mapping would remove the name without untangling anything.
+         "CalradiaRemembers.Standing"
       };
 
       /// <summary>
