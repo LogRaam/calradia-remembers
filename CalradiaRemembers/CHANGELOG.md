@@ -2,6 +2,49 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.6.10.. 2026-10-01
+
+### Added
+- **Food and favours: eleven kinds of task, every one verified by the game** (fkasad and Lordfadooboo, Nexus, 01/10/2026).
+  - **A hungry town remembers** who sold it a large load of food (relief) and who bought up its market (hoarding),
+    once a week per town, as a world event its people hear (`TownFoodPolicy`, `FoodTradeMemoryBehavior`).
+  - **Grain a lord asked for while a place he answers for starves** goes into that place's stores (`Mapping.HeroSeats`).
+  - **What a town lacks**: a trade good at twice its worth on its market may be asked for, and goes into that market.
+  - **reinforce_garrison** (men for a thin garrison, handed over in that place), **recruit_troops** (fresh recruits of
+    the lord's own people), one close for both (`SettleTroopHandOver`).
+  - **earn_regard** (win another's good graces, +10 from where it stood), **plead_case** (plead the lord's case
+    before his liege; done when that person is truly won over toward him).
+  - **ransom_envoy**: buy back a lord's man from a realm the player is at peace with; the purse is advanced (1.5x
+    the ransom value) and the change is the player's; freed some other way first, the task ends with no fault and
+    the advance goes back.
+  - **scout_town**: enter an enemy town; its gang leader may tell (`share_intel`) what he knows of its walls, stores,
+    people and streets, the town's true state, which the lord reads back.
+  - **craft_weapon**: forge a weapon of the kind the lord names; only a weapon the player forged, of that kind, counts,
+    and the lord wields it.
+  - **arrange_match**: win a lady for a lord (a real sway toward him), then her family's consent (`arrange_match`), and
+    the game weds them. She must hold him a friend first; the family weighs it as any arranged match.
+  - **A prison break is a rescue**: the freed lord, his family and friends remember it; the task names the prison
+    (`Mapping.PlayerPrisonBreakPatch` on `EndCaptivityAction.ApplyByEscape`).
+- **Capture tasks and the escaped target** (fkasad): a beaten target who escapes is recorded; the giver may settle for
+  half the reward or take a lord of the same realm in his place; a lapse while he is a fugitive is no fault.
+
+### Fixed
+- **A bow is no case** (Maifailun, 01/10/2026): `sway_opinion` now needs the person named by the player in that
+  conversation, and the court verbs' cooldown markers (`[cr_sway:...]`) no longer show in memories or reach the prompt;
+  old saves are cleaned at load.
+- **Town duel** (Zivkyn, Maifailun): companions stand aside, and the square waits for the town menu (defensive; the
+  settlement crash is still unconfirmed until a `[DUEL]` log arrives).
+
+### For modders
+- **`CrMemoryEntry.Private`** (tashmetu): an injected memory said in confidence stays out of other characters' prompts.
+- The warm-start MCM hint now says "when you next speak".
+
+### Developer tools
+- cr.testall: escaped_target, private_memory_injection, town_food_memory, grain_relief_destination, earn_regard_quest,
+  plead_case_quest, town_needs_supply, garrison_reinforcement, prison_break_rescue, ransom_envoy_quest,
+  scout_town_quest, recruit_troops_quest, craft_weapon_quest, arrange_match_quest; rp_sway and the court tests changed;
+  quest_menu's referee is the SDK parser (`QuestMenuTokensTests` guards it before launch).
+
 ## v2.6.9.. 2026-09-30
 
 ### Fixed

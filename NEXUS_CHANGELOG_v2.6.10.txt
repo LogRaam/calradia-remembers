@@ -1,0 +1,38 @@
+﻿Version 2.6.10
+
+New quests from your ideas, and fixes from your reports.
+
+Added
+
+- A hungry town remembers you. Sell it a large load of food and its people remember the relief; buy up its market and they remember that too. (Thank you, fkasad and Lordfadooboo.)
+- Lords now ask for many more kinds of help, and every one is checked by the game, never by the character's word:
+  - Bring grain to a lord whose town is starving: it goes into that town's stores.
+  - Bring what a town lacks (iron, wood, beer...): the governor asks for what is dear at his market, and it goes into that market.
+  - Bring men for a thin garrison, handed over in that town or castle.
+  - Bring fresh recruits of the lord's own people.
+  - Win the good graces of another lord.
+  - Plead a lord's case before his liege: done when that person is truly won over.
+  - Go as an envoy to buy back a lord's captured man from a realm you are at peace with. He hands you the purse up front and you keep the change. If the man goes free some other way first, nobody is at fault and you give the purse back.
+  - Scout an enemy town from inside: its gang leader may tell you, for a price, the true state of its walls, stores and people.
+  - Forge a weapon of the kind the lord names. Only a weapon you forged yourself counts, and he will wield it.
+  - Matchmaker: win a lady's heart for a lord, then her family's consent, and they marry. She has to care for him first; her family alone cannot force it.
+- Breaking someone out of prison now counts as a rescue: the freed lord and his family remember it.
+- A capture task whose target you beat but who escaped: the lord may accept the victory for half the reward, or another lord of the same realm in his place, and a target who stays a fugitive is no fault of yours. (Thank you, fkasad.)
+
+Fixed
+
+- A character no longer turns against someone you never mentioned. Turning an opinion now needs you to have named the person. Hidden markers like [cr_sway:...] no longer appear in the Memories panel; old saves are cleaned when loaded. (Thank you, Maifailun.)
+- Town duels: your companions stand aside, and the duel waits for the town to be ready. (Thank you, Zivkyn and Maifailun.)
+
+For modders
+
+- CrMemoryEntry.Private: a memory you inject in confidence stays out of other characters' prompts. (Thank you, tashmetu.)
+
+Developer tools
+
+- New cr.testall tests for every new quest and fix above.
+
+Notes
+
+- Your existing saves load as they are.
+- The new quests are new: tell me how they play.

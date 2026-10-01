@@ -1,4 +1,4 @@
-Released in v2.6.9
+Released in v2.6.10
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -63,6 +63,7 @@ _A whole conversation as it CLOSES, delivered by CrConversation.Ended._
 
 _One memory a third-party mod wants an NPC to hold._
 
+- `bool Private { get; set; }`
 - `int DaysAgo { get; set; }`
 - `string Kind { get; set; }`
 - `string NpcId { get; set; }`
