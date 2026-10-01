@@ -51,7 +51,7 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 **Still WISHED from the same thread, NOT built** (each needs its own design pass):
 - (BUILT, MOD `6dc06fe`: ransom_envoy, purse advanced, change kept.) A neutral envoy hired by a lord to negotiate the release of one of his men from a realm the player is not at war
   with ("bring my lad back alive, keep the change"); peace negotiated as a neutral third party.
-- (BUILT, MOD `3a2b37a`: scout_town, intel only.) Lowering a town's security through its gang leader, for gold: NOT built. Playing wingman for a courtship: NOT built, needs design (verification is the hard part).
+- (BUILT, MOD `3a2b37a`: scout_town, intel only.) Lowering a town's security through its gang leader, for gold: NOT built. Playing wingman: BUILT (MOD `dab830f`, arrange_match, a real marriage in two steps).
   (The prison break is BUILT, MOD `1d53d71`: the vanilla break now counts as a rescue for the task and the freed lord.)
 - (BUILT, MOD `f4fe452`: recruit_troops.) A smithing task: BUILT (MOD `007fc21`, the kind named is part of the deal), VERIFIABLE: the game marks a player-forged weapon (`ItemObject.IsCraftedByPlayer`, checked 01/10/2026), so a give_item of one can complete it.
 
