@@ -604,6 +604,24 @@ namespace CalradiaRemembers.Quests
          {
             string evidence = MatchBattle(quest, facts, day);
             if (evidence != null) Stamp(profile, quest, evidence, day);
+
+            // fkasad (01/10/2026): the player beat the lord a capture or delivery task names, and (as beaten lords
+            // do) he may escape. Recorded on the task, with his realm, so the giver can take the victory or a lord
+            // of that realm in his place, and a lapsed deadline is no fault of the player's (EscapedTargetPolicy).
+            if (EscapedTargetPolicy.RecordsTheVictory(quest.Type) && quest.TargetBeatenOnDay == null
+                && quest.TargetHeroId != null && facts.DefeatedHeroIds.Contains(quest.TargetHeroId))
+            {
+               Hero target = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+               quest.TargetBeatenOnDay = day;
+               if (string.IsNullOrEmpty(quest.TargetFactionId) && target?.MapFaction != null)
+               {
+                  quest.TargetFactionId = target.MapFaction.StringId;
+                  quest.TargetFactionName = target.MapFaction.Name?.ToString();
+               }
+
+               NpcMemoryCampaignBehavior.Instance?.Store.Set(profile);
+               ModLog.Info($"[QUEST] {profile.Name}'s task names {quest.TargetHeroName}, beaten by the player on day {day}: recorded.");
+            }
          });
       }
 

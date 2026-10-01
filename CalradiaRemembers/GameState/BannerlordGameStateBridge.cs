@@ -5026,8 +5026,10 @@ namespace CalradiaRemembers.GameState
 
             if (profile == null || npcHero == null) return null;
 
+            // A capture or delivery task whose man escaped after the player beat him may take a lord of his realm in his
+            // place (fkasad, 01/10/2026): that is a bargain too.
             InformalQuest anyBargain = profile.ActiveQuests.FirstOrDefault(q =>
-               q.Type == QuestType.DeliverPrisoner && q.IsOutstanding);
+               (q.Type == QuestType.DeliverPrisoner && q.IsOutstanding) || EscapedTargetPolicy.MaySettleByVictory(q));
 
             // Was a silent no-op: the model had already narrated the captive as handed over while the
             // prisoner roster (and any bargain) never moved. No such bargain, so surface the refusal.
@@ -5050,6 +5052,20 @@ namespace CalradiaRemembers.GameState
                profile.ActiveQuests,
                held.Select(h => new HeldCaptive {Id = h.StringId, FactionId = h.MapFaction?.StringId}),
                preferredId);
+
+            // No captive settles a bargain as named: a lord of an escaped target's realm may stand in, the giver having
+            // chosen to take him (this verb is his acceptance). The preferred captive first, as for a delivery.
+            if (match == null)
+               foreach (Hero h in held.OrderByDescending(h => h.StringId == preferredId))
+               {
+                  var c = new HeldCaptive {Id = h.StringId, FactionId = h.MapFaction?.StringId};
+                  InformalQuest stood = profile.ActiveQuests.FirstOrDefault(q => EscapedTargetPolicy.SubstituteSettles(q, c));
+                  if (stood == null) continue;
+
+                  match = new DeliveryMatch {Quest = stood, CaptiveId = h.StringId};
+                  ModLog.Info($"[QUEST] {npcHero.Name} takes {h.Name} in place of {stood.TargetHeroName}, who escaped.");
+                  break;
+               }
 
             if (match == null)
                return ActionOutcome.Refused($"(You do not hold {anyBargain.TargetHeroName ?? "the captive"} I asked for.)");

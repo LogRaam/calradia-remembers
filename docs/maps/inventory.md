@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 445 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 855 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 856 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 14500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 15000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4000+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -780,7 +780,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (553)
+### CalradiaRemembers.Logic (554)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -956,6 +956,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EquipmentModifierQualityPolicy` | public static class | Pure, engine-free mapping from an item modifier's plain facts to a GearQuality band. |
 | `EquipmentNotabilityPolicy` | public static class | Pure, engine-free scoring and phrasing of a hero's NOTABLE equipment. |
 | `EquipmentPieceFacts` | public class | One equipped item, reduced to the facts EquipmentNotabilityPolicy needs. |
+| `EscapedTargetPolicy` | public static class | The rules for a capture or delivery task whose target escaped. |
 | `EscortCostPolicy` | public static class | Pure pricing for the per-correspondent armed-escort premium (a distance-scaled one-off fee). |
 | `EstrangementPhase` | public enum | Where a fraying marriage stands on its way from the first crack to a spouse ready to walk out. |
 | `EstrangementProgressPolicy` | public static class | Paces a Stolen Love estrangement from its start day to the point the spouse is ready to leave, scaled by the seduction's SeductionDifficulty. |

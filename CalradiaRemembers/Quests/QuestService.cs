@@ -241,6 +241,21 @@ namespace CalradiaRemembers.Quests
 
                if (!quest.IsOutstanding || !quest.DeadlineDay.HasValue || gameDay <= quest.DeadlineDay.Value) continue;
 
+               // fkasad (01/10/2026): the deadline ran out while the man was a fugitive, or after the player beat him
+               // and he escaped. The game's own escape mechanic, not the player's broken word: a neutral cancel.
+               Hero lapsedTarget = string.IsNullOrEmpty(quest.TargetHeroId) ? null : Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+               if (CalradiaRemembers.Logic.EscapedTargetPolicy.LapsesWithoutFault(quest, lapsedTarget?.IsFugitive == true))
+               {
+                  quest.Status = QuestStatus.Cancelled;
+                  AddEvent(profile, gameDay, NotableEventType.Other,
+                     $"Set aside the task to {Describe(quest)}: {quest.TargetHeroName ?? "the man"} slipped out of reach.");
+                  QuestJournalBridge.CloseAsCancelled(quest, giverHero, $"{quest.TargetHeroName ?? "The target"} slipped out of reach; no fault of yours. This task is set aside.");
+                  ModLog.Info($"[QUEST] lapsed without fault for {profile.Name}: {Describe(quest)} (target fled or was beaten).");
+                  changed = true;
+
+                  continue;
+               }
+
                quest.Status = QuestStatus.Expired;
 
                // No-fault forgiveness (same rule as AbandonQuest): a lapsed deadline on a hard-to-find bandit
@@ -539,6 +554,26 @@ namespace CalradiaRemembers.Quests
 
          InformalQuest quest = giver.ActiveQuests.FirstOrDefault(q =>
             q.IsAwaitingReward && (claim.Type == null || q.Type == claim.Type.Value));
+
+         // fkasad (01/10/2026): the giver may accept a RECORDED victory over the man he wanted in place of the task,
+         // for half the reward (a victory is not a capture). Words alone open nothing: TargetBeatenOnDay is set only by
+         // a battle the player won with that lord on the losing side.
+         if (quest == null)
+         {
+            InformalQuest beaten = giver.ActiveQuests.FirstOrDefault(q =>
+               CalradiaRemembers.Logic.EscapedTargetPolicy.MaySettleByVictory(q) && (claim.Type == null || q.Type == claim.Type.Value));
+            if (beaten != null)
+            {
+               (int gold, int relationReward) = CalradiaRemembers.Logic.EscapedTargetPolicy.VictoryReward(beaten.RewardGold, beaten.RewardRelation);
+               beaten.RewardGold = gold;
+               beaten.RewardRelation = relationReward;
+               beaten.Reward = RewardGrant.None; // a promised grant (a fief, a favour) was for the man himself, not a victory
+               beaten.SatisfiedOnDay = gameDay;
+               beaten.Evidence = $"Defeated {beaten.TargetHeroName} in battle on day {beaten.TargetBeatenOnDay}; he escaped. Accepted in place of the task, for half the reward.";
+               ModLog.Info($"[QUEST] {giver.Name} accepts the player's victory over {beaten.TargetHeroName} in place of the task (half reward).");
+               quest = beaten;
+            }
+         }
 
          if (quest == null)
          {
