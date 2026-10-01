@@ -8111,17 +8111,11 @@ namespace CalradiaRemembers.Diagnostics
 
          if (string.IsNullOrWhiteSpace(menu)) return t.Line();
 
-         // Every line must open with a known type token, and a settlement target must truly resolve.
-         // This list must be grown whenever ViableQuestScanner learns to offer a new kind of task, or the test
-         // cries wolf over a perfectly good menu (provide_goods shipped in v1.29.0 and sat here unrecognised).
-         // The EXACT set ViableQuestScanner can emit (testall 2026-07-23: the checker had drifted two tokens
-         // behind the scanner, so a perfectly legitimate menu carrying siege + deliver_prisoner FAILED. The
-         // referee was stale, not the player-facing menu. Whoever adds a type to the scanner must add it here.)
-         var knownTokens = new[] {
-            "bandit_hideout", "bandit_clear", "attack_lord", "capture_prisoner", "attack_faction",
-            "raid_village", "scout_army", "rescue_prisoner", "deliver_letter", "provide_goods",
-            "siege", "deliver_prisoner"
-         };
+         // Every line must open with a token the lord's [QUEST] block can actually give (the SDK parser is the referee),
+         // and a settlement target must truly resolve. This was a hand-written list that drifted behind the scanner
+         // three times (provide_goods in v1.29.0, siege + deliver_prisoner on 2026-07-23, scout_town on 01/10/2026),
+         // each time failing a perfectly good menu. QuestMenuTokensTests now checks the scanner's tokens before launch.
+         var parser = new NpcMemoryService.Core.Parsing.SectionResponseParser();
          var allKnown = true;
          var settlementsResolve = true;
          foreach (string line in menu.Split('\n'))
@@ -8129,7 +8123,10 @@ namespace CalradiaRemembers.Diagnostics
             string trimmed = line.Trim();
 
             if (trimmed.Length == 0) continue;
-            if (!knownTokens.Any(tok => trimmed.StartsWith("- " + tok, StringComparison.Ordinal))) allKnown = false;
+            string token = trimmed.StartsWith("- ", StringComparison.Ordinal)
+               ? new string(trimmed.Substring(2).TakeWhile(c => char.IsLetter(c) || c == '_').ToArray())
+               : "";
+            if (token.Length == 0 || parser.Parse($"[DIALOGUE]x[/DIALOGUE]\n[QUEST]\ntype: {token}\n[/QUEST]").QuestGiven == null) allKnown = false;
 
             int idx = trimmed.IndexOf("target_settlement: ", StringComparison.Ordinal);
 
