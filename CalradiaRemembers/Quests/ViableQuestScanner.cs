@@ -96,6 +96,12 @@ namespace CalradiaRemembers.Quests
 
          // 6. A lord always needs supplies: horses for the cavalry, livestock or grain for the host. Always
          // groundable (the player can bring goods), so this personal task is always on the menu.
+         // 6a. What one of his towns lacks, read off its own market (fkasad, 01/10/2026). Before the personal supply
+         // so the menu's cap keeps it.
+         (Settlement Place, MarketReading Good)? need = Mapping.TownNeeds.MostLackingFor(giver);
+         if (need != null)
+            entries.Add(new QuestMenuEntry {TypeToken = "provide_goods", TargetField = null, TargetName = null, Cue = $"{need.Value.Place.Name} lacks {need.Value.Good.Name}, dear at its market: have the player bring it for the town (category: {need.Value.Good.Name}, set required_count)"});
+
          entries.Add(new QuestMenuEntry {TypeToken = "provide_goods", TargetField = null, TargetName = null, Cue = "have the player bring you a supply of horses, livestock, or grain (set category + required_count)"});
 
          return entries;

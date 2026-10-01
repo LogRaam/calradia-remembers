@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 447 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 867 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 448 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 869 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -462,7 +462,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (20)
+### CalradiaRemembers.Mapping (21)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -485,6 +485,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SeductionFactsMapper` | public static class | Builds SeductionFacts for a married NPC from live game state. |
 | `SettlementContextResolver` | public static class | Builds a ready-to-inject geography note for the LLM prompt from live map data. |
 | `StatureReader` | public static class | Reads a Stature from the live game. |
+| `TownNeeds` | public static class | What the towns a character answers for are short of. |
 | `Traits` | public class | (no summary) |
 
 ### CalradiaRemembers.Marriage (13)
@@ -782,7 +783,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (565)
+### CalradiaRemembers.Logic (567)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1083,6 +1084,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ManualModelMode` | public enum | The three-state in-chat model switch (21/08/2026, replaces the old binary manual toggle). |
 | `MapOffset` | public struct | How far east and how far north one map position lies from another. |
 | `MapPoint` | public struct | A position on the campaign map, in the engine's own coordinates. |
+| `MarketReading` | public class | One trade good as a town's market reads it. |
 | `MarriageBlockOverridePolicy` | public static class | Pure soft-vs-hard table: which MarriageBlockReason a passed courtship trial may override. |
 | `MarriageClaimPolicy` | public static class | Detects whether an [EVENT] summary CLAIMS that the conversation NPC and the player are now married, so the mod can withhold the memory (and the romantic-arc advancement riding on it) until Hero.Spouse confirms the weddin... |
 | `MarriageEligibility` | public static class | Whether a candidate could marry the player under Calradia's rules: alive, unwed, adult, and of the opposite sex (the engine marries opposite-sex only). |
@@ -1320,6 +1322,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ThirdPartyFacts` | public class | Pure categorisation of a third party from an NPC's point of view: the relationship label the prompt injects, the natural-language tone of a relation score, and how plausibly the NPC could relay that person's whereabouts. |
 | `TownFoodFacts` | public class | What a town's granary says. |
 | `TownFoodPolicy` | public static class | A hungry town's memory of the player's food trade. |
+| `TownNeedsPolicy` | public static class | What a town lacks, read off its own market. |
 | `TrackedCommitment` | public class | One NPC's promise TO THE PLAYER: who promised, concerning whom, of what kind, issued and due when, and where it stands. |
 | `TraitBand` | public static class | Maps a Bannerlord trait level (the small signed integer hero.GetTraitLevel returns, roughly -2..+2) to the plain band word ("low"/"moderate"/"high") the action interpreter's context digest uses to describe a character's... |
 | `TranscriptLine` | public class | One attributed line of conversation history, as it was recorded. |

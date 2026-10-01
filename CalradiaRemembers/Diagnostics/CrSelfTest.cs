@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("town_needs_supply", Severity.Light, "fkasad (Nexus, 01/10/2026): a governor asks for what his town lacks. Reads a real town's market for the good it lacks most (twice its worth or more), issues a provide_goods task for it through the real QuestFactory for the town's holder, and expects it keyed to that good, an item of that category to count toward it, and the delivery to go to that town's market. SKIP when no held town lacks anything. Records nothing.", TestTownNeedsSupply),
          new SelfTest("plead_case_quest", Severity.Light, "Lordfadooboo and fkasad (Nexus, 01/10/2026): a lord asks the player to plead his case before another. Issues the task through the real QuestFactory, expects a sway AGAINST the giver and a sway toward someone else NOT to answer it, and a sway toward the giver by that person to complete it, through the same credit the bridge calls; then removes the task. Moves no regard.", TestPleadCaseQuest),
          new SelfTest("earn_regard_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): a lord asks the player to win the good graces of another. Issues the task through the real QuestFactory against a living lord of another clan, expects the baseline and a goal ten beyond it, expects one point short NOT to complete it and the goal to complete it through the real regard-change credit, then removes the task. Moves no regard.", TestEarnRegardQuest),
          new SelfTest("town_food_memory", Severity.Light, "fkasad and Lordfadooboo (Nexus, 01/10/2026): a hungry town remembers who fed it and who emptied its market. Reads every town's granary as the market listener does, and words the memory a real town would keep for a relief and for hoarding: placed in that town, naming it, a deed for the relief and a disgrace for the hoarding. Records nothing.", TestTownFoodMemory),
@@ -8655,6 +8656,38 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestTownNeedsSupply(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("town_needs_supply");
+
+         Hero holder = null;
+         (Settlement Place, MarketReading Good)? need = null;
+         foreach (Settlement town in Settlement.All.Where(st => st?.IsTown == true && st.OwnerClan?.Leader != null && st.OwnerClan.Leader != Hero.MainHero))
+         {
+            need = Mapping.TownNeeds.MostLackingFor(town.OwnerClan.Leader);
+            if (need == null) continue;
+
+            holder = town.OwnerClan.Leader;
+            break;
+         }
+
+         if (t.Skip(holder == null, "no held town lacks anything at its market today")) return t.Line();
+
+         string name = need.Value.Good.Name;
+         t.Note($"{need.Value.Place.Name} lacks {name} (price x{need.Value.Good.PriceFactor:0.0}); asked by {holder.Name}");
+
+         InformalQuest quest = Quests.QuestFactory.Create(new QuestProposal {Type = QuestType.ProvideGoods, Category = name, RequiredCount = 10}, holder, (int) CampaignTime.Now.ToDays);
+         if (t.Abort(quest == null, $"the factory refused a supply of {name} for {holder.Name}")) return t.Line();
+
+         t.Expect("keyedToTheLackingGood", quest.RequiredItemCategory, ProvideGoodsPolicy.MarketKey(need.Value.Good.CategoryId));
+
+         ItemObject item = TaleWorlds.CampaignSystem.Extensions.Items.All.FirstOrDefault(i => i?.ItemCategory?.StringId == need.Value.Good.CategoryId);
+         if (item != null) t.Expect("anItemOfThatGoodCounts", CalradiaRemembers.Items.SupplyItemMatcher.Matches(item, quest.RequiredItemCategory), true);
+         t.Expect("deliveredToThatTownsMarket", Mapping.TownNeeds.MarketFor(holder, need.Value.Good.CategoryId) == need.Value.Place, true);
 
          return t.Line();
       }

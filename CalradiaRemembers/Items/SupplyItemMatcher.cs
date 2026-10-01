@@ -8,6 +8,7 @@
 
 using CalradiaRemembers.Logic;
 using TaleWorlds.Core;
+using TaleWorlds.ObjectSystem;
 
 #endregion
 
@@ -33,7 +34,10 @@ namespace CalradiaRemembers.Items
                 case ProvideGoodsPolicy.Grain:
                     return cat == "grain";
                 default:
-                    return false;
+                    // A good a town lacks (fkasad, 01/10/2026): its own item category, exactly.
+                    string marketId = ProvideGoodsPolicy.MarketCategoryId(categoryKey);
+
+                    return marketId != null && string.Equals(cat, marketId, System.StringComparison.OrdinalIgnoreCase);
             }
         }
 
@@ -43,7 +47,14 @@ namespace CalradiaRemembers.Items
                 ProvideGoodsPolicy.Horses => "horses",
                 ProvideGoodsPolicy.Livestock => "livestock",
                 ProvideGoodsPolicy.Grain => "grain",
-                _ => "goods"
+                _ => MarketLabel(categoryKey) ?? "goods"
             };
+
+        private static string MarketLabel(string categoryKey)
+        {
+            string id = ProvideGoodsPolicy.MarketCategoryId(categoryKey);
+
+            return id == null ? null : MBObjectManager.Instance?.GetObject<ItemCategory>(id)?.GetName()?.ToString() ?? id;
+        }
     }
 }

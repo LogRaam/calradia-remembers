@@ -879,6 +879,11 @@ namespace CalradiaRemembers.GameState
             if (count < quest.RequiredItemCount)
                return ActionOutcome.Refused($"({giverHero?.Name}: that is only {count} of the {quest.RequiredItemCount} {label} I asked for. Bring more.)");
 
+            // A good asked for a town that lacks it goes into that town's market, not the giver's cellar (fkasad,
+            // 01/10/2026), and costs the town nothing: it bypasses the market's purchase.
+            string marketId = ProvideGoodsPolicy.MarketCategoryId(categoryKey);
+            Settlement market = marketId != null ? TownNeeds.MarketFor(giverHero, marketId) : null;
+
             // Count met: hand over exactly the required number (never take more than asked).
             int remaining = quest.RequiredItemCount;
             foreach ((ItemObject item, int c) in toRemove)
@@ -886,6 +891,7 @@ namespace CalradiaRemembers.GameState
                if (remaining <= 0) break;
                int take = Math.Min(c, remaining);
                roster.AddToCounts(item, -take);
+               market?.ItemRoster?.AddToCounts(item, take);
                remaining -= take;
             }
 
@@ -894,7 +900,7 @@ namespace CalradiaRemembers.GameState
             // Grain asked for while a place he answers for goes hungry feeds that place, not his cellar (fkasad,
             // 01/10/2026), and the place remembers who brought it.
             Settlement fed = categoryKey == ProvideGoodsPolicy.Grain ? WorldEvents.FoodTradeMemoryBehavior.DeliverRelief(giverHero, quest.RequiredItemCount) : null;
-            string forWhom = fed != null ? $" for the hungry of {fed.Name}" : "";
+            string forWhom = fed != null ? $" for the hungry of {fed.Name}" : market != null ? $" for the market of {market.Name}" : "";
 
             quest.SatisfiedOnDay = day;
             quest.Evidence = $"Delivered {quest.RequiredItemCount} {label}{forWhom} on day {day}.";

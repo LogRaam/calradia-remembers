@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-394 rules read 297 facts.
+397 rules read 301 facts.
 
 ## Facts read by more than one rule
 
@@ -68,6 +68,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.LordsApproaching` (6) | `FiefAudiencePolicy.ChooseFiefValid`, `FiefAudiencePolicy.IsOnCooldown`, `InterceptionFacts`, `InterceptionPacingRules.CooldownDays`, `InterceptionPacingRules.DailyChancePercent`, `InterceptionPacingRules.IsOff` |
 | `PartyBelongedTo.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `EscortCostPolicy.EscortPremium`, `JealousyHearingPolicy.WithinEarshot` |
 | `Romantic.IsOpenArrangement` (6) | `LoverEligibilityFacts`, `OpenRelationshipPolicy.SuppressesJealousy`, `PartnerStanding`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot` |
+| `Settlement.IsTown` (6) | `CommonerChatContext`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts`, `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
 | `Town.FoodStocks` (6) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination`, `TownFoodPolicy.StocksAfterRelief` |
 | `CurrentSettlement.GetPosition2D` (5) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `JealousyHearingPolicy.WithinEarshot` |
 | `DayMoodReader.Draw` (5) | `CorrespondencePreferenceParser.Parse`, `LetterRegardPolicy.ParseTone`, `LetterRegardPolicy.StripToneLine`, `LetterReplyDecisionParser.Parse`, `PerceivedImageFacts` |
@@ -91,7 +92,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Provider.SelectedValue` (4) | `ProviderRolePolicy.ParseKind`, `ProviderRolePolicy.ResolveRoleKind`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `Romantic.IsCompatibleWith` (4) | `JealousyTriggerPolicy.IsPlausibleCourtship`, `LoverCandidateFacts`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Settlement.IsCastle` (4) | `CommonerChatContext`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts` |
-| `Settlement.IsTown` (4) | `CommonerChatContext`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts` |
 | `TroopRoster.GetTroopRoster` (4) | `CourtActionPolicy.IsPartyWeakened`, `PrisonerCustodyPolicy.HeldByPlayer`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `Vec2.Distance` (4) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CourierStuckPolicy.HasMoved`, `GeographyDescriber.Bearing` |
 | `Army.LeaderParty` (3) | `ChaseFacts`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `PlayerForcePolicy.Resolve` |
@@ -112,6 +112,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `IFaction.IsKingdomFaction` (3) | `FirstImpressionDescriber.Describe`, `FirstImpressionInputs`, `FirstImpressionPolicy.Resolve` |
 | `MapEvent.EventType` (3) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause` |
 | `MapEvent.MapEventSettlement` (3) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause` |
+| `MarketData.GetPriceFactor` (3) | `MarketReading`, `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
 | `MobileParty.ItemRoster` (3) | `CompanionCounselPolicy.Select`, `GiftQuantityPolicy.Resolve`, `PartyCounselFacts` |
 | `MobileParty.Morale` (3) | `CompanionCounselPolicy.Select`, `PartyCounselFacts`, `PartyMoraleMood.DriverFor` |
 | `ModSettings.CompanionAudienceCadence` (3) | `CompanionAudiencePacingRules.CooldownDays`, `CompanionAudiencePacingRules.DailyChancePercent`, `CompanionAudiencePacingRules.IsOff` |
@@ -194,6 +195,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Status.IsCourtingOrDeeper` (2) | `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible` |
 | `Store.MostRecentMatching` (2) | `HardshipPolicy.ShouldRecord`, `WarLoomingPolicy.ShouldRecord` |
 | `Summary.IndexOf` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
+| `Town.MarketData` (2) | `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
 | `ViolenceSceneReader.FactsFor` (2) | `ViolencePolicy.Resolve`, `ViolencePolicy.SuccessChance` |
 | `summary.IndexOf` (2) | `CourtActionPolicy.CooldownElapsed`, `PowerBalanceFacts` |
 
@@ -422,6 +424,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ManualActionAvailability.Describe`: `Clan.Kingdom`, `Clan.Leader`, `Clan.Settlements`, `FactionManager.IsAtWarAgainstFaction`, `Hero.Clan`, `Hero.GetRelation`, `Hero.Gold`, `Hero.GovernorOf`, `Hero.IsAlive`, `Hero.IsFactionLeader`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `Kingdom.Leader`, `MobileParty.Army`, `MobileParty.LeaderHero`, `MobileParty.SiegeEvent`, `PartyBelongedTo.LeaderHero`, `PartyBelongedToAsPrisoner.LeaderHero`, `StatureReader.Player`, `Town.Governor`
 - `ManualActionAvailability.GetAvailable`: `Clan.Leader`, `Hero.Clan`, `Hero.GovernorOf`, `Hero.IsAlive`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.LeaderHero`, `PartyBelongedToAsPrisoner.LeaderHero`
 - `ManualActionFacts`: `Clan.Kingdom`, `Clan.Leader`, `Clan.Settlements`, `FactionManager.IsAtWarAgainstFaction`, `Hero.Clan`, `Hero.GetRelation`, `Hero.Gold`, `Hero.GovernorOf`, `Hero.IsAlive`, `Hero.IsFactionLeader`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `Kingdom.Leader`, `MobileParty.Army`, `MobileParty.LeaderHero`, `MobileParty.SiegeEvent`, `PartyBelongedTo.LeaderHero`, `PartyBelongedToAsPrisoner.LeaderHero`, `StatureReader.Player`, `Town.Governor`
+- `MarketReading`: `MarketData.GetPriceFactor`
 - `MarriageBlockOverridePolicy.CanOverride`: `Hero.Spouse`
 - `MarriageClaimFacts`: `NewEventData.Summary`
 - `MarriageGuardPolicy.FamilyApproves`: `Hero.Clan`
@@ -490,11 +493,12 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `PrisonerTradePolicy.MinAcceptablePayment`: `Hero.CharacterObject`, `RansomValueCalculationModel.PrisonerRansomValue`
 - `PrisonerTradePolicy.MostABuyerCanPay`: `Hero.CharacterObject`, `Npc.Gold`, `RansomValueCalculationModel.PrisonerRansomValue`
 - `PrisonerTradePolicy.PriceDifferenceNote`: `Hero.Gold`
+- `ProvideGoodsPolicy.MarketKey`: `MarketData.GetPriceFactor`, `Settlement.IsTown`, `Town.MarketData`
 - `ProviderPinFailurePolicy.Explain`: `HttpMethod.Post`, `ModSettings.AllowOpenRouterProviderFallbacks`
 - `ProviderPinFailurePolicy.RoutingJson`: `ModSettings.AllowOpenRouterProviderFallbacks`
 - `ProviderRolePolicy.ParseKind`: `Provider.SelectedValue`
 - `ProviderRolePolicy.ResolveRoleKind`: `Provider.SelectedValue`
-- `QuestMenuEntry`: `FactionManager.IsAtWarAgainstFaction`, `Hero.CurrentSettlement`, `Hero.MapFaction`, `Hero.Name`, `Kingdom.Leader`, `Settlement.GetPosition2D`, `Settlement.Name`, `Vec2.x`, `Vec2.y`
+- `QuestMenuEntry`: `FactionManager.IsAtWarAgainstFaction`, `Good.Name`, `Hero.CurrentSettlement`, `Hero.MapFaction`, `Hero.Name`, `Kingdom.Leader`, `Place.Name`, `Settlement.GetPosition2D`, `Settlement.Name`, `Vec2.x`, `Vec2.y`
 - `QuestRescueCreditPolicy.CreditsPlayerRescue`: `EndCaptivityDetail.Death`, `EndCaptivityDetail.Ransom`, `EndCaptivityDetail.ReleasedAfterBattle`, `EndCaptivityDetail.ReleasedAfterEscape`, `EndCaptivityDetail.ReleasedAfterPeace`, `EndCaptivityDetail.ReleasedByChoice`, `EndCaptivityDetail.ReleasedByCompensation`
 - `RealmServiceWording.Joined`: `Kingdom.Leader`
 - `ReasoningWirePolicy.UsesEffortString`: `ModSettings.ActionInterpreterProviderSelection`, `ModSettings.CncProviderSelection`, `ModSettings.HousekeepingProviderSelection`, `ModSettings.RoleplayProviderSelection`, `Provider.SelectedValue`
@@ -573,6 +577,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `TownFoodPolicy.IsHungry`: `Settlement.CurrentSettlement`, `Settlement.IsStarving`, `Town.FoodChange`, `Town.FoodStocks`
 - `TownFoodPolicy.ReliefDestination`: `Settlement.IsStarving`, `Town.FoodChange`, `Town.FoodStocks`
 - `TownFoodPolicy.StocksAfterRelief`: `Settlement.Town`, `Town.FoodStocks`, `Town.FoodStocksUpperLimit`
+- `TownNeedsPolicy.MostLacking`: `MarketData.GetPriceFactor`, `Settlement.IsTown`, `Town.MarketData`
 - `TraitFacts`: `Hero.GetTraitLevel`
 - `TranscriptFold`: `ModSettings.LeanPrompt`
 - `TrialVerdictPolicy.DefaultConviction`: `Case.LiegeId`, `Hero.Clan`, `Kingdom.Clans`

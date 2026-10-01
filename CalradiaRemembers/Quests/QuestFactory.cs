@@ -638,7 +638,9 @@ namespace CalradiaRemembers.Quests
             case QuestType.ProvideGoods:
                // A personal supply task: bind a recognized goods category and a sane count. An unrecognized
                // category is refused (the giver never asks for goods the game cannot verify handing over).
-               string category = ProvideGoodsPolicy.Normalize(proposal.Category);
+               // Or a good one of his towns truly lacks, read off its market (fkasad, 01/10/2026: "bring me iron
+               // ore, horses, beer, hardwood, whatever the city needs").
+               string category = ProvideGoodsPolicy.Normalize(proposal.Category) ?? Mapping.TownNeeds.LackedKey(giver, proposal.Category);
 
                if (category == null) return false;
                quest.RequiredItemCategory = category;

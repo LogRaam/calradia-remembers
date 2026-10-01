@@ -74,6 +74,23 @@ namespace CalradiaRemembers.Logic
         public static int ClampCount(int count)
             => count < MinCount ? MinCount : count > MaxCount ? MaxCount : count;
 
+        /// <summary>
+        ///   The prefix of a key naming one of a town's market goods by its ItemCategory id ("market:iron"), for a
+        ///   task asked because the giver's town lacks it (fkasad, 01/10/2026). Distinct from the three personal keys,
+        ///   so a supply for the giver's own host and a supply for his town's market never read as one another.
+        /// </summary>
+        public const string MarketKeyPrefix = "market:";
+
+        /// <summary>The key for a town's market good.</summary>
+        public static string MarketKey(string categoryId)
+            => string.IsNullOrWhiteSpace(categoryId) ? null : MarketKeyPrefix + categoryId.Trim();
+
+        /// <summary>The market good's ItemCategory id, or null when the key is one of the personal three.</summary>
+        public static string MarketCategoryId(string key)
+            => key != null && key.StartsWith(MarketKeyPrefix, System.StringComparison.Ordinal) && key.Length > MarketKeyPrefix.Length
+                ? key.Substring(MarketKeyPrefix.Length)
+                : null;
+
         /// <summary>True when the running tally of handed-over goods meets a positive required count.</summary>
         public static bool IsSatisfied(int handedOverCount, int requiredCount)
             => requiredCount > 0 && handedOverCount >= requiredCount;
