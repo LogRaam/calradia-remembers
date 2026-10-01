@@ -1,0 +1,21 @@
+﻿Version 2.6.9
+
+Fixes from your reports.
+
+Fixed
+
+- Speaking privately works again. A character who agreed to a private word, even with just a gesture, now actually clears the room. If you ever need it, the console command cr.private clears the witnesses from the open conversation. (Thank you, Lufaine and Maifailun.)
+- A character at war with you no longer offers you quests. Buying back or exchanging prisoners still works, and quests given before the war are still remembered. (Thank you, fkasad.)
+- A conversation with your own prisoner, started at sea, now opens when you reach land instead of being dropped, and a captive in the room is a witness again.
+
+For modders
+
+- RegardChanged has a new cause, self_test: every regard change made while cr.testall runs. The tests restore regard without a notice, so a mod mirroring regard should skip it. EXTENSION_API.md also says which deeds write the game's relation as well (only a divorce). (Thank you, tashmetu.)
+
+Developer tools
+
+- New cr.testall tests: privacy_survives_interpreter, no_tasks_from_enemies. regard_changed now expects self_test; action_gate accepts a captive as a witness.
+
+Notes
+
+- Your existing saves load as they are.

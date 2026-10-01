@@ -2,7 +2,29 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.6.8.. 2026-09-30
+## v2.6.9.. 2026-09-30
+
+### Fixed
+- **A private audience granted in character clears the room again** (Lufaine, Maifailun, Nexus, 30/09/2026: "the npc
+  will agree, emote a private departure, but the audience is still there listening to every word"). In the two-call
+  chat the interpreter's actions replaced the scene model's, and the scene model is the one taught to answer a privacy
+  request (request_privacy) while the interpreter is told not to record an implied one. `SceneDecisionMerge`: the
+  character's own decision about the room stands when the interpreter recorded none; deeds stay the interpreter's.
+  New console command `cr.private` clears the witnesses of the open conversation. `cr.testall
+  privacy_survives_interpreter`.
+- **No task is taught to a character at war with the player** (fkasad, 29/09/2026: an enemy lord buying back a
+  prisoner slid into demanding a deed, then into invalid-quest messages; "Vanilla lords don't give quest to enemies").
+  OFFERING TASKS and the deliver_prisoner bargain are withheld at war; tasks given before the war are still known, and
+  trading prisoners (a verb, not a task) stays. `cr.testall no_tasks_from_enemies`.
+- **The captive rule never blocks talking to a prisoner** (Gabriel, 30/09/2026): a conversation with the player's own
+  captive begun at sea is received at landfall again, and a captive in the room is a witness again.
+
+### For modders
+- **`RegardCause.SelfTest` ("self_test")** (tashmetu, 30/09/2026): every regard change made while `cr.testall` runs is
+  reported with this cause, whatever path made it; the tests restore regard without a notice, so a mod mirroring
+  regard should skip it. EXTENSION_API.md also states which deeds write the game's relation as well: of CR's regard
+  changes, only a divorce.
+
 
 ### Fixed
 - **A witness addressed by name in Japanese answers** (yozakura12, Nexus, 24/09/2026: 「カリー、聞かせてくれるか？」 stayed
