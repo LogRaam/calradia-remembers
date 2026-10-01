@@ -32,6 +32,25 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## BUILT 2026-10-01 for 2.6.10 (fkasad + Lordfadooboo, Nexus thread of 01/10), NOT SEEN IN PLAY: food and favours
+
+- **A hungry town remembers who fed it, and who emptied its market** (MOD `d37b4bb`): `TownFoodPolicy` +
+  `FoodTradeMemoryBehavior` on `PlayerInventoryExchangeEvent`; relief / hoarding as a placed world event, once a week.
+- **Grain asked for while a town starves goes into its stores** (MOD `d3acfbe`): a delivered grain `provide_goods`
+  task feeds the giver's first hungry seat (`Mapping.HeroSeats`, the one "places a character answers for" lookup).
+- **earn_regard** (MOD `61a3c27` / SDK `49f57af`): a lord asks the player to win the good graces of another
+  (+10 on the mod ledger from the baseline, nothing to win past Devoted, at least 30 days).
+
+**Still WISHED from the same thread, NOT built** (each needs its own design pass):
+- fkasad's city-needs supply ("bring me iron ore, horses, beer, hardwood": read the town's daily needs, the basket
+  tooltip of the management screen) and a garrison-reinforcement task.
+- Plead a case: argue on the giver's behalf to his family or faction leader, or to a lord of another realm.
+- A neutral envoy hired by a lord to negotiate the release of one of his men from a realm the player is not at war
+  with ("bring my lad back alive, keep the change"); peace negotiated as a neutral third party.
+- Scout a city by ENTERING it and meeting its gang leader (intel, lowered security); the classic prison break of a
+  high-value prisoner, reusing the vanilla mechanic; playing wingman for a courtship.
+- Lordfadooboo: recruitment tasks, vanilla-inspired ones (a smithing task).
+
 ## FOUND 2026-09-21 by reading the generated maps, NOT ACTED ON: one concept under several names
 
 The maps (`docs/maps/`, see its README) show a duplicate when two declarations share a NAME. They cannot show the
