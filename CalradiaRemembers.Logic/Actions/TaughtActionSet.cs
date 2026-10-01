@@ -183,6 +183,7 @@ namespace CalradiaRemembers.Logic.Actions
          "lend_troops",
          "give_troops",
          "reinforce_garrison",
+         "share_intel",
          "spend_influence",
          "sway_opinion",
          "release_prisoner",

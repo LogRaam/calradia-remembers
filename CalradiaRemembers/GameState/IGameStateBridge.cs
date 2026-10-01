@@ -172,6 +172,15 @@ namespace CalradiaRemembers.GameState
         /// </summary>
         ActionOutcome SettleGarrisonQuest(NpcProfile giver, Hero giverHero, InformalQuest quest, int troopsMoved, string placeName);
 
+        /// <summary>Whether some lord has sent the player to scout this town (an outstanding scout_town task).</summary>
+        bool HasScoutTask(TaleWorlds.CampaignSystem.Settlements.Settlement town);
+
+        /// <summary>
+        ///   The gang leader told: records the town's true state as the scout_town task's evidence, for its giver, and
+        ///   tells the player what he heard.
+        /// </summary>
+        ActionOutcome SettleScoutTask(Hero informant, TaleWorlds.CampaignSystem.Settlements.Settlement town);
+
         /// <summary>
         ///   Applies the standing penalty for the player being publicly abased before
         ///   <paramref name="witnessCount"/> onlookers (Sprint 17 captive humiliation).

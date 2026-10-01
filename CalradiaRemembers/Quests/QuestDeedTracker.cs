@@ -356,6 +356,10 @@ namespace CalradiaRemembers.Quests
          return null;
       }
 
+      /// <summary>Stamps a deed done from outside the tracker (a verb that verified it in conversation), as the tracker does.</summary>
+      internal static void StampDeed(NpcProfile profile, InformalQuest quest, string evidence, int day)
+         => Stamp(profile, quest, evidence, day);
+
       private static void Stamp(NpcProfile profile, InformalQuest quest, string evidence, int day)
       {
          quest.SatisfiedOnDay = day;

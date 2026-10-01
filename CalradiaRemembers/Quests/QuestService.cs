@@ -108,6 +108,23 @@ namespace CalradiaRemembers.Quests
          return null;
       }
 
+      /// <summary>An outstanding scout_town task aimed at <paramref name="town" />, with its giver; null when none.</summary>
+      public static LetterErrand FindOutstandingScoutFor(TaleWorlds.CampaignSystem.Settlements.Settlement town, BannerlordNpcMemoryStore store)
+      {
+         string name = town?.Name?.ToString();
+         if (name == null || store == null) return null;
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile giver = store.Get(id);
+            InformalQuest scout = giver?.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.ScoutTown && q.IsOutstanding
+                                                                         && string.Equals(q.TargetSettlement, name, StringComparison.OrdinalIgnoreCase));
+            if (scout != null) return new LetterErrand(giver, scout);
+         }
+
+         return null;
+      }
+
       /// <summary>
       ///   Stamps a letter quest as delivered the moment the player hands it to the
       ///   recipient in conversation. The reward is collected later, when the player
@@ -705,6 +722,7 @@ namespace CalradiaRemembers.Quests
             case QuestType.EarnRegard: return $"win the good graces of {q.TargetHeroName}";
             case QuestType.PleadCase: return $"plead their case before {q.TargetHeroName}";
             case QuestType.ReinforceGarrison: return $"bring {q.RequiredItemCount} soldiers for the garrison of {q.TargetSettlement}";
+            case QuestType.ScoutTown: return $"scout {q.TargetSettlement} from inside, through its gang leader";
             case QuestType.RansomEnvoy: return $"buy back {q.TargetHeroName} from their captors, with the {q.AdvanceGold} denars advanced";
             default: return "carry out a task";
          }

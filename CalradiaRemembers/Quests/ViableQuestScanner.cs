@@ -173,6 +173,11 @@ namespace CalradiaRemembers.Quests
          if (fortress != null)
             entries.Add(new QuestMenuEntry {TypeToken = "siege", TargetField = "target_settlement", TargetName = fortress.Name?.ToString(), Cue = $"help take one of {enemyName}'s strongholds"});
 
+         // A town of theirs to scout from inside, through its gang leader (fkasad, 01/10/2026).
+         Settlement scoutable = Settlement.All?.FirstOrDefault(s => s?.MapFaction == enemy && ScoutTownPolicy.MayAsk(QuestFactory.ScoutFacts(s, giver)));
+         if (scoutable != null)
+            entries.Add(new QuestMenuEntry {TypeToken = "scout_town", TargetField = "target_settlement", TargetName = scoutable.Name?.ToString(), Cue = $"slip into {scoutable.Name} and buy what its gang leader knows of its walls and stores"});
+
          // The bounty-hunting loop: any enemy lord brought to the giver in chains, for a promised price.
          entries.Add(new QuestMenuEntry {TypeToken = "deliver_prisoner", TargetField = "target_faction", TargetName = enemyName, Cue = "bring me any of their lords in chains and be paid for the man"});
 

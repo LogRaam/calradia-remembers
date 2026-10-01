@@ -2596,6 +2596,13 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>One place, as the engine currently has it. Bands, because a lord has never counted any of it.</summary>
+      /// <summary>
+      ///   A town as its own gang leader knows it, in the seat pack's bands: the scout_town report reads the same facts
+      ///   the gang leader's prompt was given (01/10/2026), so what he says and what is recorded cannot disagree.
+      /// </summary>
+      internal static SeatFacts ReadTownAsItsNotablesKnowIt(Settlement place)
+         => place == null ? null : ReadSeat(place, SeatRole.Notable);
+
       private static SeatFacts ReadSeat(Settlement place, SeatRole role)
       {
          Town town = place.Town;

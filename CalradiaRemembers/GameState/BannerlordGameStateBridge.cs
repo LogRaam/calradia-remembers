@@ -232,7 +232,7 @@ namespace CalradiaRemembers.GameState
          "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
          "release_prisoner", "buy_prisoner", "sell_prisoner", "exchange_prisoners", "end_marriage", "make_amends", "grudge_terms", "hear_account", "pledge_against",
          "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill", "admit_secret_lover", "pay_for_silence",
-         "rob_npc", "assault_npc", "kill_npc", "reinforce_garrison",
+         "rob_npc", "assault_npc", "kill_npc", "reinforce_garrison", "share_intel",
          // ChatViewModel chat-flow controls: real LLM-emittable actions, never dispatched by the switch below.
          "witness_leaves", "request_privacy", "retire"
       };
@@ -351,6 +351,8 @@ namespace CalradiaRemembers.GameState
             case "spend_influence":
             // reinforce_garrison (fkasad, 01/10/2026): the men a governor asked for, onto his walls.
             case "reinforce_garrison":
+            // share_intel (fkasad, 01/10/2026): a gang leader telling a scout what he knows of his town.
+            case "share_intel":
             case "release_prisoner":
             // buy_prisoner / sell_prisoner (prisoner trade, 08/07/2026): the NPC buys a captive the player
             // holds, or sells one his clan holds, for gold clamped around the game's ransom valuation.
@@ -921,6 +923,46 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[QUEST] SettleSupplyQuest failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>Whether some lord has sent the player to scout this town (fkasad, 01/10/2026).</summary>
+      public bool HasScoutTask(Settlement town)
+         => QuestService.FindOutstandingScoutFor(town, NpcMemoryCampaignBehavior.Instance?.Store) != null;
+
+      /// <summary>
+      ///   share_intel landed (fkasad, 01/10/2026): the town's true state, in the bands its gang leader was given, becomes
+      ///   the scout_town task's evidence; the gang leader remembers telling, and the player reads what he heard.
+      /// </summary>
+      public ActionOutcome SettleScoutTask(Hero informant, Settlement town)
+      {
+         try
+         {
+            BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+            LetterErrand errand = QuestService.FindOutstandingScoutFor(town, store);
+            if (errand == null || informant == null) return ActionOutcome.Refused("(Nobody has sent you here for what this one knows; nothing is recorded.)");
+
+            var day = (int) CampaignTime.Now.ToDays;
+            string report = ScoutTownPolicy.Report(EncounterContextBuilder.ReadTownAsItsNotablesKnowIt(town), informant.Name?.ToString(), day);
+            QuestDeedTracker.StampDeed(errand.Giver, errand.Quest, report, day);
+
+            NpcProfile told = store.Get(informant.StringId);
+            if (told != null)
+            {
+               told.Events.Add(new NotableEvent(day, NotableEventType.Other,
+                  $"Told {Hero.MainHero?.Name?.ToString() ?? "the player"} what I know of {town.Name}'s walls and stores; someone sent them for it."));
+               store.Set(told);
+            }
+
+            ModLog.Info($"[QUEST] scout_town: {informant.Name} told the player about {town.Name} for {errand.Giver.Name}.");
+
+            return new ActionOutcome($"What {informant.Name} told you of {town.Name}: {report.Substring(report.IndexOf(':') + 1).Trim()}.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[QUEST] SettleScoutTask failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

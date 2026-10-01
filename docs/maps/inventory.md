@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 450 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 875 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 451 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 877 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -695,7 +695,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSpikeScreen` | internal class | The one screen the probe uses, pushed BOTH ways so the measurement compares mechanisms rather than screens. |
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
 
-### CalradiaRemembers.Verbs (21)
+### CalradiaRemembers.Verbs (22)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -716,6 +716,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ReinforceGarrisonVerb` | public class | reinforce_garrison (fkasad, Nexus, 01/10/2026: "Works for garrison reinforcement too"): the player hands over the men a governor or lord asked for, and they go straight onto the walls of the place named in the task. |
 | `ReleasePrisonerVerb` | public class | release_prisoner (RP with teeth, increment 1): the player intercedes for a THIRD-PARTY hero prisoner the NPC's own clan holds (not the player's own captive, that is free_prisoner). |
 | `SellPrisonerVerb` | public class | sell_prisoner: the NPC hands the player a hero captive their clan holds, for the player's gold. |
+| `ShareIntelVerb` | public class | share_intel (fkasad, Nexus, 01/10/2026: "Make contact with local gang leader, negotiate with him for intel"): a town's gang leader, in his own town, agrees to tell the player what he knows of its walls, stores, people an... |
 | `SpendInfluenceVerb` | public class | spend_influence: the reciprocal of GiveInfluenceVerb, 04/07/2026 — the PLAYER spends some of their own clan's influence to back a needy lord's clan at court. |
 | `SwayOpinionVerb` | public class | sway_opinion (RP with teeth, increment 1): the player's case, made in conversation, genuinely moves the NPC's own regard for a named THIRD PARTY (not the player). |
 | `VerbContext` | public class | Everything a conversation verb needs to decide eligibility, compose its teaching text, or execute: the NPC and their profile, the live game-state bridge, the player's current message (when teaching mid-conversation), and... |
@@ -785,7 +786,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (573)
+### CalradiaRemembers.Logic (575)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1263,6 +1264,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SchemeFactors` | public class | The rivals' traits a scheme's odds rest on — engine-gathered, pure to reason over. |
 | `SchemeKind` | public enum | The flavour of a scheme — drives the rumour wording and the standing-damage effect, not the lifecycle. |
 | `SchemeState` | public enum | The lifecycle of a scheme. |
+| `ScoutTownFacts` | public class | Whether a town may be named for a scout_town task. |
+| `ScoutTownPolicy` | public static class | The rules of a scout_town task, and the report the gang leader gives. |
 | `SecretBondEligibility` | public static class | The single source of truth for whether a hidden bond may be taken up, and if not, why not. |
 | `SecretBondFacts` | public class | The plain facts the decision needs, read off the live campaign by whoever is asking. |
 | `SecretBondVerdict` | public enum | Why a hidden bond may or may not be taken up, in the order the doors are tried. |

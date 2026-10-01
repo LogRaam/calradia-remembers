@@ -327,6 +327,14 @@ namespace CalradiaRemembers.Quests
                    .Select(seat => seat.Place)
                    .Where(p => ReinforceGarrisonPolicy.MayAsk(GarrisonStrength.BandOf(p.Town.GarrisonParty.Party.NumberOfHealthyMembers, p.Town.GarrisonParty.Party.PartySizeLimit)));
 
+      /// <summary>The facts ScoutTownPolicy judges a town on.</summary>
+      internal static ScoutTownFacts ScoutFacts(Settlement town, Hero giver)
+         => new ScoutTownFacts {
+            IsTown = town != null && town.IsTown,
+            GiverAtWarWithIt = town?.MapFaction != null && giver?.MapFaction != null && FactionManager.IsAtWarAgainstFaction(giver.MapFaction, town.MapFaction),
+            HasGangLeader = town?.Notables != null && town.Notables.Any(n => n.IsGangLeader && Mapping.HeroPresence.IsInTheWorld(n))
+         };
+
       /// <summary>The facts RansomEnvoyPolicy judges an envoy's errand on.</summary>
       internal static RansomEnvoyFacts EnvoyFacts(Hero man, Hero giver, int advance)
       {
@@ -666,6 +674,16 @@ namespace CalradiaRemembers.Quests
 
             case QuestType.ReinforceGarrison:
                return BindGarrison(quest, proposal, giver);
+
+            case QuestType.ScoutTown:
+               // fkasad (01/10/2026): an enemy town with a gang leader in it, the man the deed depends on.
+               Settlement town = ResolveSettlement(proposal.TargetSettlement);
+               if (!ScoutTownPolicy.MayAsk(ScoutFacts(town, giver))) return false;
+               quest.TargetSettlement = town.Name?.ToString();
+               quest.TargetFactionId = town.MapFaction?.StringId;
+               quest.TargetFactionName = town.MapFaction?.Name?.ToString();
+
+               return true;
 
             case QuestType.RansomEnvoy:
                // fkasad (01/10/2026): one of his own men, held where the player can walk in and he cannot; the purse is

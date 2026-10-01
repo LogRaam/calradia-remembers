@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
          new SelfTest("ransom_envoy_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Here is 5000 denars. Bring my lad alive. You can keep the change.' Finds a captive lord held by a realm the player is at peace with, whose own lord can afford the purse; issues the task through the real QuestFactory and expects it bound to him with the purse at half again his ransom value. SKIP when no such captive exists. Pays nothing, frees nobody.", TestRansomEnvoyQuest),
          new SelfTest("prison_break_rescue", Severity.Light, "01/10/2026: the game's own prison break names the player as the one who freed the captive, but the release event does not carry it. Expects CR's prefix to be attached to EndCaptivityAction.ApplyByEscape (a game update renaming it would silently lose every prison-break rescue), the mark to answer for the marked lord only and to clear, and the rescue evidence to name the prison. Frees nobody.", TestPrisonBreakRescue),
          new SelfTest("garrison_reinforcement", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Works for garrison reinforcement too.' Finds a place whose garrison is thin by the seat pack's own bands, issues a reinforce_garrison task through the real QuestFactory for its governor or holder, and expects it bound to that place with a number of men within the band and the room on its walls. SKIP when no held garrison is thin. Moves no troops, records nothing.", TestGarrisonReinforcement),
@@ -8659,6 +8660,35 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestScoutTownQuest(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("scout_town_quest");
+
+         Hero giver = null;
+         Settlement town = null;
+         foreach (Hero lord in Hero.AllAliveHeroes.Where(h => h.IsLord && h != Hero.MainHero && h.MapFaction != null && !h.IsPrisoner))
+         {
+            town = Settlement.All.FirstOrDefault(s => ScoutTownPolicy.MayAsk(Quests.QuestFactory.ScoutFacts(s, lord)));
+            if (town == null) continue;
+
+            giver = lord;
+            break;
+         }
+
+         if (t.Skip(giver == null, "no lord at war with a town that has a gang leader")) return t.Line();
+
+         InformalQuest quest = Quests.QuestFactory.Create(new QuestProposal {Type = QuestType.ScoutTown, TargetSettlement = town.Name.ToString()}, giver, (int) CampaignTime.Now.ToDays);
+         if (t.Abort(quest == null, $"the factory refused to send the player into {town.Name} for {giver.Name}")) return t.Line();
+
+         Hero gang = town.Notables.First(n => n.IsGangLeader && Mapping.HeroPresence.IsInTheWorld(n));
+         string report = ScoutTownPolicy.Report(Mapping.EncounterContextBuilder.ReadTownAsItsNotablesKnowIt(town), gang.Name.ToString(), 1);
+         t.Note(report);
+         t.Expect("boundToTheTown", quest.TargetSettlement, town.Name.ToString());
+         t.Expect("theReportNamesInformantAndTown", report.Contains(gang.Name.ToString()) && report.Contains(town.Name.ToString()), true);
 
          return t.Line();
       }
