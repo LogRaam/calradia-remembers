@@ -34,6 +34,10 @@ namespace CalradiaRemembers.Items
                 case ProvideGoodsPolicy.Grain:
                     return cat == "grain";
                 default:
+                    // A weapon the player forged, of the kind asked (Lordfadooboo, 01/10/2026).
+                    if (CraftWeaponPolicy.KindOfKey(categoryKey) != null)
+                        return CraftWeaponPolicy.Answers(item.IsCraftedByPlayer, item.WeaponComponent?.PrimaryWeapon?.WeaponClass.ToString(), categoryKey);
+
                     // A good a town lacks (fkasad, 01/10/2026): its own item category, exactly.
                     string marketId = ProvideGoodsPolicy.MarketCategoryId(categoryKey);
 
@@ -47,8 +51,15 @@ namespace CalradiaRemembers.Items
                 ProvideGoodsPolicy.Horses => "horses",
                 ProvideGoodsPolicy.Livestock => "livestock",
                 ProvideGoodsPolicy.Grain => "grain",
-                _ => MarketLabel(categoryKey) ?? "goods"
+                _ => ForgeLabel(categoryKey) ?? MarketLabel(categoryKey) ?? "goods"
             };
+
+        private static string ForgeLabel(string categoryKey)
+        {
+            string kind = CraftWeaponPolicy.KindOfKey(categoryKey);
+
+            return kind == null ? null : "forged " + CraftWeaponPolicy.Label(kind);
+        }
 
         private static string MarketLabel(string categoryKey)
         {

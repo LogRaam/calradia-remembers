@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 453 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 879 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 880 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -788,7 +788,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (577)
+### CalradiaRemembers.Logic (578)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -937,6 +937,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CourtMarkerText` | public static class | The court verbs' hidden cooldown markers, as they were once written into memory text. |
 | `CourtshipTrialPolicy` | public static class | Pure completion gate for a courtship trial (a marriage prospect riding with the player to be tested). |
 | `CrRecoveryAction` | public enum | A stuck CR subsystem the recovery command (cr.reset) can stand down. |
+| `CraftWeaponPolicy` | public static class | The rules of a craft_weapon task. |
 | `DayMoodFactsPolicy` | public static class | Reads a character's day into the facts the mood draw weighs. |
 | `DayMoodReadings` | public class | What the host reads off the live game for a character's day. |
 | `DeedValence` | public enum | How a deed of the PLAYER's lands on an NPC who has only HEARD of it — the emotional colour the influence loop gives a lord who was not there. |

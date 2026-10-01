@@ -859,7 +859,7 @@ namespace CalradiaRemembers.GameState
       {
          try
          {
-            if (quest is not {Type: QuestType.ProvideGoods}) return null;
+            if (quest is not {Type: QuestType.ProvideGoods or QuestType.CraftWeapon}) return null;
             if (giver == null || Hero.MainHero == null || offered == null || offered.Count == 0) return null;
 
             ItemRoster roster = MobileParty.MainParty?.ItemRoster;
@@ -898,6 +898,8 @@ namespace CalradiaRemembers.GameState
                int take = Math.Min(c, remaining);
                roster.AddToCounts(item, -take);
                market?.ItemRoster?.AddToCounts(item, take);
+               // The weapon he asked to be forged is his to wield (Lordfadooboo, 01/10/2026): equipped as a gift is.
+               if (quest.Type == QuestType.CraftWeapon) TryEquipGift(giverHero, item);
                remaining -= take;
             }
 
@@ -913,7 +915,8 @@ namespace CalradiaRemembers.GameState
             quest.Status = QuestStatus.Completed;
 
             ActionOutcome reward = GrantQuestReward(giverHero, giver, quest.RewardGold, quest.RewardRelation);
-            giver.Events.Add(new NotableEvent(day, NotableEventType.Collaboration, $"The player brought the {quest.RequiredItemCount} {label} I needed{forWhom}."));
+            string brought = quest.RequiredItemCount == 1 ? $"the {label}" : $"the {quest.RequiredItemCount} {label}";
+            giver.Events.Add(new NotableEvent(day, NotableEventType.Collaboration, $"{Hero.MainHero.Name} brought {brought} I needed{forWhom}."));
             QuestJournalBridge.CloseAsCompleted(quest, giverHero);
             StanceService.OnPromiseKept(giver);
             NpcMemoryCampaignBehavior.Instance?.Store?.Set(giver);

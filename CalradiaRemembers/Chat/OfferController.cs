@@ -213,7 +213,7 @@ namespace CalradiaRemembers.Chat
             if (giver == null || host.Npc == null) return null;
 
             return giver.ActiveQuests.FirstOrDefault(q =>
-               q.Type == QuestType.ProvideGoods && q.IsOutstanding);
+               (q.Type == QuestType.ProvideGoods || q.Type == QuestType.CraftWeapon) && q.IsOutstanding);
          }
          catch
          {

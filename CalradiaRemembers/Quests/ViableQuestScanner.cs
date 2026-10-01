@@ -115,6 +115,10 @@ namespace CalradiaRemembers.Quests
 
          entries.Add(new QuestMenuEntry {TypeToken = "provide_goods", TargetField = null, TargetName = null, Cue = "have the player bring you a supply of horses, livestock, or grain (set category + required_count)"});
 
+         // 7. A weapon forged by the player's own hand, of the kind you name (Lordfadooboo, 01/10/2026).
+         if (giver.IsLord)
+            entries.Add(new QuestMenuEntry {TypeToken = "craft_weapon", TargetField = null, TargetName = null, Cue = "have the player forge you a weapon at a smithy (set category to the weapon you want)"});
+
          return entries;
       }
 

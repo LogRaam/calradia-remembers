@@ -675,6 +675,15 @@ namespace CalradiaRemembers.Quests
             case QuestType.ReinforceGarrison:
                return BindGarrison(quest, proposal, giver);
 
+            case QuestType.CraftWeapon:
+               // Lordfadooboo (01/10/2026), with the kind as part of the deal (Gabriel): one weapon the smithy makes.
+               string kind = CraftWeaponPolicy.Normalize(proposal.Category);
+               if (kind == null) return false;
+               quest.RequiredItemCategory = CraftWeaponPolicy.Key(kind);
+               quest.RequiredItemCount = 1;
+
+               return true;
+
             case QuestType.RecruitTroops:
                // Lordfadooboo (01/10/2026): recruits of the giver's own people, for the party he leads.
                TaleWorlds.CampaignSystem.Party.MobileParty ranks = giver.PartyBelongedTo;
