@@ -39,7 +39,6 @@ namespace CalradiaRemembers.WorldEvents
 
       // A food shortage read: stocks running low AND still falling. Kept here (an interpretation of engine reads),
       // not in the pure policy, which only receives the resulting bool.
-      private const float FoodShortageStocksFloor = 100f;
 
       private readonly List<Func<ConditionScanResult>> _scanners;
 
@@ -185,7 +184,9 @@ namespace CalradiaRemembers.WorldEvents
          if (kingdom == null || kingdom.IsEliminated) return false;
 
          Town town = settlement.Town;
-         bool foodShortage = town.FoodStocks <= FoodShortageStocksFloor && town.FoodChange < 0f;
+         // One reading of "hungry" in the mod (the engine-facts map found it written twice, 01/10/2026): the same rule decides
+         // what a hungry town remembers of the player's trade. It also counts a town the game itself calls starving.
+         bool foodShortage = TownFoodPolicy.IsHungry(FoodTradeMemoryBehavior.FactsOf(settlement));
          var prosperity = (int) town.Prosperity;
 
          WorldEvent last = Store.MostRecentMatching(WorldEventType.Hardship, e => e.PlaceId == settlement.StringId);

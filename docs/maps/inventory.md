@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 445 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 856 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 446 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 860 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -756,12 +756,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StrategicAssessmentContextBuilder` | public static class | Chooses the advisor and gathers the player's strategic context from the live campaign. |
 | `StrategicAssessmentService` | public static class | Populates a Balance of Power view model's Strategic Assessment: offline summary, cached counsel, or a fresh async LLM call. |
 
-### CalradiaRemembers.WorldEvents (11)
+### CalradiaRemembers.WorldEvents (12)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ChronicleWriter` | public static class | Turns WorldEventStore.GetPlayerChronicle into a medieval-chronicle text and writes it to CalradiaRemembers_chronicle.log. |
 | `ConversationEventFeeder` | public static class | Records social outcomes of CR conversations into the world-event store. |
+| `FoodTradeMemoryBehavior` | public class | Records a hungry town's memory of the player's food trade there. |
 | `MercenaryReputationBehavior` | public class | Judges the end of the player's mercenary contracts, and remembers them. |
 | `SchemeStore` | public class | Drives the v1.3 feud schemes: bitter rivals quietly plot against one another, the plots mature or collapse mechanically each day, and word of them spreads through the rumour network. |
 | `SecretLoverGossipBehavior` | public class | Once a secret lover has been secret long enough, an anonymous whisper of its EXISTENCE may begin to circulate (identity never leaks). |
@@ -780,7 +781,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (554)
+### CalradiaRemembers.Logic (558)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -977,6 +978,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FirstImpressionDisposition` | public enum | How a barely-known NPC opens toward the player, driven by their traits and the player's standing. |
 | `FirstImpressionInputs` | public class | The inputs that decide how a barely-known noble opens toward the player. |
 | `FirstImpressionPolicy` | public static class | Pure rules that resolve a barely-known noble's opening posture toward the player. |
+| `FoodTradeFacts` | public class | One visit's food trade in a town. |
+| `FoodTradeVerdict` | public enum | What the town remembers of a visit's food trade. |
 | `ForcedMarriagePolicy` | public static class | How a marriage sealed on the family's blessing, against the spouse's own unwon heart, is resented. |
 | `GearKind` | public enum | The broad kind of an equipped piece, enough to phrase it ("clad in", "bears", "rides"). |
 | `GearQuality` | public enum | The quality band of a piece, derived by the host from the item's modifier (Masterwork/Legendary vs Rusty/Tattered/Cracked...) and, for an unmarked piece, its raw value. |
@@ -1307,6 +1310,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TeachSkillPolicy` | public static class | Single source of truth for whether an NPC may teach a skill at all, and how much real XP a lesson actually grants once it does. |
 | `ThirdPartyDescriptor` | public static class | (no summary) |
 | `ThirdPartyFacts` | public class | Pure categorisation of a third party from an NPC's point of view: the relationship label the prompt injects, the natural-language tone of a relation score, and how plausibly the NPC could relay that person's whereabouts. |
+| `TownFoodFacts` | public class | What a town's granary says. |
+| `TownFoodPolicy` | public static class | A hungry town's memory of the player's food trade. |
 | `TrackedCommitment` | public class | One NPC's promise TO THE PLAYER: who promised, concerning whom, of what kind, issued and due when, and where it stands. |
 | `TraitBand` | public static class | Maps a Bannerlord trait level (the small signed integer hero.GetTraitLevel returns, roughly -2..+2) to the plain band word ("low"/"moderate"/"high") the action interpreter's context digest uses to describe a character's... |
 | `TranscriptLine` | public class | One attributed line of conversation history, as it was recorded. |

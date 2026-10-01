@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("town_food_memory", Severity.Light, "fkasad and Lordfadooboo (Nexus, 01/10/2026): a hungry town remembers who fed it and who emptied its market. Reads every town's granary as the market listener does, and words the memory a real town would keep for a relief and for hoarding: placed in that town, naming it, a deed for the relief and a disgrace for the hoarding. Records nothing.", TestTownFoodMemory),
          new SelfTest("private_memory_injection", Severity.Light, "tashmetu (01/10/2026): another mod injects a memory said in confidence. Injects one through the public CrNpcMemory.AddMemory with Private set on a real met character, checks it is stored private (kept to private talk) and that an unmarked one stays public. Both are removed.", TestPrivateMemoryInjection),
          new SelfTest("escaped_target", Severity.Light, "fkasad (Nexus, 01/10/2026): the lord a capture task named was beaten and escaped, and the player paid the broken-word price. On a real met lord, a temporary capture task whose target was beaten: the giver's acceptance ([QUEST_COMPLETE]) settles it through the real quest path for HALF the reward, and words alone never settle one whose target was not beaten. The task, the purse, the regard and the memory are put back.", TestEscapedTarget),
          new SelfTest("privacy_survives_interpreter", Severity.Light, "Lufaine and Maifailun (Nexus, 30/09/2026): a character agreed to speak privately and the room stayed full. In the two-call chat the interpreter's actions replaced the scene model's, which is the one taught request_privacy. Drives the real splice (ActionInterpreterComposer.WithInterpretedTags): the character's acceptance survives an interpreter that recorded none, and a gift the scene model tagged does not. No LLM.", TestPrivacySurvivesInterpreter),
@@ -8627,6 +8628,28 @@ namespace CalradiaRemembers.Diagnostics
       // Player report 2026-08-23: in an intimate (NSFW) scene the model turned a vow into a quest. The mod
       // suppresses quests for an NSFW turn; this drives the REAL EncounterContextBuilder in each mode and pins
       // that NSFW sets SuppressQuests while Roleplay does not (Roleplay is where quests still belong).
+      private static string TestTownFoodMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("town_food_memory");
+
+         List<Settlement> towns = Settlement.All.Where(st => st?.Town != null && st.IsTown).ToList();
+         if (t.Skip(towns.Count == 0, "no towns")) return t.Line();
+
+         int hungry = towns.Count(st => TownFoodPolicy.IsHungry(WorldEvents.FoodTradeMemoryBehavior.FactsOf(st)));
+         Settlement town = towns[0];
+         var today = (int) CampaignTime.Now.ToDays;
+         WorldEvent relief = WorldEvents.FoodTradeMemoryBehavior.EventFor(town, FoodTradeVerdict.Relief, 60, today);
+         WorldEvent hoard = WorldEvents.FoodTradeMemoryBehavior.EventFor(town, FoodTradeVerdict.Hoarding, 45, today);
+
+         t.Note($"{hungry} of {towns.Count} towns hungry now; relief: \"{relief.Summary}\"");
+         t.Expect("theReliefIsPlacedInTheTown", relief.PlaceId, town.StringId);
+         t.Expect("theReliefNamesTheTown", relief.Summary.Contains(town.Name.ToString()), true);
+         t.Expect("aReliefIsADeed", relief.Type, WorldEventType.PlayerFeat);
+         t.Expect("hoardingIsADisgrace", hoard.Type, WorldEventType.Affront);
+
+         return t.Line();
+      }
+
       private static string TestPrivateMemoryInjection(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("private_memory_injection");
