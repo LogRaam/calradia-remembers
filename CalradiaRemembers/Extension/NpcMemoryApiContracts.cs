@@ -43,6 +43,13 @@ namespace CalradiaRemembers
       public string Summary { get; set; }
 
       /// <summary>
+      ///   Optional, since 2.6.10 (tashmetu): true marks the memory as said in confidence. The character speaks of it
+      ///   only in private, never in front of others, the audience rule CR's own private memories follow. False
+      ///   (the default) keeps it public, as before.
+      /// </summary>
+      public bool Private { get; set; }
+
+      /// <summary>
       ///   Optional category. Accepts the narrative kinds (Conflict, Collaboration, Agreement, Flirt, Intimacy,
       ///   Betrayal, Confrontation, Other); anything else, or an engine-owned kind, is filed as Other.
       /// </summary>

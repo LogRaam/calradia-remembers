@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("private_memory_injection", Severity.Light, "tashmetu (01/10/2026): another mod injects a memory said in confidence. Injects one through the public CrNpcMemory.AddMemory with Private set on a real met character, checks it is stored private (kept to private talk) and that an unmarked one stays public. Both are removed.", TestPrivateMemoryInjection),
          new SelfTest("escaped_target", Severity.Light, "fkasad (Nexus, 01/10/2026): the lord a capture task named was beaten and escaped, and the player paid the broken-word price. On a real met lord, a temporary capture task whose target was beaten: the giver's acceptance ([QUEST_COMPLETE]) settles it through the real quest path for HALF the reward, and words alone never settle one whose target was not beaten. The task, the purse, the regard and the memory are put back.", TestEscapedTarget),
          new SelfTest("privacy_survives_interpreter", Severity.Light, "Lufaine and Maifailun (Nexus, 30/09/2026): a character agreed to speak privately and the room stayed full. In the two-call chat the interpreter's actions replaced the scene model's, which is the one taught request_privacy. Drives the real splice (ActionInterpreterComposer.WithInterpretedTags): the character's acceptance survives an interpreter that recorded none, and a gift the scene model tagged does not. No LLM.", TestPrivacySurvivesInterpreter),
          new SelfTest("no_tasks_from_enemies", Severity.Light, "fkasad (Nexus, 29/09/2026): an enemy lord buying back a prisoner slid into demanding a deed, then into invalid-quest messages. Builds the REAL context for a lord at war with the player: it says so, and the prompt built from it teaches no task to offer and no prisoner bargain. Skips when the player is at war with no one. No LLM, nothing stored.", TestNoTasksFromEnemies),
@@ -8626,6 +8627,40 @@ namespace CalradiaRemembers.Diagnostics
       // Player report 2026-08-23: in an intimate (NSFW) scene the model turned a vow into a quest. The mod
       // suppresses quests for an NSFW turn; this drives the REAL EncounterContextBuilder in each mode and pins
       // that NSFW sets SuppressQuests while Roleplay does not (Roleplay is where quests still belong).
+      private static string TestPrivateMemoryInjection(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("private_memory_injection");
+
+         var store = behavior?.Store;
+         if (t.Abort(store == null, "no profile store")) return t.Line();
+
+         NpcProfile profile = store.ListIds().Select(store.Get)
+                                   .FirstOrDefault(p => p != null && Hero.FindFirst(h => h.StringId == p.Id) is {IsAlive: true} h && h != Hero.MainHero);
+         if (t.Skip(profile == null, "no met character to remember anything")) return t.Line();
+
+         int before = profile.Events.Count;
+         try
+         {
+            MemoryResult secret = CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = "(self-test) I wept at the feast.", Private = true, SourceMod = "cr.testall"});
+            MemoryResult plain = CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = "(self-test) We met at the ford.", SourceMod = "cr.testall"});
+            NpcProfile after = store.Get(profile.Id);
+            NotableEvent secretEvent = after.Events.LastOrDefault(e => e.summary == "(self-test) I wept at the feast.");
+            NotableEvent plainEvent = after.Events.LastOrDefault(e => e.summary == "(self-test) We met at the ford.");
+
+            t.Note($"{profile.Name}: secret {secret} private={secretEvent?.IsPrivate}, plain {plain} private={plainEvent?.IsPrivate}");
+            t.Expect("aConfidenceIsKeptPrivate", secretEvent?.IsPrivate, true);
+            t.Expect("anUnmarkedMemoryStaysPublic", plainEvent?.IsPrivate, false);
+         }
+         finally
+         {
+            NpcProfile current = store.Get(profile.Id);
+            current?.Events.RemoveAll(e => e.summary != null && e.summary.StartsWith("(self-test) ", StringComparison.Ordinal));
+            if (current != null) store.Set(current);
+         }
+
+         return t.Line();
+      }
+
       private static string TestEscapedTarget(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("escaped_target");

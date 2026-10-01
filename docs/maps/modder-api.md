@@ -58,6 +58,7 @@ _A whole conversation as it CLOSES, delivered by CrConversation.Ended._
 
 _One memory a third-party mod wants an NPC to hold._
 
+- `bool Private { get; set; }`
 - `int DaysAgo { get; set; }`
 - `string Kind { get; set; }`
 - `string NpcId { get; set; }`

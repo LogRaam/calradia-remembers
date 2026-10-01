@@ -78,7 +78,7 @@ namespace CalradiaRemembers
          if (hero == null) return MemoryResult.RejectedUnknownHero;
 
          var today = (int) CampaignTime.Now.ToDays;
-         NotableEvent injected = NpcMemoryInjection.BuildInjectedEvent(entry.Summary, entry.Kind, entry.DaysAgo, today);
+         NotableEvent injected = NpcMemoryInjection.BuildInjectedEvent(entry.Summary, entry.Kind, entry.DaysAgo, today, entry.Private);
 
          if (injected == null) return MemoryResult.RejectedInvalid;
 

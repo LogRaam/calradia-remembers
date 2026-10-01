@@ -89,5 +89,21 @@ namespace CalradiaRemembers.Tests
             NpcMemoryInjection.ResolveDay(-4, 100).Should().Be(100); // negative treated as today
             NpcMemoryInjection.ResolveDay(250, 100).Should().Be(0);  // cannot predate day 0
         }
+
+        // tashmetu (01/10/2026): a lord given an embarrassing memory by another mod (Vivid World) brushed it off in
+        // front of his Khan, which was right, but the injecting mod had no way to say "this was said in confidence".
+        // A memory injected as private carries CR's own audience rule (NotableEvent.IsPrivate): kept to private talk.
+        [Test]
+        public void GIVEN_a_memory_injected_as_private_WHEN_built_THEN_it_is_kept_to_private_talk()
+        {
+            NpcMemoryInjection.BuildInjectedEvent("I wept at the feast.", "Other", 0, 100, isPrivate: true).IsPrivate.Should().BeTrue();
+        }
+
+        // Unmarked, an injected memory stays public as before: no existing mod changes behaviour.
+        [Test]
+        public void GIVEN_a_memory_injected_without_the_flag_WHEN_built_THEN_it_is_public_as_before()
+        {
+            NpcMemoryInjection.BuildInjectedEvent("We met at the ford.", "Agreement", 0, 100).IsPrivate.Should().BeFalse();
+        }
     }
 }

@@ -288,9 +288,9 @@ namespace CalradiaRemembers.Settings
 
       // tashmetu (30/09/2026): a clan at +54 with the player, and its lord met him as a near-stranger.
       [SettingPropertyBool("Clan standing warms first meetings", RequireRestart = false, Order = 4,
-         HintText = "On (default): someone whose clan already counts you a friend starts warmer toward you, once, up " +
-                    "to friendly regard; beyond that is earned in person. Someone you have offended keeps it. Off: " +
-                    "regard starts from zero with everyone.")]
+         HintText = "On (default): when you next speak with someone whose clan already counts you a friend, they " +
+                    "start warmer toward you, once, up to friendly regard; the rest is earned in person. An offence " +
+                    "stands. Off: regard starts from zero.")]
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool ClanStandingWarmsFirstMeetings { get; set; } = true;
 

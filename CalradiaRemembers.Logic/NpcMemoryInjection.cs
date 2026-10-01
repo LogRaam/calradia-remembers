@@ -46,13 +46,15 @@ namespace CalradiaRemembers.Logic
         ///   nothing, so it is rejected rather than stored blank). The summary is trimmed and bounded to the
         ///   same blob-safe length as a fed world event.
         /// </summary>
-        public static NotableEvent BuildInjectedEvent(string summary, string kind, int daysAgo, int currentDay)
+        public static NotableEvent BuildInjectedEvent(string summary, string kind, int daysAgo, int currentDay, bool isPrivate = false)
         {
             string bound = ExternalEventRules.BoundSummary(summary);
 
             if (bound == null) return null;
 
-            return new NotableEvent(ResolveDay(daysAgo, currentDay), NormalizeKind(kind), bound);
+            // A memory the injecting mod marks private keeps CR's audience rule: spoken of only in private (tashmetu,
+            // 01/10/2026). Unmarked stays public, as every injected memory was before.
+            return new NotableEvent(ResolveDay(daysAgo, currentDay), NormalizeKind(kind), bound) {IsPrivate = isPrivate};
         }
 
         private static bool IsCallerSafe(NotableEventType type)

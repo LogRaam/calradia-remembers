@@ -64,13 +64,16 @@ MemoryResult result = CrNpcMemory.AddMemory(new CrMemoryEntry
     Summary   = "We agreed to meet at the ford at dawn.",     // REQUIRED, the remembered line
     Kind      = "Agreement",                                  // optional; unknown/engine kinds become "Other"
     DaysAgo   = 0,                                            // optional; 0 = today, dated back from now
-    SourceMod = "MyMemoryAddon"                               // optional, for provenance in the logs
+    SourceMod = "MyMemoryAddon",                              // optional, for provenance in the logs
+    Private   = false                                         // optional (2.6.10): true = said in confidence
 });
 // result: Added | RejectedInvalid | RejectedUnknownHero | RejectedNoStore
 ```
 
 Injected memories become ordinary profile events, so they surface in later conversations exactly like
-memories CR recorded itself, and are compacted over time by CR's own memory compressor.
+memories CR recorded itself, and are compacted over time by CR's own memory compressor. Mark one `Private`
+(since 2.6.10) and it follows CR's audience rule for private memories: the character speaks of it only in
+private, never in front of others (an embarrassing secret, something said in confidence).
 
 Call `AddMemory` (and `GetMemories`) on the **game thread**: from a campaign event, a tick, or a menu or
 button handler, never from a background task. An injected memory never moves regard by itself; it is
