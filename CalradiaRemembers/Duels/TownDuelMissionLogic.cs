@@ -16,7 +16,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Duels;
 using SandBox.Missions.MissionLogics;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
@@ -198,6 +200,7 @@ namespace CalradiaRemembers.Duels
             catch (Exception ex) { ModLog.Info($"[DUEL] could not place the opponent ({ex.GetType().Name}); he closes from where he stands."); }
 
          ArmThePlayer();
+         StandCompanionsAside(opponent);
 
          fight.StartCustomFight(
             new List<Agent> {Mission.MainAgent},
@@ -231,6 +234,34 @@ namespace CalradiaRemembers.Duels
          {
             ModLog.Info($"[DUEL] could not arm the player ({ex.GetType().Name}: {ex.Message}); the duel is fought as they stand.");
          }
+      }
+
+      /// <summary>
+      ///   Everyone on the player's team but the player stands aside (Maifailun, 29/09/2026: "my companions were also in
+      ///   the fight"). The game's fight handler makes the whole player team an enemy of the opponent's
+      ///   (MissionFightHandler.SetTeamsForFightAndDuel), and companions following the player in the street are on it.
+      ///   They take the opponent's team from BEFORE the fight, the crowd's (null for a townsman), so they watch like
+      ///   the rest of the town. The scene closes when the duel is decided, so nothing needs restoring.
+      /// </summary>
+      private void StandCompanionsAside(Agent opponent)
+      {
+         try
+         {
+            Team crowd = opponent?.Team;
+            var moved = 0;
+            foreach (Agent agent in Mission.Agents.ToList())
+            {
+               if (agent == null || !agent.IsActive()) continue;
+               if (!DuelStagingSupport.StandsAsideFromTheDuel(agent.IsHuman, agent == Mission.MainAgent, agent == opponent,
+                                                             agent.Team != null && agent.Team == Mission.PlayerTeam)) continue;
+
+               agent.SetTeam(crowd, true);
+               moved++;
+            }
+
+            if (moved > 0) ModLog.Info($"[DUEL] {moved} companion(s) stand aside for the duel.");
+         }
+         catch (Exception ex) { ModLog.Info($"[DUEL] could not stand the companions aside ({ex.GetType().Name}: {ex.Message})."); }
       }
 
       /// <summary>

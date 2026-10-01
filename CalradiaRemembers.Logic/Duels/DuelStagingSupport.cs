@@ -43,5 +43,25 @@ namespace CalradiaRemembers.Logic.Duels
       /// </summary>
       public static bool CanHoldATownDuel(bool playerIsInsideTheSettlement, bool theSettlementHasADuellingGround)
          => playerIsInsideTheSettlement && theSettlementHasADuellingGround;
+
+      /// <summary>Frames to let the town menu settle after the walkabout mission ends, before the square is opened.</summary>
+      public const int SettleFramesBeforeTheSquare = 30;
+
+      /// <summary>
+      ///   Whether the town square may be opened for a duel now (Zivkyn 23/09, Maifailun 29/09/2026: crashes inside some
+      ///   settlements, not others). A duel called from a keep or a lord's hall ends that mission first; the square waits
+      ///   until the town menu is really back and a few frames have passed, instead of opening on the first frame the
+      ///   old mission is gone. Defensive: no log has yet confirmed this is the crash.
+      /// </summary>
+      public static bool ReadyToOpenTheSquare(bool townMenuActive, int framesSinceMissionEnded)
+         => townMenuActive && framesSinceMissionEnded >= SettleFramesBeforeTheSquare;
+
+      /// <summary>
+      ///   Whether an agent must stand aside when a town duel starts (Maifailun, 29/09/2026: "my companions were also in
+      ///   the fight"). The game's fight handler makes the whole player team an enemy of the opponent's, and companions
+      ///   following the player are on it: everyone on that team but the player stands aside.
+      /// </summary>
+      public static bool StandsAsideFromTheDuel(bool isHuman, bool isThePlayer, bool isTheOpponent, bool onThePlayersTeam)
+         => isHuman && !isThePlayer && !isTheOpponent && onThePlayersTeam;
    }
 }

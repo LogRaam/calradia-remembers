@@ -112,5 +112,43 @@ namespace CalradiaRemembers.Tests.Duels
          DuelStagingSupport.CanHoldATownDuel(false, true).Should().BeFalse();
          DuelStagingSupport.CanStage(DuelVenue.Wilderness).Should().BeTrue();
       }
+   
+      // ── Waiting for the town to come back (Zivkyn 23/09, Maifailun 29/09/2026) ──────────────────────
+      // A duel called from a keep or a lord's hall ends that walkabout mission, then opens the town square. Opened while
+      // the game is still on its way back to the town menu, the square crashed in some settlements and not others (a
+      // duel with a lady in a Khuzait market worked). The square waits for the menu and a short settling.
+
+      // Not before the town menu is back: the walkabout mission is gone but the game is still between states.
+      [Test]
+      public void GIVEN_the_walkabout_gone_but_the_town_menu_not_back_WHEN_asked_THEN_the_square_is_not_opened_yet()
+      {
+         DuelStagingSupport.ReadyToOpenTheSquare(townMenuActive: false, framesSinceMissionEnded: 100).Should().BeFalse();
+      }
+
+      // Not on the very frame the menu returns either: a short settling first.
+      [Test]
+      public void GIVEN_the_town_menu_just_back_WHEN_asked_THEN_it_waits_a_few_frames()
+      {
+         DuelStagingSupport.ReadyToOpenTheSquare(true, 1).Should().BeFalse();
+         DuelStagingSupport.ReadyToOpenTheSquare(true, DuelStagingSupport.SettleFramesBeforeTheSquare).Should().BeTrue();
+      }
+
+      // ── Who stands aside (Maifailun 29/09/2026: "my companions were also in the fight") ──────────────
+      // The game's fight handler makes the whole PLAYER TEAM an enemy of the opponent's, and companions following the
+      // player in the street are on that team. Everyone on it but the player stands aside for a duel.
+
+      [Test]
+      public void GIVEN_a_companion_following_the_player_WHEN_the_duel_starts_THEN_they_stand_aside()
+      {
+         DuelStagingSupport.StandsAsideFromTheDuel(isHuman: true, isThePlayer: false, isTheOpponent: false, onThePlayersTeam: true).Should().BeTrue();
+      }
+
+      [Test]
+      public void GIVEN_the_two_duellists_or_a_townsman_WHEN_the_duel_starts_THEN_none_is_moved()
+      {
+         DuelStagingSupport.StandsAsideFromTheDuel(true, true, false, true).Should().BeFalse();
+         DuelStagingSupport.StandsAsideFromTheDuel(true, false, true, false).Should().BeFalse();
+         DuelStagingSupport.StandsAsideFromTheDuel(true, false, false, false).Should().BeFalse();
+      }
    }
 }

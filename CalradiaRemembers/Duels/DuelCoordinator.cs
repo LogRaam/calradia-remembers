@@ -38,6 +38,7 @@ namespace CalradiaRemembers.Duels
       private static Hero _pendingCourtedHero;      // only meaningful for DuelReason.CourtshipRivalry
       private static ConversationTranscript _pendingTranscript; // the chat that led to the duel, carried into the post-duel scene; null from the console
       private static bool _endedSettlementMissionForStaging; // guards the once-only EndMission on the per-frame tick
+      private static int _framesSinceMissionGone;             // frames since the last mission closed; the town square waits on it
 
       // ── Fought, consumed by Phase 2 ──────────────────────────────────────────
       private static DuelResolution? _pendingResolution;
@@ -133,10 +134,31 @@ namespace CalradiaRemembers.Duels
             }
 
             _endedSettlementMissionForStaging = false; // no settlement mission is holding us up now
+            if (Mission.Current == null) _framesSinceMissionGone++;
+            else _framesSinceMissionGone = 0;
 
             // Phase 1: the chat has closed and no mission is running -> stage the duel exactly once.
             if (_pendingOpponent != null && Mission.Current == null && !ChatManager.IsOpen)
             {
+               // The town square waits for the town menu to be back and settled (Zivkyn 23/09, Maifailun 29/09/2026:
+               // crashes inside some settlements, not others; defensive, no log yet confirms it). Only a duel that
+               // will be held in town waits; a long wait with no menu gives up and says so.
+               bool inTown = DuelEligibilityResolver.PlayerCanFightADuelHere(Settlement.CurrentSettlement)
+                             && MobileParty.MainParty?.IsCurrentlyAtSea != true;
+               bool menuBack = Campaign.Current.CurrentMenuContext != null
+                               && TaleWorlds.Core.Game.Current?.GameStateManager?.ActiveState is TaleWorlds.CampaignSystem.GameState.MapState;
+               if (inTown && !DuelStagingSupport.ReadyToOpenTheSquare(menuBack, _framesSinceMissionGone))
+               {
+                  if (_framesSinceMissionGone < GiveUpWaitingForTheTownFrames) return;
+
+                  ModLog.Error($"[DUEL] the town menu never came back ({_framesSinceMissionGone} frames); the duel with {_pendingOpponent?.Name} is dropped.");
+                  InformationManager.DisplayMessage(new InformationMessage($"The duel with {_pendingOpponent?.Name} could not be staged here."));
+                  _pendingOpponent = null;
+                  _pendingTranscript = null;
+
+                  return;
+               }
+
                Hero opponent = _pendingOpponent;
                DuelReason reason = _pendingReason;
                bool npcIssuedChallenge = _pendingNpcIssuedChallenge;
@@ -176,6 +198,9 @@ namespace CalradiaRemembers.Duels
          }
          catch (Exception ex) { ModLog.Error($"[DUEL] coordinator tick failed: {ex.GetType().Name}: {ex.Message}"); }
       }
+
+      /// <summary>About ten seconds at sixty frames: past this with no town menu, the duel is dropped rather than forced.</summary>
+      private const int GiveUpWaitingForTheTownFrames = 600;
 
       #region private
 

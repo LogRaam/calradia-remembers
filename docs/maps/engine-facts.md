@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-383 rules read 290 facts.
+385 rules read 293 facts.
 
 ## Facts read by more than one rule
 
@@ -130,6 +130,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Case.LiegeId` (2) | `ArrestPolicy.CouncilSeats`, `TrialVerdictPolicy.DefaultConviction` |
 | `CharacterStates.Disabled` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice` (2) | `HireAgreementPolicy.AgreedPrice`, `HireAgreementPolicy.CanAfford` |
+| `Current.CurrentMenuContext` (2) | `DuelStagingSupport.ReadyToOpenTheSquare`, `RoadAudienceFacts` |
 | `EndCaptivityDetail.ReleasedAfterBattle` (2) | `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `EndCaptivityDetail.ReleasedByChoice` (2) | `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `Event.Day` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
@@ -321,6 +322,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `DuelChallengePolicy.Evaluate`: `Hero.Children`, `Hero.Father`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.IsWounded`, `Hero.Mother`, `Hero.Spouse`, `PartyBelongedToAsPrisoner.LeaderHero`
 - `DuelStagingSupport.CanHoldATownDuel`: `Current.GetLocationWithId`, `LocationComplex.GetLocationWithId`, `PlayerEncounter.InsideSettlement`
 - `DuelStagingSupport.CanStage`: `MobileParty.IsCurrentlyAtSea`, `Settlement.CurrentSettlement`
+- `DuelStagingSupport.ReadyToOpenTheSquare`: `Current.CurrentMenuContext`, `GameStateManager.ActiveState`
+- `DuelStagingSupport.StandsAsideFromTheDuel`: `Mission.MainAgent`, `Mission.PlayerTeam`
 - `DuelVenuePolicy.Choose`: `LocationComplex.GetLocationWithId`, `MobileParty.IsCurrentlyAtSea`, `PlayerEncounter.InsideSettlement`, `Settlement.CurrentSettlement`
 - `EquipmentLoadoutPolicy.PreferCivilianLoadout`: `GameStateBridge.GetCurrentScene`
 - `EquipmentModifierQualityPolicy.FromModifier`: `ItemModifier.PriceMultiplier`
