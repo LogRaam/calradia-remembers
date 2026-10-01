@@ -69,6 +69,7 @@ namespace CalradiaRemembers.Logic
                 case QuestType.DeliverPrisoner:
                 case QuestType.EarnRegard:
                 case QuestType.PleadCase:
+                case QuestType.RansomEnvoy:
                     return true;
                 default:
                     return false;
@@ -151,7 +152,8 @@ namespace CalradiaRemembers.Logic
 
             // A rescue needs the captive still held; freed or escaped, there is no longer anyone to free, but
             // they are not GONE, so this gets its own reason (see QuestVoidReason.RescueTargetFreed).
-            if (type == QuestType.RescuePrisoner && !targetIsPrisoner) return QuestVoidReason.RescueTargetFreed;
+            // An envoy's man freed some other way is the same fact (fkasad's "safety wall", 01/10/2026).
+            if ((type == QuestType.RescuePrisoner || type == QuestType.RansomEnvoy) && !targetIsPrisoner) return QuestVoidReason.RescueTargetFreed;
 
             return QuestVoidReason.None;
         }

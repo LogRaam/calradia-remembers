@@ -219,6 +219,7 @@ namespace CalradiaRemembers.Quests
                   AddEvent(profile, gameDay, NotableEventType.Other,
                      $"Set aside the task to {Describe(quest)}: it can no longer be answered.");
                   QuestJournalBridge.CloseAsCancelled(quest, giverHero, VoidClosureReason(voidReason));
+                  ReturnEnvoyAdvance(profile, giverHero, quest, gameDay);
                   changed = true;
 
                   continue;
@@ -704,8 +705,26 @@ namespace CalradiaRemembers.Quests
             case QuestType.EarnRegard: return $"win the good graces of {q.TargetHeroName}";
             case QuestType.PleadCase: return $"plead their case before {q.TargetHeroName}";
             case QuestType.ReinforceGarrison: return $"bring {q.RequiredItemCount} soldiers for the garrison of {q.TargetSettlement}";
+            case QuestType.RansomEnvoy: return $"buy back {q.TargetHeroName} from their captors, with the {q.AdvanceGold} denars advanced";
             default: return "carry out a task";
          }
+      }
+
+      /// <summary>
+      ///   The safety wall of an envoy's errand (fkasad, 01/10/2026): the man went free without the player, so the
+      ///   advance goes back to the giver, as far as the player's purse holds, and the giver remembers it returned.
+      /// </summary>
+      private static void ReturnEnvoyAdvance(NpcProfile giver, Hero giverHero, InformalQuest quest, int gameDay)
+      {
+         if (quest.Type != QuestType.RansomEnvoy || quest.AdvanceGold <= 0 || giverHero == null || Hero.MainHero == null) return;
+
+         int refund = CalradiaRemembers.Logic.RansomEnvoyPolicy.RefundOnVoid(quest.AdvanceGold, Hero.MainHero.Gold);
+         if (refund <= 0) return;
+
+         TaleWorlds.CampaignSystem.Actions.GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, giverHero, refund);
+         AddEvent(giver, gameDay, NotableEventType.Other,
+            $"{Hero.MainHero.Name} gave back {refund} of the {quest.AdvanceGold} denars I had advanced, {quest.TargetHeroName} having gone free without them.");
+         ModLog.Info($"[QUEST] ransom_envoy voided: {refund} of {quest.AdvanceGold} denars returned to {giverHero.Name}.");
       }
 
       private static Hero FindGiverHero(NpcProfile profile)
@@ -760,6 +779,13 @@ namespace CalradiaRemembers.Quests
          giver.ActiveQuests.Add(quest);
          AddEvent(giver, gameDay, NotableEventType.Agreement, $"Asked the player to {Describe(quest)}.");
          store.Set(giver);
+
+         // An envoy's purse is in the player's hand from the start (fkasad, Gabriel's option A, 01/10/2026).
+         if (quest.Type == QuestType.RansomEnvoy && quest.AdvanceGold > 0 && giverHero != null && Hero.MainHero != null)
+         {
+            TaleWorlds.CampaignSystem.Actions.GiveGoldAction.ApplyBetweenCharacters(giverHero, Hero.MainHero, quest.AdvanceGold);
+            notify?.Invoke($"{giver.Name} hands you {quest.AdvanceGold} denars to buy back {quest.TargetHeroName}. What you do not spend is yours.", true);
+         }
 
          // Open a vanilla quest journal mirror — StartQuest() fires its own
          // native notification, so we don't add a second one here.

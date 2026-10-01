@@ -339,15 +339,6 @@ namespace CalradiaRemembers.Verbs
         }
 
         /// <summary>The game's own ransom valuation of the captive, or the policy fallback when unreadable.</summary>
-        internal static int RansomAnchor(Hero captive)
-        {
-            try
-            {
-                int v = Campaign.Current.Models.RansomValueCalculationModel.PrisonerRansomValue(captive.CharacterObject, Hero.MainHero);
-
-                return v > 0 ? v : PrisonerTradePolicy.FallbackAnchor;
-            }
-            catch { return PrisonerTradePolicy.FallbackAnchor; }
-        }
+        internal static int RansomAnchor(Hero captive) => CourtActionResolver.RansomAnchor(captive);
     }
 }

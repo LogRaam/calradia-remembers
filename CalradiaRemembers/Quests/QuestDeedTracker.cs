@@ -425,9 +425,20 @@ namespace CalradiaRemembers.Quests
          if (prisoner == null) return;
 
          CaptivityEndReason reason = MapCaptivityEndReason(detail);
+         int day = CurrentDay();
+
+         // An envoy's errand is the player's deed only: he freed a man he held, or broke him out (fkasad, 01/10/2026).
+         bool brokenOut = Mapping.PlayerPrisonBreakPatch.IsUnderway(prisoner, out _);
+         if (RansomEnvoyPolicy.IsThePlayersDeed(new EnvoyReleaseFacts {Reason = reason, HeldByThePlayer = QuestFactory.PlayerHolds(party), BrokenOutByThePlayer = brokenOut}))
+            ForEachOutstandingQuest((profile, quest) =>
+            {
+               if (quest.Type != QuestType.RansomEnvoy || !string.Equals(quest.TargetHeroId, prisoner.StringId, StringComparison.Ordinal)) return;
+
+               Stamp(profile, quest, $"Bought {quest.TargetHeroName} back and set them free on day {day}", day);
+            });
+
          if (!QuestRescueCreditPolicy.CreditsPlayerRescue(reason)) return;
 
-         int day = CurrentDay();
          ForEachOutstandingQuest((profile, quest) =>
          {
             if (quest.Type != QuestType.RescuePrisoner) return;

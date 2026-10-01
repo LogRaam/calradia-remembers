@@ -327,6 +327,25 @@ namespace CalradiaRemembers.Quests
                    .Select(seat => seat.Place)
                    .Where(p => ReinforceGarrisonPolicy.MayAsk(GarrisonStrength.BandOf(p.Town.GarrisonParty.Party.NumberOfHealthyMembers, p.Town.GarrisonParty.Party.PartySizeLimit)));
 
+      /// <summary>The facts RansomEnvoyPolicy judges an envoy's errand on.</summary>
+      internal static RansomEnvoyFacts EnvoyFacts(Hero man, Hero giver, int advance)
+      {
+         IFaction captor = man?.PartyBelongedToAsPrisoner?.MapFaction;
+
+         return new RansomEnvoyFacts {
+            IsPrisoner = man is {IsPrisoner: true},
+            IsTheGiversOwn = man != null && giver != null && (man.Clan == giver.Clan || man.MapFaction == giver.MapFaction),
+            HeldByThePlayer = man?.PartyBelongedToAsPrisoner != null && PlayerHolds(man.PartyBelongedToAsPrisoner),
+            PlayerAtWarWithTheCaptor = captor != null && Hero.MainHero?.MapFaction != null && FactionManager.IsAtWarAgainstFaction(Hero.MainHero.MapFaction, captor),
+            GiverCanPay = giver != null && advance > 0 && giver.Gold >= advance
+         };
+      }
+
+      /// <summary>Whether a man held in this prison is held by the player: PrisonerCustodyPolicy's one rule (his party, or his clan's holdings).</summary>
+      internal static bool PlayerHolds(TaleWorlds.CampaignSystem.Party.PartyBase party)
+         => party != null && CalradiaRemembers.Logic.Prisoners.PrisonerCustodyPolicy.IsPlayerCustody(party == TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.Party,
+                                                                   party.Settlement != null && party.Settlement.OwnerClan == Clan.PlayerClan);
+
       /// <summary>The facts EarnRegardPolicy judges a named person on.</summary>
       internal static EarnRegardTargetFacts RegardTargetFacts(Hero target, Hero giver)
          => new EarnRegardTargetFacts {
@@ -647,6 +666,17 @@ namespace CalradiaRemembers.Quests
 
             case QuestType.ReinforceGarrison:
                return BindGarrison(quest, proposal, giver);
+
+            case QuestType.RansomEnvoy:
+               // fkasad (01/10/2026): one of his own men, held where the player can walk in and he cannot; the purse is
+               // set here and handed over when the task is issued.
+               if (!BindHero(quest, proposal.TargetHero, giver)) return false;
+               Hero man = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+               int advance = RansomEnvoyPolicy.Advance(CourtActionResolver.RansomAnchor(man));
+               if (!RansomEnvoyPolicy.MaySend(EnvoyFacts(man, giver, advance))) return false;
+               quest.AdvanceGold = advance;
+
+               return true;
 
             case QuestType.PleadCase:
                // Lordfadooboo / fkasad (01/10/2026): before a living adult who holds a court, since only a lord or a

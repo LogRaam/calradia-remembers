@@ -281,6 +281,22 @@ namespace CalradiaRemembers.GameState
             h.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
       }
 
+      /// <summary>
+      ///   The game's own ransom valuation of a captive, or the trade policy's fallback when unreadable. The one call to
+      ///   the engine's model: the prisoner trade and an envoy's purse both price a man by it (moved here from
+      ///   BuyPrisonerVerb on 01/10/2026, so the quests could read it without depending on the verbs).
+      /// </summary>
+      public static int RansomAnchor(Hero captive)
+      {
+         try
+         {
+            int v = Campaign.Current.Models.RansomValueCalculationModel.PrisonerRansomValue(captive.CharacterObject, Hero.MainHero);
+
+            return v > 0 ? v : PrisonerTradePolicy.FallbackAnchor;
+         }
+         catch { return PrisonerTradePolicy.FallbackAnchor; }
+      }
+
       /// <summary>True when this NPC could currently be swayed again about this particular target (per-pair cooldown).</summary>
       public static bool SwayCooldownElapsed(NpcProfile profile, string targetHeroId)
          => CourtActionPolicy.CooldownElapsed(LastMarkerDay(profile, SwayMarker(targetHeroId)), Today(), CourtActionPolicy.SwayCooldownDays);

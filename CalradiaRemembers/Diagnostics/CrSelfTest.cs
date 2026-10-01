@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("ransom_envoy_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Here is 5000 denars. Bring my lad alive. You can keep the change.' Finds a captive lord held by a realm the player is at peace with, whose own lord can afford the purse; issues the task through the real QuestFactory and expects it bound to him with the purse at half again his ransom value. SKIP when no such captive exists. Pays nothing, frees nobody.", TestRansomEnvoyQuest),
          new SelfTest("prison_break_rescue", Severity.Light, "01/10/2026: the game's own prison break names the player as the one who freed the captive, but the release event does not carry it. Expects CR's prefix to be attached to EndCaptivityAction.ApplyByEscape (a game update renaming it would silently lose every prison-break rescue), the mark to answer for the marked lord only and to clear, and the rescue evidence to name the prison. Frees nobody.", TestPrisonBreakRescue),
          new SelfTest("garrison_reinforcement", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Works for garrison reinforcement too.' Finds a place whose garrison is thin by the seat pack's own bands, issues a reinforce_garrison task through the real QuestFactory for its governor or holder, and expects it bound to that place with a number of men within the band and the room on its walls. SKIP when no held garrison is thin. Moves no troops, records nothing.", TestGarrisonReinforcement),
          new SelfTest("town_needs_supply", Severity.Light, "fkasad (Nexus, 01/10/2026): a governor asks for what his town lacks. Reads a real town's market for the good it lacks most (twice its worth or more), issues a provide_goods task for it through the real QuestFactory for the town's holder, and expects it keyed to that good, an item of that category to count toward it, and the delivery to go to that town's market. SKIP when no held town lacks anything. Records nothing.", TestTownNeedsSupply),
@@ -8658,6 +8659,34 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestRansomEnvoyQuest(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("ransom_envoy_quest");
+
+         Hero man = null, giver = null;
+         foreach (Hero h in Hero.AllAliveHeroes.Where(h => h.IsLord && h.IsPrisoner && h != Hero.MainHero && h.Clan?.Leader != null && h.Clan.Leader != h && h.Clan != Clan.PlayerClan))
+         {
+            int purse = RansomEnvoyPolicy.Advance(GameState.CourtActionResolver.RansomAnchor(h));
+            if (!RansomEnvoyPolicy.MaySend(Quests.QuestFactory.EnvoyFacts(h, h.Clan.Leader, purse))) continue;
+
+            man = h;
+            giver = h.Clan.Leader;
+            break;
+         }
+
+         if (t.Skip(man == null, "no captive lord held where the player is at peace, with a lord able to pay")) return t.Line();
+
+         InformalQuest quest = Quests.QuestFactory.Create(new QuestProposal {Type = QuestType.RansomEnvoy, TargetHero = man.Name.ToString()}, giver, (int) CampaignTime.Now.ToDays);
+         if (t.Abort(quest == null, $"the factory refused an envoy for {man.Name} from {giver.Name}")) return t.Line();
+
+         int expected = RansomEnvoyPolicy.Advance(GameState.CourtActionResolver.RansomAnchor(man));
+         t.Note($"{giver.Name} sends the player to buy back {man.Name}, held by {man.PartyBelongedToAsPrisoner?.Name}; purse {quest.AdvanceGold}");
+         t.Expect("boundToHisMan", quest.TargetHeroId, man.StringId);
+         t.Expect("purseIsHalfAgainTheRansom", quest.AdvanceGold, expected);
 
          return t.Line();
       }

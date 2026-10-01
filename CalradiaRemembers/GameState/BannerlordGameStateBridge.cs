@@ -5098,6 +5098,18 @@ namespace CalradiaRemembers.GameState
 
             if (profile == null || npcHero == null) return null;
 
+            // An envoy brings the man HOME (fkasad, 01/10/2026): handing a lord his own man frees him rather than
+            // jailing him again, and the release completes the errand (QuestDeedTracker hears it as the player's).
+            InformalQuest envoy = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.RansomEnvoy && q.IsOutstanding);
+            Hero envoysMan = envoy == null ? null : BuyPrisonerVerb.PlayerHeldHeroPrisoners().FirstOrDefault(h => h.StringId == envoy.TargetHeroId);
+            if (envoysMan != null)
+            {
+               EndCaptivityAction.ApplyByReleasedByChoice(envoysMan, Hero.MainHero);
+               ModLog.Info($"[QUEST] ransom_envoy: {envoysMan.Name} handed home to {npcHero.Name}, free.");
+
+               return new ActionOutcome($"{envoysMan.Name} is free, home with {npcHero.Name}.", true);
+            }
+
             // A capture or delivery task whose man escaped after the player beat him may take a lord of his realm in his
             // place (fkasad, 01/10/2026): that is a bargain too.
             InformalQuest anyBargain = profile.ActiveQuests.FirstOrDefault(q =>

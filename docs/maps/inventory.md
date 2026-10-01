@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 450 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 872 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 875 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -785,7 +785,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (570)
+### CalradiaRemembers.Logic (573)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -959,6 +959,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EnvoyDeal` | public class | A deal rebound to the mandate, ready for the bridge. |
 | `EnvoyMandate` | public class | What the lord authorised his envoy to settle. |
 | `EnvoyMandatePolicy` | public static class | Holds an envoy to his mandate, and names him. |
+| `EnvoyReleaseFacts` | public class | How a captive's captivity ended, as the envoy task reads it. |
 | `EnvoyTurnFacts` | public class | What the turn that produced a deal said: the facts a gift and a plain acceptance are read from. |
 | `EquipmentLoadoutPolicy` | public static class | Chooses which equipment loadout (civilian or battle) the notable-gear clause should read for a scene. |
 | `EquipmentModifierQualityPolicy` | public static class | Pure, engine-free mapping from an item modifier's plain facts to a GearQuality band. |
@@ -1209,6 +1210,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestSaveBasePolicy` | public static class | Decides the quest definer's save-type base id, avoiding a known boot-crash collision with Europe1100. |
 | `QuestTargetVoidPolicy` | public static class | Decides whether a hero-bound quest should be voided because its target hero has left the world. |
 | `QuestVoidReason` | public enum | Why QuestTargetVoidPolicy.ReasonToVoid would cancel a hero-bound quest, or None when it stands. |
+| `RansomEnvoyFacts` | public class | Who a giver may send the player to buy back. |
+| `RansomEnvoyPolicy` | public static class | The rules of a ransom_envoy task. |
 | `RapportBand` | public enum | How two companions stand with each other — banded from their accumulated mutual relation. |
 | `ReactionKind` | public enum | The kind of reaction one party has to a divorce. |
 | `RealmServiceLine` | public class | The news line, the chronicle line and the reach of the player's clan entering a realm's service. |

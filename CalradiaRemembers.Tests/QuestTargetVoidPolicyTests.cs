@@ -104,6 +104,18 @@ namespace CalradiaRemembers.Tests
                 .Should().BeFalse();
         }
 
+        // fkasad (01/10/2026): "Prisoners tend to escape or be released. So safety wall needed here." An envoy's man
+        // who went free some other way leaves nothing to buy: the task is voided (and the advance returned), never
+        // left to lapse into a broken word.
+        [Test]
+        public void GIVEN_an_envoys_man_already_free_WHEN_swept_THEN_the_task_is_voided_as_freed()
+        {
+            QuestTargetVoidPolicy.ReasonToVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = QuestType.RansomEnvoy, HasTargetHero = true, TargetResolved = true, TargetAlive = true, TargetIsPrisoner = false})
+                .Should().Be(QuestVoidReason.RescueTargetFreed);
+            QuestTargetVoidPolicy.ReasonToVoid(new QuestTargetVoidPolicy.QuestTargetFacts {Type = QuestType.RansomEnvoy, HasTargetHero = true, TargetResolved = true, TargetAlive = true, TargetIsPrisoner = true})
+                .Should().Be(QuestVoidReason.None);
+        }
+
         // Pins the exact hero-bound set the sweep acts on, so a future kind added to the enum does not silently
         // start (or stop) voiding without a deliberate choice recorded here.
         [TestCase(QuestType.CapturePrisoner, true)]
@@ -114,6 +126,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(QuestType.DeliverPrisoner, true)]
         [TestCase(QuestType.EarnRegard, true)]
         [TestCase(QuestType.PleadCase, true)]
+        [TestCase(QuestType.RansomEnvoy, true)]
         [TestCase(QuestType.NemesisBounty, false)]
         [TestCase(QuestType.BanditClear, false)]
         [TestCase(QuestType.DeclareWar, false)]

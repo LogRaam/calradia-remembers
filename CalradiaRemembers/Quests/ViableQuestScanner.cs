@@ -191,6 +191,15 @@ namespace CalradiaRemembers.Quests
 
          // Held in a town or castle's dungeon, the game's own prison break is a way in (01/10/2026): say so, so the
          // giver can ask for exactly that.
+         // Held by a realm the player is at peace with: an envoy's errand, not a rescue by force (fkasad, 01/10/2026).
+         int advance = RansomEnvoyPolicy.Advance(GameState.CourtActionResolver.RansomAnchor(captive));
+         if (RansomEnvoyPolicy.MaySend(QuestFactory.EnvoyFacts(captive, giver, advance)))
+         {
+            entries.Add(new QuestMenuEntry {TypeToken = "ransom_envoy", TargetField = "target_hero", TargetName = captive.Name?.ToString(), Cue = $"{captive.Name} of your realm is held by people the player is at peace with: send the player to buy them back with {advance} denars of yours"});
+
+            return;
+         }
+
          string prison = captive.PartyBelongedToAsPrisoner?.Settlement?.Name?.ToString();
          string cue = prison != null
             ? $"{captive.Name} of your realm languishes in the prison of {prison}: the player may break them out, or take the place"
