@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-397 rules read 301 facts.
+400 rules read 305 facts.
 
 ## Facts read by more than one rule
 
@@ -66,6 +66,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.Children` (6) | `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `SeductionFacts`, `ThirdPartyDescriptor.KnowledgeOf`, `ThirdPartyDescriptor.WhereaboutsClause`, `ThirdPartyFacts` |
 | `Hero.IsNotable` (6) | `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `NotableRecruitmentFacts` |
 | `ModSettings.LordsApproaching` (6) | `FiefAudiencePolicy.ChooseFiefValid`, `FiefAudiencePolicy.IsOnCooldown`, `InterceptionFacts`, `InterceptionPacingRules.CooldownDays`, `InterceptionPacingRules.DailyChancePercent`, `InterceptionPacingRules.IsOff` |
+| `Party.PartySizeLimit` (6) | `CourtActionPolicy.IsPartyWeakened`, `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.MayAsk`, `ReinforceGarrisonPolicy.TroopsToAsk`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `PartyBelongedTo.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `EscortCostPolicy.EscortPremium`, `JealousyHearingPolicy.WithinEarshot` |
 | `Romantic.IsOpenArrangement` (6) | `LoverEligibilityFacts`, `OpenRelationshipPolicy.SuppressesJealousy`, `PartnerStanding`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot` |
 | `Settlement.IsTown` (6) | `CommonerChatContext`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts`, `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
@@ -117,7 +118,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MobileParty.Morale` (3) | `CompanionCounselPolicy.Select`, `PartyCounselFacts`, `PartyMoraleMood.DriverFor` |
 | `ModSettings.CompanionAudienceCadence` (3) | `CompanionAudiencePacingRules.CooldownDays`, `CompanionAudiencePacingRules.DailyChancePercent`, `CompanionAudiencePacingRules.IsOff` |
 | `OwnerClan.MapFaction` (3) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts` |
-| `Party.PartySizeLimit` (3) | `CourtActionPolicy.IsPartyWeakened`, `TroopGiftFacts`, `TroopLoanFacts` |
+| `Party.NumberOfHealthyMembers` (3) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.MayAsk`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `RansomValueCalculationModel.PrisonerRansomValue` (3) | `PrisonerTradePolicy.ClampPrice`, `PrisonerTradePolicy.MinAcceptablePayment`, `PrisonerTradePolicy.MostABuyerCanPay` |
 | `Settlement.Find` (3) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `RumorAwareness.Explain` |
 | `Settlement.MapFaction` (3) | `InterceptionFacts`, `InterceptionPolicy.Choose`, `SettlementSafetyFacts` |
@@ -142,6 +143,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Event.Summary` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `Event.Type` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `GameStateBridge.GetCurrentScene` (2) | `EquipmentLoadoutPolicy.PreferCivilianLoadout`, `EquipmentNotabilityPolicy.ComposeWorn` |
+| `GarrisonParty.Party` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `GatePosition.ToVec2` (2) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium` |
 | `Hero.CivilianEquipment` (2) | `GiftEquipFacts`, `PlayerDressPolicy.Classify` |
 | `Hero.Culture` (2) | `MercenaryDeparturePolicy.IsAidOfKin`, `MercenaryDeparturePolicy.RegardShift` |
@@ -183,6 +185,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `NavigationType.Default` (2) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium` |
 | `NewEventData.Type` (2) | `CoerciveSceneEventPolicy.ShouldDropRomanticEvent`, `JealousyTriggerPolicy.IsPlausibleCourtship` |
 | `Owner.Clan` (2) | `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
+| `PartyBase.NumberOfHealthyMembers` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
+| `PartyBase.PartySizeLimit` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `PartyBase.Settlement` (2) | `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
 | `PlayerEncounter.InsideSettlement` (2) | `DuelStagingSupport.CanHoldATownDuel`, `DuelVenuePolicy.Choose` |
 | `Romantic.IsSecretLover` (2) | `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
@@ -356,6 +360,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `FoodTradeFacts`: `Item.IsFood`, `Item1.Amount`, `Settlement.CurrentSettlement`, `Settlement.IsStarving`, `Town.FoodChange`, `Town.FoodStocks`
 - `ForcedMarriagePolicy.GrudgeMagnitude`: `Hero.GetRelation`, `ModSettings.MarriageRegardThreshold`, `Profile.ReputationWithPlayer`
 - `ForcedMarriagePolicy.IsForcedUnion`: `Hero.GetRelation`, `ModSettings.MarriageRegardThreshold`, `Profile.ReputationWithPlayer`
+- `GarrisonStrength.BandOf`: `GarrisonParty.Party`, `Party.NumberOfHealthyMembers`, `Party.PartySizeLimit`, `PartyBase.NumberOfHealthyMembers`, `PartyBase.PartySizeLimit`
 - `GeographyDescriber.Bearing`: `GetPosition2D.x`, `GetPosition2D.y`, `Hero.CurrentSettlement`, `MobileParty.GetPosition2D`, `Settlement.GetPosition2D`, `Vec2.Distance`, `Vec2.X`, `Vec2.Y`, `Vec2.x`, `Vec2.y`
 - `GiftCandidate`: `EquipmentElement.Item`
 - `GiftEquipFacts`: `EquipmentElement.Item`, `EquipmentIndex.Body`, `EquipmentIndex.Cape`, `EquipmentIndex.Gloves`, `EquipmentIndex.Head`, `EquipmentIndex.Leg`, `Hero.BattleEquipment`, `Hero.CivilianEquipment`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.PartyBelongedToAsPrisoner`, `Hero.Spouse`, `ItemObject.IsCivilian`, `MobileParty.Party`
@@ -503,6 +508,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `RealmServiceWording.Joined`: `Kingdom.Leader`
 - `ReasoningWirePolicy.UsesEffortString`: `ModSettings.ActionInterpreterProviderSelection`, `ModSettings.CncProviderSelection`, `ModSettings.HousekeepingProviderSelection`, `ModSettings.RoleplayProviderSelection`, `Provider.SelectedValue`
 - `RegardProposal`: `Clan.IsUnderMercenaryService`, `Clan.Kingdom`, `Hero.Clan`, `Hero.IsFemale`, `Hero.IsPrisoner`, `Hero.Spouse`, `Kingdom.Leader`, `ModSettings.AdultContentLevel`, `ModSettings.RegardDecayDays`, `ModSettings.RelationWarmth`, `PartyBelongedToAsPrisoner.LeaderHero`, `Profile.Romantic`, `Status.IsCuriousOrDeeper`, `Status.IsIntimateOrDeeper`
+- `ReinforceGarrisonPolicy.MayAsk`: `Party.NumberOfHealthyMembers`, `Party.PartySizeLimit`
+- `ReinforceGarrisonPolicy.TroopsToAsk`: `GarrisonParty.Party`, `Party.NumberOfHealthyMembers`, `Party.PartySizeLimit`, `PartyBase.NumberOfHealthyMembers`, `PartyBase.PartySizeLimit`
 - `RejoinPartyFacts`: `Hero.IsAlive`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.LeaderHero`
 - `ReleaseFacts`: `Clan.IsBanditFaction`, `Hero.Clan`, `Hero.IsLord`
 - `ReleaseLineFacts`: `Hero.IsFemale`

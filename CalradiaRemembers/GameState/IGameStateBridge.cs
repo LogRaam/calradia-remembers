@@ -167,6 +167,12 @@ namespace CalradiaRemembers.GameState
         ActionOutcome SettleSupplyQuest(NpcProfile giver, Hero giverHero, InformalQuest quest, IReadOnlyList<ItemOffer> offered);
 
         /// <summary>
+        ///   Completes a <see cref="QuestType.ReinforceGarrison" /> task once the men are on the walls (the verb has
+        ///   moved them): stamps the evidence, pays the reward, closes the journal entry, records the memory.
+        /// </summary>
+        ActionOutcome SettleGarrisonQuest(NpcProfile giver, Hero giverHero, InformalQuest quest, int troopsMoved, string placeName);
+
+        /// <summary>
         ///   Applies the standing penalty for the player being publicly abased before
         ///   <paramref name="witnessCount"/> onlookers (Sprint 17 captive humiliation).
         ///   The clan loses Renown (prestige) and Influence (political authority),

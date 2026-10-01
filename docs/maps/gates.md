@@ -570,6 +570,13 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - $"({npcHero.Name} leads the house of {npcHero.Clan?.Name?.ToString() ?? "their birth"}; a lord cannot dissolve their own clan into yours with a word.)...
   - $"({npcHero.Name} does not esteem you nearly enough to turn their coat and join you. Earn their deep trust first.)"
 
+### reinforce_garrison
+
+- executor: `Execute`
+- taught in: no prompt section names it
+- taught when: no gate found
+- the bridge refuses: never
+
 ### rejoin_party
 
 - executor: `ExecuteRejoinParty`

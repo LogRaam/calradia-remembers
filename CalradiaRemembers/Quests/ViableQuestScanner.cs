@@ -96,6 +96,11 @@ namespace CalradiaRemembers.Quests
 
          // 6. A lord always needs supplies: horses for the cavalry, livestock or grain for the host. Always
          // groundable (the player can bring goods), so this personal task is always on the menu.
+         // 6. Men for a thin garrison he governs or holds (fkasad, 01/10/2026).
+         Settlement thin = QuestFactory.ThinGarrisonsOf(giver).FirstOrDefault();
+         if (thin != null)
+            entries.Add(new QuestMenuEntry {TypeToken = "reinforce_garrison", TargetField = "target_settlement", TargetName = thin.Name?.ToString(), Cue = $"the walls of {thin.Name} are thinly manned: have the player bring soldiers (set required_count)"});
+
          // 6a. What one of his towns lacks, read off its own market (fkasad, 01/10/2026). Before the personal supply
          // so the menu's cap keeps it.
          (Settlement Place, MarketReading Good)? need = Mapping.TownNeeds.MostLackingFor(giver);

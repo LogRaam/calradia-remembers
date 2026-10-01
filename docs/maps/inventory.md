@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 448 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 869 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 449 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 871 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -694,7 +694,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSpikeScreen` | internal class | The one screen the probe uses, pushed BOTH ways so the measurement compares mechanisms rather than screens. |
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
 
-### CalradiaRemembers.Verbs (20)
+### CalradiaRemembers.Verbs (21)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -712,6 +712,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MakeAmendsVerb` | public class | make_amends: the player sincerely apologises or offers, in words, to set right a grievance this NPC KNOWINGLY holds against them. |
 | `PayForSilenceVerb` | public class | pay_for_silence: the player pays a lord who holds their secret-lover identity to buy his silence. |
 | `PrisonerRansomExecutor` | internal static class | Settles a prisoner ransom (a lord buys a captive the player holds) outside the chat verb path. |
+| `ReinforceGarrisonVerb` | public class | reinforce_garrison (fkasad, Nexus, 01/10/2026: "Works for garrison reinforcement too"): the player hands over the men a governor or lord asked for, and they go straight onto the walls of the place named in the task. |
 | `ReleasePrisonerVerb` | public class | release_prisoner (RP with teeth, increment 1): the player intercedes for a THIRD-PARTY hero prisoner the NPC's own clan holds (not the player's own captive, that is free_prisoner). |
 | `SellPrisonerVerb` | public class | sell_prisoner: the NPC hands the player a hero captive their clan holds, for the player's gold. |
 | `SpendInfluenceVerb` | public class | spend_influence: the reciprocal of GiveInfluenceVerb, 04/07/2026 — the PLAYER spends some of their own clan's influence to back a needy lord's clan at court. |
@@ -783,7 +784,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (567)
+### CalradiaRemembers.Logic (569)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -986,6 +987,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FoodTradeFacts` | public class | One visit's food trade in a town. |
 | `FoodTradeVerdict` | public enum | What the town remembers of a visit's food trade. |
 | `ForcedMarriagePolicy` | public static class | How a marriage sealed on the family's blessing, against the spouse's own unwon heart, is resented. |
+| `GarrisonStrength` | public static class | A garrison's strength band. |
 | `GearKind` | public enum | The broad kind of an equipped piece, enough to phrase it ("clad in", "bears", "rides"). |
 | `GearQuality` | public enum | The quality band of a piece, derived by the host from the item's modifier (Masterwork/Legendary vs Rusty/Tattered/Cracked...) and, for an unmarked piece, its raw value. |
 | `GeographyDescriber` | public static class | Pure rules for describing a bearing (distance band plus 8-wind direction) between two map points. |
@@ -1214,6 +1216,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RealmTidingsSalience` | public static class | Turns a world event's magnitude (how far the news carries, 0..100) and the writer's RumorConfidence in it into the opaque salience score RealmTidingsPolicy.RealmTidingsCandidate competes on. |
 | `ReasoningWirePolicy` | public static class | Decides whether a provider kind expects the reasoning-effort keyword serialized as the top-level reasoning_effort string rather than OpenRouter's nested reasoning object. |
 | `RecruitIntentDetector` | public static class | Detects a "where can I find / hire a companion?" intent in a free-text player message. |
+| `ReinforceGarrisonPolicy` | public static class | The rules of a reinforce_garrison task. |
 | `RelationGate` | public static class | Single source of truth for how a LLM-proposed relation change is allowed to move the player↔NPC relationship. |
 | `ReleaseBargainMode` | public enum | How a freedom bargain is honoured, decided by who holds the prisoner. |
 | `ReliefSeat` | public class | A place a character answers for, as a destination for the grain he asked for. |

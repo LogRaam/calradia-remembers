@@ -703,6 +703,7 @@ namespace CalradiaRemembers.Quests
                 return $"bring {q.RequiredItemCount} {q.RequiredItemCategory}";
             case QuestType.EarnRegard: return $"win the good graces of {q.TargetHeroName}";
             case QuestType.PleadCase: return $"plead their case before {q.TargetHeroName}";
+            case QuestType.ReinforceGarrison: return $"bring {q.RequiredItemCount} soldiers for the garrison of {q.TargetSettlement}";
             default: return "carry out a task";
          }
       }

@@ -299,6 +299,34 @@ namespace CalradiaRemembers.Quests
          return true;
       }
 
+      /// <summary>
+      ///   Binds a reinforce_garrison task (fkasad, 01/10/2026): a place the giver governs or holds whose garrison is
+      ///   thin (the named one, else the closest), and a number of men within the band and the room on its walls.
+      /// </summary>
+      private static bool BindGarrison(InformalQuest quest, QuestProposal proposal, Hero giver)
+      {
+         Settlement place = ThinGarrisonsOf(giver).FirstOrDefault(p => string.IsNullOrWhiteSpace(proposal.TargetSettlement)
+                                                                      || NameEquals(p.Name, proposal.TargetSettlement))
+                            ?? ThinGarrisonsOf(giver).FirstOrDefault();
+         if (place == null) return false;
+
+         TaleWorlds.CampaignSystem.Party.PartyBase garrison = place.Town.GarrisonParty.Party;
+         int? troops = ReinforceGarrisonPolicy.TroopsToAsk(proposal.RequiredCount, garrison.PartySizeLimit - garrison.NumberOfHealthyMembers);
+         if (troops == null) return false;
+
+         quest.TargetSettlement = place.Name?.ToString();
+         quest.RequiredItemCount = troops.Value;
+
+         return true;
+      }
+
+      /// <summary>The places a character governs or holds whose garrison is thin enough to ask men for, closest first.</summary>
+      internal static IEnumerable<Settlement> ThinGarrisonsOf(Hero giver)
+         => Mapping.HeroSeats.ClosestFirst(giver)
+                   .Where(seat => seat.Role != NpcMemoryService.Core.Knowledge.SeatRole.Notable && seat.Place?.Town?.GarrisonParty?.Party != null)
+                   .Select(seat => seat.Place)
+                   .Where(p => ReinforceGarrisonPolicy.MayAsk(GarrisonStrength.BandOf(p.Town.GarrisonParty.Party.NumberOfHealthyMembers, p.Town.GarrisonParty.Party.PartySizeLimit)));
+
       /// <summary>The facts EarnRegardPolicy judges a named person on.</summary>
       internal static EarnRegardTargetFacts RegardTargetFacts(Hero target, Hero giver)
          => new EarnRegardTargetFacts {
@@ -616,6 +644,9 @@ namespace CalradiaRemembers.Quests
 
             case QuestType.EarnRegard:
                return BindRegardToWin(quest, proposal, giver);
+
+            case QuestType.ReinforceGarrison:
+               return BindGarrison(quest, proposal, giver);
 
             case QuestType.PleadCase:
                // Lordfadooboo / fkasad (01/10/2026): before a living adult who holds a court, since only a lord or a

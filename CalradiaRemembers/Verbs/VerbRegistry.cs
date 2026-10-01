@@ -81,6 +81,7 @@ namespace CalradiaRemembers.Verbs
          registry.Register(new GiveInfluenceVerb());
          registry.Register(new LendTroopsVerb());
          registry.Register(new GiveTroopsVerb());
+         registry.Register(new ReinforceGarrisonVerb());
          registry.Register(new SpendInfluenceVerb());
          registry.Register(new SwayOpinionVerb());
          registry.Register(new ReleasePrisonerVerb());

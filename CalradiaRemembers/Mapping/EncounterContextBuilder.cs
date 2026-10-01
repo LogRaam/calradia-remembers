@@ -2702,16 +2702,8 @@ namespace CalradiaRemembers.Mapping
          PartyBase garrison = town.GarrisonParty?.Party;
          if (garrison == null) return GarrisonBand.Skeleton;
 
-         int limit = garrison.PartySizeLimit;
-         if (limit <= 0) return GarrisonBand.Unknown;
-
-         float share = garrison.NumberOfHealthyMembers / (float) limit;
-
-         if (share < 0.15f) return GarrisonBand.Skeleton;
-         if (share < 0.50f) return GarrisonBand.UnderStrength;
-         if (share < 0.85f) return GarrisonBand.Adequate;
-
-         return GarrisonBand.Strong;
+         // One home for the bands since a governor may also ASK for men by them (GarrisonStrength, 01/10/2026).
+         return GarrisonStrength.BandOf(garrison.NumberOfHealthyMembers, garrison.PartySizeLimit);
       }
 
       /// <summary>On the engine's own 0-100 loyalty scale; below 25 is where vanilla itself starts worrying.</summary>
