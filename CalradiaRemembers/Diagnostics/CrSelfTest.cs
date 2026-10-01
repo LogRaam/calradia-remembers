@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("no_tasks_from_enemies", Severity.Light, "fkasad (Nexus, 29/09/2026): an enemy lord buying back a prisoner slid into demanding a deed, then into invalid-quest messages. Builds the REAL context for a lord at war with the player: it says so, and the prompt built from it teaches no task to offer and no prisoner bargain. Skips when the player is at war with no one. No LLM, nothing stored.", TestNoTasksFromEnemies),
          new SelfTest("quests_suppressed_in_nsfw", Severity.Light, "Mechanical: build the REAL EncounterContext in NSFW mode -> SuppressQuests is true (an intimate scene never mints a quest from a vow, player report); in Roleplay it stays false (quests remain). Restores the active mode. No LLM.", TestQuestsSuppressedInNsfw),
          new SelfTest("witness_recalls_own_memory", Severity.Light, "Mechanical: seed a memory on a hero -> the witness recall a group scene would give them (the real BuildWitnessMemory path + cap) includes it, so a companion no longer answers a group scene as if a prior one-on-one agreement never happened. Removes the seed afterwards.", TestWitnessRecallsOwnMemory),
          new SelfTest("witness_density_thins_the_room", Severity.Light, "Mechanical: player complaint that conversations are ALWAYS crowded. Drives the REAL WitnessPresencePolicy.Filter directly against a fixed eligible list: Sparse thins the room down to its cap of 1; Bustling with an always-passing rng keeps every one of them, the exact passthrough that reproduces today's live behaviour for a player who never opens the menu. No LLM, mutates nothing.", TestWitnessDensityThinsTheRoom),
@@ -8608,6 +8609,27 @@ namespace CalradiaRemembers.Diagnostics
       // Player report 2026-08-23: in an intimate (NSFW) scene the model turned a vow into a quest. The mod
       // suppresses quests for an NSFW turn; this drives the REAL EncounterContextBuilder in each mode and pins
       // that NSFW sets SuppressQuests while Roleplay does not (Roleplay is where quests still belong).
+      private static string TestNoTasksFromEnemies(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("no_tasks_from_enemies");
+
+         IFaction mine = Hero.MainHero?.MapFaction;
+         Hero enemy = mine == null ? null : Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && !h.IsChild
+                                                                                 && h.MapFaction != null && FactionManager.IsAtWarAgainstFaction(h.MapFaction, mine));
+         if (t.Skip(enemy == null, "the player is at war with no one")) return t.Line();
+
+         NpcProfile profile = behavior.Store?.Get(enemy.StringId) ?? HeroProfileMapper.FromHero(enemy);
+         EncounterContext ctx = EncounterContextBuilder.Build(enemy, profile, behavior.GameStateBridge, "hello");
+         string prompt = new PromptBuilder {EnableQuests = true}.BuildSystemPrompt(profile, new WorldState {CurrentDay = (int) CampaignTime.Now.ToDays}, ctx);
+
+         t.Note($"{enemy.Name} ({enemy.MapFaction?.Name}): WarStatus={ctx.WarStatus}");
+         t.Expect("theContextSaysWar", ctx.WarStatus, DiplomaticStatus.AtWar);
+         t.Expect("noTaskIsTaught", prompt.Contains("OFFERING TASKS"), false);
+         t.Expect("noPrisonerBargainIsTaught", prompt.Contains("IF YOU WANT AN ENEMY CAPTIVE"), false);
+
+         return t.Line();
+      }
+
       private static string TestQuestsSuppressedInNsfw(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("quests_suppressed_in_nsfw");
