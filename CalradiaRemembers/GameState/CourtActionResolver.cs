@@ -137,13 +137,20 @@ namespace CalradiaRemembers.GameState
       ///   many actually moved (may be less than asked if the roster changed since eligibility was
       ///   computed — the bridge re-reads live state, it does not trust the earlier count blindly).
       /// </summary>
-      public static int MoveLowestTierTroops(MobileParty from, MobileParty to, int count)
+      public static int MoveLowestTierTroops(MobileParty from, MobileParty to, int count) => MoveMatchingTroops(from, to, count, null);
+
+      /// <summary>
+      ///   <see cref="MoveLowestTierTroops" />, restricted to the troops <paramref name="matches" /> accepts (null: any
+      ///   regular): the recruit task moves only the recruits asked for (Lordfadooboo, 01/10/2026).
+      /// </summary>
+      public static int MoveMatchingTroops(MobileParty from, MobileParty to, int count, Func<CharacterObject, bool> matches)
       {
          if (from?.MemberRoster == null || to?.MemberRoster == null || count <= 0) return 0;
 
          var moved = 0;
          List<TroopRosterElement> candidates = from.MemberRoster.GetTroopRoster()
-                                                    .Where(el => el.Character is {IsHero: false} && el.Number - el.WoundedNumber > 0)
+                                                    .Where(el => el.Character is {IsHero: false} && el.Number - el.WoundedNumber > 0
+                                                                 && (matches == null || matches(el.Character)))
                                                     .OrderBy(el => el.Character.Tier)
                                                     .ToList();
 

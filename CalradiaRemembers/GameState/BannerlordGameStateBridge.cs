@@ -232,7 +232,7 @@ namespace CalradiaRemembers.GameState
          "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
          "release_prisoner", "buy_prisoner", "sell_prisoner", "exchange_prisoners", "end_marriage", "make_amends", "grudge_terms", "hear_account", "pledge_against",
          "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill", "admit_secret_lover", "pay_for_silence",
-         "rob_npc", "assault_npc", "kill_npc", "reinforce_garrison", "share_intel",
+         "rob_npc", "assault_npc", "kill_npc", "reinforce_garrison", "share_intel", "deliver_recruits",
          // ChatViewModel chat-flow controls: real LLM-emittable actions, never dispatched by the switch below.
          "witness_leaves", "request_privacy", "retire"
       };
@@ -353,6 +353,8 @@ namespace CalradiaRemembers.GameState
             case "reinforce_garrison":
             // share_intel (fkasad, 01/10/2026): a gang leader telling a scout what he knows of his town.
             case "share_intel":
+            // deliver_recruits (Lordfadooboo, 01/10/2026): the fresh recruits a lord asked for, into his party.
+            case "deliver_recruits":
             case "release_prisoner":
             // buy_prisoner / sell_prisoner (prisoner trade, 08/07/2026): the NPC buys a captive the player
             // holds, or sells one his clan holds, for gold clamped around the game's ransom valuation.
@@ -969,34 +971,34 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
-      ///   Completes a reinforce_garrison task (fkasad, 01/10/2026) once the verb has put the men on the walls: the
-      ///   same close as a supply hand-over (evidence, reward, journal, memory, a promise kept).
+      ///   Completes a troop hand-over task once the verb has moved the men (a garrison reinforced, fkasad; recruits
+      ///   delivered, Lordfadooboo; 01/10/2026): the same close as a supply hand-over (evidence, reward, journal,
+      ///   memory, a promise kept), in the words each task gives.
       /// </summary>
-      public ActionOutcome SettleGarrisonQuest(NpcProfile giver, Hero giverHero, InformalQuest quest, int troopsMoved, string placeName)
+      public ActionOutcome SettleTroopHandOver(NpcProfile giver, Hero giverHero, InformalQuest quest, TroopHandOver handOver)
       {
          try
          {
-            if (giver == null || quest is not {Type: QuestType.ReinforceGarrison} || troopsMoved <= 0) return null;
+            if (giver == null || quest == null || handOver == null || handOver.Moved <= 0) return null;
 
             var day = (int) CampaignTime.Now.ToDays;
             quest.SatisfiedOnDay = day;
-            quest.Evidence = $"Brought {troopsMoved} soldiers for the garrison of {placeName} on day {day}.";
+            quest.Evidence = $"{handOver.Evidence} on day {day}.";
             quest.Status = QuestStatus.Completed;
 
             ActionOutcome reward = GrantQuestReward(giverHero, giver, quest.RewardGold, quest.RewardRelation);
-            giver.Events.Add(new NotableEvent(day, NotableEventType.Collaboration,
-               $"{Hero.MainHero?.Name?.ToString() ?? "The player"} brought {troopsMoved} soldiers for the walls of {placeName}, as I asked."));
+            giver.Events.Add(new NotableEvent(day, NotableEventType.Collaboration, handOver.Memory));
             QuestJournalBridge.CloseAsCompleted(quest, giverHero);
             StanceService.OnPromiseKept(giver);
             NpcMemoryCampaignBehavior.Instance?.Store?.Set(giver);
 
-            ModLog.Info($"[QUEST] ReinforceGarrison completed: {troopsMoved} soldiers onto the walls of {placeName} for {giverHero?.Name}.");
+            ModLog.Info($"[QUEST] {quest.Type} completed for {giverHero?.Name}: {handOver.Evidence}.");
 
-            return reward ?? new ActionOutcome($"{troopsMoved} of your soldiers join the garrison of {placeName}.", true);
+            return reward ?? new ActionOutcome(handOver.PlayerLine, true);
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[QUEST] SettleGarrisonQuest failed: {ex.GetType().Name}: {ex.Message}");
+            ModLog.Error($"[QUEST] SettleTroopHandOver failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

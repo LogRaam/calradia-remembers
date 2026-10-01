@@ -65,7 +65,14 @@ namespace CalradiaRemembers.Verbs
                 int moved = CourtActionResolver.MoveLowestTierTroops(playerParty, place.Town.GarrisonParty, quest.RequiredItemCount);
                 ModLog.Info($"[ACTION] reinforce_garrison: {moved} of the player's soldiers onto the walls of {place.Name} for {ctx.Npc.Name}.");
 
-                return ctx.Bridge.SettleGarrisonQuest(ctx.Profile, ctx.Npc, quest, moved, place.Name?.ToString());
+                string player = Hero.MainHero?.Name?.ToString() ?? "The player";
+
+                return ctx.Bridge.SettleTroopHandOver(ctx.Profile, ctx.Npc, quest, new TroopHandOver {
+                    Moved = moved,
+                    Evidence = $"Brought {moved} soldiers for the garrison of {place.Name}",
+                    Memory = $"{player} brought {moved} soldiers for the walls of {place.Name}, as I asked.",
+                    PlayerLine = $"{moved} of your soldiers join the garrison of {place.Name}."
+                });
             }
             catch (Exception ex)
             {

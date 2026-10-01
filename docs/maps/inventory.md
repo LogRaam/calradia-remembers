@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 451 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 877 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 453 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 879 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -340,7 +340,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitData` | public struct | The flat portrait binding a widget renders from: image id, texture provider name, extra args. |
 | `PortraitTextureGuard` | public static class | The single gate for every character portrait the mod shows (chat lines, the courier letter). |
 
-### CalradiaRemembers.GameState (34)
+### CalradiaRemembers.GameState (35)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -376,6 +376,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RevokeFiefVerdict` | public struct | The verdict of CourtActionResolver.TryRevokeFief: the result and, only on RevokeFiefResult.Revoked, the resolved Fief so the caller can name it. |
 | `SwearOathResult` | public enum | The outcome of CourtActionResolver.TrySwearOath, read by each caller to report its own message. |
 | `SwearOathVerdict` | public struct | The verdict of CourtActionResolver.TrySwearOath: the result, the resolved Kind (whenever one was parsed), the clamped PromisedAmount for a pay_gold oath, and the TargetFactionName for a keep_peace oath, so each caller ca... |
+| `TroopHandOver` | public class | What a troop hand-over task records when the men have moved: one close for the garrison and the recruit tasks (IGameStateBridge.SettleTroopHandOver), each saying in its own words what was brought. |
 | `TroopTierBucket` | public enum | The three coarse troop-quality buckets council lend_troops reasons over (see TroopTierBucketer's own header). |
 | `TroopTierBucketer` | public static class | The engine-coupled half of council lend_troops (COUNCIL_ACTIONS.md's Kimi review, "CouncilTroopLoanPolicy"): reads a live TroopRoster into the tier-bucketed counts the pure CouncilTroopLoanPolicy reasons over, and moves... |
 
@@ -695,12 +696,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSpikeScreen` | internal class | The one screen the probe uses, pushed BOTH ways so the measurement compares mechanisms rather than screens. |
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
 
-### CalradiaRemembers.Verbs (22)
+### CalradiaRemembers.Verbs (23)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `AdmitSecretLoverVerb` | public class | admit_secret_lover: the player confesses to this NPC that they are the hidden lover behind a whispered scandal; the NPC now privately knows the identity. |
 | `BuyPrisonerVerb` | public class | buy_prisoner: the NPC pays the player gold for a hero captive the player's party holds. |
+| `DeliverRecruitsVerb` | public class | deliver_recruits (Lordfadooboo, Nexus, 01/10/2026: "recruitment quests"): the player hands over the fresh recruits of his own people a lord asked for, and they join that lord's party. |
 | `EndMarriageVerb` | public class | end_marriage: the player persuades the NPC to begin ending THEIR OWN marriage (never the player's own spouse — that is Phase 2, out of scope here). |
 | `ExchangePrisonersVerb` | public class | exchange_prisoners: the player gives a hero captive he holds and receives one the NPC's clan holds, with gold evening an uneven swap. |
 | `ExternalVerbAdapter` | public class | Wraps an externally-supplied ExternalVerbContract (an SDK-shaped, engine-agnostic verb defined by ANOTHER mod) as an IConversationVerb. |
@@ -786,7 +788,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (575)
+### CalradiaRemembers.Logic (577)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1221,6 +1223,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RealmTidingsSalience` | public static class | Turns a world event's magnitude (how far the news carries, 0..100) and the writer's RumorConfidence in it into the opaque salience score RealmTidingsPolicy.RealmTidingsCandidate competes on. |
 | `ReasoningWirePolicy` | public static class | Decides whether a provider kind expects the reasoning-effort keyword serialized as the top-level reasoning_effort string rather than OpenRouter's nested reasoning object. |
 | `RecruitIntentDetector` | public static class | Detects a "where can I find / hire a companion?" intent in a free-text player message. |
+| `RecruitTroopsPolicy` | public static class | The rules of a recruit_troops task. |
 | `ReinforceGarrisonPolicy` | public static class | The rules of a reinforce_garrison task. |
 | `RelationGate` | public static class | Single source of truth for how a LLM-proposed relation change is allowed to move the player↔NPC relationship. |
 | `ReleaseBargainMode` | public enum | How a freedom bargain is honoured, decided by who holds the prisoner. |
@@ -1339,6 +1342,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TranscriptLine` | public class | One attributed line of conversation history, as it was recorded. |
 | `TransientPartyEntry` | public class | One tracked transient party. |
 | `TransientPartyLedger` | public class | Which transient party is whose. |
+| `TroopFacts` | public class | One kind of soldier in the player's party, as a recruit task reads it. |
 | `TruncationFallbackPolicy` | public static class | Decides whether a PROSE turn should be redone on the configured fallback model. |
 | `TrystPolicy` | public static class | Pure rule for a taken lover being met when the player is away: the modest weekly chance a tryst happens. |
 | `TurnPaymentPolicy` | public static class | Whether a give_gold or take_gold is the same payment as a deal written in the same turn. |

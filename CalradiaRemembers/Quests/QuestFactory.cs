@@ -675,6 +675,18 @@ namespace CalradiaRemembers.Quests
             case QuestType.ReinforceGarrison:
                return BindGarrison(quest, proposal, giver);
 
+            case QuestType.RecruitTroops:
+               // Lordfadooboo (01/10/2026): recruits of the giver's own people, for the party he leads.
+               TaleWorlds.CampaignSystem.Party.MobileParty ranks = giver.PartyBelongedTo;
+               if (ranks == null || ranks.LeaderHero != giver || giver.Culture == null) return false;
+               int? recruits = RecruitTroopsPolicy.TroopsToAsk(proposal.RequiredCount, ranks.Party.PartySizeLimit - ranks.MemberRoster.TotalManCount);
+               if (recruits == null) return false;
+               quest.RequiredItemCount = recruits.Value;
+               quest.RequiredCultureId = giver.Culture.StringId;
+               quest.RequiredCultureName = giver.Culture.Name?.ToString();
+
+               return true;
+
             case QuestType.ScoutTown:
                // fkasad (01/10/2026): an enemy town with a gang leader in it, the man the deed depends on.
                Settlement town = ResolveSettlement(proposal.TargetSettlement);

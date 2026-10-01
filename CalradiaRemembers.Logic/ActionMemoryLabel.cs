@@ -83,6 +83,7 @@ namespace CalradiaRemembers.Logic
             case "give_troops": return "Troops given";
             case "reinforce_garrison": return "Garrison reinforced";
             case "share_intel": return "Told what they know";
+            case "deliver_recruits": return "Recruits delivered";
 
             // Governance.
             case "grant_fief": return "Granted a fief";

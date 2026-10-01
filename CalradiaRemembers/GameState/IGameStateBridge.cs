@@ -167,10 +167,10 @@ namespace CalradiaRemembers.GameState
         ActionOutcome SettleSupplyQuest(NpcProfile giver, Hero giverHero, InformalQuest quest, IReadOnlyList<ItemOffer> offered);
 
         /// <summary>
-        ///   Completes a <see cref="QuestType.ReinforceGarrison" /> task once the men are on the walls (the verb has
-        ///   moved them): stamps the evidence, pays the reward, closes the journal entry, records the memory.
+        ///   Completes a troop hand-over task (a garrison reinforced, recruits delivered) once the verb has moved the men:
+        ///   stamps the evidence, pays the reward, closes the journal entry, records the memory.
         /// </summary>
-        ActionOutcome SettleGarrisonQuest(NpcProfile giver, Hero giverHero, InformalQuest quest, int troopsMoved, string placeName);
+        ActionOutcome SettleTroopHandOver(NpcProfile giver, Hero giverHero, InformalQuest quest, TroopHandOver handOver);
 
         /// <summary>Whether some lord has sent the player to scout this town (an outstanding scout_town task).</summary>
         bool HasScoutTask(TaleWorlds.CampaignSystem.Settlements.Settlement town);

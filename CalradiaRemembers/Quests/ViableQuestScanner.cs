@@ -101,6 +101,12 @@ namespace CalradiaRemembers.Quests
          if (thin != null)
             entries.Add(new QuestMenuEntry {TypeToken = "reinforce_garrison", TargetField = "target_settlement", TargetName = thin.Name?.ToString(), Cue = $"the walls of {thin.Name} are thinly manned: have the player bring soldiers (set required_count)"});
 
+         // 6b. Fresh recruits of his own people for the party he leads (Lordfadooboo, 01/10/2026).
+         MobileParty ranks = giver.PartyBelongedTo;
+         if (ranks != null && ranks.LeaderHero == giver && giver.Culture != null
+             && RecruitTroopsPolicy.TroopsToAsk(ReinforceGarrisonPolicy.MinTroops, ranks.Party.PartySizeLimit - ranks.MemberRoster.TotalManCount) != null)
+            entries.Add(new QuestMenuEntry {TypeToken = "recruit_troops", TargetField = null, TargetName = null, Cue = $"your ranks have room: have the player bring fresh recruits of {giver.Culture.Name} (set required_count)"});
+
          // 6a. What one of his towns lacks, read off its own market (fkasad, 01/10/2026). Before the personal supply
          // so the menu's cap keeps it.
          (Settlement Place, MarketReading Good)? need = Mapping.TownNeeds.MostLackingFor(giver);
