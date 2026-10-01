@@ -91,6 +91,9 @@ namespace CalradiaRemembers.Quests
          // 5b. Someone whose favour serves the giver, to be won over (Lordfadooboo, 01/10/2026).
          AddEarnRegardEntry(entries, giver);
 
+         // 5c. A case to plead before his liege (Lordfadooboo, fkasad, 01/10/2026).
+         AddPleadCaseEntry(entries, giver);
+
          // 6. A lord always needs supplies: horses for the cavalry, livestock or grain for the host. Always
          // groundable (the player can bring goods), so this personal task is always on the menu.
          entries.Add(new QuestMenuEntry {TypeToken = "provide_goods", TargetField = null, TargetName = null, Cue = "have the player bring you a supply of horses, livestock, or grain (set category + required_count)"});
@@ -196,6 +199,15 @@ namespace CalradiaRemembers.Quests
 
             return;
          }
+      }
+
+      /// <summary>The giver's liege, when the giver is a vassal: the court a lord most needs his case pleaded at.</summary>
+      private static void AddPleadCaseEntry(List<QuestMenuEntry> entries, Hero giver)
+      {
+         Hero ruler = (giver?.MapFaction as Kingdom)?.Leader;
+         if (ruler == null || !PleadCasePolicy.MayBePleadedTo(QuestFactory.RegardTargetFacts(ruler, giver), GameState.CourtActionResolver.HoldsCourt(ruler))) return;
+
+         entries.Add(new QuestMenuEntry {TypeToken = "plead_case", TargetField = "target_hero", TargetName = ruler.Name?.ToString(), Cue = $"the player should plead your case before {ruler.Name}, your liege, and win them over to you"});
       }
 
       private static void AddLetterEntry(List<QuestMenuEntry> entries, Hero giver)

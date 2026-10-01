@@ -349,7 +349,6 @@ namespace CalradiaRemembers.GameState
             case "lend_troops":
             case "give_troops":
             case "spend_influence":
-            case "sway_opinion":
             case "release_prisoner":
             // buy_prisoner / sell_prisoner (prisoner trade, 08/07/2026): the NPC buys a captive the player
             // holds, or sells one his clan holds, for gold clamped around the game's ransom valuation.
@@ -376,6 +375,8 @@ namespace CalradiaRemembers.GameState
             case "assault_npc":
             case "kill_npc":
                return VerbRegistry.Instance.Execute(action, new VerbContext(npcHero, context?.Profile, this, null, context));
+            case "sway_opinion":
+               return ExecuteSwayOpinion(action, npcHero, context);
             case "pledge_against":
                return ExecutePledgeAgainst(action, npcHero, context);
             case "accept_divorce":
@@ -3122,6 +3123,29 @@ namespace CalradiaRemembers.GameState
       ///   council schemes kind), the SAME code path <c>CalradiaRemembers.Chat.CouncilLift.SettlePledgeAgainst</c>
       ///   now calls too, so a pledge behaves identically whichever table struck it.
       /// </summary>
+      /// <summary>
+      ///   sway_opinion through its verb, as before; a sway that lands may answer a plead_case task (the person the
+      ///   player spoke to, won over toward the lord who sent him; Lordfadooboo, fkasad, 01/10/2026).
+      /// </summary>
+      private ActionOutcome ExecuteSwayOpinion(GameAction action, Hero npcHero, ActionContext context)
+      {
+         ActionOutcome outcome = VerbRegistry.Instance.Execute(action, new VerbContext(npcHero, context?.Profile, this, null, context));
+         if (outcome is not {IsPositive: true}) return outcome;
+
+         try
+         {
+            string name = null, stance = null;
+            action.Parameters?.TryGetValue("target", out name);
+            action.Parameters?.TryGetValue("stance", out stance);
+            Hero about = CourtActionResolver.ResolveSwayTarget(name, npcHero);
+
+            QuestDeedTracker.CreditPlea(new SwayFacts {PersuadedId = npcHero?.StringId, AboutId = about?.StringId, Warmer = SwayStanceParser.Parse(stance) == SwayStance.For});
+         }
+         catch (Exception ex) { ModLog.Error($"[QUEST] plead_case credit failed: {ex.GetType().Name}: {ex.Message}"); }
+
+         return outcome;
+      }
+
       private static ActionOutcome ExecutePledgeAgainst(GameAction action, Hero npcHero, ActionContext context)
       {
          try

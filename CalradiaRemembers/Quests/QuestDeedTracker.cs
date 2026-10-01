@@ -666,6 +666,26 @@ namespace CalradiaRemembers.Quests
          return stamped;
       }
 
+      /// <summary>
+      ///   A sway just landed: every outstanding plead_case task it answers (that person, won over toward the giver)
+      ///   is done (Lordfadooboo, fkasad, 01/10/2026). Returns how many. Internal for the bridge and cr.testall.
+      /// </summary>
+      internal static int CreditPlea(SwayFacts sway)
+      {
+         if (sway == null) return 0;
+
+         int day = CurrentDay(), stamped = 0;
+         ForEachOutstandingQuest((profile, quest) =>
+         {
+            if (quest.Type != QuestType.PleadCase || !PleadCasePolicy.AnswersThePlea(sway, quest.TargetHeroId, profile.Id)) return;
+
+            Stamp(profile, quest, $"Pleaded {profile.Name}'s case before {quest.TargetHeroName}, who was won over, on day {day}", day);
+            stamped++;
+         });
+
+         return stamped;
+      }
+
       private void OnWarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail detail)
       {
          IFaction player = Hero.MainHero?.MapFaction;

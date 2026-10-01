@@ -256,7 +256,13 @@ namespace CalradiaRemembers.GameState
       ///   there is no engine fact that tells us the NPC was truly convinced rather than merely asked.
       /// </summary>
       public static bool CanTeachSway(Hero npc, NpcProfile profile)
-         => npc is {IsAlive: true} && !npc.IsPrisoner && npc != Hero.MainHero && (npc.IsLord || npc.IsNotable) && profile != null;
+         => npc is {IsAlive: true} && !npc.IsPrisoner && npc != Hero.MainHero && HoldsCourt(npc) && profile != null;
+
+      /// <summary>
+      ///   A lord or a notable: someone a case can be made to. The one reading for sway_opinion and for a plead_case
+      ///   task's target (the engine-facts map found it written twice, 01/10/2026).
+      /// </summary>
+      public static bool HoldsCourt(Hero h) => h != null && (h.IsLord || h.IsNotable);
 
       /// <summary>
       ///   Resolves the named third party by a tolerant, case-insensitive name match against every

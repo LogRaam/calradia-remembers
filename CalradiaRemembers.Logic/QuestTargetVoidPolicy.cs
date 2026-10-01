@@ -51,7 +51,7 @@ namespace CalradiaRemembers.Logic
     {
         /// <summary>
         ///   True for the quest kinds bound to ONE specific target hero whose loss makes the task impossible
-        ///   through no fault of the player: capture, attack, execute, rescue, deliver-to-a-named-hero, and win-over (EarnRegard).
+        ///   through no fault of the player: capture, attack, execute, rescue, deliver-to-a-named-hero, win-over (EarnRegard), and plead-before (PleadCase).
         ///   Faction- or settlement-bound kinds (BanditClear, AttackFaction, RaidVillage, Siege, ...) are NOT
         ///   here: their premise is handled separately (QuestService.PremiseGone). NemesisBounty is deliberately
         ///   excluded too: it has its own dedicated resolver (NemesisResolutionBehavior /
@@ -68,6 +68,7 @@ namespace CalradiaRemembers.Logic
                 case QuestType.DeliverLetter:
                 case QuestType.DeliverPrisoner:
                 case QuestType.EarnRegard:
+                case QuestType.PleadCase:
                     return true;
                 default:
                     return false;

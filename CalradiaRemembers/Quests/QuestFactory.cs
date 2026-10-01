@@ -617,6 +617,14 @@ namespace CalradiaRemembers.Quests
             case QuestType.EarnRegard:
                return BindRegardToWin(quest, proposal, giver);
 
+            case QuestType.PleadCase:
+               // Lordfadooboo / fkasad (01/10/2026): before a living adult who holds a court, since only a lord or a
+               // notable is ever taught to be swayed, and the sway toward the giver is the deed.
+               if (!BindHero(quest, proposal.TargetHero, giver)) return false;
+               Hero pleadBefore = Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+
+               return PleadCasePolicy.MayBePleadedTo(RegardTargetFacts(pleadBefore, giver), CourtActionResolver.HoldsCourt(pleadBefore));
+
             case QuestType.ScoutArmy:
                // Prefer a named army leader; fall back to any army of the named faction;
                // fall back to the giver's first enemy kingdom when neither is specified.
