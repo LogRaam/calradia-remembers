@@ -94,6 +94,21 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.private
+      ///   Clears every witness from the open conversation, as an accepted private audience does. The console fallback
+      ///   Lufaine asked for (Nexus, 30/09/2026) when a character agreed to speak privately and the room stayed full.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("private", "cr")]
+      public static string ForcePrivate(List<string> args)
+      {
+         if (ChatManager.ActiveViewModel == null) return "No chat window is open. Open a conversation first.";
+
+         int left = ChatManager.ActiveViewModel.ForcePrivateAudience();
+
+         return left == 0 ? "There were no witnesses in this conversation." : $"{left} witness(es) left the room; you are alone with them.";
+      }
+
+      /// <summary>
       ///   cr.witness [witnessName]
       ///   Adds a named witness to the currently open chat session. Primary test path
       ///   for the multi-NPC feature — validates prompt injection, header UI, and the

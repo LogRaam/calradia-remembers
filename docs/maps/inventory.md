@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 445 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 854 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 855 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -780,7 +780,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (552)
+### CalradiaRemembers.Logic (553)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1232,6 +1232,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScenarioSelector` | public static class | Selects the single scenario rule to fire for an event, or null when none apply. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 | `SceneContentKind` | public enum | The kind of scene that is opening. |
+| `SceneDecisionMerge` | public static class | Merges the scene model's decisions about the scene into the interpreter's actions. |
 | `SceneFocusSelector` | public static class | The pure avoid-repeat rule behind a captive scene's driving "focus": pick a random index into a pool of flavour strings, but never the same index the previous round already used, so a captor never opens two rounds in a r... |
 | `ScheduledLetterAction` | public enum | What the daily host pass should do with one ScheduledLetter this tick. |
 | `ScheduledLetterPolicy` | public static class | Pure decision for the child-support (and any future) scheduled letter: a bounded daily retry that turns a persisted intention into a written letter without ever losing it to a transient LLM failure, duplicating it while... |

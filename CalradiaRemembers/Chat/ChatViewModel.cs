@@ -1733,6 +1733,21 @@ namespace CalradiaRemembers.Chat
          => string.IsNullOrWhiteSpace(detail) ? "" : $": {detail}";
 
       /// <summary>Adds a single witness to the session. Used by the console command for testing.</summary>
+      /// <summary>
+      ///   Clears every witness from the open conversation, as an accepted private audience does (cr.private, the
+      ///   console fallback Lufaine asked for on 30/09/2026). Returns how many left.
+      /// </summary>
+      public int ForcePrivateAudience()
+      {
+         int count = _witnesses.Count;
+         _witnesses.Clear();
+         _currentSpeakerHeroId = null;
+         RefreshWitnessUi();
+         ModLog.Info($"[WITNESSES] cleared by console: {count} witness(es) left the room.");
+
+         return count;
+      }
+
       public void AddWitness(WitnessEntry entry)
       {
          // Never list the same witness twice: a companion who is already present (an auto-resolved witness, or

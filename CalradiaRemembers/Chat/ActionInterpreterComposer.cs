@@ -171,7 +171,9 @@ namespace CalradiaRemembers.Chat
          NewEventData = interpreted?.NewEventData,
          Reputation = prose.Reputation,
          StanceShift = prose.StanceShift,
-         Actions = interpreted?.Actions ?? new List<GameAction>(),
+         // The character's own decision about the scene (a private audience granted or refused) survives when the
+         // interpreter recorded none (Lufaine, 30/09/2026: the room never cleared); deeds stay the interpreter's.
+         Actions = Logic.SceneDecisionMerge.Merge(interpreted?.Actions, prose.Actions),
          Discovery = prose.Discovery,
          QuestGiven = prose.QuestGiven,
          QuestBlockMalformed = prose.QuestBlockMalformed,

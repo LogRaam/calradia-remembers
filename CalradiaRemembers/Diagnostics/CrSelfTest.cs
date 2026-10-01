@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("privacy_survives_interpreter", Severity.Light, "Lufaine and Maifailun (Nexus, 30/09/2026): a character agreed to speak privately and the room stayed full. In the two-call chat the interpreter's actions replaced the scene model's, which is the one taught request_privacy. Drives the real splice (ActionInterpreterComposer.WithInterpretedTags): the character's acceptance survives an interpreter that recorded none, and a gift the scene model tagged does not. No LLM.", TestPrivacySurvivesInterpreter),
          new SelfTest("no_tasks_from_enemies", Severity.Light, "fkasad (Nexus, 29/09/2026): an enemy lord buying back a prisoner slid into demanding a deed, then into invalid-quest messages. Builds the REAL context for a lord at war with the player: it says so, and the prompt built from it teaches no task to offer and no prisoner bargain. Skips when the player is at war with no one. No LLM, nothing stored.", TestNoTasksFromEnemies),
          new SelfTest("quests_suppressed_in_nsfw", Severity.Light, "Mechanical: build the REAL EncounterContext in NSFW mode -> SuppressQuests is true (an intimate scene never mints a quest from a vow, player report); in Roleplay it stays false (quests remain). Restores the active mode. No LLM.", TestQuestsSuppressedInNsfw),
          new SelfTest("witness_recalls_own_memory", Severity.Light, "Mechanical: seed a memory on a hero -> the witness recall a group scene would give them (the real BuildWitnessMemory path + cap) includes it, so a companion no longer answers a group scene as if a prior one-on-one agreement never happened. Removes the seed afterwards.", TestWitnessRecallsOwnMemory),
@@ -8624,6 +8625,22 @@ namespace CalradiaRemembers.Diagnostics
       // Player report 2026-08-23: in an intimate (NSFW) scene the model turned a vow into a quest. The mod
       // suppresses quests for an NSFW turn; this drives the REAL EncounterContextBuilder in each mode and pins
       // that NSFW sets SuppressQuests while Roleplay does not (Roleplay is where quests still belong).
+      private static string TestPrivacySurvivesInterpreter(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("privacy_survives_interpreter");
+
+         ParsedResponse prose = new NpcMemoryService.Core.Parsing.SectionResponseParser().Parse(
+            string.Join(Environment.NewLine, "[DIALOGUE]Leave us.[/DIALOGUE]", "[ACTION]", "type: request_privacy", "result: accepted", "[/ACTION]",
+                        "[ACTION]", "type: give_gold", "amount: 10", "[/ACTION]"));
+         ParsedResponse spliced = Chat.ActionInterpreterComposer.WithInterpretedTags(prose, new ParsedResponse {Dialogue = ""});
+
+         t.Note($"scene model: {string.Join(", ", prose.Actions.Select(a => a.Type))}; applied: {string.Join(", ", spliced.Actions.Select(a => a.Type))}");
+         t.Expect("theAcceptanceSurvives", spliced.Actions.Any(a => a.Type == "request_privacy"), true);
+         t.Expect("aDeedStaysTheInterpreters", spliced.Actions.Any(a => a.Type == "give_gold"), false);
+
+         return t.Line();
+      }
+
       private static string TestNoTasksFromEnemies(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("no_tasks_from_enemies");
