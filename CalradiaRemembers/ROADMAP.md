@@ -41,10 +41,14 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 - **earn_regard** (MOD `61a3c27` / SDK `49f57af`): a lord asks the player to win the good graces of another
   (+10 on the mod ledger from the baseline, nothing to win past Devoted, at least 30 days).
 
+- **plead_case** (MOD `eb02994` / SDK `4096758`): plead the giver's case before his liege; done when that person
+  is won over TOWARD the giver by a real sway_opinion (which needs the giver named, `da49fb0`).
+- **A town's needs** (MOD `b451a9f`): a trade good at twice its worth in one of the giver's towns may be asked for
+  (`TownNeedsPolicy`, key `market:<category>`), and the goods go into that town's market.
+- **reinforce_garrison** (MOD `580a978` / SDK `50b758b`): men for a thin garrison, handed over in that place by a
+  verb taught only there; garrison bands moved to `GarrisonStrength` (one home with the seat pack).
+
 **Still WISHED from the same thread, NOT built** (each needs its own design pass):
-- fkasad's city-needs supply ("bring me iron ore, horses, beer, hardwood": read the town's daily needs, the basket
-  tooltip of the management screen) and a garrison-reinforcement task.
-- Plead a case: argue on the giver's behalf to his family or faction leader, or to a lord of another realm.
 - A neutral envoy hired by a lord to negotiate the release of one of his men from a realm the player is not at war
   with ("bring my lad back alive, keep the change"); peace negotiated as a neutral third party.
 - Scout a city by ENTERING it and meeting its gang leader (intel, lowered security); the classic prison break of a
