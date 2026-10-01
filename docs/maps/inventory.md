@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 446 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 860 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 447 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 861 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -462,7 +462,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (19)
+### CalradiaRemembers.Mapping (20)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -475,6 +475,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FirstImpressionResolver` | public static class | Builds the ready-to-inject "first impression" line for a barely-known noble, or null. |
 | `HeroPresence` | public static class | Whether a hero is in the world at all: alive, and not taken out of it by the game. |
 | `HeroProfileMapper` | public static class | (no summary) |
+| `HeroSeats` | public static class | The places a character answers for, closest first. |
 | `IntimacyBargainEligibility` | public static class | Resolves the adult-gated, archetype-filtered eligibility for the intimacy-as-currency dynamic. |
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
@@ -781,7 +782,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (558)
+### CalradiaRemembers.Logic (559)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1209,6 +1210,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RecruitIntentDetector` | public static class | Detects a "where can I find / hire a companion?" intent in a free-text player message. |
 | `RelationGate` | public static class | Single source of truth for how a LLM-proposed relation change is allowed to move the player↔NPC relationship. |
 | `ReleaseBargainMode` | public enum | How a freedom bargain is honoured, decided by who holds the prisoner. |
+| `ReliefSeat` | public class | A place a character answers for, as a destination for the grain he asked for. |
 | `ReplyCourierBlock` | public enum | Why no reply courier may ride to the player right now (None = the road is open). |
 | `ReplyCourierGatePolicy` | public static class | Single source of truth for the reply-courier road gate. |
 | `RetainerLeavePolicy` | public static class | Pure end-condition gate for an ACTIVE retainer arrangement (a foreign lord riding in the player's party). |

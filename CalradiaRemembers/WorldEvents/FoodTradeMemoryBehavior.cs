@@ -3,6 +3,7 @@
 // are TownFoodPolicy's (pure, tested); this reads one market visit off the game (PlayerInventoryExchangeEvent: what the
 // player bought and sold, in the town he stands in) and records what the town keeps as a world event placed there, so
 // its notables and people hear it. The once-a-week dedup asks the persisted store, as the hardship news does.
+// Increment 2: DeliverRelief puts the grain a character asked for into the hungry place he answers for.
 
 #region
 
@@ -85,6 +86,34 @@ namespace CalradiaRemembers.WorldEvents
                : $"{player} bought up {loads}{Marker}in {town?.Name} while its people went hungry.",
             FactionIds = kingdom != null ? new List<string> {kingdom} : new List<string>()
          };
+      }
+
+      /// <summary>
+      ///   Grain a character asked for, delivered while a place he answers for goes hungry: it goes into that place's
+      ///   stores (up to the granary's ceiling) and the place remembers who brought it. Returns the place fed, or
+      ///   null when nothing he answers for is hungry and the grain is simply his.
+      /// </summary>
+      internal static Settlement DeliverRelief(Hero giver, int units)
+      {
+         Settlement place = ReliefDestinationOf(giver);
+         if (place?.Town == null || units <= 0) return null;
+
+         Town town = place.Town;
+         town.FoodStocks = TownFoodPolicy.StocksAfterRelief(town.FoodStocks, units, town.FoodStocksUpperLimit());
+         WorldEventStore.Instance?.Record(EventFor(place, FoodTradeVerdict.Relief, units, (int) CampaignTime.Now.ToDays));
+         ModLog.Info($"[FOOD] {units} grain asked for by {giver?.Name} went into the stores of {place.Name} (now {town.FoodStocks:0}).");
+
+         return place;
+      }
+
+      /// <summary>The hungry place among those the character answers for, closest first, as his prompt orders them.</summary>
+      internal static Settlement ReliefDestinationOf(Hero giver)
+      {
+         List<Settlement> seats = Mapping.HeroSeats.ClosestFirst(giver).Select(seat => seat.Place).Where(s => s.Town != null).ToList();
+
+         string id = TownFoodPolicy.ReliefDestination(seats.Select(s => new ReliefSeat {SettlementId = s.StringId, Food = FactsOf(s)}));
+
+         return id == null ? null : seats.FirstOrDefault(s => s.StringId == id);
       }
 
       private static WorldEvent LastMemoryIn(Settlement town)

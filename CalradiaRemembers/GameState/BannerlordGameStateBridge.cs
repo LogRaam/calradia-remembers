@@ -889,12 +889,18 @@ namespace CalradiaRemembers.GameState
             }
 
             var day = (int) CampaignTime.Now.ToDays;
+
+            // Grain asked for while a place he answers for goes hungry feeds that place, not his cellar (fkasad,
+            // 01/10/2026), and the place remembers who brought it.
+            Settlement fed = categoryKey == ProvideGoodsPolicy.Grain ? WorldEvents.FoodTradeMemoryBehavior.DeliverRelief(giverHero, quest.RequiredItemCount) : null;
+            string forWhom = fed != null ? $" for the hungry of {fed.Name}" : "";
+
             quest.SatisfiedOnDay = day;
-            quest.Evidence = $"Delivered {quest.RequiredItemCount} {label} on day {day}.";
+            quest.Evidence = $"Delivered {quest.RequiredItemCount} {label}{forWhom} on day {day}.";
             quest.Status = QuestStatus.Completed;
 
             ActionOutcome reward = GrantQuestReward(giverHero, giver, quest.RewardGold, quest.RewardRelation);
-            giver.Events.Add(new NotableEvent(day, NotableEventType.Collaboration, $"The player brought the {quest.RequiredItemCount} {label} I needed."));
+            giver.Events.Add(new NotableEvent(day, NotableEventType.Collaboration, $"The player brought the {quest.RequiredItemCount} {label} I needed{forWhom}."));
             QuestJournalBridge.CloseAsCompleted(quest, giverHero);
             StanceService.OnPromiseKept(giver);
             NpcMemoryCampaignBehavior.Instance?.Store?.Set(giver);

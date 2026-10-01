@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-388 rules read 296 facts.
+391 rules read 297 facts.
 
 ## Facts read by more than one rule
 
@@ -68,6 +68,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.LordsApproaching` (6) | `FiefAudiencePolicy.ChooseFiefValid`, `FiefAudiencePolicy.IsOnCooldown`, `InterceptionFacts`, `InterceptionPacingRules.CooldownDays`, `InterceptionPacingRules.DailyChancePercent`, `InterceptionPacingRules.IsOff` |
 | `PartyBelongedTo.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `EscortCostPolicy.EscortPremium`, `JealousyHearingPolicy.WithinEarshot` |
 | `Romantic.IsOpenArrangement` (6) | `LoverEligibilityFacts`, `OpenRelationshipPolicy.SuppressesJealousy`, `PartnerStanding`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot` |
+| `Town.FoodStocks` (6) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination`, `TownFoodPolicy.StocksAfterRelief` |
 | `CurrentSettlement.GetPosition2D` (5) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `JealousyHearingPolicy.WithinEarshot` |
 | `DayMoodReader.Draw` (5) | `CorrespondencePreferenceParser.Parse`, `LetterRegardPolicy.ParseTone`, `LetterRegardPolicy.StripToneLine`, `LetterReplyDecisionParser.Parse`, `PerceivedImageFacts` |
 | `IFaction.IsAtWarWith` (5) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `MarriageStateFacts`, `OutlawPolicy.IsBrigandage` |
@@ -75,6 +76,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Romantic.Status` (5) | `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Settlement.CurrentSettlement` (5) | `CouncilSceneImagePolicy.Resolve`, `DuelStagingSupport.CanStage`, `DuelVenuePolicy.Choose`, `FoodTradeFacts`, `TownFoodPolicy.IsHungry` |
 | `Settlement.GetPosition2D` (5) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
+| `Settlement.IsStarving` (5) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination` |
+| `Town.FoodChange` (5) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination` |
 | `Character.HeroObject` (4) | `CompanionCounselPolicy.Select`, `CouncilRosterPolicy.IsOldEnoughToSit`, `PartyCounselFacts`, `PrisonerCustodyPolicy.HeldByPlayer` |
 | `Clan.Influence` (4) | `ClaimantBackerFacts`, `CourtActionPolicy.CanAffordInfluenceGrant`, `CourtActionPolicy.ClanNeedsInfluence`, `KingdomPowerFacts` |
 | `Hero.CompanionOf` (4) | `FactionGuidelinesPolicy.NarrowToOwnCulture`, `PrisonerExchangePolicy.IsExchangeable`, `StationGuidelinesPolicy.ResolveStationKey`, `StationGuidelinesPolicy.SelectStationText` |
@@ -116,13 +119,10 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Party.PartySizeLimit` (3) | `CourtActionPolicy.IsPartyWeakened`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `RansomValueCalculationModel.PrisonerRansomValue` (3) | `PrisonerTradePolicy.ClampPrice`, `PrisonerTradePolicy.MinAcceptablePayment`, `PrisonerTradePolicy.MostABuyerCanPay` |
 | `Settlement.Find` (3) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `RumorAwareness.Explain` |
-| `Settlement.IsStarving` (3) | `FoodTradeFacts`, `TownFoodFacts`, `TownFoodPolicy.IsHungry` |
 | `Settlement.MapFaction` (3) | `InterceptionFacts`, `InterceptionPolicy.Choose`, `SettlementSafetyFacts` |
 | `StatureReader.OfClan` (3) | `BastardPrestigePolicy.PrestigeScore`, `BastardPrestigePolicy.Resolve`, `LordRecruitmentFacts` |
 | `Status.IsCuriousOrDeeper` (3) | `CorrespondenceRankFacts`, `CorrespondenceRankPolicy.DealsInPerson`, `RegardProposal` |
 | `StringId.GetHashCode` (3) | `RomanticProfilePolicy.DetermineKinks`, `RomanticProfilePolicy.DetermineOrientation`, `RomanticProfilePolicy.DeterminePreferences` |
-| `Town.FoodChange` (3) | `FoodTradeFacts`, `TownFoodFacts`, `TownFoodPolicy.IsHungry` |
-| `Town.FoodStocks` (3) | `FoodTradeFacts`, `TownFoodFacts`, `TownFoodPolicy.IsHungry` |
 | `Value.Distance` (3) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `JealousyHearingPolicy.WithinEarshot` |
 | `Vec2.Zero` (3) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium`, `NewsDestinationSelector.Choose` |
 | `Vec2.x` (3) | `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
@@ -190,6 +190,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Settlement.IsVillage` (2) | `CommonerChatContext`, `SettlementSafetyFacts` |
 | `Settlement.Name` (2) | `QuestMenuEntry`, `ThirdPartyDescriptor.WhereaboutsClause` |
 | `Settlement.OwnerClan` (2) | `FiefRewardFacts`, `PrisonerRecruitmentPolicy.Evaluate` |
+| `Settlement.Town` (2) | `HardshipPolicy.ShouldRecord`, `TownFoodPolicy.StocksAfterRelief` |
 | `Status.IsCourtingOrDeeper` (2) | `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible` |
 | `Store.MostRecentMatching` (2) | `HardshipPolicy.ShouldRecord`, `WarLoomingPolicy.ShouldRecord` |
 | `Summary.IndexOf` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
@@ -498,6 +499,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `RejoinPartyFacts`: `Hero.IsAlive`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.LeaderHero`
 - `ReleaseFacts`: `Clan.IsBanditFaction`, `Hero.Clan`, `Hero.IsLord`
 - `ReleaseLineFacts`: `Hero.IsFemale`
+- `ReliefSeat`: `Settlement.IsStarving`, `Town.FoodChange`, `Town.FoodStocks`
 - `RescueEligibilityPolicy.CanBeARescue`: `EndCaptivityDetail.ReleasedAfterBattle`, `EndCaptivityDetail.ReleasedByChoice`
 - `RescueGratitudePolicy.CanFeelTheDebt`: `Hero.IsChild`
 - `ResistanceRollFacts`: `Hero.GetTraitLevel`
@@ -566,6 +568,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `TournamentTraitFacts`: `Hero.GetTraitLevel`
 - `TownFoodFacts`: `Settlement.IsStarving`, `Town.FoodChange`, `Town.FoodStocks`
 - `TownFoodPolicy.IsHungry`: `Settlement.CurrentSettlement`, `Settlement.IsStarving`, `Town.FoodChange`, `Town.FoodStocks`
+- `TownFoodPolicy.ReliefDestination`: `Settlement.IsStarving`, `Town.FoodChange`, `Town.FoodStocks`
+- `TownFoodPolicy.StocksAfterRelief`: `Settlement.Town`, `Town.FoodStocks`, `Town.FoodStocksUpperLimit`
 - `TraitFacts`: `Hero.GetTraitLevel`
 - `TranscriptFold`: `ModSettings.LeanPrompt`
 - `TrialVerdictPolicy.DefaultConviction`: `Case.LiegeId`, `Hero.Clan`, `Kingdom.Clans`

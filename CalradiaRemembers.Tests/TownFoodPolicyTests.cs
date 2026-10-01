@@ -15,6 +15,9 @@ using NUnit.Framework;
 
 namespace CalradiaRemembers.Tests
 {
+    // Increment 2: grain a governor, lord or notable asked for while his town goes hungry feeds the town, not his
+    // own cellar. If this is wrong, the player answers a famine plea and the town starves on regardless, or a
+    // lord's grain for his own host vanishes into a granary that was never short.
     [TestFixture]
     public sealed class TownFoodPolicyTests
     {
@@ -60,6 +63,40 @@ namespace CalradiaRemembers.Tests
         {
             TownFoodPolicy.Judge(new FoodTradeFacts {TownHungry = true, FoodSold = 100, FoodBought = 20}).Should().Be(FoodTradeVerdict.Relief);
             TownFoodPolicy.Judge(new FoodTradeFacts {TownHungry = true, FoodSold = 20, FoodBought = 100}).Should().Be(FoodTradeVerdict.Hoarding);
+        }
+
+        // ── Where the grain asked for goes ───────────────────────────────────────────────────────
+
+        // The governor who asked for grain while his town starves asked for the town. Closest seat first: what he
+        // governs day to day before a fief he merely holds, the same order his prompt describes them in.
+        [Test]
+        public void GIVEN_a_character_whose_town_is_hungry_WHEN_the_grain_he_asked_for_arrives_THEN_it_goes_to_the_closest_hungry_place()
+        {
+            var seats = new[] {
+                new ReliefSeat {SettlementId = "fed_governed", Food = new TownFoodFacts {FoodStocks = 400, FoodChange = 2}},
+                new ReliefSeat {SettlementId = "hungry_held", Food = new TownFoodFacts {IsStarving = true}},
+                new ReliefSeat {SettlementId = "hungry_too", Food = new TownFoodFacts {FoodStocks = 20, FoodChange = -1}}
+            };
+
+            TownFoodPolicy.ReliefDestination(seats).Should().Be("hungry_held");
+        }
+
+        // Nothing is hungry: the grain is his, as a supply task always was (horses for the cavalry, grain for the host).
+        [Test]
+        public void GIVEN_no_hungry_place_WHEN_the_grain_arrives_THEN_it_stays_with_the_character_who_asked()
+        {
+            TownFoodPolicy.ReliefDestination(new[] {new ReliefSeat {SettlementId = "fed", Food = new TownFoodFacts {FoodStocks = 400}}}).Should().BeNull();
+            TownFoodPolicy.ReliefDestination(null).Should().BeNull();
+        }
+
+        // The granary has the game's own ceiling: grain past it is not conjured into stores the town cannot hold,
+        // and a delivery never lowers a granary already over it.
+        [Test]
+        public void GIVEN_a_delivery_WHEN_it_fills_the_stores_THEN_they_rise_by_the_load_up_to_the_ceiling()
+        {
+            TownFoodPolicy.StocksAfterRelief(stocks: 30, units: 50, ceiling: 500).Should().Be(80);
+            TownFoodPolicy.StocksAfterRelief(stocks: 480, units: 50, ceiling: 500).Should().Be(500);
+            TownFoodPolicy.StocksAfterRelief(stocks: 520, units: 50, ceiling: 500).Should().Be(520);
         }
 
         // One memory a week per town: a relief delivered in ten trips is one relief, not ten.

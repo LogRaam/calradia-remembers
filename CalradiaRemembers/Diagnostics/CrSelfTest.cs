@@ -273,6 +273,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
          new SelfTest("town_food_memory", Severity.Light, "fkasad and Lordfadooboo (Nexus, 01/10/2026): a hungry town remembers who fed it and who emptied its market. Reads every town's granary as the market listener does, and words the memory a real town would keep for a relief and for hoarding: placed in that town, naming it, a deed for the relief and a disgrace for the hoarding. Records nothing.", TestTownFoodMemory),
+         new SelfTest("grain_relief_destination", Severity.Light, "fkasad (Nexus, 01/10/2026): grain a lord asked for while his town goes hungry feeds the town. Empties a real town's granary for a moment, expects its holder's grain to be routed there, then puts the stores back exactly. Records nothing, moves no grain.", TestGrainReliefDestination),
          new SelfTest("private_memory_injection", Severity.Light, "tashmetu (01/10/2026): another mod injects a memory said in confidence. Injects one through the public CrNpcMemory.AddMemory with Private set on a real met character, checks it is stored private (kept to private talk) and that an unmarked one stays public. Both are removed.", TestPrivateMemoryInjection),
          new SelfTest("escaped_target", Severity.Light, "fkasad (Nexus, 01/10/2026): the lord a capture task named was beaten and escaped, and the player paid the broken-word price. On a real met lord, a temporary capture task whose target was beaten: the giver's acceptance ([QUEST_COMPLETE]) settles it through the real quest path for HALF the reward, and words alone never settle one whose target was not beaten. The task, the purse, the regard and the memory are put back.", TestEscapedTarget),
          new SelfTest("privacy_survives_interpreter", Severity.Light, "Lufaine and Maifailun (Nexus, 30/09/2026): a character agreed to speak privately and the room stayed full. In the two-call chat the interpreter's actions replaced the scene model's, which is the one taught request_privacy. Drives the real splice (ActionInterpreterComposer.WithInterpretedTags): the character's acceptance survives an interpreter that recorded none, and a gift the scene model tagged does not. No LLM.", TestPrivacySurvivesInterpreter),
@@ -8628,6 +8629,34 @@ namespace CalradiaRemembers.Diagnostics
       // Player report 2026-08-23: in an intimate (NSFW) scene the model turned a vow into a quest. The mod
       // suppresses quests for an NSFW turn; this drives the REAL EncounterContextBuilder in each mode and pins
       // that NSFW sets SuppressQuests while Roleplay does not (Roleplay is where quests still belong).
+      private static string TestGrainReliefDestination(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("grain_relief_destination");
+
+         Settlement town = Settlement.All.FirstOrDefault(st => st?.Town != null && st.IsTown && st.OwnerClan?.Leader != null
+                                                               && st.OwnerClan.Leader != Hero.MainHero && st.Town.Governor == null);
+         if (t.Skip(town == null, "no town held by a clan leader without a governor")) return t.Line();
+
+         Hero holder = town.OwnerClan.Leader;
+         float before = town.Town.FoodStocks;
+         try
+         {
+            town.Town.FoodStocks = 0f;
+            bool starving = TownFoodPolicy.IsHungry(WorldEvents.FoodTradeMemoryBehavior.FactsOf(town));
+            if (t.Skip(!starving, $"{town.Name} with empty stores does not read hungry (IsStarving={town.IsStarving}, change={town.Town.FoodChange:0.0})"))
+               return t.Line();
+
+            Settlement destination = WorldEvents.FoodTradeMemoryBehavior.ReliefDestinationOf(holder);
+            t.Note($"{holder.Name} holds {town.Name}; grain would go to {destination?.Name.ToString() ?? "(his own stores)"}");
+            t.Expect("theGrainFeedsAHungryPlaceHeHolds", destination != null && destination.OwnerClan == holder.Clan, true);
+         }
+         finally { town.Town.FoodStocks = before; }
+
+         t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
       private static string TestTownFoodMemory(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("town_food_memory");

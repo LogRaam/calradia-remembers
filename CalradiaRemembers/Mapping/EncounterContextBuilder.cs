@@ -2572,27 +2572,12 @@ namespace CalradiaRemembers.Mapping
 
          try
          {
-            var seats = new List<SeatFacts>();
-
             // Closest first: what he governs day to day before what he merely owns. The pack describes only the
             // first two, so the order here is what decides which places he actually speaks about.
-            Settlement governed = hero.GovernorOf?.Settlement;
-            if (governed != null) seats.Add(ReadSeat(governed, SeatRole.Governor));
-
-            if (hero.IsClanLeader && hero.Clan?.Fiefs != null)
-               foreach (Town fief in hero.Clan.Fiefs)
-               {
-                  Settlement held = fief?.Settlement;
-                  if (held == null || held == governed) continue;
-
-                  seats.Add(ReadSeat(held, SeatRole.Owner));
-
-                  if (seats.Count >= SeatStandingFacts.MaxSeatsDescribed) break;
-               }
-
-            // A notable answers for nowhere but home, and knows it better than anyone above them does.
-            if (seats.Count == 0 && hero.IsNotable && hero.HomeSettlement != null)
-               seats.Add(ReadSeat(hero.HomeSettlement, SeatRole.Notable));
+            List<SeatFacts> seats = HeroSeats.ClosestFirst(hero)
+                                             .Take(SeatStandingFacts.MaxSeatsDescribed)
+                                             .Select(seat => ReadSeat(seat.Place, seat.Role))
+                                             .ToList();
 
             // The pack only describes a place it knows something about, so the host must count them the same
             // way. Otherwise a seat read as all-unknown would be CARRIED and not SUPPLIED, and the sweep would
