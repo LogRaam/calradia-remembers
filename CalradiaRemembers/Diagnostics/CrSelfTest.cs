@@ -286,7 +286,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("mood_of_the_day", Severity.Light, "The mood of the day (ROADMAP, ruled 14/09 and 30/09/2026): reads real characters' days off the game and draws their mood. The same man drawn twice today is the same mood; a captive never draws an ordinary day or high spirits; the player draws none; a lift in conversation moves it one band and a new conversation starts from the day again. Read-only.", TestMoodOfTheDay),
          new SelfTest("action_gate", Severity.Light, "The one gate every character's action asks (Gabriel, 30/09/2026: a baby son asked to discuss warfare, then a dead father sat at a council). On the live population: no child takes an adult's act (lords by occupation included), no child under 13 sits at a council, no captive acts outside marriage, duels, witnessing and a held scene, no one dead or disabled acts at all, the player never acts toward themselves, and a free adult lord may do everything. Read-only.", TestActionGate),
          new SelfTest("letter_place_and_audience_age", Severity.Light, "Two reports (30/09/2026): Lordfadooboo's lone player placed \"on the march with your own retinue\" (the writer's) in a wanderer's letter, and Nexusrrr's baby son asking for an audience about warfare. Checks the phrase that places the player in a letter never borrows the writer's \"your\" and says alone when alone, and that no child is among those who may ask for an audience in any town. Read-only.", TestLetterAndAudienceSeekers),
-         new SelfTest("regard_changed", Severity.Light, "The public regard-change door (29/09/2026, for tashmetu's bridge): raises a real character's regard by 1 and lowers it back through the one place regard changes, and checks a CrNpcMemory.RegardChanged listener hears both with before, after and cause. Regard is restored and the listener removed.", TestRegardChanged),
+         new SelfTest("regard_changed", Severity.Light, "The public regard-change door (29/09/2026, for tashmetu's bridge): raises a real character's regard by 1 and lowers it back through the one place regard changes, and checks a CrNpcMemory.RegardChanged listener hears both with before and after, reported as self_test (a test's change, which a mirroring mod must not keep). Regard is restored and the listener removed.", TestRegardChanged),
          new SelfTest("correspondence_rank", Severity.Light, "Gabriel (28/09/2026): the Empress wrote in her own hand to a landless newcomer, and rode out herself to find him. Reads a real ruler against the player as they stand: far above an unbonded player, her letters come from her chancellery (a title, no invented clerk) and she does not ride out in person; a love letter is always her own. Writes nothing.", TestCorrespondenceRank),
          new SelfTest("balance_survey", Severity.Light, "The balance-of-power survey (Gabriel, 28/09/2026: measure before building a balancing lever). Reads every living realm as the weekly survey does: one row each, fief shares adding up to the whole map, and rows that survive the survey file's round trip. Writes nothing.", TestBalanceSurvey),
          new SelfTest("landfall_wait", Severity.Light, "Windmolen (Nexus, 28/09/2026): accepting an envoy on a naval move opened the chat over the live naval map, which flickered and crashed. At sea a conversation now waits for landfall and an envoy does not arrive. Reads the door's route for where the player stands, holds a real request as the door does at sea and checks it is held once. Opens nothing; the held request is dropped.", TestLandfallWait),
@@ -1268,7 +1268,22 @@ namespace CalradiaRemembers.Diagnostics
       ///   pipeline so a timed-out call is cancelled at the HTTP layer, not just given up on locally, which
       ///   is what keeps a slow call from landing and mutating state after the sweep has moved on.
       /// </summary>
+      /// <summary>
+      ///   True while a self-test runs. Regard moved by a test is reported to other mods as self_test (tashmetu,
+      ///   30/09/2026): tests restore regard without a notice, and a mirroring mod would keep what they left behind.
+      /// </summary>
+      public static bool IsRunning => _running > 0;
+
+      private static int _running;
+
       private static string SafeRun(SelfTest test, NpcMemoryCampaignBehavior behavior, int budgetSeconds)
+      {
+         _running++;
+         try { return SafeRunInner(test, behavior, budgetSeconds); }
+         finally { _running--; }
+      }
+
+      private static string SafeRunInner(SelfTest test, NpcMemoryCampaignBehavior behavior, int budgetSeconds)
       {
          if (!test.CallsLlm)
             try { return test.Run(behavior); }
@@ -9983,7 +9998,8 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{profile.Name}: heard {heard.Count} change(s): {string.Join(", ", heard.Select(c => $"{c.Before}->{c.After} ({c.Cause})"))}");
          t.Expect("bothChangesAreHeard", heard.Count, 2);
          t.Expect("theRiseIsHeardWithItsValues", heard.Count > 0 && heard[0].NpcId == profile.Id && heard[0].Before == before && heard[0].After == before + 1, true);
-         t.Expect("theCauseIsCarried", heard.Count > 0 ? heard[0].Cause : null, NpcMemoryService.Core.Standing.RegardCause.Unspecified);
+         // Inside a self-test every change is reported as self_test, so a mirroring mod never keeps what a test left.
+         t.Expect("aTestsChangeIsReportedAsSelfTest", heard.Count > 0 ? heard[0].Cause : null, NpcMemoryService.Core.Standing.RegardCause.SelfTest);
 
          return t.Line();
       }

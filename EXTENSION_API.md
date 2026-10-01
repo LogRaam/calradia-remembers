@@ -89,10 +89,15 @@ CrNpcMemory.RegardChanged += change =>
 Fired each time a character's **personal regard** for the player actually changes, whatever changed it: a
 conversation, a letter, a quest, a promise kept or broken, a grievance put to rest, jealousy, a rescue, a
 departure from their realm. `Cause` is one of `conversation`, `letter`, `quest`, `commitment`, `compensation`,
-`grudge`, `jealousy`, `divorce`, `rescue`, `stance`, `violence`, `departure`, `clan_standing`, `unspecified`;
+`grudge`, `jealousy`, `divorce`, `rescue`, `stance`, `violence`, `departure`, `clan_standing`, `self_test`, `unspecified`;
 more may be added, so treat an unknown one as a change like any other. `clan_standing` (since 2.6.8) is the
 one-time warm start a character's clan standing gives at a first meeting: it comes FROM the game's relation, so
-a mod mirroring regard into that relation should skip it. Raised on the game thread, after the change, each listener
+a mod mirroring regard into that relation should skip it. `self_test` (since 2.6.9) is every change made while
+`cr.testall` runs: the tests move regard on real characters and put it back without a notice, so skip it too.
+
+**Which deeds write the game's relation as well.** Of CR's own regard changes, only a divorce also writes the
+game's relation for the same event; council outcomes, ransoms and schemes write the game's relation without moving
+regard, so a mirror cannot count them twice. Raised on the game thread, after the change, each listener
 under its own guard.
 
 **Two numbers, two names.** CR keeps its own regard (what one character personally thinks of the player,

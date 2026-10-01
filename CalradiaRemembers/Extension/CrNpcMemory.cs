@@ -111,7 +111,8 @@ namespace CalradiaRemembers
          if (handlers == null || change == null) return;
 
          var arg = new CrRegardChange {
-            NpcId = change.NpcId, Before = change.Before, After = change.After, Cause = change.Cause,
+            NpcId = change.NpcId, Before = change.Before, After = change.After,
+            Cause = NpcMemoryService.Core.Standing.RegardCause.AsReported(change.Cause, Diagnostics.CrSelfTest.IsRunning),
             SaveId = CrConversation.CurrentSaveId(), GameDay = Campaign.Current != null ? (int) CampaignTime.Now.ToDays : 0
          };
 
