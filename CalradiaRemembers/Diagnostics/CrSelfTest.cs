@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("wedding_day_line", Severity.Light, "raphareish (Nexus, 01/10/2026): a character wed days before spoke of her spouse as if married for years. Takes a married lord, sets his wedding day to three days ago for a moment, expects his family line to call them newlyweds, then forgets the day and expects the line as before. Weds nobody.", TestWeddingDayLine),
          new SelfTest("arrange_match_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): the matchmaker; Gabriel: a real marriage, her heart then her family's consent. Finds an unwed lord and a lawful match of another house at peace, issues the task through the real QuestFactory, and asks the real match check WITHOUT applying it: the law must pass, and the answer must be one of wed / not yet won over / family refuses, never a legal refusal. Weds nobody.", TestArrangeMatchQuest),
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
@@ -8660,6 +8661,28 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestWeddingDayLine(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("wedding_day_line");
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.Spouse is {IsAlive: true} && Mapping.WeddingDayBehavior.WeddedOn(h) == null);
+         if (t.Skip(lord == null, "no married lord whose wedding CR has not already seen")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         try
+         {
+            Mapping.WeddingDayBehavior.DebugSet(lord, today - 3);
+            string recent = Mapping.RelationshipsBuilder.Build(lord);
+            t.Note($"{lord.Name} wed {lord.Spouse.Name}: {(recent.Contains("newlyweds") ? "newlyweds" : "no clause")}");
+            t.Expect("aRecentWeddingIsSaid", recent.Contains("wed 3 days ago: you are newlyweds"), true);
+         }
+         finally { Mapping.WeddingDayBehavior.DebugSet(lord, null); }
+
+         t.Expect("anUnknownWeddingSaysNothing", Mapping.RelationshipsBuilder.Build(lord).Contains("newlyweds"), false);
 
          return t.Line();
       }

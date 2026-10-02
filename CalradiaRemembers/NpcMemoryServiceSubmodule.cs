@@ -298,6 +298,8 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new WorldEvents.MercenaryReputationBehavior());
          // A hungry town remembers who fed it, and who emptied its market (fkasad, Lordfadooboo, 01/10/2026).
          campaignStarter.AddBehavior(new WorldEvents.FoodTradeMemoryBehavior());
+         // The day of every wedding, for the family line (raphareish, 01/10/2026).
+         campaignStarter.AddBehavior(new Mapping.WeddingDayBehavior());
          // War-weariness: wounds and captures accrue a toll on each companion (a SEPARATE axis from happiness);
          // rest eases it; a spent veteran asks for an honorable retirement — a landless one leaves, a landed one
          // (governor / party-leader) steps back from the field but stays in the clan. Pure model in Logic.

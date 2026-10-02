@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 455 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 883 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 456 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 884 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -464,7 +464,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (22)
+### CalradiaRemembers.Mapping (23)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -490,6 +490,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StatureReader` | public static class | Reads a Stature from the live game. |
 | `TownNeeds` | public static class | What the towns a character answers for are short of. |
 | `Traits` | public class | (no summary) |
+| `WeddingDayBehavior` | public class | The day each married hero was wed, as CR saw it happen. |
 
 ### CalradiaRemembers.Marriage (13)
 
@@ -790,7 +791,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (581)
+### CalradiaRemembers.Logic (582)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1313,6 +1314,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpouseDivorceDemandFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldDemand needs. |
 | `SpouseDivorceDemandPolicy` | public static class | Pure gate deciding whether the player's own spouse is unhappy enough to raise a divorce demand this evaluation period. |
 | `SpouseDivorceEscalationFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldEscalate needs. |
+| `SpouseTenurePolicy` | public static class | How long a character has been married, as their family line says it. |
 | `StagingGracePolicy` | public static class | How long a staged meeting is given to show signs of life before the mod concludes nothing was staged and opens the chat directly. |
 | `StagingHostFacts` | public class | What the door sees when a conversation is asked for. |
 | `StagingHostPolicy` | public static class | The door's rules. |

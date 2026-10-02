@@ -96,7 +96,9 @@ namespace CalradiaRemembers.Mapping
          // Spouse, with their own parentage so in-laws are known (tester: a wife did not realize
          // her husband was the ruler's eldest son, and invented his family).
          if (hero.Spouse is {IsAlive: true})
-            parts.Add($"Spouse: {hero.Spouse.Name}{DescribeParentage(hero.Spouse)}{CaptiveClause(hero.Spouse)}");
+            // How recent the wedding is, when CR saw it (raphareish, 01/10/2026: a bride of days spoke of years).
+            parts.Add($"Spouse: {hero.Spouse.Name}{DescribeParentage(hero.Spouse)}{CaptiveClause(hero.Spouse)}"
+                      + SpouseTenurePolicy.Clause(WeddingDayBehavior.WeddedOn(hero), (int) CampaignTime.Now.ToDays));
 
          // Parents are listed whether alive or dead, but a deceased one is marked as such —
          // otherwise the NPC reads "Father: X" and speaks of a dead parent as living,
