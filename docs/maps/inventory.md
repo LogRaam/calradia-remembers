@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 456 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 884 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 886 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 15000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 15500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4000+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -791,7 +791,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (582)
+### CalradiaRemembers.Logic (584)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -835,6 +835,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BattleMemoryText` | public static class | Builds the "fought beside you" memory line and the place/engagement phrasing. |
 | `BattleNotability` | public static class | Decides whether a battle is notable enough to record. |
 | `BattleSetting` | public enum | What kind of engagement a battle was, for naming it correctly (a siege is not a field battle). |
+| `BattleWorthFacts` | public class | What a won battle was worth (fkasad, 01/10/2026: "fighting half a dozen looters" is no feat). |
 | `BirthLetterPolicy` | public static class | Pure rules for which letters a birth to the player's child should trigger. |
 | `BodyHurtPolicy` | public static class | How badly hurt somebody is, on the SDK's four bands, from the engine's own numbers. |
 | `Bounty` | public class | A realm's price on the player's head. |
@@ -1293,6 +1294,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SeductionFacts` | public class | Everything needed to judge whether a married NPC can be seduced by the player. |
 | `SeductionVerdict` | public class | The verdict on one NPC: whether they can be seduced, why not when refused, and how hard it was. |
 | `SelfEsteemBaselineFacts` | public class | Who he is, for where he starts. |
+| `SelfEsteemClimb` | public class | How hard pride climbs: the man's baseline and the MCM exponent of the falloff. |
 | `SelfEsteemEvent` | public enum | What befell a character that moves how he regards himself. |
 | `SelfEsteemPolicy` | public static class | Self-esteem's rules. |
 | `SelfEsteemState` | public class | What is kept on the character: the shift, the day it was last set, and his recent captivities. |

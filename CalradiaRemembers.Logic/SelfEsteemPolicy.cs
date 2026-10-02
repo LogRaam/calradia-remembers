@@ -39,7 +39,33 @@ namespace CalradiaRemembers.Logic
         Reassured,
 
         /// <summary>The player beat or robbed him (player violence).</summary>
-        Humiliated
+        Humiliated,
+
+        /// <summary>A win over bandits alone, no lord among them: some credit, little (fkasad, 01/10/2026).</summary>
+        SkirmishWon,
+
+        /// <summary>A win over a stronger force (above even) led by a lord: more than an ordinary victory.</summary>
+        BattleWonAgainstOdds
+    }
+
+    /// <summary>What a won battle was worth (fkasad, 01/10/2026: "fighting half a dozen looters" is no feat).</summary>
+    public sealed class BattleWorthFacts
+    {
+        /// <summary>A lord led a party on the beaten side; otherwise they were bandits or the like.</summary>
+        public bool EnemyHadLord { get; set; }
+
+        /// <summary>The beaten side's strength over the winner's: below 1 the winner had the numbers.</summary>
+        public float StrengthRatio { get; set; }
+    }
+
+    /// <summary>How hard pride climbs: the man's baseline and the MCM exponent of the falloff.</summary>
+    public sealed class SelfEsteemClimb
+    {
+        /// <summary>His baseline, so the falloff reads how he regards himself, not just his shift.</summary>
+        public int Baseline { get; set; }
+
+        /// <summary>The falloff's exponent: 0 keeps every gain whole; higher, each gain shrinks harder near the top.</summary>
+        public int Exponent { get; set; }
     }
 
     /// <summary>Who he is, for where he starts.</summary>
@@ -149,6 +175,8 @@ namespace CalradiaRemembers.Logic
                 SelfEsteemEvent.DuelWonAgainstPlayer => 5,
                 SelfEsteemEvent.Reassured => 2,
                 SelfEsteemEvent.Humiliated => -8,
+                SelfEsteemEvent.SkirmishWon => 1,
+                SelfEsteemEvent.BattleWonAgainstOdds => 8,
                 _ => 0
             };
 
@@ -173,14 +201,59 @@ namespace CalradiaRemembers.Logic
             return shift > 0 ? Math.Max(0, shift - mended) : Math.Min(0, shift + mended);
         }
 
+        /// <summary>
+        ///   Below this share of the winner's strength a fight was no real fight: the letter weights' own line
+        ///   (LetterWeights.StompRatioThreshold), so what a lord brags of in a letter and what lifts his pride agree.
+        /// </summary>
+        public static float TrivialStrengthRatio => (float) LetterWeights.StompRatioThreshold;
+
+        /// <summary>The shipped falloff exponent: half way up, a gain is worth a quarter.</summary>
+        public const int DefaultClimbExponent = 2;
+
+        /// <summary>
+        ///   What a won battle does for the winner (fkasad, 01/10/2026): nothing for a handful of bandits he outnumbered,
+        ///   a little for bandits, an ordinary victory for a lord's party, more against the odds. Null: no event.
+        /// </summary>
+        public static SelfEsteemEvent? ClassifyWin(BattleWorthFacts f)
+        {
+            if (f == null) return SelfEsteemEvent.BattleWon;
+            if (!f.EnemyHadLord) return f.StrengthRatio < TrivialStrengthRatio ? (SelfEsteemEvent?) null : SelfEsteemEvent.SkirmishWon;
+
+            // Against the odds: the beaten side was the stronger, the letter weights' own underdog line (above even).
+            return f.StrengthRatio > 1f ? SelfEsteemEvent.BattleWonAgainstOdds : SelfEsteemEvent.BattleWon;
+        }
+
+        /// <summary>
+        ///   How much of a gain lands at this self-regard: the headroom to 100, raised to the exponent (fkasad: "it should
+        ///   get harder beyond a certain score"). At or below 0 a gain is whole; exponent 0 keeps every gain whole.
+        /// </summary>
+        public static double GainFactor(int current, int exponent)
+        {
+            if (exponent <= 0) return 1.0;
+
+            double headroom = (100 - Math.Max(0, Math.Min(100, current))) / 100.0;
+
+            return Math.Pow(headroom, exponent);
+        }
+
         /// <summary>Records one event: the old shift mends to today first, then the event lands.</summary>
         public static SelfEsteemState Record(SelfEsteemState state, SelfEsteemEvent e, SelfEsteemTemper temper, int today)
+            => Record(state, e, temper, today, null);
+
+        /// <summary>
+        ///   Records one event, a gain shrinking with how high he already stands (<see cref="GainFactor" />); a loss lands
+        ///   whole. Null <paramref name="climb" /> keeps every gain whole, as before.
+        /// </summary>
+        public static SelfEsteemState Record(SelfEsteemState state, SelfEsteemEvent e, SelfEsteemTemper temper, int today, SelfEsteemClimb climb)
         {
             state ??= new SelfEsteemState();
             List<int> captures = (state.CapturedOnDays ?? new List<int>()).Where(d => today - d <= TraumaMemoryDays).ToList();
 
             int mended = Decay(state.Shift, state.ShiftDay.HasValue ? today - state.ShiftDay.Value : 0);
-            int shift = Clamp(mended + Delta(e, temper, captures.Count));
+            int delta = Delta(e, temper, captures.Count);
+            if (delta > 0 && climb != null)
+                delta = (int) Math.Round(delta * GainFactor(climb.Baseline + mended, climb.Exponent), MidpointRounding.AwayFromZero);
+            int shift = Clamp(mended + delta);
             if (e == SelfEsteemEvent.Captured) captures.Add(today);
 
             return new SelfEsteemState {Shift = shift, ShiftDay = today, CapturedOnDays = captures};

@@ -219,6 +219,21 @@ namespace CalradiaRemembers
       ///   valid); floored at 10 so a wedding is never entirely free. 50 when MCM has not loaded. The family's
       ///   blessing still opens a match below this bar (a political union), exactly as before.
       /// </summary>
+      /// <summary>
+      ///   The self-esteem falloff exponent (fkasad, 01/10/2026; Gabriel: an MCM slider): 0 keeps every gain whole, the
+      ///   shipped 2 makes a gain worth a quarter half way up. Clamped to the menu's own 0..4; the shipped value when MCM
+      ///   has not loaded.
+      /// </summary>
+      public static int SelfEsteemClimb
+      {
+         get
+         {
+            int v = CrSettings.Instance?.SelfEsteemClimb ?? SelfEsteemPolicy.DefaultClimbExponent;
+
+            return v < 0 ? 0 : v > 4 ? 4 : v;
+         }
+      }
+
       public static int MarriageRegardThreshold
       {
          get

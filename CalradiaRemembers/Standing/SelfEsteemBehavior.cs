@@ -45,8 +45,18 @@ namespace CalradiaRemembers.Standing
          {
             if (mapEvent is not {HasWinner: true}) return;
 
-            foreach (Hero h in Leaders(mapEvent.GetMapEventSide(mapEvent.WinningSide)?.Parties))
-               SelfEsteemService.Record(h, SelfEsteemEvent.BattleWon);
+            // What the win was worth (fkasad, 01/10/2026: "half a dozen looters" is no feat): who led the beaten side,
+            // and how strong they were against the winner, from the men each side brought into the fight.
+            MapEventSide won = mapEvent.GetMapEventSide(mapEvent.WinningSide), beaten = mapEvent.GetMapEventSide(mapEvent.DefeatedSide);
+            int wonMen = won?.Parties?.Sum(p => p.HealthyManCountAtStart) ?? 0, beatenMen = beaten?.Parties?.Sum(p => p.HealthyManCountAtStart) ?? 0;
+            SelfEsteemEvent? win = SelfEsteemPolicy.ClassifyWin(new BattleWorthFacts {
+               EnemyHadLord = beaten?.Parties?.Any(p => p.Party?.LeaderHero is {IsLord: true}) == true,
+               StrengthRatio = wonMen <= 0 ? 1f : beatenMen / (float) wonMen
+            });
+
+            if (win is SelfEsteemEvent counted)
+               foreach (Hero h in Leaders(won?.Parties))
+                  SelfEsteemService.Record(h, counted);
             foreach (Hero h in Leaders(mapEvent.GetMapEventSide(mapEvent.DefeatedSide)?.Parties))
                SelfEsteemService.Record(h, SelfEsteemEvent.BattleLost);
          }

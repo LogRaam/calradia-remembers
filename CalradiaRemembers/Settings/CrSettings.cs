@@ -562,6 +562,12 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("NanoGPT", GroupOrder = 2)]
       public Action TestNanoGptConnection { get; set; } = ApiKeyTester.RunNanoGpt;
 
+      // fkasad (Nexus, 01/10/2026): "almost everyone in my faction is at 100 just by doing chores"; Gabriel: a slider.
+      [SettingPropertyInteger("Self-Esteem Climb", 0, 4, "0", RequireRestart = false, Order = 3,
+         HintText = "How hard a character's pride climbs once already high. 0: every success counts in full, as before. 2 (default): half way up, a victory counts a quarter; near the top, almost nothing. Higher: harder still. Applies immediately.")]
+      [SettingPropertyGroup("Character", GroupOrder = 5)]
+      public int SelfEsteemClimb { get; set; } = SelfEsteemPolicy.DefaultClimbExponent;
+
       [SettingPropertyBool("Use custom traits", RequireRestart = false, Order = 0,
          HintText = "Applies the hand-authored personalities from ModuleData/character_overrides.json, replacing an " +
                     "authored NPC's five vanilla traits. Edits load on the next campaign, or via cr.reload_lore.")]

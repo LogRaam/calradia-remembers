@@ -40,7 +40,9 @@ namespace CalradiaRemembers.Standing
             if (profile == null) return;
 
             var today = (int) CampaignTime.Now.ToDays;
-            SelfEsteemState after = SelfEsteemPolicy.Record(StateOf(profile), e, TemperOf(hero), today);
+            // A gain shrinks as he climbs (fkasad, 01/10/2026), by the MCM's Self-Esteem Climb.
+            var climb = new SelfEsteemClimb {Baseline = BaselineOf(hero), Exponent = ModSettings.SelfEsteemClimb};
+            SelfEsteemState after = SelfEsteemPolicy.Record(StateOf(profile), e, TemperOf(hero), today, climb);
 
             profile.SelfEsteemShift = after.Shift;
             profile.SelfEsteemShiftDay = after.ShiftDay;
@@ -60,14 +62,18 @@ namespace CalradiaRemembers.Standing
          if (hero == null || hero == Hero.MainHero) return null;
 
          var today = (int) CampaignTime.Now.ToDays;
-         int baseline = SelfEsteemPolicy.Baseline(new SelfEsteemBaselineFacts {
+         int baseline = BaselineOf(hero);
+
+         return SelfEsteemPolicy.BandOf(SelfEsteemPolicy.Current(baseline, profile == null ? null : StateOf(profile), today));
+      }
+
+      /// <summary>Where a man starts: his station, his valour, his own draw.</summary>
+      private static int BaselineOf(Hero hero)
+         => SelfEsteemPolicy.Baseline(new SelfEsteemBaselineFacts {
             Station = StatureReader.Of(hero).Station,
             Valor = Trait(hero, DefaultTraits.Valor),
             PersonalDraw = SelfEsteemPolicy.PersonalDraw(hero.StringId)
          });
-
-         return SelfEsteemPolicy.BandOf(SelfEsteemPolicy.Current(baseline, profile == null ? null : StateOf(profile), today));
-      }
 
       /// <summary>Whether a blow still weighs on his day.</summary>
       public static bool HasRecentBlow(NpcProfile profile)
@@ -93,6 +99,7 @@ namespace CalradiaRemembers.Standing
          => e == SelfEsteemEvent.FiefLost || e == SelfEsteemEvent.KinDied || e == SelfEsteemEvent.Captured || e == SelfEsteemEvent.BattleLost;
 
       private static bool IsGladness(SelfEsteemEvent e)
-         => e == SelfEsteemEvent.FiefGained || e == SelfEsteemEvent.TournamentWon || e == SelfEsteemEvent.BattleWon;
+         => e == SelfEsteemEvent.FiefGained || e == SelfEsteemEvent.TournamentWon || e == SelfEsteemEvent.BattleWon
+            || e == SelfEsteemEvent.BattleWonAgainstOdds;
    }
 }

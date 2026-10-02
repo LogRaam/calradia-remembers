@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("self_esteem_climb", Severity.Light, "fkasad (Nexus, 01/10/2026): lords at 100 from chores. A lord set high (shift +60) wins a battle through the real service: the gain must shrink to almost nothing; set low (shift -60), the same win lands whole. Restores his shift exactly. Uses the MCM Self-Esteem Climb as set.", TestSelfEsteemClimb),
          new SelfTest("spouse_status_at_wedding", Severity.Light, "brorespeta123 (Nexus, 01/10/2026): a new wife 'forgot who I was'. A marriage through the game's own proposal left her romantic status stale until the next load. Gives a lord's CR profile a stale SecretLover status, runs the same heal the wedding now runs, expects Committed, then restores the profile exactly. Weds nobody.", TestSpouseStatusAtWedding),
          new SelfTest("wedding_day_line", Severity.Light, "raphareish (Nexus, 01/10/2026): a character wed days before spoke of her spouse as if married for years. Takes a married lord, sets his wedding day to three days ago for a moment, expects his family line to call them newlyweds, then forgets the day and expects the line as before. Weds nobody.", TestWeddingDayLine),
          new SelfTest("arrange_match_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): the matchmaker; Gabriel: a real marriage, her heart then her family's consent. Finds an unwed lord and a lawful match of another house at peace, issues the task through the real QuestFactory, and asks the real match check WITHOUT applying it: the law must pass, and the answer must be one of wed / not yet won over / family refuses, never a legal refusal. Weds nobody.", TestArrangeMatchQuest),
@@ -8662,6 +8663,43 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestSelfEsteemClimb(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("self_esteem_climb");
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && !h.IsChild && behavior.Store.Get(h.StringId) != null);
+         if (t.Skip(lord == null, "no lord with a CR profile")) return t.Line();
+
+         NpcProfile p = behavior.Store.Get(lord.StringId);
+         int shift = p.SelfEsteemShift;
+         int? shiftDay = p.SelfEsteemShiftDay;
+         int? glad = p.LastPersonalGladnessDay;
+         var today = (int) CampaignTime.Now.ToDays;
+         try
+         {
+            p.SelfEsteemShift = 60; p.SelfEsteemShiftDay = today;
+            Standing.SelfEsteemService.Record(lord, SelfEsteemEvent.BattleWon);
+            int highGain = behavior.Store.Get(lord.StringId).SelfEsteemShift - 60;
+
+            p = behavior.Store.Get(lord.StringId);
+            p.SelfEsteemShift = -60; p.SelfEsteemShiftDay = today;
+            Standing.SelfEsteemService.Record(lord, SelfEsteemEvent.BattleWon);
+            int lowGain = behavior.Store.Get(lord.StringId).SelfEsteemShift + 60;
+
+            t.Note($"{lord.Name}, climb exponent {ModSettings.SelfEsteemClimb}: win at +60 shift gained {highGain}, at -60 gained {lowGain}");
+            t.Expect("aHighLordGainsLessThanALowOne", ModSettings.SelfEsteemClimb == 0 || highGain < lowGain, true);
+            t.Expect("aLowLordStillClimbs", lowGain > 0, true);
+         }
+         finally
+         {
+            p = behavior.Store.Get(lord.StringId);
+            p.SelfEsteemShift = shift; p.SelfEsteemShiftDay = shiftDay; p.LastPersonalGladnessDay = glad;
+            behavior.Store.Set(p);
+         }
 
          return t.Line();
       }
