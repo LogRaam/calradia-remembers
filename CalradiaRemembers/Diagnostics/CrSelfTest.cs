@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("duel_audience", Severity.Light, "fkasad (Nexus, 01/10/2026): a duel in a keep with fifteen lords logged 0 witnesses and weighed 6 as news. Finds a lord standing in a settlement with other lords or notables present, expects the duel's audience to count them (never him), capped at ten, and the news of beating him before them to outweigh a duel fought alone. Fights nothing.", TestDuelAudience),
          new SelfTest("self_esteem_climb", Severity.Light, "fkasad (Nexus, 01/10/2026): lords at 100 from chores. A lord set high (shift +60) wins a battle through the real service: the gain must shrink to almost nothing; set low (shift -60), the same win lands whole. Restores his shift exactly. Uses the MCM Self-Esteem Climb as set.", TestSelfEsteemClimb),
          new SelfTest("spouse_status_at_wedding", Severity.Light, "brorespeta123 (Nexus, 01/10/2026): a new wife 'forgot who I was'. A marriage through the game's own proposal left her romantic status stale until the next load. Gives a lord's CR profile a stale SecretLover status, runs the same heal the wedding now runs, expects Committed, then restores the profile exactly. Weds nobody.", TestSpouseStatusAtWedding),
          new SelfTest("wedding_day_line", Severity.Light, "raphareish (Nexus, 01/10/2026): a character wed days before spoke of her spouse as if married for years. Takes a married lord, sets his wedding day to three days ago for a moment, expects his family line to call them newlyweds, then forgets the day and expects the line as before. Weds nobody.", TestWeddingDayLine),
@@ -8663,6 +8664,26 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestDuelAudience(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("duel_audience");
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.CurrentSettlement != null
+                                                            && Duels.DuelOutcomeApplier.PresentInPlaceOf(h) > 0);
+         if (t.Skip(lord == null, "no lord standing where others are present")) return t.Line();
+
+         int present = Duels.DuelOutcomeApplier.PresentInPlaceOf(lord);
+         int audience = CalradiaRemembers.Logic.Duels.DuelPublicityPolicy.Audience(0, present);
+         int station = Mapping.StatureReader.Of(lord).Station;
+         t.Note($"{lord.Name} in {lord.CurrentSettlement.Name}: {present} present, audience {audience}, station {station}");
+         t.Expect("thoseInThePlaceAreCounted", audience > 0, true);
+         t.Expect("cappedAtTen", audience <= CalradiaRemembers.Logic.Duels.DuelPublicityPolicy.MaxWitnessesWeighed, true);
+         t.Expect("beforeThemTheNewsTravelsFurther",
+                  CalradiaRemembers.Logic.Duels.DuelPublicityPolicy.Magnitude(station, audience, true) > CalradiaRemembers.Logic.Duels.DuelPublicityPolicy.Magnitude(station, 0, true), true);
 
          return t.Line();
       }

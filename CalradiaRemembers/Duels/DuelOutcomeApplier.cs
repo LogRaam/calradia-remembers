@@ -33,8 +33,6 @@ namespace CalradiaRemembers.Duels
       private const int AttractionFloor = -100;
       private const int AttractionCeiling = 100;
 
-      /// <summary>Modest weight for a duel world-event: real news, but not a battle that shakes a realm.</summary>
-      private const int DuelEventMagnitude = 6;
 
       /// <summary>Convenience for a duel that was actually FOUGHT: true means the player won, false the NPC won.</summary>
       public static void Apply(DuelReason reason, bool playerWon, Hero opponent, Hero courtedHero, int witnessCount)
@@ -56,6 +54,12 @@ namespace CalradiaRemembers.Duels
       public static void Apply(DuelReason reason, DuelResolution resolution, Hero opponent, Hero courtedHero, int witnessCount)
       {
          if (opponent == null || Hero.MainHero == null) return;
+
+         // fkasad (01/10/2026): "0 witness(es)" with fifteen lords in the keep. The conversation's witnesses are only lords
+         // the player already knows, capped for the room; a duel's audience is whoever is truly there, capped for its weight.
+         int present = PresentInPlaceOf(opponent);
+         witnessCount = DuelPublicityPolicy.Audience(witnessCount, present);
+         ModLog.Info($"[DUEL] audience {witnessCount} ({present} present where {opponent.Name} stands).");
 
          // Whether a live grudge the opponent holds against the player drove this duel, read from the same
          // ranked source the prompt itself reads (LiveGrudgesFor), filtered to one a duel could plausibly
@@ -115,7 +119,7 @@ namespace CalradiaRemembers.Duels
          }
 
          StampLastDuelDay(opponent);
-         RecordDuelEvent(reason, resolution, opponent, courtedHero);
+         RecordDuelEvent(reason, resolution, opponent, courtedHero, witnessCount);
       }
 
       #region private
@@ -161,7 +165,30 @@ namespace CalradiaRemembers.Duels
       }
 
       /// <summary>Records the duel so it travels as hearsay and chronicle, letting the courted hero learn of an outcome they did not witness.</summary>
-      private static void RecordDuelEvent(DuelReason reason, DuelResolution resolution, Hero opponent, Hero courtedHero)
+      /// <summary>The lords and notables present where the opponent stands (his settlement), the player and he excepted.</summary>
+      internal static int PresentInPlaceOf(Hero opponent)
+      {
+         try
+         {
+            TaleWorlds.CampaignSystem.Settlements.Settlement place = opponent?.CurrentSettlement ?? TaleWorlds.CampaignSystem.Settlements.Settlement.CurrentSettlement;
+            if (place == null) return 0;
+
+            return (place.HeroesWithoutParty ?? Enumerable.Empty<Hero>())
+                   .Concat((place.Parties ?? Enumerable.Empty<TaleWorlds.CampaignSystem.Party.MobileParty>()).Select(p => p?.LeaderHero))
+                   .Where(h => h != null && h != Hero.MainHero && h != opponent && !h.IsChild && (h.IsLord || h.IsNotable)
+                               && Mapping.HeroPresence.IsInTheWorld(h))
+                   .Distinct()
+                   .Count();
+         }
+         catch (System.Exception ex)
+         {
+            ModLog.Error($"[DUEL] counting who was present failed: {ex.GetType().Name}: {ex.Message}");
+
+            return 0;
+         }
+      }
+
+      private static void RecordDuelEvent(DuelReason reason, DuelResolution resolution, Hero opponent, Hero courtedHero, int audience)
       {
          WorldEventStore store = WorldEventStore.Instance;
 
@@ -211,7 +238,9 @@ namespace CalradiaRemembers.Duels
                ? WorldEventType.Rivalry
                : WorldEventType.Affront,
             Day = (int) CampaignTime.Now.ToDays,
-            Magnitude = DuelEventMagnitude,
+            // Who was fought and before how many (fkasad, 01/10/2026: a ruler beaten in his keep weighed 6).
+            Magnitude = DuelPublicityPolicy.Magnitude(Mapping.StatureReader.Of(opponent).Station, audience,
+                                                      resolution == DuelResolution.PlayerWon || resolution == DuelResolution.NpcWon),
             InvolvesPlayer = true,
             ActorIds = actors,
             Summary = summary,
