@@ -171,9 +171,14 @@ namespace CalradiaRemembers.Marriage
          if (removed > 0) ModLog.Info($"[MARRIAGE] swept {removed} stale marriage blessing(s) (M-B2).");
       }
 
-      private static void HealPlayerSpouseStatus()
+      private static void HealPlayerSpouseStatus() => HealSpouseStatus(Hero.MainHero?.Spouse);
+
+      /// <summary>
+      ///   Makes the player's spouse's CR profile read as a marriage: minted if she has none, her romantic status set to
+      ///   Committed unless deliberately Estranged/Broken. Run on load (C3) and, since 02/10/2026, at the wedding itself.
+      /// </summary>
+      internal static void HealSpouseStatus(Hero spouse)
       {
-         Hero spouse = Hero.MainHero?.Spouse;
          if (spouse == null) return;
 
          var store = NpcMemoryCampaignBehavior.Instance?.Store;
@@ -349,6 +354,11 @@ namespace CalradiaRemembers.Marriage
          if (spouse == null) return;
 
          RememberTheWedding(spouse);
+
+         // brorespeta123 (Nexus, 01/10/2026): "just got married and the wife got amnesia.. forgot who i was". A marriage
+         // sealed through the game's own proposal never ran the CR marry verb, so her romantic status kept its
+         // pre-wedding value for the whole session; only the next load healed it. Heal it at the wedding itself.
+         SafeRun.Step("MarriageApprovalBehavior.HealSpouseAtWedding", () => HealSpouseStatus(spouse));
 
          Clan family = spouse.Clan;
 
