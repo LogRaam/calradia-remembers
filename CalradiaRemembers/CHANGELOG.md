@@ -2,6 +2,47 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.6.11.. 2026-10-03
+
+### Added
+- **Escape leaves a CR conversation** (EmperorHaterius): one layer at a time (`ChatEscapePolicy`): a screen over the chat
+  keeps its Escape, an open side panel closes first, the message field is left with its draft kept, then the chat closes
+  as its close button does.
+- **A captive of rank knows the world talks of her capture** (Lordfadooboo: Rhagaea in an Aserai cell): SDK
+  `EncounterContext.CaptiveNotoriety` adds a line after the cut-off; a ruler's or landed house head's capture is world
+  news even without the player (`CaptiveNotoriety`, `WorldEventFeeders.RecordGreatCapture`).
+- **Newlyweds** (raphareish): `WeddingDayBehavior` records each wedding day (new save key); the spouse line says how
+  recent it is (`SpouseTenurePolicy`).
+- **A house in rebellion remembers it** (FloatingMammal): `WorldEventType.Rebellion`, memories of the rising and the
+  return for every adult member (`RebellionWording`).
+- **A divorce another mod made** (tashmetu): `ForeignDivorceBehavior` compares marriages daily; a couple parted while
+  both live becomes `WorldEventType.Divorce` and a memory for each; CR's own divorces are not counted twice.
+- **MCM Self-Esteem Climb** (fkasad), Character group, 0..4, default 2.
+
+### Changed
+- **Self-esteem** (fkasad): a skirmish is no feat, a win against the odds is worth more, gains shrink near the top
+  (`SelfEsteemPolicy.GainFactor`).
+- **Duel publicity** (fkasad): the audience is whoever is present in the place, capped at 10; the news weighs the
+  opponent's station (`DuelPublicityPolicy`).
+- **Strategic Assessment** (fkasad): compact wars, each realm's real battle record, the player's world name and texts.
+- **Personas** (tashmetu): six archetypes no longer word ordinary -1 trait mixes as sadism (`RetiredArchetypes`
+  re-derives stored ones at load); a trait at +-2 now meets its archetype by direction, with a sentence saying what is
+  extreme (`PersonaTraitIntensity`).
+
+### Fixed
+- **A settled matter stays settled** (Lordfadooboo): the recap ends with a "Settled:" line; the dialogue style forbids
+  re-raising what was asked and answered.
+- **The offer bag reads the current speaker's profile** (Lordfadooboo: a companion's grain task never completed), not
+  the `DialogFlow.Profile` cache; `SpeakerProfileSourceTests` allows one read.
+- **A new spouse's romantic status is healed at the wedding** (brorespeta123), not only at the next load.
+- **Accents in cr.* console commands** (Shinelegacy): the console hands UTF-8 read as Windows-1252; repaired at the
+  engine's dispatch for the cr group only (`CrConsoleTextPatch`, `ConsoleTextRepair`). `cr.memory_repair_accents`
+  mends stored memories.
+
+### For modders
+- **`VerbFacts.IsFemale`**; HOWTO_Actions says per-character wording belongs in `TeachingText`.
+- `cr.prompt_dump` takes a hero id and lists namesakes.
+
 ## v2.6.10.. 2026-10-01
 
 ### Added

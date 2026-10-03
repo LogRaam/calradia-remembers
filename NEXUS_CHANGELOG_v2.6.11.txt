@@ -1,0 +1,40 @@
+Version 2.6.11
+
+Fixes and ideas from your reports, almost all of them from the posts of the last two days.
+
+Added
+
+- Escape now leaves a CR conversation, one step at a time: it closes an open panel first, then leaves the message box (your draft is kept), then ends the conversation. A menu opened over the chat keeps its own Escape. (Thank you, EmperorHaterius.)
+- A captive ruler knows her capture is talked of everywhere, even though no news reaches her cell. And the capture of a ruler or the head of a noble house now spreads as world news even when you had nothing to do with it. (Thank you, Lordfadooboo: no more empresses who think nobody would care.)
+- Newlyweds know they are newlyweds: a character wed a few days ago no longer speaks of her spouse as if they had been married for years. (Thank you, raphareish.)
+- A house that rose in rebellion remembers it, and remembers being received back, so a former rebel no longer claims she always fought for the crown. (Thank you, FloatingMammal.)
+- A divorce made by another mod is noticed: the news spreads, and both former spouses remember it. (Thank you, tashmetu.)
+- New MCM setting, Character group: Self-Esteem Climb. How hard a character's pride climbs once it is already high. (Thank you, fkasad.)
+
+Changed
+
+- Self-esteem: a skirmish against a much weaker foe is no feat, a victory against the odds counts more, and gains shrink as pride nears the top, so lords no longer all end up at the maximum from chores. (Thank you, fkasad.)
+- Duels: the people actually present in the place see it (up to ten), and beating a great lord is bigger news than beating a minor one. (Thank you, fkasad.)
+- Strategic Assessment: wars are listed on one line, each realm shows its real battle record of late, and your own world name and world text are used. (Thank you, fkasad.)
+- Personalities: an ordinary mix of hard traits is no longer written as outright sadism, and characters with the strongest traits in the game now get a real portrait instead of a vague one. Some characters' descriptions are refreshed when you load your save. (Thank you, tashmetu.)
+
+Fixed
+
+- A matter that was asked and answered stays settled: characters no longer keep coming back to it (a name agreed on, a request granted). (Thank you, Lordfadooboo.)
+- A companion's supply task (deliver 20 grain...) now completes when you hand the goods over from the offer bag, however the conversation was opened. (Thank you, Lordfadooboo.)
+- A new spouse is treated as a spouse from the wedding day, not only after the next load. (Thank you, brorespeta123.)
+- Accents typed into cr.memory_add, cr.memory_set or any other cr. console command are kept as typed. Memories already stored with broken accents can be mended in one go with cr.memory_repair_accents (then save). (Thank you, Shinelegacy.)
+
+For modders
+
+- VerbFacts.IsFemale: per-character wording in TeachingText can say his or her. Description and WhenToEmit stay fixed text shared by every character (see HOWTO_Actions.md). (Thank you, tashmetu.)
+- A divorce made by clearing Hero.Spouse is now picked up by CR on its own.
+- cr.prompt_dump accepts a hero id, prefers an exact name, and lists namesakes with their ids. (Thank you, tashmetu.)
+
+Developer tools
+
+- New cr.testall tests for every fix above, and a desk check that every MCM slider is covered by settings_ranges_agree.
+
+Notes
+
+- Your existing saves load as they are.
