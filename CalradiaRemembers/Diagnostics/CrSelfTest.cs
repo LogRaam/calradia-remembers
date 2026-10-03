@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("extreme_trait_persona", Severity.Light, "A trait at +-2 (the game's strongest) met no persona archetype and got the generic 'figure of contradictions' line. Takes a real hero with such a trait and builds the persona the real way: the extreme must be said in it, never as relish. Stores nothing.", TestExtremeTraitPersona),
          new SelfTest("retired_persona_refreshed", Severity.Light, "tashmetu (Nexus, 02/10/2026): a companion's sister played far crueller than her traits, because three ordinary -1 traits drew the 'Sadistic' archetype. It was reworded; a save keeps the persona it stored. Gives a throwaway profile of a real lord the old wording and runs the real load upgrade: it must be derived again. Stores nothing.", TestRetiredPersonaRefreshed),
          new SelfTest("foreign_divorce", Severity.Light, "tashmetu (Nexus, 02/10/2026): a divorce another mod made (Hero.Spouse cleared) went unrecorded. Takes a real living couple and asks the daily look what it would find had another mod cleared their marriage: exactly that couple; and nothing when CR parted them itself. Records nothing.", TestForeignDivorce),
          new SelfTest("house_rebellion_memory", Severity.Light, "FloatingMammal (Nexus, 02/10/2026): a former rebel, received back, spoke as a loyalist. A rising house's members now remember it. Takes a real house of a realm, expects the members who would remember to be its adults in the world (no child, no dead, never the player) and the memory to name the realm risen against. Records nothing.", TestHouseRebellionMemory),
@@ -8667,6 +8668,26 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestExtremeTraitPersona(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("extreme_trait_persona");
+
+         TraitObject[] axes = {DefaultTraits.Honor, DefaultTraits.Mercy, DefaultTraits.Valor, DefaultTraits.Generosity, DefaultTraits.Calculating};
+         Hero hero = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && !h.IsChild && axes.Any(a => Math.Abs(h.GetTraitLevel(a)) >= 2));
+         if (t.Skip(hero == null, "no hero with a trait at +-2")) return t.Line();
+
+         string trait = Mapping.HeroProfileMapper.FromHero(hero).Trait;
+         string extreme = PersonaTraitIntensity.Clause(new PersonaTraitLevels {
+            Honor = hero.GetTraitLevel(DefaultTraits.Honor), Mercy = hero.GetTraitLevel(DefaultTraits.Mercy), Valor = hero.GetTraitLevel(DefaultTraits.Valor),
+            Generosity = hero.GetTraitLevel(DefaultTraits.Generosity), Calculating = hero.GetTraitLevel(DefaultTraits.Calculating)
+         });
+         t.Note($"{hero.Name}: \"{trait}\"");
+         t.Expect("theExtremeIsSaid", extreme.Length > 0 && trait.Contains(extreme), true);
+         t.Expect("noPersonaSaysTheyEnjoySuffering", trait.IndexOf("pleasure", StringComparison.OrdinalIgnoreCase) >= 0, false);
 
          return t.Line();
       }

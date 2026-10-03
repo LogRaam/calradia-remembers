@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 457 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 897 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 899 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -792,7 +792,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (590)
+### CalradiaRemembers.Logic (592)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1170,6 +1170,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PendingSummaryJob` | public class | One pending "write the rich summary and replace the base event" job, captured as plain data so it can be persisted (a later increment wires it into SyncData) and replayed after a game reload. |
 | `PerceivedImageFacts` | public class | What the image is composed from. |
 | `PerceivedImagePolicy` | public static class | Composes the perceived image. |
+| `PersonaTraitIntensity` | public static class | How strongly a persona's traits are said. |
+| `PersonaTraitLevels` | public class | A hero's five personality trait levels, -2 to +2 as the game keeps them. |
 | `PlayerChangeFacts` | public class | The predecessor's state when the change fired. |
 | `PlayerChangeKind` | public enum | What a change of player character was. |
 | `PlayerDeedValence` | public static class | Classifies a player's deed from the observer's point of view, from two facts the host has already resolved against the game (faction membership, kinship). |

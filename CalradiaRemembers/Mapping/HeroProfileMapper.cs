@@ -133,7 +133,9 @@ namespace CalradiaRemembers.Mapping
          // A retired archetype (an ordinary trait mix once worded as an appetite for suffering; tashmetu, 02/10/2026) is
          // derived again, so a save made before the rewording does not keep it for good.
          bool maybeStaleTrait = string.IsNullOrEmpty(profile.Trait) || profile.Trait.StartsWith("Thoroughly Conventional")
-                                || Logic.RetiredArchetypes.IsRetired(profile.Trait);
+                                || Logic.RetiredArchetypes.IsRetired(profile.Trait)
+                                // every hero with a +-2 trait got this generic line before 03/10/2026 (no archetype matched)
+                                || profile.Trait.StartsWith("A figure of contradictions");
 
          // Cheap exit — nothing to do for already-upgraded profiles.
          if (!needsRomantic && !maybeStaleTrait) return;
@@ -432,12 +434,19 @@ namespace CalradiaRemembers.Mapping
          int rawG = hero.GetTraitLevel(DefaultTraits.Generosity);
          int rawC = hero.GetTraitLevel(DefaultTraits.Calculating);
 
+         var levels = new Logic.PersonaTraitLevels {
+            Honor = ConvertLevel(rawH), Mercy = ConvertLevel(rawM), Valor = ConvertLevel(rawV),
+            Generosity = ConvertLevel(rawG), Calculating = ConvertLevel(rawC)
+         };
+
+         // The catalog is looked up by each trait's DIRECTION: it matches only -1/+1, so a hero at -2/+2, the game's
+         // strongest, used to meet no archetype at all. What is extreme is said after it (03/10/2026).
          Traits t = new() {
-            Honor = ConvertLevel(rawH),
-            Mercy = ConvertLevel(rawM),
-            Valor = ConvertLevel(rawV),
-            Generosity = ConvertLevel(rawG),
-            Calculating = ConvertLevel(rawC)
+            Honor = Logic.PersonaTraitIntensity.Direction(levels.Honor),
+            Mercy = Logic.PersonaTraitIntensity.Direction(levels.Mercy),
+            Valor = Logic.PersonaTraitIntensity.Direction(levels.Valor),
+            Generosity = Logic.PersonaTraitIntensity.Direction(levels.Generosity),
+            Calculating = Logic.PersonaTraitIntensity.Direction(levels.Calculating)
          };
 
          int count = CountActiveTraits(t);
@@ -464,6 +473,9 @@ namespace CalradiaRemembers.Mapping
                ? BuildDynamicFallback(t)
                : "Thoroughly Conventional. Shaped more by circumstance than by any particular virtue or vice.";
          }
+
+         string extreme = Logic.PersonaTraitIntensity.Clause(levels);
+         if (extreme.Length > 0) archetype = $"{archetype} {extreme}";
 
          ModLog.Info($"  Archetype: {archetype}");
 
