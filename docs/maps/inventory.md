@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 457 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 899 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 459 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 900 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -240,13 +240,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `CompanionBriefingCoordinator` | public static class | Offers the companion-briefing picker and opens the resulting private chat. |
 
-### CalradiaRemembers.Diagnostics (14)
+### CalradiaRemembers.Diagnostics (16)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionBench` | public static class | Runs the interpreter extraction bench in-game against the configured interpreter model. |
 | `ConsoleCommandHelp` | public static class | Every cr command, described. |
 | `ConsoleCommandIndex` | public static class | Every console command this assembly registers, by group, straight from the attributes. |
+| `CrConsoleTextListPatch` | public static class | The same repair for the overload that receives the arguments already split. |
+| `CrConsoleTextPatch` | public static class | Repairs the text of a cr.* console command as the console typed it. |
 | `CrSelfTest` | public static class | End-to-end self-test harness. |
 | `LlmDiagnostic` | public static class | Sends a test prompt to the configured LLM and logs the response. |
 | `MemoryBench` | public static class | A live-model bench for what a character KNOWS: does he use what he was given, and does he keep quiet about what he was not? |
@@ -1590,10 +1592,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SilenceOrderPolicy` | public static class | Resolves a silence order. |
 | `SilenceResponse` | public enum | Whether an ordered participant yields the floor or holds it. |
 
-### CalradiaRemembers.Logic.Diagnostics (4)
+### CalradiaRemembers.Logic.Diagnostics (5)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `ConsoleTextRepair` | public static class | Undoes the console's UTF-8-read-as-Windows-1252 mangling of a command's text. |
 | `DiagnosticPick` | public class | The character picked, and the others who answered equally well. |
 | `DiagnosticSubject` | public class | A character a diagnostic command may pick: its hero id and its display name. |
 | `DiagnosticSubjectPicker` | public static class | Picks a diagnostic command's subject from what was typed. |
