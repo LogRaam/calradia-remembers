@@ -17,7 +17,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
    public static class ConsoleTextRepair
    {
       // Windows-1252 0x80-0x9F. Written out: .NET Core ships no code page 1252 without a provider.
-      private const string Cp1252High = "€\u0081‚ƒ„…†‡ˆ‰Š‹Œ\u008DŽ\u008F\u0090‘’“”•–—˜™š›œ\u009DžŸ";
+      private const string Cp1252High = "€\u0081‚ƒ„…†‡ˆ‰Š‹Œ\u008DŽ\u008F\u0090‘’“”•–\u2014˜™š›œ\u009DžŸ";
 
       private static readonly IReadOnlyDictionary<char, byte> HighToByte = BuildHighToByte();
       private static readonly UTF8Encoding StrictUtf8 = new UTF8Encoding(false, true);
