@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-410 rules read 317 facts.
+411 rules read 318 facts.
 
 ## Facts read by more than one rule
 
@@ -333,6 +333,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `DeliveredPrisonerFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.GetRelation`, `Hero.MapFaction`
 - `DispatchMissionFacts`: `Hero.Clan`, `Hero.IsPlayerCompanion`, `Hero.PartyBelongedTo`
 - `DivorceBlockFacts`: `Hero.GovernorOf`, `Hero.IsClanLeader`, `Hero.IsPregnant`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.LeaderHero`
+- `DivorceDetectionFacts`: `Hero.AllAliveHeroes`
 - `DivorceEligibilityFacts`: `Hero.GetRelation`, `Hero.GovernorOf`, `Hero.IsClanLeader`, `Hero.IsPregnant`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `PartyBelongedTo.LeaderHero`, `Romantic.IsConsort`, `Status.IsCourtingOrDeeper`
 - `DivorcePolicy.IsEligible`: `Hero.GetRelation`, `Hero.GovernorOf`, `Hero.IsClanLeader`, `Hero.IsPregnant`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `PartyBelongedTo.LeaderHero`, `Romantic.IsConsort`, `Status.IsCourtingOrDeeper`
 - `DivorcePolicy.IsMutualConsent`: `Hero.GetRelation`

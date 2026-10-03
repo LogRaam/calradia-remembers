@@ -128,6 +128,7 @@ namespace CalradiaRemembers.Marriage
             }
 
             npc.Spouse = null; // self-cleaning: nulls both sides, appends each to the other's ExSpouses
+            ForeignDivorceBehavior.NoteDissolvedByCr(npc, spouse); // our own consequences follow; not news twice
 
             // "Marry your own companion", divorce half: a wanderer companion promoted to Lord to wed the player
             // carries the player's own clan as their OriginClan (stamped by the engine's Clan setter at promotion),

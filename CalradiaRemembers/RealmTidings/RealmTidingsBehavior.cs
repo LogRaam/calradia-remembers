@@ -185,6 +185,7 @@ namespace CalradiaRemembers.RealmTidings
             case WorldEventType.Rivalry:            return "bad blood between lords";
             case WorldEventType.Affront:            return "a public affront";
             case WorldEventType.Rebellion:          return "a house in rebellion";
+            case WorldEventType.Divorce:            return "a marriage ended";
             default:                                return "word from the realm";
          }
       }

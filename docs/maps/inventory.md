@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 456 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 893 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 457 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 896 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -492,7 +492,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `Traits` | public class | (no summary) |
 | `WeddingDayBehavior` | public class | The day each married hero was wed, as CR saw it happen. |
 
-### CalradiaRemembers.Marriage (13)
+### CalradiaRemembers.Marriage (14)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -500,6 +500,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CourtshipTrialRecord` | public class | One courtship trial: the day it began and whether it has since been served (passed). |
 | `DivorceEligibilityResolver` | public static class | Gathers the live facts behind end_marriage eligibility and evaluates them via DivorcePolicy. "The leaving spouse" is whichever of the NPC and their spouse currently sits in a clan other than the one they were born/create... |
 | `DivorceProcessBehavior` | public class | Tracks every outstanding DivorceProcess and advances it one day at a time. |
+| `ForeignDivorceBehavior` | public class | Notices a marriage another mod ended, and has the world and the former spouses know it. |
 | `HeroClanCompat` | public static class | Reflection-guarded access to Hero.OriginClan, with an availability flag so callers can degrade deliberately rather than silently. |
 | `MarriageApprovalBehavior` | public class | The engine of the marriage system (Phase A): it remembers which matches a family has blessed and, the moment the player marries, swings the spouse's whole family for or against the player depending on whether that blessi... |
 | `MarriageApprovalRecord` | public class | A persisted blessing: the spouse's family consented to the player marrying them. |
@@ -791,7 +792,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (586)
+### CalradiaRemembers.Logic (589)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -956,6 +957,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DivorceConsequencePolicy` | public static class | Pure rules turning a divorce's facts into a signed per-party consequence matrix: who grudges, who feels relief, who feels outright gratitude, and who is untouched. |
 | `DivorceConsequences` | public class | The full per-party verdict for one divorce, one PartyReaction per stake. |
 | `DivorceDemandTimeoutPolicy` | public static class | Pure gate deciding when a pending divorce demand's grace period has run out, unread refusal (the player never explicitly refused, but the deadline passed). |
+| `DivorceDetectionFacts` | public class | What a divorce check compares. |
 | `DivorceEligibilityFacts` | public class | Every already-resolved fact DivorcePolicy.IsEligible needs. "Leaving spouse" is whichever of the two would have to move clans to formalize the split (the one who joined the other's clan at marriage) — resolved live by Di... |
 | `DivorceFacts` | public class | Every already-resolved fact DivorceConsequencePolicy.Resolve needs about the shape of one divorce. |
 | `DivorcePolicy` | public static class | Pure math and gates for the end_marriage estrangement process. |
@@ -997,6 +999,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FoodTradeFacts` | public class | One visit's food trade in a town. |
 | `FoodTradeVerdict` | public enum | What the town remembers of a visit's food trade. |
 | `ForcedMarriagePolicy` | public static class | How a marriage sealed on the family's blessing, against the spouse's own unwon heart, is resented. |
+| `ForeignDivorceDetection` | public static class | Finds the marriages another mod ended. |
 | `GarrisonStrength` | public static class | A garrison's strength band. |
 | `GearKind` | public enum | The broad kind of an equipped piece, enough to phrase it ("clad in", "bears", "rides"). |
 | `GearQuality` | public enum | The quality band of a piece, derived by the host from the item's modifier (Masterwork/Legendary vs Rusty/Tattered/Cracked...) and, for an unmarked piece, its raw value. |
@@ -1318,6 +1321,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpouseDivorceDemandFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldDemand needs. |
 | `SpouseDivorceDemandPolicy` | public static class | Pure gate deciding whether the player's own spouse is unhappy enough to raise a divorce demand this evaluation period. |
 | `SpouseDivorceEscalationFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldEscalate needs. |
+| `SpousePair` | public class | A married couple, by hero id; Key is the same whichever spouse is named first. |
 | `SpouseTenurePolicy` | public static class | How long a character has been married, as their family line says it. |
 | `StagingGracePolicy` | public static class | How long a staged meeting is given to show signs of life before the mod concludes nothing was staged and opens the chat directly. |
 | `StagingHostFacts` | public class | What the door sees when a conversation is asked for. |

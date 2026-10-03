@@ -78,7 +78,13 @@ namespace CalradiaRemembers.WorldEvents
       ///   as a loyalist). FactionIds[0] is the realm risen against; ActorIds are the house's members. Also how the
       ///   house's return to that realm is recognised. Added last to preserve the serialized ordinals of existing saves.
       /// </summary>
-      Rebellion
+      Rebellion,
+
+      /// <summary>
+      ///   A marriage ended while both spouses live, by a mod other than CR (tashmetu, 02/10/2026: Bridges to Remember
+      ///   divorces by clearing Hero.Spouse). Added last to preserve the serialized ordinals of existing saves.
+      /// </summary>
+      Divorce
    }
 
    /// <summary>
