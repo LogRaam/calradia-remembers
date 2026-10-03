@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
          new SelfTest("memory_repair_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026) and Gabriel: one command to mend every memory the console mangled before the fix. Stores a mangled memory on a real lord, as an old save holds it, runs cr.memory_repair_accents through the engine's console: the memory must read as typed. Removes it after.", TestMemoryRepairAccents),
          new SelfTest("console_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026): accents typed into cr.memory_add / cr.memory_set came out as mojibake (the console reads UTF-8 back as Windows-1252). Sends cr.memory_add, through the engine's own console dispatch, a line mangled exactly as the console mangles it: the stored memory must read exactly as typed. Removes the memory after.", TestConsoleAccents),
          new SelfTest("extreme_trait_persona", Severity.Light, "A trait at +-2 (the game's strongest) met no persona archetype and got the generic 'figure of contradictions' line. Takes a real hero with such a trait and builds the persona the real way: the extreme must be said in it, never as relish. Stores nothing.", TestExtremeTraitPersona),
@@ -8670,6 +8671,36 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestCaptiveNotoriety(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("captive_notoriety");
+
+         Hero ruler = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Clan?.Kingdom?.Leader == h);
+         if (t.Skip(ruler == null, "no ruler")) return t.Line();
+
+         Stature stature = Mapping.StatureReader.Of(ruler);
+         t.Expect("aRulersCaptureIsKnownAsARulers", CaptiveNotoriety.Describe(stature, ruler.IsClanLeader), "a ruler");
+         t.Expect("aRulersCaptureIsNews", CaptiveNotoriety.NewsMagnitude(stature, ruler.IsClanLeader) > 0, true);
+
+         // The real prompt of a captive of rank, when the game holds one: she knows the world talks of her.
+         Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsPrisoner && h != Hero.MainHero
+                                                               && CaptiveNotoriety.Describe(Mapping.StatureReader.Of(h), h.IsClanLeader) != null);
+         if (captive == null)
+         {
+            t.Note($"{ruler.Name} reads as a ruler; no captive of rank in this game to read a prompt from.");
+
+            return t.Line();
+         }
+
+         NpcProfile profile = behavior.Store.Get(captive.StringId) ?? Mapping.HeroProfileMapper.FromHero(captive);
+         EncounterContext context = Mapping.EncounterContextBuilder.Build(captive, profile, behavior.GameStateBridge, null);
+         string prompt = behavior.LlmServices.ChatService.PromptBuilder.BuildSystemPrompt(profile, new WorldState {CurrentDay = (int) CampaignTime.Now.ToDays}, context);
+         t.Note($"{captive.Name}, captive: notoriety '{context.CaptiveNotoriety}'");
+         t.Expect("theCaptiveKnowsTheWorldTalksOfHer", prompt.Contains("is talked of in every hall"), true);
 
          return t.Line();
       }

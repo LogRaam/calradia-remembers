@@ -994,7 +994,16 @@ namespace CalradiaRemembers.WorldEvents
             }
 
             if (capturingParty?.LeaderHero == Hero.MainHero && prisoner.IsLord && !IsBandit(prisoner))
+            {
                RecordLordCaptured(prisoner);
+
+               return;
+            }
+
+            // Lordfadooboo (03/10/2026): an empress taken by the Aserai, the player nowhere near, left no trace, so
+            // nobody could speak of it. A ruler's or a landed house head's capture is news; a lesser lord's is not.
+            int magnitude = Logic.CaptiveNotoriety.NewsMagnitude(Mapping.StatureReader.Of(prisoner), prisoner.IsClanLeader);
+            if (magnitude > 0) RecordGreatCapture(prisoner, capturingParty, magnitude);
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] prisoner-taken feeder failed: {ex.GetType().Name}: {ex.Message}"); }
       }
@@ -1022,6 +1031,20 @@ namespace CalradiaRemembers.WorldEvents
             FactionIds = FactionIds(Hero.MainHero, captor),
             ChronicleLine = $"{PlayerName} fell into the hands of {captorName} and was carried off captive"
          });
+      }
+
+      /// <summary>A ruler or a landed house head taken by someone other than the player: news that travels.</summary>
+      private void RecordGreatCapture(Hero prisoner, PartyBase capturingParty, int magnitude)
+      {
+         Hero captor = capturingParty?.LeaderHero;
+         string by = captor != null ? Named(captor) : capturingParty?.MapFaction?.Name?.ToString() ?? capturingParty?.Name?.ToString();
+         Store.Record(new WorldEvent {
+            Type = WorldEventType.Other, Day = Today, Magnitude = magnitude,
+            Summary = string.IsNullOrEmpty(by) ? $"{Named(prisoner)} was taken captive." : $"{Named(prisoner)} was taken captive by {by}.",
+            ActorIds = captor != null ? Ids(prisoner, captor) : Ids(prisoner),
+            FactionIds = captor != null ? FactionIds(prisoner, captor) : FactionIds(prisoner)
+         });
+         ModLog.Info($"[WORLD] {prisoner.Name} taken captive (magnitude {magnitude}): news.");
       }
 
       /// <summary>Once per unique lord — a capture already chronicled never repeats for the same lord.</summary>

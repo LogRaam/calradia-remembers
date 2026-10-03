@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 459 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 901 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 902 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -794,7 +794,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (592)
+### CalradiaRemembers.Logic (593)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -851,6 +851,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptiveGearStockPolicy` | public static class | Pure decisions over an accumulated pool of HeldItems: what merges in across escapes, and which single item per slot the holder wears. |
 | `CaptiveIntentRules` | public static class | Classifies a CaptiveSceneIntent for the chat flow's scene handling. |
 | `CaptiveKinDescriber` | public static class | Builds the captivity clause for a kinsman named in an NPC's RELATIONSHIPS block. |
+| `CaptiveNotoriety` | public static class | Whose capture is talked of, and how far the news carries. |
 | `CaptiveSceneArcPolicy` | public static class | Picks the lead captor's opening arc as a WEIGHTED draw over SceneArc, mirroring CaptiveEncounterPolicy.SelectIntent's draw style: context LEANS the odds rather than gating them, and every arc keeps a floor weight so it c... |
 | `CaptiveSceneDirector` | public class | The "director" of a captive scene: a small state machine that owns the dramatic structure so the model never has to (and never loops a beat). |
 | `CaptivityEndReason` | public enum | Engine-free mirror of TaleWorlds.CampaignSystem.Actions.EndCaptivityDetail. |

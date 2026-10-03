@@ -505,6 +505,7 @@ namespace CalradiaRemembers.Mapping
             Underworld = knowledge.Underworld,
             OwnVentures = knowledge.OwnVentures,
             HeldFor = knowledge.HeldFor,
+            CaptiveNotoriety = knowledge.CaptiveNotoriety,
             PartyStanding = knowledge.PartyStanding,
 
             // The post the mod's own verb assigned and never mentioned. Named here so the station pack can
@@ -3362,6 +3363,7 @@ namespace CalradiaRemembers.Mapping
             Underworld = BuildUnderworld(hero),
             OwnVentures = ventures,
             HeldFor = ReadHeldFor(hero),
+            CaptiveNotoriety = hero is {IsPrisoner: true} ? Logic.CaptiveNotoriety.Describe(StatureReader.Of(hero), hero.IsClanLeader) : null,
             PartyStanding = BuildPartyStanding(hero),
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),
