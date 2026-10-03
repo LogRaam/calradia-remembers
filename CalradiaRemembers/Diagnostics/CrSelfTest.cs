@@ -9623,7 +9623,9 @@ namespace CalradiaRemembers.Diagnostics
             ["DarkLeatherZoomPercent"] = ("DarkLeatherScale", SettingShape.Reshapes,
                "a percent the player reads becomes the scale factor the window uses"),
             ["CouncilZoomPercent"] = ("CouncilScale", SettingShape.Reshapes,
-               "a percent the player reads becomes the scale factor the window uses")
+               "a percent the player reads becomes the scale factor the window uses"),
+            ["SelfEsteemClimb"] = ("SelfEsteemClimb", SettingShape.Honours,
+               "0 must keep every gain whole, 4 must be the steepest climb the menu promises")
          };
 
       /// <summary>
