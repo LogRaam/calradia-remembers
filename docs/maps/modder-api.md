@@ -312,6 +312,7 @@ _One entity the player mentioned, as the host resolved it: its stable engine id,
 _The engine-agnostic facts about the conversation partner an ExternalVerbContract's callbacks reason over: who they are, their standing, and their relation to the player._
 
 - `IReadOnlyDictionary<string, string>? Extra { get; set; }`
+- `bool IsFemale { get; set; }`
 - `bool IsLord { get; set; }`
 - `bool IsPrisoner { get; set; }`
 - `int RelationToPlayer { get; set; }`

@@ -112,12 +112,16 @@ string SourceMod;                             // your mod's id, for the logs
   verbs use: concept-level cues for how the deed reads in the NPC's prose, not lexical triggers.
   A clear pair here is what keeps the interpreter from firing your action on a mere discussion or a
   future promise.
+- `Description`, `WhenToEmit` and `WhenNotToEmit` are fixed text on purpose: they form the ONE catalog
+  entry every character is taught, kept in the cached part of the prompt. Wording that depends on who
+  is speaking ("her sword", "his men") belongs in `TeachingText`, which runs each turn with that
+  character's `VerbFacts` (`IsFemale` included); keep the catalog entry neutral ("their").
 - `IsEligible` and `TeachingText` are optional. Leave them null and your action is always taught
   once registered (its catalog entry is enough); supply them if the action should only be taught
   while some condition of your own holds.
 - `Execute` gets an `ActionRequest` carrying `VerbName`, the `[ACTION]` block's raw `Parameters`
   (a `IReadOnlyDictionary<string, string>`, exactly as the LLM emitted them), and `Facts` (a
-  `VerbFacts`: `NpcId`, `RelationToPlayer`, `FactionId`, `IsLord`, `IsPrisoner`). Everything is a
+  `VerbFacts`: `NpcId`, `RelationToPlayer`, `FactionId`, `IsLord`, `IsPrisoner`, `IsFemale`). Everything is a
   plain id or value, never a live `Hero` or a CR type. Re-resolve your own `Hero` from `NpcId` and
   do whatever engine work your mod needs entirely on your own side; CR never reaches into it.
 

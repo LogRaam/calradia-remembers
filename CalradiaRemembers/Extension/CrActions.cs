@@ -125,7 +125,8 @@ namespace CalradiaRemembers
             RelationToPlayer = ctx?.Profile?.ReputationWithPlayer ?? 0,
             FactionId = ctx?.Npc?.MapFaction?.StringId,
             IsLord = ctx?.Npc?.IsLord ?? false,
-            IsPrisoner = ctx?.Npc?.IsPrisoner ?? false
+            IsPrisoner = ctx?.Npc?.IsPrisoner ?? false,
+            IsFemale = ctx?.Npc?.IsFemale ?? false
          };
 
       #region private

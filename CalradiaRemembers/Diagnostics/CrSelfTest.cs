@@ -12470,6 +12470,7 @@ namespace CalradiaRemembers.Diagnostics
 
          NpcProfile profile = GetOrCreate(behavior, npc);
          var executed = false;
+         bool? factsSayFemale = null;
 
          var spec = new ExternalActionSpec {
             Name = name,
@@ -12479,6 +12480,7 @@ namespace CalradiaRemembers.Diagnostics
             Execute = request =>
             {
                executed = true;
+               factsSayFemale = request?.Facts?.IsFemale;
 
                return new ActionResult {Success = true, Message = execMessage};
             }
@@ -12501,6 +12503,8 @@ namespace CalradiaRemembers.Diagnostics
                new GameAction {Type = name}, npc, new ActionContext(profile, null));
 
             t.Expect("dispatchedTheRealExecuteCallback", executed, true);
+            // tashmetu (02/10/2026): a modder's wording says "her" or "his" from the facts, so they must carry the partner's sex.
+            t.Expect("factsCarryThePartnersSex", factsSayFemale, npc.IsFemale);
             t.Expect("outcomeCarriesTheDummyMessage", outcome?.Message, execMessage);
             t.Expect("outcomeIsFavourable", outcome?.IsPositive, true);
 
