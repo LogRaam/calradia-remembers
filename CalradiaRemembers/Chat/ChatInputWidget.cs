@@ -21,6 +21,15 @@ namespace CalradiaRemembers.Chat
     {
         private bool _focused;
 
+        // The field holding the keyboard, so Escape can leave it before it closes the conversation (03/10/2026).
+        private static ChatInputWidget _typingIn;
+
+        /// <summary>True while the message field holds the keyboard.</summary>
+        internal static bool IsTyping => _typingIn != null;
+
+        /// <summary>Leaves the message field, keeping what was typed.</summary>
+        internal static void StopTyping() => _typingIn?.EventManager?.ClearFocus();
+
         public ChatInputWidget(UIContext context) : base(context)
         {
         }
@@ -29,12 +38,21 @@ namespace CalradiaRemembers.Chat
         {
             base.OnGainFocus();
             _focused = true;
+            _typingIn = this;
         }
 
         protected override void OnLoseFocus()
         {
             base.OnLoseFocus();
             _focused = false;
+            if (ReferenceEquals(_typingIn, this)) _typingIn = null;
+        }
+
+        // A chat closed while the field held the keyboard never loses focus first: drop the reference with the widget.
+        protected override void OnDisconnectedFromRoot()
+        {
+            base.OnDisconnectedFromRoot();
+            if (ReferenceEquals(_typingIn, this)) _typingIn = null;
         }
 
         protected override void OnLateUpdate(float dt)

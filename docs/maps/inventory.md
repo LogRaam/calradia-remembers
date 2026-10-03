@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 459 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 902 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 905 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -794,7 +794,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (593)
+### CalradiaRemembers.Logic (596)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -864,6 +864,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CharacterOverrideSet` | public class | The authored overrides as a whole, with the rule for picking one for a hero. |
 | `ChatCompositionMode` | public enum | How a chat reply is composed. |
 | `ChatCompositionModePolicy` | public static class | Maps the "Chat Composition" MCM dropdown value to ChatCompositionMode. |
+| `ChatEscapeAction` | public enum | What the chat should do with one press of Escape. |
+| `ChatEscapeFacts` | public class | The state an Escape press is judged on. |
+| `ChatEscapePolicy` | public static class | Decides what one Escape press does in the chat. |
 | `ChatFocusArbitrationPolicy` | public static class | Whether the chat overlay should hold the input this frame, or stand aside for something that wants it. |
 | `ChatFocusVerdict` | public enum | What the chat overlay should be doing with the input this frame. |
 | `ChatWindowLivenessPolicy` | public static class | Whether a recorded chat window is genuinely live, or a leftover that must not block the next one. |

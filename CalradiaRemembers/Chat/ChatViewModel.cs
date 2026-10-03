@@ -1962,6 +1962,19 @@ namespace CalradiaRemembers.Chat
          IsComposeOpen = false;
       }
 
+      /// <summary>A side panel is open over the conversation (Escape closes it before the conversation).</summary>
+      public bool IsAnySidePanelOpen => _isComposeOpen || _isMemoryPanelOpen || _isPortraitPanelOpen || IsActionsPanelOpen || IsCouncilDossierOpen;
+
+      /// <summary>Escape's first step: closes the outermost open side panel, as its own Close button would.</summary>
+      public void CloseTopSidePanel()
+      {
+         if (IsCouncilDossierOpen) ExecuteCloseCouncilDossier();
+         else if (_isPortraitPanelOpen) ExecuteClosePortraitPanel();
+         else if (_isMemoryPanelOpen) ExecuteCloseMemoryPanel();
+         else if (IsActionsPanelOpen) ExecuteCloseActionsPanel();
+         else if (_isComposeOpen) ExecuteCloseCompose();
+      }
+
       /// <summary>The memory panel's "Close" button.</summary>
       public void ExecuteCloseMemoryPanel()
       {

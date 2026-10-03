@@ -217,6 +217,37 @@ namespace CalradiaRemembers.Chat
       ///   the layer COUNT it used to compare against a baseline cost a player every conversation in his session
       ///   (see that file's header). Acts only on the transition, so it never fights a screen frame after frame.
       /// </summary>
+      /// <summary>
+      ///   Escape, the key every player tries first, did nothing in a CR conversation: the close button was the only
+      ///   way out (EmperorHaterius, 03/10/2026: "I can't get out of them"). Pumped every frame with the arbiter;
+      ///   ChatEscapePolicy decides, outermost layer first, and only while the chat itself holds the keyboard.
+      /// </summary>
+      public static void HandleEscape()
+      {
+         if (!IsOpen || ActiveViewModel == null) return;
+
+         try
+         {
+            if (!TaleWorlds.InputSystem.Input.IsKeyPressed(TaleWorlds.InputSystem.InputKey.Escape)) return;
+
+            ChatViewModel vm = ActiveViewModel;
+            ChatEscapeAction action = ChatEscapePolicy.Decide(new ChatEscapeFacts {
+               ChatHasFocus = ReferenceEquals(ScreenManager.FocusedLayer, _activeLayer),
+               PanelOpen = vm.IsAnySidePanelOpen,
+               TypingWithText = ChatInputWidget.IsTyping && !string.IsNullOrWhiteSpace(vm.InputText)
+            });
+
+            ModLog.Info($"[CHAT] Escape: {action}");
+            switch (action)
+            {
+               case ChatEscapeAction.ClosePanel: vm.CloseTopSidePanel(); break;
+               case ChatEscapeAction.StopTyping: ChatInputWidget.StopTyping(); break;
+               case ChatEscapeAction.CloseChat: vm.ExecuteClose(); break;
+            }
+         }
+         catch (Exception ex) { ModLog.Error($"[CHAT] Escape handling failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
       public static void ArbitrateFocus()
       {
          if (!IsOpen || _hostScreen == null) return;
