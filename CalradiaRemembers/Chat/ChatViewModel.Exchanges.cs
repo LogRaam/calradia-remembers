@@ -2509,6 +2509,9 @@ namespace CalradiaRemembers.Chat
       /// <summary>The current conversation partner (the recipient of any offer).</summary>
       Hero IOfferHost.Npc => _npcHero;
 
+      /// <summary>The speaker's own profile, as MainSpeaker resolves it (never the DialogFlow cache first).</summary>
+      NpcProfile IOfferHost.Profile => MainSpeaker()?.Profile;
+
       /// <summary>True while an offer may be made: a plain live conversation that has not yet ended.</summary>
       bool IOfferHost.CanOffer => _mode == ChatMode.Conversation && !_conversationEnded;
 
@@ -2574,7 +2577,7 @@ namespace CalradiaRemembers.Chat
       Hero IManualActionMenuHost.Npc => _npcHero;
 
       /// <summary>This NPC's stored profile, when one exists yet.</summary>
-      NpcProfile IManualActionMenuHost.Profile => NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile;
+      NpcProfile IManualActionMenuHost.Profile => MainSpeaker()?.Profile; // the speaker's own, not the DialogFlow cache (Lordfadooboo, 02/10/2026)
 
       /// <summary>True while the menu may be opened: a plain live conversation that has not yet ended (mirrors IsActionMenuVisible).</summary>
       bool IManualActionMenuHost.CanOpenActionMenu => _mode == ChatMode.Conversation && !_conversationEnded;

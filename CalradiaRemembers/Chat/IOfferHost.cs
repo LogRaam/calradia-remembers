@@ -19,6 +19,14 @@ namespace CalradiaRemembers.Chat
       /// <summary>The current conversation partner (the former ChatViewModel._npcHero), the recipient of the offer.</summary>
       Hero Npc { get; }
 
+      /// <summary>
+      ///   The current conversation partner's own profile (the speaker's, as the chat resolves it), where their bargains
+      ///   and supply tasks live. Never the session-lifetime DialogFlow.Profile: that is the LAST person reached through
+      ///   the game's dialogue menu, and a companion reached any other way sent the bag to the wrong ledger
+      ///   (Lordfadooboo, 02/10/2026: twenty sacks of grain the companion had asked for, refused as "no task").
+      /// </summary>
+      NpcMemoryService.Core.Models.NpcProfile Profile { get; }
+
       /// <summary>True while an offer may be made: a plain live conversation that has not yet ended.</summary>
       bool CanOffer { get; }
 

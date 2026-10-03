@@ -23,7 +23,7 @@ namespace CalradiaRemembers.Chat
       /// <summary>The current conversation partner (the target of any manually-injected action).</summary>
       Hero Npc { get; }
 
-      /// <summary>This NPC's stored profile, when one exists yet (mirrors NpcMemoryCampaignBehavior.Instance.DialogFlow.Profile).</summary>
+      /// <summary>This NPC's stored profile, when one exists yet (the speaker's own, as the chat resolves it; never the DialogFlow cache).</summary>
       NpcProfile Profile { get; }
 
       /// <summary>True while the menu may be opened: a plain live conversation that has not yet ended.</summary>

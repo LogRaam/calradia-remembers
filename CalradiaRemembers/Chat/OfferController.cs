@@ -190,7 +190,7 @@ namespace CalradiaRemembers.Chat
       {
          try
          {
-            NpcProfile giver = NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile;
+            NpcProfile giver = host.Profile;
 
             if (giver == null || host.Npc == null) return null;
 
@@ -208,7 +208,7 @@ namespace CalradiaRemembers.Chat
       {
          try
          {
-            NpcProfile giver = NpcMemoryCampaignBehavior.Instance?.DialogFlow?.Profile;
+            NpcProfile giver = host.Profile;
 
             if (giver == null || host.Npc == null) return null;
 
@@ -231,7 +231,7 @@ namespace CalradiaRemembers.Chat
          try
          {
             var behavior = NpcMemoryCampaignBehavior.Instance;
-            NpcProfile giver = behavior?.DialogFlow?.Profile;
+            NpcProfile giver = host.Profile;
 
             if (behavior?.GameStateBridge == null || giver == null) return;
 
@@ -255,7 +255,7 @@ namespace CalradiaRemembers.Chat
          try
          {
             var behavior = NpcMemoryCampaignBehavior.Instance;
-            NpcProfile giver = behavior?.DialogFlow?.Profile;
+            NpcProfile giver = host.Profile;
 
             if (behavior?.GameStateBridge == null || giver == null) return;
 

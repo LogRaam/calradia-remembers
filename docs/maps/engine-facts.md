@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-411 rules read 317 facts.
+410 rules read 317 facts.
 
 ## Facts read by more than one rule
 
@@ -104,7 +104,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `CampaignOptions.IsLifeDeathCycleDisabled` (3) | `ExecutionFacts`, `PregnancyPolicy.MayConceive`, `PregnancyPolicy.ShouldEndStuckPregnancy` |
 | `CharacterRelationManager.GetHeroRelation` (3) | `ThirdPartyDescriptor.KnowledgeOf`, `ThirdPartyDescriptor.WhereaboutsClause`, `ThirdPartyFacts` |
 | `Clan.Heroes` (3) | `CouncilTroopDelivery`, `HostageCandidateFacts`, `HostageEligibilityPolicy.IsEligible` |
-| `DialogFlow.Profile` (3) | `OfferFlowGate.Route`, `PendingSummaryJob`, `SpeakerProfileSelector.Select` |
 | `EndCaptivityDetail.ReleasedAfterBattle` (3) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `EndCaptivityDetail.ReleasedByChoice` (3) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `GameStateBridge.GetCurrentGameDay` (3) | `ConversationResumeIdentity`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `PendingSummaryJob` |
@@ -141,6 +140,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `CharacterStates.Disabled` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice` (2) | `HireAgreementPolicy.AgreedPrice`, `HireAgreementPolicy.CanAfford` |
 | `Current.CurrentMenuContext` (2) | `DuelStagingSupport.ReadyToOpenTheSquare`, `RoadAudienceFacts` |
+| `DialogFlow.Profile` (2) | `PendingSummaryJob`, `SpeakerProfileSelector.Select` |
 | `EndCaptivityDetail.Death` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.Ransom` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.ReleasedAfterEscape` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
@@ -469,7 +469,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `NpcActionGate.Check`: `Hero.Age`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`
 - `OathOfferFacts`: `Clan.Kingdom`, `Clan.Leader`, `Hero.Clan`, `Hero.Gold`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Kingdom.Leader`, `PartyBelongedTo.LeaderHero`
 - `ObserverStakeFacts`: `Hero.Clan`
-- `OfferFlowGate.Route`: `DialogFlow.Profile`
 - `OpenRelationshipPolicy.SuppressesJealousy`: `Romantic.IsOpenArrangement`
 - `OutlawPolicy.HunterStrength`: `MemberRoster.TotalManCount`
 - `OutlawPolicy.IsBrigandage`: `Clan.Kingdom`, `Hero.MapFaction`, `IFaction.IsAtWarWith`, `Kingdom.RulingClan`
