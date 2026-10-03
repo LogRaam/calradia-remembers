@@ -71,7 +71,14 @@ namespace CalradiaRemembers.WorldEvents
       ///   and the confidence rating all already apply - the historian must not become a fourth memory store.
       ///   Added last to preserve the serialized ordinals of existing saves.
       /// </summary>
-      SeasonalTurn
+      SeasonalTurn,
+
+      /// <summary>
+      ///   A house rose in rebellion against its realm (FloatingMammal, 02/10/2026: a former rebel, received back, spoke
+      ///   as a loyalist). FactionIds[0] is the realm risen against; ActorIds are the house's members. Also how the
+      ///   house's return to that realm is recognised. Added last to preserve the serialized ordinals of existing saves.
+      /// </summary>
+      Rebellion
    }
 
    /// <summary>

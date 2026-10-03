@@ -697,6 +697,9 @@ namespace CalradiaRemembers.WorldEvents
             bool joined = detail == ChangeKingdomAction.ChangeKingdomActionDetail.JoinAsMercenary;
             if (left || joined) MercenaryReputationBehavior.Instance?.OnCompanyChangedKingdom(clan, oldKingdom, newKingdom, left, joined);
 
+            // A lord's house rising, or received back (FloatingMammal, 02/10/2026: a former rebel spoke as a loyalist).
+            RecordHouseRebellion(clan, oldKingdom, newKingdom, detail);
+
             return;
          }
 
@@ -756,6 +759,68 @@ namespace CalradiaRemembers.WorldEvents
             }
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] kingdom-change feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   A house that rises against its realm, and one received back into the realm it rose against: recorded as a world
+      ///   event and remembered by every adult member, so a former rebel never again speaks as though she had stood with
+      ///   the crown (FloatingMammal, Nexus, 02/10/2026). Until now only the PLAYER's house changing sides was recorded.
+      /// </summary>
+      private void RecordHouseRebellion(Clan clan, Kingdom oldKingdom, Kingdom newKingdom, ChangeKingdomAction.ChangeKingdomActionDetail detail)
+      {
+         try
+         {
+            if (Store == null || clan == null || clan.IsBanditFaction || clan.IsMinorFaction) return;
+
+            List<Hero> members = MembersWhoRemember(clan);
+
+            if (detail == ChangeKingdomAction.ChangeKingdomActionDetail.LeaveWithRebellion && oldKingdom != null)
+            {
+               var rose = new Logic.RebellionFacts {
+                  House = clan.Name?.ToString(), Realm = oldKingdom.Name?.ToString(), Ruler = oldKingdom.Leader?.Name?.ToString(),
+                  Banner = newKingdom != null && newKingdom != oldKingdom ? newKingdom.Name?.ToString() : ""
+               };
+               Store.Record(new WorldEvent {
+                  Type = WorldEventType.Rebellion, Day = Today, Magnitude = 50, Summary = Logic.RebellionWording.RoseSummary(rose),
+                  ActorIds = members.Select(h => h.StringId).ToList(),
+                  FactionIds = new List<string> {oldKingdom.StringId, newKingdom?.StringId}.Where(s => s != null).ToList()
+               });
+               RememberHouse(members, Logic.RebellionWording.RoseMemory(rose));
+               ModLog.Info($"[WORLD] house {clan.Name} rose against {oldKingdom.Name}; {members.Count} member(s) remember it.");
+
+               return;
+            }
+
+            bool joinedRealm = detail == ChangeKingdomAction.ChangeKingdomActionDetail.JoinKingdom
+                               || detail == ChangeKingdomAction.ChangeKingdomActionDetail.JoinKingdomByDefection;
+            if (!joinedRealm || newKingdom == null) return;
+
+            var ids = new HashSet<string>(members.Select(h => h.StringId));
+            WorldEvent rising = Store.MostRecentMatching(WorldEventType.Rebellion,
+               e => e.FactionIds != null && e.FactionIds.FirstOrDefault() == newKingdom.StringId && e.ActorIds != null && e.ActorIds.Any(ids.Contains));
+            if (rising == null) return;
+
+            var back = new Logic.RebellionFacts {House = clan.Name?.ToString(), Realm = newKingdom.Name?.ToString()};
+            Store.Record(new WorldEvent {
+               Type = WorldEventType.Other, Day = Today, Magnitude = 40, Summary = Logic.RebellionWording.ReturnedSummary(back),
+               ActorIds = members.Select(h => h.StringId).ToList(), FactionIds = new List<string> {newKingdom.StringId}
+            });
+            RememberHouse(members, Logic.RebellionWording.ReturnedMemory(back));
+            ModLog.Info($"[WORLD] house {clan.Name} received back into {newKingdom.Name} after its rebellion; {members.Count} member(s) remember it.");
+         }
+         catch (Exception ex) { ModLog.Error($"[WORLD] house rebellion not recorded for {clan?.Name}: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>The members of a house who remember its rising: adults in the world, never the player.</summary>
+      internal static List<Hero> MembersWhoRemember(Clan clan)
+         => (clan?.Heroes ?? Enumerable.Empty<Hero>())
+            .Where(h => h != null && h != Hero.MainHero && !h.IsChild && Mapping.HeroPresence.IsInTheWorld(h)).ToList();
+
+      /// <summary>Each member keeps the line, through CR's public memory door (which makes a profile properly when there is none).</summary>
+      private static void RememberHouse(IEnumerable<Hero> members, string line)
+      {
+         foreach (Hero h in members)
+            CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = h.StringId, Summary = line, Kind = "Other", DaysAgo = 0, SourceMod = "CalradiaRemembers"});
       }
 
       /// <summary>The player's clan entered a realm's service, as a sworn vassal or a hired company; RealmServiceWording words it.</summary>

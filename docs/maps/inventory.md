@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 456 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 888 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 890 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -791,7 +791,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (584)
+### CalradiaRemembers.Logic (586)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1230,6 +1230,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RealmTidingsPolicy` | public static class | Pure subject-selection for a realm-tidings letter: given the world events a writer could relay and the ones they have already relayed, picks the single most worth-telling fresh event, or nothing. |
 | `RealmTidingsSalience` | public static class | Turns a world event's magnitude (how far the news carries, 0..100) and the writer's RumorConfidence in it into the opaque salience score RealmTidingsPolicy.RealmTidingsCandidate competes on. |
 | `ReasoningWirePolicy` | public static class | Decides whether a provider kind expects the reasoning-effort keyword serialized as the top-level reasoning_effort string rather than OpenRouter's nested reasoning object. |
+| `RebellionFacts` | public class | A house's rebellion, and its return to the fold. |
+| `RebellionWording` | public static class | How a house's members remember a rebellion, and how the world tells it. |
 | `RecruitIntentDetector` | public static class | Detects a "where can I find / hire a companion?" intent in a free-text player message. |
 | `RecruitTroopsPolicy` | public static class | The rules of a recruit_troops task. |
 | `ReinforceGarrisonPolicy` | public static class | The rules of a reinforce_garrison task. |
