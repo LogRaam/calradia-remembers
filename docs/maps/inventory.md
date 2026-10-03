@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 457 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 896 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 897 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -792,7 +792,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (589)
+### CalradiaRemembers.Logic (590)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1246,6 +1246,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueEvidence` | public static class | The evidence line of a completed rescue task. |
 | `RetainerLeavePolicy` | public static class | Pure end-condition gate for an ACTIVE retainer arrangement (a foreign lord riding in the player's party). |
 | `RetentionStep` | public enum | What the engine should do this tick for an unhappy companion. |
+| `RetiredArchetypes` | public static class | Persona archetypes no longer handed out, recognised in a stored profile. |
 | `RetirementKind` | public enum | What a spent companion asks for when they retire — decided by whether they hold land. |
 | `RideWithMeEligibilityPolicy` | public static class | Pure eligibility gate for ride_with_me: the idle-lord retainer, the exact complement of EscortEligibilityPolicy.CanEscort. |
 | `RoadAudienceFacts` | public class | Everything that could make right now a bad moment to interrupt the player, read off the live campaign by the caller. |

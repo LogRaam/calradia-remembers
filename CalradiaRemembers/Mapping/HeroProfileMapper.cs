@@ -130,7 +130,10 @@ namespace CalradiaRemembers.Mapping
             needsRomantic = true;
          }
 
-         bool maybeStaleTrait = string.IsNullOrEmpty(profile.Trait) || profile.Trait.StartsWith("Thoroughly Conventional");
+         // A retired archetype (an ordinary trait mix once worded as an appetite for suffering; tashmetu, 02/10/2026) is
+         // derived again, so a save made before the rewording does not keep it for good.
+         bool maybeStaleTrait = string.IsNullOrEmpty(profile.Trait) || profile.Trait.StartsWith("Thoroughly Conventional")
+                                || Logic.RetiredArchetypes.IsRetired(profile.Trait);
 
          // Cheap exit — nothing to do for already-upgraded profiles.
          if (!needsRomantic && !maybeStaleTrait) return;
@@ -327,7 +330,7 @@ namespace CalradiaRemembers.Mapping
          if (t.Honor == -1 && t.Valor == -1 && t.Generosity == 1 && t.Calculating == -1) return "The Impulsive Coward. Gives and retreats in equal measure, without plan or principle. Well-meaning in their way; thoroughly unreliable in every other.";
 
          // Mercy=-1, Valor=1 combos
-         if (t.Mercy == -1 && t.Valor == 1 && t.Generosity == -1 && t.Calculating == -1) return "The Reckless Butcher. Fights viciously, acts without plan, keeps everything — pure aggression with neither strategy nor generosity to balance it.";
+         if (t.Mercy == -1 && t.Valor == 1 && t.Generosity == -1 && t.Calculating == -1) return "The Reckless Fighter. Fights hard, acts without plan, keeps what they take: aggression with neither strategy nor generosity to balance it.";
          if (t.Mercy == -1 && t.Valor == 1 && t.Generosity == 1 && t.Calculating == -1) return "The Bloody Champion. Fights hard and gives generously but acts on impulse and forgives nothing — magnificent and terrible in equal measure.";
          if (t.Mercy == -1 && t.Valor == 1 && t.Generosity == -1 && t.Valor == 1) return "The Iron Soldier. Fights with precision, shows no mercy, keeps every resource — principled about violence, indifferent to everything else."; // edge case
 
@@ -365,7 +368,7 @@ namespace CalradiaRemembers.Mapping
          if (t.Mercy == 1 && t.Valor == 1 && t.Generosity == 1 && t.Calculating == 1) return "The Beloved Strategist. Brave, merciful, generous, and calculating — leads with both heart and mind. Rarely wrong; almost always followed.";
          if (t.Mercy == 1 && t.Valor == 1 && t.Honor == -1 && t.Calculating == 1) return "The Cunning Champion. Brave, compassionate, and strategic — but their word is not reliable. The cause they fight for may be just; the promises they make are not.";
          if (t.Mercy == 1 && t.Generosity == 1 && t.Honor == -1 && t.Calculating == 1) return "The Scheming Saint. Kind, generous, and calculating — but dishonest at the foundation. Every act of compassion is real and serves a purpose at the same time.";
-         if (t.Honor == -1 && t.Valor == 1 && t.Mercy == -1 && t.Calculating == 1) return "The Calculated Savage. Fights viciously and plans the violence carefully — dishonest, merciless, and effective. A dangerous enemy and an unreliable ally.";
+         if (t.Honor == -1 && t.Valor == 1 && t.Mercy == -1 && t.Calculating == 1) return "The Ruthless Tactician. Fights hard and plans carefully; dishonest, and merciless when it serves. A dangerous enemy and an unreliable ally.";
          if (t.Honor == -1 && t.Valor == 1 && t.Mercy == 1 && t.Calculating == -1) return "The Wild Knight. Brave and compassionate but impulsive and untrustworthy — charges into danger for the right reasons and breaks oaths without noticing.";
          if (t.Honor == 1 && t.Mercy == 1 && t.Valor == 1 && t.Generosity == -1) return "The Frugal Paragon. Brave, principled, and merciful — holds everything else close. Will fight for you; will not fund you. Generous with courage; not with coin.";
          if (t.Honor == 1 && t.Mercy == -1 && t.Valor == -1 && t.Generosity == 1) return "The Exacting Patron. Principled and generous, but shows no mercy and avoids the front line. Rewards well; punishes the unworthy; sends others to do the fighting.";
@@ -473,7 +476,8 @@ namespace CalradiaRemembers.Mapping
       {
          // ── Covered since Sprint 8.1 ──────────────────────────────────────
          if (t.Generosity == -1 && t.Valor == 1 && t.Mercy == -1) return "Fierce And Cruel. Brave in battle and vicious in victory — does not give, does not forgive. Enemies fear them; subjects endure them.";
-         if (t.Generosity == -1 && t.Honor == -1 && t.Mercy == -1) return "Sadistic. Takes pleasure in the suffering of others, breaks oaths without guilt, hoards what others need. A predator wearing a lord's title.";
+         // Generosity -1, Honor -1, Mercy -1 is "The Small Tyrant" below. It read "Sadistic... a predator" here until 02/10/2026:
+         // three ordinary leanings played as a monster (tashmetu). See RetiredArchetypes.
          if (t.Generosity == 1 && t.Honor == 1 && t.Calculating == -1) return "Noble And Generous. High-minded and open-handed, acts on principle before strategy. May be outmaneuvered by sharper minds, but never loses their honor.";
          if (t.Generosity == 1 && t.Valor == -1 && t.Calculating == 1) return "Decent But Cautious. Generous and strategic, but avoids the front line. Their gifts and plans speak louder than their sword arm.";
          if (t.Generosity == -1 && t.Mercy == -1 && t.Calculating == 1) return "Icy. Hoards, schemes, and shows no compassion. Everything is a transaction; sentiment is a liability they have long since shed.";
@@ -488,8 +492,8 @@ namespace CalradiaRemembers.Mapping
          // ── New in Sprint 8.3 full coverage ───────────────────────────────
 
          // Valor=1, Mercy=-1 variants
-         if (t.Mercy == -1 && t.Valor == 1 && t.Calculating == -1) return "The Savage. Fights viciously and acts without plan — courage and cruelty with no restraint. Every engagement is personal, every victory excessive.";
-         if (t.Mercy == -1 && t.Valor == 1 && t.Calculating == 1) return "The Disciplined Predator. Plans the violence and executes it without hesitation or remorse. Fights with both skill and ruthlessness — a dangerous combination in any era.";
+         if (t.Mercy == -1 && t.Valor == 1 && t.Calculating == -1) return "The Pitiless Hothead. Fights hard and acts without plan, and spares no one who stands against them. Quick to anger, slow to forgive.";
+         if (t.Mercy == -1 && t.Valor == 1 && t.Calculating == 1) return "The Cold Soldier. Plans the fight and carries it out without hesitation or pity. Skilled and unsentimental: a hard enemy to face.";
          if (t.Mercy == -1 && t.Valor == 1 && t.Generosity == -1) return "The Warlord. Fights hard, forgives nothing, gives nothing. Keeps victories and coin with equal jealousy. The battlefield is their only natural element.";
          if (t.Mercy == -1 && t.Valor == 1 && t.Generosity == 1) return "The Violent Patron. Rewards loyalty lavishly and punishes failure without mercy — generous to those in the circle, dangerous to those outside it.";
 
@@ -608,7 +612,7 @@ namespace CalradiaRemembers.Mapping
          if (t.Mercy == -1 && t.Generosity == -1) return "Bitter And Hard. Neither gives nor forgives. Life in Calradia has not been kind to them, and they see no reason to be kind to others.";
 
          // ── New in Sprint 8.3 full coverage ───────────────────────────────
-         if (t.Mercy == -1 && t.Valor == 1) return "The Savage. Fights without mercy and takes pleasure in it — courage unconstrained by any softness. A warlord at heart, whatever title they hold.";
+         if (t.Mercy == -1 && t.Valor == 1) return "The Hard Soldier. Brave, and without mercy for those who oppose them: spares no beaten enemy and does not dwell on it. A warrior first, whatever title they hold.";
          if (t.Honor == -1 && t.Valor == -1) return "Cowardly And Dishonest. Avoids danger and breaks oaths with equal ease. The combination of unreliability and self-preservation makes them the most useless kind of lord.";
          if (t.Valor == -1 && t.Generosity == 1) return "The Generous Rearguard. Gives freely and governs with care, but will not stand in the front line. Coin and comfort flow from their hand; danger they leave to others.";
          if (t.Honor == -1 && t.Generosity == 1) return "The Open-Handed Liar. Generous and charming, breaks faith without shame. The gifts are real; the promises are not.";
