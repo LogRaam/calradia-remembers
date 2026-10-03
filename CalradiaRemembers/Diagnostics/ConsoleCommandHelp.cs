@@ -190,6 +190,7 @@ namespace CalradiaRemembers.Diagnostics
             ["memory"] = new ConsoleCommandDoc("[name]", "Prints everything a character remembers of you, numbered oldest first. The number in front of each line is what cr.forget takes. With no name, the character you are talking to."),
             ["memory_add"] = new ConsoleCommandDoc("<days_ago> <text> [name]", "Writes a memory into a character's past, so you need not begin every acquaintance as a stranger. The last word is read as a name if it matches one. Example: cr.memory_add 30 We fought side by side at Pendraic. Derthert"),
             ["memory_load"] = new ConsoleCommandDoc("", "Lists the characters carrying the most memories, since those are the ones inflating the prompt, and says whether each is due for compression. Mutates nothing."),
+            ["memory_repair_accents"] = new ConsoleCommandDoc("", "Mends every stored memory whose accents the console mangled before 2.6.11 (\"Ã©\" where \"é\" was typed). Touches nothing else: safe on any save, and safe to run twice. Save afterwards to keep it."),
             ["memory_set"] = new ConsoleCommandDoc("<index> <text> [name]", "Rewrites one memory in a character's own words. Take the number from cr.memory."),
             ["mission_return"] = new ConsoleCommandDoc("", "Force-resolves the first in-flight errand NOW and prints the report: the test path so you need not wait the in-game days for the companion to ride there and back."),
             ["missions"] = new ConsoleCommandDoc("", "Lists the errands companions are currently away on."),

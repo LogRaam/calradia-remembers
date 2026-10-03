@@ -155,6 +155,36 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.memory_repair_accents: mends every stored memory the console mangled before 2.6.11 ("Ã©" for an e-acute;
+      ///   Shinelegacy, 03/10/2026). Only text that reads back as the console's mangling is touched; everything else is
+      ///   left exactly as it is, so it is safe to run on any save, and twice.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("memory_repair_accents", "cr")]
+      public static string RepairMemoryAccents(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error))
+            return error;
+
+         int memories = 0, characters = 0;
+         foreach (string id in behavior.Store.ListIds())
+         {
+            NpcProfile profile = behavior.Store.Get(id);
+            int mended = Logic.Diagnostics.MemoryAccentRepair.Repair(profile);
+            if (mended == 0) continue;
+
+            behavior.Store.Set(profile);
+            memories += mended;
+            characters++;
+         }
+
+         ModLog.Info($"[MEMORY] cr.memory_repair_accents mended {memories} memory(ies) across {characters} character(s).");
+
+         return memories == 0
+            ? "No mangled memory found: nothing to mend."
+            : $"Mended {memories} memory(ies) across {characters} character(s). Save the game to keep the repair.";
+      }
+
+      /// <summary>
       ///   cr.memory_set &lt;index&gt; &lt;new text&gt; [name]
       ///   Replaces the summary of the event at the given index with new text.
       ///   The last token is tried as an NPC name fragment; if it matches a hero it is

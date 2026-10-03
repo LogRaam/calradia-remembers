@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 459 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 900 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 901 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1592,7 +1592,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SilenceOrderPolicy` | public static class | Resolves a silence order. |
 | `SilenceResponse` | public enum | Whether an ordered participant yields the floor or holds it. |
 
-### CalradiaRemembers.Logic.Diagnostics (5)
+### CalradiaRemembers.Logic.Diagnostics (6)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1601,6 +1601,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DiagnosticSubject` | public class | A character a diagnostic command may pick: its hero id and its display name. |
 | `DiagnosticSubjectPicker` | public static class | Picks a diagnostic command's subject from what was typed. |
 | `LogRotationPolicy` | public static class | Trims a session-delimited log to its most recent blocks. |
+| `MemoryAccentRepair` | public static class | Mends a profile's memories mangled by the console. |
 
 ### CalradiaRemembers.Logic.Duels (24)
 

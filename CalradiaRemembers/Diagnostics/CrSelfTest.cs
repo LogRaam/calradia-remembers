@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("memory_repair_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026) and Gabriel: one command to mend every memory the console mangled before the fix. Stores a mangled memory on a real lord, as an old save holds it, runs cr.memory_repair_accents through the engine's console: the memory must read as typed. Removes it after.", TestMemoryRepairAccents),
          new SelfTest("console_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026): accents typed into cr.memory_add / cr.memory_set came out as mojibake (the console reads UTF-8 back as Windows-1252). Sends cr.memory_add, through the engine's own console dispatch, a line mangled exactly as the console mangles it: the stored memory must read exactly as typed. Removes the memory after.", TestConsoleAccents),
          new SelfTest("extreme_trait_persona", Severity.Light, "A trait at +-2 (the game's strongest) met no persona archetype and got the generic 'figure of contradictions' line. Takes a real hero with such a trait and builds the persona the real way: the extreme must be said in it, never as relish. Stores nothing.", TestExtremeTraitPersona),
          new SelfTest("retired_persona_refreshed", Severity.Light, "tashmetu (Nexus, 02/10/2026): a companion's sister played far crueller than her traits, because three ordinary -1 traits drew the 'Sadistic' archetype. It was reworded; a save keeps the persona it stored. Gives a throwaway profile of a real lord the old wording and runs the real load upgrade: it must be derived again. Stores nothing.", TestRetiredPersonaRefreshed),
@@ -8669,6 +8670,39 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestMemoryRepairAccents(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("memory_repair_accents");
+
+         Hero hero = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && behavior.Store.Get(h.StringId) != null);
+         if (t.Skip(hero == null, "no lord with a CR profile")) return t.Line();
+
+         const string typed = "[SELFTEST] Elle m'a aidé à Pravend, cœur vaillant.";
+         try
+         {
+            // As a save made before the console fix holds it: the memory already stored mangled.
+            NpcProfile profile = behavior.Store.Get(hero.StringId);
+            profile.Events.Add(new NotableEvent(1, NotableEventType.Other, Logic.Diagnostics.ConsoleTextRepair.Mangle(typed)));
+            behavior.Store.Set(profile);
+
+            string reply = TaleWorlds.Library.CommandLineFunctionality.CallFunction("cr.memory_repair_accents", "", out bool found);
+            t.Note($"{hero.Name}: {reply}");
+            t.Expect("theCommandWasFound", found, true);
+            t.Expect("theMemoryReadsAsTyped", behavior.Store.Get(hero.StringId).Events.Any(e => e.summary == typed), true);
+         }
+         finally
+         {
+            NpcProfile profile = behavior.Store.Get(hero.StringId);
+            if (profile?.Events != null)
+            {
+               profile.Events.RemoveAll(e => e.summary != null && e.summary.StartsWith("[SELFTEST]"));
+               behavior.Store.Set(profile);
+            }
+         }
 
          return t.Line();
       }
