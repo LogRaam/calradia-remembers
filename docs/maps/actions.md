@@ -33,7 +33,7 @@ the subject of news, and the verbs a model emits in conversation have their own 
 | `TrialSeat` | `ArrestBehavior.TrialBench` |
 | `Ward` | `CouncilWardBehavior.TryStart`, `WardCandidateResolver.IsEligible` |
 | `Warrant` | `ArrestBehavior.Charge` |
-| `Witness` | `WitnessResolver.GetPlayerCompanions`, `WitnessResolver.IsValidWitness`, `WitnessResolver.ResolveSceneCompanions` |
+| `Witness` | `PlayerCompany.Members`, `WitnessResolver.GetPlayerCompanions`, `WitnessResolver.IsValidWitness`, `WitnessResolver.ResolveSceneCompanions` |
 
 ## Letters written straight into the post
 

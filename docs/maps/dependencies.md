@@ -120,21 +120,21 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.OpenPartnerLover` | 9 | 2 |
 | `NpcMemoryService.Core.Prompts` | 8 | 15 |
 | `CalradiaRemembers.Standing` | 8 | 6 |
+| `CalradiaRemembers.Witnesses` | 8 | 6 |
 | `CalradiaRemembers.Rescue` | 8 | 1 |
 | `CalradiaRemembers.Arrests` | 7 | 6 |
 | `CalradiaRemembers.Chronicle` | 7 | 2 |
 | `CalradiaRemembers.RealmTidings` | 7 | 2 |
 | `NpcMemoryService.Core.Models` | 6 | 55 |
 | `NpcMemoryService.Core.Services` | 6 | 21 |
-| `CalradiaRemembers.Witnesses` | 6 | 6 |
 | `CalradiaRemembers.Commoners` | 6 | 2 |
 | `CalradiaRemembers.Memory` | 6 | 2 |
 | `CalradiaRemembers.Battles` | 5 | 5 |
 | `CalradiaRemembers.Appreciations` | 4 | 13 |
 | `CalradiaRemembers.Logic.Assemblies` | 4 | 11 |
 | `NpcMemoryService.Core.Knowledge` | 4 | 8 |
+| `CalradiaRemembers.Escort` | 4 | 6 |
 | `NpcMemoryService.Core.Actions` | 4 | 6 |
-| `CalradiaRemembers.Escort` | 4 | 5 |
 | `CalradiaRemembers.Dynasty` | 4 | 2 |
 | `CalradiaRemembers.Scenarios` | 4 | 2 |
 | `CalradiaRemembers.WarCouncil` | 4 | 2 |
@@ -145,7 +145,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `NpcMemoryService.Core.Compression` | 3 | 2 |
 | `CalradiaRemembers.Logic.Grudges` | 2 | 25 |
 | `NpcMemoryService.Core.Parsing` | 2 | 8 |
-| `CalradiaRemembers.Retainer` | 2 | 6 |
+| `CalradiaRemembers.Retainer` | 2 | 7 |
 | `CalradiaRemembers.Settings` | 2 | 4 |
 | `CalradiaRemembers.Items` | 2 | 3 |
 | `CalradiaRemembers.Map` | 2 | 1 |
@@ -284,7 +284,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 ### CalradiaRemembers.Escort
 
 - uses: `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Escort`, `CalradiaRemembers.Mapping`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Witnesses`
 
 ### CalradiaRemembers.GUI
 
@@ -519,7 +519,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 ### CalradiaRemembers.Retainer
 
 - uses: `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Logic`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Witnesses`
 
 ### CalradiaRemembers.Scenarios
 
@@ -598,7 +598,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 ### CalradiaRemembers.Witnesses
 
-- uses: `CalradiaRemembers.Appearance`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Storage`, `NpcMemoryService.Core.Models`
+- uses: `CalradiaRemembers.Appearance`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Escort`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Retainer`, `CalradiaRemembers.Storage`, `NpcMemoryService.Core.Models`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Companions`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Nemesis`
 
 ### CalradiaRemembers.WorldAlmanac

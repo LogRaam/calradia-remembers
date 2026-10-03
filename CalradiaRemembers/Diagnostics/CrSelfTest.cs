@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("player_company", Severity.Light, "Gabriel's Invite / Request Private design (03/10/2026, after nerethi). Reads the player's real company (party, escorts, prison): never the player, every prisoner truly held, the one spoken to never offered for invitation, and a room made only of the company, seated as Invite seats them, is cleared at once. Changes nothing.", TestPlayerCompany),
          new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
          new SelfTest("memory_repair_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026) and Gabriel: one command to mend every memory the console mangled before the fix. Stores a mangled memory on a real lord, as an old save holds it, runs cr.memory_repair_accents through the engine's console: the memory must read as typed. Removes it after.", TestMemoryRepairAccents),
          new SelfTest("console_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026): accents typed into cr.memory_add / cr.memory_set came out as mojibake (the console reads UTF-8 back as Windows-1252). Sends cr.memory_add, through the engine's own console dispatch, a line mangled exactly as the console mangles it: the stored memory must read exactly as typed. Removes the memory after.", TestConsoleAccents),
@@ -8671,6 +8672,33 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestPlayerCompany(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("player_company");
+
+         List<(Hero Hero, CompanyRole Role)> members = Witnesses.PlayerCompany.Members();
+         if (t.Skip(members.Count == 0, "nobody travels with the player")) return t.Line();
+
+         t.Note(string.Join(", ", members.Select(m => $"{m.Hero.Name} ({m.Role})")));
+         t.Expect("thePlayerIsNeverOfHisOwnCompany", members.Any(m => m.Hero == Hero.MainHero), false);
+         t.Expect("everyPrisonerIsHeld", members.Where(m => m.Role == CompanyRole.Prisoner).All(m => m.Hero.IsPrisoner), true);
+
+         // Inviting: the person spoken to is never offered.
+         (Hero first, CompanyRole _) = members[0];
+         IReadOnlyList<CompanyMember> offered = PlayerCompanyPolicy.InviteCandidates(Witnesses.PlayerCompany.AsCandidates(), first.StringId, new string[0]);
+         t.Expect("theOneSpokenToIsNotOffered", offered.Any(c => c.Id == first.StringId), false);
+
+         // A room made only of the player's company, as Invite would seat them: cleared at once (Gabriel, 03/10/2026).
+         var seated = members.Select(m => Witnesses.PlayerCompany.EntryFor(m.Hero, m.Role)).Where(e => e != null)
+                             .Select(e => new PresentWitness {HeroId = e.HeroStringId, IsPlayerCompanion = e.IsPlayerCompanion, IsBroughtCaptive = e.IsBroughtCaptive});
+         bool allMine = PlayerCompanyPolicy.AllAreThePlayers(seated, Witnesses.PlayerCompany.Ids());
+         t.Expect("aRoomOfThePlayersOwnIsClearedAtOnce",
+                  PrivateAudiencePolicy.Decide(new PrivateAudienceFacts {Allowed = true, AnyWitness = true, AllWitnessesAreThePlayers = allMine}),
+                  PrivateAudienceVerdict.ClearAtOnce);
 
          return t.Line();
       }

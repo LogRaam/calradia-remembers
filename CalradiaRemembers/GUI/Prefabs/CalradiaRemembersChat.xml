@@ -181,6 +181,31 @@
                             Text="Request Private" />
               </Children>
             </ButtonWidget>
+            <!-- Invite (Gabriel, 03/10/2026, after nerethi): always offered in a conversation; left of Round Table. -->
+            <ButtonWidget Id="InviteButton"
+                          WidthSizePolicy="Fixed"
+                          HeightSizePolicy="Fixed"
+                          SuggestedWidth="90"
+                          SuggestedHeight="22"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Bottom"
+                          MarginBottom="6"
+                          MarginRight="266"
+                          IsVisible="@IsInviteVisible"
+                          DoNotPassEventsToChildren="true"
+                          Brush="ButtonBrush1"
+                          UpdateChildrenStates="true"
+                          Command.Click="ExecuteInvite">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Brush="Popup.Button.Text"
+                            Brush.FontSize="14"
+                            Text="Invite" />
+              </Children>
+            </ButtonWidget>
             <ButtonWidget Id="RoundTableButton"
                           WidthSizePolicy="Fixed"
                           HeightSizePolicy="Fixed"

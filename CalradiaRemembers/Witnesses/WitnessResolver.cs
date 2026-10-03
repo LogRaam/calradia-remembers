@@ -599,7 +599,7 @@ namespace CalradiaRemembers.Witnesses
       ///   can react to a companion's mastercraft blade or a bystander's shabby rags. Null when nothing about
       ///   their gear stands out or the hero cannot be read. Never throws: called for every witness, every turn.
       /// </summary>
-      private static string ComposeGear(Hero hero)
+      internal static string ComposeGear(Hero hero)
       {
          try
          {

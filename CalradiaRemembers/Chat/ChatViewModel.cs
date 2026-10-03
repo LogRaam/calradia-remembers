@@ -437,8 +437,6 @@ namespace CalradiaRemembers.Chat
       // Set when the player clicks "Request Private" — injected once, then cleared.
       private bool _privacyRequestPending;
 
-      // Set once the request is used (accepted or refused) — button never reappears.
-      private bool _privacyRequestUsed;
       private string _relationSummary = "";
       private bool _retireGranted; // the player granted the retirement this audience (executed on close)
       private bool _sceneContinuationPending;
@@ -730,6 +728,13 @@ namespace CalradiaRemembers.Chat
       public bool IsOfferItemVisible => _mode == ChatMode.Conversation && !_conversationEnded;
 
       /// <summary>
+      ///   The "Invite" button: always offered in a conversation (Gabriel, 03/10/2026, after nerethi's request), to
+      ///   bring in a companion, a lord riding with the player, or one of the player's prisoners.
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsInviteVisible => _mode == ChatMode.Conversation && !_conversationEnded;
+
+      /// <summary>
       ///   True in plain Conversation mode while the exchange is still open: shows the manual action-injection
       ///   tile (the third icon, beside the purse and quill). The player opens it to inject a possible action
       ///   the interpreter missed, or to drive an action directly with the interpreter turned off.
@@ -747,6 +752,7 @@ namespace CalradiaRemembers.Chat
       {
          OnPropertyChanged(nameof(IsOfferItemVisible));
          OnPropertyChanged(nameof(IsActionMenuVisible));
+         OnPropertyChanged(nameof(IsInviteVisible));
          OnPropertyChanged(nameof(IsChatInputVisible));
          OnPropertyChanged(nameof(IsComposeToggleVisible));
       }
@@ -1196,6 +1202,7 @@ namespace CalradiaRemembers.Chat
          _mode = ChatMode.CaptiveEncounter;
          OnPropertyChanged(nameof(IsOfferItemVisible));
          OnPropertyChanged(nameof(IsActionMenuVisible));
+         OnPropertyChanged(nameof(IsInviteVisible));
 
          // Audit M10/M11: "captive" is not "sexual", so a ransom or an intimidation stays ordinary; a sexual intent
          // is CNC. Diagnostic/log value only now (three-state switch replaced content-kind auto-routing, 2026-08-21):
@@ -2246,24 +2253,30 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public void ExecuteRequestPrivate()
       {
-         if (_privacyRequestUsed || _witnesses.Count == 0) return;
+         PrivateAudienceVerdict verdict = PrivacyVerdict();
+         if (verdict == PrivateAudienceVerdict.Unavailable) return;
 
-         // A prisoner has no say over who stays: the player commands the room. Clear the witnesses outright,
-         // with no LLM round-trip and no chance of a "refusal" (player suggestion, ApocalyptikGreen 2026-07-10).
-         if (NpcIsPlayerPrisoner())
+         // The player commands the room: their own prisoner has no say over who stays (ApocalyptikGreen,
+         // 2026-07-10), and when every witness is the player's own people they simply step away (Gabriel,
+         // 03/10/2026). No LLM round-trip, no chance of a "refusal".
+         if (verdict == PrivateAudienceVerdict.ClearAtOnce)
          {
-            _privacyRequestUsed = true;
+            bool prisoner = NpcIsPlayerPrisoner();
             _witnesses.Clear();
             _currentSpeakerHeroId = null; // no witnesses left, back to the main NPC
             RefreshWitnessUi();
-            AppendSystemMessage("You order the others out. You are alone with your prisoner.", true);
-            ModLog.Info("[WITNESSES] private audience taken by force (the player's prisoner has no say).");
+            AppendSystemMessage(prisoner
+               ? "You order the others out. You are alone with your prisoner."
+               : $"Your people step away. You are alone with {_npcHero?.Name}.", true);
+            ModLog.Info(prisoner
+               ? "[WITNESSES] private audience taken by force (the player's prisoner has no say)."
+               : "[WITNESSES] private audience: every witness was the player's own, cleared at once.");
 
             return;
          }
 
+         // Asked again after a refusal if the player wishes: the button only waits for the last answer.
          _privacyRequestPending = true;
-         _privacyRequestUsed = true;
          RefreshWitnessUi();
          ModLog.Info("[WITNESSES] player requested private audience.");
          // Trigger immediate exchange; _privacyRequestPending is already true so
@@ -2271,6 +2284,75 @@ namespace CalradiaRemembers.Chat
          InputText = "I would speak with you privately.";
          ExecuteSendMessage();
       }
+
+      /// <summary>What a request for privacy would do right now (PrivateAudiencePolicy).</summary>
+      private PrivateAudienceVerdict PrivacyVerdict()
+      {
+         bool allMine = false;
+         if (_witnesses.Count > 0)
+         {
+            HashSet<string> company = Witnesses.PlayerCompany.Ids();
+            allMine = PlayerCompanyPolicy.AllAreThePlayers(
+               _witnesses.Select(w => new PresentWitness {HeroId = w.HeroStringId, IsPlayerCompanion = w.IsPlayerCompanion, IsBroughtCaptive = w.IsBroughtCaptive}),
+               company);
+         }
+
+         return PrivateAudiencePolicy.Decide(new PrivateAudienceFacts {
+            Allowed = AllowsPrivacyRequest, AnyWitness = _witnesses.Count > 0, RequestPending = _privacyRequestPending,
+            NpcIsPlayersPrisoner = NpcIsPlayerPrisoner(), AllWitnessesAreThePlayers = allMine
+         });
+      }
+
+      /// <summary>
+      ///   The "Invite" button (Gabriel's design, 03/10/2026, after nerethi asked to invite someone into a
+      ///   conversation): pick a companion, a lord riding with the player, or one of the player's prisoners, and
+      ///   they join as witnesses. Never the person being spoken to, never someone already present.
+      /// </summary>
+      public void ExecuteInvite()
+      {
+         if (!IsInviteVisible) return;
+
+         try
+         {
+            List<(Hero Hero, CompanyRole Role)> members = Witnesses.PlayerCompany.Members();
+            IReadOnlyList<CompanyMember> candidates = PlayerCompanyPolicy.InviteCandidates(
+               members.Select(m => new CompanyMember {Id = m.Hero.StringId, Name = m.Hero.Name?.ToString() ?? "", Role = m.Role}),
+               _npcHero?.StringId, _witnesses.Select(w => w.HeroStringId).Where(id => id != null));
+
+            if (candidates.Count == 0)
+            {
+               AppendSystemMessage("No one travelling with you can be brought in.", false);
+
+               return;
+            }
+
+            var elements = candidates.Select(c => new InquiryElement(c.Id, $"{c.Name} ({RoleLabel(c.Role)})", null)).ToList();
+            MBInformationManager.ShowMultiSelectionInquiry(
+               new MultiSelectionInquiryData(
+                  "Invite Someone",
+                  "Bring someone travelling with you into this conversation: a companion, a lord riding with you, or one of your prisoners.",
+                  elements, true, 0, 3, "Invite", "Cancel",
+                  selected =>
+                  {
+                     foreach (InquiryElement element in selected ?? new List<InquiryElement>())
+                     {
+                        (Hero hero, CompanyRole role) = members.FirstOrDefault(m => m.Hero.StringId == element.Identifier as string);
+                        WitnessEntry entry = Witnesses.PlayerCompany.EntryFor(hero, role);
+                        if (entry == null) continue;
+
+                        AddWitness(entry);
+                        AppendSystemMessage($"{entry.Name} joins you.", true);
+                        ModLog.Info($"[WITNESSES] invited by the player: {entry.Name} ({role}).");
+                     }
+                  },
+                  null),
+               false, true);
+         }
+         catch (Exception ex) { ModLog.Error($"[WITNESSES] invite failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      private static string RoleLabel(CompanyRole role)
+         => role == CompanyRole.Prisoner ? "your prisoner" : role == CompanyRole.TravellingLord ? "riding with you" : "companion";
 
       /// <summary>
       ///   Player opens the floor to the whole group (the "Round Table" button): the main NPC and each present

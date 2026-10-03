@@ -707,7 +707,9 @@ namespace CalradiaRemembers.Chat
          }
 
          HasWitnesses = any;
-         IsPrivateRequestVisible = any && !_privacyRequestUsed && AllowsPrivacyRequest;
+         // Shown whenever there is someone to send out and no request is waiting: asked again after a refusal, gone when
+         // only the player and the main character remain (Gabriel, 03/10/2026).
+         IsPrivateRequestVisible = PrivacyVerdict() != PrivateAudienceVerdict.Unavailable;
 
          // The round-table button is offered whenever there is a group to go round (witnesses present), outside
          // captive scenes and once the conversation has not been ended. Left AVAILABLE in the companion-briefing

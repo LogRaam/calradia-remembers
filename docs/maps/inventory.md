@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 459 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 905 types in 26 namespaces, 2 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 460 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 912 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -744,10 +744,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `WarCouncilOfferBehavior` | public class | Watches the campaign events that mark a considerable army action and, when the player commands an army and the anti-spam cooldown has elapsed, offers to convene the war council. |
 
-### CalradiaRemembers.Witnesses (1)
+### CalradiaRemembers.Witnesses (2)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `PlayerCompany` | internal static class | The player's company: who may be invited into a conversation, and whose presence the player commands. |
 | `WitnessResolver` | public static class | Determines which NPCs are present during a conversation and returns them as WitnessEntry objects for prompt injection. |
 
 ### CalradiaRemembers.WorldAlmanac (14)
@@ -794,7 +795,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (596)
+### CalradiaRemembers.Logic (603)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -913,6 +914,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompanionScenePolicy` | public static class | Whether a captive encounter targets a held companion, and which way it plays out. |
 | `CompanionSchemeWarningPolicy` | public static class | Pure rules for whether a companion qualifies to voice an unprompted scheme-warning audience. |
 | `CompanionSecretAffectionPolicy` | public static class | Pure rules for a companion's secret affection confession (eligibility plus the weekly roll). |
+| `CompanyMember` | public class | One person of the player's company. |
+| `CompanyRole` | public enum | How someone travels with the player. |
 | `CompetitionSelector` | public static class | Picks at most ONE partner to feel competition jealousy on a given pass. |
 | `ConceptionChroniclePolicy` | public static class | Decides whether a conception involving the player is a PUBLIC heir worth chronicling, or a private matter the chronicle must stay silent about (the seed of a hidden bastard). |
 | `ConceptionResolver` | public static class | Decides, from the two participants' sex / life / age, which (if either) could conceive from a completed vaginal act. |
@@ -1180,6 +1183,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PersonaTraitLevels` | public class | A hero's five personality trait levels, -2 to +2 as the game keeps them. |
 | `PlayerChangeFacts` | public class | The predecessor's state when the change fired. |
 | `PlayerChangeKind` | public enum | What a change of player character was. |
+| `PlayerCompanyPolicy` | public static class | Who travels with the player, for inviting and for clearing the room. |
 | `PlayerDeedValence` | public static class | Classifies a player's deed from the observer's point of view, from two facts the host has already resolved against the game (faction membership, kinship). |
 | `PlayerDivorceConsentFacts` | public class | Every already-resolved fact PlayerDivorceConsentPolicy.SpouseConsents needs. |
 | `PlayerDivorceConsentPolicy` | public static class | Pure gate deciding whether the player's own spouse would ALSO have wanted this marriage to end (mutual consent), when the PLAYER is the one who initiates the split. |
@@ -1201,6 +1205,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PreferenceStrength` | public enum | How firmly a stated correspondence preference should move the interest dial. |
 | `PregnancyNotePolicy` | public static class | Turns a mother's pregnancy facts into the second-person line the NPC identity prompt renders, so she is AWARE of her own pregnancy and never denies it (see file header for the bug this fixes). |
 | `PregnancyPolicy` | public static class | Pure gates around a pregnancy's whole lifecycle when the campaign's Life/Death Cycle option is disabled (Bannerlord's own "no aging / no death" creation option, which also silently disables vanilla's offspring delivery -... |
+| `PresentWitness` | public class | A witness in the room, as the privacy rule sees them. |
 | `PrisonerBuyerCandidate` | public class | One lord who might want the captive. |
 | `PrisonerBuyerPolicy` | public static class | Orders who may send an envoy about a captive, and says what each wants. |
 | `PrisonerBuyerRole` | public enum | What a prospective buyer is to the captive. |
@@ -1213,6 +1218,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PrisonerRecruitmentPolicy` | public static class | The pure gate behind recruit_prisoner. |
 | `PrisonerReleasePolicy` | public static class | The rules for a prisoner bargaining their way out. |
 | `PrisonerTradePolicy` | public static class | Pure price discipline for a prisoner sale, either direction. |
+| `PrivateAudienceFacts` | public class | The state a request for privacy is judged on. |
+| `PrivateAudiencePolicy` | public static class | Decides a request for privacy. |
+| `PrivateAudienceVerdict` | public enum | What a request for privacy does. |
 | `ProvideGoodsPolicy` | public static class | Pure rules for a ProvideGoods supply task: category normalization, count clamp, satisfaction. |
 | `ProviderKind` | public enum | The concrete OpenAI-compatible service a request is sent to. |
 | `ProviderModelPolicy` | public static class | Whether a configured model id is a real choice for the provider a role is pointed at, and what to send when it is not. |
