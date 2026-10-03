@@ -21,7 +21,13 @@ namespace CalradiaRemembers.Logic
         GaveUp,
 
         /// <summary>The player was clearly faster and pulled well clear (the outrun branch of ShouldAbandonChase).</summary>
-        LostTrail
+        LostTrail,
+
+        /// <summary>
+        ///   The fief the player sits in came under siege: nobody waits at the gate of a besieged town (Fakade,
+        ///   03/10/2026: the waiting lord dragged him into a field battle in the middle of his siege defence).
+        /// </summary>
+        Siege
     }
 
     /// <summary>Why a lord rides out to the player — <see cref="None"/> means they do not.</summary>
@@ -183,6 +189,15 @@ namespace CalradiaRemembers.Logic
            ///   feature promised must never be punished by a timeout or a speed gap.
            /// </summary>
            public bool IsClosing { get; set; } = false;
+
+           /// <summary>
+           ///   The player is inside a town, castle or village. The pursuer waits at the gate, always "within
+           ///   reach", but no meeting can happen until the player comes out, so nearness proves nothing.
+           /// </summary>
+           public bool PlayerInsideSettlement { get; set; }
+
+           /// <summary>The settlement the player is in is besieged, or being besieged.</summary>
+           public bool PlayerSettlementBesieged { get; set; }
         }
 
         /// <summary>
@@ -209,8 +224,15 @@ namespace CalradiaRemembers.Logic
            int daysPursuing = facts.DaysPursuing;
            bool isClosing = facts.IsClosing;
 
-            if (distance < AbandonMinDistance) return false; // about to connect — never give up now
-            if (isClosing) return false; // the player is riding straight at the meeting, so let them arrive
+            // Fakade (03/10/2026): a lord camped at the gate of a fief about to be besieged, and the siege's battle
+            // took the player with it. A besieged fief ends the wait at once; inside walls, nearness proves nothing,
+            // so the day limit below applies to a lord at the gate as to one on the road.
+            if (facts.PlayerInsideSettlement && facts.PlayerSettlementBesieged) return true;
+            if (!facts.PlayerInsideSettlement)
+            {
+                if (distance < AbandonMinDistance) return false; // about to connect: never give up now
+                if (isClosing) return false; // the player is riding straight at the meeting, so let them arrive
+            }
             if (daysPursuing >= MaxPursuitDays) return true;
             return pursuerSpeed > 0f && playerSpeed >= pursuerSpeed * OutrunSpeedRatio;
         }
@@ -233,7 +255,7 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public static bool ShouldWriteMissedMeetingLetter(AbandonReason reason, bool pursuerAlive)
             => reason is AbandonReason.GaveUp or AbandonReason.LostTrail
-               || (reason == AbandonReason.OtherBusiness && pursuerAlive);
+               || (reason is AbandonReason.OtherBusiness or AbandonReason.Siege && pursuerAlive);
 
         /// <summary>
         ///   The reason this lord would intercept the player now, or <see cref="InterceptionTrigger.None"/>.

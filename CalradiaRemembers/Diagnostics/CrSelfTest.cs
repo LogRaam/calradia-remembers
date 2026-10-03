@@ -12017,7 +12017,8 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(read == null, "a real pursuit is under way; not disturbing it")) return t.Line();
 
          t.Note($"{lordParty.Name}: locked {read.Value.Locked}, on the player {read.Value.OnThePlayer}, free after {read.Value.FreeAfter}, thinks again {read.Value.ThinksAgainAfter}");
-         t.Expect("heIsHeldOnCourse", read.Value.Locked, true);
+         // Held on course only while MCM "Lords Hold Their Course" is on (Fakade, 03/10/2026); off, the order alone, as before 2.6.8.
+         t.Expect("heIsHeldOnCourseAsTheMenuSays", read.Value.Locked, ModSettings.LordsHoldTheirCourse);
          t.Expect("heRidesAtThePlayer", read.Value.OnThePlayer, true);
          t.Expect("theChaseOverHisDecisionsAreHisOwn", read.Value.FreeAfter, true);
          t.Expect("andHeIsToldToThinkAfresh", read.Value.ThinksAgainAfter, true);

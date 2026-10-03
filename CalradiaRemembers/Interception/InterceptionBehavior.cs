@@ -446,6 +446,31 @@ namespace CalradiaRemembers.Interception
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
          CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
          CampaignEvents.TickEvent.AddNonSerializedListener(this, OnTick);
+         CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
+      }
+
+      /// <summary>
+      ///   A siege can close on the player's fief within hours, and the daily release came too late: the lord waiting
+      ///   at the gate was caught in the siege's battle and the player with him (Fakade, 03/10/2026). Checked every
+      ///   hour; the rest of the chase is still judged once a day.
+      /// </summary>
+      private void OnHourlyTick()
+      {
+         try
+         {
+            if (_activePursuerId == null || _activePursuerIsFiefAudience || !PlayerFiefBesieged()) return;
+
+            ReleaseStalePursuit((int) CampaignTime.Now.ToDays);
+         }
+         catch (Exception ex) { ModLog.Error($"[INTERCEPT] siege check failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>The settlement the player is in is under siege, or a siege camp is closing on it.</summary>
+      private static bool PlayerFiefBesieged()
+      {
+         Settlement s = Hero.MainHero?.CurrentSettlement;
+
+         return s != null && (s.IsUnderSiege || s.SiegeEvent != null);
       }
 
       /// <summary>
@@ -487,7 +512,8 @@ namespace CalradiaRemembers.Interception
 
          party.Ai.SetDoNotMakeNewDecisions(false);
          party.SetMoveEngageParty(MobileParty.MainParty, MobileParty.NavigationType.Default);
-         party.Ai.SetDoNotMakeNewDecisions(true);
+         // MCM "Lords Hold Their Course" (Fakade, 03/10/2026): off gives the order without the lock, as before 2.6.8.
+         if (ModSettings.LordsHoldTheirCourse) party.Ai.SetDoNotMakeNewDecisions(true);
          _pursuitParty = party;
       }
 
@@ -1413,7 +1439,10 @@ namespace CalradiaRemembers.Interception
          bool isClosing = !invalid && _lastPursuitDistance >= 0f && distance < _lastPursuitDistance;
 
          bool giveUp = !invalid &&
-                       InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {PursuerSpeed = pursuerParty.Speed, PlayerSpeed = main.Speed, Distance = distance, DaysPursuing = today - _activePursuerSince, IsClosing = isClosing});
+                       InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {
+                          PursuerSpeed = pursuerParty.Speed, PlayerSpeed = main.Speed, Distance = distance, DaysPursuing = today - _activePursuerSince,
+                          IsClosing = isClosing, PlayerInsideSettlement = Hero.MainHero?.CurrentSettlement != null, PlayerSettlementBesieged = PlayerFiefBesieged()
+                       });
 
          if (!invalid && !giveUp)
          {
@@ -1424,7 +1453,7 @@ namespace CalradiaRemembers.Interception
 
          InterceptionTrigger trigger = _activePursuerTrigger; // read before the fields below are cleared
          string detail = _activePursuerDetail;                // ditto
-         AbandonReason reason = DetermineAbandonReason(atSea, invalid, today - _activePursuerSince);
+         AbandonReason reason = !invalid && PlayerFiefBesieged() ? AbandonReason.Siege : DetermineAbandonReason(atSea, invalid, today - _activePursuerSince);
          var pursuerAlive = pursuer is {IsAlive: true};
 
          ModLog.Info($"[INTERCEPT] {pursuer?.Name} stands down ({reason}, distance {distance:0.0}, " +
@@ -1488,6 +1517,7 @@ namespace CalradiaRemembers.Interception
             AbandonReason.WentToSea     => $"{pursuer.Name} could not follow you out to sea, and turns back.",
             AbandonReason.OtherBusiness => $"{pursuer.Name} was drawn into other business, and the meeting will not happen after all.",
             AbandonReason.GaveUp        => $"{pursuer.Name} gives up trying to reach you, and turns back to their own affairs.",
+            AbandonReason.Siege         => $"{pursuer.Name} will not wait at the gates of a besieged town, and turns away.",
             _                           => $"{pursuer.Name} cannot keep pace with you and loses your trail."
          };
 

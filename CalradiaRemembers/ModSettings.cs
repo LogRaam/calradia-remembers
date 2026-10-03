@@ -309,6 +309,13 @@ namespace CalradiaRemembers
       /// </summary>
       public static bool NpcsRaiseWorldNews => CrSettings.Instance?.NpcsRaiseWorldNews ?? false;
 
+      /// <summary>
+      ///   A lord riding out to the player is held on course (on, the 2.6.8 behaviour Lordfadooboo asked for) or only
+      ///   given the order, his own AI free to change its mind (off, as before; Fakade, 03/10/2026). On when MCM has
+      ///   not loaded.
+      /// </summary>
+      public static bool LordsHoldTheirCourse => CrSettings.Instance?.LordsHoldTheirCourse ?? true;
+
       public static InterceptionPacing LordsApproaching
       {
          get

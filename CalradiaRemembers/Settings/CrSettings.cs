@@ -477,6 +477,13 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> InterceptionPacing { get; set; } =
          new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's behaviour)
 
+      // Fakade (Nexus, 03/10/2026): since 2.6.8 a lord riding out to the player is held on course (Lordfadooboo had
+      // asked for it); Fakade liked the old way too, where they lost interest quickly. Both, by the player's choice.
+      [SettingPropertyBool("Lords Hold Their Course", RequireRestart = false, Order = 3,
+         HintText = "On: a lord riding out to speak with you holds his course until he reaches you, or gives up after a few days. Off: as before 2.6.8, he may turn back to his own affairs and lose interest quickly. Applies to the next chase.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool LordsHoldTheirCourse { get; set; } = true;
+
       // Player report (2026-08-05): in a scene with several NPCs, they kept talking to each other for a long
       // stretch before he could get a word in. This dial caps how many NPC-to-NPC exchanges fire per player
       // turn (was a hard-coded 3). 2 is the new shipped feel; 0 turns cross-talk off completely. See
