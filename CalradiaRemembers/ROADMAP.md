@@ -32,6 +32,29 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## WISHED 2026-10-02 (Lordfadooboo + fkasad, Nexus), NOT BUILT: characters who come to the player WITH a task
+
+Lordfadooboo (02/10/2026): "what do you think of characters being able to approach you with a quest? and maybe they could
+also send a request by letter? maybe you have to accept the quest in person but the letter would make its existence
+known." fkasad, the same day: a "kingdom-scale" quest; someone outside your faction hears of you (clan rank 3 or 4), you
+enter their territory and they learn of it ("lords have spies these days"): "bring me my guy", "spy on an enemy city",
+"take this guy prisoner"; a kidnapping ("bring me that king's daughter", seduction to abduction); escorting a demanding
+prince through three or four cities while hired kidnappers hunt the player (vanilla caravan-escort shape, parties that
+target only the player), with a bedtime story each night that the LLM evaluates, a bad night slowing the party.
+
+What exists (checked 02/10/2026): characters already approach the player (FiefAudience, CompanionAudience,
+RoadInterception) and write unbidden (letters, RealmTidings), all through ActionGate; none of those paths can carry a
+task yet. The grounded quest menu (ViableQuestScanner), the envoy, the scout and the capture tasks exist.
+
+Proposed in steps (Gabriel to pick):
+1. "I have work for you": a lord who holds the player in enough regard and has a viable task on his menu writes (or asks
+   for an audience) to say so; the task is ACCEPTED IN PERSON through today's [QUEST] path, so every check stays. Reuses
+   letters, ActionGate.Letter, the menu, the mailbox pacing.
+2. "You have been noticed in our lands": a lord of another realm, when the player rides into his territory with a clan
+   of rank 3 or more, sends a messenger or summons him; tasks of his own kind (the envoy, the scout, a capture).
+3. A pillar of its own, design first: the prince escort with spawned hunters and the bedtime story; the "king's daughter"
+   errand needs a content ruling (abducting a lady for a third party; what is allowed by default).
+
 ## BUILT 2026-10-01 for 2.6.10 (fkasad + Lordfadooboo, Nexus thread of 01/10), NOT SEEN IN PLAY: food and favours
 
 - **A hungry town remembers who fed it, and who emptied its market** (MOD `d37b4bb`): `TownFoodPolicy` +
