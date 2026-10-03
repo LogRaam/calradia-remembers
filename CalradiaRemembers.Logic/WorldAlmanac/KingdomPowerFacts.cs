@@ -128,6 +128,15 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
       public double Economy { get; set; }
       public double Political { get; set; }
       public double WarPerformance { get; set; }
+
+      /// <summary>
+      ///   The recent battles behind the war-performance pillar, kept so the counsel can say what they are: a realm with
+      ///   no battles is not losing (fkasad, 01/10/2026), only one whose defeats outnumber its victories.
+      /// </summary>
+      public int RecentVictories { get; set; }
+
+      /// <summary>The recent defeats behind the war-performance pillar.</summary>
+      public int RecentDefeats { get; set; }
       public double Diplomatic { get; set; }
 
       /// <summary>The weighted blend of the six pillars, 0..100.</summary>

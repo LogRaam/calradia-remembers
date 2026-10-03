@@ -92,6 +92,8 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
                Economy = ShareOfMax(economy[i], ecoMax),
                Political = ShareOfMax(political[i], polMax),
                WarPerformance = SpreadOrNeutral(war[i], war),
+               RecentVictories = kingdoms[i].RecentVictories,
+               RecentDefeats = kingdoms[i].RecentDefeats,
                Diplomatic = SpreadOrNeutral(diplomacy[i], diplomacy)
             };
             s.PowerIndex = s.Military * MilitaryWeight

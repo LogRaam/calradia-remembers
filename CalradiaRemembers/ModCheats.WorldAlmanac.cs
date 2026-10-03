@@ -145,7 +145,11 @@ namespace CalradiaRemembers
          PowerIndexResult r = PowerIndexPolicy.Compute(field);
          WorldAlmanac.StrategicAssessmentContext ctx = StrategicAssessmentContextBuilder.Build(r);
          PlayerStrategicContext player = ctx.Player;
-         string prompt = StrategicAssessmentPromptBuilder.Build(r, player, advisor, ctx.Wars, CalradiaRemembers.Styles.StyleService.CurrentRules());
+         string prompt = StrategicAssessmentPromptBuilder.Build(r, player, advisor, ctx.Wars, CalradiaRemembers.Styles.StyleService.CurrentRules(), new CalradiaRemembers.Logic.WorldAlmanac.StrategicWorld {
+            Name = NpcMemoryService.Core.Prompts.PromptLore.WorldName,
+            Description = CalradiaRemembers.Mapping.NarrativeLoader.WorldDescription,
+            PostHistoryInstructions = CalradiaRemembers.Mapping.NarrativeLoader.PostHistoryInstructions
+         });
 
          ILlmClient client = NpcMemoryCampaignBehavior.Instance?.LlmServices?.HousekeepingClient;
          if (client == null)

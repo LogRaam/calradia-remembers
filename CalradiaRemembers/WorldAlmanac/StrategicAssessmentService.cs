@@ -149,7 +149,12 @@ namespace CalradiaRemembers.WorldAlmanac
 
       private static void FireAsync(BalanceOfPowerViewModel vm, PowerIndexResult result, StrategicAssessmentContext ctx, ILlmClient client, string signature)
       {
-         string prompt = StrategicAssessmentPromptBuilder.Build(result, ctx.Player, ctx.Advisor, ctx.Wars, StyleService.CurrentRules());
+         // The player's own world (fkasad, 01/10/2026): the setting's name, World.txt, his post-history instructions.
+         string prompt = StrategicAssessmentPromptBuilder.Build(result, ctx.Player, ctx.Advisor, ctx.Wars, StyleService.CurrentRules(), new CalradiaRemembers.Logic.WorldAlmanac.StrategicWorld {
+            Name = NpcMemoryService.Core.Prompts.PromptLore.WorldName,
+            Description = CalradiaRemembers.Mapping.NarrativeLoader.WorldDescription,
+            PostHistoryInstructions = CalradiaRemembers.Mapping.NarrativeLoader.PostHistoryInstructions
+         });
 
          var request = new LlmRequest
          {

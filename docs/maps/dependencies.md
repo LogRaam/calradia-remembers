@@ -103,11 +103,11 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Duels` | 16 | 6 |
 | `CalradiaRemembers.Violence` | 16 | 2 |
 | `CalradiaRemembers.Interception` | 15 | 9 |
+| `CalradiaRemembers.WorldAlmanac` | 15 | 2 |
 | `CalradiaRemembers.Encyclopedia` | 15 | 0 |
 | `CalradiaRemembers.Stance` | 14 | 11 |
 | `CalradiaRemembers.Assemblies` | 14 | 8 |
 | `CalradiaRemembers.Jealousy` | 14 | 8 |
-| `CalradiaRemembers.WorldAlmanac` | 14 | 2 |
 | `CalradiaRemembers.Tournaments` | 12 | 3 |
 | `CalradiaRemembers.Dialogue` | 12 | 2 |
 | `CalradiaRemembers.Nemesis` | 11 | 9 |
@@ -118,7 +118,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic` | 9 | 49 |
 | `CalradiaRemembers.Lore` | 9 | 4 |
 | `CalradiaRemembers.OpenPartnerLover` | 9 | 2 |
-| `NpcMemoryService.Core.Prompts` | 8 | 14 |
+| `NpcMemoryService.Core.Prompts` | 8 | 15 |
 | `CalradiaRemembers.Standing` | 8 | 6 |
 | `CalradiaRemembers.Rescue` | 8 | 1 |
 | `CalradiaRemembers.Arrests` | 7 | 6 |
@@ -603,7 +603,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 ### CalradiaRemembers.WorldAlmanac
 
-- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GUI`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.WorldAlmanac`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Portraits`, `CalradiaRemembers.Styles`, `CalradiaRemembers.UI`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.Models`
+- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GUI`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.WorldAlmanac`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Portraits`, `CalradiaRemembers.Styles`, `CalradiaRemembers.UI`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Diagnostics`
 
 ### CalradiaRemembers.WorldEvents
@@ -674,7 +674,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 ### NpcMemoryService.Core.Prompts
 
 - uses: `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Extension`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Memory`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Mood`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Services`, `CalradiaRemembers.Styles`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Services`, `CalradiaRemembers.Styles`, `CalradiaRemembers.WorldAlmanac`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
 
 ### NpcMemoryService.Core.Services
 

@@ -94,6 +94,22 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
     }
 
     /// <summary>
+    ///   The world the counsel is given in, from the player's own lore files (fkasad, 01/10/2026: the setting's name, World.txt,
+    ///   the post-history instructions he uses to give his characters a style). All optional: empty reads as Calradia.
+    /// </summary>
+    public sealed class StrategicWorld
+    {
+        /// <summary>The world's name (the setting profile's), or empty for Calradia.</summary>
+        public string Name { get; set; } = "";
+
+        /// <summary>The world description (World.txt), trimmed in the prompt.</summary>
+        public string Description { get; set; } = "";
+
+        /// <summary>The player's post-history instructions, trimmed in the prompt.</summary>
+        public string PostHistoryInstructions { get; set; } = "";
+    }
+
+    /// <summary>
     ///   Builds the one-shot LLM prompt for the World Almanac's Strategic Assessment: a companion strategist counsels
     ///   the player on how the realms stand, what is likely to come, and what to do. Pure so the load-bearing parts
     ///   are unit-tested: the advisor persona is present, the counsel quality scales with Tactics, the facts are the
@@ -109,9 +125,14 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
         /// <summary>The global narrative style is trimmed to this in the counsel prompt, so a long style file cannot crowd out the facts.</summary>
         public const int MaxNarrativeStyleChars = 1200;
 
+        /// <summary>The world description and the post-history instructions are each trimmed to this, so they colour the counsel without crowding out the facts.</summary>
+        public const int MaxLoreChars = 800;
+
         public static string Build(PowerIndexResult result, PlayerStrategicContext player, StrategicAdvisor advisor,
-            CalradiaWarState wars = null, string narrativeStyle = null)
+            CalradiaWarState wars = null, string narrativeStyle = null, StrategicWorld world = null)
         {
+            string worldName = string.IsNullOrWhiteSpace(world?.Name) ? "Calradia" : world.Name.Trim();
+
             result ??= new PowerIndexResult();
             player ??= new PlayerStrategicContext("", 0, null);
             advisor ??= new StrategicAdvisor("", "", 0);
@@ -125,7 +146,7 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             // and speaks plainly, without a strategist's polish. Either way the Tactics tier sets how keen the counsel is.
             if (advisor.Kind == AdvisorKind.CommonSoldier)
             {
-                sb.Append($"You are {advisor.Name}, a common soldier in your lord's warband, no trained strategist, but you have marched and fought across Calradia. Speak plainly, as a soldier would, not with an officer's polish. ");
+                sb.Append($"You are {advisor.Name}, a common soldier in your lord's warband, no trained strategist, but you have marched and fought across {worldName}. Speak plainly, as a soldier would, not with an officer's polish. ");
             }
             else if (advisor.HasPersona)
             {
@@ -143,7 +164,8 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             sb.AppendLine();
 
             // Grounded facts: the REAL standings. Everything the advisor may cite lives here.
-            sb.AppendLine("THE STATE OF CALRADIA (verified; cite ONLY what is written here, never invent a number, battle, or event):");
+            AppendWorldDescription(sb, world);
+            sb.AppendLine($"THE STATE OF {worldName.ToUpperInvariant()} (verified; cite ONLY what is written here, never invent a number, battle, or event):");
             AppendStandings(sb, result);
             AppendKeyIndicators(sb, result.Indicators);
             AppendTotals(sb, result.Totals);
@@ -158,10 +180,16 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             // What the advisor DOES NOT know: there is no battle ledger yet, so any talk of a realm being "war-weary"
             // or "bled dry" would be pure invention. Fence it off explicitly, or the model fills the silence with a war
             // history it has no basis for (an early counsel claimed a realm's "wars have bled them dry" from nothing).
-            sb.AppendLine("WHAT YOU DO NOT KNOW: you keep NO record of past battles, casualties, or who has been winning. "
-                        + "Never claim a realm is war-weary, bled dry, exhausted, or has won or lost a war. The active wars "
-                        + "listed above are the only conflicts you know of; whether one goes well is yours to GUESS from the "
-                        + "forces and holdings, and you must voice it as a guess, not a fact.");
+            // fkasad (01/10/2026): "A low number of victories does not necessarily mean a high number of defeats. Some
+            // factions are at war without actually engaging in battle... the advisor's analysis 'no victories = you are
+            // losing'." The recent counts are now in the standings; what they do NOT mean is said here.
+            sb.AppendLine("WHAT YOU DO NOT KNOW: beyond the recent battle counts above, you keep no record of past battles, "
+                        + "casualties, or how a war began. Few or no victories does NOT mean a realm is losing: it may simply "
+                        + "not have fought, for want of a border, through distance, or with nothing worth besieging. A war goes "
+                        + "badly only where defeats outnumber victories or holdings are lost. Never claim a realm is war-weary, "
+                        + "bled dry, exhausted, or has won or lost a war. The active wars listed above are the only conflicts you "
+                        + "know of; whether one goes well is yours to GUESS from the forces, holdings and those counts, and you "
+                        + "must voice it as a guess, not a fact.");
             sb.AppendLine();
 
             // The task: COUNSEL, not a recital. The player can already read the figures off this very panel, so the
@@ -176,6 +204,7 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             sb.Append("The word 'you' always means your lord and no one else. Any stage direction or description of your OWN gesture or expression must be written in the THIRD PERSON (name yourself, or use he or she), never 'you' about yourself. ");
             sb.Append("Every judgment and recommendation must rest on a force, holding, or active war listed above; your reading of them is YOUR judgment, be as incisive as your skill allows and no more. ");
             sb.Append("Never state a number, war, or event that is not written above.");
+            AppendPostHistory(sb, world);
 
             return sb.ToString();
         }
@@ -202,7 +231,7 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
                 (string lowName, double lowVal) = BottomPillar(k);
                 sb.AppendLine(
                     $"- {k.Rank}. {NameOr(k.KingdomName)}: power {Round(k.PowerIndex)}. " +
-                    $"Strongest in {highName} ({Round(highVal)}), weakest in {lowName} ({Round(lowVal)}).");
+                    $"Strongest in {highName} ({Round(highVal)}), weakest in {lowName} ({Round(lowVal)}). {BattleRecord(k)}");
                 shown++;
             }
         }
@@ -245,12 +274,75 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
                 return;
             }
 
-            sb.AppendLine("- Wars under way (the ONLY wars there are):");
-            foreach (WarPair w in wars.Wars)
+            // One line, each war named once, grouped by realm (fkasad, 01/10/2026: as the conversation prompt lists them).
+            sb.AppendLine($"- Wars under way (the ONLY wars there are): {CompactWars(wars)}.");
+        }
+
+        /// <summary>
+        ///   "Sturgia with Vlandia and Battania; Aserai with Khuzait Khanate": each war once, grouped under the realm that
+        ///   first appears in it, in the order the wars were given.
+        /// </summary>
+        internal static string CompactWars(CalradiaWarState wars)
+        {
+            var order = new List<string>();
+            var enemies = new Dictionary<string, List<string>>();
+            var named = new HashSet<string>();
+
+            foreach (WarPair w in wars?.Wars ?? new List<WarPair>())
             {
                 if (w == null || string.IsNullOrWhiteSpace(w.A) || string.IsNullOrWhiteSpace(w.B)) continue;
-                sb.AppendLine($"    {w.A} is at war with {w.B}.");
+
+                string key = string.CompareOrdinal(w.A, w.B) < 0 ? w.A + "|" + w.B : w.B + "|" + w.A;
+                if (!named.Add(key)) continue;
+
+                string lead = enemies.ContainsKey(w.B) && !enemies.ContainsKey(w.A) ? w.B : w.A;
+                string other = lead == w.A ? w.B : w.A;
+                if (!enemies.ContainsKey(lead))
+                {
+                    enemies[lead] = new List<string>();
+                    order.Add(lead);
+                }
+
+                enemies[lead].Add(other);
             }
+
+            var groups = new List<string>();
+            foreach (string realm in order)
+            {
+                List<string> foes = enemies[realm];
+                string list = foes.Count == 1 ? foes[0] : string.Join(", ", foes.GetRange(0, foes.Count - 1)) + " and " + foes[foes.Count - 1];
+                groups.Add($"{realm} with {list}");
+            }
+
+            return string.Join("; ", groups);
+        }
+
+        /// <summary>The recent battles as they are: a realm that fought none is said to have none, never to be losing.</summary>
+        private static string BattleRecord(KingdomPowerScore k)
+            => k.RecentVictories + k.RecentDefeats == 0
+                ? "No battles recorded lately."
+                : $"Recent battles: {k.RecentVictories} won, {k.RecentDefeats} lost.";
+
+        private static void AppendWorldDescription(StringBuilder sb, StrategicWorld world)
+        {
+            if (string.IsNullOrWhiteSpace(world?.Description)) return;
+
+            sb.AppendLine($"THE WORLD (as its own chroniclers tell it): {Trim(world.Description)}");
+            sb.AppendLine();
+        }
+
+        private static void AppendPostHistory(StringBuilder sb, StrategicWorld world)
+        {
+            if (string.IsNullOrWhiteSpace(world?.PostHistoryInstructions)) return;
+
+            sb.Append(" Also: ").Append(Trim(world.PostHistoryInstructions));
+        }
+
+        private static string Trim(string text)
+        {
+            string t = text.Trim();
+
+            return t.Length > MaxLoreChars ? t.Substring(0, MaxLoreChars) : t;
         }
 
         // The player's chosen narrative style (global, the same voice the chatroom uses), so the counsel reads in the
@@ -309,13 +401,15 @@ namespace CalradiaRemembers.Logic.WorldAlmanac
             return worst;
         }
 
+        // War performance is NOT named strongest or weakest: it is a spread across the field, so a realm that simply has
+        // not fought reads as the weakest and the counsel concluded "you are losing" (fkasad, 01/10/2026). The real
+        // counts are stated instead (BattleRecord).
         private static (string, double)[] Pillars(KingdomPowerScore k) => new[]
         {
             ("military", k.Military),
             ("territory", k.Territory),
             ("economy", k.Economy),
             ("political weight", k.Political),
-            ("war performance", k.WarPerformance),
             ("diplomacy", k.Diplomatic)
         };
 

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 456 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 887 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 888 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1765,7 +1765,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ViolenceVerdict` | public enum | How an attempt ended. |
 | `ViolentAct` | public enum | What the player is attempting against an NPC, from least to most severe. |
 
-### CalradiaRemembers.Logic.WorldAlmanac (26)
+### CalradiaRemembers.Logic.WorldAlmanac (27)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1789,6 +1789,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StrategicAdvisor` | public class | The voice of the Strategic Assessment: their name, culture, Tactics skill (which sets the counsel's quality), and whether they are a trained strategist or a plain soldier. |
 | `StrategicAssessmentPromptBuilder` | public static class | Builds the one-shot LLM prompt for the World Almanac's Strategic Assessment: a companion strategist counsels the player on how the realms stand, what is likely to come, and what to do. |
 | `StrategicAssessmentSummary` | public static class | The Strategic Assessment when the player travels ALONE (no companion, no soldiers): a plain, factual summary of the standings, composed WITHOUT an LLM call. |
+| `StrategicWorld` | public class | The world the counsel is given in, from the player's own lore files (fkasad, 01/10/2026: the setting's name, World.txt, the post-history instructions he uses to give his characters a style). |
 | `SurveyEvent` | public class | A diplomatic event: war, peace, alliance, alliance ended, call to war. |
 | `SurveyRow` | public class | One realm, one week. |
 | `SurveyVram` | public class | One reading of graphics memory, taken with each week's reading (29/09/2026: the overnight survey ended when the engine ran out of graphics memory, and nothing said who had been filling it). -1 where the probe could not r... |

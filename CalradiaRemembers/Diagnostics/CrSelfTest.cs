@@ -9372,6 +9372,8 @@ namespace CalradiaRemembers.Diagnostics
             string prompt = CalradiaRemembers.Logic.WorldAlmanac.StrategicAssessmentPromptBuilder.Build(result, ctx.Player, ctx.Advisor);
             t.Expect("promptGroundedOnRealKingdom", prompt.Contains(result.Ranked[0].KingdomName), true);
             t.Expect("promptForbidsInvention", prompt.Contains("never invent"), true);
+            // fkasad (01/10/2026): each realm's real battle record, never "weakest in war performance" for one that has not fought.
+            t.Expect("promptStatesEachRealmsBattles", prompt.Contains("No battles recorded lately.") || prompt.Contains("Recent battles:"), true);
          }
 
          return t.Line();

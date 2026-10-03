@@ -165,8 +165,8 @@ namespace CalradiaRemembers.Tests
             string prompt = StrategicAssessmentPromptBuilder.Build(SampleWorld(), SampleRealmPlayer(),
                 new StrategicAdvisor("Ira", "Battanian", 210), wars);
 
-            prompt.Should().Contain("Sturgia is at war with Vlandia");
-            prompt.Should().Contain("Aserai is at war with Khuzait Khanate");
+            prompt.Should().Contain("Sturgia with Vlandia");
+            prompt.Should().Contain("Aserai with Khuzait Khanate");
         }
 
         // A world at peace must SAY so, so the advisor cannot invent a war to explain the map.
@@ -177,6 +177,59 @@ namespace CalradiaRemembers.Tests
                 new StrategicAdvisor("Ira", "Battanian", 210), new CalradiaWarState(null));
 
             prompt.Should().Contain("No realms are presently at war");
+        }
+
+        // fkasad (01/10/2026): "List of wars could be changed the same way you did in the discussion prompt (faction is at
+        // war with x, y, z; allowing a shorter prompt)". Each war is named once, grouped under one realm, on one line.
+        [Test]
+        public void GIVEN_a_realm_at_war_on_several_fronts_WHEN_building_THEN_each_war_is_named_once_grouped_by_realm()
+        {
+            var wars = new CalradiaWarState(new List<WarPair>
+            {
+                new WarPair("Sturgia", "Vlandia"),
+                new WarPair("Sturgia", "Battania"),
+                new WarPair("Vlandia", "Sturgia"),
+                new WarPair("Aserai", "Khuzait Khanate")
+            });
+
+            StrategicAssessmentPromptBuilder.CompactWars(wars).Should().Be("Sturgia with Vlandia and Battania; Aserai with Khuzait Khanate");
+        }
+
+        // fkasad (01/10/2026): "A low number of victories does not necessarily mean a high number of defeats. Some factions
+        // are at war without actually engaging in battle... the advisor's analysis: no victories = you are losing." A realm
+        // with no battles is said to have none and is never named weakest in war performance; the advisor is told few
+        // victories is not losing.
+        [Test]
+        public void GIVEN_a_realm_that_has_not_fought_WHEN_building_THEN_it_reads_as_unfought_never_as_losing()
+        {
+            var result = new PowerIndexResult {
+                Ranked = new List<KingdomPowerScore> {
+                    new KingdomPowerScore {Rank = 1, KingdomName = "Vlandia", Military = 90, Territory = 80, Economy = 70, Political = 60, WarPerformance = 100, Diplomatic = 50, RecentVictories = 6, RecentDefeats = 1},
+                    new KingdomPowerScore {Rank = 2, KingdomName = "Aserai", Military = 70, Territory = 60, Economy = 90, Political = 50, WarPerformance = 0, Diplomatic = 40}
+                }
+            };
+
+            string prompt = StrategicAssessmentPromptBuilder.Build(result, SampleRealmPlayer(), new StrategicAdvisor("Ira", "Battanian", 210));
+
+            prompt.Should().Contain("Aserai: power").And.Contain("No battles recorded lately.");
+            prompt.Should().Contain("Recent battles: 6 won, 1 lost.");
+            prompt.Should().NotContain("war performance");
+            prompt.Should().Contain("Few or no victories does NOT mean a realm is losing");
+        }
+
+        // fkasad (01/10/2026): "Using the Setting.json (the right world name), World.txt file if needed to provide
+        // perspective... The post_history_instructions.txt (I'm using it to give specific style to npc)". The counsel
+        // speaks of the player's own world, with its description and his instructions, not of Calradia regardless.
+        [Test]
+        public void GIVEN_the_players_own_world_files_WHEN_building_THEN_the_counsel_is_given_in_that_world()
+        {
+            var world = new StrategicWorld {Name = "the Old World", Description = "Chaos stirs in the north.", PostHistoryInstructions = "Speak tersely."};
+
+            string prompt = StrategicAssessmentPromptBuilder.Build(SampleWorld(), SampleRealmPlayer(), new StrategicAdvisor("", "", 10, AdvisorKind.CommonSoldier), null, null, world);
+
+            prompt.Should().Contain("THE STATE OF THE OLD WORLD").And.Contain("across the Old World");
+            prompt.Should().Contain("Chaos stirs in the north.").And.Contain("Speak tersely.");
+            prompt.Should().NotContain("CALRADIA");
         }
 
         // ── B: no invented war history (there is no battle ledger yet) ──────
