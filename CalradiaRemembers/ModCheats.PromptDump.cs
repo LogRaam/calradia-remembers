@@ -28,7 +28,7 @@ namespace CalradiaRemembers
    public static partial class ModCheats
    {
       /// <summary>
-      ///   cr.prompt_dump [name] — writes the EXACT system prompt this character would be sent to a file, and
+      ///   cr.prompt_dump [name or hero id]: writes the EXACT system prompt this character would be sent to a file, and
       ///   reports where. Read-only and free: no model is called.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("prompt_dump", "cr")]
@@ -37,7 +37,7 @@ namespace CalradiaRemembers
          if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
 
          string who = args is {Count: > 0} ? string.Join(" ", args).Trim() : null;
-         Hero hero = PickSubject(who);
+         Hero hero = PickSubject(who, out string namesakes);
 
          // An envoy is no hero: dump the last prompt his audience actually sent.
          if (hero == null && who == null && ChatManager.ActiveViewModel?.IsEnvoyAudience == true && ChatViewModel.LastEnvoyPrompt != null)
@@ -64,11 +64,11 @@ namespace CalradiaRemembers
             string path = Path.Combine(
                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                "Mount and Blade II Bannerlord", "Logs",
-               $"CalradiaRemembers_prompt_{Sanitise(hero.Name?.ToString())}.txt");
+               $"CalradiaRemembers_prompt_{Sanitise(hero.Name?.ToString())}_{Sanitise(hero.StringId)}.txt"); // the id too: namesakes no longer overwrite each other
 
             File.WriteAllText(path, prompt);
 
-            return $"cr.prompt_dump: {hero.Name}'s prompt ({prompt.Length} chars) written to {path}";
+            return $"cr.prompt_dump: {hero.Name} ({hero.StringId})'s prompt ({prompt.Length} chars) written to {path}{namesakes}";
          }
          catch (Exception ex)
          {
@@ -79,18 +79,26 @@ namespace CalradiaRemembers
       #region private
 
       /// <summary>
-      ///   Whoever was named, else whoever is being spoken to. The same rule cr.memory_bench uses, so the two
-      ///   diagnostics never disagree about who "this character" means.
+      ///   Whoever was named (a hero id, an exact name, then part of a name), else whoever is being spoken to. When
+      ///   others answer to the same name, <paramref name="namesakes" /> lists them with their ids, so the next call
+      ///   can name the right one (tashmetu, 02/10/2026: namesakes were dumped in silence).
       /// </summary>
-      private static Hero PickSubject(string nameFragment)
+      private static Hero PickSubject(string typed, out string namesakes)
       {
-         if (!string.IsNullOrWhiteSpace(nameFragment))
-            return System.Linq.Enumerable.FirstOrDefault(
-               Hero.AllAliveHeroes,
-               h => h?.Name != null
-                    && h.Name.ToString().IndexOf(nameFragment, StringComparison.OrdinalIgnoreCase) >= 0);
+         namesakes = "";
+         if (string.IsNullOrWhiteSpace(typed)) return Hero.OneToOneConversationHero;
 
-         return Hero.OneToOneConversationHero;
+         var heroes = System.Linq.Enumerable.ToList(System.Linq.Enumerable.Where(Hero.AllAliveHeroes, h => h != null));
+         var pick = Logic.Diagnostics.DiagnosticSubjectPicker.Pick(
+            System.Linq.Enumerable.Select(heroes, h => new Logic.Diagnostics.DiagnosticSubject {Id = h.StringId, Name = h.Name?.ToString() ?? ""}),
+            typed);
+         if (pick.Chosen == null) return null;
+
+         if (pick.Others.Count > 0)
+            namesakes = "\nAlso answering to that name (pass the id to pick one): "
+                        + string.Join(", ", System.Linq.Enumerable.Select(pick.Others, o => $"{o.Name} ({o.Id})"));
+
+         return System.Linq.Enumerable.First(heroes, h => h.StringId == pick.Chosen.Id);
       }
 
       /// <summary>A file name a person can find, from a name that may contain anything at all.</summary>
