@@ -139,5 +139,35 @@ namespace CalradiaRemembers.Tests
       }
 
       #endregion
-}
+
+        // Lordfadooboo (Nexus, 04/10/2026): he offered Taslur 20000 for Rhagaea, Taslur agreed in words, and the game
+        // answered "You hold no such captive to sell", which he was not trying to do. The refusal must say the truth of
+        // it: the lord he spoke to does not hold her, and who does, so the player knows whom to treat with.
+        [Test]
+        public void GIVEN_a_captive_held_by_another_house_WHEN_the_wrong_lord_agrees_to_sell_THEN_the_player_is_told_who_holds_them()
+        {
+            string note = PrisonerTradePolicy.NotHisToSellNote(new NotHisToSellFacts {
+                SellerName = "Taslur", CaptiveName = "Rhagaea", HolderName = "Mesui", PlaceName = "Makeb"
+            });
+
+            note.Should().Contain("Taslur does not hold Rhagaea").And.Contain("Mesui").And.Contain("Makeb");
+            note.Should().NotContain("to sell.)", "the old wording read as though the player were the seller");
+        }
+
+        // A captive of the player's own house is never merchandise: the refusal says so, rather than "no such captive".
+        [Test]
+        public void GIVEN_a_captive_of_the_players_own_house_WHEN_a_lord_agrees_to_sell_THEN_the_player_is_told_why_not()
+        {
+            PrisonerTradePolicy.NotHisToSellNote(new NotHisToSellFacts {SellerName = "Taslur", CaptiveName = "Rhagaea", IsPlayersOwn = true})
+                .Should().Contain("one of your own");
+        }
+
+        // Nobody by that name in any cell: the refusal names the lord, not the player, as the one without the captive.
+        [Test]
+        public void GIVEN_no_captive_by_that_name_WHEN_a_lord_agrees_to_sell_THEN_the_refusal_says_he_holds_none()
+        {
+            PrisonerTradePolicy.NotHisToSellNote(new NotHisToSellFacts {SellerName = "Taslur", CaptiveName = "Rhagaea"})
+                .Should().Contain("Taslur holds no captive called Rhagaea");
+        }
+    }
 }

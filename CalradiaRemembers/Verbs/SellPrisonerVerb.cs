@@ -8,6 +8,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
@@ -90,7 +91,7 @@ namespace CalradiaRemembers.Verbs
                         return new BuyPrisonerVerb().Execute(action, ctx);
                     }
 
-                    return ActionOutcome.Refused($"({npcHero.Name} holds no such captive to sell.)");
+                    return ActionOutcome.Refused(NotHisToSell(npcHero, targetName, captive));
                 }
 
                 action.Parameters.TryGetValue("price", out string priceStr);
@@ -148,6 +149,37 @@ namespace CalradiaRemembers.Verbs
                 // so surface a refusal rather than vanish as a silent null.
                 return ActionOutcome.Refused("(The sale could not be completed. Nothing happened.)");
             }
+        }
+
+        /// <summary>
+        ///   The refusal when this lord does not hold the captive he agreed to sell (Lordfadooboo, 04/10/2026: "You hold
+        ///   no such captive to sell" answered a purchase). Finds the captive in whatever cell holds them, and says who
+        ///   holds them and where, or that they are of the player's own house.
+        /// </summary>
+        internal static string NotHisToSell(Hero seller, string targetName, Hero resolved = null)
+        {
+            string query = targetName?.Trim() ?? "";
+            Hero captive = resolved ?? (query.Length == 0
+                ? null
+                : Hero.AllAliveHeroes.FirstOrDefault(h => h is {IsPrisoner: true} && h != Hero.MainHero && h.Name != null
+                                                          && h.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0));
+
+            PartyBase captor = captive?.PartyBelongedToAsPrisoner;
+            Hero keeper = captor?.LeaderHero ?? captor?.Settlement?.OwnerClan?.Leader;
+            string holder = keeper?.Name?.ToString() ?? captor?.Settlement?.OwnerClan?.Name?.ToString();
+            string place = captor?.Settlement?.Name?.ToString() ?? captor?.MobileParty?.Name?.ToString();
+            bool own = captive != null && captive.Clan != null && captive.Clan == Clan.PlayerClan;
+
+            ModLog.Info($"[ACTION] {seller?.Name} agreed to sell '{targetName}', who is not theirs to sell: "
+                        + (captive == null ? "no prisoner by that name." : $"{captive.Name} is held by {holder ?? "?"} at {place ?? "?"}{(own ? ", of the player's own house" : "")}."));
+
+            return PrisonerTradePolicy.NotHisToSellNote(new NotHisToSellFacts {
+                SellerName = seller?.Name?.ToString() ?? "He",
+                CaptiveName = captive?.Name?.ToString() ?? (query.Length > 0 ? query : "that captive"),
+                HolderName = captive == null ? null : holder,
+                PlaceName = place,
+                IsPlayersOwn = own
+            });
         }
     }
 }

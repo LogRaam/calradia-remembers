@@ -104,7 +104,9 @@ namespace CalradiaRemembers.Verbs
                         return new SellPrisonerVerb().Execute(action, ctx);
                     }
 
-                    return ActionOutcome.Refused("(You hold no such captive to sell.)");
+                    // Neither of them holds the captive named: say who does, never "you hold no such captive to sell"
+                    // to a player who was buying (Lordfadooboo, 04/10/2026).
+                    return ActionOutcome.Refused(SellPrisonerVerb.NotHisToSell(npcHero, targetName));
                 }
 
                 // A CAPTIVE HE ASKED FOR IS A DELIVERY, NOT A SALE (Lordfadooboo, 18/09/2026). A Khuzait lord

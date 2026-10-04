@@ -100,6 +100,22 @@ namespace CalradiaRemembers.Logic
       ///   could raise, the most such a captive fetches, or the least. Empty when the figure named was paid, or none was
       ///   named. Read by the player and by the model, so neither invents a reason for the difference.
       /// </summary>
+      /// <summary>
+      ///   The refusal when the lord who agreed to sell a captive does not hold them. Lordfadooboo (Nexus, 04/10/2026):
+      ///   "You hold no such captive to sell" answered a purchase, and read as though the player were the seller. Says
+      ///   who does hold the captive, so the player knows whom to treat with, or why the captive is not for sale.
+      /// </summary>
+      public static string NotHisToSellNote(NotHisToSellFacts f)
+      {
+         if (f == null) return "(There is no such captive to trade.)";
+         if (f.IsPlayersOwn) return $"({f.CaptiveName} is one of your own, and not for sale. Ask for their release, or offer an exchange.)";
+         if (string.IsNullOrWhiteSpace(f.HolderName)) return $"({f.SellerName} holds no captive called {f.CaptiveName}. Nothing is paid.)";
+
+         string where = string.IsNullOrWhiteSpace(f.PlaceName) ? "" : $", at {f.PlaceName}";
+
+         return $"({f.SellerName} does not hold {f.CaptiveName}: {f.HolderName} does{where}. Nothing is paid; treat with whoever holds them.)";
+      }
+
       public static string PriceDifferenceNote(int named, int paid, bool limitedByPurse, string buyerName)
       {
          if (named <= 0 || paid == named) return "";
@@ -125,5 +141,23 @@ namespace CalradiaRemembers.Logic
 
          return floor < MinPrice ? MinPrice : floor;
       }
+   }
+
+   /// <summary>What the refusal of a sale by a lord who does not hold the captive is told from.</summary>
+   public sealed class NotHisToSellFacts
+   {
+      /// <summary>The lord who agreed to sell.</summary>
+      public string SellerName { get; init; }
+
+      public string CaptiveName { get; init; }
+
+      /// <summary>Who really holds the captive (a lord, or a house), or empty when no captive by that name is held anywhere.</summary>
+      public string HolderName { get; init; }
+
+      /// <summary>Where the captive is held (a town, a castle, a party), when known.</summary>
+      public string PlaceName { get; init; }
+
+      /// <summary>The captive is of the player's own house: never merchandise.</summary>
+      public bool IsPlayersOwn { get; init; }
    }
 }
