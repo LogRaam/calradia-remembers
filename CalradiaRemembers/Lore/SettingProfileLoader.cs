@@ -50,6 +50,7 @@ namespace CalradiaRemembers.Lore
                SeasonsPerYear = TaleWorlds.CampaignSystem.CampaignTime.SeasonsInYear
             };
             (int daysPerSeason, int seasonsPerYear) = SettingProfileDefaults.ResolveCalendar(profile, game);
+            LastProfile = profile;
             WorldCalendar.DaysPerSeason = daysPerSeason;
             WorldCalendar.SeasonsPerYear = seasonsPerYear;
 
@@ -60,5 +61,8 @@ namespace CalradiaRemembers.Lore
                       + $"a year of {WorldCalendar.DaysPerYear} days ({seasonsPerYear} seasons of {daysPerSeason}; the game's own: {game.SeasonsPerYear} of {game.DaysPerSeason}); "
                       + $"{cultures.Count} patriarchal culture(s).");
         }
+
+        /// <summary>The setting.json last read (null when absent or unreadable): cr.testall checks the calendar against it.</summary>
+        internal static SettingProfile LastProfile { get; private set; }
     }
 }
