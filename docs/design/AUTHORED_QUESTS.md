@@ -1,6 +1,7 @@
 # Authored quests: a repertoire of multi-stage quests in JSON
 
-DRAFT, 03/10/2026. Not built. For Gabriel to read, correct, and rule on the open questions at the end.
+DRAFT, 03/10/2026, revised the same day with Gabriel's rulings (no moon, exploration scenes, consequences, any
+giver, one at a time). Not built.
 
 ## Where this comes from
 
@@ -46,7 +47,7 @@ DRAFT, 03/10/2026. Not built. For Gabriel to read, correct, and rule on the open
 5. **What the player can verify is never faked (Gabriel).**
    - A clue is narrated where the player can look: the forest, at night.
    - A spawned band is a real party that can be beaten.
-   - A date the player can check is a date the game keeps (see the moon question below).
+   - No moon phase is invented: the game keeps none, and the sky would contradict us.
 
 ## The file
 
@@ -103,18 +104,18 @@ Each stage:
   "objective": { "type": "talk_to_locals", "place": "{village}", "count": 2 },
   "canvas": "The villagers are frightened and half-ashamed of their fear. They speak of the beast in lowered voices.",
   "facts": [
-    "Three women of {village} have vanished since the harvest, each on a full-moon night.",
+    "Three women of {village} have vanished since the harvest, each taken at night.",
     "Shepherds heard howling and saw something large moving at the edge of the forest.",
     "Nobody has seen the beast clearly."
   ],
   "knowers": {
     "locals_of:{village}": [
       "You believe a werewolf haunts the forest; your cousin swears she saw its eyes.",
-      "Since the harvest, three women have gone missing, each on a full-moon night."
+      "Since the harvest, three women have gone missing, each taken at night."
     ],
     "{giver}": [ "You have heard the villagers' tale and do not know what to believe." ]
   },
-  "on_complete": { "narration": null, "next": "the_wood_by_moonlight" }
+  "on_complete": { "next": "keep_watch" }
 }
 ```
 
@@ -129,19 +130,84 @@ Each stage:
 | `on_complete.next` | The next stage id, or `"reward"`. |
 | `branches` (optional) | Several ways out of a stage, each with its own objective and its own `next`. Not in Inc 1. |
 
-### The closed list of objectives (Inc 1: the five the werewolf needs, plus `deliver_item`)
+### The closed list of objectives (Inc 1: what the werewolf needs, plus `deliver_item`)
 
 | Type | Verified by | Engine fact |
 |---|---|---|
 | `talk_to` `{hero}` | A CR conversation with that hero, opened after the stage began. | The conversation open event. |
-| `talk_to_locals` `{place, count}` | That many distinct notables of the place spoken to since the stage began. | Same. |
-| `be_at` `{place, radius, night, moon}` | The player's party within `radius` of the place; night by the campaign clock; moon as below. | `MobileParty.MainParty` position, `CampaignTime.IsNightTime`. |
+| `talk_to_locals` `{place, count}` | That many distinct people of the place spoken to since the stage began. | Same. |
+| `be_at` `{place, radius}` | The player's party within `radius` of the place. | `MobileParty.MainParty` position. |
+| `keep_watch` `{place, radius, nights, chance}` | Nights spent near the place, at night, by the campaign clock; each night a roll may open the stage's scene. See below. | Position, `CampaignTime.IsNightTime`, a seeded roll. |
+| `explore` `{scene}` | An exploration scene (below) that ran and closed, with its required findings recorded by the game. | The scene's own record. |
 | `defeat_party` `{spawn}` | A party CR spawned for this quest beaten in battle by the player. | The battle end event, the party's id. Spawned with `TransientPartyRegistry` so it survives a save. |
 | `deliver_item` `{item}` | The item handed over through the offer bag, matched as supply tasks are. | `SupplyItemMatcher`. |
 | `return` | Back to the giver: `talk_to {giver}` with the reward settled. | As `talk_to`. |
 
 Later types, one by one, each with its own check: `win_tournament`, `capture` (reuse the capture task),
 `escort` (step 3 of the roadmap), `free_prisoner`, `wait_days`.
+
+### Keeping watch (Gabriel, 03/10/2026: no moon)
+
+- **No moon.** Bannerlord keeps no moon phases, and a phase we invented could disagree with the sky the player sees.
+- **Nights spent waiting.** Instead, the player spends nights near the place, waiting.
+  - `nights: [2, 5]` with `chance: 0.35`: from the 2nd night on, each night the scene may open; on the 5th it opens
+    for certain, so a patient player is never left waiting forever.
+  - The roll is seeded from the quest and the day, so a reload does not reroll it.
+  - A night counts only if the player's party spends it within `radius`; leaving resets nothing, it simply does not
+    count.
+- **The journal says what to do,** never when it will happen: "Keep watch by the wood of {village} at night."
+
+### Exploration scenes: the chat without a character (Gabriel, 03/10/2026)
+
+A local exploration, played in the chat window with no one to talk to at first.
+
+- **It opens on a description.** The model writes it from the scene's `opening` canvas and facts, in the second
+  person: "Mud, and in it the prints of boots, many of them, leading deeper into the wood." Then it asks the player
+  what they do.
+- **The player says what they do, and the model narrates what follows,** as a narrator, never as a character: "You
+  follow the tracks, keeping to the bracken..." It may describe freely (the wind, the cold, the player's own
+  caution), but the things the player can FIND are the scene's `findings`, written in the file.
+- **Findings are the game's, the moment is the model's.**
+  - Each finding has an id. When the narration reveals one, the interpreter reports `scene_finding` with that id.
+  - The game accepts only ids the scene declares, and records each once.
+  - A finding marked `required` is what the stage needs.
+  - If the player closes the scene before a required finding came up, the closing narration states it anyway, from
+    the file, so a clue can be missed only in its manner, never in substance. "Whatever you did, you would have
+    found this."
+- **Meeting someone.** A scene may declare `encounters`: a bound hero, or a heroless person written in the file (an
+  escaped girl, a lookout). When the narration brings them in, the interpreter reports `scene_encounter` with that id,
+  and the game adds them to the conversation as a speaker, with their own knowledge from the file. From there it is an
+  ordinary multi-party conversation, the narrator still present for what the player does.
+- **What the scene can never do:** complete a deed (no gold, no fight, no capture happens in narration), invent a
+  finding, or kill the player. A danger written into the scene (being spotted) can only lead to a real consequence
+  the game runs, such as the band moving or a real battle, from Inc 2 on.
+- **Built on what exists.**
+  - The chat already runs scenes the player does not open on a person: the captive scenes have a director and a
+    narration line.
+  - Witnesses already join mid-conversation (`AddWitness`, the Invite button).
+  - The new parts are a narrator speaker with no hero, and the two interpreter reports.
+
+```json
+"objective": {
+  "type": "explore",
+  "scene": {
+    "opening": {
+      "canvas": "Night by the wood, after waiting. The player notices something on the path; quiet, cold, watchful.",
+      "facts": [ "Fresh boot prints in the mud lead from the village edge into the wood." ]
+    },
+    "findings": [
+      { "id": "chains", "required": true, "text": "A clearing with a dropped iron collar and a length of chain." },
+      { "id": "pelt", "required": true, "text": "A wolf pelt rigged on a wooden frame: the beast the shepherds saw." },
+      { "id": "ruts", "required": false, "text": "Cart ruts leading out of the wood toward the road." }
+    ],
+    "encounters": [
+      { "id": "escaped_girl", "name": "a girl from {village}", "persona": "barefoot, terrified, escaped from the slavers' camp two nights ago",
+        "knows": [ "Men took her, not a beast. They keep the women in a camp further in and wait for a buyer from the coast." ] }
+    ],
+    "closing": "Whatever the player did, they leave the wood knowing it was men, not a beast, and that the women are being sold."
+  }
+}
+```
 
 ### Spawned parties
 
@@ -162,6 +228,35 @@ Later types, one by one, each with its own check: `win_tournament`, `capture` (r
 - **`flee_after_days` is the failure clock** for that stage: past it, the band leaves the region and the quest fails
   with its `failure` memory.
 
+## Consequences and rewards (Gabriel, 03/10/2026: mostly regard, and consequences)
+
+- **The reward is mostly regard,** on the mod's own ledger, with a memory line for the giver. Gold stays modest.
+- **A quest should leave a mark on the world.** `consequences` is a closed list, each one carried out by the game:
+
+| Consequence | What the game does | Status |
+|---|---|---|
+| `regard` `{who, amount}` | Moves a character's regard for the player. | exists |
+| `memory` `{who, text}` | A memory line for a character, or for every notable of a place. | exists |
+| `world_event` `{summary, magnitude, place}` | News that spreads (or `secret`, known to those named). | exists |
+| `grudge` `{holder, against}` | A grudge between two characters (the Smoke quest's rival house). | needs a ruling: NPC-to-NPC grudges |
+| `settlement` `{place, prosperity, loyalty, security}` | Small shifts to a place's state. | engine setters, to check |
+| `war_averted` `{realm_a, realm_b, days}` | Holds off a declaration of war between two realms for a while. | needs a spike: where vanilla decides war |
+| `peace_pressure` `{realm_a, realm_b}` | Raises the will for peace between two realms at war. | needs the same spike |
+
+- **Failure has consequences too** (Gabriel: yes): a failed unique quest leaves a memory with the giver AND with the
+  place ("nobody came"), and is gone for that campaign.
+
+## Who offers a quest, and how many
+
+- **Any character can offer one** (Gabriel, 03/10/2026: "peu importe si il est Lord ou non"): a lord, a notable, a
+  gang leader, an artisan. `requires.giver.role` names which, and the quest's own facts say why that person.
+- **The giver brings it** (step 1 of the roadmap: an audience, a road encounter, a letter that asks the player to come),
+  or the player raises it with someone who has it to give.
+- **One authored quest at a time** (Gabriel). Ordinary tasks run alongside it as today.
+- **The journal shows it apart from a task** (Gabriel): its own look in the quest log, so the player sees at a glance
+  that this is a story, not an errand. To check in the engine: what `QuestBase` lets a quest change (a special quest
+  flag, a title colour, an icon).
+
 ## How the model is told (prompt side)
 
 - **When.** A character with a role in an active authored quest gets one block, below the cache marker, only while
@@ -169,8 +264,10 @@ Later types, one by one, each with its own check: `win_tournament`, `capture` (r
 - **The giver, at each stage:** the stage's canvas, its facts, what the giver knows, and the rule: "say these in your
   own words; keep every fact; add none; do not speak of what you have not been told".
 - **A knower:** only their knower lines, framed as what they believe, never as the plot.
+- **The narrator of a scene:** the opening, the findings not yet revealed (as what exists to be found, not as a script),
+  the encounters, and the limits above.
 - **Never shown to anyone:** the stage list, later stages, the twist.
-- **The interpreter is not told the quest.** No verb completes a stage, so nothing in a reply can complete one.
+- **The interpreter learns only the two scene reports,** and only inside a scene. No verb completes a stage.
 
 ## The four drafts
 
@@ -178,25 +275,35 @@ In `docs/design/quests/`:
 
 | File | Unique | Shape | The turn |
 |---|---|---|---|
-| `wolf_of_the_wood.json` | yes | village, night, clue, hunt | The werewolf is a slaving band (Gabriel's). |
+| `wolf_of_the_wood.json` | yes | a village, nights of watch, an exploration scene, a hunt | The werewolf is a slaving band (Gabriel's). |
 | `smoke_over_the_hills.json` | yes | burned farms blamed on an enemy realm | The raiders wear the colours of a rival house of the giver's own realm. Ends on a choice in Inc 2 (branches); in Inc 1, report it and the giver acts. |
 | `the_lost_banner.json` | repeatable, long cooldown | deserters carry off a house's banner | The deserters are not cowards: their captain sold them out. Bring the banner back, and the giver remembers the deserters' tale. |
 | `the_bitter_well.json` | yes | a town falls sick | Not poison: grain sold rotten by a merchant. The gang leader knows who; the giver must hear it from the player. |
 
-## Open questions for Gabriel
+## Increments (revised 03/10/2026)
 
-1. **The moon.**
-   - Bannerlord has no moon phases in its rules.
-   - We could keep a 28-day cycle on our own calendar, show the next full moon in the journal, and let
-     `be_at { moon: "full" }` check that.
-   - But if the game's sky draws a moon whose shape disagrees, the world lies about something the player can see.
-     Someone needs to look at the night sky in game once.
-   - If the sky shows no phases, our calendar is safe. If it does, we read the engine's or drop the moon.
-2. **Rewards.** Gold and regard as today's tasks, plus a memory line for the giver. Renown? An item (a named weapon
-   from the band's leader)?
-3. **Failure.** A unique quest that fails is gone for that campaign. Should it leave a memory with the village too
-   ("nobody came")?
-4. **Who offers it.** Through step 1 of the roadmap (the giver comes to the player, by letter or in person), or also
-   found by asking around: a notable of the village speaks of the werewolf, and the lord gives the quest when the player
-   raises it?
-5. **How many at once.** One authored quest active at a time, or several?
+1. **The engine and the werewolf.**
+   - The JSON loader, its report of authoring problems, and the stage machine.
+   - Saving and loading an active quest.
+   - The journal entry with its own look.
+   - The objectives `talk_to`, `talk_to_locals`, `keep_watch`, `explore`, `defeat_party` and `return`.
+   - The exploration scene: narrator, findings, one encounter.
+   - Rewards: regard and memories.
+   - The werewolf playable end to end, with unit tests on every rule and a cr.testall that walks the stages.
+2. **Offering and consequences.**
+   - The giver comes to the player (step 1 of the roadmap).
+   - Branches.
+   - The spikes for `war_averted` and the NPC grudge.
+   - Danger in a scene leading to a real battle.
+3. **For modders and players.** The Custom folder, cr_patch, HOWTO_Quests.md in Docs, and cr.quest_check.
+4. **More quests.** A first lot of unique quests, drafted by Claude and corrected by Gabriel.
+
+## Still open
+
+1. **Who may be the narrator's voice in a scene?** The player's chosen narrative style applies, as in every
+   conversation. Should a scene force a plainer voice, so the findings read clearly?
+2. **Can a scene go badly in Inc 1?** Being spotted, a fall, losing the trail. Proposed: no. In Inc 1 a scene can only
+   delay, never fail, until consequences can be real (Inc 2).
+3. **The heroless encounter.** The escaped girl is no hero of the game. Should she be allowed to follow the player
+   afterwards (a companion she cannot be), or stay part of the scene only? Proposed: the scene only, remembered
+   in the quest's memories.
