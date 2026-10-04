@@ -154,11 +154,10 @@ namespace CalradiaRemembers.Missions
 
       private void GrantAudience(Hero h)
       {
-         _refusals[h.StringId] = CompanionRetentionPolicy.OnAudienceGranted(); // the audience is granted — reset the escalation
-
          NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(h.StringId);
          if (profile == null)
          {
+            _refusals[h.StringId] = CompanionRetentionPolicy.OnAudienceGranted(); // heard at once: no window to wait for
             // Fail-soft (no profile to converse with): the old direct reassurance.
             CompanionHappinessService.ApplyDriver(h, HappinessDriver.WellTreated);
             CompanionHappinessService.ApplyDriver(h, HappinessDriver.WellTreated);
@@ -171,6 +170,10 @@ namespace CalradiaRemembers.Missions
 
          // Open the real conversation: they voice the grievance, and you may win them back in your own words
          // (the reassure_companion action, taught by their unhappy mood, mollifies them if you truly make it right).
+         // The escalation resets only when they are actually heard (EnjoyingHydra, 03/10/2026): an audience that
+         // never opened left the grievance unvoiced, and must not read as one the player granted.
+         string id = h.StringId;
+         ChatManager.AudiencePromises.Promise(id, () => _refusals[id] = CompanionRetentionPolicy.OnAudienceGranted());
          ChatManager.OpenForCompanionAudience(h, profile, CompanionAudienceReason.Grievance, false);
          ModLog.Info($"[HAPPINESS] {h.Name}'s grievance audience opened.");
       }

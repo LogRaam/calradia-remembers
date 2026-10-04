@@ -382,23 +382,27 @@ namespace CalradiaRemembers.Missions
          NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(companion.StringId);
          if (profile == null) return;
 
-         // Only NOW, with the audience truly opening, do we spend the one-shot topics, a refused popup must
-         // leave them free to resurface (see the class header).
-         if (topic == CompanionAudienceReason.RumourReport && !string.IsNullOrEmpty(key)) _reportedRumourIds.Add(key);
-         if (topic == CompanionAudienceReason.Callback && !string.IsNullOrEmpty(key)) _usedCallbackKeys.Add(key);
-         if (topic == CompanionAudienceReason.Gratitude && !string.IsNullOrEmpty(key)) _thankedKeys.Add(key);
-
-         // SchemeWarning's audience IS the heed: this is the only place TargetHeeds(MainHero) is ever called
-         // (see the class header), so it must fire exactly once, here, on a real grant, never on a mere offer.
-         if (topic == CompanionAudienceReason.SchemeWarning)
+         // The one-shot topics are spent when the audience is really on screen, not at the yes: a refused popup
+         // must leave them free to resurface (see the class header), and so must one accepted that never opened
+         // (EnjoyingHydra, 03/10/2026: accepted, nothing appeared, and the topic was gone for good).
+         string companionId = companion.StringId;
+         ChatManager.AudiencePromises.Promise(companionId, () =>
          {
-            if (!string.IsNullOrEmpty(key)) _warnedKeys.Add(key);
-            SchemeStore.Instance?.TargetHeeds(Hero.MainHero);
-         }
+            if (topic == CompanionAudienceReason.RumourReport && !string.IsNullOrEmpty(key)) _reportedRumourIds.Add(key);
+            if (topic == CompanionAudienceReason.Callback && !string.IsNullOrEmpty(key)) _usedCallbackKeys.Add(key);
+            if (topic == CompanionAudienceReason.Gratitude && !string.IsNullOrEmpty(key)) _thankedKeys.Add(key);
 
-         // Ambition is not spend-once: the per-companion cooldown clock starts here, on a real grant, exactly
-         // like the spend-once keys above are only ever marked on a real grant, never a mere offer.
-         if (topic == CompanionAudienceReason.Ambition) _ambitionAskedDays[companion.StringId] = Today;
+            // SchemeWarning's audience IS the heed: this is the only place TargetHeeds(MainHero) is ever called
+            // (see the class header), so it must fire exactly once, on an audience really heard.
+            if (topic == CompanionAudienceReason.SchemeWarning)
+            {
+               if (!string.IsNullOrEmpty(key)) _warnedKeys.Add(key);
+               SchemeStore.Instance?.TargetHeeds(Hero.MainHero);
+            }
+
+            // Ambition is not spend-once: the per-companion cooldown clock starts on an audience really heard.
+            if (topic == CompanionAudienceReason.Ambition) _ambitionAskedDays[companionId] = Today;
+         });
 
          // Defer the chat open to the next main-thread frame. Opening the focus-grabbing, time-pausing chat
          // overlay synchronously from inside this inquiry consequence, while a settlement menu is the active

@@ -194,8 +194,16 @@ namespace CalradiaRemembers.Chat
       ///   prior session. Drops our own references WITHOUT touching the engine objects, which belong to a screen
       ///   that session or the load already tore down.
       /// </summary>
+      /// <summary>
+      ///   What a granted companion audience will change (the grievance count reset, a one-shot topic spent), kept
+      ///   only when the audience is really on screen (EnjoyingHydra, 03/10/2026: accepted audiences that never opened
+      ///   were spent anyway, and a companion left over a word he never got to say).
+      /// </summary>
+      internal static readonly AudiencePromiseLedger AudiencePromises = new AudiencePromiseLedger();
+
       public static void ResetForSession()
       {
+         AudiencePromises.Clear();
          if (IsOpen) ModLog.Compat("ChatManager: a chat was still recorded as open at session launch; clearing it.");
 
          _activeLayer = null;
@@ -757,6 +765,7 @@ namespace CalradiaRemembers.Chat
                        + $"profile={(profile == null ? "null" : "ok")}. The popup was answered and nothing followed.");
             ModLog.Notice("a companion asked for a private word and the mod could not open it. "
                         + "They keep the grievance; they will ask again.");
+            AudiencePromises.Break(companion?.StringId);
 
             return;
          }
@@ -810,6 +819,7 @@ namespace CalradiaRemembers.Chat
          if (companion == null || profile == null)
          {
             ModLog.Error("[AUDIENCE] direct open refused: no companion or no profile.");
+            AudiencePromises.Break(companion?.StringId);
 
             return;
          }
@@ -825,14 +835,19 @@ namespace CalradiaRemembers.Chat
             // The end of the road, and until now it ended out of sight: Error is gated by the MCM logging
             // switch, which is off by default, so the player who answered the popup was told nothing and the
             // log they sent said nothing either. Say it where it cannot be switched off.
-            ModLog.Notice($"{companion.Name}'s private word could not be opened. If it happens again, "
-                        + "cr.chat_reset clears a stuck window.");
+            ModLog.Notice($"{companion.Name}'s private word could not be opened; they will ask again. If it happens "
+                        + "again, cr.chat_reset clears a stuck window.");
+            AudiencePromises.Break(companion.StringId);
 
             return;
          }
 
          ActiveViewModel.SetNpcHero(companion);
          ActiveViewModel.ActivateCompanionAudience(profile, reason, landed, topicDetail);
+
+         // On screen at last: only now does the audience count as given.
+         int kept = AudiencePromises.Keep(companion.StringId);
+         if (kept > 0) ModLog.Info($"[AUDIENCE] {companion.Name}'s audience is open; {kept} promise(s) kept.");
       }
 
       /// <summary>

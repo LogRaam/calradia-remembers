@@ -400,6 +400,8 @@ namespace CalradiaRemembers.Chat
             // where they would never read it. This one sentence is what turns the next report into a fix.
             ModLog.Notice("a conversation was already open, so the private word you accepted was dropped. "
                         + "If no window appeared at all, cr.chat_reset clears a stuck one.");
+            // Dropped, not heard: nothing the yes promised is spent, so the companion asks again (EnjoyingHydra).
+            ChatManager.AudiencePromises.Break(_pending.Partner?.StringId);
             _pending = null;
 
             return;

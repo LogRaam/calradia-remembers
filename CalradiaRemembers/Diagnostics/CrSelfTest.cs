@@ -272,6 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
+         new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
          new SelfTest("world_event_discretion", Severity.Light, "IdentityCrysys (Nexus, 03/10/2026): keep a world event from a character, or from all but those it names. Records a loud event naming two lords of a realm, then through the real console commands: public, a third lord hears it; secret, only the two do; hidden from the third, only he is unaware; removed, it is gone. Removes it after.", TestWorldEventDiscretion),
          new SelfTest("player_company", Severity.Light, "Gabriel's Invite / Request Private design (03/10/2026, after nerethi). Reads the player's real company (party, escorts, prison): never the player, every prisoner truly held, the one spoken to never offered for invitation, and a room made only of the company, seated as Invite seats them, is cleared at once. Changes nothing.", TestPlayerCompany),
          new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
@@ -8673,6 +8674,24 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestAudienceNotSpentUnheard(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("audience_not_spent_unheard");
+
+         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsPlayerCompanion && h != Hero.MainHero);
+         if (t.Skip(companion == null, "no companion")) return t.Line();
+
+         // As a grant does: promise what the audience changes, then the open fails (here: no profile to open with).
+         var spent = false;
+         ChatManager.AudiencePromises.Promise(companion.StringId, () => spent = true);
+         ChatManager.OpenForCompanionAudience(companion, null, CompanionAudienceReason.Grievance, false);
+
+         t.Expect("anAudienceThatNeverOpenedSpendsNothing", spent, false);
+         t.Expect("andNothingIsLeftWaiting", ChatManager.AudiencePromises.IsPending(companion.StringId), false);
 
          return t.Line();
       }
