@@ -477,6 +477,12 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> InterceptionPacing { get; set; } =
          new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's behaviour)
 
+      // Authored quests (docs/design/AUTHORED_QUESTS.md; Gabriel, 03/10/2026): a switch for the new written tales.
+      [SettingPropertyBool("Authored Quests", RequireRestart = false, Order = 4,
+         HintText = "On: characters may ask your help with a written tale (a quest in several stages, like the wolf of the wood). Off: no new tale is offered; one already under way goes on (cr.story_abandon sets it aside).")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool AuthoredQuests { get; set; } = true;
+
       // Fakade (Nexus, 03/10/2026): since 2.6.8 a lord riding out to the player is held on course (Lordfadooboo had
       // asked for it); Fakade liked the old way too, where they lost interest quickly. Both, by the player's choice.
       [SettingPropertyBool("Lords Hold Their Course", RequireRestart = false, Order = 3,

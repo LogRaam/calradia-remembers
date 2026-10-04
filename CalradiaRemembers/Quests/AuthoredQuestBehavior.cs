@@ -149,7 +149,8 @@ namespace CalradiaRemembers.Quests
                return;
             }
 
-            TryOffer(hero, today, MBRandom.RandomFloat);
+            // MCM "Authored Quests": off, no new tale is offered (one under way goes on).
+            if (ModSettings.AuthoredQuests) TryOffer(hero, today, MBRandom.RandomFloat);
          });
       }
 

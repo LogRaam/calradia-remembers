@@ -316,6 +316,9 @@ namespace CalradiaRemembers
       /// </summary>
       public static bool LordsHoldTheirCourse => CrSettings.Instance?.LordsHoldTheirCourse ?? true;
 
+      /// <summary>Characters may offer a written tale (authored quests); on when MCM has not loaded. Off stops new offers only.</summary>
+      public static bool AuthoredQuests => CrSettings.Instance?.AuthoredQuests ?? true;
+
       public static InterceptionPacing LordsApproaching
       {
          get
