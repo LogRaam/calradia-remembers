@@ -148,6 +148,12 @@ namespace CalradiaRemembers
       public static bool ClanStandingWarmsFirstMeetings => CrSettings.Instance?.ClanStandingWarmsFirstMeetings ?? true;
 
       /// <summary>
+      ///   Whether a mercenary's (or fiefless vassal's) departure is judged by the realm's lords, the player's and the
+      ///   game's companies alike (MCM "Mercenary departures are judged", default on; Fakade, 04/10/2026).
+      /// </summary>
+      public static bool JudgeMercenaryDepartures => CrSettings.Instance?.JudgeMercenaryDepartures ?? true;
+
+      /// <summary>
       ///   Stolen Love pillar toggle, read live from the MCM menu. Off (default) keeps the shipped affair rule for
       ///   a married NPC; on turns the personality-gated seduction path on (see <see cref="Logic.SeductionEligibilityPolicy" />).
       /// </summary>

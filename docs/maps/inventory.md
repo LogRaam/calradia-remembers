@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 464 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 946 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 947 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -804,7 +804,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (609)
+### CalradiaRemembers.Logic (610)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1139,6 +1139,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MercenaryDepartureVerdict` | public enum | How a realm takes the end of the player's mercenary contract. |
 | `MercenaryEnlistmentPolicy` | public static class | Pure gate for the join_as_mercenary action: whether the player's clan may take mercenary service under the kingdom in question right now, the two facts both the prompt teaching and the bridge's execution guard must agree... |
 | `MercenaryReleasePolicy` | public static class | Pure gate for the end_mercenary action: whether the player's clan is truly under mercenary service right now, the one fact both the prompt teaching (EncounterContext.PlayerIsMercenary) and the bridge's execution guard mu... |
+| `MercenaryRenewalFacts` | public class | A contract ended and another began: is it the same service renewed? |
 | `MirrorReconcileDecision` | public enum | What to do with one quest-journal mirror at session launch. |
 | `MissionResult` | public enum | How well a dispatched companion's errand turned out. |
 | `MissionSkill` | public enum | The CR-local skill a mission is judged by, kept independent of the engine's SkillObject. |

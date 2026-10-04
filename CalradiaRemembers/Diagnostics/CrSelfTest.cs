@@ -324,6 +324,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("clan_standing_seed", Severity.Light, "tashmetu (30/09/2026): a lord whose clan counted the player a friend (+54) met him as a near-stranger. Drives the real apply path on a real character's profile: a trusted friend's clan lifts regard from 0 to friendly regard once, a second meeting adds nothing, and a character the player offended keeps the offence. Regard and the seed are restored.", TestClanStandingSeed),
          new SelfTest("letter_regard", Severity.Light, "Lordfadooboo (Nexus, 28/09/2026): a dozen letters and the correspondent's regard had not moved. Drives the real apply path on a real character's profile: a warm letter earns +1, a second the same day earns nothing, a cold one costs 1, and the [LETTER_TONE] line is stripped from the letter. Regard and the letter clock are restored.", TestLetterRegard),
          new SelfTest("vassal_departure_judged", Severity.Light, "fkasad (24/09/2026): a vassal holding no fief who leaves a realm at war is judged like a mercenary, the oath weighing like kinship; one holding fiefs is not (the war that follows is the consequence). Judges leaving the player's realm (or any realm) right now WITHOUT applying anything: judged only with no fief, the news speaks of the oath, and a sworn vassal is never thanked.", TestVassalDepartureJudged),
+         new SelfTest("mercenary_renewal_and_fade", Severity.Light, "Fakade (Nexus, 04/10/2026): a mercenary-contract mod, and lords at -30 and -40 for good. A contract ended and taken up again the same day, through the real handling, must cost the ruler nothing and leave nothing held; and a resentment half the fade old gives back half its regard. Restores both.", TestMercenaryRenewalAndFade),
          new SelfTest("mercenary_company_judged", Severity.Light, "Zivkyn (Nexus): the game's own mercenary companies change sides mid-war and nobody resents them. Finds a real company in a realm's pay and judges its departure by fkasad's grid WITHOUT applying anything: the verdict follows the realm's footing, and the news line names the company and the realm.", TestMercenaryCompanyJudged),
          new SelfTest("faction_block_realm", Severity.Light, "tashmetu (27/09/2026): a companion's or a notable's realm is not their people's, and pulled another people's FACTION BEHAVIOR block into their prompt (or retitled theirs). Reads real heroes: a lord of a kingdom of his own culture keeps that realm for the choice; a hero living in a realm of another culture gets none. Read-only.", TestFactionBlockRealm),
          new SelfTest("council_seat_note", Severity.Light, "The council's per-seat door for other mods (tashmetu, Bellum Civile bridge, 26/09/2026): registers a throwaway {{variable}}, then resolves a council_seat template for two real lords. Each seat must carry ITS OWN value (the provider is told which seat, and that it writes for a council seat), a seat whose variable comes back empty carries no note, and with no template no note exists at all. The variable is unregistered at the end.", TestCouncilSeatNote),
@@ -8827,6 +8828,29 @@ namespace CalradiaRemembers.Diagnostics
             Requested = ChatManager.ManuscriptSkin, ManuscriptSkin = ChatManager.ManuscriptSkin, ClassicSkin = ChatManager.ClassicSkin, ManuscriptArtLoads = art
          });
          t.Expect("darkLeatherOnlyWithItsArt", opens, art ? ChatManager.ManuscriptSkin : ChatManager.ClassicSkin);
+
+         return t.Line();
+      }
+
+      private static string TestMercenaryRenewalAndFade(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("mercenary_renewal_and_fade");
+         WorldEvents.MercenaryReputationBehavior mercs = WorldEvents.MercenaryReputationBehavior.Instance;
+         if (t.Abort(mercs == null, "the mercenary behaviour is not running")) return t.Line();
+
+         Kingdom realm = Kingdom.All?.FirstOrDefault(k => !k.IsEliminated && k.Leader != null && k.Leader != Hero.MainHero && k != Hero.MainHero?.MapFaction
+                                                          && behavior.Store?.Get(k.Leader.StringId) != null);
+         if (t.Skip(realm == null, "no realm whose ruler the player has met")) return t.Line();
+
+         var renewal = mercs.DebugRenewal(realm);
+         if (t.Skip(renewal == null, "a real departure is waiting, or the judgment is off in the MCM")) return t.Line();
+         t.Note($"{realm.Name}: ruler regard {renewal.Value.Before} -> {renewal.Value.After}");
+         t.Expect("aRenewalCostsTheRulerNothing", renewal.Value.After, renewal.Value.Before);
+         t.Expect("nothingIsLeftHeld", renewal.Value.LeftPending, false);
+         t.Expect("noResentmentIsKept", renewal.Value.ResentmentsAdded, 0);
+
+         int givenBack = mercs.DebugFadeHalfway(realm.Leader, -20);
+         t.Expect("halfTheFadeGivesBackHalf", givenBack, 10);
 
          return t.Line();
       }

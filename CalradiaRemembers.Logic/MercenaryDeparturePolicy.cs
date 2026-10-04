@@ -17,6 +17,7 @@
 #region
 
 using System;
+using NpcMemoryService.Core.Calendar;
 
 #endregion
 
@@ -51,6 +52,18 @@ namespace CalradiaRemembers.Logic
       public float EnemiesStrength { get; set; }
    }
 
+   /// <summary>A contract ended and another began: is it the same service renewed?</summary>
+   public sealed class MercenaryRenewalFacts
+   {
+      public string LeftRealmId { get; init; }
+
+      public string JoinedRealmId { get; init; }
+
+      public int LeftOnDay { get; init; }
+
+      public int Today { get; init; }
+   }
+
    /// <summary>The rules of a mercenary's departure. Pure.</summary>
    public static class MercenaryDeparturePolicy
    {
@@ -61,6 +74,19 @@ namespace CalradiaRemembers.Logic
       public const int BetrayalWindowDays = 30;
 
       // The four below are SHIFTS on the regard ledger, not thresholds: nothing is compared against them.
+
+      /// <summary>
+      ///   TUNE: days within which leaving a realm and joining it again is a renewal of the same service, not a departure.
+      ///   Fakade (Nexus, 04/10/2026) runs another mod for mercenary contracts, which may renew a contract that way.
+      /// </summary>
+      public const int RenewalWindowDays = 3;
+
+      /// <summary>
+      ///   TUNE: days over which the lords' resentment of a departure fades back to nothing: one year of the world.
+      ///   Fakade: "Is this negative regard permanent? ... It will turn into every mercenary being hated." Gabriel
+      ///   (04/10/2026): it fades. The memory of the departure stays; only the regard it cost comes back.
+      /// </summary>
+      public const int ResentmentFadeDays = WorldCalendar.DefaultDaysPerSeason * WorldCalendar.DefaultSeasonsPerYear;
 
       /// <summary>TUNE: the regard the realm's lords gain for a company let go in victory.</summary>
       public const int ReleasedGratitude = 3;
@@ -111,6 +137,26 @@ namespace CalradiaRemembers.Logic
          };
 
          return shift < 0 ? shift * (1 + (sameCulture ? 1 : 0) + (sworn ? 1 : 0)) : shift;
+      }
+
+      /// <summary>
+      ///   True when joining <see cref="MercenaryRenewalFacts.JoinedRealmId" /> renews the service just left rather than
+      ///   following a departure: the same realm, within <see cref="RenewalWindowDays" />.
+      /// </summary>
+      public static bool IsRenewal(MercenaryRenewalFacts f)
+         => f != null && !string.IsNullOrEmpty(f.LeftRealmId) && f.LeftRealmId == f.JoinedRealmId
+            && f.Today - f.LeftOnDay >= 0 && f.Today - f.LeftOnDay <= RenewalWindowDays;
+
+      /// <summary>
+      ///   What is left of a departure's <paramref name="penalty" /> (a negative regard shift) after
+      ///   <paramref name="daysSince" />: whole at first, nothing after <see cref="ResentmentFadeDays" />, linear between.
+      /// </summary>
+      public static int ResentmentRemaining(int penalty, int daysSince)
+      {
+         if (penalty >= 0 || daysSince <= 0) return Math.Min(0, penalty);
+         if (daysSince >= ResentmentFadeDays) return 0;
+
+         return (int) (penalty * (double) (ResentmentFadeDays - daysSince) / ResentmentFadeDays);
       }
 
       /// <summary>The additional regard lost when a departure already judged is upgraded to a betrayal.</summary>

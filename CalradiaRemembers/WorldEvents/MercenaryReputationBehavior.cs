@@ -15,6 +15,11 @@
 //   - The player leaving a realm as a VASSAL holding no fief is judged by the same grid, the oath weighing like
 //     kinship (fkasad, 24/09/2026). One who leaves with fiefs takes them to war against the realm: not judged here.
 //
+//   - Fakade (Nexus, 04/10/2026), ruled by Gabriel: a contract renewed by leaving and rejoining the same realm within
+//     RenewalWindowDays is no departure (the departure waits that long before it is judged); the lords' resentment
+//     fades back over ResentmentFadeDays; and the whole judgment can be turned off (MCM "Mercenary departures are
+//     judged").
+//
 // Additive save keys.
 
 #region
@@ -44,6 +49,11 @@ namespace CalradiaRemembers.WorldEvents
 
       private Dictionary<string, Departure> _companies = new();
 
+      // The lords' resentment of the player's departures, fading back to nothing (Fakade; additive key, 04/10/2026).
+      private const string ResentmentSaveKey = "CR_MercenaryResentment_v1bytes";
+
+      private List<Resentment> _resentments = new();
+
       public static MercenaryReputationBehavior Instance { get; private set; }
 
       private Departure _last;
@@ -58,7 +68,63 @@ namespace CalradiaRemembers.WorldEvents
       private static string PlayerName => Hero.MainHero?.Name?.ToString() ?? "the player";
 
       public override void RegisterEvents()
+         => CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+
+      /// <summary>A departure waits out the renewal window before it is judged; resentment fades.</summary>
+      private void OnDailyTick()
       {
+         try
+         {
+            if (_last is {Pending: true} && Today - _last.Day > MercenaryDeparturePolicy.RenewalWindowDays) ApplyPendingDeparture();
+            FadeResentment();
+         }
+         catch (Exception ex) { ModLog.Error($"[MERCENARY] daily judging failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>The departure held for the renewal window is judged now: the lords take it to heart, word goes about.</summary>
+      private void ApplyPendingDeparture()
+      {
+         if (_last is not {Pending: true}) return;
+         _last.Pending = false;
+
+         Kingdom kingdom = Kingdom.All?.FirstOrDefault(k => k.StringId == _last.KingdomId);
+         if (kingdom == null) return;
+
+         Remember(kingdom, _last.Verdict, MercenaryDeparturePolicy.RegardShift(_last.Verdict, _last.SameCulture), null);
+         ModLog.Info($"[MERCENARY] the departure from {kingdom.Name} is judged: {_last.Verdict}.");
+      }
+
+      /// <summary>Gives back, day by day, the regard a departure cost each lord, until nothing of it is left.</summary>
+      private void FadeResentment()
+      {
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         if (store == null || _resentments.Count == 0) return;
+
+         foreach (Resentment r in _resentments.ToList())
+         {
+            int remaining = MercenaryDeparturePolicy.ResentmentRemaining(r.Penalty, Today - r.Day);
+            int giveBack = remaining - (r.Penalty + r.Restored);
+            if (giveBack > 0)
+            {
+               NpcProfile profile = store.Get(r.LordId);
+               if (profile != null)
+               {
+                  NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, giveBack, NpcMemoryService.Core.Standing.RegardCause.Departure);
+                  store.Set(profile);
+               }
+
+               r.Restored += giveBack;
+            }
+
+            if (remaining == 0) _resentments.Remove(r);
+         }
+      }
+
+      /// <summary>A lord's resentment of a departure, kept so it can fade (only penalties fade; thanks stay).</summary>
+      private void TrackResentment(string lordId, int penalty)
+      {
+         if (penalty >= 0 || string.IsNullOrEmpty(lordId)) return;
+         _resentments.Add(new Resentment {LordId = lordId, Penalty = penalty, Day = Today});
       }
 
       /// <summary>
@@ -70,7 +136,10 @@ namespace CalradiaRemembers.WorldEvents
       {
          try
          {
-            if (kingdom == null) return false;
+            if (kingdom == null || !ModSettings.JudgeMercenaryDepartures) return false;
+
+            // A departure still waiting (two contracts ended inside the window) is judged before the new one is kept.
+            ApplyPendingDeparture();
 
             (bool atWar, float own, float enemies) = WarFooting(kingdom);
             MercenaryDepartureVerdict verdict = MercenaryDeparturePolicy.Judge(new MercenaryDepartureFacts {
@@ -78,9 +147,11 @@ namespace CalradiaRemembers.WorldEvents
             });
             bool sameCulture = SameCulture(kingdom);
 
-            Remember(kingdom, verdict, MercenaryDeparturePolicy.RegardShift(verdict, sameCulture), null);
-            _last = new Departure {KingdomId = kingdom.StringId, Day = Today, Verdict = verdict, SameCulture = sameCulture};
-            ModLog.Info($"[MERCENARY] contract with {kingdom.Name} ended: {verdict} (at war {atWar}, strength {own:0} vs {enemies:0}, same culture {sameCulture}).");
+            // Judged as things stand now, but held for the renewal window (Fakade): rejoining the same realm within it
+            // is the same service renewed, and nothing is held against it.
+            _last = new Departure {KingdomId = kingdom.StringId, Day = Today, Verdict = verdict, SameCulture = sameCulture, Pending = true};
+            ModLog.Info($"[MERCENARY] contract with {kingdom.Name} ended: {verdict} (at war {atWar}, strength {own:0} vs {enemies:0}, same culture {sameCulture}); "
+                        + $"judged in {MercenaryDeparturePolicy.RenewalWindowDays} days unless renewed.");
 
             return true;
          }
@@ -102,7 +173,8 @@ namespace CalradiaRemembers.WorldEvents
       {
          try
          {
-            if (kingdom == null) return false;
+            if (kingdom == null || !ModSettings.JudgeMercenaryDepartures) return false;
+            ApplyPendingDeparture();
 
             int fiefs = Clan.PlayerClan?.Fiefs?.Count ?? 0;
             if (!MercenaryDeparturePolicy.JudgesAVassalsDeparture(fiefs))
@@ -144,6 +216,26 @@ namespace CalradiaRemembers.WorldEvents
          try
          {
             if (kingdom == null) return;
+            if (!ModSettings.JudgeMercenaryDepartures)
+            {
+               _last = null;
+
+               return;
+            }
+
+            // The same realm again, within days: the contract renewed (Fakade, another mod's contracts). Nothing is
+            // judged, and no aid of kin is counted a second time for a company that never left.
+            if (_last is {Pending: true} && MercenaryDeparturePolicy.IsRenewal(new MercenaryRenewalFacts {
+                   LeftRealmId = _last.KingdomId, JoinedRealmId = kingdom.StringId, LeftOnDay = _last.Day, Today = Today
+                }))
+            {
+               ModLog.Info($"[MERCENARY] back in {kingdom.Name}'s service within {MercenaryDeparturePolicy.RenewalWindowDays} days: a renewal, not a departure.");
+               _last = null;
+
+               return;
+            }
+
+            ApplyPendingDeparture();
 
             if (_last != null)
             {
@@ -179,7 +271,7 @@ namespace CalradiaRemembers.WorldEvents
       {
          try
          {
-            if (company == null || company == Clan.PlayerClan || company.Leader == null) return;
+            if (company == null || company == Clan.PlayerClan || company.Leader == null || !ModSettings.JudgeMercenaryDepartures) return;
 
             // Straight over to the former employer's enemy in one step: one piece of news (the betrayal), not two.
             bool straightToEnemy = joinedAsMercenary && oldKingdom != null && newKingdom != null && newKingdom != oldKingdom
@@ -191,6 +283,62 @@ namespace CalradiaRemembers.WorldEvents
          catch (Exception ex)
          {
             ModLog.Error($"[MERCENARY] judging {company?.Name}'s change of contract failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Test seam (cr.testall): the player's contract with <paramref name="kingdom" /> ends and is taken up again the
+      ///   same day, through the real handling. Returns the realm ruler's regard before and after, and whether anything
+      ///   was left held against the player. Null when it cannot be run without touching a real departure (one is
+      ///   waiting, or the judgment is off). Leaves the last departure as it found it.
+      /// </summary>
+      internal (int Before, int After, bool LeftPending, int ResentmentsAdded)? DebugRenewal(Kingdom kingdom)
+      {
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         Hero ruler = kingdom?.Leader;
+         if (store == null || ruler == null || _last is {Pending: true} || !ModSettings.JudgeMercenaryDepartures) return null;
+
+         Departure kept = _last;
+         int resentments = _resentments.Count;
+         int before = store.Get(ruler.StringId)?.ReputationWithPlayer ?? 0;
+         try
+         {
+            OnLeft(kingdom);
+            OnJoined(kingdom);
+
+            return (before, store.Get(ruler.StringId)?.ReputationWithPlayer ?? 0, _last is {Pending: true}, _resentments.Count - resentments);
+         }
+         finally { _last = kept; }
+      }
+
+      /// <summary>
+      ///   Test seam (cr.testall): a resentment of <paramref name="penalty" /> held by <paramref name="lord" /> since half
+      ///   the fade ago, faded through the real handling. Returns the regard given back, then undoes it.
+      /// </summary>
+      internal int DebugFadeHalfway(Hero lord, int penalty)
+      {
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         NpcProfile profile = lord == null ? null : store?.Get(lord.StringId);
+         if (profile == null) return int.MinValue;
+
+         var r = new Resentment {LordId = lord.StringId, Penalty = penalty, Day = Today - MercenaryDeparturePolicy.ResentmentFadeDays / 2};
+         int before = profile.ReputationWithPlayer;
+         _resentments.Add(r);
+         try
+         {
+            FadeResentment();
+
+            return (store.Get(lord.StringId)?.ReputationWithPlayer ?? before) - before;
+         }
+         finally
+         {
+            _resentments.Remove(r);
+            NpcProfile after = store.Get(lord.StringId);
+            if (after != null && r.Restored != 0)
+            {
+               NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(after, -r.Restored, NpcMemoryService.Core.Standing.RegardCause.SelfTest);
+               store.Set(after);
+            }
          }
       }
 
@@ -255,8 +403,32 @@ namespace CalradiaRemembers.WorldEvents
             try { dataStore.SyncData(CompaniesSaveKey, ref companies); }
             catch (Exception ex) { ModLog.Error($"[MERCENARY] companies save failed: {ex.GetType().Name}: {ex.Message}"); }
 
+            byte[] resentments;
+            try { resentments = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_resentments, Formatting.None)); }
+            catch (Exception ex)
+            {
+               ModLog.Error($"[MERCENARY] resentment serialize failed, persisting none this save. {ex.GetType().Name}: {ex.Message}");
+               resentments = Encoding.UTF8.GetBytes("[]");
+            }
+
+            try { dataStore.SyncData(ResentmentSaveKey, ref resentments); }
+            catch (Exception ex) { ModLog.Error($"[MERCENARY] resentment save failed: {ex.GetType().Name}: {ex.Message}"); }
+
             return;
          }
+
+         // An older save has no resentment kept: the penalties it already applied simply do not fade.
+         byte[] loadedResentments = null;
+         try { dataStore.SyncData(ResentmentSaveKey, ref loadedResentments); }
+         catch
+         {
+            /* key absent in older saves */
+         }
+
+         _resentments = new List<Resentment>();
+         if (loadedResentments is {Length: > 0})
+            try { _resentments = JsonConvert.DeserializeObject<List<Resentment>>(Encoding.UTF8.GetString(loadedResentments)) ?? new List<Resentment>(); }
+            catch (Exception ex) { ModLog.Error($"[MERCENARY] resentment load failed, none will fade. {ex.GetType().Name}: {ex.Message}"); }
 
          byte[] loadedCompanies = null;
          try { dataStore.SyncData(CompaniesSaveKey, ref loadedCompanies); }
@@ -368,6 +540,7 @@ namespace CalradiaRemembers.WorldEvents
             }
 
             NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, shift, NpcMemoryService.Core.Standing.RegardCause.Departure);
+            Instance?.TrackResentment(lord.StringId, shift);
             if (memory != null) profile.Events.Add(new NotableEvent(Today, NotableEventType.Other, memory));
             store.Set(profile);
          }
@@ -444,6 +617,21 @@ namespace CalradiaRemembers.WorldEvents
 
          /// <summary>A vassal's departure (the oath counted), not a company's; absent in saves before 2.6.6, so false.</summary>
          public bool Sworn { get; set; }
+
+         /// <summary>
+         ///   Held for the renewal window, not yet taken to heart (2.6.12). Absent in older saves, so false: the
+         ///   departures they kept were already applied.
+         /// </summary>
+         public bool Pending { get; set; }
+      }
+
+      /// <summary>What a lord holds against a departure, and how much of it has been given back.</summary>
+      private sealed class Resentment
+      {
+         public string LordId { get; set; }
+         public int Penalty { get; set; }
+         public int Day { get; set; }
+         public int Restored { get; set; }
       }
 
       #endregion

@@ -203,5 +203,56 @@ namespace CalradiaRemembers.Tests
       {
          MercenaryDeparturePolicy.VassalMagnitude(verdict).Should().BeGreaterThanOrEqualTo(MercenaryDeparturePolicy.PlainVassalDepartureMagnitude);
       }
-}
+
+      // ── Fakade (Nexus, 04/10/2026): renewals, and resentment that fades ──
+
+      // Fakade uses another mod for mercenary contracts. A contract renewed by leaving the realm and joining it again
+      // within days is the same service going on, not a departure: judged as one, every renewal during a losing war
+      // would cost the lords' regard again, and a loyal company would end up hated by the realm it never left.
+      [Test]
+      public void GIVEN_a_company_that_rejoins_the_same_realm_within_days_WHEN_the_return_is_judged_THEN_it_is_a_renewal()
+      {
+         MercenaryDeparturePolicy.IsRenewal(new MercenaryRenewalFacts {LeftRealmId = "vlandia", JoinedRealmId = "vlandia", LeftOnDay = 100, Today = 100 + MercenaryDeparturePolicy.RenewalWindowDays})
+                                 .Should().BeTrue();
+      }
+
+      // Joining ANOTHER realm, or coming back to the same one long after, is not a renewal: the departure stands.
+      [Test]
+      public void GIVEN_a_company_that_joins_another_realm_or_returns_late_WHEN_judged_THEN_it_is_no_renewal()
+      {
+         MercenaryDeparturePolicy.IsRenewal(new MercenaryRenewalFacts {LeftRealmId = "vlandia", JoinedRealmId = "sturgia", LeftOnDay = 100, Today = 100})
+                                 .Should().BeFalse();
+         MercenaryDeparturePolicy.IsRenewal(new MercenaryRenewalFacts {LeftRealmId = "vlandia", JoinedRealmId = "vlandia", LeftOnDay = 100, Today = 101 + MercenaryDeparturePolicy.RenewalWindowDays})
+                                 .Should().BeFalse();
+      }
+
+      // Fakade: "Is this negative regard permanent? ... It will turn into every mercenary being hated." Gabriel
+      // (04/10/2026): it fades. Whole on the day of the departure, half gone at half the fade, nothing left after it.
+      [Test]
+      public void GIVEN_a_departure_resented_WHEN_time_passes_THEN_the_resentment_fades_to_nothing()
+      {
+         int fade = MercenaryDeparturePolicy.ResentmentFadeDays;
+
+         MercenaryDeparturePolicy.ResentmentRemaining(-40, daysSince: 0).Should().Be(-40);
+         MercenaryDeparturePolicy.ResentmentRemaining(-40, fade / 2).Should().Be(-20);
+         MercenaryDeparturePolicy.ResentmentRemaining(-40, fade).Should().Be(0);
+         MercenaryDeparturePolicy.ResentmentRemaining(-40, fade * 3).Should().Be(0);
+      }
+
+      // The fade never overshoots into warmth, and a day before the departure (a clock oddity) changes nothing.
+      [Test]
+      public void GIVEN_a_resentment_WHEN_its_remainder_is_asked_THEN_it_is_never_warmer_than_zero_nor_harsher_than_the_penalty()
+      {
+         for (var d = -5; d <= MercenaryDeparturePolicy.ResentmentFadeDays + 5; d++)
+            MercenaryDeparturePolicy.ResentmentRemaining(-16, d).Should().BeInRange(-16, 0);
+      }
+
+      // A fade of a year: a single season's war is long remembered, but a company is not an enemy for ever.
+      [Test]
+      public void GIVEN_the_fade_WHEN_its_length_is_asked_THEN_it_is_one_year_of_the_world()
+      {
+         MercenaryDeparturePolicy.ResentmentFadeDays.Should().Be(
+            NpcMemoryService.Core.Calendar.WorldCalendar.DefaultDaysPerSeason * NpcMemoryService.Core.Calendar.WorldCalendar.DefaultSeasonsPerYear);
+      }
+   }
 }

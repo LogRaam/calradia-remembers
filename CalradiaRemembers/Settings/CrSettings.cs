@@ -286,6 +286,14 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool EnableArrests { get; set; } = false;
 
+      // Fakade (Nexus, 04/10/2026): "If this is due to the mercenary thing, can that also be an option to disable?"
+      [SettingPropertyBool("Mercenary departures are judged", RequireRestart = false, Order = 5,
+         HintText = "On (default): when a contract ends, the realm's lords judge it. Leaving a losing war, or going to " +
+                    "its enemy, costs their regard, which fades over a year. A contract renewed within days is no " +
+                    "departure. Off: never judged.")]
+      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      public bool JudgeMercenaryDepartures { get; set; } = true;
+
       // tashmetu (30/09/2026): a clan at +54 with the player, and its lord met him as a near-stranger.
       [SettingPropertyBool("Clan standing warms first meetings", RequireRestart = false, Order = 4,
          HintText = "On (default): when you next speak with someone whose clan already counts you a friend, they " +
