@@ -16,7 +16,7 @@
       "near": "forest"
     },
     "player": {
-      "min_clan_tier": 1
+      "min_clan_tier": 0
     }
   },
   "binds": {
