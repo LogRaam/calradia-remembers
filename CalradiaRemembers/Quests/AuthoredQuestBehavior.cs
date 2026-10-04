@@ -155,20 +155,31 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>Considers every quest this character could give; the first that qualifies and passes the offer rule is raised.</summary>
-      internal bool TryOffer(Hero hero, int today, double roll, string onlyQuestId = null)
+      internal bool TryOffer(Hero hero, int today, double roll, string onlyQuestId = null) => TryOffer(hero, today, roll, onlyQuestId, out _);
+
+      /// <summary>As TryOffer, saying why not when it is no: the first condition that failed, in plain words.</summary>
+      internal bool TryOffer(Hero hero, int today, double roll, string onlyQuestId, out string whyNot)
       {
          _offer = null;
          _offerHeroId = null;
+         whyNot = onlyQuestId == null ? "no quest qualifies" : $"there is no quest '{onlyQuestId}'";
 
          foreach (AuthoredQuest q in _quests.Values.Where(q => onlyQuestId == null || q.Id == onlyQuestId))
          {
-            if (!TryBind(q, hero, out Dictionary<string, string> ids, out Dictionary<string, string> names)) continue;
+            if (!TryBind(q, hero, out Dictionary<string, string> ids, out Dictionary<string, string> names, out whyNot)) continue;
 
             bool offer = AuthoredQuestOfferPolicy.ShouldOffer(new AuthoredOfferFacts {
                Today = today, StoryUnderWay = _run is {Status: AuthoredQuestStatus.Active}, Unique = q.Unique, AlreadyPlayed = _done.Contains(q.Id),
                DeclinedOnDay = _declined.TryGetValue(q.Id, out int d) ? d : (int?) null, Roll = roll, Chance = AuthoredQuestOfferPolicy.OfferChance
             });
-            if (!offer) continue;
+            if (!offer)
+            {
+               whyNot = _run is {Status: AuthoredQuestStatus.Active} ? $"a tale is already under way ('{_run.QuestId}')"
+                  : q.Unique && _done.Contains(q.Id) ? "it was already played in this campaign"
+                  : _declined.ContainsKey(q.Id) ? "it was declined less than a season ago"
+                  : "the dice said no this time";
+               continue;
+            }
 
             _offer = AuthoredQuestEngine.Start(q, ids, names, today);
             _offerHeroId = hero.StringId;
@@ -185,11 +196,17 @@ namespace CalradiaRemembers.Quests
       ///   (role, regard on the mod's ledger, not at war) and one village (held by the giver's house, by a forest when
       ///   asked).
       /// </summary>
-      private static bool TryBind(AuthoredQuest q, Hero giver, out Dictionary<string, string> ids, out Dictionary<string, string> names)
+      private static bool TryBind(AuthoredQuest q, Hero giver, out Dictionary<string, string> ids, out Dictionary<string, string> names, out string whyNot)
       {
          ids = new Dictionary<string, string>();
          names = new Dictionary<string, string>();
-         if (giver == null || giver == Hero.MainHero || !Mapping.ActionGate.Allows(giver, Logic.ActionKind.Witness)) return false;
+         whyNot = null;
+         if (giver == null || giver == Hero.MainHero || !Mapping.ActionGate.Allows(giver, Logic.ActionKind.Witness))
+         {
+            whyNot = "they cannot take part right now (not free, not of age, or not in the world)";
+
+            return false;
+         }
 
          GiverRequirement g = q.Requires?.Giver ?? new GiverRequirement();
          bool roleOk = g.Role switch {
@@ -198,12 +215,36 @@ namespace CalradiaRemembers.Quests
             "gang_leader" => giver.IsGangLeader,
             _ => true
          };
-         if (!roleOk) return false;
+         if (!roleOk)
+         {
+            whyNot = $"the quest wants a giver who is a {g.Role}";
+
+            return false;
+         }
+
          if (g.NotAtWarWithPlayer && giver.MapFaction != null && Hero.MainHero?.MapFaction != null
-             && FactionManager.IsAtWarAgainstFaction(giver.MapFaction, Hero.MainHero.MapFaction)) return false;
+             && FactionManager.IsAtWarAgainstFaction(giver.MapFaction, Hero.MainHero.MapFaction))
+         {
+            whyNot = "their realm is at war with you";
+
+            return false;
+         }
+
          int regard = NpcMemoryCampaignBehavior.Instance?.Store?.Get(giver.StringId)?.ReputationWithPlayer ?? 0;
-         if (regard < g.MinRegard) return false;
-         if ((Clan.PlayerClan?.Tier ?? 0) < (q.Requires?.Player?.MinClanTier ?? 0)) return false;
+         if (regard < g.MinRegard)
+         {
+            whyNot = $"their regard for you is {regard}, and the quest needs at least {g.MinRegard}";
+
+            return false;
+         }
+
+         int tier = Clan.PlayerClan?.Tier ?? 0, minTier = q.Requires?.Player?.MinClanTier ?? 0;
+         if (tier < minTier)
+         {
+            whyNot = $"your clan is tier {tier}, and the quest needs tier {minTier}";
+
+            return false;
+         }
 
          ids["giver"] = giver.StringId;
          names["giver"] = giver.Name?.ToString();
@@ -214,8 +255,15 @@ namespace CalradiaRemembers.Quests
             IEnumerable<Settlement> candidates = g.Holds == "{village}"
                ? giver.Clan?.Settlements?.Where(s => s.IsVillage) ?? Enumerable.Empty<Settlement>()
                : new[] {giver.HomeSettlement}.Where(s => s != null && s.IsVillage);
-            Settlement village = candidates.FirstOrDefault(s => v.Near != "forest" || NearForest(s));
-            if (village == null) return false;
+            List<Settlement> owned = candidates.ToList();
+            Settlement village = owned.FirstOrDefault(s => v.Near != "forest" || NearForest(s));
+            if (village == null)
+            {
+                whyNot = owned.Count == 0 ? "no village is theirs to give the quest about"
+                  : $"none of their villages ({string.Join(", ", owned.Select(s => s.Name))}) lies by a forest";
+
+               return false;
+            }
 
             ids["village"] = village.StringId;
             names["village"] = village.Name?.ToString();

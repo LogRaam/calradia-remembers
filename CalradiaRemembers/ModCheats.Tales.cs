@@ -64,8 +64,12 @@ namespace CalradiaRemembers
          if (giver == null) return "No character found. Pass a name, or open a conversation first.";
 
          b.ForgetPlayed(q.Id);
-         if (!b.TryOffer(giver, (int) CampaignTime.Now.ToDays, 0, q.Id))
-            return $"{giver.Name} cannot give '{q.Id}' (the file's requires: role, regard, a village of theirs by a forest...), or a tale is already under way.";
+         if (!b.TryOffer(giver, (int) CampaignTime.Now.ToDays, 0, q.Id, out string whyNot))
+         {
+            ModLog.Info($"[TALE] cr.story_start: {giver.Name} cannot give '{q.Id}': {whyNot}.");
+
+            return $"{giver.Name} cannot give '{q.Id}': {whyNot}.";
+         }
 
          b.Accept(q, b.Offer);
 
