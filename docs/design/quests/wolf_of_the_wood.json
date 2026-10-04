@@ -132,10 +132,34 @@
               "knows": [
                 "Men took her, not a beast; they wore the wolf skin to frighten the village.",
                 "They keep the women in a camp deeper in the wood and wait for a buyer from the coast."
-              ]
+              ],
+              "may_materialize": true,
+              "materialize_when": "the player offers to take her home to {village}",
+              "escort_to": "{village}"
             }
           ],
-          "closing": "Whatever the player did, they leave the wood knowing it was men, not a beast, and that the missing women are being sold."
+          "closing": "Whatever the player did, they leave the wood knowing it was men, not a beast, and that the missing women are being sold.",
+          "hazards": [
+            {
+              "id": "snare",
+              "trigger": "pushing through the undergrowth off the track without care",
+              "effect": {
+                "type": "injure",
+                "hit_points": [
+                  15,
+                  30
+                ]
+              }
+            },
+            {
+              "id": "lookout",
+              "trigger": "being seen or heard by the slavers' lookout near their camp",
+              "effect": {
+                "type": "alert",
+                "party": "slavers"
+              }
+            }
+          ]
         }
       },
       "canvas": "",

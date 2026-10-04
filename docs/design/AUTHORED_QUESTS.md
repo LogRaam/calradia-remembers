@@ -178,9 +178,10 @@ A local exploration, played in the chat window with no one to talk to at first.
   escaped girl, a lookout). When the narration brings them in, the interpreter reports `scene_encounter` with that id,
   and the game adds them to the conversation as a speaker, with their own knowledge from the file. From there it is an
   ordinary multi-party conversation, the narrator still present for what the player does.
-- **What the scene can never do:** complete a deed (no gold, no fight, no capture happens in narration), invent a
-  finding, or kill the player. A danger written into the scene (being spotted) can only lead to a real consequence
-  the game runs, such as the band moving or a real battle, from Inc 2 on.
+- **A plain voice** (Gabriel, 03/10/2026). The narrator of a scene speaks plainly, whatever narrative style the player
+  chose for conversations, so a finding reads as a finding. Characters met in the scene keep their own voice.
+- **What the narration alone can never do:** complete a deed, invent a finding or a hazard, or kill the player.
+  Everything with a cost goes through the scene's `hazards` (below), which the game carries out.
 - **Built on what exists.**
   - The chat already runs scenes the player does not open on a person: the captive scenes have a director and a
     narration line.
@@ -208,6 +209,55 @@ A local exploration, played in the chat window with no one to talk to at first.
   }
 }
 ```
+
+### Hazards: a scene can go wrong (Gabriel, 03/10/2026)
+
+A scene may hurt the player or turn into a fight. Each hazard is written in the file, and the game carries out its
+effect. The model decides only when the player's own choices spring it, never whether it exists.
+
+```json
+"hazards": [
+  { "id": "snare", "trigger": "pushing through the undergrowth off the track without care",
+    "effect": { "type": "injure", "hit_points": [15, 30] } },
+  { "id": "lookout", "trigger": "being seen or heard by the slavers' lookout near the camp",
+    "effect": { "type": "ambush", "party": "slavers", "share": 0.5 } }
+]
+```
+
+- **The report.** When the narration springs one, the interpreter reports `scene_hazard` with its id. The game accepts
+  only ids the scene declares, each once.
+- **Never out of nowhere.** The `trigger` is written into the narrator's prompt, so the danger follows from what the
+  player chose to do. A careful player who keeps to the track never meets the snare.
+- **Effects, a closed list:**
+
+| Effect | What the game does | Notes |
+|---|---|---|
+| `injure` `{hit_points}` | Takes hit points from the player, never below 1. | `Hero.HitPoints`; a wounded player rests as after a battle. |
+| `ambush` `{party, share}` | Closes the scene and starts a real battle against the quest's spawned party, or part of it. | `PlayerEncounter` with the spawned party; needs a spike. |
+| `alert` `{party}` | The band is warned: it moves away or doubles its watch, making the hunt harder. | Changes the spawned party's behaviour. |
+| `lose_time` `{hours}` | The night is lost; the scene ends at dawn with nothing more found. | Required findings still stated at closing. |
+| `lose_item` / `gain_item` | A dropped purse, a found dagger. | Through the inventory; bounded value. |
+| `wound_companion` `{hit_points}` | A companion who came along is hurt instead. | Only if one is in the scene. |
+
+More can be added later, each with its own check. None of them kills the player or a companion.
+
+### Encounters who become real (Gabriel, 03/10/2026)
+
+An encounter is a person of the scene, written in the file. When the story needs them in the world, they become a real,
+temporary character.
+
+- **Example.** The player offers to escort the escaped girl back to the village. The interpreter reports
+  `scene_materialize` with her id, and the game creates her as a hero:
+  - a commoner of {village}'s culture, with a name drawn by the game;
+  - she joins the player's party for the journey;
+  - she keeps what she knows from the file as her memories, so she can be spoken to like anyone else.
+- **New objective: `escort` `{who, to}`.** Reaching the place with her in the party completes the stage. She then
+  stays there as a villager, with what happened as her memory. When the quest ends, she is retired: she leaves the
+  party and is no longer offered anywhere.
+- **Only when the story needs it.** A scene encounter who is never materialised stays in the scene and in the quest's
+  memories.
+- **A spike first.** Creating a hero mid-campaign (a template, a culture, a settlement), keeping her through a save,
+  and retiring her cleanly. `escort` is also what step 3 of the roadmap (the prince) needs.
 
 ### Spawned parties
 
@@ -280,30 +330,30 @@ In `docs/design/quests/`:
 | `the_lost_banner.json` | repeatable, long cooldown | deserters carry off a house's banner | The deserters are not cowards: their captain sold them out. Bring the banner back, and the giver remembers the deserters' tale. |
 | `the_bitter_well.json` | yes | a town falls sick | Not poison: grain sold rotten by a merchant. The gang leader knows who; the giver must hear it from the player. |
 
-## Increments (revised 03/10/2026)
+## Increments (revised again 03/10/2026, after the rulings on hazards and real encounters)
 
 1. **The engine and the werewolf.**
    - The JSON loader, its report of authoring problems, and the stage machine.
    - Saving and loading an active quest.
    - The journal entry with its own look.
    - The objectives `talk_to`, `talk_to_locals`, `keep_watch`, `explore`, `defeat_party` and `return`.
-   - The exploration scene: narrator, findings, one encounter.
+   - The exploration scene: the plain narrator, findings, one encounter, and the hazards that need no spike
+     (`injure`, `lose_time`, `alert`).
    - Rewards: regard and memories.
    - The werewolf playable end to end, with unit tests on every rule and a cr.testall that walks the stages.
 2. **Offering and consequences.**
    - The giver comes to the player (step 1 of the roadmap).
    - Branches.
    - The spikes for `war_averted` and the NPC grudge.
-   - Danger in a scene leading to a real battle.
+   - `ambush` (a scene that turns into a real battle).
+   - Encounters who become real, and the `escort` objective.
 3. **For modders and players.** The Custom folder, cr_patch, HOWTO_Quests.md in Docs, and cr.quest_check.
 4. **More quests.** A first lot of unique quests, drafted by Claude and corrected by Gabriel.
 
 ## Still open
 
-1. **Who may be the narrator's voice in a scene?** The player's chosen narrative style applies, as in every
-   conversation. Should a scene force a plainer voice, so the findings read clearly?
-2. **Can a scene go badly in Inc 1?** Being spotted, a fall, losing the trail. Proposed: no. In Inc 1 a scene can only
-   delay, never fail, until consequences can be real (Inc 2).
-3. **The heroless encounter.** The escaped girl is no hero of the game. Should she be allowed to follow the player
-   afterwards (a companion she cannot be), or stay part of the scene only? Proposed: the scene only, remembered
-   in the quest's memories.
+Nothing blocking Inc 1. Rulings of 03/10/2026, for the record:
+
+1. The narrator speaks plainly, whatever the player's style.
+2. A scene can hurt the player or turn into an ambush, through declared hazards, and richer consequences may follow.
+3. An encounter can become a real, temporary character when the story needs it (escort the girl home).
