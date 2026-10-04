@@ -24,7 +24,7 @@ namespace CalradiaRemembers.Styles
 
         /// <summary>The full path of the Styles folder, whether or not it exists yet.</summary>
         public static string FolderPath
-            => Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData", StylesFolderName);
+            => Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "ModuleData", StylesFolderName);
 
         /// <summary>
         ///   The full path of the player's own Custom Styles folder, whether or not it exists yet. A file here of
@@ -75,7 +75,7 @@ namespace CalradiaRemembers.Styles
         ///   back to a text button, so a missing or unreadable asset can never leave an empty button.
         /// </summary>
         public static string IconPath
-            => Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "quill.jpg");
+            => Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "quill.jpg");
 
         /// <summary>True when the quill asset is on disk, so the header can show the icon instead of the label.</summary>
         public static bool IconExists

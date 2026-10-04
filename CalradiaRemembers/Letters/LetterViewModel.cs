@@ -337,7 +337,7 @@ namespace CalradiaRemembers.Letters
       /// <summary>The absolute file path to the leather two-page book art (cr_letters.jpg), painted behind the whole window.</summary>
       [DataSourceProperty]
       public string LetterBookBackgroundPath => System.IO.Path.Combine(
-         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_letters.jpg");
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_letters.jpg");
 
       /// <summary>The dated correspondence thread with this contact, shown on the left page (whole history, unbounded).</summary>
       [DataSourceProperty]

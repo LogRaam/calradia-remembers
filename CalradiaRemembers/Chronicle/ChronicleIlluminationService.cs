@@ -136,7 +136,7 @@ namespace CalradiaRemembers.Chronicle
             try
             {
                 string path = Path.Combine(
-                    BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData", "chronicle_style.txt");
+                    CalradiaRemembers.Paths.ModulePaths.Root, "ModuleData", "chronicle_style.txt");
                 return File.Exists(path) ? File.ReadAllText(path) : "";
             }
             catch { return ""; }

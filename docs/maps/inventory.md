@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 463 types in 57 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 464 types in 58 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 945 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
@@ -557,6 +557,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | Type | Kind | What it is |
 |---|---|---|
 | `OpenPartnerLoverBehavior` | public class | Open relationship (Inc 3a): the symmetry of the Inc 2 jealousy suppression. |
+
+### CalradiaRemembers.Paths (1)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `ModulePaths` | public static class | The module's own folder, as the engine found it. |
 
 ### CalradiaRemembers.Portraits (5)
 

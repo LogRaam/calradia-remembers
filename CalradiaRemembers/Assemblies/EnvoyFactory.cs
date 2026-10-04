@@ -39,7 +39,7 @@ namespace CalradiaRemembers.Assemblies
       ///   (the live seat rendering) inherits that same tolerance for free; no extra guard is needed here.
       /// </summary>
       public static string HeraldPortraitPath => Path.Combine(
-         BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_herald.jpg");
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_herald.jpg");
 
       /// <summary>
       ///   Builds one ambassador's synthetic profile from the represented lord and faction an Ambassador seat

@@ -71,7 +71,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       [DataSourceProperty]
       public string LockPath => System.IO.Path.Combine(
-         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_lock.png");
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_lock.png");
 
       /// <summary>The link, and the click on a foldable heading. Inert on every other row.</summary>
       public void ExecuteActivate() => _activate?.Invoke();

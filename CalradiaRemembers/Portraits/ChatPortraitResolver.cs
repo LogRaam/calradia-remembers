@@ -23,7 +23,7 @@ namespace CalradiaRemembers.Portraits
 
         /// <summary>The folder the player drops images into (may not exist).</summary>
         public static string PortraitDir()
-            => Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData", "ChatPortraits");
+            => Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "ModuleData", "ChatPortraits");
 
         /// <summary>
         ///   Creates the ChatPortraits folder with a short README on session launch, so the player has an obvious,

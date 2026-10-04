@@ -22,7 +22,7 @@ namespace CalradiaRemembers.Scenarios
       {
          var rules = new List<ScenarioRule>();
          string dir = Path.Combine(
-            BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData", "scenarios");
+            CalradiaRemembers.Paths.ModulePaths.Root, "ModuleData", "scenarios");
 
          if (!Directory.Exists(dir))
          {

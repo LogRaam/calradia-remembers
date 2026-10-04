@@ -71,7 +71,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       [DataSourceProperty]
       public string CouncilBackgroundPath => System.IO.Path.Combine(
-         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_counsel.jpg");
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_counsel.jpg");
 
       /// <summary>
       ///   The council header shown on the centre banner: the mod name and WHERE the sitting is held
@@ -874,7 +874,7 @@ namespace CalradiaRemembers.Chat
             bool playerIsFemale = Hero.MainHero?.IsFemale == true;
 
             string basename = CouncilSceneImagePolicy.Resolve(outside, kind, terrain, playerIsFemale);
-            string path = Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", basename + ".jpg");
+            string path = Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", basename + ".jpg");
 
             placeholder.ApplyScenePortrait(path);
          }

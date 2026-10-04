@@ -101,7 +101,7 @@ namespace CalradiaRemembers.WorldAlmanac
       /// </summary>
       [DataSourceProperty]
       public string BackgroundPath => Path.Combine(
-         BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_BalanceOfPower.jpg");
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_BalanceOfPower.jpg");
 
       [DataSourceProperty]
       public string BalanceHeader => "Balance of Power";

@@ -69,7 +69,7 @@ namespace CalradiaRemembers.Chat
         /// </summary>
         [DataSourceProperty]
         public string SeparatorPath => System.IO.Path.Combine(
-            TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_memories_separator.png");
+            CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_memories_separator.png");
 
         [DataSourceProperty]
         public string Summary

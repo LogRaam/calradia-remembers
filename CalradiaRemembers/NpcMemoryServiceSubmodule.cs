@@ -571,6 +571,7 @@ namespace CalradiaRemembers
       private void RegisterGuiResources()
       {
          string moduleRoot = ModuleHelper.GetModuleFullPath(ModuleId);
+         Log($"[PATHS] module files read from {CalradiaRemembers.Paths.ModulePaths.Root}");
          string guiFolder = Path.Combine(moduleRoot, "GUI");
          string prefabFolder = Path.Combine(guiFolder, "Prefabs");
 

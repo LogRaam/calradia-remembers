@@ -32,7 +32,7 @@ namespace CalradiaRemembers.Map
       // A PNG already in the engine's channel order: correctRedBlue stays FALSE (that correction is for
       // BGR-read JPGs only - see RuntimePortraitFactory.GetOrCreateCached).
       private static readonly string IconPath = System.IO.Path.Combine(
-         BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_council_button.png");
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_council_button.png");
 
       private static bool _successLogged;
 

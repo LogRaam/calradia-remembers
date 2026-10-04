@@ -1399,7 +1399,7 @@ namespace CalradiaRemembers.Chat
       /// <summary>Both Dark Leather page images load (cached after the first try, so this costs nothing after it).</summary>
       internal static bool ManuscriptArtLoads()
       {
-         string dir = System.IO.Path.Combine(TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images");
+         string dir = System.IO.Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images");
 
          return Portraits.RuntimePortraitFactory.GetOrCreateCached(System.IO.Path.Combine(dir, "cr_chat_left.jpg")) != null
                 && Portraits.RuntimePortraitFactory.GetOrCreateCached(System.IO.Path.Combine(dir, "cr_chat_right.jpg")) != null;

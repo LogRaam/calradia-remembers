@@ -671,12 +671,12 @@ namespace CalradiaRemembers.Chat
       /// <summary>Actions panel art: the illuminated background (JPG, needs CorrectRedBlue like the others).</summary>
       [DataSourceProperty]
       public string ActionsBackgroundPath => System.IO.Path.Combine(
-         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_actions.jpg");
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_actions.jpg");
 
       /// <summary>Actions panel art: the padlock beside a shut line (transparent PNG, NO CorrectRedBlue).</summary>
       [DataSourceProperty]
       public string ActionsLockPath => System.IO.Path.Combine(
-         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_lock.png");
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_lock.png");
 
       /// <summary>True while the left "shared memories" panel is open (a read-only view of what this NPC remembers).</summary>
       [DataSourceProperty]
@@ -879,22 +879,22 @@ namespace CalradiaRemembers.Chat
       /// <summary>Skin art: full path to the left-page (NPC info) background, for the Manuscript skin's CrRuntimeImageWidget.</summary>
       [DataSourceProperty]
       public string ChatLeftPanelPath => System.IO.Path.Combine(
-         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_chat_left.jpg");
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_chat_left.jpg");
 
       /// <summary>Skin art: full path to the right-page (conversation) background, for the Manuscript skin's CrRuntimeImageWidget.</summary>
       [DataSourceProperty]
       public string ChatRightPanelPath => System.IO.Path.Combine(
-         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_chat_right.jpg");
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_chat_right.jpg");
 
       /// <summary>Memories panel art: full path to the illuminated parchment background (JPG, needs CorrectRedBlue).</summary>
       [DataSourceProperty]
       public string MemoryBackgroundPath => System.IO.Path.Combine(
-         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_memories.jpg");
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_memories.jpg");
 
       /// <summary>Memories panel art: full path to the ornamental entry separator (transparent PNG, no CorrectRedBlue).</summary>
       [DataSourceProperty]
       public string MemorySeparatorPath => System.IO.Path.Combine(
-         TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images", "cr_memories_separator.png");
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_memories_separator.png");
 
       /// <summary>Label naming the style currently in force, so the player reads the live voice at a glance.</summary>
       [DataSourceProperty]

@@ -123,7 +123,7 @@ namespace CalradiaRemembers.Quests
       /// <summary>Reads ModuleData/Quests and its Custom folder (players' and modders' own, kept across updates).</summary>
       internal void LoadFiles()
       {
-         string root = Path.Combine(BasePath.Name, "Modules", "CalradiaRemembers", "ModuleData", "Quests");
+         string root = Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "ModuleData", "Quests");
          var files = new List<(string, string)>();
          foreach (string dir in new[] {root, Path.Combine(root, "Custom")})
             if (Directory.Exists(dir))
