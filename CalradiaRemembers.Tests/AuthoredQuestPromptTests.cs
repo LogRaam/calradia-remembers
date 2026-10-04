@@ -106,6 +106,20 @@ namespace CalradiaRemembers.Tests
          AuthoredQuestPrompt.Narrator(run, q).Should().NotContain("[[found:chains]]");
       }
 
+      // Someone met in the scene is voiced with what they know, and no longer offered as someone to meet.
+      [Test]
+      public void GIVEN_the_girl_met_WHEN_the_narrator_is_told_THEN_it_voices_her_with_what_she_knows()
+      {
+         AuthoredQuest q = Wolf();
+         AuthoredQuestRun run = Run(q, "the_tracks");
+         AuthoredQuestEngine.Meet(run, q, "escaped_girl").Should().BeTrue();
+         AuthoredQuestEngine.Meet(run, q, "escaped_girl").Should().BeFalse();
+
+         string prompt = AuthoredQuestPrompt.Narrator(run, q);
+
+         prompt.Should().Contain("WHO IS WITH THE PLAYER NOW").And.Contain("buyer from the coast").And.NotContain("[[meet:escaped_girl]]");
+      }
+
       // The markers are the game's: the player reads the story without them, the game gets them.
       [Test]
       public void GIVEN_narration_with_markers_WHEN_extracted_THEN_the_text_is_clean_and_the_markers_are_read()

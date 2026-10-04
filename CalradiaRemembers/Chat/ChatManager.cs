@@ -813,6 +813,27 @@ namespace CalradiaRemembers.Chat
          ActiveViewModel.ActivateEnvoyAudience(envoy);
       }
 
+      /// <summary>
+      ///   An exploration scene (authored quests, Gabriel 03/10/2026): the chat opens on a narrator and no character.
+      ///   Opened directly, like the envoy's audience; the session supplies the prompt and what the markers do.
+      /// </summary>
+      public static void OpenForExploration(ExplorationSession session)
+      {
+         if (session == null) return;
+
+         Open(session.Title);
+         if (ActiveViewModel == null)
+         {
+            ModLog.Notice($"the scene \"{session.Title}\" could not be opened. If it happens again, cr.chat_reset clears a stuck window.");
+            session.OnClose?.Invoke();
+
+            return;
+         }
+
+         ActiveViewModel.SetNpcName(session.Title);
+         ActiveViewModel.ActivateExploration(session);
+      }
+
       public static void OpenForCompanionAudienceDirect(
          Hero companion, NpcProfile profile, CompanionAudienceReason reason, bool landed, string topicDetail = null)
       {

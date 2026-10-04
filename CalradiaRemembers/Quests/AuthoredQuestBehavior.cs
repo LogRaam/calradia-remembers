@@ -12,12 +12,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic.AuthoredQuests;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -58,6 +60,7 @@ namespace CalradiaRemembers.Quests
       {
          CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, _ => SafeRun.Step("AuthoredQuests.Load", OnSessionLaunched));
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, () => SafeRun.Step("AuthoredQuests.Daily", OnDailyTick));
+         CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, () => SafeRun.Step("AuthoredQuests.Hourly", OnHourlyTick));
          // The conversation events are static and this behaviour is made anew for each campaign: hook once, and
          // forward to whichever instance is current, so a second loaded campaign does not answer twice.
          if (_hooked) return;
@@ -228,6 +231,9 @@ namespace CalradiaRemembers.Quests
          SafeRun.Step("AuthoredQuests.ConversationEnded", () =>
          {
             AuthoredQuestEngine.ConversationClosed(_run, log?.NpcId);
+            // A scene that came due while another conversation was open opens now that it has ended.
+            if (_sceneWaiting && _run != null && _quests.TryGetValue(_run.QuestId, out AuthoredQuest waiting))
+               MainThreadDispatcher.Enqueue(() => OpenScene(waiting));
             if (_offer == null || _offerHeroId != log?.NpcId) return;
 
             AuthoredQuestRun offer = _offer;
@@ -273,6 +279,132 @@ namespace CalradiaRemembers.Quests
       {
          if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return;
          Apply(q, AuthoredQuestEngine.Day(_run, q, (int) CampaignTime.Now.ToDays));
+      }
+
+      /// <summary>
+      ///   Hourly: arriving at a be_at place, and keeping watch (Gabriel: nights spent waiting, no moon). A night counts
+      ///   once, read deep in it (an hour past midnight) with the player's party within the stage's radius.
+      /// </summary>
+      private void OnHourlyTick()
+      {
+         if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return;
+         AuthoredStage s = AuthoredQuestEngine.Current(_run, q);
+         var today = (int) CampaignTime.Now.ToDays;
+
+         switch (s?.Objective.Type)
+         {
+            case "be_at":
+               if (Near(s.Objective.Place, s.Objective.Radius)) Apply(q, AuthoredQuestEngine.Arrived(_run, q, AuthoredQuestEngine.Bound(_run, s.Objective.Place), today));
+               break;
+            case "keep_watch":
+               if (!CampaignTime.Now.IsNightTime || (int) CampaignTime.Now.CurrentHourInDay != 1) return;
+               AuthoredStep night = AuthoredQuestEngine.NightPassed(_run, q, Near(s.Objective.Place, s.Objective.Radius), today);
+               Apply(q, night);
+               if (night.Kind == AuthoredStepKind.OpenScene) MainThreadDispatcher.Enqueue(() => OpenScene(q));
+               break;
+         }
+      }
+
+      private bool Near(string placeRole, float radius)
+      {
+         Settlement s = Settlement.Find(AuthoredQuestEngine.Bound(_run, placeRole) ?? "");
+
+         return s != null && MobileParty.MainParty != null && MobileParty.MainParty.GetPosition2D.Distance(s.GetPosition2D) <= Math.Max(1f, radius);
+      }
+
+      // ── The exploration scene ────────────────────────────────────────────
+
+      /// <summary>Opens the current explore stage as a scene in the chat: a narrator, the file's findings, dangers and people.</summary>
+      internal void OpenScene(AuthoredQuest q)
+      {
+         if (_run is not {Status: AuthoredQuestStatus.Active} || AuthoredQuestEngine.Current(_run, q)?.Objective.Type != "explore") return;
+         if (ChatManager.IsOpen)
+         {
+            ModLog.Notice("a scene of your tale waits; it will open when the conversation ends.");
+            _sceneWaiting = true;
+
+            return;
+         }
+
+         _sceneWaiting = false;
+         string place = _run.BoundNames.TryGetValue("village", out string v) ? v : null;
+         var lostNight = false;
+         ChatManager.OpenForExploration(new ExplorationSession {
+            Title = place != null ? $"The wood by {place}" : q.Title,
+            BuildPrompt = () => AuthoredQuestPrompt.Narrator(_run, q),
+            Apply = markers => ApplyMarkers(q, markers, () => lostNight = true),
+            IsOver = () => lostNight,
+            OnClose = () => CloseScene(q)
+         });
+         ModLog.Info($"[TALE] '{q.Id}': the scene opens.");
+      }
+
+      private bool _sceneWaiting;
+
+      /// <summary>What the narration's markers do: findings recorded, a hazard's effect carried out, someone met.</summary>
+      private IReadOnlyList<string> ApplyMarkers(AuthoredQuest q, SceneMarkers m, Action loseTheNight)
+      {
+         var notes = new List<string>();
+         foreach (string f in m.Found)
+            if (AuthoredQuestEngine.Found(_run, q, f)) ModLog.Info($"[TALE] finding '{f}'.");
+
+         foreach (string h in m.Hazards)
+         {
+            AuthoredHazardEffect e = AuthoredQuestEngine.Sprung(_run, q, h);
+            if (e == null) continue;
+            ModLog.Info($"[TALE] hazard '{h}' ({e.Type}).");
+            switch (e.Type)
+            {
+               case "injure":
+                  int lo = e.HitPoints?.Length > 0 ? e.HitPoints[0] : 10, hi = e.HitPoints?.Length > 1 ? e.HitPoints[1] : lo;
+                  int hurt = MBRandom.RandomInt(lo, hi + 1);
+                  Hero me = Hero.MainHero;
+                  int before = me.HitPoints;
+                  me.HitPoints = Math.Max(1, before - hurt);
+                  notes.Add($"You are hurt ({before - me.HitPoints} hit points).");
+                  break;
+               case "alert":
+                  _run.BandAlerted = true;
+                  notes.Add("You have been noticed. Whoever is out there knows someone is looking.");
+                  break;
+               case "lose_time":
+                  loseTheNight();
+                  notes.Add("The night is lost; dawn finds you no further along.");
+                  break;
+            }
+         }
+
+         foreach (string id in m.Met)
+            if (AuthoredQuestEngine.Meet(_run, q, id))
+            {
+               string who = AuthoredQuestEngine.Current(_run, q)?.Objective.Scene?.Encounters.FirstOrDefault(x => x.Id == id)?.Name;
+               notes.Add($"{AuthoredQuestEngine.Fill(_run, who) ?? "Someone"} is with you now.");
+            }
+
+         return notes;
+      }
+
+      /// <summary>
+      ///   The scene closed: the required findings never reached are said now, from the file (Gabriel: a clue is missed
+      ///   only in its manner), and the stage that follows begins.
+      /// </summary>
+      private void CloseScene(AuthoredQuest q)
+      {
+         if (_run is not {Status: AuthoredQuestStatus.Active}) return;
+         AuthoredScene scene = AuthoredQuestEngine.Current(_run, q)?.Objective.Scene;
+         IReadOnlyList<AuthoredFinding> missed = AuthoredQuestEngine.SceneClosed(_run, q, (int) CampaignTime.Now.ToDays, out AuthoredStep step);
+         if (step.Kind == AuthoredStepKind.None) return;
+
+         var text = new List<string>();
+         foreach (AuthoredFinding f in missed) text.Add(AuthoredQuestEngine.Fill(_run, f.Text));
+         if (!string.IsNullOrWhiteSpace(scene?.Closing)) text.Add(AuthoredQuestEngine.Fill(_run, scene.Closing));
+         if (text.Count > 0)
+         {
+            string body = string.Join(Environment.NewLine + Environment.NewLine, text);
+            MainThreadDispatcher.Enqueue(() => InformationManager.ShowInquiry(new InquiryData(q.Title, body, true, false, "Go on", "", null, null)));
+         }
+
+         Apply(q, step);
       }
 
       /// <summary>Carries out what a step decided: the journal line of the next stage, the reward, or the failure.</summary>
@@ -419,6 +551,20 @@ namespace CalradiaRemembers.Quests
       {
          if (_run is {Status: AuthoredQuestStatus.Active} && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q))
             Apply(q, AuthoredQuestEngine.ConversationOpened(_run, q, hero.StringId, LocalOf(hero), (int) CampaignTime.Now.ToDays));
+      }
+
+      /// <summary>Self-test seam: the scene's markers, as a narration would carry them, through the real handling.</summary>
+      internal IReadOnlyList<string> DebugSceneMarkers(string narration)
+      {
+         if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return new List<string>();
+
+         return ApplyMarkers(q, SceneMarkers.Extract(narration), () => { });
+      }
+
+      /// <summary>Self-test seam: the scene closes, through the real handling (no window was opened).</summary>
+      internal void DebugCloseScene()
+      {
+         if (_run != null && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) CloseScene(q);
       }
 
       /// <summary>cr.story_step: completes the current stage as though its objective were met (a test lever).</summary>

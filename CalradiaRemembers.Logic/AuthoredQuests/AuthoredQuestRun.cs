@@ -50,6 +50,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public List<string> Findings { get; set; } = new();
       public List<string> HazardsSprung { get; set; } = new();
 
+      /// <summary>A hazard warned the quest's band (alert): it will be harder to catch when it is hunted.</summary>
+      public bool BandAlerted { get; set; }
+
+      /// <summary>explore: the people of the scene met so far (the narrator voices them in increment 1).</summary>
+      public List<string> Met { get; set; } = new();
+
       /// <summary>defeat_party: the StringId of the party spawned for this stage.</summary>
       public string SpawnedPartyId { get; set; }
 
@@ -195,6 +201,16 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          run.HazardsSprung.Add(hazardId);
 
          return h.Effect;
+      }
+
+      /// <summary>explore: the narration brought someone in. True only for an encounter the scene declares, once.</summary>
+      public static bool Meet(AuthoredQuestRun run, AuthoredQuest q, string encounterId)
+      {
+         AuthoredScene scene = Active(run, q)?.Objective.Scene;
+         if (scene == null || run.Met.Contains(encounterId) || scene.Encounters.All(e => e.Id != encounterId)) return false;
+         run.Met.Add(encounterId);
+
+         return true;
       }
 
       /// <summary>

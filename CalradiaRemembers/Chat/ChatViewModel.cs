@@ -2553,6 +2553,14 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         // An exploration scene has a narrator and no character: its own pipeline, like the envoy's.
+         if (_exploration != null)
+         {
+            ExecuteSendExplorationMessage(text);
+
+            return;
+         }
+
          // Spotlight pillar: once a witness has been drawn in, the scene is an ensemble and EVERY active voice
          // speaks this turn (the council model, but organic and scoped to who was pulled in). Ordinary scenes
          // only, never a captive/captor scene; a lone anchor (no promotion yet) keeps the single-speaker path below.
@@ -2869,6 +2877,14 @@ namespace CalradiaRemembers.Chat
          if (_envoy != null)
          {
             FinalizeEnvoyAudience();
+
+            return;
+         }
+
+         // An exploration scene's outcome is its quest's to record (findings, the stage that follows).
+         if (_exploration != null)
+         {
+            FinalizeExploration();
 
             return;
          }

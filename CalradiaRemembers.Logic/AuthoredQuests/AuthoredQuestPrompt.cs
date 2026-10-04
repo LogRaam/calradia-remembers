@@ -92,12 +92,25 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             foreach (AuthoredHazard h in armed) sb.AppendLine($"- If the player is {AuthoredQuestEngine.Fill(run, h.Trigger)}. Marker: [[hazard:{h.Id}]]");
          }
 
-         if (scene.Encounters.Count > 0)
+         List<AuthoredEncounter> unmet = scene.Encounters.Where(e => !run.Met.Contains(e.Id)).ToList();
+         if (unmet.Count > 0)
          {
             sb.AppendLine();
-            sb.AppendLine("WHO MAY BE MET (bring them in only when it follows from what the player does; they then speak for themselves):");
-            foreach (AuthoredEncounter e in scene.Encounters)
+            sb.AppendLine("WHO MAY BE MET (bring them in only when it follows from what the player does):");
+            foreach (AuthoredEncounter e in unmet)
                sb.AppendLine($"- {AuthoredQuestEngine.Fill(run, e.Name)}: {AuthoredQuestEngine.Fill(run, e.Persona)}. Marker: [[meet:{e.Id}]]");
+         }
+
+         List<AuthoredEncounter> met = scene.Encounters.Where(e => run.Met.Contains(e.Id)).ToList();
+         if (met.Count > 0)
+         {
+            sb.AppendLine();
+            sb.AppendLine("WHO IS WITH THE PLAYER NOW (give them their own voice, in quotes, as themselves; they say only what they know):");
+            foreach (AuthoredEncounter e in met)
+            {
+               sb.AppendLine($"- {AuthoredQuestEngine.Fill(run, e.Name)}: {AuthoredQuestEngine.Fill(run, e.Persona)}.");
+               foreach (string k in e.Knows ?? new List<string>()) sb.AppendLine("  They know: " + AuthoredQuestEngine.Fill(run, k));
+            }
          }
 
          sb.AppendLine();

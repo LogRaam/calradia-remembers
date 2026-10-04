@@ -272,7 +272,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
-         new SelfTest("authored_quest_opening", Severity.Light, "Authored quests Inc 1 (docs/design/AUTHORED_QUESTS.md). The werewolf loads; a real lord holding a village by a forest is bound to it and told to raise it; accepting puts a 'Tale:' entry in the journal and moves past the request; a local of that village believes in the beast and knows nothing of the slavers; two locals heard moves the tale to the watch. Abandons the tale and forgets it after.", TestAuthoredQuestOpening),
+         new SelfTest("authored_quest_opening", Severity.Light, "Authored quests Inc 1 (docs/design/AUTHORED_QUESTS.md). The werewolf loads; a real lord holding a village by a forest is bound to it and told to raise it; accepting puts a 'Tale:' entry in the journal and moves past the request; a local of that village believes in the beast and knows nothing of the slavers; two locals heard moves the tale to the watch. Then the watch ends in the scene: a declared finding recorded, an undeclared one refused, the snare hurts but never kills (health restored), closing early still yields the missed clue and moves on to the lord. Abandons the tale and forgets it after.", TestAuthoredQuestOpening),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
          new SelfTest("world_event_discretion", Severity.Light, "IdentityCrysys (Nexus, 03/10/2026): keep a world event from a character, or from all but those it names. Records a loud event naming two lords of a realm, then through the real console commands: public, a third lord hears it; secret, only the two do; hidden from the third, only he is unaware; removed, it is gone. Removes it after.", TestWorldEventDiscretion),
          new SelfTest("player_company", Severity.Light, "Gabriel's Invite / Request Private design (03/10/2026, after nerethi). Reads the player's real company (party, escorts, prison): never the player, every prisoner truly held, the one spoken to never offered for invitation, and a room made only of the company, seated as Invite seats them, is cleared at once. Changes nothing.", TestPlayerCompany),
@@ -8712,6 +8712,24 @@ namespace CalradiaRemembers.Diagnostics
                t.Expect("andKnowsNothingOfTheTwist", b.PromptBlockFor(locals[0])?.Contains("slaver") == true, false);
                foreach (Hero n in locals) b.DebugConversationOpened(n);
                t.Expect("twoLocalsHeardMovesToTheWatch", b.ActiveRun.StageId, "keep_watch");
+
+               // The scene, through the real handling, with no model call: a finding, the snare, then closing early.
+               b.DebugStep();
+               t.Expect("theWatchEndsInTheScene", b.ActiveRun.StageId, "the_tracks");
+               int hp = Hero.MainHero.HitPoints;
+               try
+               {
+                  IReadOnlyList<string> notes = b.DebugSceneMarkers("You find a clearing. [[found:chains]] Then a wire bites your ankle. [[hazard:snare]] [[found:a_dragon]]");
+                  t.Expect("aDeclaredFindingIsRecorded", b.ActiveRun.Findings.Contains("chains"), true);
+                  t.Expect("anUndeclaredOneIsNot", b.ActiveRun.Findings.Contains("a_dragon"), false);
+                  t.Expect("theSnareHurtsButNeverKills", Hero.MainHero.HitPoints < hp && Hero.MainHero.HitPoints >= 1, true);
+                  t.Note(string.Join(" | ", notes));
+               }
+               finally { Hero.MainHero.HitPoints = hp; }
+
+               b.DebugCloseScene();
+               t.Expect("closingEarlyStillYieldsTheClue", b.ActiveRun.Findings.Contains("pelt"), true);
+               t.Expect("andTheTaleGoesOnToTheLord", b.ActiveRun.StageId, "tell_the_lord");
             }
             else t.Note($"{village?.Name} has fewer than two notables; the questioning stage was not walked.");
          }
