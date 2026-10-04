@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (83)
+## Keys (86)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -28,6 +28,9 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_Appreciations_v1bytes` | `AppreciationBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_Assembly_v1bytes` | `AssemblyBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_AudienceTopicState_v1bytes` | `CompanionAudienceTopicBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_AuthoredQuestRun_v1` | `AuthoredQuestBehavior` | constant `RunKey` passed to SyncData (fact) |
+| `CalradiaRemembers_AuthoredQuestsDeclined_v1` | `AuthoredQuestBehavior` | constant `DeclinedKey` passed to SyncData (fact) |
+| `CalradiaRemembers_AuthoredQuestsDone_v1` | `AuthoredQuestBehavior` | constant `DoneKey` passed to SyncData (fact) |
 | `CalradiaRemembers_BastardLastSeason_v1` | `BastardBehavior` | constant `LastSeasonSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_BastardsBlackmail_v1bytes` | `BastardBehavior` | constant `SaveKeyBlackmail` passed to SyncData (fact) |
 | `CalradiaRemembers_Bastards_v1bytes` | `BastardBehavior` | constant `SaveKey` passed to SyncData (fact) |
@@ -102,6 +105,7 @@ reused one crashes the boot when another mod holds it.
 
 | Definition | In |
 |---|---|
+| `AddClassDefinition(typeof(AuthoredStoryQuest), 4)` | `CalradiaRemembersQuestTypeDefiner` |
 | `AddClassDefinition(typeof(CalradiaRemembersQuest), 1)` | `CalradiaRemembersQuestTypeDefiner` |
 | `AddClassDefinition(typeof(CommitmentQuest), 3)` | `CalradiaRemembersQuestTypeDefiner` |
 | `AddClassDefinition(typeof(CompanionErrandQuest), 2)` | `CalradiaRemembersQuestTypeDefiner` |
@@ -110,6 +114,8 @@ reused one crashes the boot when another mod holds it.
 
 | Member | Id |
 |---|---|
+| `AuthoredStoryQuest._storyId` | 1 |
+| `AuthoredStoryQuest._title` | 2 |
 | `CalradiaRemembersQuest._giverId` | 1 |
 | `CalradiaRemembersQuest._questKey` | 2 |
 | `CommitmentQuest._commitmentId` | 2 |

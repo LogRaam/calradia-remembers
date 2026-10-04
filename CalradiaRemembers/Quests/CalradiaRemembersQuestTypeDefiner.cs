@@ -86,6 +86,8 @@ namespace CalradiaRemembers.Quests
             // 2026-07-03: RP with teeth, increment 2, Phase 2, the pledge (TrackedCommitment) journal
             // mirror. Additive id, save-safe: do NOT touch ids 1/2 or the base number.
             AddClassDefinition(typeof(CommitmentQuest), 3);
+            // 2026-10-03: authored quests' journal mirror ("Tale:"). Additive id, save-safe: do NOT touch ids 1/2/3 or the base.
+            AddClassDefinition(typeof(AuthoredStoryQuest), 4);
         }
     }
 }

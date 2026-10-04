@@ -241,6 +241,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          return new AuthoredStep {Kind = AuthoredStepKind.Failed, FromStage = s.Id};
       }
 
+      /// <summary>A test lever only (cr.story_step): completes the active stage as though its objective were met.</summary>
+      public static AuthoredStep ForceAdvance(AuthoredQuestRun run, AuthoredQuest q, int today)
+         => Active(run, q) != null ? Advance(run, q, today) : AuthoredStep.Nothing;
+
       /// <summary>The bound StringId for a role written "{role}"; the text itself when it is no placeholder.</summary>
       public static string Bound(AuthoredQuestRun run, string role)
       {

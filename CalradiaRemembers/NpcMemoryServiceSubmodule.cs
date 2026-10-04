@@ -301,6 +301,7 @@ namespace CalradiaRemembers
          // The day of every wedding, for the family line (raphareish, 01/10/2026).
          campaignStarter.AddBehavior(new Mapping.WeddingDayBehavior());
          campaignStarter.AddBehavior(new Marriage.ForeignDivorceBehavior());
+         campaignStarter.AddBehavior(new Quests.AuthoredQuestBehavior());
          // War-weariness: wounds and captures accrue a toll on each companion (a SEPARATE axis from happiness);
          // rest eases it; a spent veteran asks for an honorable retirement — a landless one leaves, a landed one
          // (governor / party-leader) steps back from the field but stays in the clan. Pure model in Logic.

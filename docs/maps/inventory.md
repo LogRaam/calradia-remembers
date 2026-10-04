@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 460 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 941 types in 27 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 462 types in 57 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 943 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -69,7 +69,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 55 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 56 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `ModLog` | internal static class | Writes timestamped log entries to a file in the Bannerlord Logs folder AND shows them in the in-game console. |
 | `ModSettings` | public static class | Mod-wide settings façade. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
@@ -567,10 +567,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitSpikeViewModel` | public class | View model for the portrait-spike test overlay: a runtime sprite plus a status line. |
 | `RuntimePortraitFactory` | internal static class | Builds a GauntletUI Sprite from an image file on disk. |
 
-### CalradiaRemembers.Quests (9)
+### CalradiaRemembers.Quests (11)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `AuthoredQuestBehavior` | public class | The authored quests in play: one active run at most, its journal entry, its rewards. |
+| `AuthoredStoryQuest` | public class | The journal mirror of an authored quest. |
 | `CalradiaRemembersQuest` | public class | A thin QuestBase wrapper around an InformalQuest that makes it visible in Bannerlord's native quest journal. |
 | `CalradiaRemembersQuestTypeDefiner` | public class | Registers the CR quest types with Bannerlord's save system. |
 | `LetterErrand` | public class | Pairs a letter quest with the giver who issued it, for the delivery flow. |
@@ -1558,7 +1560,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (26)
+### CalradiaRemembers.Logic.AuthoredQuests (28)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1569,12 +1571,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredHazard` | public class | (no summary) |
 | `AuthoredHazardEffect` | public class | (no summary) |
 | `AuthoredObjective` | public class | One condition the engine verifies; which fields matter depends on Type. |
+| `AuthoredOfferFacts` | public class | The facts an offer is judged on, past the giver qualifying. |
 | `AuthoredOnComplete` | public class | (no summary) |
 | `AuthoredOutcome` | public class | What success or failure leaves behind. |
 | `AuthoredQuest` | public class | One authored quest, as its file describes it. |
 | `AuthoredQuestEngine` | public static class | The stage machine. |
 | `AuthoredQuestLoadResult` | public class | The quests that loaded, and every problem found, each naming its file and quest. |
 | `AuthoredQuestLoader` | public static class | Parses and validates authored quest files. |
+| `AuthoredQuestOfferPolicy` | public static class | Decides whether a qualifying giver raises the quest now. |
 | `AuthoredQuestPrompt` | public static class | The prompt text of an authored quest. |
 | `AuthoredQuestRun` | public class | One authored quest being played: who and where it was bound to, which stage, and the stage's progress. |
 | `AuthoredQuestStatus` | public enum | (no summary) |
