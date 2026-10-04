@@ -164,5 +164,14 @@ namespace CalradiaRemembers.WorldEvents
       public string Summary { get; set; }
 
       public WorldEventType Type { get; set; }
+
+      /// <summary>
+      ///   Known only to those it names (ActorIds, AggrievedActorIds), whatever the score: set by the player with
+      ///   cr.world_event_secret (IdentityCrysys, 03/10/2026). Absent on an older save, so false.
+      /// </summary>
+      public bool KnownOnlyToThoseInvolved { get; set; }
+
+      /// <summary>Heroes the player kept unaware of this event (cr.world_event_hide). Absent on an older save, so empty.</summary>
+      public List<string> HiddenFromIds { get; set; } = new();
    }
 }

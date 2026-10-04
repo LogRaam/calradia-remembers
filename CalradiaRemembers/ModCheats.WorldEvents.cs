@@ -274,6 +274,92 @@ namespace CalradiaRemembers
          return sb.ToString().TrimEnd();
       }
 
+      // ── The player's say over world news (IdentityCrysys, Nexus, 03/10/2026) ──────────────────────────────
+      // "is there a way to remove a world event from public memory and/or a specific NPC's awareness? ... Or
+      // preventing a certain event from coming up in conversation with anyone (except who it involves directly,
+      // maybe)?" Hearing is by score, never a stored list, so these set a veto on the event itself
+      // (RumorDiscretion). They hide the NEWS, not the facts: a marriage that exists in the game is still known
+      // to the spouses through their own family lines, and a memory a character keeps is cr.forget's business.
+
+      /// <summary>cr.world_events [words]: lists stored world events (newest first) with their ids, filtered by text.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("world_events", "cr")]
+      public static string ListWorldEvents(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         var store = WorldEventStore.Instance;
+         if (store == null) return "World-event store is not active.";
+
+         string filter = args is {Count: > 0} ? string.Join(" ", args).Trim() : "";
+         List<WorldEvent> found = store.All()
+                                       .Where(e => filter.Length == 0 || (e.Summary ?? "").IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)
+                                       .OrderByDescending(e => e.Day).Take(25).ToList();
+         if (found.Count == 0) return filter.Length == 0 ? "No world event is stored." : $"No stored world event mentions '{filter}'.";
+
+         var sb = new System.Text.StringBuilder();
+         foreach (WorldEvent e in found)
+            sb.AppendLine($"- {e.Id} [day {e.Day}{(e.KnownOnlyToThoseInvolved ? ", SECRET" : "")}{(e.HiddenFromIds?.Count > 0 ? $", hidden from {e.HiddenFromIds.Count}" : "")}]: {e.Summary}");
+         sb.Append("Use the id with cr.world_event_remove, cr.world_event_secret or cr.world_event_hide.");
+
+         return sb.ToString();
+      }
+
+      /// <summary>cr.world_event_remove &lt;id&gt;: removes a world event for everyone.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("world_event_remove", "cr")]
+      public static string RemoveWorldEvent(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         string id = args is {Count: > 0} ? args[0].Trim() : null;
+         if (string.IsNullOrEmpty(id)) return "Usage: cr.world_event_remove <id>   (ids: cr.world_events [words])";
+
+         return WorldEventStore.Instance?.Remove(id) == true
+            ? $"World event {id} removed: no one will hear of it any more. Save the game to keep it."
+            : $"No world event with id '{id}'. See cr.world_events.";
+      }
+
+      /// <summary>cr.world_event_secret &lt;id&gt; [off]: only those the event names know of it.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("world_event_secret", "cr")]
+      public static string SecretWorldEvent(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         WorldEvent e = args is {Count: > 0} ? WorldEventStore.Instance?.GetById(args[0].Trim()) : null;
+         if (e == null) return "Usage: cr.world_event_secret <id> [off]   (ids: cr.world_events [words])";
+
+         bool off = args.Count > 1 && string.Equals(args[1], "off", StringComparison.OrdinalIgnoreCase);
+         e.KnownOnlyToThoseInvolved = !off;
+         string named = string.Join(", ", (e.ActorIds ?? new List<string>()).Concat(e.AggrievedActorIds ?? new List<string>())
+                                            .Select(id => Hero.FindFirst(h => h.StringId == id)?.Name?.ToString() ?? id));
+
+         return off
+            ? $"World event {e.Id} is public again."
+            : $"World event {e.Id} is now a secret, known only to: {(named.Length > 0 ? named : "no one (it names nobody)")}. Save the game to keep it.";
+      }
+
+      /// <summary>cr.world_event_hide &lt;id&gt; &lt;name&gt; [off]: keeps one character unaware of a world event.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("world_event_hide", "cr")]
+      public static string HideWorldEvent(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         WorldEvent e = args is {Count: > 1} ? WorldEventStore.Instance?.GetById(args[0].Trim()) : null;
+         if (e == null) return "Usage: cr.world_event_hide <id> <name> [off]   (ids: cr.world_events [words])";
+
+         List<string> nameTokens = args.Skip(1).ToList();
+         bool off = string.Equals(nameTokens.Last(), "off", StringComparison.OrdinalIgnoreCase);
+         if (off) nameTokens.RemoveAt(nameTokens.Count - 1);
+
+         // A hero id is exact where a name may have namesakes.
+         Hero hero = nameTokens.Count == 1 ? Hero.FindFirst(h => h.StringId == nameTokens[0]) : null;
+         hero ??= ResolveHero(nameTokens);
+         if (hero == null) return "No character found by that name or id.";
+
+         e.HiddenFromIds ??= new List<string>();
+         if (off) e.HiddenFromIds.Remove(hero.StringId);
+         else if (!e.HiddenFromIds.Contains(hero.StringId)) e.HiddenFromIds.Add(hero.StringId);
+
+         return off
+            ? $"{hero.Name} may hear of world event {e.Id} again."
+            : $"{hero.Name} ({hero.StringId}) will not know of world event {e.Id}. Save the game to keep it.";
+      }
+
       /// <summary>The settlement the player is in, else the nearest town, castle or village to their party.</summary>
       private static Settlement NearestSettlementToPlayer()
       {

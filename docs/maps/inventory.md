@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 460 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 912 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 914 types in 26 namespaces, 2 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -795,7 +795,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (603)
+### CalradiaRemembers.Logic (605)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -959,6 +959,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DeliveryQuestMatcher` | public static class | Decides which outstanding prisoner-delivery bargain a held captive settles. |
 | `DialogueEntryTracePolicy` | public static class | Composes the "[DIALOGUE] conversation with ..." line the dialogue collector logs once per hero conversation. |
 | `DialogueHeuristics` | public static class | Small pure heuristics over LLM text and parsed responses, used by the conversation flow. |
+| `DiscretionFacts` | public class | What a discretion check is judged on. |
 | `DivorceAnnouncePolicy` | public static class | Drives the bounded announce phase of a spouse's divorce demand (romance audit C1/C2), so the refusal clock starts on a letter the player genuinely saw THIS cycle, an undelivered letter re-announces instead of freezing, a... |
 | `DivorceAnnounceStep` | public enum | What the host should do this tick for a demand whose refusal clock has not yet started. |
 | `DivorceBlock` | public enum | Why a marriage dissolution was refused at its deadline, ranked by how the host must respond. |
@@ -1278,6 +1279,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RumorAwareness` | public static class | The pure awareness model: how far news of an event carries, and how surely it has reached a given observer. |
 | `RumorAwarenessBreakdown` | public class | One observer's awareness of one event, with every term that produced it. |
 | `RumorConfidence` | public enum | How surely a rumour has reached an observer — derived from the awareness score. |
+| `RumorDiscretion` | public static class | Whether a world event is kept from someone whatever their score. |
 | `ScatteredLootItem` | public class | One item taken from the player on a fled bandit escape, scattered among that culture's bands until recovered. |
 | `ScatteredLootLedger` | public class | Save-serializable carrier for every item currently scattered among bandit bands, awaiting recovery. |
 | `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |

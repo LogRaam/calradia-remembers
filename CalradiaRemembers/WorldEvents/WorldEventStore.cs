@@ -67,6 +67,9 @@ namespace CalradiaRemembers.WorldEvents
 
       // ── Queries ───────────────────────────────────────────────────────────
 
+      /// <summary>Every stored event, unfiltered: for the player's console tools (cr.world_events), never for a prompt.</summary>
+      public IReadOnlyList<WorldEvent> All() => _events.ToList();
+
       /// <summary>
       ///   The events <paramref name="observer" /> would plausibly have heard of, best-known first,
       ///   scored by recency, reach (magnitude), faction relevance, and geographic proximity.
@@ -122,6 +125,7 @@ namespace CalradiaRemembers.WorldEvents
 
          return _events
                 .Where(e => e.Magnitude >= minMagnitude && !string.IsNullOrWhiteSpace(e.Summary) && today - e.Day <= RumorAwareness.RecencyWindowDays)
+                .Where(e => !e.KnownOnlyToThoseInvolved) // a secret is not dug up by a companion sent for news
                 .OrderByDescending(e => e.Day)
                 .ThenByDescending(e => e.Magnitude)
                 .Take(max)
@@ -260,20 +264,26 @@ namespace CalradiaRemembers.WorldEvents
          bool factionMatches = factionId != null && e.FactionIds != null && e.FactionIds.Contains(factionId);
          bool concerned = observerId != null && e.ActorIds != null && e.ActorIds.Contains(observerId);
 
-         return RumorAwareness.Explain(e.Magnitude, factionMatches, GeoProximityBonus(obsPos, e.PlaceId), concerned, today - e.Day);
-      }
+         RumorAwarenessBreakdown verdict = RumorAwareness.Explain(e.Magnitude, factionMatches, GeoProximityBonus(obsPos, e.PlaceId), concerned, today - e.Day);
 
-      private int AwarenessScore(WorldEvent e, int today, Vec2? obsPos, string factionId, string observerId)
-         => Explain(e, today, obsPos, factionId, observerId).Score;
+         // The player's veto on top of the score (IdentityCrysys, 03/10/2026): every query goes through here.
+         verdict.Withheld = RumorDiscretion.WithheldReason(new DiscretionFacts {
+            ObserverId = observerId, KnownOnlyToThoseInvolved = e.KnownOnlyToThoseInvolved, HiddenFromIds = e.HiddenFromIds,
+            InvolvedIds = (e.ActorIds ?? new List<string>()).Concat(e.AggrievedActorIds ?? new List<string>())
+         });
+         if (verdict.Withheld != null) verdict.Knows = false;
+
+         return verdict;
+      }
 
       private IReadOnlyList<WorldEvent> GetKnown(Vec2? pos, string factionId, int today, int max, string observerId = null)
       {
          if (_events.Count == 0) return Array.Empty<WorldEvent>();
 
          return _events
-                .Select(e => (e, score: AwarenessScore(e, today, pos, factionId, observerId)))
-                .Where(t => RumorAwareness.Knows(t.score))
-                .OrderByDescending(t => t.score)
+                .Select(e => (e, v: Explain(e, today, pos, factionId, observerId)))
+                .Where(t => t.v.Knows)
+                .OrderByDescending(t => t.v.Score)
                 .Take(max)
                 .Select(t => t.e)
                 .ToList();
@@ -284,11 +294,11 @@ namespace CalradiaRemembers.WorldEvents
          if (_events.Count == 0) return Array.Empty<(WorldEvent, RumorConfidence)>();
 
          return _events
-                .Select(e => (e, score: AwarenessScore(e, today, pos, factionId, observerId)))
-                .Where(t => RumorAwareness.Knows(t.score))
-                .OrderByDescending(t => t.score)
+                .Select(e => (e, v: Explain(e, today, pos, factionId, observerId)))
+                .Where(t => t.v.Knows)
+                .OrderByDescending(t => t.v.Score)
                 .Take(max)
-                .Select(t => (t.e, RumorAwareness.Rate(t.score)))
+                .Select(t => (t.e, t.v.Confidence))
                 .ToList();
       }
 

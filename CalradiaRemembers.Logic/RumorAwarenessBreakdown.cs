@@ -46,6 +46,9 @@ namespace CalradiaRemembers.Logic
         /// <summary>The awareness score, compared against <see cref="RumorAwareness.Threshold" />.</summary>
         public int Score { get; set; }
 
+        /// <summary>Why the player kept this event from the observer whatever the score (RumorDiscretion); null when not.</summary>
+        public string Withheld { get; set; }
+
         /// <summary>
         ///   A one-paragraph account for a console: the verdict, the arithmetic, and what to change when the
         ///   answer is "never". Written for a modder testing a bridge, so it names the levers they control.
@@ -58,6 +61,8 @@ namespace CalradiaRemembers.Logic
                            + $" + place {GeoBonus}"
                            + $", x recency {recency.ToString("0.00", CultureInfo.InvariantCulture)} (day {AgeDays} of {RumorAwareness.RecencyWindowDays})"
                            + $" + named {(ConcernedParty ? RumorAwareness.ConcernedPartyBonus : 0)}";
+
+            if (Withheld != null) return $"NOT HEARD: {Withheld} (score {Score} would have been: {terms}.)";
 
             if (Knows)
             {
