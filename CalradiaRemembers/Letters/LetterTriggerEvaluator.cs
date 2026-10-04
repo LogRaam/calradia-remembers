@@ -477,6 +477,8 @@ namespace CalradiaRemembers.Letters
          foreach (Hero captive in captives)
          {
             if (string.IsNullOrEmpty(captive?.StringId)) continue;
+            // Word of the capture must reach his people, and their envoy ride out, before anyone treats (aphareish).
+            if (!PrisonerExchangePolicy.NewsHasReachedHisPeople((int) (CampaignTime.Now - captive.CaptivityStartTime).ToDays)) continue;
 
             // The first who may treat (PrisonerBuyerPolicy's order: the captive's house, a parent of another house, the
             // realm, a bitter enemy in the player's own realm), whose own envoy is not on cooldown for this captive and

@@ -136,6 +136,16 @@ namespace CalradiaRemembers.Logic
       public static bool EnvoyMayCome(int? lastEnvoyDay, int today)
          => lastEnvoyDay is not int last || today - last >= EnvoyCooldownDays;
 
+      /// <summary>
+      ///   TUNE: days a captive must have been held before anyone comes to treat for him: word of the capture reaches
+      ///   his people, and their envoy rides to the player. aphareish (Nexus, 04/10/2026): envoys came seconds after the
+      ///   battle.
+      /// </summary>
+      public const int EnvoyDelayAfterCaptureDays = 3;
+
+      /// <summary>Whether a captive held this many days can already be treated for (<see cref="EnvoyDelayAfterCaptureDays" />).</summary>
+      public static bool NewsHasReachedHisPeople(int daysHeld) => daysHeld >= EnvoyDelayAfterCaptureDays;
+
       private static int Worth(int anchor) => anchor > 0 ? anchor : PrisonerTradePolicy.FallbackAnchor;
    }
 }

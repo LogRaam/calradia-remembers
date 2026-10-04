@@ -152,6 +152,22 @@ namespace CalradiaRemembers.Tests
          PrisonerExchangePolicy.EnvoyMayCome(null, 5).Should().BeTrue();
       }
 
+      // aphareish (Nexus, 04/10/2026): "ransom couriers being triggered merely seconds after capture". Word of a capture
+      // must reach the lord, and his envoy ride to the player, before anyone can come to treat: never the day of the battle.
+      [Test]
+      public void GIVEN_a_captive_just_taken_WHEN_an_envoy_would_come_THEN_he_waits_for_the_news_to_travel()
+      {
+         PrisonerExchangePolicy.NewsHasReachedHisPeople(daysHeld: 0).Should().BeFalse();
+         PrisonerExchangePolicy.NewsHasReachedHisPeople(PrisonerExchangePolicy.EnvoyDelayAfterCaptureDays - 1).Should().BeFalse();
+      }
+
+      // Once the news has had time to travel, an envoy may come (the cooldown still applies after that).
+      [Test]
+      public void GIVEN_a_captive_held_for_some_days_WHEN_an_envoy_would_come_THEN_he_may()
+      {
+         PrisonerExchangePolicy.NewsHasReachedHisPeople(PrisonerExchangePolicy.EnvoyDelayAfterCaptureDays).Should().BeTrue();
+      }
+
       // ── What becomes of each captive ─────────────────────────────────────
 
       // The whole point of an exchange (fkasad: "a father wishing to buy back his daughter"): the lord gets his own
