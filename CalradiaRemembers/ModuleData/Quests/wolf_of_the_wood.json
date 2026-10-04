@@ -1,0 +1,275 @@
+{
+  "id": "cr_wolf_of_the_wood",
+  "title": "The Wolf of the Wood",
+  "author": "Gabriel Mailhot (story), draft 03/10/2026, revised with his rulings (nights of watch, exploration scene)",
+  "unique": true,
+  "weight": 10,
+  "requires": {
+    "giver": {
+      "role": "lord",
+      "holds": "{village}",
+      "min_regard": 0,
+      "not_at_war_with_player": true
+    },
+    "village": {
+      "type": "village",
+      "near": "forest"
+    },
+    "player": {
+      "min_clan_tier": 1
+    }
+  },
+  "binds": {
+    "giver": "the lord who holds {village}",
+    "village": "a village beside a forest",
+    "elder": "a notable of {village}"
+  },
+  "stages": [
+    {
+      "id": "the_request",
+      "journal": "{giver} has asked you to look into the beast said to haunt the wood by {village}.",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}"
+      },
+      "canvas": "The lord raises it reluctantly, half embarrassed to speak of a beast out of a nurse's tale, half afraid it is true. He wants someone he trusts to go and see, quietly.",
+      "facts": [
+        "Women of {village} have gone missing since the harvest.",
+        "The villagers say a werewolf takes them by night.",
+        "The lord does not know what to believe and cannot spare his own men to chase tales."
+      ],
+      "knowers": {
+        "{giver}": [
+          "Your people at {village} say a werewolf haunts the wood and takes women by night. Three are missing since the harvest.",
+          "You do not believe in werewolves, but you cannot explain the missing women either."
+        ]
+      },
+      "on_complete": {
+        "next": "question_the_village"
+      }
+    },
+    {
+      "id": "question_the_village",
+      "journal": "Ask the people of {village} what they have seen.",
+      "objective": {
+        "type": "talk_to_locals",
+        "place": "{village}",
+        "count": 2
+      },
+      "canvas": "The villagers are frightened and half ashamed of their fear. They speak of the beast in lowered voices, and each adds a detail of their own.",
+      "facts": [
+        "Three women have vanished since the harvest, each taken at night.",
+        "Shepherds heard howling and saw something large moving at the edge of the wood.",
+        "Nobody has seen the beast clearly.",
+        "The disappearances happen near the old charcoal-burners' track."
+      ],
+      "knowers": {
+        "locals_of:{village}": [
+          "You believe a werewolf haunts the wood; someone you know swears she saw its eyes.",
+          "Three women have gone missing since the harvest, each taken at night.",
+          "It always happens near the old charcoal-burners' track, at the edge of the wood."
+        ]
+      },
+      "on_complete": {
+        "next": "keep_watch"
+      }
+    },
+    {
+      "id": "keep_watch",
+      "journal": "Keep watch by the wood of {village} at night.",
+      "objective": {
+        "type": "keep_watch",
+        "place": "{village}",
+        "radius": 6,
+        "nights": [
+          2,
+          5
+        ],
+        "chance": 0.35
+      },
+      "canvas": "",
+      "facts": [],
+      "knowers": {},
+      "on_complete": {
+        "next": "the_tracks"
+      }
+    },
+    {
+      "id": "the_tracks",
+      "journal": "Something moves in the wood by {village}.",
+      "objective": {
+        "type": "explore",
+        "scene": {
+          "opening": {
+            "canvas": "Another cold night of waiting by the wood. Then the player notices something on the path: quiet, watchful, the dark close around them. End by asking what they do.",
+            "facts": [
+              "Fresh boot prints in the mud lead from the edge of the village into the wood.",
+              "The prints are of many men, not of any beast."
+            ]
+          },
+          "findings": [
+            {
+              "id": "chains",
+              "required": true,
+              "text": "A trampled clearing with a dropped iron collar and a length of chain."
+            },
+            {
+              "id": "pelt",
+              "required": true,
+              "text": "A wolf pelt rigged on a wooden frame, eyes of polished stone: the beast the shepherds saw."
+            },
+            {
+              "id": "ruts",
+              "required": false,
+              "text": "Cart ruts leading out of the wood toward the road to the coast."
+            }
+          ],
+          "encounters": [
+            {
+              "id": "escaped_girl",
+              "name": "a girl from {village}",
+              "persona": "barefoot, shivering, escaped from the slavers' camp two nights ago and hiding in the wood since",
+              "knows": [
+                "Men took her, not a beast; they wore the wolf skin to frighten the village.",
+                "They keep the women in a camp deeper in the wood and wait for a buyer from the coast."
+              ],
+              "may_materialize": true,
+              "materialize_when": "the player offers to take her home to {village}",
+              "escort_to": "{village}"
+            }
+          ],
+          "closing": "Whatever the player did, they leave the wood knowing it was men, not a beast, and that the missing women are being sold.",
+          "hazards": [
+            {
+              "id": "snare",
+              "trigger": "pushing through the undergrowth off the track without care",
+              "effect": {
+                "type": "injure",
+                "hit_points": [
+                  15,
+                  30
+                ]
+              }
+            },
+            {
+              "id": "lookout",
+              "trigger": "being seen or heard by the slavers' lookout near their camp",
+              "effect": {
+                "type": "alert",
+                "party": "slavers"
+              }
+            }
+          ]
+        }
+      },
+      "canvas": "",
+      "facts": [],
+      "knowers": {},
+      "on_complete": {
+        "next": "tell_the_lord"
+      }
+    },
+    {
+      "id": "tell_the_lord",
+      "journal": "Tell {giver} what you found in the wood.",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}"
+      },
+      "canvas": "The lord hears it, and his embarrassment turns to cold anger: men on his own land, selling his people. He gives the order without hesitation.",
+      "facts": [
+        "There is no werewolf: a band of slavers takes the women and sells them.",
+        "The lord wants the band found and destroyed.",
+        "He will reward the player when it is done."
+      ],
+      "knowers": {
+        "{giver}": [
+          "The player has just told you what they found in the wood: boot prints, chains, a wolf pelt on a frame. There is no werewolf; slavers are taking your people to sell them.",
+          "You want the band found and destroyed."
+        ]
+      },
+      "on_complete": {
+        "next": "hunt_the_slavers"
+      }
+    },
+    {
+      "id": "hunt_the_slavers",
+      "journal": "Find the slavers near {village} and destroy them.",
+      "objective": {
+        "type": "defeat_party",
+        "spawn": {
+          "id": "slavers",
+          "template": "looters",
+          "size": [
+            12,
+            20
+          ],
+          "name": "Slavers of the {village} wood",
+          "near": "{village}",
+          "behavior": "hide_near",
+          "flee_after_days": 20
+        }
+      },
+      "canvas": "",
+      "facts": [],
+      "knowers": {
+        "locals_of:{village}": [
+          "Word has come that it was men, not a beast. You pray the lord's champion finds them before they take anyone else."
+        ]
+      },
+      "on_complete": {
+        "next": "return"
+      }
+    },
+    {
+      "id": "return",
+      "journal": "Return to {giver}.",
+      "objective": {
+        "type": "return"
+      },
+      "canvas": "Relief and gratitude, plainly given. The lord will not forget who unmasked the wolf.",
+      "facts": [
+        "The slavers are destroyed.",
+        "The women of {village} will be safe again."
+      ],
+      "knowers": {
+        "{giver}": [
+          "The player has destroyed the slavers who preyed on {village}."
+        ]
+      },
+      "on_complete": {
+        "next": "reward"
+      }
+    }
+  ],
+  "reward": {
+    "regard": 12,
+    "gold": 500,
+    "memory": "The player unmasked the 'werewolf' of {village}: slavers, whom they destroyed at my word.",
+    "consequences": [
+      {
+        "type": "memory",
+        "who": "locals_of:{village}",
+        "text": "A stranger came at the lord's word and ended the wolf of the wood. It was men all along, selling our women."
+      },
+      {
+        "type": "world_event",
+        "summary": "The 'werewolf' of {village} was a band of slavers, destroyed at the word of {giver}.",
+        "magnitude": 35,
+        "place": "{village}"
+      }
+    ]
+  },
+  "failure": {
+    "days": 40,
+    "regard": -3,
+    "memory": "I asked the player to look into the beast of {village}, and nothing came of it.",
+    "consequences": [
+      {
+        "type": "memory",
+        "who": "locals_of:{village}",
+        "text": "The lord sent someone about the beast. Nobody came, and the women are still gone."
+      }
+    ]
+  }
+}

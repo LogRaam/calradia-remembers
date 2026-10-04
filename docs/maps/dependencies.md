@@ -188,6 +188,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Grudges.TraitFacts` | 0 | 1 |
 | `CalradiaRemembers.Logic.Items` | 0 | 1 |
 | `CalradiaRemembers.Logic.MissionResult` | 0 | 1 |
+| `CalradiaRemembers.Logic.AuthoredQuests` | 0 | 0 |
 
 ## Every namespace, and its edges
 
@@ -345,6 +346,11 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 - uses: `CalradiaRemembers.Logic`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Parsing`, `NpcMemoryService.Core.Standing`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Arrests`, `CalradiaRemembers.Assemblies`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Missions`, `CalradiaRemembers.WarCouncil`
+
+### CalradiaRemembers.Logic.AuthoredQuests
+
+- uses: nothing
+- used by: nothing
 
 ### CalradiaRemembers.Logic.Battles
 

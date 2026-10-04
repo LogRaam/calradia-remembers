@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 460 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 915 types in 26 namespaces, 2 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 939 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1557,6 +1557,35 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardCandidateFacts` | public struct | The flattened facts about one candidate companion needed to judge them ward-eligible. |
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
+
+### CalradiaRemembers.Logic.AuthoredQuests (24)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `AuthoredBeat` | public class | (no summary) |
+| `AuthoredConsequence` | public class | (no summary) |
+| `AuthoredEncounter` | public class | (no summary) |
+| `AuthoredFinding` | public class | (no summary) |
+| `AuthoredHazard` | public class | (no summary) |
+| `AuthoredHazardEffect` | public class | (no summary) |
+| `AuthoredObjective` | public class | One condition the engine verifies; which fields matter depends on Type. |
+| `AuthoredOnComplete` | public class | (no summary) |
+| `AuthoredOutcome` | public class | What success or failure leaves behind. |
+| `AuthoredQuest` | public class | One authored quest, as its file describes it. |
+| `AuthoredQuestEngine` | public static class | The stage machine. |
+| `AuthoredQuestLoadResult` | public class | The quests that loaded, and every problem found, each naming its file and quest. |
+| `AuthoredQuestLoader` | public static class | Parses and validates authored quest files. |
+| `AuthoredQuestRun` | public class | One authored quest being played: who and where it was bound to, which stage, and the stage's progress. |
+| `AuthoredQuestStatus` | public enum | (no summary) |
+| `AuthoredRequires` | public class | When the quest may be offered, and by whom (increment 1: the shape the werewolf needs). |
+| `AuthoredScene` | public class | An exploration scene: the chat with a narrator and no character, until someone is met. |
+| `AuthoredSpawn` | public class | A party spawned for the quest: real, on the map, beaten in a real battle. |
+| `AuthoredStage` | public class | One stage: a journal line, one verified objective, what the people involved know, and what follows. |
+| `AuthoredStep` | public class | (no summary) |
+| `AuthoredStepKind` | public enum | What a reported fact did to the run. |
+| `GiverRequirement` | public class | (no summary) |
+| `PlaceRequirement` | public class | (no summary) |
+| `PlayerRequirement` | public class | (no summary) |
 
 ### CalradiaRemembers.Logic.Battles (8)
 
