@@ -1,0 +1,84 @@
+{
+  "id": "cr_the_lost_banner",
+  "title": "The Lost Banner",
+  "author": "draft 03/10/2026",
+  "unique": false,
+  "repeat_cooldown_days": 180,
+  "weight": 5,
+
+  "requires": {
+    "giver": { "role": "lord", "min_regard": 0, "not_at_war_with_player": true, "lost_a_battle_within_days": 30 },
+    "player": { "min_clan_tier": 1 }
+  },
+
+  "binds": {
+    "giver": "a lord who lost a battle of late",
+    "town": "the giver's nearest town"
+  },
+
+  "stages": [
+    {
+      "id": "the_request",
+      "journal": "{giver} asks you to recover his house banner from the deserters who carried it off.",
+      "objective": { "type": "talk_to", "hero": "{giver}" },
+      "canvas": "A proud man asking for help with something that shames him: his banner, lost not to the enemy but to his own men who ran.",
+      "facts": [
+        "After his last defeat, a band of his own soldiers deserted.",
+        "They took the house banner with them.",
+        "He wants it back; what becomes of them, he leaves to the player."
+      ],
+      "knowers": {
+        "{giver}": [ "After your last defeat a band of your own soldiers deserted and carried off your house banner. You want it back." ]
+      },
+      "on_complete": { "next": "find_the_deserters" }
+    },
+    {
+      "id": "find_the_deserters",
+      "journal": "Find the deserters near {town} and take back the banner.",
+      "objective": {
+        "type": "defeat_party",
+        "spawn": {
+          "id": "deserters",
+          "template": "deserters",
+          "size": [10, 16],
+          "name": "Deserters of {giver}'s host",
+          "near": "{town}",
+          "behavior": "roam",
+          "flee_after_days": 25,
+          "drops_item": "banner"
+        }
+      },
+      "canvas": "",
+      "facts": [],
+      "knowers": {},
+      "on_complete": {
+        "narration": {
+          "canvas": "After the fight, a wounded deserter speaks before the player, in the second person: not a plea, a grievance.",
+          "facts": [
+            "Their captain was paid to hold the ford and fled with the silver before the battle.",
+            "They ran because they were left without orders or pay.",
+            "They took the banner so it would not be lost to the enemy."
+          ]
+        },
+        "next": "return"
+      }
+    },
+    {
+      "id": "return",
+      "journal": "Bring the banner back to {giver}.",
+      "objective": { "type": "deliver_item", "item": "quest:banner", "to": "{giver}" },
+      "canvas": "The banner returned. The lord's reaction to the deserters' tale is his own; he does not forget either.",
+      "facts": [
+        "The banner is back in the lord's hands.",
+        "The deserters said their captain sold them out and fled with the silver."
+      ],
+      "knowers": {
+        "{giver}": [ "The player brings back your banner, and the deserters' tale: their captain took the silver and fled before the battle." ]
+      },
+      "on_complete": { "next": "reward" }
+    }
+  ],
+
+  "reward": { "gold": 800, "regard": 6, "memory": "The player brought back my banner from the deserters, and with it a tale about their captain." },
+  "failure": { "days": 30, "regard": -2, "memory": "I asked the player to recover my banner; it is still lost." }
+}

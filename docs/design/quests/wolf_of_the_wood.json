@@ -1,0 +1,144 @@
+{
+  "id": "cr_wolf_of_the_wood",
+  "title": "The Wolf of the Wood",
+  "author": "Gabriel Mailhot (story), draft 03/10/2026",
+  "unique": true,
+  "weight": 10,
+
+  "requires": {
+    "giver": { "role": "lord", "holds": "{village}", "min_regard": 0, "not_at_war_with_player": true },
+    "village": { "type": "village", "near": "forest" },
+    "player": { "min_clan_tier": 1 }
+  },
+
+  "binds": {
+    "giver": "the lord who holds {village}",
+    "village": "a village beside a forest",
+    "elder": "a notable of {village}"
+  },
+
+  "stages": [
+    {
+      "id": "the_request",
+      "journal": "{giver} has asked you to look into the beast said to haunt the wood by {village}.",
+      "objective": { "type": "talk_to", "hero": "{giver}" },
+      "canvas": "The lord raises it reluctantly, half embarrassed to speak of a beast out of a nurse's tale, half afraid it is true. He wants someone he trusts to go and see, quietly.",
+      "facts": [
+        "Women of {village} have gone missing since the harvest.",
+        "The villagers say a werewolf takes them on full-moon nights.",
+        "The lord does not know what to believe and cannot spare his own men to chase tales."
+      ],
+      "knowers": {
+        "{giver}": [
+          "Your people at {village} say a werewolf haunts the wood and takes women on full-moon nights. Three are missing since the harvest.",
+          "You do not believe in werewolves, but you cannot explain the missing women either."
+        ]
+      },
+      "on_complete": { "next": "question_the_village" }
+    },
+    {
+      "id": "question_the_village",
+      "journal": "Ask the people of {village} what they have seen.",
+      "objective": { "type": "talk_to_locals", "place": "{village}", "count": 2 },
+      "canvas": "The villagers are frightened and half ashamed of their fear. They speak of the beast in lowered voices, and each adds a detail of their own.",
+      "facts": [
+        "Three women have vanished since the harvest, each on a full-moon night.",
+        "Shepherds heard howling and saw something large moving at the edge of the wood.",
+        "Nobody has seen the beast clearly.",
+        "The disappearances happen near the old charcoal-burners' track."
+      ],
+      "knowers": {
+        "locals_of:{village}": [
+          "You believe a werewolf haunts the wood; someone you know swears she saw its eyes.",
+          "Three women have gone missing since the harvest, each on a full-moon night.",
+          "It always happens near the old charcoal-burners' track, at the edge of the wood."
+        ]
+      },
+      "on_complete": { "next": "the_wood_by_moonlight" }
+    },
+    {
+      "id": "the_wood_by_moonlight",
+      "journal": "Go to the wood by {village} at night, when the moon is full.",
+      "objective": { "type": "be_at", "place": "{village}", "radius": 6, "night": true, "moon": "full" },
+      "canvas": "The wood is silent in a way that feels watched. Then the player finds what was never a beast's work.",
+      "facts": [],
+      "knowers": {},
+      "on_complete": {
+        "narration": {
+          "canvas": "A tense, quiet discovery at night on the charcoal-burners' track, told as what the player sees and hears, in the second person.",
+          "facts": [
+            "Boot prints of many men, not paws.",
+            "A dropped iron collar and a length of chain.",
+            "Fresh cart ruts leading away from the village, toward the road.",
+            "A wolf pelt rigged on a frame, the 'beast' the shepherds saw.",
+            "Whoever takes the women means to sell them: this is slavers' work."
+          ]
+        },
+        "next": "tell_the_lord"
+      }
+    },
+    {
+      "id": "tell_the_lord",
+      "journal": "Tell {giver} what you found in the wood.",
+      "objective": { "type": "talk_to", "hero": "{giver}" },
+      "canvas": "The lord hears it, and his embarrassment turns to cold anger: men on his own land, selling his people. He gives the order without hesitation.",
+      "facts": [
+        "There is no werewolf: a band of slavers takes the women and sells them.",
+        "The lord wants the band found and destroyed.",
+        "He will reward the player when it is done."
+      ],
+      "knowers": {
+        "{giver}": [
+          "The player has just told you what they found in the wood: boot prints, chains, a wolf pelt on a frame. There is no werewolf; slavers are taking your people.",
+          "You want the band found and destroyed."
+        ]
+      },
+      "on_complete": { "next": "hunt_the_slavers" }
+    },
+    {
+      "id": "hunt_the_slavers",
+      "journal": "Find the slavers near {village} and destroy them.",
+      "objective": {
+        "type": "defeat_party",
+        "spawn": {
+          "id": "slavers",
+          "template": "looters",
+          "size": [12, 20],
+          "name": "Slavers of the {village} wood",
+          "near": "{village}",
+          "behavior": "hide_near",
+          "flee_after_days": 20
+        }
+      },
+      "canvas": "",
+      "facts": [],
+      "knowers": {
+        "locals_of:{village}": [ "The lord's champion knows the truth now: men, not a beast. You pray they are caught before the next full moon." ]
+      },
+      "on_complete": { "next": "return" }
+    },
+    {
+      "id": "return",
+      "journal": "Return to {giver}.",
+      "objective": { "type": "return" },
+      "canvas": "Relief and gratitude, plainly given. The lord will not forget who unmasked the wolf.",
+      "facts": [ "The slavers are destroyed.", "The women of {village} will be safe again." ],
+      "knowers": {
+        "{giver}": [ "The player has destroyed the slavers who preyed on {village}." ]
+      },
+      "on_complete": { "next": "reward" }
+    }
+  ],
+
+  "reward": {
+    "gold": 1500,
+    "regard": 10,
+    "memory": "The player unmasked the 'werewolf' of {village}: slavers, whom they destroyed at my word.",
+    "village_memory": "A stranger came at the lord's word and ended the wolf of the wood. It was men all along."
+  },
+  "failure": {
+    "days": 40,
+    "regard": -3,
+    "memory": "I asked the player to look into the beast of {village}, and nothing came of it."
+  }
+}

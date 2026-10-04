@@ -1,0 +1,92 @@
+{
+  "id": "cr_the_bitter_well",
+  "title": "The Bitter Well",
+  "author": "draft 03/10/2026",
+  "unique": true,
+  "weight": 8,
+
+  "requires": {
+    "giver": { "role": "lord", "governs": "{town}", "min_regard": 0, "not_at_war_with_player": true },
+    "town": { "type": "town", "has_gang_leader": true },
+    "player": { "min_clan_tier": 1 }
+  },
+
+  "binds": {
+    "giver": "the lord who governs {town}",
+    "town": "a town where people are falling sick",
+    "gang_leader": "the gang leader of {town}"
+  },
+
+  "stages": [
+    {
+      "id": "the_request",
+      "journal": "{giver} asks you to find out why the people of {town} are falling sick.",
+      "objective": { "type": "talk_to", "hero": "{giver}" },
+      "canvas": "A worried governor, short on sleep. The sickness is spreading through the poorer quarters and the town whispers of a poisoned well.",
+      "facts": [
+        "People in the poor quarters of {town} are falling sick, with cramps and fever.",
+        "The town believes a well was poisoned.",
+        "The governor has had the wells checked and found nothing."
+      ],
+      "knowers": {
+        "{giver}": [ "Sickness spreads through the poor quarters of {town}. The town says a well was poisoned; you had them checked and found nothing." ]
+      },
+      "on_complete": { "next": "ask_the_town" }
+    },
+    {
+      "id": "ask_the_town",
+      "journal": "Ask the notables of {town} what they know of the sickness.",
+      "objective": { "type": "talk_to_locals", "place": "{town}", "count": 2 },
+      "canvas": "Merchants and artisans who would rather not be asked. Each knows a piece; none wants to say where the cheap grain came from.",
+      "facts": [
+        "The sick are those who bought the cheap grain sold at the lower market.",
+        "The grain came in by night, from a merchant nobody names.",
+        "The gang leader of {town} knows who the merchant is."
+      ],
+      "knowers": {
+        "locals_of:{town}": [
+          "The sick are the ones who bought the cheap grain at the lower market this month.",
+          "The grain came in by night; you will not name who sold it, but the gang leader would know."
+        ]
+      },
+      "on_complete": { "next": "the_gang_leader" }
+    },
+    {
+      "id": "the_gang_leader",
+      "journal": "Ask the gang leader of {town} who sold the grain.",
+      "objective": { "type": "talk_to", "hero": "{gang_leader}" },
+      "canvas": "The gang leader is amused that the lord's people need his help, and makes the player feel it. But he names the merchant, because sick customers are bad for business.",
+      "facts": [
+        "The grain was rotten, bought for nothing and sold as sound.",
+        "A merchant who trades between towns sold it; the gang leader names him.",
+        "It was greed, not poison."
+      ],
+      "knowers": {
+        "{gang_leader}": [ "You know a travelling merchant sold rotten grain at the lower market as sound; you will name him to the player, for sick customers are bad for business." ]
+      },
+      "on_complete": { "next": "tell_the_governor" }
+    },
+    {
+      "id": "tell_the_governor",
+      "journal": "Tell {giver} what made the people of {town} sick.",
+      "objective": { "type": "talk_to", "hero": "{giver}" },
+      "canvas": "Relief that it was not poison, anger at the greed. The governor orders the grain burned and the merchant barred from his markets.",
+      "facts": [
+        "It was rotten grain sold as sound, not poison.",
+        "The governor has the grain burned and the merchant barred from {town}."
+      ],
+      "knowers": {
+        "{giver}": [ "The player found the cause: rotten grain sold as sound at the lower market of {town}, by a travelling merchant. Not poison." ]
+      },
+      "on_complete": { "next": "reward" }
+    }
+  ],
+
+  "reward": {
+    "gold": 1000,
+    "regard": 8,
+    "memory": "The player found that the sickness in {town} came from rotten grain, not poison.",
+    "town_memory": "The sickness in the lower quarters was rotten grain sold as sound. The lord burned it."
+  },
+  "failure": { "days": 30, "regard": -2, "memory": "I asked the player about the sickness in {town}; they never brought me an answer." }
+}
