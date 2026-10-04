@@ -648,7 +648,7 @@ namespace CalradiaRemembers.Dialogue
                // Show both scores in the header from the first frame.
                vm.SetRelationSummary(
                   Profile.ReputationWithPlayer,
-                  behavior.GameStateBridge.GetPlayerRelation(hero));
+                  Logic.GameRelationReading.ClanStanding(GameRelations.Of(hero)));
 
                // ── Witness resolution ────────────────────────────────────
                // Auto-detect heroes plausibly present (sync, safe — returns

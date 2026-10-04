@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 464 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 947 types in 27 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 465 types in 58 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 949 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -18,7 +18,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | Lines | Layer | File |
 |---|---|---|
 | 15500+ | Mod | `Diagnostics/CrSelfTest.cs` |
-| 8000+ | Sdk | `Prompts/PromptBuilder.cs` |
+| 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4000+ | Mod | `Mapping/EncounterContextBuilder.cs` |
 | 3500+ | Mod | `Chat/ChatViewModel.cs` |
@@ -467,7 +467,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (23)
+### CalradiaRemembers.Mapping (24)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -478,6 +478,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DayMoodReader` | public static class | Draws a character's mood of the day from the live game. |
 | `EncounterContextBuilder` | public static class | Constructs an EncounterContext for a given NPC, using the game state bridge for live data and the stored profile for historical data (last-meeting computation). |
 | `FirstImpressionResolver` | public static class | Builds the ready-to-inject "first impression" line for a barely-known noble, or null. |
+| `GameRelations` | public static class | Reads a character's own relation with the player and, when there is another to read, their clan leader's. |
 | `HeroPresence` | public static class | Whether a hero is in the world at all: alive, and not taken out of it by the game. |
 | `HeroProfileMapper` | public static class | (no summary) |
 | `HeroSeats` | public static class | The places a character answers for, closest first. |
@@ -804,7 +805,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (610)
+### CalradiaRemembers.Logic (612)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1022,6 +1023,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FoodTradeVerdict` | public enum | What the town remembers of a visit's food trade. |
 | `ForcedMarriagePolicy` | public static class | How a marriage sealed on the family's blessing, against the spouse's own unwon heart, is resented. |
 | `ForeignDivorceDetection` | public static class | Finds the marriages another mod ended. |
+| `GameRelationFacts` | public class | The game's relations with the player that one character's standing is read from. |
+| `GameRelationReading` | public static class | Reads a character's clan standing and own relation with the player. |
 | `GarrisonStrength` | public static class | A garrison's strength band. |
 | `GearKind` | public enum | The broad kind of an equipped piece, enough to phrase it ("clad in", "bears", "rides"). |
 | `GearQuality` | public enum | The quality band of a piece, derived by the host from the item's modifier (Masterwork/Legendary vs Rusty/Tattered/Cracked...) and, for an unmarked piece, its raw value. |

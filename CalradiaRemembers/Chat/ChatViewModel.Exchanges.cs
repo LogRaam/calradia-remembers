@@ -826,7 +826,11 @@ namespace CalradiaRemembers.Chat
             // ── Mirror the clan-level game relation into the prompt's clan standing.
             //    The personal score (ReputationWithPlayer) is our own per-NPC value
             //    and is left untouched here — only change_relation moves it. ──
-            profile.ClanRelationWithPlayer = behavior.GameStateBridge.GetPlayerRelation(speaker.Hero);
+            // The clan's standing is the clan leader's relation; a character's own relation, when a per-hero relation
+            // mod gives them one that differs, is said apart (tashmetu, Personal Relations, 04/10/2026).
+            GameRelationFacts relations = GameRelations.Of(speaker.Hero);
+            profile.ClanRelationWithPlayer = GameRelationReading.ClanStanding(relations);
+            profile.OwnGameRelationWithPlayer = GameRelationReading.OwnRelationIfDistinct(relations);
 
             // ... and, once, the warm start that standing is worth (tashmetu, 30/09/2026), before the prompt reads regard.
             if (speaker.Hero != null)

@@ -276,6 +276,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
          new SelfTest("world_event_discretion", Severity.Light, "IdentityCrysys (Nexus, 03/10/2026): keep a world event from a character, or from all but those it names. Records a loud event naming two lords of a realm, then through the real console commands: public, a third lord hears it; secret, only the two do; hidden from the third, only he is unaware; removed, it is gone. Removes it after.", TestWorldEventDiscretion),
          new SelfTest("chat_art_loads", Severity.Light, "EmperorHaterius (Nexus, 04/10/2026): the Dark Leather window was see-through with no button, because its End Conversation and Memories labels are painted into art read from a hand-built path that missed his install (every shipped file read as not found). Checks the module folder is the one the engine found (SubModule.xml there), loads every chat image through the real loader (a failure writes its reason to the log as [IMAGE]), and checks that Dark Leather opens only when its art loads, Origin otherwise. Changes nothing.", TestChatArtLoads),
+         new SelfTest("clan_standing_is_the_leaders", Severity.Light, "tashmetu (Nexus, 04/10/2026), Personal Relations: the prompt's clan standing was the character's own game relation, so under a per-hero relation mod a lord read +100 'clan' and 0 personal. Takes a real lord who is not his clan's leader: the clan standing must be the leader's relation, and his own is said apart only when it differs. Changes nothing.", TestClanStandingIsTheLeaders),
          new SelfTest("player_company", Severity.Light, "Gabriel's Invite / Request Private design (03/10/2026, after nerethi). Reads the player's real company (party, escorts, prison): never the player, every prisoner truly held, the one spoken to never offered for invitation, and a room made only of the company, seated as Invite seats them, is cleared at once. Changes nothing.", TestPlayerCompany),
          new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
          new SelfTest("memory_repair_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026) and Gabriel: one command to mend every memory the console mangled before the fix. Stores a mangled memory on a real lord, as an old save holds it, runs cr.memory_repair_accents through the engine's console: the memory must read as typed. Removes it after.", TestMemoryRepairAccents),
@@ -8851,6 +8852,23 @@ namespace CalradiaRemembers.Diagnostics
 
          int givenBack = mercs.DebugFadeHalfway(realm.Leader, -20);
          t.Expect("halfTheFadeGivesBackHalf", givenBack, 10);
+
+         return t.Line();
+      }
+
+      private static string TestClanStandingIsTheLeaders(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("clan_standing_is_the_leaders");
+         Hero member = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.Clan != null && h.Clan != Clan.PlayerClan && h.Clan.Leader != null
+                                                               && h.Clan.Leader != h && h.Clan.Leader != Hero.MainHero);
+         if (t.Skip(member == null, "no lord who is not his clan's leader")) return t.Line();
+
+         GameRelationFacts f = Mapping.GameRelations.Of(member);
+         int leader = (int) member.Clan.Leader.GetRelationWithPlayer();
+         int own = (int) member.GetRelationWithPlayer();
+         t.Note($"{member.Name}: own {own}, leader {member.Clan.Leader.Name} {leader}");
+         t.Expect("theClanStandingIsTheLeaders", GameRelationReading.ClanStanding(f), leader);
+         t.Expect("hisOwnIsSaidApartOnlyWhenItDiffers", GameRelationReading.OwnRelationIfDistinct(f), own == leader ? (int?) null : own);
 
          return t.Line();
       }
