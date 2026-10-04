@@ -104,8 +104,11 @@ namespace CalradiaRemembers.Portraits
             string key = KeyFor(fullPath, correctRedBlue, ninePatch);
             if (Cache.TryGetValue(key, out var cached)) return cached.sprite;
 
-            Sprite sprite = TryCreate(fullPath, correctRedBlue, ninePatch, out Sprite s, out EngTex tex, out _) ? s : null;
+            Sprite sprite = TryCreate(fullPath, correctRedBlue, ninePatch, out Sprite s, out EngTex tex, out string diag) ? s : null;
             Cache[key] = (sprite, tex?.Width ?? 0, tex?.Height ?? 0);
+            // Said once per image (a miss is cached): a window drawn from missing art is see-through, and the reason
+            // was thrown away (EmperorHaterius, 04/10/2026, whose log could not have told us why).
+            if (sprite == null) ModLog.Error($"[IMAGE] could not load {fullPath}: {diag}");
 
             return sprite;
         }

@@ -1175,6 +1175,8 @@
 
         <!-- Parchment background. CorrectRedBlue=true: JPGs in this engine read with red/blue swapped, same fix
              as the Manuscript skin's LeftPageBg/ChatLeftPanelPath widget. -->
+        <!-- Plain parchment under the art: if the image cannot load, the dark ink still sits on a page (EmperorHaterius). -->
+        <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#E6D8B4F2" IsDisabled="true" />
         <CrRuntimeImageWidget Id="MemoryBackground"
                               WidthSizePolicy="StretchToParent"
                               HeightSizePolicy="StretchToParent"

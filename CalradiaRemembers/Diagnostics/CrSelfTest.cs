@@ -275,6 +275,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("authored_quest_opening", Severity.Light, "Authored quests Inc 1 (docs/design/AUTHORED_QUESTS.md). The werewolf loads; a real lord holding a village by a forest is bound to it and told to raise it; accepting puts a 'Tale:' entry in the journal and moves past the request; a local of that village believes in the beast and knows nothing of the slavers; two locals heard moves the tale to the watch. Then the watch ends in the scene: a declared finding recorded, an undeclared one refused, the snare hurts but never kills (health restored), closing early still yields the missed clue and moves on to the lord; the lord sends the player hunting, a real band is spawned near the village, and beaten by the player the tale turns home. Stops before the reward; abandons the tale (the band is released) and forgets it after.", TestAuthoredQuestOpening),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
          new SelfTest("world_event_discretion", Severity.Light, "IdentityCrysys (Nexus, 03/10/2026): keep a world event from a character, or from all but those it names. Records a loud event naming two lords of a realm, then through the real console commands: public, a third lord hears it; secret, only the two do; hidden from the third, only he is unaware; removed, it is gone. Removes it after.", TestWorldEventDiscretion),
+         new SelfTest("chat_art_loads", Severity.Light, "EmperorHaterius (Nexus, 04/10/2026): the Dark Leather window was see-through with no button, because its End Conversation and Memories labels are painted into art that never loaded on his machine; the memories panel was bare text too. Loads every chat image through the real loader (a failure writes its reason to the log as [IMAGE]), and checks that Dark Leather opens only when its art loads, Origin otherwise. Changes nothing.", TestChatArtLoads),
          new SelfTest("player_company", Severity.Light, "Gabriel's Invite / Request Private design (03/10/2026, after nerethi). Reads the player's real company (party, escorts, prison): never the player, every prisoner truly held, the one spoken to never offered for invitation, and a room made only of the company, seated as Invite seats them, is cleared at once. Changes nothing.", TestPlayerCompany),
          new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
          new SelfTest("memory_repair_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026) and Gabriel: one command to mend every memory the console mangled before the fix. Stores a mangled memory on a real lord, as an old save holds it, runs cr.memory_repair_accents through the engine's console: the memory must read as typed. Removes it after.", TestMemoryRepairAccents),
@@ -8807,6 +8808,23 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("aRemovedEventIsGone", store.GetById(e.Id) == null, true);
          }
          finally { store.Remove(e.Id); }
+
+         return t.Line();
+      }
+
+      private static string TestChatArtLoads(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("chat_art_loads");
+         string dir = System.IO.Path.Combine(TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images");
+
+         foreach ((string file, bool correct) in new[] {("cr_chat_left.jpg", true), ("cr_chat_right.jpg", true), ("cr_memories.jpg", true), ("cr_memories_separator.png", false)})
+            t.Expect("loads:" + file, Portraits.RuntimePortraitFactory.GetOrCreateCached(System.IO.Path.Combine(dir, file), correct) != null, true);
+
+         bool art = ChatManager.ManuscriptArtLoads();
+         string opens = ChatSkinFallbackPolicy.Resolve(new ChatSkinFacts {
+            Requested = ChatManager.ManuscriptSkin, ManuscriptSkin = ChatManager.ManuscriptSkin, ClassicSkin = ChatManager.ClassicSkin, ManuscriptArtLoads = art
+         });
+         t.Expect("darkLeatherOnlyWithItsArt", opens, art ? ChatManager.ManuscriptSkin : ChatManager.ClassicSkin);
 
          return t.Line();
       }

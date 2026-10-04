@@ -1394,6 +1394,17 @@ namespace CalradiaRemembers.Chat
          _backdropFocusClaimers.Clear();
       }
 
+      private static bool _artFallbackNoticed;
+
+      /// <summary>Both Dark Leather page images load (cached after the first try, so this costs nothing after it).</summary>
+      internal static bool ManuscriptArtLoads()
+      {
+         string dir = System.IO.Path.Combine(TaleWorlds.Library.BasePath.Name, "Modules", "CalradiaRemembers", "GUI", "Images");
+
+         return Portraits.RuntimePortraitFactory.GetOrCreateCached(System.IO.Path.Combine(dir, "cr_chat_left.jpg")) != null
+                && Portraits.RuntimePortraitFactory.GetOrCreateCached(System.IO.Path.Combine(dir, "cr_chat_right.jpg")) != null;
+      }
+
       private static void GenerateChatWindow(string npcName, bool forceClassicSkin = false)
       {
          ActiveViewModel = new ChatViewModel {OnCloseRequested = Close};
@@ -1431,7 +1442,19 @@ namespace CalradiaRemembers.Chat
                : !string.IsNullOrWhiteSpace(SkinConsoleOverride)
                   ? SkinConsoleOverride
                   : ModSettings.ChatSkinPrefab;
-         if (string.IsNullOrWhiteSpace(skin)) skin = ClassicSkin;
+         // Dark Leather paints its End Conversation and Memories labels into its page art, over invisible buttons:
+         // without the art the player sees no way out (EmperorHaterius, 04/10/2026). Origin draws its own.
+         bool artLoads = skin != ManuscriptSkin || ManuscriptArtLoads();
+         string usable = Logic.ChatSkinFallbackPolicy.Resolve(new Logic.ChatSkinFacts {
+            Requested = skin, ManuscriptSkin = ManuscriptSkin, ClassicSkin = ClassicSkin, ManuscriptArtLoads = artLoads
+         });
+         if (usable != skin && skin == ManuscriptSkin && !_artFallbackNoticed)
+         {
+            _artFallbackNoticed = true;
+            ModLog.Notice("The Dark Leather window's art could not be loaded, so the Origin window opens instead. The reason is in CalradiaRemembers.log ([IMAGE]).");
+         }
+
+         skin = usable;
          ActiveSkin = skin;
          _activeMovieId = _activeLayer.LoadMovie(skin, ActiveViewModel);
 
