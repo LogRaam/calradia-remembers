@@ -10,9 +10,11 @@
 //   patriarchalCultures faction/culture name fragments whose men are skeptical of female authority,
 //                       matched case-insensitively against the NPC's faction name
 //                       (default ["Vlandia", "Northern Empire", "Western Empire", "Aserai"])
-//   daysPerSeason       in-game days in one season          (default 21)
-//   seasonsPerYear      seasons in one year                 (default 4, so a year is 84 days)
-//                       Set these only if your world's calendar differs: they decide what "a season ago",
+//   daysPerSeason       in-game days in one season          (default: the game's own, 21 unless fast mode
+//                                                            or another mod shortens it)
+//   seasonsPerYear      seasons in one year                 (default: the game's own, 4)
+//                       Leave these out and Calradia Remembers follows the game's calendar. Set them only if
+//                       your world's calendar must differ from the game's: they decide what "a season ago",
 //                       "about 2 year(s) ago" and every seasonal window in the mod actually mean.
 //
 {

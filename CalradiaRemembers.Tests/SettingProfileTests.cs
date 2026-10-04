@@ -114,6 +114,30 @@ namespace CalradiaRemembers.Tests
          SettingProfileDefaults.ResolveCalendar(profile).Should().Be((30, 12));
       }
 
+      // tashmetu (Nexus, 04/10/2026): Bannerlord's fast mode shortens the year (CampaignTime.DaysInSeason and
+      // SeasonsInYear), while CR kept 21 x 4, so "half a year ago" was said of what the game counts as two years. With
+      // nothing in setting.json, the game's own calendar is the calendar.
+      [Test]
+      public void GIVEN_the_game_runs_a_shorter_year_and_no_override_WHEN_resolved_THEN_the_games_calendar_is_taken()
+      {
+         SettingProfileDefaults.ResolveCalendar(new SettingProfile(), new GameCalendar {DaysPerSeason = 7, SeasonsPerYear = 4}).Should().Be((7, 4));
+      }
+
+      // setting.json stays the explicit word: a conversion that names its calendar keeps it, whatever the game runs.
+      [Test]
+      public void GIVEN_an_override_and_the_games_calendar_WHEN_resolved_THEN_the_override_wins_field_by_field()
+      {
+         SettingProfileDefaults.ResolveCalendar(new SettingProfile {DaysPerSeason = 30}, new GameCalendar {DaysPerSeason = 7, SeasonsPerYear = 2})
+                               .Should().Be((30, 2));
+      }
+
+      // Before a campaign has set the game's clock (zero), Calradia's calendar holds, never a year of zero days.
+      [Test]
+      public void GIVEN_the_games_calendar_is_not_yet_set_WHEN_resolved_THEN_Calradias_holds()
+      {
+         SettingProfileDefaults.ResolveCalendar(null, new GameCalendar {DaysPerSeason = 0, SeasonsPerYear = 0}).Should().Be((21, 4));
+      }
+
       // Half an override is honest and must work: a world with longer seasons but still four of them.
       [Test]
       public void GIVEN_only_one_of_the_two_WHEN_resolved_THEN_the_other_keeps_its_default()

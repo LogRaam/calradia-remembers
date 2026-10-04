@@ -49,10 +49,13 @@ namespace CalradiaRemembers.Logic
       /// <summary>Four, as in Calradia.</summary>
       public const int SeasonsPerYear = WorldCalendar.DefaultSeasonsPerYear;
 
-      /// <summary>The effective calendar: each field taken from the override when it is present and sane, else Calradia's.</summary>
-      public static (int DaysPerSeason, int SeasonsPerYear) ResolveCalendar(SettingProfile profile)
-         => (profile?.DaysPerSeason is > 0 ? profile.DaysPerSeason.Value : DaysPerSeason,
-             profile?.SeasonsPerYear is > 0 ? profile.SeasonsPerYear.Value : SeasonsPerYear);
+      /// <summary>
+      ///   The effective calendar, field by field: setting.json's when present and sane, else the game's own (tashmetu,
+      ///   04/10/2026: Bannerlord's fast mode shortens the year), else Calradia's.
+      /// </summary>
+      public static (int DaysPerSeason, int SeasonsPerYear) ResolveCalendar(SettingProfile profile, GameCalendar game = null)
+         => (profile?.DaysPerSeason is > 0 ? profile.DaysPerSeason.Value : game?.DaysPerSeason is > 0 ? game.DaysPerSeason : DaysPerSeason,
+             profile?.SeasonsPerYear is > 0 ? profile.SeasonsPerYear.Value : game?.SeasonsPerYear is > 0 ? game.SeasonsPerYear : SeasonsPerYear);
 
       public static readonly IReadOnlyList<string> PatriarchalCultures =
          new[] {"Vlandia", "Northern Empire", "Western Empire", "Aserai"};
@@ -76,5 +79,13 @@ namespace CalradiaRemembers.Logic
             ? cultures
             : PatriarchalCultures);
       }
+   }
+
+   /// <summary>The game's own calendar, as the running campaign set it (0 when no campaign has set it yet).</summary>
+   public sealed class GameCalendar
+   {
+      public int DaysPerSeason { get; init; }
+
+      public int SeasonsPerYear { get; init; }
    }
 }

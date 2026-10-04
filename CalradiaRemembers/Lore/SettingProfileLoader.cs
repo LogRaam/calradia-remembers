@@ -44,7 +44,12 @@ namespace CalradiaRemembers.Lore
             (string name, string adjective, System.Collections.Generic.IReadOnlyList<string> cultures) =
                 SettingProfileDefaults.Resolve(profile);
 
-            (int daysPerSeason, int seasonsPerYear) = SettingProfileDefaults.ResolveCalendar(profile);
+            // The game's own calendar when setting.json names none (tashmetu, 04/10/2026: fast mode shortens the year).
+            var game = new GameCalendar {
+               DaysPerSeason = TaleWorlds.CampaignSystem.CampaignTime.DaysInSeason,
+               SeasonsPerYear = TaleWorlds.CampaignSystem.CampaignTime.SeasonsInYear
+            };
+            (int daysPerSeason, int seasonsPerYear) = SettingProfileDefaults.ResolveCalendar(profile, game);
             WorldCalendar.DaysPerSeason = daysPerSeason;
             WorldCalendar.SeasonsPerYear = seasonsPerYear;
 
@@ -52,7 +57,7 @@ namespace CalradiaRemembers.Lore
             PromptLore.WorldAdjective = adjective;
             PromptLore.PatriarchalCultures = cultures;
             ModLog.Info($"  Setting profile{(useCustom ? " (custom)" : "")}: world '{name}' ({adjective}); "
-                      + $"a year of {WorldCalendar.DaysPerYear} days ({seasonsPerYear} seasons of {daysPerSeason}); "
+                      + $"a year of {WorldCalendar.DaysPerYear} days ({seasonsPerYear} seasons of {daysPerSeason}; the game's own: {game.SeasonsPerYear} of {game.DaysPerSeason}); "
                       + $"{cultures.Count} patriarchal culture(s).");
         }
     }
