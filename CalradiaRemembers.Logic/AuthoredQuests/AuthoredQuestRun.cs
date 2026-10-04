@@ -53,6 +53,13 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>defeat_party: the StringId of the party spawned for this stage.</summary>
       public string SpawnedPartyId { get; set; }
 
+      /// <summary>
+      ///   The stage a conversation completed on opening, and with whom: while that conversation lasts, that person speaks
+      ///   of THAT stage (the lord hearing the report), not of the next one. Cleared when the conversation closes.
+      /// </summary>
+      public string SpokenStageId { get; set; }
+      public string SpokenHeroId { get; set; }
+
       public string Serialize() => JsonConvert.SerializeObject(this, Formatting.None);
 
       public static AuthoredQuestRun Deserialize(string json)
@@ -110,9 +117,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          switch (s.Objective.Type)
          {
             case "talk_to":
-               return heroId == Bound(run, s.Objective.Hero) ? Advance(run, q, today) : AuthoredStep.Nothing;
+               return heroId == Bound(run, s.Objective.Hero) ? Spoken(run, q, s, heroId, today) : AuthoredStep.Nothing;
             case "return":
-               return heroId == Bound(run, "{giver}") ? Advance(run, q, today) : AuthoredStep.Nothing;
+               return heroId == Bound(run, "{giver}") ? Spoken(run, q, s, heroId, today) : AuthoredStep.Nothing;
             case "talk_to_locals":
                if (localOfPlaceId == null || localOfPlaceId != Bound(run, s.Objective.Place)) return AuthoredStep.Nothing;
                if (!run.TalkedThisStage.Contains(heroId)) run.TalkedThisStage.Add(heroId);
@@ -121,6 +128,22 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             default:
                return AuthoredStep.Nothing;
          }
+      }
+
+      /// <summary>The conversation with this hero closed: they stop speaking of the stage it completed.</summary>
+      public static void ConversationClosed(AuthoredQuestRun run, string heroId)
+      {
+         if (run == null || run.SpokenHeroId != heroId) return;
+         run.SpokenHeroId = null;
+         run.SpokenStageId = null;
+      }
+
+      private static AuthoredStep Spoken(AuthoredQuestRun run, AuthoredQuest q, AuthoredStage s, string heroId, int today)
+      {
+         run.SpokenStageId = s.Id;
+         run.SpokenHeroId = heroId;
+
+         return Advance(run, q, today);
       }
 
       /// <summary>be_at: the player's party is within the stage's radius of its place.</summary>

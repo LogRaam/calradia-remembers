@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 460 types in 57 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 939 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 941 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1558,7 +1558,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (24)
+### CalradiaRemembers.Logic.AuthoredQuests (26)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1575,6 +1575,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredQuestEngine` | public static class | The stage machine. |
 | `AuthoredQuestLoadResult` | public class | The quests that loaded, and every problem found, each naming its file and quest. |
 | `AuthoredQuestLoader` | public static class | Parses and validates authored quest files. |
+| `AuthoredQuestPrompt` | public static class | The prompt text of an authored quest. |
 | `AuthoredQuestRun` | public class | One authored quest being played: who and where it was bound to, which stage, and the stage's progress. |
 | `AuthoredQuestStatus` | public enum | (no summary) |
 | `AuthoredRequires` | public class | When the quest may be offered, and by whom (increment 1: the shape the werewolf needs). |
@@ -1586,6 +1587,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GiverRequirement` | public class | (no summary) |
 | `PlaceRequirement` | public class | (no summary) |
 | `PlayerRequirement` | public class | (no summary) |
+| `SceneMarkers` | public class | A narration with its game markers taken out. |
 
 ### CalradiaRemembers.Logic.Battles (8)
 
