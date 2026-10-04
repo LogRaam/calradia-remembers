@@ -348,6 +348,9 @@ In `docs/design/quests/`:
    - `ambush` (a scene that turns into a real battle).
    - Encounters who become real, and the `escort` objective.
 3. **For modders and players.** The Custom folder, cr_patch, HOWTO_Quests.md in Docs, and cr.quest_check.
+   Done 04/10/2026: the Custom folder (read since Inc 1), `HOWTO_Quests.md` (ships in Docs), `cr.story_check [name]`
+   (the check is `story_check`, not `quest_check`, which names the older tasks), and `weight` and
+   `repeat_cooldown_days` honoured. Left: cr_patch for quest files.
 4. **More quests.** A first lot of unique quests, drafted by Claude and corrected by Gabriel.
 
 ## Still open
