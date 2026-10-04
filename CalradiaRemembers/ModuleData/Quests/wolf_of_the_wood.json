@@ -89,7 +89,13 @@
       },
       "canvas": "",
       "facts": [],
-      "knowers": {},
+      "knowers": {
+        "locals_of:{village}": [
+          "You believe a werewolf haunts the wood; you dread the next night it comes.",
+          "Three women have gone missing since the harvest, each taken at night, near the old charcoal-burners' track.",
+          "The lord's champion is watching the wood by night; you pray they find the beast."
+        ]
+      },
       "on_complete": {
         "next": "the_tracks"
       }
@@ -164,7 +170,13 @@
       },
       "canvas": "",
       "facts": [],
-      "knowers": {},
+      "knowers": {
+        "locals_of:{village}": [
+          "You believe a werewolf haunts the wood; you dread the next night it comes.",
+          "Three women have gone missing since the harvest, each taken at night, near the old charcoal-burners' track.",
+          "The lord's champion is watching the wood by night; you pray they find the beast."
+        ]
+      },
       "on_complete": {
         "next": "tell_the_lord"
       }

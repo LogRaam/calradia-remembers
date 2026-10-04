@@ -130,7 +130,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
                if (localOfPlaceId == null || localOfPlaceId != Bound(run, s.Objective.Place)) return AuthoredStep.Nothing;
                if (!run.TalkedThisStage.Contains(heroId)) run.TalkedThisStage.Add(heroId);
 
-               return run.TalkedThisStage.Count >= Math.Max(1, s.Objective.Count) ? Advance(run, q, today) : AuthoredStep.Nothing;
+               // The one whose conversation completes the questioning still speaks from it (Gabriel's play test, 04/10/2026:
+               // the second villager, with the stage already moved on, believed nothing and said "bandits").
+               return run.TalkedThisStage.Count >= Math.Max(1, s.Objective.Count) ? Spoken(run, q, s, heroId, today) : AuthoredStep.Nothing;
             default:
                return AuthoredStep.Nothing;
          }

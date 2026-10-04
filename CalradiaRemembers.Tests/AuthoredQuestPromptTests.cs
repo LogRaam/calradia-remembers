@@ -64,6 +64,30 @@ namespace CalradiaRemembers.Tests
          block.Should().Contain("werewolf").And.NotContain("slaver");
       }
 
+      // Gabriel's play test (04/10/2026): the second villager's conversation completed the stage as it opened, and he spoke
+      // with no belief at all ("Bandits. The lair is south-east"). The one whose conversation completes a stage still
+      // speaks from that stage while it lasts.
+      [Test]
+      public void GIVEN_the_villager_whose_conversation_completes_the_questioning_WHEN_he_speaks_THEN_he_still_believes_in_the_beast()
+      {
+         AuthoredQuest q = Wolf();
+         AuthoredQuestRun run = Run(q, "question_the_village");
+         AuthoredQuestEngine.ConversationOpened(run, q, "notable_a", Village, 2);
+         AuthoredQuestEngine.ConversationOpened(run, q, "notable_b", Village, 2).ToStage.Should().Be("keep_watch");
+
+         AuthoredQuestPrompt.ForCharacter(run, q, "notable_b", Village, offering: false).Should().Contain("werewolf").And.NotContain("slaver");
+      }
+
+      // Until the player brings back the truth, the village still believes in the beast: a villager met during the watch
+      // must not improvise an answer of his own (the "bandits" of the play test).
+      [Test]
+      public void GIVEN_the_watch_under_way_WHEN_a_villager_speaks_THEN_he_still_believes_in_the_beast()
+      {
+         AuthoredQuest q = Wolf();
+
+         AuthoredQuestPrompt.ForCharacter(Run(q, "keep_watch"), q, "notable_c", Village, offering: false).Should().Contain("werewolf").And.NotContain("slaver");
+      }
+
       // Someone with no part in the stage hears nothing of the quest.
       [Test]
       public void GIVEN_a_stranger_WHEN_they_speak_THEN_nothing_of_the_quest_is_in_their_prompt()
