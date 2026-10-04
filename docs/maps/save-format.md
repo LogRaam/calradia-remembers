@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (86)
+## Keys (87)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -31,6 +31,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_AuthoredQuestRun_v1` | `AuthoredQuestBehavior` | constant `RunKey` passed to SyncData (fact) |
 | `CalradiaRemembers_AuthoredQuestsDeclined_v1` | `AuthoredQuestBehavior` | constant `DeclinedKey` passed to SyncData (fact) |
 | `CalradiaRemembers_AuthoredQuestsDone_v1` | `AuthoredQuestBehavior` | constant `DoneKey` passed to SyncData (fact) |
+| `CalradiaRemembers_AuthoredQuestsPlayedOn_v1` | `AuthoredQuestBehavior` | constant `PlayedOnKey` passed to SyncData (fact) |
 | `CalradiaRemembers_BastardLastSeason_v1` | `BastardBehavior` | constant `LastSeasonSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_BastardsBlackmail_v1bytes` | `BastardBehavior` | constant `SaveKeyBlackmail` passed to SyncData (fact) |
 | `CalradiaRemembers_Bastards_v1bytes` | `BastardBehavior` | constant `SaveKey` passed to SyncData (fact) |

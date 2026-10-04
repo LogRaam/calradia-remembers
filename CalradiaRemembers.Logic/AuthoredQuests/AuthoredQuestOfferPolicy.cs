@@ -19,6 +19,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>This quest was already played in this campaign (completed or failed).</summary>
       public bool AlreadyPlayed { get; init; }
 
+      /// <summary>The day a repeatable quest was last played to its end (won or lost), or null.</summary>
+      public int? LastPlayedOnDay { get; init; }
+
+      /// <summary>The file's repeat_cooldown_days: how long a repeatable quest waits after it was last played.</summary>
+      public int RepeatCooldownDays { get; init; }
+
       /// <summary>The day the player last declined this quest, or null.</summary>
       public int? DeclinedOnDay { get; init; }
 
@@ -37,13 +43,46 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>The chance a qualifying giver raises it in a given conversation.</summary>
       public const double OfferChance = 0.35;
 
-      public static bool ShouldOffer(AuthoredOfferFacts f)
-      {
-         if (f == null || f.StoryUnderWay) return false;
-         if (f.Unique && f.AlreadyPlayed) return false;
-         if (f.DeclinedOnDay is int d && f.Today - d < DeclineWaitDays) return false;
+      public static bool ShouldOffer(AuthoredOfferFacts f) => f != null && WhyNot(f) == null && f.Roll < f.Chance;
 
-         return f.Roll < f.Chance;
+      /// <summary>
+      ///   Why the quest may not be raised now, the dice aside, in plain words for an author (cr.story_check,
+      ///   cr.story_start); null when nothing stands in the way.
+      /// </summary>
+      public static string WhyNot(AuthoredOfferFacts f)
+      {
+         if (f == null) return "nothing to judge";
+         if (f.StoryUnderWay) return "a tale is already under way";
+         if (f.Unique && f.AlreadyPlayed) return "it was already played in this campaign";
+         if (!f.Unique && f.LastPlayedOnDay is int p && f.Today - p < f.RepeatCooldownDays)
+            return $"it was played on day {p}, and it waits {f.RepeatCooldownDays} days before it comes back";
+         if (f.DeclinedOnDay is int d && f.Today - d < DeclineWaitDays) return $"it was declined on day {d}, and it waits a season";
+
+         return null;
+      }
+
+      /// <summary>
+      ///   Which of several qualifying quests a giver raises: each by its file's weight, out of a roll in [0,1). A
+      ///   weight of zero or less is never picked; -1 when nothing can be.
+      /// </summary>
+      public static int PickByWeight(int[] weights, double roll)
+      {
+         if (weights == null) return -1;
+         long total = 0;
+         foreach (int w in weights) total += w > 0 ? w : 0;
+         if (total == 0) return -1;
+
+         double at = roll * total, sum = 0;
+         int last = -1;
+         for (var i = 0; i < weights.Length; i++)
+         {
+            if (weights[i] <= 0) continue;
+            last = i;
+            sum += weights[i];
+            if (at < sum) return i;
+         }
+
+         return last;
       }
    }
 }

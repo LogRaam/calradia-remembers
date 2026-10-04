@@ -39,11 +39,16 @@ namespace CalradiaRemembers.Quests
       private const string DoneKey = "CalradiaRemembers_AuthoredQuestsDone_v1";
       private const string DeclinedKey = "CalradiaRemembers_AuthoredQuestsDeclined_v1";
 
+      // Added after the first saves (additive): the day each quest was last played to its end, for repeat_cooldown_days.
+      // An older save has none, so a repeatable quest it already played may come back at once: harmless.
+      private const string PlayedOnKey = "CalradiaRemembers_AuthoredQuestsPlayedOn_v1";
+
       private Dictionary<string, AuthoredQuest> _quests = new(StringComparer.Ordinal);
       private List<string> _problems = new();
       private AuthoredQuestRun _run;
       private HashSet<string> _done = new(StringComparer.Ordinal);
       private Dictionary<string, int> _declined = new(StringComparer.Ordinal);
+      private Dictionary<string, int> _playedOn = new(StringComparer.Ordinal);
 
       // The offer being made in the conversation now open (transient: a conversation does not survive a save).
       private AuthoredQuestRun _offer;
@@ -78,21 +83,33 @@ namespace CalradiaRemembers.Quests
       {
          string run = _run?.Serialize() ?? "";
          string done = string.Join("\n", _done);
-         string declined = string.Join("\n", _declined.Select(kv => kv.Key + "=" + kv.Value));
+         string declined = DayList(_declined);
+         string playedOn = DayList(_playedOn);
          dataStore.SyncData(RunKey, ref run);
          dataStore.SyncData(DoneKey, ref done);
          dataStore.SyncData(DeclinedKey, ref declined);
+         dataStore.SyncData(PlayedOnKey, ref playedOn);
 
          if (!dataStore.IsLoading) return;
 
          _run = AuthoredQuestRun.Deserialize(run);
          _done = new HashSet<string>((done ?? "").Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries), StringComparer.Ordinal);
-         _declined = new Dictionary<string, int>(StringComparer.Ordinal);
-         foreach (string line in (declined ?? "").Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries))
+         _declined = ReadDayList(declined);
+         _playedOn = ReadDayList(playedOn);
+      }
+
+      private static string DayList(Dictionary<string, int> days) => string.Join("\n", days.Select(kv => kv.Key + "=" + kv.Value));
+
+      private static Dictionary<string, int> ReadDayList(string text)
+      {
+         var days = new Dictionary<string, int>(StringComparer.Ordinal);
+         foreach (string line in (text ?? "").Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries))
          {
             int eq = line.LastIndexOf('=');
-            if (eq > 0 && int.TryParse(line.Substring(eq + 1), out int day)) _declined[line.Substring(0, eq)] = day;
+            if (eq > 0 && int.TryParse(line.Substring(eq + 1), out int day)) days[line.Substring(0, eq)] = day;
          }
+
+         return days;
       }
 
       // ── Loading ──────────────────────────────────────────────────────────
@@ -164,31 +181,57 @@ namespace CalradiaRemembers.Quests
          _offerHeroId = null;
          whyNot = onlyQuestId == null ? "no quest qualifies" : $"there is no quest '{onlyQuestId}'";
 
+         // Every quest this giver could raise now; the file weights choose among them, then one roll decides.
+         var open = new List<(AuthoredQuest q, Dictionary<string, string> ids, Dictionary<string, string> names)>();
          foreach (AuthoredQuest q in _quests.Values.Where(q => onlyQuestId == null || q.Id == onlyQuestId))
          {
             if (!TryBind(q, hero, out Dictionary<string, string> ids, out Dictionary<string, string> names, out whyNot)) continue;
-
-            bool offer = AuthoredQuestOfferPolicy.ShouldOffer(new AuthoredOfferFacts {
-               Today = today, StoryUnderWay = _run is {Status: AuthoredQuestStatus.Active}, Unique = q.Unique, AlreadyPlayed = _done.Contains(q.Id),
-               DeclinedOnDay = _declined.TryGetValue(q.Id, out int d) ? d : (int?) null, Roll = roll, Chance = AuthoredQuestOfferPolicy.OfferChance
-            });
-            if (!offer)
-            {
-               whyNot = _run is {Status: AuthoredQuestStatus.Active} ? $"a tale is already under way ('{_run.QuestId}')"
-                  : q.Unique && _done.Contains(q.Id) ? "it was already played in this campaign"
-                  : _declined.ContainsKey(q.Id) ? "it was declined less than a season ago"
-                  : "the dice said no this time";
-               continue;
-            }
-
-            _offer = AuthoredQuestEngine.Start(q, ids, names, today);
-            _offerHeroId = hero.StringId;
-            ModLog.Info($"[TALE] {hero.Name} raises '{q.Id}' with the player ({string.Join(", ", names.Select(kv => kv.Key + "=" + kv.Value))}).");
-
-            return true;
+            whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, today));
+            if (whyNot == null) open.Add((q, ids, names));
          }
 
-         return false;
+         if (open.Count == 0) return false;
+         int pick = AuthoredQuestOfferPolicy.PickByWeight(open.Select(o => o.q.Weight).ToArray(), open.Count == 1 ? 0 : MBRandom.RandomFloat);
+         if (pick < 0)
+         {
+            whyNot = "every quest it could give has a weight of 0";
+
+            return false;
+         }
+
+         if (roll >= AuthoredQuestOfferPolicy.OfferChance)
+         {
+            whyNot = "the dice said no this time";
+
+            return false;
+         }
+
+         (AuthoredQuest chosen, Dictionary<string, string> chosenIds, Dictionary<string, string> chosenNames) = open[pick];
+         _offer = AuthoredQuestEngine.Start(chosen, chosenIds, chosenNames, today);
+         _offerHeroId = hero.StringId;
+         ModLog.Info($"[TALE] {hero.Name} raises '{chosen.Id}' with the player ({string.Join(", ", chosenNames.Select(kv => kv.Key + "=" + kv.Value))}).");
+
+         return true;
+      }
+
+      /// <summary>The offer facts for this quest now, the dice aside.</summary>
+      private AuthoredOfferFacts FactsFor(AuthoredQuest q, int today) => new() {
+         Today = today, StoryUnderWay = _run is {Status: AuthoredQuestStatus.Active}, Unique = q.Unique, AlreadyPlayed = _done.Contains(q.Id),
+         LastPlayedOnDay = _playedOn.TryGetValue(q.Id, out int p) ? p : (int?) null, RepeatCooldownDays = q.RepeatCooldownDays,
+         DeclinedOnDay = _declined.TryGetValue(q.Id, out int d) ? d : (int?) null, Chance = AuthoredQuestOfferPolicy.OfferChance
+      };
+
+      /// <summary>
+      ///   For authors (cr.story_check name): could this character give this quest now, the dice aside? Nothing is
+      ///   offered or changed; the answer names what it would bind, or the first condition that failed.
+      /// </summary>
+      internal string Eligibility(Hero hero, AuthoredQuest q)
+      {
+         if (!TryBind(q, hero, out _, out Dictionary<string, string> names, out string whyNot)) return "no: " + whyNot;
+         whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, (int) CampaignTime.Now.ToDays));
+         if (whyNot != null) return "not now: " + whyNot;
+
+         return $"yes, on a {AuthoredQuestOfferPolicy.OfferChance:P0} chance per conversation ({string.Join(", ", names.Select(kv => kv.Key + "=" + kv.Value))})";
       }
 
       /// <summary>
@@ -259,7 +302,7 @@ namespace CalradiaRemembers.Quests
             Settlement village = owned.FirstOrDefault(s => v.Near != "forest" || NearForest(s));
             if (village == null)
             {
-                whyNot = owned.Count == 0 ? "no village is theirs to give the quest about"
+               whyNot = owned.Count == 0 ? "no village is theirs to give the quest about"
                   : $"none of their villages ({string.Join(", ", owned.Select(s => s.Name))}) lies by a forest";
 
                return false;
@@ -581,6 +624,7 @@ namespace CalradiaRemembers.Quests
                CarryOut(q, q.Reward);
                journal?.CloseAsCompleted();
                _done.Add(q.Id);
+               _playedOn[q.Id] = (int) CampaignTime.Now.ToDays;
                ModLog.Info($"[TALE] '{q.Id}' completed.");
 
                break;
@@ -589,6 +633,7 @@ namespace CalradiaRemembers.Quests
                CarryOut(q, q.Failure);
                journal?.CloseAsFailed("The time to act has passed.");
                _done.Add(q.Id);
+               _playedOn[q.Id] = (int) CampaignTime.Now.ToDays;
                ModLog.Info($"[TALE] '{q.Id}' failed at stage {step.FromStage}.");
 
                break;
@@ -699,6 +744,7 @@ namespace CalradiaRemembers.Quests
       {
          _done.Remove(questId);
          _declined.Remove(questId);
+         _playedOn.Remove(questId);
       }
 
       internal AuthoredQuestRun Offer => _offer;

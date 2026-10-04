@@ -20,7 +20,10 @@ namespace CalradiaRemembers
 {
    public static partial class ModCheats
    {
-      /// <summary>cr.story_check: the quests that loaded, and every problem in the quest files.</summary>
+      /// <summary>
+      ///   cr.story_check [name]: the quests that loaded, and every problem in the quest files. With a name (or an open
+      ///   conversation's character), whether that character could give each quest now, and if not, why.
+      /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("story_check", "cr")]
       public static string StoryCheck(List<string> args)
       {
@@ -33,6 +36,18 @@ namespace CalradiaRemembers
          sb.AppendLine($"{b.Quests.Count} quest(s) loaded: {string.Join(", ", b.Quests.Select(q => q.Id))}");
          if (b.Problems.Count == 0) sb.Append("No problem in the quest files.");
          else foreach (string p in b.Problems) sb.AppendLine("- " + p);
+
+         if (args is {Count: > 0} || Hero.OneToOneConversationHero != null)
+         {
+            Hero giver = ResolveHero(args);
+            if (giver == null) sb.AppendLine("No character by that name.");
+            else
+            {
+               sb.AppendLine();
+               sb.AppendLine($"Could {giver.Name} give them now?");
+               foreach (AuthoredQuest q in b.Quests) sb.AppendLine($"- {q.Id}: {b.Eligibility(giver, q)}");
+            }
+         }
 
          return sb.ToString().TrimEnd();
       }

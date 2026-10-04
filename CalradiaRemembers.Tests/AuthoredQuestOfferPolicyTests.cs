@@ -56,5 +56,57 @@ namespace CalradiaRemembers.Tests
       {
          AuthoredQuestOfferPolicy.ShouldOffer(new AuthoredOfferFacts {Today = 100, Roll = 0.9, Chance = 0.5}).Should().BeFalse();
       }
+
+      // A repeatable quest (unique false) waits its file's repeat_cooldown_days after it was last played. If not, a
+      // modder's "repeatable, long cooldown" quest is raised again the day after it ended.
+      [Test]
+      public void GIVEN_a_repeatable_quest_played_recently_WHEN_its_cooldown_has_not_passed_THEN_it_is_not_offered()
+      {
+         var f = new AuthoredOfferFacts {Today = 100, Chance = 1, Unique = false, AlreadyPlayed = true, LastPlayedOnDay = 80, RepeatCooldownDays = 60};
+
+         AuthoredQuestOfferPolicy.ShouldOffer(f).Should().BeFalse();
+         AuthoredQuestOfferPolicy.WhyNot(f).Should().Contain("played on day 80").And.Contain("60 days");
+      }
+
+      // Once the cooldown has passed, the repeatable quest may come back.
+      [Test]
+      public void GIVEN_a_repeatable_quest_WHEN_its_cooldown_has_passed_THEN_it_may_be_offered_again()
+      {
+         AuthoredQuestOfferPolicy.ShouldOffer(new AuthoredOfferFacts {Today = 140, Chance = 1, Unique = false, AlreadyPlayed = true, LastPlayedOnDay = 80, RepeatCooldownDays = 60})
+            .Should().BeTrue();
+      }
+
+      // The reason a quest is not raised is said in plain words (cr.story_start, cr.story_check), and a refusal whose
+      // season has passed is no longer given as the reason. If it were, the author chases a rule that no longer holds.
+      [Test]
+      public void GIVEN_a_refusal_whose_season_has_passed_WHEN_asked_why_not_THEN_it_is_not_the_reason()
+      {
+         var f = new AuthoredOfferFacts {Today = 90 + AuthoredQuestOfferPolicy.DeclineWaitDays, Chance = 1, DeclinedOnDay = 90};
+
+         AuthoredQuestOfferPolicy.WhyNot(f).Should().BeNull();
+         AuthoredQuestOfferPolicy.WhyNot(new AuthoredOfferFacts {Today = 95, Chance = 1, DeclinedOnDay = 90}).Should().Contain("declined on day 90");
+      }
+
+      // The weight of the file decides which of several qualifying quests a giver raises: a quest of weight 30 beside
+      // one of weight 10 is chosen three times in four. If not, the first file in the folder always wins.
+      [Test]
+      public void GIVEN_two_qualifying_quests_WHEN_one_is_chosen_THEN_the_weights_share_the_roll()
+      {
+         int[] weights = {10, 30};
+
+         AuthoredQuestOfferPolicy.PickByWeight(weights, 0.0).Should().Be(0);
+         AuthoredQuestOfferPolicy.PickByWeight(weights, 0.24).Should().Be(0);
+         AuthoredQuestOfferPolicy.PickByWeight(weights, 0.26).Should().Be(1);
+         AuthoredQuestOfferPolicy.PickByWeight(weights, 0.999).Should().Be(1);
+      }
+
+      // A weight of zero or less never wins while another quest qualifies, and an empty choice picks nothing.
+      [Test]
+      public void GIVEN_a_quest_of_weight_zero_WHEN_one_is_chosen_THEN_it_is_never_picked()
+      {
+         AuthoredQuestOfferPolicy.PickByWeight(new[] {0, 10}, 0.0).Should().Be(1);
+         AuthoredQuestOfferPolicy.PickByWeight(new int[0], 0.5).Should().Be(-1);
+         AuthoredQuestOfferPolicy.PickByWeight(new[] {0}, 0.5).Should().Be(-1);
+      }
    }
 }
