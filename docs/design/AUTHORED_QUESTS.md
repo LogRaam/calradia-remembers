@@ -353,6 +353,73 @@ In `docs/design/quests/`:
    `repeat_cooldown_days` honoured. Left: cr_patch for quest files.
 4. **More quests.** A first lot of unique quests, drafted by Claude and corrected by Gabriel.
 
+## Branches: a proposal (04/10/2026, awaiting Gabriel)
+
+Nothing below is built. It is written so Gabriel can answer it in his own words.
+
+**The problem.** In "Smoke over the Hills" the player learns that the barn was burned by riders of
+`{rival}`, a house of the giver's own realm. Today the quest can only end one way: the player tells
+the giver. The story invites a choice:
+- tell the giver, and the realm tears at itself;
+- go to `{rival}` and make him answer for it;
+- say nothing, and let the war go on against the wrong enemy.
+
+**What I propose: the player chooses by what they do, never by a menu.** A stage may carry
+`branches` instead of a single objective. Each branch is an ordinary objective from the closed list,
+with its own journal line, its own `next`, and its own ending. The first branch whose objective is met
+is the way the story went, and the others close. No new verb and no popup: the game already checks
+"talked to the giver" and "talked to the rival", so the choice stays where the rest of the quest is,
+in what the player does in the world. The model cannot pick a branch, just as it cannot complete a
+stage today.
+
+```json
+{
+  "id": "what_to_do_with_it",
+  "journal": "You know who burned {village}. What you do with it is yours.",
+  "branches": [
+    { "id": "expose",   "journal": "Tell {giver}.",
+      "objective": { "type": "talk_to", "hero": "{giver}" },  "next": "end:exposed" },
+    { "id": "confront", "journal": "Or confront {rival} himself.",
+      "objective": { "type": "talk_to", "hero": "{rival}" },  "next": "confront_the_rival" },
+    { "id": "silence",  "journal": "Or keep it to yourself.",
+      "objective": { "type": "wait", "days": 10 },            "next": "end:silence" }
+  ]
+}
+```
+
+**Several endings.** `"reward"` becomes one ending among several: `next` may be `"end:<id>"`, and the
+file gains `"endings": { "exposed": {...}, "silence": {...} }`. Each ending has the shape of today's
+`reward` (regard, gold, memory, consequences), so an ending may cost the player as much as it pays
+them. `"reward"` stays valid and means the single ending, so every Inc 1 file still loads.
+
+**What each character is told.** The knowers of a branching stage speak of the matter, never of the
+branches. A stage's canvas still belongs to the giver, and the rival gets lines of his own:
+
+```json
+"knowers": { "{rival}": [ "Your riders burned {village} to set the realm against the enemy. You will not admit it unless shown proof." ] }
+```
+
+So the rival can neither lie nor confess on his own: "characters never lie" holds, and he simply
+refuses to speak of it until pressed.
+
+**What this needs that does not exist yet:**
+- a `wait` objective (days passing with none of the other branches taken), which is what "doing
+  nothing" looks like to the game;
+- a binding for a second lord, `{rival}` (a clan leader of the giver's realm, not the giver);
+- the loader's checks extended so that every branch reaches an ending, and an ending named nowhere is
+  reported.
+
+**Questions for Gabriel:**
+1. Is "the first objective met decides" right, or should some choices be said aloud? For example, the
+   player tells the rival "I will keep quiet for a price", and the game must hear it. That would need
+   the interpreter to report a branch, the way it reports a verb today, and it is a larger build.
+2. Should the journal show the branches as choices ("Tell the lord, or confront the rival"), or show
+   only the situation and let the player find the ways out?
+3. Silence as a branch: is ten days of doing nothing enough to count as a choice, or should silence
+   simply be the failure ending?
+4. The grudge between `{giver}` and `{rival}` (the draft's reward) still needs its own ruling: may a
+   quest leave two lords hating each other, and how long should that last?
+
 ## Still open
 
 Nothing blocking Inc 1. Rulings of 03/10/2026, for the record:
