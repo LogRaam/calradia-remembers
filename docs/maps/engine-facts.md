@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-420 rules read 323 facts.
+420 rules read 324 facts.
 
 ## Facts read by more than one rule
 
@@ -194,6 +194,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Models.MapDistanceModel` (2) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium` |
 | `NavigationType.Default` (2) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium` |
 | `NewEventData.Type` (2) | `CoerciveSceneEventPolicy.ShouldDropRomanticEvent`, `JealousyTriggerPolicy.IsPlausibleCourtship` |
+| `Objective.Spawn` (2) | `AuthoredQuestEngine.Bound`, `AuthoredQuestEngine.Fill` |
 | `Owner.Clan` (2) | `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
 | `Party.LeaderHero` (2) | `BattleWorthFacts`, `LiberationFacts` |
 | `PartyBase.NumberOfHealthyMembers` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
@@ -237,9 +238,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AssemblyTravelOutcome.Evaluate`: `Hero.CurrentSettlement`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.MapEvent`, `Settlement.IsUnderSiege`
 - `AssignRoleFacts`: `Hero.IsPlayerCompanion`, `Hero.PartyBelongedTo`
 - `AuthoredQuestEngine.Arrived`: `Objective.Place`
-- `AuthoredQuestEngine.Bound`: `Objective.Place`
+- `AuthoredQuestEngine.Bound`: `Objective.Place`, `Objective.Spawn`
 - `AuthoredQuestEngine.ConversationOpened`: `Hero.CurrentSettlement`, `Hero.HomeSettlement`
-- `AuthoredQuestEngine.Fill`: `Objective.Scene`
+- `AuthoredQuestEngine.Fill`: `Objective.Scene`, `Objective.Spawn`
 - `AuthoredQuestEngine.NightPassed`: `GetPosition2D.Distance`, `Objective.Place`, `Objective.Radius`, `Settlement.Find`, `Settlement.GetPosition2D`
 - `AuthoredQuestPrompt.ForCharacter`: `Hero.CurrentSettlement`, `Hero.HomeSettlement`
 - `BalanceSurveyPolicy.ToLine`: `Kingdom.IsAtWarWith`

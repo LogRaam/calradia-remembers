@@ -19,7 +19,10 @@ using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
+using CalradiaRemembers.Travel;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Party.PartyComponents;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -293,6 +296,9 @@ namespace CalradiaRemembers.Quests
 
          switch (s?.Objective.Type)
          {
+            case "defeat_party":
+               EnsureBand(q, s);
+               break;
             case "be_at":
                if (Near(s.Objective.Place, s.Objective.Radius)) Apply(q, AuthoredQuestEngine.Arrived(_run, q, AuthoredQuestEngine.Bound(_run, s.Objective.Place), today));
                break;
@@ -303,6 +309,105 @@ namespace CalradiaRemembers.Quests
                if (night.Kind == AuthoredStepKind.OpenScene) MainThreadDispatcher.Enqueue(() => OpenScene(q));
                break;
          }
+      }
+
+      // ── The quest's band ─────────────────────────────────────────────────
+
+      private const string BandRole = "tale_band";
+
+      /// <summary>
+      ///   The band a defeat_party stage hunts, on the map near its place: spawned when the stage begins, again after a
+      ///   load (a transient party is never saved), and again if others destroyed it (the survivors regroup, and the
+      ///   deed stays the player's to do). A band warned in the scene (alert) is larger by a third.
+      /// </summary>
+      private void EnsureBand(AuthoredQuest q, AuthoredStage s)
+      {
+         AuthoredSpawn spawn = s.Objective.Spawn;
+         if (spawn == null) return;
+         MobileParty live = TransientPartyRegistry.Instance?.WithTag(BandRole, q.Id);
+         if (live != null && live.IsActive)
+         {
+            _run.SpawnedPartyId = live.StringId;
+
+            return;
+         }
+
+         Settlement near = Settlement.Find(AuthoredQuestEngine.Bound(_run, spawn.Near) ?? "");
+         if (near == null) return;
+
+         int lo = spawn.Size?.Length > 0 ? spawn.Size[0] : 10, hi = spawn.Size?.Length > 1 ? spawn.Size[1] : lo;
+         int size = MBRandom.RandomInt(lo, hi + 1);
+         if (_run.BandAlerted) size += size / 3;
+
+         Vec2 at = near.GetPosition2D + new Vec2(MBRandom.RandomFloatRanged(-3f, 3f), MBRandom.RandomFloatRanged(-3f, 3f));
+         string name = AuthoredQuestEngine.Fill(_run, spawn.Name) ?? "Brigands";
+         MobileParty band = SpawnBand(at, near, name, spawn.Template, size);
+         if (band == null)
+         {
+            ModLog.Error($"[TALE] '{q.Id}': the band could not be spawned near {near.Name}.");
+
+            return;
+         }
+
+         _run.SpawnedPartyId = band.StringId;
+         TransientPartyRegistry.Instance?.Track(band, BandRole, q.Id,
+            onDestroyed: (party, by) => OnBandDestroyed(q, party, by),
+            onRestore: pos => SpawnBand(pos, near, name, spawn.Template, size));
+         ModLog.Info($"[TALE] '{q.Id}': {name} ({size}) near {near.Name}.");
+      }
+
+      /// <summary>A bandit-owned band of the template's troops, patrolling around its place.</summary>
+      private static MobileParty SpawnBand(Vec2 at, Settlement home, string name, string template, int size)
+      {
+         try
+         {
+            Clan bandits = Clan.BanditFactions?.FirstOrDefault(c => c.StringId == (template ?? "looters")) ?? Clan.BanditFactions?.FirstOrDefault(c => c.StringId == "looters");
+            CharacterObject troop = CharacterObject.Find(template == "looters" || template == null ? "looter" : template) ?? CharacterObject.Find("looter");
+            if (bandits == null || troop == null) return null;
+
+            TroopRoster roster = TroopRoster.CreateDummyTroopRoster();
+            roster.AddToCounts(troop, Math.Max(1, size));
+            MobileParty band = CustomPartyComponent.CreateCustomPartyWithTroopRoster(
+               new CampaignVec2(at, true), 1f, home, new TaleWorlds.Localization.TextObject(name), bandits, roster, TroopRoster.CreateDummyTroopRoster(), null);
+            if (band == null) return null;
+
+            var grain = TaleWorlds.Core.Game.Current.ObjectManager.GetObject<TaleWorlds.Core.ItemObject>("grain");
+            if (grain != null) band.ItemRoster.AddToCounts(grain, 10);
+            band.SetMovePatrolAroundSettlement(home, MobileParty.NavigationType.Default, false);
+            band.Ai.SetDoNotMakeNewDecisions(true);
+
+            return band;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[TALE] band spawn failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>The band was destroyed: by the player, the stage is done; by anyone else, it regroups on the next hour.</summary>
+      private void OnBandDestroyed(AuthoredQuest q, MobileParty band, PartyBase by)
+      {
+         if (_run is not {Status: AuthoredQuestStatus.Active} || band?.StringId != _run.SpawnedPartyId) return;
+
+         if (by == PartyBase.MainParty || by?.MobileParty?.Army != null && by.MobileParty.Army.LeaderParty == MobileParty.MainParty)
+         {
+            ModLog.Info($"[TALE] '{q.Id}': the player destroyed {band.Name}.");
+            Apply(q, AuthoredQuestEngine.PartyDefeated(_run, q, band.StringId, (int) CampaignTime.Now.ToDays));
+
+            return;
+         }
+
+         ModLog.Info($"[TALE] '{q.Id}': {band.Name} was destroyed by {by?.Name}; the survivors will regroup.");
+         _run.SpawnedPartyId = null;
+      }
+
+      /// <summary>Takes the band off the map when the tale ends, however it ends.</summary>
+      private void ReleaseBand(string questId)
+      {
+         MobileParty band = TransientPartyRegistry.Instance?.WithTag(BandRole, questId);
+         if (band != null) TransientPartyRegistry.Instance.Release(band);
       }
 
       private bool Near(string placeRole, float radius)
@@ -423,6 +528,7 @@ namespace CalradiaRemembers.Quests
 
                break;
             case AuthoredStepKind.Completed:
+               ReleaseBand(q.Id);
                CarryOut(q, q.Reward);
                journal?.CloseAsCompleted();
                _done.Add(q.Id);
@@ -430,6 +536,7 @@ namespace CalradiaRemembers.Quests
 
                break;
             case AuthoredStepKind.Failed:
+               ReleaseBand(q.Id);
                CarryOut(q, q.Failure);
                journal?.CloseAsFailed("The time to act has passed.");
                _done.Add(q.Id);
@@ -532,6 +639,7 @@ namespace CalradiaRemembers.Quests
          _offer = null;
          _offerHeroId = null;
          if (_run == null) return;
+         ReleaseBand(_run.QuestId);
          Journal(_run.QuestId)?.CloseAsCancelled(reason);
          ModLog.Info($"[TALE] '{_run.QuestId}' abandoned: {reason}");
          _run = null;
@@ -559,6 +667,23 @@ namespace CalradiaRemembers.Quests
          if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return new List<string>();
 
          return ApplyMarkers(q, SceneMarkers.Extract(narration), () => { });
+      }
+
+      /// <summary>Self-test seam: the band for the current defeat_party stage, spawned now; null if none could be.</summary>
+      internal MobileParty DebugEnsureBand()
+      {
+         if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return null;
+         AuthoredStage s = AuthoredQuestEngine.Current(_run, q);
+         if (s?.Objective.Type != "defeat_party") return null;
+         EnsureBand(q, s);
+
+         return TransientPartyRegistry.Instance?.WithTag(BandRole, q.Id);
+      }
+
+      /// <summary>Self-test seam: the band destroyed by this party, through the real handling.</summary>
+      internal void DebugBandDestroyed(MobileParty band, PartyBase by)
+      {
+         if (_run != null && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) OnBandDestroyed(q, band, by);
       }
 
       /// <summary>Self-test seam: the scene closes, through the real handling (no window was opened).</summary>
