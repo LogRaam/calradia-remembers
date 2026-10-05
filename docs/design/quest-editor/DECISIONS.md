@@ -170,7 +170,7 @@ real scene, `among_the_ashes`, opened by arriving at the village (E4).
 **W4. smoke_over_the_hills has four endings, not three.** Expose, confront and keep silent are the goal's three; the
 confrontation then waits on what the player does: go to the lord after all (exposed, and the rival remembers being
 confronted first), agree on a price with the rival (`bought`, a choice by words, the goal's own example), or leave him
-to carry it (`confronted`). Until increment 7, `his_price` can only be taken with `cr.story_choose his_price`.
+to carry it (`confronted`). Since increment 7, `his_price` is taken by words; `cr.story_choose his_price` still walks it.
 
 **W5. the_bell_in_the_marsh** (my tale, in the werewolf's spirit): a bell rings in a marsh where a chapel sank; at a
 fork on the causeway the player turns left toward the bell (smugglers, and Oswin bound in the drowned chapel) or right
