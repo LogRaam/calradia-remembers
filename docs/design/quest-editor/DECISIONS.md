@@ -105,3 +105,28 @@ the flags, the path taken and the open choices.
 
 **E8. Find-SwapRisk** reports 15 members on `main` already (MercenaryDeparturePolicy, RealmServiceWording,
 TransientPartyLedger); this branch adds none. The goal says "it must stay at zero"; it was not at zero before.
+
+## The scene and its numbered list
+
+**S1. A scene may carry a `title`**, the name over the chat window ("The burned barns of {village}"). Empty, it is
+"The wood by <village>" as before, so the werewolf's scene is named as it always was. Why: a branching tale's scenes
+are not all in a wood, and the old title was written into the code.
+
+**S2. A typed number is read only alone**: "1", "1." or "1)", with spaces around. "1 and then I run" is words. The
+number of "Something else..." typed alone is words too (the goal: a number with no choice behind it is free text).
+
+**S3. "Something else..." leaves the list where it is** and puts the cursor in the input; the list goes when the
+player sends their line, and comes back under the next narration if ways are still open. A click on a way keeps
+whatever the player had started typing in the input.
+
+**S4. The list sits inside the scrolling messages, under the last narration** (a `MessagesStack` around the message
+list in both prefabs, the scroll panel's inner panel). The alternative, a panel over the bottom of the window, would
+have hidden the end of the narration, which is where the narrator asks what the player does. The prefab change is a
+wrapper and one list, inserted without touching the message template (a small diff on purpose).
+
+**S5. Taking a way adds no line of its own.** The narrator tells the first steps on the path and the scene ends, as a
+lost night already ends it; the closing text and any missed finding follow on closing, as before.
+
+**S6. The list's colours** are a warm amber, brighter under the cursor, darker while pressed, at the same size steps
+as each skin's dialogue text (MCM "Chat Text Size"). They live in brushes (`CR.SceneChoice.*`), since a bound brush
+resets any colour written on the widget.

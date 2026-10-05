@@ -430,7 +430,7 @@
                                          MarginRight="28"
                                          AutoHideScrollBars="true"
                                          ClipRect="MessagesClipRect"
-                                         InnerPanel="MessagesClipRect\MessagesList"
+                                         InnerPanel="MessagesClipRect\MessagesStack"
                                          VerticalScrollbar="..\MessagesScrollbar\Scrollbar">
                       <Children>
                         <Widget Id="MessagesClipRect"
@@ -439,6 +439,14 @@
                                 ClipContents="true">
                           <Children>
 
+                            <!-- The scroll content: the messages, then the ways out of a scene when there are any. -->
+                            <ListPanel Id="MessagesStack"
+                                       WidthSizePolicy="StretchToParent"
+                                       HeightSizePolicy="CoverChildren"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Top"
+                                       StackLayout.LayoutMethod="VerticalTopToBottom">
+                              <Children>
                             <NavigatableListPanel Id="MessagesList"
                                                   DataSource="{Messages}"
                                                   WidthSizePolicy="StretchToParent"
@@ -521,6 +529,45 @@
 
                               </ItemTemplate>
                             </NavigatableListPanel>
+
+                                <!-- Branching tales (04/10/2026): the numbered ways out of a scene, under the last narration the player has
+                                     not answered (Gabriel: "like an LLM does in the CLI"). Filled by ChatViewModel.Exploration from
+                                     Logic.AuthoredQuests.SceneChoiceMenu; empty and hidden in every other conversation. A click sends the way's
+                                     words as the player's line; "Something else..." puts the cursor in the input. -->
+                                <ListPanel Id="SceneChoiceList"
+                                           DataSource="{SceneChoices}"
+                                           IsVisible="@IsSceneChoiceListVisible"
+                                           WidthSizePolicy="StretchToParent"
+                                           HeightSizePolicy="CoverChildren"
+                                           HorizontalAlignment="Left"
+                                           VerticalAlignment="Top"
+                                           MarginTop="14"
+                                           MarginBottom="8"
+                                           MarginLeft="132"
+                                           MarginRight="18"
+                                           StackLayout.LayoutMethod="VerticalTopToBottom">
+                                  <ItemTemplate>
+                                    <ButtonWidget WidthSizePolicy="StretchToParent"
+                                                  HeightSizePolicy="CoverChildren"
+                                                  HorizontalAlignment="Left"
+                                                  MarginTop="3"
+                                                  MarginBottom="3"
+                                                  DoNotPassEventsToChildren="true"
+                                                  UpdateChildrenStates="true"
+                                                  Command.Click="ExecuteChoose">
+                                      <Children>
+                                        <RichTextWidget WidthSizePolicy="StretchToParent"
+                                                        HeightSizePolicy="CoverChildren"
+                                                        HorizontalAlignment="Left"
+                                                        VerticalAlignment="Top"
+                                                        Brush="@ManuscriptChoiceBrush"
+                                                        Text="@Text" />
+                                      </Children>
+                                    </ButtonWidget>
+                                  </ItemTemplate>
+                                </ListPanel>
+                              </Children>
+                            </ListPanel>
 
                           </Children>
                         </Widget>

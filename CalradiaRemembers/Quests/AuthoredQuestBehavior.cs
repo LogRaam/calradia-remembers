@@ -543,21 +543,28 @@ namespace CalradiaRemembers.Quests
 
          _sceneWaiting = false;
          string place = _run.BoundNames.TryGetValue("village", out string v) ? v : null;
-         var lostNight = false;
+         string title = AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.Title;
+         var over = false;
          ChatManager.OpenForExploration(new ExplorationSession {
-            Title = place != null ? $"The wood by {place}" : q.Title,
+            Title = !string.IsNullOrWhiteSpace(title) ? AuthoredQuestEngine.Fill(_run, title) : place != null ? $"The wood by {place}" : q.Title,
             BuildPrompt = () => AuthoredQuestPrompt.Narrator(_run, q),
-            Apply = markers => ApplyMarkers(q, markers, () => lostNight = true),
-            IsOver = () => lostNight,
-            OnClose = () => CloseScene(q)
+            Apply = markers => ApplyMarkers(q, markers, () => over = true),
+            IsOver = () => over,
+            OnClose = () => CloseScene(q),
+            Ways = () => _run is {Status: AuthoredQuestStatus.Active}
+               ? AuthoredQuestEngine.SceneChoices(_run, q).Select(c => AuthoredQuestEngine.Fill(_run, c.Label)).ToList()
+               : new List<string>()
          });
          ModLog.Info($"[TALE] '{q.Id}': the scene opens.");
       }
 
       private bool _sceneWaiting;
 
-      /// <summary>What the narration's markers do: findings recorded, a hazard's effect carried out, someone met.</summary>
-      private IReadOnlyList<string> ApplyMarkers(AuthoredQuest q, SceneMarkers m, Action loseTheNight)
+      /// <summary>
+      ///   What the narration's markers do: findings recorded, a hazard's effect carried out, someone met, and a way out
+      ///   taken (the first open one), which ends the scene after this turn; the story follows it when the scene closes.
+      /// </summary>
+      private IReadOnlyList<string> ApplyMarkers(AuthoredQuest q, SceneMarkers m, Action endTheScene)
       {
          var notes = new List<string>();
          foreach (string f in m.Found)
@@ -583,7 +590,7 @@ namespace CalradiaRemembers.Quests
                   notes.Add("You have been noticed. Whoever is out there knows someone is looking.");
                   break;
                case "lose_time":
-                  loseTheNight();
+                  endTheScene();
                   notes.Add("The night is lost; dawn finds you no further along.");
                   break;
             }
@@ -594,6 +601,13 @@ namespace CalradiaRemembers.Quests
             {
                string who = AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.Encounters.FirstOrDefault(x => x.Id == id)?.Name;
                notes.Add($"{AuthoredQuestEngine.Fill(_run, who) ?? "Someone"} is with you now.");
+            }
+
+         foreach (string c in m.Choices)
+            if (AuthoredQuestEngine.ChooseInScene(_run, q, c))
+            {
+               ModLog.Info($"[TALE] scene choice '{c}'.");
+               endTheScene();
             }
 
          return notes;

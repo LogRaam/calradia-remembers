@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-423 rules read 329 facts.
+426 rules read 331 facts.
 
 ## Facts read by more than one rule
 
@@ -74,6 +74,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Settlement.CurrentSettlement` (6) | `CouncilSceneImagePolicy.Resolve`, `DuelPublicityPolicy.Audience`, `DuelStagingSupport.CanStage`, `DuelVenuePolicy.Choose`, `FoodTradeFacts`, `TownFoodPolicy.IsHungry` |
 | `Settlement.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `AuthoredQuestEngine.NightPassed`, `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
 | `Town.FoodStocks` (6) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination`, `TownFoodPolicy.StocksAfterRelief` |
+| `Array.Empty` (5) | `AppreciationPolicy.SelectDominant`, `GrudgePolicy.SelectDominant`, `SceneChoiceMenu.Items`, `SceneChoiceMenu.Read`, `SceneChoiceMenuFacts` |
 | `CurrentSettlement.GetPosition2D` (5) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `JealousyHearingPolicy.WithinEarshot` |
 | `DayMoodReader.Draw` (5) | `CorrespondencePreferenceParser.Parse`, `LetterRegardPolicy.ParseTone`, `LetterRegardPolicy.StripToneLine`, `LetterReplyDecisionParser.Parse`, `PerceivedImageFacts` |
 | `IFaction.IsAtWarWith` (5) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `MarriageStateFacts`, `OutlawPolicy.IsBrigandage` |
@@ -134,7 +135,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Vec2.Zero` (3) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium`, `NewsDestinationSelector.Choose` |
 | `Vec2.x` (3) | `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
 | `Vec2.y` (3) | `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
-| `Array.Empty` (2) | `AppreciationPolicy.SelectDominant`, `GrudgePolicy.SelectDominant` |
 | `BattleTypes.Raid` (2) | `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause` |
 | `BestFeat.Outcome` (2) | `BattleFeatText.SubjectBestedByPlayer`, `BattleFeatText.WitnessedFeat` |
 | `Case.LiegeId` (2) | `ArrestPolicy.CouncilSeats`, `TrialVerdictPolicy.DefaultConviction` |
@@ -213,6 +213,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Summary.IndexOf` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `Town.MarketData` (2) | `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
 | `ViolenceSceneReader.FactsFor` (2) | `ViolencePolicy.Resolve`, `ViolencePolicy.SuccessChance` |
+| `Ways.Invoke` (2) | `SceneChoiceMenu.Items`, `SceneChoiceMenu.Read` |
 | `summary.IndexOf` (2) | `CourtActionPolicy.CooldownElapsed`, `PowerBalanceFacts` |
 
 ## Every rule, and what it reads
@@ -239,7 +240,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AssignRoleFacts`: `Hero.IsPlayerCompanion`, `Hero.PartyBelongedTo`
 - `AuthoredQuestEngine.Bound`: `Objective.Spawn`
 - `AuthoredQuestEngine.ConversationOpened`: `Hero.CurrentSettlement`, `Hero.HomeSettlement`
-- `AuthoredQuestEngine.Fill`: `Failure.Journal`, `Objective.Scene`, `Objective.Spawn`
+- `AuthoredQuestEngine.Fill`: `Failure.Journal`, `Objective.Scene`, `Objective.Spawn`, `Scene.Title`
 - `AuthoredQuestEngine.NightPassed`: `GetPosition2D.Distance`, `Objective.Place`, `Objective.Radius`, `Settlement.Find`, `Settlement.GetPosition2D`
 - `AuthoredQuestOfferPolicy.PickByWeight`: `q.Weight`
 - `AuthoredQuestPrompt.ForCharacter`: `Hero.CurrentSettlement`, `Hero.HomeSettlement`
@@ -564,6 +565,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `RumorAwareness.Explain`: `GetPosition2D.Distance`, `Settlement.Find`
 - `ScatteredLootItem`: `EquipmentElement.IsEmpty`, `EquipmentElement.Item`, `Hero.BattleEquipment`, `Item.Tier`
 - `ScatteredLootPolicy.SelectRecoverable`: `MapEvent.PartiesOnSide`, `MapEvent.WinningSide`, `Party.MobileParty`
+- `SceneChoiceMenu.Items`: `Array.Empty`, `Ways.Invoke`
+- `SceneChoiceMenu.Read`: `Array.Empty`, `Ways.Invoke`
+- `SceneChoiceMenuFacts`: `Array.Empty`
 - `SchemeAdvancer.Advance`: `Hero.GetRelation`, `Hero.GetTraitLevel`
 - `SchemeAgentPolicy.ApplyPlayerAid`: `Hero.GetRelation`, `Hero.MapFaction`
 - `SchemeAgentPolicy.CanRecruitPlayer`: `Hero.GetRelation`, `Hero.MapFaction`

@@ -30,6 +30,13 @@ namespace CalradiaRemembers.Chat
         /// <summary>Leaves the message field, keeping what was typed.</summary>
         internal static void StopTyping() => _typingIn?.EventManager?.ClearFocus();
 
+        // Set by "Something else..." under a scene's narration (branching tales, 04/10/2026): the field takes the keyboard
+        // on its next frame, so the player can write freely at once.
+        private static bool _focusWanted;
+
+        /// <summary>Puts the cursor in the message field on the next frame.</summary>
+        internal static void RequestFocus() => _focusWanted = true;
+
         public ChatInputWidget(UIContext context) : base(context)
         {
         }
@@ -58,6 +65,12 @@ namespace CalradiaRemembers.Chat
         protected override void OnLateUpdate(float dt)
         {
             base.OnLateUpdate(dt);
+
+            if (_focusWanted && IsVisible && EventManager != null)
+            {
+                _focusWanted = false;
+                EventManager.FocusedWidget = this;
+            }
 
             if (!_focused) return;
             if (!Input.IsKeyPressed(InputKey.Enter) && !Input.IsKeyPressed(InputKey.NumpadEnter)) return;

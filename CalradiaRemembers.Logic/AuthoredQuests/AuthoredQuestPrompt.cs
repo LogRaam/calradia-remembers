@@ -165,12 +165,15 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    /// <summary>A narration with its game markers taken out.</summary>
    public sealed class SceneMarkers
    {
-      private static readonly Regex Marker = new(@"\[\[(found|hazard|meet):([A-Za-z0-9_]+)\]\]", RegexOptions.Compiled);
+      private static readonly Regex Marker = new(@"\[\[(found|hazard|meet|choice):([A-Za-z0-9_]+)\]\]", RegexOptions.Compiled);
 
       public string Text { get; private set; } = "";
       public List<string> Found { get; } = new();
       public List<string> Hazards { get; } = new();
       public List<string> Met { get; } = new();
+
+      /// <summary>The ways out of the scene the narration took (branching tales, 04/10/2026); the engine accepts only the first open one.</summary>
+      public List<string> Choices { get; } = new();
 
       /// <summary>The text the player reads, and the markers the engine checks.</summary>
       public static SceneMarkers Extract(string narration)
@@ -180,7 +183,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          foreach (Match x in Marker.Matches(narration))
          {
-            List<string> into = x.Groups[1].Value == "found" ? m.Found : x.Groups[1].Value == "hazard" ? m.Hazards : m.Met;
+            List<string> into = x.Groups[1].Value switch {
+               "found" => m.Found,
+               "hazard" => m.Hazards,
+               "choice" => m.Choices,
+               _ => m.Met
+            };
             into.Add(x.Groups[2].Value);
          }
 

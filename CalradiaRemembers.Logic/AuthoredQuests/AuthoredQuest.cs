@@ -293,6 +293,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    /// <summary>An exploration scene: the chat with a narrator and no character, until someone is met.</summary>
    public sealed class AuthoredScene
    {
+      /// <summary>The name over the chat window during the scene (branching tales, 04/10/2026: a scene is not always a wood).</summary>
+      [QuestField("The name over the chat window during the scene (\"The burned barns of {village}\"). Empty: \"The wood by <village>\".")]
+      [JsonProperty("title")] public string Title { get; set; }
+
       [QuestField("What the narrator opens the scene with.")]
       [JsonProperty("opening")] public AuthoredBeat Opening { get; set; }
 
