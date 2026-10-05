@@ -813,6 +813,47 @@ namespace CalradiaRemembers.Quests
          return null;
       }
 
+      /// <summary>
+      ///   The choices by words open in a conversation with this character, written for the ACTION INTERPRETER only
+      ///   (EncounterContext.StoryChoicesForInterpreter); null when none is open. The character is never told them.
+      /// </summary>
+      public string InterpreterChoicesFor(Hero hero)
+      {
+         if (hero == null || _run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return null;
+         try { return AuthoredQuestPrompt.ChoicesForInterpreter(_run, q, hero.StringId); }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[TALE] interpreter choices failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   The action interpreter reported a choice by words (the story_choice verb) in a conversation with this
+      ///   character. Taken only when the current stage declares it, open, said to this very character; the step is
+      ///   then carried out like any other. Returns the choice's words when taken, null when the game refused it.
+      /// </summary>
+      internal string TakeSaidChoice(Hero hero, string choiceId)
+      {
+         if (hero == null || string.IsNullOrWhiteSpace(choiceId) || _run is not {Status: AuthoredQuestStatus.Active}
+             || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return null;
+
+         AuthoredChoice c = AuthoredQuestEngine.SaidChoicesFor(_run, q, hero.StringId).FirstOrDefault(x => x.Id == choiceId.Trim());
+         AuthoredStep step = AuthoredQuestEngine.Said(_run, q, hero.StringId, choiceId.Trim(), (int) CampaignTime.Now.ToDays);
+         if (c == null || step.Kind == AuthoredStepKind.None)
+         {
+            ModLog.Info($"[TALE] choice by words '{choiceId}' with {hero.Name} refused: not a declared, open choice said to them.");
+
+            return null;
+         }
+
+         ModLog.Info($"[TALE] choice by words '{c.Id}' taken with {hero.Name}.");
+         Apply(q, step);
+
+         return AuthoredQuestEngine.Fill(_run, string.IsNullOrWhiteSpace(c.Label) ? c.Id : c.Label);
+      }
+
       // ── Helpers ──────────────────────────────────────────────────────────
 
       /// <summary>The place a notable belongs to (their home village or town); null for anyone else.</summary>

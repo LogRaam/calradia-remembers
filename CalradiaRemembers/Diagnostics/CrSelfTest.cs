@@ -274,6 +274,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
          new SelfTest("authored_quest_opening", Severity.Light, "Authored quests Inc 1 (docs/design/AUTHORED_QUESTS.md). The werewolf loads; a real lord holding a village by a forest is bound to it and told to raise it; accepting puts a 'Tale:' entry in the journal and moves past the request; a local of that village believes in the beast and knows nothing of the slavers; two locals heard moves the tale to the watch. Then the watch ends in the scene: a declared finding recorded, an undeclared one refused, the snare hurts but never kills (health restored), closing early still yields the missed clue and moves on to the lord; the lord sends the player hunting, a real band is spawned near the village, and beaten by the player the tale turns home. Stops before the reward; abandons the tale (the band is released) and forgets it after.", TestAuthoredQuestOpening),
          new SelfTest("authored_quest_branches", Severity.Light, "Branching tales (docs/design/quest-editor/goal.md). A small tale written into this test (never a shipped file) loads through the real loader; a real lord is bound to it and it is taken on. At the crossroads the journal shows the stage and its open ways, not the closed one; meeting the lord takes the first OPEN way (the one under an unset flag is passed over). In the scene, the chat would list only the open ways; a marker for a closed way changes nothing; a finding sets its flag, the way it opened is listed and its marker is taken; closing the scene follows it to its own ending (no regard, gold or memory, so nothing is left behind). Abandons and forgets the tale after.", TestAuthoredQuestBranches),
+         new SelfTest("authored_quest_said_choice", Severity.Light, "Branching tales, choices by words. A tale written into this test loads and a real lord takes it on. At its last stage the action interpreter of a conversation with that lord is taught the open choice by words and not the one closed by its flag; another lord's interpreter is taught nothing. Through the REAL bridge (story_choice, the path an LLM report takes): the closed choice is refused and changes nothing, the open one is taken and ends the tale on its own ending (no regard, gold or memory). Abandons and forgets the tale after.", TestAuthoredQuestSaidChoice),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
          new SelfTest("world_event_discretion", Severity.Light, "IdentityCrysys (Nexus, 03/10/2026): keep a world event from a character, or from all but those it names. Records a loud event naming two lords of a realm, then through the real console commands: public, a third lord hears it; secret, only the two do; hidden from the third, only he is unaware; removed, it is gone. Removes it after.", TestWorldEventDiscretion),
          new SelfTest("chat_art_loads", Severity.Light, "EmperorHaterius (Nexus, 04/10/2026): the Dark Leather window was see-through with no button, because its End Conversation and Memories labels are painted into art read from a hand-built path that missed his install (every shipped file read as not found). Checks the module folder is the one the engine found (SubModule.xml there), loads every chat image through the real loader (a failure writes its reason to the log as [IMAGE]), and checks that Dark Leather opens only when its art loads, Origin otherwise. Changes nothing.", TestChatArtLoads),
@@ -8832,6 +8833,77 @@ namespace CalradiaRemembers.Diagnostics
 
             b.DebugCloseScene();
             t.Expect("closingFollowsItToItsEnding", $"{b.ActiveRun.Status}/{b.ActiveRun.EndingId}", "Completed/secret");
+         }
+         finally
+         {
+            b.Abandon("Self-test.");
+            b.ForgetPlayed(id);
+            b.DebugForgetTale(id);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>The tale authored_quest_said_choice walks: written here, so no shipped file is needed or touched.</summary>
+      private const string SaidChoiceSelfTestTale = @"{
+        ""id"": ""cr_selftest_answer"", ""title"": ""[SELFTEST] The Answer"",
+        ""requires"": { ""giver"": { ""role"": ""lord"", ""min_regard"": -100 } },
+        ""binds"": { ""giver"": ""a lord"" },
+        ""stages"": [
+          { ""id"": ""ask"", ""journal"": ""[SELFTEST] {giver} asks a favour."", ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" },
+            ""on_complete"": { ""next"": ""answer"" } },
+          { ""id"": ""answer"", ""journal"": ""[SELFTEST] {giver} waits for an answer."",
+            ""choices"": [
+              { ""id"": ""tell_secret"", ""label"": ""Tell the secret"", ""if"": ""knows_secret"",
+                ""said"": { ""to"": ""{giver}"", ""meaning"": ""the player tells {giver} the secret"" }, ""next"": ""end:secret"" },
+              { ""id"": ""give_up"", ""label"": ""Refuse"",
+                ""said"": { ""to"": ""{giver}"", ""meaning"": ""the player refuses to help {giver}"" }, ""next"": ""end:quiet"" },
+              { ""id"": ""wait_it_out"", ""label"": ""Wait"", ""objective"": { ""type"": ""wait"", ""days"": 30 }, ""sets"": ""knows_secret"", ""next"": ""end:quiet"" } ] }
+        ],
+        ""endings"": { ""quiet"": { }, ""secret"": { } }
+      }";
+
+      private static string TestAuthoredQuestSaidChoice(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("authored_quest_said_choice");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null, "authored quests are not active")) return t.Line();
+         if (t.Skip(b.ActiveRun is {Status: Logic.AuthoredQuests.AuthoredQuestStatus.Active}, "a real tale is under way; not disturbing it")) return t.Line();
+
+         const string id = "cr_selftest_answer";
+         IReadOnlyList<string> problems = b.DebugLoadTale(SaidChoiceSelfTestTale, "selftest.json");
+         t.Expect("theTaleLoadsClean", string.Join(" | ", problems), "");
+         Logic.AuthoredQuests.AuthoredQuest tale = b.Quests.FirstOrDefault(q => q.Id == id);
+         if (t.Abort(tale == null, "the tale did not load")) return t.Line();
+
+         try
+         {
+            var today = (int) CampaignTime.Now.ToDays;
+            Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && b.TryOffer(h, today, 0, id));
+            if (t.Skip(giver == null, "no lord at peace with the player could give it")) return t.Line();
+            Hero other = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h != giver);
+
+            b.Accept(tale, b.Offer);
+            t.Expect("acceptingLeadsToTheAnswer", b.ActiveRun.StageId, "answer");
+
+            string taught = b.InterpreterChoicesFor(giver) ?? "";
+            t.Expect("theInterpreterIsTaughtTheOpenChoice", taught.Contains("choice give_up"), true);
+            t.Expect("andNotTheClosedOne", taught.Contains("tell_secret"), false);
+            t.Expect("anotherLordsInterpreterIsTaughtNothing", other == null ? null : b.InterpreterChoicesFor(other), null);
+
+            ActionOutcome closed = behavior.GameStateBridge.ExecuteAction(new GameAction {
+               Type = Logic.AuthoredQuests.AuthoredQuestPrompt.StoryChoiceVerb, Parameters = new Dictionary<string, string> {["choice"] = "tell_secret"}
+            }, giver, null);
+            t.Expect("theClosedChoiceIsRefused", closed is {IsPositive: true}, false);
+            t.Expect("andChangesNothing", $"{b.ActiveRun.Status}/{b.ActiveRun.StageId}", "Active/answer");
+
+            ActionOutcome open = behavior.GameStateBridge.ExecuteAction(new GameAction {
+               Type = Logic.AuthoredQuests.AuthoredQuestPrompt.StoryChoiceVerb, Parameters = new Dictionary<string, string> {["choice"] = "give_up"}
+            }, giver, null);
+            t.Note(open?.Message ?? "(null outcome)");
+            t.Expect("theOpenChoiceIsTaken", open is {IsPositive: true}, true);
+            t.Expect("andEndsTheTaleOnItsEnding", $"{b.ActiveRun.Status}/{b.ActiveRun.EndingId}", "Completed/quiet");
          }
          finally
          {

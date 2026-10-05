@@ -106,6 +106,25 @@ the flags, the path taken and the open choices.
 **E8. Find-SwapRisk** reports 15 members on `main` already (MercenaryDeparturePolicy, RealmServiceWording,
 TransientPartyLedger); this branch adds none. The goal says "it must stay at zero"; it was not at zero before.
 
+**E9. A choice by words reaches the action interpreter through the turn's own facts, not through `CrActions`.**
+An external action is frozen into the interpreter's cached head (the same for every call), and its eligibility and
+teaching never reach the interpreter at all, so a `CrActions.Register("story_choice")` would have been taught in every
+conversation, for every tale and none. The mod instead writes the choices open with THIS character into a new
+`EncounterContext.StoryChoicesForInterpreter` (SDK), which `ActionInterpreterContextBuilder` appends below the cached
+head. A conversation with no such choice carries nothing, and the head stays cached. The character's own prompt never
+sees it (Gabriel: a character is not told the ways ahead); `StoryChoicesForInterpreterTests` pins all three.
+
+**E10. The verb is `story_choice`, dispatched by the bridge, outside `GameActionCatalog` and `HandledActionTypes`.**
+The catalogue is what every interpreter is taught; this verb is taught only per turn, so listing it there would teach
+it everywhere and `action_catalog_parity` compares only those two lists. The bridge has its own `case` for it (the
+verbs map shows it as dispatched, and a `case` never adds a row). The SDK's section parser already keeps any
+`[ACTION]` type, so nothing else changed there.
+
+**E11. The interpreter is told when NOT to report a choice**: never for an offer still weighed, a question, a refusal,
+a jest or a promise to think about it, and at most one per reply. The game then accepts only an id declared on the
+current stage, open (its `if` holds), and said to this very character; anything else is refused and changes nothing
+(self-test `authored_quest_said_choice`, through the real bridge).
+
 ## The scene and its numbered list
 
 **S1. A scene may carry a `title`**, the name over the chat window ("The burned barns of {village}"). Empty, it is

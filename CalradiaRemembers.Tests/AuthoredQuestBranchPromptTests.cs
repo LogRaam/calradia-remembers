@@ -148,6 +148,36 @@ namespace CalradiaRemembers.Tests
          foreach (string beyond in new[] {"smugglers", "cap", "old mill", "relief"}) prompt.Should().NotContain(beyond);
       }
 
+      private static AuthoredQuest WithWords(string extraIf = "")
+         => AuthoredTales.Load(AuthoredTales.Fork.Replace("\"objective\": { \"type\": \"wait\", \"days\": 3 }",
+            extraIf + "\"said\": { \"to\": \"{giver}\", \"meaning\": \"the player says the boy of {village} is not worth the trouble\" }"));
+
+      // A choice by words reaches the interpreter of THIS conversation: its id, what the words must mean (names filled),
+      // and the exact report the game reads back; the game parses that report into the choice it will check.
+      [Test]
+      public void GIVEN_a_choice_by_words_open_with_this_character_WHEN_the_interpreter_is_told_THEN_it_learns_the_id_the_meaning_and_the_report()
+      {
+         AuthoredQuest q = WithWords();
+
+         string told = AuthoredQuestPrompt.ChoicesForInterpreter(At(q, "the_road"), q, Giver);
+         var parsed = new NpcMemoryService.Core.Parsing.SectionResponseParser().Parse("[DIALOGUE]So be it.[/DIALOGUE]\n" + told.Substring(told.IndexOf("[ACTION]", System.StringComparison.Ordinal)).Replace("<the choice id>", "let_it_be"));
+
+         told.Should().Contain("choice let_it_be: the player says the boy of Ortongard is not worth the trouble").And.NotContain("{village}");
+         parsed.Actions.Should().ContainSingle(a => a.Type == AuthoredQuestPrompt.StoryChoiceVerb && a.Parameters["choice"] == "let_it_be");
+      }
+
+      // Taught only where it can be taken: not in a conversation with someone else, not while closed by its flag, and
+      // never once the stage has moved on.
+      [Test]
+      public void GIVEN_another_character_a_closed_choice_or_a_later_stage_WHEN_the_interpreter_is_told_THEN_it_learns_nothing()
+      {
+         AuthoredQuest open = WithWords(), closed = WithWords("\"if\": \"saw_light\", ");
+
+         AuthoredQuestPrompt.ChoicesForInterpreter(At(open, "the_road"), open, "lord_elsewhere").Should().BeNull();
+         AuthoredQuestPrompt.ChoicesForInterpreter(At(closed, "the_road"), closed, Giver).Should().BeNull();
+         AuthoredQuestPrompt.ChoicesForInterpreter(At(open, "the_wood"), open, Giver).Should().BeNull();
+      }
+
       // A scene with no ways out is told exactly as before: no section about ways at all.
       [Test]
       public void GIVEN_a_scene_written_before_branches_WHEN_the_narrator_is_told_THEN_no_way_out_is_offered()

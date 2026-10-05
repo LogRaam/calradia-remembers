@@ -146,6 +146,34 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          return sb.ToString();
       }
 
+      /// <summary>The [ACTION] type the interpreter reports a choice by words with.</summary>
+      public const string StoryChoiceVerb = "story_choice";
+
+      /// <summary>
+      ///   For the ACTION INTERPRETER only (branching tales, 04/10/2026): the choices by words open in a conversation with
+      ///   this character, each id with what the player's words must mean, and how to report one. Null when none is open:
+      ///   a conversation with no such choice teaches nothing. Never given to the character, who is not told the ways
+      ///   ahead; the game accepts only a declared, open id said to this very character.
+      /// </summary>
+      public static string ChoicesForInterpreter(AuthoredQuestRun run, AuthoredQuest q, string heroId)
+      {
+         IReadOnlyList<AuthoredChoice> open = AuthoredQuestEngine.SaidChoicesFor(run, q, heroId);
+         if (open.Count == 0) return null;
+
+         var sb = new StringBuilder();
+         sb.AppendLine("STORY CHOICES THE PLAYER MAY TAKE BY WORDS IN THIS CONVERSATION (a written tale; only these count):");
+         foreach (AuthoredChoice c in open) sb.AppendLine($"- choice {c.Id}: {AuthoredQuestEngine.Fill(run, c.Said.Meaning)}");
+         sb.AppendLine("Report one ONLY when the PLAYER's own words in this exchange plainly say or agree to what it means and the reply "
+                       + "accepts it; never for an offer still weighed, a question, a refusal, a jest or a promise to think about it; at most "
+                       + "one per reply. Report it as:");
+         sb.AppendLine("[ACTION]");
+         sb.AppendLine("type: " + StoryChoiceVerb);
+         sb.AppendLine("choice: <the choice id>");
+         sb.Append("[/ACTION]");
+
+         return sb.ToString();
+      }
+
       private static List<string> KnowerLines(AuthoredQuestRun run, Dictionary<string, List<AuthoredLine>> knowers, string heroId, string localOfPlaceId)
       {
          var lines = new List<string>();
