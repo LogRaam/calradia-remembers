@@ -1057,7 +1057,12 @@ namespace CalradiaRemembers.Interception
                " This concerns neither you nor the player directly; you only heard of it and do not know the whole of it. Do NOT state it as fact or pretend to know more than you do: raise it and ASK the player what THEY know, curious."
          };
 
-         return $"{approachClause}{registerClause} The matter: {m.Summary}.";
+         // fkasad (05/10/2026): a lived memory is written to the player; quoted bare, its "you" read as the character.
+         string matter = Logic.Interception.RecentMatterWording.MatterClause(new Logic.Interception.RecentMatterWordingFacts {
+            Summary = m.Summary, Register = m.Register, PlayerName = Hero.MainHero?.Name?.ToString(), CharacterName = npc.Name?.ToString()
+         });
+
+         return $"{approachClause}{registerClause}{matter}";
       }
 
       private void MarkMatterRaised(Hero npc, RecentMatter m)

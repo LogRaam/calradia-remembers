@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 466 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 952 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 954 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1755,7 +1755,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `UnblessedMarriageFacts` | public class | Facts for Tier2GrudgeRules.UnblessedMarriageGrudge: a family member who opposed an unblessed marriage the player made. |
 | `WorldEventFacts` | public class | A persisted WorldEvent, as read by the engine-side scan. |
 
-### CalradiaRemembers.Logic.Interception (4)
+### CalradiaRemembers.Logic.Interception (6)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1763,6 +1763,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RecentMatter` | public class | One recent matter a lord could raise with the player: what it is, when it happened, its register, and a stable key for the once-per-NPC guard. |
 | `RecentMatterRegister` | public enum | How a lord relates to a recent matter, which decides the tone he raises it in. |
 | `RecentMatterSelector` | public static class | Picks the single matter a lord raises: the most recent one, within a recency window, that he has not already raised. |
+| `RecentMatterWording` | public static class | Words the clause naming the matter a character raises. |
+| `RecentMatterWordingFacts` | public class | What the matter's clause is written from. |
 
 ### CalradiaRemembers.Logic.Items (2)
 

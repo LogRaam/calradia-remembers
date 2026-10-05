@@ -38,7 +38,7 @@ A hole is not always a bug (a bridge-native action has no verb class), but every
 | `gather_news` | yes | yes | yes |  |  | yes | 3 |
 | `give_gold` | yes | yes | yes |  |  | yes | 3 |
 | `give_influence` | yes | yes | yes | `GiveInfluenceVerb` | yes | yes | 3 |
-| `give_item` | yes | yes | yes |  |  | yes | 3 |
+| `give_item` | yes | yes | yes |  |  | yes | 4 |
 | `give_prisoner` | yes | yes | yes |  |  | yes | 3 |
 | `give_troops` | yes | yes | yes | `GiveTroopsVerb` | yes | yes | 3 |
 | `grant_blessing` | yes | yes | yes |  |  |  | 3 |
