@@ -821,6 +821,17 @@ namespace CalradiaRemembers.Chat
       {
          if (session == null) return;
 
+         // Hosted on a pushed state, never over the live map (Gabriel's crash closing the scene, 04/10/2026): see
+         // ExplorationBackdrop. On close the backdrop goes FIRST (queued before anything the session queues), so the
+         // scene's closing popup comes up over the map, not over a backdrop about to be popped.
+         ExplorationBackdrop.Open();
+         Action onClose = session.OnClose;
+         session.OnClose = () =>
+         {
+            MainThreadDispatcher.Enqueue(ExplorationBackdrop.Close);
+            onClose?.Invoke();
+         };
+
          Open(session.Title);
          if (ActiveViewModel == null)
          {

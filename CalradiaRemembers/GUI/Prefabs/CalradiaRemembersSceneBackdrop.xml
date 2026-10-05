@@ -1,0 +1,10 @@
+<!-- The backdrop of a written tale's exploration scene (04/10/2026). The scene is a chat with a narrator and no
+     character in 3D, so it is hosted like the letters: a pushed GameState that deactivates the campaign map by the
+     engine's own contract, never a layer over the live map (Gabriel's crash on closing the scene in the wood by
+     Atrion). This prefab is only the dark night the chat window sits on. -->
+<Prefab>
+  <Window Id="CalradiaRemembersSceneBackdropWindow" Layer="Overlay">
+    <Widget Id="Root" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+            Sprite="BlankWhiteSquare_9" Color="#07090CFF" />
+  </Window>
+</Prefab>

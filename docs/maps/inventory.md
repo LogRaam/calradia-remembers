@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 465 types in 58 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 466 types in 58 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 950 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
@@ -153,7 +153,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 
-### CalradiaRemembers.Chat (49)
+### CalradiaRemembers.Chat (50)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -188,6 +188,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilLift` | internal static class | Settles a council's agreed pledges against the world as it stands now, reporting through a callback. |
 | `CouncilParticipantViewModel` | public class | One seated member of the bespoke COUNCIL window's left "CLAN JOUEUR" strip: a portrait tile (the anchor or a witness) with a seat label, clickable to open that hero's dossier. |
 | `EnvoyAudience` | public class | What an envoy audience carries: whose envoy, and the mandate he was given. |
+| `ExplorationBackdrop` | internal static class | The suspended-map backdrop an exploration scene's chat window sits on. |
 | `ExplorationSession` | public class | What an exploration scene is, supplied by whoever opens it. |
 | `GameMenuOpener` | internal static class | Opens the vanilla escape/options menu over the chat, exactly as ESC does on the map. |
 | `IActionConfirmationHost` | internal interface | The exact set of view-model operations the action-confirmation flow (ActionConfirmationController) drives, so the controller depends on this seam rather than the whole ChatViewModel. |
