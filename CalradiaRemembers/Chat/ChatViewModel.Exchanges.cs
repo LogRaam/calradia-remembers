@@ -1632,9 +1632,12 @@ namespace CalradiaRemembers.Chat
                   bool privacyAccepted = NpcIsPlayerPrisoner() || string.Equals(privacyResult, "accepted", StringComparison.OrdinalIgnoreCase);
                   if (privacyAccepted)
                   {
+                     bool hadWitnesses = _witnesses.Count > 0;
                      _witnesses.Clear();
                      _currentSpeakerHeroId = null; // no witnesses left — back to the main NPC
                      RefreshWitnessUi();
+                     // Said, not only done (IdentityCrysys, 05/10/2026): the player sees the room is theirs now.
+                     if (hadWitnesses) AppendSystemMessage($"The others are out of earshot. You are alone with {profile.Name}.", true);
                      ModLog.Info("[WITNESSES] private audience accepted — witnesses cleared.");
                   }
                   else
