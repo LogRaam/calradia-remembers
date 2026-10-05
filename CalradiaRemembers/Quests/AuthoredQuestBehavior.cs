@@ -377,8 +377,10 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>
-      ///   Hourly: arriving at a be_at place, and keeping watch (Gabriel: nights spent waiting, no moon). A night counts
-      ///   once, read deep in it (an hour past midnight) with the player's party within the stage's radius.
+      ///   Hourly: arriving at a be_at place (the stage's own, or a choice's), the bands the stage hunts, keeping watch
+      ///   (Gabriel: nights spent waiting, no moon), and a scene that is due but not open (after a load, or when the
+      ///   stage before it ended in a conversation). A night counts once, read deep in it (an hour past midnight) with
+      ///   the player's party within the stage's radius.
       /// </summary>
       private void OnHourlyTick()
       {
@@ -386,19 +388,24 @@ namespace CalradiaRemembers.Quests
          AuthoredStage s = AuthoredQuestEngine.Current(_run, q);
          var today = (int) CampaignTime.Now.ToDays;
 
-         switch (s?.Objective.Type)
+         foreach (AuthoredWay band in AuthoredQuestEngine.BandsToHunt(_run, q)) EnsureBand(q, band);
+
+         foreach (AuthoredObjective place in AuthoredQuestEngine.PlacesToReach(_run, q))
+            if (Near(place.Place, place.Radius))
+            {
+               Apply(q, AuthoredQuestEngine.Arrived(_run, q, AuthoredQuestEngine.Bound(_run, place.Place), today));
+
+               return;
+            }
+
+         switch (s?.Objective?.Type)
          {
-            case "defeat_party":
-               EnsureBand(q, s);
-               break;
-            case "be_at":
-               if (Near(s.Objective.Place, s.Objective.Radius)) Apply(q, AuthoredQuestEngine.Arrived(_run, q, AuthoredQuestEngine.Bound(_run, s.Objective.Place), today));
-               break;
             case "keep_watch":
                if (!CampaignTime.Now.IsNightTime || (int) CampaignTime.Now.CurrentHourInDay != 1) return;
-               AuthoredStep night = AuthoredQuestEngine.NightPassed(_run, q, Near(s.Objective.Place, s.Objective.Radius), today);
-               Apply(q, night);
-               if (night.Kind == AuthoredStepKind.OpenScene) MainThreadDispatcher.Enqueue(() => OpenScene(q));
+               Apply(q, AuthoredQuestEngine.NightPassed(_run, q, Near(s.Objective.Place, s.Objective.Radius), today));
+               break;
+            case "explore":
+               if (!ChatManager.IsOpen && !_sceneWaiting) OpenScene(q);
                break;
          }
       }
@@ -408,18 +415,20 @@ namespace CalradiaRemembers.Quests
       private const string BandRole = "tale_band";
 
       /// <summary>
-      ///   The band a defeat_party stage hunts, on the map near its place: spawned when the stage begins, again after a
-      ///   load (a transient party is never saved), and again if others destroyed it (the survivors regroup, and the
-      ///   deed stays the player's to do). A band warned in the scene (alert) is larger by a third.
+      ///   The band a defeat_party stage (or one of its choices) hunts, on the map near its place: spawned when the
+      ///   stage begins, again after a load (a transient party is never saved), and again if others destroyed it (the
+      ///   survivors regroup, and the deed stays the player's to do). A band warned in the scene (alert) is larger by a
+      ///   third. The stage's own band keeps the tag it always had; a choice's band is tagged with the choice.
       /// </summary>
-      private void EnsureBand(AuthoredQuest q, AuthoredStage s)
+      private void EnsureBand(AuthoredQuest q, AuthoredWay way)
       {
-         AuthoredSpawn spawn = s.Objective.Spawn;
+         AuthoredSpawn spawn = way.Objective.Spawn;
          if (spawn == null) return;
-         MobileParty live = TransientPartyRegistry.Instance?.WithTag(BandRole, q.Id);
+         string tag = way.Choice == null ? q.Id : q.Id + "/" + way.Choice.Id;
+         MobileParty live = TransientPartyRegistry.Instance?.WithTag(BandRole, tag);
          if (live != null && live.IsActive)
          {
-            _run.SpawnedPartyId = live.StringId;
+            Remember(way, live.StringId);
 
             return;
          }
@@ -441,11 +450,18 @@ namespace CalradiaRemembers.Quests
             return;
          }
 
-         _run.SpawnedPartyId = band.StringId;
-         TransientPartyRegistry.Instance?.Track(band, BandRole, q.Id,
+         Remember(way, band.StringId);
+         TransientPartyRegistry.Instance?.Track(band, BandRole, tag,
             onDestroyed: (party, by) => OnBandDestroyed(q, party, by),
             onRestore: pos => SpawnBand(pos, near, name, spawn.Template, size));
          ModLog.Info($"[TALE] '{q.Id}': {name} ({size}) near {near.Name}.");
+      }
+
+      /// <summary>Which band belongs to which way out: the stage's own, or a choice's.</summary>
+      private void Remember(AuthoredWay way, string partyId)
+      {
+         if (way.Choice == null) _run.SpawnedPartyId = partyId;
+         else _run.ChoiceBands[way.Choice.Id] = partyId;
       }
 
       /// <summary>A bandit-owned band of the template's troops, patrolling around its place.</summary>
@@ -478,10 +494,12 @@ namespace CalradiaRemembers.Quests
          }
       }
 
-      /// <summary>The band was destroyed: by the player, the stage is done; by anyone else, it regroups on the next hour.</summary>
+      /// <summary>The band was destroyed: by the player, its way out is taken; by anyone else, it regroups on the next hour.</summary>
       private void OnBandDestroyed(AuthoredQuest q, MobileParty band, PartyBase by)
       {
-         if (_run is not {Status: AuthoredQuestStatus.Active} || band?.StringId != _run.SpawnedPartyId) return;
+         if (_run is not {Status: AuthoredQuestStatus.Active} || band == null) return;
+         string choiceOf = _run.ChoiceBands.FirstOrDefault(kv => kv.Value == band.StringId).Key;
+         if (band.StringId != _run.SpawnedPartyId && choiceOf == null) return;
 
          if (by == PartyBase.MainParty || by?.MobileParty?.Army != null && by.MobileParty.Army.LeaderParty == MobileParty.MainParty)
          {
@@ -492,15 +510,15 @@ namespace CalradiaRemembers.Quests
          }
 
          ModLog.Info($"[TALE] '{q.Id}': {band.Name} was destroyed by {by?.Name}; the survivors will regroup.");
-         _run.SpawnedPartyId = null;
+         if (choiceOf != null) _run.ChoiceBands.Remove(choiceOf);
+         else _run.SpawnedPartyId = null;
       }
 
-      /// <summary>Takes the band off the map when the tale ends, however it ends.</summary>
-      private void ReleaseBand(string questId)
-      {
-         MobileParty band = TransientPartyRegistry.Instance?.WithTag(BandRole, questId);
-         if (band != null) TransientPartyRegistry.Instance.Release(band);
-      }
+      /// <summary>
+      ///   Takes the tale's bands off the map when the stage they belong to is left, or the tale ends, however it ends.
+      ///   One tale runs at a time, so every band of the role is this tale's.
+      /// </summary>
+      private static void ReleaseBands() => TransientPartyRegistry.Instance?.ReleaseRole(BandRole);
 
       private bool Near(string placeRole, float radius)
       {
@@ -514,7 +532,7 @@ namespace CalradiaRemembers.Quests
       /// <summary>Opens the current explore stage as a scene in the chat: a narrator, the file's findings, dangers and people.</summary>
       internal void OpenScene(AuthoredQuest q)
       {
-         if (_run is not {Status: AuthoredQuestStatus.Active} || AuthoredQuestEngine.Current(_run, q)?.Objective.Type != "explore") return;
+         if (_run is not {Status: AuthoredQuestStatus.Active} || AuthoredQuestEngine.Current(_run, q)?.Objective?.Type != "explore") return;
          if (ChatManager.IsOpen)
          {
             ModLog.Notice("a scene of your tale waits; it will open when the conversation ends.");
@@ -574,7 +592,7 @@ namespace CalradiaRemembers.Quests
          foreach (string id in m.Met)
             if (AuthoredQuestEngine.Meet(_run, q, id))
             {
-               string who = AuthoredQuestEngine.Current(_run, q)?.Objective.Scene?.Encounters.FirstOrDefault(x => x.Id == id)?.Name;
+               string who = AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.Encounters.FirstOrDefault(x => x.Id == id)?.Name;
                notes.Add($"{AuthoredQuestEngine.Fill(_run, who) ?? "Someone"} is with you now.");
             }
 
@@ -588,7 +606,7 @@ namespace CalradiaRemembers.Quests
       private void CloseScene(AuthoredQuest q)
       {
          if (_run is not {Status: AuthoredQuestStatus.Active}) return;
-         AuthoredScene scene = AuthoredQuestEngine.Current(_run, q)?.Objective.Scene;
+         AuthoredScene scene = AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene;
          IReadOnlyList<AuthoredFinding> missed = AuthoredQuestEngine.SceneClosed(_run, q, (int) CampaignTime.Now.ToDays, out AuthoredStep step);
          if (step.Kind == AuthoredStepKind.None) return;
 
@@ -604,35 +622,43 @@ namespace CalradiaRemembers.Quests
          Apply(q, step);
       }
 
-      /// <summary>Carries out what a step decided: the journal line of the next stage, the reward, or the failure.</summary>
+      /// <summary>
+      ///   Carries out what a step decided: the journal lines of the next stage (its own, then each open choice's), the
+      ///   ending reached (the reward, or a named one), or the failure. A stage left behind takes its bands with it, and
+      ///   a stage that is a scene opens (now, or when the conversation that led to it ends).
+      /// </summary>
       internal void Apply(AuthoredQuest q, AuthoredStep step, AuthoredStoryQuest journal = null)
       {
          if (step == null || step.Kind == AuthoredStepKind.None) return;
          journal ??= Journal(q.Id);
+         string taken = step.ChoiceId != null ? $" by choice '{step.ChoiceId}'" : "";
 
          switch (step.Kind)
          {
             case AuthoredStepKind.Advanced:
             case AuthoredStepKind.OpenScene:
-               AuthoredStage next = AuthoredQuestEngine.Current(_run, q);
-               string line = AuthoredQuestEngine.Fill(_run, next?.Journal);
-               journal?.Log(line);
-               AnnounceStage(AuthoredStageNotice.Text(q.Title, line));
-               ModLog.Info($"[TALE] '{q.Id}': {step.FromStage} -> {step.ToStage}.");
+               ReleaseBands();
+               foreach (string line in AuthoredQuestEngine.JournalLines(_run, q)) journal?.Log(AuthoredQuestEngine.Fill(_run, line));
+               AnnounceStage(AuthoredStageNotice.Text(q.Title, AuthoredQuestEngine.Fill(_run, AuthoredQuestEngine.Current(_run, q)?.Journal)));
+               ModLog.Info($"[TALE] '{q.Id}': {step.FromStage} -> {step.ToStage}{taken}.");
+               if (AuthoredQuestEngine.Current(_run, q)?.Objective?.Type == "explore") MainThreadDispatcher.Enqueue(() => OpenScene(q));
 
                break;
             case AuthoredStepKind.Completed:
-               ReleaseBand(q.Id);
-               CarryOut(q, q.Reward);
+               ReleaseBands();
+               AuthoredOutcome ending = AuthoredQuestEngine.Outcome(_run, q);
+               CarryOut(q, ending);
+               if (!string.IsNullOrWhiteSpace(ending?.Journal)) journal?.Log(AuthoredQuestEngine.Fill(_run, ending.Journal));
                journal?.CloseAsCompleted();
                _done.Add(q.Id);
                _playedOn[q.Id] = (int) CampaignTime.Now.ToDays;
-               ModLog.Info($"[TALE] '{q.Id}' completed.");
+               ModLog.Info($"[TALE] '{q.Id}' completed{taken}, ending '{step.EndingId ?? "reward"}'.");
 
                break;
             case AuthoredStepKind.Failed:
-               ReleaseBand(q.Id);
+               ReleaseBands();
                CarryOut(q, q.Failure);
+               if (!string.IsNullOrWhiteSpace(q.Failure?.Journal)) journal?.Log(AuthoredQuestEngine.Fill(_run, q.Failure.Journal));
                journal?.CloseAsFailed("The time to act has passed.");
                _done.Add(q.Id);
                _playedOn[q.Id] = (int) CampaignTime.Now.ToDays;
@@ -661,7 +687,10 @@ namespace CalradiaRemembers.Quests
          catch (Exception ex) { ModLog.Error($"[TALE] stage notice failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
-      /// <summary>Regard and a memory for the giver, then the outcome's consequences (memory, world_event in increment 1).</summary>
+      /// <summary>
+      ///   Regard and a memory for the giver, then the outcome's consequences (memory, world_event), each only when its
+      ///   flags hold on the path the player walked.
+      /// </summary>
       private void CarryOut(AuthoredQuest q, AuthoredOutcome outcome)
       {
          if (outcome == null) return;
@@ -681,7 +710,7 @@ namespace CalradiaRemembers.Quests
          if (giver != null && !string.IsNullOrWhiteSpace(outcome.Memory)) Remember(giver.StringId, AuthoredQuestEngine.Fill(_run, outcome.Memory));
          if (outcome.Gold > 0) TaleWorlds.CampaignSystem.Actions.GiveGoldAction.ApplyBetweenCharacters(null, Hero.MainHero, outcome.Gold);
 
-         foreach (AuthoredConsequence c in outcome.Consequences ?? new List<AuthoredConsequence>())
+         foreach (AuthoredConsequence c in AuthoredQuestEngine.Consequences(_run, outcome))
          {
             try
             {
@@ -719,13 +748,18 @@ namespace CalradiaRemembers.Quests
 
       // ── Prompt ───────────────────────────────────────────────────────────
 
-      /// <summary>The authored quest block for this character's prompt, or null.</summary>
+      /// <summary>
+      ///   The authored quest block for this character's prompt, or null. The character whose conversation ended the tale
+      ///   (the lord hearing the last report) keeps speaking from it until that conversation closes: before branches the
+      ///   block vanished the moment the run completed, so the final stage's canvas never reached the model.
+      /// </summary>
       public string PromptBlockFor(Hero hero)
       {
          if (hero == null) return null;
          try
          {
-            if (_run is {Status: AuthoredQuestStatus.Active} && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q))
+            bool underWay = _run is {Status: AuthoredQuestStatus.Active} || _run != null && _run.SpokenHeroId == hero.StringId;
+            if (underWay && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q))
                return AuthoredQuestPrompt.ForCharacter(_run, q, hero.StringId, LocalOf(hero), offering: false);
 
             if (_offer != null && _offerHeroId == hero.StringId && _quests.TryGetValue(_offer.QuestId, out AuthoredQuest o))
@@ -754,7 +788,7 @@ namespace CalradiaRemembers.Quests
          _offer = null;
          _offerHeroId = null;
          if (_run == null) return;
-         ReleaseBand(_run.QuestId);
+         ReleaseBands();
          Journal(_run.QuestId)?.CloseAsCancelled(reason);
          ModLog.Info($"[TALE] '{_run.QuestId}' abandoned: {reason}");
          _run = null;
@@ -789,9 +823,9 @@ namespace CalradiaRemembers.Quests
       internal MobileParty DebugEnsureBand()
       {
          if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return null;
-         AuthoredStage s = AuthoredQuestEngine.Current(_run, q);
-         if (s?.Objective.Type != "defeat_party") return null;
-         EnsureBand(q, s);
+         AuthoredWay own = AuthoredQuestEngine.BandsToHunt(_run, q).FirstOrDefault(w => w.Choice == null);
+         if (own == null) return null;
+         EnsureBand(q, own);
 
          return TransientPartyRegistry.Instance?.WithTag(BandRole, q.Id);
       }
@@ -814,13 +848,33 @@ namespace CalradiaRemembers.Quests
          if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return "No tale is under way.";
          AuthoredStage s = AuthoredQuestEngine.Current(_run, q);
          var today = (int) CampaignTime.Now.ToDays;
-         AuthoredStep step = s.Objective.Type == "explore"
+         AuthoredStep step = s?.Objective?.Type == "explore"
             ? StepAfterScene(q, today)
             : AuthoredQuestEngine.ForceAdvance(_run, q, today);
          Apply(q, step);
 
-         return $"'{q.Id}': {step.FromStage} -> {(step.Kind == AuthoredStepKind.Completed ? "completed" : step.ToStage)}.";
+         return Describe(q, step);
       }
+
+      /// <summary>cr.story_choose: takes this choice of the current stage, if it is open, however it would be taken (a test lever).</summary>
+      internal string DebugChoose(string choiceId)
+      {
+         if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return "No tale is under way.";
+         IReadOnlyList<AuthoredChoice> open = AuthoredQuestEngine.OpenChoices(_run, q);
+         if (open.All(c => c.Id != choiceId))
+            return $"No open choice '{choiceId}' at stage '{_run.StageId}'. Open: {(open.Count == 0 ? "none" : string.Join(", ", open.Select(c => c.Id)))}.";
+
+         AuthoredStep step = AuthoredQuestEngine.ForceChoice(_run, q, choiceId, (int) CampaignTime.Now.ToDays);
+         Apply(q, step);
+
+         return Describe(q, step);
+      }
+
+      private static string Describe(AuthoredQuest q, AuthoredStep step)
+         => step.Kind == AuthoredStepKind.None
+            ? $"'{q.Id}': nothing to step."
+            : $"'{q.Id}': {step.FromStage} -> {(step.Kind == AuthoredStepKind.Completed ? "ending '" + (step.EndingId ?? "reward") + "'" : step.ToStage)}"
+              + (step.ChoiceId != null ? $" (choice '{step.ChoiceId}')." : ".");
 
       private AuthoredStep StepAfterScene(AuthoredQuest q, int today)
       {

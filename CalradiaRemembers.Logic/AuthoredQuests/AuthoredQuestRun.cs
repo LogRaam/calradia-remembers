@@ -4,6 +4,11 @@
 // finding revealed, a party beaten, a day passed); the model never moves a stage (Gabriel's rule: the game advances
 // the quest, never the character's word). The first stage is the request itself, made in the conversation where the
 // quest is offered, so accepting it completes that stage.
+// 04/10/2026, branching tales (docs/design/quest-editor/goal.md): a stage may be left by several ways, its own
+// objective and its open choices, and the first one met wins. A choice in a scene counts only by the narrator's
+// marker, a choice by words only by the interpreter's report, and a closed choice (its flags not holding) never at
+// all. A path may end on one of several named endings. Every field added to the run is additive: a run saved before
+// reads with no flags, no choice taken and no ending, which is exactly what it had.
 
 #region
 
@@ -69,6 +74,30 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>The flags set so far in this run (branching tales, 04/10/2026; absent from a run saved before).</summary>
       public List<string> Flags { get; set; } = new();
 
+      /// <summary>Every choice taken, as "stage/choice", in the order taken: the path the player walked.</summary>
+      public List<string> ChoicesTaken { get; set; } = new();
+
+      /// <summary>The named ending the tale reached ("end:silence" gives "silence"); null for the reward, or still under way.</summary>
+      public string EndingId { get; set; }
+
+      /// <summary>
+      ///   talk_to_locals for a choice: the locals heard in this stage, as "place|hero", so two ways out that question
+      ///   two different places each count their own people. The stage's own objective still counts TalkedThisStage.
+      /// </summary>
+      public List<string> LocalsHeard { get; set; } = new();
+
+      /// <summary>defeat_party for a choice: the band spawned for each such choice of this stage, by choice id.</summary>
+      public Dictionary<string, string> ChoiceBands { get; set; } = new();
+
+      /// <summary>explore: the choice the narration took in the scene, carried out when the scene closes.</summary>
+      public string SceneChoiceId { get; set; }
+
+      /// <summary>
+      ///   The choice the conversation now open took (with <see cref="SpokenHeroId" />): that person speaks from the
+      ///   choice's own lines while it lasts. Cleared with the other two.
+      /// </summary>
+      public string SpokenChoiceId { get; set; }
+
       public string Serialize() => JsonConvert.SerializeObject(this, Formatting.None);
 
       public static AuthoredQuestRun Deserialize(string json)
@@ -97,7 +126,23 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public string FromStage { get; init; }
       public string ToStage { get; init; }
 
+      /// <summary>The choice that was taken, or null when the stage's own objective was met.</summary>
+      public string ChoiceId { get; init; }
+
+      /// <summary>Completed: the named ending reached, or null for the reward.</summary>
+      public string EndingId { get; init; }
+
       public static readonly AuthoredStep Nothing = new() {Kind = AuthoredStepKind.None};
+   }
+
+   /// <summary>One way out of the current stage: its own objective (no choice), or an open choice.</summary>
+   public sealed class AuthoredWay
+   {
+      public AuthoredObjective Objective { get; init; }
+      public string Next { get; init; }
+
+      /// <summary>Null for the stage's own objective.</summary>
+      public AuthoredChoice Choice { get; init; }
    }
 
    /// <summary>The stage machine. Pure: the engine reports facts, this says what they do.</summary>
@@ -113,9 +158,50 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>The player accepted in the offering conversation: the request (the first stage) is done.</summary>
       public static AuthoredStep Accept(AuthoredQuestRun run, AuthoredQuest q, int today)
-         => run?.StageId == q.Stages[0].Id ? Advance(run, q, today) : AuthoredStep.Nothing;
+         => run?.StageId == q.Stages[0].Id ? GoTo(run, q, q.Stages[0], null, q.Stages[0].OnComplete?.Next, today) : AuthoredStep.Nothing;
 
       public static AuthoredStage Current(AuthoredQuestRun run, AuthoredQuest q) => q?.Stages.FirstOrDefault(s => s.Id == run?.StageId);
+
+      /// <summary>
+      ///   The ways out of the current stage the player may take now, in the file's order: the stage's own objective
+      ///   first, then every choice that is open (its flags hold). A closed choice is never among them.
+      /// </summary>
+      public static IReadOnlyList<AuthoredWay> Ways(AuthoredQuestRun run, AuthoredQuest q)
+      {
+         AuthoredStage s = Active(run, q);
+         if (s == null) return Array.Empty<AuthoredWay>();
+
+         var ways = new List<AuthoredWay>();
+         if (s.Objective != null && !string.IsNullOrWhiteSpace(s.Objective.Type)) ways.Add(new AuthoredWay {Objective = s.Objective, Next = s.OnComplete?.Next});
+         ways.AddRange(OpenChoices(run, q).Where(c => c.Objective != null).Select(c => new AuthoredWay {Objective = c.Objective, Next = c.Next, Choice = c}));
+
+         return ways;
+      }
+
+      /// <summary>The choices of the current stage whose flags hold, in the file's order.</summary>
+      public static IReadOnlyList<AuthoredChoice> OpenChoices(AuthoredQuestRun run, AuthoredQuest q)
+         => (Active(run, q)?.Choices ?? new List<AuthoredChoice>()).Where(c => c != null && AuthoredFlags.Hold(c.If, run.Flags)).ToList();
+
+      /// <summary>The open choices made in the scene (no act, no words): what the narrator is told and the player is shown.</summary>
+      public static IReadOnlyList<AuthoredChoice> SceneChoices(AuthoredQuestRun run, AuthoredQuest q)
+         => Current(run, q)?.Objective?.Type == "explore" ? OpenChoices(run, q).Where(IsSceneChoice).ToList() : new List<AuthoredChoice>();
+
+      /// <summary>
+      ///   The journal for the current stage: its own line, then the line of each open choice that has one (Gabriel's
+      ///   goal: the journal shows the ways out the author chose to name). Placeholders unfilled.
+      /// </summary>
+      public static IReadOnlyList<string> JournalLines(AuthoredQuestRun run, AuthoredQuest q)
+      {
+         AuthoredStage s = Current(run, q);
+         if (s == null) return Array.Empty<string>();
+
+         var lines = new List<string>();
+         if (!string.IsNullOrWhiteSpace(s.Journal)) lines.Add(s.Journal);
+         lines.AddRange((s.Choices ?? new List<AuthoredChoice>()).Where(c => c != null && AuthoredFlags.Hold(c.If, run.Flags) && !string.IsNullOrWhiteSpace(c.Journal))
+                                                                 .Select(c => c.Journal));
+
+         return lines;
+      }
 
       /// <summary>A CR conversation opened with this hero, who belongs to <paramref name="localOfPlaceId" /> (or null).</summary>
       public static AuthoredStep ConversationOpened(AuthoredQuestRun run, AuthoredQuest q, string heroId, string localOfPlaceId, int today)
@@ -123,22 +209,25 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          AuthoredStage s = Active(run, q);
          if (s == null || string.IsNullOrEmpty(heroId)) return AuthoredStep.Nothing;
 
-         switch (s.Objective.Type)
+         IReadOnlyList<AuthoredWay> ways = Ways(run, q);
+         if (localOfPlaceId != null) Heard(run, ways, heroId, localOfPlaceId);
+
+         foreach (AuthoredWay way in ways)
          {
-            case "talk_to":
-               return heroId == Bound(run, s.Objective.Hero) ? Spoken(run, q, s, heroId, today) : AuthoredStep.Nothing;
-            case "return":
-               return heroId == Bound(run, "{giver}") ? Spoken(run, q, s, heroId, today) : AuthoredStep.Nothing;
-            case "talk_to_locals":
-               if (localOfPlaceId == null || localOfPlaceId != Bound(run, s.Objective.Place)) return AuthoredStep.Nothing;
-               if (!run.TalkedThisStage.Contains(heroId)) run.TalkedThisStage.Add(heroId);
+            bool met = way.Objective.Type switch {
+               "talk_to" => heroId == Bound(run, way.Objective.Hero),
+               "return" => heroId == Bound(run, "{giver}"),
 
                // The one whose conversation completes the questioning still speaks from it (Gabriel's play test, 04/10/2026:
                // the second villager, with the stage already moved on, believed nothing and said "bandits").
-               return run.TalkedThisStage.Count >= Math.Max(1, s.Objective.Count) ? Spoken(run, q, s, heroId, today) : AuthoredStep.Nothing;
-            default:
-               return AuthoredStep.Nothing;
+               "talk_to_locals" => localOfPlaceId != null && localOfPlaceId == Bound(run, way.Objective.Place)
+                                   && LocalsCounted(run, way) >= Math.Max(1, way.Objective.Count),
+               _ => false
+            };
+            if (met) return Spoken(run, q, s, way, heroId, today);
          }
+
+         return AuthoredStep.Nothing;
       }
 
       /// <summary>The conversation with this hero closed: they stop speaking of the stage it completed.</summary>
@@ -147,33 +236,63 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          if (run == null || run.SpokenHeroId != heroId) return;
          run.SpokenHeroId = null;
          run.SpokenStageId = null;
+         run.SpokenChoiceId = null;
       }
 
-      private static AuthoredStep Spoken(AuthoredQuestRun run, AuthoredQuest q, AuthoredStage s, string heroId, int today)
+      /// <summary>
+      ///   A choice taken by words: the action interpreter reported, in a conversation with this hero, that the player
+      ///   said what the choice means. It counts only for a choice the current stage declares, open, said to that hero.
+      /// </summary>
+      public static AuthoredStep Said(AuthoredQuestRun run, AuthoredQuest q, string heroId, string choiceId, int today)
+      {
+         AuthoredStage s = Active(run, q);
+         AuthoredChoice c = OpenChoices(run, q).FirstOrDefault(x => x.Id == choiceId && x.Said != null && x.Objective == null);
+         if (s == null || c == null || string.IsNullOrEmpty(heroId) || heroId != Bound(run, c.Said.To)) return AuthoredStep.Nothing;
+
+         return Spoken(run, q, s, new AuthoredWay {Next = c.Next, Choice = c}, heroId, today);
+      }
+
+      /// <summary>The choices by words open now in a conversation with this hero: what the interpreter may be taught.</summary>
+      public static IReadOnlyList<AuthoredChoice> SaidChoicesFor(AuthoredQuestRun run, AuthoredQuest q, string heroId)
+         => string.IsNullOrEmpty(heroId)
+            ? new List<AuthoredChoice>()
+            : OpenChoices(run, q).Where(c => c.Said != null && c.Objective == null && Bound(run, c.Said.To) == heroId).ToList();
+
+      private static AuthoredStep Spoken(AuthoredQuestRun run, AuthoredQuest q, AuthoredStage s, AuthoredWay way, string heroId, int today)
       {
          run.SpokenStageId = s.Id;
          run.SpokenHeroId = heroId;
+         run.SpokenChoiceId = way.Choice?.Id;
 
-         return Advance(run, q, today);
+         return GoTo(run, q, s, way.Choice, way.Next, today);
       }
 
-      /// <summary>be_at: the player's party is within the stage's radius of its place.</summary>
+      /// <summary>
+      ///   be_at: the player's party is within the radius of this place. The first way out that asks to be there is
+      ///   taken (the engine side reads the radii from <see cref="PlacesToReach" />).
+      /// </summary>
       public static AuthoredStep Arrived(AuthoredQuestRun run, AuthoredQuest q, string placeId, int today)
       {
          AuthoredStage s = Active(run, q);
+         AuthoredWay way = Ways(run, q).FirstOrDefault(w => w.Objective.Type == "be_at" && placeId != null && placeId == Bound(run, w.Objective.Place));
 
-         return s?.Objective.Type == "be_at" && placeId == Bound(run, s.Objective.Place) ? Advance(run, q, today) : AuthoredStep.Nothing;
+         return s != null && way != null ? GoTo(run, q, s, way.Choice, way.Next, today) : AuthoredStep.Nothing;
       }
+
+      /// <summary>be_at: the places the player could arrive at now, each with its radius, in the order they are checked.</summary>
+      public static IReadOnlyList<AuthoredObjective> PlacesToReach(AuthoredQuestRun run, AuthoredQuest q)
+         => Ways(run, q).Where(w => w.Objective.Type == "be_at").Select(w => w.Objective).ToList();
 
       /// <summary>
       ///   keep_watch: a night passed with the player near (or not near) the place. Counted once a day; from the first
       ///   eligible night a seeded roll may open the scene, and on the last it opens for certain (Gabriel, 03/10/2026:
-      ///   nights spent waiting, no moon). Seeded by quest and day, so a reload does not reroll it.
+      ///   nights spent waiting, no moon). Seeded by quest and day, so a reload does not reroll it. Only a stage's own
+      ///   objective keeps watch: a choice cannot (the loader refuses it).
       /// </summary>
       public static AuthoredStep NightPassed(AuthoredQuestRun run, AuthoredQuest q, bool nearPlace, int today)
       {
          AuthoredStage s = Active(run, q);
-         if (s?.Objective.Type != "keep_watch" || !nearPlace || run.LastNightDay == today) return AuthoredStep.Nothing;
+         if (s?.Objective?.Type != "keep_watch" || !nearPlace || run.LastNightDay == today) return AuthoredStep.Nothing;
 
          run.LastNightDay = today;
          run.NightsWatched++;
@@ -183,17 +302,19 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          bool opens = run.NightsWatched >= last || Roll(run.QuestId, today) < s.Objective.Chance;
          if (!opens) return AuthoredStep.Nothing;
 
-         return Advance(run, q, today) is {Kind: AuthoredStepKind.Advanced} step
+         return GoTo(run, q, s, null, s.OnComplete?.Next, today) is {Kind: AuthoredStepKind.Advanced} step
             ? new AuthoredStep {Kind = AuthoredStepKind.OpenScene, FromStage = step.FromStage, ToStage = step.ToStage}
             : AuthoredStep.Nothing;
       }
 
-      /// <summary>explore: the narration revealed a finding. True only for a finding the scene declares, once.</summary>
+      /// <summary>explore: the narration revealed a finding. True only for a finding the scene declares, once; its flags are set.</summary>
       public static bool Found(AuthoredQuestRun run, AuthoredQuest q, string findingId)
       {
-         AuthoredScene scene = Active(run, q)?.Objective.Scene;
-         if (scene == null || run.Findings.Contains(findingId) || scene.Findings.All(f => f.Id != findingId)) return false;
+         AuthoredScene scene = Active(run, q)?.Objective?.Scene;
+         AuthoredFinding f = scene?.Findings.FirstOrDefault(x => x.Id == findingId);
+         if (f == null || run.Findings.Contains(findingId)) return false;
          run.Findings.Add(findingId);
+         SetFlags(run, f.Sets);
 
          return true;
       }
@@ -201,31 +322,47 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>explore: the narration sprang a hazard. Its effect for the game to carry out, once; null otherwise.</summary>
       public static AuthoredHazardEffect Sprung(AuthoredQuestRun run, AuthoredQuest q, string hazardId)
       {
-         AuthoredHazard h = Active(run, q)?.Objective.Scene?.Hazards.FirstOrDefault(x => x.Id == hazardId);
+         AuthoredHazard h = Active(run, q)?.Objective?.Scene?.Hazards.FirstOrDefault(x => x.Id == hazardId);
          if (h == null || run.HazardsSprung.Contains(hazardId)) return null;
          run.HazardsSprung.Add(hazardId);
 
          return h.Effect;
       }
 
-      /// <summary>explore: the narration brought someone in. True only for an encounter the scene declares, once.</summary>
+      /// <summary>explore: the narration brought someone in. True only for an encounter the scene declares, once; its flags are set.</summary>
       public static bool Meet(AuthoredQuestRun run, AuthoredQuest q, string encounterId)
       {
-         AuthoredScene scene = Active(run, q)?.Objective.Scene;
-         if (scene == null || run.Met.Contains(encounterId) || scene.Encounters.All(e => e.Id != encounterId)) return false;
+         AuthoredScene scene = Active(run, q)?.Objective?.Scene;
+         AuthoredEncounter e = scene?.Encounters.FirstOrDefault(x => x.Id == encounterId);
+         if (e == null || run.Met.Contains(encounterId)) return false;
          run.Met.Add(encounterId);
+         SetFlags(run, e.Sets);
+
+         return true;
+      }
+
+      /// <summary>
+      ///   explore: the narration took a choice of the scene (its marker). Accepted only for a choice the scene declares,
+      ///   made in the scene, open now, and only the first: the scene then ends and the story follows it on closing.
+      /// </summary>
+      public static bool ChooseInScene(AuthoredQuestRun run, AuthoredQuest q, string choiceId)
+      {
+         if (run == null || run.SceneChoiceId != null || SceneChoices(run, q).All(c => c.Id != choiceId)) return false;
+         run.SceneChoiceId = choiceId;
 
          return true;
       }
 
       /// <summary>
       ///   explore: the scene closed. The required findings the narration never reached, to be stated at closing so a
-      ///   clue is missed only in its manner, never in substance; then the stage completes.
+      ///   clue is missed only in its manner, never in substance (their flags are set too); then the stage is left by
+      ///   the choice the scene took, or else by its on_complete.next, or else by its first default choice.
       /// </summary>
       public static IReadOnlyList<AuthoredFinding> SceneClosed(AuthoredQuestRun run, AuthoredQuest q, int today, out AuthoredStep step)
       {
-         AuthoredScene scene = Active(run, q)?.Objective.Scene;
-         if (scene == null || Current(run, q)?.Objective.Type != "explore")
+         AuthoredStage s = Active(run, q);
+         AuthoredScene scene = s?.Objective?.Scene;
+         if (scene == null || s.Objective.Type != "explore")
          {
             step = AuthoredStep.Nothing;
 
@@ -234,37 +371,95 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          List<AuthoredFinding> missed = scene.Findings.Where(f => f.Required && !run.Findings.Contains(f.Id)).ToList();
          run.Findings.AddRange(missed.Select(f => f.Id));
-         step = Advance(run, q, today);
+         foreach (AuthoredFinding f in missed) SetFlags(run, f.Sets);
+
+         IReadOnlyList<AuthoredChoice> open = SceneChoices(run, q);
+         AuthoredChoice chosen = open.FirstOrDefault(c => c.Id == run.SceneChoiceId);
+         if (chosen != null) step = GoTo(run, q, s, chosen, chosen.Next, today);
+         else if (!string.IsNullOrWhiteSpace(s.OnComplete?.Next)) step = GoTo(run, q, s, null, s.OnComplete.Next, today);
+         else if (open.FirstOrDefault(c => c.Default) is { } fallback) step = GoTo(run, q, s, fallback, fallback.Next, today);
+         else step = AuthoredStep.Nothing;
 
          return missed;
       }
 
-      /// <summary>defeat_party: a party was beaten by the player; the stage completes if it was the one spawned for it.</summary>
+      /// <summary>defeat_party: a party was beaten by the player; the way out it belongs to is taken, if it was spawned for one.</summary>
       public static AuthoredStep PartyDefeated(AuthoredQuestRun run, AuthoredQuest q, string partyId, int today)
       {
          AuthoredStage s = Active(run, q);
+         if (s == null || partyId == null) return AuthoredStep.Nothing;
 
-         return s?.Objective.Type == "defeat_party" && partyId != null && partyId == run.SpawnedPartyId ? Advance(run, q, today) : AuthoredStep.Nothing;
+         AuthoredWay way = Ways(run, q).FirstOrDefault(w => w.Objective.Type == "defeat_party"
+                                                            && (w.Choice == null ? partyId == run.SpawnedPartyId
+                                                                   : run.ChoiceBands.TryGetValue(w.Choice.Id, out string band) && band == partyId));
+
+         return way != null ? GoTo(run, q, s, way.Choice, way.Next, today) : AuthoredStep.Nothing;
       }
 
-      /// <summary>A day passed: the quest fails past its time limit, or when a spawned band has had time to flee.</summary>
+      /// <summary>defeat_party: the bands the current stage hunts now, the stage's own (null choice) and each open choice's.</summary>
+      public static IReadOnlyList<AuthoredWay> BandsToHunt(AuthoredQuestRun run, AuthoredQuest q)
+         => Ways(run, q).Where(w => w.Objective.Type == "defeat_party" && w.Objective.Spawn != null).ToList();
+
+      /// <summary>
+      ///   A day passed: the quest fails past its time limit, or when the stage's spawned band has had time to flee;
+      ///   otherwise a way out that waits (wait) is taken once its days have passed with nothing else taken.
+      /// </summary>
       public static AuthoredStep Day(AuthoredQuestRun run, AuthoredQuest q, int today)
       {
          AuthoredStage s = Active(run, q);
          if (s == null) return AuthoredStep.Nothing;
 
          bool timedOut = q.Failure?.Days > 0 && today - run.StartDay > q.Failure.Days;
-         bool fled = s.Objective.Type == "defeat_party" && s.Objective.Spawn?.FleeAfterDays > 0 && today - run.StageStartDay > s.Objective.Spawn.FleeAfterDays;
-         if (!timedOut && !fled) return AuthoredStep.Nothing;
+         bool fled = s.Objective?.Type == "defeat_party" && s.Objective.Spawn?.FleeAfterDays > 0 && today - run.StageStartDay > s.Objective.Spawn.FleeAfterDays;
+         if (timedOut || fled)
+         {
+            run.Status = AuthoredQuestStatus.Failed;
 
-         run.Status = AuthoredQuestStatus.Failed;
+            return new AuthoredStep {Kind = AuthoredStepKind.Failed, FromStage = s.Id};
+         }
 
-         return new AuthoredStep {Kind = AuthoredStepKind.Failed, FromStage = s.Id};
+         AuthoredWay waited = Ways(run, q).FirstOrDefault(w => w.Objective.Type == "wait" && today - run.StageStartDay >= Math.Max(1, w.Objective.Days));
+
+         return waited != null ? GoTo(run, q, s, waited.Choice, waited.Next, today) : AuthoredStep.Nothing;
       }
 
-      /// <summary>A test lever only (cr.story_step): completes the active stage as though its objective were met.</summary>
+      /// <summary>
+      ///   A test lever only (cr.story_step): completes the active stage as though its objective were met; a stage
+      ///   with no objective is left by its first open choice.
+      /// </summary>
       public static AuthoredStep ForceAdvance(AuthoredQuestRun run, AuthoredQuest q, int today)
-         => Active(run, q) != null ? Advance(run, q, today) : AuthoredStep.Nothing;
+      {
+         AuthoredStage s = Active(run, q);
+         if (s == null) return AuthoredStep.Nothing;
+         if (s.Objective != null && !string.IsNullOrWhiteSpace(s.OnComplete?.Next)) return GoTo(run, q, s, null, s.OnComplete.Next, today);
+
+         AuthoredChoice first = OpenChoices(run, q).FirstOrDefault();
+
+         return first != null ? GoTo(run, q, s, first, first.Next, today) : AuthoredStep.Nothing;
+      }
+
+      /// <summary>A test lever only (cr.story_choose): takes this choice of the active stage, if it is open, however it is taken.</summary>
+      public static AuthoredStep ForceChoice(AuthoredQuestRun run, AuthoredQuest q, string choiceId, int today)
+      {
+         AuthoredStage s = Active(run, q);
+         AuthoredChoice c = OpenChoices(run, q).FirstOrDefault(x => x.Id == choiceId);
+
+         return s != null && c != null ? GoTo(run, q, s, c, c.Next, today) : AuthoredStep.Nothing;
+      }
+
+      /// <summary>What the tale left when it ended: the named ending it reached, the reward, or the failure.</summary>
+      public static AuthoredOutcome Outcome(AuthoredQuestRun run, AuthoredQuest q)
+      {
+         if (run == null || q == null) return null;
+         if (run.Status == AuthoredQuestStatus.Failed) return q.Failure;
+         if (run.EndingId != null) return q.Endings != null && q.Endings.TryGetValue(run.EndingId, out AuthoredOutcome e) ? e : null;
+
+         return q.Reward;
+      }
+
+      /// <summary>An outcome's consequences that hold for the path this run walked (a consequence under a flag only when it holds).</summary>
+      public static IReadOnlyList<AuthoredConsequence> Consequences(AuthoredQuestRun run, AuthoredOutcome outcome)
+         => (outcome?.Consequences ?? new List<AuthoredConsequence>()).Where(c => c != null && AuthoredFlags.Hold(c.If, run?.Flags)).ToList();
 
       /// <summary>The bound StringId for a role written "{role}"; the text itself when it is no placeholder.</summary>
       public static string Bound(AuthoredQuestRun run, string role)
@@ -287,25 +482,65 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       private static AuthoredStage Active(AuthoredQuestRun run, AuthoredQuest q)
          => run?.Status == AuthoredQuestStatus.Active ? Current(run, q) : null;
 
-      private static AuthoredStep Advance(AuthoredQuestRun run, AuthoredQuest q, int today)
+      private static bool IsSceneChoice(AuthoredChoice c) => c.Objective == null && c.Said == null;
+
+      /// <summary>A local of this place spoke with the player: counted for every way out that questions this place.</summary>
+      private static void Heard(AuthoredQuestRun run, IReadOnlyList<AuthoredWay> ways, string heroId, string placeId)
       {
-         AuthoredStage s = Current(run, q);
-         string next = s?.OnComplete?.Next;
+         foreach (AuthoredWay w in ways.Where(w => w.Objective.Type == "talk_to_locals" && Bound(run, w.Objective.Place) == placeId))
+         {
+            if (w.Choice == null && !run.TalkedThisStage.Contains(heroId)) run.TalkedThisStage.Add(heroId);
+            string key = placeId + "|" + heroId;
+            if (!run.LocalsHeard.Contains(key)) run.LocalsHeard.Add(key);
+         }
+      }
+
+      private static int LocalsCounted(AuthoredQuestRun run, AuthoredWay way)
+      {
+         string prefix = Bound(run, way.Objective.Place) + "|";
+         IEnumerable<string> heard = run.LocalsHeard.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).Select(k => k.Substring(prefix.Length));
+         if (way.Choice == null) heard = heard.Union(run.TalkedThisStage);
+
+         return heard.Distinct().Count();
+      }
+
+      private static void SetFlags(AuthoredQuestRun run, IEnumerable<string> flags)
+      {
+         foreach (string f in (flags ?? Enumerable.Empty<string>()).Select(f => (f ?? "").Trim()).Where(f => f.Length > 0))
+            if (!run.Flags.Contains(f)) run.Flags.Add(f);
+      }
+
+      /// <summary>
+      ///   Leaves <paramref name="from" /> by a way out: the choice's flags are set and its taking recorded, the stage's
+      ///   progress is reset, and the story moves to <paramref name="next" />, a stage or an ending.
+      /// </summary>
+      private static AuthoredStep GoTo(AuthoredQuestRun run, AuthoredQuest q, AuthoredStage from, AuthoredChoice choice, string next, int today)
+      {
+         if (choice != null)
+         {
+            SetFlags(run, choice.Sets);
+            run.ChoicesTaken.Add(from?.Id + "/" + choice.Id);
+         }
+
          run.TalkedThisStage.Clear();
+         run.LocalsHeard.Clear();
+         run.ChoiceBands.Clear();
+         run.SceneChoiceId = null;
          run.NightsWatched = 0;
          run.LastNightDay = -1;
          run.StageStartDay = today;
 
-         if (next == null || next == "reward")
+         if (next == null || AuthoredQuestLoader.IsEnding(next))
          {
             run.Status = AuthoredQuestStatus.Completed;
+            run.EndingId = AuthoredQuestLoader.EndingId(next);
 
-            return new AuthoredStep {Kind = AuthoredStepKind.Completed, FromStage = s?.Id};
+            return new AuthoredStep {Kind = AuthoredStepKind.Completed, FromStage = from?.Id, ChoiceId = choice?.Id, EndingId = run.EndingId};
          }
 
          run.StageId = next;
 
-         return new AuthoredStep {Kind = AuthoredStepKind.Advanced, FromStage = s?.Id, ToStage = next};
+         return new AuthoredStep {Kind = AuthoredStepKind.Advanced, FromStage = from?.Id, ToStage = next, ChoiceId = choice?.Id};
       }
 
       /// <summary>A stable roll in [0,1) from the quest and the day (FNV-1a: string.GetHashCode is randomised per process).</summary>

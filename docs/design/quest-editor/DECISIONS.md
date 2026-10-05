@@ -77,3 +77,31 @@ its suite would have been green for having checked nothing. Commit `f1f58f9`.
 
 **E2. "Has the reward any content" compares with a blank outcome** rather than testing `Regard != 0`, which the regard
 ratchet rightly counts as an inline threshold. It is no threshold: it asks whether the author wrote anything.
+
+**E3. The character whose conversation ends the tale keeps their block until it closes.** Before branches, the block
+vanished the moment the run completed, so the canvas of the werewolf's last stage ("relief and gratitude, plainly
+given") never reached the lord in the very conversation where he pays the reward. With endings reached in
+conversation (expose the rival to the lord), this mattered more, so `PromptBlockFor` now also answers for the
+`SpokenHeroId` of a finished run. Found while reading the code; it changes what the lord is told in that one
+conversation, and nothing else.
+
+**E4. A scene opens whenever its stage is reached.** In increment 1 an `explore` stage opened only after `keep_watch`
+(the night that came due). Now any path into an explore stage opens its scene: at once, or when the conversation that
+led there ends; and the hourly tick reopens a scene that is due and not open (after a load). Why: a scene choice
+leading to another scene ("you turn left: the mill"), or `be_at` leading to "among the ashes" in smoke_over_the_hills,
+must open; before, such a stage could only be left with `cr.story_step`.
+
+**E5. A stage left behind takes its bands with it.** Every band of the tale is released when the story moves to
+another stage (a stage's band, or a choice's), not only when the tale ends. A choice's band is tagged
+`<quest>/<choice>`; the stage's own band keeps the tag it always had (`<quest>`), so a save taken mid-hunt finds it.
+
+**E6. A required finding is told when the scene closes, however it closes,** a choice taken included, and its flags
+are set then. A default choice taken on closing sets its flags too. Why: the old rule ("a clue is missed only in its
+manner") is unchanged; an author who wants a clue only on one path marks it not required.
+
+**E7. `cr.story_choose <choice id>`** takes an open choice however it would be taken, so an author can walk each path
+(beside `cr.story_step`, which on a stage with no objective takes the first open choice). `cr.story_status` now lists
+the flags, the path taken and the open choices.
+
+**E8. Find-SwapRisk** reports 15 members on `main` already (MercenaryDeparturePolicy, RealmServiceWording,
+TransientPartyLedger); this branch adds none. The goal says "it must stay at zero"; it was not at zero before.
