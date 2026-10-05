@@ -128,6 +128,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `OwnerClan.MapFaction` (3) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts` |
 | `Party.NumberOfHealthyMembers` (3) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.MayAsk`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `PartyBelongedToAsPrisoner.MapFaction` (3) | `PowerBalanceFacts`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
+| `PlayerEncounter.InsideSettlement` (3) | `DuelStagingSupport.CanHoldATownDuel`, `DuelVenuePolicy.Choose`, `LandfallFacts` |
 | `StatureReader.OfClan` (3) | `BastardPrestigePolicy.PrestigeScore`, `BastardPrestigePolicy.Resolve`, `LordRecruitmentFacts` |
 | `Status.IsCuriousOrDeeper` (3) | `CorrespondenceRankFacts`, `CorrespondenceRankPolicy.DealsInPerson`, `RegardProposal` |
 | `StringId.GetHashCode` (3) | `RomanticProfilePolicy.DetermineKinks`, `RomanticProfilePolicy.DetermineOrientation`, `RomanticProfilePolicy.DeterminePreferences` |
@@ -200,7 +201,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `PartyBase.LeaderHero` (2) | `HeroNaming`, `NotHisToSellFacts` |
 | `PartyBase.NumberOfHealthyMembers` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `PartyBase.PartySizeLimit` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
-| `PlayerEncounter.InsideSettlement` (2) | `DuelStagingSupport.CanHoldATownDuel`, `DuelVenuePolicy.Choose` |
 | `Romantic.IsSecretLover` (2) | `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Romantic.Kinks` (2) | `CaptiveEncounterPolicy.EncounterProbability`, `CaptiveEncounterPolicy.SelectIntent` |
 | `ScreenManager.TopScreen` (2) | `ChatFocusArbitrationPolicy.Decide`, `ChatFocusArbitrationPolicy.ReasonFor` |
@@ -435,7 +435,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `JealousyTriggerPolicy.IsPlausibleCourtship`: `GameStateBridge.GetCurrentGameDay`, `Hero.IsFemale`, `NewEventData.Type`, `Romantic.IsCompatibleWith`
 - `KeepPeaceBreachPolicy.ShouldBreach`: `Hero.MapFaction`
 - `KingdomPowerFacts`: `Clan.Influence`, `RulingClan.Influence`
-- `LandfallFacts`: `Hero.OneToOneConversationHero`, `MobileParty.IsCurrentlyAtSea`
+- `LandfallFacts`: `Hero.OneToOneConversationHero`, `MobileParty.IsCurrentlyAtSea`, `PlayerEncounter.InsideSettlement`
 - `LetterCandidate`: `Hero.Spouse`
 - `LetterCandidateFreshness.PremiseStillHolds`: `Hero.MapFaction`
 - `LetterDeliveryPolicy.ShouldHoldDeliveryAtSea`: `MobileParty.IsCurrentlyAtSea`

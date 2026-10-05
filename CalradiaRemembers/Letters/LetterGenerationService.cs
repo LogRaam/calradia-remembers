@@ -350,8 +350,11 @@ namespace CalradiaRemembers.Letters
          }
       }
 
-      /// <summary>How long a single letter-generation LLM call may run before it is cancelled and the letter skipped.</summary>
-      private const int LetterLlmTimeoutSeconds = 60;
+      /// <summary>
+      ///   How long a single letter-generation LLM call may run before it is cancelled and the letter skipped: the
+      ///   player's "LLM Response Timeout", never under a minute (CarolusIV, 05/10/2026: it was a fixed 60 seconds).
+      /// </summary>
+      private static int LetterLlmTimeoutSeconds => Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds);
 
       /// <summary>
       ///   A deep copy of the profile for read-only prompt building, so the off-thread LLM call never

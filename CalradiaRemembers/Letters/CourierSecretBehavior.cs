@@ -402,7 +402,7 @@ namespace CalradiaRemembers.Letters
             string prompt = SeverityPrompt(reader.Name.ToString(), liege, secret);
 
             string answer = null;
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
             {
                var request = new LlmRequest {
                   SystemPrompt = prompt,

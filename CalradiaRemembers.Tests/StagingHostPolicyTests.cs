@@ -46,12 +46,24 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_conversation_waiting_for_landfall_WHEN_asked_whether_it_may_be_received_THEN_only_ashore_and_with_the_screen_free()
       {
-         StagingHostPolicy.MayReceiveWaiting(new LandfallFacts()).Should().BeTrue();
+         StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {HoursAshore = StagingHostPolicy.LandfallSettleHours}).Should().BeTrue();
          StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {PlayerAtSea = true}).Should().BeFalse();
          StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {MissionLive = true}).Should().BeFalse();
          StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {ChatOpen = true}).Should().BeFalse();
          StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {AnotherSceneStaging = true}).Should().BeFalse();
          StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {ConversationLive = true}).Should().BeFalse();
+      }
+
+      // CarolusIV (Nexus, 05/10/2026): crashes when a companion wants to talk while he sails into a port. The waiting
+      // conversation was received the very frame the ship touched the quay, while the game was still starting the
+      // town's encounter, the engine state that has crashed natively under staged audiences before. It now waits until
+      // the player has been ashore a while, and never while an encounter is still being set up.
+      [Test]
+      public void GIVEN_the_ship_just_docked_WHEN_a_waiting_conversation_would_be_received_THEN_it_waits_for_the_landing_to_settle()
+      {
+         StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {HoursAshore = 0}).Should().BeFalse();
+         StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {HoursAshore = StagingHostPolicy.LandfallSettleHours}).Should().BeTrue();
+         StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {HoursAshore = StagingHostPolicy.LandfallSettleHours, EncounterStarting = true}).Should().BeFalse();
       }
 
       // The envoy "rides up under a flag of truce": at sea he cannot, so he does not arrive until the player lands.

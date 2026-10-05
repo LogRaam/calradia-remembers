@@ -50,6 +50,15 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>Another conversation is being staged right now.</summary>
       public bool AnotherSceneStaging { get; set; }
+
+      /// <summary>
+      ///   Campaign hours since the player's party was last seen at sea (CarolusIV, 05/10/2026: received the frame the
+      ///   ship docked, while the port's encounter was still starting, the audience crashed).
+      /// </summary>
+      public double HoursAshore { get; set; }
+
+      /// <summary>An encounter is under way and the player is not yet inside the settlement (a landing, a meeting on the road).</summary>
+      public bool EncounterStarting { get; set; }
    }
 
    /// <summary>The door's rules. Pure.</summary>
@@ -66,7 +75,11 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>Whether a conversation held for landfall may be received now: ashore, and nothing else holding the screen.</summary>
       public static bool MayReceiveWaiting(LandfallFacts facts)
-         => facts != null && !facts.PlayerAtSea && !facts.MissionLive && !facts.ConversationLive && !facts.ChatOpen && !facts.AnotherSceneStaging;
+         => facts != null && !facts.PlayerAtSea && !facts.MissionLive && !facts.ConversationLive && !facts.ChatOpen && !facts.AnotherSceneStaging
+            && facts.HoursAshore >= LandfallSettleHours && !facts.EncounterStarting;
+
+      /// <summary>TUNE: campaign hours ashore before a conversation held for landfall is received, so the landing settles first.</summary>
+      public const int LandfallSettleHours = 1;
 
       /// <summary>Whether an envoy can ride up to the player now: not while the player is at sea.</summary>
       public static bool AnEnvoyCanReachThePlayer(bool playerAtSea) => !playerAtSea;

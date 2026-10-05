@@ -42,7 +42,7 @@ namespace CalradiaRemembers.Chat
             var summarizer = new CaptiveSceneSummarizer(behavior.LlmServices.HousekeepingClient);
 
             string rich;
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
             {
                rich = await Task.Run(() => summarizer.SummarizeAsync(
                                    captor, transcript, intentVerb, playerIsFemale, ModSettings.ReplyLanguage, cts.Token))
@@ -85,7 +85,7 @@ namespace CalradiaRemembers.Chat
             var summarizer = new ConversationSummarizer(behavior.LlmServices.HousekeepingClient);
 
             string rich;
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
             {
                rich = await Task.Run(() => summarizer.SummarizeAsync(
                                    npc, transcript, playerName, ModSettings.ReplyLanguage, cts.Token))
@@ -147,7 +147,7 @@ namespace CalradiaRemembers.Chat
             var extractor = new WorldClaimExtractor(behavior.LlmServices.HousekeepingClient);
 
             IReadOnlyList<WorldClaim> claims;
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
             {
                claims = await Task.Run(() => extractor.ExtractAsync(npc, transcript, cts.Token))
                                   .ConfigureAwait(false);
@@ -190,7 +190,7 @@ namespace CalradiaRemembers.Chat
             var summarizer = new ConversationSummarizer(behavior.LlmServices.HousekeepingClient);
 
             string rich;
-            using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+            using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
             using (CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, ct))
             {
                rich = await Task.Run(() => summarizer.SummarizeAsync(

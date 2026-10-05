@@ -100,7 +100,7 @@ namespace CalradiaRemembers.Letters
                 var summarizer = new LetterMemorySummarizer(behavior.LlmServices.HousekeepingClient);
 
                 string rich;
-                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
                 {
                     rich = await Task.Run(() => summarizer.SummarizeAsync(
                                         npc, content, npcIsSender, playerName, ModSettings.ReplyLanguage, cts.Token, writtenBy))

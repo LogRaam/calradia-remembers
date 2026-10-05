@@ -331,8 +331,9 @@ namespace CalradiaRemembers.Settings
       public string ProseFallbackModel { get; set; } = "";
 
       [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 11,
-         HintText = "How long to wait for a reply, in seconds (default 120). Raise it for a slow local or reasoning " +
-                    "model; lower it to fail fast. Applies immediately.")]
+         HintText = "How long to wait for a reply, in seconds (default 120), in conversations and for letters and " +
+                    "summaries (never under 60). Raise it for a slow local or reasoning model; lower it to fail fast. " +
+                    "Applies immediately.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public int LlmTimeoutSeconds { get; set; } = 120;
 

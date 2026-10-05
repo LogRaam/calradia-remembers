@@ -496,7 +496,11 @@ namespace CalradiaRemembers.Chat
       ///   Drops every conversation held for landfall, receiving none. Called when a campaign starts or loads: a held
       ///   request carries heroes of the campaign it was asked in, and must never be received in another.
       /// </summary>
-      public static void ForgetAwaitingLandfall() => _awaitingLandfall.Clear();
+      public static void ForgetAwaitingLandfall()
+      {
+         _awaitingLandfall.Clear();
+         _lastSeenAtSea = CampaignTime.Zero; // another campaign's clock means nothing here
+      }
 
       /// <summary>Test seam (cr.testall): how many conversations are held for landfall.</summary>
       internal static int DebugAwaitingLandfallCount => _awaitingLandfall.Count;
@@ -508,6 +512,9 @@ namespace CalradiaRemembers.Chat
       internal static void DebugClearAwaitingLandfall() => ForgetAwaitingLandfall();
 
       #region private
+
+      // When the player's party was last seen at sea: a held conversation waits for the landing to settle (CarolusIV).
+      private static CampaignTime _lastSeenAtSea = CampaignTime.Zero;
 
       /// <summary>Holds <paramref name="request" /> until the player is ashore, once per kind and person, and says so.</summary>
       private static void WaitForLandfall(ChatSceneRequest request, bool announce = true)
@@ -523,6 +530,8 @@ namespace CalradiaRemembers.Chat
       /// <summary>Receives the oldest conversation held for landfall once the player is ashore and the screen is free.</summary>
       private static void ReceiveOneAwaitingLandfall()
       {
+         bool atSea = MobileParty.MainParty?.IsCurrentlyAtSea == true;
+         if (atSea) _lastSeenAtSea = CampaignTime.Now;
          if (_awaitingLandfall.Count == 0) return;
 
          bool mayReceive = StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {
@@ -530,7 +539,9 @@ namespace CalradiaRemembers.Chat
             MissionLive = Mission.Current != null,
             ConversationLive = Hero.OneToOneConversationHero != null,
             ChatOpen = ChatManager.IsOpen,
-            AnotherSceneStaging = _pending != null
+            AnotherSceneStaging = _pending != null,
+            HoursAshore = _lastSeenAtSea == CampaignTime.Zero ? double.MaxValue : (CampaignTime.Now - _lastSeenAtSea).ToHours,
+            EncounterStarting = PlayerEncounter.Current != null && !PlayerEncounter.InsideSettlement
          });
          if (!mayReceive) return;
 
