@@ -330,50 +330,58 @@
                 <!-- Request Private is CONDITIONAL (only with witnesses present), so it is a RENDERED button, not
                      baked art: a dark translucent pill with gold text that appears only when IsPrivateRequestVisible.
                      Remove the painted "Request Private" from the right page JPG so it does not double up. -->
-                <ButtonWidget Id="RequestPrivateButton"
-                              WidthSizePolicy="Fixed"
-                              HeightSizePolicy="Fixed"
-                              SuggestedWidth="150"
-                              SuggestedHeight="30"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Top"
-                              MarginTop="150"
-                              IsVisible="@IsPrivateRequestVisible"
-                              DoNotPassEventsToChildren="true"
-                              UpdateChildrenStates="true"
-                              Command.Click="ExecuteRequestPrivate">
+                <!-- Request Private and Invite side by side, in one centred row (Gabriel, 04/10/2026: stacked, Invite hid
+                     the text below). A hidden button takes no room, so Invite alone stays centred. -->
+                <ListPanel Id="AudienceButtonsRow"
+                           WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                           HorizontalAlignment="Center" VerticalAlignment="Top"
+                           MarginTop="150"
+                           StackLayout.LayoutMethod="HorizontalLeftToRight">
                   <Children>
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#0d0a08C8" IsDisabled="true" />
-                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                                Brush="Default" Brush.FontSize="15" Brush.FontColor="#c8a878FF"
-                                Brush.TextHorizontalAlignment="Center" Text="Request Private" IsDisabled="true" />
-                  </Children>
-                </ButtonWidget>
+                    <ButtonWidget Id="RequestPrivateButton"
+                                  WidthSizePolicy="Fixed"
+                                  HeightSizePolicy="Fixed"
+                                  SuggestedWidth="150"
+                                  SuggestedHeight="30"
+                                  VerticalAlignment="Center"
+                                  MarginLeft="4" MarginRight="4"
+                                  IsVisible="@IsPrivateRequestVisible"
+                                  DoNotPassEventsToChildren="true"
+                                  UpdateChildrenStates="true"
+                                  Command.Click="ExecuteRequestPrivate">
+                      <Children>
+                        <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                Sprite="BlankWhiteSquare_9" Color="#0d0a08C8" IsDisabled="true" />
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Brush="Default" Brush.FontSize="15" Brush.FontColor="#c8a878FF"
+                                    Brush.TextHorizontalAlignment="Center" Text="Request Private" IsDisabled="true" />
+                      </Children>
+                    </ButtonWidget>
 
-                <!-- Invite (Gabriel, 03/10/2026, after nerethi): always offered in a conversation, under Request Private. -->
-                <ButtonWidget Id="InviteButton"
-                              WidthSizePolicy="Fixed"
-                              HeightSizePolicy="Fixed"
-                              SuggestedWidth="150"
-                              SuggestedHeight="30"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Top"
-                              MarginTop="186"
-                              IsVisible="@IsInviteVisible"
-                              DoNotPassEventsToChildren="true"
-                              UpdateChildrenStates="true"
-                              Command.Click="ExecuteInvite">
-                  <Children>
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#0d0a08C8" IsDisabled="true" />
-                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                                Brush="Default" Brush.FontSize="15" Brush.FontColor="#c8a878FF"
-                                Brush.TextHorizontalAlignment="Center" Text="Invite" IsDisabled="true" />
+                    <!-- Invite (Gabriel, 03/10/2026, after nerethi): always offered in a conversation, beside Request Private. -->
+                    <ButtonWidget Id="InviteButton"
+                                  WidthSizePolicy="Fixed"
+                                  HeightSizePolicy="Fixed"
+                                  SuggestedWidth="150"
+                                  SuggestedHeight="30"
+                                  VerticalAlignment="Center"
+                                  MarginLeft="4" MarginRight="4"
+                                  IsVisible="@IsInviteVisible"
+                                  DoNotPassEventsToChildren="true"
+                                  UpdateChildrenStates="true"
+                                  Command.Click="ExecuteInvite">
+                      <Children>
+                        <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                Sprite="BlankWhiteSquare_9" Color="#0d0a08C8" IsDisabled="true" />
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Brush="Default" Brush.FontSize="15" Brush.FontColor="#c8a878FF"
+                                    Brush.TextHorizontalAlignment="Center" Text="Invite" IsDisabled="true" />
+                      </Children>
+                    </ButtonWidget>
                   </Children>
-                </ButtonWidget>
+                </ListPanel>
 
                 <!-- Round Table / Council Voice: council-only, gated by their IsVisible; parked top-right. -->
                 <ButtonWidget Id="RoundTableButton"
