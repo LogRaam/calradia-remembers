@@ -576,14 +576,18 @@ namespace CalradiaRemembers.Quests
             Apply = markers => ApplyMarkers(q, markers, () => over = true),
             IsOver = () => over,
             OnClose = () => CloseScene(q),
-            Ways = () => _run is {Status: AuthoredQuestStatus.Active}
-               ? AuthoredQuestEngine.SceneChoices(_run, q).Select(c => AuthoredQuestEngine.Fill(_run, c.Label)).ToList()
-               : new List<string>()
+            Ways = () => SceneWays(q)
          });
          ModLog.Info($"[TALE] '{q.Id}': the scene opens.");
       }
 
       private bool _sceneWaiting;
+
+      /// <summary>The words of the scene's open ways out, names filled: what the chat lists under the narration.</summary>
+      private IReadOnlyList<string> SceneWays(AuthoredQuest q)
+         => _run is {Status: AuthoredQuestStatus.Active}
+            ? AuthoredQuestEngine.SceneChoices(_run, q).Select(c => AuthoredQuestEngine.Fill(_run, c.Label)).ToList()
+            : new List<string>();
 
       /// <summary>
       ///   What the narration's markers do: findings recorded, a hazard's effect carried out, someone met, and a way out
@@ -874,6 +878,25 @@ namespace CalradiaRemembers.Quests
       {
          if (_run != null && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) OnBandDestroyed(q, band, by);
       }
+
+      /// <summary>Self-test seam: the ways out the chat would list under the narration now, through the real handling.</summary>
+      internal IReadOnlyList<string> DebugSceneWays()
+         => _run != null && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q) ? SceneWays(q) : new List<string>();
+
+      /// <summary>
+      ///   Self-test seam: reads a tale written into the test itself through the real loader and adds it to the tales in
+      ///   play (never a shipped file); the loader's problems are returned. <see cref="DebugForgetTale" /> takes it out.
+      /// </summary>
+      internal IReadOnlyList<string> DebugLoadTale(string json, string source)
+      {
+         AuthoredQuestLoadResult r = AuthoredQuestLoader.Parse(json, source);
+         foreach (AuthoredQuest q in r.Quests) _quests[q.Id] = q;
+
+         return r.Problems;
+      }
+
+      /// <summary>Self-test seam: takes a tale the test loaded out of the tales in play.</summary>
+      internal void DebugForgetTale(string questId) => _quests.Remove(questId);
 
       /// <summary>Self-test seam: the scene closes, through the real handling (no window was opened).</summary>
       internal void DebugCloseScene()

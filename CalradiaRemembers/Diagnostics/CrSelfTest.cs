@@ -273,6 +273,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Then the refused-beat fallback (04/10/2026): the NSFW model resolves for its own provider, the NSFW role has its own client, a refusal is redone there in Enhanced mode, and nothing is redone with no NSFW model. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
          new SelfTest("authored_quest_opening", Severity.Light, "Authored quests Inc 1 (docs/design/AUTHORED_QUESTS.md). The werewolf loads; a real lord holding a village by a forest is bound to it and told to raise it; accepting puts a 'Tale:' entry in the journal and moves past the request; a local of that village believes in the beast and knows nothing of the slavers; two locals heard moves the tale to the watch. Then the watch ends in the scene: a declared finding recorded, an undeclared one refused, the snare hurts but never kills (health restored), closing early still yields the missed clue and moves on to the lord; the lord sends the player hunting, a real band is spawned near the village, and beaten by the player the tale turns home. Stops before the reward; abandons the tale (the band is released) and forgets it after.", TestAuthoredQuestOpening),
+         new SelfTest("authored_quest_branches", Severity.Light, "Branching tales (docs/design/quest-editor/goal.md). A small tale written into this test (never a shipped file) loads through the real loader; a real lord is bound to it and it is taken on. At the crossroads the journal shows the stage and its open ways, not the closed one; meeting the lord takes the first OPEN way (the one under an unset flag is passed over). In the scene, the chat would list only the open ways; a marker for a closed way changes nothing; a finding sets its flag, the way it opened is listed and its marker is taken; closing the scene follows it to its own ending (no regard, gold or memory, so nothing is left behind). Abandons and forgets the tale after.", TestAuthoredQuestBranches),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
          new SelfTest("world_event_discretion", Severity.Light, "IdentityCrysys (Nexus, 03/10/2026): keep a world event from a character, or from all but those it names. Records a loud event naming two lords of a realm, then through the real console commands: public, a third lord hears it; secret, only the two do; hidden from the third, only he is unaware; removed, it is gone. Removes it after.", TestWorldEventDiscretion),
          new SelfTest("chat_art_loads", Severity.Light, "EmperorHaterius (Nexus, 04/10/2026): the Dark Leather window was see-through with no button, because its End Conversation and Memories labels are painted into art read from a hand-built path that missed his install (every shipped file read as not found). Checks the module folder is the one the engine found (SubModule.xml there), loads every chat image through the real loader (a failure writes its reason to the log as [IMAGE]), and checks that Dark Leather opens only when its art loads, Origin otherwise. Changes nothing.", TestChatArtLoads),
@@ -8755,6 +8756,88 @@ namespace CalradiaRemembers.Diagnostics
          {
             b.Abandon("Self-test.");
             b.ForgetPlayed(wolf.Id);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>The tale authored_quest_branches walks: written here, so no shipped file is needed or touched.</summary>
+      private const string BranchingSelfTestTale = @"{
+        ""id"": ""cr_selftest_crossroads"", ""title"": ""[SELFTEST] The Crossroads"",
+        ""requires"": { ""giver"": { ""role"": ""lord"", ""min_regard"": -100 } },
+        ""binds"": { ""giver"": ""a lord"" },
+        ""stages"": [
+          { ""id"": ""ask"", ""journal"": ""[SELFTEST] {giver} asks a favour."", ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" },
+            ""on_complete"": { ""next"": ""crossroads"" } },
+          { ""id"": ""crossroads"", ""journal"": ""[SELFTEST] A crossroads."",
+            ""choices"": [
+              { ""id"": ""secret"", ""label"": ""Tell the secret"", ""journal"": ""[SELFTEST] closed way"", ""if"": ""knows_secret"",
+                ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" }, ""next"": ""end:quiet"" },
+              { ""id"": ""go_on"", ""label"": ""Go on"", ""journal"": ""[SELFTEST] open way"",
+                ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" }, ""next"": ""the_scene"" },
+              { ""id"": ""wait_it_out"", ""label"": ""Wait"", ""objective"": { ""type"": ""wait"", ""days"": 30 }, ""next"": ""end:quiet"" } ] },
+          { ""id"": ""the_scene"", ""journal"": ""[SELFTEST] A scene."",
+            ""objective"": { ""type"": ""explore"", ""scene"": {
+              ""title"": ""[SELFTEST] The crossroads"",
+              ""opening"": { ""canvas"": ""Two paths."", ""facts"": [] },
+              ""findings"": [ { ""id"": ""token"", ""required"": false, ""text"": ""A token."", ""sets"": ""knows_secret"" } ] } },
+            ""choices"": [
+              { ""id"": ""left"", ""label"": ""Go left"", ""next"": ""end:quiet"" },
+              { ""id"": ""right"", ""label"": ""Go right"", ""if"": ""knows_secret"", ""next"": ""end:secret"" },
+              { ""id"": ""leave"", ""label"": ""Walk away"", ""default"": true, ""next"": ""end:quiet"" } ] }
+        ],
+        ""endings"": { ""quiet"": { }, ""secret"": { } }
+      }";
+
+      private static string TestAuthoredQuestBranches(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("authored_quest_branches");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null, "authored quests are not active")) return t.Line();
+         if (t.Skip(b.ActiveRun is {Status: Logic.AuthoredQuests.AuthoredQuestStatus.Active}, "a real tale is under way; not disturbing it")) return t.Line();
+
+         const string id = "cr_selftest_crossroads";
+         IReadOnlyList<string> problems = b.DebugLoadTale(BranchingSelfTestTale, "selftest.json");
+         t.Expect("theTaleLoadsClean", string.Join(" | ", problems), "");
+         Logic.AuthoredQuests.AuthoredQuest tale = b.Quests.FirstOrDefault(q => q.Id == id);
+         if (t.Abort(tale == null, "the tale did not load")) return t.Line();
+
+         try
+         {
+            var today = (int) CampaignTime.Now.ToDays;
+            Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && b.TryOffer(h, today, 0, id));
+            if (t.Skip(giver == null, "no lord at peace with the player could give it")) return t.Line();
+
+            b.Accept(tale, b.Offer);
+            t.Expect("acceptingLeadsToTheCrossroads", b.ActiveRun.StageId, "crossroads");
+            List<string> journal = Campaign.Current.QuestManager.Quests.OfType<Quests.AuthoredStoryQuest>().FirstOrDefault(q => q.IsOngoing && q.StoryId == id)
+                                           ?.JournalEntries.Select(j => j.LogText.ToString()).ToList() ?? new List<string>();
+            t.Expect("theJournalShowsTheOpenWay", journal.Any(l => l.Contains("open way")), true);
+            t.Expect("andNotTheClosedOne", journal.Any(l => l.Contains("closed way")), false);
+
+            b.DebugConversationOpened(giver);
+            t.Expect("meetingTheLordTakesTheFirstOpenWay", string.Join(",", b.ActiveRun.ChoicesTaken), "crossroads/go_on");
+            t.Expect("intoTheScene", b.ActiveRun.StageId, "the_scene");
+
+            t.Expect("theChatListsOnlyTheOpenWays", string.Join("|", b.DebugSceneWays()), "Go left|Walk away");
+            b.DebugSceneMarkers("You look right. [[choice:right]]");
+            t.Expect("aClosedWaysMarkerChangesNothing", b.ActiveRun.SceneChoiceId ?? "none", "none");
+
+            b.DebugSceneMarkers("A token in the dust. [[found:token]]");
+            t.Expect("theFindingSetsItsFlag", b.ActiveRun.Flags.Contains("knows_secret"), true);
+            t.Expect("theWayItOpenedIsListed", string.Join("|", b.DebugSceneWays()), "Go left|Go right|Walk away");
+            b.DebugSceneMarkers("You take the right path. [[choice:right]]");
+            t.Expect("itsMarkerIsTaken", b.ActiveRun.SceneChoiceId, "right");
+
+            b.DebugCloseScene();
+            t.Expect("closingFollowsItToItsEnding", $"{b.ActiveRun.Status}/{b.ActiveRun.EndingId}", "Completed/secret");
+         }
+         finally
+         {
+            b.Abandon("Self-test.");
+            b.ForgetPlayed(id);
+            b.DebugForgetTale(id);
          }
 
          return t.Line();
