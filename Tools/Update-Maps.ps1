@@ -91,7 +91,7 @@ if ($failed) {
    exit 1
 }
 
-$changed = & git -C $repo -c core.safecrlf=false diff --numstat -- "docs/maps" "RULES.md" |
+$changed = & git -C $repo -c core.safecrlf=false diff --numstat -- "docs/maps" "RULES.md" "docs/design/quest-editor/quest.schema.json" "CalradiaRemembers/Extension/TaleEditor.html" |
    ForEach-Object {
       $parts = $_ -split "\t"
       [pscustomobject] @{ Added = [int] $parts[0]; Removed = [int] $parts[1]; Path = $parts[2] }

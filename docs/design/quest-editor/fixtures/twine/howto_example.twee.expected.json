@@ -1,0 +1,96 @@
+{
+  "quest": {
+    "id": "custom_the_miller_s_silence",
+    "title": "The Miller's Silence",
+    "author": "imported from Twine (howto_example.twee)",
+    "requires": {
+      "giver": {
+        "role": "lord",
+        "holds": "{village}"
+      },
+      "village": {
+        "type": "village"
+      }
+    },
+    "binds": {
+      "giver": "the one who asks for help",
+      "village": "the village the tale happens in"
+    },
+    "stages": [
+      {
+        "id": "a_quiet_word",
+        "journal": "Find out why the miller of {village} has shut his mill.",
+        "objective": {
+          "type": "talk_to",
+          "hero": "{giver}"
+        },
+        "canvas": "The lord asks you to find out why the miller of {village} will not grind his grain.",
+        "on_complete": {
+          "next": "a_quiet_word_after"
+        }
+      },
+      {
+        "id": "a_quiet_word_after",
+        "choices": [
+          {
+            "id": "at_the_mill",
+            "label": "Go to the mill",
+            "journal": "Go to the mill.",
+            "sets": "miller_spoke",
+            "objective": {
+              "type": "be_at",
+              "place": "{village}"
+            },
+            "canvas": "The mill is shut. The miller will say only that a lord's men came by night.",
+            "next": "at_the_mill"
+          }
+        ]
+      },
+      {
+        "id": "at_the_mill",
+        "choices": [
+          {
+            "id": "the_lord_hears",
+            "label": "Tell the lord",
+            "journal": "Tell the lord.",
+            "objective": {
+              "type": "talk_to",
+              "hero": "{giver}"
+            },
+            "canvas": [
+              "The lord hears it and goes quiet.",
+              {
+                "text": "He asks what else the miller said.",
+                "if": "miller_spoke"
+              }
+            ],
+            "next": "end:the_lord_hears"
+          },
+          {
+            "id": "silence",
+            "label": "Let it lie",
+            "journal": "Let it lie.",
+            "objective": {
+              "type": "wait",
+              "days": 7
+            },
+            "next": "end:silence"
+          }
+        ]
+      }
+    ],
+    "endings": {
+      "the_lord_hears": {
+        "regard": 6,
+        "memory": "The player told me why the mill of {village} stopped."
+      },
+      "silence": {
+        "regard": -3,
+        "journal": "You let the mill stay shut."
+      }
+    }
+  },
+  "notes": [
+    "No time limit was set: the tale never fails on its own. Add one under Failure if it should."
+  ]
+}
