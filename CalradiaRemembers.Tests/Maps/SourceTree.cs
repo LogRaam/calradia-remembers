@@ -117,9 +117,10 @@ namespace CalradiaRemembers.Tests.Maps
             // not carry .git, and it does not carry docs/maps or RULES.md either, which are project items in no
             // project at all. So a runner working from a copy can regenerate a map perfectly and then have
             // nothing to compare it with. Checking for the repository itself covers every copying runner, named
-            // or not, present or future.
+            // or not, present or future. A git WORKTREE is the working tree too: there .git is a file pointing at the
+            // main repository, and every committed map is checked out beside the sources as usual.
             foreach ((string what, string repo) in new[] {("the mod", ModRepo), ("the SDK", SdkRepo!)})
-               if (!Directory.Exists(Path.Combine(repo, ".git")))
+               if (!Directory.Exists(Path.Combine(repo, ".git")) && !File.Exists(Path.Combine(repo, ".git")))
                   return $"{what} REPOSITORY (no .git in {repo}), which means this is a copy of the sources rather "
                        + "than the working tree, and the committed maps are not here to compare with";
 
