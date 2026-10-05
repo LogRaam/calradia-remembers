@@ -615,7 +615,9 @@ namespace CalradiaRemembers.Quests
             case AuthoredStepKind.Advanced:
             case AuthoredStepKind.OpenScene:
                AuthoredStage next = AuthoredQuestEngine.Current(_run, q);
-               journal?.Log(AuthoredQuestEngine.Fill(_run, next?.Journal));
+               string line = AuthoredQuestEngine.Fill(_run, next?.Journal);
+               journal?.Log(line);
+               AnnounceStage(AuthoredStageNotice.Text(q.Title, line));
                ModLog.Info($"[TALE] '{q.Id}': {step.FromStage} -> {step.ToStage}.");
 
                break;
@@ -638,6 +640,25 @@ namespace CalradiaRemembers.Quests
 
                break;
          }
+      }
+
+      /// <summary>The last stage notice shown (cr.testall reads it back).</summary>
+      internal string LastStageNotice { get; private set; }
+
+      /// <summary>
+      ///   Tells the player the tale moved on (Gabriel, 04/10/2026: a stage complete and a new one begun should be
+      ///   said, not only written into the journal): on screen, and in the chat when one is open, since a stage
+      ///   often moves in a conversation or as a scene closes.
+      /// </summary>
+      private void AnnounceStage(string notice)
+      {
+         LastStageNotice = notice;
+         try
+         {
+            MBInformationManager.AddQuickInformation(new TaleWorlds.Localization.TextObject(notice));
+            ChatManager.ActiveViewModel?.AppendSystemMessage(notice, true);
+         }
+         catch (Exception ex) { ModLog.Error($"[TALE] stage notice failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
       /// <summary>Regard and a memory for the giver, then the outcome's consequences (memory, world_event in increment 1).</summary>

@@ -8717,6 +8717,7 @@ namespace CalradiaRemembers.Diagnostics
                t.Expect("andKnowsNothingOfTheTwist", b.PromptBlockFor(locals[0])?.Contains("slaver") == true, false);
                foreach (Hero n in locals) b.DebugConversationOpened(n);
                t.Expect("twoLocalsHeardMovesToTheWatch", b.ActiveRun.StageId, "keep_watch");
+               t.Expect("thePlayerIsToldTheStepIsDoneAndANewOneBegins", b.LastStageNotice?.StartsWith($"Tale: {wolf.Title}. Step complete.") == true, true);
 
                // The scene, through the real handling, with no model call: a finding, the snare, then closing early.
                b.DebugStep();

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 466 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 951 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 952 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1577,7 +1577,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (28)
+### CalradiaRemembers.Logic.AuthoredQuests (29)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1603,6 +1603,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredScene` | public class | An exploration scene: the chat with a narrator and no character, until someone is met. |
 | `AuthoredSpawn` | public class | A party spawned for the quest: real, on the map, beaten in a real battle. |
 | `AuthoredStage` | public class | One stage: a journal line, one verified objective, what the people involved know, and what follows. |
+| `AuthoredStageNotice` | public static class | The player-facing line for a tale moving to its next stage. |
 | `AuthoredStep` | public class | (no summary) |
 | `AuthoredStepKind` | public enum | What a reported fact did to the run. |
 | `GiverRequirement` | public class | (no summary) |
