@@ -2,33 +2,37 @@
 
 Gabriel, voici le bilan du travail demandé dans `goal.md`. Tout est sur la branche `quest-branches` des deux dépôts,
 rebasée sur `origin/main` (mod) et `origin/master` (SDK) du 4 octobre 2026, poussée, les deux suites au vert :
-mod 5569 tests, SDK 1814 tests. Rien n'a touché `main` ni `master`, rien n'a été déployé dans le jeu (toujours
+mod 5580 tests, SDK 1814 tests. Rien n'a touché `main` ni `master`, rien n'a été déployé dans le jeu (toujours
 `-p:NCrunch=1`), rien n'a été publié.
 
 ## Ce qui a été construit, commit par commit
 
-### Mod (`Calradia Remembers`, branche `quest-branches`, 12 commits au-dessus de `main`)
+### Mod (`Calradia Remembers`, branche `quest-branches`, les commits au-dessus de `main`)
 
 | Commit | Contenu |
 |---|---|
-| `f07f3e4` | Les tests de cartes reconnaissent un worktree git (le `.git` y est un fichier). Sans ça, ce worktree aurait sauté tous les tests de cartes et de contes livrés, et la suite aurait été verte pour n'avoir rien vérifié. |
-| `5e232da` | Incrément 1 : choix, fins et drapeaux dans le fichier (`choices`, `endings`, `sets`, `if`, `!nom`, objectif `wait`), et toutes les vérifications du loader (étape injoignable, impasse, fin inconnue, choix en double, scène sans sortie, drapeau jamais posé...). |
-| `0cf2020` | Incrément 2 : la machine à étapes suit les choix, les drapeaux et les fins; champs de sauvegarde additifs; journal avec la ligne de l'étape puis celle de chaque choix ouvert. |
-| `0a0297f` | Incrément 3 : ce que le narrateur et les personnages se font dire (lignes sous drapeau, secret sur les étapes à venir et les choix fermés). |
-| `c1ab906` | Incrément 4 : choix de scène par marqueur `[[choice:id]]`, et la liste numérotée cliquable sous la narration, dans les deux skins de chat. |
-| `f4a1439` | Incrément 5 : `smoke_over_the_hills.json` réécrit (quatre fins), le conte de scène `the_bell_in_the_marsh.json` (non livré), le rôle `{rival}`. |
-| `cdc0507` | Incrément 6 : `cr.testall authored_quest_branches`. |
-| `7ab4425` | Éditeur, fondations : le schéma JSON généré du modèle C#, les vérifications en JavaScript, tenues au jeu par des fixtures partagées. |
-| `218f335` | Éditeur : l'import Twine (Harlowe, SugarCube, Twee), tenu à ses fixtures. |
-| `bab1c98` | Éditeur : la page elle-même, livrée dans `Modules/CalradiaRemembers/Docs/TaleEditor.html`. |
-| `0466e2c` | Guides : `HOWTO_Quests.md` (choix, fins, drapeaux, l'éditeur, « Writing tales in Twine ») et `AUTHORED_QUESTS.md` (le design final). |
-| `aa49fd5` | Choix par les mots, pris par l'interpréteur d'actions (fait en DERNIER, comme demandé), plus `cr.testall authored_quest_said_choice`. |
+| `ebb17f8` (sur `main` depuis le 4 octobre) | Les tests de cartes reconnaissent un worktree git (le `.git` y est un fichier). Sans ça, ce worktree aurait sauté tous les tests de cartes et de contes livrés, et la suite aurait été verte pour n'avoir rien vérifié. |
+| `c178381` | Incrément 1 : choix, fins et drapeaux dans le fichier (`choices`, `endings`, `sets`, `if`, `!nom`, objectif `wait`), et toutes les vérifications du loader (étape injoignable, impasse, fin inconnue, choix en double, scène sans sortie, drapeau jamais posé...). |
+| `db953a3` | Incrément 2 : la machine à étapes suit les choix, les drapeaux et les fins; champs de sauvegarde additifs; journal avec la ligne de l'étape puis celle de chaque choix ouvert. |
+| `9f9172c` | Incrément 3 : ce que le narrateur et les personnages se font dire (lignes sous drapeau, secret sur les étapes à venir et les choix fermés). |
+| `82f5e93` | Incrément 4 : choix de scène par marqueur `[[choice:id]]`, et la liste numérotée cliquable sous la narration, dans les deux skins de chat. |
+| `ade14fb` | Incrément 5 : `smoke_over_the_hills.json` réécrit (quatre fins), le conte de scène `the_bell_in_the_marsh.json` (non livré), le rôle `{rival}`. |
+| `b6f8e43` | Incrément 6 : `cr.testall authored_quest_branches`. |
+| `ccb386f` | Éditeur, fondations : le schéma JSON généré du modèle C#, les vérifications en JavaScript, tenues au jeu par des fixtures partagées. |
+| `65ccddf` | Éditeur : l'import Twine (Harlowe, SugarCube, Twee), tenu à ses fixtures. |
+| `baf62a4` | Éditeur : la page elle-même, livrée dans `Modules/CalradiaRemembers/Docs/TaleEditor.html`. |
+| `3b55513` | Guides : `HOWTO_Quests.md` (choix, fins, drapeaux, l'éditeur, « Writing tales in Twine ») et `AUTHORED_QUESTS.md` (le design final). |
+| `12ccbe0` | Choix par les mots, pris par l'interpréteur d'actions (fait en DERNIER, comme demandé), plus `cr.testall authored_quest_said_choice`. |
 
 ### SDK (`LLM Roleplay Service`, branche `quest-branches`, 1 commit au-dessus de `master`)
 
 | Commit | Contenu |
 |---|---|
 | `83e112e` | `EncounterContext.StoryChoicesForInterpreter` : les choix par les mots ouverts dans CETTE conversation arrivent à l'interpréteur sous sa tête en cache, jamais dans le prompt du personnage. Le budget du prompt lean (`LeanPromptPolicyTests`) n'est pas touché : ce texte ne va que chez l'interpréteur, et seulement quand un tel choix est ouvert. |
+
+### Rebasée sur `main` du 4 octobre au soir
+
+La branche contient maintenant, par `main`, le repli NSFW sur un tour refusé (`1ab6bd5`) et l'annonce d'étape (`dbaf7a2`). Dans un conte à embranchements, l'annonce donne la ligne de journal de la nouvelle étape elle-même; les lignes des choix ouverts suivent dans le journal comme avant.
 
 ## Les décisions prises seul (à renverser au besoin)
 
@@ -54,7 +58,7 @@ Le détail, avec le pourquoi de chacune, est dans `DECISIONS.md`. En bref :
 - F17. Une sortie brisée donne UN problème, pas une cascade d'échos.
 
 **Le moteur**
-- E1. Les tests de cartes voient un worktree (voir `f07f3e4`).
+- E1. Les tests de cartes voient un worktree (voir `ebb17f8`).
 - E2. « La récompense a-t-elle du contenu » se compare à une issue vide, pas à `Regard != 0` (le ratchet des seuils l'aurait compté, avec raison).
 - E3. Le personnage dont la conversation termine le conte garde son bloc jusqu'à la fin de cette conversation. Ça change ce que le seigneur se fait dire dans cette seule conversation (il paie la récompense en sachant pourquoi).
 - E4. Une scène s'ouvre dès que son étape est atteinte, peu importe le chemin (avant : seulement après `keep_watch`).
