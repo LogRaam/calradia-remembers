@@ -5901,6 +5901,12 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Abort(reported == null, "giver profile vanished")) return t.Line();
 
+         // GiveGoldAction pays only what the giver holds, and the giver is whoever the player is talking to: Susada
+         // carried 688 on 05/10/2026 and the test failed on her purse, not on the pipeline. Top the purse up to the
+         // reward for the measurement, then put both purses back as they were.
+         int topUp = Math.Max(0, rewardGold - giver.Gold);
+         if (topUp > 0) giver.ChangeHeroGold(topUp);
+
          int goldBefore = Hero.MainHero.Gold;
          int regardBefore = reported.ReputationWithPlayer;
          var ack = new ParsedResponse {Dialogue = "", QuestCompleted = new QuestCompletionClaim {Type = QuestType.External}};
@@ -5916,6 +5922,11 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("questCompleted", after != null && after.Status == QuestStatus.Completed, true);
          t.Expect("goldPaid", goldAfter - goldBefore, rewardGold);
          t.Expect("regardPaid", regardAfter - regardBefore, expectedRegardGain);
+
+         // Put the purses back: the player returns what was paid, the giver gets it back less the top-up.
+         int paid = goldAfter - goldBefore;
+         if (paid > 0) Hero.MainHero.ChangeHeroGold(-paid);
+         if (paid - topUp != 0) giver.ChangeHeroGold(paid - topUp);
 
          return t.Line();
       }
