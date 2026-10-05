@@ -90,9 +90,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          try
          {
-            // Dates stay words: a line that happens to look like a date reaches the player as written.
+            // Dates stay words: a line that happens to look like a date reaches the player as written. A comment before
+            // the quest is skipped like any other comment (it used to be read as the whole file, which then held nothing).
             using var reader = new JsonTextReader(new StringReader(json ?? "")) {DateParseHandling = DateParseHandling.None};
-            JToken root = JToken.ReadFrom(reader);
+            JToken root = JToken.ReadFrom(reader, new JsonLoadSettings {CommentHandling = CommentHandling.Ignore});
             while (reader.Read()) { } // as JToken.Parse does: anything but a comment after the root is refused by the reader
             read = root is JArray arr ? arr.ToObject<List<AuthoredQuest>>() : new List<AuthoredQuest> {root.ToObject<AuthoredQuest>()};
          }
@@ -283,7 +284,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>
       ///   Every stage the player can reach must be able to reach an ending (loops are fine when they have an exit). A
-      ///   stage, or an ending, that no path reaches is reported: it is never played.
+      ///   stage, or an ending, that no path reaches is reported: it is never played. A way out that leads nowhere (no
+      ///   next, or one naming no stage or ending) is already refused above, so it is read as "could lead anywhere": it
+      ///   neither makes its stage a dead end nor leaves anything "never reached", and the author sees the one real
+      ///   problem rather than its echoes.
       /// </summary>
       private static void ValidatePaths(AuthoredQuest q, HashSet<string> ids, Dictionary<string, AuthoredOutcome> endings, List<string> blocking, List<string> cosmetic)
       {
@@ -292,6 +296,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          Dictionary<string, List<string>> leads = stages.ToDictionary(s => s.Id, Exits);
          bool Resolves(string next) => next == Reward || EndingId(next) is { } e && endings.ContainsKey(e);
+         var unsure = new HashSet<string>(stages.Where(s => MissesANext(s) || leads[s.Id].Any(n => !Resolves(n) && !leads.ContainsKey(n))).Select(s => s.Id),
+            StringComparer.Ordinal);
 
          var reachable = new HashSet<string>(StringComparer.Ordinal);
          var queue = new Queue<string>();
@@ -305,20 +311,36 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          {
             grew = false;
             foreach (AuthoredStage s in stages.Where(s => !canEnd.Contains(s.Id)))
-               if (leads[s.Id].Any(n => Resolves(n) || canEnd.Contains(n))) grew = canEnd.Add(s.Id) | grew;
+               if (unsure.Contains(s.Id) || leads[s.Id].Any(n => Resolves(n) || canEnd.Contains(n))) grew = canEnd.Add(s.Id) | grew;
          }
 
+         bool sure = !stages.Any(s => reachable.Contains(s.Id) && unsure.Contains(s.Id));
          foreach (AuthoredStage s in stages)
          {
-            if (!reachable.Contains(s.Id)) cosmetic.Add($"stage '{s.Id}' is never reached from the first stage, so it is never played.");
+            if (!reachable.Contains(s.Id))
+            {
+               if (sure) cosmetic.Add($"stage '{s.Id}' is never reached from the first stage, so it is never played.");
+            }
             else if (!canEnd.Contains(s.Id)) blocking.Add($"stage '{s.Id}' can never reach an ending: every way out of it leads back without an exit.");
          }
 
+         if (!sure) return;
          List<string> reached = stages.Where(s => reachable.Contains(s.Id)).SelectMany(s => leads[s.Id]).ToList();
          foreach (string e in endings.Keys.Where(k => !string.IsNullOrWhiteSpace(k) && !reached.Contains(EndPrefix + k)))
             cosmetic.Add($"ending '{e}' is never reached: no path leads to \"end:{e}\".");
          if (!reached.Contains(Reward) && HasContent(q.Reward))
             cosmetic.Add("the reward is never reached: no path leads to \"reward\" (name it \"end:<id>\" in \"endings\", or lead a path to it).");
+      }
+
+      /// <summary>A stage, or one of its choices, that needs a next and has none (already refused, with its own message).</summary>
+      private static bool MissesANext(AuthoredStage s)
+      {
+         bool hasChoices = s.Choices != null && s.Choices.Count > 0;
+         if (!hasChoices) return string.IsNullOrWhiteSpace(s.OnComplete?.Next);
+         if (s.Choices.Any(c => c != null && string.IsNullOrWhiteSpace(c.Next))) return true;
+         bool defaultLeadsOn = s.Objective?.Type == "explore" && s.Choices.Any(c => c != null && c.Objective == null && c.Said == null && c.Default);
+
+         return s.Objective != null && string.IsNullOrWhiteSpace(s.OnComplete?.Next) && !defaultLeadsOn;
       }
 
       /// <summary>Where a stage's ways out lead: its own objective's next, then each choice's.</summary>

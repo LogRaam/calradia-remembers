@@ -1,0 +1,1 @@
+blocking_next_to_missing_stage.json: quest 'fx_tale': stage 'ask' leads to 'nowhere', which is no stage of this quest. The quest is not loaded.

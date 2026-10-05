@@ -236,6 +236,27 @@ namespace CalradiaRemembers.Tests
          mill.Knowers["{giver}"][2].If.Should().Equal("!saw_light");
       }
 
+      // One broken way out is one problem: the author is told the path that leads nowhere, not a cascade of "can never
+      // reach an ending" and "never reached" lines that only echo it and bury the real one.
+      [Test]
+      public void GIVEN_a_way_out_that_leads_nowhere_WHEN_loaded_THEN_the_author_is_told_that_one_problem_and_not_its_echoes()
+      {
+         AuthoredQuestLoadResult r = AuthoredTales.Read(Fork("\"next\": \"the_wood\"", "\"next\": \"the_woods\""));
+
+         r.Quests.Should().BeEmpty();
+         r.Problems.Should().ContainSingle().Which.Should().Contain("choice 'ride_out' leads to 'the_woods', which is no stage of this quest.");
+      }
+
+      // A file that opens with a comment is read like any other (it used to be read as holding nothing, silently).
+      [Test]
+      public void GIVEN_a_tale_file_that_opens_with_a_comment_WHEN_loaded_THEN_the_tale_loads()
+      {
+         AuthoredQuestLoadResult r = AuthoredTales.Read("// written by hand" + System.Environment.NewLine + AuthoredTales.Fork);
+
+         r.Problems.Should().BeEmpty();
+         r.Quests.Should().ContainSingle();
+      }
+
       // A malformed condition is a malformed file, said in the same plain way, never thrown at the game.
       [Test]
       public void GIVEN_a_flag_written_as_a_number_WHEN_loaded_THEN_it_is_reported_as_invalid_not_thrown()

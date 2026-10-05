@@ -1,0 +1,1 @@
+blocking_scene_default_under_flag.json: quest 'fx_branch': stage 'scene': the default choice 'back' cannot depend on flags, or the scene could close with nowhere to go. The quest is not loaded.

@@ -1,0 +1,2 @@
+blocking_choice_said_to_unbound_rival.json: quest 'fx_branch': stage 'crossroads', choice 'stay' is said to {rival}, but no rival is bound: add "rival" to "requires". The quest is not loaded.
+blocking_choice_said_to_unbound_rival.json: quest 'fx_branch': {rival} is used but no role binds it (add it to "binds"), so it would reach the player as written.

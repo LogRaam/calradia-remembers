@@ -1,0 +1,1 @@
+blocking_choice_said_incomplete.json: quest 'fx_branch': stage 'crossroads', choice 'stay': "said" needs "to" (a role, "{giver}") and "meaning" (what the player's words must mean). The quest is not loaded.

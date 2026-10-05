@@ -1,0 +1,1 @@
+blocking_explore_without_required_finding.json: quest 'fx_tale': stage 'go': an explore scene needs at least one required finding, or it could never be completed. The quest is not loaded.

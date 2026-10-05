@@ -1,0 +1,1 @@
+blocking_request_with_choices.json: quest 'fx_branch': stage 'ask' is the request, accepted in the conversation where the tale is offered, so it cannot offer choices (move them to the next stage). The quest is not loaded.

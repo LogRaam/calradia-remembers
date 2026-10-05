@@ -1,0 +1,1 @@
+blocking_scene_choice_bad_id.json: quest 'fx_branch': stage 'scene', choice 'go-right' is made in a scene, so its id may hold only letters, digits and _ (the narrator writes it in a marker). The quest is not loaded.

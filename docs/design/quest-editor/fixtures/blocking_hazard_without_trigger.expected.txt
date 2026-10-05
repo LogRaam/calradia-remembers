@@ -1,0 +1,1 @@
+blocking_hazard_without_trigger.json: quest 'fx_tale': stage 'go': every hazard needs an "id" and a "trigger" (what the player must do to spring it). The quest is not loaded.

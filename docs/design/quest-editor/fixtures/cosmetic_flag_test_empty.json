@@ -1,0 +1,92 @@
+{
+  "id": "fx_branch",
+  "title": "A Branching Fixture",
+  "binds": {
+    "giver": "a lord",
+    "village": "a village"
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}"
+      },
+      "on_complete": {
+        "next": "crossroads"
+      }
+    },
+    {
+      "id": "crossroads",
+      "journal": "A choice.",
+      "choices": [
+        {
+          "id": "go",
+          "label": "Go",
+          "objective": {
+            "type": "be_at",
+            "place": "{village}"
+          },
+          "next": "scene"
+        },
+        {
+          "id": "stay",
+          "label": "Stay",
+          "objective": {
+            "type": "wait",
+            "days": 3
+          },
+          "next": "end:stayed"
+        }
+      ]
+    },
+    {
+      "id": "scene",
+      "objective": {
+        "type": "explore",
+        "scene": {
+          "opening": {
+            "canvas": "A fork.",
+            "facts": []
+          },
+          "findings": [
+            {
+              "id": "clue",
+              "required": false,
+              "text": "A clue.",
+              "sets": "has_clue"
+            }
+          ]
+        }
+      },
+      "choices": [
+        {
+          "id": "left",
+          "label": "Go left",
+          "if": "has_clue",
+          "next": "end:found"
+        },
+        {
+          "id": "right",
+          "label": "Go right",
+          "next": "end:stayed",
+          "if": "!"
+        },
+        {
+          "id": "back",
+          "label": "Go back",
+          "default": true,
+          "next": "end:stayed"
+        }
+      ]
+    }
+  ],
+  "endings": {
+    "found": {
+      "regard": 5
+    },
+    "stayed": {
+      "regard": -1
+    }
+  }
+}

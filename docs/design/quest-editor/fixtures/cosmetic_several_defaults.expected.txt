@@ -1,0 +1,1 @@
+cosmetic_several_defaults.json: quest 'fx_branch': stage 'scene': several choices are marked default; only the first, 'right', is used.

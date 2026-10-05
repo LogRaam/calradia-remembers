@@ -1,0 +1,2 @@
+cosmetic_unbound_placeholder.json: quest 'fx_tale': {rival} is used but no role binds it (add it to "binds"), so it would reach the player as written.
+cosmetic_unbound_placeholder.json: quest 'fx_tale': {elder} is used but no role binds it (add it to "binds"), so it would reach the player as written.

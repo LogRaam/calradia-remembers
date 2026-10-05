@@ -1,0 +1,1 @@
+read_invalid_flags_type.json: not valid JSON (...).

@@ -1,0 +1,12 @@
+{
+  "id": "fx_tale",
+  "title": "A Fixture",
+  "binds": {
+    "giver": "a lord",
+    "village": "a village"
+  },
+  "stages": [],
+  "reward": {
+    "regard": 5
+  }
+}

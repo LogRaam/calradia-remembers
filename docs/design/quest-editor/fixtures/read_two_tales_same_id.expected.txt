@@ -1,0 +1,1 @@
+read_two_tales_same_id.json: quest 'fx_tale' is already defined by another file; this one is ignored.

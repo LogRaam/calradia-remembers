@@ -1,0 +1,2 @@
+blocking_two_stages_same_id.json: quest 'fx_tale': two stages are called 'ask'. The quest is not loaded.
+blocking_two_stages_same_id.json: quest 'fx_tale': stage 'ask' leads to 'go', which is no stage of this quest. The quest is not loaded.

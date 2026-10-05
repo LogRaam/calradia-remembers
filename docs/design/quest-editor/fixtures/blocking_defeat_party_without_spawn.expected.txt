@@ -1,0 +1,1 @@
+blocking_defeat_party_without_spawn.json: quest 'fx_tale': stage 'go': defeat_party needs "spawn" with an "id" and a "near". The quest is not loaded.

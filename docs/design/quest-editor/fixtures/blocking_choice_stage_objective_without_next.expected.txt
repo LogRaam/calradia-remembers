@@ -1,0 +1,1 @@
+blocking_choice_stage_objective_without_next.json: quest 'fx_branch': stage 'crossroads' has no on_complete.next (a stage id, "reward", or "end:<id>"). The quest is not loaded.

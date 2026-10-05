@@ -1,0 +1,1 @@
+cosmetic_reward_never_reached.json: quest 'fx_branch': the reward is never reached: no path leads to "reward" (name it "end:<id>" in "endings", or lead a path to it).

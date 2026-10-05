@@ -1,0 +1,1 @@
+cosmetic_unreachable_stage.json: quest 'fx_tale': stage 'lost' is never reached from the first stage, so it is never played.

@@ -1,0 +1,2 @@
+read_lone_comma_in_a_list.json: quest 'fx_comma': a stage has no id. The quest is not loaded.
+read_lone_comma_in_a_list.json: quest 'fx_comma': stage 'ask' is never reached from the first stage, so it is never played.

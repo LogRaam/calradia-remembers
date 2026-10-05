@@ -1,0 +1,1 @@
+blocking_explore_without_opening.json: quest 'fx_tale': stage 'go': an explore scene needs an "opening" with a "canvas". The quest is not loaded.

@@ -1,0 +1,1 @@
+blocking_wait_without_days.json: quest 'fx_tale': stage 'go': wait needs "days" of at least 1. The quest is not loaded.

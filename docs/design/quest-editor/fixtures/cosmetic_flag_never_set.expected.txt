@@ -1,0 +1,1 @@
+cosmetic_flag_never_set.json: quest 'fx_branch': flag 'has_clues' is tested but never set anywhere, so "has_clues" never holds and "!has_clues" always does.

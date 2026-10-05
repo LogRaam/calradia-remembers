@@ -1,0 +1,1 @@
+blocking_objective_missing.json: quest 'fx_tale': stage 'go' has no objective. The quest is not loaded.

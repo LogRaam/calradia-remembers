@@ -1,0 +1,2410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tale Editor</title>
+<style id="tale-editor-style">
+/*STYLE*/
+</style>
+</head>
+<body>
+<!--BODY-->
+<script id="quest-schema" type="application/json">
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calradia-remembers/quest.schema.json",
+  "title": "Calradia Remembers: a written tale",
+  "description": "GENERATED from CalradiaRemembers.Logic.AuthoredQuests by the Maps suite (QuestSchemaMap). Do not edit: regenerate with Tools/Update-Maps.ps1. A file holds one tale, or a list of tales.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/AuthoredQuest"
+    },
+    {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/AuthoredQuest"
+      }
+    }
+  ],
+  "x-lists": {
+    "ObjectiveTypes": [
+      "talk_to",
+      "talk_to_locals",
+      "be_at",
+      "keep_watch",
+      "explore",
+      "defeat_party",
+      "return",
+      "wait"
+    ],
+    "ChoiceObjectiveTypes": [
+      "talk_to",
+      "return",
+      "talk_to_locals",
+      "be_at",
+      "defeat_party",
+      "wait"
+    ],
+    "HazardEffects": [
+      "injure",
+      "alert",
+      "lose_time"
+    ],
+    "ConsequenceTypes": [
+      "memory",
+      "world_event"
+    ],
+    "GiverRoles": [
+      "lord",
+      "notable",
+      "gang_leader",
+      "any"
+    ],
+    "RivalRoles": [
+      "clan_leader"
+    ],
+    "SpeakingRoles": [
+      "{giver}",
+      "{rival}"
+    ]
+  },
+  "$defs": {
+    "AuthoredQuest": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "One authored quest, as its file describes it.",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Unique across every file. Prefix it with your mod's name."
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Shown in the journal as \"Tale: <title>\"."
+        },
+        "author": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Who wrote it. Shown to nobody in game; for the reader of the file."
+        },
+        "unique": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On (the default): played once per campaign, won or lost. Off: it may come back.",
+          "default": true
+        },
+        "repeat_cooldown_days": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "For a tale that is not unique: how many days after it ended before it may be offered again.",
+          "default": 0
+        },
+        "weight": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "When a character could give several tales, they are chosen in proportion to their weights. 0 is never offered. Default 10.",
+          "default": 10
+        },
+        "requires": {
+          "$ref": "#/$defs/AuthoredRequires",
+          "x-kind": "object:AuthoredRequires",
+          "description": "Who may give the tale, and what it needs of the world and of the player.",
+          "x-default-empty": true
+        },
+        "binds": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "x-kind": "map:string",
+          "description": "Every role your text uses, with a short description for the reader of the file. Each {role} is filled with a real name.",
+          "x-default-empty": true
+        },
+        "stages": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredStage"
+          },
+          "x-kind": "object:AuthoredStage[]",
+          "description": "The steps of the story, the first being the request itself.",
+          "x-default-empty": true
+        },
+        "reward": {
+          "$ref": "#/$defs/AuthoredOutcome",
+          "x-kind": "object:AuthoredOutcome",
+          "description": "The single success ending: what the tale leaves when a path leads to \"reward\".",
+          "x-default-empty": true
+        },
+        "endings": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "$ref": "#/$defs/AuthoredOutcome"
+          },
+          "x-kind": "map:object:AuthoredOutcome",
+          "description": "Named endings, each with its own regard, gold, memory and consequences. A path leads to one with \"end:<id>\".",
+          "x-default-empty": true
+        },
+        "failure": {
+          "$ref": "#/$defs/AuthoredOutcome",
+          "x-kind": "object:AuthoredOutcome",
+          "description": "What the tale leaves when its time runs out (days) before any ending is reached.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredRequires": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "When the quest may be offered, and by whom (increment 1: the shape the werewolf needs).",
+      "properties": {
+        "giver": {
+          "$ref": "#/$defs/GiverRequirement",
+          "x-kind": "object:GiverRequirement",
+          "description": "The character who gives the tale.",
+          "x-default-empty": true
+        },
+        "village": {
+          "$ref": "#/$defs/PlaceRequirement",
+          "x-kind": "object:PlaceRequirement",
+          "description": "The village the tale happens in, bound as {village}."
+        },
+        "rival": {
+          "$ref": "#/$defs/RivalRequirement",
+          "x-kind": "object:RivalRequirement",
+          "description": "A second lord the tale needs, bound as {rival}: the leader of another house of the giver's realm."
+        },
+        "player": {
+          "$ref": "#/$defs/PlayerRequirement",
+          "x-kind": "object:PlayerRequirement",
+          "description": "What the player must be.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredStage": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "One stage: a journal line, one verified objective, what the people involved know, and what follows.",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The stage's name, used by \"next\" to lead here. Unique in the tale."
+        },
+        "journal": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The line logged in the quest journal when the stage begins."
+        },
+        "objective": {
+          "$ref": "#/$defs/AuthoredObjective",
+          "x-kind": "object:AuthoredObjective",
+          "description": "What the game checks to complete the stage. A stage with choices may have none."
+        },
+        "canvas": {
+          "$ref": "#/$defs/lines",
+          "x-kind": "lines",
+          "description": "How the moment feels. Spoken by the giver, when this stage is theirs to say. A line may hold only under a flag.",
+          "x-default-empty": true
+        },
+        "facts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/line"
+          },
+          "x-kind": "line[]",
+          "description": "What the giver must convey, without changing it. A fact may hold only under a flag.",
+          "x-default-empty": true
+        },
+        "knowers": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/$defs/line"
+            }
+          },
+          "x-kind": "map:line[]",
+          "description": "Lines for other characters, framed as what they believe at this stage. The key is a role (\"{giver}\") or \"locals_of:{place}\".",
+          "x-default-empty": true
+        },
+        "choices": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredChoice"
+          },
+          "x-kind": "object:AuthoredChoice[]",
+          "description": "Ways out of this stage: by an act, by the player's choice in a scene, or by words in a conversation. The first taken wins.",
+          "x-default-empty": true
+        },
+        "on_complete": {
+          "$ref": "#/$defs/AuthoredOnComplete",
+          "x-kind": "object:AuthoredOnComplete",
+          "description": "What follows when the stage's own objective is met.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredOutcome": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "What success, failure or a named ending leaves behind.",
+      "properties": {
+        "days": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "failure: the tale fails that many days after it was accepted.",
+          "default": 0
+        },
+        "regard": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "Added to the giver's regard for the player (negative takes it away).",
+          "default": 0
+        },
+        "gold": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "Paid to the player by the game (positive amounts only).",
+          "default": 0
+        },
+        "memory": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the giver remembers, in the giver's own voice."
+        },
+        "journal": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The last line written in the journal when the tale ends this way."
+        },
+        "consequences": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredConsequence"
+          },
+          "x-kind": "object:AuthoredConsequence[]",
+          "description": "What else the ending leaves in the world. A consequence may hold only under a flag.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "GiverRequirement": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "lord, notable, gang_leader, or any.",
+          "enum": [
+            "lord",
+            "notable",
+            "gang_leader",
+            "any"
+          ],
+          "x-closed-list": "GiverRoles",
+          "default": "lord"
+        },
+        "holds": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "\"{village}\": the village is picked among the giver's clan villages. Without it, the giver's home settlement is used, when it is a village."
+        },
+        "min_regard": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "The giver's regard for the player on Calradia Remembers' own ledger (the one built in conversation, not the game's relation).",
+          "default": 0
+        },
+        "not_at_war_with_player": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On by default: a giver whose realm is at war with the player never offers it.",
+          "default": true
+        }
+      }
+    },
+    "PlaceRequirement": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "village (the only kind bound so far).",
+          "default": "village"
+        },
+        "near": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "\"forest\", or leave it empty for anywhere."
+        }
+      }
+    },
+    "RivalRequirement": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The {rival}: a clan leader of the giver's realm who is not the giver (branching tales, 04/10/2026).",
+      "properties": {
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "clan_leader: the leader of another house of the giver's realm.",
+          "enum": [
+            "clan_leader"
+          ],
+          "x-closed-list": "RivalRoles",
+          "default": "clan_leader"
+        },
+        "same_realm_as": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "\"{giver}\": the rival serves the same realm as the giver.",
+          "default": "{giver}"
+        }
+      }
+    },
+    "PlayerRequirement": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "min_clan_tier": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "0 to 6.",
+          "default": 0
+        }
+      }
+    },
+    "AuthoredObjective": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "One condition the engine verifies; which fields matter depends on Type.",
+      "properties": {
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the game checks.",
+          "enum": [
+            "talk_to",
+            "talk_to_locals",
+            "be_at",
+            "keep_watch",
+            "explore",
+            "defeat_party",
+            "return",
+            "wait"
+          ],
+          "x-closed-list": "ObjectiveTypes"
+        },
+        "hero": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "talk_to: the character, as a role (\"{giver}\")."
+        },
+        "place": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The place, as a role (\"{village}\")."
+        },
+        "count": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "talk_to_locals: how many different notables of the place.",
+          "default": 1
+        },
+        "radius": {
+          "type": "number",
+          "x-kind": "number",
+          "description": "be_at, keep_watch: how near the place the party must be (default 5).",
+          "default": 5.0
+        },
+        "nights": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "x-kind": "int[]",
+          "description": "keep_watch: [first night it may happen, night it surely happens]."
+        },
+        "chance": {
+          "type": "number",
+          "x-kind": "number",
+          "description": "keep_watch: the chance each night from the first opens the scene (0 to 1).",
+          "default": 0.0
+        },
+        "days": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "wait: how many days must pass with no other choice taken.",
+          "default": 0
+        },
+        "scene": {
+          "$ref": "#/$defs/AuthoredScene",
+          "x-kind": "object:AuthoredScene",
+          "description": "explore: the scene played in the chat."
+        },
+        "spawn": {
+          "$ref": "#/$defs/AuthoredSpawn",
+          "x-kind": "object:AuthoredSpawn",
+          "description": "defeat_party: the band spawned near the place."
+        },
+        "item": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Read but not played yet.",
+          "x-played": false
+        },
+        "to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Read but not played yet.",
+          "x-played": false
+        }
+      }
+    },
+    "AuthoredChoice": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "One way out of a stage (branching tales, 04/10/2026).",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The choice's name, unique in its stage."
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the player can do, in plain words. In a scene, it is listed under the narration and the narrator is told it."
+        },
+        "journal": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "A line added to the journal under the stage's own, while this choice is open."
+        },
+        "next": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Where this choice leads: a stage id, \"reward\", or \"end:<id>\"."
+        },
+        "if": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Flags that must hold for this choice to be open (\"name\", or \"!name\" for not set). A closed choice is never shown nor taken.",
+          "x-default-empty": true
+        },
+        "sets": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Flags set when this choice is taken.",
+          "x-default-empty": true
+        },
+        "default": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "In a scene: taken when the scene closes with no choice made, if the stage has no on_complete.next.",
+          "default": false
+        },
+        "objective": {
+          "$ref": "#/$defs/AuthoredObjective",
+          "x-kind": "object:AuthoredObjective",
+          "description": "By an act: what the game checks (talk_to, return, talk_to_locals, be_at, defeat_party, wait). The first met wins."
+        },
+        "said": {
+          "$ref": "#/$defs/AuthoredSaid",
+          "x-kind": "object:AuthoredSaid",
+          "description": "By words: taken when, in a conversation with that character, the player says or agrees to what it means."
+        },
+        "canvas": {
+          "$ref": "#/$defs/lines",
+          "x-kind": "lines",
+          "description": "How the moment feels, for the character in whose conversation this choice is taken (as a stage's canvas).",
+          "x-default-empty": true
+        },
+        "facts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/line"
+          },
+          "x-kind": "line[]",
+          "description": "What that character must convey when this choice is taken.",
+          "x-default-empty": true
+        },
+        "knowers": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/$defs/line"
+            }
+          },
+          "x-kind": "map:line[]",
+          "description": "Lines for that character, in the conversation that took this choice.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredOnComplete": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "next": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The next stage's id, \"reward\" to end the tale in success, or \"end:<id>\" for a named ending."
+        }
+      }
+    },
+    "AuthoredConsequence": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "memory or world_event.",
+          "enum": [
+            "memory",
+            "world_event"
+          ],
+          "x-closed-list": "ConsequenceTypes"
+        },
+        "who": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "memory: who remembers, a role or \"locals_of:{place}\"."
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "memory: what they remember."
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "world_event: the news that spreads through the realm."
+        },
+        "magnitude": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "world_event: how loud the news is, 0 to 100.",
+          "default": 0
+        },
+        "place": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "world_event: where it happened, as a role."
+        },
+        "if": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Flags that must hold for this consequence to be carried out.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredScene": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "An exploration scene: the chat with a narrator and no character, until someone is met.",
+      "properties": {
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The name over the chat window during the scene (\"The burned barns of {village}\"). Empty: \"The wood by <village>\"."
+        },
+        "opening": {
+          "$ref": "#/$defs/AuthoredBeat",
+          "x-kind": "object:AuthoredBeat",
+          "description": "What the narrator opens the scene with."
+        },
+        "findings": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredFinding"
+          },
+          "x-kind": "object:AuthoredFinding[]",
+          "description": "What there is to discover. Without choices, at least one must be required.",
+          "x-default-empty": true
+        },
+        "hazards": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredHazard"
+          },
+          "x-kind": "object:AuthoredHazard[]",
+          "description": "What the player's choices can spring. Each springs once.",
+          "x-default-empty": true
+        },
+        "encounters": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredEncounter"
+          },
+          "x-kind": "object:AuthoredEncounter[]",
+          "description": "People who may be met in the scene, voiced by the narrator.",
+          "x-default-empty": true
+        },
+        "closing": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Shown when the scene closes, after any missed findings."
+        }
+      }
+    },
+    "AuthoredSpawn": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "A party spawned for the quest: real, on the map, beaten in a real battle.",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The band's name in the file."
+        },
+        "template": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The bandit faction whose troops it is made of (looters by default).",
+          "default": "looters"
+        },
+        "size": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "x-kind": "int[]",
+          "description": "[fewest, most] men."
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Its name on the map."
+        },
+        "near": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The place it patrols around, as a role."
+        },
+        "behavior": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Read but not played yet (every band patrols around its place).",
+          "x-played": false,
+          "default": "hide_near"
+        },
+        "flee_after_days": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "The tale fails if the band is still alive that many days after the stage began.",
+          "default": 0
+        }
+      }
+    },
+    "AuthoredSaid": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "A choice taken by words: what the player must say, and to whom.",
+      "properties": {
+        "to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The character it must be said to, as a role: \"{giver}\" or \"{rival}\"."
+        },
+        "meaning": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the player's words must mean, plainly: \"the player promises to keep silent for a price\"."
+        }
+      }
+    },
+    "AuthoredBeat": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "canvas": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The scene as the player comes upon it."
+        },
+        "facts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "x-kind": "string[]",
+          "description": "What must be true in the narration.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredFinding": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The finding's name, used in its marker."
+        },
+        "required": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "A required finding the player never reached is told when the scene closes.",
+          "default": false
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the player finds."
+        },
+        "sets": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Flags set when it is found (or told at closing).",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredHazard": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The hazard's name, used in its marker."
+        },
+        "trigger": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the player must do to spring it."
+        },
+        "effect": {
+          "$ref": "#/$defs/AuthoredHazardEffect",
+          "x-kind": "object:AuthoredHazardEffect",
+          "description": "What the game does when it springs."
+        }
+      }
+    },
+    "AuthoredEncounter": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The person's name in the file, used in its marker."
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "How the narrator names them (\"a girl from {village}\")."
+        },
+        "persona": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Who they are and how they seem."
+        },
+        "knows": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "x-kind": "string[]",
+          "description": "What they know, and say only that.",
+          "x-default-empty": true
+        },
+        "may_materialize": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "Read but not played yet.",
+          "x-played": false,
+          "default": false
+        },
+        "materialize_when": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Read but not played yet.",
+          "x-played": false
+        },
+        "escort_to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Read but not played yet.",
+          "x-played": false
+        },
+        "sets": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Flags set when they are met.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredHazardEffect": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "injure, alert or lose_time.",
+          "enum": [
+            "injure",
+            "alert",
+            "lose_time"
+          ],
+          "x-closed-list": "HazardEffects"
+        },
+        "hit_points": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "x-kind": "int[]",
+          "description": "injure: [fewest, most] hit points taken, never below 1 HP."
+        },
+        "party": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "alert: read but not played yet (every alert warns the stage's band).",
+          "x-played": false
+        },
+        "hours": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "lose_time: read but not played yet (the scene ends, the night is lost).",
+          "x-played": false,
+          "default": 0
+        }
+      }
+    },
+    "line": {
+      "description": "A line, written plain, or under flags so it is said only while they hold.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-kind": "string",
+              "description": "The line itself."
+            },
+            "if": {
+              "$ref": "#/$defs/flags",
+              "x-kind": "flags",
+              "description": "Flags that must hold for the line to be said (\"name\", or \"!name\" for not set)."
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lines": {
+      "description": "One line, or a list of lines, each said while its flags hold.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/line"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/line"
+          }
+        }
+      ]
+    },
+    "flags": {
+      "description": "A flag's name (\"name\", or \"!name\" for not set), or a list of them; all must hold.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
+</script>
+<script id="template-werewolf" type="application/json">
+{
+  "id": "cr_wolf_of_the_wood",
+  "title": "The Wolf of the Wood",
+  "author": "Gabriel Mailhot (story), draft 03/10/2026, revised with his rulings (nights of watch, exploration scene)",
+  "unique": true,
+  "weight": 10,
+  "requires": {
+    "giver": {
+      "role": "lord",
+      "holds": "{village}",
+      "min_regard": 0,
+      "not_at_war_with_player": true
+    },
+    "village": {
+      "type": "village",
+      "near": "forest"
+    },
+    "player": {
+      "min_clan_tier": 0
+    }
+  },
+  "binds": {
+    "giver": "the lord who holds {village}",
+    "village": "a village beside a forest",
+    "elder": "a notable of {village}"
+  },
+  "stages": [
+    {
+      "id": "the_request",
+      "journal": "{giver} has asked you to look into the beast said to haunt the wood by {village}.",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}"
+      },
+      "canvas": "The lord raises it reluctantly, half embarrassed to speak of a beast out of a nurse's tale, half afraid it is true. He wants someone he trusts to go and see, quietly.",
+      "facts": [
+        "Women of {village} have gone missing since the harvest.",
+        "The villagers say a werewolf takes them by night.",
+        "The lord does not know what to believe and cannot spare his own men to chase tales."
+      ],
+      "knowers": {
+        "{giver}": [
+          "Your people at {village} say a werewolf haunts the wood and takes women by night. Three are missing since the harvest.",
+          "You do not believe in werewolves, but you cannot explain the missing women either."
+        ]
+      },
+      "on_complete": {
+        "next": "question_the_village"
+      }
+    },
+    {
+      "id": "question_the_village",
+      "journal": "Ask the people of {village} what they have seen.",
+      "objective": {
+        "type": "talk_to_locals",
+        "place": "{village}",
+        "count": 2
+      },
+      "canvas": "The villagers are frightened and half ashamed of their fear. They speak of the beast in lowered voices, and each adds a detail of their own.",
+      "facts": [
+        "Three women have vanished since the harvest, each taken at night.",
+        "Shepherds heard howling and saw something large moving at the edge of the wood.",
+        "Nobody has seen the beast clearly.",
+        "The disappearances happen near the old charcoal-burners' track."
+      ],
+      "knowers": {
+        "locals_of:{village}": [
+          "You believe a werewolf haunts the wood; someone you know swears she saw its eyes.",
+          "Three women have gone missing since the harvest, each taken at night.",
+          "It always happens near the old charcoal-burners' track, at the edge of the wood."
+        ]
+      },
+      "on_complete": {
+        "next": "keep_watch"
+      }
+    },
+    {
+      "id": "keep_watch",
+      "journal": "Keep watch by the wood of {village} at night.",
+      "objective": {
+        "type": "keep_watch",
+        "place": "{village}",
+        "radius": 6,
+        "nights": [
+          2,
+          5
+        ],
+        "chance": 0.35
+      },
+      "canvas": "",
+      "facts": [],
+      "knowers": {
+        "locals_of:{village}": [
+          "You believe a werewolf haunts the wood; you dread the next night it comes.",
+          "Three women have gone missing since the harvest, each taken at night, near the old charcoal-burners' track.",
+          "The lord's champion is watching the wood by night; you pray they find the beast."
+        ]
+      },
+      "on_complete": {
+        "next": "the_tracks"
+      }
+    },
+    {
+      "id": "the_tracks",
+      "journal": "Something moves in the wood by {village}.",
+      "objective": {
+        "type": "explore",
+        "scene": {
+          "opening": {
+            "canvas": "Another cold night of waiting by the wood. Then the player notices something on the path: quiet, watchful, the dark close around them. End by asking what they do.",
+            "facts": [
+              "Fresh boot prints in the mud lead from the edge of the village into the wood.",
+              "The prints are of many men, not of any beast."
+            ]
+          },
+          "findings": [
+            {
+              "id": "chains",
+              "required": true,
+              "text": "A trampled clearing with a dropped iron collar and a length of chain."
+            },
+            {
+              "id": "pelt",
+              "required": true,
+              "text": "A wolf pelt rigged on a wooden frame, eyes of polished stone: the beast the shepherds saw."
+            },
+            {
+              "id": "ruts",
+              "required": false,
+              "text": "Cart ruts leading out of the wood toward the road to the coast."
+            }
+          ],
+          "encounters": [
+            {
+              "id": "escaped_girl",
+              "name": "a girl from {village}",
+              "persona": "barefoot, shivering, escaped from the slavers' camp two nights ago and hiding in the wood since",
+              "knows": [
+                "Men took her, not a beast; they wore the wolf skin to frighten the village.",
+                "They keep the women in a camp deeper in the wood and wait for a buyer from the coast."
+              ],
+              "may_materialize": true,
+              "materialize_when": "the player offers to take her home to {village}",
+              "escort_to": "{village}"
+            }
+          ],
+          "closing": "Whatever the player did, they leave the wood knowing it was men, not a beast, and that the missing women are being sold.",
+          "hazards": [
+            {
+              "id": "snare",
+              "trigger": "pushing through the undergrowth off the track without care",
+              "effect": {
+                "type": "injure",
+                "hit_points": [
+                  15,
+                  30
+                ]
+              }
+            },
+            {
+              "id": "lookout",
+              "trigger": "being seen or heard by the slavers' lookout near their camp",
+              "effect": {
+                "type": "alert",
+                "party": "slavers"
+              }
+            }
+          ]
+        }
+      },
+      "canvas": "",
+      "facts": [],
+      "knowers": {
+        "locals_of:{village}": [
+          "You believe a werewolf haunts the wood; you dread the next night it comes.",
+          "Three women have gone missing since the harvest, each taken at night, near the old charcoal-burners' track.",
+          "The lord's champion is watching the wood by night; you pray they find the beast."
+        ]
+      },
+      "on_complete": {
+        "next": "tell_the_lord"
+      }
+    },
+    {
+      "id": "tell_the_lord",
+      "journal": "Tell {giver} what you found in the wood.",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}"
+      },
+      "canvas": "The lord hears it, and his embarrassment turns to cold anger: men on his own land, selling his people. He gives the order without hesitation.",
+      "facts": [
+        "There is no werewolf: a band of slavers takes the women and sells them.",
+        "The lord wants the band found and destroyed.",
+        "He will reward the player when it is done."
+      ],
+      "knowers": {
+        "{giver}": [
+          "The player has just told you what they found in the wood: boot prints, chains, a wolf pelt on a frame. There is no werewolf; slavers are taking your people to sell them.",
+          "You want the band found and destroyed."
+        ]
+      },
+      "on_complete": {
+        "next": "hunt_the_slavers"
+      }
+    },
+    {
+      "id": "hunt_the_slavers",
+      "journal": "Find the slavers near {village} and destroy them.",
+      "objective": {
+        "type": "defeat_party",
+        "spawn": {
+          "id": "slavers",
+          "template": "looters",
+          "size": [
+            12,
+            20
+          ],
+          "name": "Slavers of the {village} wood",
+          "near": "{village}",
+          "behavior": "hide_near",
+          "flee_after_days": 20
+        }
+      },
+      "canvas": "",
+      "facts": [],
+      "knowers": {
+        "locals_of:{village}": [
+          "Word has come that it was men, not a beast. You pray the lord's champion finds them before they take anyone else."
+        ]
+      },
+      "on_complete": {
+        "next": "return"
+      }
+    },
+    {
+      "id": "return",
+      "journal": "Return to {giver}.",
+      "objective": {
+        "type": "return"
+      },
+      "canvas": "Relief and gratitude, plainly given. The lord will not forget who unmasked the wolf.",
+      "facts": [
+        "The slavers are destroyed.",
+        "The women of {village} will be safe again."
+      ],
+      "knowers": {
+        "{giver}": [
+          "The player has destroyed the slavers who preyed on {village}."
+        ]
+      },
+      "on_complete": {
+        "next": "reward"
+      }
+    }
+  ],
+  "reward": {
+    "regard": 12,
+    "gold": 500,
+    "memory": "The player unmasked the 'werewolf' of {village}: slavers, whom they destroyed at my word.",
+    "consequences": [
+      {
+        "type": "memory",
+        "who": "locals_of:{village}",
+        "text": "A stranger came at the lord's word and ended the wolf of the wood. It was men all along, selling our women."
+      },
+      {
+        "type": "world_event",
+        "summary": "The 'werewolf' of {village} was a band of slavers, destroyed at the word of {giver}.",
+        "magnitude": 35,
+        "place": "{village}"
+      }
+    ]
+  },
+  "failure": {
+    "days": 40,
+    "regard": -3,
+    "memory": "I asked the player to look into the beast of {village}, and nothing came of it.",
+    "consequences": [
+      {
+        "type": "memory",
+        "who": "locals_of:{village}",
+        "text": "The lord sent someone about the beast. Nobody came, and the women are still gone."
+      }
+    ]
+  }
+}
+</script>
+<script id="quest-validator">
+/* Calradia Remembers, the tale editor's checks: a JavaScript copy of AuthoredQuestLoader (C#, CalradiaRemembers.Logic).
+   It reads a quest file the way the game does (Newtonsoft's lenient JSON, its conversions, its defaults) and reports
+   the same problems in the same words, BLOCKING first, then COSMETIC. The fixtures in docs/design/quest-editor/fixtures
+   run through both under the mod's test suite (C# directly, this file under Node), so the two cannot disagree
+   silently. Change a message there, change it here. No DOM: the editor and Node run the very same code. */
+(function (root) {
+  'use strict';
+
+  var SCHEMA = null;
+  var LISTS = {};
+
+  function init(schema) {
+    SCHEMA = schema;
+    LISTS = schema['x-lists'] || {};
+  }
+
+  // ------------------------------------------------------------------------------------------------------------------
+  // 1. Reading the text: the JSON Newtonsoft's reader accepts (comments, trailing commas, single quotes, unquoted names,
+  //    hexadecimal and octal numbers, NaN and Infinity, a lone comma read as "undefined").
+  // ------------------------------------------------------------------------------------------------------------------
+
+  function ReadError(message) { this.message = message; }
+
+  var UNDEFINED = {undefinedToken: true};
+
+  /** A number as Newtonsoft keeps it: an integer (exact, as a BigInt) or a float (a double). */
+  function Num(kind, value) { this.kind = kind; this.value = value; }
+
+  /** An object as JObject keeps it: a repeated name keeps its first place and its last value. */
+  function Obj() { this.keys = []; this.map = new Map(); }
+  Obj.prototype.set = function (k, v) { if (!this.map.has(k)) this.keys.push(k); this.map.set(k, v); };
+
+  var WS = /[\t\n\u000B\f\r \u001C-\u001F\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/;
+  var IDENT = /[\p{L}\p{Nd}_$]/u;
+  var NUMBER_CHAR = /[0-9a-fA-FxX.eE+\-]/;
+
+  function parseJson(text) {
+    var s = text == null ? '' : String(text), i = 0, n = s.length;
+
+    function fail(what) { throw new ReadError(what + ' (at character ' + i + ')'); }
+    function atEnd() { return i >= n || s[i] === '\u0000'; }
+    function isDelimiter(c) { return c === undefined || c === '\u0000' || WS.test(c) || c === ',' || c === ']' || c === '}' || c === ')' || c === '/'; }
+
+    function skipComment() {
+      if (s[i + 1] === '*') {
+        var end = s.indexOf('*/', i + 2);
+        if (end < 0) fail('Unexpected end while parsing comment');
+        i = end + 2;
+      } else if (s[i + 1] === '/') {
+        i += 2;
+        while (i < n && s[i] !== '\r' && s[i] !== '\n') i++;
+      } else fail('Unexpected end while parsing comment');
+    }
+
+    function skipSpace(comments) {
+      for (;;) {
+        if (i < n && WS.test(s[i])) i++;
+        else if (comments && s[i] === '/') skipComment();
+        else return;
+      }
+    }
+
+    function word(w, value) {
+      if (s.substr(i, w.length) !== w) fail('Unexpected character encountered while parsing value: ' + s[i]);
+      i += w.length;
+      if (!isDelimiter(s[i])) fail('Unexpected character after ' + w);
+      return value;
+    }
+
+    function string(quote) {
+      i++;
+      var out = '';
+      for (;;) {
+        if (i >= n) fail('Unterminated string. Expected delimiter: ' + quote);
+        var c = s[i++];
+        if (c === quote) return out;
+        if (c !== '\\') { out += c; continue; }
+        if (i >= n) fail('Unterminated string. Expected delimiter: ' + quote);
+        var e = s[i++];
+        switch (e) {
+          case '"': out += '"'; break;
+          case "'": out += "'"; break;
+          case '\\': out += '\\'; break;
+          case '/': out += '/'; break;
+          case 'b': out += '\b'; break;
+          case 'f': out += '\f'; break;
+          case 'n': out += '\n'; break;
+          case 'r': out += '\r'; break;
+          case 't': out += '\t'; break;
+          case 'u':
+            var hex = s.substr(i, 4);
+            if (!/^[0-9a-fA-F]{4}$/.test(hex)) fail('Invalid Unicode escape sequence');
+            out += String.fromCharCode(parseInt(hex, 16));
+            i += 4;
+            break;
+          default: fail('Bad JSON escape sequence: \\' + e);
+        }
+      }
+    }
+
+    function number() {
+      var start = i;
+      while (i < n && NUMBER_CHAR.test(s[i])) i++;
+      if (!isDelimiter(s[i])) fail('Unexpected character encountered while parsing number: ' + s[i]);
+      var t = s.substring(start, i), first = t[0];
+      var nonBase10 = first === '0' && t.length > 1 && t[1] !== '.' && t[1] !== 'e' && t[1] !== 'E';
+      if (nonBase10) {
+        if (t[1] === 'x' || t[1] === 'X') {
+          if (!/^0[xX][0-9a-fA-F]+$/.test(t)) fail("Input string '" + t + "' is not a valid number");
+          return new Num('int', BigInt(t));
+        }
+        if (!/^0[0-7]+$/.test(t)) fail("Input string '" + t + "' is not a valid number");
+        return new Num('int', BigInt('0o' + t.substring(1)));
+      }
+      if (/[.eE]/.test(t)) {
+        if (!/^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(t)) fail("Input string '" + t + "' is not a valid number");
+        return new Num('float', Number(t));
+      }
+      if (!/^-?\d+$/.test(t)) fail("Input string '" + t + "' is not a valid number");
+      return new Num('int', BigInt(t));
+    }
+
+    function value() {
+      skipSpace(true);
+      if (atEnd()) fail('Unexpected end of content');
+      var c = s[i];
+      switch (c) {
+        case '{': return object();
+        case '[': return array();
+        case '"': case "'": return string(c);
+        case 'n': return word('null', null);
+        case 'u': return word('undefined', UNDEFINED);
+        case 't': return word('true', true);
+        case 'f': return word('false', false);
+        case 'N': return word('NaN', new Num('float', NaN));
+        case 'I': return word('Infinity', new Num('float', Infinity));
+        case '-':
+          if (s[i + 1] === 'I') { i++; return word('Infinity', new Num('float', -Infinity)); }
+          return number();
+        default:
+          if (/[0-9.]/.test(c)) return number();
+          fail('Unexpected character encountered while parsing value: ' + c);
+      }
+    }
+
+    function array() {
+      i++;
+      var out = [];
+      for (;;) {
+        skipSpace(true);
+        if (atEnd()) fail('Unexpected end');
+        if (s[i] === ']') { i++; return out; }
+        if (s[i] === ',') { i++; out.push(UNDEFINED); continue; }
+        if (s[i] === '}') fail('JsonToken EndObject is not valid for closing JsonType Array');
+        out.push(value());
+        skipSpace(true);
+        if (s[i] === ',') { i++; continue; }
+        if (s[i] === ']') { i++; return out; }
+        if (atEnd()) fail('Unexpected end');
+        if (s[i] === '}') fail('JsonToken EndObject is not valid for closing JsonType Array');
+        fail('After parsing a value an unexpected character was encountered: ' + s[i]);
+      }
+    }
+
+    function object() {
+      i++;
+      var out = new Obj();
+      for (;;) {
+        skipSpace(true);
+        if (atEnd()) fail('Unexpected end');
+        if (s[i] === '}') { i++; return out; }
+        var name;
+        if (s[i] === '"' || s[i] === "'") name = string(s[i]);
+        else if (IDENT.test(s[i])) {
+          var start = i;
+          while (i < n && IDENT.test(s[i])) i++;
+          name = s.substring(start, i);
+          if (i < n && !WS.test(s[i]) && s[i] !== ':') fail('Invalid JavaScript property identifier character: ' + s[i]);
+        } else fail('Invalid property identifier character: ' + s[i]);
+        skipSpace(false);
+        if (s[i] !== ':') fail("Invalid character after parsing property name. Expected ':' but got: " + s[i]);
+        i++;
+        out.set(name, value());
+        skipSpace(true);
+        if (s[i] === ',') { i++; continue; }
+        if (s[i] === '}') { i++; return out; }
+        if (atEnd()) fail('Unexpected end');
+        if (s[i] === ']') fail('JsonToken EndArray is not valid for closing JsonType Object');
+        fail('After parsing a value an unexpected character was encountered: ' + s[i]);
+      }
+    }
+
+    skipSpace(true);
+    if (atEnd()) fail('Error reading JToken from JsonReader');
+    var result = value();
+    skipSpace(true);
+    if (!atEnd()) fail('Additional text encountered after finished reading JSON content: ' + s[i]);
+    return result;
+  }
+
+  // ------------------------------------------------------------------------------------------------------------------
+  // 2. Reading the tale: each field as Newtonsoft converts it into the C# model (the schema's "x-kind" says how), with
+  //    the model's defaults for every field the file leaves out.
+  // ------------------------------------------------------------------------------------------------------------------
+
+  var INT_MIN = -2147483648, INT_MAX = 2147483647;
+
+  function isObj(v) { return v instanceof Obj; }
+  function isNum(v) { return v instanceof Num; }
+  function isNullish(v) { return v === null || v === UNDEFINED; }
+
+  /** Banker's rounding, as Convert.ToInt32(double) rounds. */
+  function roundHalfEven(x) {
+    var r = Math.round(x);
+    if (Math.abs(x % 1) === 0.5 && r % 2 !== 0) r -= 1;
+    return r === 0 ? 0 : r;
+  }
+
+  /** A double written as .NET writes it: shortest round-trip digits, scientific below 1e-5 or from 1e15. */
+  function dotnetDouble(x) {
+    if (isNaN(x)) return 'NaN';
+    if (x === Infinity) return 'Infinity';
+    if (x === -Infinity) return '-Infinity';
+    if (x === 0) return Object.is(x, -0) ? '-0' : '0';
+    var exp = x.toExponential();
+    var m = /^(-?)(\d)(?:\.(\d+))?e([+-]\d+)$/.exec(exp);
+    var sign = m[1], digits = m[2] + (m[3] || ''), e = parseInt(m[4], 10);
+    if (e >= 15 || e < -5) {
+      var mant = digits.length > 1 ? digits[0] + '.' + digits.substring(1) : digits;
+      var ee = Math.abs(e);
+      return sign + mant + 'E' + (e < 0 ? '-' : '+') + (ee < 10 ? '0' + ee : String(ee));
+    }
+    if (e >= 0) {
+      var intPart = digits.length > e + 1 ? digits.substring(0, e + 1) : digits + '0'.repeat(e + 1 - digits.length);
+      var frac = digits.length > e + 1 ? digits.substring(e + 1) : '';
+      return sign + intPart + (frac ? '.' + frac : '');
+    }
+    return sign + '0.' + '0'.repeat(-e - 1) + digits;
+  }
+
+  function readString(v, path) {
+    if (v === null) return null;
+    if (v === UNDEFINED) throw new ReadError('Error reading string. Unexpected token: Undefined. Path ' + path);
+    if (typeof v === 'string') return v;
+    if (typeof v === 'boolean') return v ? 'True' : 'False';
+    if (isNum(v)) return v.kind === 'int' ? v.value.toString() : dotnetDouble(v.value);
+    throw new ReadError('Error reading string. Unexpected token. Path ' + path);
+  }
+
+  function readInt(v, path) {
+    if (isNum(v)) {
+      var x;
+      if (v.kind === 'int') {
+        if (v.value < BigInt(INT_MIN) || v.value > BigInt(INT_MAX)) throw new ReadError('Could not convert to integer: ' + v.value + '. Path ' + path);
+        return Number(v.value);
+      }
+      if (!isFinite(v.value)) throw new ReadError('Could not convert to integer. Path ' + path);
+      x = roundHalfEven(v.value);
+      if (x < INT_MIN || x > INT_MAX) throw new ReadError('Could not convert to integer: ' + v.value + '. Path ' + path);
+      return x;
+    }
+    if (typeof v === 'string') {
+      var m = /^[\t-\r ]*([+-]?\d+)[\t-\r ]*$/.exec(v);
+      if (!m) throw new ReadError(v === '' ? 'Error converting value {null} to type Int32. Path ' + path : 'Could not convert string to integer: ' + v + '. Path ' + path);
+      var b = BigInt(m[1]);
+      if (b < BigInt(INT_MIN) || b > BigInt(INT_MAX)) throw new ReadError('Could not convert string to integer: ' + v + '. Path ' + path);
+      return Number(b);
+    }
+    throw new ReadError('Error reading integer. Path ' + path);
+  }
+
+  function readNumber(v, path) {
+    if (isNum(v)) return Number(v.value);
+    if (typeof v === 'string') {
+      var t = v.replace(/^[\t-\r ]+|[\t-\r ]+$/g, '');
+      if (/^nan$/i.test(t)) return NaN;
+      if (/^[+]?infinity$/i.test(t)) return Infinity;
+      if (/^-infinity$/i.test(t)) return -Infinity;
+      var m = /^([+-]?)(\d[\d,]*)?(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(t);
+      if (m && (m[2] || (m[3] && m[3].length))) return Number((m[1] || '') + (m[2] || '0').replace(/,/g, '') + '.' + (m[3] || '0') + (m[4] ? 'e' + m[4] : ''));
+      throw new ReadError('Could not convert string to double: ' + v + '. Path ' + path);
+    }
+    throw new ReadError('Error reading double. Path ' + path);
+  }
+
+  function readBool(v, path) {
+    if (typeof v === 'boolean') return v;
+    if (isNum(v)) return v.kind === 'int' ? v.value !== 0n : v.value !== 0;
+    if (typeof v === 'string') {
+      var t = v.replace(/^[\s\u0000]+|[\s\u0000]+$/g, '').toLowerCase();
+      if (t === 'true') return true;
+      if (t === 'false') return false;
+      throw new ReadError('Could not convert string to boolean: ' + v + '. Path ' + path);
+    }
+    throw new ReadError('Error reading boolean. Path ' + path);
+  }
+
+  function readFlags(v, path) {
+    if (v === null) return [];
+    if (typeof v === 'string') return [v];
+    if (Array.isArray(v) && v.every(function (x) { return typeof x === 'string'; })) return v.slice();
+    throw new ReadError('at ' + path + ': flags must be a name in quotes, or a list of names in quotes');
+  }
+
+  function property(o, name) {
+    if (o.map.has(name)) return o.map.get(name);
+    for (var k = 0; k < o.keys.length; k++) if (o.keys[k].toLowerCase() === name.toLowerCase()) return o.map.get(o.keys[k]);
+    return undefined;
+  }
+
+  function readLine(v, path) {
+    if (v === null) return null;
+    if (typeof v === 'string') return {text: v, if: []};
+    if (isObj(v)) {
+      var text = property(v, 'text'), cond = property(v, 'if');
+      if (text !== undefined && text !== null && typeof text !== 'string') throw new ReadError('at ' + path + ': a line\'s "text" must be words in quotes');
+      return {text: text === undefined ? null : text, if: cond === undefined ? [] : readFlags(cond, path)};
+    }
+    throw new ReadError('at ' + path + ': a line must be words in quotes, or {"text": ..., "if": ...}');
+  }
+
+  function readLines(v, path) {
+    if (v === null) return [];
+    if (!Array.isArray(v)) return [readLine(v, path)].filter(function (l) { return l !== null; });
+    return v.map(function (x) { return readLine(x, path); }).filter(function (l) { return l !== null; });
+  }
+
+  function def(name) {
+    var d = SCHEMA.$defs[name];
+    if (!d) throw new Error('The schema has no definition ' + name);
+    return d;
+  }
+
+  function emptyOf(kind) {
+    if (kind.indexOf('map:') === 0) return new Map();
+    if (kind === 'flags' || kind === 'lines' || /\[\]$/.test(kind)) return [];
+    if (kind.indexOf('object:') === 0) return defaults(kind.substring(7));
+    return null;
+  }
+
+  function defaults(defName) {
+    var props = def(defName).properties, out = {};
+    Object.keys(props).forEach(function (k) {
+      var p = props[k];
+      if ('default' in p) out[k] = p.default;
+      else if (p['x-default-empty']) out[k] = emptyOf(p['x-kind']);
+      else out[k] = null;
+    });
+    return out;
+  }
+
+  function readObject(defName, o, path) {
+    var props = def(defName).properties, names = Object.keys(props), out = defaults(defName);
+    o.keys.forEach(function (key) {
+      var canon = props.hasOwnProperty(key) ? key : null;
+      if (!canon) for (var k = 0; k < names.length && !canon; k++) if (names[k].toLowerCase() === key.toLowerCase()) canon = names[k];
+      if (!canon) return; // a field the game does not read is ignored, as Newtonsoft ignores it
+      out[canon] = read(props[canon]['x-kind'], o.map.get(key), path ? path + '.' + key : key);
+    });
+    return out;
+  }
+
+  function read(kind, v, path) {
+    switch (kind) {
+      case 'string': return readString(v, path);
+      case 'int':
+        if (isNullish(v)) throw new ReadError('Error converting value {null} to type Int32. Path ' + path);
+        return readInt(v, path);
+      case 'number':
+        if (isNullish(v)) throw new ReadError('Error converting value {null} to type Double. Path ' + path);
+        return readNumber(v, path);
+      case 'bool':
+        if (isNullish(v)) throw new ReadError('Error converting value {null} to type Boolean. Path ' + path);
+        return readBool(v, path);
+      case 'flags':
+        if (v === UNDEFINED) throw new ReadError('at ' + path + ': flags must be a name in quotes, or a list of names in quotes');
+        return readFlags(v, path);
+      case 'line':
+        if (v === UNDEFINED) throw new ReadError('at ' + path + ': a line must be words in quotes');
+        return readLine(v, path);
+      case 'lines':
+        if (v === UNDEFINED) throw new ReadError('at ' + path + ': a line must be words in quotes');
+        return readLines(v, path);
+    }
+
+    if (kind.indexOf('map:') === 0) {
+      if (isNullish(v)) return null;
+      if (!isObj(v)) throw new ReadError('Cannot deserialize into a dictionary. Path ' + path);
+      var valueKind = kind.substring(4), out = new Map();
+      v.keys.forEach(function (key) {
+        var x = v.map.get(key), at = path + '.' + key;
+        if (valueKind.indexOf('object:') === 0) out.set(key, isNullish(x) ? null : isObj(x) ? readObject(valueKind.substring(7), x, at) : (function () { throw new ReadError('Error converting value. Path ' + at); })());
+        else out.set(key, read(valueKind, x, at));
+      });
+      return out;
+    }
+
+    var list = /^(.*)\[\]$/.exec(kind);
+    if (list) {
+      if (isNullish(v)) return null;
+      if (!Array.isArray(v)) throw new ReadError('Error converting value to a list. Path ' + path);
+      var item = list[1];
+      return v.map(function (x, k) {
+        var at = path + '[' + k + ']';
+        if (item.indexOf('object:') === 0) {
+          if (isNullish(x)) return null;
+          if (!isObj(x)) throw new ReadError('Error converting value to ' + item + '. Path ' + at);
+          return readObject(item.substring(7), x, at);
+        }
+        if (item === 'line' && x === UNDEFINED) throw new ReadError('at ' + at + ': a line must be words in quotes');
+        return read(item, x, at);
+      });
+    }
+
+    if (kind.indexOf('object:') === 0) {
+      if (isNullish(v)) return null;
+      if (!isObj(v)) throw new ReadError('Error converting value to ' + kind.substring(7) + '. Path ' + path);
+      return readObject(kind.substring(7), v, path);
+    }
+
+    throw new Error('The editor cannot read a field of kind ' + kind);
+  }
+
+  /** The tales a file holds, as the game reads them, or a ReadError. Null entries are skipped, as the game skips them. */
+  function readQuests(text) {
+    var rootValue = parseJson(text);
+    if (isNullish(rootValue)) return [];
+    if (Array.isArray(rootValue)) {
+      return rootValue.map(function (x, k) {
+        if (isNullish(x)) return null;
+        if (!isObj(x)) throw new ReadError('Error converting value to AuthoredQuest. Path [' + k + ']');
+        return readObject('AuthoredQuest', x, '[' + k + ']');
+      }).filter(function (q) { return q !== null; });
+    }
+    if (!isObj(rootValue)) throw new ReadError('Error converting value to AuthoredQuest. Path \'\'');
+    return [readObject('AuthoredQuest', rootValue, '')];
+  }
+
+  // ------------------------------------------------------------------------------------------------------------------
+  // 3. The checks, in the loader's order and words.
+  // ------------------------------------------------------------------------------------------------------------------
+
+  var REWARD = 'reward', END_PREFIX = 'end:';
+  var PLACEHOLDER = /\{([a-z_]+)\}/g;
+  var MARKER_NAME = /^[A-Za-z0-9_]+$/;
+
+  function blank(s) { return s == null || /^\s*$/.test(s); }
+  function str(x) { return x == null ? '' : String(x); }
+  function has(list, x) { return list.indexOf(x) >= 0; }
+  function arr(x) { return x == null ? [] : x; }
+  function entries(m) { return m == null ? [] : Array.from(m.entries()); }
+  function isEnding(next) { return next === REWARD || (next != null && next.indexOf(END_PREFIX) === 0); }
+  function endingId(next) { return next != null && next.indexOf(END_PREFIX) === 0 ? next.substring(END_PREFIX.length) : null; }
+
+  /** Every string the model holds, in the order Newtonsoft writes them: where the loader looks for placeholders. */
+  function strings(value, kind, out) {
+    if (value == null) return out;
+    if (kind === 'string') { out.push(value); return out; }
+    if (kind === 'flags' || kind === 'string[]') { value.forEach(function (s) { if (s != null) out.push(s); }); return out; }
+    if (kind === 'line') { if (value.text != null) out.push(value.text); value.if.forEach(function (s) { out.push(s); }); return out; }
+    if (kind === 'lines' || kind === 'line[]') { value.forEach(function (l) { strings(l, 'line', out); }); return out; }
+    if (kind.indexOf('map:') === 0) {
+      var vk = kind.substring(4);
+      value.forEach(function (v, k) { out.push(k); strings(v, vk, out); });
+      return out;
+    }
+    var list = /^(.*)\[\]$/.exec(kind);
+    if (list) { value.forEach(function (v) { strings(v, list[1], out); }); return out; }
+    if (kind.indexOf('object:') === 0) {
+      var props = def(kind.substring(7)).properties;
+      Object.keys(props).forEach(function (k) { strings(value[k], props[k]['x-kind'], out); });
+      return out;
+    }
+    return out;
+  }
+
+  function validate(q, blocking, cosmetic) {
+    if (blank(q.id)) blocking.push('it has no id.');
+    if (q.stages == null || q.stages.length === 0) {
+      blocking.push('it has no stages.');
+      return;
+    }
+
+    var ids = new Set();
+    q.stages.forEach(function (s) {
+      if (s == null || blank(s.id)) { blocking.push('a stage has no id.'); return; }
+      if (ids.has(s.id)) blocking.push("two stages are called '" + s.id + "'.");
+      else ids.add(s.id);
+    });
+
+    var endings = q.endings == null ? new Map() : q.endings;
+    if (Array.from(endings.keys()).some(blank)) blocking.push('an ending has no name.');
+
+    var first = q.stages[0];
+    q.stages.forEach(function (s) {
+      if (s == null) return;
+      if (s.choices == null || s.choices.length === 0) {
+        var next = s.on_complete == null ? null : s.on_complete.next;
+        if (blank(next)) blocking.push("stage '" + s.id + "' has no on_complete.next (a stage id, \"reward\", or \"end:<id>\").");
+        else checkNext("stage '" + s.id + "' leads to", next, ids, endings, blocking);
+        validateObjective("stage '" + str(s.id) + "'", s.objective, false, false, blocking, cosmetic);
+        return;
+      }
+      validateChoiceStage(q, s, s === first, ids, endings, blocking, cosmetic);
+    });
+
+    validatePaths(q, ids, endings, blocking, cosmetic);
+
+    var outcomes = [q.reward, q.failure].concat(Array.from(endings.values()));
+    outcomes.forEach(function (o) {
+      if (o == null) return;
+      arr(o.consequences).forEach(function (c) {
+        if (c != null && !has(LISTS.ConsequenceTypes, c.type))
+          cosmetic.push("consequence '" + (c.type == null ? '' : c.type) + "' is not carried out yet (known: " + LISTS.ConsequenceTypes.join(', ') + '); it is skipped.');
+      });
+    });
+
+    validateFlags(q, cosmetic);
+
+    var binds = new Set(q.binds == null ? [] : Array.from(q.binds.keys()));
+    var seen = [];
+    strings(q, 'object:AuthoredQuest', []).forEach(function (s) {
+      var m;
+      PLACEHOLDER.lastIndex = 0;
+      while ((m = PLACEHOLDER.exec(s)) !== null) if (!has(seen, m[1])) seen.push(m[1]);
+    });
+    seen.filter(function (p) { return !binds.has(p); }).forEach(function (p) {
+      cosmetic.push('{' + p + '} is used but no role binds it (add it to "binds"), so it would reach the player as written.');
+    });
+
+    var rival = q.requires == null ? null : q.requires.rival;
+    if (rival != null && !has(LISTS.RivalRoles, rival.role))
+      blocking.push("requires.rival asks for a '" + (rival.role == null ? '' : rival.role) + "', but the game binds a rival only as a \"clan_leader\" of the giver's realm.");
+    if (rival != null && rival.same_realm_as !== '{giver}')
+      blocking.push("requires.rival is of the same realm as '" + (rival.same_realm_as == null ? '' : rival.same_realm_as) + "', but the game binds a rival only in the giver's realm (\"{giver}\").");
+  }
+
+  function checkNext(what, next, ids, endings, blocking) {
+    var ending = endingId(next);
+    if (ending !== null) {
+      if (!endings.has(ending)) blocking.push(what + " ending '" + ending + "', which \"endings\" does not define.");
+    } else if (next !== REWARD && !ids.has(next)) blocking.push(what + " '" + next + "', which is no stage of this quest.");
+  }
+
+  function isSceneChoice(c) { return c.objective == null && c.said == null; }
+
+  function validateChoiceStage(q, s, isFirst, ids, endings, blocking, cosmetic) {
+    var where = "stage '" + str(s.id) + "'";
+    if (isFirst)
+      blocking.push(where + ' is the request, accepted in the conversation where the tale is offered, so it cannot offer choices (move them to the next stage).');
+
+    var isScene = s.objective != null && s.objective.type === 'explore';
+    var next = s.on_complete == null ? null : s.on_complete.next;
+    var choices = s.choices.filter(function (c) { return c != null; });
+    var sceneChoices = choices.filter(isSceneChoice);
+
+    if (s.objective != null) {
+      var defaultLeadsOn = isScene && sceneChoices.some(function (c) { return c.default; });
+      if (blank(next)) {
+        if (!isScene) blocking.push(where + ' has no on_complete.next (a stage id, "reward", or "end:<id>").');
+        else if (!defaultLeadsOn)
+          blocking.push(where + ': a scene with choices needs a way out when it closes with none taken: an on_complete.next, or one choice marked "default": true.');
+      } else checkNext(where + ' leads to', next, ids, endings, blocking);
+
+      validateObjective(where, s.objective, false, isScene && sceneChoices.length > 0, blocking, cosmetic);
+    } else if (!blank(next))
+      cosmetic.push(where + ' has no objective, so its on_complete.next is never used; its choices lead on.');
+
+    var choiceIds = new Set();
+    choices.forEach(function (c) {
+      if (blank(c.id)) { blocking.push(where + ': a choice has no id.'); return; }
+      if (choiceIds.has(c.id)) blocking.push(where + ": two choices are called '" + c.id + "'.");
+      else choiceIds.add(c.id);
+    });
+
+    choices.filter(function (c) { return !blank(c.id); }).forEach(function (c) {
+      var choice = where + ", choice '" + c.id + "'";
+      if (blank(c.next)) blocking.push(choice + ' has no next (a stage id, "reward", or "end:<id>").');
+      else checkNext(choice + ' leads to', c.next, ids, endings, blocking);
+
+      if (c.objective != null && c.said != null)
+        blocking.push(choice + ' has both an objective and a "said"; give it one way to be taken.');
+      else if (c.objective != null)
+        validateObjective(choice, c.objective, true, false, blocking, cosmetic);
+      else if (c.said != null) {
+        var to = c.said.to;
+        if (blank(to) || blank(c.said.meaning))
+          blocking.push(choice + ': "said" needs "to" (a role, "{giver}") and "meaning" (what the player\'s words must mean).');
+        else if (!has(LISTS.SpeakingRoles, to.trim()))
+          blocking.push(choice + " is said to '" + to + "', but a choice can be said only to " + LISTS.SpeakingRoles.join(' or ') + '.');
+        else if (to.trim() === '{rival}' && (q.requires == null || q.requires.rival == null))
+          blocking.push(choice + ' is said to {rival}, but no rival is bound: add "rival" to "requires".');
+      } else if (!isScene)
+        blocking.push(choice + ' has no way to be taken: give it an objective or a "said" (only a choice in an explore stage is taken in the scene).');
+      else {
+        if (blank(c.label)) blocking.push(choice + ' is made in a scene, so it needs a "label": the words the player picks it by.');
+        if (!MARKER_NAME.test(c.id)) blocking.push(choice + ' is made in a scene, so its id may hold only letters, digits and _ (the narrator writes it in a marker).');
+      }
+
+      if (c.default && sceneChoices.indexOf(c) < 0)
+        cosmetic.push(choice + ' is marked default, which only matters for a choice made in a scene.');
+    });
+
+    var defaults = sceneChoices.filter(function (c) { return c.default && !blank(c.id); });
+    if (isScene && defaults.length > 0) {
+      if (!blank(next))
+        cosmetic.push(where + ": choice '" + defaults[0].id + "' is marked default, but a scene closed with no choice follows on_complete.next; the mark is unused.");
+      else {
+        if (defaults[0].if != null && defaults[0].if.length > 0)
+          blocking.push(where + ": the default choice '" + defaults[0].id + "' cannot depend on flags, or the scene could close with nowhere to go.");
+        if (defaults.length > 1) cosmetic.push(where + ": several choices are marked default; only the first, '" + defaults[0].id + "', is used.");
+      }
+    }
+
+    if (s.objective == null && choices.length > 0 && choices.every(function (c) { return c.if != null && c.if.length > 0; }))
+      cosmetic.push(q.failure != null && q.failure.days > 0
+        ? where + ': every way out depends on flags; if none holds, the tale can only end when its time runs out.'
+        : where + ': every way out depends on flags; if none holds, the tale can never end.');
+  }
+
+  /** Where a stage's ways out lead: its own objective's next, then each choice's. */
+  function exits(s) {
+    var out = [];
+    var hasChoices = s.choices != null && s.choices.length > 0;
+    if ((!hasChoices || s.objective != null) && s.on_complete != null && !blank(s.on_complete.next)) out.push(s.on_complete.next);
+    if (hasChoices) s.choices.forEach(function (c) { if (c != null && !blank(c.next)) out.push(c.next); });
+    return out;
+  }
+
+  /** The paths of a tale: which stages the first one reaches, and which can reach an ending (also drawn by the story map). */
+  function analyzePaths(q) {
+    var endings = q.endings == null ? new Map() : q.endings;
+    var stages = [], byId = new Set();
+    arr(q.stages).forEach(function (s) { if (s != null && !blank(s.id) && !byId.has(s.id)) { byId.add(s.id); stages.push(s); } });
+    var leads = new Map();
+    stages.forEach(function (s) { leads.set(s.id, exits(s)); });
+    function resolves(next) { return next === REWARD || (endingId(next) !== null && endings.has(endingId(next))); }
+
+    var reachable = new Set(), queue = [];
+    var head = arr(q.stages)[0];
+    if (head != null && leads.has(head.id == null ? '' : head.id)) { reachable.add(head.id); queue.push(head.id); }
+    while (queue.length > 0) leads.get(queue.shift()).forEach(function (n) { if (leads.has(n) && !reachable.has(n)) { reachable.add(n); queue.push(n); } });
+
+    var unsure = new Set();
+    stages.forEach(function (s) {
+      if (missesANext(s) || leads.get(s.id).some(function (n) { return !resolves(n) && !leads.has(n); })) unsure.add(s.id);
+    });
+
+    var canEnd = new Set();
+    for (var grew = true; grew;) {
+      grew = false;
+      stages.forEach(function (s) {
+        if (canEnd.has(s.id)) return;
+        if (unsure.has(s.id) || leads.get(s.id).some(function (n) { return resolves(n) || canEnd.has(n); })) { canEnd.add(s.id); grew = true; }
+      });
+    }
+
+    var sure = !stages.some(function (s) { return reachable.has(s.id) && unsure.has(s.id); });
+    return {stages: stages, leads: leads, reachable: reachable, canEnd: canEnd, resolves: resolves, unsure: unsure, sure: sure};
+  }
+
+  /** A stage, or one of its choices, that needs a next and has none (already refused, with its own message). */
+  function missesANext(s) {
+    var hasChoices = s.choices != null && s.choices.length > 0;
+    if (!hasChoices) return blank(s.on_complete == null ? null : s.on_complete.next);
+    if (s.choices.some(function (c) { return c != null && blank(c.next); })) return true;
+    var defaultLeadsOn = s.objective != null && s.objective.type === 'explore'
+      && s.choices.some(function (c) { return c != null && c.objective == null && c.said == null && c.default; });
+    return s.objective != null && blank(s.on_complete == null ? null : s.on_complete.next) && !defaultLeadsOn;
+  }
+
+  function validatePaths(q, ids, endings, blocking, cosmetic) {
+    var a = analyzePaths(q);
+    if (a.stages.length === 0) return;
+
+    a.stages.forEach(function (s) {
+      if (!a.reachable.has(s.id)) {
+        if (a.sure) cosmetic.push("stage '" + s.id + "' is never reached from the first stage, so it is never played.");
+      } else if (!a.canEnd.has(s.id)) blocking.push("stage '" + s.id + "' can never reach an ending: every way out of it leads back without an exit.");
+    });
+
+    if (!a.sure) return;
+    var reached = [];
+    a.stages.forEach(function (s) { if (a.reachable.has(s.id)) reached = reached.concat(a.leads.get(s.id)); });
+    Array.from(endings.keys()).forEach(function (k) {
+      if (!blank(k) && !has(reached, END_PREFIX + k)) cosmetic.push("ending '" + k + "' is never reached: no path leads to \"end:" + k + '".');
+    });
+    if (!has(reached, REWARD) && hasContent(q.reward))
+      cosmetic.push('the reward is never reached: no path leads to "reward" (name it "end:<id>" in "endings", or lead a path to it).');
+  }
+
+  /** An outcome that says anything at all: it differs from a blank one (its days aside). */
+  function hasContent(o) {
+    if (o == null) return false;
+    var blankOne = defaults('AuthoredOutcome');
+    return !deepEqual(o, Object.assign(blankOne, {days: o.days}));
+  }
+
+  function deepEqual(a, b) {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (typeof a === 'number' && typeof b === 'number') return a === b || (isNaN(a) && isNaN(b));
+    if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every(function (x, k) { return deepEqual(x, b[k]); });
+    if (a instanceof Map && b instanceof Map) {
+      if (a.size !== b.size) return false;
+      var bk = Array.from(b.keys()), ak = Array.from(a.keys());
+      return ak.every(function (k, j) { return k === bk[j] && deepEqual(a.get(k), b.get(k)); });
+    }
+    if (typeof a === 'object' && typeof b === 'object') {
+      var ka = Object.keys(a), kb = Object.keys(b);
+      return ka.length === kb.length && ka.every(function (k) { return deepEqual(a[k], b[k]); });
+    }
+    return false;
+  }
+
+  function validateFlags(q, cosmetic) {
+    var set = new Set(), tested = [];
+    function tests(conditions) {
+      arr(conditions).forEach(function (c) {
+        var name = (c == null ? '' : c).trim().replace(/^!+/, '').trim();
+        if (!has(tested, name)) tested.push(name);
+      });
+    }
+    function lines(ls) { arr(ls).forEach(function (l) { if (l != null) tests(l.if); }); }
+    function knowers(k) { entries(k).forEach(function (e) { lines(e[1]); }); }
+    function sets(list) { arr(list).forEach(function (f) { set.add(f); }); }
+
+    q.stages.forEach(function (s) {
+      if (s == null) return;
+      lines(s.canvas);
+      lines(s.facts);
+      knowers(s.knowers);
+      var scene = s.objective == null ? null : s.objective.scene;
+      if (scene != null) {
+        arr(scene.findings).forEach(function (f) { if (f != null) sets(f.sets); });
+        arr(scene.encounters).forEach(function (e) { if (e != null) sets(e.sets); });
+      }
+      arr(s.choices).forEach(function (c) {
+        if (c == null) return;
+        tests(c.if);
+        sets(c.sets);
+        lines(c.canvas);
+        lines(c.facts);
+        knowers(c.knowers);
+      });
+    });
+
+    [q.reward, q.failure].concat(Array.from((q.endings == null ? new Map() : q.endings).values())).forEach(function (o) {
+      if (o == null) return;
+      arr(o.consequences).forEach(function (c) { if (c != null) tests(c.if); });
+    });
+
+    tested.forEach(function (name) {
+      if (name.length === 0) cosmetic.push('a flag test is empty; write a flag\'s name, or "!name" for not set.');
+      else if (!set.has(name)) cosmetic.push("flag '" + name + "' is tested but never set anywhere, so \"" + name + '" never holds and "!' + name + '" always does.');
+    });
+  }
+
+  function validateObjective(where, o, ofChoice, sceneHasChoices, blocking, cosmetic) {
+    if (o == null || blank(o.type)) {
+      blocking.push(where + ' has no objective.');
+      return;
+    }
+    if (!has(LISTS.ObjectiveTypes, o.type)) {
+      blocking.push(where + " asks for '" + o.type + "', which the game cannot check yet (known: " + LISTS.ObjectiveTypes.join(', ') + ').');
+      return;
+    }
+    if (ofChoice && !has(LISTS.ChoiceObjectiveTypes, o.type)) {
+      blocking.push(where + " asks for '" + o.type + "', which a choice cannot do (a choice may: " + LISTS.ChoiceObjectiveTypes.join(', ') + '); lead it to a stage that does.');
+      return;
+    }
+
+    switch (o.type) {
+      case 'talk_to':
+        if (blank(o.hero)) blocking.push(where + ': talk_to needs "hero".');
+        break;
+      case 'talk_to_locals':
+      case 'be_at':
+        if (blank(o.place)) blocking.push(where + ': ' + o.type + ' needs "place".');
+        if (o.type === 'talk_to_locals' && o.count < 1) blocking.push(where + ': talk_to_locals needs a "count" of at least 1.');
+        break;
+      case 'keep_watch':
+        if (blank(o.place)) blocking.push(where + ': keep_watch needs "place".');
+        if (o.nights == null || o.nights.length !== 2 || o.nights[0] < 1 || o.nights[1] < o.nights[0])
+          blocking.push(where + ': keep_watch needs "nights": [first night it may happen, night it surely happens], with 1 <= first <= last.');
+        if (o.chance < 0 || o.chance > 1) blocking.push(where + ': keep_watch "chance" must be between 0 and 1.');
+        break;
+      case 'explore':
+        validateScene(where, o.scene, sceneHasChoices, blocking, cosmetic);
+        break;
+      case 'defeat_party':
+        var sp = o.spawn;
+        if (sp == null || blank(sp.id) || blank(sp.near))
+          blocking.push(where + ': defeat_party needs "spawn" with an "id" and a "near".');
+        else if (sp.size == null || sp.size.length !== 2 || sp.size[0] < 1 || sp.size[1] < sp.size[0])
+          blocking.push(where + ': spawn "size" must be [fewest, most] with 1 <= fewest <= most.');
+        else if (ofChoice && sp.flee_after_days > 0)
+          cosmetic.push(where + ': flee_after_days is not played on a choice\'s band; it stays until the stage ends.');
+        break;
+      case 'wait':
+        if (o.days < 1) blocking.push(where + ': wait needs "days" of at least 1.');
+        break;
+    }
+  }
+
+  function validateScene(where, scene, hasChoices, blocking, cosmetic) {
+    if (scene == null || scene.opening == null || blank(scene.opening.canvas)) {
+      blocking.push(where + ': an explore scene needs an "opening" with a "canvas".');
+      return;
+    }
+
+    var findings = arr(scene.findings);
+    if (!hasChoices && !findings.some(function (f) { return f != null && f.required; }))
+      blocking.push(where + ': an explore scene needs at least one required finding, or it could never be completed.');
+    var counts = new Map(), badId = false;
+    findings.forEach(function (f) {
+      if (f == null) return;
+      if (blank(f.id)) badId = true;
+      counts.set(f.id, (counts.get(f.id) || 0) + 1);
+    });
+    counts.forEach(function (c) { if (c > 1) badId = true; });
+    if (badId) blocking.push(where + ': every finding needs its own id.');
+
+    arr(scene.hazards).forEach(function (h) {
+      if (h == null) return;
+      if (blank(h.id) || blank(h.trigger))
+        blocking.push(where + ': every hazard needs an "id" and a "trigger" (what the player must do to spring it).');
+      if (h.effect == null || !has(LISTS.HazardEffects, h.effect.type))
+        blocking.push(where + ": hazard '" + (h.id == null ? '' : h.id) + "' has effect '" + (h.effect == null || h.effect.type == null ? '' : h.effect.type)
+          + "', which the game cannot carry out yet (known: " + LISTS.HazardEffects.join(', ') + ').');
+    });
+
+    var named = [];
+    findings.forEach(function (f) { if (f != null) named.push(['finding', f.id]); });
+    arr(scene.hazards).forEach(function (h) { if (h != null) named.push(['hazard', h.id]); });
+    arr(scene.encounters).forEach(function (e) { if (e != null) named.push(['encounter', e.id]); });
+    named.forEach(function (x) {
+      if (!blank(x[1]) && !MARKER_NAME.test(x[1]))
+        cosmetic.push(where + ': ' + x[0] + " '" + x[1] + "' has a name its marker cannot carry (letters, digits and _ only), so the narration can never report it.");
+    });
+  }
+
+  // ------------------------------------------------------------------------------------------------------------------
+  // 4. The loader's two doors: one file, and several at once (ids unique across all, as the game loads its folder).
+  // ------------------------------------------------------------------------------------------------------------------
+
+  function parse(text, source) {
+    var result = {quests: [], problems: []};
+    var read;
+    try { read = readQuests(text); }
+    catch (ex) {
+      if (!(ex instanceof ReadError)) throw ex;
+      result.problems.push(source + ': not valid JSON (' + ex.message + ').');
+      return result;
+    }
+
+    read.forEach(function (q) {
+      var blocking = [], cosmetic = [];
+      validate(q, blocking, cosmetic);
+      var name = source + ": quest '" + (q.id == null ? '(no id)' : q.id) + "'";
+      blocking.forEach(function (p) { result.problems.push(name + ': ' + p + ' The quest is not loaded.'); });
+      cosmetic.forEach(function (p) { result.problems.push(name + ': ' + p); });
+      if (blocking.length === 0) result.quests.push(q);
+    });
+    return result;
+  }
+
+  function parseAll(files) {
+    var all = {quests: [], problems: []};
+    var seen = new Set();
+    arr(files).forEach(function (f) {
+      var one = parse(f.text, f.source);
+      all.problems = all.problems.concat(one.problems);
+      one.quests.forEach(function (q) {
+        if (!seen.has(q.id)) { seen.add(q.id); all.quests.push(q); }
+        else all.problems.push(f.source + ": quest '" + q.id + "' is already defined by another file; this one is ignored.");
+      });
+    });
+    return all;
+  }
+
+  root.QuestValidator = {
+    init: init,
+    parse: parse,
+    parseAll: parseAll,
+    parseJson: parseJson,
+    readQuests: readQuests,
+    analyzePaths: analyzePaths,
+    isEnding: isEnding,
+    endingId: endingId,
+    ReadError: ReadError,
+    UNDEFINED: UNDEFINED,
+    Obj: Obj,
+    Num: Num,
+    get lists() { return LISTS; },
+    get schema() { return SCHEMA; }
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
+<script id="twine-import">
+/*TWINE*/
+</script>
+<script id="tale-editor-app">
+/*APP*/
+</script>
+</body>
+</html>

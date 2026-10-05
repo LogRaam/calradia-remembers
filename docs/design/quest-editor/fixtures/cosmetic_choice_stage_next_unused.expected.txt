@@ -1,0 +1,1 @@
+cosmetic_choice_stage_next_unused.json: quest 'fx_branch': stage 'crossroads' has no objective, so its on_complete.next is never used; its choices lead on.

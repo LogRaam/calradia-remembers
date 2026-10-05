@@ -1,0 +1,1 @@
+blocking_choice_with_act_and_words.json: quest 'fx_branch': stage 'crossroads', choice 'stay' has both an objective and a "said"; give it one way to be taken. The quest is not loaded.

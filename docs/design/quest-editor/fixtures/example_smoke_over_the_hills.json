@@ -1,0 +1,351 @@
+{
+  "id": "cr_smoke_over_the_hills",
+  "title": "Smoke over the Hills",
+  "author": "draft 03/10/2026; rewritten 04/10/2026 as the worked example of a branching tale (expose, confront, keep silent)",
+  "unique": true,
+  "weight": 8,
+  "requires": {
+    "giver": {
+      "role": "lord",
+      "holds": "{village}",
+      "min_regard": 10,
+      "not_at_war_with_player": true
+    },
+    "village": {
+      "type": "village"
+    },
+    "rival": {
+      "role": "clan_leader",
+      "same_realm_as": "{giver}"
+    },
+    "player": {
+      "min_clan_tier": 2
+    }
+  },
+  "binds": {
+    "giver": "a lord whose village was burned",
+    "village": "the burned village",
+    "rival": "the leader of another house of the giver's own realm"
+  },
+  "stages": [
+    {
+      "id": "the_request",
+      "journal": "{giver} wants proof of who burned the farms of {village}.",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}"
+      },
+      "canvas": "The lord is furious and certain: the realm's enemies did this. He wants proof to lay before the realm, so the war is pressed where it hurts.",
+      "facts": [
+        "Farms around {village} were burned within the last weeks.",
+        "The lord is sure the realm's enemies did it.",
+        "He wants proof he can show the realm."
+      ],
+      "knowers": {
+        "{giver}": [
+          "Farms around your village {village} were burned. You are sure the realm's enemies did it, and you want proof to lay before the realm."
+        ]
+      },
+      "on_complete": {
+        "next": "ask_the_survivors"
+      }
+    },
+    {
+      "id": "ask_the_survivors",
+      "journal": "Ask the people of {village} who burned their farms.",
+      "objective": {
+        "type": "talk_to_locals",
+        "place": "{village}",
+        "count": 2
+      },
+      "canvas": "Shaken survivors, glad someone asks. Their answers do not quite fit the lord's certainty.",
+      "facts": [
+        "The raiders came by night, few in number, well mounted.",
+        "They spoke the tongue of this realm, not the enemy's.",
+        "Someone hid a torn surcoat found in a burned barn."
+      ],
+      "knowers": {
+        "locals_of:{village}": [
+          "Raiders burned your farms by night; there were few of them, well mounted.",
+          "Strangely, they spoke like folk of this realm, not like the enemy.",
+          "Someone found a torn surcoat in a burned barn and hid it among the ashes, afraid of what it means."
+        ]
+      },
+      "on_complete": {
+        "next": "the_burned_barn"
+      }
+    },
+    {
+      "id": "the_burned_barn",
+      "journal": "Search the burned barns of {village}.",
+      "objective": {
+        "type": "be_at",
+        "place": "{village}",
+        "radius": 3
+      },
+      "knowers": {
+        "locals_of:{village}": [
+          "Raiders who spoke like folk of this realm burned your farms by night.",
+          "A torn surcoat lies hidden among the ashes of a barn; the lord's champion is looking into it."
+        ]
+      },
+      "on_complete": {
+        "next": "among_the_ashes"
+      }
+    },
+    {
+      "id": "among_the_ashes",
+      "journal": "Look through what the fire left.",
+      "objective": {
+        "type": "explore",
+        "scene": {
+          "title": "The burned barns of {village}",
+          "opening": {
+            "canvas": "Grey morning over the blackened barns. A villager leads the player to where the surcoat was hidden, then waits at a distance. End by asking what they do.",
+            "facts": [
+              "The barns burned down to their stone footings; the smell of wet ash hangs over everything.",
+              "Something is wrapped in sacking under a fallen beam."
+            ]
+          },
+          "findings": [
+            {
+              "id": "surcoat",
+              "required": true,
+              "text": "A household rider's surcoat, torn and scorched, in the colours of {rival}'s house.",
+              "sets": "has_surcoat"
+            },
+            {
+              "id": "hoofprints",
+              "required": false,
+              "text": "Shod hoofprints in the mud behind the barns, heading north toward the realm's heartland, not toward the enemy's border.",
+              "sets": "saw_the_tracks"
+            }
+          ],
+          "hazards": [
+            {
+              "id": "beam",
+              "trigger": "climbing over the charred beams carelessly",
+              "effect": {
+                "type": "injure",
+                "hit_points": [
+                  5,
+                  15
+                ]
+              }
+            }
+          ],
+          "closing": "Whatever the player did, they leave the ashes knowing the raiders wore the colours of {rival}'s house."
+        }
+      },
+      "on_complete": {
+        "next": "what_to_do"
+      }
+    },
+    {
+      "id": "what_to_do",
+      "journal": "You know who burned {village}. What you do with it is yours.",
+      "knowers": {
+        "{giver}": [
+          "You sent the player to find who burned {village}, and you wait for their proof that the enemy did it."
+        ],
+        "{rival}": [
+          "Your riders burned {village} to set the realm against its enemies, by your order. You speak of it to no one and turn the talk aside if it comes up; you never deny it outright."
+        ],
+        "locals_of:{village}": [
+          "The lord's champion found something in the ashes. You do not know what."
+        ]
+      },
+      "choices": [
+        {
+          "id": "expose",
+          "label": "Lay the surcoat before {giver}",
+          "journal": "Lay the surcoat before {giver}.",
+          "objective": {
+            "type": "talk_to",
+            "hero": "{giver}"
+          },
+          "sets": "exposed",
+          "next": "end:exposed",
+          "canvas": "The lord's certainty breaks. His anger turns inward, toward a man he sat beside at council. He thanks the player for the truth, though it is not the one he wanted.",
+          "facts": [
+            "The raiders wore the colours of {rival}'s house.",
+            "It was made to look like the enemy's work."
+          ],
+          "knowers": {
+            "{giver}": [
+              "The player has just shown you a surcoat in {rival}'s colours from the burned barns of {village}: your own realm's house burned your farms and blamed the enemy.",
+              {
+                "text": "The player also saw hoofprints behind the barns heading toward the heartland, not the border.",
+                "if": "saw_the_tracks"
+              }
+            ]
+          }
+        },
+        {
+          "id": "confront",
+          "label": "Take it to {rival} himself",
+          "journal": "Or take it to {rival} himself.",
+          "objective": {
+            "type": "talk_to",
+            "hero": "{rival}"
+          },
+          "sets": "confronted",
+          "next": "the_rival_knows",
+          "canvas": "Shown the surcoat, the lord goes still. He neither denies it nor confesses; he wants to know what the player means to do with it.",
+          "knowers": {
+            "{rival}": [
+              "Your riders burned {village} by your order, to set the realm against its enemies. The player has just shown you one of your riders' surcoats from the ashes.",
+              "You neither deny it nor confess it. You want to know what the player means to do, and you would rather they kept silent."
+            ]
+          }
+        },
+        {
+          "id": "silence",
+          "label": "Keep it to yourself",
+          "journal": "Or keep it to yourself, and let the war go on against the wrong enemy.",
+          "objective": {
+            "type": "wait",
+            "days": 10
+          },
+          "next": "end:silence"
+        }
+      ]
+    },
+    {
+      "id": "the_rival_knows",
+      "journal": "{rival} knows that you know.",
+      "knowers": {
+        "{rival}": [
+          "The player holds proof that your riders burned {village}. You would pay a good deal for their silence, and you wait to learn what they will do."
+        ],
+        "{giver}": [
+          "You sent the player to find who burned {village}, and you still wait for their proof."
+        ]
+      },
+      "choices": [
+        {
+          "id": "tell_the_lord_now",
+          "label": "Go to {giver} after all",
+          "journal": "Go to {giver} after all.",
+          "objective": {
+            "type": "talk_to",
+            "hero": "{giver}"
+          },
+          "sets": "exposed",
+          "next": "end:exposed",
+          "canvas": "The lord's certainty breaks. His anger turns inward, toward a man he sat beside at council.",
+          "facts": [
+            "The raiders wore the colours of {rival}'s house.",
+            "The player went to {rival} first."
+          ],
+          "knowers": {
+            "{giver}": [
+              "The player has just shown you a surcoat in {rival}'s colours from the burned barns of {village}, and told you they went to {rival} with it first."
+            ]
+          }
+        },
+        {
+          "id": "his_price",
+          "label": "Agree to keep silent for a price",
+          "journal": "Or name a price for your silence.",
+          "said": {
+            "to": "{rival}",
+            "meaning": "the player agrees to keep silent about the burning of the village in return for the rival's payment"
+          },
+          "next": "end:bought",
+          "canvas": "The lord pays, coldly. A debt of silence now lies between him and the player.",
+          "knowers": {
+            "{rival}": [
+              "The player has just agreed to keep silent about the burning of {village} in return for your silver. You pay it, and you will not forget that they hold this over you."
+            ]
+          }
+        },
+        {
+          "id": "let_him_be",
+          "label": "Leave him to carry it",
+          "journal": "Or leave him to carry it.",
+          "objective": {
+            "type": "wait",
+            "days": 7
+          },
+          "next": "end:confronted"
+        }
+      ]
+    }
+  ],
+  "endings": {
+    "exposed": {
+      "regard": 8,
+      "gold": 600,
+      "memory": "The player found that {rival}'s riders, not the enemy, burned {village}, and brought me the truth.",
+      "journal": "You laid the truth before {giver}.",
+      "consequences": [
+        {
+          "type": "world_event",
+          "summary": "Riders of {rival}'s house, not the enemy, burned the farms of {village}.",
+          "magnitude": 45,
+          "place": "{village}"
+        },
+        {
+          "type": "memory",
+          "who": "{rival}",
+          "text": "The player laid my riders' surcoat before {giver}."
+        },
+        {
+          "type": "memory",
+          "who": "{rival}",
+          "text": "The player came to me first, then went to {giver} all the same.",
+          "if": "confronted"
+        },
+        {
+          "type": "memory",
+          "who": "locals_of:{village}",
+          "text": "We learned who really burned our farms: riders of our own realm."
+        }
+      ]
+    },
+    "confronted": {
+      "regard": -2,
+      "memory": "I asked the player for proof over {village}, and they never brought it back to me.",
+      "journal": "You left {rival} to carry what he did.",
+      "consequences": [
+        {
+          "type": "memory",
+          "who": "{rival}",
+          "text": "The player knows my riders burned {village}, and has said nothing to {giver}. Yet."
+        }
+      ]
+    },
+    "silence": {
+      "regard": -3,
+      "memory": "I asked the player for proof over {village}; none came.",
+      "journal": "You kept what you found to yourself.",
+      "consequences": [
+        {
+          "type": "memory",
+          "who": "locals_of:{village}",
+          "text": "The lord's champion asked questions about the burning, then nothing more came of it."
+        }
+      ]
+    },
+    "bought": {
+      "regard": -3,
+      "gold": 900,
+      "memory": "I asked the player for proof over {village}; none came.",
+      "journal": "{rival} paid for your silence.",
+      "consequences": [
+        {
+          "type": "memory",
+          "who": "{rival}",
+          "text": "The player took my silver to keep silent about {village}. They hold that over me now."
+        }
+      ]
+    }
+  },
+  "failure": {
+    "days": 40,
+    "regard": -2,
+    "memory": "I asked the player for proof over {village}; none came.",
+    "journal": "The trail of the burning went cold."
+  }
+}

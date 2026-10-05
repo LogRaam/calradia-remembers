@@ -1,0 +1,104 @@
+{
+  "id": "cr_smoke_over_the_hills",
+  "title": "Smoke over the Hills",
+  "author": "draft 03/10/2026",
+  "unique": true,
+  "weight": 8,
+
+  "requires": {
+    "giver": { "role": "lord", "holds": "{village}", "min_regard": 10, "not_at_war_with_player": true, "realm_at_war": true },
+    "village": { "type": "village", "border_of_realm": true },
+    "rival": { "role": "clan_leader", "same_realm_as": "{giver}", "not": "{giver}" },
+    "player": { "min_clan_tier": 2 }
+  },
+
+  "binds": {
+    "giver": "a lord whose border village was burned",
+    "village": "a burned village on the border",
+    "rival": "the leader of another house of the giver's own realm",
+    "enemy_realm": "the realm the giver is at war with"
+  },
+
+  "stages": [
+    {
+      "id": "the_request",
+      "journal": "{giver} wants proof that {enemy_realm} burned the farms of {village}.",
+      "objective": { "type": "talk_to", "hero": "{giver}" },
+      "canvas": "The lord is furious and certain: the enemy did this. He wants proof to lay before the realm and the council, so the war is pressed where it hurts.",
+      "facts": [
+        "Farms around {village} were burned within the last weeks.",
+        "The lord is sure {enemy_realm} did it.",
+        "He wants proof he can show the realm."
+      ],
+      "knowers": {
+        "{giver}": [ "Farms around your village {village} were burned. You are sure {enemy_realm} did it and want proof to lay before the realm." ]
+      },
+      "on_complete": { "next": "ask_the_survivors" }
+    },
+    {
+      "id": "ask_the_survivors",
+      "journal": "Ask the people of {village} who burned their farms.",
+      "objective": { "type": "talk_to_locals", "place": "{village}", "count": 2 },
+      "canvas": "Shaken survivors, glad someone asks. Their answers do not quite fit the lord's certainty.",
+      "facts": [
+        "The raiders came by night, few in number, well mounted.",
+        "They spoke the tongue of this realm, not the enemy's.",
+        "One survivor saw a torn surcoat left behind in a burned barn."
+      ],
+      "knowers": {
+        "locals_of:{village}": [
+          "Raiders burned your farms by night; there were few of them, well mounted.",
+          "Strangely, they spoke like folk of this realm, not like the enemy.",
+          "Someone found a torn surcoat in a burned barn and hid it, afraid of what it means."
+        ]
+      },
+      "on_complete": { "next": "the_burned_barn" }
+    },
+    {
+      "id": "the_burned_barn",
+      "journal": "Find the surcoat hidden in the burned barns of {village}.",
+      "objective": { "type": "be_at", "place": "{village}", "radius": 3 },
+      "canvas": "",
+      "facts": [],
+      "knowers": {},
+      "on_complete": {
+        "narration": {
+          "canvas": "Among the ashes, the player is shown the hidden surcoat, in the second person.",
+          "facts": [
+            "The surcoat bears the colours of {rival}'s house.",
+            "It is a household rider's coat, not a peasant's.",
+            "The raid was made to look like the enemy's work."
+          ]
+        },
+        "next": "tell_the_lord"
+      }
+    },
+    {
+      "id": "tell_the_lord",
+      "journal": "Bring {giver} what you found.",
+      "objective": { "type": "talk_to", "hero": "{giver}" },
+      "canvas": "The lord's certainty breaks. Anger turns inward, toward a man he sat beside at council. He must decide what to do with a truth that shames his own realm.",
+      "facts": [
+        "The raiders wore the colours of {rival}'s house.",
+        "It was made to look like {enemy_realm}'s work.",
+        "The lord thanks the player for the truth, though it is not the one he wanted."
+      ],
+      "knowers": {
+        "{giver}": [ "The player has shown you a surcoat in {rival}'s colours from the burned barns of {village}. Your own realm's house burned your farms and blamed the enemy." ]
+      },
+      "on_complete": { "next": "reward" }
+    }
+  ],
+
+  "reward": {
+    "gold": 1200,
+    "regard": 8,
+    "memory": "The player found that {rival}'s riders, not {enemy_realm}, burned {village}, and brought me the truth.",
+    "grudge": { "holder": "{giver}", "against": "{rival}", "magnitude": 30, "note": "Inc 2: a grudge between NPCs needs its own ruling." }
+  },
+  "failure": {
+    "days": 30,
+    "regard": -2,
+    "memory": "I asked the player for proof against {enemy_realm} over {village}; none came."
+  }
+}

@@ -1,0 +1,352 @@
+{
+  "id": "cr_the_bell_in_the_marsh",
+  "title": "The Bell in the Marsh",
+  "author": "Claude, 04/10/2026, in the werewolf's spirit: a branching tale whose turn is taken in a scene (left or right on the causeway)",
+  "unique": true,
+  "weight": 8,
+  "requires": {
+    "giver": {
+      "role": "lord",
+      "holds": "{village}",
+      "min_regard": 0,
+      "not_at_war_with_player": true
+    },
+    "village": {
+      "type": "village"
+    },
+    "player": {
+      "min_clan_tier": 0
+    }
+  },
+  "binds": {
+    "giver": "the lord who holds {village}",
+    "village": "a village beside a marsh"
+  },
+  "stages": [
+    {
+      "id": "the_request",
+      "journal": "{giver} has asked you to find out what rings the bell in the marsh by {village}.",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}"
+      },
+      "canvas": "The lord raises it with a tired face. He does not believe in drowned ghosts, but two of his men went out to look and did not come back, and the village will not sleep.",
+      "facts": [
+        "A bell rings at night in the marsh by {village}, where an old chapel sank long ago.",
+        "The villagers say the drowned dead ring it.",
+        "Two men of {village} went out to look a fortnight ago and have not come back."
+      ],
+      "knowers": {
+        "{giver}": [
+          "Your people at {village} say the drowned chapel's bell rings at night in the marsh. Two men went to look and never came back.",
+          "You do not believe in ghosts, but you cannot explain the two missing men."
+        ]
+      },
+      "on_complete": {
+        "next": "ask_the_village"
+      }
+    },
+    {
+      "id": "ask_the_village",
+      "journal": "Ask the people of {village} about the bell.",
+      "objective": {
+        "type": "talk_to_locals",
+        "place": "{village}",
+        "count": 2
+      },
+      "canvas": "The villagers lower their voices. Everyone has heard the bell; nobody has gone near it since the two men vanished.",
+      "facts": [
+        "The bell rings only on still, foggy nights.",
+        "The two missing men were brothers-in-law, Oswin and Tam.",
+        "An old causeway runs into the marsh toward the drowned chapel; it forks halfway."
+      ],
+      "knowers": {
+        "locals_of:{village}": [
+          "You believe the drowned dead of the old chapel ring the bell; your grandmother said they call the living to join them.",
+          "Oswin and Tam went down the old causeway to look a fortnight ago and never came back.",
+          "The causeway forks halfway: left toward the drowned chapel, right toward the reed beds where nobody goes."
+        ]
+      },
+      "on_complete": {
+        "next": "keep_watch"
+      }
+    },
+    {
+      "id": "keep_watch",
+      "journal": "Wait for a still, foggy night by the marsh of {village}.",
+      "objective": {
+        "type": "keep_watch",
+        "place": "{village}",
+        "radius": 6,
+        "nights": [
+          1,
+          3
+        ],
+        "chance": 0.5
+      },
+      "knowers": {
+        "locals_of:{village}": [
+          "You believe the drowned dead ring the bell. The lord's champion waits for a foggy night to go and see; you pray they come back.",
+          "Oswin and Tam went down the old causeway a fortnight ago and never came back."
+        ]
+      },
+      "on_complete": {
+        "next": "the_causeway"
+      }
+    },
+    {
+      "id": "the_causeway",
+      "journal": "The bell is ringing in the marsh.",
+      "objective": {
+        "type": "explore",
+        "scene": {
+          "title": "The marsh by {village}",
+          "opening": {
+            "canvas": "A still night, thick with fog. Somewhere ahead in the marsh, a bell tolls, slow and cracked. The old causeway runs out into the reeds and, a little way on, forks. End by asking what the player does.",
+            "facts": [
+              "The bell is somewhere to the left, toward the drowned chapel.",
+              "The causeway forks: left toward the bell, right into the reed beds."
+            ]
+          },
+          "findings": [
+            {
+              "id": "rope",
+              "required": false,
+              "text": "A new hemp rope tied to a causeway post, leading off to the left toward the bell: no ghost ties rope.",
+              "sets": "saw_rope"
+            },
+            {
+              "id": "boot",
+              "required": false,
+              "text": "A man's boot stuck in the mud at the start of the right fork, and fresh footprints going into the reeds.",
+              "sets": "found_boot"
+            }
+          ],
+          "hazards": [
+            {
+              "id": "sinkhole",
+              "trigger": "stepping off the causeway into the marsh",
+              "effect": {
+                "type": "injure",
+                "hit_points": [
+                  10,
+                  25
+                ]
+              }
+            }
+          ],
+          "closing": "The bell falls silent behind you."
+        }
+      },
+      "choices": [
+        {
+          "id": "left",
+          "label": "Follow the causeway left, toward the bell",
+          "next": "the_chapel"
+        },
+        {
+          "id": "right",
+          "label": "Take the right fork, where the footprints go",
+          "if": "found_boot",
+          "next": "the_reeds"
+        },
+        {
+          "id": "back",
+          "label": "Go back to the village and wait for another night",
+          "default": true,
+          "next": "keep_watch"
+        }
+      ]
+    },
+    {
+      "id": "the_chapel",
+      "journal": "Follow the bell to the drowned chapel.",
+      "objective": {
+        "type": "explore",
+        "scene": {
+          "title": "The drowned chapel",
+          "opening": {
+            "canvas": "The causeway ends at the broken tower of the drowned chapel, half sunk in black water. The bell hangs in the tower; a rope runs from it down into the dark. Lantern light shows through a gap in the wall. End by asking what the player does.",
+            "facts": [
+              "Someone is inside the tower; there is lantern light and the smell of tar.",
+              "The bell rope has been pulled recently: it still sways."
+            ]
+          },
+          "findings": [
+            {
+              "id": "crates",
+              "required": true,
+              "text": "Crates of salt and wine stacked inside the tower, with no toll paid on any of them: smugglers land here, and ring the bell to keep the village away.",
+              "sets": "smugglers"
+            }
+          ],
+          "encounters": [
+            {
+              "id": "oswin",
+              "name": "Oswin of {village}",
+              "persona": "one of the two missing men, bound and gagged in a corner, thin and terrified",
+              "knows": [
+                "The smugglers caught him and Tam on the causeway; they keep him to work, and they killed no one.",
+                "Tam broke free on the first night and ran into the reed beds; Oswin does not know if he lived."
+              ],
+              "sets": "found_oswin"
+            }
+          ],
+          "hazards": [
+            {
+              "id": "lookout",
+              "trigger": "being seen or heard by the smuggler keeping watch at the tower",
+              "effect": {
+                "type": "injure",
+                "hit_points": [
+                  15,
+                  30
+                ]
+              }
+            }
+          ],
+          "closing": "Whatever the player did, they leave the chapel knowing smugglers ring the bell to keep the village away."
+        }
+      },
+      "on_complete": {
+        "next": "tell_the_lord"
+      }
+    },
+    {
+      "id": "the_reeds",
+      "journal": "Follow the footprints into the reed beds.",
+      "objective": {
+        "type": "explore",
+        "scene": {
+          "title": "The reed beds",
+          "opening": {
+            "canvas": "The footprints wind deep into the reeds, to a hut of woven rushes on a hummock of dry ground. A man is hiding inside, starved and wild-eyed. End by asking what the player does.",
+            "facts": [
+              "The hut is tiny and hidden; someone has lived here for days.",
+              "The man inside is barefoot: the boot on the causeway was his."
+            ]
+          },
+          "findings": [
+            {
+              "id": "his_story",
+              "required": true,
+              "text": "The man is Tam, one of the two missing: men with lanterns caught him and Oswin at the chapel, and he escaped into the reeds and has hidden here since, too afraid to cross the causeway.",
+              "sets": "found_tam"
+            }
+          ],
+          "encounters": [
+            {
+              "id": "tam",
+              "name": "Tam of {village}",
+              "persona": "a villager hiding in the reeds for a fortnight, starved, frightened of the lantern men",
+              "knows": [
+                "Men with lanterns, not ghosts, ring the bell; they took Oswin and he ran.",
+                "He does not know what became of Oswin."
+              ],
+              "sets": "found_tam"
+            }
+          ],
+          "closing": "Whatever the player did, they leave the reeds with Tam's word: men, not ghosts, ring the bell."
+        }
+      },
+      "on_complete": {
+        "next": "tell_the_lord"
+      }
+    },
+    {
+      "id": "tell_the_lord",
+      "journal": "Tell {giver} what you found in the marsh.",
+      "knowers": {
+        "{giver}": [
+          "You sent the player into the marsh after the bell, and you wait for news of your two missing men."
+        ],
+        "locals_of:{village}": [
+          "The lord's champion came back from the marsh. You do not yet know what they found."
+        ]
+      },
+      "choices": [
+        {
+          "id": "the_whole_truth",
+          "label": "Tell {giver} of the smugglers in the chapel",
+          "if": "smugglers",
+          "objective": {
+            "type": "talk_to",
+            "hero": "{giver}"
+          },
+          "next": "end:unmasked",
+          "canvas": "The lord hears it, and his tired face hardens: smugglers on his own marsh, using his people's fear. He thanks the player plainly.",
+          "knowers": {
+            "{giver}": [
+              "The player has just told you smugglers land at the drowned chapel and ring the bell to keep your village away.",
+              {
+                "text": "They found Oswin alive, held by the smugglers.",
+                "if": "found_oswin"
+              }
+            ]
+          }
+        },
+        {
+          "id": "the_survivor",
+          "label": "Tell {giver} what Tam saw",
+          "objective": {
+            "type": "talk_to",
+            "hero": "{giver}"
+          },
+          "next": "end:survivor",
+          "canvas": "The lord is glad of one man found alive, and troubled by what he says: men, not ghosts, on his marsh.",
+          "knowers": {
+            "{giver}": [
+              "The player has just told you that Tam of {village} lives: he hid in the reed beds, and says men with lanterns, not ghosts, ring the bell.",
+              "You do not yet know who those men are."
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "endings": {
+    "unmasked": {
+      "regard": 10,
+      "gold": 300,
+      "memory": "The player found that smugglers ring the bell in the marsh by {village}, not the drowned dead.",
+      "journal": "The bell in the marsh will ring no more.",
+      "consequences": [
+        {
+          "type": "world_event",
+          "summary": "The ghost bell of {village} was rung by smugglers landing at the drowned chapel.",
+          "magnitude": 30,
+          "place": "{village}"
+        },
+        {
+          "type": "memory",
+          "who": "locals_of:{village}",
+          "text": "It was smugglers ringing the bell all along, not the drowned dead."
+        },
+        {
+          "type": "memory",
+          "who": "locals_of:{village}",
+          "text": "Oswin came home from the drowned chapel, alive.",
+          "if": "found_oswin"
+        }
+      ]
+    },
+    "survivor": {
+      "regard": 6,
+      "memory": "The player brought back word of Tam from the marsh by {village}: men, not ghosts, ring that bell.",
+      "journal": "Tam is home; the bell still rings.",
+      "consequences": [
+        {
+          "type": "memory",
+          "who": "locals_of:{village}",
+          "text": "Tam came back from the reed beds and swears men with lanterns ring the bell."
+        }
+      ]
+    }
+  },
+  "failure": {
+    "days": 40,
+    "regard": -3,
+    "memory": "I asked the player to look into the bell of {village}, and nothing came of it.",
+    "journal": "The bell still rings in the marsh."
+  }
+}

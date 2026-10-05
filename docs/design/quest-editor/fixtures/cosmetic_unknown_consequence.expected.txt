@@ -1,0 +1,1 @@
+cosmetic_unknown_consequence.json: quest 'fx_tale': consequence 'grudge' is not carried out yet (known: memory, world_event); it is skipped.

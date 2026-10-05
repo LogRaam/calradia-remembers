@@ -1,0 +1,1 @@
+cosmetic_every_way_gated.json: quest 'fx_branch': stage 'crossroads': every way out depends on flags; if none holds, the tale can never end.

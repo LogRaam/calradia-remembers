@@ -1,0 +1,1 @@
+blocking_talk_to_locals_count_zero.json: quest 'fx_tale': stage 'go': talk_to_locals needs a "count" of at least 1. The quest is not loaded.

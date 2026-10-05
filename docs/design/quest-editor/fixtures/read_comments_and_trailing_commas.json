@@ -1,0 +1,9 @@
+// A tale written by hand, with comments.
+/* The game skips comments and accepts a comma before a closing bracket. */
+{
+  "id": "fx_lenient", "title": "Lenient",
+  "binds": { "giver": "a lord", },
+  "stages": [
+    { "id": "ask", "objective": { "type": "talk_to", "hero": "{giver}", }, "on_complete": { "next": "reward", }, },
+  ],
+}

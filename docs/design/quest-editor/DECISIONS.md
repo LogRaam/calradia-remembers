@@ -157,3 +157,31 @@ to carry it (`confronted`). Until increment 7, `his_price` can only be taken wit
 fork on the causeway the player turns left toward the bell (smugglers, and Oswin bound in the drowned chapel) or right
 into the reeds, a way open only once they saw the boot in the mud (Tam, hiding). Walking away is a loop back to the
 watch, with a way out on another night. Two scenes in a row on the left path; two endings.
+
+**F16. A file that opens with a comment now loads.** Newtonsoft read a leading `// ...` or `/* ... */` as the whole
+file, which then held no quest, and said nothing: the tale silently never appeared. The loader now skips it like any
+other comment (one setting). Found while probing how the game reads JSON, to make the editor read it the same way.
+
+**F17. One broken way out is one problem.** A `next` that is missing or names nothing is refused with its own message;
+it used to drag along "can never reach an ending" for every stage before it and "never reached" for what lay beyond,
+three or four lines echoing one mistake. The path check now reads a broken way out as "could lead anywhere", so the
+author sees the real problem. A loop with no exit at all is still refused, stage by stage.
+
+## The editor and its guard
+
+**P1. The fixtures go through `ParseAll`**, the door the game itself uses (one folder at a time), so two tales with
+one id in one file are reported as the game reports them. The goal named `Parse`; `ParseAll` runs `Parse` and adds
+only that check.
+
+**P2. The editor reads files exactly as Newtonsoft does**, not as `JSON.parse` would: comments, trailing commas,
+single quotes, bare names, hexadecimal and octal numbers, NaN, a lone comma read as "undefined", names in any case,
+text from numbers ("True" from `true`, ".NET" number formatting), banker's rounding into whole numbers. Every rule was
+probed against the real Newtonsoft first; the fixtures `read_*` pin the ones an author is likely to meet. Two
+differences are left on purpose, never met in a quest file: Newtonsoft's `new Date(...)` constructors (the editor calls
+them invalid) and a NUL character in the middle of a file.
+
+**P3. A "not valid JSON" line is compared without the reader's own message**, which is Newtonsoft's wording ("Error
+converting value ... Path ..."), not the loader's. Both sides must agree that the file cannot be read, and on
+everything else word for word.
+
+**P4. Node missing fails the parity test**, never skips it: the parity is the guard the goal asks for.
