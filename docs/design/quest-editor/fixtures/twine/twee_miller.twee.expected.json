@@ -1,0 +1,127 @@
+{
+  "quest": {
+    "id": "custom_the_miller_s_silence",
+    "title": "The Miller's Silence",
+    "author": "imported from Twine (twee_miller.twee)",
+    "requires": {
+      "giver": {
+        "role": "lord",
+        "holds": "{village}"
+      },
+      "village": {
+        "type": "village"
+      },
+      "rival": {
+        "role": "clan_leader"
+      }
+    },
+    "binds": {
+      "giver": "the one who asks for help",
+      "village": "the village the tale happens in",
+      "rival": "the head of another house of the giver's realm"
+    },
+    "stages": [
+      {
+        "id": "a_quiet_word",
+        "journal": "Find out why the miller of {village} has shut his mill.",
+        "objective": {
+          "type": "talk_to",
+          "hero": "{giver}"
+        },
+        "canvas": "The lord asks you to find out why the miller of {village} will not grind his grain.",
+        "on_complete": {
+          "next": "a_quiet_word_after"
+        }
+      },
+      {
+        "id": "a_quiet_word_after",
+        "choices": [
+          {
+            "id": "at_the_mill",
+            "label": "Go to the mill",
+            "journal": "Go to the mill.",
+            "sets": "miller_spoke",
+            "objective": {
+              "type": "be_at",
+              "place": "{village}",
+              "radius": 4
+            },
+            "canvas": "The mill is shut. The miller will say only that a lord's men came by night.",
+            "knowers": {
+              "{giver}": [
+                "The player went to the mill of {village}."
+              ]
+            },
+            "next": "at_the_mill"
+          }
+        ]
+      },
+      {
+        "id": "at_the_mill",
+        "choices": [
+          {
+            "id": "the_lord_hears",
+            "label": "Tell the lord",
+            "journal": "Tell the lord.",
+            "objective": {
+              "type": "talk_to",
+              "hero": "{giver}"
+            },
+            "canvas": [
+              "The lord hears it and goes quiet.",
+              {
+                "text": "He asks what else the miller said.",
+                "if": "miller_spoke"
+              },
+              {
+                "text": "He wants to hear it from the miller himself.",
+                "if": "!miller_spoke"
+              }
+            ],
+            "next": "end:the_lord_hears"
+          },
+          {
+            "id": "the_rival_answers",
+            "label": "Ask {rival} about his men",
+            "journal": "Ask {rival} about his men.",
+            "objective": {
+              "type": "talk_to",
+              "hero": "{rival}"
+            },
+            "canvas": "{rival} smiles and denies nothing.",
+            "next": "end:the_rival_answers"
+          },
+          {
+            "id": "silence",
+            "label": "Let it lie",
+            "journal": "Let it lie.",
+            "objective": {
+              "type": "wait",
+              "days": 7
+            },
+            "next": "end:silence"
+          }
+        ]
+      }
+    ],
+    "endings": {
+      "the_lord_hears": {
+        "regard": 6,
+        "memory": "The player told me why the mill of {village} stopped."
+      },
+      "the_rival_answers": {
+        "regard": -2,
+        "memory": "The player asked me about the mill of {village}."
+      },
+      "silence": {
+        "regard": -3,
+        "journal": "You let the mill stay shut."
+      }
+    }
+  },
+  "notes": [
+    "The story's stylesheet is not imported: the game shows the tale in its own chat.",
+    "passage 'Silence': tag \"sorrowful\" is not understood; it was left out.",
+    "No time limit was set: the tale never fails on its own. Add one under Failure if it should."
+  ]
+}

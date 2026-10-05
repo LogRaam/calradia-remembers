@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>The Ferryman&#39;s Debt</title>
+</head>
+<body>
+<tw-story></tw-story>
+<tw-storydata name="The Ferryman&#39;s Debt" startnode="1" creator="Twine" creator-version="2.6.2" format="SugarCube" format-version="2.36.1" ifid="0F4A7C2E-1B9D-4E7A-9C61-5D2B8E3F1A07" options="" tags="" zoom="1" hidden>
+<style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css"></style>
+<script role="script" id="twine-user-script" type="text/twine-javascript">Config.history.maxStates = 1;</script>
+<tw-passagedata pid="1" name="The lord&#39;s request" tags="" position="250,100" size="100,100">The lord rubs his eyes. His ferryman at {village} has not been seen for a week, and the ferry sits idle on the river.
+Journal: {giver} asks you to find the ferryman of {village}.
+Fact: The ferryman has been missing for a week.
+Fact: The ferry sits idle at {village}.
+{giver} knows: Your ferryman at {village} has vanished, and you cannot spare men to look.
+[[Ask in the village-&gt;What the village says]]</tw-passagedata>
+<tw-passagedata pid="2" name="What the village says" tags="talk_to_locals:village:2" position="400,100" size="100,100">The villagers lower their voices: the ferryman owed money to a man from the city.
+&lt;&lt;set $heard_of_debt to true&gt;&gt;
+locals_of:{village} knows: The ferryman owed money to a moneylender from the city.
+Nobody has seen him since the debt fell due.&lt;&lt;print $heard_of_debt&gt;&gt;
+&lt;&lt;audio &quot;river&quot; play&gt;&gt;
+[[Watch the river at night|The river at night]]</tw-passagedata>
+<tw-passagedata pid="3" name="The river at night" tags="keep_watch:village:1-3:0.5 explore" position="550,100" size="100,100">Fog lies on the river. Somewhere downstream, a lantern moves along the bank.
+Fact: The ferry is tied up and empty.
+Closing: You leave the bank before dawn.
+[[A lantern in the reeds|Lantern]]
+[[Loose stones on the bank|Loose stones]]
+&lt;&lt;link &quot;Follow the lantern downstream&quot; &quot;The moneylender&#39;s barge&quot;&gt;&gt;&lt;&lt;/link&gt;&gt;
+[[Go back to the village|Back to the village]]</tw-passagedata>
+<tw-passagedata pid="4" name="Lantern" tags="finding required" position="100,250" size="100,100">The ferryman&#39;s own lantern, still warm, dropped in the reeds.&lt;&lt;set $found_lantern to true&gt;&gt;</tw-passagedata>
+<tw-passagedata pid="5" name="Loose stones" tags="hazard hp:5-15" position="250,250" size="100,100">Trigger: hurrying along the bank in the dark</tw-passagedata>
+<tw-passagedata pid="6" name="The moneylender&#39;s barge" tags="be_at:village" position="400,250" size="100,100">A barge is moored below the village. The moneylender&#39;s men keep the ferryman there until his debt is paid.
+Journal: Find the moneylender&#39;s barge below {village}.
+&lt;&lt;if $found_lantern&gt;&gt;[[Free the ferryman|Freed]]&lt;&lt;/if&gt;&gt;
+[[Tell the lord where he is|Told the lord]]</tw-passagedata>
+<tw-passagedata pid="7" name="Back to the village" tags="default regard:-2" position="550,250" size="100,100">Journal: You let the river keep its secret.</tw-passagedata>
+<tw-passagedata pid="8" name="Freed" tags="return regard:10 gold:150" position="100,400" size="100,100">The ferryman comes home with you, thin but alive.
+Memory: The player freed my ferryman from a moneylender&#39;s barge.</tw-passagedata>
+<tw-passagedata pid="9" name="Told the lord" tags="talk_to:giver regard:5" position="250,400" size="100,100">The lord sends his men to the barge at once.
+Memory: The player found where the moneylender held my ferryman.</tw-passagedata>
+</tw-storydata>
+<script title="Twine engine">/* the story format engine, not read by the import */</script>
+</body>
+</html>

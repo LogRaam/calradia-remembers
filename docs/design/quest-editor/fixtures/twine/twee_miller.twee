@@ -1,0 +1,46 @@
+:: StoryTitle
+The Miller's Silence
+
+
+:: StoryData
+{
+  "ifid": "7D1C9E44-2A6B-4F38-8E15-0B9A3C6D2F51",
+  "format": "Harlowe",
+  "format-version": "3.3.7",
+  "start": "A quiet word",
+  "zoom": 1
+}
+
+
+:: Story Stylesheet [stylesheet]
+tw-story { color: #3b2a1a; }
+
+
+:: A quiet word {"position":"100,100","size":"100,100"}
+The lord asks you to find out why the miller of {village} will not grind his grain.
+Journal: Find out why the miller of {village} has shut his mill.
+[[Go to the mill->At the mill]]
+
+
+:: At the mill [be_at:village:4] {"position":"250,100","size":"100,100"}
+The mill is shut. The miller will say only that a lord's men came by night.
+(set: $miller_spoke to true)
+{giver} knows: The player went to the mill of {village}.
+[[Tell the lord->The lord hears]]
+[[Ask {rival} about his men->The rival answers]]
+[[Let it lie->Silence]]
+
+
+:: The lord hears [talk_to:giver regard:6] {"position":"400,50","size":"100,100"}
+The lord hears it and goes quiet.
+(if: $miller_spoke)[He asks what else the miller said.](else:)[He wants to hear it from the miller himself.]
+Memory: The player told me why the mill of {village} stopped.
+
+
+:: The rival answers [talk_to:rival regard:-2] {"position":"400,200","size":"100,100"}
+{rival} smiles and denies nothing.
+Memory: The player asked me about the mill of {village}.
+
+
+:: Silence [wait:7 regard:-3 sorrowful] {"position":"400,350","size":"100,100"}
+Journal: You let the mill stay shut.

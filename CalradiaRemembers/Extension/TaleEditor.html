@@ -2401,7 +2401,597 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 </script>
 <script id="twine-import">
-/*TWINE*/
+/* Calradia Remembers, the tale editor's Twine import. Reads a Twine 2 published story (.html, tw-storydata and
+   tw-passagedata) or a Twee 3 file, and writes a written tale from it. The convention (HOWTO_Quests.md, "Writing tales in
+   Twine"):
+     - each passage is a moment of the story, and its TAG says what the player must do to get there: talk_to:giver,
+       return, talk_to_locals:village:2, be_at:village, keep_watch:village, defeat_party:village, wait:3. The start
+       passage needs none: it is the request, made in the conversation where the tale is offered;
+     - a passage tagged "explore" is a scene; its links to passages tagged "finding" (and "required"), "hazard" or
+       "encounter" are things in the scene, its other links the ways out the player picks in words; "default" marks the
+       way taken when the scene closes with none chosen;
+     - a passage with no links is an ending ("regard:5", "gold:200" on it);
+     - (set: $x to true) or <<set $x to true>> sets the flag x on arriving at the passage; (if: $x)[...] or
+       <<if $x>>...<</if>> puts what is inside under the flag (a link becomes a way open only then, a line a line said
+       only then); "not", "!", (unless:) and (else:) give "!x";
+     - lines starting "Journal:", "Fact:", "Memory:", "Closing:" or "{role} knows:" fill those fields; the rest of the
+       text is the canvas.
+   Whatever cannot be mapped is listed in the notes, never dropped silently. No DOM: Node runs this same code. */
+(function (root) {
+  'use strict';
+
+  // ------------------------------------------------------------------------------------------------------------------
+  // 1. The story's passages, from either format.
+  // ------------------------------------------------------------------------------------------------------------------
+
+  function decodeEntities(s) {
+    return s.replace(/&(#x[0-9a-fA-F]+|#\d+|amp|lt|gt|quot|apos|nbsp);/g, function (m, e) {
+      if (e[0] === '#') return String.fromCodePoint(e[1] === 'x' ? parseInt(e.substring(2), 16) : parseInt(e.substring(1), 10));
+      return {amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' '}[e];
+    });
+  }
+
+  function attributes(s) {
+    var out = {}, re = /([\w:-]+)\s*=\s*("([^"]*)"|'([^']*)')/g, m;
+    while ((m = re.exec(s)) !== null) out[m[1].toLowerCase()] = decodeEntities(m[3] !== undefined ? m[3] : m[4]);
+    return out;
+  }
+
+  function readHtml(text, notes) {
+    var story = /<tw-storydata\b([^>]*)>([\s\S]*?)<\/tw-storydata>/i.exec(text);
+    if (!story) throw new Error('This file holds no Twine story (no <tw-storydata>): publish the story to a file from Twine 2, or export it as Twee.');
+    var attrs = attributes(story[1]), body = story[2];
+    var passages = [], byPid = {}, re = /<tw-passagedata\b([^>]*)>([\s\S]*?)<\/tw-passagedata>/gi, m;
+    while ((m = re.exec(body)) !== null) {
+      var a = attributes(m[1]);
+      var p = {name: a.name || ('passage ' + (passages.length + 1)), tags: (a.tags || '').split(/\s+/).filter(Boolean), text: decodeEntities(m[2])};
+      passages.push(p);
+      if (a.pid) byPid[a.pid] = p;
+    }
+    if (/<script\b[^>]*>[\s\S]*?\S[\s\S]*?<\/script>/i.test(body)) notes.push("The story's JavaScript is not imported: a written tale runs no script.");
+    if (/<style\b[^>]*>[\s\S]*?\S[\s\S]*?<\/style>/i.test(body)) notes.push("The story's stylesheet is not imported: the game shows the tale in its own chat.");
+    var start = byPid[attrs.startnode] || passages[0];
+    return {title: attrs.name || 'Imported tale', format: attrs.format || '', start: start, passages: passages};
+  }
+
+  function readTwee(text, notes) {
+    var lines = text.replace(/\r\n?/g, '\n').split('\n'), passages = [], current = null, title = null, data = {};
+    lines.forEach(function (line) {
+      var h = /^::\s*(.*)$/.exec(line);
+      if (!h) { if (current) current.text += (current.text ? '\n' : '') + line; return; }
+      var header = h[1], name = '', k = 0;
+      for (; k < header.length; k++) {
+        var c = header[k];
+        if (c === '\\' && k + 1 < header.length) { name += header[++k]; continue; }
+        if (c === '[' || c === '{') break;
+        name += c;
+      }
+      var rest = header.substring(k), tags = [];
+      var tm = /^\s*\[([^\]]*)\]/.exec(rest);
+      if (tm) { tags = tm[1].split(/\s+/).filter(Boolean); rest = rest.substring(tm[0].length); }
+      current = {name: name.trim(), tags: tags, text: ''};
+      passages.push(current);
+    });
+    var story = passages.filter(function (p) {
+      if (p.name === 'StoryTitle') { title = p.text.trim(); return false; }
+      if (p.name === 'StoryData') { try { data = JSON.parse(p.text); } catch (e) { notes.push('StoryData is not valid JSON; the start passage is taken as the first one.'); } return false; }
+      if (p.tags.indexOf('script') >= 0) { if (p.text.trim()) notes.push("The story's JavaScript is not imported: a written tale runs no script."); return false; }
+      if (p.tags.indexOf('stylesheet') >= 0) { if (p.text.trim()) notes.push("The story's stylesheet is not imported: the game shows the tale in its own chat."); return false; }
+      return true;
+    });
+    story.forEach(function (p) { p.text = p.text.replace(/\n+$/, ''); });
+    var start = story.filter(function (p) { return p.name === data.start; })[0] || story.filter(function (p) { return p.name === 'Start'; })[0] || story[0];
+    return {title: title || 'Imported tale', format: data.format || '', start: start, passages: story};
+  }
+
+  // ------------------------------------------------------------------------------------------------------------------
+  // 2. One passage: its links, its flags and conditions, its lines, its tags.
+  // ------------------------------------------------------------------------------------------------------------------
+
+  /** A condition on one flag, from Harlowe or SugarCube: "x", "!x", or null when it is more than a flag. */
+  function condition(expr) {
+    var e = expr.trim().replace(/^\(|\)$/g, '').trim(), m;
+    if ((m = /^\$(\w+)$/.exec(e))) return m[1];
+    if ((m = /^(?:not\s+|!\s*)\$(\w+)$/.exec(e))) return '!' + m[1];
+    if ((m = /^\$(\w+)\s+(?:is|eq|==|===|to)\s+(true|false)$/.exec(e))) return m[2] === 'true' ? m[1] : '!' + m[1];
+    if ((m = /^\$(\w+)\s+(?:is\s+not|neq|!=|!==)\s+(true|false)$/.exec(e))) return m[2] === 'false' ? m[1] : '!' + m[1];
+    return null;
+  }
+
+  function negate(c) { return c[0] === '!' ? c.substring(1) : '!' + c; }
+
+  /** The end of a balanced run opened at text[start] (a "(" or "["), quoted strings skipped. */
+  function closing(text, start, open, close) {
+    var depth = 0, quote = null;
+    for (var k = start; k < text.length; k++) {
+      var c = text[k];
+      if (quote) { if (c === '\\') k++; else if (c === quote) quote = null; continue; }
+      if (c === '"' || c === "'") { if (open === '(') quote = c; continue; }
+      if (c === open) depth++;
+      else if (c === close && --depth === 0) return k;
+    }
+    return -1;
+  }
+
+  function unquote(s) {
+    var m = /^\s*(["'])([\s\S]*)\1\s*$/.exec(s);
+    return m ? m[2] : s.trim();
+  }
+
+  function parseLink(inner) {
+    var label, target, k;
+    if ((k = inner.indexOf('->')) >= 0) { label = inner.substring(0, k); target = inner.substring(k + 2); }
+    else if ((k = inner.lastIndexOf('<-')) >= 0) { target = inner.substring(0, k); label = inner.substring(k + 2); }
+    else if ((k = inner.indexOf('|')) >= 0) { label = inner.substring(0, k); target = inner.substring(k + 1); }
+    else { label = inner; target = inner; }
+    return {label: label.trim(), target: target.trim()};
+  }
+
+  function readPassage(p, notes) {
+    var out = {name: p.name, tags: p.tags, links: [], sets: [], pieces: []};
+    var where = "passage '" + p.name + "'";
+
+    function setFlags(args) {
+      args.split(/,(?![^(]*\))|;/).forEach(function (one) {
+        var m = /^\s*\$(\w+)\s*(?:to|=)\s*(.+?)\s*$/.exec(one);
+        if (m && m[2] === 'true') { if (out.sets.indexOf(m[1]) < 0) out.sets.push(m[1]); }
+        else if (one.trim()) notes.push(where + ': "' + one.trim() + '" is not mapped (a flag can only be set to true); it was left out.');
+      });
+    }
+
+    // Walks the text under a list of flag conditions; "lastIf" is the condition an (else:) or <<else>> would negate.
+    function walk(text, cond) {
+      var k = 0, buffer = '', lastIf = null, stack = [];
+      function flush() { if (buffer) out.pieces.push({text: buffer, if: currentCond()}); buffer = ''; }
+      function currentCond() { return stack.length ? stack[stack.length - 1].cond : cond; }
+
+      while (k < text.length) {
+        // A link: [[...]]
+        if (text.startsWith('[[', k)) {
+          var end = text.indexOf(']]', k + 2);
+          if (end < 0) { buffer += text.substring(k); break; }
+          flush();
+          var link = parseLink(text.substring(k + 2, end));
+          link.if = currentCond().slice();
+          out.links.push(link);
+          k = end + 2;
+          continue;
+        }
+
+        // A Harlowe macro: (name: ...) with, perhaps, a hook [...]
+        var hm = /^\((\w[\w-]*):/.exec(text.substring(k, k + 40));
+        if (hm) {
+          var close = closing(text, k, '(', ')');
+          if (close < 0) { buffer += text[k++]; continue; }
+          flush();
+          var name = hm[1].toLowerCase(), args = text.substring(k + hm[0].length, close), after = close + 1, hookEnd = -1;
+          // A hook belongs to its macro only when it follows it at once (Harlowe's own rule); (set:) never takes one.
+          if (text[after] === '[' && name !== 'set' && name !== 'put') hookEnd = closing(text, after, '[', ']');
+          var hook = hookEnd >= 0 ? text.substring(after + 1, hookEnd) : null;
+          // (if: $x)[[Go->There]]: Harlowe reads the doubled brackets as a link under the condition.
+          if (hook !== null && /^\[[^\[\]]*\]$/.test(hook)) hook = '[' + hook + ']';
+          var next = hookEnd >= 0 ? hookEnd + 1 : after;
+
+          if (name === 'set' || name === 'put') {
+            if (name === 'put') notes.push(where + ': (put:) is read as (set:).');
+            setFlags(name === 'put' ? args.replace(/^\s*(.+?)\s+into\s+(\$\w+)\s*$/, '$2 to $1') : args);
+            lastIf = null;
+          } else if ((name === 'if' || name === 'unless' || name === 'else-if' || name === 'elseif') && hook !== null) {
+            var c = condition(args);
+            if (c === null || name === 'else-if' || name === 'elseif') {
+              notes.push(where + ': (' + name + ': ' + args.trim() + ') is more than a flag; what it holds was kept with no condition.');
+              walk(hook, currentCond());
+              lastIf = null;
+            } else {
+              if (name === 'unless') c = negate(c);
+              walk(hook, currentCond().concat([c]));
+              lastIf = c;
+            }
+          } else if (name === 'else' && hook !== null) {
+            if (lastIf === null) { notes.push(where + ': an (else:) follows no simple (if:); what it holds was kept with no condition.'); walk(hook, currentCond()); }
+            else walk(hook, currentCond().concat([negate(lastIf)]));
+            lastIf = null;
+          } else if (name === 'link-goto' || name === 'link-reveal-goto') {
+            var parts = args.split(/,(?=(?:[^"']|"[^"]*"|'[^']*')*$)/).map(unquote);
+            out.links.push({label: parts[0], target: parts[1] || parts[0], if: currentCond().slice()});
+            if (hook !== null) walk(hook, currentCond());
+            lastIf = null;
+          } else {
+            notes.push(where + ': (' + name + ': ' + args.trim() + ') is not mapped; it was left out' + (hook !== null ? ', and what its hook holds kept as plain text.' : '.'));
+            if (hook !== null) walk(hook, currentCond());
+            lastIf = null;
+          }
+          k = next;
+          continue;
+        }
+
+        // A SugarCube macro: <<name ...>>
+        if (text.startsWith('<<', k)) {
+          var mend = text.indexOf('>>', k + 2);
+          if (mend < 0) { buffer += text.substring(k); break; }
+          flush();
+          var body = text.substring(k + 2, mend).trim(), sm = /^(\/?[\w-]+)\s*([\s\S]*)$/.exec(body) || ['', body, ''];
+          var mname = sm[1].toLowerCase(), margs = sm[2];
+          k = mend + 2;
+          if (mname === 'set') setFlags(margs);
+          else if (mname === 'if') {
+            var ic = condition(margs);
+            if (ic === null) notes.push(where + ': <<if ' + margs.trim() + '>> is more than a flag; what it holds was kept with no condition.');
+            stack.push({base: currentCond(), conds: ic === null ? [] : [ic], cond: ic === null ? currentCond() : currentCond().concat([ic])});
+          } else if (mname === 'elseif') {
+            notes.push(where + ': <<elseif ' + margs.trim() + '>> is not mapped; what it holds was kept with no condition of its own.');
+            if (stack.length) { var f1 = stack[stack.length - 1]; f1.cond = f1.base.concat(f1.conds.map(negate)); }
+          } else if (mname === 'else') {
+            if (stack.length) { var f2 = stack[stack.length - 1]; f2.cond = f2.base.concat(f2.conds.map(negate)); }
+          } else if (mname === '/if') stack.pop();
+          else if (mname === 'link' || mname === 'button') {
+            var lk = /^\[\[([\s\S]*)\]\]\s*$/.exec(margs.trim());
+            if (lk) { var l2 = parseLink(lk[1]); l2.if = currentCond().slice(); out.links.push(l2); }
+            else {
+              var q = margs.match(/"[^"]*"|'[^']*'/g) || [];
+              if (q.length >= 2) out.links.push({label: unquote(q[0]), target: unquote(q[1]), if: currentCond().slice()});
+              else notes.push(where + ': <<' + mname + ' ' + margs.trim() + '>> leads nowhere the import can read; it was left out.');
+            }
+          } else if (mname === '/link' || mname === '/button') { /* the end of a link's body */ }
+          else notes.push(where + ': <<' + body + '>> is not mapped; it was left out.');
+          continue;
+        }
+
+        buffer += text[k++];
+      }
+      flush();
+    }
+
+    walk(p.text, []);
+    return out;
+  }
+
+  // ------------------------------------------------------------------------------------------------------------------
+  // 3. What a passage says: its lines by convention, and its tags.
+  // ------------------------------------------------------------------------------------------------------------------
+
+  var KNOWER = /^\s*(\{[a-z_]+\}|locals_of:\{[a-z_]+\})\s+knows\s*:\s*(.+)$/i;
+
+  function clean(text) {
+    return text.replace(/<[^>]+>/g, '').replace(/''|\/\/|\*\*|~~/g, '').replace(/[ \t]+/g, ' ');
+  }
+
+  function lines(passage) {
+    var out = {canvas: [], facts: [], knowers: new Map(), journal: null, memory: null, closing: null, trigger: null};
+    var paragraph = [];
+    function endParagraph(cond) {
+      var t = paragraph.join(' ').replace(/\s+/g, ' ').trim();
+      if (t) out.canvas.push({text: t, if: cond});
+      paragraph = [];
+    }
+    passage.pieces.forEach(function (piece) {
+      var cond = piece.if;
+      clean(piece.text).split('\n').forEach(function (raw, k, all) {
+        var line = raw.trim(), m;
+        if (!line) { endParagraph(cond); return; }
+        if ((m = /^journal\s*:\s*(.+)$/i.exec(line))) { endParagraph(cond); out.journal = m[1].trim(); return; }
+        if ((m = /^fact\s*:\s*(.+)$/i.exec(line))) { endParagraph(cond); out.facts.push({text: m[1].trim(), if: cond}); return; }
+        if ((m = /^memory\s*:\s*(.+)$/i.exec(line))) { endParagraph(cond); out.memory = m[1].trim(); return; }
+        if ((m = /^closing\s*:\s*(.+)$/i.exec(line))) { endParagraph(cond); out.closing = m[1].trim(); return; }
+        if ((m = /^trigger\s*:\s*(.+)$/i.exec(line))) { endParagraph(cond); out.trigger = m[1].trim(); return; }
+        if ((m = KNOWER.exec(line))) {
+          endParagraph(cond);
+          if (!out.knowers.has(m[1])) out.knowers.set(m[1], []);
+          out.knowers.get(m[1]).push({text: m[2].trim(), if: cond});
+          return;
+        }
+        paragraph.push(line);
+        if (k === all.length - 1) endParagraph(cond);
+      });
+      endParagraph(cond);
+    });
+    return out;
+  }
+
+  var ACTS = ['talk_to', 'return', 'talk_to_locals', 'be_at', 'keep_watch', 'defeat_party', 'wait'];
+
+  function role(name) { return '{' + (name || 'giver').toLowerCase() + '}'; }
+
+  function range(s, fallback) {
+    var m = /^(\d+)-(\d+)$/.exec(s || '');
+    return m ? [parseInt(m[1], 10), parseInt(m[2], 10)] : fallback;
+  }
+
+  function readTags(p, slug, notes) {
+    var where = "passage '" + p.name + "'", info = {act: null, explore: false, finding: false, required: false, hazard: null, hp: null,
+      encounter: false, isDefault: false, regard: null, gold: null};
+    p.tags.forEach(function (tag) {
+      var parts = tag.split(':'), head = parts[0].toLowerCase(), m;
+      if (ACTS.indexOf(head) >= 0) {
+        if (info.act) { notes.push(where + ': it already says how the player gets there; tag "' + tag + '" was left out.'); return; }
+        switch (head) {
+          case 'talk_to': info.act = {type: 'talk_to', hero: role(parts[1])}; break;
+          case 'return': info.act = {type: 'return'}; break;
+          case 'talk_to_locals': info.act = {type: 'talk_to_locals', place: role(parts[1] || 'village'), count: parseInt(parts[2], 10) || 1}; break;
+          case 'be_at':
+            info.act = {type: 'be_at', place: role(parts[1] || 'village')};
+            if (parts[2]) info.act.radius = parseFloat(parts[2]);
+            break;
+          case 'keep_watch':
+            info.act = {type: 'keep_watch', place: role(parts[1] || 'village'), nights: range(parts[2], [2, 5]), chance: parts[3] ? parseFloat(parts[3]) : 0.35};
+            if (!parts[2]) notes.push(where + ': keep_watch was given the nights 2 to 5 and a chance of 0.35 a night; change them in the editor.');
+            break;
+          case 'defeat_party':
+            info.act = {type: 'defeat_party', spawn: {id: slug, name: p.name, near: role(parts[1] || 'village'), size: range(parts[2], [10, 16])}};
+            if (!parts[2]) notes.push(where + ': the band was given 10 to 16 men; change it in the editor.');
+            break;
+          case 'wait':
+            info.act = {type: 'wait', days: parseInt(parts[1], 10) || 1};
+            break;
+        }
+        return;
+      }
+      if (head === 'explore' || head === 'scene') info.explore = true;
+      else if (head === 'finding') info.finding = true;
+      else if (head === 'required') info.required = true;
+      else if (head === 'hazard') info.hazard = info.hazard || 'injure';
+      else if (head === 'injure' || head === 'alert' || head === 'lose_time') info.hazard = head;
+      else if (head === 'hp') info.hp = range(parts[1], null);
+      else if (head === 'encounter') info.encounter = true;
+      else if (head === 'default') info.isDefault = true;
+      else if (head === 'ending') { /* every passage with no links is an ending already */ }
+      else if ((head === 'regard' || head === 'gold') && (m = /^[+-]?\d+$/.exec(parts[1] || ''))) info[head] = parseInt(m[0], 10);
+      else notes.push(where + ': tag "' + tag + '" is not understood; it was left out.');
+    });
+    return info;
+  }
+
+  // ------------------------------------------------------------------------------------------------------------------
+  // 4. The tale.
+  // ------------------------------------------------------------------------------------------------------------------
+
+  function slugify(name) {
+    var s = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    return s || 'passage';
+  }
+
+  function importText(text, fileName) {
+    var notes = [];
+    var story = /<tw-storydata\b/i.test(text) ? readHtml(text, notes) : readTwee(text, notes);
+    if (!story.start) throw new Error('The story has no passages.');
+    if (story.format && !/harlowe|sugarcube/i.test(story.format))
+      notes.push('The story is written for ' + story.format + "; only Harlowe's and SugarCube's links, (set:) and (if:) are read.");
+
+    var byName = new Map(), slugs = new Set();
+    story.passages.forEach(function (p) {
+      if (byName.has(p.name)) { notes.push("Two passages are called '" + p.name + "'; only the first is imported."); return; }
+      var s = slugify(p.name), base = s, n = 2;
+      while (slugs.has(s)) s = base + '_' + n++;
+      slugs.add(s);
+      var read = readPassage(p, notes);
+      read.slug = s;
+      read.info = readTags(p, s, notes);
+      read.lines = lines(read);
+      byName.set(p.name, read);
+    });
+
+    var start = byName.get(story.start.name);
+    var reached = new Set([start.name]), queue = [start];
+    while (queue.length) {
+      var at = queue.shift();
+      at.links = at.links.filter(function (l) {
+        if (byName.has(l.target)) return true;
+        notes.push("passage '" + at.name + "': its link \"" + l.label + "\" leads to '" + l.target + "', which is no passage; it was left out.");
+        return false;
+      });
+      at.links.forEach(function (l) { if (!reached.has(l.target)) { reached.add(l.target); queue.push(byName.get(l.target)); } });
+    }
+    byName.forEach(function (p) { if (!reached.has(p.name)) notes.push("passage '" + p.name + "' is never linked from the start; it was not imported."); });
+
+    var stages = [], made = new Map(), endings = {}, choiceIds = new Map();
+
+    function isBeat(p) { return p.info.finding || p.info.hazard !== null || p.info.encounter; }
+    function target(l) { return byName.get(l.target); }
+    function plain(ls) { return ls.map(function (l) { return l.if.length ? {text: l.text, if: l.if.length === 1 ? l.if[0] : l.if.slice()} : l.text; }); }
+    function knowersOf(p) {
+      var k = {};
+      p.lines.knowers.forEach(function (v, key) { k[key] = plain(v); });
+      return k;
+    }
+    function ways(p) { return p.links.filter(function (l) { return !(p.info.explore && isBeat(target(l))); }); }
+    function flagsOf(c) { return c.length === 0 ? undefined : c.length === 1 ? c[0] : c.slice(); }
+    function sentence(label) { return /[.!?:]$/.test(label) ? label : label + '.'; }
+
+    /** The journal line of the way toward a passage: its own "Journal:" line (for an ending, that line closes the tale instead). */
+    function journalToward(t, label) { return t.lines.journal && ways(t).length > 0 ? t.lines.journal : sentence(label); }
+
+    function say(o, p) {
+      if (p.lines.canvas.length && !p.info.explore) o.canvas = plain(p.lines.canvas).length === 1 ? plain(p.lines.canvas)[0] : plain(p.lines.canvas);
+      if (p.lines.facts.length && !p.info.explore) o.facts = plain(p.lines.facts);
+      if (p.lines.knowers.size) o.knowers = knowersOf(p);
+      return o;
+    }
+
+    function ending(p) {
+      if (!(p.slug in endings)) {
+        var e = {};
+        if (p.info.regard !== null) e.regard = p.info.regard;
+        if (p.info.gold !== null) e.gold = p.info.gold;
+        if (p.lines.memory) e.memory = p.lines.memory;
+        if (p.lines.journal) e.journal = p.lines.journal;
+        endings[p.slug] = e;
+      }
+      return 'end:' + p.slug;
+    }
+
+    /** Where the story goes once this passage has happened. */
+    function after(p) {
+      var w = ways(p);
+      if (p.info.explore) return scene(p);
+      if (w.length === 0) return ending(p);
+      if (w.length === 1 && w[0].if.length === 0) {
+        var t = target(w[0]);
+        if (!t.info.act && t.info.explore) return after(t);
+      }
+      return decision(p, p === start ? p.slug + '_after' : p.slug);
+    }
+
+    function uniqueChoiceId(stageId, id) {
+      if (!choiceIds.has(stageId)) choiceIds.set(stageId, new Set());
+      var used = choiceIds.get(stageId), s = id, n = 2;
+      while (used.has(s)) s = id + '_' + n++;
+      used.add(s);
+      return s;
+    }
+
+    function noAct(p, from) {
+      notes.push("passage '" + p.name + "' has no tag saying what the player does to get there (talk_to:giver, be_at:village, wait:3...), so the way from '"
+        + from.name + "' cannot be taken yet; give it one in the editor.");
+    }
+
+    function decision(p, id) {
+      if (made.has(id)) return id;
+      var stage = {id: id};
+      made.set(id, stage);
+      stages.push(stage);
+      var w = ways(p);
+      var t0 = target(w[0]);
+      if (w.length === 1 && w[0].if.length === 0 && t0.sets.length === 0) {
+        stage.journal = journalToward(t0, w[0].label);
+        if (t0.info.act) stage.objective = t0.info.act; else noAct(t0, p);
+        say(stage, t0);
+        stage.on_complete = {next: after(t0)};
+        return id;
+      }
+      stage.choices = w.map(function (l) {
+        var t = target(l), c = {id: uniqueChoiceId(id, t.slug), label: l.label, journal: journalToward(t, l.label)};
+        if (flagsOf(l.if)) c.if = flagsOf(l.if);
+        if (t.sets.length) c.sets = t.sets.length === 1 ? t.sets[0] : t.sets.slice();
+        if (t.info.act) {
+          c.objective = t.info.act;
+          if (t.info.act.type === 'keep_watch')
+            notes.push("passage '" + t.name + "': a way out among several cannot keep watch (the game counts nights only for a stage's own watch); make it the only link of '" + p.name + "', or lead it to a passage that does.");
+        } else noAct(t, p);
+        say(c, t);
+        c.next = after(t);
+        return c;
+      });
+      return id;
+    }
+
+    function scene(p) {
+      if (made.has(p.slug)) return p.slug;
+      var stage = {id: p.slug};
+      made.set(p.slug, stage);
+      stages.push(stage);
+      if (p.lines.journal) stage.journal = p.lines.journal;
+      else stage.journal = sentence(p.name);
+      if (p.lines.canvas.some(function (l) { return l.if.length; }))
+        notes.push("passage '" + p.name + "': a scene's opening cannot depend on flags; its lines were kept with no condition.");
+      var sc = {title: p.name, opening: {canvas: p.lines.canvas.map(function (l) { return l.text; }).join(' ')}};
+      if (p.lines.facts.length) sc.opening.facts = p.lines.facts.map(function (l) { return l.text; });
+      var findings = [], hazards = [], encounters = [];
+      p.links.forEach(function (l) {
+        var t = target(l);
+        if (!isBeat(t)) return;
+        var body = t.lines.canvas.map(function (x) { return x.text; }).join(' ');
+        if (t.info.finding) {
+          var f = {id: t.slug, required: t.info.required, text: body};
+          if (t.sets.length) f.sets = t.sets.length === 1 ? t.sets[0] : t.sets.slice();
+          findings.push(f);
+        } else if (t.info.hazard) {
+          var h = {id: t.slug, trigger: t.lines.trigger || l.label.charAt(0).toLowerCase() + l.label.substring(1), effect: {type: t.info.hazard}};
+          if (t.info.hazard === 'injure') h.effect.hit_points = t.info.hp || [10, 25];
+          if (t.info.hazard === 'injure' && !t.info.hp) notes.push("passage '" + t.name + "': the hazard was given 10 to 25 hit points; change it in the editor (tag hp:10-25).");
+          hazards.push(h);
+        } else {
+          var en = {id: t.slug, name: t.name, persona: body};
+          if (t.lines.facts.length) en.knows = t.lines.facts.map(function (x) { return x.text; });
+          if (t.sets.length) en.sets = t.sets.length === 1 ? t.sets[0] : t.sets.slice();
+          encounters.push(en);
+        }
+      });
+      if (findings.length) sc.findings = findings;
+      if (hazards.length) sc.hazards = hazards;
+      if (encounters.length) sc.encounters = encounters;
+      if (p.lines.closing) sc.closing = p.lines.closing;
+      stage.objective = {type: 'explore', scene: sc};
+      say(stage, p);
+
+      var w = ways(p);
+      if (w.length === 0) {
+        stage.on_complete = {next: ending(p)};
+        return p.slug;
+      }
+      var chosenDefault = w.filter(function (l) { return target(l).info.isDefault; })[0];
+      if (!chosenDefault) {
+        chosenDefault = w.filter(function (l) { return l.if.length === 0; })[0];
+        if (chosenDefault) notes.push("passage '" + p.name + "': no way out is tagged \"default\", so \"" + chosenDefault.label + '" is taken when the scene closes with none chosen.');
+      }
+      stage.choices = w.map(function (l) {
+        var t = target(l), c = {id: uniqueChoiceId(p.slug, t.slug), label: l.label};
+        if (flagsOf(l.if)) c.if = flagsOf(l.if);
+        if (t.sets.length) c.sets = t.sets.length === 1 ? t.sets[0] : t.sets.slice();
+        if (l === chosenDefault) c.default = true;
+        c.next = arrival(t, l);
+        return c;
+      });
+      return p.slug;
+    }
+
+    /** A way out of a scene leads here: straight on, or through a stage that waits for the passage's act. */
+    function arrival(t, l) {
+      if (!t.info.act) {
+        if (ways(t).length === 0 && !t.info.explore && t.lines.canvas.length && !t.lines.journal)
+          notes.push("passage '" + t.name + "': an ending reached straight from a scene has no conversation to say its text in; write what the journal should say on a \"Journal:\" line.");
+        return after(t);
+      }
+      var id = t.slug + '_way';
+      if (made.has(id)) return id;
+      var stage = {id: id, journal: journalToward(t, l.label)};
+      made.set(id, stage);
+      stages.push(stage);
+      stage.objective = t.info.act;
+      say(stage, t);
+      stage.on_complete = {next: after(t)};
+      return id;
+    }
+
+    // The request: the start passage, said by the giver when the tale is offered.
+    var request = {id: start.slug, journal: start.lines.journal || '{giver} has asked for your help.', objective: {type: 'talk_to', hero: '{giver}'}};
+    if (start.info.act || start.info.explore) notes.push("passage '" + start.name + "' is the start, made in the conversation where the tale is offered; its tags were left out.");
+    if (start.sets.length) notes.push("passage '" + start.name + "': flags cannot be set by the request itself; set them on the passage that follows.");
+    stages.push(request);
+    made.set(start.slug, request);
+    say(request, start);
+    start.info.explore = false;
+    request.on_complete = {next: ways(start).length === 0 ? 'reward' : after(start)};
+    if (ways(start).length === 0) notes.push("passage '" + start.name + "' links nowhere; the tale ends with its reward as soon as it is taken on.");
+
+    // Roles the text uses, bound by the game: the giver always, the village and the rival when the story names them.
+    var all = JSON.stringify(stages) + JSON.stringify(endings), used = [], m, re = /\{([a-z_]+)\}/g;
+    while ((m = re.exec(all)) !== null) if (used.indexOf(m[1]) < 0) used.push(m[1]);
+    var binds = {giver: 'the one who asks for help'};
+    var requires = {giver: {role: 'lord'}};
+    if (used.indexOf('village') >= 0) { binds.village = 'the village the tale happens in'; requires.giver.holds = '{village}'; requires.village = {type: 'village'}; }
+    if (used.indexOf('rival') >= 0) { binds.rival = 'the head of another house of the giver\'s realm'; requires.rival = {role: 'clan_leader'}; }
+    used.forEach(function (r) {
+      if (!(r in binds)) {
+        binds[r] = 'a role the game does not bind yet';
+        notes.push('{' + r + '} is used, but the game binds only {giver}, {village} and {rival}; the player would read it as written.');
+      }
+    });
+
+    var quest = {
+      id: 'custom_' + slugify(story.title),
+      title: story.title,
+      author: 'imported from Twine' + (fileName ? ' (' + fileName + ')' : ''),
+      requires: requires,
+      binds: binds,
+      stages: stages
+    };
+    if (Object.keys(endings).length) quest.endings = endings;
+    notes.push('No time limit was set: the tale never fails on its own. Add one under Failure if it should.');
+    return {quest: quest, notes: notes};
+  }
+
+  root.TwineImport = {importText: importText};
+})(typeof globalThis !== 'undefined' ? globalThis : this);
 </script>
 <script id="tale-editor-app">
 /*APP*/

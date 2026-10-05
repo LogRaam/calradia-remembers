@@ -93,6 +93,60 @@ namespace CalradiaRemembers.Tests
          }
       }
 
+      public static IEnumerable<string> TwineFixtureNames()
+      {
+         if (!SourceTree.IsReachable) return new[] {"(source tree not reachable)"};
+
+         return Directory.GetFiles(Path.Combine(Fixtures, "twine")).Where(f => !f.EndsWith(".expected.json", StringComparison.Ordinal))
+                         .Select(Path.GetFileName).OrderBy(n => n, StringComparer.Ordinal)!;
+      }
+
+      private static readonly Lazy<JObject> TwineAnswers = new(() => JObject.Parse(Node("twine", new[] {Path.Combine(Fixtures, "twine")})));
+
+      // A Twine story (Harlowe or SugarCube, published HTML or Twee) becomes the tale its fixture says: passages as stages
+      // and scene beats, links as choices, tags as objectives, variables as flags, and the same notes for the author.
+      [TestCaseSource(nameof(TwineFixtureNames))]
+      public void GIVEN_each_twine_story_WHEN_imported_THEN_it_becomes_its_expected_tale_with_its_notes(string story)
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"source tree not reachable: {SourceTree.MissingAnchor}");
+
+         JToken imported = TwineAnswers.Value[story]!;
+         string expectedPath = Path.Combine(Fixtures, "twine", story + ".expected.json");
+         if (Environment.GetEnvironmentVariable(UpdateVariable) == "1")
+         {
+            File.WriteAllText(expectedPath, imported.ToString(Formatting.Indented).Replace("\r\n", "\n") + "\n");
+
+            return;
+         }
+
+         JToken.DeepEquals(imported, JToken.Parse(File.ReadAllText(expectedPath))).Should().BeTrue($"{story} must import to {story}.expected.json");
+      }
+
+      // What the import writes, the game plays: each imported fixture loads through the real loader with nothing to report.
+      [TestCaseSource(nameof(TwineFixtureNames))]
+      public void GIVEN_each_twine_story_WHEN_imported_THEN_the_game_loads_the_tale_with_nothing_to_report(string story)
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"source tree not reachable: {SourceTree.MissingAnchor}");
+
+         string quest = TwineAnswers.Value[story]!["quest"]!.ToString();
+
+         AuthoredQuestLoader.ParseAll(new[] {(story, quest)}).Problems.Should().BeEmpty();
+      }
+
+      // Never dropped silently (goal): a macro or a tag the import cannot map is named to the author, in each format.
+      [Test]
+      public void GIVEN_macros_and_tags_the_import_cannot_map_WHEN_imported_THEN_each_is_named_to_the_author()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"source tree not reachable: {SourceTree.MissingAnchor}");
+
+         List<string> Notes(string story) => TwineAnswers.Value[story]!["notes"]!.Select(n => (string) n!).ToList();
+
+         Notes("harlowe_ferryman.html").Should().Contain(n => n.Contains("(print: $heard_of_debt) is not mapped"));
+         Notes("sugarcube_ferryman.html").Should().Contain(n => n.Contains("<<audio \"river\" play>> is not mapped"));
+         Notes("twee_miller.twee").Should().Contain(n => n.Contains("tag \"sorrowful\" is not understood"));
+         Notes("harlowe_ferryman.html").Should().Contain(n => n.Contains("'Notes to self' is never linked from the start"));
+      }
+
       private static List<string> GameAnswer(string fixture)
       {
          string json = File.ReadAllText(Path.Combine(Fixtures, fixture + ".json"));
