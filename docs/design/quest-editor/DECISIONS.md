@@ -125,6 +125,15 @@ a jest or a promise to think about it, and at most one per reply. The game then 
 current stage, open (its `if` holds), and said to this very character; anything else is refused and changes nothing
 (self-test `authored_quest_said_choice`, through the real bridge).
 
+**E12. Where a reported choice runs, checked in the code (a trace of the interpreter path, 04/10/2026).** The
+encounter context is rebuilt every turn for the character speaking that turn (`ChatViewModel.Exchanges`, "Rebuild
+context each turn"), so a choice opened mid-conversation by a flag is taught on the next turn, and one already taken
+is no longer taught. The action runs on the main thread (`MainThreadDispatcher.SwitchToMainThread` after the
+interpreter call). In a council, an `actor:` naming another seated member runs the action as that member: the choice
+was not said to them, so it is refused. The game puts no cap on how many actions one reply reports and asks no
+confirmation for this verb; two choices in one reply take only the first, because the stage has moved
+(`GIVEN_two_choices_by_words_reported_in_one_reply_WHEN_both_reach_the_game_THEN_only_the_first_is_taken`).
+
 ## The scene and its numbered list
 
 **S1. A scene may carry a `title`**, the name over the chat window ("The burned barns of {village}"). Empty, it is

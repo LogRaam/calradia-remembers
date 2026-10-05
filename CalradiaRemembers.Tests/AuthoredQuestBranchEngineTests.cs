@@ -309,6 +309,26 @@ namespace CalradiaRemembers.Tests
          AuthoredQuestEngine.Said(run, q, Giver, "let_it_be", 101).Kind.Should().Be(AuthoredStepKind.None);
       }
 
+      // The game puts no cap of its own on how many actions one reply reports, so an interpreter that reports two
+      // choices in one reply must not take two paths: the first moves the story on, and the second, no longer open
+      // at the new stage, changes nothing.
+      [Test]
+      public void GIVEN_two_choices_by_words_reported_in_one_reply_WHEN_both_reach_the_game_THEN_only_the_first_is_taken()
+      {
+         AuthoredQuest q = AuthoredTales.Load(AuthoredTales.Fork
+            .Replace("\"objective\": { \"type\": \"wait\", \"days\": 3 }", "\"said\": { \"to\": \"{giver}\", \"meaning\": \"the player says the boy is not worth the trouble\" }")
+            .Replace("\"objective\": { \"type\": \"talk_to\", \"hero\": \"{giver}\" }, \"sets\": \"refused\"",
+               "\"said\": { \"to\": \"{giver}\", \"meaning\": \"the player says it is not their affair\" }, \"sets\": \"refused\""));
+         AuthoredQuestRun run = AtTheRoad(q);
+         AuthoredQuestEngine.SaidChoicesFor(run, q, Giver).Select(c => c.Id).Should().Equal("give_up", "let_it_be");
+
+         AuthoredQuestEngine.Said(run, q, Giver, "let_it_be", 101).EndingId.Should().Be("abandoned");
+         AuthoredQuestEngine.Said(run, q, Giver, "give_up", 101).Kind.Should().Be(AuthoredStepKind.None);
+
+         run.SpokenChoiceId.Should().Be("let_it_be");
+         run.Flags.Should().NotContain("refused");
+      }
+
       // Two ways out that question different people each count their own: two villagers heard take the path that asks
       // for two villagers.
       [Test]

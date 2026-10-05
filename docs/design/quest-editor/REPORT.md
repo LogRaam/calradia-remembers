@@ -2,7 +2,7 @@
 
 Gabriel, voici le bilan du travail demandé dans `goal.md`. Tout est sur la branche `quest-branches` des deux dépôts,
 rebasée sur `origin/main` (mod) et `origin/master` (SDK) du 4 octobre 2026, poussée, les deux suites au vert :
-mod 5568 tests, SDK 1814 tests. Rien n'a touché `main` ni `master`, rien n'a été déployé dans le jeu (toujours
+mod 5569 tests, SDK 1814 tests. Rien n'a touché `main` ni `master`, rien n'a été déployé dans le jeu (toujours
 `-p:NCrunch=1`), rien n'a été publié.
 
 ## Ce qui a été construit, commit par commit
@@ -65,6 +65,7 @@ Le détail, avec le pourquoi de chacune, est dans `DECISIONS.md`. En bref :
 - E9. Les choix par les mots passent par les faits du tour (`StoryChoicesForInterpreter`), pas par `CrActions` : une action externe est figée dans la tête en cache et serait enseignée dans toutes les conversations.
 - E10. Le verbe `story_choice` est dispatché par le pont, hors de `GameActionCatalog` et de `HandledActionTypes` (sinon enseigné partout); `action_catalog_parity` reste vrai.
 - E11. L'interpréteur se fait dire quand NE PAS rapporter (offre encore pesée, question, refus, blague, « j'y penserai »), un seul par réplique; le jeu n'accepte qu'un id déclaré, ouvert, dit à ce personnage-là.
+- E12. Vérifié dans le code : le contexte est rebâti à chaque tour pour celui qui parle (un choix ouvert en cours de conversation est enseigné au tour suivant), l'action roule sur le fil principal, en conseil un `actor:` qui nomme un autre membre est refusé, et deux choix dans une même réplique n'en prennent qu'un (le premier).
 
 **La scène et la liste numérotée**
 - S1. Une scène peut avoir un `title` (affiché dans le chat).
@@ -108,6 +109,7 @@ Le détail, avec le pourquoi de chacune, est dans `DECISIONS.md`. En bref :
 | ... par marqueur | `GIVEN_a_scene_choice_closed_by_its_flag_WHEN_its_marker_is_written_THEN_it_is_refused` |
 | ... par clic | `GIVEN_a_way_closed_by_its_flag_WHEN_listed_THEN_it_is_not_offered` |
 | ... par les mots | `GIVEN_a_choice_by_words_closed_by_its_flag_WHEN_reported_THEN_it_is_not_taken`; `GIVEN_another_character_a_closed_choice_or_a_later_stage_WHEN_the_interpreter_is_told_THEN_it_learns_nothing`; `cr.testall authored_quest_said_choice` |
+| Deux choix par les mots dans une même réplique : seul le premier compte | `GIVEN_two_choices_by_words_reported_in_one_reply_WHEN_both_reach_the_game_THEN_only_the_first_is_taken` |
 | Un choix par les mots ne compte que pour la bonne personne et un id déclaré | `GIVEN_a_choice_by_words_WHEN_reported_for_the_wrong_person_an_unknown_path_or_the_right_one_THEN_only_the_right_one_counts`; `GIVEN_a_choice_by_words_open_with_this_character_WHEN_the_interpreter_is_told_THEN_it_learns_the_id_the_meaning_and_the_report` |
 | Un choix pris pose ses drapeaux | `GIVEN_a_stage_left_by_several_acts_WHEN_the_player_goes_back_to_the_lord_THEN_the_tale_ends_its_own_way_and_remembers_it`; `GIVEN_the_light_found_in_the_scene_WHEN_the_left_marker_is_written_THEN_the_story_follows_the_light_on_closing`; `GIVEN_an_undeclared_marker_WHEN_written_THEN_nothing_changes_and_closing_follows_the_default` |
 | Un choix de scène compte seulement par son marqueur, jamais par le clic seul | `GIVEN_a_way_clicked_WHEN_its_words_are_sent_THEN_the_story_moves_only_on_the_narrators_marker` |
@@ -151,6 +153,15 @@ Le détail, avec le pourquoi de chacune, est dans `DECISIONS.md`. En bref :
 - **Find-SwapRisk** : 15 membres déjà présents sur `main`; aucun ajouté ici, mais ce n'est pas zéro (E8).
 - **Deux écarts de lecture entre l'éditeur et le jeu** (P2) : `new Date(...)` et le caractère NUL au milieu d'un fichier. Jamais vus dans un conte.
 - **Choix par les mots** : fait, et sûr au sens où le jeu refuse tout ce qui n'est pas déclaré, ouvert, et dit à la bonne personne. Ce qu'aucun test ne peut garantir, c'est la fidélité d'un vrai modèle à rapporter le bon moment (voir la liste de jeu ci-dessous).
+
+### Trouvé en chemin, sur `main`, pas corrigé ici (hors du périmètre)
+
+En traçant le chemin de l'interpréteur pour les choix par les mots :
+- **Une action externe enregistrée tard est invisible pour l'interpréteur.** `ActionInterpreterPromptBuilder` calcule sa tête stable une seule fois, dans des champs statiques, au premier usage; rien ne la recalcule après un `CrActions.Register` plus tardif. Je n'ai pas tracé l'ordre de chargement réel d'un mod tiers, donc je ne sais pas si ça arrive en pratique.
+- **`ExternalActionSpec.TeachingText` et `IsEligible` n'atteignent jamais l'interpréteur** (seulement le prompt de prose), alors que l'en-tête de `ExternalActionSpec.cs` dit l'action « taught to the interpreter and the 1:1 prose prompt » sans préciser que ces deux-là n'y vont pas; et `IsEligible` n'est pas revérifié avant `Execute`. Côté prose, seul `Guidance` est garanti pour une action externe.
+- **Aucun test de budget ne mesure un prompt avec une action externe enregistrée.**
+
+Ça touche l'Extension Surface pour les moddeurs, pas les contes; à toi de dire si on ouvre un chantier.
 
 ## Ce que seule une partie peut confirmer (liste de jeu courte)
 
