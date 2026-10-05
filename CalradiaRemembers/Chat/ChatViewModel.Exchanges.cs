@@ -957,15 +957,25 @@ namespace CalradiaRemembers.Chat
                bool fallbackConfigured = !string.IsNullOrWhiteSpace(fallbackModel);
 
                bool hasSpokenDialogue = !string.IsNullOrWhiteSpace(result.Response?.Dialogue);
-               if (TruncationFallbackPolicy.ShouldFallBack(result.FinishReason, fallbackConfigured, hasSpokenDialogue))
+
+               // A beat the prose model REFUSED goes to the NSFW model on its own provider (Gabriel, 04/10/2026: the
+               // MCM promises the NSFW model is the fallback in Enhanced; until then only a truncated beat reached it).
+               string beatText = $"{result.Response?.Dialogue} {result.Response?.Narration}";
+               string nsfwModel = behavior.LlmServices.ResolveNsfwModel();
+               bool refusedBeat = DialogueHeuristics.LooksLikeRefusal(beatText)
+                                  && RefusalFallbackPolicy.ShouldRedo(true, LlmServices.ActiveModelId, nsfwModel, beatText, result.FinishReason);
+
+               if (refusedBeat || TruncationFallbackPolicy.ShouldFallBack(result.FinishReason, fallbackConfigured, hasSpokenDialogue))
                {
-                  string why = hasSpokenDialogue ? $"truncated (finish={result.FinishReason ?? "empty"})" : "produced no spoken line";
+                  if (refusedBeat) fallbackModel = nsfwModel;
+                  string why = refusedBeat ? "refused" : hasSpokenDialogue ? $"truncated (finish={result.FinishReason ?? "empty"})" : "produced no spoken line";
                   ModLog.Info($"[PROSE-FALLBACK] prose model {why}; " +
                               $"completing this beat on {fallbackModel} in Integrated mode.");
 
                   NpcChatResult fallbackResult = await ProseFallbackComposer.RunIntegratedFallbackAsync(
                      profile, world, session, playerMessage, result.Response?.Dialogue,
-                     context, behavior.LlmServices, fallbackModel, CancellationToken.None);
+                     context, behavior.LlmServices, fallbackModel, CancellationToken.None,
+                     refusedBeat ? behavior.LlmServices.NsfwClient : null);
 
                   // The fallback call added an await: the chat may have closed or been replaced meanwhile, so run
                   // the same stale-VM guard the main call uses before any game state below is touched.

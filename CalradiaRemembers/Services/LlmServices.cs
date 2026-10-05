@@ -75,6 +75,12 @@ namespace CalradiaRemembers.Services
       private ProviderKind _builtInterpreterKind;
       private string _builtInterpreterModel;
 
+      // The NSFW role's own client (04/10/2026): the refused-beat fallback in Enhanced mode reaches the NSFW model
+      // on the NSFW role's provider, key and pin, whatever the scene's provider is. Rebuilt like the interpreter's.
+      private ILlmClient _nsfwClient;
+      private ProviderKind _builtNsfwKind;
+      private string _builtNsfwModel;
+
       /// <summary>
       ///   Test-only override for the player's gender used when building the prompt.
       ///   Set by the cr.crc_scene console command to exercise the female/male captive
@@ -157,6 +163,7 @@ namespace CalradiaRemembers.Services
             _wireObserver = value;
             Attach(LlmClient);
             Attach(_interpreterClient);
+            Attach(_nsfwClient);
          }
       }
 
@@ -203,6 +210,47 @@ namespace CalradiaRemembers.Services
             }
          }
       }
+
+      /// <summary>
+      ///   The NSFW role's own client, its model <see cref="ResolveNsfwModel" />: where Enhanced mode redoes a beat
+      ///   the scene's model refused (<see cref="Logic.RefusalFallbackPolicy" />), on the NSFW role's provider, key,
+      ///   reasoning and pin, so an NSFW model on another provider than the prose one is reached where it lives.
+      ///   Built lazily, rebuilt when the NSFW provider or model changes. Never throws: a build fault falls back to
+      ///   the main <see cref="LlmClient" />.
+      /// </summary>
+      public ILlmClient NsfwClient
+      {
+         get
+         {
+            try
+            {
+               if (_httpClient == null) return LlmClient;
+
+               ProviderKind kind = ResolveKindForRole(ServiceRole.Nsfw);
+               string model = ResolveNsfwModel();
+
+               if (_nsfwClient != null && _builtNsfwKind == kind && _builtNsfwModel == model) return _nsfwClient;
+
+               _nsfwClient = BuildRoleClient(ServiceRole.Nsfw, kind, model);
+               _builtNsfwKind = kind;
+               _builtNsfwModel = model;
+
+               return _nsfwClient;
+            }
+            catch (Exception ex)
+            {
+               ModLog.Error($"Failed to build the NSFW client; falling back to the main client: {ex.Message}");
+
+               return LlmClient;
+            }
+         }
+      }
+
+      /// <summary>
+      ///   The NSFW model as configured for the NSFW role's own provider, or empty when it says nothing there (blank,
+      ///   or an id of another provider). Empty means there is no distinct model to fall back to.
+      /// </summary>
+      public string ResolveNsfwModel() => ConfiguredModelFor(ModSettings.CncModel, ResolveKindForRole(ServiceRole.Nsfw)) ?? "";
 
       /// <summary>The model currently in effect — read live from the MCM menu.</summary>
       public string ModelId => ResolveModel();
@@ -636,9 +684,11 @@ namespace CalradiaRemembers.Services
       /// <summary>The provider pin the active role's requests carry right now ("" when none, or not on OpenRouter).</summary>
       internal static string ActiveProviderPin() => ResolveProviderPin();
 
-      private static string ResolveProviderPin()
-         => ActiveRoleKind() == ProviderKind.OpenRouter
-            ? ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = ActiveMainRole(), Prose = ModSettings.OpenRouterProviderPin, Nsfw = ModSettings.OpenRouterNsfwProviderPin, Interpret = ""})
+      private static string ResolveProviderPin() => ResolveProviderPinFor(ActiveMainRole());
+
+      private static string ResolveProviderPinFor(ServiceRole role)
+         => ResolveKindForRole(role) == ProviderKind.OpenRouter
+            ? ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = role, Prose = ModSettings.OpenRouterProviderPin, Nsfw = ModSettings.OpenRouterNsfwProviderPin, Interpret = ""})
             : "";
 
       /// <summary>
@@ -803,9 +853,11 @@ namespace CalradiaRemembers.Services
       ///   This round the effort stays exactly as before, keyed off the active role's kind rather than a per-role
       ///   dropdown.
       /// </summary>
-      private static string ResolveReasoning()
+      private static string ResolveReasoning() => ResolveReasoningFor(ActiveMainRole());
+
+      private static string ResolveReasoningFor(ServiceRole role)
       {
-         ProviderKind kind = ActiveRoleKind();
+         ProviderKind kind = ResolveKindForRole(role);
 
          // OpenRouter and NanoGPT (a second aggregator, sharing OpenRouter's mode-aware dials): the mode-aware
          //   effort (PROSE/NSFW/interpreter). OpenRouter serializes it as its own nested reasoning object; NanoGPT
@@ -817,7 +869,7 @@ namespace CalradiaRemembers.Services
          //   unchanged.
          string keyword =
             kind == ProviderKind.OpenRouter || kind == ProviderKind.NanoGpt
-               ? ModelModePolicy.ResolveReasoningEffort(new ModelModePolicy.RoleSettings {Role = ActiveMainRole(), Prose = ModSettings.ReasoningEffort, Nsfw = ModSettings.NsfwReasoningEffort, Interpret = InterpreterReasoningEffort})
+               ? ModelModePolicy.ResolveReasoningEffort(new ModelModePolicy.RoleSettings {Role = role, Prose = ModSettings.ReasoningEffort, Nsfw = ModSettings.NsfwReasoningEffort, Interpret = InterpreterReasoningEffort})
                : kind == ProviderKind.OpenAiCompatible
                   ? ModSettings.CustomReasoningEffort
                   : null;
@@ -925,6 +977,29 @@ namespace CalradiaRemembers.Services
             TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
             ParameterOptionsProvider = () => ParameterOptionsFor(kind, model),
             ProviderSlugsProvider = () => "",
+            AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
+         };
+
+         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver};
+      }
+
+      /// <summary>
+      ///   A client fixed to one <paramref name="role" />, its provider <paramref name="kind" /> and a fixed
+      ///   <paramref name="model" />: the main client's shape (that role's key, base URL, reasoning and pin), with every
+      ///   lambda bound to the role instead of following <see cref="ActiveModelMode" />.
+      /// </summary>
+      private ILlmClient BuildRoleClient(ServiceRole role, ProviderKind kind, string model)
+      {
+         var config = new OpenRouterConfig {
+            ApiKeyProvider = () => ApiKeyFor(role, kind),
+            ModelProvider = () => model,
+            BaseUrlProvider = () => BaseUrlFor(role, kind),
+            UseSystemPromptCachingProvider = () => UseCachingFor(kind),
+            ReasoningProvider = () => ResolveReasoningFor(role),
+            ReasoningAsEffortStringProvider = () => ReasoningWirePolicy.UsesEffortString(kind),
+            TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
+            ParameterOptionsProvider = () => ParameterOptionsFor(kind, model),
+            ProviderSlugsProvider = () => ResolveProviderPinFor(role),
             AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
          };
 

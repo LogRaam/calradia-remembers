@@ -13,7 +13,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.AuthoredQuests;
+using CalradiaRemembers.Services;
+using NpcMemoryService.Core.LlmClient;
 using NpcMemoryService.Core.Models;
 
 #endregion
@@ -77,6 +80,22 @@ namespace CalradiaRemembers.Chat
          _ = RunExplorationTurnAsync(text, placeholder);
       }
 
+      /// <summary>One narrator call on <paramref name="client" />: the text, the finish reason, or why there is none. Never throws.</summary>
+      private static async Task<(string Raw, string Finish, string Error)> CallNarratorAsync(ILlmClient client, LlmRequest request)
+      {
+         using (var cts = new CancellationTokenSource())
+         {
+            cts.CancelAfter(TimeSpan.FromSeconds(Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) + 10));
+            try
+            {
+               LlmResponse resp = await Task.Run(() => client.CompleteAsync(request, cts.Token)).ConfigureAwait(false);
+
+               return resp is {IsSuccess: true} ? (resp.Content, resp.FinishReason, null) : (null, null, resp?.ErrorMessage ?? "no result");
+            }
+            catch (Exception ex) { return (null, null, $"{ex.GetType().Name}: {ex.Message}"); }
+         }
+      }
+
       /// <summary>One turn: the narrator's prompt and the scene so far, one call, the narration shown, the markers carried out.</summary>
       private async Task RunExplorationTurnAsync(string playerAction, ChatMessageViewModel placeholder)
       {
@@ -98,19 +117,24 @@ namespace CalradiaRemembers.Chat
                Messages = new[] {new LlmMessage(MessageRole.User, playerAction ?? "(The scene begins. Describe it, then ask what the player does.)")},
                Parameters = new LlmParameters {MaxTokens = 3000, Creativity = 0.6f}
             };
-            ModLog.Info($"[SCENE] {_exploration.Title}: turn ({(playerAction == null ? "opening" : "reply")}, prompt {prompt.Length} chars).");
+            string beatModel = LlmServices.ActiveModelId;
+            bool enhanced = LlmServices.ActiveModelMode == ManualModelMode.Enhanced;
+            string nsfwModel = behavior.LlmServices.ResolveNsfwModel();
+            ModLog.Info($"[SCENE] {_exploration.Title}: turn ({(playerAction == null ? "opening" : "reply")}, prompt {prompt.Length} chars) on {beatModel}.");
 
-            string raw = null, error = null;
-            using (var cts = new CancellationTokenSource())
+            (string raw, string finish, string error) = await CallNarratorAsync(behavior.LlmServices.LlmClient, request).ConfigureAwait(false);
+
+            // Enhanced mode: a refused, filtered or empty beat is redone once on the NSFW model, on its own provider
+            // (Gabriel, 04/10/2026: the werewolf scene refused and he had to switch the model by hand).
+            if (RefusalFallbackPolicy.ShouldRedo(enhanced, beatModel, nsfwModel, raw, finish))
             {
-               cts.CancelAfter(TimeSpan.FromSeconds(Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) + 10));
-               try
-               {
-                  LlmResponse resp = await Task.Run(() => behavior.LlmServices.LlmClient.CompleteAsync(request, cts.Token)).ConfigureAwait(false);
-                  if (resp is {IsSuccess: true}) raw = resp.Content;
-                  else error = resp?.ErrorMessage ?? "no result";
-               }
-               catch (Exception ex) { error = $"{ex.GetType().Name}: {ex.Message}"; }
+               string why = string.IsNullOrWhiteSpace(raw) ? $"gave nothing ({error ?? "empty reply"})"
+                  : DialogueHeuristics.LooksLikeRefusal(raw) ? "refused" : $"was cut off (finish={finish})";
+               ModLog.Info($"[NSFW-FALLBACK] scene narrator on {beatModel} {why}; redoing this turn on {nsfwModel}.");
+
+               (string redone, string redoneFinish, string redoneError) = await CallNarratorAsync(behavior.LlmServices.NsfwClient, request).ConfigureAwait(false);
+               if (string.IsNullOrWhiteSpace(redone)) ModLog.Error($"[NSFW-FALLBACK] {nsfwModel} gave nothing either: {redoneError ?? "empty reply"}");
+               else (raw, finish) = (redone, redoneFinish);
             }
 
             await MainThreadDispatcher.SwitchToMainThread();
@@ -120,6 +144,16 @@ namespace CalradiaRemembers.Chat
             {
                ModLog.Error($"[SCENE] turn failed: {error ?? "empty reply"}");
                ReplacePlaceholder(placeholder, "(Nothing stirs. Tell what you do.)", NarratorSpeaker());
+
+               return;
+            }
+
+            // A refusal that got through (no fallback, or the fallback refused too) is never shown as the narration,
+            // nor kept in the scene so far, where every later turn would read it back.
+            if (DialogueHeuristics.LooksLikeRefusal(raw))
+            {
+               ModLog.Info($"[SCENE] the narrator refused this turn; not shown. {(enhanced ? "" : "The in-chat model switch can send the scene to the NSFW model.")}");
+               ReplacePlaceholder(placeholder, "(The tale will not go there. Tell what you do instead.)", NarratorSpeaker());
 
                return;
             }

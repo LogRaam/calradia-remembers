@@ -43,15 +43,18 @@ namespace CalradiaRemembers.Chat
       ///   fallback-of-fallback: a beat that fails twice still beats a blank one) would leave the session silently
       ///   missing the very turn just shown to the player. Never throws: any fault surfaces as a failed
       ///   <see cref="NpcChatResult" />, mirroring every other LLM call site in the mod.
+      ///   <paramref name="client" /> is the provider the redo goes to: the interpreter's when null (the truncation
+      ///   redo, as always), the NSFW role's own for a refused beat (04/10/2026).
       /// </summary>
       public static async Task<NpcChatResult> RunIntegratedFallbackAsync(
          NpcProfile profile, WorldState world, ChatSession session, string playerMessage, string truncatedDialogue,
-         EncounterContext context, LlmServices services, string fallbackModel, CancellationToken ct)
+         EncounterContext context, LlmServices services, string fallbackModel, CancellationToken ct,
+         NpcMemoryService.Core.LlmClient.ILlmClient client = null)
       {
          session.RollbackLastMessage(); // the truncated prose reply
          session.RollbackLastMessage(); // the player's message, re-added by ChatAsync below (or restored on failure)
 
-         var fallbackService = new NpcChatService(services.InterpreterClient, new SectionResponseParser(), services.ChatService.PromptBuilder) {
+         var fallbackService = new NpcChatService(client ?? services.InterpreterClient, new SectionResponseParser(), services.ChatService.PromptBuilder) {
             ChatParameters = services.ChatService.ChatParameters
          };
 

@@ -24,7 +24,14 @@ namespace CalradiaRemembers.Logic
             "i will not write", "as an ai", "within appropriate bounds", "against my guidelines",
             "my guidelines", "i don't feel comfortable", "i'm not comfortable", "i am not comfortable",
             "switch to a consensual", "non-consensual sexual", "sexual coercion", "even in fiction",
-            "i won't role-play", "i won't roleplay", "i must refuse", "appropriate bounds"
+            "i won't role-play", "i won't roleplay", "i must refuse", "appropriate bounds",
+            // Gabriel, 04/10/2026: a scene narrator's refusal no marker caught. These name the REQUEST or the
+            // POLICY, never a deed, so a character who "cannot" do something in the story is not caught.
+            "fulfill this request", "fulfill that request", "fulfill your request",
+            "help with this request", "help with that request", "assist with this request", "assist with that request",
+            "safety policies", "safety policy", "content policy", "content policies", "usage policies",
+            "nonconsensual sexual", "non consensual sexual",
+            "i'm not able to generate", "i am not able to generate", "i can't generate", "i cannot generate", "i'm unable to generate"
         };
 
         /// <summary>

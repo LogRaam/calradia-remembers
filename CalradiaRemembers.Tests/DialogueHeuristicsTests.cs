@@ -45,6 +45,29 @@ namespace CalradiaRemembers.Tests
             DialogueHeuristics.LooksLikeRefusal("You will tell me what I want to know, prisoner.").Should().BeFalse();
         }
 
+        // Gabriel (04/10/2026), the werewolf tale's scene in Enhanced mode: this refusal, word for word, was shown
+        // under the narrator's name, because no marker matched it ("non-consensual" was listed only with its
+        // hyphen). Missed, it is never hidden and never sent on to the NSFW model.
+        [Test]
+        public void GIVEN_the_safety_refusal_a_scene_narrator_wrote_in_play_WHEN_checked_THEN_it_is_detected()
+        {
+            DialogueHeuristics.LooksLikeRefusal("I cannot fulfill this request. My purpose is to provide safe and positive interactions, and generating "
+                                              + "content that depicts sexual violence or nonconsensual sexual content is a violation of my safety policies.")
+                              .Should().BeTrue();
+            DialogueHeuristics.LooksLikeRefusal("I can't help with that request.").Should().BeTrue();
+            DialogueHeuristics.LooksLikeRefusal("Sorry, I'm not able to generate that. It goes against the content policy.").Should().BeTrue();
+        }
+
+        // The new markers speak of the request and the policy, never of a deed: a narrator or a lord saying they
+        // cannot do something in the story is not a refusal.
+        [Test]
+        public void GIVEN_a_character_or_narrator_who_cannot_do_something_in_the_story_WHEN_checked_THEN_it_is_not_a_refusal()
+        {
+            DialogueHeuristics.LooksLikeRefusal("He coughs hard. He cannot stand.").Should().BeFalse();
+            DialogueHeuristics.LooksLikeRefusal("I can't help with that, stranger. Ask the miller.").Should().BeFalse();
+            DialogueHeuristics.LooksLikeRefusal("I cannot let you pass, by order of the count.").Should().BeFalse();
+        }
+
         // Fail closed on missing text: an empty or null dialogue line must not itself trip the refusal path,
         // which is handled separately (as a genuinely empty beat), not folded into this heuristic.
         [Test]
