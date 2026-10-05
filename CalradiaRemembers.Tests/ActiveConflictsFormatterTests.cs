@@ -83,5 +83,27 @@ namespace CalradiaRemembers.Tests
 
             line.Should().Be("Vlandia vs Battania");
         }
+
+        // fkasad (Nexus, 05/10/2026): the player's own realm's wars sat in the middle of a long list and lost their
+        // weight. They now open the line, told from the player's side, whatever order the engine walked the realms in.
+        [Test]
+        public void GIVEN_the_players_realm_at_war_WHEN_described_THEN_its_wars_come_first_from_its_side()
+        {
+            string line = ActiveConflictsFormatter.Describe(new[] {
+                ("the Aserai", "the Khuzait"), ("Battania", "Vlandia"), ("Sturgia", "Vlandia"), ("Vlandia", "the Aserai")
+            }, playersRealm: "Vlandia");
+
+            line.Should().Be("Vlandia vs Battania, Sturgia, the Aserai; the Aserai vs the Khuzait");
+        }
+
+        // A player in no realm, or a realm at peace: the list is exactly as before.
+        [Test]
+        public void GIVEN_no_realm_of_the_players_at_war_WHEN_described_THEN_the_order_is_unchanged()
+        {
+            var wars = new[] {("Vlandia", "Battania"), ("the Aserai", "the Khuzait")};
+
+            ActiveConflictsFormatter.Describe(wars, playersRealm: null).Should().Be(ActiveConflictsFormatter.Describe(wars));
+            ActiveConflictsFormatter.Describe(wars, playersRealm: "Sturgia").Should().Be(ActiveConflictsFormatter.Describe(wars));
+        }
     }
 }

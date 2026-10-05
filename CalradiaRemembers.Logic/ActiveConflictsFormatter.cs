@@ -30,9 +30,28 @@ namespace CalradiaRemembers.Logic
         ///   run, its enemies joined after it. Empty when there are no wars, which is what the prompt
         ///   treats as "say nothing about wars at all".
         /// </summary>
-        public static string Describe(IEnumerable<(string Side, string Enemy)> wars)
+        public static string Describe(IEnumerable<(string Side, string Enemy)> wars) => Describe(wars, null);
+
+        /// <summary>
+        ///   As <see cref="Describe(IEnumerable{(string Side, string Enemy)})" />, the wars of
+        ///   <paramref name="playersRealm" /> first and told from its side (fkasad, Nexus, 05/10/2026: in a long list the
+        ///   player's own wars lost their weight in the middle). Null, or a realm at peace, leaves the order as given.
+        /// </summary>
+        public static string Describe(IEnumerable<(string Side, string Enemy)> wars, string playersRealm)
         {
             if (wars == null) return "";
+            if (!string.IsNullOrWhiteSpace(playersRealm))
+            {
+                var all = new List<(string Side, string Enemy)>(wars);
+                var own = new List<(string Side, string Enemy)>();
+                var rest = new List<(string Side, string Enemy)>();
+                foreach ((string side, string enemy) in all)
+                    if (side == playersRealm) own.Add((side, enemy));
+                    else if (enemy == playersRealm) own.Add((enemy, side));
+                    else rest.Add((side, enemy));
+                own.AddRange(rest);
+                wars = own;
+            }
 
             var entries = new StringBuilder();
             string openSide = null;

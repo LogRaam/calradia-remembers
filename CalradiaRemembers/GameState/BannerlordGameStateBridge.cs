@@ -473,7 +473,8 @@ namespace CalradiaRemembers.GameState
                   wars.Add((a.Name?.ToString(), b.Name?.ToString()));
             }
 
-         return ActiveConflictsFormatter.Describe(wars);
+         // The player's own realm's wars first, from its side (fkasad, 05/10/2026).
+         return ActiveConflictsFormatter.Describe(wars, (Hero.MainHero?.MapFaction as Kingdom)?.Name?.ToString());
       }
 
       public string GetCurrentActivity(Hero npc)
