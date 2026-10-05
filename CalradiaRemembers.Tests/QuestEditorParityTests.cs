@@ -147,6 +147,47 @@ namespace CalradiaRemembers.Tests
          Notes("harlowe_ferryman.html").Should().Contain(n => n.Contains("'Notes to self' is never linked from the start"));
       }
 
+      // Goal: "What it saves must load in game with no problem the app did not show." Every fixture and every tale of
+      // the repository is opened as the editor opens it and saved as it saves; the GAME then reads the saved text and
+      // must report exactly what it reported of the original (and the editor too, word for word).
+      [Test]
+      public void GIVEN_every_tale_and_fixture_WHEN_the_editor_opens_and_saves_it_THEN_the_game_reports_the_same_problems_as_before()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"source tree not reachable: {SourceTree.MissingAnchor}");
+
+         string[] folders = {Fixtures, Path.Combine(SourceTree.ModRepo!, "CalradiaRemembers", "ModuleData", "Quests"), Path.Combine(SourceTree.ModRepo!, "docs", "design", "quests")};
+         JObject trips = JObject.Parse(Node("roundtrip", folders));
+         var readable = 0;
+
+         foreach (JProperty trip in trips.Properties())
+         {
+            if (!(bool) trip.Value["readable"]!) continue;
+            readable++;
+            string original = File.ReadAllText(folders.Select(f => Path.Combine(f, trip.Name)).First(File.Exists));
+            string saved = (string) trip.Value["saved"]!;
+            List<string> before = AuthoredQuestLoader.ParseAll(new[] {(trip.Name, original)}).Problems.Select(Normalize).ToList();
+            List<string> after = AuthoredQuestLoader.ParseAll(new[] {(trip.Name, saved)}).Problems.Select(Normalize).ToList();
+
+            after.Should().Equal(before, $"saving {trip.Name} from the editor must not change what the game reports");
+            trip.Value["after"]!.Select(p => Normalize((string) p!)).Should().Equal(before, $"the editor must show the same problems after saving {trip.Name}");
+         }
+
+         readable.Should().BeGreaterThan(80, "the round trip must have walked the corpus, not skipped it");
+      }
+
+      // Goal: "Edit every part with forms." Every field of every part the game reads has its place in the editor's
+      // registry; a field added to the model and forgotten in the editor turns this red.
+      [Test]
+      public void GIVEN_every_field_the_game_reads_WHEN_the_editor_lists_its_forms_THEN_none_is_missing_or_unknown()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"source tree not reachable: {SourceTree.MissingAnchor}");
+
+         JObject fields = JObject.Parse(Node("fields", Array.Empty<string>()));
+
+         fields["missing"]!.Select(f => (string) f!).Should().BeEmpty("every field the game reads needs a form in the editor");
+         fields["unknown"]!.Select(f => (string) f!).Should().BeEmpty("the editor must not offer a field the game does not read");
+      }
+
       private static List<string> GameAnswer(string fixture)
       {
          string json = File.ReadAllText(Path.Combine(Fixtures, fixture + ".json"));

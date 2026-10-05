@@ -42,12 +42,40 @@ function readText(file) {
 }
 
 const out = {};
+if (mode === 'fields') {
+  // Every field of every part the schema describes, and where the editor's registry stands on it.
+  vm.runInContext(block('editor-fields'), context, {filename: 'editor-fields.js'});
+  const schema = JSON.parse(block('quest-schema'));
+  const registry = context.TaleEditorFields;
+  const missing = [], unknown = [];
+  for (const [def, body] of Object.entries(schema.$defs)) {
+    if (!body.properties || def === 'line') continue;
+    const listed = registry[def] || [];
+    for (const field of Object.keys(body.properties)) if (!listed.includes(field)) missing.push(def + '.' + field);
+    for (const field of listed) if (!(field in body.properties)) unknown.push(def + '.' + field);
+  }
+  process.stdout.write(JSON.stringify({missing, unknown}, null, 2));
+  process.exit(0);
+}
 for (const target of targets) {
   for (const file of files(target)) {
     const name = path.basename(file);
     if (mode === 'check') {
       if (!/\.json$/i.test(name)) continue;
       out[name] = context.QuestValidator.parseAll([{source: name, text: readText(file)}]).problems;
+    } else if (mode === 'roundtrip') {
+      // Load as the editor loads, save as it saves, check again: the problems must not move.
+      if (!/\.json$/i.test(name)) continue;
+      const text = readText(file);
+      const before = context.QuestValidator.parseAll([{source: name, text}]).problems;
+      let saved;
+      try { saved = context.QuestValidator.toText(context.QuestValidator.toDocument(text)); }
+      catch (e) {
+        if (!(e instanceof context.QuestValidator.ReadError)) throw e;
+        out[name] = {readable: false, before, after: before};
+        continue;
+      }
+      out[name] = {readable: true, before, after: context.QuestValidator.parseAll([{source: name, text: saved}]).problems, saved};
     } else if (mode === 'twine') {
       if (!/\.(html|twee|tw)$/i.test(name)) continue;
       const result = context.TwineImport.importText(readText(file), name);

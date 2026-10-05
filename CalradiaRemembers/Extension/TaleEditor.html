@@ -5,11 +5,404 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tale Editor</title>
 <style id="tale-editor-style">
-/*STYLE*/
+:root {
+  --bg: #141210;
+  --bg-2: #1b1815;
+  --surface: #221e1a;
+  --surface-2: #2a2520;
+  --surface-3: #332d27;
+  --line: #3a332c;
+  --line-strong: #4d443b;
+  --text: #ece4d6;
+  --text-2: #b9ad99;
+  --text-3: #8a7f6f;
+  --accent: #d9a65a;
+  --accent-strong: #f0c27f;
+  --accent-ink: #1b1409;
+  --accent-soft: rgba(217, 166, 90, 0.14);
+  --danger: #e07563;
+  --danger-soft: rgba(224, 117, 99, 0.14);
+  --warn: #dcb256;
+  --warn-soft: rgba(220, 178, 86, 0.14);
+  --ok: #8dbb7f;
+  --ok-soft: rgba(141, 187, 127, 0.14);
+  --info: #8fb2d6;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-tale: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, "Times New Roman", serif;
+  --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, "Liberation Mono", monospace;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #efe8dc;
+    --bg-2: #e8e0d2;
+    --surface: #fbf7f0;
+    --surface-2: #f4eee4;
+    --surface-3: #ebe3d6;
+    --line: #dccfbd;
+    --line-strong: #c8b8a2;
+    --text: #2a2119;
+    --text-2: #5c4f41;
+    --text-3: #8a7b69;
+    --accent: #9c6a1f;
+    --accent-strong: #7d5214;
+    --accent-ink: #fff8ec;
+    --accent-soft: rgba(156, 106, 31, 0.12);
+    --danger: #b4432f;
+    --danger-soft: rgba(180, 67, 47, 0.1);
+    --warn: #9a6f08;
+    --warn-soft: rgba(154, 111, 8, 0.12);
+    --ok: #3f7a35;
+    --ok-soft: rgba(63, 122, 53, 0.1);
+    --info: #2f5f8f;
+    --shadow: 0 10px 30px rgba(60, 40, 20, 0.14);
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg: #efe8dc;
+  --bg-2: #e8e0d2;
+  --surface: #fbf7f0;
+  --surface-2: #f4eee4;
+  --surface-3: #ebe3d6;
+  --line: #dccfbd;
+  --line-strong: #c8b8a2;
+  --text: #2a2119;
+  --text-2: #5c4f41;
+  --text-3: #8a7b69;
+  --accent: #9c6a1f;
+  --accent-strong: #7d5214;
+  --accent-ink: #fff8ec;
+  --accent-soft: rgba(156, 106, 31, 0.12);
+  --danger: #b4432f;
+  --danger-soft: rgba(180, 67, 47, 0.1);
+  --warn: #9a6f08;
+  --warn-soft: rgba(154, 111, 8, 0.12);
+  --ok: #3f7a35;
+  --ok-soft: rgba(63, 122, 53, 0.1);
+  --info: #2f5f8f;
+  --shadow: 0 10px 30px rgba(60, 40, 20, 0.14);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--accent); }
+::selection { background: var(--accent-soft); }
+
+/* ---------- the frame ---------- */
+.app { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
+.topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; background: var(--bg-2); border-bottom: 1px solid var(--line);
+  min-height: 58px;
+}
+.brand { display: flex; align-items: baseline; gap: 10px; margin-right: 8px; white-space: nowrap; }
+.brand-mark {
+  width: 30px; height: 30px; align-self: center; border-radius: 8px; display: grid; place-items: center;
+  background: linear-gradient(145deg, var(--accent-strong), var(--accent)); color: var(--accent-ink); font: 700 16px var(--font-tale);
+}
+.brand-name { font: 600 18px var(--font-tale); letter-spacing: 0.2px; }
+.brand-sub { color: var(--text-3); font-size: 12px; }
+.doc-name { color: var(--text-2); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
+.doc-name .dirty { color: var(--accent); margin-left: 4px; }
+.spacer { flex: 1; }
+.toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface);
+  cursor: pointer; white-space: nowrap; transition: background 0.12s, border-color 0.12s;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--text-3); }
+.btn:focus-visible, .icon-btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .outline-item:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn.ghost { background: transparent; border-color: transparent; }
+.btn.ghost:hover { background: var(--surface-2); }
+.btn.small { height: 26px; padding: 0 8px; font-size: 12px; }
+.btn.danger { color: var(--danger); }
+.btn svg, .icon-btn svg { width: 16px; height: 16px; flex: none; }
+.icon-btn {
+  width: 28px; height: 28px; display: inline-grid; place-items: center; border-radius: var(--radius-sm);
+  border: 1px solid transparent; background: transparent; cursor: pointer; color: var(--text-2);
+}
+.icon-btn:hover { background: var(--surface-3); color: var(--text); }
+.icon-btn:disabled { opacity: 0.35; cursor: default; background: transparent; }
+.icon-btn.danger:hover { color: var(--danger); }
+
+.menu { position: relative; }
+.menu-list {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; min-width: 240px; padding: 6px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.menu-list[hidden] { display: none; }
+.menu-item { display: block; width: 100%; text-align: left; padding: 8px 10px; border: 0; background: transparent; border-radius: var(--radius-sm); cursor: pointer; }
+.menu-item:hover { background: var(--surface-2); }
+.menu-item small { display: block; color: var(--text-3); }
+
+.workspace { display: grid; grid-template-columns: 290px minmax(0, 1fr) 360px; min-height: 0; }
+.panel { min-height: 0; overflow: auto; }
+.sidebar { background: var(--bg-2); border-right: 1px solid var(--line); padding: 14px 10px 24px; }
+.checks { background: var(--bg-2); border-left: 1px solid var(--line); padding: 14px 14px 24px; }
+.main { display: grid; grid-template-rows: auto 1fr; min-height: 0; overflow: hidden; }
+
+/* ---------- the outline ---------- */
+.side-title { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; font-weight: 600; }
+.tale-picker { display: flex; gap: 6px; padding: 0 6px 10px; }
+.tale-picker select { flex: 1; min-width: 0; }
+.outline { list-style: none; margin: 0 0 12px; padding: 0; }
+.outline-item {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 8px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; background: transparent; cursor: pointer; text-align: left; color: var(--text);
+}
+.outline-item:hover { background: var(--surface); }
+.outline-item.active { background: var(--accent-soft); border-color: rgba(217, 166, 90, 0.35); }
+.outline-item .kind { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: var(--surface-3); color: var(--text-2); font-size: 11px; font-weight: 700; flex: none; }
+.outline-item.active .kind { background: var(--accent); color: var(--accent-ink); }
+.outline-item .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.outline-item .sub { color: var(--text-3); font-size: 12px; }
+.outline-item .first { color: var(--accent); font-size: 11px; }
+.badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; }
+.badge.blocking { background: var(--danger); color: #fff; }
+.badge.cosmetic { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); }
+.outline-row { display: flex; align-items: center; gap: 2px; }
+.outline-row .outline-item { flex: 1; min-width: 0; }
+.outline-row .row-tools { display: none; }
+.outline-row:hover .row-tools, .outline-row:focus-within .row-tools { display: flex; }
+.add-row { margin: 2px 6px 0; }
+
+/* ---------- tabs ---------- */
+.tabs { display: flex; align-items: center; gap: 2px; padding: 8px 16px 0; border-bottom: 1px solid var(--line); background: var(--bg); }
+.tab { border: 0; background: transparent; padding: 9px 14px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; cursor: pointer; color: var(--text-2); border-bottom: 2px solid transparent; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.tab-body { min-height: 0; overflow: auto; }
+.tab-tools { margin-left: auto; display: flex; gap: 6px; padding-bottom: 6px; }
+
+/* ---------- the forms ---------- */
+.editor { max-width: 980px; margin: 0 auto; padding: 22px 28px 80px; }
+.editor-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+.editor-head h1 { margin: 0; font: 600 24px/1.25 var(--font-tale); }
+.editor-head .crumb { color: var(--text-3); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.editor-head .intro { color: var(--text-2); margin: 6px 0 0; max-width: 70ch; }
+.section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin: 0 0 16px; }
+.section-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.section-head h2 { margin: 0; font-size: 14px; font-weight: 650; letter-spacing: 0.01em; }
+.section-head p { margin: 0; color: var(--text-3); font-size: 12.5px; }
+.section-body { padding: 14px 16px 6px; }
+.section.collapsed .section-body { display: none; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 18px; }
+.field { margin: 0 0 14px; position: relative; }
+.field.wide { grid-column: 1 / -1; }
+.field > label, .field > .label { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 12.5px; color: var(--text); margin-bottom: 5px; }
+.field .help { color: var(--text-3); font-size: 12px; margin: 4px 0 0; }
+.field .help code { font-family: var(--mono); font-size: 11.5px; background: var(--surface-3); padding: 1px 4px; border-radius: 4px; color: var(--text-2); }
+.not-played { font-size: 10.5px; font-weight: 600; color: var(--info); border: 1px solid var(--info); border-radius: 9px; padding: 0 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+input[type="text"], input[type="number"], select, textarea {
+  width: 100%; background: var(--bg); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 7px 9px; color: var(--text);
+}
+textarea { min-height: 64px; resize: vertical; font-family: var(--font-tale); font-size: 14.5px; line-height: 1.5; }
+textarea.short { min-height: 40px; }
+input.mono, .mono { font-family: var(--mono); font-size: 12.5px; }
+input[type="number"] { max-width: 160px; }
+.pair { display: flex; gap: 8px; align-items: center; }
+.pair input { max-width: 110px; }
+.pair span { color: var(--text-3); }
+.check { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); }
+.field.has-blocking input, .field.has-blocking select, .field.has-blocking textarea, .field.has-blocking .seg { border-color: var(--danger); }
+.field.has-cosmetic input, .field.has-cosmetic select, .field.has-cosmetic textarea { border-color: var(--warn); }
+.field-problems { margin-top: 6px; display: grid; gap: 4px; }
+.field-problem { font-size: 12px; border-radius: var(--radius-sm); padding: 5px 8px; }
+.field-problem.blocking { background: var(--danger-soft); color: var(--danger); }
+.field-problem.cosmetic { background: var(--warn-soft); color: var(--warn); }
+.flash { animation: flash 1.4s ease-out; }
+@keyframes flash { 0% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); overflow: hidden; }
+.seg button { border: 0; background: var(--bg); padding: 6px 12px; cursor: pointer; color: var(--text-2); border-right: 1px solid var(--line-strong); }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+.list { display: grid; gap: 10px; margin-bottom: 12px; }
+.card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+.card-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 12px; border-bottom: 1px solid var(--line); }
+.card-head .title { font-weight: 650; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-head .title small { color: var(--text-3); font-weight: 500; margin-left: 6px; }
+.card-body { padding: 12px 12px 2px; }
+.card.collapsed .card-body { display: none; }
+.card .kind-chip { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--surface-3); color: var(--text-2); white-space: nowrap; }
+.card .kind-chip.act { color: var(--accent); }
+.card .kind-chip.scene { color: var(--info); }
+.card .kind-chip.words { color: var(--ok); }
+
+.line-row { display: grid; grid-template-columns: 1fr 190px auto; gap: 8px; align-items: start; margin-bottom: 8px; }
+.line-row .if-box input { font-family: var(--mono); font-size: 12px; }
+.line-row .if-box label { display: block; font-size: 11px; color: var(--text-3); margin-bottom: 2px; }
+.row-tools { display: flex; gap: 2px; }
+.kv-row { display: grid; grid-template-columns: 200px 1fr auto; gap: 8px; margin-bottom: 8px; align-items: start; }
+.subhead { font-size: 12px; font-weight: 650; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.06em; margin: 6px 0 8px; }
+.empty-note { color: var(--text-3); font-style: italic; margin: 0 0 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: var(--mono); font-size: 11.5px; padding: 1px 7px; border-radius: 9px; border: 1px solid var(--line-strong); color: var(--text-2); }
+
+/* ---------- the checks ---------- */
+.verdict { border-radius: var(--radius); padding: 12px 14px; margin-bottom: 14px; border: 1px solid; }
+.verdict.ok { background: var(--ok-soft); border-color: var(--ok); }
+.verdict.bad { background: var(--danger-soft); border-color: var(--danger); }
+.verdict.warn { background: var(--warn-soft); border-color: var(--warn); }
+.verdict strong { display: block; font-size: 14px; }
+.verdict span { color: var(--text-2); font-size: 12.5px; }
+.problem-group h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); margin: 14px 0 8px; display: flex; gap: 8px; align-items: center; }
+.problem {
+  display: block; width: 100%; text-align: left; border: 1px solid var(--line); border-left-width: 3px; border-radius: var(--radius-sm);
+  background: var(--surface); padding: 8px 10px; margin-bottom: 8px; cursor: pointer; color: var(--text); font-size: 12.5px;
+}
+.problem:hover { background: var(--surface-2); }
+.problem.blocking { border-left-color: var(--danger); }
+.problem.cosmetic { border-left-color: var(--warn); }
+.problem .where { display: block; color: var(--text-3); font-size: 11.5px; margin-bottom: 2px; font-family: var(--mono); }
+.notes { border: 1px solid var(--info); border-radius: var(--radius); padding: 10px 12px; margin: 14px 0; background: var(--surface); }
+.notes h3 { margin: 0 0 6px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.notes h3 > svg { width: 16px; height: 16px; color: var(--info); flex: none; }
+.notes ul { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 12.5px; }
+.notes li { margin: 4px 0; }
+
+/* ---------- the story map ---------- */
+.map-wrap { position: relative; height: 100%; min-height: 420px; overflow: hidden; background:
+  radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0) 0 0 / 22px 22px, var(--bg); cursor: grab; }
+.map-wrap.panning { cursor: grabbing; }
+.map-wrap > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.map-tools { position: absolute; right: 14px; top: 14px; display: flex; gap: 6px; z-index: 2; }
+.legend { position: absolute; left: 14px; bottom: 14px; z-index: 2; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; font-size: 11.5px; opacity: 0.92; color: var(--text-2); display: grid; gap: 4px; box-shadow: var(--shadow); }
+.legend i { display: inline-block; width: 26px; height: 0; border-top: 2px solid var(--text-2); vertical-align: middle; margin-right: 6px; }
+.legend i.scene { border-top-style: dashed; border-color: var(--info); }
+.legend i.words { border-top-style: dotted; border-color: var(--ok); }
+.legend i.act { border-color: var(--accent); }
+.legend i.broken { border-color: var(--danger); border-top-style: dashed; }
+.node { cursor: pointer; }
+.node rect { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
+.node.first rect { stroke: var(--accent); stroke-width: 2; }
+.node.ending rect { fill: var(--surface-2); }
+.node.ending.reward rect, .node.ending.named rect { stroke: var(--ok); }
+.node.dead rect { stroke: var(--danger); stroke-width: 2.5; }
+.node.missing rect { fill: var(--danger-soft); stroke: var(--danger); stroke-dasharray: 5 4; }
+.node.unreached { opacity: 0.42; }
+.node.selected rect { stroke: var(--accent-strong); stroke-width: 3; }
+.node:hover rect { fill: var(--surface-2); }
+.node text { fill: var(--text); font: 600 13px var(--font); }
+.node text.sub { fill: var(--text-3); font: 11.5px var(--font); }
+.node text.tag { fill: var(--accent); font: 700 10px var(--font); letter-spacing: 0.06em; }
+.edge { fill: none; stroke: var(--text-3); stroke-width: 1.6; }
+.edge.act { stroke: var(--accent); }
+.edge.scene { stroke: var(--info); stroke-dasharray: 7 5; }
+.edge.words { stroke: var(--ok); stroke-dasharray: 2 4; }
+.edge.broken { stroke: var(--danger); stroke-dasharray: 6 4; }
+.edge.unreached { opacity: 0.35; }
+.edge-label rect { fill: var(--bg-2); stroke: var(--line); }
+.edge-label text { fill: var(--text-2); font: 11.5px var(--font); }
+.edge-label.gated text { fill: var(--warn); }
+
+/* ---------- the JSON view, the welcome, the toasts ---------- */
+.json-view { margin: 0; padding: 18px 24px 60px; font: 12.5px/1.55 var(--mono); color: var(--text-2); white-space: pre; tab-size: 2; }
+.raw-edit { padding: 18px 24px; display: grid; gap: 10px; height: 100%; grid-template-rows: auto 1fr auto; }
+.raw-edit textarea { font: 12.5px/1.55 var(--mono); height: 100%; min-height: 300px; }
+.welcome { max-width: 760px; margin: 0 auto; padding: 48px 28px; }
+.welcome h1 { font: 600 32px/1.2 var(--font-tale); margin: 0 0 8px; }
+.welcome p.lead { color: var(--text-2); font-size: 15px; margin: 0 0 28px; max-width: 62ch; }
+.starts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.start {
+  text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 16px; cursor: pointer;
+  display: grid; gap: 6px; transition: border-color 0.12s, transform 0.12s;
+}
+.start:hover { border-color: var(--accent); transform: translateY(-1px); }
+.start strong { font-size: 15px; }
+.start span { color: var(--text-2); font-size: 13px; }
+.start .glyph { font: 22px var(--font-tale); color: var(--accent); }
+.drop-hint { margin-top: 26px; color: var(--text-3); font-size: 13px; }
+.drop-overlay { position: fixed; inset: 0; z-index: 50; display: none; place-items: center; background: rgba(10, 8, 6, 0.7); }
+.drop-overlay.on { display: grid; }
+.drop-overlay div { border: 2px dashed var(--accent); border-radius: 18px; padding: 40px 60px; color: var(--text); font: 600 20px var(--font-tale); background: var(--surface); }
+.toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 60; display: grid; gap: 8px; }
+.toast { background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 10px 14px; box-shadow: var(--shadow); max-width: 560px; }
+.toast.error { border-color: var(--danger); }
+.kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; color: var(--text-2); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+@media (max-width: 1280px) {
+  .workspace { grid-template-columns: 250px minmax(0, 1fr) 300px; }
+}
+@media (max-width: 1050px) {
+  body { overflow: auto; }
+  .app { height: auto; min-height: 100vh; }
+  .workspace { grid-template-columns: 1fr; }
+  .sidebar, .checks { border: 0; border-bottom: 1px solid var(--line); max-height: none; }
+  .main { min-height: 70vh; }
+  .editor { padding: 18px 16px 60px; }
+  .line-row, .kv-row { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
-<!--BODY-->
+<noscript><p style="padding:24px;font:16px system-ui">The tale editor needs JavaScript. It runs entirely in this page, offline; nothing is sent anywhere.</p></noscript>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">T</div>
+      <div>
+        <div class="brand-name">Tale Editor</div>
+        <div class="brand-sub">Calradia Remembers</div>
+      </div>
+    </div>
+    <div class="doc-name" id="docName" aria-live="polite"></div>
+    <div class="spacer"></div>
+    <div class="toolbar">
+      <div class="menu">
+        <button class="btn" id="newBtn" type="button" aria-haspopup="true">New</button>
+        <div class="menu-list" id="newMenu" hidden>
+          <button class="menu-item" id="newBlank" type="button">A blank tale<small>One stage and a reward, ready to grow.</small></button>
+          <button class="menu-item" id="newWolf" type="button">From the werewolf<small>The tale that ships with the mod, as a model.</small></button>
+        </div>
+      </div>
+      <button class="btn" id="openBtn" type="button" title="Open a quest file (Ctrl+O)">Open...</button>
+      <button class="btn" id="twineBtn" type="button" title="Make a new tale from a Twine story">Import Twine...</button>
+      <button class="icon-btn" id="undoBtn" type="button" title="Undo (Ctrl+Z)" aria-label="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+      <button class="icon-btn" id="redoBtn" type="button" title="Redo (Ctrl+Y)" aria-label="Redo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+      <button class="btn primary" id="saveBtn" type="button" title="Save the file (Ctrl+S)">Save</button>
+      <a class="btn ghost" href="HOWTO_Quests.md" target="_blank" rel="noopener" title="The authoring guide, beside this page">Guide</a>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Switch the theme"></button>
+    </div>
+  </header>
+  <div class="workspace">
+    <aside class="panel sidebar" id="sidebar" aria-label="The parts of the tale"></aside>
+    <main class="main">
+      <nav class="tabs" id="tabs" role="tablist" aria-label="Views"></nav>
+      <div class="tab-body" id="tabBody"></div>
+    </main>
+    <aside class="panel checks" id="checks" aria-label="The game's checks" aria-live="polite"></aside>
+  </div>
+</div>
+<input type="file" id="openFile" accept=".json,application/json" hidden>
+<input type="file" id="twineFile" accept=".html,.htm,.twee,.tw,.txt" hidden>
+<div class="drop-overlay" id="dropOverlay"><div>Drop a quest file or a Twine story</div></div>
+<div class="toasts" id="toasts"></div>
 <script id="quest-schema" type="application/json">
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2382,6 +2775,151 @@
     return all;
   }
 
+  // ------------------------------------------------------------------------------------------------------------------
+  // 5. For the editor: a file as an editable document, and a document back as text.
+  // ------------------------------------------------------------------------------------------------------------------
+
+  /** A parsed value with nothing known about it, as plain JSON (names and shapes kept as written). */
+  function plain(v) {
+    if (v === UNDEFINED) return null;
+    if (isNum(v)) {
+      if (v.kind === 'float') return v.value;
+      var n = Number(v.value);
+      return Number.isSafeInteger(n) ? n : v.value.toString();
+    }
+    if (Array.isArray(v)) return v.map(plain);
+    if (isObj(v)) {
+      var o = {};
+      v.keys.forEach(function (k) { o[k] = plain(v.map.get(k)); });
+      return o;
+    }
+    return v;
+  }
+
+  /**
+   * A value of a known field as the editor holds it: names as the game reads them (any case written becomes the
+   * model's), whole numbers, flags and lines converted exactly as Newtonsoft converts them, so a file saved back reads
+   * the same. A field the game does not read is kept as written.
+   */
+  function editable(v, kind, path) {
+    if (v === UNDEFINED) v = null;
+    switch (kind) {
+      case 'string': return readString(v, path);
+      case 'int': return v === null ? null : readInt(v, path);
+      case 'number': return v === null ? null : readNumber(v, path);
+      case 'bool': return v === null ? null : readBool(v, path);
+      case 'flags':
+        readFlags(v, path);
+        return plain(v);
+      case 'line':
+        if (v === null || typeof v === 'string') return v;
+        var l = readLine(v, path), out = {text: l.text};
+        var cond = property(v, 'if');
+        if (cond !== undefined) out.if = plain(cond);
+        return out;
+      case 'lines':
+        if (v === null) return null;
+        if (!Array.isArray(v)) return editable(v, 'line', path);
+        return v.map(function (x) { return editable(x, 'line', path); });
+    }
+    if (kind.indexOf('map:') === 0) {
+      if (v === null) return null;
+      var vk = kind.substring(4), m = {};
+      v.keys.forEach(function (k) { m[k] = editable(v.map.get(k), vk, path + '.' + k); });
+      return m;
+    }
+    var list = /^(.*)\[\]$/.exec(kind);
+    if (list) {
+      if (v === null) return null;
+      return v.map(function (x, k) { return editable(x, list[1], path + '[' + k + ']'); });
+    }
+    if (kind.indexOf('object:') === 0) {
+      if (v === null) return null;
+      var defName = kind.substring(7), props = def(defName).properties, names = Object.keys(props), known = {}, rest = {};
+      v.keys.forEach(function (key) {
+        var canon = props.hasOwnProperty(key) ? key : null;
+        if (!canon) for (var j = 0; j < names.length && !canon; j++) if (names[j].toLowerCase() === key.toLowerCase()) canon = names[j];
+        if (canon) known[canon] = editable(v.map.get(key), props[canon]['x-kind'], path + '.' + key);
+        else rest[key] = plain(v.map.get(key));
+      });
+      var o2 = {};
+      names.forEach(function (k) { if (known.hasOwnProperty(k)) o2[k] = known[k]; });
+      Object.keys(rest).forEach(function (k) { if (!o2.hasOwnProperty(k)) o2[k] = rest[k]; });
+      return o2;
+    }
+    return plain(v);
+  }
+
+  /**
+   * A file as the editor's document: {tales: [...], asList: true when the file held a list}. Throws a ReadError when the
+   * game could not read the file at all (the editor then offers the text to mend).
+   */
+  function toDocument(text) {
+    readQuests(text);
+    var rootValue = parseJson(text);
+    if (isNullish(rootValue)) return {tales: [], asList: false};
+    if (Array.isArray(rootValue)) {
+      return {
+        tales: rootValue.filter(function (x) { return !isNullish(x); }).map(function (x, k) { return editable(x, 'object:AuthoredQuest', '[' + k + ']'); }),
+        asList: true
+      };
+    }
+    return {tales: [editable(rootValue, 'object:AuthoredQuest', '')], asList: false};
+  }
+
+  /** Orders a known object's fields as the game writes them (unknown ones after), all the way down. */
+  function ordered(v, kind) {
+    if (v === null || v === undefined || typeof v !== 'object') return v;
+    if (kind === 'line' || kind === 'lines' || kind === 'flags') {
+      if (Array.isArray(v)) return v.map(function (x) { return ordered(x, kind === 'flags' ? 'string' : 'line'); });
+      if (kind === 'line' && typeof v === 'object') {
+        var lo = {};
+        if ('text' in v) lo.text = v.text;
+        if ('if' in v) lo.if = v.if;
+        Object.keys(v).forEach(function (k) { if (!(k in lo)) lo[k] = v[k]; });
+        return lo;
+      }
+      return v;
+    }
+    if (kind && kind.indexOf('map:') === 0) {
+      var m = {};
+      Object.keys(v).forEach(function (k) { m[k] = ordered(v[k], kind.substring(4)); });
+      return m;
+    }
+    var list = kind && /^(.*)\[\]$/.exec(kind);
+    if (list) return v.map(function (x) { return ordered(x, list[1]); });
+    if (kind && kind.indexOf('object:') === 0) {
+      var props = def(kind.substring(7)).properties, o = {};
+      Object.keys(props).forEach(function (k) { if (v.hasOwnProperty(k)) o[k] = ordered(v[k], props[k]['x-kind']); });
+      Object.keys(v).forEach(function (k) { if (!o.hasOwnProperty(k)) o[k] = v[k]; });
+      return o;
+    }
+    return v;
+  }
+
+  /** JSON with two spaces, as an author would write it; a number JSON cannot spell (NaN, Infinity) kept as Newtonsoft reads it. */
+  function stringify(v, indent) {
+    indent = indent || '';
+    var next = indent + '  ';
+    if (v === null || v === undefined) return 'null';
+    if (typeof v === 'number') return isFinite(v) ? String(v) : (isNaN(v) ? 'NaN' : (v > 0 ? 'Infinity' : '-Infinity'));
+    if (typeof v === 'string' || typeof v === 'boolean') return JSON.stringify(v);
+    if (Array.isArray(v)) {
+      if (v.length === 0) return '[]';
+      if (v.every(function (x) { return typeof x === 'number'; })) return '[' + v.map(function (x) { return stringify(x); }).join(', ') + ']';
+      return '[\n' + v.map(function (x) { return next + stringify(x, next); }).join(',\n') + '\n' + indent + ']';
+    }
+    var keys = Object.keys(v);
+    if (keys.length === 0) return '{}';
+    return '{\n' + keys.map(function (k) { return next + JSON.stringify(k) + ': ' + stringify(v[k], next); }).join(',\n') + '\n' + indent + '}';
+  }
+
+  /** The document as the text the editor saves. */
+  function toText(doc) {
+    var tales = doc.tales.map(function (t) { return ordered(t, 'object:AuthoredQuest'); });
+    return stringify(doc.asList || tales.length !== 1 ? tales : tales[0]) + '\n';
+  }
+
   root.QuestValidator = {
     init: init,
     parse: parse,
@@ -2389,6 +2927,10 @@
     parseJson: parseJson,
     readQuests: readQuests,
     analyzePaths: analyzePaths,
+    toDocument: toDocument,
+    toText: toText,
+    stringify: stringify,
+    plain: plain,
     isEnding: isEnding,
     endingId: endingId,
     ReadError: ReadError,
@@ -2993,8 +3535,1834 @@
   root.TwineImport = {importText: importText};
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 </script>
+<script id="editor-fields">
+/* Calradia Remembers, the tale editor's field registry: every field of every part of a quest file, in the place the
+   editor shows it. The mod's test suite holds this list to the schema generated from the game's model, so a field the
+   game reads can never be left without a form. No DOM: Node reads this same list. */
+(function (root) {
+  'use strict';
+  root.TaleEditorFields = {
+    AuthoredQuest: ['id', 'title', 'author', 'unique', 'repeat_cooldown_days', 'weight', 'requires', 'binds', 'stages', 'reward', 'endings', 'failure'],
+    AuthoredRequires: ['giver', 'village', 'rival', 'player'],
+    GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player'],
+    PlaceRequirement: ['type', 'near'],
+    RivalRequirement: ['role', 'same_realm_as'],
+    PlayerRequirement: ['min_clan_tier'],
+    AuthoredStage: ['id', 'journal', 'objective', 'on_complete', 'canvas', 'facts', 'knowers', 'choices'],
+    AuthoredOnComplete: ['next'],
+    AuthoredChoice: ['id', 'label', 'journal', 'next', 'if', 'sets', 'default', 'objective', 'said', 'canvas', 'facts', 'knowers'],
+    AuthoredSaid: ['to', 'meaning'],
+    AuthoredLine: ['text', 'if'],
+    AuthoredObjective: ['type', 'hero', 'place', 'count', 'radius', 'nights', 'chance', 'days', 'scene', 'spawn', 'item', 'to'],
+    AuthoredScene: ['title', 'opening', 'findings', 'hazards', 'encounters', 'closing'],
+    AuthoredBeat: ['canvas', 'facts'],
+    AuthoredFinding: ['id', 'required', 'text', 'sets'],
+    AuthoredHazard: ['id', 'trigger', 'effect'],
+    AuthoredHazardEffect: ['type', 'hit_points', 'party', 'hours'],
+    AuthoredEncounter: ['id', 'name', 'persona', 'knows', 'sets', 'may_materialize', 'materialize_when', 'escort_to'],
+    AuthoredSpawn: ['id', 'template', 'size', 'name', 'near', 'behavior', 'flee_after_days'],
+    AuthoredOutcome: ['days', 'regard', 'gold', 'memory', 'journal', 'consequences'],
+    AuthoredConsequence: ['type', 'who', 'text', 'summary', 'magnitude', 'place', 'if'],
+
+    /** Which fields of an objective each type uses; the rest stay hidden for that type. */
+    objectiveFields: {
+      talk_to: ['hero'],
+      'return': [],
+      talk_to_locals: ['place', 'count'],
+      be_at: ['place', 'radius'],
+      keep_watch: ['place', 'radius', 'nights', 'chance'],
+      explore: ['scene'],
+      defeat_party: ['spawn'],
+      wait: ['days']
+    },
+
+    /** Which fields of a consequence each type uses. */
+    consequenceFields: {
+      memory: ['who', 'text', 'if'],
+      world_event: ['summary', 'magnitude', 'place', 'if']
+    }
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
 <script id="tale-editor-app">
-/*APP*/
+/* Calradia Remembers, the tale editor: the page. It holds a quest file as a document, shows each part as a form, the
+   story as a map, and the game's own checks live (QuestValidator, the same code the mod's tests hold to the game).
+   It saves the document as the text the game reads; nothing leaves this page but the file you save. */
+(function () {
+  'use strict';
+
+  var V = window.QuestValidator, F = window.TaleEditorFields, T = window.TwineImport;
+  var SCHEMA = JSON.parse(document.getElementById('quest-schema').textContent);
+  V.init(SCHEMA);
+  var WEREWOLF = document.getElementById('template-werewolf').textContent;
+  var DRAFT_KEY = 'cr-tale-editor-draft-v1', THEME_KEY = 'cr-tale-editor-theme';
+
+  // ================================================================================================================
+  // Small helpers
+  // ================================================================================================================
+
+  function $(id) { return document.getElementById(id); }
+
+  /** h('div.class#id', {attr...}, children...): a DOM element. */
+  function h(spec, attrs) {
+    var m = /^([a-z0-9]+)?((?:[.#][\w-]+)*)$/i.exec(spec), el = document.createElement(m[1] || 'div');
+    (m[2].match(/[.#][\w-]+/g) || []).forEach(function (p) { if (p[0] === '.') el.classList.add(p.substring(1)); else el.id = p.substring(1); });
+    var start = 1;
+    if (attrs && typeof attrs === 'object' && !(attrs instanceof Node) && !Array.isArray(attrs)) {
+      start = 2;
+      Object.keys(attrs).forEach(function (k) {
+        var v = attrs[k];
+        if (v === undefined || v === null || v === false) return;
+        if (k === 'on') Object.keys(v).forEach(function (ev) { el.addEventListener(ev, v[ev]); });
+        else if (k === 'class') String(v).split(/\s+/).filter(Boolean).forEach(function (c) { el.classList.add(c); });
+        else if (k === 'text') el.textContent = v;
+        else if (k === 'html') el.innerHTML = v;
+        else if (k === 'value') el.value = v;
+        else if (k === 'checked') el.checked = !!v;
+        else if (k === 'dataset') Object.keys(v).forEach(function (d) { el.dataset[d] = v[d]; });
+        else el.setAttribute(k, v === true ? '' : v);
+      });
+    }
+    for (var i = start; i < arguments.length; i++) append(el, arguments[i]);
+    return el;
+  }
+
+  function append(el, c) {
+    if (c === null || c === undefined || c === false) return;
+    if (Array.isArray(c)) { c.forEach(function (x) { append(el, x); }); return; }
+    el.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));
+  }
+
+  var ICONS = {
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    up: '<path d="M6 15l6-6 6 6"/>',
+    down: '<path d="M6 9l6 6 6-6"/>',
+    trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>',
+    undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+    redo: '<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>',
+    save: '<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/>',
+    open: '<path d="M3 7h6l2 2h10v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>',
+    twine: '<path d="M4 18c4 0 4-12 8-12s4 12 8 12"/><circle cx="4" cy="18" r="1.6"/><circle cx="20" cy="18" r="1.6"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>',
+    moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+    book: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/>',
+    fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+    zoomin: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5M11 8v6M8 11h6"/>',
+    zoomout: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5M8 11h6"/>',
+    chevron: '<path d="M9 6l6 6-6 6"/>',
+    dup: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>'
+  };
+
+  function icon(name) {
+    var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('viewBox', '0 0 24 24');
+    s.setAttribute('fill', 'none');
+    s.setAttribute('stroke', 'currentColor');
+    s.setAttribute('stroke-width', '1.8');
+    s.setAttribute('stroke-linecap', 'round');
+    s.setAttribute('stroke-linejoin', 'round');
+    s.setAttribute('aria-hidden', 'true');
+    s.innerHTML = ICONS[name];
+    return s;
+  }
+
+  function iconButton(name, label, onClick, opts) {
+    opts = opts || {};
+    return h('button.icon-btn', {type: 'button', title: label, 'aria-label': label, disabled: opts.disabled, class: opts.danger ? 'danger' : null, on: {click: onClick}}, icon(name));
+  }
+
+  function toast(message, kind) {
+    var t = h('div.toast', {class: kind === 'error' ? 'error' : null, role: 'status'}, message);
+    $('toasts').appendChild(t);
+    setTimeout(function () { t.remove(); }, kind === 'error' ? 7000 : 3500);
+  }
+
+  function debounce(fn, ms) {
+    var timer = null;
+    return function () { clearTimeout(timer); timer = setTimeout(fn, ms); };
+  }
+
+  function blank(s) { return s === null || s === undefined || /^\s*$/.test(String(s)); }
+  function arr(x) { return Array.isArray(x) ? x : []; }
+  function store(key, value) { try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); } catch (e) { /* storage unavailable */ } }
+  function recall(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+  // ================================================================================================================
+  // The schema: what each field is, says and defaults to
+  // ================================================================================================================
+
+  function prop(defName, key) { return (SCHEMA.$defs[defName] || {properties: {}}).properties[key] || {}; }
+  function help(defName, key) { return prop(defName, key).description || ''; }
+  function played(defName, key) { return prop(defName, key)['x-played'] !== false; }
+  function fallback(defName, key) { return prop(defName, key)['default']; }
+  function list(name) { return (SCHEMA['x-lists'] || {})[name] || []; }
+
+  // ================================================================================================================
+  // State and the document
+  // ================================================================================================================
+
+  var state = {
+    doc: null,          // {tales: [...], asList}
+    raw: null,          // the text of a file the game could not read, to mend by hand
+    fileName: null,
+    dirty: false,
+    tale: 0,
+    sel: {kind: 'tale'},
+    tab: 'edit',
+    problems: [],
+    notes: null,
+    undo: [],
+    redo: [],
+    lastEdit: {key: null, at: 0},
+    collapsed: {}
+  };
+
+  function tale() { return state.doc && state.doc.tales[state.tale]; }
+  function docText() { return V.toText(state.doc); }
+  function source() { return state.fileName || ((tale() && tale().id ? tale().id : 'tale') + '.json'); }
+
+  function stages() { var t = tale(); return t && Array.isArray(t.stages) ? t.stages : []; }
+  function endings() { var t = tale(); return t && t.endings && typeof t.endings === 'object' && !Array.isArray(t.endings) ? t.endings : {}; }
+  function ownStages() { var t = tale(); if (!Array.isArray(t.stages)) t.stages = []; return t.stages; }
+  function ownEndings() { var t = tale(); if (!t.endings || typeof t.endings !== 'object' || Array.isArray(t.endings)) t.endings = {}; return t.endings; }
+
+  /**
+   * Showing a part never changes the file: a part the file leaves out is shown as an empty object, and joins the
+   * document only once something is written in it (innermost first, so a field deep in a new scene brings its scene).
+   */
+  var pending = [];
+  function lazy(holder, prop) {
+    var v = holder[prop];
+    if (v && typeof v === 'object' && !Array.isArray(v)) return v;
+    var fresh = {};
+    pending.push(function () { if (holder[prop] !== fresh && Object.keys(fresh).length) holder[prop] = fresh; });
+    return fresh;
+  }
+  function attachPending() { for (var i = pending.length - 1; i >= 0; i--) pending[i](); }
+
+  function snapshot() {
+    state.undo.push({text: docText(), tale: state.tale, sel: JSON.stringify(state.sel)});
+    if (state.undo.length > 200) state.undo.shift();
+    state.redo = [];
+  }
+
+  /**
+   * Every change goes through here: one undo step per field (typing in a field is one step until another field is
+   * touched), then the checks run. A structural change (a stage added, a choice moved) redraws the page.
+   */
+  function edit(key, fn, structural) {
+    var now = Date.now();
+    if (structural || key !== state.lastEdit.key || now - state.lastEdit.at > 1500) snapshot();
+    state.lastEdit = {key: key, at: now};
+    fn();
+    attachPending();
+    state.dirty = true;
+    renderTop();
+    if (structural) render(); else { scheduleChecks(); renderSidebarSoon(); }
+    saveDraftSoon();
+  }
+
+  function restore(entry) {
+    state.doc = V.toDocument(entry.text);
+    state.tale = Math.min(entry.tale, state.doc.tales.length - 1);
+    state.sel = JSON.parse(entry.sel);
+    state.dirty = true;
+    render();
+  }
+
+  function undo() {
+    if (!state.doc || !state.undo.length) return;
+    state.redo.push({text: docText(), tale: state.tale, sel: JSON.stringify(state.sel)});
+    restore(state.undo.pop());
+    state.lastEdit = {key: null, at: 0};
+  }
+
+  function redo() {
+    if (!state.doc || !state.redo.length) return;
+    state.undo.push({text: docText(), tale: state.tale, sel: JSON.stringify(state.sel)});
+    restore(state.redo.pop());
+    state.lastEdit = {key: null, at: 0};
+  }
+
+  function setOrDelete(obj, key, value) {
+    if (value === '' || value === null || value === undefined || (Array.isArray(value) && value.length === 0)) delete obj[key];
+    else obj[key] = value;
+  }
+
+  // ================================================================================================================
+  // Opening, starting, importing, saving
+  // ================================================================================================================
+
+  function blankTale() {
+    return {
+      id: 'custom_a_new_tale',
+      title: 'A New Tale',
+      requires: {giver: {role: 'lord'}},
+      binds: {giver: 'the one who asks for help'},
+      stages: [
+        {id: 'the_request', journal: '{giver} has asked for your help.', objective: {type: 'talk_to', hero: '{giver}'},
+         canvas: 'What the giver asks, and how it feels.', on_complete: {next: 'reward'}}
+      ],
+      reward: {regard: 5, memory: 'The player helped me when I asked.'}
+    };
+  }
+
+  function start(doc, fileName, notes) {
+    state.doc = doc;
+    state.raw = null;
+    state.fileName = fileName;
+    state.tale = 0;
+    state.sel = {kind: 'tale'};
+    state.tab = 'edit';
+    state.undo = [];
+    state.redo = [];
+    state.dirty = false;
+    state.notes = notes || null;
+    render();
+    $('tabBody').scrollTop = 0;
+  }
+
+  function loadText(text, fileName) {
+    var doc;
+    try { doc = V.toDocument(text); }
+    catch (e) {
+      if (!(e instanceof V.ReadError)) throw e;
+      state.doc = null;
+      state.raw = text;
+      state.fileName = fileName;
+      state.notes = null;
+      state.tab = 'edit';
+      render();
+      toast('The game cannot read this file as it is. Mend it below; the checks say where.', 'error');
+      return;
+    }
+    if (doc.tales.length === 0) { toast('This file holds no tale.', 'error'); return; }
+    start(doc, fileName, null);
+    toast('Opened ' + fileName + (doc.tales.length > 1 ? ' (' + doc.tales.length + ' tales)' : '') + '.');
+  }
+
+  function importTwine(text, fileName) {
+    var result;
+    try { result = T.importText(text, fileName); }
+    catch (e) { toast(e.message, 'error'); return; }
+    var doc = V.toDocument(V.stringify(result.quest));
+    start(doc, result.quest.id + '.json', {from: fileName, lines: result.notes});
+    toast('Imported ' + fileName + ' as a new tale. Read the import notes on the right.');
+  }
+
+  function readFile(file, then) {
+    var reader = new FileReader();
+    reader.onload = function () { then(String(reader.result).replace(/^\ufeff/, ''), file.name); };
+    reader.onerror = function () { toast('Could not read ' + file.name + '.', 'error'); };
+    reader.readAsText(file);
+  }
+
+  function looksLikeTwine(name, text) { return /\.(html?|twee|tw)$/i.test(name) || /<tw-storydata\b/i.test(text) || /^::\s*\S/m.test(text); }
+
+  function openChosen(file) {
+    readFile(file, function (text, name) { if (looksLikeTwine(name, text) && !/\.json$/i.test(name)) importTwine(text, name); else loadText(text, name); });
+  }
+
+  function save() {
+    if (!state.doc) { toast('Nothing to save yet.'); return; }
+    var text = docText(), name = state.fileName && /\.json$/i.test(state.fileName) ? state.fileName : source();
+    var blob = new Blob([text], {type: 'application/json'});
+    var a = h('a', {href: URL.createObjectURL(blob), download: name});
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    state.fileName = name;
+    state.dirty = false;
+    renderTop();
+    var blocking = state.problems.filter(function (p) { return p.blocking; }).length;
+    toast(blocking ? 'Saved ' + name + '. The game will refuse it until the ' + blocking + ' blocking problem' + (blocking > 1 ? 's are' : ' is') + ' fixed.'
+      : 'Saved ' + name + '. Put it in Modules/CalradiaRemembers/ModuleData/Quests/Custom/.');
+  }
+
+  var saveDraftSoon = debounce(function () {
+    if (state.doc) store(DRAFT_KEY, JSON.stringify({text: docText(), fileName: state.fileName, at: Date.now()}));
+  }, 600);
+
+  // ================================================================================================================
+  // The checks: the game's own, placed on the part and the field they are about
+  // ================================================================================================================
+
+  var scheduleChecks = debounce(function () { check(); }, 160);
+
+  function check() {
+    var text = state.doc ? docText() : (state.raw || '');
+    var res = V.parseAll([{source: source(), text: text}]);
+    state.problems = res.problems.map(locate);
+    renderChecks();
+    markFields();
+    if (state.tab === 'map' && state.doc) renderMap();
+  }
+
+  function indexOfStage(id, nth) {
+    var found = -1, seen = 0;
+    stages().forEach(function (s, i) { if (s && s.id === id && found < 0) { if (seen === (nth || 0)) found = i; seen++; } });
+    return found;
+  }
+
+  function indexOfChoice(stageIndex, id, nth) {
+    var s = stages()[stageIndex], found = -1, seen = 0;
+    arr(s && s.choices).forEach(function (c, i) { if (c && c.id === id && found < 0) { if (seen === (nth || 0)) found = i; seen++; } });
+    return found;
+  }
+
+  /** Where a problem points: the tale, the part (a stage, a choice, an ending) and, when it can tell, the field. */
+  function locate(text) {
+    var p = {text: text, blocking: / The quest is not loaded\.$/.test(text), key: 'tale', tale: -1};
+    var head = /^([^:]*): quest '((?:[^']|'(?!: ))*)': ([\s\S]*)$/.exec(text);
+    if (!head) {
+      var dup = /: quest '([^']*)' is already defined/.exec(text);
+      p.message = dup ? 'Another tale in this file is already called \u2018' + dup[1] + '\u2019; this one is ignored by the game.' : text.replace(/^[^:]*: /, '');
+      if (dup) p.blocking = true;
+      return p;
+    }
+    var id = head[2], m = head[3].replace(/ The quest is not loaded\.$/, '');
+    p.message = m;
+    if (!state.doc) return p;
+    state.doc.tales.forEach(function (t, i) { if (p.tale < 0 && (t.id === id || (id === '(no id)' && blank(t.id)))) p.tale = i; });
+    if (p.tale < 0) p.tale = state.tale;
+    if (p.tale !== state.tale) { p.key = 'tale'; return p; }
+
+    var x;
+    if ((x = /^two stages are called '([^']*)'/.exec(m))) { var second = indexOfStage(x[1], 1); p.key = second >= 0 ? 'stage:' + second + '/id' : 'tale/stages'; return p; }
+    if (/^a stage has no id|^it has no stages/.test(m)) { p.key = 'tale/stages'; return p; }
+    if (/^it has no id/.test(m)) { p.key = 'tale/id'; return p; }
+    if (/^an ending has no name/.test(m)) { p.key = 'tale/endings'; return p; }
+    if ((x = /^ending '([^']*)' is never reached/.exec(m))) { p.key = 'ending:' + x[1]; return p; }
+    if (/^the reward is never reached/.test(m)) { p.key = 'reward'; return p; }
+    if (/^\{\w+\} is used but no role binds it/.test(m)) { p.key = 'tale/binds'; return p; }
+    if (/^requires\.rival/.test(m)) { p.key = 'tale/requires.rival'; return p; }
+    if ((x = /^consequence '([^']*)'/.exec(m))) { p.key = outcomeWith(function (c) { return (c.type || '') === x[1]; }) + '/consequences'; return p; }
+    if ((x = /^flag '([^']*)' is tested/.exec(m))) { p.key = flagUse(x[1]); return p; }
+    if (/^a flag test is empty/.test(m)) { p.key = flagUse(''); return p; }
+
+    if ((x = /^stage '((?:[^']|'(?![,: ]))*)'(?:, choice '((?:[^']|'(?![,: ]))*)')?/.exec(m))) {
+      var si = indexOfStage(x[1]);
+      if (si < 0) return p;
+      var base = 'stage:' + si, rest = m.substring(x[0].length), ci = -1, y;
+      if (x[2] !== undefined) ci = indexOfChoice(si, x[2]);
+      if ((y = /choice '([^']*)' is marked default/.exec(rest)) || (y = /the default choice '([^']*)'/.exec(rest))) ci = indexOfChoice(si, y[1]);
+      if ((y = /^: two choices are called '([^']*)'/.exec(rest))) { var dupAt = indexOfChoice(si, y[1], 1); p.key = base + '/choice:' + dupAt + '/id'; return p; }
+      var at = ci >= 0 ? base + '/choice:' + ci : base;
+      p.key = at + fieldOf(rest, ci >= 0);
+      return p;
+    }
+    return p;
+  }
+
+  function fieldOf(rest, inChoice) {
+    var rules = [
+      [/is never reached from the first stage|can never reach an ending/, ''],
+      [/ has no next | leads to |has no on_complete\.next|a scene with choices needs a way out|so its on_complete\.next is never used/, inChoice ? '/next' : '/on_complete.next'],
+      [/has no objective\.$| asks for '/, '/objective.type'],
+      [/talk_to needs "hero"/, '/objective.hero'],
+      [/needs "place"/, '/objective.place'],
+      [/"count"/, '/objective.count'],
+      [/"nights"/, '/objective.nights'],
+      [/"chance"/, '/objective.chance'],
+      [/wait needs "days"/, '/objective.days'],
+      [/needs an "opening"/, '/objective.scene.opening'],
+      [/required finding|every finding needs|finding '/, '/objective.scene.findings'],
+      [/hazard/, '/objective.scene.hazards'],
+      [/encounter '/, '/objective.scene.encounters'],
+      [/spawn|flee_after_days/, '/objective.spawn'],
+      [/a choice has no id|several choices are marked default|every way out depends on flags|is the request/, '/choices'],
+      [/both an objective and a "said"|no way to be taken/, '/mode'],
+      [/"said" needs| is said to /, '/said'],
+      [/needs a "label"/, '/label'],
+      [/its id may hold only/, '/id'],
+      [/is marked default/, '/default'],
+      [/cannot depend on flags/, '/if']
+    ];
+    for (var i = 0; i < rules.length; i++) if (rules[i][0].test(rest)) return rules[i][1];
+    return '';
+  }
+
+  function outcomeWith(test) {
+    var t = tale();
+    if (t.reward && arr(t.reward.consequences).some(function (c) { return c && test(c); })) return 'reward';
+    if (t.failure && arr(t.failure.consequences).some(function (c) { return c && test(c); })) return 'failure';
+    var found = 'tale';
+    Object.keys(endings()).forEach(function (k) { if (found === 'tale' && arr((endings()[k] || {}).consequences).some(function (c) { return c && test(c); })) found = 'ending:' + k; });
+    return found;
+  }
+
+  function flagUse(name) {
+    function tests(list) { return [].concat(list === undefined || list === null ? [] : list).some(function (c) { return String(c).trim().replace(/^!+/, '').trim() === name; }); }
+    var key = null;
+    stages().forEach(function (s, i) {
+      if (key || !s) return;
+      arr(s.choices).forEach(function (c, j) { if (!key && c && tests(c.if)) key = 'stage:' + i + '/choice:' + j + '/if'; });
+      ['canvas', 'facts'].forEach(function (f) { if (!key && [].concat(s[f] || []).some(function (l) { return l && typeof l === 'object' && tests(l.if); })) key = 'stage:' + i + '/' + f; });
+      if (!key && s.knowers) Object.keys(s.knowers).forEach(function (k) { if (!key && arr(s.knowers[k]).some(function (l) { return l && typeof l === 'object' && tests(l.if); })) key = 'stage:' + i + '/knowers'; });
+    });
+    return key || outcomeWith(function (c) { return tests(c.if); }) + '/consequences';
+  }
+
+  function problemsAt(key) { return state.problems.filter(function (p) { return p.tale === state.tale && p.key === key; }); }
+  function problemsUnder(prefix) {
+    return state.problems.filter(function (p) { return p.tale === state.tale && (p.key === prefix || p.key.indexOf(prefix + '/') === 0); });
+  }
+
+  function markFields() {
+    document.querySelectorAll('[data-key]').forEach(function (el) {
+      var mine = problemsAt(el.dataset.key);
+      el.classList.toggle('has-blocking', mine.some(function (p) { return p.blocking; }));
+      el.classList.toggle('has-cosmetic', mine.length > 0 && !mine.some(function (p) { return p.blocking; }));
+      var box = el.querySelector(':scope > .field-problems');
+      if (!box) return;
+      box.textContent = '';
+      mine.forEach(function (p) { box.appendChild(h('div.field-problem', {class: p.blocking ? 'blocking' : 'cosmetic'}, p.message)); });
+    });
+    renderSidebarSoon();
+  }
+
+  function goTo(p) {
+    if (p.tale >= 0 && p.tale !== state.tale) { state.tale = p.tale; }
+    var key = p.key, m;
+    if ((m = /^stage:(\d+)/.exec(key))) state.sel = {kind: 'stage', index: parseInt(m[1], 10)};
+    else if ((m = /^ending:(.*?)(\/|$)/.exec(key))) state.sel = {kind: 'ending', name: m[1]};
+    else if (/^reward/.test(key)) state.sel = {kind: 'reward'};
+    else if (/^failure/.test(key)) state.sel = {kind: 'failure'};
+    else state.sel = {kind: 'tale'};
+    var cm = /\/choice:(\d+)/.exec(key);
+    if (cm) delete state.collapsed[key.split('/').slice(0, 2).join('/')];
+    state.tab = 'edit';
+    render();
+    var target = document.querySelector('[data-key="' + key.replace(/"/g, '\\"') + '"]') || document.querySelector('[data-key="' + key.split('/').slice(0, cm ? 2 : 1).join('/') + '"]');
+    if (target) {
+      target.scrollIntoView({block: 'center', behavior: 'smooth'});
+      target.classList.remove('flash');
+      void target.offsetWidth;
+      target.classList.add('flash');
+      var input = target.querySelector('input, select, textarea');
+      if (input) setTimeout(function () { input.focus({preventScroll: true}); }, 250);
+    }
+  }
+
+  // ================================================================================================================
+  // The fields
+  // ================================================================================================================
+
+  /** A labelled field, its one-line help from the schema, and the place its problems appear. */
+  function field(key, label, defName, propKey, control, opts) {
+    opts = opts || {};
+    var helpText = opts.help !== undefined ? opts.help : (defName ? help(defName, propKey) : '');
+    var wrap = h('div.field', {class: opts.wide ? 'wide' : null, dataset: {key: key}});
+    var id = 'f-' + key.replace(/[^\w-]/g, '_');
+    if (control.tagName && /^(INPUT|SELECT|TEXTAREA)$/.test(control.tagName)) control.id = id;
+    wrap.appendChild(h('label', {for: id}, label, defName && !played(defName, propKey) ? h('span.not-played', {title: 'The game reads this field but does nothing with it yet.'}, 'not played yet') : null));
+    wrap.appendChild(control);
+    if (helpText) wrap.appendChild(h('p.help', helpText));
+    wrap.appendChild(h('div.field-problems'));
+    return wrap;
+  }
+
+  function textInput(key, value, onChange, opts) {
+    opts = opts || {};
+    var el = opts.multiline
+      ? h('textarea', {class: opts.short ? 'short' : null, placeholder: opts.placeholder, rows: opts.rows || 3})
+      : h('input', {type: 'text', class: opts.mono ? 'mono' : null, placeholder: opts.placeholder, list: opts.list, spellcheck: opts.mono ? 'false' : null});
+    el.value = value === null || value === undefined ? '' : value;
+    el.addEventListener('input', function () { edit(key, function () { onChange(el.value); }, false); });
+    if (opts.onCommit) el.addEventListener('change', function () { opts.onCommit(el.value); });
+    return el;
+  }
+
+  function textField(key, label, defName, propKey, obj, opts) {
+    opts = opts || {};
+    var fb = fallback(defName, propKey);
+    return field(key, label, defName, propKey, textInput(key, obj[propKey], function (v) { setOrDelete(obj, propKey, v); },
+      {multiline: opts.multiline, short: opts.short, mono: opts.mono, list: opts.list, placeholder: opts.placeholder || (typeof fb === 'string' ? fb : ''), rows: opts.rows}), opts);
+  }
+
+  function numberField(key, label, defName, propKey, obj, opts) {
+    opts = opts || {};
+    var kind = prop(defName, propKey)['x-kind'], fb = fallback(defName, propKey);
+    var el = h('input', {type: 'number', step: kind === 'int' ? '1' : 'any', min: opts.min, max: opts.max, placeholder: fb === undefined ? '' : String(fb)});
+    el.value = obj[propKey] === undefined || obj[propKey] === null ? '' : obj[propKey];
+    el.addEventListener('input', function () {
+      edit(key, function () {
+        if (el.value === '') { delete obj[propKey]; return; }
+        var n = kind === 'int' ? parseInt(el.value, 10) : parseFloat(el.value);
+        if (!isNaN(n)) obj[propKey] = n;
+      }, false);
+    });
+    return field(key, label, defName, propKey, el, opts);
+  }
+
+  function boolField(key, label, defName, propKey, obj, opts) {
+    opts = opts || {};
+    var fb = fallback(defName, propKey) === true;
+    var current = obj[propKey] === undefined || obj[propKey] === null ? fb : obj[propKey];
+    var box = h('input', {type: 'checkbox', checked: current});
+    box.addEventListener('change', function () { edit(key, function () { if (box.checked === fb && opts.dropDefault) delete obj[propKey]; else obj[propKey] = box.checked; }, !!opts.structural); });
+    var wrap = h('div.field', {class: opts.wide ? 'wide' : null, dataset: {key: key}});
+    wrap.appendChild(h('label.check', box, label, !played(defName, propKey) ? h('span.not-played', 'not played yet') : null));
+    var helpText = opts.help !== undefined ? opts.help : help(defName, propKey);
+    if (helpText) wrap.appendChild(h('p.help', helpText));
+    wrap.appendChild(h('div.field-problems'));
+    return wrap;
+  }
+
+  function selectField(key, label, defName, propKey, obj, options, opts) {
+    opts = opts || {};
+    var fb = fallback(defName, propKey), current = obj[propKey] === undefined || obj[propKey] === null ? (fb === undefined ? '' : fb) : obj[propKey];
+    var sel = h('select');
+    var values = options.slice();
+    if (opts.empty !== undefined) sel.appendChild(h('option', {value: ''}, opts.empty));
+    values.forEach(function (o) { var v = typeof o === 'string' ? o : o.value; sel.appendChild(h('option', {value: v}, typeof o === 'string' ? o : o.label)); });
+    if (current !== '' && !values.some(function (o) { return (typeof o === 'string' ? o : o.value) === current; }))
+      sel.appendChild(h('option', {value: current}, current + ' (not known to the game)'));
+    sel.value = current;
+    sel.addEventListener('change', function () {
+      edit(key, function () { if (sel.value === '' && opts.empty !== undefined) delete obj[propKey]; else obj[propKey] = sel.value; if (opts.after) opts.after(sel.value); }, opts.structural !== false);
+    });
+    return field(key, label, defName, propKey, sel, opts);
+  }
+
+  /** The roles the text can name: the ones the game binds, then any other the file lists. */
+  function roles(withLocals) {
+    var r = ['{giver}', '{village}', '{rival}'];
+    Object.keys(tale().binds || {}).forEach(function (b) { if (r.indexOf('{' + b + '}') < 0) r.push('{' + b + '}'); });
+    if (withLocals) r = r.concat(r.filter(function (x) { return x !== '{giver}' && x !== '{rival}'; }).map(function (x) { return 'locals_of:' + x; }));
+    return r;
+  }
+
+  var roleListCounter = 0;
+  function roleField(key, label, defName, propKey, obj, opts) {
+    opts = opts || {};
+    var listId = 'roles-' + (roleListCounter++);
+    var dl = h('datalist', {id: listId}, roles(opts.locals).map(function (r) { return h('option', {value: r}); }));
+    var f = textField(key, label, defName, propKey, obj, {mono: true, list: listId, help: opts.help, wide: opts.wide, placeholder: opts.placeholder});
+    f.appendChild(dl);
+    return f;
+  }
+
+  /** Where a way out leads: a stage of the tale, the reward, a named ending, or a new ending made on the spot. */
+  function nextField(key, label, holder, propKey, defName, opts) {
+    opts = opts || {};
+    var sel = h('select');
+    var current = holder[propKey] || '';
+    sel.appendChild(h('option', {value: ''}, '(choose where it leads)'));
+    var g1 = h('optgroup', {label: 'A stage'});
+    stages().forEach(function (s) { if (s && !blank(s.id)) g1.appendChild(h('option', {value: s.id}, s.id)); });
+    var g2 = h('optgroup', {label: 'An ending'});
+    g2.appendChild(h('option', {value: 'reward'}, 'reward (the single success ending)'));
+    Object.keys(endings()).forEach(function (k) { g2.appendChild(h('option', {value: 'end:' + k}, 'end:' + k)); });
+    g2.appendChild(h('option', {value: '__new_ending'}, '+ a new ending...'));
+    sel.appendChild(g1);
+    sel.appendChild(g2);
+    var known = Array.prototype.some.call(sel.options, function (o) { return o.value === current; });
+    if (current && !known) sel.appendChild(h('option', {value: current}, current + ' (leads nowhere)'));
+    sel.value = current;
+    sel.addEventListener('change', function () {
+      if (sel.value === '__new_ending') {
+        var name = uniqueName('ending', Object.keys(endings()));
+        edit(key, function () { ownEndings()[name] = {regard: 0, memory: ''}; holder[propKey] = 'end:' + name; }, true);
+        toast('Ending \u2018' + name + '\u2019 made. Find it under Endings to fill it in.');
+        return;
+      }
+      edit(key, function () { setOrDelete(holder, propKey, sel.value); }, true);
+    });
+    return field(key, label, defName, propKey, sel, opts);
+  }
+
+  function pairField(key, label, defName, propKey, obj, names) {
+    var a = h('input', {type: 'number', step: '1', 'aria-label': names[0]}), b = h('input', {type: 'number', step: '1', 'aria-label': names[1]});
+    var v = Array.isArray(obj[propKey]) ? obj[propKey] : [];
+    a.value = v[0] === undefined ? '' : v[0];
+    b.value = v[1] === undefined ? '' : v[1];
+    function write() {
+      edit(key, function () {
+        if (a.value === '' && b.value === '') { delete obj[propKey]; return; }
+        obj[propKey] = [parseInt(a.value, 10) || 0, parseInt(b.value, 10) || 0];
+      }, false);
+    }
+    a.addEventListener('input', write);
+    b.addEventListener('input', write);
+    return field(key, label, defName, propKey, h('div.pair', h('span', names[0]), a, h('span', names[1]), b));
+  }
+
+  /** Flags: written "a, !b" in one box, saved as one name or a list, as the file allows. */
+  function flagsToText(v) { return [].concat(v === undefined || v === null ? [] : v).join(', '); }
+  function textToFlags(s) {
+    var parts = s.split(',').map(function (x) { return x.trim(); }).filter(function (x) { return x.length; });
+    return parts.length === 0 ? null : parts.length === 1 ? parts[0] : parts;
+  }
+
+  function flagsField(key, label, defName, propKey, obj, opts) {
+    opts = opts || {};
+    var el = textInput(key, flagsToText(obj[propKey]), function (v) { setOrDelete(obj, propKey, textToFlags(v)); }, {mono: true, placeholder: opts.placeholder || 'flag, !other_flag'});
+    return field(key, label, defName, propKey, el, opts);
+  }
+
+  /** A list of lines, each plain or said only under flags (canvas, facts, knower lines). */
+  function linesEditor(key, holder, propKey, opts) {
+    opts = opts || {};
+    var box = h('div');
+    function linesOf() {
+      var v = holder[propKey];
+      if (v === undefined || v === null || v === '') return [];
+      return Array.isArray(v) ? v : [v];
+    }
+    function writeBack(ls) {
+      var clean = ls.filter(function (l) { return l !== null && l !== undefined; });
+      if (opts.single && clean.length === 1) holder[propKey] = clean[0];
+      else setOrDelete(holder, propKey, clean);
+    }
+    function draw() {
+      box.textContent = '';
+      var ls = linesOf();
+      if (ls.length === 0) box.appendChild(h('p.empty-note', opts.empty || 'Nothing yet.'));
+      ls.forEach(function (l, i) {
+        var isObj = l && typeof l === 'object';
+        var txt = textInput(key, isObj ? (l.text || '') : (l || ''), function (v) {
+          var cur = linesOf().slice();
+          var line = cur[i];
+          if (line && typeof line === 'object') line.text = v; else cur[i] = v;
+          writeBack(cur);
+        }, {multiline: true, short: true, rows: 2, placeholder: opts.placeholder});
+        var cond = textInput(key, isObj ? flagsToText(l.if) : '', function (v) {
+          var cur = linesOf().slice(), line = cur[i], f = textToFlags(v);
+          var text = line && typeof line === 'object' ? line.text : line;
+          cur[i] = f === null ? text : {text: text, if: f};
+          writeBack(cur);
+        }, {mono: true, placeholder: 'always'});
+        box.appendChild(h('div.line-row',
+          txt,
+          h('div.if-box', h('label', 'only if'), cond),
+          h('div.row-tools',
+            iconButton('up', 'Move up', function () { edit(key, function () { var c = linesOf().slice(); var t = c[i - 1]; c[i - 1] = c[i]; c[i] = t; writeBack(c); }, true); }, {disabled: i === 0}),
+            iconButton('trash', 'Remove this line', function () { edit(key, function () { var c = linesOf().slice(); c.splice(i, 1); writeBack(c); }, true); }, {danger: true}))));
+      });
+      box.appendChild(h('button.btn.small', {type: 'button', on: {click: function () { edit(key, function () { var c = linesOf().slice(); c.push(''); writeBack(c); }, true); }}}, icon('plus'), opts.add || 'Add a line'));
+    }
+    draw();
+    return box;
+  }
+
+  function linesField(key, label, defName, propKey, holder, opts) {
+    opts = opts || {};
+    var wrap = h('div.field.wide', {dataset: {key: key}});
+    wrap.appendChild(h('div.label', label, defName && !played(defName, propKey) ? h('span.not-played', 'not played yet') : null));
+    var helpText = opts.help !== undefined ? opts.help : help(defName, propKey);
+    if (helpText) wrap.appendChild(h('p.help', helpText));
+    wrap.appendChild(linesEditor(key, holder, propKey, opts));
+    wrap.appendChild(h('div.field-problems'));
+    return wrap;
+  }
+
+  /** A plain list of words (a scene's facts, what an encounter knows). */
+  function stringListField(key, label, defName, propKey, holder, opts) {
+    opts = opts || {};
+    var wrap = h('div.field.wide', {dataset: {key: key}});
+    wrap.appendChild(h('div.label', label, !played(defName, propKey) ? h('span.not-played', 'not played yet') : null));
+    var helpText = opts.help !== undefined ? opts.help : help(defName, propKey);
+    if (helpText) wrap.appendChild(h('p.help', helpText));
+    var items = Array.isArray(holder[propKey]) ? holder[propKey] : [];
+    if (!items.length) wrap.appendChild(h('p.empty-note', 'Nothing yet.'));
+    items.forEach(function (s, i) {
+      wrap.appendChild(h('div.line-row', {style: 'grid-template-columns: 1fr auto'},
+        textInput(key, s, function (v) { holder[propKey][i] = v; }, {multiline: true, short: true, rows: 2}),
+        h('div.row-tools', iconButton('trash', 'Remove', function () { edit(key, function () { holder[propKey].splice(i, 1); if (!holder[propKey].length) delete holder[propKey]; }, true); }, {danger: true}))));
+    });
+    wrap.appendChild(h('button.btn.small', {type: 'button', on: {click: function () { edit(key, function () { if (!Array.isArray(holder[propKey])) holder[propKey] = []; holder[propKey].push(''); }, true); }}}, icon('plus'), opts.add || 'Add'));
+    wrap.appendChild(h('div.field-problems'));
+    return wrap;
+  }
+
+  /** Who knows what: one group of lines per character or place. */
+  function knowersField(key, holder, defName) {
+    var wrap = h('div.field.wide', {dataset: {key: key}});
+    wrap.appendChild(h('div.label', 'Who knows what'));
+    wrap.appendChild(h('p.help', help(defName, 'knowers')));
+    var k = holder.knowers && typeof holder.knowers === 'object' ? holder.knowers : {};
+    var keys = Object.keys(k);
+    if (!keys.length) wrap.appendChild(h('p.empty-note', 'Nobody is told anything here.'));
+    keys.forEach(function (who) {
+      var listId = 'knower-roles-' + (roleListCounter++);
+      var whoInput = h('input', {type: 'text', class: 'mono', list: listId, value: who, 'aria-label': 'Who'});
+      whoInput.addEventListener('change', function () {
+        var nw = whoInput.value.trim();
+        if (!nw || nw === who) { whoInput.value = who; return; }
+        if (holder.knowers.hasOwnProperty(nw)) { toast(nw + ' already has lines here.', 'error'); whoInput.value = who; return; }
+        edit(key, function () {
+          var rebuilt = {};
+          Object.keys(holder.knowers).forEach(function (x) { rebuilt[x === who ? nw : x] = holder.knowers[x]; });
+          holder.knowers = rebuilt;
+        }, true);
+      });
+      wrap.appendChild(h('div.card', {style: 'margin-bottom:10px'},
+        h('div.card-head', whoInput, h('datalist', {id: listId}, roles(true).map(function (r) { return h('option', {value: r}); })),
+          iconButton('trash', 'Remove ' + who, function () { edit(key, function () { delete holder.knowers[who]; if (!Object.keys(holder.knowers).length) delete holder.knowers; }, true); }, {danger: true})),
+        h('div.card-body', linesEditor(key, holder.knowers, who, {empty: 'No line yet.', placeholder: 'What they believe, in the second person: "You believe..."'}))));
+    });
+    wrap.appendChild(h('button.btn.small', {type: 'button', on: {click: function () {
+      edit(key, function () {
+        if (!holder.knowers || typeof holder.knowers !== 'object') holder.knowers = {};
+        var candidate = roles(true).filter(function (r) { return !holder.knowers.hasOwnProperty(r); })[0] || uniqueName('{someone}', Object.keys(holder.knowers));
+        holder.knowers[candidate] = [''];
+      }, true);
+    }}}, icon('plus'), 'Add someone who knows'));
+    wrap.appendChild(h('div.field-problems'));
+    return wrap;
+  }
+
+  function uniqueName(base, taken) {
+    var n = 1, name = base + '_' + n;
+    while (taken.indexOf(name) >= 0) name = base + '_' + (++n);
+    return name;
+  }
+
+  function section(title, intro, children, opts) {
+    opts = opts || {};
+    var key = opts.collapseKey;
+    var collapsed = key ? state.collapsed[key] === true || (state.collapsed[key] === undefined && opts.startCollapsed) : false;
+    var s = h('section.section', {class: collapsed ? 'collapsed' : null, dataset: opts.dataKey ? {key: opts.dataKey} : undefined});
+    var headChildren = [h('div', {style: 'flex:1'}, h('h2', title), intro ? h('p', intro) : null)];
+    if (opts.tools) headChildren.push(opts.tools);
+    if (key) headChildren.push(iconButton(collapsed ? 'down' : 'up', collapsed ? 'Show' : 'Hide', function () { state.collapsed[key] = !collapsed; render(); }));
+    s.appendChild(h('div.section-head', headChildren));
+    s.appendChild(h('div.section-body', children));
+    if (opts.dataKey) s.appendChild(h('div.field-problems', {style: 'padding: 0 16px 10px'}));
+    return s;
+  }
+
+  // ================================================================================================================
+  // The editors
+  // ================================================================================================================
+
+  function itemProblems(key, more) {
+    var mine = problemsAt(key);
+    (more || []).forEach(function (k) { mine = mine.concat(problemsAt(k)); });
+    if (!mine.length) return document.createDocumentFragment();
+    return h('div', {style: 'margin-bottom:14px'}, mine.map(function (p) { return h('div.field-problem', {class: p.blocking ? 'blocking' : 'cosmetic'}, p.message); }));
+  }
+
+  function editorHead(crumb, title, intro, tools) {
+    return h('div.editor-head', h('div', {style: 'flex:1;min-width:0'}, h('div.crumb', crumb), h('h1', title), intro ? h('p.intro', intro) : null), tools ? h('div.toolbar', tools) : null);
+  }
+
+  // ---------- the tale itself ----------
+  function taleEditor() {
+    var t = tale();
+    var ed = h('div.editor');
+    ed.appendChild(editorHead('The tale', t.title || t.id || 'Untitled tale',
+      'Who may give it, what it needs of the world and of the player, and the roles its text names. Each {role} in the text is filled with a real name when the tale is offered.'));
+    ed.appendChild(itemProblems('tale', ['tale/stages', 'tale/endings']));
+    ed.appendChild(section('Header', null, h('div.grid',
+      textField('tale/id', 'Id', 'AuthoredQuest', 'id', t, {mono: true}),
+      textField('tale/title', 'Title', 'AuthoredQuest', 'title', t),
+      textField('tale/author', 'Author', 'AuthoredQuest', 'author', t),
+      numberField('tale/weight', 'Weight', 'AuthoredQuest', 'weight', t, {min: 0}),
+      boolField('tale/unique', 'Played once per campaign', 'AuthoredQuest', 'unique', t, {structural: true}),
+      t.unique === false ? numberField('tale/repeat_cooldown_days', 'Days before it may come back', 'AuthoredQuest', 'repeat_cooldown_days', t, {min: 0}) : null)));
+
+    var r = lazy(t, 'requires');
+    var giver = lazy(r, 'giver');
+    ed.appendChild(section('Who gives it', help('AuthoredRequires', 'giver'), h('div.grid',
+      selectField('tale/requires.giver.role', 'Role', 'GiverRequirement', 'role', giver, list('GiverRoles')),
+      roleField('tale/requires.giver.holds', 'Holds', 'GiverRequirement', 'holds', giver, {placeholder: '{village}'}),
+      numberField('tale/requires.giver.min_regard', 'Least regard for the player', 'GiverRequirement', 'min_regard', giver, {min: -100, max: 100}),
+      boolField('tale/requires.giver.not_at_war_with_player', 'Never while at war with the player', 'GiverRequirement', 'not_at_war_with_player', giver))));
+
+    var villageOn = r.village && typeof r.village === 'object';
+    ed.appendChild(section('The village', help('AuthoredRequires', 'village'), [
+      h('label.check', {style: 'margin-bottom:12px'}, h('input', {type: 'checkbox', checked: villageOn, on: {change: function (e) {
+        var on = e.target.checked;
+        edit('tale/requires.village', function () { if (on) r.village = {type: 'village'}; else delete r.village; }, true);
+      }}}), 'The tale happens in a village, bound as {village}'),
+      villageOn ? h('div.grid',
+        selectField('tale/requires.village.type', 'Kind', 'PlaceRequirement', 'type', r.village, ['village']),
+        selectField('tale/requires.village.near', 'Near', 'PlaceRequirement', 'near', r.village, [{value: 'forest', label: 'a forest'}], {empty: 'anywhere'})) : null
+    ], {dataKey: 'tale/requires.village'}));
+
+    var rivalOn = r.rival && typeof r.rival === 'object';
+    ed.appendChild(section('A rival', help('AuthoredRequires', 'rival'), [
+      h('label.check', {style: 'margin-bottom:12px'}, h('input', {type: 'checkbox', checked: rivalOn, on: {change: function (e) {
+        var on = e.target.checked;
+        edit('tale/requires.rival', function () { if (on) r.rival = {role: 'clan_leader', same_realm_as: '{giver}'}; else delete r.rival; }, true);
+      }}}), 'The tale needs a second lord, bound as {rival}'),
+      rivalOn ? h('div.grid',
+        selectField('tale/requires.rival.role', 'Role', 'RivalRequirement', 'role', r.rival, list('RivalRoles')),
+        roleField('tale/requires.rival.same_realm_as', 'Same realm as', 'RivalRequirement', 'same_realm_as', r.rival)) : null
+    ], {dataKey: 'tale/requires.rival'}));
+
+    ed.appendChild(section('The player', help('AuthoredRequires', 'player'), h('div.grid',
+      numberField('tale/requires.player.min_clan_tier', 'Least clan tier', 'PlayerRequirement', 'min_clan_tier', lazy(r, 'player'), {min: 0, max: 6}))));
+
+    ed.appendChild(section('Roles', help('AuthoredQuest', 'binds'), bindsEditor(t), {dataKey: 'tale/binds'}));
+    return ed;
+  }
+
+  function ownBinds(t) { if (!t.binds || typeof t.binds !== 'object' || Array.isArray(t.binds)) t.binds = {}; return t.binds; }
+
+  function bindsEditor(t) {
+    var box = h('div');
+    var keys = Object.keys(t.binds && typeof t.binds === 'object' ? t.binds : {});
+    if (!keys.length) box.appendChild(h('p.empty-note', 'No role yet. Most tales need at least {giver}.'));
+    keys.forEach(function (k) {
+      var name = h('input', {type: 'text', class: 'mono', value: k, 'aria-label': 'Role name'});
+      name.addEventListener('change', function () {
+        var nk = name.value.trim().replace(/^\{|\}$/g, '');
+        if (!nk || nk === k) { name.value = k; return; }
+        if (t.binds.hasOwnProperty(nk)) { toast('{' + nk + '} is already listed.', 'error'); name.value = k; return; }
+        edit('tale/binds', function () { var nb = {}; Object.keys(t.binds).forEach(function (x) { nb[x === k ? nk : x] = t.binds[x]; }); t.binds = nb; }, true);
+      });
+      box.appendChild(h('div.kv-row', name, textInput('tale/binds', t.binds[k], function (v) { t.binds[k] = v; }, {placeholder: 'who or what this role is'}),
+        h('div.row-tools', iconButton('trash', 'Remove {' + k + '}', function () { edit('tale/binds', function () { delete t.binds[k]; }, true); }, {danger: true}))));
+    });
+    var missing = ['giver', 'village', 'rival'].filter(function (x) { return keys.indexOf(x) < 0; });
+    box.appendChild(h('div.toolbar', missing.map(function (x) {
+      return h('button.btn.small', {type: 'button', on: {click: function () { edit('tale/binds', function () { ownBinds(t)[x] = {giver: 'the one who asks for help', village: 'the village the tale happens in', rival: "the head of another house of the giver's realm"}[x]; }, true); }}}, icon('plus'), '{' + x + '}');
+    }), h('button.btn.small', {type: 'button', on: {click: function () { edit('tale/binds', function () { ownBinds(t)[uniqueName('role', Object.keys(ownBinds(t)))] = ''; }, true); }}}, icon('plus'), 'Another role')));
+    box.appendChild(h('p.help', 'The game fills {giver}, {village} (with "The village" above) and {rival} (with "A rival" above). Any other role would reach the player as written.'));
+    return box;
+  }
+
+  // ---------- an objective (of a stage, or of a choice) ----------
+  function objectiveEditor(key, holder, ofChoice, stageIsScene) {
+    var o = lazy(holder, 'objective');
+    var types = ofChoice ? list('ChoiceObjectiveTypes') : list('ObjectiveTypes');
+    var labels = {talk_to: 'talk to someone', 'return': 'return to the giver', talk_to_locals: 'question the locals', be_at: 'be at a place',
+      keep_watch: 'keep watch at night', explore: 'a scene in the chat', defeat_party: 'defeat a band', wait: 'let days pass'};
+    var box = h('div');
+    box.appendChild(h('div.grid', selectField(key + '/objective.type', 'What the game checks', 'AuthoredObjective', 'type', o,
+      types.map(function (t) { return {value: t, label: t + ' (' + labels[t] + ')'}; }), {empty: o.type ? undefined : '(choose)'})));
+    var used = F.objectiveFields[o.type] || [];
+    var g = h('div.grid');
+    if (used.indexOf('hero') >= 0) g.appendChild(roleField(key + '/objective.hero', 'Who', 'AuthoredObjective', 'hero', o, {placeholder: '{giver}'}));
+    if (used.indexOf('place') >= 0) g.appendChild(roleField(key + '/objective.place', 'Where', 'AuthoredObjective', 'place', o, {placeholder: '{village}'}));
+    if (used.indexOf('count') >= 0) g.appendChild(numberField(key + '/objective.count', 'How many locals', 'AuthoredObjective', 'count', o, {min: 1}));
+    if (used.indexOf('radius') >= 0) g.appendChild(numberField(key + '/objective.radius', 'How near', 'AuthoredObjective', 'radius', o, {min: 1}));
+    if (used.indexOf('nights') >= 0) g.appendChild(pairField(key + '/objective.nights', 'Nights', 'AuthoredObjective', 'nights', o, ['from night', 'surely by night']));
+    if (used.indexOf('chance') >= 0) g.appendChild(numberField(key + '/objective.chance', 'Chance each night', 'AuthoredObjective', 'chance', o, {min: 0, max: 1}));
+    if (used.indexOf('days') >= 0) g.appendChild(numberField(key + '/objective.days', 'Days', 'AuthoredObjective', 'days', o, {min: 1}));
+    if (g.childNodes.length) box.appendChild(g);
+    if (used.indexOf('scene') >= 0) box.appendChild(sceneEditor(key, o));
+    if (used.indexOf('spawn') >= 0) box.appendChild(spawnEditor(key, o));
+    var idle = ['item', 'to'].filter(function (f) { return o[f] !== undefined; });
+    var extras = h('div.grid', textField(key + '/objective.item', 'Item', 'AuthoredObjective', 'item', o), roleField(key + '/objective.to', 'To', 'AuthoredObjective', 'to', o));
+    box.appendChild(h('details', {open: idle.length ? true : null}, h('summary', {style: 'cursor:pointer;color:var(--text-3);font-size:12px;margin-bottom:8px'}, 'Fields read but not played yet'), extras));
+    return box;
+  }
+
+  function sceneEditor(key, o) {
+    var sc = lazy(o, 'scene');
+    var opening = lazy(sc, 'opening');
+    var k = key + '/objective.scene';
+    var box = h('div', {dataset: {key: k}});
+    box.appendChild(h('div.field-problems'));
+    box.appendChild(h('div.subhead', 'The scene'));
+    box.appendChild(h('div.grid', textField(k + '.title', 'Title over the chat', 'AuthoredScene', 'title', sc, {wide: true})));
+    var op = h('div');
+    op.appendChild(textField(k + '.opening', 'How it opens', 'AuthoredBeat', 'canvas', opening, {multiline: true, rows: 3, wide: true,
+      help: 'The scene as the player comes upon it, for the narrator to describe in the second person, ending by asking what the player does.'}));
+    op.appendChild(stringListField(k + '.opening.facts', 'What must be true in the narration', 'AuthoredBeat', 'facts', opening, {add: 'Add a fact'}));
+    box.appendChild(op);
+    box.appendChild(cardList(k + '.findings', 'Findings', help('AuthoredScene', 'findings'), sc, 'findings', function (f, i, ck) {
+      return {title: f.id || '(no id)', chip: f.required ? 'required' : 'optional', body: [h('div.grid',
+        textField(ck + '/id', 'Id', 'AuthoredFinding', 'id', f, {mono: true}),
+        boolField(ck + '/required', 'Required', 'AuthoredFinding', 'required', f, {structural: true}),
+        flagsField(ck + '/sets', 'Sets flags', 'AuthoredFinding', 'sets', f)),
+        textField(ck + '/text', 'What the player finds', 'AuthoredFinding', 'text', f, {multiline: true, wide: true})]};
+    }, function () { return {id: 'finding_' + ((sc.findings || []).length + 1), required: true, text: ''}; }, 'Add a finding'));
+    box.appendChild(cardList(k + '.hazards', 'Hazards', help('AuthoredScene', 'hazards'), sc, 'hazards', function (hz, i, ck) {
+      var effect = lazy(hz, 'effect');
+      return {title: hz.id || '(no id)', chip: effect.type || 'no effect', body: [h('div.grid',
+        textField(ck + '/id', 'Id', 'AuthoredHazard', 'id', hz, {mono: true}),
+        selectField(ck + '/effect.type', 'Effect', 'AuthoredHazardEffect', 'type', effect, list('HazardEffects'), {empty: effect.type ? undefined : '(choose)'})),
+        textField(ck + '/trigger', 'What springs it', 'AuthoredHazard', 'trigger', hz, {wide: true, placeholder: 'pushing through the undergrowth without care'}),
+        h('div.grid',
+          effect.type === 'injure' ? pairField(ck + '/effect.hit_points', 'Hit points taken', 'AuthoredHazardEffect', 'hit_points', effect, ['fewest', 'most']) : null,
+          effect.type === 'alert' ? textField(ck + '/effect.party', 'Band', 'AuthoredHazardEffect', 'party', effect, {mono: true}) : null,
+          effect.type === 'lose_time' ? numberField(ck + '/effect.hours', 'Hours', 'AuthoredHazardEffect', 'hours', effect, {min: 0}) : null)]};
+    }, function () { return {id: 'hazard_' + ((sc.hazards || []).length + 1), trigger: '', effect: {type: 'injure', hit_points: [10, 25]}}; }, 'Add a hazard'));
+    box.appendChild(cardList(k + '.encounters', 'People met', help('AuthoredScene', 'encounters'), sc, 'encounters', function (en, i, ck) {
+      return {title: en.name || en.id || '(no id)', chip: en.id, body: [h('div.grid',
+        textField(ck + '/id', 'Id', 'AuthoredEncounter', 'id', en, {mono: true}),
+        textField(ck + '/name', 'Name', 'AuthoredEncounter', 'name', en),
+        flagsField(ck + '/sets', 'Sets flags', 'AuthoredEncounter', 'sets', en)),
+        textField(ck + '/persona', 'Who they are', 'AuthoredEncounter', 'persona', en, {multiline: true, wide: true}),
+        stringListField(ck + '/knows', 'What they know', 'AuthoredEncounter', 'knows', en, {add: 'Add something they know'}),
+        h('details', h('summary', {style: 'cursor:pointer;color:var(--text-3);font-size:12px;margin-bottom:8px'}, 'Fields read but not played yet'), h('div.grid',
+          boolField(ck + '/may_materialize', 'May become real', 'AuthoredEncounter', 'may_materialize', en),
+          textField(ck + '/materialize_when', 'Becomes real when', 'AuthoredEncounter', 'materialize_when', en),
+          roleField(ck + '/escort_to', 'Escort to', 'AuthoredEncounter', 'escort_to', en)))]};
+    }, function () { return {id: 'someone_' + ((sc.encounters || []).length + 1), name: '', persona: ''}; }, 'Add someone to meet'));
+    box.appendChild(textField(k + '.closing', 'When it closes', 'AuthoredScene', 'closing', sc, {multiline: true, short: true, wide: true}));
+    return box;
+  }
+
+  function spawnEditor(key, o) {
+    var sp = lazy(o, 'spawn'), k = key + '/objective.spawn';
+    return h('div', {dataset: {key: k}}, h('div.subhead', 'The band'), h('div.grid',
+      textField(k + '.id', 'Id', 'AuthoredSpawn', 'id', sp, {mono: true}),
+      textField(k + '.name', 'Name on the map', 'AuthoredSpawn', 'name', sp),
+      roleField(k + '.near', 'Near', 'AuthoredSpawn', 'near', sp, {placeholder: '{village}'}),
+      pairField(k + '.size', 'Men', 'AuthoredSpawn', 'size', sp, ['fewest', 'most']),
+      textField(k + '.template', 'Troops', 'AuthoredSpawn', 'template', sp, {mono: true}),
+      numberField(k + '.flee_after_days', 'Flees after days', 'AuthoredSpawn', 'flee_after_days', sp, {min: 0}),
+      textField(k + '.behavior', 'Behaviour', 'AuthoredSpawn', 'behavior', sp, {mono: true})), h('div.field-problems'));
+  }
+
+  /** A list of cards (findings, hazards, encounters, choices, consequences), each with its tools. */
+  function cardList(key, title, intro, holder, propKey, describe, make, addLabel, opts) {
+    opts = opts || {};
+    var wrap = h('div.field.wide', {dataset: {key: key}});
+    wrap.appendChild(h('div.subhead', title));
+    if (intro) wrap.appendChild(h('p.help', {style: 'margin-top:-4px;margin-bottom:10px'}, intro));
+    wrap.appendChild(h('div.field-problems', {style: 'margin-bottom:8px'}));
+    var items = Array.isArray(holder[propKey]) ? holder[propKey] : [];
+    var listBox = h('div.list');
+    items.forEach(function (item, i) {
+      if (!item || typeof item !== 'object') { listBox.appendChild(h('p.empty-note', '(an empty entry)')); return; }
+      var ck = (opts.itemKey ? opts.itemKey(i) : key + ':' + i);
+      var d = describe(item, i, ck);
+      var collapsed = state.collapsed[ck] === true;
+      var card = h('div.card', {class: collapsed ? 'collapsed' : null, dataset: {key: ck}});
+      card.appendChild(h('div.card-head',
+        iconButton(collapsed ? 'chevron' : 'down', collapsed ? 'Show' : 'Hide', function () { state.collapsed[ck] = !collapsed; render(); }),
+        h('div.title', d.title, d.subtitle ? h('small', d.subtitle) : null),
+        d.chips || null,
+        d.chip ? h('span.kind-chip', {class: d.chipClass || null}, d.chip) : null,
+        iconButton('up', 'Move up', function () { edit(key, function () { var a = holder[propKey]; var t = a[i - 1]; a[i - 1] = a[i]; a[i] = t; }, true); }, {disabled: i === 0}),
+        iconButton('down', 'Move down', function () { edit(key, function () { var a = holder[propKey]; var t = a[i + 1]; a[i + 1] = a[i]; a[i] = t; }, true); }, {disabled: i === items.length - 1}),
+        iconButton('trash', 'Remove', function () { edit(key, function () { holder[propKey].splice(i, 1); if (!holder[propKey].length && !opts.keepEmpty) delete holder[propKey]; }, true); }, {danger: true})));
+      card.appendChild(h('div.card-body', d.body));
+      card.appendChild(h('div.field-problems', {style: 'padding:0 12px 10px'}));
+      listBox.appendChild(card);
+    });
+    if (!items.length) listBox.appendChild(h('p.empty-note', opts.empty || 'None yet.'));
+    wrap.appendChild(listBox);
+    wrap.appendChild(h('button.btn.small', {type: 'button', on: {click: function () { edit(key, function () { if (!Array.isArray(holder[propKey])) holder[propKey] = []; holder[propKey].push(make()); }, true); }}}, icon('plus'), addLabel));
+    return wrap;
+  }
+
+  // ---------- a stage ----------
+  function stageEditor(i) {
+    var s = stages()[i];
+    if (!s || typeof s !== 'object') return h('div.editor', h('p.empty-note', 'This stage is empty in the file.'));
+    var key = 'stage:' + i, isFirst = i === 0;
+    var isScene = s.objective && s.objective.type === 'explore';
+    var ed = h('div.editor');
+    ed.appendChild(editorHead(isFirst ? 'Stage 1, the request' : 'Stage ' + (i + 1) + ' of ' + stages().length, s.id || '(no id)',
+      isFirst ? 'The request itself: completed when the player accepts the tale in the conversation where it is offered. What the giver says then is this stage\'s canvas and facts.' : null,
+      [iconButton('up', 'Move this stage up', function () { moveStage(i, -1); }, {disabled: i === 0}),
+       iconButton('down', 'Move this stage down', function () { moveStage(i, 1); }, {disabled: i === stages().length - 1}),
+       iconButton('dup', 'Duplicate this stage', function () { duplicateStage(i); }),
+       iconButton('trash', 'Delete this stage', function () { deleteStage(i); }, {danger: true})]));
+    ed.appendChild(itemProblems(key));
+
+    var idInput = textInput(key + '/id', s.id, function (v) { s.id = v; }, {mono: true});
+    ed.appendChild(section('Basics', null, h('div.grid',
+      field(key + '/id', 'Id', 'AuthoredStage', 'id', idInput, {help: help('AuthoredStage', 'id') + ' Renaming it updates every path that leads here.'}),
+      textField(key + '/journal', 'Journal', 'AuthoredStage', 'journal', s, {wide: true}))));
+
+    var hasChoices = Array.isArray(s.choices) && s.choices.length > 0;
+    var own = s.objective !== undefined && s.objective !== null;
+    var body = [];
+    if (hasChoices) {
+      body.push(h('label.check', {style: 'margin-bottom:12px'}, h('input', {type: 'checkbox', checked: own, on: {change: function (e) {
+        var on = e.target.checked;
+        edit(key + '/objective', function () { if (on) s.objective = {type: 'talk_to', hero: '{giver}'}; else { delete s.objective; if (s.on_complete) delete s.on_complete; } }, true);
+      }}}), 'This stage has an objective of its own, beside its choices'));
+    }
+    if (own || !hasChoices) {
+      body.push(objectiveEditor(key, s, false, isScene));
+      var leadsLabel = isScene ? 'When the scene closes with no choice made' : 'When it is done, the story goes to';
+      body.push(h('div.grid', nextField(key + '/on_complete.next', leadsLabel, lazy(s, 'on_complete'), 'next', 'AuthoredOnComplete',
+        {help: isScene && hasChoices ? 'Leave it empty to take the choice marked default instead.' : help('AuthoredOnComplete', 'next')})));
+    }
+    ed.appendChild(section('How the stage is completed', hasChoices ? 'A stage with choices is left by whichever way out comes first: its own objective, if it has one, or an open choice.' : null, body));
+
+    ed.appendChild(section('What is said', 'Spoken by the giver in the conversation that completes this stage; knower lines reach the characters named, while the stage lasts.', [
+      linesField(key + '/canvas', 'Canvas', 'AuthoredStage', 'canvas', s, {single: true, placeholder: 'How the moment feels.'}),
+      linesField(key + '/facts', 'Facts', 'AuthoredStage', 'facts', s, {add: 'Add a fact', placeholder: 'What must stay true in anything said.'}),
+      knowersField(key + '/knowers', s, 'AuthoredStage')], {collapseKey: key + '/said'}));
+
+    ed.appendChild(section('Choices', isScene
+      ? 'In a scene, a choice with no objective is offered to the player as a numbered list under the narration; the narrator takes it when the player\'s words do.'
+      : help('AuthoredStage', 'choices'), choicesEditor(key, s, isScene, isFirst)));
+    return ed;
+  }
+
+  function modeOf(c) { return c.said ? 'words' : c.objective ? 'act' : 'scene'; }
+
+  function choicesEditor(key, s, isScene, isFirst) {
+    if (isFirst && !(s.choices && s.choices.length)) return h('p.empty-note', 'The request cannot offer choices: put them on the next stage.');
+    return cardList(key + '/choices', 'Ways out', null, s, 'choices', function (c, j, ck) {
+      var mode = modeOf(c);
+      var chips = [];
+      if (c.if !== undefined && c.if !== null && [].concat(c.if).length) chips.push(h('span.chip', {title: 'Open only if'}, 'if ' + flagsToText(c.if)));
+      if (c.default) chips.push(h('span.chip', 'default'));
+      var modeSeg = h('div.seg', {role: 'group', 'aria-label': 'How it is taken'},
+        [['act', 'By an act'], ['scene', 'In the scene'], ['words', 'By words']].map(function (m) {
+          return h('button', {type: 'button', class: mode === m[0] ? 'on' : null, disabled: m[0] === 'scene' && !isScene ? true : null,
+            title: m[0] === 'scene' && !isScene ? 'Only a stage that is a scene (explore) offers choices in the scene.' : null, on: {click: function () {
+              edit(ck + '/mode', function () {
+                if (m[0] === 'act') { delete c.said; c.objective = c.objective || {type: 'talk_to', hero: '{giver}'}; delete c.default; }
+                else if (m[0] === 'scene') { delete c.said; delete c.objective; }
+                else { delete c.objective; delete c.default; c.said = c.said || {to: '{giver}', meaning: ''}; }
+              }, true);
+            }}}, m[1]);
+        }));
+      var body = [
+        h('div.grid',
+          field(ck + '/id', 'Id', 'AuthoredChoice', 'id', textInput(ck + '/id', c.id, function (v) { c.id = v; }, {mono: true})),
+          textField(ck + '/label', 'Label', 'AuthoredChoice', 'label', c),
+          nextField(ck + '/next', 'Leads to', c, 'next', 'AuthoredChoice')),
+        textField(ck + '/journal', 'Journal line', 'AuthoredChoice', 'journal', c, {wide: true}),
+        field(ck + '/mode', 'How it is taken', null, null, modeSeg, {help: mode === 'act' ? 'The first act met wins; the other ways close.'
+          : mode === 'scene' ? 'Listed under the narration; only the narrator\'s marker counts, never the click alone.'
+            : 'Taken when the action interpreter hears the player say what it means, in a conversation with that character.'})
+      ];
+      if (mode === 'act') body.push(objectiveEditor(ck, c, true, false));
+      if (mode === 'words') {
+        var said = lazy(c, 'said');
+        body.push(h('div.grid',
+          selectField(ck + '/said.to', 'Said to', 'AuthoredSaid', 'to', said, list('SpeakingRoles'), {structural: false, empty: said.to ? undefined : '(choose)'}),
+          textField(ck + '/said.meaning', 'Meaning', 'AuthoredSaid', 'meaning', said, {wide: true, multiline: true, short: true,
+            placeholder: 'the player promises to keep silent for a price'})));
+        body.push(h('div', {dataset: {key: ck + '/said'}}, h('div.field-problems')));
+      }
+      body.push(h('div.grid',
+        flagsField(ck + '/if', 'Open only if', 'AuthoredChoice', 'if', c, {placeholder: 'always open'}),
+        flagsField(ck + '/sets', 'Sets flags', 'AuthoredChoice', 'sets', c, {placeholder: 'none'}),
+        mode === 'scene' || c.default ? boolField(ck + '/default', 'The default way out', 'AuthoredChoice', 'default', c, {structural: true}) : null));
+      body.push(h('details', {open: (c.canvas || c.facts || c.knowers) ? true : null},
+        h('summary', {style: 'cursor:pointer;color:var(--text-2);font-weight:600;font-size:12.5px;margin:4px 0 10px'}, 'What is said when this choice is taken'),
+        linesField(ck + '/canvas', 'Canvas', 'AuthoredChoice', 'canvas', c, {single: true}),
+        linesField(ck + '/facts', 'Facts', 'AuthoredChoice', 'facts', c, {add: 'Add a fact'}),
+        knowersField(ck + '/knowers', c, 'AuthoredChoice')));
+      return {title: c.label || c.id || '(no id)', subtitle: c.label && c.id ? c.id : null, chips: chips,
+        chip: mode === 'act' ? 'by an act' + (c.objective && c.objective.type ? ': ' + c.objective.type : '') : mode === 'scene' ? 'in the scene' : 'by words',
+        chipClass: mode, body: body};
+    }, function () {
+      var n = uniqueName('choice', arr(s.choices).map(function (x) { return x && x.id; }));
+      return isScene ? {id: n, label: 'A way out', next: ''} : {id: n, label: 'A way out', objective: {type: 'talk_to', hero: '{giver}'}, next: ''};
+    }, 'Add a choice', {itemKey: function (j) { return key + '/choice:' + j; }, empty: 'No choices: the stage is left by its own objective.'});
+  }
+
+  function moveStage(i, d) {
+    edit('tale/stages', function () { var a = ownStages(); var t = a[i + d]; a[i + d] = a[i]; a[i] = t; }, true);
+    state.sel = {kind: 'stage', index: i + d};
+    render();
+  }
+
+  function duplicateStage(i) {
+    var copy = JSON.parse(V.stringify(stages()[i]));
+    copy.id = uniqueName((copy.id || 'stage') + '_copy', stages().map(function (x) { return x && x.id; })).replace(/_1$/, '');
+    edit('tale/stages', function () { ownStages().splice(i + 1, 0, copy); }, true);
+    state.sel = {kind: 'stage', index: i + 1};
+    render();
+  }
+
+  function deleteStage(i) {
+    var s = stages()[i];
+    if (!confirm('Delete the stage \u2018' + (s && s.id) + '\u2019? Paths leading to it will lead nowhere until you point them elsewhere.')) return;
+    edit('tale/stages', function () { ownStages().splice(i, 1); }, true);
+    state.sel = stages().length ? {kind: 'stage', index: Math.max(0, i - 1)} : {kind: 'tale'};
+    render();
+  }
+
+  function addStage() {
+    var id = uniqueName('stage', stages().map(function (x) { return x && x.id; }));
+    edit('tale/stages', function () { ownStages().push({id: id, objective: {type: 'talk_to', hero: '{giver}'}}); }, true);
+    state.sel = {kind: 'stage', index: stages().length - 1};
+    render();
+  }
+
+  function forEachNext(fn) {
+    stages().forEach(function (s) {
+      if (!s) return;
+      if (s.on_complete && typeof s.on_complete === 'object') fn(s.on_complete, 'next');
+      arr(s.choices).forEach(function (c) { if (c) fn(c, 'next'); });
+    });
+  }
+
+  // ---------- an outcome: the reward, a named ending, the failure ----------
+  function outcomeEditor(kind, name) {
+    var t = tale(), o, key, title, crumb, intro;
+    if (kind === 'reward') { o = lazy(t, 'reward'); key = 'reward'; title = 'The reward'; crumb = 'An ending';
+      intro = 'The single success ending, where a path leads to "reward". Every tale written before endings existed ends here.'; }
+    else if (kind === 'failure') { o = lazy(t, 'failure'); key = 'failure'; title = 'Failure'; crumb = 'When time runs out';
+      intro = 'What the tale leaves when its time runs out before any ending is reached. Without days, the tale never fails on its own.'; }
+    else { o = lazy(ownEndings(), name); key = 'ending:' + name; title = name; crumb = 'A named ending, reached by "end:' + name + '"'; intro = null; }
+
+    var ed = h('div.editor');
+    var tools = kind === 'ending' ? [iconButton('trash', 'Delete this ending', function () {
+      if (!confirm('Delete the ending \u2018' + name + '\u2019? Paths leading to it will lead nowhere.')) return;
+      edit('tale/endings', function () { delete ownEndings()[name]; if (!Object.keys(ownEndings()).length) delete t.endings; }, true);
+      state.sel = {kind: 'tale'};
+      render();
+    }, {danger: true})] : null;
+    ed.appendChild(editorHead(crumb, title, intro, tools));
+    ed.appendChild(itemProblems(key));
+    if (kind === 'ending') {
+      var nameInput = h('input', {type: 'text', class: 'mono', value: name});
+      nameInput.addEventListener('change', function () { renameEnding(name, nameInput.value.trim()); });
+      ed.appendChild(section('Name', null, field(key + '/name', 'Name', null, null, nameInput, {help: 'Paths lead here with "end:' + name + '". Renaming it updates every one of them.'})));
+    }
+    ed.appendChild(section('What it leaves', null, h('div.grid',
+      kind === 'failure' ? numberField(key + '/days', 'Days', 'AuthoredOutcome', 'days', o, {min: 0}) : null,
+      numberField(key + '/regard', 'Regard', 'AuthoredOutcome', 'regard', o),
+      numberField(key + '/gold', 'Gold', 'AuthoredOutcome', 'gold', o, {min: 0}),
+      kind !== 'failure' && o.days !== undefined ? numberField(key + '/days', 'Days (only read on failure)', 'AuthoredOutcome', 'days', o, {min: 0}) : null,
+      textField(key + '/memory', 'The giver remembers', 'AuthoredOutcome', 'memory', o, {multiline: true, short: true, wide: true}),
+      textField(key + '/journal', 'Last journal line', 'AuthoredOutcome', 'journal', o, {wide: true}))));
+    ed.appendChild(section('Consequences', help('AuthoredOutcome', 'consequences'), cardList(key + '/consequences', 'Consequences', null, o, 'consequences', function (c, i, ck) {
+      var used = F.consequenceFields[c.type] || ['who', 'text', 'summary', 'magnitude', 'place', 'if'];
+      var g = h('div.grid', selectField(ck + '/type', 'Type', 'AuthoredConsequence', 'type', c, list('ConsequenceTypes'), {empty: c.type ? undefined : '(choose)'}));
+      if (used.indexOf('who') >= 0) g.appendChild(roleField(ck + '/who', 'Who remembers', 'AuthoredConsequence', 'who', c, {locals: true, placeholder: 'locals_of:{village}'}));
+      if (used.indexOf('magnitude') >= 0) g.appendChild(numberField(ck + '/magnitude', 'How loud', 'AuthoredConsequence', 'magnitude', c, {min: 0, max: 100}));
+      if (used.indexOf('place') >= 0) g.appendChild(roleField(ck + '/place', 'Where', 'AuthoredConsequence', 'place', c, {placeholder: '{village}'}));
+      g.appendChild(flagsField(ck + '/if', 'Only if', 'AuthoredConsequence', 'if', c, {placeholder: 'always'}));
+      var body = [g];
+      if (used.indexOf('text') >= 0) body.push(textField(ck + '/text', 'What they remember', 'AuthoredConsequence', 'text', c, {multiline: true, short: true, wide: true}));
+      if (used.indexOf('summary') >= 0) body.push(textField(ck + '/summary', 'The news', 'AuthoredConsequence', 'summary', c, {multiline: true, short: true, wide: true}));
+      return {title: c.type === 'memory' ? 'A memory for ' + (c.who || '...') : c.type === 'world_event' ? 'News: ' + (c.summary || '...') : (c.type || '(no type)'), chip: c.type, body: body};
+    }, function () { return {type: 'memory', who: 'locals_of:{village}', text: ''}; }, 'Add a consequence')));
+    return ed;
+  }
+
+  function renameEnding(oldName, newName) {
+    if (!newName || newName === oldName) return;
+    if (endings().hasOwnProperty(newName)) { toast('An ending is already called \u2018' + newName + '\u2019.', 'error'); render(); return; }
+    edit('tale/endings', function () {
+      var rebuilt = {};
+      Object.keys(endings()).forEach(function (k) { rebuilt[k === oldName ? newName : k] = endings()[k]; });
+      tale().endings = rebuilt;
+      forEachNext(function (holder, k) { if (holder[k] === 'end:' + oldName) holder[k] = 'end:' + newName; });
+    }, true);
+    state.sel = {kind: 'ending', name: newName};
+    render();
+  }
+
+  function addEnding() {
+    var name = uniqueName('ending', Object.keys(endings()));
+    edit('tale/endings', function () { ownEndings()[name] = {regard: 0, memory: ''}; }, true);
+    state.sel = {kind: 'ending', name: name};
+    render();
+  }
+
+  // ================================================================================================================
+  // The story map
+  // ================================================================================================================
+
+  var view = {x: 40, y: 40, k: 1, fitted: false};
+  var mapDrag = null;
+
+  function mapMouseMove(e) {
+    if (!mapDrag) return;
+    var dx = e.clientX - mapDrag.x, dy = e.clientY - mapDrag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 3) { mapDrag.moved = true; mapDrag.wrap.classList.add('panning'); }
+    view.x = mapDrag.vx + dx;
+    view.y = mapDrag.vy + dy;
+    var root = mapDrag.wrap.querySelector('svg > g');
+    if (root) root.setAttribute('transform', 'translate(' + view.x + ',' + view.y + ') scale(' + view.k + ')');
+  }
+
+  function mapMouseUp() {
+    if (!mapDrag) return;
+    var wrap = mapDrag.wrap;
+    if (mapDrag.moved) { wrap.dataset.dragged = '1'; setTimeout(function () { delete wrap.dataset.dragged; }, 50); }
+    wrap.classList.remove('panning');
+    mapDrag = null;
+  }
+
+  function objectiveSummary(o) {
+    if (!o || !o.type) return 'no objective';
+    switch (o.type) {
+      case 'talk_to': return 'talk to ' + (o.hero || '?');
+      case 'return': return 'return to {giver}';
+      case 'talk_to_locals': return (o.count || 1) + ' locals of ' + (o.place || '?');
+      case 'be_at': return 'be at ' + (o.place || '?');
+      case 'keep_watch': return 'keep watch at ' + (o.place || '?');
+      case 'explore': return 'the scene closes';
+      case 'defeat_party': return 'defeat ' + ((o.spawn && (o.spawn.name || o.spawn.id)) || 'the band');
+      case 'wait': return 'wait ' + (o.days || '?') + ' days';
+      default: return o.type;
+    }
+  }
+
+  function kindLetter(s) {
+    var t = s && s.objective && s.objective.type;
+    if (!t) return s && arr(s.choices).length ? '?' : '-';
+    return {talk_to: 'T', 'return': 'R', talk_to_locals: 'L', be_at: 'B', keep_watch: 'W', explore: 'S', defeat_party: 'F', wait: 'D'}[t] || '?';
+  }
+
+  function graph() {
+    var t = tale(), ss = stages(), ends = endings();
+    var nodes = [], edges = [], byId = {};
+    ss.forEach(function (s, i) {
+      if (!s) return;
+      var n = {key: 's' + i, kind: 'stage', index: i, title: s.id || '(no id)', sub: s.objective ? objectiveSummary(s.objective) : 'choices only', tag: i === 0 ? 'REQUEST' : (s.objective && s.objective.type === 'explore' ? 'SCENE' : null)};
+      nodes.push(n);
+      if (s.id && !(s.id in byId)) byId[s.id] = n;
+    });
+    var endNodes = {};
+    function endingNode(next) {
+      if (endNodes[next]) return endNodes[next];
+      var id = V.endingId(next), n;
+      if (next === 'reward') n = {key: 'reward', kind: 'ending', reward: true, title: 'reward', sub: 'the success ending'};
+      else if (id !== null && ends.hasOwnProperty(id)) n = {key: 'e:' + id, kind: 'ending', named: id, title: id, sub: 'ending'};
+      else n = {key: 'm:' + next, kind: 'missing', title: next || '(nowhere)', sub: 'leads nowhere'};
+      endNodes[next] = n;
+      nodes.push(n);
+      return n;
+    }
+    ss.forEach(function (s, i) {
+      if (!s) return;
+      var from = 's' + i, hasChoices = arr(s.choices).length > 0;
+      function link(next, label, mode, gated) {
+        var to = !blank(next) && byId[next] ? byId[next] : endingNode(blank(next) ? '' : next);
+        edges.push({from: from, to: to.key, label: label, mode: mode, gated: gated, broken: to.kind === 'missing'});
+      }
+      var ownNext = s.on_complete && s.on_complete.next;
+      var sceneLeftByDefault = hasChoices && s.objective && s.objective.type === 'explore' && blank(ownNext);
+      if ((!hasChoices || s.objective) && !sceneLeftByDefault) link(ownNext, objectiveSummary(s.objective), 'own', false);
+      arr(s.choices).forEach(function (c) {
+        if (!c) return;
+        var gated = c.if !== undefined && c.if !== null && [].concat(c.if).length > 0;
+        link(c.next, (gated ? 'if ' + flagsToText(c.if) + ': ' : '') + (c.label || c.id || '?'), modeOf(c), gated);
+      });
+    });
+    Object.keys(ends).forEach(function (k) { endingNode('end:' + k); });
+    var model = {stages: ss, endings: new Map(Object.keys(ends).map(function (k) { return [k, ends[k]]; }))};
+    var a = V.analyzePaths(model);
+    nodes.forEach(function (n) {
+      if (n.kind !== 'stage') return;
+      var s = ss[n.index];
+      n.unreached = s && s.id && !a.reachable.has(s.id) && a.stages.indexOf(s) >= 0;
+      n.dead = s && a.reachable.has(s.id) && !a.canEnd.has(s.id);
+    });
+    var reachedTargets = new Set();
+    edges.forEach(function (e) { var from = nodes.filter(function (n) { return n.key === e.from; })[0]; if (from && !from.unreached) reachedTargets.add(e.to); e.unreached = from && from.unreached; });
+    nodes.forEach(function (n) { if (n.kind !== 'stage') n.unreached = !reachedTargets.has(n.key); });
+    return {nodes: nodes, edges: edges};
+  }
+
+  function layout(g) {
+    var W = 230, H = 66, GX = 210, GY = 64;
+    var byKey = {};
+    g.nodes.forEach(function (n) { byKey[n.key] = n; n.out = []; n.in = []; });
+    g.edges.forEach(function (e) { if (byKey[e.from] && byKey[e.to]) { byKey[e.from].out.push(e); byKey[e.to].in.push(e); } });
+    // Back edges: those closing a loop on the walk from the first stage, drawn as returns.
+    var state2 = {};
+    function dfs(n) {
+      state2[n.key] = 1;
+      n.out.forEach(function (e) {
+        var to = byKey[e.to];
+        if (state2[to.key] === 1) e.back = true;
+        else if (!state2[to.key]) dfs(to);
+      });
+      state2[n.key] = 2;
+    }
+    g.nodes.filter(function (n) { return n.kind === 'stage'; }).forEach(function (n) { if (!state2[n.key]) dfs(n); });
+    g.nodes.forEach(function (n) { if (!state2[n.key]) dfs(n); });
+    // Layers: the longest forward path from a node with no way in.
+    var layer = {};
+    function depth(n, seen) {
+      if (layer[n.key] !== undefined) return layer[n.key];
+      if (seen[n.key]) return 0;
+      seen[n.key] = true;
+      var d = 0;
+      n.in.forEach(function (e) { if (!e.back) d = Math.max(d, depth(byKey[e.from], seen) + 1); });
+      layer[n.key] = d;
+      return d;
+    }
+    g.nodes.forEach(function (n) { depth(n, {}); });
+    var maxStage = 0;
+    g.nodes.forEach(function (n) { if (n.kind === 'stage') maxStage = Math.max(maxStage, layer[n.key]); });
+    g.nodes.forEach(function (n) { if (n.kind !== 'stage') layer[n.key] = Math.max(layer[n.key], n.in.length ? layer[n.key] : maxStage + 1); });
+    var layers = [];
+    g.nodes.forEach(function (n) { (layers[layer[n.key]] = layers[layer[n.key]] || []).push(n); });
+    layers = layers.map(function (l) { return l || []; });
+    layers.forEach(function (l) { l.forEach(function (n, i) { n.order = i; }); });
+    for (var sweep = 0; sweep < 6; sweep++) {
+      var down = sweep % 2 === 0;
+      (down ? layers : layers.slice().reverse()).forEach(function (l) {
+        l.forEach(function (n) {
+          var ref = (down ? n.in.map(function (e) { return byKey[e.from]; }) : n.out.map(function (e) { return byKey[e.to]; })).filter(function (m) { return m && m !== n; });
+          n.bary = ref.length ? ref.reduce(function (s, m) { return s + m.order; }, 0) / ref.length : n.order;
+        });
+        l.sort(function (a, b) { return a.bary - b.bary; });
+        l.forEach(function (n, i) { n.order = i; });
+      });
+    }
+    var tallest = Math.max.apply(null, layers.map(function (l) { return l.length; }).concat([1]));
+    layers.forEach(function (l, li) {
+      var offset = (tallest - l.length) * (H + GY) / 2;
+      l.forEach(function (n, i) { n.x = li * (W + GX); n.y = offset + i * (H + GY); n.w = W; n.h = H; });
+    });
+    return {width: layers.length * (W + GX), height: tallest * (H + GY), byKey: byKey};
+  }
+
+  function svgEl(tag, attrs, text) {
+    var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    Object.keys(attrs || {}).forEach(function (k) { el.setAttribute(k, attrs[k]); });
+    if (text !== undefined) el.textContent = text;
+    return el;
+  }
+
+  function clip(s, n) { s = String(s); return s.length > n ? s.substring(0, n - 1) + '\u2026' : s; }
+
+  function renderMap() {
+    var body = $('tabBody');
+    var wrap = body.querySelector('.map-wrap');
+    if (!wrap) return;
+    var svg = wrap.querySelector('svg');
+    svg.textContent = '';
+    var g = graph(), L = layout(g);
+    var defs = svgEl('defs');
+    ['act', 'scene', 'words', 'own', 'broken'].forEach(function (m) {
+      var marker = svgEl('marker', {id: 'arrow-' + m, viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '7', markerHeight: '7', orient: 'auto-start-reverse'});
+      marker.appendChild(svgEl('path', {d: 'M0 0L10 5L0 10z', class: 'arrow-' + m, style: 'fill:' + ({act: 'var(--accent)', scene: 'var(--info)', words: 'var(--ok)', own: 'var(--text-3)', broken: 'var(--danger)'})[m]}));
+      defs.appendChild(marker);
+    });
+    svg.appendChild(defs);
+    var root = svgEl('g', {transform: 'translate(' + view.x + ',' + view.y + ') scale(' + view.k + ')'});
+    svg.appendChild(root);
+    var edgeLayer = svgEl('g'), labelLayer = svgEl('g'), nodeLayer = svgEl('g');
+    root.appendChild(edgeLayer);
+    root.appendChild(nodeLayer);
+    root.appendChild(labelLayer);
+
+    var spread = {};
+    g.edges.forEach(function (e) {
+      var a = L.byKey[e.from], b = L.byKey[e.to];
+      if (!a || !b) return;
+      var cls = 'edge ' + (e.broken ? 'broken' : e.mode === 'own' ? '' : e.mode) + (e.unreached ? ' unreached' : '');
+      var marker = 'url(#arrow-' + (e.broken ? 'broken' : e.mode) + ')';
+      var k = e.from + '>' + e.to;
+      spread[k] = (spread[k] || 0) + 1;
+      var bend = (spread[k] - 1) * 18;
+      var d, lx, ly;
+      if (e.back || b.x <= a.x) {
+        var x1 = a.x + a.w / 2, y1 = a.y + a.h, x2 = b.x + b.w / 2, y2 = b.y + b.h, drop = 60 + bend + Math.abs(a.x - b.x) * 0.08;
+        var low = Math.max(y1, y2) + drop;
+        d = 'M' + x1 + ' ' + y1 + ' C' + x1 + ' ' + low + ' ' + x2 + ' ' + low + ' ' + x2 + ' ' + (y2 + 2);
+        lx = (x1 + x2) / 2; ly = low - 6;
+      } else {
+        // Each way out leaves its stage at its own height, in the order of where it leads, so their labels never stack.
+        var outs = a.out.filter(function (o) { return !o.back && L.byKey[o.to] && L.byKey[o.to].x > a.x; })
+          .sort(function (p, q) { return L.byKey[p.to].y - L.byKey[q.to].y; });
+        var slot = Math.max(0, outs.indexOf(e));
+        var sx = a.x + a.w, sy = a.y + a.h * (slot + 1) / (outs.length + 1), tx = b.x, ty = b.y + b.h / 2;
+        var mx = (sx + tx) / 2;
+        d = 'M' + sx + ' ' + sy + ' C' + mx + ' ' + sy + ' ' + mx + ' ' + ty + ' ' + (tx - 2) + ' ' + ty;
+        var tt = 0.5, u = 1 - tt;
+        lx = u * u * u * sx + 3 * u * u * tt * mx + 3 * u * tt * tt * mx + tt * tt * tt * tx;
+        ly = u * u * u * sy + 3 * u * u * tt * sy + 3 * u * tt * tt * ty + tt * tt * tt * ty;
+      }
+      edgeLayer.appendChild(svgEl('path', {d: d, class: cls, 'marker-end': marker}));
+      if (e.label) {
+        var lg = svgEl('g', {class: 'edge-label' + (e.gated ? ' gated' : '')});
+        var text = svgEl('text', {x: lx, y: ly + 4, 'text-anchor': 'middle'}, clip(e.label, 28));
+        lg.appendChild(svgEl('title', {}, e.label));
+        lg.appendChild(text);
+        labelLayer.appendChild(lg);
+        var width = Math.min(28, e.label.length) * 6.2 + 14;
+        lg.insertBefore(svgEl('rect', {x: lx - width / 2, y: ly - 9, width: width, height: 18, rx: 9}), text);
+      }
+    });
+
+    g.nodes.forEach(function (n) {
+      var selected = (n.kind === 'stage' && state.sel.kind === 'stage' && state.sel.index === n.index)
+        || (n.reward && state.sel.kind === 'reward') || (n.named && state.sel.kind === 'ending' && state.sel.name === n.named);
+      var cls = 'node ' + n.kind + (n.index === 0 && n.kind === 'stage' ? ' first' : '') + (n.reward ? ' reward' : '') + (n.named ? ' named' : '')
+        + (n.dead ? ' dead' : '') + (n.unreached ? ' unreached' : '') + (selected ? ' selected' : '');
+      var ng = svgEl('g', {class: cls, transform: 'translate(' + n.x + ',' + n.y + ')', tabindex: '0', role: 'button'});
+      ng.appendChild(svgEl('title', {}, n.title + (n.dead ? ': can never reach an ending' : n.unreached ? ': never reached' : n.kind === 'missing' ? ': no stage or ending has this name' : '')));
+      ng.appendChild(svgEl('rect', {width: n.w, height: n.h, rx: n.kind === 'stage' ? 10 : 33}));
+      if (n.tag) ng.appendChild(svgEl('text', {x: 14, y: 17, class: 'tag'}, n.tag));
+      ng.appendChild(svgEl('text', {x: 14, y: n.tag ? 37 : 30}, clip(n.title, 28)));
+      ng.appendChild(svgEl('text', {x: 14, y: n.tag ? 54 : 48, class: 'sub'}, clip(n.dead ? 'never reaches an ending' : n.sub, 34)));
+      function open() {
+        if (n.kind === 'stage') state.sel = {kind: 'stage', index: n.index};
+        else if (n.reward) state.sel = {kind: 'reward'};
+        else if (n.named) state.sel = {kind: 'ending', name: n.named};
+        else return;
+        state.tab = 'edit';
+        render();
+      }
+      ng.addEventListener('click', function (ev) { if (!wrap.dataset.dragged) open(); });
+      ng.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(); } });
+      nodeLayer.appendChild(ng);
+    });
+
+    if (!view.fitted) { fit(L, wrap); view.fitted = true; root.setAttribute('transform', 'translate(' + view.x + ',' + view.y + ') scale(' + view.k + ')'); }
+    wrap._layout = L;
+  }
+
+  /** Fits the map to the window, never below a readable size: a long tale starts at its request, the rest a drag away. */
+  function fit(L, wrap) {
+    var r = wrap.getBoundingClientRect();
+    var k = Math.min((r.width - 80) / Math.max(1, L.width), (r.height - 160) / Math.max(1, L.height + 80));
+    view.k = Math.min(1.1, Math.max(0.62, k));
+    var w = L.width * view.k, hgt = (L.height + 60) * view.k;
+    view.x = w + 60 < r.width ? (r.width - w) / 2 + 40 * view.k : 40;
+    view.y = hgt + 60 < r.height ? (r.height - hgt) / 2 : 60;
+  }
+
+  function mapTab() {
+    var wrap = h('div.map-wrap', {tabindex: '-1'});
+    var svg = svgEl('svg', {role: 'img', 'aria-label': 'The story as a map: stages, endings and the ways between them'});
+    wrap.appendChild(svg);
+    function zoom(f, cx, cy) {
+      var r = wrap.getBoundingClientRect();
+      cx = cx === undefined ? r.width / 2 : cx; cy = cy === undefined ? r.height / 2 : cy;
+      var k = Math.min(2.5, Math.max(0.2, view.k * f));
+      view.x = cx - (cx - view.x) * (k / view.k);
+      view.y = cy - (cy - view.y) * (k / view.k);
+      view.k = k;
+      renderMap();
+    }
+    wrap.appendChild(h('div.map-tools',
+      h('button.btn.small', {type: 'button', on: {click: function () { view.fitted = false; renderMap(); }}}, icon('fit'), 'Fit'),
+      iconButton('zoomin', 'Zoom in', function () { zoom(1.2); }),
+      iconButton('zoomout', 'Zoom out', function () { zoom(1 / 1.2); })));
+    wrap.appendChild(h('div.legend',
+      h('div', h('i'), 'a stage completed by its own objective'),
+      h('div', h('i.act'), 'a choice taken by an act'),
+      h('div', h('i.scene'), 'a choice made in a scene'),
+      h('div', h('i.words'), 'a choice taken by words'),
+      h('div', h('i.broken'), 'a path that leads nowhere'),
+      h('div', {style: 'color:var(--text-3)'}, 'Red border: can never reach an ending. Faded: never reached.')));
+    wrap.addEventListener('mousedown', function (e) {
+      if (e.button !== 0 || e.target.closest('.map-tools') || e.target.closest('.legend')) return;
+      mapDrag = {wrap: wrap, x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false};
+      delete wrap.dataset.dragged;
+    });
+    wrap.addEventListener('wheel', function (e) { e.preventDefault(); var r = wrap.getBoundingClientRect(); zoom(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top); }, {passive: false});
+    setTimeout(renderMap, 0);
+    return wrap;
+  }
+
+  // ================================================================================================================
+  // The page
+  // ================================================================================================================
+
+  function renderTop() {
+    var name = $('docName');
+    name.textContent = '';
+    if (state.doc || state.raw !== null) {
+      name.appendChild(document.createTextNode(state.fileName || 'unsaved tale'));
+      if (state.dirty) name.appendChild(h('span.dirty', {title: 'Changed since it was opened or saved'}, '\u25cf'));
+    }
+    $('undoBtn').disabled = !state.undo.length;
+    $('redoBtn').disabled = !state.redo.length;
+    $('saveBtn').disabled = !state.doc;
+    document.title = (state.dirty ? '\u25cf ' : '') + (state.fileName ? state.fileName + ' - ' : '') + 'Tale Editor';
+  }
+
+  var renderSidebarSoon = debounce(function () { renderSidebar(); }, 120);
+
+  function outlineItem(kind, label, sub, sel, active, key, letter, tools) {
+    var probs = problemsUnder(key);
+    var b = probs.filter(function (p) { return p.blocking; }).length, c = probs.length - b;
+    var btn = h('button.outline-item', {type: 'button', class: active ? 'active' : null, 'aria-current': active ? 'true' : null, on: {click: function () { state.sel = sel; state.tab = state.tab === 'json' ? 'edit' : state.tab; render(); $('tabBody').scrollTop = 0; }}},
+      h('span.kind', letter), h('span.label', label, sub ? h('div.sub', sub) : null),
+      b ? h('span.badge.blocking', {title: b + ' blocking'}, b) : c ? h('span.badge.cosmetic', {title: c + ' to look at'}, c) : null);
+    return h('li.outline-row', btn, tools ? h('div.row-tools', tools) : null);
+  }
+
+  function renderSidebar() {
+    var side = $('sidebar');
+    side.textContent = '';
+    if (!state.doc) {
+      side.appendChild(h('div.side-title', 'Tale'));
+      side.appendChild(h('p.empty-note', {style: 'padding:0 8px'}, state.raw !== null ? 'The file cannot be read yet. Mend it in the middle, then press "Read it again".' : 'Start a tale, open a file, or import a Twine story.'));
+      return;
+    }
+    var t = tale();
+    if (state.doc.tales.length > 1 || state.doc.asList) {
+      side.appendChild(h('div.side-title', 'This file holds ' + state.doc.tales.length + ' tale' + (state.doc.tales.length > 1 ? 's' : '')));
+      var pick = h('select', {'aria-label': 'Which tale'}, state.doc.tales.map(function (x, i) { return h('option', {value: String(i)}, (x.title || x.id || 'tale ' + (i + 1))); }));
+      pick.value = String(state.tale);
+      pick.addEventListener('change', function () { state.tale = parseInt(pick.value, 10); state.sel = {kind: 'tale'}; render(); });
+      side.appendChild(h('div.tale-picker', pick,
+        iconButton('plus', 'Add a tale to this file', function () { edit('doc', function () { state.doc.asList = true; state.doc.tales.push(blankTale()); state.tale = state.doc.tales.length - 1; state.sel = {kind: 'tale'}; }, true); }),
+        state.doc.tales.length > 1 ? iconButton('trash', 'Remove this tale from the file', function () {
+          if (!confirm('Remove \u2018' + (t.title || t.id) + '\u2019 from this file?')) return;
+          edit('doc', function () { state.doc.tales.splice(state.tale, 1); state.tale = 0; state.sel = {kind: 'tale'}; }, true);
+        }, {danger: true}) : null));
+    }
+    var top = h('ul.outline');
+    top.appendChild(outlineItem('tale', t.title || t.id || 'Untitled tale', 'header, who gives it, roles', {kind: 'tale'}, state.sel.kind === 'tale', 'tale', '\u2605'));
+    side.appendChild(top);
+
+    side.appendChild(h('div.side-title', 'Stages', iconButton('plus', 'Add a stage', addStage)));
+    var st = h('ul.outline');
+    stages().forEach(function (s, i) {
+      st.appendChild(outlineItem('stage', (s && s.id) || '(no id)', i === 0 ? 'the request' : (s && s.objective ? objectiveSummary(s.objective) : arr(s && s.choices).length + (arr(s && s.choices).length === 1 ? ' choice' : ' choices')),
+        {kind: 'stage', index: i}, state.sel.kind === 'stage' && state.sel.index === i, 'stage:' + i, kindLetter(s),
+        [iconButton('up', 'Move up', function () { moveStage(i, -1); }, {disabled: i === 0}), iconButton('down', 'Move down', function () { moveStage(i, 1); }, {disabled: i === stages().length - 1})]));
+    });
+    side.appendChild(st);
+
+    side.appendChild(h('div.side-title', 'Endings', iconButton('plus', 'Add a named ending', addEnding)));
+    var en = h('ul.outline');
+    en.appendChild(outlineItem('reward', 'reward', 'the single success ending', {kind: 'reward'}, state.sel.kind === 'reward', 'reward', '\u2713'));
+    Object.keys(endings()).forEach(function (k) {
+      en.appendChild(outlineItem('ending', k, 'end:' + k, {kind: 'ending', name: k}, state.sel.kind === 'ending' && state.sel.name === k, 'ending:' + k, 'E'));
+    });
+    en.appendChild(outlineItem('failure', 'failure', t.failure && t.failure.days ? 'after ' + t.failure.days + ' days' : 'no time limit', {kind: 'failure'}, state.sel.kind === 'failure', 'failure', '\u23f1'));
+    side.appendChild(en);
+    var flagNames = collectFlags();
+    if (flagNames.length) {
+      side.appendChild(h('div.side-title', 'Flags'));
+      side.appendChild(h('div.chips', {style: 'padding: 0 8px'}, flagNames.map(function (f) { return h('span.chip', f); })));
+    }
+  }
+
+  function collectFlags() {
+    var names = [];
+    function add(list) { [].concat(list === undefined || list === null ? [] : list).forEach(function (f) { var n = String(f).replace(/^!+/, '').trim(); if (n && names.indexOf(n) < 0) names.push(n); }); }
+    stages().forEach(function (s) {
+      if (!s) return;
+      arr(s.choices).forEach(function (c) { if (c) { add(c.sets); add(c.if); } });
+      var sc = s.objective && s.objective.scene;
+      if (sc) { arr(sc.findings).forEach(function (f) { if (f) add(f.sets); }); arr(sc.encounters).forEach(function (e) { if (e) add(e.sets); }); }
+    });
+    return names;
+  }
+
+  function renderChecks() {
+    var box = $('checks');
+    box.textContent = '';
+    if (!state.doc && state.raw === null) {
+      box.appendChild(h('div.side-title', 'Checks'));
+      box.appendChild(h('p.empty-note', 'The game\'s own checks appear here, live, as you write.'));
+      return;
+    }
+    var mine = state.problems;
+    var blocking = mine.filter(function (p) { return p.blocking; }), cosmetic = mine.filter(function (p) { return !p.blocking; });
+    box.appendChild(h('div.side-title', 'Checks', h('span', {style: 'text-transform:none;letter-spacing:0;font-weight:500'}, 'the game\'s own')));
+    if (blocking.length) box.appendChild(h('div.verdict.bad', h('strong', 'The game would refuse this file'), h('span', blocking.length + ' blocking problem' + (blocking.length > 1 ? 's' : '') + (cosmetic.length ? ', and ' + cosmetic.length + ' more to look at.' : '.'))));
+    else if (cosmetic.length) box.appendChild(h('div.verdict.warn', h('strong', 'The game would load it'), h('span', cosmetic.length + ' thing' + (cosmetic.length > 1 ? 's' : '') + ' to look at, which the game would only report.')));
+    else box.appendChild(h('div.verdict.ok', h('strong', 'The game would load it as it is'), h('span', 'Nothing to report.')));
+
+    if (state.notes) {
+      box.appendChild(h('div.notes', h('h3', icon('info'), 'Import notes', h('span.spacer'), iconButton('close', 'Dismiss the notes', function () { state.notes = null; renderChecks(); })),
+        h('p.help', {style: 'margin:0 0 6px'}, 'From ' + state.notes.from + '. What the import could not map, or had to choose:'),
+        h('ul', state.notes.lines.map(function (n) { return h('li', n); }))));
+    }
+
+    function group(title, items, cls) {
+      if (!items.length) return;
+      var g = h('div.problem-group', h('h3', title, h('span.badge', {class: cls}, items.length)));
+      items.forEach(function (p) {
+        g.appendChild(h('button.problem', {type: 'button', class: cls, on: {click: function () { if (state.doc) goTo(p); else highlightRaw(p); }}},
+          h('span.where', where(p)), p.message));
+      });
+      box.appendChild(g);
+    }
+    group('Blocking: the tale is not loaded', blocking, 'blocking');
+    group('To look at: the tale still loads', cosmetic, 'cosmetic');
+  }
+
+  function where(p) {
+    if (!state.doc) return 'the file';
+    var t = state.doc.tales[p.tale >= 0 ? p.tale : state.tale] || {};
+    var prefix = state.doc.tales.length > 1 ? (t.title || t.id) + ' / ' : '', m;
+    if ((m = /^stage:(\d+)(?:\/choice:(\d+))?/.exec(p.key))) {
+      var s = (t.stages || [])[parseInt(m[1], 10)] || {};
+      var c = m[2] !== undefined ? arr(s.choices)[parseInt(m[2], 10)] : null;
+      return prefix + 'stage ' + (s.id || '?') + (c ? ' / choice ' + (c.id || '?') : '');
+    }
+    if ((m = /^ending:([^/]*)/.exec(p.key))) return prefix + 'ending ' + m[1];
+    if (/^reward/.test(p.key)) return prefix + 'reward';
+    if (/^failure/.test(p.key)) return prefix + 'failure';
+    return prefix + 'the tale';
+  }
+
+  function highlightRaw(p) { var ta = document.querySelector('.raw-edit textarea'); if (ta) ta.focus(); }
+
+  function renderMain() {
+    pending = [];
+    var body = $('tabBody');
+    body.textContent = '';
+    var tabs = $('tabs');
+    tabs.textContent = '';
+    if (!state.doc && state.raw === null) { body.appendChild(welcome()); tabs.style.display = 'none'; return; }
+    tabs.style.display = '';
+    if (!state.doc) {
+      tabs.appendChild(h('button.tab.active', {type: 'button'}, 'Mend the file'));
+      body.appendChild(rawEditor(state.raw, 'The game cannot read this file: it is not valid JSON as the game reads it (see the check on the right). Mend it here, then read it again.'));
+      return;
+    }
+    [['edit', 'Edit'], ['map', 'Story map'], ['json', 'JSON']].forEach(function (t) {
+      tabs.appendChild(h('button.tab', {type: 'button', role: 'tab', 'aria-selected': state.tab === t[0] ? 'true' : 'false', class: state.tab === t[0] ? 'active' : null,
+        on: {click: function () { state.tab = t[0]; if (t[0] === 'map') view.fitted = false; render(); }}}, t[1]));
+    });
+    if (state.tab === 'map') { body.style.overflow = 'hidden'; body.appendChild(mapTab()); return; }
+    body.style.overflow = '';
+    if (state.tab === 'json') {
+      var text = docText();
+      tabs.appendChild(h('div.tab-tools',
+        h('button.btn.small', {type: 'button', on: {click: function () { copy(text); }}}, icon('copy'), 'Copy'),
+        h('button.btn.small', {type: 'button', on: {click: function () { state.tab = 'text'; render(); }}}, 'Edit as text')));
+      body.appendChild(h('pre.json-view', text));
+      return;
+    }
+    if (state.tab === 'text') {
+      tabs.appendChild(h('div.tab-tools', h('button.btn.small', {type: 'button', on: {click: function () { state.tab = 'json'; render(); }}}, 'Back')));
+      body.appendChild(rawEditor(docText(), 'The file as text. Change anything, then read it again: the forms and the checks follow.'));
+      return;
+    }
+    var sel = state.sel, ed;
+    if (sel.kind === 'stage' && stages()[sel.index] !== undefined) ed = stageEditor(sel.index);
+    else if (sel.kind === 'ending' && endings().hasOwnProperty(sel.name)) ed = outcomeEditor('ending', sel.name);
+    else if (sel.kind === 'reward') ed = outcomeEditor('reward');
+    else if (sel.kind === 'failure') ed = outcomeEditor('failure');
+    else { state.sel = {kind: 'tale'}; ed = taleEditor(); }
+    body.appendChild(ed);
+    wireRenames(ed);
+  }
+
+  /** A stage's id, once edited and left, carries every path that led to the old one along with it. */
+  function wireRenames(ed) {
+    if (state.sel.kind !== 'stage') return;
+    var s = stages()[state.sel.index];
+    var input = ed.querySelector('[data-key="stage:' + state.sel.index + '/id"] input');
+    if (!input || !s) return;
+    var before = s.id;
+    input.addEventListener('focus', function () { before = s.id; });
+    input.addEventListener('change', function () {
+      var now = s.id;
+      if (blank(before) || now === before) return;
+      var others = stages().filter(function (x) { return x !== s && x && x.id === before; }).length;
+      if (others) return;
+      var count = 0;
+      forEachNext(function (holder, k) { if (holder[k] === before) { holder[k] = now; count++; } });
+      if (count) { toast(count + ' path' + (count > 1 ? 's' : '') + ' now lead' + (count > 1 ? '' : 's') + ' to \u2018' + now + '\u2019.'); render(); }
+      before = now;
+    });
+  }
+
+  function rawEditor(text, intro) {
+    var ta = h('textarea', {spellcheck: 'false', 'aria-label': 'The file as text'});
+    ta.value = text;
+    ta.addEventListener('input', function () { if (!state.doc) { state.raw = ta.value; scheduleChecks(); } });
+    return h('div.raw-edit', h('p.help', {style: 'margin:0'}, intro), ta,
+      h('div.toolbar', h('button.btn.primary', {type: 'button', on: {click: function () {
+        var doc;
+        try { doc = V.toDocument(ta.value); }
+        catch (e) { if (e instanceof V.ReadError) { toast('The game still cannot read it: ' + e.message, 'error'); if (!state.doc) { state.raw = ta.value; check(); } return; } throw e; }
+        if (!doc.tales.length) { toast('The text holds no tale.', 'error'); return; }
+        if (state.doc) snapshot();
+        var keepName = state.fileName;
+        state.doc = doc; state.raw = null; state.fileName = keepName; state.tab = 'edit'; state.tale = Math.min(state.tale, doc.tales.length - 1); state.dirty = true;
+        render();
+        toast('Read again.');
+      }}}, 'Read it again')));
+  }
+
+  function copy(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast('Copied.'); }, function () { toast('Could not copy.', 'error'); });
+  }
+
+  function welcome() {
+    var draft = null;
+    try { draft = JSON.parse(recall(DRAFT_KEY) || 'null'); } catch (e) { draft = null; }
+    function startCard(glyph, title, text, onClick) {
+      return h('button.start', {type: 'button', on: {click: onClick}}, h('span.glyph', glyph), h('strong', title), h('span', text));
+    }
+    return h('div.welcome',
+      h('h1', 'Write a tale for Calradia Remembers'),
+      h('p.lead', 'A tale is a quest in stages: offered by a character, told to the people who know of it, and checked by the game at every step. It can branch: a stage may offer choices, and the story ends one of several ways. You write the story; the game decides what counts.'),
+      h('div.starts',
+        startCard('+', 'A blank tale', 'One stage and a reward, ready to grow.', function () { start({tales: [blankTale()], asList: false}, null, null); }),
+        startCard('W', 'From the werewolf', 'The tale that ships with the mod: watch, a scene in the wood, a band to hunt.', function () { start(V.toDocument(WEREWOLF), 'wolf_of_the_wood.json', null); }),
+        startCard('\u21e7', 'Open a quest file', 'A .json file with one tale or a list of them.', function () { $('openFile').click(); }),
+        startCard('~', 'Import a Twine story', 'A published Twine 2 story (.html) or a Twee file (.twee).', function () { $('twineFile').click(); }),
+        draft ? startCard('\u21ba', 'Your last session', (draft.fileName || 'an unsaved tale') + ', kept in this browser.', function () { start(V.toDocument(draft.text), draft.fileName, null); state.dirty = true; renderTop(); }) : null),
+      h('p.drop-hint', 'You can also drop a file anywhere on this page. Nothing leaves your computer: the editor works offline and saves only the file you ask it to.'));
+  }
+
+  function render() {
+    renderTop();
+    renderSidebar();
+    renderMain();
+    check();
+  }
+
+  // ================================================================================================================
+  // Wiring
+  // ================================================================================================================
+
+  function applyTheme(theme) {
+    if (theme) document.documentElement.setAttribute('data-theme', theme); else document.documentElement.removeAttribute('data-theme');
+    var dark = theme ? theme === 'dark' : !window.matchMedia('(prefers-color-scheme: light)').matches;
+    var btn = $('themeBtn');
+    btn.textContent = '';
+    btn.appendChild(icon(dark ? 'sun' : 'moon'));
+    btn.title = dark ? 'Use the light theme' : 'Use the dark theme';
+  }
+
+  function wire() {
+    $('newBtn').addEventListener('click', function (e) { e.stopPropagation(); var m = $('newMenu'); m.hidden = !m.hidden; });
+    document.addEventListener('click', function () { $('newMenu').hidden = true; });
+    $('newBlank').addEventListener('click', function () { if (confirmLeave()) start({tales: [blankTale()], asList: false}, null, null); });
+    $('newWolf').addEventListener('click', function () { if (confirmLeave()) start(V.toDocument(WEREWOLF), 'wolf_of_the_wood.json', null); });
+    $('openBtn').addEventListener('click', function () { if (confirmLeave()) $('openFile').click(); });
+    $('twineBtn').addEventListener('click', function () { if (confirmLeave()) $('twineFile').click(); });
+    $('openFile').addEventListener('change', function (e) { var f = e.target.files[0]; if (f) openChosen(f); e.target.value = ''; });
+    $('twineFile').addEventListener('change', function (e) { var f = e.target.files[0]; if (f) readFile(f, importTwine); e.target.value = ''; });
+    $('saveBtn').addEventListener('click', save);
+    $('undoBtn').addEventListener('click', undo);
+    $('redoBtn').addEventListener('click', redo);
+    $('themeBtn').addEventListener('click', function () {
+      var current = document.documentElement.getAttribute('data-theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      var next = current === 'dark' ? 'light' : 'dark';
+      store(THEME_KEY, next);
+      applyTheme(next);
+    });
+    applyTheme(recall(THEME_KEY));
+
+    document.addEventListener('keydown', function (e) {
+      var mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+      var k = e.key.toLowerCase();
+      var typing = /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '');
+      if (k === 's') { e.preventDefault(); save(); }
+      else if (k === 'o') { e.preventDefault(); if (confirmLeave()) $('openFile').click(); }
+      else if (k === 'z' && !e.shiftKey && !typing) { e.preventDefault(); undo(); }
+      else if ((k === 'y' || (k === 'z' && e.shiftKey)) && !typing) { e.preventDefault(); redo(); }
+    });
+
+    var overlay = $('dropOverlay'), depth = 0;
+    document.addEventListener('dragenter', function (e) { if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0) { depth++; overlay.classList.add('on'); } });
+    document.addEventListener('dragleave', function () { depth = Math.max(0, depth - 1); if (!depth) overlay.classList.remove('on'); });
+    document.addEventListener('dragover', function (e) { e.preventDefault(); });
+    document.addEventListener('drop', function (e) {
+      e.preventDefault(); depth = 0; overlay.classList.remove('on');
+      var f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f && confirmLeave()) openChosen(f);
+    });
+    window.addEventListener('beforeunload', function (e) { if (state.dirty) { e.preventDefault(); e.returnValue = ''; } });
+    window.addEventListener('resize', debounce(function () { if (state.tab === 'map') renderMap(); }, 150));
+    window.addEventListener('mousemove', mapMouseMove);
+    window.addEventListener('mouseup', mapMouseUp);
+  }
+
+  function confirmLeave() {
+    return !state.dirty || confirm('The tale has changes you have not saved. Leave them? (Your last session stays in this browser.)');
+  }
+
+  wire();
+  render();
+})();
 </script>
 </body>
 </html>

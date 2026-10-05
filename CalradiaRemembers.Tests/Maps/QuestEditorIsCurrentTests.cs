@@ -48,5 +48,30 @@ namespace CalradiaRemembers.Tests.Maps
          Assert.That(embedded.Replace("\r\n", "\n"), Is.EqualTo(fresh),
             $"The schema inside {QuestSchemaMap.EditorPath} no longer matches the model. Regenerate with Tools/Update-Maps.ps1 and commit the editor with the change.");
       }
+
+      // "Start from the werewolf as a template" (goal): the template inside the editor is the werewolf CR ships, so an
+      // author never starts from a stale copy.
+      [Test]
+      public void GIVEN_the_werewolf_that_ships_WHEN_the_editor_offers_it_as_a_template_THEN_it_is_the_same_tale()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}.");
+
+         const string start = "<script id=\"template-werewolf\" type=\"application/json\">";
+         string path = System.IO.Path.Combine(SourceTree.ModRepo!, QuestSchemaMap.EditorPath.Replace('/', System.IO.Path.DirectorySeparatorChar));
+         string shipped = File.ReadAllText(System.IO.Path.Combine(SourceTree.ModRepo!, "CalradiaRemembers", "ModuleData", "Quests", "wolf_of_the_wood.json")).Replace("\r\n", "\n").TrimEnd('\n');
+         string html = File.ReadAllText(path);
+         int from = html.IndexOf(start, StringComparison.Ordinal) + start.Length;
+         int to = html.IndexOf(QuestSchemaMap.EmbedEnd, from, StringComparison.Ordinal);
+         string embedded = html.Substring(from, to - from).Replace("\r\n", "\n").Trim('\n');
+
+         if (Environment.GetEnvironmentVariable(ApprovedMap.UpdateVariable) == "1")
+         {
+            if (embedded != shipped) File.WriteAllText(path, html.Substring(0, from) + "\n" + shipped + "\n" + html.Substring(to));
+
+            return;
+         }
+
+         Assert.That(embedded, Is.EqualTo(shipped), "The werewolf inside the editor is not the one CR ships. Regenerate with Tools/Update-Maps.ps1.");
+      }
    }
 }
