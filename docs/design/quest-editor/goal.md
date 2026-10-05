@@ -76,9 +76,19 @@ So there are two halves, and you build both:
     SDK interpreter prompt: run the FULL SDK suite (`dotnet test NpcMemoryServiceTests` in `LLM Roleplay Service`),
     and respect the hard budget guarded by `LeanPromptPolicyTests`. If this part cannot be done safely, leave it out,
     and say so plainly in your report.
-- **Scene buttons.** In the exploration chat, show the open choices as clickable buttons under the narration (a click
-  sends the label as the player's line), while free typing still works. Both skins: the Classic chat prefab
-  (`CalradiaRemembersChat.xml`) and the Manuscript one (`CalradiaRemembersChat_Manuscript.xml`).
+- **Choices shown like a numbered menu** (Gabriel, 04/10/2026: "like an LLM does in the CLI: Choice 1, Choice 2, Chat
+  about that"). Under the narration, the open choices appear as a numbered, clickable list:
+  ```
+  1. Take the left path
+  2. Take the right path
+  3. Something else...
+  ```
+  A click on a choice sends its label as the player's line; the narrator tells it and writes the marker, and only the
+  marker counts (the game, not the click, decides). Typing the number alone ("1") in the input is the same as clicking
+  it. The last line, "Something else...", puts the cursor in the input: the player writes freely and the scene goes on
+  as today. Closed choices (an `if` not met) are not listed. The list disappears once a choice is taken or the player
+  writes freely, and comes back under the next narration if choices are still open. Both skins: the Classic chat
+  prefab (`CalradiaRemembersChat.xml`) and the Manuscript one (`CalradiaRemembersChat_Manuscript.xml`).
 - **Endings.** `"next": "end:<id>"` leads to a named ending in a new `"endings": { "<id>": {...} }` map, each shaped like
   today's `reward` (regard, gold, memory, consequences). `"reward"` stays valid and means the single success ending, so
   every existing file still loads unchanged. `failure` stays the time-out.
@@ -101,7 +111,8 @@ Test first, in pure Logic, then the engine. Suggested increments, each committed
 1. Model + loader + checks for choices, endings, flags (tests with the stake of each rule).
 2. Engine: choices by act (including `wait`), flags, endings; journal lines; run serialization old and new.
 3. Prompts: what the narrator and characters are told of choices and flags (never the future, never a closed choice).
-4. Scenes: `[[choice:id]]` in `SceneMarkers`, the scene closing onto the chosen path, the buttons in both skins.
+4. Scenes: `[[choice:id]]` in `SceneMarkers`, the scene closing onto the chosen path, the numbered choice list in both
+   skins (a pure Logic piece decides what the list holds and what a typed "1" means; test it first).
 5. Rewrite `docs/design/quests/smoke_over_the_hills.json` with its three outcomes (expose to the lord, confront the
    rival, keep silent) as the worked example; and a small branching tale of your own in the werewolf's spirit (a turn
    left or right in a scene) to exercise scene choices. Both stay in `docs/design/quests/` for Gabriel to review; do
