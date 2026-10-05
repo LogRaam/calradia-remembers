@@ -49,8 +49,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          if (speaksTheStage)
          {
-            if (!string.IsNullOrWhiteSpace(stage.Canvas)) sb.AppendLine("This moment: " + AuthoredQuestEngine.Fill(run, stage.Canvas));
-            foreach (string f in stage.Facts ?? new List<string>()) sb.AppendLine("Fact: " + AuthoredQuestEngine.Fill(run, f));
+            string canvas = string.Join(" ", AuthoredFlags.Said(stage.Canvas, run.Flags));
+            if (!string.IsNullOrWhiteSpace(canvas)) sb.AppendLine("This moment: " + AuthoredQuestEngine.Fill(run, canvas));
+            foreach (string f in AuthoredFlags.Said(stage.Facts, run.Flags)) sb.AppendLine("Fact: " + AuthoredQuestEngine.Fill(run, f));
             if (offering) sb.AppendLine("You raise this with the player now and ask for their help; they may accept or refuse.");
          }
 
@@ -123,13 +124,13 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       private static List<string> KnowerLines(AuthoredQuestRun run, AuthoredStage stage, string heroId, string localOfPlaceId)
       {
          var lines = new List<string>();
-         foreach (KeyValuePair<string, List<string>> k in stage.Knowers ?? new Dictionary<string, List<string>>())
+         foreach (KeyValuePair<string, List<AuthoredLine>> k in stage.Knowers ?? new Dictionary<string, List<AuthoredLine>>())
          {
             string key = k.Key ?? "";
             bool matches = key.StartsWith("locals_of:")
                ? localOfPlaceId != null && localOfPlaceId == AuthoredQuestEngine.Bound(run, key.Substring("locals_of:".Length))
                : heroId == AuthoredQuestEngine.Bound(run, key);
-            if (matches) lines.AddRange(k.Value ?? new List<string>());
+            if (matches) lines.AddRange(AuthoredFlags.Said(k.Value, run.Flags));
          }
 
          return lines;

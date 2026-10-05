@@ -3,11 +3,16 @@
 // parsers stay forgiving, the fix is REPORTING). A quest with a problem that could strand the player (a stage that
 // leads nowhere, an objective the engine cannot check, a scene with nothing to find) is refused whole; a cosmetic one
 // (an unbound placeholder) is reported and the quest still loads.
+// 04/10/2026, branching tales: choices, named endings and flags are checked the same way. A path that can never end
+// is refused; an ending or a stage nobody can reach, or a flag tested but never set, is reported. The tale editor
+// (Docs/TaleEditor.html) runs a JavaScript copy of these checks; the fixtures in docs/design/quest-editor/fixtures
+// are run through both, so the two cannot disagree silently. Change a message here, change it there.
 
 #region
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
@@ -27,17 +32,34 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    /// <summary>Parses and validates authored quest files. Pure.</summary>
    public static class AuthoredQuestLoader
    {
-      /// <summary>The objectives increment 1 can verify.</summary>
-      public static readonly IReadOnlyList<string> ObjectiveTypes = new[] {"talk_to", "talk_to_locals", "be_at", "keep_watch", "explore", "defeat_party", "return"};
+      /// <summary>The objectives the game can verify.</summary>
+      public static readonly IReadOnlyList<string> ObjectiveTypes = new[] {"talk_to", "talk_to_locals", "be_at", "keep_watch", "explore", "defeat_party", "return", "wait"};
 
-      /// <summary>The hazard effects increment 1 carries out.</summary>
+      /// <summary>
+      ///   The objectives a CHOICE may carry. keep_watch and explore open a scene of the stage that follows, so they are
+      ///   that stage's own objective, never one way out among several.
+      /// </summary>
+      public static readonly IReadOnlyList<string> ChoiceObjectiveTypes = new[] {"talk_to", "return", "talk_to_locals", "be_at", "defeat_party", "wait"};
+
+      /// <summary>The hazard effects the game carries out.</summary>
       public static readonly IReadOnlyList<string> HazardEffects = new[] {"injure", "alert", "lose_time"};
 
-      /// <summary>The consequences increment 1 carries out.</summary>
+      /// <summary>The consequences the game carries out.</summary>
       public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event"};
 
+      /// <summary>Who may give a tale (anything else is read as "any").</summary>
+      public static readonly IReadOnlyList<string> GiverRoles = new[] {"lord", "notable", "gang_leader", "any"};
+
+      /// <summary>What a {rival} may be.</summary>
+      public static readonly IReadOnlyList<string> RivalRoles = new[] {"clan_leader"};
+
+      /// <summary>The roles a "said" choice may be said to: the characters the game binds.</summary>
+      public static readonly IReadOnlyList<string> SpeakingRoles = new[] {"{giver}", "{rival}"};
+
       private const string Reward = "reward";
+      private const string EndPrefix = "end:";
       private static readonly Regex Placeholder = new(@"\{([a-z_]+)\}", RegexOptions.Compiled);
+      private static readonly Regex MarkerName = new(@"^[A-Za-z0-9_]+$", RegexOptions.Compiled);
 
       /// <summary>Several files at once: ids are unique across all of them; a repeat is refused and named.</summary>
       public static AuthoredQuestLoadResult ParseAll(IEnumerable<(string Source, string Json)> files)
@@ -68,7 +90,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          try
          {
-            JToken root = JToken.Parse(json ?? "");
+            // Dates stay words: a line that happens to look like a date reaches the player as written.
+            using var reader = new JsonTextReader(new StringReader(json ?? "")) {DateParseHandling = DateParseHandling.None};
+            JToken root = JToken.ReadFrom(reader);
+            while (reader.Read()) { } // as JToken.Parse does: anything but a comment after the root is refused by the reader
             read = root is JArray arr ? arr.ToObject<List<AuthoredQuest>>() : new List<AuthoredQuest> {root.ToObject<AuthoredQuest>()};
          }
          catch (Exception ex) when (ex is JsonException || ex is ArgumentException || ex is InvalidCastException)
@@ -94,6 +119,15 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          return result;
       }
 
+      /// <summary>
+      ///   Where a "next" leads: an ending ("reward", or "end:id" when the file defines it), a stage, or nowhere
+      ///   (null). The engine follows the same reading.
+      /// </summary>
+      public static bool IsEnding(string next) => next == Reward || next != null && next.StartsWith(EndPrefix, StringComparison.Ordinal);
+
+      /// <summary>The named ending a "next" leads to ("end:silence" gives "silence"); null for "reward" or a stage.</summary>
+      public static string EndingId(string next) => next != null && next.StartsWith(EndPrefix, StringComparison.Ordinal) ? next.Substring(EndPrefix.Length) : null;
+
       private static void Validate(AuthoredQuest q, string text, List<string> blocking, List<string> cosmetic)
       {
          if (string.IsNullOrWhiteSpace(q.Id)) blocking.Add("it has no id.");
@@ -111,48 +145,275 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             if (!ids.Add(s.Id)) blocking.Add($"two stages are called '{s.Id}'.");
          }
 
+         Dictionary<string, AuthoredOutcome> endings = q.Endings ?? new Dictionary<string, AuthoredOutcome>();
+         if (endings.Keys.Any(string.IsNullOrWhiteSpace)) blocking.Add("an ending has no name.");
+
+         AuthoredStage first = q.Stages[0];
          foreach (AuthoredStage s in q.Stages.Where(s => s != null))
          {
-            string next = s.OnComplete?.Next;
-            if (string.IsNullOrWhiteSpace(next)) blocking.Add($"stage '{s.Id}' has no on_complete.next (a stage id, or \"reward\").");
-            else if (next != Reward && !ids.Contains(next)) blocking.Add($"stage '{s.Id}' leads to '{next}', which is no stage of this quest.");
+            if (s.Choices == null || s.Choices.Count == 0)
+            {
+               string next = s.OnComplete?.Next;
+               if (string.IsNullOrWhiteSpace(next)) blocking.Add($"stage '{s.Id}' has no on_complete.next (a stage id, \"reward\", or \"end:<id>\").");
+               else CheckNext($"stage '{s.Id}' leads to", next, ids, endings, blocking);
 
-            ValidateObjective(s, blocking);
+               ValidateObjective($"stage '{s.Id}'", s.Objective, false, false, blocking, cosmetic);
+
+               continue;
+            }
+
+            ValidateChoiceStage(q, s, s == first, ids, endings, blocking, cosmetic);
          }
 
-         // Walk the chain from the first stage: it must reach the reward without going round in a circle.
-         var walked = new HashSet<string>(StringComparer.Ordinal);
-         AuthoredStage at = q.Stages[0];
-         while (at != null)
-         {
-            if (!walked.Add(at.Id ?? "")) { blocking.Add($"the stages loop back to '{at.Id}' and never reach the reward."); break; }
-            string next = at.OnComplete?.Next;
-            if (next == Reward || next == null) break;
-            at = q.Stages.FirstOrDefault(x => x?.Id == next);
-         }
+         ValidatePaths(q, ids, endings, blocking, cosmetic);
 
-         foreach (AuthoredConsequence c in (q.Reward?.Consequences ?? new List<AuthoredConsequence>()).Concat(q.Failure?.Consequences ?? new List<AuthoredConsequence>()))
+         IEnumerable<AuthoredOutcome> outcomes = new[] {q.Reward, q.Failure}.Concat(endings.Values);
+         foreach (AuthoredConsequence c in outcomes.Where(o => o != null).SelectMany(o => o.Consequences ?? new List<AuthoredConsequence>()))
             if (c != null && !ConsequenceTypes.Contains(c.Type))
                cosmetic.Add($"consequence '{c.Type}' is not carried out yet (known: {string.Join(", ", ConsequenceTypes)}); it is skipped.");
+
+         ValidateFlags(q, cosmetic);
 
          var binds = new HashSet<string>(q.Binds?.Keys ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
          foreach (string unbound in Placeholder.Matches(text).Cast<Match>().Select(m => m.Groups[1].Value).Distinct().Where(p => !binds.Contains(p)))
             cosmetic.Add($"{{{unbound}}} is used but no role binds it (add it to \"binds\"), so it would reach the player as written.");
+
+         RivalRequirement rival = q.Requires?.Rival;
+         if (rival != null && !RivalRoles.Contains(rival.Role))
+            blocking.Add($"requires.rival asks for a '{rival.Role}', but the game binds a rival only as a \"clan_leader\" of the giver's realm.");
+         if (rival != null && rival.SameRealmAs != "{giver}")
+            blocking.Add($"requires.rival is of the same realm as '{rival.SameRealmAs}', but the game binds a rival only in the giver's realm (\"{{giver}}\").");
       }
 
-      private static void ValidateObjective(AuthoredStage s, List<string> blocking)
+      private static void CheckNext(string what, string next, HashSet<string> ids, Dictionary<string, AuthoredOutcome> endings, List<string> blocking)
       {
-         AuthoredObjective o = s.Objective;
+         string ending = EndingId(next);
+         if (ending != null)
+         {
+            if (!endings.ContainsKey(ending)) blocking.Add($"{what} ending '{ending}', which \"endings\" does not define.");
+         }
+         else if (next != Reward && !ids.Contains(next)) blocking.Add($"{what} '{next}', which is no stage of this quest.");
+      }
+
+      /// <summary>A stage that offers choices: each must have a name, a way to be taken, and somewhere to lead.</summary>
+      private static void ValidateChoiceStage(AuthoredQuest q, AuthoredStage s, bool isFirst, HashSet<string> ids, Dictionary<string, AuthoredOutcome> endings,
+                                              List<string> blocking, List<string> cosmetic)
+      {
+         string where = $"stage '{s.Id}'";
+         if (isFirst)
+            blocking.Add($"{where} is the request, accepted in the conversation where the tale is offered, so it cannot offer choices (move them to the next stage).");
+
+         bool isScene = s.Objective?.Type == "explore";
+         string next = s.OnComplete?.Next;
+         List<AuthoredChoice> choices = s.Choices.Where(c => c != null).ToList();
+         List<AuthoredChoice> sceneChoices = choices.Where(c => c.Objective == null && c.Said == null).ToList();
+
+         if (s.Objective != null)
+         {
+            bool defaultLeadsOn = isScene && sceneChoices.Any(c => c.Default);
+            if (string.IsNullOrWhiteSpace(next))
+            {
+               if (!isScene) blocking.Add($"{where} has no on_complete.next (a stage id, \"reward\", or \"end:<id>\").");
+               else if (!defaultLeadsOn)
+                  blocking.Add($"{where}: a scene with choices needs a way out when it closes with none taken: an on_complete.next, or one choice marked \"default\": true.");
+            }
+            else CheckNext($"{where} leads to", next, ids, endings, blocking);
+
+            ValidateObjective(where, s.Objective, false, isScene && sceneChoices.Count > 0, blocking, cosmetic);
+         }
+         else if (!string.IsNullOrWhiteSpace(next))
+            cosmetic.Add($"{where} has no objective, so its on_complete.next is never used; its choices lead on.");
+
+         var choiceIds = new HashSet<string>(StringComparer.Ordinal);
+         foreach (AuthoredChoice c in choices)
+         {
+            if (string.IsNullOrWhiteSpace(c.Id)) { blocking.Add($"{where}: a choice has no id."); continue; }
+            if (!choiceIds.Add(c.Id)) blocking.Add($"{where}: two choices are called '{c.Id}'.");
+         }
+
+         foreach (AuthoredChoice c in choices.Where(c => !string.IsNullOrWhiteSpace(c.Id)))
+         {
+            string choice = $"{where}, choice '{c.Id}'";
+            if (string.IsNullOrWhiteSpace(c.Next)) blocking.Add($"{choice} has no next (a stage id, \"reward\", or \"end:<id>\").");
+            else CheckNext($"{choice} leads to", c.Next, ids, endings, blocking);
+
+            if (c.Objective != null && c.Said != null)
+               blocking.Add($"{choice} has both an objective and a \"said\"; give it one way to be taken.");
+            else if (c.Objective != null)
+               ValidateObjective(choice, c.Objective, true, false, blocking, cosmetic);
+            else if (c.Said != null)
+            {
+               if (string.IsNullOrWhiteSpace(c.Said.To) || string.IsNullOrWhiteSpace(c.Said.Meaning))
+                  blocking.Add($"{choice}: \"said\" needs \"to\" (a role, \"{{giver}}\") and \"meaning\" (what the player's words must mean).");
+               else if (!SpeakingRoles.Contains(c.Said.To.Trim()))
+                  blocking.Add($"{choice} is said to '{c.Said.To}', but a choice can be said only to {string.Join(" or ", SpeakingRoles)}.");
+               else if (c.Said.To.Trim() == "{rival}" && q.Requires?.Rival == null)
+                  blocking.Add($"{choice} is said to {{rival}}, but no rival is bound: add \"rival\" to \"requires\".");
+            }
+            else if (!isScene)
+               blocking.Add($"{choice} has no way to be taken: give it an objective or a \"said\" (only a choice in an explore stage is taken in the scene).");
+            else
+            {
+               if (string.IsNullOrWhiteSpace(c.Label)) blocking.Add($"{choice} is made in a scene, so it needs a \"label\": the words the player picks it by.");
+               if (!MarkerName.IsMatch(c.Id)) blocking.Add($"{choice} is made in a scene, so its id may hold only letters, digits and _ (the narrator writes it in a marker).");
+            }
+
+            if (c.Default && !sceneChoices.Contains(c))
+               cosmetic.Add($"{choice} is marked default, which only matters for a choice made in a scene.");
+         }
+
+         List<AuthoredChoice> defaults = sceneChoices.Where(c => c.Default && !string.IsNullOrWhiteSpace(c.Id)).ToList();
+         if (isScene && defaults.Count > 0)
+         {
+            if (!string.IsNullOrWhiteSpace(next))
+               cosmetic.Add($"{where}: choice '{defaults[0].Id}' is marked default, but a scene closed with no choice follows on_complete.next; the mark is unused.");
+            else
+            {
+               if (defaults[0].If != null && defaults[0].If.Count > 0)
+                  blocking.Add($"{where}: the default choice '{defaults[0].Id}' cannot depend on flags, or the scene could close with nowhere to go.");
+               if (defaults.Count > 1) cosmetic.Add($"{where}: several choices are marked default; only the first, '{defaults[0].Id}', is used.");
+            }
+         }
+
+         if (s.Objective == null && choices.Count > 0 && choices.All(c => c.If != null && c.If.Count > 0))
+            cosmetic.Add(q.Failure?.Days > 0
+               ? $"{where}: every way out depends on flags; if none holds, the tale can only end when its time runs out."
+               : $"{where}: every way out depends on flags; if none holds, the tale can never end.");
+      }
+
+      /// <summary>
+      ///   Every stage the player can reach must be able to reach an ending (loops are fine when they have an exit). A
+      ///   stage, or an ending, that no path reaches is reported: it is never played.
+      /// </summary>
+      private static void ValidatePaths(AuthoredQuest q, HashSet<string> ids, Dictionary<string, AuthoredOutcome> endings, List<string> blocking, List<string> cosmetic)
+      {
+         List<AuthoredStage> stages = q.Stages.Where(s => s != null && !string.IsNullOrWhiteSpace(s.Id)).GroupBy(s => s.Id).Select(g => g.First()).ToList();
+         if (stages.Count == 0) return;
+
+         Dictionary<string, List<string>> leads = stages.ToDictionary(s => s.Id, Exits);
+         bool Resolves(string next) => next == Reward || EndingId(next) is { } e && endings.ContainsKey(e);
+
+         var reachable = new HashSet<string>(StringComparer.Ordinal);
+         var queue = new Queue<string>();
+         if (q.Stages[0] != null && leads.ContainsKey(q.Stages[0].Id ?? "")) { reachable.Add(q.Stages[0].Id); queue.Enqueue(q.Stages[0].Id); }
+         while (queue.Count > 0)
+            foreach (string n in leads[queue.Dequeue()].Where(n => leads.ContainsKey(n) && reachable.Add(n)))
+               queue.Enqueue(n);
+
+         var canEnd = new HashSet<string>(StringComparer.Ordinal);
+         for (var grew = true; grew;)
+         {
+            grew = false;
+            foreach (AuthoredStage s in stages.Where(s => !canEnd.Contains(s.Id)))
+               if (leads[s.Id].Any(n => Resolves(n) || canEnd.Contains(n))) grew = canEnd.Add(s.Id) | grew;
+         }
+
+         foreach (AuthoredStage s in stages)
+         {
+            if (!reachable.Contains(s.Id)) cosmetic.Add($"stage '{s.Id}' is never reached from the first stage, so it is never played.");
+            else if (!canEnd.Contains(s.Id)) blocking.Add($"stage '{s.Id}' can never reach an ending: every way out of it leads back without an exit.");
+         }
+
+         List<string> reached = stages.Where(s => reachable.Contains(s.Id)).SelectMany(s => leads[s.Id]).ToList();
+         foreach (string e in endings.Keys.Where(k => !string.IsNullOrWhiteSpace(k) && !reached.Contains(EndPrefix + k)))
+            cosmetic.Add($"ending '{e}' is never reached: no path leads to \"end:{e}\".");
+         if (!reached.Contains(Reward) && HasContent(q.Reward))
+            cosmetic.Add("the reward is never reached: no path leads to \"reward\" (name it \"end:<id>\" in \"endings\", or lead a path to it).");
+      }
+
+      /// <summary>Where a stage's ways out lead: its own objective's next, then each choice's.</summary>
+      private static List<string> Exits(AuthoredStage s)
+      {
+         var exits = new List<string>();
+         bool hasChoices = s.Choices != null && s.Choices.Count > 0;
+         if ((!hasChoices || s.Objective != null) && !string.IsNullOrWhiteSpace(s.OnComplete?.Next)) exits.Add(s.OnComplete.Next);
+         if (hasChoices) exits.AddRange(s.Choices.Where(c => c != null && !string.IsNullOrWhiteSpace(c.Next)).Select(c => c.Next));
+
+         return exits;
+      }
+
+      /// <summary>An outcome that says anything at all: it differs from a blank one (its days aside, which only failure reads).</summary>
+      private static bool HasContent(AuthoredOutcome o)
+         => o != null && !JToken.DeepEquals(JToken.FromObject(o), JToken.FromObject(new AuthoredOutcome {Days = o.Days}));
+
+      /// <summary>A flag tested but set nowhere never holds: the author is told, since a choice or a line under it is dead.</summary>
+      private static void ValidateFlags(AuthoredQuest q, List<string> cosmetic)
+      {
+         var set = new HashSet<string>(StringComparer.Ordinal);
+         var tested = new List<string>();
+
+         void Tests(IEnumerable<string> conditions)
+         {
+            foreach (string c in conditions ?? Enumerable.Empty<string>())
+            {
+               string name = (c ?? "").Trim().TrimStart('!').Trim();
+               if (!tested.Contains(name)) tested.Add(name);
+            }
+         }
+
+         void Lines(IEnumerable<AuthoredLine> lines)
+         {
+            foreach (AuthoredLine l in lines ?? Enumerable.Empty<AuthoredLine>()) Tests(l?.If);
+         }
+
+         void Knowers(Dictionary<string, List<AuthoredLine>> knowers)
+         {
+            foreach (List<AuthoredLine> lines in (knowers ?? new Dictionary<string, List<AuthoredLine>>()).Values) Lines(lines);
+         }
+
+         foreach (AuthoredStage s in q.Stages.Where(s => s != null))
+         {
+            Lines(s.Canvas);
+            Lines(s.Facts);
+            Knowers(s.Knowers);
+            AuthoredScene scene = s.Objective?.Scene;
+            foreach (AuthoredFinding f in scene?.Findings ?? new List<AuthoredFinding>()) set.UnionWith(f?.Sets ?? new List<string>());
+            foreach (AuthoredEncounter e in scene?.Encounters ?? new List<AuthoredEncounter>()) set.UnionWith(e?.Sets ?? new List<string>());
+
+            foreach (AuthoredChoice c in (s.Choices ?? new List<AuthoredChoice>()).Where(c => c != null))
+            {
+               Tests(c.If);
+               set.UnionWith(c.Sets ?? new List<string>());
+               Lines(c.Canvas);
+               Lines(c.Facts);
+               Knowers(c.Knowers);
+            }
+         }
+
+         foreach (AuthoredOutcome o in new[] {q.Reward, q.Failure}.Concat((q.Endings ?? new Dictionary<string, AuthoredOutcome>()).Values).Where(o => o != null))
+            foreach (AuthoredConsequence c in (o.Consequences ?? new List<AuthoredConsequence>()).Where(c => c != null))
+               Tests(c.If);
+
+         foreach (string name in tested)
+         {
+            if (name.Length == 0) cosmetic.Add("a flag test is empty; write a flag's name, or \"!name\" for not set.");
+            else if (!set.Contains(name)) cosmetic.Add($"flag '{name}' is tested but never set anywhere, so \"{name}\" never holds and \"!{name}\" always does.");
+         }
+      }
+
+      /// <summary>
+      ///   One objective, of a stage or of a choice (<paramref name="where" /> names which). A choice may not keep watch
+      ///   or open a scene: those belong to a stage of their own.
+      /// </summary>
+      private static void ValidateObjective(string where, AuthoredObjective o, bool ofChoice, bool sceneHasChoices, List<string> blocking, List<string> cosmetic)
+      {
          if (o == null || string.IsNullOrWhiteSpace(o.Type))
          {
-            blocking.Add($"stage '{s.Id}' has no objective.");
+            blocking.Add($"{where} has no objective.");
 
             return;
          }
 
          if (!ObjectiveTypes.Contains(o.Type))
          {
-            blocking.Add($"stage '{s.Id}' asks for '{o.Type}', which the game cannot check yet (known: {string.Join(", ", ObjectiveTypes)}).");
+            blocking.Add($"{where} asks for '{o.Type}', which the game cannot check yet (known: {string.Join(", ", ObjectiveTypes)}).");
+
+            return;
+         }
+
+         if (ofChoice && !ChoiceObjectiveTypes.Contains(o.Type))
+         {
+            blocking.Add($"{where} asks for '{o.Type}', which a choice cannot do (a choice may: {string.Join(", ", ChoiceObjectiveTypes)}); lead it to a stage that does.");
 
             return;
          }
@@ -160,54 +421,65 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          switch (o.Type)
          {
             case "talk_to":
-               if (string.IsNullOrWhiteSpace(o.Hero)) blocking.Add($"stage '{s.Id}': talk_to needs \"hero\".");
+               if (string.IsNullOrWhiteSpace(o.Hero)) blocking.Add($"{where}: talk_to needs \"hero\".");
                break;
             case "talk_to_locals":
             case "be_at":
-               if (string.IsNullOrWhiteSpace(o.Place)) blocking.Add($"stage '{s.Id}': {o.Type} needs \"place\".");
-               if (o.Type == "talk_to_locals" && o.Count < 1) blocking.Add($"stage '{s.Id}': talk_to_locals needs a \"count\" of at least 1.");
+               if (string.IsNullOrWhiteSpace(o.Place)) blocking.Add($"{where}: {o.Type} needs \"place\".");
+               if (o.Type == "talk_to_locals" && o.Count < 1) blocking.Add($"{where}: talk_to_locals needs a \"count\" of at least 1.");
                break;
             case "keep_watch":
-               if (string.IsNullOrWhiteSpace(o.Place)) blocking.Add($"stage '{s.Id}': keep_watch needs \"place\".");
+               if (string.IsNullOrWhiteSpace(o.Place)) blocking.Add($"{where}: keep_watch needs \"place\".");
                if (o.Nights == null || o.Nights.Length != 2 || o.Nights[0] < 1 || o.Nights[1] < o.Nights[0])
-                  blocking.Add($"stage '{s.Id}': keep_watch needs \"nights\": [first night it may happen, night it surely happens], with 1 <= first <= last.");
-               if (o.Chance < 0 || o.Chance > 1) blocking.Add($"stage '{s.Id}': keep_watch \"chance\" must be between 0 and 1.");
+                  blocking.Add($"{where}: keep_watch needs \"nights\": [first night it may happen, night it surely happens], with 1 <= first <= last.");
+               if (o.Chance < 0 || o.Chance > 1) blocking.Add($"{where}: keep_watch \"chance\" must be between 0 and 1.");
                break;
             case "explore":
-               ValidateScene(s, o.Scene, blocking);
+               ValidateScene(where, o.Scene, sceneHasChoices, blocking, cosmetic);
                break;
             case "defeat_party":
                if (o.Spawn == null || string.IsNullOrWhiteSpace(o.Spawn.Id) || string.IsNullOrWhiteSpace(o.Spawn.Near))
-                  blocking.Add($"stage '{s.Id}': defeat_party needs \"spawn\" with an \"id\" and a \"near\".");
+                  blocking.Add($"{where}: defeat_party needs \"spawn\" with an \"id\" and a \"near\".");
                else if (o.Spawn.Size == null || o.Spawn.Size.Length != 2 || o.Spawn.Size[0] < 1 || o.Spawn.Size[1] < o.Spawn.Size[0])
-                  blocking.Add($"stage '{s.Id}': spawn \"size\" must be [fewest, most] with 1 <= fewest <= most.");
+                  blocking.Add($"{where}: spawn \"size\" must be [fewest, most] with 1 <= fewest <= most.");
+               else if (ofChoice && o.Spawn.FleeAfterDays > 0)
+                  cosmetic.Add($"{where}: flee_after_days is not played on a choice's band; it stays until the stage ends.");
+               break;
+            case "wait":
+               if (o.Days < 1) blocking.Add($"{where}: wait needs \"days\" of at least 1.");
                break;
          }
       }
 
-      private static void ValidateScene(AuthoredStage s, AuthoredScene scene, List<string> blocking)
+      private static void ValidateScene(string where, AuthoredScene scene, bool hasChoices, List<string> blocking, List<string> cosmetic)
       {
          if (scene?.Opening == null || string.IsNullOrWhiteSpace(scene.Opening.Canvas))
          {
-            blocking.Add($"stage '{s.Id}': an explore scene needs an \"opening\" with a \"canvas\".");
+            blocking.Add($"{where}: an explore scene needs an \"opening\" with a \"canvas\".");
 
             return;
          }
 
          List<AuthoredFinding> findings = scene.Findings ?? new List<AuthoredFinding>();
-         if (!findings.Any(f => f != null && f.Required))
-            blocking.Add($"stage '{s.Id}': an explore scene needs at least one required finding, or it could never be completed.");
+         if (!hasChoices && !findings.Any(f => f != null && f.Required))
+            blocking.Add($"{where}: an explore scene needs at least one required finding, or it could never be completed.");
          if (findings.Where(f => f != null).GroupBy(f => f.Id).Any(g => string.IsNullOrWhiteSpace(g.Key) || g.Count() > 1))
-            blocking.Add($"stage '{s.Id}': every finding needs its own id.");
+            blocking.Add($"{where}: every finding needs its own id.");
 
          foreach (AuthoredHazard h in scene.Hazards ?? new List<AuthoredHazard>())
          {
             if (h == null) continue;
             if (string.IsNullOrWhiteSpace(h.Id) || string.IsNullOrWhiteSpace(h.Trigger))
-               blocking.Add($"stage '{s.Id}': every hazard needs an \"id\" and a \"trigger\" (what the player must do to spring it).");
+               blocking.Add($"{where}: every hazard needs an \"id\" and a \"trigger\" (what the player must do to spring it).");
             if (h.Effect == null || !HazardEffects.Contains(h.Effect.Type))
-               blocking.Add($"stage '{s.Id}': hazard '{h.Id}' has effect '{h.Effect?.Type}', which the game cannot carry out yet (known: {string.Join(", ", HazardEffects)}).");
+               blocking.Add($"{where}: hazard '{h.Id}' has effect '{h.Effect?.Type}', which the game cannot carry out yet (known: {string.Join(", ", HazardEffects)}).");
          }
+
+         IEnumerable<(string kind, string id)> named = findings.Where(f => f != null).Select(f => ("finding", f.Id))
+                                                               .Concat((scene.Hazards ?? new List<AuthoredHazard>()).Where(h => h != null).Select(h => ("hazard", h.Id)))
+                                                               .Concat((scene.Encounters ?? new List<AuthoredEncounter>()).Where(e => e != null).Select(e => ("encounter", e.Id)));
+         foreach ((string kind, string id) in named.Where(n => !string.IsNullOrWhiteSpace(n.id) && !MarkerName.IsMatch(n.id)))
+            cosmetic.Add($"{where}: {kind} '{id}' has a name its marker cannot carry (letters, digits and _ only), so the narration can never report it.");
       }
    }
 }

@@ -66,6 +66,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public string SpokenStageId { get; set; }
       public string SpokenHeroId { get; set; }
 
+      /// <summary>The flags set so far in this run (branching tales, 04/10/2026; absent from a run saved before).</summary>
+      public List<string> Flags { get; set; } = new();
+
       public string Serialize() => JsonConvert.SerializeObject(this, Formatting.None);
 
       public static AuthoredQuestRun Deserialize(string json)
