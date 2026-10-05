@@ -312,6 +312,31 @@ namespace CalradiaRemembers.Quests
             names["village"] = village.Name?.ToString();
          }
 
+         // Branching tales (smoke_over_the_hills): the head of another house of the giver's realm, chosen by
+         // Logic.AuthoredQuests.AuthoredRivalPolicy among the lords read here.
+         if (q.Requires?.Rival != null)
+         {
+            Kingdom realm = giver.Clan?.Kingdom;
+            IEnumerable<RivalCandidate> lords = (realm?.Clans ?? Enumerable.Empty<Clan>())
+               .Where(c => c != null && !c.IsEliminated && c.Leader != null)
+               .Select(c => new RivalCandidate {
+                  HeroId = c.Leader.StringId, LeadsHisClan = true, OfTheGiversRealm = c.Kingdom == realm,
+                  OfTheGiversHouse = c == giver.Clan, OfThePlayersHouse = c == Clan.PlayerClan || c.Leader == Hero.MainHero,
+                  InTheWorld = Mapping.HeroPresence.IsInTheWorld(c.Leader)
+               });
+            string rivalId = AuthoredRivalPolicy.Choose(lords, MBRandom.RandomFloat, out string noRival);
+            Hero rival = Find(rivalId);
+            if (rival == null)
+            {
+               whyNot = noRival ?? AuthoredRivalPolicy.NoneEligible;
+
+               return false;
+            }
+
+            ids["rival"] = rival.StringId;
+            names["rival"] = rival.Name?.ToString();
+         }
+
          return true;
       }
 

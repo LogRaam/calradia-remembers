@@ -130,3 +130,30 @@ lost night already ends it; the closing text and any missed finding follow on cl
 **S6. The list's colours** are a warm amber, brighter under the cursor, darker while pressed, at the same size steps
 as each skin's dialogue text (MCM "Chat Text Size"). They live in brushes (`CR.SceneChoice.*`), since a bound brush
 resets any colour written on the widget.
+
+## The worked examples
+
+**W1. The {rival} is the head of another house of the giver's realm**, picked by the dice among those the player could
+find (`AuthoredRivalPolicy`): never the giver's house, the player's house, a lord of another realm, a younger son, or
+someone gone from the world. A giver with no realm (an independent clan) has no rival, so a tale that needs one is not
+offered by them. `requires.rival` accepts only `clan_leader` of the giver's realm (`same_realm_as: "{giver}"`).
+
+**W2. No NPC-to-NPC grudge.** The draft's `"grudge": {holder, against}` between the giver and the rival needs its own
+ruling (may a quest leave two lords hating each other, and for how long?), as the design doc said. Left out: the
+exposed ending instead leaves a memory with the rival ("The player laid my riders' surcoat before {giver}") and news
+that spreads through the realm.
+
+**W3. smoke_over_the_hills drops what the game cannot bind.** `{enemy_realm}` became "the realm's enemies" in the
+prose (binding a second faction was not asked for), and the draft's `realm_at_war`, `border_of_realm` and the
+`be_at` stage's `on_complete.narration` (never read by the loader) are gone: the narration among the ashes is now a
+real scene, `among_the_ashes`, opened by arriving at the village (E4).
+
+**W4. smoke_over_the_hills has four endings, not three.** Expose, confront and keep silent are the goal's three; the
+confrontation then waits on what the player does: go to the lord after all (exposed, and the rival remembers being
+confronted first), agree on a price with the rival (`bought`, a choice by words, the goal's own example), or leave him
+to carry it (`confronted`). Until increment 7, `his_price` can only be taken with `cr.story_choose his_price`.
+
+**W5. the_bell_in_the_marsh** (my tale, in the werewolf's spirit): a bell rings in a marsh where a chapel sank; at a
+fork on the causeway the player turns left toward the bell (smugglers, and Oswin bound in the drowned chapel) or right
+into the reeds, a way open only once they saw the boot in the mud (Tam, hiding). Walking away is a loop back to the
+watch, with a way out on another night. Two scenes in a row on the left path; two endings.
