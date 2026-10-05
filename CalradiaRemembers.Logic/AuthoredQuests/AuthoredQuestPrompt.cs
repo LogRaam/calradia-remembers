@@ -5,6 +5,9 @@
 // (20/09/2026); a scene's narrator speaks plainly (03/10/2026). The narrator reports what the game must check through
 // markers ([[found:id]], [[hazard:id]], [[meet:id]]) that SceneMarkers strips from the text and the engine validates
 // against the file: the model chooses the moment, the game decides whether it counts.
+// 04/10/2026, branching tales: a line under a flag reaches the model only while it holds; the narrator is told the
+// open ways out of its scene (never a closed one), each with its marker; and the character whose conversation took a
+// choice speaks from that choice's own lines while it lasts. No one is ever told the choices still ahead.
 
 #region
 
@@ -26,32 +29,44 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>
       ///   The block for one character, or null when they have no part in the quest now. The giver, while offering
       ///   (<paramref name="offering" />) or in the conversation completing a stage of theirs, has that stage's canvas
-      ///   and facts; anyone the stage names as a knower has their own lines, framed as what they believe.
+      ///   and facts; anyone the stage names as a knower has their own lines, framed as what they believe. The one whose
+      ///   conversation took a choice speaks from that choice's lines when it has any (the lord hearing the truth in the
+      ///   very conversation that exposes it), and otherwise from the stage, as before.
       /// </summary>
       public static string ForCharacter(AuthoredQuestRun run, AuthoredQuest q, string heroId, string localOfPlaceId, bool offering)
       {
          if (run == null || q == null || string.IsNullOrEmpty(heroId)) return null;
 
          // In the conversation that completed a stage (the report to the lord), the stage spoken of is that one.
-         AuthoredStage stage = run.SpokenHeroId == heroId && run.SpokenStageId != null
-            ? q.Stages.FirstOrDefault(s => s.Id == run.SpokenStageId)
-            : AuthoredQuestEngine.Current(run, q);
+         bool inTheirConversation = run.SpokenHeroId == heroId && run.SpokenStageId != null;
+         if (run.Status != AuthoredQuestStatus.Active && !inTheirConversation) return null; // a tale that ended is told no more
+         AuthoredStage stage = inTheirConversation ? q.Stages.FirstOrDefault(s => s.Id == run.SpokenStageId) : AuthoredQuestEngine.Current(run, q);
          if (stage == null) return null;
 
-         bool isGiver = heroId == AuthoredQuestEngine.Bound(run, "{giver}");
-         List<string> lines = KnowerLines(run, stage, heroId, localOfPlaceId);
-         bool speaksTheStage = isGiver && (offering || run.SpokenStageId == stage.Id);
-         if (lines.Count == 0 && !speaksTheStage) return null;
+         AuthoredChoice choice = inTheirConversation && run.SpokenChoiceId != null ? stage.Choices?.FirstOrDefault(c => c?.Id == run.SpokenChoiceId) : null;
+         List<AuthoredLine> canvasLines = stage.Canvas, factLines = stage.Facts;
+         List<string> lines = KnowerLines(run, stage.Knowers, heroId, localOfPlaceId);
+         bool speaks = heroId == AuthoredQuestEngine.Bound(run, "{giver}") && (offering || run.SpokenStageId == stage.Id);
+
+         if (choice != null && (choice.Canvas?.Count > 0 || choice.Facts?.Count > 0 || choice.Knowers?.Count > 0))
+         {
+            canvasLines = choice.Canvas;
+            factLines = choice.Facts;
+            lines = KnowerLines(run, choice.Knowers, heroId, localOfPlaceId);
+            speaks = AuthoredFlags.Said(choice.Canvas, run.Flags).Any() || AuthoredFlags.Said(choice.Facts, run.Flags).Any();
+         }
+
+         if (lines.Count == 0 && !speaks) return null;
 
          var sb = new StringBuilder();
          sb.AppendLine($"A MATTER YOU ARE PART OF ({AuthoredQuestEngine.Fill(run, q.Title)}):");
          foreach (string l in lines) sb.AppendLine("- " + AuthoredQuestEngine.Fill(run, l));
 
-         if (speaksTheStage)
+         if (speaks)
          {
-            string canvas = string.Join(" ", AuthoredFlags.Said(stage.Canvas, run.Flags));
+            string canvas = string.Join(" ", AuthoredFlags.Said(canvasLines, run.Flags));
             if (!string.IsNullOrWhiteSpace(canvas)) sb.AppendLine("This moment: " + AuthoredQuestEngine.Fill(run, canvas));
-            foreach (string f in AuthoredFlags.Said(stage.Facts, run.Flags)) sb.AppendLine("Fact: " + AuthoredQuestEngine.Fill(run, f));
+            foreach (string f in AuthoredFlags.Said(factLines, run.Flags)) sb.AppendLine("Fact: " + AuthoredQuestEngine.Fill(run, f));
             if (offering) sb.AppendLine("You raise this with the player now and ask for their help; they may accept or refuse.");
          }
 
@@ -62,7 +77,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>
       ///   The narrator of an exploration scene: plain voice, second person; the opening; what is there to find (not yet
-      ///   found), what the player's own choices could spring, who may be met; and how to report each.
+      ///   found), what the player's own choices could spring, who may be met, the ways out of the scene open now; and
+      ///   how to report each.
       /// </summary>
       public static string Narrator(AuthoredQuestRun run, AuthoredQuest q)
       {
@@ -114,17 +130,26 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             }
          }
 
+         IReadOnlyList<AuthoredChoice> ways = AuthoredQuestEngine.SceneChoices(run, q);
+         if (ways.Count > 0)
+         {
+            sb.AppendLine();
+            sb.AppendLine("WAYS THE PLAYER MAY TAKE OUT OF THIS SCENE (take one ONLY when the player's own words choose it, never for them; "
+                          + "when they do, narrate their first steps on it, write its marker on its own, and end there: the scene closes):");
+            foreach (AuthoredChoice c in ways) sb.AppendLine($"- {AuthoredQuestEngine.Fill(run, c.Label)}. Marker: [[choice:{c.Id}]]");
+         }
+
          sb.AppendLine();
-         sb.Append("Never invent a finding, a danger or a person not listed. Nothing in your narration gives gold, starts a fight or harms "
+         sb.Append("Never invent a finding, a danger, a person or a way out not listed. Nothing in your narration gives gold, starts a fight or harms "
                    + "anyone beyond a listed danger; the game carries those out.");
 
          return sb.ToString();
       }
 
-      private static List<string> KnowerLines(AuthoredQuestRun run, AuthoredStage stage, string heroId, string localOfPlaceId)
+      private static List<string> KnowerLines(AuthoredQuestRun run, Dictionary<string, List<AuthoredLine>> knowers, string heroId, string localOfPlaceId)
       {
          var lines = new List<string>();
-         foreach (KeyValuePair<string, List<AuthoredLine>> k in stage.Knowers ?? new Dictionary<string, List<AuthoredLine>>())
+         foreach (KeyValuePair<string, List<AuthoredLine>> k in knowers ?? new Dictionary<string, List<AuthoredLine>>())
          {
             string key = k.Key ?? "";
             bool matches = key.StartsWith("locals_of:")
