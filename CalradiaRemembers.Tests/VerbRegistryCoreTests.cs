@@ -77,6 +77,22 @@ namespace CalradiaRemembers.Tests
          result.Should().Be("TEACH_A\n");
       }
 
+      // tashmetu (Bridges to Remember, 05/10/2026) asked how long an external action's teaching may be: it was never
+      // sent at all. The live prompt composed CR's own verbs by fixed name lists, so an external verb's TeachingText
+      // reached no prompt, against what HOWTO_Actions promises. Composing by kind lets the external verbs be taught,
+      // each still behind its own eligibility, without disturbing the fixed order of CR's own.
+      [Test]
+      public void GIVEN_verbs_of_two_kinds_WHEN_composing_only_one_kind_THEN_its_eligible_verbs_are_taught_and_no_other()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeVerb("own_verb", true, "OWN\n"));
+         registry.Register(new FakeVerb("ext_eligible", true, "EXT_A\n"));
+         registry.Register(new FakeVerb("ext_ineligible", false, "EXT_B\n"));
+
+         registry.ComposeTeachingsWhere("ctx", v => v.Name.StartsWith("ext_")).Should().Be("EXT_A\n");
+         registry.ComposeTeachingsWhere("ctx", v => v.Name == "nothing").Should().BeNull();
+      }
+
       // With no explicit order, teachings must concatenate in the order verbs were Register()ed, not some
       // other order (alphabetical, reversed): an external verb registered after CR's own built-ins should
       // append after them, never reshuffle the whole teaching block a modder didn't ask to touch.

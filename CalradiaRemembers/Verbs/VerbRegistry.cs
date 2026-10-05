@@ -42,6 +42,14 @@ namespace CalradiaRemembers.Verbs
       public string ComposeTeachings(VerbContext ctx, IEnumerable<string> order) => _core.ComposeTeachings(ctx, order, FaultSink);
 
       /// <summary>
+      ///   Composes the teaching text of every eligible verb another mod registered through CrActions (an
+      ///   <see cref="ExternalVerbAdapter" />), in registration order. CR's own verbs are composed by name lists where
+      ///   their text must interleave; an external verb has no place in those lists, so until 05/10/2026 its
+      ///   TeachingText reached no prompt at all (tashmetu, Bridges to Remember).
+      /// </summary>
+      public string ComposeExternalTeachings(VerbContext ctx) => _core.ComposeTeachingsWhere(ctx, v => v is ExternalVerbAdapter, FaultSink);
+
+      /// <summary>
       ///   Composes the guidance text of every registered verb that implements <see cref="IProvidesGuidance{TContext}" />
       ///   (in practice, an <see cref="ExternalVerbAdapter" /> whose contract supplied a Guidance callback),
       ///   run UNCONDITIONALLY regardless of eligibility (Extension Surface actions guidance, 30/08/2026).

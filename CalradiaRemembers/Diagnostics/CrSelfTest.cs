@@ -338,6 +338,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("letter_offer_prisoner_ransom", Severity.Light, "Mechanical (PrisonerOffer accept): capture an in-party lord into the player's prison, make a buyer solvent, run the shared PrisonerRansomExecutor -> assert the sale succeeds, the captive leaves the player's prison, and the player is paid. Restores everything (frees the captive, reverts both purses). Skips if no capturable lord / no buyer. No LLM.", TestLetterOfferPrisonerRansom),
          new SelfTest("action_catalog_parity", Severity.Light, "Unified Action Catalog, Stage 1: the Action Interpreter is only ever taught the verbs listed in NpcMemoryService.Core.Actions.GameActionCatalog, so a bridge verb missing from it would silently never be emittable by the LLM, and a catalog verb the bridge no longer dispatches would teach a dead action. Asserts BannerlordGameStateBridge.HandledActionTypes (the engine-bound authoritative set this pure-SDK catalog cannot be compared against by a unit test) is set-equal to GameActionCatalog.Types, naming any verb missing from either side. Mutates nothing", TestActionCatalogParity),
          new SelfTest("external_action_registration", Severity.Light, "Extension Surface (CrActions.Register): a third-party mod's one-call registration door. Registers a dummy external action -> asserts it appears in GameActionCatalog.Types, BannerlordGameStateBridge.HandledActionTypes, and LlmServices.DebugActionVocabulary (the 1:1 prose prompt); drives it through the REAL bridge (ExecuteAction with an unmatched type falls through to VerbRegistry.Instance.Execute) and asserts the dummy Execute callback's own message/success came back; asserts a duplicate Name, a reserved chat-flow-control Name (end_conversation), and a null-Execute spec are all rejected. Unregisters in a finally so nothing registered here can leak into a later test or a real prompt", TestExternalActionRegistration),
+         new SelfTest("external_action_teaching", Severity.Light, "Extension Surface (tashmetu, 05/10/2026): an external action's TeachingText reached no prompt, because the live prompt composed CR's own verbs by fixed name lists. Registers a dummy action whose TeachingText returns a sentinel, builds a REAL encounter context for a real NPC (EncounterContextBuilder.Build, the chat's own call) and asserts the sentinel is in its action teachings while IsEligible holds, and gone when it does not. Unregisters in a finally", TestExternalActionTeaching),
          new SelfTest("external_action_guidance", Severity.Light, "Extension Surface actions guidance (ExternalActionSpec.Guidance): the fix for the modder report that an ineligible action's NPC roleplayed AGREEING in prose, only for the deed to fail its own eligibility check at execution. Registers a dummy action that is ALWAYS ineligible with a Guidance callback returning a distinctive sentinel -> asserts the REAL VerbRegistry.Instance.ComposeGuidance includes the sentinel despite the ineligibility, while ComposeTeachings for the same context excludes the action entirely (the whole behavioral point); also asserts the guidance context it received carried the real NPC's facts and correctly resolved a hero named in the player's message via CR's own ContextualNameResolver, not a reimplementation. Unregisters in a finally so nothing leaks into a later test or a real prompt", TestExternalActionGuidance),
          new SelfTest("prompt_variable_registration", Severity.Light, "Extension Surface, Prompt Variables volet (increment 4): CrPrompt.RegisterVariable is the PUBLIC door a third-party mod uses to contribute a LIVE {{name}} prompt variable, replacing a Harmony patch on the SDK's own PromptBuilder.BuildPromptVariables. Since PromptVariableRegistry.Compose is SDK-internal (like Clear, visible only to the SDK's own test project), drives the REAL public surface instead: builds a live system prompt (BuildSystemPrompt, the same call the chat pipeline uses) for a real NPC with PostHistoryInstructions referencing a registered token -> asserts the provider's value, keyed off the real NpcId, lands in the actual prompt text; registers a SECOND provider that THROWS in the same prompt build -> asserts building never throws, the other token still resolves, and the throwing token's own {{name}} is left literal (Compose skipped it, never smuggled a stray value in); registers a third provider under a BUILT-IN name (user) -> asserts the real player name still wins and the impostor value never appears, the exact merge guard BuildPromptVariables enforces. Unregisters all three in a finally via CrPrompt.Unregister, the only cleanup surface the mod assembly has", TestPromptVariableRegistration),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
@@ -12993,6 +12994,52 @@ namespace CalradiaRemembers.Diagnostics
       ///   callback rather than a reimplementation. Unregisters in a finally so nothing leaks into a later
       ///   test or a real prompt.
       /// </summary>
+      /// <summary>
+      ///   external_action_teaching (tashmetu, 05/10/2026): an external action's TeachingText, through the REAL
+      ///   encounter context build, present while its IsEligible holds and absent when it does not. The registry-only
+      ///   tests below never caught that the live builder taught no external verb at all.
+      /// </summary>
+      private static string TestExternalActionTeaching(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("external_action_teaching");
+
+         const string name = "crselftest_ext_teaching";
+         const string sentinel = "[SELFTEST TEACHING SENTINEL] a dummy external action.";
+
+         Hero npc = ConversationNpc();
+         if (t.Skip(npc == null, "no NPC to build a real context for")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, npc);
+         var eligible = true;
+         var spec = new ExternalActionSpec {
+            Name = name,
+            Description = "[SELFTEST] a dummy external action, never a real deed.",
+            WhenToEmit = new List<string> {"never genuinely emitted: self-test only"},
+            SourceMod = "CrSelfTest",
+            IsEligible = _ => eligible,
+            TeachingText = facts => facts?.NpcId == npc.StringId ? sentinel + Environment.NewLine : null,
+            Execute = _ => new ActionResult {Success = true, Message = "should never execute in this test"}
+         };
+
+         try
+         {
+            t.Expect("registrationSucceeds", CrActions.Register(spec), ActionRegistrationResult.Registered);
+
+            EncounterContext taught = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, "Good day.", new List<WitnessEntry>());
+            t.Expect("theTeachingReachesTheRealContext", taught?.ExtraActionTeachings?.Contains(sentinel) == true, true);
+
+            eligible = false;
+            EncounterContext untaught = EncounterContextBuilder.Build(npc, profile, behavior.GameStateBridge, "Good day.", new List<WitnessEntry>());
+            t.Expect("notWhileIneligible", untaught?.ExtraActionTeachings?.Contains(sentinel) == true, false);
+         }
+         finally
+         {
+            t.Expect("cleanupActuallyRemovedIt", CrActions.Unregister(name), true);
+         }
+
+         return t.Line();
+      }
+
       private static string TestExternalActionGuidance(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("external_action_guidance");

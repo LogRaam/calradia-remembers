@@ -48,6 +48,13 @@ namespace CalradiaRemembers.Logic.Verbs
       }
 
       /// <summary>
+      ///   Composes the teaching text of the eligible verbs <paramref name="include" /> selects, in registration order.
+      ///   For a kind of verb no fixed name list can know in advance: another mod's actions (tashmetu, 05/10/2026).
+      /// </summary>
+      public string ComposeTeachingsWhere(TContext ctx, Func<IVerb<TContext, TAction, TResult>, bool> include, Action<Exception> onFault = null)
+         => include == null ? null : ComposeTeachings(ctx, _verbs.Where(include).Select(v => v.Name).ToList(), onFault);
+
+      /// <summary>
       ///   Composes the guidance text of EVERY registered verb that implements
       ///   <see cref="IProvidesGuidance{TContext}" />, in registration order, regardless of eligibility: a
       ///   verb whose eligibility currently fails still gets a chance to tell the LLM to decline in-character

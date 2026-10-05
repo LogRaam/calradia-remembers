@@ -1633,6 +1633,11 @@ namespace CalradiaRemembers.Mapping
          // make_amends + grudge_terms (Grudges pillar, resolution + discovery halves): taught last of all.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, GrudgeVerbs));
 
+         // Another mod's actions (CrActions.Register): each one's TeachingText while its IsEligible holds. They had
+         // no place in the name lists above, so until 05/10/2026 they were taught nothing but their catalog entry
+         // (tashmetu, Bridges to Remember). In normal play nothing external is registered, so this appends nothing.
+         sb.Append(VerbRegistry.Instance.ComposeExternalTeachings(verbCtx));
+
          // Extension Surface actions guidance (30/08/2026): an externally-registered action's Guidance
          // callback, run REGARDLESS of eligibility, so a currently-ineligible action can still tell the NPC
          // to decline in-character instead of roleplaying agreement to a deed that will then fail to execute.

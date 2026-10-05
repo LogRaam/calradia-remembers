@@ -116,9 +116,9 @@ string SourceMod;                             // your mod's id, for the logs
   entry every character is taught, kept in the cached part of the prompt. Wording that depends on who
   is speaking ("her sword", "his men") belongs in `TeachingText`, which runs each turn with that
   character's `VerbFacts` (`IsFemale` included); keep the catalog entry neutral ("their").
-- `IsEligible` and `TeachingText` are optional. Leave them null and your action is always taught
-  once registered (its catalog entry is enough); supply them if the action should only be taught
-  while some condition of your own holds.
+- `IsEligible` and `TeachingText` are optional. Your catalog entry is taught once registered,
+  whatever they say; supply them to add per-turn teaching only while some condition of your own
+  holds (see 4a for where each part goes).
 - `Execute` gets an `ActionRequest` carrying `VerbName`, the `[ACTION]` block's raw `Parameters`
   (a `IReadOnlyDictionary<string, string>`, exactly as the LLM emitted them), and `Facts` (a
   `VerbFacts`: `NpcId`, `RelationToPlayer`, `FactionId`, `IsLord`, `IsPrisoner`, `IsFemale`). Everything is a
@@ -140,6 +140,32 @@ One `CrActions.Register` call reaches every place CR itself teaches and dispatch
 
 In normal play, with nothing registered, every prompt and dispatch path is unchanged: registering
 is strictly additive.
+
+### 4a. Where each part goes, and what it costs
+
+No field has a hard length limit. Everything you write is read by a model on every turn it reaches,
+so size it like CR sizes its own verbs:
+
+| Part | Reaches | When |
+|---|---|---|
+| `Description`, `Parameters` | the Action Interpreter's catalog, and the GAME ACTIONS index of the 1:1 prose prompt | every interpreter call; every 1:1 turn (cut to 90 characters in the Compact prompt) |
+| `WhenToEmit`, `WhenNotToEmit` | the Action Interpreter's catalog only | every interpreter call in the full prompt; the Compact prompt drops them |
+| `TeachingText` | the 1:1 prose prompt only | each turn while `IsEligible` holds (until 05/10/2026 it reached no prompt at all) |
+| `Guidance` | the 1:1 prose prompt only | EVERY turn, whatever `IsEligible` says |
+
+- `IsEligible` gates `TeachingText` and nothing else: the catalog entry is always taught, and
+  `Execute` is called without asking `IsEligible` again. Re-check your own conditions in `Execute`.
+- Return `null` from `Guidance` unless your deed is plausibly in play: it is paid for on every turn
+  of every conversation.
+- Sizes that work: a one-sentence `Description` with its point in the first 90 characters; two or
+  three `WhenToEmit` / `WhenNotToEmit` lines of one sentence each; a `TeachingText` of a few lines
+  (a few hundred characters) holding the `[ACTION]` block and its conditions. For scale, CR's own
+  verbs average about 105 characters each in the GAME ACTIONS index, and the interpreter's whole
+  catalog is tens of thousands of characters, cached by providers that cache; the tight one is the
+  Compact prompt, built for small local models.
+- Register before the first conversation of the session (`OnSubModuleLoad` or `OnGameStart`): the
+  interpreter's catalog is assembled once, at its first use, and an action registered after that
+  reaches the interpreter only after the game restarts.
 
 ---
 
