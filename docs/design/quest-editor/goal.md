@@ -166,6 +166,50 @@ quest. Guard it structurally:
   silently. Keep the validator as its own JS module inside the HTML so the Node run tests the exact shipped code.
 - Twine import gets its own fixtures (a Harlowe story, a SugarCube story, a Twee file) with their expected quest JSON.
 
+## Behaviour tests, as this repository writes them (Gabriel, 04/10/2026: "as we do it")
+
+Read `CalradiaRemembers/CLAUDE.md`, sections "Unit tests carry their WHY" and "What a test is for", before writing the
+first test. In short, Gabriel's ruling: tests protect the behaviours the world expects, not the code. The code must stay
+free to change; a behaviour must never degrade.
+
+- **The expectation comes from outside the code**: a player's or an author's view, Gabriel's words, the guide. Write the
+  test before the code, and write its name so it could have been written before the code existed. The THEN names what
+  someone would notice, never a return value, a flag, a branch or a method.
+  - Good (from `AuthoredQuestEngineTests.cs`): `GIVEN_a_scene_closed_before_a_required_finding_WHEN_closed_THEN_the_missed_finding_is_returned_to_be_said`,
+    `GIVEN_the_wrong_person_place_or_party_WHEN_reported_THEN_the_stage_does_not_move`.
+  - Bad: `GIVEN_choice_list_WHEN_Resolve_called_THEN_returns_null`.
+- **Every test file** opens with a header saying what the policy decides, what its answer feeds, and what breaks if it
+  is wrong. **Every test** carries a comment above it with its STAKE: finish the sentence "if this fails, a player (or an
+  author) ...". Never invent a rationale; if a boundary has no derivable reason, say plainly what it pins.
+- **Facts objects, not rows of positional arguments**, so a test names only the facts it cares about and adding a fact
+  costs no rewrite (see `AuthoredOfferFacts` and its tests). Run `Tools/Find-SwapRisk.ps1` after adding a policy: it
+  must stay at zero.
+- **Silent on a refactor, red on a behaviour change.** Do not test a method's shape or an overload's agreement with
+  another. If you restructure and an assertion about something a player would notice has to change, stop: that is a
+  behaviour change, and it goes in DECISIONS.md.
+- **Build the subject the way production builds it** (the real loader on real JSON, the real engine on a real run), not
+  a hand-made object that skips the path the game takes.
+
+The behaviours to cover, at least (one or more tests each, named from the player's or author's side):
+
+- Choices: the first act met decides and the others close; a closed choice (its `if` not met) can never be taken, by
+  act, marker, click or words; a choice taken sets its flags; a scene choice counts only by its marker, never by the
+  click alone; an undeclared or closed marker changes nothing; a scene closed with no choice goes to its declared
+  default; a typed "1" is the first OPEN choice, not the first declared one; a number with no such choice is free text.
+- Endings: each path reaches its own ending with its own regard, memory and consequences; `reward` still means the one
+  success ending of an old file; the time-out still fails the tale.
+- Flags: a knower line, canvas or fact under `if` reaches the character only when its flag holds; `!flag` the reverse;
+  a flag never set is reported to the author.
+- Secrecy: no character or narrator is told a closed choice, a later stage, or a flag-gated line whose flag is not set.
+- Loader: every new check (unreachable stage, dead end, unknown ending, duplicate choice id, a scene with choices and no
+  way out) is reported in plain words; every file that loaded before loads the same.
+- Saves: a run saved before this change loads and plays on; a branching run survives save and load mid-path.
+- App: the parity fixtures (C# and Node) cover each loader rule; each Twine fixture imports to its expected quest; a
+  macro the import cannot map is listed for the author, never dropped.
+
+In `REPORT.md`, list these behaviours with the test name(s) that guard each one, so Gabriel can read the rules from the
+tests, as he does.
+
 ## House rules (non-negotiable)
 
 - **Tests first**, each with a comment above it giving the STAKE (what goes wrong for a player if it fails), never
