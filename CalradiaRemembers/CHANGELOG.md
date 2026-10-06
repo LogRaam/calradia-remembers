@@ -2,6 +2,22 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.2.. 2026-10-06
+
+### Changed
+- **Chat header shows the character's own relation** (Fakade, True Relations): `RelationSummaryText` adds "Own +N"
+  between Clan and Personal when `OwnGameRelationWithPlayer` differs from the clan leader's.
+
+### Fixed
+- **Reasoning-mandatory models** (Thoragoros1, Gemini 3.7 Flash): an HTTP 400 "Reasoning is mandatory" on a call sent
+  with reasoning off is retried once with the model's default reasoning (SDK `OpenRouterClient`,
+  `IsReasoningMandatoryRefusal`, `RebuildWithModelDefaultReasoning`).
+- **Grudge banner names its target** (tashmetu): `GrudgeBannerText`; "against you" only when the target is the player.
+
+### For modders
+- **Tale culture filter** (tashmetu): `giver.culture` and `village.culture`, one or many, id or name, any case
+  (`AuthoredCulturePolicy`); schema, Tale Editor forms and HOWTO_Quests updated.
+
 ## v2.7.1.. 2026-10-06
 
 ### Added
