@@ -1,0 +1,56 @@
+Version 2.7.0
+
+A new kind of quest, written tales, arrives as an experiment, and almost everything else comes from your reports of the last three days.
+
+New: written tales (experimental, off by default)
+
+- A written tale is a quest in several stages, written as a file: a lord asks your help, you question the village, keep watch at night, explore a scene told by a narrator, report back, hunt down who is responsible, and return. The characters know only what they would know at each stage, so a twist stays hidden until you uncover it. One tale ships with the mod: The Wolf of the Wood.
+- They are OFF by default in this version: turn on "Authored Quests (experimental)" in the MCM (Content) to have them offered. They will be on by default once the exploration scene has been played more.
+- Anyone can write one: Docs/HOWTO_Quests.md explains the format, files go in ModuleData/Quests/Custom and survive updates, and cr.story_check lists any problem in your file.
+
+Added
+
+- Invite: bring a companion, a lord who travels with you, or a prisoner you hold into the conversation. Request Private is always offered when someone else is present, and is granted at once when everyone else is one of your own. (Thank you, nerethi.)
+- Leading a character aside in your own words now counts as a private audience, and the chat tells you when the others are out of earshot. (Thank you, IdentityCrysys.)
+- Your say over world news: cr.world_events lists what the world knows, and cr.world_event_remove, cr.world_event_secret and cr.world_event_hide remove a piece of news, keep it to the people it names, or hide it from one person. (Thank you, IdentityCrysys.)
+- New MCM settings: "Lords Hold Their Course" (a lord riding out to meet you keeps after you, or gives up as before), and "Mercenary departures are judged" (Relationships). (Thank you, Fakade.)
+
+Changed
+
+- Mercenary contracts: a contract renewed within a few days (as contract mods may do) is no longer judged as a departure, and the regard lords lose over a departure now fades back over a year. (Thank you, Fakade.)
+- No lord camps at the gate of a fief you are defending against a siege any more: a siege ends the chase. (Thank you, Fakade.)
+- With a mod that gives every noble a relation of their own (such as Personal Relations), "your clan's standing" is now the clan leader's, and the character's own relation is told apart. Without such a mod nothing changes. (Thank you, tashmetu.)
+- The mod's calendar follows the game's own, so fast mode's shorter year is respected. setting.json still overrides it when it names one. (Thank you, tashmetu.)
+- Your own realm's wars now open the list of wars the characters know of. (Thank you, fkasad.)
+- A character's mood of the day colours how they speak, never why they came: someone who sought you out to thank you thanks you, gruffly on a bad day. The guidelines' "context and mood" section is now about the conversation's tone, so "mood" means one thing. (Thank you, fkasad.)
+- Wanderers are free blades between engagements, looking for work: they answer an ordinary question plainly and take an honest offer seriously, while keeping their pride. (Thank you, Felido and fkasad.)
+- Letters and conversation summaries now wait as long as your "LLM Response Timeout" allows (never under a minute), instead of a fixed minute. (Thank you, CarolusIV.)
+- In Enhanced mode, a reply the main model refuses is retried on your NSFW model, the scene narrator included.
+- Dark Leather: Request Private and Invite now sit side by side and no longer hide the text below.
+
+Fixed
+
+- On some installs the mod could not find its own files (world text, cultures, guidelines, window art), so the Dark Leather window was see-through with no way out. The mod now reads its files wherever the game found it, and falls back to the Origin window if the Dark Leather art cannot load. (Thank you, EmperorHaterius.)
+- A character who sought you out about something you did for them no longer claims they did it for you. (Thank you, fkasad.)
+- Giving several of the same item ("ten ingots") now gives them all, and you can name which captive you hand over. (Thank you, fkasad.)
+- Characters no longer call you "the player". (Thank you, Felido.)
+- A companion's audience counts as given only once it actually opens: one that never appeared is no longer spent. (Thank you, EnjoyingHydra.)
+- An either/or ultimatum ("pay or leave") no longer ends the conversation on its own. (Thank you, fkasad.)
+- A captive's family no longer sends an envoy seconds after the battle: the news must reach them first. (Thank you, aphareish.)
+- A sale refused because the lord does not hold the captive now says who does, instead of "you hold no such captive". (Thank you, Lordfadooboo.)
+- A companion who wants to talk while you are at sea now waits until you have landed and settled, instead of the moment you dock. (Thank you, CarolusIV.)
+
+For modders
+
+- Written tales: the quest format and its rules are in Docs/HOWTO_Quests.md; your files go in ModuleData/Quests/Custom.
+- An external action's TeachingText now reaches the prompt, as HOWTO_Actions.md always said. (Thank you, tashmetu.)
+- The world calendar follows CampaignTime unless setting.json names daysPerSeason or seasonsPerYear.
+
+Developer tools
+
+- New cr.testall tests for the fixes above, a test that what the model is taught for each action is exactly what the game reads, and cr.story_check, cr.story_status, cr.story_start, cr.story_step and cr.story_abandon for written tales.
+
+Notes
+
+- Your existing saves load as they are.
+- If you keep your own copies of the guideline files in ModuleData/Custom, they keep their old wording.

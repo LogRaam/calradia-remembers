@@ -2,6 +2,57 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.0.. 2026-10-05
+
+### Added
+- **Written tales, experimental and OFF by default** (MCM "Authored Quests (experimental)", Content): multi-stage quests
+  in JSON (`Logic.AuthoredQuests`: loader with blocking/cosmetic checks, stage machine, prompts, offer policy with
+  `weight` and `repeat_cooldown_days`; `Quests.AuthoredQuestBehavior`; "Tale:" journal entry, saveable id 4; stage
+  notices). Objectives talk_to, talk_to_locals, be_at, keep_watch, explore, defeat_party, return. The exploration scene
+  is a heroless narrator chat with `[[found/hazard/meet]]` markers, hosted on a pushed GameState
+  (`Chat.ExplorationBackdrop`), never over the live map. Ships `ModuleData/Quests/wolf_of_the_wood.json`; Custom folder;
+  `Docs/HOWTO_Quests.md`; `cr.story_check [name]`, `cr.story_status`, `cr.story_start`, `cr.story_step`,
+  `cr.story_abandon`. New save keys (additive): `CalradiaRemembers_AuthoredQuestRun_v1`, `..._AuthoredQuestsDone_v1`,
+  `..._AuthoredQuestsDeclined_v1`, `..._AuthoredQuestsPlayedOn_v1`. SDK `EncounterContext.AuthoredQuestBlock`.
+- **Invite and Request Private** (nerethi): Invite seats a companion, travelling lord or held prisoner
+  (`Witnesses.PlayerCompany`, `PlayerCompanyPolicy`); Request Private repeatable, hidden with no witness, granted at once
+  when every witness is the player's own (`PrivateAudiencePolicy`).
+- **Going apart counts as a private audience** (IdentityCrysys, SDK `85d1f4d`), and the chat says the room is theirs.
+- **World-event discretion** (IdentityCrysys): `cr.world_events`, `cr.world_event_remove|secret|hide`; the veto in
+  `WorldEventStore.Explain` (`RumorDiscretion`).
+- **MCM**: "Lords Hold Their Course" (Fakade), "Mercenary departures are judged" (Fakade).
+
+### Changed
+- **Mercenary departures** (Fakade): held `RenewalWindowDays` (3) so a renewal is no departure; penalties fade over
+  `ResentmentFadeDays` (a year); new save key `CR_MercenaryResentment_v1bytes`.
+- **Chase at the gate** (Fakade): a siege ends the chase; inside walls the day limit applies.
+- **Clan standing is the clan leader's relation** (tashmetu): `GameRelationReading`; SDK
+  `NpcProfile.OwnGameRelationWithPlayer` said apart in CURRENT STANCE only when it differs.
+- **Calendar follows the game** (tashmetu): `ResolveCalendar` takes setting.json, else `CampaignTime`, else Calradia.
+- **Wars line** opens with the player's realm's wars (fkasad).
+- **One meaning for "mood"** (fkasad): guidelines section renamed "READING THE CONVERSATION"; SDK YOUR DAY never
+  overrides why the conversation is happening.
+- **Wanderers** (Felido, fkasad): between engagements and looking for work.
+- **Background calls honour the MCM timeout** (CarolusIV): letters, summaries, courier secrets, letter memories
+  (`BackgroundCallTimeout`, floor 60 s).
+- **Enhanced mode**: a refused beat goes to the NSFW model, the scene narrator included (`RefusalFallbackPolicy`).
+- **Dark Leather**: Request Private and Invite in one row.
+
+### Fixed
+- **Module path** (EmperorHaterius): every file was read from a path rebuilt from `BasePath.Name`; now
+  `Paths.ModulePaths.Root` (the engine's `ModuleHelper` path); `ModuleRootPathTests` forbids the old form; Dark Leather
+  falls back to Origin when its art cannot load (`ChatSkinFallbackPolicy`); images log why they fail (`[IMAGE]`).
+- **Whose "you"** (fkasad): a lived memory raised in a meeting is quoted with whose "you" is whose
+  (`RecentMatterWording`); SDK history header names the character and is bounded to the memory lines.
+- **give_item count, give_prisoner target** (fkasad): declared in the SDK catalogue; `ActionParameterContractTests`
+  checks every action's taught parameters against what the game reads.
+- **"the player"** (Felido): both format reminders forbid it (Lean budget unchanged).
+- **Companion audience promises** (EnjoyingHydra): spent only once on screen (`AudiencePromiseLedger`).
+- **Ultimatum** (fkasad, SDK): an either/or is not a dismissal.
+- **Ransom envoys** (aphareish): `EnvoyDelayAfterCaptureDays` (3).
+- **Refused sale wording** (Lordfadooboo): `NotHisToSellNote` says who holds the captive.
+- **Landfall** (CarolusIV): a held audience waits `LandfallSettleHours` ashore and no starting encounter.
+
 ## v2.6.11.. 2026-10-03
 
 ### Added
