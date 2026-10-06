@@ -2,6 +2,27 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.1.. 2026-10-06
+
+### Added
+- **Branching tales** (Gabriel, 04/10/2026; autonomous run of docs/design/quest-editor/goal.md, merged `77ae4c1`): stage
+  `choices` taken by act (first objective met; new `wait` objective), in a scene by `[[choice:id]]` with a numbered
+  clickable menu (`SceneChoiceMenu`), or by words through the interpreter (`story_choice`, SDK
+  `EncounterContext.StoryChoicesForInterpreter`); named `endings`; flags (`sets`, `if`, `!name`); the `{rival}` role.
+  Loader checks for unreachable stages, dead ends, unknown endings, duplicate choices. `cr.story_choose`.
+  REPORT.md and DECISIONS.md list every default taken.
+- **Tale Editor** (`Docs/TaleEditor.html`): offline forms, story graph, live checks, Twine import; held to the loader by a
+  schema generated from the C# model and 88 parity fixtures run in C# and in Node.
+- **Grudge consequence** (Gabriel, 06/10/2026): `{type: grudge, who, against, text, magnitude}` plants a
+  `GrudgeSource.Tale` grudge (mends with time); `AuthoredQuestEngine.GrudgeOf`.
+- **Tales** (fkasad): `ModuleData/Custom/Quests` and the MCM Custom path (`AuthoredQuestFolders`); the village tracked
+  on the map; villagers get the tale's `locals_of` lines (SDK `CommonsKnowledge.AuthoredQuestBlock`); no tale from a
+  giver with a vanilla task (`AuthoredOfferFacts.GiverHasVanillaQuest`); wolf watch radius 12.
+
+### Fixed
+- **Black screen after a tale's scene** (fkasad): the ordinary close ended the player's village encounter, the active
+  state moved and the scene backdrop was never popped; a scene now closes as `ChatCloseKind.Scene` (window and clock).
+
 ## v2.7.0.. 2026-10-05
 
 ### Added

@@ -1,0 +1,31 @@
+Version 2.7.1
+
+Written tales grow up: stories with several paths and endings, an editor to write them, and every fix from the first players who tried them. They are still experimental and OFF by default: turn on "Authored Quests (experimental)" in the MCM (Content) to have them offered.
+
+Written tales
+
+- Tales can now branch, like a choose-your-own-adventure book. A stage can have several ways out, and you take one by what you do (ride to the village, or back to the lord, or let the days pass), by what you choose in a scene (the open paths are listed under the narration as a numbered menu: click one, type its number, or write something else), or by what you say to a character. The story then follows that path to its own ending.
+- Several endings: each path can end its own way, with its own reward, memories and consequences. What you did along the way is remembered and can change what people say and which paths stay open.
+- A tale can leave two lords at odds: an ending may plant a grudge from one against another, which fades with time like any grudge.
+- Tale Editor: Docs/TaleEditor.html, a page you open in your browser, no install. Open a tale or start from the werewolf, edit every part with forms, see the story as a map of its paths, check it with the same rules as the game, save it, and import a story written in Twine (Harlowe, SugarCube or Twee).
+- Your own tales now go in ModuleData/Custom/Quests, beside your other custom files, or in the Quests folder of your MCM Custom Folder Path. Files in the older ModuleData/Quests/Custom still load. (Thank you, fkasad.)
+- The tale's village is marked on the map, like a vanilla quest's destination. (Thank you, fkasad.)
+- Ordinary villagers in the street now know what their village believes, not only its notables. (Thank you, fkasad.)
+- A character who already has a task for you (a vanilla quest offered or under way) no longer offers a tale on top of it. (Thank you, fkasad.)
+- The Wolf of the Wood: keeping watch now counts when you wait in the village or close by it, and its journal says so. (Thank you, fkasad.)
+
+Fixed
+
+- Closing a tale's scene while you were waiting in a village left a black screen with no input. A scene now closes without touching where you are. (Thank you, fkasad.)
+
+For modders
+
+- HOWTO_Quests.md covers choices, endings, flags, the grudge consequence, the editor and writing tales in Twine. The editor checks a file with exactly the game's rules: both are held to the same test files.
+
+Developer tools
+
+- New cr.testall tests for branching tales and choices taken in conversation, and cr.story_choose to take an open path by hand.
+
+Notes
+
+- Your existing saves load as they are, a tale already under way included.
