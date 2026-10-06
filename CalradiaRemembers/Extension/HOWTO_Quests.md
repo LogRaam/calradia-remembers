@@ -22,7 +22,8 @@ Modules/CalradiaRemembers/ModuleData/Quests/Custom/   yours: kept across updates
 Every `*.json` file there is read when a campaign starts. One file holds one quest, or an array of
 quests. If two files define the same `id`, the first one read wins and the other is reported.
 
-The tales can be switched off in the MCM ("Authored quests"). Off stops new offers only: a tale
+The tales are experimental in 2.7.0 and OFF by default: turn on "Authored Quests (experimental)" in the
+MCM to have them offered. Off stops new offers only: a tale
 already under way plays to its end.
 
 ## 2. Checking your file
