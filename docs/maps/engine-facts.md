@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-426 rules read 329 facts.
+427 rules read 330 facts.
 
 ## Facts read by more than one rule
 
@@ -245,6 +245,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AuthoredQuestEngine.Fill`: `Objective.Scene`, `Objective.Spawn`
 - `AuthoredQuestEngine.NightPassed`: `GetPosition2D.Distance`, `Objective.Place`, `Objective.Radius`, `Settlement.Find`, `Settlement.GetPosition2D`
 - `AuthoredQuestOfferPolicy.PickByWeight`: `q.Weight`
+- `AuthoredQuestOfferPolicy.WhyNot`: `Hero.Issue`
 - `AuthoredQuestPrompt.ForCharacter`: `Hero.CurrentSettlement`, `Hero.HomeSettlement`
 - `BalanceSurveyPolicy.ToLine`: `Kingdom.IsAtWarWith`
 - `BastardBlackmailPolicy.DemandAmount`: `Hero.Gold`

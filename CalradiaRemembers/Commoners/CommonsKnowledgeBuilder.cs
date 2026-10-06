@@ -53,7 +53,9 @@ namespace CalradiaRemembers.Commoners
                LordsPresent = DescribeLords(settlement),
                RumorsBlock = string.IsNullOrWhiteSpace(rumorBlock)
                   ? null
-                  : rumorBlock
+                  : rumorBlock,
+               // A written tale the village believes in reaches the villagers too (fkasad, 06/10/2026).
+               AuthoredQuestBlock = Quests.AuthoredQuestBehavior.Instance?.PromptBlockForLocalsOf(settlement)
             };
          }
          catch (Exception)

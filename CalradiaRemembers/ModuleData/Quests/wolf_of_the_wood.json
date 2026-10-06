@@ -76,11 +76,11 @@
     },
     {
       "id": "keep_watch",
-      "journal": "Keep watch by the wood of {village} at night.",
+      "journal": "Keep watch at night near {village}: wait in the village or close by it, and the wood will show itself.",
       "objective": {
         "type": "keep_watch",
         "place": "{village}",
-        "radius": 6,
+        "radius": 12,
         "nights": [
           2,
           5

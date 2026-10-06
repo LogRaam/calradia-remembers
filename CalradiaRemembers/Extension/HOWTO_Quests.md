@@ -16,8 +16,11 @@ what is planned but not played yet.
 
 ```
 Modules/CalradiaRemembers/ModuleData/Quests/          the tales that ship with the mod
-Modules/CalradiaRemembers/ModuleData/Quests/Custom/   yours: kept across updates
+Modules/CalradiaRemembers/ModuleData/Custom/Quests/   yours: kept across updates, beside your other custom files
 ```
+
+If you set a "Custom Folder Path" in the MCM, put them in its `Quests` folder instead. Files left in the older
+`ModuleData/Quests/Custom/` are still read.
 
 Every `*.json` file there is read when a campaign starts. One file holds one quest, or an array of
 quests. If two files define the same `id`, the first one read wins and the other is reported.
@@ -77,6 +80,7 @@ The rules around every offer:
 - Only one tale runs at a time.
 - A qualifying character raises a quest in about one conversation out of three.
 - A quest the player declined is not raised again for a season.
+- A character who already has a task for the player (a vanilla quest offered or under way) does not raise a tale too.
 
 ## 4. Who gives it: `requires` and `binds`
 
@@ -127,7 +131,7 @@ every role you use under `binds`, with a short description for the reader of the
 | `objective` | What the game checks (section 6). |
 | `canvas` | How the moment feels. Spoken by the **giver**, when this stage is theirs to say. |
 | `facts` | What the giver must convey, without changing it. |
-| `knowers` | Lines for other characters, framed as what they believe at this stage. The key is a role (`"{giver}"`) or `"locals_of:{place}"` (the notables of that place). |
+| `knowers` | Lines for other characters, framed as what they believe at this stage. The key is a role (`"{giver}"`) or `"locals_of:{place}"` (the people of that place: its notables, and the villagers met in its streets). Only notables count toward `talk_to_locals`. |
 | `on_complete.next` | The next stage's `id`, or `"reward"` to end the tale in success. |
 
 What a character is told is gated by the stage. A character knows only their own lines, and only
@@ -153,7 +157,9 @@ unsaid.
 | `explore` | A scene in the chat, with a narrator and no character (section 7). Done when the player closes it. | `scene` |
 | `defeat_party` | A band spawned near the place is destroyed by the player or the player's army. If someone else destroys it, it regroups. | `spawn` |
 
-A night counts once, read an hour past midnight, with the player's party inside the radius.
+A night counts once, read an hour past midnight, with the player's party inside the radius. Waiting inside the
+village counts; say so in the stage's journal line, since players will wander off into the wood otherwise. The tale's
+village is marked on the map, as a vanilla quest marks its destination.
 
 `spawn`:
 
@@ -231,4 +237,4 @@ ambushes that turn a scene into a battle, escorts, and more consequence types.
 
 `Modules/CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood.json` is a complete tale: a request, a
 village to question, nights of watch, a scene in the wood, a report, a band to destroy, and the
-return. Copy it into `Custom/`, change its `id`, and make it yours.
+return. Copy it into `ModuleData/Custom/Quests/`, change its `id`, and make it yours.

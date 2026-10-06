@@ -108,5 +108,29 @@ namespace CalradiaRemembers.Tests
          AuthoredQuestOfferPolicy.PickByWeight(new int[0], 0.5).Should().Be(-1);
          AuthoredQuestOfferPolicy.PickByWeight(new[] {0}, 0.5).Should().Be(-1);
       }
+
+      // fkasad (Nexus, 06/10/2026): "What about an NPC who already offers a vanilla quest? ... to avoid trouble during
+      // discussion". A giver with a task of their own already offered or under way does not raise a written tale too:
+      // two errands from one mouth tangle the conversation, and the model may mix them.
+      [Test]
+      public void GIVEN_a_giver_with_a_vanilla_quest_for_the_player_WHEN_a_tale_would_be_raised_THEN_it_waits()
+      {
+         var f = new AuthoredOfferFacts {Today = 100, Chance = 1, GiverHasVanillaQuest = true};
+
+         AuthoredQuestOfferPolicy.ShouldOffer(f).Should().BeFalse();
+         AuthoredQuestOfferPolicy.WhyNot(f).Should().Contain("task of their own");
+      }
+
+      // fkasad: "ModuleData/Custom/Quests (consistency, one folder to manage) would be nice, and the external folder (MCM
+      // path) would be great." Tales are read from the shipped folder, the old Custom folder (files there keep working),
+      // and Quests under the player's Custom folder, the MCM path when set; each once.
+      [Test]
+      public void GIVEN_the_custom_folder_WHEN_tale_folders_are_listed_THEN_the_shipped_the_old_and_the_players_custom_are_read_once()
+      {
+         AuthoredQuestFolders.List(@"M\ModuleData\Quests", @"D:\MyCR")
+                             .Should().Equal(@"M\ModuleData\Quests", System.IO.Path.Combine(@"M\ModuleData\Quests", "Custom"), System.IO.Path.Combine(@"D:\MyCR", "Quests"));
+         AuthoredQuestFolders.List(@"M\ModuleData\Quests", null)
+                             .Should().Equal(@"M\ModuleData\Quests", System.IO.Path.Combine(@"M\ModuleData\Quests", "Custom"));
+      }
    }
 }

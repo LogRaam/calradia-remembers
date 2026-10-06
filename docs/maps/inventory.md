@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 466 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 955 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 956 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1578,7 +1578,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (29)
+### CalradiaRemembers.Logic.AuthoredQuests (30)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1594,6 +1594,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredOutcome` | public class | What success or failure leaves behind. |
 | `AuthoredQuest` | public class | One authored quest, as its file describes it. |
 | `AuthoredQuestEngine` | public static class | The stage machine. |
+| `AuthoredQuestFolders` | public static class | Where written tales are read from (fkasad, 06/10/2026: one Custom folder to manage, and the MCM path): the shipped folder, its old Custom folder (files there keep working), and Quests under the player's Custom folder. |
 | `AuthoredQuestLoadResult` | public class | The quests that loaded, and every problem found, each naming its file and quest. |
 | `AuthoredQuestLoader` | public static class | Parses and validates authored quest files. |
 | `AuthoredQuestOfferPolicy` | public static class | Decides whether a qualifying giver raises the quest now. |

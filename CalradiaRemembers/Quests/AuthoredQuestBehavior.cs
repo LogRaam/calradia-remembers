@@ -125,7 +125,8 @@ namespace CalradiaRemembers.Quests
       {
          string root = Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "ModuleData", "Quests");
          var files = new List<(string, string)>();
-         foreach (string dir in new[] {root, Path.Combine(root, "Custom")})
+         // fkasad (06/10/2026): also Quests under the player's Custom folder (the MCM path when set), like every other file.
+         foreach (string dir in AuthoredQuestFolders.List(root, Mapping.NarrativeLoader.CustomBaseFolder()))
             if (Directory.Exists(dir))
                foreach (string f in Directory.GetFiles(dir, "*.json"))
                   files.Add((Path.GetFileName(f), File.ReadAllText(f)));
@@ -186,7 +187,7 @@ namespace CalradiaRemembers.Quests
          foreach (AuthoredQuest q in _quests.Values.Where(q => onlyQuestId == null || q.Id == onlyQuestId))
          {
             if (!TryBind(q, hero, out Dictionary<string, string> ids, out Dictionary<string, string> names, out whyNot)) continue;
-            whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, today));
+            whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, hero, today));
             if (whyNot == null) open.Add((q, ids, names));
          }
 
@@ -215,8 +216,9 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>The offer facts for this quest now, the dice aside.</summary>
-      private AuthoredOfferFacts FactsFor(AuthoredQuest q, int today) => new() {
+      private AuthoredOfferFacts FactsFor(AuthoredQuest q, Hero giver, int today) => new() {
          Today = today, StoryUnderWay = _run is {Status: AuthoredQuestStatus.Active}, Unique = q.Unique, AlreadyPlayed = _done.Contains(q.Id),
+         GiverHasVanillaQuest = HasATaskOfTheirOwn(giver),
          LastPlayedOnDay = _playedOn.TryGetValue(q.Id, out int p) ? p : (int?) null, RepeatCooldownDays = q.RepeatCooldownDays,
          DeclinedOnDay = _declined.TryGetValue(q.Id, out int d) ? d : (int?) null, Chance = AuthoredQuestOfferPolicy.OfferChance
       };
@@ -228,7 +230,7 @@ namespace CalradiaRemembers.Quests
       internal string Eligibility(Hero hero, AuthoredQuest q)
       {
          if (!TryBind(q, hero, out _, out Dictionary<string, string> names, out string whyNot)) return "no: " + whyNot;
-         whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, (int) CampaignTime.Now.ToDays));
+         whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, hero, (int) CampaignTime.Now.ToDays));
          if (whyNot != null) return "not now: " + whyNot;
 
          return $"yes, on a {AuthoredQuestOfferPolicy.OfferChance:P0} chance per conversation ({string.Join(", ", names.Select(kv => kv.Key + "=" + kv.Value))})";
@@ -364,6 +366,8 @@ namespace CalradiaRemembers.Quests
          AuthoredStep step = AuthoredQuestEngine.Accept(_run, q, today);
 
          var journal = new AuthoredStoryQuest(q.Id, q.Title, giver, AuthoredQuestEngine.Fill(_run, q.Stages[0].Journal));
+         // The tale's place is marked on the map, as a vanilla quest marks its destination (fkasad, 06/10/2026).
+         journal.Track(Settlement.Find(AuthoredQuestEngine.Bound(_run, "{village}") ?? ""));
          ModLog.Info($"[TALE] '{q.Id}' accepted; stage {_run.StageId}.");
          Apply(q, step, journal);
       }
@@ -736,7 +740,43 @@ namespace CalradiaRemembers.Quests
          return null;
       }
 
+      /// <summary>
+      ///   The written tale's lines for an ordinary villager of <paramref name="place" />, as a notable of it gets them
+      ///   (fkasad, 06/10/2026: the peasants in the street knew nothing of the beast). Null when no tale concerns it.
+      /// </summary>
+      public string PromptBlockForLocalsOf(Settlement place)
+      {
+         if (place == null) return null;
+         try
+         {
+            if (_run is {Status: AuthoredQuestStatus.Active} && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q))
+               return AuthoredQuestPrompt.ForCharacter(_run, q, "commoner_of_" + place.StringId, place.StringId, offering: false);
+         }
+         catch (Exception ex) { ModLog.Error($"[TALE] villager prompt block failed: {ex.GetType().Name}: {ex.Message}"); }
+
+         return null;
+      }
+
       // ── Helpers ──────────────────────────────────────────────────────────
+
+      /// <summary>
+      ///   The giver already has a task for the player: a vanilla issue on offer, or a quest of theirs under way (any but a
+      ///   tale). fkasad (06/10/2026): two errands from one mouth tangle the conversation.
+      /// </summary>
+      private static bool HasATaskOfTheirOwn(Hero giver)
+      {
+         if (giver == null) return false;
+         try
+         {
+            if (giver.Issue != null) return true;
+
+            return Campaign.Current?.QuestManager?.Quests?.Any(x => x != null && x.IsOngoing && x.QuestGiver == giver && x is not AuthoredStoryQuest) == true;
+         }
+         catch
+         {
+            return false;
+         }
+      }
 
       /// <summary>The place a notable belongs to (their home village or town); null for anyone else.</summary>
       private static string LocalOf(Hero h) => h is {IsNotable: true} ? (h.HomeSettlement ?? h.CurrentSettlement)?.StringId : null;

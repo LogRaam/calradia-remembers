@@ -8721,6 +8721,10 @@ namespace CalradiaRemembers.Diagnostics
             b.Accept(wolf, offer);
             t.Expect("theJournalShowsATale", Campaign.Current.QuestManager.Quests.OfType<Quests.AuthoredStoryQuest>().Any(q => q.IsOngoing && q.StoryId == wolf.Id), true);
             t.Expect("acceptingCompletesTheRequest", b.ActiveRun.StageId, "question_the_village");
+            // fkasad (06/10/2026): the village is marked on the map, and the villager in the street believes too.
+            Quests.AuthoredStoryQuest entry = Campaign.Current.QuestManager.Quests.OfType<Quests.AuthoredStoryQuest>().FirstOrDefault(q => q.IsOngoing && q.StoryId == wolf.Id);
+            t.Expect("theVillageIsMarkedOnTheMap", village != null && entry != null && entry.IsTracked(village), true);
+            t.Expect("aVillagerInTheStreetBelievesToo", b.PromptBlockForLocalsOf(village)?.Contains("werewolf") == true, true);
 
             List<Hero> locals = village?.Notables?.Where(n => n != null).Take(2).ToList() ?? new List<Hero>();
             if (locals.Count >= 2)

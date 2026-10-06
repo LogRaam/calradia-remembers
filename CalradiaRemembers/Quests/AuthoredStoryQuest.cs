@@ -40,6 +40,16 @@ namespace CalradiaRemembers.Quests
       /// <summary>Issue-less quests survive a load only as "special" (see CalradiaRemembersQuest).</summary>
       public override string SpecialQuestType => "CalradiaRemembersTale";
 
+      /// <summary>Marks a place on the map as part of the tale, as a vanilla quest marks its destination (fkasad, 06/10/2026).</summary>
+      public void Track(TaleWorlds.CampaignSystem.ITrackableCampaignObject target)
+      {
+         try
+         {
+            if (target != null) AddTrackedObject(target);
+         }
+         catch (Exception ex) { ModLog.Error($"[TALE] tracking failed: {ex.Message}"); }
+      }
+
       public void Log(string line)
       {
          try { AddLog(new TextObject(line)); }

@@ -4,6 +4,12 @@
 // this person qualifies (a lord holding a village by a wood...) is the engine's reading of the file's "requires"; this
 // decides only the rest.
 
+#region
+
+using System.Collections.Generic;
+
+#endregion
+
 namespace CalradiaRemembers.Logic.AuthoredQuests
 {
    /// <summary>The facts an offer is judged on, past the giver qualifying.</summary>
@@ -24,6 +30,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>The file's repeat_cooldown_days: how long a repeatable quest waits after it was last played.</summary>
       public int RepeatCooldownDays { get; init; }
+
+      /// <summary>
+      ///   The giver already has a vanilla task for the player, offered or under way (fkasad, 06/10/2026: two errands from
+      ///   one mouth tangle the conversation).
+      /// </summary>
+      public bool GiverHasVanillaQuest { get; init; }
 
       /// <summary>The day the player last declined this quest, or null.</summary>
       public int? DeclinedOnDay { get; init; }
@@ -53,6 +65,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       {
          if (f == null) return "nothing to judge";
          if (f.StoryUnderWay) return "a tale is already under way";
+         if (f.GiverHasVanillaQuest) return "they already have a task of their own for you";
          if (f.Unique && f.AlreadyPlayed) return "it was already played in this campaign";
          if (!f.Unique && f.LastPlayedOnDay is int p && f.Today - p < f.RepeatCooldownDays)
             return $"it was played on day {p}, and it waits {f.RepeatCooldownDays} days before it comes back";
@@ -83,6 +96,32 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          }
 
          return last;
+      }
+   }
+
+   /// <summary>
+   ///   Where written tales are read from (fkasad, 06/10/2026: one Custom folder to manage, and the MCM path): the shipped
+   ///   folder, its old Custom folder (files there keep working), and Quests under the player's Custom folder. Each once.
+   /// </summary>
+   public static class AuthoredQuestFolders
+   {
+      public static IReadOnlyList<string> List(string shippedQuestsFolder, string playerCustomFolder)
+      {
+         var folders = new List<string>();
+         void Add(string f)
+         {
+            if (string.IsNullOrWhiteSpace(f)) return;
+            string norm = f.TrimEnd('\\', '/');
+            foreach (string known in folders)
+               if (string.Equals(known.TrimEnd('\\', '/'), norm, System.StringComparison.OrdinalIgnoreCase)) return;
+            folders.Add(f);
+         }
+
+         Add(shippedQuestsFolder);
+         if (!string.IsNullOrWhiteSpace(shippedQuestsFolder)) Add(System.IO.Path.Combine(shippedQuestsFolder, "Custom"));
+         if (!string.IsNullOrWhiteSpace(playerCustomFolder)) Add(System.IO.Path.Combine(playerCustomFolder, "Quests"));
+
+         return folders;
       }
    }
 }
