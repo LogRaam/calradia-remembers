@@ -267,6 +267,13 @@ namespace CalradiaRemembers.Quests
             return false;
          }
 
+         if (!AuthoredCulturePolicy.Matches(g.Culture, giver.Culture?.StringId, giver.Culture?.Name?.ToString()))
+         {
+            whyNot = $"the quest wants a giver of {AuthoredCulturePolicy.Describe(g.Culture)}, and they are of {giver.Culture?.Name}";
+
+            return false;
+         }
+
          if (g.NotAtWarWithPlayer && giver.MapFaction != null && Hero.MainHero?.MapFaction != null
              && FactionManager.IsAtWarAgainstFaction(giver.MapFaction, Hero.MainHero.MapFaction))
          {
@@ -301,11 +308,14 @@ namespace CalradiaRemembers.Quests
                ? giver.Clan?.Settlements?.Where(s => s.IsVillage) ?? Enumerable.Empty<Settlement>()
                : new[] {giver.HomeSettlement}.Where(s => s != null && s.IsVillage);
             List<Settlement> owned = candidates.ToList();
-            Settlement village = owned.FirstOrDefault(s => v.Near != "forest" || NearForest(s));
+            List<Settlement> ofCulture = owned.Where(s => AuthoredCulturePolicy.Matches(v.Culture, s.Culture?.StringId, s.Culture?.Name?.ToString())).ToList();
+            Settlement village = ofCulture.FirstOrDefault(s => v.Near != "forest" || NearForest(s));
             if (village == null)
             {
                whyNot = owned.Count == 0 ? "no village is theirs to give the quest about"
-                  : $"none of their villages ({string.Join(", ", owned.Select(s => s.Name))}) lies by a forest";
+                  : ofCulture.Count == 0
+                     ? $"none of their villages ({string.Join(", ", owned.Select(s => s.Name))}) is of {AuthoredCulturePolicy.Describe(v.Culture)}"
+                     : $"none of their villages of that culture ({string.Join(", ", ofCulture.Select(s => s.Name))}) lies by a forest";
 
                return false;
             }

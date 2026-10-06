@@ -784,6 +784,12 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "bool",
           "description": "On by default: a giver whose realm is at war with the player never offers it.",
           "default": true
+        },
+        "culture": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "The giver's culture, one or a list (\"battania\", or [\"battania\", \"sturgia\"]); empty for any.",
+          "x-default-empty": true
         }
       }
     },
@@ -810,6 +816,12 @@ input[type="number"] { max-width: 160px; }
           ],
           "x-kind": "string",
           "description": "\"forest\", or leave it empty for anywhere."
+        },
+        "culture": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "The village's culture, one or a list (\"battania\", or [\"battania\", \"sturgia\"]); empty for any.",
+          "x-default-empty": true
         }
       }
     },
@@ -3554,8 +3566,8 @@ input[type="number"] { max-width: 160px; }
   root.TaleEditorFields = {
     AuthoredQuest: ['id', 'title', 'author', 'unique', 'repeat_cooldown_days', 'weight', 'requires', 'binds', 'stages', 'reward', 'endings', 'failure'],
     AuthoredRequires: ['giver', 'village', 'rival', 'player'],
-    GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player'],
-    PlaceRequirement: ['type', 'near'],
+    GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player', 'culture'],
+    PlaceRequirement: ['type', 'near', 'culture'],
     RivalRequirement: ['role', 'same_realm_as'],
     PlayerRequirement: ['min_clan_tier'],
     AuthoredStage: ['id', 'journal', 'objective', 'on_complete', 'canvas', 'facts', 'knowers', 'choices'],
@@ -4383,7 +4395,8 @@ input[type="number"] { max-width: 160px; }
       selectField('tale/requires.giver.role', 'Role', 'GiverRequirement', 'role', giver, list('GiverRoles')),
       roleField('tale/requires.giver.holds', 'Holds', 'GiverRequirement', 'holds', giver, {placeholder: '{village}'}),
       numberField('tale/requires.giver.min_regard', 'Least regard for the player', 'GiverRequirement', 'min_regard', giver, {min: -100, max: 100}),
-      boolField('tale/requires.giver.not_at_war_with_player', 'Never while at war with the player', 'GiverRequirement', 'not_at_war_with_player', giver))));
+      boolField('tale/requires.giver.not_at_war_with_player', 'Never while at war with the player', 'GiverRequirement', 'not_at_war_with_player', giver),
+      flagsField('tale/requires.giver.culture', 'Of the culture', 'GiverRequirement', 'culture', giver, {placeholder: 'any (battania, sturgia)'}))));
 
     var villageOn = r.village && typeof r.village === 'object';
     ed.appendChild(section('The village', help('AuthoredRequires', 'village'), [
@@ -4393,7 +4406,8 @@ input[type="number"] { max-width: 160px; }
       }}}), 'The tale happens in a village, bound as {village}'),
       villageOn ? h('div.grid',
         selectField('tale/requires.village.type', 'Kind', 'PlaceRequirement', 'type', r.village, ['village']),
-        selectField('tale/requires.village.near', 'Near', 'PlaceRequirement', 'near', r.village, [{value: 'forest', label: 'a forest'}], {empty: 'anywhere'})) : null
+        selectField('tale/requires.village.near', 'Near', 'PlaceRequirement', 'near', r.village, [{value: 'forest', label: 'a forest'}], {empty: 'anywhere'}),
+        flagsField('tale/requires.village.culture', 'Of the culture', 'PlaceRequirement', 'culture', r.village, {placeholder: 'any (battania, sturgia)'})) : null
     ], {dataKey: 'tale/requires.village'}));
 
     var rivalOn = r.rival && typeof r.rival === 'object';

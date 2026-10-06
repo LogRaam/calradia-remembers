@@ -378,6 +378,12 @@
           "x-kind": "bool",
           "description": "On by default: a giver whose realm is at war with the player never offers it.",
           "default": true
+        },
+        "culture": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "The giver's culture, one or a list (\"battania\", or [\"battania\", \"sturgia\"]); empty for any.",
+          "x-default-empty": true
         }
       }
     },
@@ -404,6 +410,12 @@
           ],
           "x-kind": "string",
           "description": "\"forest\", or leave it empty for anywhere."
+        },
+        "culture": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "The village's culture, one or a list (\"battania\", or [\"battania\", \"sturgia\"]); empty for any.",
+          "x-default-empty": true
         }
       }
     },

@@ -93,6 +93,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       [QuestField("On by default: a giver whose realm is at war with the player never offers it.")]
       [JsonProperty("not_at_war_with_player")] public bool NotAtWarWithPlayer { get; set; } = true;
+
+      /// <summary>tashmetu (06/10/2026): a tale told only by givers of these cultures; empty for any.</summary>
+      [QuestField("The giver's culture, one or a list (\"battania\", or [\"battania\", \"sturgia\"]); empty for any.")]
+      [JsonProperty("culture")]
+      [JsonConverter(typeof(OneOrManyConverter))]
+      public List<string> Culture { get; set; } = new();
    }
 
    public sealed class PlaceRequirement
@@ -103,6 +109,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>"forest", or null for anywhere.</summary>
       [QuestField("\"forest\", or leave it empty for anywhere.")]
       [JsonProperty("near")] public string Near { get; set; }
+
+      /// <summary>tashmetu (06/10/2026): the village must be of these cultures; empty for any.</summary>
+      [QuestField("The village's culture, one or a list (\"battania\", or [\"battania\", \"sturgia\"]); empty for any.")]
+      [JsonProperty("culture")]
+      [JsonConverter(typeof(OneOrManyConverter))]
+      public List<string> Culture { get; set; } = new();
    }
 
    /// <summary>The {rival}: a clan leader of the giver's realm who is not the giver (branching tales, 04/10/2026).</summary>

@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-431 rules read 333 facts.
+433 rules read 335 facts.
 
 ## Facts read by more than one rule
 
@@ -200,6 +200,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `PartyBase.LeaderHero` (2) | `HeroNaming`, `NotHisToSellFacts` |
 | `PartyBase.NumberOfHealthyMembers` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `PartyBase.PartySizeLimit` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
+| `Requires.Giver` (2) | `AuthoredCulturePolicy.Describe`, `AuthoredCulturePolicy.Matches` |
+| `Requires.Village` (2) | `AuthoredCulturePolicy.Describe`, `AuthoredCulturePolicy.Matches` |
 | `Romantic.IsSecretLover` (2) | `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Romantic.Kinks` (2) | `CaptiveEncounterPolicy.EncounterProbability`, `CaptiveEncounterPolicy.SelectIntent` |
 | `ScreenManager.TopScreen` (2) | `ChatFocusArbitrationPolicy.Decide`, `ChatFocusArbitrationPolicy.ReasonFor` |
@@ -239,6 +241,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AssemblyTravelFacts`: `Hero.CurrentSettlement`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.MapEvent`, `Settlement.IsUnderSiege`
 - `AssemblyTravelOutcome.Evaluate`: `Hero.CurrentSettlement`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.MapEvent`, `Settlement.IsUnderSiege`
 - `AssignRoleFacts`: `Hero.IsPlayerCompanion`, `Hero.PartyBelongedTo`
+- `AuthoredCulturePolicy.Describe`: `Requires.Giver`, `Requires.Village`
+- `AuthoredCulturePolicy.Matches`: `Requires.Giver`, `Requires.Village`
 - `AuthoredQuestEngine.Bound`: `Objective.Spawn`
 - `AuthoredQuestEngine.ConversationOpened`: `Hero.CurrentSettlement`, `Hero.HomeSettlement`
 - `AuthoredQuestEngine.Fill`: `Failure.Journal`, `Objective.Scene`, `Objective.Spawn`, `Scene.Title`

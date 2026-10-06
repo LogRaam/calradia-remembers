@@ -420,7 +420,7 @@ namespace CalradiaRemembers.Grudges
 
             // notify=false lets a batch planter (a single execution seeding several kin) suppress the per-kin
             // banner and raise ONE aggregated notice instead of a stack of near-identical ones (regard audit 5.6).
-            if (knownToPlayer && notify) NotifyFormed(holder);
+            if (knownToPlayer && notify) NotifyFormed(holder, target);
 
             return true;
          }
@@ -444,12 +444,12 @@ namespace CalradiaRemembers.Grudges
       ///   when the grudge forms known to the player — a hidden grudge stays silent, exactly as it stays
       ///   unnamed in the prompt and off the encyclopedia. Never throws.
       /// </summary>
-      private static void NotifyFormed(Hero holder)
+      private static void NotifyFormed(Hero holder, Hero target)
       {
          try
          {
             MBInformationManager.AddQuickInformation(
-               new TextObject($"{holder.Name} now holds a grievance against you."), 0, holder.CharacterObject);
+               new TextObject(GrudgeBannerText.Compose(holder.Name?.ToString(), target?.Name?.ToString(), target == null || target == Hero.MainHero)), 0, holder.CharacterObject);
          }
          catch (Exception ex)
          {

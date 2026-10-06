@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 467 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 974 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 976 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1582,13 +1582,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (46)
+### CalradiaRemembers.Logic.AuthoredQuests (47)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `AuthoredBeat` | public class | (no summary) |
 | `AuthoredChoice` | public class | One way out of a stage (branching tales, 04/10/2026). |
 | `AuthoredConsequence` | public class | (no summary) |
+| `AuthoredCulturePolicy` | public static class | Whether a giver or a village is of the culture a tale asks for (id or name, any case; none asked is any). |
 | `AuthoredEncounter` | public class | (no summary) |
 | `AuthoredFinding` | public class | (no summary) |
 | `AuthoredFlags` | public static class | Tests a list of flag conditions against the flags a run has set. |
@@ -1740,7 +1741,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `ConversationLineSequencer` | public class | Sequences line indices within one conversation session. |
 
-### CalradiaRemembers.Logic.Grudges (32)
+### CalradiaRemembers.Logic.Grudges (33)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1752,6 +1753,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ExecutedKinRules` | public static class | Pure Tier 3 grudge SOURCE rule: the close living kin of a lord the player executed. |
 | `Grudge` | public class | One NPC's grievance against a target, anchored on a specific event. |
 | `GrudgeBackfillRules` | public static class | Maps the real Tier-1 markers already sitting in existing saves to MigrationCandidate, so GrudgeMigration never has to know about NotableEvent/InformalQuest/WorldEvent shapes. |
+| `GrudgeBannerText` | public static class | Pure text of the grudge-formed banner. |
 | `GrudgeCandidateFacts` | public class | Every fact GrudgePolicy.ShouldForm and GrudgePolicy.RigidityAt need about a candidate grudge, before it becomes a persisted Grudge. |
 | `GrudgeGesture` | public enum | A gesture the player can offer toward a grudge's holder, matched against the grudge's GrudgeResolutionKind by GrudgeResolutionPolicy. |
 | `GrudgeLedger` | public class | The whole persisted grudge store: every live and resolved Grudge plus the stamped MigrationVersion that makes the one-shot backfill idempotent across session launches. |
