@@ -530,6 +530,10 @@ namespace CalradiaRemembers.Chat
       /// <summary>Receives the oldest conversation held for landfall once the player is ashore and the screen is free.</summary>
       private static void ReceiveOneAwaitingLandfall()
       {
+         // Pumped every frame, the main menu included: no campaign, no clock to read (CampaignTime.Now threw there and
+         // the game would not start, 05/10/2026).
+         if (Campaign.Current == null) return;
+
          bool atSea = MobileParty.MainParty?.IsCurrentlyAtSea == true;
          if (atSea) _lastSeenAtSea = CampaignTime.Now;
          if (_awaitingLandfall.Count == 0) return;
