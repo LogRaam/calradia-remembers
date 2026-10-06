@@ -51,7 +51,9 @@ namespace CalradiaRemembers
 
       /// <summary>
       ///   Optional category. Accepts the narrative kinds (Conflict, Collaboration, Agreement, Flirt, Intimacy,
-      ///   Betrayal, Confrontation, Other); anything else, or an engine-owned kind, is filed as Other.
+      ///   Betrayal, Confrontation, Other) and, since 2.7.2, Hearsay: news the character only heard, shown apart from
+      ///   what they lived with the player and never counted against it. Anything else, or an engine-owned kind, is
+      ///   filed as Other.
       /// </summary>
       public string Kind { get; set; }
 

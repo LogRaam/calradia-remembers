@@ -14,6 +14,7 @@ Fixed
 For modders
 
 - Written tales can ask for a giver and a village of a culture: "culture": "battania", or a list ["battania", "sturgia"], on "giver" and on "village". The id or the name works, in any case. The Tale Editor has the field, and HOWTO_Quests.md documents it. (Thank you, tashmetu.)
+- A memory a mod injects can now be of kind "Hearsay": news the character only heard. It is shown apart from what they lived with you, never takes the place of a lived memory in the Compact prompt (which shows the two latest heard ones beside its six lived ones), and is never kept by compression just for being recent. A character who has only heard of you still meets you for the first time. EXTENSION_API.md also states that AddMemory has no daily quota, unlike Feed.Record (20 a day per mod). (Thank you, tashmetu.)
 
 Notes
 

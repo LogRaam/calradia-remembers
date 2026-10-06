@@ -105,5 +105,14 @@ namespace CalradiaRemembers.Tests
         {
             NpcMemoryInjection.BuildInjectedEvent("We met at the ford.", "Agreement", 0, 100).IsPrivate.Should().BeFalse();
         }
+
+        // tashmetu (06/10/2026): a mod that writes a memory for every piece of news a noble hears must be able to say so,
+        // or the news is filed as Other and counted against what the noble lived with the player in a short prompt.
+        [Test]
+        public void GIVEN_a_mod_filing_news_a_noble_heard_WHEN_injected_as_hearsay_THEN_it_is_kept_as_hearsay()
+        {
+            NpcMemoryInjection.BuildInjectedEvent("Heard that Derthert lost Pravend.", "Hearsay", 0, 100).type
+                              .Should().Be(NotableEventType.Hearsay);
+        }
     }
 }

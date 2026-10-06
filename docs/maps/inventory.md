@@ -8,7 +8,7 @@ sentence beside each type is the first sentence of its own doc comment; `(no sum
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 467 types in 58 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 976 types in 27 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 248 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -2070,7 +2070,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `SharedRecall` | public class | What a character may be shown to REMEMBER in front of others: their own memories, minus anything held in confidence, folded to a bounded recall. |
 
-### NpcMemoryService.Core.Models (72)
+### NpcMemoryService.Core.Models (73)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2095,6 +2095,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GameAction` | public class | A directive emitted by the LLM via the [ACTION] section, requesting the consumer (game mod, etc.) to effect a change in the game world. |
 | `HeldSecretDisposition` | public enum | How an NPC who knows the player's secret-lover identity is disposed to carry it. |
 | `HeldSecretPolicy` | public static class | Decides how an NPC who holds the player's secret-lover identity is disposed to use it, from regard and hostility. |
+| `HistoryWindowPolicy` | public static class | Splits a character's memories into what they lived with the player and what they only heard. |
 | `InformalQuest` | public class | A task an NPC has asked the player to accomplish, persisted on the giver's NpcProfile.ActiveQuests until it terminates. |
 | `IntimacyConsentFacts` | public class | The facts a consent verdict rests on. |
 | `IntimacyConsentVerdict` | public enum | Where an NPC stands relative to the regard their own disposition requires for intimacy. |

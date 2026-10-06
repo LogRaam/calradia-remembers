@@ -62,7 +62,7 @@ MemoryResult result = CrNpcMemory.AddMemory(new CrMemoryEntry
 {
     NpcId     = npcId,                                        // REQUIRED, hero StringId
     Summary   = "We agreed to meet at the ford at dawn.",     // REQUIRED, the remembered line
-    Kind      = "Agreement",                                  // optional; unknown/engine kinds become "Other"
+    Kind      = "Agreement",                                  // optional; "Hearsay" for news heard; unknown/engine kinds become "Other"
     DaysAgo   = 0,                                            // optional; 0 = today, dated back from now
     SourceMod = "MyMemoryAddon",                              // optional, for provenance in the logs
     Private   = false                                         // optional (2.6.10): true = said in confidence
@@ -119,6 +119,12 @@ variable provider.
 
 - **Kinds you cannot spoof.** `FirstMeeting`, `Captivity`, and `Farewell` are engine-owned (they drive
   have-we-met logic, compression, and input locking). A caller asking for one gets `Other` instead.
+- **`Hearsay` for news a character only heard** (since 2.7.2). A memory of kind `Hearsay` is shown apart from what
+  the character lived with the player, under a "what has reached your ears" header. It is never counted against the
+  6 lived memories the Compact prompt keeps (Compact shows the 2 latest heard ones beside them), and it is never
+  shielded from compression by being recent. Any other kind is history with the player: use `Hearsay` for a rumour.
+- **No quota on AddMemory.** Unlike `Feed.Record` (20 events per mod per day), nothing limits how many memories a
+  mod injects; news of the world belongs in `Feed.Record`, and a memory is for what touches that character.
 - **Summary length** is bounded (300 chars) to keep the save blob safe; longer lines are trimmed.
 - **`Started` fires for every conversation type** (ordinary, captive, companion, commoner). v1 does not
   tag which; ask if you need that distinction.

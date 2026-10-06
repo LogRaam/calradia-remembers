@@ -17,6 +17,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ### For modders
 - **Tale culture filter** (tashmetu): `giver.culture` and `village.culture`, one or many, id or name, any case
   (`AuthoredCulturePolicy`); schema, Tale Editor forms and HOWTO_Quests updated.
+- **`Hearsay` memory kind** (tashmetu, Regard and Standing): SDK `NotableEventType.Hearsay` (ordinal 12, appended);
+  `HistoryWindowPolicy` counts lived memories and hearsay apart: shown under their own header, Compact keeps 6 lived
+  plus `LeanHearsayLimit` (2) heard, compression's recent-5 shield counts lived memories only and the compressor is
+  told to fold hearsay first; only-heard is still a first meeting. Accepted by `CrMemoryEntry.Kind`.
 
 ## v2.7.1.. 2026-10-06
 
