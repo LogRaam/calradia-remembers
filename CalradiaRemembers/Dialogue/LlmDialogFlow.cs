@@ -646,9 +646,11 @@ namespace CalradiaRemembers.Dialogue
 
                SeedCapturedVanillaLinesIntoChat(vm, behavior);
                // Show both scores in the header from the first frame.
+               Logic.GameRelationFacts relations = GameRelations.Of(hero);
                vm.SetRelationSummary(
                   Profile.ReputationWithPlayer,
-                  Logic.GameRelationReading.ClanStanding(GameRelations.Of(hero)));
+                  Logic.GameRelationReading.ClanStanding(relations),
+                  Logic.GameRelationReading.OwnRelationIfDistinct(relations));
 
                // ── Witness resolution ────────────────────────────────────
                // Auto-detect heroes plausibly present (sync, safe — returns

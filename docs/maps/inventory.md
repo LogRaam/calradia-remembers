@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 467 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 972 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 974 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -808,7 +808,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (615)
+### CalradiaRemembers.Logic (617)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1279,6 +1279,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RefusalFallbackPolicy` | public static class | Whether a beat is redone on the NSFW model. |
 | `ReinforceGarrisonPolicy` | public static class | The rules of a reinforce_garrison task. |
 | `RelationGate` | public static class | Single source of truth for how a LLM-proposed relation change is allowed to move the player↔NPC relationship. |
+| `RelationSummaryFacts` | public class | The standings the header line is written from. |
+| `RelationSummaryText` | public static class | Writes the header line. |
 | `ReleaseBargainMode` | public enum | How a freedom bargain is honoured, decided by who holds the prisoner. |
 | `ReliefSeat` | public class | A place a character answers for, as a destination for the grain he asked for. |
 | `ReplyCourierBlock` | public enum | Why no reply courier may ride to the player right now (None = the road is open). |

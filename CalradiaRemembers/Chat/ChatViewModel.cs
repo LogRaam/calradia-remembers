@@ -3332,10 +3332,13 @@ namespace CalradiaRemembers.Chat
          _npcPortraitCharacter = portraitCharacter;
       }
 
-      /// <summary>Updates the header subtitle with the two relationship scores.</summary>
-      public void SetRelationSummary(int personal, int clan)
+      /// <summary>
+      ///   Updates the header subtitle: the clan's standing, the character's own relation when a per-hero relation mod
+      ///   gives one that differs (Fakade, 06/10/2026), and CR's personal regard.
+      /// </summary>
+      public void SetRelationSummary(int personal, int clan, int? own = null)
       {
-         RelationSummary = $"Clan {clan:+#;-#;0}   ·   Personal {personal:+#;-#;0}";
+         RelationSummary = Logic.RelationSummaryText.Compose(new Logic.RelationSummaryFacts {Clan = clan, Own = own, Personal = personal});
       }
 
       /// <summary>

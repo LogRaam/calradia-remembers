@@ -836,7 +836,7 @@ namespace CalradiaRemembers.Chat
             if (speaker.Hero != null)
                Standing.ClanStandingSeedService.Apply(profile, profile.ClanRelationWithPlayer.Value, behavior.GameStateBridge.GetCurrentGameDay());
             if (speaker.IsMain)
-               SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer.Value);
+               SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer.Value, profile.OwnGameRelationWithPlayer);
 
             // Re-sync the speaker's sex from the live hero every turn: the identity/pronoun lines of the
             // prompt read profile.IsFemale, and a profile whose sex went stale (created before the load-time
@@ -1581,7 +1581,7 @@ namespace CalradiaRemembers.Chat
                // The personal score may have moved — refresh the header (main NPC only;
                // the header reflects the conversation's host, not a routed witness).
                if (speaker.IsMain)
-                  SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer ?? 0);
+                  SetRelationSummary(profile.ReputationWithPlayer, profile.ClanRelationWithPlayer ?? 0, profile.OwnGameRelationWithPlayer);
 
                // Conversation-outcome rumor (v1.2): a steep affront before witnesses spreads
                // as gossip through the world-event store instead of evaporating at close.
