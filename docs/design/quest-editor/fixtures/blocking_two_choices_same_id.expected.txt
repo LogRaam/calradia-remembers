@@ -1,0 +1,1 @@
+blocking_two_choices_same_id.json: quest 'fx_branch': stage 'crossroads': two choices are called 'go'. The quest is not loaded.

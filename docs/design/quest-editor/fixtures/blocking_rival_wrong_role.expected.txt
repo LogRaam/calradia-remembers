@@ -1,0 +1,1 @@
+blocking_rival_wrong_role.json: quest 'fx_tale': requires.rival asks for a 'king', but the game binds a rival only as a "clan_leader" of the giver's realm. The quest is not loaded.

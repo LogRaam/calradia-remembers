@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 466 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 956 types in 27 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 467 types in 58 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 971 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 247 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -37,6 +37,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1000+ | Mod | `Letters/CourierService.cs` |
 | 1000+ | Mod | `Letters/LetterTriggerEvaluator.cs` |
 | 1000+ | Sdk | `Parsing/SectionResponseParser.cs` |
+| 1000+ | Mod | `Quests/AuthoredQuestBehavior.cs` |
 | 1000+ | Mod | `Services/LlmServices.cs` |
 | 1000+ | Mod | `WorldEvents/WorldEventFeeders.cs` |
 
@@ -153,7 +154,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 
-### CalradiaRemembers.Chat (50)
+### CalradiaRemembers.Chat (51)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -207,6 +208,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PostDuelPayload` | public class | The post-duel specifics: who prevailed and what the duel was over, so the resumed chat is coloured correctly. |
 | `ProseFallbackComposer` | public static class | PROSE FALLBACK (Prose + Interpreter composition, truncation safety net): when the PROSE model returns a beat that did not finish cleanly (see Logic.TruncationFallbackPolicy), the caller skips the slow double-budget retry... |
 | `RoundTableController` | internal class | Owns the round-table (group-lap) feature so it no longer threads through the shared ChatViewModel partials (which forced a surgical-commit dance every release). |
+| `SceneChoiceItemViewModel` | public class | One clickable line of a scene's way-out list. |
 
 ### CalradiaRemembers.Chronicle (5)
 
@@ -1578,20 +1580,25 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (30)
+### CalradiaRemembers.Logic.AuthoredQuests (45)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `AuthoredBeat` | public class | (no summary) |
+| `AuthoredChoice` | public class | One way out of a stage (branching tales, 04/10/2026). |
 | `AuthoredConsequence` | public class | (no summary) |
 | `AuthoredEncounter` | public class | (no summary) |
 | `AuthoredFinding` | public class | (no summary) |
+| `AuthoredFlags` | public static class | Tests a list of flag conditions against the flags a run has set. |
 | `AuthoredHazard` | public class | (no summary) |
 | `AuthoredHazardEffect` | public class | (no summary) |
+| `AuthoredLine` | public class | A line an author may write plain ("text") or under flags ({"text": "...", "if": "flag"}): it reaches the model only while its flags hold. |
+| `AuthoredLineConverter` | public class | A line: "text", or {"text": "...", "if": ...}. Written back the shortest way that keeps it. |
+| `AuthoredLinesConverter` | public class | A canvas: one line, or a list of lines (each said only while its flags hold). |
 | `AuthoredObjective` | public class | One condition the engine verifies; which fields matter depends on Type. |
 | `AuthoredOfferFacts` | public class | The facts an offer is judged on, past the giver qualifying. |
 | `AuthoredOnComplete` | public class | (no summary) |
-| `AuthoredOutcome` | public class | What success or failure leaves behind. |
+| `AuthoredOutcome` | public class | What success, failure or a named ending leaves behind. |
 | `AuthoredQuest` | public class | One authored quest, as its file describes it. |
 | `AuthoredQuestEngine` | public static class | The stage machine. |
 | `AuthoredQuestFolders` | public static class | Where written tales are read from (fkasad, 06/10/2026: one Custom folder to manage, and the MCM path): the shipped folder, its old Custom folder (files there keep working), and Quests under the player's Custom folder. |
@@ -1602,15 +1609,25 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredQuestRun` | public class | One authored quest being played: who and where it was bound to, which stage, and the stage's progress. |
 | `AuthoredQuestStatus` | public enum | (no summary) |
 | `AuthoredRequires` | public class | When the quest may be offered, and by whom (increment 1: the shape the werewolf needs). |
+| `AuthoredRivalPolicy` | public static class | Chooses the {rival} among the lords the engine offers. |
+| `AuthoredSaid` | public class | A choice taken by words: what the player must say, and to whom. |
 | `AuthoredScene` | public class | An exploration scene: the chat with a narrator and no character, until someone is met. |
 | `AuthoredSpawn` | public class | A party spawned for the quest: real, on the map, beaten in a real battle. |
 | `AuthoredStage` | public class | One stage: a journal line, one verified objective, what the people involved know, and what follows. |
 | `AuthoredStageNotice` | public static class | The player-facing line for a tale moving to its next stage. |
 | `AuthoredStep` | public class | (no summary) |
 | `AuthoredStepKind` | public enum | What a reported fact did to the run. |
+| `AuthoredWay` | public class | One way out of the current stage: its own objective (no choice), or an open choice. |
 | `GiverRequirement` | public class | (no summary) |
+| `OneOrManyConverter` | public class | A list of flag names: "name", or ["a", "!b"]. |
 | `PlaceRequirement` | public class | (no summary) |
 | `PlayerRequirement` | public class | (no summary) |
+| `QuestFieldAttribute` | public class | What an author is told about one field of a quest file, in the guide's words. |
+| `RivalCandidate` | public class | One lord who might be bound as the {rival}, as the engine reads him. |
+| `RivalRequirement` | public class | The {rival}: a clan leader of the giver's realm who is not the giver (branching tales, 04/10/2026). |
+| `SceneChoiceMenu` | public static class | Decides what the numbered list holds, and what a typed number means. |
+| `SceneChoiceMenuFacts` | public class | What the chat knows when it asks whether, and what, to list under the narration. |
+| `SceneChoiceMenuItem` | public class | One line of the list. |
 | `SceneMarkers` | public class | A narration with its game markers taken out. |
 
 ### CalradiaRemembers.Logic.Battles (8)

@@ -1,0 +1,1 @@
+blocking_no_stages.json: quest 'fx_tale': it has no stages. The quest is not loaded.

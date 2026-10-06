@@ -1,0 +1,36 @@
+{
+  "id": "fx_tale",
+  "title": "A Fixture",
+  "binds": {
+    "giver": "a lord",
+    "village": "a village"
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "journal": "Talk to {giver}.",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}"
+      },
+      "on_complete": {
+        "next": "go"
+      }
+    },
+    {
+      "id": "go",
+      "journal": "Go to {village}.",
+      "objective": {
+        "type": "talk_to_locals",
+        "place": "{village}",
+        "count": 0
+      },
+      "on_complete": {
+        "next": "reward"
+      }
+    }
+  ],
+  "reward": {
+    "regard": 5
+  }
+}

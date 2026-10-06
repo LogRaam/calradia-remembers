@@ -508,6 +508,8 @@ namespace CalradiaRemembers.Mapping
             CaptiveNotoriety = knowledge.CaptiveNotoriety,
             // An authored quest this character is part of now (docs/design/AUTHORED_QUESTS.md).
             AuthoredQuestBlock = Quests.AuthoredQuestBehavior.Instance?.PromptBlockFor(hero),
+            // Its choices by words open with this character, for the action interpreter only (never this prompt).
+            StoryChoicesForInterpreter = Quests.AuthoredQuestBehavior.Instance?.InterpreterChoicesFor(hero),
             PartyStanding = knowledge.PartyStanding,
 
             // The post the mod's own verb assigned and never mentioned. Named here so the station pack can

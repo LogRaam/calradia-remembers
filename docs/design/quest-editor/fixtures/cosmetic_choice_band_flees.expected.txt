@@ -1,0 +1,1 @@
+cosmetic_choice_band_flees.json: quest 'fx_branch': stage 'crossroads', choice 'stay': flee_after_days is not played on a choice's band; it stays until the stage ends.

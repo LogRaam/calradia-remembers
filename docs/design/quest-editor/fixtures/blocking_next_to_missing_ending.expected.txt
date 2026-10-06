@@ -1,0 +1,1 @@
+blocking_next_to_missing_ending.json: quest 'fx_tale': stage 'go' leads to ending 'nope', which "endings" does not define. The quest is not loaded.

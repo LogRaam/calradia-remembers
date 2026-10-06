@@ -1,0 +1,1 @@
+blocking_choice_without_id.json: quest 'fx_branch': stage 'crossroads': a choice has no id. The quest is not loaded.

@@ -1,0 +1,21 @@
+:: StoryTitle
+The Miller's Silence
+
+:: A quiet word
+The lord asks you to find out why the miller of {village} will not grind his grain.
+Journal: Find out why the miller of {village} has shut his mill.
+[[Go to the mill->At the mill]]
+
+:: At the mill [be_at:village]
+The mill is shut. The miller will say only that a lord's men came by night.
+(set: $miller_spoke to true)
+[[Tell the lord->The lord hears]]
+[[Let it lie->Silence]]
+
+:: The lord hears [talk_to:giver regard:6]
+The lord hears it and goes quiet.
+(if: $miller_spoke)[He asks what else the miller said.]
+Memory: The player told me why the mill of {village} stopped.
+
+:: Silence [wait:7 regard:-3]
+Journal: You let the mill stay shut.

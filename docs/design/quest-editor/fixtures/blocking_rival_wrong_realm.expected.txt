@@ -1,0 +1,1 @@
+blocking_rival_wrong_realm.json: quest 'fx_tale': requires.rival is of the same realm as '{village}', but the game binds a rival only in the giver's realm ("{giver}"). The quest is not loaded.

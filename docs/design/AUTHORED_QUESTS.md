@@ -1,7 +1,8 @@
 # Authored quests: a repertoire of multi-stage quests in JSON
 
 DRAFT, 03/10/2026, revised the same day with Gabriel's rulings (no moon, exploration scenes, consequences, any
-giver, one at a time). Not built.
+giver, one at a time). Increment 1 built 03/10/2026; branches, endings, flags and the tale editor built 04/10/2026
+(see "Branches: the design as built").
 
 ## Where this comes from
 
@@ -128,7 +129,7 @@ Each stage:
 | `knowers` | Who knows what at this stage, injected into THEIR prompt only. Keys are roles or selectors. |
 | `on_complete.narration` | Optional. Shown when the objective is met; may itself be a canvas and facts (see the wood). |
 | `on_complete.next` | The next stage id, or `"reward"`. |
-| `branches` (optional) | Several ways out of a stage, each with its own objective and its own `next`. Not in Inc 1. |
+| `choices` (optional) | Several ways out of a stage: see "Branches: the design as built". |
 
 ### The closed list of objectives (Inc 1: what the werewolf needs, plus `deliver_item`)
 
@@ -343,7 +344,7 @@ In `docs/design/quests/`:
    - The werewolf playable end to end, with unit tests on every rule and a cr.testall that walks the stages.
 2. **Offering and consequences.**
    - The giver comes to the player (step 1 of the roadmap).
-   - Branches.
+   - Branches: built 04/10/2026, with endings, flags and the tale editor (below).
    - The spikes for `war_averted` and the NPC grudge.
    - `ambush` (a scene that turns into a real battle).
    - Encounters who become real, and the `escort` objective.
@@ -353,72 +354,63 @@ In `docs/design/quests/`:
    `repeat_cooldown_days` honoured. Left: cr_patch for quest files.
 4. **More quests.** A first lot of unique quests, drafted by Claude and corrected by Gabriel.
 
-## Branches: a proposal (04/10/2026, awaiting Gabriel)
+## Branches: the design as built (04/10/2026)
 
-Nothing below is built. It is written so Gabriel can answer it in his own words.
+Gabriel, 04/10/2026: "With Twine you can give a quest several paths, like a choose-your-own-adventure book: the
+player could decide whether to turn right or left, and depending on what happens the story takes another direction.
+CR's quests must support that." Built on branch `quest-branches` from the goal in `docs/design/quest-editor/goal.md`;
+every decision taken alone is in `docs/design/quest-editor/DECISIONS.md`. It answers the four questions the proposal
+left open: some choices are said aloud (choices by words); the journal shows the ways out the author names; doing
+nothing is a choice when the file says so (`wait`); the NPC-to-NPC grudge is still left for a ruling.
 
-**The problem.** In "Smoke over the Hills" the player learns that the barn was burned by riders of
-`{rival}`, a house of the giver's own realm. Today the quest can only end one way: the player tells
-the giver. The story invites a choice:
-- tell the giver, and the realm tears at itself;
-- go to `{rival}` and make him answer for it;
-- say nothing, and let the war go on against the wrong enemy.
+**Choices.** A stage may carry `choices` beside, or instead of, its objective. Each has an `id`, a `label`, an
+optional `journal` line, a `next`, `if` (flags that must hold for it to be open) and `sets` (flags set when taken),
+and may carry its own `canvas`, `facts` and `knowers`, said by the character in whose conversation it is taken. A
+choice is taken one of three ways:
+- **by an act**: an `objective` from the closed list (`talk_to`, `return`, `talk_to_locals`, `be_at`,
+  `defeat_party`, and the new `wait`: days passing with no other way out taken). The first met wins and the others
+  close. A choice cannot keep watch or open a scene; it leads to a stage that does.
+- **in a scene**: in an `explore` stage, a choice with no objective. The narrator is told the open ones with their
+  marker `[[choice:id]]` and writes it when the player's words take that path; only a declared, open marker counts,
+  only the first. The scene then ends and the story follows it on closing. Closed with no choice, it follows the
+  stage's `on_complete.next`, else its first `default` choice (which may not hang on a flag); one is required. Under
+  each narration the player has not answered, the open ways are listed by number with "Something else..."
+  (Gabriel: "like an LLM does in the CLI"); a click or a typed number sends the way's words, and only the narrator's
+  marker moves the story.
+- **by words**: `"said": {"to": "{rival}", "meaning": "..."}`, taken when the action interpreter reports, in a
+  conversation with that character, that the player said what it means. Only the choices open in that conversation
+  are taught, and only a declared, open id is accepted.
 
-**What I propose: the player chooses by what they do, never by a menu.** A stage may carry
-`branches` instead of a single objective. Each branch is an ordinary objective from the closed list,
-with its own journal line, its own `next`, and its own ending. The first branch whose objective is met
-is the way the story went, and the others close. No new verb and no popup: the game already checks
-"talked to the giver" and "talked to the rival", so the choice stays where the rest of the quest is,
-in what the player does in the world. The model cannot pick a branch, just as it cannot complete a
-stage today.
+**Endings.** `next` may be `"end:<id>"`, an entry of the new `endings` map, each shaped like the reward (regard, gold,
+memory, a last `journal` line, consequences). `"reward"` stays the single success ending, so every file written before
+loads and plays unchanged. `failure` stays the time-out.
 
-```json
-{
-  "id": "what_to_do_with_it",
-  "journal": "You know who burned {village}. What you do with it is yours.",
-  "branches": [
-    { "id": "expose",   "journal": "Tell {giver}.",
-      "objective": { "type": "talk_to", "hero": "{giver}" },  "next": "end:exposed" },
-    { "id": "confront", "journal": "Or confront {rival} himself.",
-      "objective": { "type": "talk_to", "hero": "{rival}" },  "next": "confront_the_rival" },
-    { "id": "silence",  "journal": "Or keep it to yourself.",
-      "objective": { "type": "wait", "days": 10 },            "next": "end:silence" }
-  ]
-}
-```
+**Flags.** Named booleans, set by a choice, a finding or a met encounter, tested by `if` (`"name"`, or `"!name"` for
+not set; a list holds when each does) on choices, knower lines, canvas and fact lines (a line may be
+`{"text", "if"}`), and consequences. No arithmetic, no text.
 
-**Several endings.** `"reward"` becomes one ending among several: `next` may be `"end:<id>"`, and the
-file gains `"endings": { "exposed": {...}, "silence": {...} }`. Each ending has the shape of today's
-`reward` (regard, gold, memory, consequences), so an ending may cost the player as much as it pays
-them. `"reward"` stays valid and means the single ending, so every Inc 1 file still loads.
+**Secrecy.** No character and no narrator is told a choice still ahead, a closed choice, a later stage, or a line
+whose flag does not hold. The character whose conversation ends the tale keeps speaking from it until it closes.
 
-**What each character is told.** The knowers of a branching stage speak of the matter, never of the
-branches. A stage's canvas still belongs to the giver, and the rival gets lines of his own:
+**The loader** refuses what could strand the player (a `next` that leads nowhere, a reachable stage that can never
+reach an ending, a choice nobody can take, a scene with choices and no way out, the request offering choices) and
+reports what is only wasted (a stage or ending no path reaches, a flag tested but never set, a default mark that does
+nothing). Loops are allowed when they have an exit. One broken way out is reported once, never echoed.
 
-```json
-"knowers": { "{rival}": [ "Your riders burned {village} to set the realm against the enemy. You will not admit it unless shown proof." ] }
-```
+**The {rival}** a tale may need: the head of another house of the giver's realm whom the player can find
+(`requires.rival`, `AuthoredRivalPolicy`).
 
-So the rival can neither lie nor confess on his own: "characters never lie" holds, and he simply
-refuses to speak of it until pressed.
+**Saves.** The run gains additive fields only (flags, the path taken, the ending, per-choice progress); a run saved
+before reads with none and plays on.
 
-**What this needs that does not exist yet:**
-- a `wait` objective (days passing with none of the other branches taken), which is what "doing
-  nothing" looks like to the game;
-- a binding for a second lord, `{rival}` (a clan leader of the giver's realm, not the giver);
-- the loader's checks extended so that every branch reaches an ending, and an ending named nowhere is
-  reported.
+**The tale editor** (`Docs/TaleEditor.html`): one offline page that opens, edits, checks, maps and saves tales, and
+imports Twine stories. Its checks are a JavaScript copy of the loader held to it by a shared corpus of fixtures run
+through both (C# directly, the editor's own code under Node); its fields come from a JSON Schema generated from the
+C# model (`docs/design/quest-editor/quest.schema.json`), kept current by the Maps suite.
 
-**Questions for Gabriel:**
-1. Is "the first objective met decides" right, or should some choices be said aloud? For example, the
-   player tells the rival "I will keep quiet for a price", and the game must hear it. That would need
-   the interpreter to report a branch, the way it reports a verb today, and it is a larger build.
-2. Should the journal show the branches as choices ("Tell the lord, or confront the rival"), or show
-   only the situation and let the player find the ways out?
-3. Silence as a branch: is ten days of doing nothing enough to count as a choice, or should silence
-   simply be the failure ending?
-4. The grudge between `{giver}` and `{rival}` (the draft's reward) still needs its own ruling: may a
-   quest leave two lords hating each other, and how long should that last?
+**Worked examples** (in `docs/design/quests/`, not shipped): `smoke_over_the_hills.json` (expose, confront, keep
+silent; a confrontation then leads to the lord after all, a price for silence said aloud, or nothing) and
+`the_bell_in_the_marsh.json` (a turn left or right on a causeway, a loop back to the watch, two scenes in a row).
 
 ## Still open
 

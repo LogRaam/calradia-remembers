@@ -1,0 +1,196 @@
+{
+  "quest": {
+    "id": "custom_the_ferryman_s_debt",
+    "title": "The Ferryman's Debt",
+    "author": "imported from Twine (harlowe_ferryman.html)",
+    "requires": {
+      "giver": {
+        "role": "lord",
+        "holds": "{village}"
+      },
+      "village": {
+        "type": "village"
+      }
+    },
+    "binds": {
+      "giver": "the one who asks for help",
+      "village": "the village the tale happens in"
+    },
+    "stages": [
+      {
+        "id": "the_lord_s_request",
+        "journal": "{giver} asks you to find the ferryman of {village}.",
+        "objective": {
+          "type": "talk_to",
+          "hero": "{giver}"
+        },
+        "canvas": "The lord rubs his eyes. His ferryman at {village} has not been seen for a week, and the ferry sits idle on the river.",
+        "facts": [
+          "The ferryman has been missing for a week.",
+          "The ferry sits idle at {village}."
+        ],
+        "knowers": {
+          "{giver}": [
+            "Your ferryman at {village} has vanished, and you cannot spare men to look."
+          ]
+        },
+        "on_complete": {
+          "next": "the_lord_s_request_after"
+        }
+      },
+      {
+        "id": "the_lord_s_request_after",
+        "choices": [
+          {
+            "id": "what_the_village_says",
+            "label": "Ask in the village",
+            "journal": "Ask in the village.",
+            "sets": "heard_of_debt",
+            "objective": {
+              "type": "talk_to_locals",
+              "place": "{village}",
+              "count": 2
+            },
+            "canvas": [
+              "The villagers lower their voices: the ferryman owed money to a man from the city.",
+              "Nobody has seen him since the debt fell due."
+            ],
+            "knowers": {
+              "locals_of:{village}": [
+                "The ferryman owed money to a moneylender from the city."
+              ]
+            },
+            "next": "what_the_village_says"
+          }
+        ]
+      },
+      {
+        "id": "what_the_village_says",
+        "journal": "Watch the river at night.",
+        "objective": {
+          "type": "keep_watch",
+          "place": "{village}",
+          "nights": [
+            1,
+            3
+          ],
+          "chance": 0.5
+        },
+        "on_complete": {
+          "next": "the_river_at_night"
+        }
+      },
+      {
+        "id": "the_river_at_night",
+        "journal": "The river at night.",
+        "objective": {
+          "type": "explore",
+          "scene": {
+            "title": "The river at night",
+            "opening": {
+              "canvas": "Fog lies on the river. Somewhere downstream, a lantern moves along the bank.",
+              "facts": [
+                "The ferry is tied up and empty."
+              ]
+            },
+            "findings": [
+              {
+                "id": "lantern",
+                "required": true,
+                "text": "The ferryman's own lantern, still warm, dropped in the reeds.",
+                "sets": "found_lantern"
+              }
+            ],
+            "hazards": [
+              {
+                "id": "loose_stones",
+                "trigger": "hurrying along the bank in the dark",
+                "effect": {
+                  "type": "injure",
+                  "hit_points": [
+                    5,
+                    15
+                  ]
+                }
+              }
+            ],
+            "closing": "You leave the bank before dawn."
+          }
+        },
+        "choices": [
+          {
+            "id": "the_moneylender_s_barge",
+            "label": "Follow the lantern downstream",
+            "next": "the_moneylender_s_barge_way"
+          },
+          {
+            "id": "back_to_the_village",
+            "label": "Go back to the village",
+            "default": true,
+            "next": "end:back_to_the_village"
+          }
+        ]
+      },
+      {
+        "id": "the_moneylender_s_barge_way",
+        "journal": "Find the moneylender's barge below {village}.",
+        "objective": {
+          "type": "be_at",
+          "place": "{village}"
+        },
+        "canvas": "A barge is moored below the village. The moneylender's men keep the ferryman there until his debt is paid.",
+        "on_complete": {
+          "next": "the_moneylender_s_barge"
+        }
+      },
+      {
+        "id": "the_moneylender_s_barge",
+        "choices": [
+          {
+            "id": "freed",
+            "label": "Free the ferryman",
+            "journal": "Free the ferryman.",
+            "if": "found_lantern",
+            "objective": {
+              "type": "return"
+            },
+            "canvas": "The ferryman comes home with you, thin but alive.",
+            "next": "end:freed"
+          },
+          {
+            "id": "told_the_lord",
+            "label": "Tell the lord where he is",
+            "journal": "Tell the lord where he is.",
+            "objective": {
+              "type": "talk_to",
+              "hero": "{giver}"
+            },
+            "canvas": "The lord sends his men to the barge at once.",
+            "next": "end:told_the_lord"
+          }
+        ]
+      }
+    ],
+    "endings": {
+      "freed": {
+        "regard": 10,
+        "gold": 150,
+        "memory": "The player freed my ferryman from a moneylender's barge."
+      },
+      "told_the_lord": {
+        "regard": 5,
+        "memory": "The player found where the moneylender held my ferryman."
+      },
+      "back_to_the_village": {
+        "regard": -2,
+        "journal": "You let the river keep its secret."
+      }
+    }
+  },
+  "notes": [
+    "The story's stylesheet is not imported: the game shows the tale in its own chat.",
+    "passage 'What the village says': (print: $heard_of_debt) is not mapped; it was left out.",
+    "passage 'Notes to self' is never linked from the start; it was not imported.",
+    "No time limit was set: the tale never fails on its own. Add one under Failure if it should."
+  ]
+}

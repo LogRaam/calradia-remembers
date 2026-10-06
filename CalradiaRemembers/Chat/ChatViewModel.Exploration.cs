@@ -4,6 +4,10 @@
 // Built like the envoy's audience: its own prompt, one call a turn, its own transcript. What the scene is and what
 // counts is the caller's (an ExplorationSession): the narration comes back with markers, which the session checks
 // against its file and turns into what the game carries out; the player reads the narration without them.
+// 04/10/2026, branching tales (Gabriel: "like an LLM does in the CLI: Choice 1, Choice 2, Chat about that"): under a
+// narration the player has not answered, the scene's open ways out are listed by number, then "Something else...". A
+// click, or the number typed alone, sends the way's words as the player's line; the narrator tells it and writes the
+// marker, and only the marker moves the story. Logic.AuthoredQuests.SceneChoiceMenu decides what the list holds.
 
 #region
 
@@ -18,6 +22,7 @@ using CalradiaRemembers.Logic.AuthoredQuests;
 using CalradiaRemembers.Services;
 using NpcMemoryService.Core.LlmClient;
 using NpcMemoryService.Core.Models;
+using TaleWorlds.Library;
 
 #endregion
 
@@ -40,14 +45,83 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>The scene closed, however it closed.</summary>
       public Action OnClose { get; set; }
+
+      /// <summary>The words of each way out of the scene open now, names filled (branching tales); none for a scene without.</summary>
+      public Func<IReadOnlyList<string>> Ways { get; set; }
    }
 
    public sealed partial class ChatViewModel
    {
       private ExplorationSession _exploration;
       private readonly List<string> _sceneLines = new();
+      private MBBindingList<SceneChoiceItemViewModel> _sceneChoices = new();
+      private bool _isSceneChoiceListVisible;
+      private bool _sceneNarrationIsLast;
+      private bool _sceneTurnInFlight;
 
       internal bool IsExplorationScene => _exploration != null;
+
+      /// <summary>The numbered ways out listed under the narration (both chat skins bind it).</summary>
+      [DataSourceProperty]
+      public MBBindingList<SceneChoiceItemViewModel> SceneChoices
+      {
+         get => _sceneChoices;
+         set
+         {
+            if (value == _sceneChoices) return;
+            _sceneChoices = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      [DataSourceProperty]
+      public bool IsSceneChoiceListVisible
+      {
+         get => _isSceneChoiceListVisible;
+         set
+         {
+            if (value == _isSceneChoiceListVisible) return;
+            _isSceneChoiceListVisible = value;
+            OnPropertyChangedWithValue(value);
+         }
+      }
+
+      /// <summary>What the list is decided from, as things stand now.</summary>
+      private SceneChoiceMenuFacts SceneMenuFacts()
+      {
+         IReadOnlyList<string> ways = Array.Empty<string>();
+         try { ways = _exploration?.Ways?.Invoke() ?? Array.Empty<string>(); }
+         catch (Exception ex) { ModLog.Error($"[SCENE] the ways out could not be read: {ex.GetType().Name}: {ex.Message}"); }
+
+         return new SceneChoiceMenuFacts {OpenWays = ways, NarrationIsLast = _sceneNarrationIsLast, Waiting = _sceneTurnInFlight, Over = _conversationEnded};
+      }
+
+      /// <summary>Rebuilds the list under the narration from the facts; empty and hidden when there is nothing to choose.</summary>
+      private void RefreshSceneChoices()
+      {
+         IReadOnlyList<SceneChoiceMenuItem> items = _exploration == null ? Array.Empty<SceneChoiceMenuItem>() : SceneChoiceMenu.Items(SceneMenuFacts());
+         _sceneChoices.Clear();
+         foreach (SceneChoiceMenuItem item in items) _sceneChoices.Add(new SceneChoiceItemViewModel(item, ChooseSceneWay));
+         IsSceneChoiceListVisible = _sceneChoices.Count > 0;
+         if (IsSceneChoiceListVisible) ChatManager.ScrollToBottom();
+      }
+
+      /// <summary>
+      ///   A line of the list was clicked: a way's words go as the player's line (what was being typed stays in the
+      ///   input); "Something else..." puts the cursor in the input to write freely.
+      /// </summary>
+      private void ChooseSceneWay(SceneChoiceMenuItem item)
+      {
+         if (_exploration == null || item == null || !IsSendEnabled || _conversationEnded) return;
+         if (item.WriteFreely)
+         {
+            ChatInputWidget.RequestFocus();
+
+            return;
+         }
+
+         SendExplorationLine(item.Sends);
+      }
 
       /// <summary>Opens the scene: the narrator speaks first, with the description.</summary>
       public void ActivateExploration(ExplorationSession session)
@@ -57,6 +131,8 @@ namespace CalradiaRemembers.Chat
          _mode = ChatMode.Conversation;
          _exploration = session;
          _sceneLines.Clear();
+         _sceneNarrationIsLast = false;
+         RefreshSceneChoices();
 
          ChatMessageViewModel placeholder = MakeSpeakerMessage(NarratorSpeaker(), PlaceholderText);
          _messages.Add(placeholder);
@@ -66,13 +142,21 @@ namespace CalradiaRemembers.Chat
 
       private ChatSpeaker NarratorSpeaker() => new() {IsMain = true, Hero = null, Name = _exploration?.Title ?? "The scene", Profile = null};
 
-      /// <summary>The player said what they do.</summary>
+      /// <summary>The player said what they do: a number alone picks that way of the list shown, anything else is their words.</summary>
       private void ExecuteSendExplorationMessage(string text)
       {
+         InputText = "";
+         SendExplorationLine(SceneChoiceMenu.Read(text, SceneMenuFacts()));
+      }
+
+      private void SendExplorationLine(string text)
+      {
+         if (string.IsNullOrWhiteSpace(text)) return;
          AppendPlayerMessage(text);
          _sceneLines.Add("You: " + text);
          IsSendEnabled = false;
-         InputText = "";
+         _sceneNarrationIsLast = false;
+         RefreshSceneChoices();
          if (_isComposeOpen) IsComposeOpen = false;
 
          ChatMessageViewModel placeholder = MakeSpeakerMessage(NarratorSpeaker(), PlaceholderText);
@@ -100,6 +184,7 @@ namespace CalradiaRemembers.Chat
       private async Task RunExplorationTurnAsync(string playerAction, ChatMessageViewModel placeholder)
       {
          NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         _sceneTurnInFlight = true;
          try
          {
             if (behavior?.LlmServices?.LlmClient == null)
@@ -161,6 +246,7 @@ namespace CalradiaRemembers.Chat
             SceneMarkers markers = SceneMarkers.Extract(raw);
             _messages.Remove(placeholder);
             AppendNarration(markers.Text);
+            _sceneNarrationIsLast = true;
             _sceneLines.Add("(narrator) " + markers.Text);
             StoryLog.WriteNpcLine(_exploration.Title, markers.Text);
 
@@ -184,12 +270,16 @@ namespace CalradiaRemembers.Chat
          finally
          {
             IsSendEnabled = !_conversationEnded;
+            _sceneTurnInFlight = false;
+            if (ReferenceEquals(ChatManager.ActiveViewModel, this)) RefreshSceneChoices();
          }
       }
 
       /// <summary>On close: the session decides what the scene leaves behind.</summary>
       private void FinalizeExploration()
       {
+         _sceneChoices.Clear();
+         IsSceneChoiceListVisible = false;
          try { _exploration?.OnClose?.Invoke(); }
          catch (Exception ex) { ModLog.Error($"[SCENE] closing failed: {ex.GetType().Name}: {ex.Message}"); }
       }

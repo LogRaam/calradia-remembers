@@ -1,0 +1,1 @@
+blocking_scene_choice_without_label.json: quest 'fx_branch': stage 'scene', choice 'right' is made in a scene, so it needs a "label": the words the player picks it by. The quest is not loaded.

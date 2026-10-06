@@ -1,0 +1,1 @@
+read_two_tales_one_refused.json: quest 'fx_other': stage 'go' has no on_complete.next (a stage id, "reward", or "end:<id>"). The quest is not loaded.

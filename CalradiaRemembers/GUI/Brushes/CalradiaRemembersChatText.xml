@@ -110,4 +110,137 @@
     <Styles><Style Name="Default" FontSize="23" /></Styles>
   </Brush>
 
+  <!--
+    The numbered ways out listed under a scene's narration (branching tales, 04/10/2026; Gabriel: "like an LLM does
+    in the CLI: Choice 1, Choice 2, Chat about that"). Same size steps as the dialogue text of each skin; the colours
+    live HERE, per state, because the brush name is bound and resets any literal font colour (see the note above). The
+    line reads as something to click: warm amber, brighter under the cursor, darker while pressed.
+  -->
+  <Brush Name="CR.SceneChoice.Classic.70" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="15" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="15" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="15" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="15" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Classic.80" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="18" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="18" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="18" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="18" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Classic.90" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="20" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="20" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="20" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="20" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Classic.100" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="22" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="22" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="22" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="22" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Classic.110" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="24" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="24" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="24" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="24" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Classic.120" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="26" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="26" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="26" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="26" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Classic.130" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="29" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="29" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="29" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="29" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Manuscript.70" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="13" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="13" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="13" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="13" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Manuscript.80" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="14" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="14" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="14" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="14" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Manuscript.90" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="16" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="16" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="16" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="16" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Manuscript.100" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="18" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="18" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="18" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="18" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Manuscript.110" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="20" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="20" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="20" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="20" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Manuscript.120" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="22" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="22" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="22" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="22" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.SceneChoice.Manuscript.130" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="23" FontColor="#D8B26AFF" />
+      <Style Name="Hovered" FontSize="23" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="23" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="23" FontColor="#8A7A60FF" />
+    </Styles>
+  </Brush>
+
 </Brushes>

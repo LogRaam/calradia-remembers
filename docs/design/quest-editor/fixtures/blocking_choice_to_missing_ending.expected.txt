@@ -1,0 +1,1 @@
+blocking_choice_to_missing_ending.json: quest 'fx_branch': stage 'crossroads', choice 'stay' leads to ending 'gone', which "endings" does not define. The quest is not loaded.

@@ -1,0 +1,1 @@
+cosmetic_default_unused.json: quest 'fx_branch': stage 'scene': choice 'back' is marked default, but a scene closed with no choice follows on_complete.next; the mark is unused.

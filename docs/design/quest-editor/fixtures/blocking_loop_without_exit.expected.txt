@@ -1,0 +1,3 @@
+blocking_loop_without_exit.json: quest 'fx_tale': stage 'ask' can never reach an ending: every way out of it leads back without an exit. The quest is not loaded.
+blocking_loop_without_exit.json: quest 'fx_tale': stage 'go' can never reach an ending: every way out of it leads back without an exit. The quest is not loaded.
+blocking_loop_without_exit.json: quest 'fx_tale': the reward is never reached: no path leads to "reward" (name it "end:<id>" in "endings", or lead a path to it).

@@ -1,0 +1,1 @@
+cosmetic_unreachable_ending.json: quest 'fx_branch': ending 'forgotten' is never reached: no path leads to "end:forgotten".

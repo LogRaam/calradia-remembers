@@ -1,0 +1,2 @@
+{"ID": "fx_case", "Binds": {"giver": "a lord"}, "STAGES": [
+  {"Id": "ask", "Objective": {"TYPE": "talk_to", "Hero": "{giver}"}, "On_Complete": {"NEXT": "reward"}}]}

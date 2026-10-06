@@ -1,0 +1,1 @@
+blocking_ending_without_name.json: quest 'fx_tale': an ending has no name. The quest is not loaded.

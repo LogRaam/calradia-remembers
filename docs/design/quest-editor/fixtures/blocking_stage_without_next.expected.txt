@@ -1,0 +1,1 @@
+blocking_stage_without_next.json: quest 'fx_tale': stage 'go' has no on_complete.next (a stage id, "reward", or "end:<id>"). The quest is not loaded.

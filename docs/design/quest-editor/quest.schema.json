@@ -1,0 +1,1199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calradia-remembers/quest.schema.json",
+  "title": "Calradia Remembers: a written tale",
+  "description": "GENERATED from CalradiaRemembers.Logic.AuthoredQuests by the Maps suite (QuestSchemaMap). Do not edit: regenerate with Tools/Update-Maps.ps1. A file holds one tale, or a list of tales.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/AuthoredQuest"
+    },
+    {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/AuthoredQuest"
+      }
+    }
+  ],
+  "x-lists": {
+    "ObjectiveTypes": [
+      "talk_to",
+      "talk_to_locals",
+      "be_at",
+      "keep_watch",
+      "explore",
+      "defeat_party",
+      "return",
+      "wait"
+    ],
+    "ChoiceObjectiveTypes": [
+      "talk_to",
+      "return",
+      "talk_to_locals",
+      "be_at",
+      "defeat_party",
+      "wait"
+    ],
+    "HazardEffects": [
+      "injure",
+      "alert",
+      "lose_time"
+    ],
+    "ConsequenceTypes": [
+      "memory",
+      "world_event"
+    ],
+    "GiverRoles": [
+      "lord",
+      "notable",
+      "gang_leader",
+      "any"
+    ],
+    "RivalRoles": [
+      "clan_leader"
+    ],
+    "SpeakingRoles": [
+      "{giver}",
+      "{rival}"
+    ]
+  },
+  "$defs": {
+    "AuthoredQuest": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "One authored quest, as its file describes it.",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Unique across every file. Prefix it with your mod's name."
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Shown in the journal as \"Tale: <title>\"."
+        },
+        "author": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Who wrote it. Shown to nobody in game; for the reader of the file."
+        },
+        "unique": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On (the default): played once per campaign, won or lost. Off: it may come back.",
+          "default": true
+        },
+        "repeat_cooldown_days": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "For a tale that is not unique: how many days after it ended before it may be offered again.",
+          "default": 0
+        },
+        "weight": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "When a character could give several tales, they are chosen in proportion to their weights. 0 is never offered. Default 10.",
+          "default": 10
+        },
+        "requires": {
+          "$ref": "#/$defs/AuthoredRequires",
+          "x-kind": "object:AuthoredRequires",
+          "description": "Who may give the tale, and what it needs of the world and of the player.",
+          "x-default-empty": true
+        },
+        "binds": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "x-kind": "map:string",
+          "description": "Every role your text uses, with a short description for the reader of the file. Each {role} is filled with a real name.",
+          "x-default-empty": true
+        },
+        "stages": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredStage"
+          },
+          "x-kind": "object:AuthoredStage[]",
+          "description": "The steps of the story, the first being the request itself.",
+          "x-default-empty": true
+        },
+        "reward": {
+          "$ref": "#/$defs/AuthoredOutcome",
+          "x-kind": "object:AuthoredOutcome",
+          "description": "The single success ending: what the tale leaves when a path leads to \"reward\".",
+          "x-default-empty": true
+        },
+        "endings": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "$ref": "#/$defs/AuthoredOutcome"
+          },
+          "x-kind": "map:object:AuthoredOutcome",
+          "description": "Named endings, each with its own regard, gold, memory and consequences. A path leads to one with \"end:<id>\".",
+          "x-default-empty": true
+        },
+        "failure": {
+          "$ref": "#/$defs/AuthoredOutcome",
+          "x-kind": "object:AuthoredOutcome",
+          "description": "What the tale leaves when its time runs out (days) before any ending is reached.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredRequires": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "When the quest may be offered, and by whom (increment 1: the shape the werewolf needs).",
+      "properties": {
+        "giver": {
+          "$ref": "#/$defs/GiverRequirement",
+          "x-kind": "object:GiverRequirement",
+          "description": "The character who gives the tale.",
+          "x-default-empty": true
+        },
+        "village": {
+          "$ref": "#/$defs/PlaceRequirement",
+          "x-kind": "object:PlaceRequirement",
+          "description": "The village the tale happens in, bound as {village}."
+        },
+        "rival": {
+          "$ref": "#/$defs/RivalRequirement",
+          "x-kind": "object:RivalRequirement",
+          "description": "A second lord the tale needs, bound as {rival}: the leader of another house of the giver's realm."
+        },
+        "player": {
+          "$ref": "#/$defs/PlayerRequirement",
+          "x-kind": "object:PlayerRequirement",
+          "description": "What the player must be.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredStage": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "One stage: a journal line, one verified objective, what the people involved know, and what follows.",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The stage's name, used by \"next\" to lead here. Unique in the tale."
+        },
+        "journal": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The line logged in the quest journal when the stage begins."
+        },
+        "objective": {
+          "$ref": "#/$defs/AuthoredObjective",
+          "x-kind": "object:AuthoredObjective",
+          "description": "What the game checks to complete the stage. A stage with choices may have none."
+        },
+        "canvas": {
+          "$ref": "#/$defs/lines",
+          "x-kind": "lines",
+          "description": "How the moment feels. Spoken by the giver, when this stage is theirs to say. A line may hold only under a flag.",
+          "x-default-empty": true
+        },
+        "facts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/line"
+          },
+          "x-kind": "line[]",
+          "description": "What the giver must convey, without changing it. A fact may hold only under a flag.",
+          "x-default-empty": true
+        },
+        "knowers": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/$defs/line"
+            }
+          },
+          "x-kind": "map:line[]",
+          "description": "Lines for other characters, framed as what they believe at this stage. The key is a role (\"{giver}\") or \"locals_of:{place}\".",
+          "x-default-empty": true
+        },
+        "choices": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredChoice"
+          },
+          "x-kind": "object:AuthoredChoice[]",
+          "description": "Ways out of this stage: by an act, by the player's choice in a scene, or by words in a conversation. The first taken wins.",
+          "x-default-empty": true
+        },
+        "on_complete": {
+          "$ref": "#/$defs/AuthoredOnComplete",
+          "x-kind": "object:AuthoredOnComplete",
+          "description": "What follows when the stage's own objective is met.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredOutcome": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "What success, failure or a named ending leaves behind.",
+      "properties": {
+        "days": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "failure: the tale fails that many days after it was accepted.",
+          "default": 0
+        },
+        "regard": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "Added to the giver's regard for the player (negative takes it away).",
+          "default": 0
+        },
+        "gold": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "Paid to the player by the game (positive amounts only).",
+          "default": 0
+        },
+        "memory": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the giver remembers, in the giver's own voice."
+        },
+        "journal": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The last line written in the journal when the tale ends this way."
+        },
+        "consequences": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredConsequence"
+          },
+          "x-kind": "object:AuthoredConsequence[]",
+          "description": "What else the ending leaves in the world. A consequence may hold only under a flag.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "GiverRequirement": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "lord, notable, gang_leader, or any.",
+          "enum": [
+            "lord",
+            "notable",
+            "gang_leader",
+            "any"
+          ],
+          "x-closed-list": "GiverRoles",
+          "default": "lord"
+        },
+        "holds": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "\"{village}\": the village is picked among the giver's clan villages. Without it, the giver's home settlement is used, when it is a village."
+        },
+        "min_regard": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "The giver's regard for the player on Calradia Remembers' own ledger (the one built in conversation, not the game's relation).",
+          "default": 0
+        },
+        "not_at_war_with_player": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On by default: a giver whose realm is at war with the player never offers it.",
+          "default": true
+        }
+      }
+    },
+    "PlaceRequirement": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "village (the only kind bound so far).",
+          "default": "village"
+        },
+        "near": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "\"forest\", or leave it empty for anywhere."
+        }
+      }
+    },
+    "RivalRequirement": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The {rival}: a clan leader of the giver's realm who is not the giver (branching tales, 04/10/2026).",
+      "properties": {
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "clan_leader: the leader of another house of the giver's realm.",
+          "enum": [
+            "clan_leader"
+          ],
+          "x-closed-list": "RivalRoles",
+          "default": "clan_leader"
+        },
+        "same_realm_as": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "\"{giver}\": the rival serves the same realm as the giver.",
+          "default": "{giver}"
+        }
+      }
+    },
+    "PlayerRequirement": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "min_clan_tier": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "0 to 6.",
+          "default": 0
+        }
+      }
+    },
+    "AuthoredObjective": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "One condition the engine verifies; which fields matter depends on Type.",
+      "properties": {
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the game checks.",
+          "enum": [
+            "talk_to",
+            "talk_to_locals",
+            "be_at",
+            "keep_watch",
+            "explore",
+            "defeat_party",
+            "return",
+            "wait"
+          ],
+          "x-closed-list": "ObjectiveTypes"
+        },
+        "hero": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "talk_to: the character, as a role (\"{giver}\")."
+        },
+        "place": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The place, as a role (\"{village}\")."
+        },
+        "count": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "talk_to_locals: how many different notables of the place.",
+          "default": 1
+        },
+        "radius": {
+          "type": "number",
+          "x-kind": "number",
+          "description": "be_at, keep_watch: how near the place the party must be (default 5).",
+          "default": 5.0
+        },
+        "nights": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "x-kind": "int[]",
+          "description": "keep_watch: [first night it may happen, night it surely happens]."
+        },
+        "chance": {
+          "type": "number",
+          "x-kind": "number",
+          "description": "keep_watch: the chance each night from the first opens the scene (0 to 1).",
+          "default": 0.0
+        },
+        "days": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "wait: how many days must pass with no other choice taken.",
+          "default": 0
+        },
+        "scene": {
+          "$ref": "#/$defs/AuthoredScene",
+          "x-kind": "object:AuthoredScene",
+          "description": "explore: the scene played in the chat."
+        },
+        "spawn": {
+          "$ref": "#/$defs/AuthoredSpawn",
+          "x-kind": "object:AuthoredSpawn",
+          "description": "defeat_party: the band spawned near the place."
+        },
+        "item": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Read but not played yet.",
+          "x-played": false
+        },
+        "to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Read but not played yet.",
+          "x-played": false
+        }
+      }
+    },
+    "AuthoredChoice": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "One way out of a stage (branching tales, 04/10/2026).",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The choice's name, unique in its stage."
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the player can do, in plain words. In a scene, it is listed under the narration and the narrator is told it."
+        },
+        "journal": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "A line added to the journal under the stage's own, while this choice is open."
+        },
+        "next": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Where this choice leads: a stage id, \"reward\", or \"end:<id>\"."
+        },
+        "if": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Flags that must hold for this choice to be open (\"name\", or \"!name\" for not set). A closed choice is never shown nor taken.",
+          "x-default-empty": true
+        },
+        "sets": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Flags set when this choice is taken.",
+          "x-default-empty": true
+        },
+        "default": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "In a scene: taken when the scene closes with no choice made, if the stage has no on_complete.next.",
+          "default": false
+        },
+        "objective": {
+          "$ref": "#/$defs/AuthoredObjective",
+          "x-kind": "object:AuthoredObjective",
+          "description": "By an act: what the game checks (talk_to, return, talk_to_locals, be_at, defeat_party, wait). The first met wins."
+        },
+        "said": {
+          "$ref": "#/$defs/AuthoredSaid",
+          "x-kind": "object:AuthoredSaid",
+          "description": "By words: taken when, in a conversation with that character, the player says or agrees to what it means."
+        },
+        "canvas": {
+          "$ref": "#/$defs/lines",
+          "x-kind": "lines",
+          "description": "How the moment feels, for the character in whose conversation this choice is taken (as a stage's canvas).",
+          "x-default-empty": true
+        },
+        "facts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/line"
+          },
+          "x-kind": "line[]",
+          "description": "What that character must convey when this choice is taken.",
+          "x-default-empty": true
+        },
+        "knowers": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/$defs/line"
+            }
+          },
+          "x-kind": "map:line[]",
+          "description": "Lines for that character, in the conversation that took this choice.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredOnComplete": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "next": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The next stage's id, \"reward\" to end the tale in success, or \"end:<id>\" for a named ending."
+        }
+      }
+    },
+    "AuthoredConsequence": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "memory or world_event.",
+          "enum": [
+            "memory",
+            "world_event"
+          ],
+          "x-closed-list": "ConsequenceTypes"
+        },
+        "who": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "memory: who remembers, a role or \"locals_of:{place}\"."
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "memory: what they remember."
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "world_event: the news that spreads through the realm."
+        },
+        "magnitude": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "world_event: how loud the news is, 0 to 100.",
+          "default": 0
+        },
+        "place": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "world_event: where it happened, as a role."
+        },
+        "if": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Flags that must hold for this consequence to be carried out.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredScene": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "An exploration scene: the chat with a narrator and no character, until someone is met.",
+      "properties": {
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The name over the chat window during the scene (\"The burned barns of {village}\"). Empty: \"The wood by <village>\"."
+        },
+        "opening": {
+          "$ref": "#/$defs/AuthoredBeat",
+          "x-kind": "object:AuthoredBeat",
+          "description": "What the narrator opens the scene with."
+        },
+        "findings": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredFinding"
+          },
+          "x-kind": "object:AuthoredFinding[]",
+          "description": "What there is to discover. Without choices, at least one must be required.",
+          "x-default-empty": true
+        },
+        "hazards": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredHazard"
+          },
+          "x-kind": "object:AuthoredHazard[]",
+          "description": "What the player's choices can spring. Each springs once.",
+          "x-default-empty": true
+        },
+        "encounters": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredEncounter"
+          },
+          "x-kind": "object:AuthoredEncounter[]",
+          "description": "People who may be met in the scene, voiced by the narrator.",
+          "x-default-empty": true
+        },
+        "closing": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Shown when the scene closes, after any missed findings."
+        }
+      }
+    },
+    "AuthoredSpawn": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "A party spawned for the quest: real, on the map, beaten in a real battle.",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The band's name in the file."
+        },
+        "template": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The bandit faction whose troops it is made of (looters by default).",
+          "default": "looters"
+        },
+        "size": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "x-kind": "int[]",
+          "description": "[fewest, most] men."
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Its name on the map."
+        },
+        "near": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The place it patrols around, as a role."
+        },
+        "behavior": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Read but not played yet (every band patrols around its place).",
+          "x-played": false,
+          "default": "hide_near"
+        },
+        "flee_after_days": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "The tale fails if the band is still alive that many days after the stage began.",
+          "default": 0
+        }
+      }
+    },
+    "AuthoredSaid": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "A choice taken by words: what the player must say, and to whom.",
+      "properties": {
+        "to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The character it must be said to, as a role: \"{giver}\" or \"{rival}\"."
+        },
+        "meaning": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the player's words must mean, plainly: \"the player promises to keep silent for a price\"."
+        }
+      }
+    },
+    "AuthoredBeat": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "canvas": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The scene as the player comes upon it."
+        },
+        "facts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "x-kind": "string[]",
+          "description": "What must be true in the narration.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredFinding": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The finding's name, used in its marker."
+        },
+        "required": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "A required finding the player never reached is told when the scene closes.",
+          "default": false
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the player finds."
+        },
+        "sets": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Flags set when it is found (or told at closing).",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredHazard": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The hazard's name, used in its marker."
+        },
+        "trigger": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the player must do to spring it."
+        },
+        "effect": {
+          "$ref": "#/$defs/AuthoredHazardEffect",
+          "x-kind": "object:AuthoredHazardEffect",
+          "description": "What the game does when it springs."
+        }
+      }
+    },
+    "AuthoredEncounter": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The person's name in the file, used in its marker."
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "How the narrator names them (\"a girl from {village}\")."
+        },
+        "persona": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Who they are and how they seem."
+        },
+        "knows": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "x-kind": "string[]",
+          "description": "What they know, and say only that.",
+          "x-default-empty": true
+        },
+        "may_materialize": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "Read but not played yet.",
+          "x-played": false,
+          "default": false
+        },
+        "materialize_when": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Read but not played yet.",
+          "x-played": false
+        },
+        "escort_to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Read but not played yet.",
+          "x-played": false
+        },
+        "sets": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Flags set when they are met.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredHazardEffect": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "(no summary)",
+      "properties": {
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "injure, alert or lose_time.",
+          "enum": [
+            "injure",
+            "alert",
+            "lose_time"
+          ],
+          "x-closed-list": "HazardEffects"
+        },
+        "hit_points": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer"
+          },
+          "x-kind": "int[]",
+          "description": "injure: [fewest, most] hit points taken, never below 1 HP."
+        },
+        "party": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "alert: read but not played yet (every alert warns the stage's band).",
+          "x-played": false
+        },
+        "hours": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "lose_time: read but not played yet (the scene ends, the night is lost).",
+          "x-played": false,
+          "default": 0
+        }
+      }
+    },
+    "line": {
+      "description": "A line, written plain, or under flags so it is said only while they hold.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-kind": "string",
+              "description": "The line itself."
+            },
+            "if": {
+              "$ref": "#/$defs/flags",
+              "x-kind": "flags",
+              "description": "Flags that must hold for the line to be said (\"name\", or \"!name\" for not set)."
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lines": {
+      "description": "One line, or a list of lines, each said while its flags hold.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/line"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/line"
+          }
+        }
+      ]
+    },
+    "flags": {
+      "description": "A flag's name (\"name\", or \"!name\" for not set), or a list of them; all must hold.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

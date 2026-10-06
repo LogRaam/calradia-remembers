@@ -309,6 +309,7 @@ namespace CalradiaRemembers.Diagnostics
             ["story_status"] = new ConsoleCommandDoc("", "Where the tale under way stands: its stage, who and where it is bound to, its progress."),
             ["story_start"] = new ConsoleCommandDoc("<quest id> [name]", "Binds an authored quest to that character (or the one you are speaking to) and takes it on at once, if they can give it. For testing a quest."),
             ["story_step"] = new ConsoleCommandDoc("", "Completes the current stage of the tale as though its objective were met. For testing a quest."),
+            ["story_choose"] = new ConsoleCommandDoc("<choice id>", "Takes that open choice of the tale's current stage, however it would be taken. For walking each path of a branching quest."),
             ["story_abandon"] = new ConsoleCommandDoc("", "Sets the tale under way aside, without reward or penalty."),
             ["world_events"] = new ConsoleCommandDoc("[words]", "Lists stored world events, newest first, with their ids; add words to filter by what they say. The ids are what cr.world_event_remove, cr.world_event_secret and cr.world_event_hide take."),
             ["world_event_remove"] = new ConsoleCommandDoc("<id>", "Removes a world event: no one will hear of it any more. Memories characters already keep are separate (cr.memory, cr.forget)."),

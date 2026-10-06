@@ -1,0 +1,1 @@
+read_line_names_in_any_case.json: quest 'fx_tale': flag 'never_set' is tested but never set anywhere, so "never_set" never holds and "!never_set" always does.

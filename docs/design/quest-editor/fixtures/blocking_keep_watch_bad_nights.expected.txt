@@ -1,0 +1,1 @@
+blocking_keep_watch_bad_nights.json: quest 'fx_tale': stage 'go': keep_watch needs "nights": [first night it may happen, night it surely happens], with 1 <= first <= last. The quest is not loaded.

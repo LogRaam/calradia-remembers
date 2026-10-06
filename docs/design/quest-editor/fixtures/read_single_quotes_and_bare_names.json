@@ -1,0 +1,2 @@
+{id: 'fx_bare', title: 'Bare names', binds: {giver: 'a lord'},
+ stages: [{id: 'ask', objective: {type: 'talk_to', hero: '{giver}'}, on_complete: {next: 'reward'}}]}

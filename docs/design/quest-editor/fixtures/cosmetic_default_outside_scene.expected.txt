@@ -1,0 +1,1 @@
+cosmetic_default_outside_scene.json: quest 'fx_branch': stage 'crossroads', choice 'stay' is marked default, which only matters for a choice made in a scene.

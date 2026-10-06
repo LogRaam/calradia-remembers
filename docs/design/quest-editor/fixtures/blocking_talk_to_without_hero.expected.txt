@@ -1,0 +1,1 @@
+blocking_talk_to_without_hero.json: quest 'fx_tale': stage 'ask': talk_to needs "hero". The quest is not loaded.

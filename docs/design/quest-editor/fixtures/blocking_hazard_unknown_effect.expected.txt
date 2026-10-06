@@ -1,0 +1,1 @@
+blocking_hazard_unknown_effect.json: quest 'fx_tale': stage 'go': hazard 'h' has effect 'ambush', which the game cannot carry out yet (known: injure, alert, lose_time). The quest is not loaded.

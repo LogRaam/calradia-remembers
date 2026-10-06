@@ -1,0 +1,1 @@
+read_text_from_numbers_and_booleans.json: quest 'True': it has no stages. The quest is not loaded.

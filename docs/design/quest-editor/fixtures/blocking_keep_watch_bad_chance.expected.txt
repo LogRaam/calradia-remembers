@@ -1,0 +1,1 @@
+blocking_keep_watch_bad_chance.json: quest 'fx_tale': stage 'go': keep_watch "chance" must be between 0 and 1. The quest is not loaded.

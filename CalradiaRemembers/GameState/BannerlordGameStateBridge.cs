@@ -395,6 +395,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteEndOwnMarriage(npcHero);
             case "teach_skill":
                return ExecuteTeachSkill(action, npcHero, context);
+            case Logic.AuthoredQuests.AuthoredQuestPrompt.StoryChoiceVerb:
+               return ExecuteStoryChoice(action, npcHero);
             default:
                // Extension Surface (CrActions.Register): a type that matches none of the cases above may
                // still be a THIRD-PARTY action a mod registered at runtime, not a hallucination. Try the
@@ -5090,6 +5092,21 @@ namespace CalradiaRemembers.GameState
          // 2.1: report the delta ACTUALLY applied (after gate + clamp), so the StoryLog and the affront rumor
          // read the real change rather than the raw proposal.
          return new ActionOutcome(message, delta > 0, appliedRelationDelta: after - before);
+      }
+
+      /// <summary>
+      ///   A written tale's choice by words (branching tales, 04/10/2026), reported by the action interpreter, which is
+      ///   taught only the choices open in this conversation. The tale decides: only a declared, open choice said to this
+      ///   character is taken; anything else is refused and changes nothing.
+      /// </summary>
+      private static ActionOutcome ExecuteStoryChoice(GameAction action, Hero npcHero)
+      {
+         string id = action?.Parameters != null && action.Parameters.TryGetValue("choice", out string c) ? c : null;
+         string taken = Quests.AuthoredQuestBehavior.Instance?.TakeSaidChoice(npcHero, id);
+
+         return taken != null
+            ? new ActionOutcome($"The tale takes a turn: {taken}.", true)
+            : ActionOutcome.Refused("That is no turn this tale offers here.");
       }
 
       /// <summary>

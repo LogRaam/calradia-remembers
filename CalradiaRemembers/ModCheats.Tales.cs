@@ -60,9 +60,23 @@ namespace CalradiaRemembers
          AuthoredQuestRun run = AuthoredQuestBehavior.Instance?.ActiveRun;
          if (run == null) return "No tale has been taken on in this campaign session.";
 
-         return $"'{run.QuestId}' ({run.Status}), stage '{run.StageId}' since day {run.StageStartDay}, started day {run.StartDay}. "
+         AuthoredQuest q = AuthoredQuestBehavior.Instance.Quests.FirstOrDefault(x => x.Id == run.QuestId);
+         IReadOnlyList<AuthoredChoice> open = q != null ? AuthoredQuestEngine.OpenChoices(run, q) : new List<AuthoredChoice>();
+
+         return $"'{run.QuestId}' ({run.Status}{(run.EndingId != null ? ", ending '" + run.EndingId + "'" : "")}), stage '{run.StageId}' since day {run.StageStartDay}, started day {run.StartDay}. "
                 + $"Bound: {string.Join(", ", run.BoundNames.Select(kv => kv.Key + "=" + kv.Value))}. "
-                + $"Locals heard {run.TalkedThisStage.Count}, nights watched {run.NightsWatched}, findings [{string.Join(", ", run.Findings)}].";
+                + $"Locals heard {run.TalkedThisStage.Count}, nights watched {run.NightsWatched}, findings [{string.Join(", ", run.Findings)}]. "
+                + $"Flags [{string.Join(", ", run.Flags)}], path [{string.Join(", ", run.ChoicesTaken)}], open choices [{string.Join(", ", open.Select(c => c.Id))}].";
+      }
+
+      /// <summary>cr.story_choose &lt;choice id&gt;: takes that open choice of the current stage, however it would be taken.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("story_choose", "cr")]
+      public static string StoryChoose(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (args == null || args.Count == 0) return "Usage: cr.story_choose <choice id>   (open choices: cr.story_status)";
+
+         return AuthoredQuestBehavior.Instance?.DebugChoose(args[0]) ?? "Authored quests are not active.";
       }
 
       /// <summary>cr.story_start &lt;quest id&gt; [name]: binds the quest to that character (or the one spoken to) and takes it on.</summary>

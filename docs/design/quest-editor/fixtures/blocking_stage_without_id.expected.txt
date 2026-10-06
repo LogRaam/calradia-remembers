@@ -1,0 +1,2 @@
+blocking_stage_without_id.json: quest 'fx_tale': a stage has no id. The quest is not loaded.
+blocking_stage_without_id.json: quest 'fx_tale': stage 'ask' leads to 'go', which is no stage of this quest. The quest is not loaded.

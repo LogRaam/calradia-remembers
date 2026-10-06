@@ -1,0 +1,1 @@
+blocking_be_at_without_place.json: quest 'fx_tale': stage 'go': be_at needs "place". The quest is not loaded.

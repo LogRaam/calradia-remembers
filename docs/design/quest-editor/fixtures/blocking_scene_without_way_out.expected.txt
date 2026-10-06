@@ -1,0 +1,1 @@
+blocking_scene_without_way_out.json: quest 'fx_branch': stage 'scene': a scene with choices needs a way out when it closes with none taken: an on_complete.next, or one choice marked "default": true. The quest is not loaded.

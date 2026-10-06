@@ -1,0 +1,1 @@
+blocking_defeat_party_bad_size.json: quest 'fx_tale': stage 'go': spawn "size" must be [fewest, most] with 1 <= fewest <= most. The quest is not loaded.

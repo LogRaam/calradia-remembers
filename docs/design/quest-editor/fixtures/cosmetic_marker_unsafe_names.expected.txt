@@ -1,0 +1,1 @@
+cosmetic_marker_unsafe_names.json: quest 'fx_branch': stage 'scene': finding 'the-key' has a name its marker cannot carry (letters, digits and _ only), so the narration can never report it.

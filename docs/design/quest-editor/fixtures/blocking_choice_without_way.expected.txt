@@ -1,0 +1,1 @@
+blocking_choice_without_way.json: quest 'fx_branch': stage 'crossroads', choice 'stay' has no way to be taken: give it an objective or a "said" (only a choice in an explore stage is taken in the scene). The quest is not loaded.

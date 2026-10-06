@@ -1,0 +1,1 @@
+{"id": "fx_comma", "binds": {"giver": "x"}, "stages": [ , {"id": "ask", "objective": {"type": "talk_to", "hero": "{giver}"}, "on_complete": {"next": "reward"}}]}

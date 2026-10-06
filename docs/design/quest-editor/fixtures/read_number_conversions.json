@@ -1,0 +1,9 @@
+{
+  "id": "fx_numbers", "weight": "7", "unique": 0, "repeat_cooldown_days": 2.5,
+  "binds": { "giver": "a lord", "village": "a village" },
+  "stages": [
+    { "id": "ask", "objective": { "type": "talk_to", "hero": "{giver}" }, "on_complete": { "next": "watch" } },
+    { "id": "watch", "objective": { "type": "keep_watch", "place": "{village}", "nights": ["1", 2.5], "chance": "0.5", "radius": "6" },
+      "on_complete": { "next": "reward" } }
+  ]
+}
