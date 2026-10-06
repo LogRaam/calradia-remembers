@@ -449,23 +449,26 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    public sealed class AuthoredConsequence
    {
       /// <summary>memory, world_event (increment 1); the rest of the closed list later.</summary>
-      [QuestField("memory or world_event.", ClosedList = nameof(AuthoredQuestLoader.ConsequenceTypes))]
+      [QuestField("memory, world_event or grudge.", ClosedList = nameof(AuthoredQuestLoader.ConsequenceTypes))]
       [JsonProperty("type")] public string Type { get; set; }
 
-      [QuestField("memory: who remembers, a role or \"locals_of:{place}\".")]
+      [QuestField("memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role.")]
       [JsonProperty("who")] public string Who { get; set; }
 
-      [QuestField("memory: what they remember.")]
+      [QuestField("memory: what they remember. grudge: the cause, in the holder's words.")]
       [JsonProperty("text")] public string Text { get; set; }
 
       [QuestField("world_event: the news that spreads through the realm.")]
       [JsonProperty("summary")] public string Summary { get; set; }
 
-      [QuestField("world_event: how loud the news is, 0 to 100.")]
+      [QuestField("world_event: how loud the news is, 0 to 100. grudge: how deep it runs, 0 to 100.")]
       [JsonProperty("magnitude")] public int Magnitude { get; set; }
 
       [QuestField("world_event: where it happened, as a role.")]
       [JsonProperty("place")] public string Place { get; set; }
+
+      [QuestField("grudge: who it is held against, a role (Gabriel, 06/10/2026: a tale may set two lords at odds).")]
+      [JsonProperty("against")] public string Against { get; set; }
 
       [QuestField("Flags that must hold for this consequence to be carried out.")]
       [JsonProperty("if")]

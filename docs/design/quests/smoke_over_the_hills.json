@@ -301,6 +301,13 @@
           "type": "memory",
           "who": "locals_of:{village}",
           "text": "We learned who really burned our farms: riders of our own realm."
+        },
+        {
+          "type": "grudge",
+          "who": "{giver}",
+          "against": "{rival}",
+          "text": "{rival}'s riders burned {village} and laid it at the enemy's door.",
+          "magnitude": 40
         }
       ]
     },

@@ -143,6 +143,13 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   ratified design: no clan or faction fallout), sized to the sting of it; it feeds nemesis and the
         ///   vanilla Blood Feuds so a broken marriage can seed a running enmity.
         /// </summary>
-        StolenSpouse = 22
+        StolenSpouse = 22,
+
+        /// <summary>
+        ///   Left by a written tale's ending: one lord holds a deed the tale uncovered against another (Gabriel,
+        ///   06/10/2026: "a quest can influence the regard between lords; CR already handles the time for that"). It
+        ///   mends with time, as the grudge ledger already lets every grudge fade, unless it hardened into a vendetta.
+        /// </summary>
+        Tale = 23
     }
 }

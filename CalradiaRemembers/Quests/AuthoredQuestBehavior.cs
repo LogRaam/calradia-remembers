@@ -763,6 +763,15 @@ namespace CalradiaRemembers.Quests
             {
                if (c.Type == "memory")
                   foreach (string id in Who(c.Who)) Remember(id, AuthoredQuestEngine.Fill(_run, c.Text));
+               else if (c.Type == "grudge")
+               {
+                  // A tale may set two lords at odds (Gabriel, 06/10/2026); the grudge ledger fades it with time.
+                  TaleGrudge g = AuthoredQuestEngine.GrudgeOf(_run, c);
+                  Hero holder = Find(g?.HolderId), target = Find(g?.TargetId);
+                  if (holder != null && target != null)
+                     Grudges.GrudgeBehavior.Instance?.TryPlant(holder, target, Logic.Grudges.GrudgeSource.Tale, g.Cause, g.Magnitude,
+                        knownToPlayer: true, today: (int) CampaignTime.Now.ToDays);
+               }
                else if (c.Type == "world_event")
                   WorldEventStore.Instance?.Record(new WorldEvent {
                      Type = WorldEventType.Other, Day = (int) CampaignTime.Now.ToDays, Magnitude = c.Magnitude,

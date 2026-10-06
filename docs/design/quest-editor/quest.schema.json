@@ -40,7 +40,8 @@
     ],
     "ConsequenceTypes": [
       "memory",
-      "world_event"
+      "world_event",
+      "grudge"
     ],
     "GiverRoles": [
       "lord",
@@ -694,10 +695,11 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "memory or world_event.",
+          "description": "memory, world_event or grudge.",
           "enum": [
             "memory",
-            "world_event"
+            "world_event",
+            "grudge"
           ],
           "x-closed-list": "ConsequenceTypes"
         },
@@ -707,7 +709,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "memory: who remembers, a role or \"locals_of:{place}\"."
+          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role."
         },
         "text": {
           "type": [
@@ -715,7 +717,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "memory: what they remember."
+          "description": "memory: what they remember. grudge: the cause, in the holder's words."
         },
         "summary": {
           "type": [
@@ -728,7 +730,7 @@
         "magnitude": {
           "type": "integer",
           "x-kind": "int",
-          "description": "world_event: how loud the news is, 0 to 100.",
+          "description": "world_event: how loud the news is, 0 to 100. grudge: how deep it runs, 0 to 100.",
           "default": 0
         },
         "place": {
@@ -738,6 +740,14 @@
           ],
           "x-kind": "string",
           "description": "world_event: where it happened, as a role."
+        },
+        "against": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "grudge: who it is held against, a role (Gabriel, 06/10/2026: a tale may set two lords at odds)."
         },
         "if": {
           "$ref": "#/$defs/flags",

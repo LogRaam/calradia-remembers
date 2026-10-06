@@ -34,7 +34,7 @@
     "regard": 5,
     "consequences": [
       {
-        "type": "grudge",
+        "type": "war_averted",
         "who": "{giver}"
       }
     ]

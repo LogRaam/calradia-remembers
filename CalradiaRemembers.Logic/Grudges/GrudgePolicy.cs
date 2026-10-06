@@ -302,6 +302,8 @@ namespace CalradiaRemembers.Logic.Grudges
                 case GrudgeSource.External:           return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
                 case GrudgeSource.FiefRevoked:        return GrudgeResolutionKind.Deed;
                 case GrudgeSource.Expelled:           return GrudgeResolutionKind.Deed;
+                // A lords' quarrel a tale uncovered (Gabriel, 06/10/2026): time mends it, as CR lets every grudge fade.
+                case GrudgeSource.Tale:               return GrudgeResolutionKind.Time;
                 // BrokenOath (R7-light's swear_oath, COUNCIL_ACTIONS.md's Partie 8) mirrors FailedQuest's own
                 // treatment: both are a broken WORD rather than a seized possession or a severed bond, so a
                 // still-soft grudge can be talked down (Amends), but once it has hardened only a real deed

@@ -166,7 +166,7 @@ find (`AuthoredRivalPolicy`): never the giver's house, the player's house, a lor
 someone gone from the world. A giver with no realm (an independent clan) has no rival, so a tale that needs one is not
 offered by them. `requires.rival` accepts only `clan_leader` of the giver's realm (`same_realm_as: "{giver}"`).
 
-**W2. No NPC-to-NPC grudge.** The draft's `"grudge": {holder, against}` between the giver and the rival needs its own
+**W2. No NPC-to-NPC grudge.** *Overturned by Gabriel, 06/10/2026: "a quest can influence the regard between lords; CR already handles the time for that." Built as the `grudge` consequence (`GrudgeSource.Tale`, mends with time), and smoke_over_the_hills' exposed ending carries one.* Original note: The draft's `"grudge": {holder, against}` between the giver and the rival needs its own
 ruling (may a quest leave two lords hating each other, and for how long?), as the design doc said. Left out: the
 exposed ending instead leaves a memory with the rival ("The player laid my riders' surcoat before {giver}") and news
 that spreads through the realm.

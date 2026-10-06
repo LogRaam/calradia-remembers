@@ -45,7 +45,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public static readonly IReadOnlyList<string> HazardEffects = new[] {"injure", "alert", "lose_time"};
 
       /// <summary>The consequences the game carries out.</summary>
-      public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event"};
+      public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event", "grudge"};
 
       /// <summary>Who may give a tale (anything else is read as "any").</summary>
       public static readonly IReadOnlyList<string> GiverRoles = new[] {"lord", "notable", "gang_leader", "any"};

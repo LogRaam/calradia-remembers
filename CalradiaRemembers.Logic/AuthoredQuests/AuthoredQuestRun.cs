@@ -470,6 +470,24 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          return run?.BoundIds != null && run.BoundIds.TryGetValue(key, out string id) ? id : null;
       }
 
+      /// <summary>TUNE: a tale's grudge whose file gives no magnitude: a real quarrel, well short of a vendetta.</summary>
+      public const int DefaultTaleGrudgeMagnitude = 30;
+
+      /// <summary>
+      ///   The grudge a "grudge" consequence plants: who holds it against whom, the cause in their names, and how deep,
+      ///   kept within 1..100. Null when either role is not a bound hero of the tale, or both are the same.
+      /// </summary>
+      public static TaleGrudge GrudgeOf(AuthoredQuestRun run, AuthoredConsequence c)
+      {
+         if (c == null || run == null) return null;
+         string holder = Bound(run, c.Who), target = Bound(run, c.Against);
+         if (string.IsNullOrEmpty(holder) || string.IsNullOrEmpty(target) || holder == target) return null;
+
+         int magnitude = c.Magnitude <= 0 ? DefaultTaleGrudgeMagnitude : c.Magnitude > 100 ? 100 : c.Magnitude;
+
+         return new TaleGrudge {HolderId = holder, TargetId = target, Cause = Fill(run, c.Text), Magnitude = magnitude};
+      }
+
       /// <summary>Fills "{role}" placeholders with the names said aloud.</summary>
       public static string Fill(AuthoredQuestRun run, string text)
       {
@@ -554,5 +572,14 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             return (h % 10000) / 10000.0;
          }
       }
+   }
+
+   /// <summary>A grudge a tale's ending plants between two of its heroes.</summary>
+   public sealed class TaleGrudge
+   {
+      public string HolderId { get; init; }
+      public string TargetId { get; init; }
+      public string Cause { get; init; }
+      public int Magnitude { get; init; }
    }
 }

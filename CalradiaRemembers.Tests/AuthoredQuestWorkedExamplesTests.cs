@@ -85,7 +85,8 @@ namespace CalradiaRemembers.Tests
 
          AuthoredOutcome end = AuthoredQuestEngine.Outcome(run, q);
          end.Regard.Should().Be(8);
-         AuthoredQuestEngine.Consequences(run, end).Select(c => c.Type).Should().Equal("world_event", "memory", "memory");
+         // Gabriel (06/10/2026): the exposed lord also holds it against the rival (a grudge that fades with time).
+         AuthoredQuestEngine.Consequences(run, end).Select(c => c.Type).Should().Equal("world_event", "memory", "memory", "grudge");
          AuthoredQuestPrompt.ForCharacter(run, q, Giver, null, offering: false).Should().Contain("surcoat in Lord Varn's colours");
       }
 

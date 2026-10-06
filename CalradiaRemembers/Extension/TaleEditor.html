@@ -446,7 +446,8 @@ input[type="number"] { max-width: 160px; }
     ],
     "ConsequenceTypes": [
       "memory",
-      "world_event"
+      "world_event",
+      "grudge"
     ],
     "GiverRoles": [
       "lord",
@@ -1100,10 +1101,11 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "memory or world_event.",
+          "description": "memory, world_event or grudge.",
           "enum": [
             "memory",
-            "world_event"
+            "world_event",
+            "grudge"
           ],
           "x-closed-list": "ConsequenceTypes"
         },
@@ -1113,7 +1115,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "memory: who remembers, a role or \"locals_of:{place}\"."
+          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role."
         },
         "text": {
           "type": [
@@ -1121,7 +1123,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "memory: what they remember."
+          "description": "memory: what they remember. grudge: the cause, in the holder's words."
         },
         "summary": {
           "type": [
@@ -1134,7 +1136,7 @@ input[type="number"] { max-width: 160px; }
         "magnitude": {
           "type": "integer",
           "x-kind": "int",
-          "description": "world_event: how loud the news is, 0 to 100.",
+          "description": "world_event: how loud the news is, 0 to 100. grudge: how deep it runs, 0 to 100.",
           "default": 0
         },
         "place": {
@@ -1144,6 +1146,14 @@ input[type="number"] { max-width: 160px; }
           ],
           "x-kind": "string",
           "description": "world_event: where it happened, as a role."
+        },
+        "against": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "grudge: who it is held against, a role (Gabriel, 06/10/2026: a tale may set two lords at odds)."
         },
         "if": {
           "$ref": "#/$defs/flags",
@@ -3562,7 +3572,7 @@ input[type="number"] { max-width: 160px; }
     AuthoredEncounter: ['id', 'name', 'persona', 'knows', 'sets', 'may_materialize', 'materialize_when', 'escort_to'],
     AuthoredSpawn: ['id', 'template', 'size', 'name', 'near', 'behavior', 'flee_after_days'],
     AuthoredOutcome: ['days', 'regard', 'gold', 'memory', 'journal', 'consequences'],
-    AuthoredConsequence: ['type', 'who', 'text', 'summary', 'magnitude', 'place', 'if'],
+    AuthoredConsequence: ['type', 'who', 'against', 'text', 'summary', 'magnitude', 'place', 'if'],
 
     /** Which fields of an objective each type uses; the rest stay hidden for that type. */
     objectiveFields: {
@@ -3579,7 +3589,8 @@ input[type="number"] { max-width: 160px; }
     /** Which fields of a consequence each type uses. */
     consequenceFields: {
       memory: ['who', 'text', 'if'],
-      world_event: ['summary', 'magnitude', 'place', 'if']
+      world_event: ['summary', 'magnitude', 'place', 'if'],
+      grudge: ['who', 'against', 'text', 'magnitude', 'if']
     }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
@@ -4722,12 +4733,14 @@ input[type="number"] { max-width: 160px; }
     ed.appendChild(section('Consequences', help('AuthoredOutcome', 'consequences'), cardList(key + '/consequences', 'Consequences', null, o, 'consequences', function (c, i, ck) {
       var used = F.consequenceFields[c.type] || ['who', 'text', 'summary', 'magnitude', 'place', 'if'];
       var g = h('div.grid', selectField(ck + '/type', 'Type', 'AuthoredConsequence', 'type', c, list('ConsequenceTypes'), {empty: c.type ? undefined : '(choose)'}));
-      if (used.indexOf('who') >= 0) g.appendChild(roleField(ck + '/who', 'Who remembers', 'AuthoredConsequence', 'who', c, {locals: true, placeholder: 'locals_of:{village}'}));
-      if (used.indexOf('magnitude') >= 0) g.appendChild(numberField(ck + '/magnitude', 'How loud', 'AuthoredConsequence', 'magnitude', c, {min: 0, max: 100}));
+      var grudge = c.type === 'grudge';
+      if (used.indexOf('who') >= 0) g.appendChild(roleField(ck + '/who', grudge ? 'Who holds it' : 'Who remembers', 'AuthoredConsequence', 'who', c, grudge ? {placeholder: '{giver}'} : {locals: true, placeholder: 'locals_of:{village}'}));
+      if (used.indexOf('against') >= 0) g.appendChild(roleField(ck + '/against', 'Against whom', 'AuthoredConsequence', 'against', c, {placeholder: '{rival}'}));
+      if (used.indexOf('magnitude') >= 0) g.appendChild(numberField(ck + '/magnitude', grudge ? 'How deep' : 'How loud', 'AuthoredConsequence', 'magnitude', c, {min: 0, max: 100}));
       if (used.indexOf('place') >= 0) g.appendChild(roleField(ck + '/place', 'Where', 'AuthoredConsequence', 'place', c, {placeholder: '{village}'}));
       g.appendChild(flagsField(ck + '/if', 'Only if', 'AuthoredConsequence', 'if', c, {placeholder: 'always'}));
       var body = [g];
-      if (used.indexOf('text') >= 0) body.push(textField(ck + '/text', 'What they remember', 'AuthoredConsequence', 'text', c, {multiline: true, short: true, wide: true}));
+      if (used.indexOf('text') >= 0) body.push(textField(ck + '/text', grudge ? 'The cause, in their words' : 'What they remember', 'AuthoredConsequence', 'text', c, {multiline: true, short: true, wide: true}));
       if (used.indexOf('summary') >= 0) body.push(textField(ck + '/summary', 'The news', 'AuthoredConsequence', 'summary', c, {multiline: true, short: true, wide: true}));
       return {title: c.type === 'memory' ? 'A memory for ' + (c.who || '...') : c.type === 'world_event' ? 'News: ' + (c.summary || '...') : (c.type || '(no type)'), chip: c.type, body: body};
     }, function () { return {type: 'memory', who: 'locals_of:{village}', text: ''}; }, 'Add a consequence')));
