@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-425 rules read 328 facts.
+426 rules read 329 facts.
 
 ## Facts read by more than one rule
 
@@ -276,6 +276,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CaptureQuestPolicy.TypeToIssue`: `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`
 - `CardinalDirectionPolicy.Describe`: `Settlement.GetPosition2D`, `Vec2.x`, `Vec2.y`
 - `ChaseFacts`: `Army.LeaderParty`, `GetPosition2D.Distance`, `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `MobileParty.Army`, `MobileParty.AttachedTo`, `MobileParty.GetPosition2D`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.Speed`, `Settlement.IsUnderSiege`, `Settlement.SiegeEvent`
+- `ChatClosePlan.For`: `ActiveViewModel.IsExplorationScene`
 - `ChatCompositionModePolicy.Parse`: `ChatCompositionModeSetting.SelectedValue`
 - `ChatEscapeFacts`: `ScreenManager.FocusedLayer`
 - `ChatFocusArbitrationPolicy.Decide`: `ScreenManager.TopScreen`

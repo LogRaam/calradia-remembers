@@ -151,6 +151,21 @@ namespace CalradiaRemembers.Tests.Conversation
                              ChatCloseStep.KillWindow);
       }
 
+      // fkasad (Nexus, 06/10/2026): waiting in a village, the wolf tale's scene closed and left a black screen with no
+      // input. A scene is a chat with no character: it never took a conversation, a mission or the player's encounter,
+      // yet the ordinary close ended his village encounter, the game's state moved, and the scene's backdrop could no
+      // longer be popped. A scene gives back only what it took: its window and the clock.
+      [Test]
+      public void GIVEN_a_tale_scene_WHEN_planning_its_close_THEN_it_never_ends_the_players_encounter_or_a_conversation()
+      {
+         ChatClosePlan.For(ChatCloseKind.Scene)
+                      .Should()
+                      .Equal(ChatCloseStep.RecordWhatHappened,
+                             ChatCloseStep.ReleasePortraits,
+                             ChatCloseStep.KillWindow,
+                             ChatCloseStep.RestoreTime);
+      }
+
       // An ordinary close gives all of it back, in the order the engine needs.
       [Test]
       public void GIVEN_an_ordinary_close_WHEN_planning_THEN_the_world_comes_back_in_order()

@@ -147,7 +147,14 @@ namespace CalradiaRemembers.Logic.Conversation
       ///   A briefing closing into the meeting it was nested inside. The window goes and another opens; nothing
       ///   about the world should move in between, because the very next open would undo all of it.
       /// </summary>
-      HandOff
+      HandOff,
+
+      /// <summary>
+      ///   A written tale's scene: a chat with no character, which took no conversation, mission or encounter, so it
+      ///   gives back only its window and the clock (fkasad, 06/10/2026: the ordinary close ended his village
+      ///   encounter and left the scene's backdrop on screen, black, with no input).
+      /// </summary>
+      Scene
    }
 
    /// <summary>
@@ -167,6 +174,12 @@ namespace CalradiaRemembers.Logic.Conversation
          };
 
          if (kind == ChatCloseKind.HandOff) return plan;
+         if (kind == ChatCloseKind.Scene)
+         {
+            plan.Add(ChatCloseStep.RestoreTime);
+
+            return plan;
+         }
 
          // Everything below is the world being given back, and every one of these is something the next open
          // would immediately undo. The churn between them is where two days of loading screens and one native

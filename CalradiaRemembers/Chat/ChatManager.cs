@@ -394,6 +394,8 @@ namespace CalradiaRemembers.Chat
          // Declared OUTSIDE the try because the finally reads it: a hand-off and an ordinary close say
          // different things about where the player just went.
          var handingOff = false;
+         // Read before the window goes: a tale's scene closes as a scene (it took no encounter of the player's).
+         bool closingAScene = ActiveViewModel?.IsExplorationScene == true;
 
          // CRITICAL: FreeResources() (which nulls _activeLayer) MUST run no matter what.
          // If any teardown step threw before it, _activeLayer would stay non-null, IsOpen
@@ -465,7 +467,7 @@ namespace CalradiaRemembers.Chat
             // The steps after the window are DATA now (ChatClosePlan), so a unit test can read which of them
             // a hand-off skips instead of somebody having to trust a comment. See BriefingReturnDecision for
             // why the shape of this sequence, rather than any step in it, is what kept going wrong.
-            ChatCloseKind kind = handingOff ? ChatCloseKind.HandOff : ChatCloseKind.Ordinary;
+            ChatCloseKind kind = handingOff ? ChatCloseKind.HandOff : closingAScene ? ChatCloseKind.Scene : ChatCloseKind.Ordinary;
             IReadOnlyList<ChatCloseStep> plan = ChatClosePlan.For(kind);
 
             // THE PLAN IS SAID OUT LOUD, and this matters as much as making it data. SafeStep logs only
