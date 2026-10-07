@@ -397,6 +397,13 @@ namespace CalradiaRemembers.Chat
          // Read before the window goes: a tale's scene closes as a scene (it took no encounter of the player's).
          bool closingAScene = ActiveViewModel?.IsExplorationScene == true;
 
+         // The conversation's own queued continuations are dropped HERE, before the close, never after it. The close
+         // itself queues work for the next frame: the scene's backdrop pop, its closing popup, the next scene of a
+         // tale. Dropped at the end of the close, all of it was wiped, and the pushed backdrop state stayed on screen
+         // for good: fkasad's black screen with no way back (Nexus, 07/10/2026; the Chronicle opened twenty minutes
+         // later still landed on the backdrop's screen, and no "[PANEL] ... closed" line was ever written).
+         MainThreadDispatcher.Clear();
+
          // CRITICAL: FreeResources() (which nulls _activeLayer) MUST run no matter what.
          // If any teardown step threw before it, _activeLayer would stay non-null, IsOpen
          // would stay true forever, and every future Open() would no-op — silently killing
@@ -484,7 +491,7 @@ namespace CalradiaRemembers.Chat
          }
          finally
          {
-            FreeResources();
+            FreeResources(dropQueuedWork: false);
             SafeStep(LlmServices.ClearTestGenderOverride, "ClearTestGenderOverride");
             ModLog.Info(handingOff
                ? "Chat window closed — handing off to the meeting it was nested inside."
@@ -1390,11 +1397,12 @@ namespace CalradiaRemembers.Chat
          }
       }
 
-      private static void FreeResources()
+      private static void FreeResources(bool dropQueuedWork = true)
       {
-         // Drop any LLM-turn continuations still queued — they belong to the conversation
-         // we just closed and must never run against the next one.
-         MainThreadDispatcher.Clear();
+         // Drop any LLM-turn continuations still queued: they belong to a conversation that never properly opened and
+         // must never run against the next one. A real close drops them at its START instead (see Close), so what the
+         // close itself queues survives it.
+         if (dropQueuedWork) MainThreadDispatcher.Clear();
 
          _activeLayer = null;
          _activeMovieId = null;

@@ -119,6 +119,19 @@ namespace CalradiaRemembers.Tests
          prompt.Should().NotContain("{village}");
       }
 
+      // fkasad (Nexus, 07/10/2026): following cart tracks on the road, he was told of "the dark wood to your left" four
+      // times, the narrator pulling him toward what was to be found. A tale the player can miss must stay missable:
+      // the narrator describes what is there, and never herds the player to it.
+      [Test]
+      public void GIVEN_a_player_going_elsewhere_than_the_findings_WHEN_the_narrator_is_told_THEN_it_is_forbidden_to_steer_them_back()
+      {
+         AuthoredQuest q = Wolf();
+         string prompt = AuthoredQuestPrompt.Narrator(Run(q, "the_tracks"), q);
+
+         prompt.Should().Contain("Never steer the player toward what is to be found");
+         prompt.Should().Contain("mention a place or a sign once");
+      }
+
       // A finding already revealed is no longer offered to be found.
       [Test]
       public void GIVEN_a_finding_already_revealed_WHEN_the_narrator_is_told_THEN_it_is_not_offered_again()

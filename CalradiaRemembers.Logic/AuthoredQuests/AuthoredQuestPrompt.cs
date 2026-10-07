@@ -89,6 +89,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          sb.AppendLine("You are the NARRATOR of a scene in Calradia, not a character. Write in the second person (\"you\"), in plain, clear "
                        + "prose: short sentences, concrete things seen and heard, no flourish. Describe; never decide for the player. End each "
                        + "reply by letting the player choose what they do next.");
+         // fkasad (07/10/2026): "the dark wood to your left", four times, while he followed the tracks on the road.
+         sb.AppendLine("Never steer the player toward what is to be found: they go where they choose, and may miss it. Follow what "
+                       + "they do; mention a place or a sign once, and do not bring it up again unless they turn to it.");
          sb.AppendLine();
          sb.AppendLine("THE SCENE: " + AuthoredQuestEngine.Fill(run, scene.Opening.Canvas));
          foreach (string f in scene.Opening.Facts ?? new List<string>()) sb.AppendLine("Fact: " + AuthoredQuestEngine.Fill(run, f));

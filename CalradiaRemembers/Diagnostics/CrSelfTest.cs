@@ -280,6 +280,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_art_loads", Severity.Light, "EmperorHaterius (Nexus, 04/10/2026): the Dark Leather window was see-through with no button, because its End Conversation and Memories labels are painted into art read from a hand-built path that missed his install (every shipped file read as not found). Checks the module folder is the one the engine found (SubModule.xml there), loads every chat image through the real loader (a failure writes its reason to the log as [IMAGE]), and checks that Dark Leather opens only when its art loads, Origin otherwise. Changes nothing.", TestChatArtLoads),
          new SelfTest("clan_standing_is_the_leaders", Severity.Light, "tashmetu (Nexus, 04/10/2026), Personal Relations: the prompt's clan standing was the character's own game relation, so under a per-hero relation mod a lord read +100 'clan' and 0 personal. Takes a real lord who is not his clan's leader: the clan standing must be the leader's relation, and his own is said apart only when it differs. Changes nothing.", TestClanStandingIsTheLeaders),
          new SelfTest("calendar_follows_the_game", Severity.Light, "tashmetu (Nexus, 04/10/2026): fast mode shortens the game's year and CR kept 21 x 4, so 'half a year ago' meant two of the game's years. Reads the game's own calendar and setting.json as loaded: the mod's calendar must be the game's wherever setting.json names nothing. Changes nothing.", TestCalendarFollowsTheGame),
+         new SelfTest("scene_close_gives_the_map_back", Severity.Light, "fkasad (Nexus, 07/10/2026): closing a tale's scene left a black screen with no way back. The close queued the backdrop's pop for the next frame, then wiped its own queue at the end. Opens a scene through the real door (its narration refused before any model call, so the log shows one [SCENE] error on purpose), closes it as the button does, runs one frame: the scene's own close must have run, what it queued must have run, and the map must be given back.", TestSceneCloseGivesTheMapBack),
          new SelfTest("scene_backdrop_suspends_the_map", Severity.Light, "Gabriel's play test (04/10/2026): closing a written tale's scene crashed the game natively; the scene had opened over the bare live map, which the hosting rule forbids. The scene's chat now sits on a pushed GameState. Opens that backdrop through the real host: the map must be suspended (a CrPanelState active, the settlement-visual tick suppressed), then given back exactly as it was, with the clock stopped. Opens no chat.", TestSceneBackdropSuspendsTheMap),
          new SelfTest("player_company", Severity.Light, "Gabriel's Invite / Request Private design (03/10/2026, after nerethi). Reads the player's real company (party, escorts, prison): never the player, every prisoner truly held, the one spoken to never offered for invitation, and a room made only of the company, seated as Invite seats them, is cleared at once. Changes nothing.", TestPlayerCompany),
          new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
@@ -9059,6 +9060,51 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("daysPerSeason", NpcMemoryService.Core.Calendar.WorldCalendar.DaysPerSeason, days);
          t.Expect("seasonsPerYear", NpcMemoryService.Core.Calendar.WorldCalendar.SeasonsPerYear, seasons);
          if (profile?.DaysPerSeason == null) t.Expect("withNoOverrideTheSeasonIsTheGames", days, game.DaysPerSeason);
+
+         return t.Line();
+      }
+
+      private static string TestSceneCloseGivesTheMapBack(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("scene_close_gives_the_map_back");
+         if (t.Skip(Chat.ChatManager.IsOpen || Chat.ExplorationBackdrop.IsOpen || UI.CrPanelHost.AnyPanelOwnsScreen, "a window or panel already owns the screen")) return t.Line();
+
+         TaleWorlds.Core.GameState before = TaleWorlds.Core.Game.Current?.GameStateManager?.ActiveState;
+         CampaignTimeControlMode timeBefore = Campaign.Current.TimeControlMode;
+         bool closed = false, queuedRan = false;
+         var session = new Chat.ExplorationSession {
+            Title = "(selftest) The wood",
+            // Refused before any model is asked: this test is about the close, not the narration.
+            BuildPrompt = () => throw new InvalidOperationException("selftest: no narration"),
+            Apply = _ => new List<string>(),
+            IsOver = () => false,
+            OnClose = () =>
+            {
+               closed = true;
+               Chat.MainThreadDispatcher.Enqueue(() => queuedRan = true);
+            }
+         };
+         try
+         {
+            Chat.ChatManager.OpenForExploration(session);
+            t.Expect("theSceneOpened", Chat.ChatManager.IsOpen, true);
+            t.Expect("onItsBackdrop", Chat.ExplorationBackdrop.IsOpen, true);
+
+            Chat.ChatManager.Close();
+            Chat.MainThreadDispatcher.Pump();
+
+            t.Expect("theScenesOwnCloseRan", closed, true);
+            t.Expect("whatTheCloseQueuedRan", queuedRan, true);
+            t.Expect("theBackdropIsGone", Chat.ExplorationBackdrop.IsOpen, false);
+            t.Expect("theMapIsGivenBack", TaleWorlds.Core.Game.Current?.GameStateManager?.ActiveState == before, true);
+         }
+         finally
+         {
+            if (Chat.ChatManager.IsOpen) Chat.ChatManager.Close();
+            Chat.MainThreadDispatcher.Pump();
+            if (Chat.ExplorationBackdrop.IsOpen) Chat.ExplorationBackdrop.Close();
+            Campaign.Current.TimeControlMode = timeBefore;
+         }
 
          return t.Line();
       }
