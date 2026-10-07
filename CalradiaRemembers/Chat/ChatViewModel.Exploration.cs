@@ -51,6 +51,9 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>The player's prisoners may be invited into the scene (the tale's choice, off unless it says so: fkasad, 07/10/2026).</summary>
       public Func<bool> PrisonersWelcome { get; set; }
+
+      /// <summary>What has been found in the scene so far, as the file words it (for the companions' memory).</summary>
+      public Func<IReadOnlyList<string>> FoundSoFar { get; set; }
    }
 
    public sealed partial class ChatViewModel
@@ -278,11 +281,45 @@ namespace CalradiaRemembers.Chat
          }
       }
 
+      /// <summary>
+      ///   fkasad (07/10/2026): the companions who walked the scene "talked, gave their opinion, advices", and kept no
+      ///   memory of it (the witness memory needs ordinary turns, which a scene never counts). Each hero witness the
+      ///   player brought in remembers going through it with the player, and what was found.
+      /// </summary>
+      private void RememberSceneForCompanions()
+      {
+         if (_exploration == null || _witnesses == null || _witnesses.Count == 0) return;
+         if (!_sceneLines.Any(l => l.StartsWith("You:", StringComparison.Ordinal))) return; // the player never took part
+
+         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         if (behavior?.Store == null) return;
+
+         int day = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0;
+         string memory = SceneCompanionMemory.Compose(_exploration.Title, TaleWorlds.CampaignSystem.Hero.MainHero?.Name?.ToString(),
+            _exploration.FoundSoFar?.Invoke() ?? new List<string>());
+         var recorded = 0;
+         foreach (WitnessEntry w in _witnesses)
+         {
+            if (string.IsNullOrEmpty(w?.HeroStringId)) continue;
+            NpcProfile profile = behavior.Store.Get(w.HeroStringId);
+            if (profile == null) continue;
+
+            profile.Events.Add(new NotableEvent(day, NotableEventType.Collaboration, memory));
+            behavior.Store.Set(profile);
+            recorded++;
+         }
+
+         if (recorded > 0) ModLog.Info($"[SCENE] {recorded} companion(s) remember {_exploration.Title}.");
+      }
+
       /// <summary>On close: the session decides what the scene leaves behind.</summary>
       private void FinalizeExploration()
       {
          _sceneChoices.Clear();
          IsSceneChoiceListVisible = false;
+         // Before the session's close moves the tale on: what was found is still this scene's.
+         try { RememberSceneForCompanions(); }
+         catch (Exception ex) { ModLog.Error($"[SCENE] companions' memory failed: {ex.GetType().Name}: {ex.Message}"); }
          try { _exploration?.OnClose?.Invoke(); }
          catch (Exception ex) { ModLog.Error($"[SCENE] closing failed: {ex.GetType().Name}: {ex.Message}"); }
       }

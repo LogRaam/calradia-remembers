@@ -510,6 +510,8 @@ namespace CalradiaRemembers.Mapping
             AuthoredQuestBlock = Quests.AuthoredQuestBehavior.Instance?.PromptBlockFor(hero),
             // Its choices by words open with this character, for the action interpreter only (never this prompt).
             StoryChoicesForInterpreter = Quests.AuthoredQuestBehavior.Instance?.InterpreterChoicesFor(hero),
+            // fkasad (07/10/2026): the tale is their errand; a hideout task beside it put two targets in the journal.
+            InActiveWrittenTale = Quests.AuthoredQuestBehavior.Instance?.HoldsARole(hero?.StringId) == true,
             PartyStanding = knowledge.PartyStanding,
 
             // The post the mod's own verb assigned and never mentioned. Named here so the station pack can

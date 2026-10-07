@@ -211,7 +211,7 @@
         "type": "defeat_party",
         "spawn": {
           "id": "slavers",
-          "template": "looters",
+          "template": "local",
           "size": [
             12,
             20

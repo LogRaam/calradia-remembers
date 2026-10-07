@@ -64,6 +64,9 @@ namespace CalradiaRemembers.Quests
       public IReadOnlyCollection<AuthoredQuest> Quests => _quests.Values;
       public AuthoredQuestRun ActiveRun => _run;
 
+      /// <summary>The hero holds a role in the tale under way, which is then their errand (fkasad, 07/10/2026).</summary>
+      public bool HoldsARole(string heroId) => AuthoredTaleRoles.HoldsARole(_run, heroId);
+
       public override void RegisterEvents()
       {
          CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, _ => SafeRun.Step("AuthoredQuests.Load", OnSessionLaunched));
@@ -512,12 +515,31 @@ namespace CalradiaRemembers.Quests
       {
          try
          {
-            Clan bandits = Clan.BanditFactions?.FirstOrDefault(c => c.StringId == (template ?? "looters")) ?? Clan.BanditFactions?.FirstOrDefault(c => c.StringId == "looters");
-            CharacterObject troop = CharacterObject.Find(template == "looters" || template == null ? "looter" : template) ?? CharacterObject.Find("looter");
+            Clan bandits;
+            CharacterObject troop;
+            if (template == AuthoredBandMakeupPolicy.LocalTemplate) (bandits, troop) = RegionalBandits(home);
+            else
+            {
+               bandits = Clan.BanditFactions?.FirstOrDefault(c => c.StringId == (template ?? "looters"));
+               troop = CharacterObject.Find(template == "looters" || template == null ? "looter" : template);
+            }
+
+            bandits ??= Clan.BanditFactions?.FirstOrDefault(c => c.StringId == "looters");
+            troop ??= CharacterObject.Find("looter");
             if (bandits == null || troop == null) return null;
 
+            // fkasad (07/10/2026): 65 looters against 110 veterans was no fight. A share of the band is seasoned as the
+            // player's own men are (AuthoredBandMakeupPolicy), along the troop's own upgrade line.
+            var line = new List<CharacterObject> {troop};
+            while (line.Count < 3 && line[line.Count - 1].UpgradeTargets is {Length: > 0} next && next[0] != null) line.Add(next[0]);
+            int[] split = AuthoredBandMakeupPolicy.Split(new AuthoredBandMakeupFacts {
+               Size = Math.Max(1, size), PlayerAverageTier = PlayerAverageTier(), UpgradeSteps = line.Count - 1
+            });
+
             TroopRoster roster = TroopRoster.CreateDummyTroopRoster();
-            roster.AddToCounts(troop, Math.Max(1, size));
+            for (var i = 0; i < line.Count && i < split.Length; i++)
+               if (split[i] > 0) roster.AddToCounts(line[i], split[i]);
+            ModLog.Info($"[TALE] band of {bandits.Name}: {string.Join(", ", line.Select((t, i) => $"{(i < split.Length ? split[i] : 0)} {t.Name}"))}.");
             MobileParty band = CustomPartyComponent.CreateCustomPartyWithTroopRoster(
                new CampaignVec2(at, true), 1f, home, new TaleWorlds.Localization.TextObject(name), bandits, roster, TroopRoster.CreateDummyTroopRoster(), null);
             if (band == null) return null;
@@ -535,6 +557,32 @@ namespace CalradiaRemembers.Quests
 
             return null;
          }
+      }
+
+      /// <summary>The bandits of the region around a place: those of the nearest hideout (fkasad, 07/10/2026).</summary>
+      internal static (Clan Clan, CharacterObject Troop) RegionalBandits(Settlement near)
+      {
+         if (near == null) return (null, null);
+         Vec2 at = near.GetPosition2D;
+         Settlement hideout = Settlement.All.Where(s => s.IsHideout).OrderBy(s => s.GetPosition2D.DistanceSquared(at)).FirstOrDefault();
+         CultureObject culture = hideout?.Culture;
+         Clan clan = culture == null ? null : Clan.BanditFactions?.FirstOrDefault(c => c.Culture == culture);
+
+         return (clan, clan?.BasicTroop ?? culture?.BasicTroop);
+      }
+
+      /// <summary>The average tier of the regular troops in the player's party (heroes left out); 1 when there are none.</summary>
+      private static double PlayerAverageTier()
+      {
+         int men = 0, tiers = 0;
+         foreach (TroopRosterElement e in MobileParty.MainParty?.MemberRoster?.GetTroopRoster() ?? new List<TroopRosterElement>())
+         {
+            if (e.Character == null || e.Character.IsHero) continue;
+            men += e.Number;
+            tiers += e.Number * e.Character.Tier;
+         }
+
+         return men == 0 ? 1 : (double) tiers / men;
       }
 
       /// <summary>The band was destroyed: by the player, its way out is taken; by anyone else, it regroups on the next hour.</summary>
@@ -595,7 +643,9 @@ namespace CalradiaRemembers.Quests
             IsOver = () => over,
             OnClose = () => CloseScene(q),
             Ways = () => SceneWays(q),
-            PrisonersWelcome = () => AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.InvitePrisoners == true
+            PrisonersWelcome = () => AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.InvitePrisoners == true,
+            FoundSoFar = () => (AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.Findings ?? new List<AuthoredFinding>())
+                               .Where(f => _run.Findings.Contains(f.Id)).Select(f => AuthoredQuestEngine.Fill(_run, f.Text)).ToList()
          });
          ModLog.Info($"[TALE] '{q.Id}': the scene opens.");
       }

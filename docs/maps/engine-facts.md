@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-436 rules read 336 facts.
+438 rules read 339 facts.
 
 ## Facts read by more than one rule
 
@@ -124,6 +124,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MapEvent.MapEventSettlement` (3) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause` |
 | `MapEvent.WinningSide` (3) | `BattleWorthFacts`, `LiberationFacts`, `ScatteredLootPolicy.SelectRecoverable` |
 | `MarketData.GetPriceFactor` (3) | `MarketReading`, `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
+| `MemberRoster.GetTroopRoster` (3) | `AuthoredBandMakeupFacts`, `CompanionCounselPolicy.Select`, `PartyCounselFacts` |
 | `MobileParty.ItemRoster` (3) | `CompanionCounselPolicy.Select`, `GiftQuantityPolicy.Resolve`, `PartyCounselFacts` |
 | `MobileParty.Morale` (3) | `CompanionCounselPolicy.Select`, `PartyCounselFacts`, `PartyMoraleMood.DriverFor` |
 | `MobileParty.Position` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
@@ -171,7 +172,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Kingdom.RulingClan` (2) | `OutlawPolicy.IsBrigandage`, `WarLoomingPolicy.ShouldRecord` |
 | `LocationComplex.GetLocationWithId` (2) | `DuelStagingSupport.CanHoldATownDuel`, `DuelVenuePolicy.Choose` |
 | `MapEvent.GetMapEventSide` (2) | `BattleWorthFacts`, `LiberationFacts` |
-| `MemberRoster.GetTroopRoster` (2) | `CompanionCounselPolicy.Select`, `PartyCounselFacts` |
 | `MobileParty.ActualClan` (2) | `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
 | `MobileParty.AttachedTo` (2) | `ChaseFacts`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter` |
 | `MobileParty.EffectiveEngineer` (2) | `CompanionAmbitionFacts`, `CompanionAmbitionPolicy.Select` |
@@ -243,6 +243,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AssemblyTravelFacts`: `Hero.CurrentSettlement`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.MapEvent`, `Settlement.IsUnderSiege`
 - `AssemblyTravelOutcome.Evaluate`: `Hero.CurrentSettlement`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.MapEvent`, `Settlement.IsUnderSiege`
 - `AssignRoleFacts`: `Hero.IsPlayerCompanion`, `Hero.PartyBelongedTo`
+- `AuthoredBandMakeupFacts`: `Character.IsHero`, `Character.Tier`, `MemberRoster.GetTroopRoster`
 - `AuthoredBandSizeFacts`: `MemberRoster.TotalHealthyCount`, `Objective.Spawn`
 - `AuthoredCulturePolicy.Describe`: `Requires.Giver`, `Requires.Village`
 - `AuthoredCulturePolicy.Matches`: `Requires.Giver`, `Requires.Village`
@@ -581,6 +582,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SceneChoiceMenu.Items`: `Array.Empty`, `Ways.Invoke`
 - `SceneChoiceMenu.Read`: `Array.Empty`, `Ways.Invoke`
 - `SceneChoiceMenuFacts`: `Array.Empty`
+- `SceneCompanionMemory.Compose`: `FoundSoFar.Invoke`
 - `SceneSurroundingsFacts`: `Current.MapSceneWrapper`, `MobileParty.Position`
 - `SchemeAdvancer.Advance`: `Hero.GetRelation`, `Hero.GetTraitLevel`
 - `SchemeAgentPolicy.ApplyPlayerAid`: `Hero.GetRelation`, `Hero.MapFaction`

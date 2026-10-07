@@ -420,7 +420,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("The band's name in the file.")]
       [JsonProperty("id")] public string Id { get; set; }
 
-      [QuestField("The bandit faction whose troops it is made of (looters by default).")]
+      [QuestField("The bandit faction whose troops it is made of (looters by default), or \"local\": the bandits of the nearest hideout, a share of them seasoned as the player's men are.")]
       [JsonProperty("template")] public string Template { get; set; } = "looters";
 
       [QuestField("[fewest, most] men.")]

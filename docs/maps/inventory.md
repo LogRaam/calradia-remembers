@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 467 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 980 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 985 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 248 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -24,11 +24,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 3500+ | Mod | `Chat/ChatViewModel.cs` |
 | 2500+ | Mod | `Chat/ChatViewModel.Exchanges.cs` |
 | 2500+ | Mod | `Chat/CouncilLift.cs` |
+| 2000+ | Sdk | `Models/EncounterContext.cs` |
 | 1500+ | Sdk | `Actions/ActionBenchCatalog.cs` |
 | 1500+ | Mod | `Chat/ChatManager.cs` |
 | 1500+ | Mod | `GameState/CourtActionResolver.cs` |
 | 1500+ | Mod | `Interception/InterceptionBehavior.cs` |
-| 1500+ | Sdk | `Models/EncounterContext.cs` |
 | 1000+ | Sdk | `Actions/GameActionCatalog.cs` |
 | 1000+ | Logic | `Assemblies/ResolutionCatalog.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Council.cs` |
@@ -1582,10 +1582,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (51)
+### CalradiaRemembers.Logic.AuthoredQuests (56)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `AuthoredBandMakeupFacts` | public class | What a band's makeup is judged on. |
+| `AuthoredBandMakeupPolicy` | public static class | How many men of each step of the band's troop line. |
 | `AuthoredBandSizeFacts` | public class | What a band's size is judged on. |
 | `AuthoredBandSizePolicy` | public static class | The size of a tale's band. |
 | `AuthoredBeat` | public class | (no summary) |
@@ -1622,6 +1624,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredStageNotice` | public static class | The player-facing line for a tale moving to its next stage. |
 | `AuthoredStep` | public class | (no summary) |
 | `AuthoredStepKind` | public enum | What a reported fact did to the run. |
+| `AuthoredTaleRoles` | public static class | Who holds a role in the tale under way. |
 | `AuthoredWay` | public class | One way out of the current stage: its own objective (no choice), or an open choice. |
 | `GiverRequirement` | public class | (no summary) |
 | `OneOrManyConverter` | public class | A list of flag names: "name", or ["a", "!b"]. |
@@ -1633,6 +1636,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneChoiceMenu` | public static class | Decides what the numbered list holds, and what a typed number means. |
 | `SceneChoiceMenuFacts` | public class | What the chat knows when it asks whether, and what, to list under the narration. |
 | `SceneChoiceMenuItem` | public class | One line of the list. |
+| `SceneCompanionMemory` | public static class | What a companion who walked a scene with the player remembers of it. |
+| `SceneLeavePolicy` | public static class | Whether ending a scene asks first. |
 | `SceneMarkers` | public class | A narration with its game markers taken out. |
 | `SceneSurroundingsFacts` | public class | What the game knows of a scene's surroundings. |
 | `SceneSurroundingsText` | public static class | The narrator's block about the scene's surroundings. |

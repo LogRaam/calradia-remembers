@@ -1268,7 +1268,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "The bandit faction whose troops it is made of (looters by default).",
+          "description": "The bandit faction whose troops it is made of (looters by default), or \"local\": the bandits of the nearest hideout, a share of them seasoned as the player's men are.",
           "default": "looters"
         },
         "size": {
@@ -1852,7 +1852,7 @@ input[type="number"] { max-width: 160px; }
         "type": "defeat_party",
         "spawn": {
           "id": "slavers",
-          "template": "looters",
+          "template": "local",
           "size": [
             12,
             20

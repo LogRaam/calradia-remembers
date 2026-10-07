@@ -197,7 +197,8 @@ there ends.
 The band patrols around its place. It is spawned again after a load, and it is taken off the map
 when the story leaves its stage, however it leaves. `flee_after_days` fails the tale if the band is
 still alive that many days after the stage began. A band warned by an `alert` hazard is a third
-larger. With `"scale_with_player": true` the band grows with the player's healthy men (about six in ten of
+larger. `"template": "local"` makes it of the region's bandits (those of the nearest hideout), with a share of seasoned
+men that follows how seasoned the player's own troops are. With `"scale_with_player": true` the band grows with the player's healthy men (about six in ten of
 them, never below its own `size`, at most 120), so the last fight stays a fight for a lord with an army.
 
 ## 7. Choices: a story with several paths
