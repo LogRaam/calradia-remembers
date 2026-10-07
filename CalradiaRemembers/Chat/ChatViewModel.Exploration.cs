@@ -48,6 +48,9 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>The words of each way out of the scene open now, names filled (branching tales); none for a scene without.</summary>
       public Func<IReadOnlyList<string>> Ways { get; set; }
+
+      /// <summary>The player's prisoners may be invited into the scene (the tale's choice, off unless it says so: fkasad, 07/10/2026).</summary>
+      public Func<bool> PrisonersWelcome { get; set; }
    }
 
    public sealed partial class ChatViewModel

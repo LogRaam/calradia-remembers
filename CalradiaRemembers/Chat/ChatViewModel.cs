@@ -2308,6 +2308,9 @@ namespace CalradiaRemembers.Chat
       ///   conversation): pick a companion, a lord riding with the player, or one of the player's prisoners, and
       ///   they join as witnesses. Never the person being spoken to, never someone already present.
       /// </summary>
+      /// <summary>In a tale's scene, prisoners come only when the tale allows it; everywhere else they may.</summary>
+      private bool PrisonersMayBeInvited => _exploration == null || _exploration.PrisonersWelcome?.Invoke() == true;
+
       public void ExecuteInvite()
       {
          if (!IsInviteVisible) return;
@@ -2317,7 +2320,8 @@ namespace CalradiaRemembers.Chat
             List<(Hero Hero, CompanyRole Role)> members = Witnesses.PlayerCompany.Members();
             IReadOnlyList<CompanyMember> candidates = PlayerCompanyPolicy.InviteCandidates(
                members.Select(m => new CompanyMember {Id = m.Hero.StringId, Name = m.Hero.Name?.ToString() ?? "", Role = m.Role}),
-               _npcHero?.StringId, _witnesses.Select(w => w.HeroStringId).Where(id => id != null));
+               _npcHero?.StringId, _witnesses.Select(w => w.HeroStringId).Where(id => id != null),
+               prisonersWelcome: PrisonersMayBeInvited);
 
             if (candidates.Count == 0)
             {
@@ -2330,7 +2334,9 @@ namespace CalradiaRemembers.Chat
             MBInformationManager.ShowMultiSelectionInquiry(
                new MultiSelectionInquiryData(
                   "Invite Someone",
-                  "Bring someone travelling with you into this conversation: a companion, a lord riding with you, or one of your prisoners.",
+                  PrisonersMayBeInvited
+                     ? "Bring someone travelling with you into this conversation: a companion, a lord riding with you, or one of your prisoners."
+                     : "Bring someone travelling with you: a companion, or a lord riding with you.",
                   elements, true, 0, 3, "Invite", "Cancel",
                   selected =>
                   {

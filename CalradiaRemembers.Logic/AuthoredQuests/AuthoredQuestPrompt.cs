@@ -80,7 +80,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       ///   found), what the player's own choices could spring, who may be met, the ways out of the scene open now; and
       ///   how to report each.
       /// </summary>
-      public static string Narrator(AuthoredQuestRun run, AuthoredQuest q)
+      public static string Narrator(AuthoredQuestRun run, AuthoredQuest q, SceneSurroundingsFacts surroundings = null)
       {
          AuthoredScene scene = AuthoredQuestEngine.Current(run, q)?.Objective?.Scene;
          if (scene == null) return null;
@@ -95,6 +95,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          sb.AppendLine();
          sb.AppendLine("THE SCENE: " + AuthoredQuestEngine.Fill(run, scene.Opening.Canvas));
          foreach (string f in scene.Opening.Facts ?? new List<string>()) sb.AppendLine("Fact: " + AuthoredQuestEngine.Fill(run, f));
+         // fkasad (07/10/2026): the same wood reads differently to an Aserai at night and a Battanian at noon.
+         string around = SceneSurroundingsText.Compose(surroundings);
+         if (around != null) sb.AppendLine(around);
 
          List<AuthoredFinding> left = scene.Findings.Where(f => !run.Findings.Contains(f.Id)).ToList();
          if (left.Count > 0)

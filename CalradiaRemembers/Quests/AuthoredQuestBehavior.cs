@@ -476,7 +476,11 @@ namespace CalradiaRemembers.Quests
          if (near == null) return;
 
          int lo = spawn.Size?.Length > 0 ? spawn.Size[0] : 10, hi = spawn.Size?.Length > 1 ? spawn.Size[1] : lo;
-         int size = MBRandom.RandomInt(lo, hi + 1);
+         // fkasad (07/10/2026): a band that scales meets the player at their size, so the climax stays one.
+         int size = AuthoredBandSizePolicy.Size(new AuthoredBandSizeFacts {
+            Rolled = MBRandom.RandomInt(lo, hi + 1), ScalesWithPlayer = spawn.ScaleWithPlayer,
+            PlayerFighters = MobileParty.MainParty?.MemberRoster?.TotalHealthyCount ?? 0
+         });
          if (_run.BandAlerted) size += size / 3;
 
          Vec2 at = near.GetPosition2D + new Vec2(MBRandom.RandomFloatRanged(-3f, 3f), MBRandom.RandomFloatRanged(-3f, 3f));
@@ -586,16 +590,41 @@ namespace CalradiaRemembers.Quests
          var over = false;
          ChatManager.OpenForExploration(new ExplorationSession {
             Title = !string.IsNullOrWhiteSpace(title) ? AuthoredQuestEngine.Fill(_run, title) : place != null ? $"The wood by {place}" : q.Title,
-            BuildPrompt = () => AuthoredQuestPrompt.Narrator(_run, q),
+            BuildPrompt = () => AuthoredQuestPrompt.Narrator(_run, q, Surroundings()),
             Apply = markers => ApplyMarkers(q, markers, () => over = true),
             IsOver = () => over,
             OnClose = () => CloseScene(q),
-            Ways = () => SceneWays(q)
+            Ways = () => SceneWays(q),
+            PrisonersWelcome = () => AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.InvitePrisoners == true
          });
          ModLog.Info($"[TALE] '{q.Id}': the scene opens.");
       }
 
       private bool _sceneWaiting;
+
+      /// <summary>What the game knows of where the scene happens and who walks into it (fkasad, 07/10/2026).</summary>
+      internal static SceneSurroundingsFacts Surroundings()
+      {
+         try
+         {
+            string terrain = Campaign.Current?.MapSceneWrapper != null && MobileParty.MainParty != null
+               ? Campaign.Current.MapSceneWrapper.GetTerrainTypeAtPosition(MobileParty.MainParty.Position).ToString()
+               : null;
+
+            return new SceneSurroundingsFacts {
+               EngineTerrain = terrain,
+               Season = CampaignTime.Now.GetSeasonOfYear.ToString(),
+               Hour = (int) CampaignTime.Now.CurrentHourInDay,
+               PlayerCulture = Hero.MainHero?.Culture?.Name?.ToString()
+            };
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[TALE] the scene's surroundings could not be read: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
 
       /// <summary>The words of the scene's open ways out, names filled: what the chat lists under the narration.</summary>
       private IReadOnlyList<string> SceneWays(AuthoredQuest q)

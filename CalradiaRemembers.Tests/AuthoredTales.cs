@@ -10,7 +10,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Logic.AuthoredQuests;
+using CalradiaRemembers.Tests.Maps;
 using FluentAssertions;
+using NUnit.Framework;
 
 #endregion
 
@@ -98,5 +100,23 @@ namespace CalradiaRemembers.Tests
          => AuthoredQuestEngine.Start(q,
             new Dictionary<string, string> {["giver"] = Giver, ["village"] = Village},
             new Dictionary<string, string> {["giver"] = "Lord Aldric", ["village"] = "Ortongard"}, today);
+
+      /// <summary>The Wolf of the Wood as it ships, read from the module folder.</summary>
+      public static AuthoredQuest Wolf()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"source tree not reachable: {SourceTree.MissingAnchor}");
+         string file = System.IO.Path.Combine(SourceTree.ModRepo!, "CalradiaRemembers", "ModuleData", "Quests", "wolf_of_the_wood.json");
+
+         return AuthoredQuestLoader.Parse(System.IO.File.ReadAllText(file), "wolf_of_the_wood.json").Quests.Single();
+      }
+
+      /// <summary>A run standing at the given stage.</summary>
+      public static AuthoredQuestRun At(AuthoredQuest q, string stage)
+      {
+         AuthoredQuestRun run = Start(q);
+         run.StageId = stage;
+
+         return run;
+      }
    }
 }

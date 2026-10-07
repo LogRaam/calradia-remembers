@@ -324,6 +324,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>What the player leaves knowing, whatever they did: stated at closing for any required finding missed.</summary>
       [QuestField("Shown when the scene closes, after any missed findings.")]
       [JsonProperty("closing")] public string Closing { get; set; }
+
+      /// <summary>fkasad (07/10/2026): a captive in chains has no place in the wood unless the tale wants one.</summary>
+      [QuestField("Off by default: the player's prisoners may be invited into this scene only when it is on (an interrogation in the wood).")]
+      [JsonProperty("invite_prisoners")] public bool InvitePrisoners { get; set; }
    }
 
    public sealed class AuthoredBeat
@@ -433,6 +437,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       [QuestField("The tale fails if the band is still alive that many days after the stage began.")]
       [JsonProperty("flee_after_days")] public int FleeAfterDays { get; set; }
+
+      /// <summary>fkasad (07/10/2026): "no climax" for a lord with an army; see AuthoredBandSizePolicy.</summary>
+      [QuestField("The band grows with the player's men (never below its size, up to a ceiling), so a climax stays one for a lord with an army.")]
+      [JsonProperty("scale_with_player")] public bool ScaleWithPlayer { get; set; }
    }
 
    /// <summary>What success, failure or a named ending leaves behind.</summary>

@@ -1238,6 +1238,12 @@ input[type="number"] { max-width: 160px; }
           ],
           "x-kind": "string",
           "description": "Shown when the scene closes, after any missed findings."
+        },
+        "invite_prisoners": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "Off by default: the player's prisoners may be invited into this scene only when it is on (an interrogation in the wood).",
+          "default": false
         }
       }
     },
@@ -1307,6 +1313,12 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "int",
           "description": "The tale fails if the band is still alive that many days after the stage began.",
           "default": 0
+        },
+        "scale_with_player": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "The band grows with the player's men (never below its size, up to a ceiling), so a climax stays one for a lord with an army.",
+          "default": false
         }
       }
     },
@@ -1848,7 +1860,8 @@ input[type="number"] { max-width: 160px; }
           "name": "Slavers of the {village} wood",
           "near": "{village}",
           "behavior": "hide_near",
-          "flee_after_days": 20
+          "flee_after_days": 20,
+          "scale_with_player": true
         }
       },
       "canvas": "",
@@ -3576,13 +3589,13 @@ input[type="number"] { max-width: 160px; }
     AuthoredSaid: ['to', 'meaning'],
     AuthoredLine: ['text', 'if'],
     AuthoredObjective: ['type', 'hero', 'place', 'count', 'radius', 'nights', 'chance', 'days', 'scene', 'spawn', 'item', 'to'],
-    AuthoredScene: ['title', 'opening', 'findings', 'hazards', 'encounters', 'closing'],
+    AuthoredScene: ['title', 'opening', 'findings', 'hazards', 'encounters', 'closing', 'invite_prisoners'],
     AuthoredBeat: ['canvas', 'facts'],
     AuthoredFinding: ['id', 'required', 'text', 'sets'],
     AuthoredHazard: ['id', 'trigger', 'effect'],
     AuthoredHazardEffect: ['type', 'hit_points', 'party', 'hours'],
     AuthoredEncounter: ['id', 'name', 'persona', 'knows', 'sets', 'may_materialize', 'materialize_when', 'escort_to'],
-    AuthoredSpawn: ['id', 'template', 'size', 'name', 'near', 'behavior', 'flee_after_days'],
+    AuthoredSpawn: ['id', 'template', 'size', 'name', 'near', 'behavior', 'flee_after_days', 'scale_with_player'],
     AuthoredOutcome: ['days', 'regard', 'gold', 'memory', 'journal', 'consequences'],
     AuthoredConsequence: ['type', 'who', 'against', 'text', 'summary', 'magnitude', 'place', 'if'],
 
@@ -4524,6 +4537,7 @@ input[type="number"] { max-width: 160px; }
           roleField(ck + '/escort_to', 'Escort to', 'AuthoredEncounter', 'escort_to', en)))]};
     }, function () { return {id: 'someone_' + ((sc.encounters || []).length + 1), name: '', persona: ''}; }, 'Add someone to meet'));
     box.appendChild(textField(k + '.closing', 'When it closes', 'AuthoredScene', 'closing', sc, {multiline: true, short: true, wide: true}));
+    box.appendChild(boolField(k + '.invite_prisoners', 'Your prisoners may be invited', 'AuthoredScene', 'invite_prisoners', sc));
     return box;
   }
 
@@ -4536,6 +4550,7 @@ input[type="number"] { max-width: 160px; }
       pairField(k + '.size', 'Men', 'AuthoredSpawn', 'size', sp, ['fewest', 'most']),
       textField(k + '.template', 'Troops', 'AuthoredSpawn', 'template', sp, {mono: true}),
       numberField(k + '.flee_after_days', 'Flees after days', 'AuthoredSpawn', 'flee_after_days', sp, {min: 0}),
+      boolField(k + '.scale_with_player', 'Grows with your men', 'AuthoredSpawn', 'scale_with_player', sp),
       textField(k + '.behavior', 'Behaviour', 'AuthoredSpawn', 'behavior', sp, {mono: true})), h('div.field-problems'));
   }
 

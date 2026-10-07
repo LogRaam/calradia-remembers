@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 467 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 976 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 980 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 248 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1582,10 +1582,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (47)
+### CalradiaRemembers.Logic.AuthoredQuests (51)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `AuthoredBandSizeFacts` | public class | What a band's size is judged on. |
+| `AuthoredBandSizePolicy` | public static class | The size of a tale's band. |
 | `AuthoredBeat` | public class | (no summary) |
 | `AuthoredChoice` | public class | One way out of a stage (branching tales, 04/10/2026). |
 | `AuthoredConsequence` | public class | (no summary) |
@@ -1632,6 +1634,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneChoiceMenuFacts` | public class | What the chat knows when it asks whether, and what, to list under the narration. |
 | `SceneChoiceMenuItem` | public class | One line of the list. |
 | `SceneMarkers` | public class | A narration with its game markers taken out. |
+| `SceneSurroundingsFacts` | public class | What the game knows of a scene's surroundings. |
+| `SceneSurroundingsText` | public static class | The narrator's block about the scene's surroundings. |
 | `TaleGrudge` | public class | A grudge a tale's ending plants between two of its heroes. |
 
 ### CalradiaRemembers.Logic.Battles (8)

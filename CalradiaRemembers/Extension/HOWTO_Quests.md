@@ -197,7 +197,8 @@ there ends.
 The band patrols around its place. It is spawned again after a load, and it is taken off the map
 when the story leaves its stage, however it leaves. `flee_after_days` fails the tale if the band is
 still alive that many days after the stage began. A band warned by an `alert` hazard is a third
-larger.
+larger. With `"scale_with_player": true` the band grows with the player's healthy men (about six in ten of
+them, never below its own `size`, at most 120), so the last fight stays a fight for a lord with an army.
 
 ## 7. Choices: a story with several paths
 
@@ -338,6 +339,10 @@ actions lead there. It may not invent any of the three, nor a way out.
 | `hazards` | What the player's choices can spring. `trigger` says what the player must do. Effects: `injure` (`hit_points: [min, max]`, never below 1 HP), `alert` (the stage's band will be larger), `lose_time` (the scene ends, the night is lost). Each hazard springs once. |
 | `encounters` | People who may be met in the scene, voiced by the narrator, who say only what they `know`. |
 | `closing` | Shown when the scene closes, after any missed findings. |
+| `invite_prisoners` | Off by default: the player's prisoners may be invited into the scene only when it is on. Companions and lords riding with the player always may. |
+
+The narrator is also told, from the game, the ground under the player, the season, the hour and the
+player's people, so the same wood reads differently to an Aserai at night and a Battanian at noon.
 
 **Choices in a scene.** The narrator is told the ways out open now, and takes one only when the
 player's own words choose it. Under each narration the player has not yet answered, the open ways

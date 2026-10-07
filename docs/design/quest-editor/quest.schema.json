@@ -832,6 +832,12 @@
           ],
           "x-kind": "string",
           "description": "Shown when the scene closes, after any missed findings."
+        },
+        "invite_prisoners": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "Off by default: the player's prisoners may be invited into this scene only when it is on (an interrogation in the wood).",
+          "default": false
         }
       }
     },
@@ -901,6 +907,12 @@
           "x-kind": "int",
           "description": "The tale fails if the band is still alive that many days after the stage began.",
           "default": 0
+        },
+        "scale_with_player": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "The band grows with the player's men (never below its size, up to a ceiling), so a climax stays one for a lord with an army.",
+          "default": false
         }
       }
     },

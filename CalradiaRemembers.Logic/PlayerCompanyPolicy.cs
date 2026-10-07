@@ -51,13 +51,18 @@ namespace CalradiaRemembers.Logic
    /// <summary>Who travels with the player, for inviting and for clearing the room. Pure.</summary>
    public static class PlayerCompanyPolicy
    {
-      /// <summary>The company members who may be invited: not the one being spoken to, not anyone already present.</summary>
-      public static IReadOnlyList<CompanyMember> InviteCandidates(IEnumerable<CompanyMember> company, string mainNpcId, IEnumerable<string> presentIds)
+      /// <summary>
+      ///   The company members who may be invited: not the one being spoken to, not anyone already present, and no
+      ///   prisoner where prisoners are not welcome (a tale's scene, unless it allows them: fkasad, 07/10/2026).
+      /// </summary>
+      public static IReadOnlyList<CompanyMember> InviteCandidates(IEnumerable<CompanyMember> company, string mainNpcId, IEnumerable<string> presentIds,
+                                                                  bool prisonersWelcome = true)
       {
          var present = new HashSet<string>(presentIds ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
 
          return (company ?? Enumerable.Empty<CompanyMember>())
                 .Where(m => m != null && !string.IsNullOrEmpty(m.Id) && m.Id != mainNpcId && !present.Contains(m.Id))
+                .Where(m => prisonersWelcome || m.Role != CompanyRole.Prisoner)
                 .GroupBy(m => m.Id).Select(g => g.First())
                 .ToList();
       }

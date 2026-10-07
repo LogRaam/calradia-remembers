@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-433 rules read 335 facts.
+436 rules read 336 facts.
 
 ## Facts read by more than one rule
 
@@ -107,6 +107,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `CampaignOptions.IsLifeDeathCycleDisabled` (3) | `ExecutionFacts`, `PregnancyPolicy.MayConceive`, `PregnancyPolicy.ShouldEndStuckPregnancy` |
 | `CharacterRelationManager.GetHeroRelation` (3) | `ThirdPartyDescriptor.KnowledgeOf`, `ThirdPartyDescriptor.WhereaboutsClause`, `ThirdPartyFacts` |
 | `Clan.Heroes` (3) | `CouncilTroopDelivery`, `HostageCandidateFacts`, `HostageEligibilityPolicy.IsEligible` |
+| `Current.MapSceneWrapper` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
 | `EndCaptivityDetail.ReleasedAfterBattle` (3) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `EndCaptivityDetail.ReleasedByChoice` (3) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `GameStateBridge.GetCurrentGameDay` (3) | `ConversationResumeIdentity`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `PendingSummaryJob` |
@@ -125,7 +126,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MarketData.GetPriceFactor` (3) | `MarketReading`, `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
 | `MobileParty.ItemRoster` (3) | `CompanionCounselPolicy.Select`, `GiftQuantityPolicy.Resolve`, `PartyCounselFacts` |
 | `MobileParty.Morale` (3) | `CompanionCounselPolicy.Select`, `PartyCounselFacts`, `PartyMoraleMood.DriverFor` |
+| `MobileParty.Position` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
 | `ModSettings.CompanionAudienceCadence` (3) | `CompanionAudiencePacingRules.CooldownDays`, `CompanionAudiencePacingRules.DailyChancePercent`, `CompanionAudiencePacingRules.IsOff` |
+| `Objective.Spawn` (3) | `AuthoredBandSizeFacts`, `AuthoredQuestEngine.Bound`, `AuthoredQuestEngine.Fill` |
 | `OwnerClan.MapFaction` (3) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts` |
 | `Party.NumberOfHealthyMembers` (3) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.MayAsk`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `PartyBelongedToAsPrisoner.MapFaction` (3) | `PowerBalanceFacts`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
@@ -194,7 +197,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Models.MapDistanceModel` (2) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium` |
 | `NavigationType.Default` (2) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium` |
 | `NewEventData.Type` (2) | `CoerciveSceneEventPolicy.ShouldDropRomanticEvent`, `JealousyTriggerPolicy.IsPlausibleCourtship` |
-| `Objective.Spawn` (2) | `AuthoredQuestEngine.Bound`, `AuthoredQuestEngine.Fill` |
 | `Owner.Clan` (2) | `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
 | `Party.LeaderHero` (2) | `BattleWorthFacts`, `LiberationFacts` |
 | `PartyBase.LeaderHero` (2) | `HeroNaming`, `NotHisToSellFacts` |
@@ -241,6 +243,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AssemblyTravelFacts`: `Hero.CurrentSettlement`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.MapEvent`, `Settlement.IsUnderSiege`
 - `AssemblyTravelOutcome.Evaluate`: `Hero.CurrentSettlement`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.MapEvent`, `Settlement.IsUnderSiege`
 - `AssignRoleFacts`: `Hero.IsPlayerCompanion`, `Hero.PartyBelongedTo`
+- `AuthoredBandSizeFacts`: `MemberRoster.TotalHealthyCount`, `Objective.Spawn`
 - `AuthoredCulturePolicy.Describe`: `Requires.Giver`, `Requires.Village`
 - `AuthoredCulturePolicy.Matches`: `Requires.Giver`, `Requires.Village`
 - `AuthoredQuestEngine.Bound`: `Objective.Spawn`
@@ -250,6 +253,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AuthoredQuestOfferPolicy.PickByWeight`: `q.Weight`
 - `AuthoredQuestOfferPolicy.WhyNot`: `Hero.Issue`
 - `AuthoredQuestPrompt.ForCharacter`: `Hero.CurrentSettlement`, `Hero.HomeSettlement`
+- `AuthoredQuestPrompt.Narrator`: `Current.MapSceneWrapper`, `MobileParty.Position`
 - `AuthoredRivalPolicy.Choose`: `Clan.Kingdom`, `Hero.Clan`, `Kingdom.Clans`
 - `BalanceSurveyPolicy.ToLine`: `Kingdom.IsAtWarWith`
 - `BastardBlackmailPolicy.DemandAmount`: `Hero.Gold`
@@ -577,6 +581,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SceneChoiceMenu.Items`: `Array.Empty`, `Ways.Invoke`
 - `SceneChoiceMenu.Read`: `Array.Empty`, `Ways.Invoke`
 - `SceneChoiceMenuFacts`: `Array.Empty`
+- `SceneSurroundingsFacts`: `Current.MapSceneWrapper`, `MobileParty.Position`
 - `SchemeAdvancer.Advance`: `Hero.GetRelation`, `Hero.GetTraitLevel`
 - `SchemeAgentPolicy.ApplyPlayerAid`: `Hero.GetRelation`, `Hero.MapFaction`
 - `SchemeAgentPolicy.CanRecruitPlayer`: `Hero.GetRelation`, `Hero.MapFaction`
