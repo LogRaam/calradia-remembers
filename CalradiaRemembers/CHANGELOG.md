@@ -2,6 +2,17 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.3.. 2026-10-07
+
+### Fixed
+- **Black screen after a tale's scene, for real** (fkasad): `OpenForExploration`'s OnClose queued `ExplorationBackdrop.Close`
+  for the next frame, and `FreeResources` in the close's finally cleared the dispatcher queue, so the pushed backdrop
+  state was never popped (and the closing popup and a scene following a conversation were lost too). The
+  conversation's continuations are now dropped at the START of `ChatManager.Close`. `cr.testall
+  scene_close_gives_the_map_back` goes through the real open and close.
+- **The narrator never herds the player** (fkasad): told never to steer toward what is to be found, and to mention a
+  place once (`AuthoredQuestPrompt.Narrator`).
+
 ## v2.7.2.. 2026-10-06
 
 ### Changed

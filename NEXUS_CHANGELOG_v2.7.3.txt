@@ -1,0 +1,16 @@
+Version 2.7.3
+
+A fix for written tales. They are still experimental and OFF by default (MCM, Content, "Authored Quests (experimental)").
+
+Fixed
+
+- Closing a tale's scene left a black screen with no way back. The 2.7.1 fix could never run: the close queued the removal of the dark backdrop for the next moment, then wiped that queue on its way out. It now survives the close, and so do the scene's closing message and a scene that follows a conversation. (Thank you, fkasad, whose log showed exactly where it stuck.)
+- The scene's narrator no longer herds you toward what is to be found ("the dark wood to your left", four times). It follows what you do, and mentions a place once. (Thank you, fkasad.)
+
+Developer tools
+
+- New cr.testall test scene_close_gives_the_map_back: opens a real scene, closes it the way the button does, and checks the map comes back. It writes one [SCENE] error line to the log on purpose.
+
+Notes
+
+- Your existing saves load as they are, a tale already under way included.
