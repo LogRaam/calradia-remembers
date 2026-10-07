@@ -109,6 +109,15 @@ namespace CalradiaRemembers.Mapping
          if (hero.Mother != null)
             parts.Add($"Mother: {FormatKin(hero.Mother)}");
 
+         // Maifailun (07/10/2026): Lidia, wed into the Takhi, knew her father's name but not the house she was born
+         // into, and claimed she was born a Takhi. The engine's origin clan says it; the father's house stands in.
+         Clan born = Marriage.HeroClanCompat.OriginClanOrNull(hero) ?? hero.Father?.Clan ?? hero.Mother?.Clan;
+         string birthHouse = BirthHouseText.Line(new BirthHouseFacts {
+            CurrentClan = hero.Clan?.Name?.ToString(), BirthClan = born?.Name?.ToString(), BirthRealm = born?.Kingdom?.Name?.ToString(),
+            ByMarriage = hero.Spouse != null || hero.ExSpouses?.Any() == true
+         });
+         if (birthHouse != null) parts.Add(birthHouse);
+
          // Children, EACH with their sex named — otherwise the NPC misgenders them (tester: a
          // mother called her daughter her "son"). Co-parent is named when not the current spouse
          // so the LLM does not treat a step-child as a shared child (tester: a lord's son from

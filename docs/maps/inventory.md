@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 467 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 985 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 987 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 248 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -808,7 +808,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (617)
+### CalradiaRemembers.Logic (619)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -855,6 +855,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BattleNotability` | public static class | Decides whether a battle is notable enough to record. |
 | `BattleSetting` | public enum | What kind of engagement a battle was, for naming it correctly (a siege is not a field battle). |
 | `BattleWorthFacts` | public class | What a won battle was worth (fkasad, 01/10/2026: "fighting half a dozen looters" is no feat). |
+| `BirthHouseFacts` | public class | What is known of the house a character was born into. |
+| `BirthHouseText` | public static class | The family line's note on the birth house. |
 | `BirthLetterPolicy` | public static class | Pure rules for which letters a birth to the player's child should trigger. |
 | `BodyHurtPolicy` | public static class | How badly hurt somebody is, on the SDK's four bands, from the engine's own numbers. |
 | `Bounty` | public class | A realm's price on the player's head. |
