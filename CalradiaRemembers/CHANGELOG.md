@@ -13,6 +13,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 - **The narrator never herds the player** (fkasad): told never to steer toward what is to be found, and to mention a
   place once (`AuthoredQuestPrompt.Narrator`).
 
+### Added
+- **Scene surroundings** (fkasad): terrain, season, hour and the player's culture in the narrator's prompt
+  (`SceneSurroundingsText`, `AuthoredQuestBehavior.Surroundings`; `cr.testall scene_surroundings_read`).
+- **`scale_with_player`** on a tale's band (`AuthoredBandSizePolicy`: 0.6 x healthy men, never below the roll, max 120);
+  the wolf's slavers scale.
+- **`invite_prisoners`** on a scene, off by default (`PlayerCompanyPolicy.InviteCandidates(prisonersWelcome)`).
+
 ## v2.7.2.. 2026-10-06
 
 ### Changed
