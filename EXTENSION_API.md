@@ -89,6 +89,33 @@ int? regard = CrNpcMemory.GetRegard(npcId);   // -100..100 on CR's own ledger, o
 The character's own personal regard for the player, built in conversation: never the game's relation. Read-only;
 `RegardChanged` below reports every move of it.
 
+### Cultures (`CrCultures.MarriageCustom`, since 2.7.5)
+
+```csharp
+MarriageCustomReading custom = CrCultures.MarriageCustom(hero.Culture.Name.ToString(), hero.Clan?.Tier ?? 0);
+// custom.Strictness: 0 low, 1 medium, 2 high; custom.SharesPartners: a house of that tier shares partners
+```
+
+How strictly a culture holds marriage, by CR's own jealousy cultures (jealousy_cultures.json, or a Custom copy). The
+stable door to what `CalradiaRemembers.Jealousy.JealousyCultureLoader` answers: read this, never the internal type.
+
+### Romance (`CrRomance`, since 2.7.5)
+
+```csharp
+bool? welcome = CrRomance.WouldAcceptIntimacy(npcId);   // CR's chat would allow intimacy with the player now
+SharedIntimacyResult r = CrRomance.RecordSharedIntimacy(npcId, "We spent the night at the inn in Pravend.", "MyMod");
+```
+
+`WouldAcceptIntimacy` reads the consent bar CR's own chat holds (regard, the character's nature, a marriage to
+another); false when adult content is off, null for an unknown hero. `RecordSharedIntimacy` records a night that
+happened in your mod as if it had happened in CR's chat: the memory, and the romance arc moved exactly as the chat
+moves it. It is refused, writing nothing (`NotWelcome`), whenever the chat would not have allowed it, so ask
+`WouldAcceptIntimacy` before offering the night. Regard is not moved. A plain `Intimacy` memory through `AddMemory`
+stays a memory only: it never moves the romance arc.
+
+CR also writes, on its own, the memory a quest giver keeps of the game's own quests (begun, done, failed, let lapse):
+do not inject those.
+
 ### Regard changes (`CrNpcMemory.RegardChanged`, since 2.6.7)
 
 ```csharp
@@ -132,6 +159,11 @@ variable provider.
   the character lived with the player, under a "what has reached your ears" header. It is never counted against the
   6 lived memories the Compact prompt keeps (Compact shows the 2 latest heard ones beside them), and it is never
   shielded from compression by being recent. Any other kind is history with the player: use `Hearsay` for a rumour.
+- **`OwnLife` for the character's own life** (since 2.7.5): their attachments, grudges, feuds and affairs with
+  others, things the player had no part in. Shown under its own header, apart from the history with the player, never
+  counted against the lived memories Compact keeps, folded first by compression, and never framed as a predecessor's
+  history when the player's heir takes over. A memory of kind `Other` is history WITH the player: do not file a
+  noble's own affair as `Other`.
 - **No quota on AddMemory.** Unlike `Feed.Record` (20 events per mod per day), nothing limits how many memories a
   mod injects; news of the world belongs in `Feed.Record`, and a memory is for what touches that character.
 - **Summary length** is bounded (300 chars) to keep the save blob safe; longer lines are trimmed.

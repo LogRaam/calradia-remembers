@@ -54,6 +54,12 @@ _A whole conversation as it CLOSES, delivered by CrConversation.Ended._
 - `string SaveId { get; }`
 - `string SessionId { get; }`
 
+### CrCultures
+
+_Read-only readings of the cultures CR plays by (its ModuleData jealousy_cultures.json, or a Custom copy)._
+
+- `static MarriageCustomReading MarriageCustom(string cultureName, int clanTier)`
+
 ### CrMemoryEntry
 
 _One memory a third-party mod wants an NPC to hold._
@@ -101,6 +107,13 @@ _One change of a character's personal regard for the player (see CrNpcMemory.Reg
 - `string Cause { get; set; }`
 - `string NpcId { get; set; }`
 - `string SaveId { get; set; }`
+
+### CrRomance
+
+_Reads and records intimacy with the player, held to the bar CR's own chat holds._
+
+- `static SharedIntimacyResult RecordSharedIntimacy(string npcId, string summary, string sourceMod)`
+- `static bool? WouldAcceptIntimacy(string npcId)`
 
 ### CrSpeechLine
 

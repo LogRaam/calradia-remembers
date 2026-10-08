@@ -280,6 +280,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_art_loads", Severity.Light, "EmperorHaterius (Nexus, 04/10/2026): the Dark Leather window was see-through with no button, because its End Conversation and Memories labels are painted into art read from a hand-built path that missed his install (every shipped file read as not found). Checks the module folder is the one the engine found (SubModule.xml there), loads every chat image through the real loader (a failure writes its reason to the log as [IMAGE]), and checks that Dark Leather opens only when its art loads, Origin otherwise. Changes nothing.", TestChatArtLoads),
          new SelfTest("clan_standing_is_the_leaders", Severity.Light, "tashmetu (Nexus, 04/10/2026), Personal Relations: the prompt's clan standing was the character's own game relation, so under a per-hero relation mod a lord read +100 'clan' and 0 personal. Takes a real lord who is not his clan's leader: the clan standing must be the leader's relation, and his own is said apart only when it differs. Changes nothing.", TestClanStandingIsTheLeaders),
          new SelfTest("calendar_follows_the_game", Severity.Light, "tashmetu (Nexus, 04/10/2026): fast mode shortens the game's year and CR kept 21 x 4, so 'half a year ago' meant two of the game's years. Reads the game's own calendar and setting.json as loaded: the mod's calendar must be the game's wherever setting.json names nothing. Changes nothing.", TestCalendarFollowsTheGame),
+         new SelfTest("native_quest_memory", Severity.Light, "tashmetu and Maifailun (Nexus, 08/10/2026): a native quest left no memory with the lord who set it. Writes the giver's memory of a quest begun through the real door (CrNpcMemory), checks it landed as an agreement in their words, and removes it.", TestNativeQuestMemory),
+         new SelfTest("romance_api_held_to_the_chats_bar", Severity.Light, "tashmetu (Nexus, 08/10/2026): another mod may read whether CR's chat would allow intimacy, and record a night only when it would. Reads the verdict for a real lord; when the chat would not allow it, a reported night must be refused and write nothing. Never records one.", TestRomanceApi),
          new SelfTest("birth_house_known", Severity.Light, "Maifailun (Nexus, 07/10/2026): Lidia, wed into the Takhi, named her father but not the house she was born into, and claimed she was born a Takhi. Finds a married character living in another house than the one they were born into and checks their family line, as the prompt gets it, names the birth house.", TestBirthHouseKnown),
          new SelfTest("tale_local_band", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's last band was always looters, the weakest troop in the game. A \"local\" band is made of the bandits of the nearest hideout. Reads them for a few villages across the map and checks each finds real bandits; the log names them.", TestTaleLocalBand),
          new SelfTest("scene_surroundings_read", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's scene should read differently to an Aserai in a forest at night and a Battanian at noon. Reads the ground under the player, the season, the hour and the player's people from the live game, as the scene's narrator gets them, and checks the narrator's block is written from them.", TestSceneSurroundingsRead),
@@ -9063,6 +9065,49 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("daysPerSeason", NpcMemoryService.Core.Calendar.WorldCalendar.DaysPerSeason, days);
          t.Expect("seasonsPerYear", NpcMemoryService.Core.Calendar.WorldCalendar.SeasonsPerYear, seasons);
          if (profile?.DaysPerSeason == null) t.Expect("withNoOverrideTheSeasonIsTheGames", days, game.DaysPerSeason);
+
+         return t.Line();
+      }
+
+      private static string TestNativeQuestMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("native_quest_memory");
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && behavior.Store?.Get(h.StringId) != null);
+         if (t.Skip(lord == null, "no lord with a profile")) return t.Line();
+
+         const string title = "(selftest) Escort the merchant caravan";
+         MemoryResult result = Quests.NativeQuestMemoryBehavior.Record(lord.StringId, Logic.NativeQuestPhase.Started, title);
+         NpcProfile profile = behavior.Store.Get(lord.StringId);
+         NotableEvent written = profile?.Events.LastOrDefault(e => e.summary != null && e.summary.Contains(title));
+         try
+         {
+            t.Expect("added", result, MemoryResult.Added);
+            t.Expect("anAgreement", written?.type, NotableEventType.Agreement);
+         }
+         finally
+         {
+            if (written != null)
+            {
+               profile.Events.Remove(written);
+               behavior.Store.Set(profile);
+            }
+         }
+
+         return t.Line();
+      }
+
+      private static string TestRomanceApi(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("romance_api_held_to_the_chats_bar");
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.IsFemale != Hero.MainHero.IsFemale
+                                                            && CrRomance.WouldAcceptIntimacy(h.StringId) == false);
+         if (t.Skip(lord == null, "no lord the chat would refuse")) return t.Line();
+
+         int before = behavior.Store.Get(lord.StringId)?.Events.Count ?? 0;
+         Logic.SharedIntimacyResult result = CrRomance.RecordSharedIntimacy(lord.StringId, "(selftest) a night that must not count", "cr.testall");
+         t.Note($"{lord.Name}: {result}");
+         t.Expect("refused", result == Logic.SharedIntimacyResult.NotWelcome || result == Logic.SharedIntimacyResult.RomanceOff, true);
+         t.Expect("nothingWritten", behavior.Store.Get(lord.StringId)?.Events.Count ?? 0, before);
 
          return t.Line();
       }

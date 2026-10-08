@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 467 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 993 types in 27 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 248 types in 17 namespaces, 9 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 470 types in 58 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 999 types in 27 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (30)
+### CalradiaRemembers (32)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -52,11 +52,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrConversation` | public static class | The public conversation-lifecycle events other mods subscribe to. |
 | `CrConversationInfo` | public class | The identity of a conversation as it OPENS, delivered by CrConversation.Started. |
 | `CrConversationLog` | public class | A whole conversation as it CLOSES, delivered by CrConversation.Ended. |
+| `CrCultures` | public static class | Read-only readings of the cultures CR plays by (its ModuleData jealousy_cultures.json, or a Custom copy). |
 | `CrMemoryEntry` | public class | One memory a third-party mod wants an NPC to hold. |
 | `CrMemoryRecord` | public class | One memory CR already holds for an NPC, as read back through CrNpcMemory.GetMemories. |
 | `CrNpcMemory` | public static class | The public NPC-memory API. A caller identifies the NPC by its hero StringId (never a display name), reads its stored memories, and injects new ones. |
 | `CrPrompt` | public static class | The public facade a third-party mod calls to register (or unregister) one live prompt variable. |
 | `CrRegardChange` | public class | One change of a character's personal regard for the player (see CrNpcMemory.RegardChanged). |
+| `CrRomance` | public static class | Reads and records intimacy with the player, held to the bar CR's own chat holds. |
 | `CrSpeechLine` | public class | One line as it is DISPLAYED in a conversation, delivered in real time by CrConversation.LineSpoken. |
 | `CrTranscriptLine` | public class | One attributed line of a conversation, as delivered in CrConversationLog. |
 | `ExternalActionParam` | public class | One named parameter an ExternalActionSpec accepts, taught to the LLM by name and meaning. |
@@ -578,7 +580,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitSpikeViewModel` | public class | View model for the portrait-spike test overlay: a runtime sprite plus a status line. |
 | `RuntimePortraitFactory` | internal static class | Builds a GauntletUI Sprite from an image file on disk. |
 
-### CalradiaRemembers.Quests (11)
+### CalradiaRemembers.Quests (12)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -588,6 +590,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CalradiaRemembersQuestTypeDefiner` | public class | Registers the CR quest types with Bannerlord's save system. |
 | `LetterErrand` | public class | Pairs a letter quest with the giver who issued it, for the delivery flow. |
 | `LlmFeedbackNotes` | internal static class | In-memory, per-hero pending feedback about a block the host refused last turn. |
+| `NativeQuestMemoryBehavior` | public class | Writes the giver's memory of the game's own quests. |
 | `QuestDeedTracker` | public class | Watches the campaign for the deeds that satisfy outstanding quests and stamps the matching quest with proof. |
 | `QuestFactory` | public static class | Turns a QuestProposal (the LLM's words) into a concrete, persistable InformalQuest by resolving its named target to a real settlement, hero, or faction and computing the deadline. |
 | `QuestJournalBridge` | public static class | Bridges InformalQuest (our persisted record, authority) and CalradiaRemembersQuest (the QuestBase mirror that appears in the vanilla quest journal). |
@@ -808,7 +811,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (619)
+### CalradiaRemembers.Logic (625)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1134,6 +1137,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MarketReading` | public class | One trade good as a town's market reads it. |
 | `MarriageBlockOverridePolicy` | public static class | Pure soft-vs-hard table: which MarriageBlockReason a passed courtship trial may override. |
 | `MarriageClaimPolicy` | public static class | Detects whether an [EVENT] summary CLAIMS that the conversation NPC and the player are now married, so the mod can withhold the memory (and the romantic-arc advancement riding on it) until Hero.Spouse confirms the weddin... |
+| `MarriageCustomReading` | public struct | A culture's marriage custom: strictness 0 (low) to 2 (high), and whether a house of the tier asked shares partners. |
 | `MarriageEligibility` | public static class | Whether a candidate could marry the player under Calradia's rules: alive, unwed, adult, and of the opposite sex (the engine marries opposite-sex only). |
 | `MarriageGuardPolicy` | public static class | Live-state guards a marriage or a marriage-blessing must satisfy, whatever the LLM proposed. |
 | `MarriageProspectPolicy` | public static class | Whether a house would put a given kin forward as a marriage prospect of its own accord. |
@@ -1156,6 +1160,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ModRecoveryPolicy` | public static class | Decides what cr.reset should clear, and how to report it. |
 | `ModelModePolicy` | public static class | Decides which model a scene's main call uses, and which id/effort/pin each role resolves to. |
 | `NameNormalization` | public static class | Folds a name (or any free-text token) down to a plain, lowercase, diacritic-free form so that "Héloïse" and "heloise" compare equal. |
+| `NativeQuestMemory` | public class | A memory for the giver of a native quest. |
+| `NativeQuestPhase` | public enum | Where a native quest stands, as the game reports it. |
 | `NemesisBountyPolicy` | public static class | Decides whether a given lord may offer the player a bounty on a given tracked nemesis. |
 | `NemesisBountyRewardPolicy` | public static class | The gold and personal-relation reward a lord promises for a nemesis's capture or death, scaled by his notoriety. |
 | `NemesisDossierBuilder` | public static class | Pure formatting for the encyclopedia hero-page nemesis dossier. |
@@ -1359,6 +1365,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SettingProfile` | public class | The editable per-setting overrides, as parsed from ModuleData/setting.json (any field may be absent). |
 | `SettingProfileDefaults` | public static class | The Calradia defaults and the rule that resolves an override against them: each field is taken from the override when present and non-blank, else the default. |
 | `SettlementAudienceSafetyPolicy` | public static class | Pure gate: is this settlement entry a moment where a companion (or a fief notable, gated through the same entry point) may ask the player for a private word? |
+| `SharedIntimacyFacts` | public class | What the decision is made on. |
+| `SharedIntimacyPolicy` | public static class | Decides a reported night. |
+| `SharedIntimacyResult` | public enum | What becomes of a night another mod reports. |
 | `SiegeParticipationMarker` | public static class | Decides whether a buffered "the player just stormed this settlement" marker still applies to a settlement whose ownership is changing. |
 | `SilentRefusalMessages` | public static class | Wording for the bridge executor refusal branches that used to return null. |
 | `SpeakerNamesakePolicy` | public static class | Decides whether a hero matched in the player's message is merely a namesake of the character being spoken to. |
@@ -2087,7 +2096,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `SharedRecall` | public class | What a character may be shown to REMEMBER in front of others: their own memories, minus anything held in confidence, folded to a bounded recall. |
 
-### NpcMemoryService.Core.Models (73)
+### NpcMemoryService.Core.Models (74)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2112,7 +2121,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GameAction` | public class | A directive emitted by the LLM via the [ACTION] section, requesting the consumer (game mod, etc.) to effect a change in the game world. |
 | `HeldSecretDisposition` | public enum | How an NPC who knows the player's secret-lover identity is disposed to carry it. |
 | `HeldSecretPolicy` | public static class | Decides how an NPC who holds the player's secret-lover identity is disposed to use it, from regard and hostility. |
-| `HistoryWindowPolicy` | public static class | Splits a character's memories into what they lived with the player and what they only heard. |
+| `HistoryWindowPolicy` | public static class | Splits a character's memories into what they lived with the player, what they heard, and their own life. |
 | `InformalQuest` | public class | A task an NPC has asked the player to accomplish, persisted on the giver's NpcProfile.ActiveQuests until it terminates. |
 | `IntimacyConsentFacts` | public class | The facts a consent verdict rests on. |
 | `IntimacyConsentVerdict` | public enum | Where an NPC stands relative to the regard their own disposition requires for intimacy. |
@@ -2129,6 +2138,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LlmUsage` | public class | Token consumption reported by the provider. |
 | `MarriageBlockReason` | public enum | Why a marriage between the player and this NPC cannot be sealed right now. |
 | `MarriedSeductionStance` | public enum | Stolen Love pillar: how a THIRD-PARTY-married NPC stands toward the player's advances. |
+| `MemoryStrand` | public enum | What a memory is to the character's history with the player. |
 | `MessageAlternationPolicy` | public static class | Turns the conversation as CR models it into the shape every chat template can accept: a strictly alternating user/assistant sequence that begins with the user. |
 | `MessageRole` | public enum | (no summary) |
 | `NotableEvent` | public record | A notable event in the player–NPC interaction history. |
@@ -2177,7 +2187,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SelfEsteemBand` | public enum | How a character regards himself lately. |
 | `SelfEsteemLine` | public static class | Composes the character's self-regard for the prompt. |
 
-### NpcMemoryService.Core.Parsing (9)
+### NpcMemoryService.Core.Parsing (10)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2190,6 +2200,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SectionResponseParser` | public class | Regex-based parser for the canonical bracketed-section LLM response format. |
 | `SpeakerScriptGuard` | public static class | Cuts turns a reply wrote for OTHER people out of it. |
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
+| `StageDirectionDedupe` | public static class | Drops the second and later copies of the same *stage direction* in a reply. |
 
 ### NpcMemoryService.Core.Prompts (30)
 

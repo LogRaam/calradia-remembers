@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-441 rules read 344 facts.
+442 rules read 345 facts.
 
 ## Facts read by more than one rule
 
@@ -50,6 +50,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.GetSkillValue` (9) | `CombatantFacts`, `CompanionCounselPolicy.Select`, `CompanionMissions.CanAttempt`, `CompanionMissions.LootForResult`, `ErrandFacts`, `PartyCounselFacts`, `TeachSkillPolicy.CanTeach`, `TeachSkillPolicy.CanTeachPlayer`, `TeachSkillPolicy.GrantedXp` |
 | `Hero.OneToOneConversationHero` (9) | `BriefingReturnDecision.Decide`, `BriefingReturnDecision.HostIsLive`, `CommonerChatContext`, `LandfallFacts`, `NemesisBountyRewardPolicy.ComputeGold`, `NemesisBountyRewardPolicy.ComputeRelation`, `NemesisRumorLine.Compose`, `RoadAudienceFacts`, `StagingHostFacts` |
 | `MobileParty.MapEvent` (9) | `DeedRefusal`, `EscortContinuationPolicy.Describe`, `EscortContinuationPolicy.Resolve`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `EscortStandingFacts`, `MapEncounterCloseFacts`, `RoadAudienceFacts` |
+| `ModSettings.AdultContentLevel` (8) | `ExecutionFacts`, `HarmFacts`, `IntimateChroniclePolicy.BuildLine`, `LeverageArchetype`, `RegardProposal`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible`, `SharedIntimacyFacts` |
 | `Settlement.IsTown` (8) | `CommonerChatContext`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts`, `ProvideGoodsPolicy.MarketKey`, `ScoutTownFacts`, `ScoutTownPolicy.MayAsk`, `TownNeedsPolicy.MostLacking` |
 | `Clan.Renown` (7) | `BastardPrestigePolicy.PrestigeScore`, `BastardPrestigePolicy.Resolve`, `FirstImpressionDescriber.Describe`, `FirstImpressionInputs`, `FirstImpressionPolicy.Resolve`, `InterceptionFacts`, `InterceptionPolicy.Choose` |
 | `EquipmentElement.Item` (7) | `CompanionCounselPolicy.Select`, `GiftCandidate`, `GiftEquipFacts`, `GiftQuantityPolicy.Resolve`, `GiveItemPolicy.IsGiveableItem`, `PartyCounselFacts`, `ScatteredLootItem` |
@@ -57,7 +58,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.IsPregnant` (7) | `DivorceBlockFacts`, `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand`, `SpouseDivorceDemandPolicy.ShouldEscalate`, `SpouseDivorceEscalationFacts` |
 | `Hero.PartyBelongedToAsPrisoner` (7) | `GiftEquipFacts`, `GiftEquipPolicy.WearsOnBattleSet`, `HeroNaming`, `NotHisToSellFacts`, `PrisonerRecruitmentPolicy.Evaluate`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
 | `MobileParty.LeaderHero` (7) | `DeedRefusal`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `RideWithMeFacts` |
-| `ModSettings.AdultContentLevel` (7) | `ExecutionFacts`, `HarmFacts`, `IntimateChroniclePolicy.BuildLine`, `LeverageArchetype`, `RegardProposal`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `ModSettings.RelationWarmth` (7) | `CompanionSecretAffectionPolicy.MinRegardFor`, `CompanionSecretAffectionPolicy.ShouldConfideThisWeek`, `IntimacyPacingRules.Relief`, `LetterRegardFacts`, `RegardProposal`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Party.PartySizeLimit` (7) | `CourtActionPolicy.IsPartyWeakened`, `GarrisonStrength.BandOf`, `RecruitTroopsPolicy.TroopsToAsk`, `ReinforceGarrisonPolicy.MayAsk`, `ReinforceGarrisonPolicy.TroopsToAsk`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `PartyBase.MobileParty` (7) | `BrigandageFacts`, `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
@@ -609,6 +609,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ServiceOfferPolicy.Premise`: `Clan.Kingdom`
 - `ServiceOfferPolicy.RulerMayWrite`: `Clan.Kingdom`
 - `SettlementSafetyFacts`: `Hero.MapFaction`, `MapFaction.IsAtWarWith`, `Settlement.IsUnderSiege`, `Settlement.IsVillage`, `Settlement.MapFaction`, `Village.VillageState`, `VillageStates.BeingRaided`
+- `SharedIntimacyFacts`: `GameStateBridge.PermitsIntimacyWith`, `ModSettings.AdultContentLevel`
 - `SpeakerNamesakePolicy.IsMerelyANamesake`: `Regex.Split`, `StringComparer.OrdinalIgnoreCase`
 - `SpeakerProfileSelector.Select`: `DialogFlow.Profile`
 - `SpouseDivorceDemandFacts`: `Event.Day`, `Event.InvolvesPlayer`, `Event.Summary`, `Event.Type`, `Hero.GetRelation`, `Hero.IsPregnant`, `Hero.IsPrisoner`, `Summary.IndexOf`
