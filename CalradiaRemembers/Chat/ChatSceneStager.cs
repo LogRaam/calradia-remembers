@@ -63,6 +63,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static bool _stagedByMissionController;
       private static int _fallbackFrames;
+      private static bool _conversationStartTried;
       private static bool _lineReached;
 
       private static ChatSceneRequest _pending;
@@ -448,7 +449,44 @@ namespace CalradiaRemembers.Chat
 
          if (!conversationActive) return;
          if (++_fallbackFrames < FallbackFrames) return;
+
+         // Gabriel's play test (08/10/2026): in the town square the game never began the conversation with the staged
+         // person, the chat opened with none, and he walked off. Begin it ourselves, once, as the game does when one
+         // clicks on someone: our intercept line then fires and the chat opens over a real conversation.
+         Agent partnerAgent = PartnerAgent(_pending.Partner);
+         if (StagingGracePolicy.ShouldStartTheConversation(new StagedStartFacts {
+                WaitingOnAnInteriorScene = _stagedByMissionController, ConversationLive = Hero.OneToOneConversationHero != null,
+                PartnerInTheScene = partnerAgent != null, AlreadyTried = _conversationStartTried
+             }))
+         {
+            _conversationStartTried = true;
+            _fallbackFrames = 0;
+            try
+            {
+               SandBox.Conversation.MissionLogics.MissionConversationLogic logic = Mission.Current?.GetMissionBehavior<SandBox.Conversation.MissionLogics.MissionConversationLogic>();
+               if (logic != null)
+               {
+                  logic.StartConversation(partnerAgent, false);
+                  ModLog.Info($"[CHAT STAGE {_pending.Kind}] the game began no conversation with {_pending.Partner?.Name}; began it.");
+
+                  return;
+               }
+            }
+            catch (Exception ex) { ModLog.Error($"[CHAT STAGE] beginning the conversation failed: {ex.GetType().Name}: {ex.Message}"); }
+         }
+
          OpenPending("fallback (intercept line never fired)");
+      }
+
+      /// <summary>The staged person's agent in the live scene, or null.</summary>
+      private static Agent PartnerAgent(Hero partner)
+      {
+         if (partner == null || Mission.Current == null) return null;
+         foreach (Agent a in Mission.Current.Agents)
+            if (a?.Character is CharacterObject co && co.HeroObject == partner && a.IsActive())
+               return a;
+
+         return null;
       }
 
       /// <summary>
@@ -618,6 +656,7 @@ namespace CalradiaRemembers.Chat
             _lineReached = false;
             _settleFrames = 0;
             _fallbackFrames = 0;
+            _conversationStartTried = false;
             _armedFrames = 0;
             _stagedByMissionController = false; // this path waits on a conversation, not on a scene
             StagedMissionNeedsEnd = false;
@@ -663,6 +702,7 @@ namespace CalradiaRemembers.Chat
             _lineReached = false;
             _settleFrames = 0;
             _fallbackFrames = 0;
+            _conversationStartTried = false;
             _armedFrames = 0;
             _stagedByMissionController = true; // this path waits on an interior scene, which takes its time
             StagedMissionNeedsEnd = false;
@@ -834,6 +874,7 @@ namespace CalradiaRemembers.Chat
          _lineReached = false;
          _settleFrames = 0;
          _fallbackFrames = 0;
+         _conversationStartTried = false;
          _armedFrames = 0;
          _stagedByMissionController = false;
 

@@ -53,5 +53,29 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public static int FramesFor(bool waitingOnAnInteriorScene)
             => waitingOnAnInteriorScene ? MissionLoadFrames : ConversationRegistrationFrames;
+
+        /// <summary>
+        ///   Whether the stager begins the game's conversation itself (Gabriel's play test, 08/10/2026: in the town square
+        ///   the conversation with the staged person never began, the chat opened with none, and he walked off). Only for
+        ///   an interior scene, once, with the person standing in it and no conversation live.
+        /// </summary>
+        public static bool ShouldStartTheConversation(StagedStartFacts f)
+            => f != null && f.WaitingOnAnInteriorScene && !f.ConversationLive && f.PartnerInTheScene && !f.AlreadyTried;
+    }
+
+    /// <summary>What the stager knows when its grace runs out.</summary>
+    public sealed class StagedStartFacts
+    {
+        /// <summary>The staging opened an interior scene (CreateAndOpenMissionController).</summary>
+        public bool WaitingOnAnInteriorScene { get; init; }
+
+        /// <summary>A conversation with someone is already live.</summary>
+        public bool ConversationLive { get; init; }
+
+        /// <summary>The person the conversation is for stands in the scene.</summary>
+        public bool PartnerInTheScene { get; init; }
+
+        /// <summary>The stager already began it once.</summary>
+        public bool AlreadyTried { get; init; }
     }
 }

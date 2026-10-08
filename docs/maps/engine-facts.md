@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-448 rules read 348 facts.
+449 rules read 349 facts.
 
 ## Facts read by more than one rule
 
@@ -44,11 +44,11 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MobileParty.IsCurrentlyAtSea` (12) | `ChaseFacts`, `CourierGateFacts`, `DuelStagingSupport.CanStage`, `DuelVenuePolicy.Choose`, `InterceptionPolicy.CanMeetOnLand`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `LandfallFacts`, `LetterDeliveryPolicy.ShouldHoldDeliveryAtSea`, `PresenceDescriber.Describe`, `RoadAudienceFacts`, `StagingHostFacts`, `StagingHostPolicy.AnEnvoyCanReachThePlayer` |
 | `MemberRoster.TotalManCount` (11) | `CaptiveEncounterPolicy.BanditCollectiveParticipantCap`, `CaptiveEncounterPolicy.BanditWitnessCount`, `CaptiveEncounterPolicy.ShouldBanditSceneBeCollective`, `LetterWhereaboutsPolicy.ForPlayer`, `LetterWhereaboutsPolicy.ForWriter`, `OutlawPolicy.HunterStrength`, `PlayerForcePolicy.Resolve`, `RecruitTroopsPolicy.TroopsToAsk`, `TroopGiftFacts`, `TroopLoanFacts`, `WhereaboutsFacts` |
 | `PartyBelongedToAsPrisoner.LeaderHero` (11) | `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `ExecutionFacts`, `HarmFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `PlayerStandingFacts`, `PlayerStandingPolicy.Resolve`, `PrivateAudienceFacts`, `RegardProposal` |
+| `Hero.OneToOneConversationHero` (10) | `BriefingReturnDecision.Decide`, `BriefingReturnDecision.HostIsLive`, `CommonerChatContext`, `LandfallFacts`, `NemesisBountyRewardPolicy.ComputeGold`, `NemesisBountyRewardPolicy.ComputeRelation`, `NemesisRumorLine.Compose`, `RoadAudienceFacts`, `StagedStartFacts`, `StagingHostFacts` |
 | `MobileParty.SiegeEvent` (10) | `DeedRefusal`, `EscortContinuationPolicy.Describe`, `EscortContinuationPolicy.Resolve`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `EscortStandingFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `RoadAudienceFacts` |
 | `Settlement.IsUnderSiege` (10) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `AssemblyTravelFacts`, `AssemblyTravelOutcome.Evaluate`, `ChaseFacts`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `SettlementSafetyFacts` |
 | `Clan.Settlements` (9) | `AppointmentOfferFacts`, `GrantOfferFacts`, `HeldCaptive`, `LordRecruitmentFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `PowerBalanceFacts`, `RevokeOfferFacts`, `ServiceOfferPolicy.ChooseEnticement` |
 | `Hero.GetSkillValue` (9) | `CombatantFacts`, `CompanionCounselPolicy.Select`, `CompanionMissions.CanAttempt`, `CompanionMissions.LootForResult`, `ErrandFacts`, `PartyCounselFacts`, `TeachSkillPolicy.CanTeach`, `TeachSkillPolicy.CanTeachPlayer`, `TeachSkillPolicy.GrantedXp` |
-| `Hero.OneToOneConversationHero` (9) | `BriefingReturnDecision.Decide`, `BriefingReturnDecision.HostIsLive`, `CommonerChatContext`, `LandfallFacts`, `NemesisBountyRewardPolicy.ComputeGold`, `NemesisBountyRewardPolicy.ComputeRelation`, `NemesisRumorLine.Compose`, `RoadAudienceFacts`, `StagingHostFacts` |
 | `MobileParty.MapEvent` (9) | `DeedRefusal`, `EscortContinuationPolicy.Describe`, `EscortContinuationPolicy.Resolve`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `EscortStandingFacts`, `MapEncounterCloseFacts`, `RoadAudienceFacts` |
 | `ModSettings.AdultContentLevel` (8) | `ExecutionFacts`, `HarmFacts`, `IntimateChroniclePolicy.BuildLine`, `LeverageArchetype`, `RegardProposal`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible`, `SharedIntimacyFacts` |
 | `Settlement.IsTown` (8) | `CommonerChatContext`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts`, `ProvideGoodsPolicy.MarketKey`, `ScoutTownFacts`, `ScoutTownPolicy.MayAsk`, `TownNeedsPolicy.MostLacking` |
@@ -624,6 +624,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SpouseDivorceDemandPolicy.ShouldEscalate`: `Hero.GetRelation`, `Hero.IsPregnant`, `Hero.IsPrisoner`
 - `SpouseDivorceEscalationFacts`: `Hero.GetRelation`, `Hero.IsPregnant`, `Hero.IsPrisoner`
 - `SquareReadinessFacts`: `ConversationManager.IsConversationInProgress`, `Current.CurrentMenuContext`, `GameStateManager.ActiveState`
+- `StagedStartFacts`: `Current.Agents`, `Hero.OneToOneConversationHero`
 - `StagingHostFacts`: `Hero.OneToOneConversationHero`, `MobileParty.IsCurrentlyAtSea`
 - `StagingHostPolicy.AnEnvoyCanReachThePlayer`: `MobileParty.IsCurrentlyAtSea`
 - `StationGuidelinesPolicy.ResolveStationKey`: `Hero.CompanionOf`, `Hero.IsClanLeader`

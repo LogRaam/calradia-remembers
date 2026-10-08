@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 471 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1008 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1009 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -812,7 +812,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (633)
+### CalradiaRemembers.Logic (634)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1387,6 +1387,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpouseDivorceEscalationFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldEscalate needs. |
 | `SpousePair` | public class | A married couple, by hero id; Key is the same whichever spouse is named first. |
 | `SpouseTenurePolicy` | public static class | How long a character has been married, as their family line says it. |
+| `StagedStartFacts` | public class | What the stager knows when its grace runs out. |
 | `StagingGracePolicy` | public static class | How long a staged meeting is given to show signs of life before the mod concludes nothing was staged and opens the chat directly. |
 | `StagingHostFacts` | public class | What the door sees when a conversation is asked for. |
 | `StagingHostPolicy` | public static class | The door's rules. |
