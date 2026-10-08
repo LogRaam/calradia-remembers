@@ -1318,9 +1318,17 @@ namespace CalradiaRemembers.Chat
       {
          try
          {
-            if (Mission.Current != null) return; // inside a scene/mission — not a map talk
-            if (PlayerEncounter.Current == null) return; // no encounter to finish
-            if (PlayerEncounter.InsideSettlement) return; // a town/castle encounter — leave it intact
+            // Maifailun (08/10/2026): finishing an encounter with a battle under way settled the fight mid-close, and the
+            // game then drew its map conversation with a leader no longer there (NRE in SpawnOpponentLeader). The guards
+            // are one pure rule now (MapEncounterClosePolicy); a battle is left for the game's own menu to settle.
+            bool battle = PlayerEncounter.Current != null
+                          && (PlayerEncounter.Battle != null || TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapEvent != null || PlayerEncounter.EncounteredParty?.MapEvent != null);
+            var facts = new Logic.Conversation.MapEncounterCloseFacts {
+               HasEncounter = PlayerEncounter.Current != null, InMission = Mission.Current != null,
+               InsideSettlement = PlayerEncounter.Current != null && PlayerEncounter.InsideSettlement,
+               BriefingReturnPending = CompanionBriefingCoordinator.HasPendingReturn, BattleUnderWay = battle
+            };
+            if (battle) ModLog.Info("[CLOSE] encounter kept: a battle is under way in it; the game settles it.");
 
             // A briefing is a step INSIDE a meeting, never the end of one. Gabriel asked Ira for a moment to
             // brief his companion (2026-09-12) and closing that briefing left him on the map with the meeting
@@ -1329,12 +1337,9 @@ namespace CalradiaRemembers.Chat
             // inside a settlement, so this particular call was NOT what finished it that night. It would be on
             // the open map, where all three guards above pass while the encounter is still perfectly alive -
             // so the guard belongs here too, before somebody meets Ira in the field.
-            if (CompanionBriefingCoordinator.HasPendingReturn)
-            {
+            if (facts.BriefingReturnPending && facts.HasEncounter && !facts.InMission && !facts.InsideSettlement)
                ModLog.Info("[BRIEFING] encounter kept: this close is a briefing, not the end of the meeting.");
-
-               return;
-            }
+            if (!Logic.Conversation.MapEncounterClosePolicy.MayFinish(facts)) return;
 
             PlayerEncounter.Finish();
             ModLog.Info("Map encounter finished on chat close (clean return — no lingering army menu).");
