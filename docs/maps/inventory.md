@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 471 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1009 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1010 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -812,7 +812,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (634)
+### CalradiaRemembers.Logic (635)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1120,6 +1120,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterReplyDecision` | public struct | The parsed outcome of an NPC's letter-reply decision. |
 | `LetterReplyDecisionParser` | public static class | Parses the terse control line an LLM returns when deciding whether an NPC answers the player's letter, into a typed LetterReplyDecision. |
 | `LetterReplyKind` | public enum | Whether the NPC answers the player's letter at all. |
+| `LetterReplyReason` | public static class | The occasion of a reply. |
 | `LetterThreadAssembler` | public static class | Builds the dated, chronological correspondence thread for one contact. |
 | `LetterThreadEntry` | public class | One line of the correspondence thread: a dated header and the letter body. |
 | `LetterTone` | public enum | How a letter left its reader feeling toward the player, as the reader judged it. |

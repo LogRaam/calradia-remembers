@@ -259,7 +259,7 @@ namespace CalradiaRemembers.Letters
             if (profile == null || behavior == null || string.IsNullOrWhiteSpace(reply)) return;
 
             LetterMemoryFinalizer.RecordLetterMemory(
-               profile, originalLetter!.Reason, reply, false, today, behavior);
+               profile, Logic.LetterReplyReason.Of(originalLetter!.Reason), reply, false, today, behavior);
          }
          catch (Exception ex)
          {
@@ -593,9 +593,12 @@ namespace CalradiaRemembers.Letters
          if (llmServices?.ChatService == null) return;
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
-         string writtenBy = CorrespondenceRank.WrittenByFor(giverHero, profile, originalLetter.Reason);
+         // IdentityCrysys (08/10/2026): a reply to the "why no reply?" follow-up is about the thread, not the silence the
+         // player has just broken; with the follow-up's reason, every reply after it reproached the player again.
+         LetterReason replyReason = Logic.LetterReplyReason.Of(originalLetter.Reason);
+         string writtenBy = CorrespondenceRank.WrittenByFor(giverHero, profile, replyReason);
          string message = LetterPromptBuilder.BuildReplyLetterMessage(
-            profile, originalLetter.PlayerReply ?? "", originalLetter.Reason, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy,
+            profile, originalLetter.PlayerReply ?? "", replyReason, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy,
             Mapping.DayMoodReader.Draw(giverHero).Mood);
 
          string raw = await CallLlmForLetterAsync(llmServices, profile, message);
@@ -611,7 +614,7 @@ namespace CalradiaRemembers.Letters
          var reply = new PendingLetter {
             SenderId = profile.Id,
             SenderName = profile.Name,
-            Reason = originalLetter.Reason,
+            Reason = replyReason,
             Content = content,
             WrittenBy = writtenBy,
             SentOnDay = today,
