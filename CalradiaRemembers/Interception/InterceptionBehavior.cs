@@ -1062,7 +1062,23 @@ namespace CalradiaRemembers.Interception
             Summary = m.Summary, Register = m.Register, PlayerName = Hero.MainHero?.Name?.ToString(), CharacterName = npc.Name?.ToString()
          });
 
-         return $"{approachClause}{registerClause}{matter}";
+         return $"{approachClause}{registerClause}{matter}{CaptureFraming(npc, m)}";
+      }
+
+      /// <summary>
+      ///   A recent matter that is the player's capture of a lord is framed as the act of war it is (Fakade, 08/10/2026),
+      ///   by the closest stake the speaker has in the captive. Empty for any other matter.
+      /// </summary>
+      private static string CaptureFraming(Hero npc, RecentMatter m)
+      {
+         if (m?.Key == null || !m.Key.StartsWith("we:", StringComparison.Ordinal)) return "";
+         WorldEvent e = WorldEventStore.Instance?.GetById(m.Key.Substring(3));
+         if (e?.Status != Logic.CaptureNorm.Status) return "";
+
+         bool realm = npc?.MapFaction != null && e.AggrievedFactionIds?.Contains(npc.MapFaction.StringId) == true;
+         bool kin = npc?.Clan != null && e.AggrievedActorIds?.Any(id => Hero.FindFirst(h => h.StringId == id)?.Clan == npc.Clan) == true;
+
+         return " " + Logic.CaptureNorm.Line(Logic.CaptureNorm.StakeOf(kin, realm));
       }
 
       private void MarkMatterRaised(Hero npc, RecentMatter m)

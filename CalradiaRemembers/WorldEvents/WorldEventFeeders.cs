@@ -1059,10 +1059,14 @@ namespace CalradiaRemembers.WorldEvents
             Day = Today,
             Magnitude = 55,
             InvolvesPlayer = true,
-            Status = "lord_captured",
+            Status = Logic.CaptureNorm.Status,
             Summary = $"{PlayerName} took {lord.Name} captive.",
             ActorIds = Ids(Hero.MainHero, lord),
             FactionIds = FactionIds(Hero.MainHero, lord),
+            // Fakade (08/10/2026): the captive's realm and kin are the ones it touches, as with an execution; how it is
+            // framed (an ordinary act of war) is CaptureNorm's, where the news is told.
+            AggrievedFactionIds = FactionIds(lord),
+            AggrievedActorIds = Ids(lord),
             ChronicleLine = $"{PlayerName} took {lord.Name} captive upon the field"
          });
       }

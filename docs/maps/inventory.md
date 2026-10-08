@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 471 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1003 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1005 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -812,7 +812,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (629)
+### CalradiaRemembers.Logic (631)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -882,7 +882,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptorReleaseVerdict` | public class | What release paths (if any) a captor is open to for THIS captive player. |
 | `CaptureFacts` | public class | What is known of the capture. |
 | `CaptureMemoryText` | public static class | The captor's memory of the capture. |
+| `CaptureNorm` | public static class | The framing of a lord taken captive by the player. |
 | `CaptureQuestPolicy` | public static class | Decides what a proposed capture really is, from whether the giver is at war with the target. |
+| `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
 | `CardinalDirectionPolicy` | public static class | Pure 8-point compass bearing from one campaign-map position to another, for phrasing a quest's direction ("the hideout lies to the north of Town X"). |
 | `CharacterOverride` | public class | One author's override for a single NPC: optional trait values (null = leave the vanilla value untouched) and an optional backstory. |
 | `CharacterOverrideSet` | public class | The authored overrides as a whole, with the rule for picking one for a hero. |

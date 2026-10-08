@@ -707,12 +707,19 @@ namespace CalradiaRemembers.Mapping
             Clan obsClan = hero?.Clan;
 
             var lines = new List<string>();
+            CaptureStake? capture = null;
             foreach ((WorldEvent e, RumorConfidence conf) in rated)
             {
                if (!e.InvolvesPlayer || string.IsNullOrWhiteSpace(e.Summary)) continue;
 
                bool aggrieved = obsFactionId != null && e.AggrievedFactionIds != null && e.AggrievedFactionIds.Contains(obsFactionId);
                bool kinHarmed = obsClan != null && e.AggrievedActorIds != null && e.AggrievedActorIds.Any(id => IsClanmate(id, obsClan, hero));
+               // Fakade (08/10/2026): a capture is framed once, by the closest stake among the captures heard.
+               if (e.Status == CaptureNorm.Status)
+               {
+                  CaptureStake stake = CaptureNorm.StakeOf(kinHarmed, aggrieved);
+                  if (capture == null || stake > capture) capture = stake;
+               }
                bool sharesPlayer = obsFactionId != null && obsFactionId == playerFactionId;
 
                string valence;
@@ -730,6 +737,8 @@ namespace CalradiaRemembers.Mapping
 
                if (lines.Count >= 3) break;
             }
+
+            if (lines.Count > 0 && capture is CaptureStake heardStake) lines.Add(CaptureNorm.Line(heardStake));
 
             return lines.Count > 0
                ? string.Join("\n", lines)
