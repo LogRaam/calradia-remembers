@@ -3195,9 +3195,8 @@ namespace CalradiaRemembers.Chat
 
          // Drawn at the largest size that fits the BOTTOM portrait region WITHOUT distortion, then centred: the
          // player's PNG may be any ratio (4:5, square, wide), so it must never be stretched. The facts block sits
-         // above it, so the box is shorter than the panel (report layout: info at top, portrait at the bottom).
-         const float boxW = 460f;
-         const float boxH = 430f;
+         // above it, so the box is shorter than the panel (report layout: info at top, portrait at the bottom). The box
+         // is FinishPanel's.
          var aspectW = 2f; // vanilla 3D fallback: the character tableau renders WIDE, 2:1 (the same aspect as the
          var aspectH = 1f; // 88x44 chat avatar), so a 2:1 box shows it without stretching (report: 1:1 stretched it)
 
@@ -3223,6 +3222,54 @@ namespace CalradiaRemembers.Chat
             return false; // a system or narration line has no portrait to show
          }
 
+         FinishPanel(aspectW, aspectH, string.IsNullOrEmpty(msg.SpeakerName) ? "Portrait" : msg.SpeakerName);
+
+         return true;
+      }
+
+      /// <summary>
+      ///   Opens the left panel on a picture of the tale's scene (Gabriel, 08/10/2026: a stage's image, opening by itself
+      ///   when its scene opens), drawn as a custom portrait is: fitted without distortion, under the scene's title, with
+      ///   no dossier beside it. Both skins: the Manuscript left page, the Classic pop-out.
+      /// </summary>
+      internal void ShowSceneImage(string path, string title)
+      {
+         if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) return;
+
+         PanelPortraitId = "";
+         PanelPortraitTextureProviderName = "";
+         PanelPortraitAdditionalArgs = "";
+         ShowPanelVanillaPortrait = false;
+         ResolvePanelInfo(new ChatMessageViewModel(title ?? "", SystemGainColor)); // a line with no portrait: clears the dossier
+         PanelPortraitPath = path;
+         ShowPanelCustomPortrait = true;
+         float aspectW = 4f, aspectH = 3f;
+         if (RuntimePortraitFactory.TryGetDimensions(path, out int iw, out int ih) && iw > 0 && ih > 0)
+         {
+            aspectW = iw;
+            aspectH = ih;
+         }
+
+         FinishPanel(aspectW, aspectH, string.IsNullOrEmpty(title) ? "The scene" : title);
+         if (ChatManager.ActiveSkin == ChatManager.ManuscriptSkin)
+         {
+            _manuscriptDossierKey = "scene-image";
+            IsManuscriptLeftPageOpen = true;
+         }
+         else
+         {
+            if (_isComposeOpen) IsComposeOpen = false;
+            if (_isMemoryPanelOpen) IsMemoryPanelOpen = false;
+            IsPortraitPanelOpen = true;
+         }
+         ModLog.Info($"[SCENE] image shown beside the chat: {System.IO.Path.GetFileName(path)}.");
+      }
+
+      /// <summary>Sizes the panel picture for both skins, titles it, and tells the view.</summary>
+      private void FinishPanel(float aspectW, float aspectH, string title)
+      {
+         const float boxW = 460f;
+         const float boxH = 430f;
          float scale = Math.Min(boxW / aspectW, boxH / aspectH);
          PanelPortraitWidth = aspectW * scale;
          PanelPortraitHeight = aspectH * scale;
@@ -3234,9 +3281,7 @@ namespace CalradiaRemembers.Chat
          ManuscriptPortraitWidth = aspectW * mScale;
          ManuscriptPortraitHeight = aspectH * mScale;
 
-         PortraitPanelTitle = string.IsNullOrEmpty(msg.SpeakerName)
-            ? "Portrait"
-            : msg.SpeakerName;
+         PortraitPanelTitle = title;
 
          OnPropertyChanged(nameof(ManuscriptPortraitWidth));
          OnPropertyChanged(nameof(ManuscriptPortraitHeight));
@@ -3262,8 +3307,6 @@ namespace CalradiaRemembers.Chat
          OnPropertyChanged(nameof(PanelAppearance));
          OnPropertyChanged(nameof(PanelInfoDiscoveries));
          OnPropertyChanged(nameof(PanelGrievances));
-
-         return true;
       }
 
       /// <summary>

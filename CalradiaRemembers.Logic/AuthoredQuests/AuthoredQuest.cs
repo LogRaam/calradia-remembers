@@ -142,6 +142,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("The line logged in the quest journal when the stage begins.")]
       [JsonProperty("journal")] public string Journal { get; set; }
 
+      /// <summary>Gabriel (08/10/2026): a picture of the stage, shown beside the chat when its scene opens.</summary>
+      [QuestField("An image file of the tale's own folder (.png or .jpg), opened beside the chat when this stage's scene opens.")]
+      [JsonProperty("image")] public string Image { get; set; }
+
       [QuestField("What the game checks to complete the stage. A stage with choices may have none.")]
       [JsonProperty("objective")] public AuthoredObjective Objective { get; set; }
 

@@ -128,21 +128,43 @@ namespace CalradiaRemembers.Quests
       {
          string root = Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "ModuleData", "Quests");
          var files = new List<(string, string)>();
+         _folders.Clear();
          // fkasad (06/10/2026): also Quests under the player's Custom folder (the MCM path when set), like every other file.
+         // Gabriel (08/10/2026): a tale may be a folder of its own, its JSON beside its images; one level down is read too.
          foreach (string dir in AuthoredQuestFolders.List(root, Mapping.NarrativeLoader.CustomBaseFolder()))
             if (Directory.Exists(dir))
-               foreach (string f in Directory.GetFiles(dir, "*.json"))
-                  files.Add((Path.GetFileName(f), File.ReadAllText(f)));
+            {
+               foreach (string f in Directory.GetFiles(dir, "*.json")) AddFile(files, Path.GetFileName(f), f);
+               foreach (string sub in Directory.GetDirectories(dir))
+                  if (!string.Equals(Path.GetFileName(sub), "Custom", StringComparison.OrdinalIgnoreCase))
+                     foreach (string f in Directory.GetFiles(sub, "*.json")) AddFile(files, Path.GetFileName(sub) + "/" + Path.GetFileName(f), f);
+            }
 
          AuthoredQuestLoadResult r = AuthoredQuestLoader.ParseAll(files);
          _quests = r.Quests.ToDictionary(q => q.Id, StringComparer.Ordinal);
          _problems = r.Problems;
+         foreach (AuthoredQuest q in _quests.Values)
+         {
+            string folder = FolderOf(q);
+            _problems.AddRange(AuthoredTaleImages.Problems(q, name => folder != null && File.Exists(AuthoredTaleImages.PathIn(folder, name))));
+         }
 
          ModLog.Info($"[TALE] {_quests.Count} authored quest(s) loaded from {files.Count} file(s); {_problems.Count} problem(s).");
          foreach (string p in _problems) ModLog.Info("[TALE] " + p);
          if (_problems.Count > 0)
             ModLog.Notice($"{_problems.Count} problem(s) in the quest files (ModuleData/Quests). cr.story_check lists them.");
       }
+
+      private readonly Dictionary<string, string> _folders = new(StringComparer.OrdinalIgnoreCase);
+
+      private void AddFile(List<(string, string)> files, string source, string path)
+      {
+         files.Add((source, File.ReadAllText(path)));
+         _folders[source] = Path.GetDirectoryName(path);
+      }
+
+      /// <summary>The folder a tale was read from (its images sit beside it), or null.</summary>
+      private string FolderOf(AuthoredQuest q) => q?.Source != null && _folders.TryGetValue(q.Source, out string f) ? f : null;
 
       /// <summary>
       ///   Only the tale under way keeps one open journal entry (TaleJournalPolicy). tashmetu (07/10/2026): "a finished tale
@@ -663,6 +685,8 @@ namespace CalradiaRemembers.Quests
             Ways = () => SceneWays(q),
             PrisonersWelcome = () => AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.InvitePrisoners == true,
             MayEnd = () => _run is {Status: AuthoredQuestStatus.Active} && AuthoredQuestEngine.SceneMayEnd(_run, q),
+            // Gabriel (08/10/2026): the stage's picture opens beside the chat with its scene.
+            ImagePath = SceneImagePath(q),
             FoundSoFar = () => (AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.Findings ?? new List<AuthoredFinding>())
                                .Where(f => _run.Findings.Contains(f.Id)).Select(f => AuthoredQuestEngine.Fill(_run, f.Text)).ToList()
          });
@@ -670,6 +694,16 @@ namespace CalradiaRemembers.Quests
       }
 
       private bool _sceneWaiting;
+
+      /// <summary>The full path of the image of the stage under way, when it names one present in the tale's folder.</summary>
+      private string SceneImagePath(AuthoredQuest q)
+      {
+         string image = AuthoredTaleImages.ImageFor(_run, q), folder = FolderOf(q);
+         if (image == null || folder == null) return null;
+         string path = AuthoredTaleImages.PathIn(folder, image);
+
+         return File.Exists(path) ? path : null;
+      }
 
       /// <summary>What the game knows of where the scene happens and who walks into it (fkasad, 07/10/2026).</summary>
       internal static SceneSurroundingsFacts Surroundings()

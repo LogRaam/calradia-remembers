@@ -220,6 +220,14 @@
           "x-kind": "string",
           "description": "The line logged in the quest journal when the stage begins."
         },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "An image file of the tale's own folder (.png or .jpg), opened beside the chat when this stage's scene opens."
+        },
         "objective": {
           "$ref": "#/$defs/AuthoredObjective",
           "x-kind": "object:AuthoredObjective",

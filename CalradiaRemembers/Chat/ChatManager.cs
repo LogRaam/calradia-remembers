@@ -852,6 +852,7 @@ namespace CalradiaRemembers.Chat
 
          ActiveViewModel.SetNpcName(session.Title);
          ActiveViewModel.ActivateExploration(session);
+         if (!string.IsNullOrEmpty(session.ImagePath)) ActiveViewModel.ShowSceneImage(session.ImagePath, session.Title);
       }
 
       public static void OpenForCompanionAudienceDirect(

@@ -52,6 +52,9 @@ namespace CalradiaRemembers.Chat
       /// <summary>The player's prisoners may be invited into the scene (the tale's choice, off unless it says so: fkasad, 07/10/2026).</summary>
       public Func<bool> PrisonersWelcome { get; set; }
 
+      /// <summary>The full path of the picture shown beside the chat when the scene opens, or null (Gabriel, 08/10/2026).</summary>
+      public string ImagePath { get; set; }
+
       /// <summary>The scene has nothing left the tale needs: the player may end it, unasked (tashmetu, 07/10/2026).</summary>
       public Func<bool> MayEnd { get; set; }
 

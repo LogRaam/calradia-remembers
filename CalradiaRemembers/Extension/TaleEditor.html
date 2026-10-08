@@ -626,6 +626,14 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "string",
           "description": "The line logged in the quest journal when the stage begins."
         },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "An image file of the tale's own folder (.png or .jpg), opened beside the chat when this stage's scene opens."
+        },
         "objective": {
           "$ref": "#/$defs/AuthoredObjective",
           "x-kind": "object:AuthoredObjective",
@@ -3583,7 +3591,7 @@ input[type="number"] { max-width: 160px; }
     PlaceRequirement: ['type', 'near', 'culture'],
     RivalRequirement: ['role', 'same_realm_as'],
     PlayerRequirement: ['min_clan_tier'],
-    AuthoredStage: ['id', 'journal', 'objective', 'on_complete', 'canvas', 'facts', 'knowers', 'choices'],
+    AuthoredStage: ['id', 'journal', 'image', 'objective', 'on_complete', 'canvas', 'facts', 'knowers', 'choices'],
     AuthoredOnComplete: ['next'],
     AuthoredChoice: ['id', 'label', 'journal', 'next', 'if', 'sets', 'default', 'objective', 'said', 'canvas', 'facts', 'knowers'],
     AuthoredSaid: ['to', 'meaning'],
@@ -4588,6 +4596,34 @@ input[type="number"] { max-width: 160px; }
   }
 
   // ---------- a stage ----------
+  // Previews of the images picked this session, by file name. Never saved: the tale names the file, the file sits
+  // in the tale's own folder beside its JSON (Gabriel, 08/10/2026).
+  var imagePreviews = {};
+
+  /** A stage's image: its file name, a picker that fills it and shows the picture, and the preview. */
+  function stageImageField(key, s) {
+    var preview = h('div.image-preview');
+    function show() {
+      preview.textContent = '';
+      var url = s.image ? imagePreviews[s.image] : null;
+      if (url) preview.appendChild(h('img', {src: url, alt: s.image, style: 'max-width:100%;max-height:220px;border-radius:6px;margin-top:6px'}));
+      else if (s.image) preview.appendChild(h('p.empty-note', 'Pick the file to see it here. It must sit in the tale\'s own folder, beside its JSON.'));
+    }
+    var picker = h('input', {type: 'file', accept: '.png,.jpg,.jpeg', style: 'margin-top:6px', on: {change: function (e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        imagePreviews[file.name] = String(reader.result);
+        edit(key + '/image', function () { s.image = file.name; }, true);
+      };
+      reader.readAsDataURL(file);
+    }}});
+    var box = h('div', textField(key + '/image', 'Image (shown beside the chat when this stage\'s scene opens)', 'AuthoredStage', 'image', s, {mono: true, wide: true, placeholder: 'tracks_at_dusk.jpg'}), picker, preview);
+    show();
+    return box;
+  }
+
   function stageEditor(i) {
     var s = stages()[i];
     if (!s || typeof s !== 'object') return h('div.editor', h('p.empty-note', 'This stage is empty in the file.'));
@@ -4605,7 +4641,8 @@ input[type="number"] { max-width: 160px; }
     var idInput = textInput(key + '/id', s.id, function (v) { s.id = v; }, {mono: true});
     ed.appendChild(section('Basics', null, h('div.grid',
       field(key + '/id', 'Id', 'AuthoredStage', 'id', idInput, {help: help('AuthoredStage', 'id') + ' Renaming it updates every path that leads here.'}),
-      textField(key + '/journal', 'Journal', 'AuthoredStage', 'journal', s, {wide: true}))));
+      textField(key + '/journal', 'Journal', 'AuthoredStage', 'journal', s, {wide: true}),
+      stageImageField(key, s))));
 
     var hasChoices = Array.isArray(s.choices) && s.choices.length > 0;
     var own = s.objective !== undefined && s.objective !== null;

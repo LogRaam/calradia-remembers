@@ -287,6 +287,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("birth_house_known", Severity.Light, "Maifailun (Nexus, 07/10/2026): Lidia, wed into the Takhi, named her father but not the house she was born into, and claimed she was born a Takhi. Finds a married character living in another house than the one they were born into and checks their family line, as the prompt gets it, names the birth house.", TestBirthHouseKnown),
          new SelfTest("tale_local_band", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's last band was always looters, the weakest troop in the game. A \"local\" band is made of the bandits of the nearest hideout. Reads them for a few villages across the map and checks each finds real bandits; the log names them.", TestTaleLocalBand),
          new SelfTest("scene_surroundings_read", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's scene should read differently to an Aserai in a forest at night and a Battanian at noon. Reads the ground under the player, the season, the hour and the player's people from the live game, as the scene's narrator gets them, and checks the narrator's block is written from them.", TestSceneSurroundingsRead),
+         new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file, then closes the scene and deletes the file.", TestSceneImageShown),
          new SelfTest("scene_close_gives_the_map_back", Severity.Light, "fkasad (Nexus, 07/10/2026): closing a tale's scene left a black screen with no way back. The close queued the backdrop's pop for the next frame, then wiped its own queue at the end. Opens a scene through the real door (its narration refused before any model call, so the log shows one [SCENE] error on purpose), closes it as the button does, runs one frame: the scene's own close must have run, what it queued must have run, and the map must be given back.", TestSceneCloseGivesTheMapBack),
          new SelfTest("scene_backdrop_suspends_the_map", Severity.Light, "Gabriel's play test (04/10/2026): closing a written tale's scene crashed the game natively; the scene had opened over the bare live map, which the hosting rule forbids. The scene's chat now sits on a pushed GameState. Opens that backdrop through the real host: the map must be suspended (a CrPanelState active, the settlement-visual tick suppressed), then given back exactly as it was, with the clock stopped. Opens no chat.", TestSceneBackdropSuspendsTheMap),
          new SelfTest("player_company", Severity.Light, "Gabriel's Invite / Request Private design (03/10/2026, after nerethi). Reads the player's real company (party, escorts, prison): never the player, every prisoner truly held, the one spoken to never offered for invitation, and a room made only of the company, seated as Invite seats them, is cleared at once. Changes nothing.", TestPlayerCompany),
@@ -9206,6 +9207,40 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("thePlayersPeopleAreKnown", string.IsNullOrWhiteSpace(f.PlayerCulture), false);
          t.Expect("theHourIsKnown", f.Hour >= 0 && f.Hour <= 23, true);
          t.Expect("theNarratorIsToldOfThem", Logic.AuthoredQuests.SceneSurroundingsText.Compose(f) != null, true);
+
+         return t.Line();
+      }
+
+      private static string TestSceneImageShown(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("scene_image_shown");
+         if (t.Skip(Chat.ChatManager.IsOpen || Chat.ExplorationBackdrop.IsOpen || UI.CrPanelHost.AnyPanelOwnsScreen, "a window or panel already owns the screen")) return t.Line();
+
+         // A 2x1 PNG, enough for the panel to read its size and draw it.
+         const string png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAADklEQVR4nGNoSHD4D8IAEcMEPz986fMAAAAASUVORK5CYII=";
+         string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "cr_selftest_scene_image.png");
+         CampaignTimeControlMode timeBefore = Campaign.Current.TimeControlMode;
+         try
+         {
+            System.IO.File.WriteAllBytes(path, Convert.FromBase64String(png));
+            Chat.ChatManager.OpenForExploration(new Chat.ExplorationSession {
+               Title = "(selftest) The wood", ImagePath = path,
+               BuildPrompt = () => throw new InvalidOperationException("selftest: no narration"),
+               Apply = _ => new List<string>(), IsOver = () => false
+            });
+
+            t.Expect("theSceneOpened", Chat.ChatManager.IsOpen, true);
+            t.Expect("thePictureIsShown", Chat.ChatManager.ActiveViewModel?.ShowPanelCustomPortrait == true, true);
+            t.Expect("thatVeryFile", Chat.ChatManager.ActiveViewModel?.PanelPortraitPath, path);
+         }
+         finally
+         {
+            if (Chat.ChatManager.IsOpen) Chat.ChatManager.Close();
+            Chat.MainThreadDispatcher.Pump();
+            if (Chat.ExplorationBackdrop.IsOpen) Chat.ExplorationBackdrop.Close();
+            Campaign.Current.TimeControlMode = timeBefore;
+            try { System.IO.File.Delete(path); } catch { /* a temp file left behind harms nothing */ }
+         }
 
          return t.Line();
       }

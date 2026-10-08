@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 471 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1010 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1011 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1604,7 +1604,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (60)
+### CalradiaRemembers.Logic.AuthoredQuests (61)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1646,6 +1646,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredStageNotice` | public static class | The player-facing line for a tale moving to its next stage. |
 | `AuthoredStep` | public class | (no summary) |
 | `AuthoredStepKind` | public enum | What a reported fact did to the run. |
+| `AuthoredTaleImages` | public static class | A tale's images: which one shows, and what is wrong with them. |
 | `AuthoredTaleRoles` | public static class | Who holds a role in the tale under way. |
 | `AuthoredWay` | public class | One way out of the current stage: its own objective (no choice), or an open choice. |
 | `GiverRequirement` | public class | (no summary) |

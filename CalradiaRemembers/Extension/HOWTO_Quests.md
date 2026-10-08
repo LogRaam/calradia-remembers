@@ -30,6 +30,13 @@ If you set a "Custom Folder Path" in the MCM, put them in its `Quests` folder in
 Every `*.json` file there is read when a campaign starts. One file holds one quest, or an array of
 quests. If two files define the same `id`, the first one read wins and the other is reported.
 
+A tale with images is a folder of its own, its JSON beside its pictures (one level down is read too):
+
+```
+ModuleData/Custom/Quests/wolf_of_the_wood/tale.json
+ModuleData/Custom/Quests/wolf_of_the_wood/tracks_at_dusk.jpg
+```
+
 The tales are experimental in 2.7.0 and OFF by default: turn on "Authored Quests (experimental)" in the
 MCM to have them offered. Off stops new offers only: a tale
 already under way plays to its end.
@@ -166,6 +173,14 @@ unsaid.
 
 The first stage is the request itself: it is completed when the player accepts the tale in the
 conversation where it is offered, so it cannot offer choices. Put them on the next stage.
+
+### A stage's image
+
+`"image": "tracks_at_dusk.jpg"` on a stage names a picture of the tale's own folder (`.png` or `.jpg`, a bare
+file name). When that stage's scene opens, the picture opens by itself in the panel left of the chat, under the
+scene's title, drawn whole and never stretched. A name with a folder in it, another format, or a file that is not
+there is reported by `cr.story_check` and the scene opens without it. In the Tale Editor, pick the file beside the
+stage's Image field to fill its name and see it.
 
 ## 6. Objectives
 
