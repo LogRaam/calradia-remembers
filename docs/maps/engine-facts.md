@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-447 rules read 347 facts.
+448 rules read 348 facts.
 
 ## Facts read by more than one rule
 
@@ -245,6 +245,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AssemblyTravelFacts`: `Hero.CurrentSettlement`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.MapEvent`, `Settlement.IsUnderSiege`
 - `AssemblyTravelOutcome.Evaluate`: `Hero.CurrentSettlement`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `PartyBelongedTo.MapEvent`, `Settlement.IsUnderSiege`
 - `AssignRoleFacts`: `Hero.IsPlayerCompanion`, `Hero.PartyBelongedTo`
+- `AudienceLocationFacts`: `LocationComplex.GetListOfLocations`
 - `AuthoredBandMakeupFacts`: `Character.IsHero`, `Character.Tier`, `MemberRoster.GetTroopRoster`
 - `AuthoredBandSizeFacts`: `MemberRoster.TotalHealthyCount`, `Objective.Spawn`
 - `AuthoredCulturePolicy.Describe`: `Requires.Giver`, `Requires.Village`

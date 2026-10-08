@@ -647,7 +647,7 @@ namespace CalradiaRemembers.Chat
          // A companion asking for a private word belongs in the TAVERN, not the lord's hall (their audience is a
          // personal matter, not court business); everyone else keeps the hall/centre.
          bool preferTavern = request.Kind == ChatSceneKind.CompanionAudience;
-         Location location = ResolveAudienceLocation(preferTavern);
+         Location location = ResolveAudienceLocation(preferTavern, partner?.HeroObject);
 
          if (location == null || PlayerEncounter.LocationEncounter == null)
          {
@@ -703,20 +703,26 @@ namespace CalradiaRemembers.Chat
       ///   settlement exposes no usable interior (a hideout camp, an exotic custom settlement), which the caller
       ///   turns into the direct-open fallback. Internal so the council stager reuses the exact same pick.
       /// </summary>
-      internal static Location ResolveAudienceLocation(bool preferTavern = false)
+      internal static Location ResolveAudienceLocation(bool preferTavern = false, Hero partner = null)
       {
          LocationComplex complex = LocationComplex.Current;
 
          if (complex == null) return null;
 
-         if (preferTavern)
-            return complex.GetLocationWithId("tavern")
-                   ?? complex.GetLocationWithId("lordshall")
-                   ?? complex.GetLocationWithId("village_center");
+         // Gabriel's play test (08/10/2026): a post-duel conversation with a notable opened in the lord's hall, where he
+         // never stands, so the game's conversation with him never began and the chat opened without him. Where the
+         // game places the character comes first (AudienceLocationPolicy); the former order stands in.
+         string where = null;
+         try { where = partner == null ? null : complex.GetLocationOfCharacter(partner)?.StringId; }
+         catch (Exception ex) { ModLog.Error($"[CHAT STAGE] where {partner?.Name} stands could not be read: {ex.GetType().Name}: {ex.Message}"); }
 
-         return complex.GetLocationWithId("lordshall")
-                ?? complex.GetLocationWithId("village_center")
-                ?? complex.GetLocationWithId("tavern");
+         string id = AudienceLocationPolicy.Choose(new AudienceLocationFacts {
+            WhereTheCharacterIs = where, PreferTavern = preferTavern,
+            Available = System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(complex.GetListOfLocations(), l => l.StringId))
+         });
+         if (where != null) ModLog.Info($"[CHAT STAGE] {partner?.Name} stands in '{where}'; the scene opens at '{id}'.");
+
+         return id == null ? null : complex.GetLocationWithId(id);
       }
 
       /// <summary>A reachable navmesh point a conversational distance from the player, rung around them; false when none is standable.</summary>
