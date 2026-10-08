@@ -322,6 +322,9 @@ namespace CalradiaRemembers
       /// </summary>
       public static bool LordsHoldTheirCourse => CrSettings.Instance?.LordsHoldTheirCourse ?? true;
 
+      /// <summary>A conversation opens by asking which companions come along (off by default since 2.7.5: the Invite button does it).</summary>
+      public static bool AskCompanionsAtStart => CrSettings.Instance?.AskCompanionsAtStart ?? false;
+
       /// <summary>Characters may offer a written tale (authored quests); on when MCM has not loaded. Off stops new offers only.</summary>
       public static bool AuthoredQuests => CrSettings.Instance?.AuthoredQuests ?? false;
 

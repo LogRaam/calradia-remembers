@@ -299,6 +299,14 @@ namespace CalradiaRemembers.Witnesses
             // code-path accident.
             if (Hero.MainHero?.IsPrisoner == true) return;
 
+            // Gabriel (08/10/2026): with the Invite button, the question is asked only when the player wants it.
+            if (!ModSettings.AskCompanionsAtStart)
+            {
+               ModLog.Info("[WitnessResolver] Companion picker not shown (MCM 'Ask Which Companions Come Along' is off); Invite brings them in.");
+
+               return;
+            }
+
             List<Hero> companions = GetPlayerCompanions(conversationNpc);
             if (companions.Count == 0)
             {

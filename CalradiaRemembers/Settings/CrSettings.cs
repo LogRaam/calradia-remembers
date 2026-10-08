@@ -500,6 +500,13 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public bool LordsHoldTheirCourse { get; set; } = true;
 
+      // Gabriel (08/10/2026): with the Invite button, asking at every conversation which companions come along is no
+      // longer needed. Off by default; on brings back the old question.
+      [SettingPropertyBool("Ask Which Companions Come Along", RequireRestart = false, Order = 3,
+         HintText = "Off (default): a conversation opens with whoever is truly there; bring a companion, a lord riding with you or a prisoner in with the Invite button. On: as before 2.7.5, each conversation first asks which companions come along.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public bool AskCompanionsAtStart { get; set; } = false;
+
       // Player report (2026-08-05): in a scene with several NPCs, they kept talking to each other for a long
       // stretch before he could get a word in. This dial caps how many NPC-to-NPC exchanges fire per player
       // turn (was a hard-coded 3). 2 is the new shipped feel; 0 turns cross-talk off completely. See
