@@ -1081,8 +1081,28 @@ namespace CalradiaRemembers.Chat
          ArmOrRefuseDuel(opponent, ((IManualActionMenuHost) this).Profile, opponent.Name?.ToString(), playerIssued: true);
       }
 
+      /// <summary>
+      ///   cr.duel_take_field: the player's challenge to the character of the open chat, taken up, down the very road a
+      ///   real challenge takes once accepted (the admissibility check, the arming, the "Take the field" close). Only the
+      ///   NPC's own answer is skipped, so a crash on taking the field can be reproduced at will (Thoragoros1, 08/10/2026).
+      /// </summary>
+      internal string DebugChallengeTakenUp()
+      {
+         Hero opponent = _npcHero;
+         if (opponent == null) return "This conversation has no character to call out.";
+
+         const string spoken = "I call you out. Draw your steel and answer me.";
+         AppendPlayerMessage(spoken);
+         RecordTranscript(true, "You", Hero.MainHero?.StringId, spoken);
+         ArmOrRefuseDuel(opponent, ((IManualActionMenuHost) this).Profile, opponent.Name?.ToString(), playerIssued: true, forceAccept: true);
+
+         return DuelCoordinator.IsArmed
+            ? $"{opponent.Name} takes up the challenge. Close the conversation with \"Take the field\" to stage the duel."
+            : $"The duel with {opponent.Name} is not admissible here; the log's [DUEL] line says why.";
+      }
+
       private void ArmOrRefuseDuel(Hero opponent, NpcProfile profile, string speakerName, bool playerIssued,
-         DuelReason reason = DuelReason.HonourAffront)
+         DuelReason reason = DuelReason.HonourAffront, bool forceAccept = false)
       {
          // The prompt is advice, the bridge is law. The verb was taught from a context built at the START of
          // the turn, and a model can reach for it several turns later, by which time the two may have moved
@@ -1100,7 +1120,7 @@ namespace CalradiaRemembers.Chat
                   // The player called them out, so the NPC's answer is the policy's, not the model's. An NPC who balks
          // does not simply go quiet: the refusal is a deed, it costs them (contempt, and renown to the player
          // who called a bluff), and the conversation carries on from there.
-         if (playerIssued
+         if (playerIssued && !forceAccept
              && DuelAcceptancePolicy.Decide(new DuelAcceptanceContext {
                 Traits = GrudgeBridge.BuildTraitFacts(opponent),
                 Stance = StanceService.ToStance(profile),

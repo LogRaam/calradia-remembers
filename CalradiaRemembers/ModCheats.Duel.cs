@@ -176,6 +176,16 @@ namespace CalradiaRemembers
       ///   Close any window and watch: this is how the coordinator's deferred launch and the inquiry path are
       ///   tested without a live LLM turn.
       /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("duel_take_field", "cr")]
+      public static string ForceDuelTakeField(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         ChatViewModel chat = Chat.ChatManager.ActiveViewModel;
+         if (chat == null) return "Open a conversation with the character first (a companion, a lord, in a town, castle or village), then run this.";
+
+         return chat.DebugChallengeTakenUp();
+      }
+
       [CommandLineFunctionality.CommandLineArgumentFunction("duel_arm", "cr")]
       public static string ForceDuelArm(List<string> args)
       {

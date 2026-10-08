@@ -31,6 +31,9 @@ namespace CalradiaRemembers.Duels
    {
       // ── Armed from chat, consumed by Phase 1 ────────────────────────────────
       private static Hero _pendingOpponent;        // set when the chat arms a duel; null = nothing pending
+
+      /// <summary>A duel is armed and waits for the chat to close.</summary>
+      internal static bool IsArmed => _pendingOpponent != null;
       private static DuelReason _pendingReason;
       private static DuelVenue _pendingVenue;
       private static bool _pendingNpcIssuedChallenge; // true = the NPC called the player out (player must answer)
