@@ -370,6 +370,8 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new CalradiaRemembers.Retainer.RetainerBehavior());
          // The giver of one of the game's own quests remembers it, begun and ended (tashmetu, Maifailun, 08/10/2026).
          campaignStarter.AddBehavior(new CalradiaRemembers.Quests.NativeQuestMemoryBehavior());
+         // The lord who takes the player prisoner remembers how: the battle, where, the men led (Windmolen, 08/10/2026).
+         campaignStarter.AddBehavior(new CalradiaRemembers.Battles.CaptureMemoryBehavior());
          // Courtship trial (author's story): a marriage prospect who agrees to wed BUT first rides at the player's
          // side to test him. Records the day a valid, not-hard-blocked prospect BEGINS accompanying (follow_me or
          // ride_with_me), lapses a trial abandoned early, and once ~two seasons are served latches a passed flag

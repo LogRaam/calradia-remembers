@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
+using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 
 #endregion
@@ -92,6 +93,10 @@ namespace CalradiaRemembers.Mapping
       private static void AppendFamily(StringBuilder sb, Hero hero)
       {
          var parts = new List<string>();
+         // Windmolen (08/10/2026): the player took his first wife's mother as a second wife, and the first wife never
+         // knew. A relative who is also the player's partner is marked so, and a partner knows the others by name.
+         List<(Hero Hero, bool IsSpouse)> partners = PlayerPartners();
+         string Partner(Hero h) => partners.Where(p => p.Hero == h).Select(p => PlayerPartnersText.KinNote(p.IsSpouse)).FirstOrDefault() ?? "";
 
          // Spouse, with their own parentage so in-laws are known (tester: a wife did not realize
          // her husband was the ruler's eldest son, and invented his family).
@@ -104,10 +109,10 @@ namespace CalradiaRemembers.Mapping
          // otherwise the NPC reads "Father: X" and speaks of a dead parent as living,
          // even denying a death the player witnessed.
          if (hero.Father != null)
-            parts.Add($"Father: {FormatKin(hero.Father)}");
+            parts.Add($"Father: {FormatKin(hero.Father)}{Partner(hero.Father)}");
 
          if (hero.Mother != null)
-            parts.Add($"Mother: {FormatKin(hero.Mother)}");
+            parts.Add($"Mother: {FormatKin(hero.Mother)}{Partner(hero.Mother)}");
 
          // Maifailun (07/10/2026): Lidia, wed into the Takhi, knew her father's name but not the house she was born
          // into, and claimed she was born a Takhi. The engine's origin clan says it; the father's house stands in.
@@ -124,16 +129,57 @@ namespace CalradiaRemembers.Mapping
          // a deceased first wife was addressed as "our child" by the player-character spouse).
          List<Hero> aliveChildren = hero.Children?.Where(c => c.IsAlive).ToList();
          if (aliveChildren is {Count: > 0})
-            parts.Add($"Children: {string.Join(", ", aliveChildren.Select(c => DescribeChild(c, hero)))}");
+            parts.Add($"Children: {string.Join(", ", aliveChildren.Select(c => DescribeChild(c, hero) + Partner(c)))}");
 
 
          // Siblings, named with sex, so the NPC knows their own brothers and sisters.
          List<Hero> siblings = hero.Siblings?.Where(s => s != null).ToList();
          if (siblings is {Count: > 0})
-            parts.Add($"Siblings: {string.Join(", ", siblings.Select(DescribeRelative))}");
+            parts.Add($"Siblings: {string.Join(", ", siblings.Select(s => DescribeRelative(s) + Partner(s)))}");
 
          if (parts.Count > 0)
             sb.AppendLine($"Family: {string.Join("; ", parts)}.");
+
+         if (partners.Any(p => p.Hero == hero))
+         {
+            string others = PlayerPartnersText.OtherPartners(partners.Where(p => p.Hero != hero).Select(p => new PartnerFacts {
+               Name = p.Hero.Name?.ToString(), IsSpouse = p.IsSpouse, KinToSubject = KinTo(hero, p.Hero)
+            }).ToList());
+            if (others != null) sb.AppendLine(others);
+         }
+      }
+
+      /// <summary>The player's living spouse and consorts (CR's own consort bond, or a committed bond).</summary>
+      private static List<(Hero Hero, bool IsSpouse)> PlayerPartners()
+      {
+         var partners = new List<(Hero Hero, bool IsSpouse)>();
+         Hero player = Hero.MainHero;
+         if (player == null) return partners;
+         // Death alone is the question: a partner held captive, or away, is still a partner.
+         if (player.Spouse is {IsDead: false}) partners.Add((player.Spouse, true));
+
+         var store = Behaviors.NpcMemoryCampaignBehavior.Instance?.Store;
+         if (store == null) return partners;
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile p = store.Get(id);
+            if (p?.Romantic == null || !(p.Romantic.IsConsort || p.Romantic.Status == RomanticStatus.Committed)) continue;
+            Hero h = Hero.FindFirst(x => x.StringId == id);
+            if (h is {IsDead: false} && h != player && partners.All(x => x.Hero != h)) partners.Add((h, false));
+         }
+
+         return partners;
+      }
+
+      /// <summary>What <paramref name="other" /> is to <paramref name="hero" />, among the closest kin; null otherwise.</summary>
+      private static string KinTo(Hero hero, Hero other)
+      {
+         if (other == hero.Mother) return "your mother";
+         if (other == hero.Father) return "your father";
+         if (hero.Children?.Contains(other) == true) return other.IsFemale ? "your daughter" : "your son";
+         if (hero.Siblings?.Contains(other) == true) return other.IsFemale ? "your sister" : "your brother";
+
+         return null;
       }
 
       private static void AppendFriends(StringBuilder sb, Hero hero)

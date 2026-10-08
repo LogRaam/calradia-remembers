@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 470 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 999 types in 27 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 471 types in 58 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1003 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -141,7 +141,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BastardBehavior` | public class | Tracks the player's bastards and drives their consequences each season: discovery, the mother's recurring blackmail, and (at coming of age) a prestige-gated claim. |
 | `BlackmailState` | internal class | Per-bastard blackmail clock: the season a demand was raised (-1 none), the gold it asks, and the season paid silence runs to. |
 
-### CalradiaRemembers.Battles (4)
+### CalradiaRemembers.Battles (5)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -149,6 +149,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BattleFeatJournal` | public class | Mission-scoped ledger of what the player actually did, and suffered, in this engagement. |
 | `BattleFeatReport` | public class | What one battle left behind, rendered PER RECIPIENT. A witness saw the deeds; the man a deed is ABOUT lived them, and must speak of them in his own voice, or his memory would read "I saw you best Lucon" when he IS Lucon. |
 | `BattleFeatReporter` | public static class | Builds the distilled, first-hand deed lines for the battle that just ended. |
+| `CaptureMemoryBehavior` | public class | Writes the captor's memory of taking the player prisoner. |
 
 ### CalradiaRemembers.Behaviors (1)
 
@@ -811,7 +812,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (625)
+### CalradiaRemembers.Logic (629)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -879,6 +880,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptivityReleaseNarrator` | public static class | Composes the chronicle wording for the end of the player's captivity. |
 | `CaptorReleasePolicy` | public static class | Pure gate for chat-negotiated player release. |
 | `CaptorReleaseVerdict` | public class | What release paths (if any) a captor is open to for THIS captive player. |
+| `CaptureFacts` | public class | What is known of the capture. |
+| `CaptureMemoryText` | public static class | The captor's memory of the capture. |
 | `CaptureQuestPolicy` | public static class | Decides what a proposed capture really is, from whether the giver is at war with the target. |
 | `CardinalDirectionPolicy` | public static class | Pure 8-point compass bearing from one campaign-map position to another, for phrasing a quest's direction ("the hideout lies to the north of Town X"). |
 | `CharacterOverride` | public class | One author's override for a single NPC: optional trait values (null = leave the vanilla value untouched) and an optional backstory. |
@@ -1200,6 +1203,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `OverdueOutcome` | public enum | What the daily overdue sweep should do once a commitment's deadline lapses. |
 | `OverlayNeighbour` | public class | One layer beside the chat, as the arbiter needs to see it. |
 | `PanelTickSuppressionCounter` | public class | A reference count of how many CR panels currently need the vanilla settlement-visual tick suppressed (the mod wires this to a Harmony guard: while the count is above zero, SettlementVisualManager.OnTick is skipped so its... |
+| `PartnerFacts` | public class | One other partner of the player, as a partner sees them. |
 | `PartnerStanding` | public class | One partner's standing as the competition pass sees it (engine-gathered, pure to reason over). |
 | `PartyCounselFacts` | public class | Live facts about the party the caller has already gathered (item roster, morale model, member roster, carry weight), everything CompanionCounselPolicy needs, and nothing it has to guess. |
 | `PartyCounselKind` | public enum | Which practical condition of the party the counsel is about, or none. |
@@ -1223,6 +1227,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlayerExecutionPolicy` | public static class | Pure gate deciding whether a captor may actually execute the captive PLAYER. Consulted twice: once by the mod's EncounterContextBuilder (deciding whether the LLM is even TAUGHT the execute_player action this turn) and ag... |
 | `PlayerForcePolicy` | public static class | Resolves the troop count an interlocutor can plainly see standing with the player. |
 | `PlayerNameRevealPolicy` | public static class | Detects the prisoner naming themselves to their captor. |
+| `PlayerPartnersText` | public static class | Lines about the player's partners. |
 | `PlayerStandingFacts` | public class | Plain, engine-agnostic carrier of everything needed to place the player beside one NPC. Each flag is a fact the engine can answer directly, never a conclusion. |
 | `PlayerStandingPolicy` | public static class | Places the player beside one NPC, from facts the engine can answer directly. |
 | `PleadCasePolicy` | public static class | The rules of a plead_case task. |
