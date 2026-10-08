@@ -1,4 +1,4 @@
-Released in v2.7.4
+Released in v2.7.5
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -59,6 +59,12 @@ _A whole conversation as it CLOSES, delivered by CrConversation.Ended._
 - `string SaveId { get; }`
 - `string SessionId { get; }`
 
+### CrCultures
+
+_Read-only readings of the cultures CR plays by (its ModuleData jealousy_cultures.json, or a Custom copy)._
+
+- `static MarriageCustomReading MarriageCustom(string cultureName, int clanTier)`
+
 ### CrMemoryEntry
 
 _One memory a third-party mod wants an NPC to hold._
@@ -106,6 +112,13 @@ _One change of a character's personal regard for the player (see CrNpcMemory.Reg
 - `string Cause { get; set; }`
 - `string NpcId { get; set; }`
 - `string SaveId { get; set; }`
+
+### CrRomance
+
+_Reads and records intimacy with the player, held to the bar CR's own chat holds._
+
+- `static SharedIntimacyResult RecordSharedIntimacy(string npcId, string summary, string sourceMod)`
+- `static bool? WouldAcceptIntimacy(string npcId)`
 
 ### CrSpeechLine
 

@@ -2,6 +2,33 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.5.. 2026-10-08
+
+### Fixed
+- **Town duel crash** (Thoragoros1, reproduced by Gabriel with `cr.duel_take_field`): the square opened in the second the
+  chat closed while the map conversation unwound; `ReadyToOpenTheSquare(SquareReadinessFacts)` waits for the game's
+  conversation to end and counts from the chat's close.
+- **Post-duel scene**: a staged settlement conversation opens where the character stands (`AudienceLocationPolicy`,
+  `LocationComplex.GetLocationOfCharacter`), and the stager begins the conversation itself when the game does not
+  (`StagingGracePolicy.ShouldStartTheConversation`, `MissionConversationLogic.StartConversation`).
+- **Battle under way on close** (Maifailun): `MapEncounterClosePolicy` never finishes an encounter mid-battle.
+- **Captor memory** (Windmolen): `CaptureMemoryBehavior`/`CaptureMemoryText`, the battle, place and men led.
+- **Partners know each other** (Windmolen): `PlayerPartnersText` in the family line.
+
+### Changed
+- **Captures framed as war** (Fakade): `CaptureNorm`, stake-tagged capture events.
+- **Native quest memories** (Maifailun, tashmetu): `NativeQuestMemoryBehavior`.
+- **Companion picker** off by default (MCM "Ask Which Companions Come Along").
+- **StageDirectionDedupe** (SDK).
+
+### For modders
+- SDK `NotableEventType.OwnLife` (ordinal 13), `HistoryWindowPolicy` strands, heir note frames lived history only.
+- `CrCultures.MarriageCustom`, `CrRomance.WouldAcceptIntimacy` / `RecordSharedIntimacy`.
+
+### Developer tools
+- `cr.duel_take_field`; cr.testall capture_memory, partners_know_each_other, native_quest_memory,
+  romance_api_held_to_the_chats_bar.
+
 ## v2.7.4.. 2026-10-07
 
 ### Tales (fkasad, tashmetu)
