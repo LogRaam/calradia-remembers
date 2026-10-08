@@ -1,0 +1,30 @@
+Version 2.7.4
+
+Written tales, from the first players who walked them, and a lady who forgot her own house. Tales are still experimental and OFF by default (MCM, Content, "Authored Quests (experimental)").
+
+Written tales
+
+- Leaving a scene now asks first ("Leave the scene?") while it is still going: End Conversation sits right by Send, and a closed scene cannot be reopened. (Thank you, fkasad.)
+- Once everything a scene needed has been found and there is no way out left to choose, the narrator lets the scene pause and tells you that you may leave, and the chat says so once. No more "What do you do?" forever. (Thank you, tashmetu.)
+- Companions you bring into a scene now remember it: going through it with you, and what was found. (Thank you, fkasad.)
+- A character who holds a role in a tale under way no longer hands out other tasks on top of it, so the journal no longer shows two targets at once. (Thank you, fkasad.)
+- A tale's last band can now be made of the region's bandits (those of the nearest hideout), with a share of seasoned men that follows how seasoned your own troops are. The Wolf of the Wood's slavers are. No more 65 looters against a company of veterans. (Thank you, fkasad.)
+- A choice made in words is no longer lost when the model writes its id slightly wrong ("choice_voice" for "voice"), and the red "That is no turn this tale offers here" no longer shows in the chat (it stays in the log). (Thank you, tashmetu.)
+- A finished tale no longer stays listed under Active Quests as well as Old Quests. (Thank you, tashmetu.)
+
+Fixed
+
+- A character who married into another house now knows the house they were born into: Lidia knew her father's name but told the player she was born a Takhi. (Thank you, Maifailun.)
+
+For modders
+
+- CrNpcMemory.GetRegard(npcId): a character's personal regard for the player on CR's own ledger, read-only.
+- Tales: "template": "local" for a band of the region's bandits. HOWTO_Quests.md also explains that a stage with choices only knows its own knowers. (Thank you, tashmetu.)
+
+Developer tools
+
+- New cr.testall tests: tale_local_band and birth_house_known.
+
+Notes
+
+- Your existing saves load as they are, a tale already under way included.

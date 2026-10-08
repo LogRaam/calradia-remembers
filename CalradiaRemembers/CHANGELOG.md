@@ -2,6 +2,28 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.4.. 2026-10-07
+
+### Tales (fkasad, tashmetu)
+- **Leaving a scene asks first** (`SceneLeavePolicy`), unless it ended or nothing it needs is left (`SceneMayEnd`, which also
+  tells the narrator to let the scene pause and says so once in the chat).
+- **Companions remember a scene** (`SceneCompanionMemory`, Collaboration): the witness memory needed ordinary turns.
+- **One errand at a time**: a character holding a role in the tale under way offers no other task
+  (`AuthoredTaleRoles.HoldsARole` -> SDK `EncounterContext.InActiveWrittenTale`, `MayOfferTasks`).
+- **`"template": "local"`**: the nearest hideout's bandits, a seasoned share by the player's average troop tier
+  (`AuthoredBandMakeupPolicy`, `RegionalBandits`); the wolf's slavers are local. `cr.testall tale_local_band`.
+- **Said choices**: the interpreter list opens with the id alone; `SaidChoiceId` matches a glued "choice" prefix; the
+  refusal shows no chat line.
+- **Journal**: `TaleJournalPolicy` keeps only the newest open entry of the tale under way; reconciled at load, daily and
+  at the end.
+
+### Fixed
+- **Birth house** (Maifailun): the family line says "Born into the X (of realm); joined the Y by marriage." (`BirthHouseText`,
+  engine origin clan else a parent's). `cr.testall birth_house_known`.
+
+### For modders
+- `CrNpcMemory.GetRegard(npcId)` (additive). HOWTO_Quests: a choice stage knows only its own knowers.
+
 ## v2.7.3.. 2026-10-07
 
 ### Fixed

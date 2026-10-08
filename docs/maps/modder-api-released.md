@@ -1,4 +1,4 @@
-Released in v2.7.3
+Released in v2.7.4
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -87,6 +87,7 @@ _The public NPC-memory API. A caller identifies the NPC by its hero StringId (ne
 - `static IReadOnlyList<CrMemoryRecord> GetMemories(string npcId)`
 - `static MemoryResult AddMemory(CrMemoryEntry entry)`
 - `static event Action<CrRegardChange> RegardChanged`
+- `static int? GetRegard(string npcId)`
 
 ### CrPrompt
 
