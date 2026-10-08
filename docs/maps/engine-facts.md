@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-446 rules read 346 facts.
+447 rules read 347 facts.
 
 ## Facts read by more than one rule
 
@@ -108,6 +108,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `CampaignOptions.IsLifeDeathCycleDisabled` (3) | `ExecutionFacts`, `PregnancyPolicy.MayConceive`, `PregnancyPolicy.ShouldEndStuckPregnancy` |
 | `CharacterRelationManager.GetHeroRelation` (3) | `ThirdPartyDescriptor.KnowledgeOf`, `ThirdPartyDescriptor.WhereaboutsClause`, `ThirdPartyFacts` |
 | `Clan.Heroes` (3) | `CouncilTroopDelivery`, `HostageCandidateFacts`, `HostageEligibilityPolicy.IsEligible` |
+| `Current.CurrentMenuContext` (3) | `DuelStagingSupport.ReadyToOpenTheSquare`, `RoadAudienceFacts`, `SquareReadinessFacts` |
 | `Current.MapSceneWrapper` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
 | `EndCaptivityDetail.ReleasedAfterBattle` (3) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `EndCaptivityDetail.ReleasedByChoice` (3) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
@@ -146,7 +147,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Case.LiegeId` (2) | `ArrestPolicy.CouncilSeats`, `TrialVerdictPolicy.DefaultConviction` |
 | `CharacterStates.Disabled` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice` (2) | `HireAgreementPolicy.AgreedPrice`, `HireAgreementPolicy.CanAfford` |
-| `Current.CurrentMenuContext` (2) | `DuelStagingSupport.ReadyToOpenTheSquare`, `RoadAudienceFacts` |
+| `ConversationManager.IsConversationInProgress` (2) | `DuelStagingSupport.ReadyToOpenTheSquare`, `SquareReadinessFacts` |
 | `DialogFlow.Profile` (2) | `PendingSummaryJob`, `SpeakerProfileSelector.Select` |
 | `EndCaptivityDetail.Death` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.Ransom` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
@@ -158,6 +159,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Event.Summary` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `Event.Type` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `GameStateBridge.GetCurrentScene` (2) | `EquipmentLoadoutPolicy.PreferCivilianLoadout`, `EquipmentNotabilityPolicy.ComposeWorn` |
+| `GameStateManager.ActiveState` (2) | `DuelStagingSupport.ReadyToOpenTheSquare`, `SquareReadinessFacts` |
 | `GarrisonParty.Party` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `GatePosition.ToVec2` (2) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium` |
 | `Hero.CivilianEquipment` (2) | `GiftEquipFacts`, `PlayerDressPolicy.Classify` |
@@ -374,7 +376,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `DuelPublicityPolicy.Magnitude`: `StatureReader.Of`
 - `DuelStagingSupport.CanHoldATownDuel`: `Current.GetLocationWithId`, `LocationComplex.GetLocationWithId`, `PlayerEncounter.InsideSettlement`
 - `DuelStagingSupport.CanStage`: `MobileParty.IsCurrentlyAtSea`, `Settlement.CurrentSettlement`
-- `DuelStagingSupport.ReadyToOpenTheSquare`: `Current.CurrentMenuContext`, `GameStateManager.ActiveState`
+- `DuelStagingSupport.ReadyToOpenTheSquare`: `ConversationManager.IsConversationInProgress`, `Current.CurrentMenuContext`, `GameStateManager.ActiveState`
 - `DuelStagingSupport.StandsAsideFromTheDuel`: `Mission.MainAgent`, `Mission.PlayerTeam`
 - `DuelVenuePolicy.Choose`: `LocationComplex.GetLocationWithId`, `MobileParty.IsCurrentlyAtSea`, `PlayerEncounter.InsideSettlement`, `Settlement.CurrentSettlement`
 - `EarnRegardPolicy.MayBeNamed`: `Hero.IsChild`
@@ -620,6 +622,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SpouseDivorceDemandPolicy.ShouldDemand`: `Event.Day`, `Event.InvolvesPlayer`, `Event.Summary`, `Event.Type`, `Hero.GetRelation`, `Hero.IsPregnant`, `Hero.IsPrisoner`, `Hero.Spouse`, `Summary.IndexOf`
 - `SpouseDivorceDemandPolicy.ShouldEscalate`: `Hero.GetRelation`, `Hero.IsPregnant`, `Hero.IsPrisoner`
 - `SpouseDivorceEscalationFacts`: `Hero.GetRelation`, `Hero.IsPregnant`, `Hero.IsPrisoner`
+- `SquareReadinessFacts`: `ConversationManager.IsConversationInProgress`, `Current.CurrentMenuContext`, `GameStateManager.ActiveState`
 - `StagingHostFacts`: `Hero.OneToOneConversationHero`, `MobileParty.IsCurrentlyAtSea`
 - `StagingHostPolicy.AnEnvoyCanReachThePlayer`: `MobileParty.IsCurrentlyAtSea`
 - `StationGuidelinesPolicy.ResolveStationKey`: `Hero.CompanionOf`, `Hero.IsClanLeader`

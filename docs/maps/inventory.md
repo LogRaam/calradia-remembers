@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 471 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1005 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1006 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1727,7 +1727,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LogRotationPolicy` | public static class | Trims a session-delimited log to its most recent blocks. |
 | `MemoryAccentRepair` | public static class | Mends a profile's memories mangled by the console. |
 
-### CalradiaRemembers.Logic.Duels (24)
+### CalradiaRemembers.Logic.Duels (25)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1755,6 +1755,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DuelStakesPolicy` | public static class | The rules on what may be wagered, and what abandoning a duel costs before witnesses. |
 | `DuelVenue` | public enum | Where a duel is staged, or that it cannot be staged now. |
 | `DuelVenuePolicy` | public static class | Chooses the venue for a duel from where the player stands. |
+| `SquareReadinessFacts` | public class | What the town square's opening waits on. |
 
 ### CalradiaRemembers.Logic.Escort (7)
 

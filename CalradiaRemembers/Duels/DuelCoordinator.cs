@@ -42,6 +42,7 @@ namespace CalradiaRemembers.Duels
       private static ConversationTranscript _pendingTranscript; // the chat that led to the duel, carried into the post-duel scene; null from the console
       private static bool _endedSettlementMissionForStaging; // guards the once-only EndMission on the per-frame tick
       private static int _framesSinceMissionGone;             // frames since the last mission closed; the town square waits on it
+      private static int _framesSinceChatClosed;              // frames since CR's chat closed; the town square waits on it too (Thoragoros1)
 
       // ── Fought, consumed by Phase 2 ──────────────────────────────────────────
       private static DuelResolution? _pendingResolution;
@@ -139,6 +140,8 @@ namespace CalradiaRemembers.Duels
             _endedSettlementMissionForStaging = false; // no settlement mission is holding us up now
             if (Mission.Current == null) _framesSinceMissionGone++;
             else _framesSinceMissionGone = 0;
+            if (ChatManager.IsOpen) _framesSinceChatClosed = 0;
+            else _framesSinceChatClosed++;
 
             // Phase 1: the chat has closed and no mission is running -> stage the duel exactly once.
             if (_pendingOpponent != null && Mission.Current == null && !ChatManager.IsOpen)
@@ -150,9 +153,17 @@ namespace CalradiaRemembers.Duels
                              && MobileParty.MainParty?.IsCurrentlyAtSea != true;
                bool menuBack = Campaign.Current.CurrentMenuContext != null
                                && TaleWorlds.Core.Game.Current?.GameStateManager?.ActiveState is TaleWorlds.CampaignSystem.GameState.MapState;
-               if (inTown && !DuelStagingSupport.ReadyToOpenTheSquare(menuBack, _framesSinceMissionGone))
+               // Thoragoros1 (08/10/2026, reproduced by Gabriel): opened in the second the chat closed, while the game's map
+               // conversation was still unwinding, the square crashed the engine loading the scene. It waits for that
+               // conversation to be over, and counts its settling from the chat's close as well as the last mission's.
+               bool gameConversation = Campaign.Current.ConversationManager?.IsConversationInProgress == true;
+               var readiness = new SquareReadinessFacts {
+                  TownMenuActive = menuBack, FramesSinceMissionEnded = _framesSinceMissionGone,
+                  FramesSinceChatClosed = _framesSinceChatClosed, GameConversationOpen = gameConversation
+               };
+               if (inTown && !DuelStagingSupport.ReadyToOpenTheSquare(readiness))
                {
-                  if (_framesSinceMissionGone < GiveUpWaitingForTheTownFrames) return;
+                  if (Math.Min(_framesSinceMissionGone, _framesSinceChatClosed) < GiveUpWaitingForTheTownFrames) return;
 
                   ModLog.Error($"[DUEL] the town menu never came back ({_framesSinceMissionGone} frames); the duel with {_pendingOpponent?.Name} is dropped.");
                   InformationManager.DisplayMessage(new InformationMessage($"The duel with {_pendingOpponent?.Name} could not be staged here."));
@@ -161,6 +172,10 @@ namespace CalradiaRemembers.Duels
 
                   return;
                }
+
+               if (inTown)
+                  ModLog.Info($"[DUEL] the square opens: {_framesSinceChatClosed} frame(s) since the chat closed, "
+                              + $"{_framesSinceMissionGone} since the last mission, the game's conversation over.");
 
                Hero opponent = _pendingOpponent;
                DuelReason reason = _pendingReason;

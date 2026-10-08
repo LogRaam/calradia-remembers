@@ -122,16 +122,35 @@ namespace CalradiaRemembers.Tests.Duels
       [Test]
       public void GIVEN_the_walkabout_gone_but_the_town_menu_not_back_WHEN_asked_THEN_the_square_is_not_opened_yet()
       {
-         DuelStagingSupport.ReadyToOpenTheSquare(townMenuActive: false, framesSinceMissionEnded: 100).Should().BeFalse();
+         DuelStagingSupport.ReadyToOpenTheSquare(Settled(townMenuActive: false)).Should().BeFalse();
       }
 
       // Not on the very frame the menu returns either: a short settling first.
       [Test]
       public void GIVEN_the_town_menu_just_back_WHEN_asked_THEN_it_waits_a_few_frames()
       {
-         DuelStagingSupport.ReadyToOpenTheSquare(true, 1).Should().BeFalse();
-         DuelStagingSupport.ReadyToOpenTheSquare(true, DuelStagingSupport.SettleFramesBeforeTheSquare).Should().BeTrue();
+         DuelStagingSupport.ReadyToOpenTheSquare(Settled(framesSinceMissionEnded: 1)).Should().BeFalse();
+         DuelStagingSupport.ReadyToOpenTheSquare(Settled()).Should().BeTrue();
       }
+
+      // Thoragoros1 (Nexus, 08/10/2026), reproduced by Gabriel with cr.duel_take_field the same day: a duel taken up in a
+      // conversation held over the town menu crashed the engine loading the square (0xC0000005, right after
+      // "Scene_view::clear_all(Main_map)"), opened in the very second the chat closed. The settling was counted from the
+      // last MISSION, which had ended long before the chat, so it was already "over". It is counted from the chat's close
+      // too, and the game's own conversation must be over: the square never opens while the map conversation unwinds.
+      [Test]
+      public void GIVEN_a_chat_just_closed_or_the_games_conversation_still_open_WHEN_asked_THEN_the_square_waits()
+      {
+         DuelStagingSupport.ReadyToOpenTheSquare(Settled(framesSinceChatClosed: 1)).Should().BeFalse();
+         DuelStagingSupport.ReadyToOpenTheSquare(Settled(gameConversationOpen: true)).Should().BeFalse();
+      }
+
+      private static SquareReadinessFacts Settled(bool townMenuActive = true, int framesSinceMissionEnded = DuelStagingSupport.SettleFramesBeforeTheSquare,
+                                                  int framesSinceChatClosed = DuelStagingSupport.SettleFramesBeforeTheSquare, bool gameConversationOpen = false)
+         => new() {
+            TownMenuActive = townMenuActive, FramesSinceMissionEnded = framesSinceMissionEnded,
+            FramesSinceChatClosed = framesSinceChatClosed, GameConversationOpen = gameConversationOpen
+         };
 
       // ── Who stands aside (Maifailun 29/09/2026: "my companions were also in the fight") ──────────────
       // The game's fight handler makes the whole PLAYER TEAM an enemy of the opponent's, and companions following the
