@@ -144,13 +144,30 @@ namespace CalradiaRemembers.Quests
             ModLog.Notice($"{_problems.Count} problem(s) in the quest files (ModuleData/Quests). cr.story_check lists them.");
       }
 
-      /// <summary>A journal entry with no run behind it (the run ended, or a save from elsewhere) is closed.</summary>
+      /// <summary>
+      ///   Only the tale under way keeps one open journal entry (TaleJournalPolicy). tashmetu (07/10/2026): "a finished tale
+      ///   stays listed twice, under Old Quests and still under Active Quests": a second open entry of the same tale
+      ///   outlived the close of the first until the next load. Run at load, every day, and when a tale ends.
+      /// </summary>
       private void ReconcileJournal()
       {
-         foreach (AuthoredStoryQuest q in Campaign.Current?.QuestManager?.Quests?.OfType<AuthoredStoryQuest>().Where(q => q.IsOngoing).ToList()
-                                          ?? new List<AuthoredStoryQuest>())
-            if (_run == null || _run.Status != AuthoredQuestStatus.Active || q.StoryId != _run.QuestId)
-               q.CloseAsCancelled("This tale has ended.");
+         List<AuthoredStoryQuest> open = Campaign.Current?.QuestManager?.Quests?.OfType<AuthoredStoryQuest>().Where(q => q.IsOngoing).ToList()
+                                         ?? new List<AuthoredStoryQuest>();
+         foreach (AuthoredStoryQuest q in open)
+         {
+            AuthoredStoryQuest newest = open.Last(o => o.StoryId == q.StoryId); // the quest list keeps the order quests began in
+            bool finished = _run == null && _done.Contains(q.StoryId ?? "");
+            TaleJournalVerdict verdict = TaleJournalPolicy.Verdict(new TaleJournalFacts {
+               EntryStoryId = q.StoryId, IsNewestOfItsStory = ReferenceEquals(newest, q),
+               RunQuestId = finished ? q.StoryId : _run?.QuestId, RunStatus = finished ? AuthoredQuestStatus.Completed : _run?.Status
+            });
+            if (verdict == TaleJournalVerdict.Keep) continue;
+
+            ModLog.Info($"[TALE] journal entry of '{q.StoryId}' closed ({verdict}).");
+            if (verdict == TaleJournalVerdict.CloseCompleted) q.CloseAsCompleted();
+            else if (verdict == TaleJournalVerdict.CloseFailed) q.CloseAsFailed("The time to act has passed.");
+            else q.CloseAsCancelled("This tale has ended.");
+         }
       }
 
       // ── Offering ─────────────────────────────────────────────────────────
@@ -414,6 +431,7 @@ namespace CalradiaRemembers.Quests
 
       private void OnDailyTick()
       {
+         ReconcileJournal();
          if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return;
          Apply(q, AuthoredQuestEngine.Day(_run, q, (int) CampaignTime.Now.ToDays));
       }
@@ -644,6 +662,7 @@ namespace CalradiaRemembers.Quests
             OnClose = () => CloseScene(q),
             Ways = () => SceneWays(q),
             PrisonersWelcome = () => AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.InvitePrisoners == true,
+            MayEnd = () => _run is {Status: AuthoredQuestStatus.Active} && AuthoredQuestEngine.SceneMayEnd(_run, q),
             FoundSoFar = () => (AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.Findings ?? new List<AuthoredFinding>())
                                .Where(f => _run.Findings.Contains(f.Id)).Select(f => AuthoredQuestEngine.Fill(_run, f.Text)).ToList()
          });
@@ -789,6 +808,7 @@ namespace CalradiaRemembers.Quests
                _done.Add(q.Id);
                _playedOn[q.Id] = (int) CampaignTime.Now.ToDays;
                ModLog.Info($"[TALE] '{q.Id}' completed{taken}, ending '{step.EndingId ?? "reward"}'.");
+               ReconcileJournal();
 
                break;
             case AuthoredStepKind.Failed:
@@ -799,6 +819,7 @@ namespace CalradiaRemembers.Quests
                _done.Add(q.Id);
                _playedOn[q.Id] = (int) CampaignTime.Now.ToDays;
                ModLog.Info($"[TALE] '{q.Id}' failed at stage {step.FromStage}.");
+               ReconcileJournal();
 
                break;
          }
@@ -958,8 +979,11 @@ namespace CalradiaRemembers.Quests
          if (hero == null || string.IsNullOrWhiteSpace(choiceId) || _run is not {Status: AuthoredQuestStatus.Active}
              || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return null;
 
-         AuthoredChoice c = AuthoredQuestEngine.SaidChoicesFor(_run, q, hero.StringId).FirstOrDefault(x => x.Id == choiceId.Trim());
-         AuthoredStep step = AuthoredQuestEngine.Said(_run, q, hero.StringId, choiceId.Trim(), (int) CampaignTime.Now.ToDays);
+         // tashmetu (07/10/2026): the interpreter wrote "choice_voice" for "voice"; the open choice it means is still taken.
+         IReadOnlyList<AuthoredChoice> open = AuthoredQuestEngine.SaidChoicesFor(_run, q, hero.StringId);
+         string id = SaidChoiceId.Match(choiceId, open.Select(x => x.Id).ToList()) ?? choiceId.Trim();
+         AuthoredChoice c = open.FirstOrDefault(x => x.Id == id);
+         AuthoredStep step = AuthoredQuestEngine.Said(_run, q, hero.StringId, id, (int) CampaignTime.Now.ToDays);
          if (c == null || step.Kind == AuthoredStepKind.None)
          {
             ModLog.Info($"[TALE] choice by words '{choiceId}' with {hero.Name} refused: not a declared, open choice said to them.");

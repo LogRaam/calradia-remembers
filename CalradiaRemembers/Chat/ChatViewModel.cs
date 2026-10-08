@@ -1961,7 +1961,7 @@ namespace CalradiaRemembers.Chat
       {
          // fkasad (07/10/2026): "End Conversation" sits by "Send", and in a tale's scene a stray click ends the scene
          // and moves the tale on for good. A scene still going asks first; every other close is as it was.
-         if (Logic.AuthoredQuests.SceneLeavePolicy.AsksFirst(IsExplorationScene, _conversationEnded))
+         if (Logic.AuthoredQuests.SceneLeavePolicy.AsksFirst(IsExplorationScene, SceneIsDone))
          {
             InformationManager.ShowInquiry(new InquiryData(
                "Leave the scene?",

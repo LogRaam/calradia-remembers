@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-439 rules read 341 facts.
+440 rules read 342 facts.
 
 ## Facts read by more than one rule
 
@@ -625,6 +625,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SuccessionTrigger.IsSuccession`: `CharacterStates.Disabled`, `Hero.HeroState`, `Hero.IsDead`
 - `SurveyRow`: `Ranked.ToDictionary`
 - `SwapFacts`: `Clan.Kingdom`, `Hero.Clan`, `Kingdom.Leader`
+- `TaleJournalFacts`: `List.Last`
 - `TeachSkillPolicy.CanTeach`: `Hero.GetSkillValue`
 - `TeachSkillPolicy.CanTeachPlayer`: `Hero.GetSkillValue`
 - `TeachSkillPolicy.GrantedXp`: `Hero.GetSkillValue`, `Profile.LastTaughtHour`

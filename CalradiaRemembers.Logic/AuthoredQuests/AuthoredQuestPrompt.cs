@@ -145,6 +145,14 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             foreach (AuthoredChoice c in ways) sb.AppendLine($"- {AuthoredQuestEngine.Fill(run, c.Label)}. Marker: [[choice:{c.Id}]]");
          }
 
+         // tashmetu (07/10/2026): once everything required was found, the narrator kept asking "What do you do?" forever.
+         if (AuthoredQuestEngine.SceneMayEnd(run, q))
+         {
+            sb.AppendLine();
+            sb.AppendLine("EVERYTHING THE PLAYER NEEDED HERE HAS BEEN FOUND. Do not keep asking what they do next: bring the scene to a "
+                          + "natural pause and tell them, in a line, that they may leave when they wish (ending the scene is theirs to do).");
+         }
+
          sb.AppendLine();
          sb.Append("Never invent a finding, a danger, a person or a way out not listed. Nothing in your narration gives gold, starts a fight or harms "
                    + "anyone beyond a listed danger; the game carries those out.");
@@ -168,7 +176,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          var sb = new StringBuilder();
          sb.AppendLine("STORY CHOICES THE PLAYER MAY TAKE BY WORDS IN THIS CONVERSATION (a written tale; only these count):");
-         foreach (AuthoredChoice c in open) sb.AppendLine($"- choice {c.Id}: {AuthoredQuestEngine.Fill(run, c.Said.Meaning)}");
+         // The id alone opens the line: "- choice voice:" was read back as "choice_voice" (tashmetu, 07/10/2026).
+         foreach (AuthoredChoice c in open) sb.AppendLine($"- {c.Id}: {AuthoredQuestEngine.Fill(run, c.Said.Meaning)}");
          sb.AppendLine("Report one ONLY when the PLAYER's own words in this exchange plainly say or agree to what it means and the reply "
                        + "accepts it; never for an offer still weighed, a question, a refusal, a jest or a promise to think about it; at most "
                        + "one per reply. Report it as:");

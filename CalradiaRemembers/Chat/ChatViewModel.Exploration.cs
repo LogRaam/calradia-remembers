@@ -52,6 +52,9 @@ namespace CalradiaRemembers.Chat
       /// <summary>The player's prisoners may be invited into the scene (the tale's choice, off unless it says so: fkasad, 07/10/2026).</summary>
       public Func<bool> PrisonersWelcome { get; set; }
 
+      /// <summary>The scene has nothing left the tale needs: the player may end it, unasked (tashmetu, 07/10/2026).</summary>
+      public Func<bool> MayEnd { get; set; }
+
       /// <summary>What has been found in the scene so far, as the file words it (for the companions' memory).</summary>
       public Func<IReadOnlyList<string>> FoundSoFar { get; set; }
    }
@@ -64,6 +67,10 @@ namespace CalradiaRemembers.Chat
       private bool _isSceneChoiceListVisible;
       private bool _sceneNarrationIsLast;
       private bool _sceneTurnInFlight;
+      private bool _sceneEndNoted;
+
+      /// <summary>The scene may be left without asking: it ended by itself, or nothing the tale needs is left in it.</summary>
+      internal bool SceneIsDone => _conversationEnded || _exploration?.MayEnd?.Invoke() == true;
 
       internal bool IsExplorationScene => _exploration != null;
 
@@ -258,6 +265,13 @@ namespace CalradiaRemembers.Chat
 
             foreach (string note in _exploration.Apply?.Invoke(markers) ?? Array.Empty<string>())
                AppendSystemMessage(note, false);
+
+            // tashmetu (07/10/2026): once everything needed is found, say so once, so the player knows they may end it.
+            if (!_sceneEndNoted && _exploration.MayEnd?.Invoke() == true)
+            {
+               _sceneEndNoted = true;
+               AppendSystemMessage("Everything this place had to show you is found. You may end the scene when you wish.", true);
+            }
 
             ChatManager.ScrollToBottom();
 

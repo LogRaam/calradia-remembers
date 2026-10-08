@@ -5106,7 +5106,9 @@ namespace CalradiaRemembers.GameState
 
          return taken != null
             ? new ActionOutcome($"The tale takes a turn: {taken}.", true)
-            : ActionOutcome.Refused("That is no turn this tale offers here.");
+            // tashmetu (07/10/2026): the player cannot act on this; it stays in the log ([TALE] ... refused) and the
+            // model is still told nothing happened, but no red line is shown.
+            : ActionOutcome.Refused("");
       }
 
       /// <summary>

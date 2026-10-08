@@ -60,6 +60,18 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   The character's own personal regard for the player, on Calradia Remembers' ledger (the one built in
+      ///   conversation, -100..100; never the game's relation), or null when CR holds no profile for them yet
+      ///   (tashmetu, 07/10/2026). Read-only: regard moves only through CR's own deeds; RegardChanged reports each move.
+      /// </summary>
+      public static int? GetRegard(string npcId)
+      {
+         if (string.IsNullOrWhiteSpace(npcId)) return null;
+
+         return NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcId)?.ReputationWithPlayer;
+      }
+
+      /// <summary>
       ///   Injects a memory onto an NPC. The NPC must resolve to a real hero; its profile is created if it does
       ///   not exist yet (so a caller can seed an NPC the player has never met). Returns why it was rejected, or
       ///   <see cref="MemoryResult.Added" /> on success. Mutates nothing the caller owns.

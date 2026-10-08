@@ -82,6 +82,7 @@ _The public NPC-memory API. A caller identifies the NPC by its hero StringId (ne
 - `static IReadOnlyList<CrMemoryRecord> GetMemories(string npcId)`
 - `static MemoryResult AddMemory(CrMemoryEntry entry)`
 - `static event Action<CrRegardChange> RegardChanged`
+- `static int? GetRegard(string npcId)`
 
 ### CrPrompt
 

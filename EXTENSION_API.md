@@ -80,6 +80,15 @@ button handler, never from a background task. An injected memory never moves reg
 something the character remembers and can speak from. Do not inject what CR already records on its own (a
 rescue from captivity, a battle, a tournament, a letter): the character would remember it twice.
 
+### Reading regard (`CrNpcMemory.GetRegard`, since 2.7.4)
+
+```csharp
+int? regard = CrNpcMemory.GetRegard(npcId);   // -100..100 on CR's own ledger, or null when CR holds no profile yet
+```
+
+The character's own personal regard for the player, built in conversation: never the game's relation. Read-only;
+`RegardChanged` below reports every move of it.
+
 ### Regard changes (`CrNpcMemory.RegardChanged`, since 2.6.7)
 
 ```csharp

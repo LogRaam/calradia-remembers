@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 467 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 987 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 991 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 248 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1584,7 +1584,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (56)
+### CalradiaRemembers.Logic.AuthoredQuests (60)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1635,6 +1635,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestFieldAttribute` | public class | What an author is told about one field of a quest file, in the guide's words. |
 | `RivalCandidate` | public class | One lord who might be bound as the {rival}, as the engine reads him. |
 | `RivalRequirement` | public class | The {rival}: a clan leader of the giver's realm who is not the giver (branching tales, 04/10/2026). |
+| `SaidChoiceId` | public static class | Reads back the id of a choice by words the interpreter reported. |
 | `SceneChoiceMenu` | public static class | Decides what the numbered list holds, and what a typed number means. |
 | `SceneChoiceMenuFacts` | public class | What the chat knows when it asks whether, and what, to list under the narration. |
 | `SceneChoiceMenuItem` | public class | One line of the list. |
@@ -1644,6 +1645,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneSurroundingsFacts` | public class | What the game knows of a scene's surroundings. |
 | `SceneSurroundingsText` | public static class | The narrator's block about the scene's surroundings. |
 | `TaleGrudge` | public class | A grudge a tale's ending plants between two of its heroes. |
+| `TaleJournalFacts` | public class | One open journal entry of a tale, against the tale the game is running. |
+| `TaleJournalPolicy` | public static class | tashmetu (07/10/2026): "a finished tale stays listed twice, under Old Quests and still under Active Quests". |
+| `TaleJournalVerdict` | public enum | What becomes of a tale's journal entry. |
 
 ### CalradiaRemembers.Logic.Battles (8)
 

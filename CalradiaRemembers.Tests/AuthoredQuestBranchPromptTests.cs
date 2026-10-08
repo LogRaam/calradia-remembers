@@ -162,7 +162,7 @@ namespace CalradiaRemembers.Tests
          string told = AuthoredQuestPrompt.ChoicesForInterpreter(At(q, "the_road"), q, Giver);
          var parsed = new NpcMemoryService.Core.Parsing.SectionResponseParser().Parse("[DIALOGUE]So be it.[/DIALOGUE]\n" + told.Substring(told.IndexOf("[ACTION]", System.StringComparison.Ordinal)).Replace("<the choice id>", "let_it_be"));
 
-         told.Should().Contain("choice let_it_be: the player says the boy of Ortongard is not worth the trouble").And.NotContain("{village}");
+         told.Should().Contain("- let_it_be: the player says the boy of Ortongard is not worth the trouble").And.NotContain("{village}");
          parsed.Actions.Should().ContainSingle(a => a.Type == AuthoredQuestPrompt.StoryChoiceVerb && a.Parameters["choice"] == "let_it_be");
       }
 

@@ -187,6 +187,19 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          => Current(run, q)?.Objective?.Type == "explore" ? OpenChoices(run, q).Where(IsSceneChoice).ToList() : new List<AuthoredChoice>();
 
       /// <summary>
+      ///   The scene has nothing left the tale needs: every required finding found, and no way out to choose (tashmetu,
+      ///   07/10/2026: the narrator kept asking "What do you do?" until the player closed the chat). The player may end it.
+      /// </summary>
+      public static bool SceneMayEnd(AuthoredQuestRun run, AuthoredQuest q)
+      {
+         AuthoredScene scene = Current(run, q)?.Objective?.Type == "explore" ? Current(run, q).Objective.Scene : null;
+         if (scene == null || SceneChoices(run, q).Count > 0) return false;
+         List<AuthoredFinding> required = scene.Findings.Where(f => f != null && f.Required).ToList();
+
+         return required.Count > 0 && required.All(f => run.Findings.Contains(f.Id));
+      }
+
+      /// <summary>
       ///   The journal for the current stage: its own line, then the line of each open choice that has one (Gabriel's
       ///   goal: the journal shows the ways out the author chose to name). Placeholders unfilled.
       /// </summary>

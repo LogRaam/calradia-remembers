@@ -232,6 +232,11 @@ out, and the first one taken wins: the others close.
 | `default` | In a scene: taken when the scene closes with no choice made, if the stage has no `on_complete.next`. |
 | `canvas`, `facts`, `knowers` | What is said in the conversation that takes the choice, by the character in it: the lord who hears the truth, the rival shown the proof. Without them, that character speaks from the stage. |
 
+**Give a choice stage its own `knowers`.** While a stage with choices is under way, its characters know only
+that stage's `knowers` (and `canvas`/`facts` for the one being spoken to), not the earlier stages'. A giver
+whose stage forgets to say "You asked the player to seek the elders' counsel" answers "The elders? Why do you
+ask?" Restate, in each choice stage, what each character there must still know. (Thank you, tashmetu.)
+
 A choice is taken in one of three ways:
 
 - **By an act**: it carries an `objective`: `talk_to`, `return`, `talk_to_locals`, `be_at`,
