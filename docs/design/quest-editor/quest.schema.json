@@ -226,7 +226,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "An image file of the tale's own folder (.png or .jpg), opened beside the chat when this stage's scene opens."
+          "description": "An image file of the tale's own folder (.png or .jpg), opened beside the chat when this stage's scene opens, or a conversation of this stage (with its characters or the people of its place)."
         },
         "objective": {
           "$ref": "#/$defs/AuthoredObjective",
@@ -996,6 +996,14 @@
           "x-kind": "string",
           "description": "The finding's name, used in its marker."
         },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "An image file of the tale's own folder (.png or .jpg), shown beside the chat when the narration reveals it."
+        },
         "required": {
           "type": "boolean",
           "x-kind": "bool",
@@ -1033,6 +1041,14 @@
           "x-kind": "string",
           "description": "The hazard's name, used in its marker."
         },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "An image file of the tale's own folder (.png or .jpg), shown beside the chat when it springs."
+        },
         "trigger": {
           "type": [
             "string",
@@ -1062,6 +1078,14 @@
           ],
           "x-kind": "string",
           "description": "The person's name in the file, used in its marker."
+        },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "An image file of the tale's own folder (.png or .jpg), shown beside the chat when they are met."
         },
         "name": {
           "type": [

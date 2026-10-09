@@ -28,6 +28,7 @@
     {
       "id": "the_request",
       "journal": "{giver} has asked you to look into the beast said to haunt the wood by {village}.",
+      "image": "Moonlit Council in the Castle Hall.jpg",
       "objective": {
         "type": "talk_to",
         "hero": "{giver}"
@@ -51,6 +52,7 @@
     {
       "id": "question_the_village",
       "journal": "Ask the people of {village} what they have seen.",
+      "image": "Whispers Beneath the Moonlit Tavern.jpg",
       "objective": {
         "type": "talk_to_locals",
         "place": "{village}",
@@ -81,10 +83,7 @@
         "type": "keep_watch",
         "place": "{village}",
         "radius": 12,
-        "nights": [
-          2,
-          5
-        ],
+        "nights": [2, 5],
         "chance": 0.35
       },
       "canvas": "",
@@ -130,6 +129,24 @@
               "text": "Cart ruts leading out of the wood toward the road to the coast."
             }
           ],
+          "hazards": [
+            {
+              "id": "snare",
+              "trigger": "pushing through the undergrowth off the track without care",
+              "effect": {
+                "type": "injure",
+                "hit_points": [15, 30]
+              }
+            },
+            {
+              "id": "lookout",
+              "trigger": "being seen or heard by the slavers' lookout near their camp",
+              "effect": {
+                "type": "alert",
+                "party": "slavers"
+              }
+            }
+          ],
           "encounters": [
             {
               "id": "escaped_girl",
@@ -144,28 +161,7 @@
               "escort_to": "{village}"
             }
           ],
-          "closing": "Whatever the player did, they leave the wood knowing it was men, not a beast, and that the missing women are being sold.",
-          "hazards": [
-            {
-              "id": "snare",
-              "trigger": "pushing through the undergrowth off the track without care",
-              "effect": {
-                "type": "injure",
-                "hit_points": [
-                  15,
-                  30
-                ]
-              }
-            },
-            {
-              "id": "lookout",
-              "trigger": "being seen or heard by the slavers' lookout near their camp",
-              "effect": {
-                "type": "alert",
-                "party": "slavers"
-              }
-            }
-          ]
+          "closing": "Whatever the player did, they leave the wood knowing it was men, not a beast, and that the missing women are being sold."
         }
       },
       "canvas": "",
@@ -212,10 +208,7 @@
         "spawn": {
           "id": "slavers",
           "template": "local",
-          "size": [
-            12,
-            20
-          ],
+          "size": [12, 20],
           "name": "Slavers of the {village} wood",
           "near": "{village}",
           "behavior": "hide_near",

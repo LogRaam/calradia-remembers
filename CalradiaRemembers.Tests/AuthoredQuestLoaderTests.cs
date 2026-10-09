@@ -113,10 +113,15 @@ namespace CalradiaRemembers.Tests
          string dir = Path.Combine(SourceTree.ModRepo!, "CalradiaRemembers", "ModuleData", "Quests");
          if (!Directory.Exists(dir)) Assert.Ignore("no shipped quests yet");
 
-         AuthoredQuestLoadResult r = AuthoredQuestLoader.ParseAll(Directory.GetFiles(dir, "*.json").Select(f => (Path.GetFileName(f), File.ReadAllText(f))));
+         // A tale may be a folder of its own, its JSON beside its images (Gabriel, 08/10/2026): one level down, as the game reads.
+         List<string> files = Directory.GetFiles(dir, "*.json").Concat(Directory.GetDirectories(dir).SelectMany(d => Directory.GetFiles(d, "*.json"))).ToList();
+         AuthoredQuestLoadResult r = AuthoredQuestLoader.ParseAll(files.Select(f => (f, File.ReadAllText(f))));
 
          r.Problems.Should().BeEmpty();
          r.Quests.Should().NotBeEmpty();
+         // Every image a shipped tale names is in its folder.
+         foreach (AuthoredQuest q in r.Quests)
+            AuthoredTaleImages.Problems(q, name => File.Exists(Path.Combine(Path.GetDirectoryName(q.Source)!, name))).Should().BeEmpty();
       }
    }
 }

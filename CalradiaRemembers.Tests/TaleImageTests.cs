@@ -58,6 +58,35 @@ namespace CalradiaRemembers.Tests
          problems.Should().ContainSingle().Which.Should().Contain("the_wood").And.Contain("dusk.jpg");
       }
 
+      // Gabriel (08/10/2026): findings, hazards and the people met carry images too, shown when the narration reveals,
+      // springs or brings them in. When one narration does several, the person met shows over the danger, the danger over
+      // the finding.
+      [Test]
+      public void GIVEN_a_narration_that_reveals_springs_and_meets_WHEN_the_picture_is_chosen_THEN_the_person_met_shows()
+      {
+         AuthoredQuest q = Tale("dusk.jpg");
+         AuthoredScene scene = AuthoredQuestEngine.Current(AuthoredTales.At(q, "the_wood"), q).Objective.Scene;
+         scene.Findings[0].Image = "lantern.jpg";
+         scene.Hazards.Add(new AuthoredHazard {Id = "snare", Image = "snare.jpg"});
+         scene.Encounters.Add(new AuthoredEncounter {Id = "boy", Image = "boy.jpg"});
+         AuthoredQuestRun run = AuthoredTales.At(q, "the_wood");
+
+         AuthoredTaleImages.ImageForMarkers(run, q, new[] {"lantern"}, new string[0], new string[0]).Should().Be("lantern.jpg");
+         AuthoredTaleImages.ImageForMarkers(run, q, new[] {"lantern"}, new[] {"snare"}, new string[0]).Should().Be("snare.jpg");
+         AuthoredTaleImages.ImageForMarkers(run, q, new[] {"lantern"}, new[] {"snare"}, new[] {"boy"}).Should().Be("boy.jpg");
+         AuthoredTaleImages.ImageForMarkers(run, q, new string[0], new string[0], new string[0]).Should().BeNull();
+      }
+
+      // Their images are checked at load like a stage's.
+      [Test]
+      public void GIVEN_a_finding_image_missing_WHEN_checked_THEN_the_author_is_told_which()
+      {
+         AuthoredQuest q = Tale("dusk.jpg");
+         AuthoredQuestEngine.Current(AuthoredTales.At(q, "the_wood"), q).Objective.Scene.Findings[0].Image = "lantern.jpg";
+
+         AuthoredTaleImages.Problems(q, name => name == "dusk.jpg").Should().ContainSingle().Which.Should().Contain("lantern");
+      }
+
       // A path, a climb out of the folder, or a format the game does not load is refused before any disk is read.
       [Test]
       public void GIVEN_a_path_or_a_format_not_loaded_WHEN_checked_THEN_it_is_refused()

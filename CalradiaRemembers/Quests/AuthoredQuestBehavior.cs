@@ -687,6 +687,13 @@ namespace CalradiaRemembers.Quests
             MayEnd = () => _run is {Status: AuthoredQuestStatus.Active} && AuthoredQuestEngine.SceneMayEnd(_run, q),
             // Gabriel (08/10/2026): the stage's picture opens beside the chat with its scene.
             ImagePath = SceneImagePath(q),
+            TakeImage = () =>
+            {
+               string path = _pendingSceneImage;
+               _pendingSceneImage = null;
+
+               return path;
+            },
             FoundSoFar = () => (AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.Findings ?? new List<AuthoredFinding>())
                                .Where(f => _run.Findings.Contains(f.Id)).Select(f => AuthoredQuestEngine.Fill(_run, f.Text)).ToList()
          });
@@ -695,14 +702,50 @@ namespace CalradiaRemembers.Quests
 
       private bool _sceneWaiting;
 
+      private string _pendingSceneImage;
+
       /// <summary>The full path of the image of the stage under way, when it names one present in the tale's folder.</summary>
-      private string SceneImagePath(AuthoredQuest q)
+      private string SceneImagePath(AuthoredQuest q) => ImagePath(q, AuthoredTaleImages.ImageFor(_run, q));
+
+      /// <summary>The full path of one of the tale's images, when it is present in the tale's folder; null otherwise.</summary>
+      private string ImagePath(AuthoredQuest q, string image)
       {
-         string image = AuthoredTaleImages.ImageFor(_run, q), folder = FolderOf(q);
-         if (image == null || folder == null) return null;
-         string path = AuthoredTaleImages.PathIn(folder, image);
+         string folder = FolderOf(q);
+         if (!AuthoredTaleImages.IsAcceptedName(image) || folder == null) return null;
+         string path = AuthoredTaleImages.PathIn(folder, image.Trim());
 
          return File.Exists(path) ? path : null;
+      }
+
+      /// <summary>
+      ///   The picture of the stage a conversation with this character belongs to, and the tale's title (Gabriel, 08/10/2026:
+      ///   the lord's hall when he asks, the tavern when the village is questioned): the stage under way for someone the tale
+      ///   speaks to, the first stage for the one offering it. Null when the conversation is no part of a tale.
+      /// </summary>
+      public (string Path, string Title)? ConversationImageFor(Hero hero)
+      {
+         if (hero == null) return null;
+         try
+         {
+            if (PromptBlockFor(hero) == null) return null;
+            if (_run is {Status: AuthoredQuestStatus.Active} && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q))
+               return SceneImagePath(q) is string p ? (p, q.Title) : null;
+            if (_offer != null && _offerHeroId == hero.StringId && _quests.TryGetValue(_offer.QuestId, out AuthoredQuest o))
+               return ImagePath(o, o.Stages.FirstOrDefault()?.Image) is string first ? (first, o.Title) : null;
+         }
+         catch (Exception ex) { ModLog.Error($"[TALE] conversation image failed: {ex.GetType().Name}: {ex.Message}"); }
+
+         return null;
+      }
+
+      /// <summary>The picture of the stage under way for a villager of <paramref name="place" /> the tale concerns, or null.</summary>
+      public (string Path, string Title)? ConversationImageForLocalsOf(Settlement place)
+      {
+         if (place == null || PromptBlockForLocalsOf(place) == null) return null;
+         if (_run is {Status: AuthoredQuestStatus.Active} && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q))
+            return SceneImagePath(q) is string p ? (p, q.Title) : null;
+
+         return null;
       }
 
       /// <summary>What the game knows of where the scene happens and who walks into it (fkasad, 07/10/2026).</summary>
@@ -742,6 +785,9 @@ namespace CalradiaRemembers.Quests
       private IReadOnlyList<string> ApplyMarkers(AuthoredQuest q, SceneMarkers m, Action endTheScene)
       {
          var notes = new List<string>();
+         // Gabriel (08/10/2026): what this narration reveals, springs or brings in may carry a picture; read before the
+         // markers move the tale on, and taken by the chat once the narration is shown.
+         _pendingSceneImage = ImagePath(q, AuthoredTaleImages.ImageForMarkers(_run, q, m.Found, m.Hazards, m.Met));
          foreach (string f in m.Found)
             if (AuthoredQuestEngine.Found(_run, q, f)) ModLog.Info($"[TALE] finding '{f}'.");
 

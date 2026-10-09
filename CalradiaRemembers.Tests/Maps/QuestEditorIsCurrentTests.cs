@@ -58,7 +58,7 @@ namespace CalradiaRemembers.Tests.Maps
 
          const string start = "<script id=\"template-werewolf\" type=\"application/json\">";
          string path = System.IO.Path.Combine(SourceTree.ModRepo!, QuestSchemaMap.EditorPath.Replace('/', System.IO.Path.DirectorySeparatorChar));
-         string shipped = File.ReadAllText(System.IO.Path.Combine(SourceTree.ModRepo!, "CalradiaRemembers", "ModuleData", "Quests", "wolf_of_the_wood.json")).Replace("\r\n", "\n").TrimEnd('\n');
+         string shipped = File.ReadAllText(AuthoredTales.WolfFile).Replace("\r\n", "\n").TrimEnd('\n');
          string html = File.ReadAllText(path);
          int from = html.IndexOf(start, StringComparison.Ordinal) + start.Length;
          int to = html.IndexOf(QuestSchemaMap.EmbedEnd, from, StringComparison.Ordinal);

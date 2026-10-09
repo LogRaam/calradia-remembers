@@ -632,7 +632,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "An image file of the tale's own folder (.png or .jpg), opened beside the chat when this stage's scene opens."
+          "description": "An image file of the tale's own folder (.png or .jpg), opened beside the chat when this stage's scene opens, or a conversation of this stage (with its characters or the people of its place)."
         },
         "objective": {
           "$ref": "#/$defs/AuthoredObjective",
@@ -1402,6 +1402,14 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "string",
           "description": "The finding's name, used in its marker."
         },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "An image file of the tale's own folder (.png or .jpg), shown beside the chat when the narration reveals it."
+        },
         "required": {
           "type": "boolean",
           "x-kind": "bool",
@@ -1439,6 +1447,14 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "string",
           "description": "The hazard's name, used in its marker."
         },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "An image file of the tale's own folder (.png or .jpg), shown beside the chat when it springs."
+        },
         "trigger": {
           "type": [
             "string",
@@ -1468,6 +1484,14 @@ input[type="number"] { max-width: 160px; }
           ],
           "x-kind": "string",
           "description": "The person's name in the file, used in its marker."
+        },
+        "image": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "An image file of the tale's own folder (.png or .jpg), shown beside the chat when they are met."
         },
         "name": {
           "type": [
@@ -1677,6 +1701,7 @@ input[type="number"] { max-width: 160px; }
     {
       "id": "the_request",
       "journal": "{giver} has asked you to look into the beast said to haunt the wood by {village}.",
+      "image": "Moonlit Council in the Castle Hall.jpg",
       "objective": {
         "type": "talk_to",
         "hero": "{giver}"
@@ -1700,6 +1725,7 @@ input[type="number"] { max-width: 160px; }
     {
       "id": "question_the_village",
       "journal": "Ask the people of {village} what they have seen.",
+      "image": "Whispers Beneath the Moonlit Tavern.jpg",
       "objective": {
         "type": "talk_to_locals",
         "place": "{village}",
@@ -1730,10 +1756,7 @@ input[type="number"] { max-width: 160px; }
         "type": "keep_watch",
         "place": "{village}",
         "radius": 12,
-        "nights": [
-          2,
-          5
-        ],
+        "nights": [2, 5],
         "chance": 0.35
       },
       "canvas": "",
@@ -1779,6 +1802,24 @@ input[type="number"] { max-width: 160px; }
               "text": "Cart ruts leading out of the wood toward the road to the coast."
             }
           ],
+          "hazards": [
+            {
+              "id": "snare",
+              "trigger": "pushing through the undergrowth off the track without care",
+              "effect": {
+                "type": "injure",
+                "hit_points": [15, 30]
+              }
+            },
+            {
+              "id": "lookout",
+              "trigger": "being seen or heard by the slavers' lookout near their camp",
+              "effect": {
+                "type": "alert",
+                "party": "slavers"
+              }
+            }
+          ],
           "encounters": [
             {
               "id": "escaped_girl",
@@ -1793,28 +1834,7 @@ input[type="number"] { max-width: 160px; }
               "escort_to": "{village}"
             }
           ],
-          "closing": "Whatever the player did, they leave the wood knowing it was men, not a beast, and that the missing women are being sold.",
-          "hazards": [
-            {
-              "id": "snare",
-              "trigger": "pushing through the undergrowth off the track without care",
-              "effect": {
-                "type": "injure",
-                "hit_points": [
-                  15,
-                  30
-                ]
-              }
-            },
-            {
-              "id": "lookout",
-              "trigger": "being seen or heard by the slavers' lookout near their camp",
-              "effect": {
-                "type": "alert",
-                "party": "slavers"
-              }
-            }
-          ]
+          "closing": "Whatever the player did, they leave the wood knowing it was men, not a beast, and that the missing women are being sold."
         }
       },
       "canvas": "",
@@ -1861,10 +1881,7 @@ input[type="number"] { max-width: 160px; }
         "spawn": {
           "id": "slavers",
           "template": "local",
-          "size": [
-            12,
-            20
-          ],
+          "size": [12, 20],
           "name": "Slavers of the {village} wood",
           "near": "{village}",
           "behavior": "hide_near",
@@ -3599,10 +3616,10 @@ input[type="number"] { max-width: 160px; }
     AuthoredObjective: ['type', 'hero', 'place', 'count', 'radius', 'nights', 'chance', 'days', 'scene', 'spawn', 'item', 'to'],
     AuthoredScene: ['title', 'opening', 'findings', 'hazards', 'encounters', 'closing', 'invite_prisoners'],
     AuthoredBeat: ['canvas', 'facts'],
-    AuthoredFinding: ['id', 'required', 'text', 'sets'],
-    AuthoredHazard: ['id', 'trigger', 'effect'],
+    AuthoredFinding: ['id', 'required', 'text', 'sets', 'image'],
+    AuthoredHazard: ['id', 'trigger', 'effect', 'image'],
     AuthoredHazardEffect: ['type', 'hit_points', 'party', 'hours'],
-    AuthoredEncounter: ['id', 'name', 'persona', 'knows', 'sets', 'may_materialize', 'materialize_when', 'escort_to'],
+    AuthoredEncounter: ['id', 'name', 'persona', 'knows', 'sets', 'may_materialize', 'materialize_when', 'escort_to', 'image'],
     AuthoredSpawn: ['id', 'template', 'size', 'name', 'near', 'behavior', 'flee_after_days', 'scale_with_player'],
     AuthoredOutcome: ['days', 'regard', 'gold', 'memory', 'journal', 'consequences'],
     AuthoredConsequence: ['type', 'who', 'against', 'text', 'summary', 'magnitude', 'place', 'if'],
@@ -4519,7 +4536,8 @@ input[type="number"] { max-width: 160px; }
         textField(ck + '/id', 'Id', 'AuthoredFinding', 'id', f, {mono: true}),
         boolField(ck + '/required', 'Required', 'AuthoredFinding', 'required', f, {structural: true}),
         flagsField(ck + '/sets', 'Sets flags', 'AuthoredFinding', 'sets', f)),
-        textField(ck + '/text', 'What the player finds', 'AuthoredFinding', 'text', f, {multiline: true, wide: true})]};
+        textField(ck + '/text', 'What the player finds', 'AuthoredFinding', 'text', f, {multiline: true, wide: true}),
+        imageField(ck, f, 'AuthoredFinding', 'Image (beside the chat when it is found)')]};
     }, function () { return {id: 'finding_' + ((sc.findings || []).length + 1), required: true, text: ''}; }, 'Add a finding'));
     box.appendChild(cardList(k + '.hazards', 'Hazards', help('AuthoredScene', 'hazards'), sc, 'hazards', function (hz, i, ck) {
       var effect = lazy(hz, 'effect');
@@ -4530,7 +4548,8 @@ input[type="number"] { max-width: 160px; }
         h('div.grid',
           effect.type === 'injure' ? pairField(ck + '/effect.hit_points', 'Hit points taken', 'AuthoredHazardEffect', 'hit_points', effect, ['fewest', 'most']) : null,
           effect.type === 'alert' ? textField(ck + '/effect.party', 'Band', 'AuthoredHazardEffect', 'party', effect, {mono: true}) : null,
-          effect.type === 'lose_time' ? numberField(ck + '/effect.hours', 'Hours', 'AuthoredHazardEffect', 'hours', effect, {min: 0}) : null)]};
+          effect.type === 'lose_time' ? numberField(ck + '/effect.hours', 'Hours', 'AuthoredHazardEffect', 'hours', effect, {min: 0}) : null),
+        imageField(ck, hz, 'AuthoredHazard', 'Image (beside the chat when it springs)')]};
     }, function () { return {id: 'hazard_' + ((sc.hazards || []).length + 1), trigger: '', effect: {type: 'injure', hit_points: [10, 25]}}; }, 'Add a hazard'));
     box.appendChild(cardList(k + '.encounters', 'People met', help('AuthoredScene', 'encounters'), sc, 'encounters', function (en, i, ck) {
       return {title: en.name || en.id || '(no id)', chip: en.id, body: [h('div.grid',
@@ -4539,6 +4558,7 @@ input[type="number"] { max-width: 160px; }
         flagsField(ck + '/sets', 'Sets flags', 'AuthoredEncounter', 'sets', en)),
         textField(ck + '/persona', 'Who they are', 'AuthoredEncounter', 'persona', en, {multiline: true, wide: true}),
         stringListField(ck + '/knows', 'What they know', 'AuthoredEncounter', 'knows', en, {add: 'Add something they know'}),
+        imageField(ck, en, 'AuthoredEncounter', 'Image (beside the chat when they are met)'),
         h('details', h('summary', {style: 'cursor:pointer;color:var(--text-3);font-size:12px;margin-bottom:8px'}, 'Fields read but not played yet'), h('div.grid',
           boolField(ck + '/may_materialize', 'May become real', 'AuthoredEncounter', 'may_materialize', en),
           textField(ck + '/materialize_when', 'Becomes real when', 'AuthoredEncounter', 'materialize_when', en),
@@ -4600,8 +4620,13 @@ input[type="number"] { max-width: 160px; }
   // in the tale's own folder beside its JSON (Gabriel, 08/10/2026).
   var imagePreviews = {};
 
-  /** A stage's image: its file name, a picker that fills it and shows the picture, and the preview. */
+  /** A stage's image. */
   function stageImageField(key, s) {
+    return imageField(key, s, 'AuthoredStage', 'Image (beside the chat in this stage\'s scene and conversations)');
+  }
+
+  /** An image: its file name, a picker that fills it and shows the picture, and the preview. */
+  function imageField(key, s, defName, label) {
     var preview = h('div.image-preview');
     function show() {
       preview.textContent = '';
@@ -4619,7 +4644,7 @@ input[type="number"] { max-width: 160px; }
       };
       reader.readAsDataURL(file);
     }}});
-    var box = h('div', textField(key + '/image', 'Image (shown beside the chat when this stage\'s scene opens)', 'AuthoredStage', 'image', s, {mono: true, wide: true, placeholder: 'tracks_at_dusk.jpg'}), picker, preview);
+    var box = h('div', textField(key + '/image', label, defName, 'image', s, {mono: true, wide: true, placeholder: 'tracks_at_dusk.jpg'}), picker, preview);
     show();
     return box;
   }

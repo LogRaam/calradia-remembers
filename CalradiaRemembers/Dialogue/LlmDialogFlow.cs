@@ -645,6 +645,9 @@ namespace CalradiaRemembers.Dialogue
                vm.SetNpcHero(hero);
 
                SeedCapturedVanillaLinesIntoChat(vm, behavior);
+               // Gabriel (08/10/2026): a conversation that is part of a written tale opens on its stage's picture.
+               if (Quests.AuthoredQuestBehavior.Instance?.ConversationImageFor(hero) is (string talePicture, string taleTitle))
+                  vm.ShowSceneImage(talePicture, taleTitle);
                // Show both scores in the header from the first frame.
                Logic.GameRelationFacts relations = GameRelations.Of(hero);
                vm.SetRelationSummary(

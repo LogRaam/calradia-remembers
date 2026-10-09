@@ -177,8 +177,11 @@ conversation where it is offered, so it cannot offer choices. Put them on the ne
 ### A stage's image
 
 `"image": "tracks_at_dusk.jpg"` on a stage names a picture of the tale's own folder (`.png` or `.jpg`, a bare
-file name). When that stage's scene opens, the picture opens by itself in the panel left of the chat, under the
-scene's title, drawn whole and never stretched. A name with a folder in it, another format, or a file that is not
+file name). When that stage's scene opens, or a conversation of that stage begins (with a character the stage speaks
+to, the one offering the tale for its first stage, or a villager of the place it turns on), the picture opens by
+itself in the panel left of the chat, drawn whole and never stretched. A scene's findings, hazards and people met may
+carry an `"image"` too: it opens when the narration reveals, springs or brings them in (a person met shows over a
+danger, a danger over a finding). A name with a folder in it, another format, or a file that is not
 there is reported by `cr.story_check` and the scene opens without it. In the Tale Editor, pick the file beside the
 stage's Image field to fill its name and see it.
 
@@ -478,7 +481,7 @@ choice between telling the lord (talk to the giver) and letting a week pass, eac
 
 ## 14. Full examples
 
-`Modules/CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood.json` is a complete tale: a request, a
+`Modules/CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf_of_the_wood.json` is a complete tale: a request, a
 village to question, nights of watch, a scene in the wood, a report, a band to destroy, and the
 return. Copy it into `ModuleData/Custom/Quests/`, change its `id`, and make it yours, or open it in the editor
 ("From the werewolf").

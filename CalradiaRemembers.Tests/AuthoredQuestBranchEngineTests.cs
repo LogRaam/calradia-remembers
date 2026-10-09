@@ -359,7 +359,7 @@ namespace CalradiaRemembers.Tests
       private static AuthoredQuest Wolf()
       {
          if (!SourceTree.IsReachable) Assert.Ignore($"source tree not reachable: {SourceTree.MissingAnchor}");
-         string file = Path.Combine(SourceTree.ModRepo!, "CalradiaRemembers", "ModuleData", "Quests", "wolf_of_the_wood.json");
+         string file = AuthoredTales.WolfFile;
 
          return AuthoredQuestLoader.Parse(File.ReadAllText(file), "wolf_of_the_wood.json").Quests.Single();
       }

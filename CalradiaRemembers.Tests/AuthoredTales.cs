@@ -101,11 +101,14 @@ namespace CalradiaRemembers.Tests
             new Dictionary<string, string> {["giver"] = Giver, ["village"] = Village},
             new Dictionary<string, string> {["giver"] = "Lord Aldric", ["village"] = "Ortongard"}, today);
 
+      /// <summary>The Wolf of the Wood's file as it ships: a folder of its own, its JSON beside its images (08/10/2026).</summary>
+      public static string WolfFile => System.IO.Path.Combine(SourceTree.ModRepo!, "CalradiaRemembers", "ModuleData", "Quests", "wolf_of_the_wood", "wolf_of_the_wood.json");
+
       /// <summary>The Wolf of the Wood as it ships, read from the module folder.</summary>
       public static AuthoredQuest Wolf()
       {
          if (!SourceTree.IsReachable) Assert.Ignore($"source tree not reachable: {SourceTree.MissingAnchor}");
-         string file = System.IO.Path.Combine(SourceTree.ModRepo!, "CalradiaRemembers", "ModuleData", "Quests", "wolf_of_the_wood.json");
+         string file = AuthoredTales.WolfFile;
 
          return AuthoredQuestLoader.Parse(System.IO.File.ReadAllText(file), "wolf_of_the_wood.json").Quests.Single();
       }

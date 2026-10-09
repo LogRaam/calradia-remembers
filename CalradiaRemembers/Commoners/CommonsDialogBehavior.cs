@@ -96,6 +96,9 @@ namespace CalradiaRemembers.Commoners
          NpcProfile profile = CommonsProfileFactory.Create(settlement, partner?.IsFemale);
 
          ChatManager.OpenForCommoner(profile, knowledge);
+         // Gabriel (08/10/2026): a villager of the place a tale's stage turns on opens on that stage's picture.
+         if (Quests.AuthoredQuestBehavior.Instance?.ConversationImageForLocalsOf(settlement) is (string talePicture, string taleTitle))
+            ChatManager.ActiveViewModel?.ShowSceneImage(talePicture, taleTitle);
       }
 
       #endregion

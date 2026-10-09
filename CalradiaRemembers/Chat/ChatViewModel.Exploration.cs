@@ -55,6 +55,9 @@ namespace CalradiaRemembers.Chat
       /// <summary>The full path of the picture shown beside the chat when the scene opens, or null (Gabriel, 08/10/2026).</summary>
       public string ImagePath { get; set; }
 
+      /// <summary>The picture the last narration called for (a finding, a danger, a person), taken once; null when none.</summary>
+      public Func<string> TakeImage { get; set; }
+
       /// <summary>The scene has nothing left the tale needs: the player may end it, unasked (tashmetu, 07/10/2026).</summary>
       public Func<bool> MayEnd { get; set; }
 
@@ -268,6 +271,10 @@ namespace CalradiaRemembers.Chat
 
             foreach (string note in _exploration.Apply?.Invoke(markers) ?? Array.Empty<string>())
                AppendSystemMessage(note, false);
+
+            // Gabriel (08/10/2026): a finding revealed, a danger sprung or a person met may bring its picture beside the chat.
+            string picture = _exploration.TakeImage?.Invoke();
+            if (picture != null) ShowSceneImage(picture, _exploration.Title);
 
             // tashmetu (07/10/2026): once everything needed is found, say so once, so the player knows they may end it.
             if (!_sceneEndNoted && _exploration.MayEnd?.Invoke() == true)
