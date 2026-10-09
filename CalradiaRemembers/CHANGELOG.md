@@ -2,6 +2,16 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.7.. 2026-10-09
+
+### For modders
+- **Tales from other mods** (tashmetu): every enabled mod's `ModuleData/cr_quests` (one sub-folder per tale), in launcher
+  order, after CR's own and the player's folders (`AuthoredQuestFolders.FromModules`, the enabled list cr_patch reads).
+  A tale's source carries its mod's id; a duplicate id keeps the first read and reports the other.
+
+### Developer tools
+- cr.testall tale_mod_folders.
+
 ## v2.7.6.. 2026-10-08
 
 ### New

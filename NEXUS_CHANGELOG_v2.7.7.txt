@@ -1,0 +1,16 @@
+Version 2.7.7
+
+Other mods can now ship written tales of their own.
+
+For modders
+
+- A mod can ship written tales in its own ModuleData/cr_quests folder, with one sub-folder per tale if the tale has pictures. Calradia Remembers reads that folder in every enabled mod, in the launcher's order. Your players copy nothing, an update of Calradia Remembers never touches your tales, and disabling your mod in the launcher removes them.
+- In cr.story_check, a tale from another mod is named with its mod first. Give your tale ids a prefix of your own: when two tales share an id, the one from Calradia Remembers, from the player's own files, or from a mod read earlier is kept, and the other is reported. HOWTO_Quests.md, section 1, explains it all. (Thank you, tashmetu.)
+
+Developer tools
+
+- New cr.testall test: tale_mod_folders.
+
+Notes
+
+- Your existing saves load as they are.
