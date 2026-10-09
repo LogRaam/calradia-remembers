@@ -4627,14 +4627,10 @@ input[type="number"] { max-width: 160px; }
 
   /** An image: its file name, a picker that fills it and shows the picture, and the preview. */
   function imageField(key, s, defName, label) {
-    var preview = h('div.image-preview');
-    function show() {
-      preview.textContent = '';
-      var url = s.image ? imagePreviews[s.image] : null;
-      if (url) preview.appendChild(h('img', {src: url, alt: s.image, style: 'max-width:100%;max-height:220px;border-radius:6px;margin-top:6px'}));
-      else if (s.image) preview.appendChild(h('p.empty-note', 'Pick the file to see it here. It must sit in the tale\'s own folder, beside its JSON.'));
-    }
-    var picker = h('input', {type: 'file', accept: '.png,.jpg,.jpeg', style: 'margin-top:6px', on: {change: function (e) {
+    // Gabriel (08/10/2026): the picture only. A button of our own stands for the browser's file input, so "No file
+    // chosen" shows only when no image is chosen; the file's name shows only when its picture cannot be (a tale
+    // reopened: the page cannot read the disk by itself).
+    var input = h('input', {type: 'file', accept: '.png,.jpg,.jpeg', style: 'display:none', on: {change: function (e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
       var reader = new FileReader();
@@ -4644,9 +4640,16 @@ input[type="number"] { max-width: 160px; }
       };
       reader.readAsDataURL(file);
     }}});
-    var box = h('div', textField(key + '/image', label, defName, 'image', s, {mono: true, wide: true, placeholder: 'tracks_at_dusk.jpg'}), picker, preview);
-    show();
-    return box;
+    var url = s.image ? imagePreviews[s.image] : null;
+    var row = h('div', {style: 'display:flex;gap:8px;align-items:center;margin-top:4px'},
+      h('button.btn', {type: 'button', on: {click: function () { input.click(); }}}, s.image ? 'Change image...' : 'Choose image...'),
+      s.image
+        ? h('button.btn.ghost', {type: 'button', on: {click: function () { edit(key + '/image', function () { delete s.image; }, true); }}}, 'Remove')
+        : h('span', {style: 'color:var(--text-3);font-size:13px'}, 'No file chosen'));
+    var shown = url
+      ? h('img', {src: url, alt: s.image, style: 'max-width:100%;max-height:220px;border-radius:6px;margin-top:8px;display:block'})
+      : s.image ? h('p.empty-note', s.image + ': choose it again to see it here. It must sit in the tale\'s own folder, beside its JSON.') : null;
+    return field(key + '/image', label, defName, 'image', h('div', input, row, shown), {wide: true});
   }
 
   function stageEditor(i) {
