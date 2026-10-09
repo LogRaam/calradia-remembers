@@ -58,7 +58,7 @@ namespace CalradiaRemembers.Chat
          _companionBriefingTargetId = target?.StringId;
          _companionBriefingTargetName = target?.Name?.ToString();
 
-         TitleText = "Calradia Remembers: A private word";
+         TitleText = "A private word";
          // The button says where it LEADS. Gabriel clicked "Done" expecting to be taken back to Ira and was
          // put on the map instead (2026-09-12); now the label promises the return the close actually performs.
          CloseButtonText = target?.Name == null

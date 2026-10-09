@@ -1322,7 +1322,7 @@ namespace CalradiaRemembers.Chat
          // draws a writing lens too, never the same as the last scene's.
          _captiveSceneStyle = CaptiveSceneText.PickStyleRegister(ref _lastCaptiveStyleIndex);
 
-         TitleText = $"Calradia Remembers — {prisonerProfile?.Name ?? "your prisoner"}";
+         TitleText = ChatTitleText.For(prisonerProfile?.Name ?? "your prisoner");
          CloseButtonText = "End";
          SendButtonText = "Send";
       }
@@ -1341,7 +1341,7 @@ namespace CalradiaRemembers.Chat
          _commonsKnowledge = knowledge;
          _commonerSession = new ChatSession();
 
-         TitleText = $"Calradia Remembers — {profile?.Name ?? "a commoner"}";
+         TitleText = ChatTitleText.For(profile?.Name ?? "a commoner");
          CloseButtonText = "Leave";
          SendButtonText = "Say";
       }
@@ -1399,9 +1399,7 @@ namespace CalradiaRemembers.Chat
          // mod and WHERE the sitting is held, and CouncilAgendaText (set above) names the KIND of gathering.
          CouncilSeatCountText = _councilParticipants.Count.ToString();
          string councilPlace = Hero.MainHero?.CurrentSettlement?.Name?.ToString();
-         CouncilTitleText = string.IsNullOrEmpty(councilPlace)
-            ? "Calradia Remembers"
-            : "Calradia Remembers " + (char) 0x2014 + " " + councilPlace; // 0x2014 = em dash, kept out of source
+         CouncilTitleText = ChatTitleText.For(councilPlace); // Gabriel (08/10/2026): the place alone
 
          ChatSpeaker speaker = MainSpeaker();
          if (speaker.Profile == null)
@@ -3397,7 +3395,7 @@ namespace CalradiaRemembers.Chat
             _npcPortraitCharacter = npcHero.Clan.BasicTroop;
 
          if (!string.IsNullOrWhiteSpace(npcHero?.Name?.ToString())) _npcName = npcHero.Name.ToString();
-         TitleText = $"Calradia Remembers — {_npcName}";
+         TitleText = ChatTitleText.For(_npcName);
 
          // SPOTLIGHT, hole 1 of 2 (found in play 2026-09-12). The cast used to be born inside
          // SetWitnesses, so a conversation with NO auto-detected witness - a lord standing alone, the
@@ -3422,7 +3420,7 @@ namespace CalradiaRemembers.Chat
       {
          if (string.IsNullOrWhiteSpace(npcName)) return;
          _npcName = npcName;
-         TitleText = $"Calradia Remembers — {npcName}";
+         TitleText = ChatTitleText.For(npcName);
       }
 
       /// <summary>
