@@ -32,6 +32,30 @@
             HeightSizePolicy="StretchToParent">
       <Children>
 
+        <!-- A tale's picture (Gabriel, 08/10/2026: too small in the leather page; "simply on the left in the black margin,
+             centred beside the chat"). The ground left of the chat page, the picture centred in it at its own aspect;
+             it slides with the chat like the book, and hides while the dossier page is open over the same ground.
+             Before the book, so the book draws over it. -->
+        <Widget Id="SceneImageArea"
+                WidthSizePolicy="StretchToParent"
+                HeightSizePolicy="StretchToParent"
+                MarginRight="!Right.Width"
+                PositionXOffset="@ChatVisualOffsetX"
+                IsVisible="@IsSceneImageVisible"
+                DoNotAcceptEvents="true">
+          <Children>
+            <CrRuntimeImageWidget Id="SceneImage"
+                                  WidthSizePolicy="Fixed"
+                                  HeightSizePolicy="Fixed"
+                                  SuggestedWidth="@SceneImageWidth"
+                                  SuggestedHeight="@SceneImageHeight"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  ImagePath="@SceneImagePath"
+                                  IsDisabled="true" />
+          </Children>
+        </Widget>
+
         <!-- The book: fixed size (aspect-locked to the page art) so the borders never distort. RIGHT-aligned to
              behave like the Classic window (anchored right, and the focus arbiter's ChatVisualOffsetX then slides
              it fully off-screen when a menu / the encyclopedia opens, exactly as Classic does). -->

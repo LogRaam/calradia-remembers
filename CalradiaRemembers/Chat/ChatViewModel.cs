@@ -622,8 +622,27 @@ namespace CalradiaRemembers.Chat
             if (_isManuscriptLeftPageOpen == value) return;
             _isManuscriptLeftPageOpen = value;
             OnPropertyChangedWithValue(value);
+            OnPropertyChanged(nameof(IsSceneImageVisible));
          }
       }
+
+      // ── A tale's picture in the margin (Gabriel, 08/10/2026: too small in the leather page; "simply on the left in the
+      //    black margin, centred beside the chat") ──
+      private bool _sceneImageShown;
+
+      /// <summary>The tale's picture shown in the Manuscript skin's margin, left of the chat.</summary>
+      [DataSourceProperty]
+      public string SceneImagePath { get; private set; } = "";
+
+      [DataSourceProperty]
+      public float SceneImageWidth { get; private set; }
+
+      [DataSourceProperty]
+      public float SceneImageHeight { get; private set; }
+
+      /// <summary>Shown while a picture is set, and hidden while the leather dossier page is open over the same ground.</summary>
+      [DataSourceProperty]
+      public bool IsSceneImageVisible => _sceneImageShown && !_isManuscriptLeftPageOpen;
 
       /// <summary>
       ///   True when there is a real hero across the conversation to open an encyclopedia page for
@@ -3236,6 +3255,34 @@ namespace CalradiaRemembers.Chat
       {
          if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) return;
 
+         float aspectW = 4f, aspectH = 3f;
+         if (RuntimePortraitFactory.TryGetDimensions(path, out int iw, out int ih) && iw > 0 && ih > 0)
+         {
+            aspectW = iw;
+            aspectH = ih;
+         }
+
+         // Manuscript: the picture stands large in the dark margin beside the chat, never in the leather page's small
+         // portrait box; the dossier page keeps its own portrait.
+         if (ChatManager.ActiveSkin == ChatManager.ManuscriptSkin)
+         {
+            const float marginBoxW = 1100f;
+            const float marginBoxH = 820f;
+            float fit = Math.Min(marginBoxW / aspectW, marginBoxH / aspectH);
+            SceneImagePath = path;
+            SceneImageWidth = aspectW * fit;
+            SceneImageHeight = aspectH * fit;
+            _sceneImageShown = true;
+            OnPropertyChanged(nameof(SceneImagePath));
+            OnPropertyChanged(nameof(SceneImageWidth));
+            OnPropertyChanged(nameof(SceneImageHeight));
+            OnPropertyChanged(nameof(IsSceneImageVisible));
+            ModLog.Info($"[SCENE] image shown in the margin: {System.IO.Path.GetFileName(path)}.");
+
+            return;
+         }
+
+         // Classic: the left pop-out, the picture as a custom portrait with no dossier beside it.
          PanelPortraitId = "";
          PanelPortraitTextureProviderName = "";
          PanelPortraitAdditionalArgs = "";
@@ -3243,12 +3290,6 @@ namespace CalradiaRemembers.Chat
          ResolvePanelInfo(new ChatMessageViewModel(title ?? "", SystemGainColor)); // a line with no portrait: clears the dossier
          PanelPortraitPath = path;
          ShowPanelCustomPortrait = true;
-         float aspectW = 4f, aspectH = 3f;
-         if (RuntimePortraitFactory.TryGetDimensions(path, out int iw, out int ih) && iw > 0 && ih > 0)
-         {
-            aspectW = iw;
-            aspectH = ih;
-         }
 
          FinishPanel(aspectW, aspectH, string.IsNullOrEmpty(title) ? "The scene" : title);
          if (ChatManager.ActiveSkin == ChatManager.ManuscriptSkin)

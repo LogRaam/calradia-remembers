@@ -9230,8 +9230,12 @@ namespace CalradiaRemembers.Diagnostics
             });
 
             t.Expect("theSceneOpened", Chat.ChatManager.IsOpen, true);
-            t.Expect("thePictureIsShown", Chat.ChatManager.ActiveViewModel?.ShowPanelCustomPortrait == true, true);
-            t.Expect("thatVeryFile", Chat.ChatManager.ActiveViewModel?.PanelPortraitPath, path);
+            // Dark Leather shows it in the margin beside the chat, Classic in its left pop-out.
+            Chat.ChatViewModel vm = Chat.ChatManager.ActiveViewModel;
+            bool inMargin = vm?.IsSceneImageVisible == true && vm.SceneImagePath == path;
+            bool inPanel = vm?.ShowPanelCustomPortrait == true && vm.PanelPortraitPath == path;
+            t.Note(inMargin ? "shown in the margin (Dark Leather)" : inPanel ? "shown in the left panel (Classic)" : "not shown");
+            t.Expect("thatVeryPictureIsShown", inMargin || inPanel, true);
          }
          finally
          {
