@@ -132,13 +132,14 @@ namespace CalradiaRemembers.Quests
          // fkasad (06/10/2026): also Quests under the player's Custom folder (the MCM path when set), like every other file.
          // Gabriel (08/10/2026): a tale may be a folder of its own, its JSON beside its images; one level down is read too.
          foreach (string dir in AuthoredQuestFolders.List(root, Mapping.NarrativeLoader.CustomBaseFolder()))
-            if (Directory.Exists(dir))
-            {
-               foreach (string f in Directory.GetFiles(dir, "*.json")) AddFile(files, Path.GetFileName(f), f);
-               foreach (string sub in Directory.GetDirectories(dir))
-                  if (!string.Equals(Path.GetFileName(sub), "Custom", StringComparison.OrdinalIgnoreCase))
-                     foreach (string f in Directory.GetFiles(sub, "*.json")) AddFile(files, Path.GetFileName(sub) + "/" + Path.GetFileName(f), f);
-            }
+            ReadTalesFolder(files, dir, rel => rel);
+         // Gabriel (09/10/2026), for tashmetu: another enabled mod's ModuleData/cr_quests, after CR's own and the player's,
+         // so a tale already defined there wins and the mod's copy is reported by cr.story_check.
+         foreach (TaleModuleFolder mod in ModuleTaleFolders())
+         {
+            if (Directory.Exists(mod.Folder)) ModLog.Info($"[TALE] reading {mod.ModuleId}'s tales ({AuthoredQuestFolders.ModuleTalesFolder}).");
+            ReadTalesFolder(files, mod.Folder, mod.SourceOf);
+         }
 
          AuthoredQuestLoadResult r = AuthoredQuestLoader.ParseAll(files);
          _quests = r.Quests.ToDictionary(q => q.Id, StringComparer.Ordinal);
@@ -154,6 +155,43 @@ namespace CalradiaRemembers.Quests
          if (_problems.Count > 0)
             ModLog.Notice($"{_problems.Count} problem(s) in the quest files (ModuleData/Quests). cr.story_check lists them.");
       }
+
+      /// <summary>A tales folder and one level of sub-folders (a tale may be a folder of its own, its JSON beside its images).</summary>
+      private void ReadTalesFolder(List<(string, string)> files, string dir, Func<string, string> sourceOf)
+      {
+         if (!Directory.Exists(dir)) return;
+         foreach (string f in Directory.GetFiles(dir, "*.json")) AddFile(files, sourceOf(Path.GetFileName(f)), f);
+         foreach (string sub in Directory.GetDirectories(dir))
+            if (!string.Equals(Path.GetFileName(sub), "Custom", StringComparison.OrdinalIgnoreCase))
+               foreach (string f in Directory.GetFiles(sub, "*.json")) AddFile(files, sourceOf(Path.GetFileName(sub) + "/" + Path.GetFileName(f)), f);
+      }
+
+      /// <summary>The tales folders of the other enabled mods, in launcher order (the same enabled list cr_patch reads).</summary>
+      internal static IReadOnlyList<TaleModuleFolder> ModuleTaleFolders()
+      {
+         try
+         {
+            var modules = new List<(string, string)>();
+            foreach (string id in Storage.NarrativePatchScanner.LoadedModuleIds())
+            {
+               string moduleRoot;
+               try { moduleRoot = TaleWorlds.ModuleManager.ModuleHelper.GetModuleFullPath(id); }
+               catch { continue; }
+               modules.Add((id, moduleRoot));
+            }
+
+            return AuthoredQuestFolders.FromModules(modules, "CalradiaRemembers");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Fault("listing other mods' tales folders", ex);
+
+            return new List<TaleModuleFolder>();
+         }
+      }
+
+      /// <summary>How many of the tales loaded came from another mod's cr_quests (cr.testall tale_mod_folders).</summary>
+      internal int TalesFromOtherMods => _quests.Values.Count(q => q.Source != null && q.Source.Contains(": "));
 
       private readonly Dictionary<string, string> _folders = new(StringComparer.OrdinalIgnoreCase);
 

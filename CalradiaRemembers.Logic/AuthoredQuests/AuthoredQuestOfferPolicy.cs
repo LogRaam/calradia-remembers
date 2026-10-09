@@ -123,5 +123,38 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          return folders;
       }
+
+      /// <summary>The folder another mod ships its tales in, inside its own ModuleData.</summary>
+      public const string ModuleTalesFolder = "cr_quests";
+
+      /// <summary>
+      ///   The tales folders of the other ENABLED mods (Gabriel, 09/10/2026, for tashmetu: a mod ships its tales in its own
+      ///   ModuleData/cr_quests), in the launcher's order, each mod once, CR itself left out (its own folders are listed by
+      ///   <see cref="List" />). <paramref name="enabledModules" /> is the engine's enabled list with each module's root.
+      /// </summary>
+      public static IReadOnlyList<TaleModuleFolder> FromModules(IEnumerable<(string Id, string Root)> enabledModules, string ownModuleId)
+      {
+         var found = new List<TaleModuleFolder>();
+         var seen = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+         foreach ((string id, string root) in enabledModules ?? new List<(string, string)>())
+         {
+            if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(root)) continue;
+            if (string.Equals(id.Trim(), ownModuleId, System.StringComparison.OrdinalIgnoreCase) || !seen.Add(id.Trim())) continue;
+            found.Add(new TaleModuleFolder {ModuleId = id.Trim(), Folder = System.IO.Path.Combine(root, "ModuleData", ModuleTalesFolder)});
+         }
+
+         return found;
+      }
+   }
+
+   /// <summary>Another mod's tales folder.</summary>
+   public sealed class TaleModuleFolder
+   {
+      public string ModuleId { get; init; }
+
+      public string Folder { get; init; }
+
+      /// <summary>The source a tale of this mod is known by: the mod's id, then its file within the folder.</summary>
+      public string SourceOf(string relativeFile) => $"{ModuleId}: {relativeFile}";
    }
 }

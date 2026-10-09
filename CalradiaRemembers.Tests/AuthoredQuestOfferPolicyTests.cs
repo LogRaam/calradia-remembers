@@ -6,6 +6,8 @@
 
 #region
 
+using System.Collections.Generic;
+using System.Linq;
 using CalradiaRemembers.Logic.AuthoredQuests;
 using FluentAssertions;
 using NUnit.Framework;
@@ -131,6 +133,48 @@ namespace CalradiaRemembers.Tests
                              .Should().Equal(@"M\ModuleData\Quests", System.IO.Path.Combine(@"M\ModuleData\Quests", "Custom"), System.IO.Path.Combine(@"D:\MyCR", "Quests"));
          AuthoredQuestFolders.List(@"M\ModuleData\Quests", null)
                              .Should().Equal(@"M\ModuleData\Quests", System.IO.Path.Combine(@"M\ModuleData\Quests", "Custom"));
+      }
+
+      // Gabriel (09/10/2026), for tashmetu's fifteen tales: another mod ships its tales in its own ModuleData/cr_quests,
+      // so its players copy nothing and an update of CR never wipes them. Read in the launcher's order, which the player
+      // already controls.
+      [Test]
+      public void GIVEN_enabled_mods_shipping_tales_WHEN_tale_folders_are_listed_THEN_each_mods_cr_quests_is_read_in_launcher_order()
+      {
+         IReadOnlyList<TaleModuleFolder> folders = AuthoredQuestFolders.FromModules(new[] {
+            ("Native", @"G\Modules\Native"), ("RegardAndStanding", @"G\Modules\RegardAndStanding"), ("Bellum", @"G\Modules\Bellum")
+         }, "CalradiaRemembers");
+
+         folders.Select(f => f.ModuleId).Should().Equal("Native", "RegardAndStanding", "Bellum");
+         folders[1].Folder.Should().Be(System.IO.Path.Combine(@"G\Modules\RegardAndStanding", "ModuleData", "cr_quests"));
+      }
+
+      // CR's own tales are already read from its own folders; listing CR again as another mod would read the wolf twice
+      // and report it as defined by another file.
+      [Test]
+      public void GIVEN_calradia_remembers_among_the_enabled_mods_WHEN_mod_tale_folders_are_listed_THEN_it_is_not_read_a_second_time()
+      {
+         AuthoredQuestFolders.FromModules(new[] {("calradiaremembers", @"G\Modules\CalradiaRemembers"), ("Bellum", @"G\Modules\Bellum")}, "CalradiaRemembers")
+                             .Select(f => f.ModuleId).Should().Equal("Bellum");
+      }
+
+      // An engine list that repeats a module or carries a blank entry must not read a mod's tales twice (each would be
+      // reported as a duplicate of itself) nor build a folder out of nothing.
+      [Test]
+      public void GIVEN_a_repeated_or_blank_module_WHEN_mod_tale_folders_are_listed_THEN_each_mod_is_read_once_and_blanks_are_skipped()
+      {
+         AuthoredQuestFolders.FromModules(new[] {("Bellum", @"G\Modules\Bellum"), ("", @"G\x"), ("Other", null), ("BELLUM", @"G\Modules\Bellum")}, "CalradiaRemembers")
+                             .Select(f => f.ModuleId).Should().Equal("Bellum");
+      }
+
+      // Two mods may each give a tale a folder named alike (both "wolf"): the source a tale is known by carries its mod,
+      // so its images are looked for in its own mod's folder and cr.story_check says which mod a problem comes from.
+      [Test]
+      public void GIVEN_a_tale_from_another_mod_WHEN_its_source_is_named_THEN_it_carries_the_mods_id()
+      {
+         var folder = new TaleModuleFolder {ModuleId = "RegardAndStanding", Folder = "x"};
+
+         folder.SourceOf("wolf/wolf.json").Should().Be("RegardAndStanding: wolf/wolf.json");
       }
    }
 }

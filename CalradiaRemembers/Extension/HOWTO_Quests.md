@@ -27,6 +27,20 @@ Modules/CalradiaRemembers/ModuleData/Custom/Quests/   yours: kept across updates
 If you set a "Custom Folder Path" in the MCM, put them in its `Quests` folder instead. Files left in the older
 `ModuleData/Quests/Custom/` are still read.
 
+**Shipping tales with your own mod.** Put them in your module's own `ModuleData/cr_quests/` folder, one
+sub-folder per tale if it has pictures. Your players copy nothing, an update of Calradia Remembers never
+touches them, and disabling your mod in the launcher takes its tales away with it:
+
+```
+Modules/YourMod/ModuleData/cr_quests/the_bell_in_the_marsh/the_bell_in_the_marsh.json
+Modules/YourMod/ModuleData/cr_quests/the_bell_in_the_marsh/sunken_chapel.jpg
+```
+
+Every enabled mod's `cr_quests` is read, in the launcher's order, after the folders above. In
+`cr.story_check` a tale from another mod is named with its mod first (`YourMod: the_bell_in_the_marsh/...`).
+Give your ids a prefix of your own (`yourmod_bell`): an id already defined by Calradia Remembers, by the
+player's own files or by a mod read earlier wins, and yours is reported and left out.
+
 Every `*.json` file there is read when a campaign starts. One file holds one quest, or an array of
 quests. If two files define the same `id`, the first one read wins and the other is reported.
 
