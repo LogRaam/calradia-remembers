@@ -79,6 +79,7 @@
     {
       "id": "keep_watch",
       "journal": "Keep watch at night near {village}: wait in the village or close by it, and the wood will show itself.",
+      "image": "Silent Patrol in the Haunted Forest.jpg",
       "objective": {
         "type": "keep_watch",
         "place": "{village}",
@@ -102,6 +103,7 @@
     {
       "id": "the_tracks",
       "journal": "Something moves in the wood by {village}.",
+      "image": "Moonlit Moccasin Trail.jpg",
       "objective": {
         "type": "explore",
         "scene": {
@@ -115,16 +117,19 @@
           "findings": [
             {
               "id": "chains",
+              "image": "Abandoned Collar Beneath the Moonlight.jpg",
               "required": true,
               "text": "A trampled clearing with a dropped iron collar and a length of chain."
             },
             {
               "id": "pelt",
+              "image": "Moonlit Wolf Pelt Effigy.jpg",
               "required": true,
               "text": "A wolf pelt rigged on a wooden frame, eyes of polished stone: the beast the shepherds saw."
             },
             {
               "id": "ruts",
+              "image": "Moonlit Mudroad to the Sea.jpg",
               "required": false,
               "text": "Cart ruts leading out of the wood toward the road to the coast."
             }
@@ -132,6 +137,7 @@
           "hazards": [
             {
               "id": "snare",
+              "image": "Hidden Snare on the Moonlit Forest Path.jpg",
               "trigger": "pushing through the undergrowth off the track without care",
               "effect": {
                 "type": "injure",
@@ -140,6 +146,7 @@
             },
             {
               "id": "lookout",
+              "image": "Stealthy Scout Overlooking a Moonlit Forest Camp.jpg",
               "trigger": "being seen or heard by the slavers' lookout near their camp",
               "effect": {
                 "type": "alert",
@@ -150,6 +157,7 @@
           "encounters": [
             {
               "id": "escaped_girl",
+              "image": "Hiding Beneath the Mossy Tree.jpg",
               "name": "a girl from {village}",
               "persona": "barefoot, shivering, escaped from the slavers' camp two nights ago and hiding in the wood since",
               "knows": [
@@ -180,6 +188,7 @@
     {
       "id": "tell_the_lord",
       "journal": "Tell {giver} what you found in the wood.",
+      "image": "A Tense Council in the Great Hall.jpg",
       "objective": {
         "type": "talk_to",
         "hero": "{giver}"
@@ -203,6 +212,7 @@
     {
       "id": "hunt_the_slavers",
       "journal": "Find the slavers near {village} and destroy them.",
+      "image": "Ambush at the Misty Slaver Camp.jpg",
       "objective": {
         "type": "defeat_party",
         "spawn": {
@@ -230,6 +240,7 @@
     {
       "id": "return",
       "journal": "Return to {giver}.",
+      "image": "Medieval Lord Rewards the Hero.jpg",
       "objective": {
         "type": "return"
       },
