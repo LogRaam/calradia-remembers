@@ -2,6 +2,25 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.6.. 2026-10-08
+
+### New
+- **Tale images** (Gabriel): `AuthoredStage.image`, and `image` on findings, hazards and encounters (`AuthoredTaleImages`:
+  bare .png/.jpg name, met > hazard > found). The stage's picture opens with its scene and its conversations
+  (`ConversationImageFor`, `ConversationImageForLocalsOf`); `AuthoredQuestBehavior.LoadFiles` reads one level of
+  sub-folders. Dark Leather: the picture stands in the margin (`SceneImageArea`, `IsSceneImageVisible`).
+- **The Wolf of the Wood** moves to `ModuleData/Quests/wolf_of_the_wood/` with thirteen pictures.
+- **Tale Editor**: `imageField` with a picker and a preview.
+
+### Fixed
+- **Letters** (IdentityCrysys): `LetterReplyReason.Of` answers a "why no reply?" letter as the correspondence it carries on.
+
+### Changed
+- **Chat title**: the name alone (`ChatTitleText`), without "Calradia Remembers -".
+
+### Developer tools
+- cr.testall scene_image_shown.
+
 ## v2.7.5.. 2026-10-08
 
 ### Fixed

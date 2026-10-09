@@ -1,0 +1,30 @@
+Version 2.7.6
+
+Written tales now come with pictures, and letters keep the thread going.
+
+New
+
+- Written tales can show pictures. A stage can name an image from its tale's own folder, and the image opens beside the chat when that stage's scene begins. It also opens in that stage's conversations: with the people the tale speaks to, with the one who offers the tale, and with the villagers of the place it turns on. A finding, a danger or a person met in a scene can carry its own image, which opens when the narration reveals it.
+- The Wolf of the Wood now has thirteen pictures.
+- In the Dark Leather skin, the picture stands on its own in the dark margin, centred beside the chat book.
+- Tale Editor: each stage, finding, danger and person has an image field. Choose a file and the editor shows a preview.
+
+Fixed
+
+- You wrote to ask why a lady had stopped answering your letters. Her reply now carries on your correspondence instead of answering the silence. (Thank you, IdentityCrysys.)
+
+Changed
+
+- The chat window's title now shows the name of whoever you are speaking with (or the council's place), without "Calradia Remembers -" in front.
+
+For modders
+
+- A tale's images live next to its .json, in the tale's own folder. Images are .png or .jpg, given as a bare file name with no folder path. The game's tales folder and the Custom tales folder both read one level of sub-folders. HOWTO_Quests.md explains the "image" field.
+
+Developer tools
+
+- New cr.testall test: scene_image_shown.
+
+Notes
+
+- Your existing saves load as they are. Tale files from earlier versions still work, at the top of the folder or in a sub-folder.
