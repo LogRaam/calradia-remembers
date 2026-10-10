@@ -194,7 +194,8 @@ conversation where it is offered, so it cannot offer choices. Put them on the ne
 `"image": "tracks_at_dusk.jpg"` on a stage names a picture of the tale's own folder (`.png` or `.jpg`, a bare
 file name). When that stage's scene opens, or a conversation of that stage begins (with a character the stage speaks
 to, the one offering the tale for its first stage, or a villager of the place it turns on), the picture opens by
-itself in the panel left of the chat, drawn whole and never stretched. A scene's findings, hazards and people met may
+itself in the panel left of the chat, drawn whole and never stretched. Any shape works: a wide 4:3 or 16:9 view,
+a tall 2:3 figure, a square; the panel fits the picture at its own proportions. A scene's findings, hazards and people met may
 carry an `"image"` too: it opens when the narration reveals, springs or brings them in (a person met shows over a
 danger, a danger over a finding). A name with a folder in it, another format, or a file that is not
 there is reported by `cr.story_check` and the scene opens without it. In the Tale Editor, pick the file beside the

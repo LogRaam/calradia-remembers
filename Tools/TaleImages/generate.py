@@ -10,6 +10,8 @@
 #   when the main model refuses a scene). xAI reads XAI_API_KEY; the same style block and scene go to both providers.
 #   --warm <0..1> [--warm-box x0,y0,x1,y1] warms the mid tones of pale cloth after generation (warm.py), so soaked
 #   linen reads as linen over skin; a colour grade only.
+#   "aspect" on an image or the spec (or --aspect for the run) frames it: "4:3" by default, "2:3" a standing figure,
+#   "16:9" a wide view; CR draws any shape whole (Gabriel, 10/10/2026: "que CR puisse supporter differents ratios").
 #   --provider xai|openrouter and --model <id> override the spec for the whole run (Gabriel, 10/10/2026: the main model is
 #   chosen per tale, OpenAI at about 0.18 USD an image or Grok imagine-image-2.0 at about 0.04).
 #   With file names after the folder, only those images are made (to redo one); an existing image is never overwritten
@@ -21,8 +23,11 @@ API = "https://openrouter.ai/api/v1/chat/completions"
 XAI_API = "https://api.x.ai/v1/images/generations"
 
 
-def generate_xai(model, prompt, key):
-    body = json.dumps({"model": model, "prompt": prompt, "n": 1, "response_format": "b64_json"}).encode("utf-8")
+def generate_xai(model, prompt, key, aspect=None):
+    payload = {"model": model, "prompt": prompt, "n": 1, "response_format": "b64_json"}
+    if aspect:
+        payload["aspect_ratio"] = aspect
+    body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(XAI_API, data=body, headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=300) as r:
@@ -35,20 +40,31 @@ def generate_xai(model, prompt, key):
     return base64.b64decode(items[0]["b64_json"]), data.get("usage", {})
 
 
+def aspect_of(spec, image):
+    return str(image.get("aspect", spec.get("aspect", "4:3"))).strip()
+
+
+def framing(aspect):
+    w, h = (float(v) for v in aspect.split(":"))
+    shape = "tall portrait" if h > w else "square" if h == w else "wide landscape"
+    return "FRAMING: a %s composition, %s." % (shape, aspect)
+
+
 def prompt_for(spec, image):
     style = open(os.path.join(HERE, "style_calradia.txt"), encoding="utf-8").read().strip()
     parts = [style]
     if spec.get("tale_style"):
         parts.append("THIS TALE: " + spec["tale_style"].strip())
     parts.append("THE SCENE: " + image["scene"].strip())
+    parts.append(framing(aspect_of(spec, image)))
     return "\n\n".join(parts)
 
 
-def generate(model, prompt, key):
+def generate(model, prompt, key, aspect="4:3"):
     body = json.dumps({
         "model": model,
         "modalities": ["image", "text"],
-        "image_config": {"aspect_ratio": "4:3"},
+        "image_config": {"aspect_ratio": aspect},
         "messages": [{"role": "user", "content": prompt}],
     }).encode("utf-8")
     req = urllib.request.Request(API, data=body, headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
@@ -77,7 +93,7 @@ def save_jpg(raw, path):
 def main():
     args = sys.argv[1:]
     overrides = {}
-    for flag in ("--provider", "--model", "--warm", "--warm-box"):
+    for flag in ("--provider", "--model", "--warm", "--warm-box", "--aspect"):
         if flag in args:
             i = args.index(flag)
             overrides[flag[2:]] = args[i + 1]
@@ -108,7 +124,13 @@ def main():
         key = os.environ.get("XAI_API_KEY" if provider == "xai" else "OPENROUTER_API_KEY")
         if not key:
             sys.exit(("XAI_API_KEY" if provider == "xai" else "OPENROUTER_API_KEY") + " is not set")
-        raw, usage = (generate_xai if provider == "xai" else generate)(chosen, prompt_for(spec, image), key)
+        aspect = aspect_of(spec, image)
+        if provider == "xai":
+            # Asked of xAI only when named: the 4:3 default ran without it and stays as it was.
+            named = "aspect" in image or "aspect" in spec
+            raw, usage = generate_xai(chosen, prompt_for(spec, image), key, aspect if named else None)
+        else:
+            raw, usage = generate(chosen, prompt_for(spec, image), key, aspect)
         size = save_jpg(raw, path)
         if warm_strength:
             from warm import warm
