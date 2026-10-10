@@ -12,6 +12,8 @@
 
 using System;
 using System.Linq;
+using System.Reflection;
+using HarmonyLib;
 using CalradiaRemembers.Diagnostics;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -22,11 +24,40 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Library;
+using TaleWorlds.Localization;
+using TaleWorlds.MountAndBlade;
+using SandBox.Missions.MissionLogics.Hideout;
 
 #endregion
 
 namespace CalradiaRemembers.Quests
 {
+   /// <summary>
+   ///   Play test 1 (Gabriel, 10/10/2026): "can we not have the chief at all, and when the camp is beaten, go on with the
+   ///   tale's next stage?" The hideout controller already has that state, WithoutBossFight (every bandit spawns at once and
+   ///   the battle is won when they are all down); the game uses it only when the player defends. Its one decision,
+   ///   DecideMissionState, is turned to it for the spike's band.
+   /// </summary>
+   [HarmonyPatch(typeof(HideoutMissionController), "DecideMissionState")]
+   public static class TaleCompanyFightNoChiefPatch
+   {
+      private static readonly FieldInfo State = AccessTools.Field(typeof(HideoutMissionController), "_hideoutMissionState");
+
+      public static void Postfix(HideoutMissionController __instance)
+      {
+         try
+         {
+            if (!TaleCompanyFightSpike.IsSpikeBattle() || State == null) return;
+            State.SetValue(__instance, Enum.Parse(State.FieldType, "WithoutBossFight"));
+            ModLog.Info("[SPIKE] no chief: every bandit fights at once, the camp beaten ends the battle.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SPIKE] could not skip the chief: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+   }
+
    /// <summary>The spike's menu option and battle-end report. See the file header.</summary>
    public sealed class TaleCompanyFightSpike : CampaignBehaviorBase
    {
@@ -35,7 +66,26 @@ namespace CalradiaRemembers.Quests
       public override void RegisterEvents()
       {
          CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, starter =>
-            starter.AddGameMenuOption("encounter", "cr_tale_company_fight", "Fight with those beside you (spike)", OnCondition, OnConsequence));
+         {
+            starter.AddGameMenuOption("encounter", "cr_tale_company_fight", "Fight with those beside you (spike)", OnCondition, OnConsequence);
+
+            // Play test 1 (Gabriel, 10/10/2026): once his men fell, the band's chief stood mute ("I am not allowed to talk
+            // with you") and could not be fought. The game's own chief lines ask for a band OF A HIDEOUT
+            // (HideoutConversationsCampaignBehavior.bandit_hideout_start_defender_on_condition: Settlement.IsHideout), which
+            // a band on the map is not. The same two choices for our band, ending the same way.
+            starter.AddDialogLine("cr_spike_boss", "start", "cr_spike_boss_reply",
+               "You! You've cut quite a swathe through my men there, damn you. How about we settle this, one-on-one?", BossCondition, null, 110);
+            starter.AddPlayerLine("cr_spike_boss_duel", "cr_spike_boss_reply", "close_window", "Very well.", null, () =>
+            {
+               ModLog.Info("[SPIKE] the chief's duel accepted.");
+               Campaign.Current.ConversationManager.ConversationEndOneShot += HideoutMissionController.StartBossFightDuelMode;
+            });
+            starter.AddPlayerLine("cr_spike_boss_battle", "cr_spike_boss_reply", "close_window", "I don't fight duels with brigands.", null, () =>
+            {
+               ModLog.Info("[SPIKE] the chief's duel refused: all against him.");
+               Campaign.Current.ConversationManager.ConversationEndOneShot += HideoutMissionController.StartBossFightBattleMode;
+            }, 100, HasMenAlongside);
+         });
          CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
       }
 
@@ -107,6 +157,24 @@ namespace CalradiaRemembers.Quests
          {
             ModLog.Error($"[SPIKE] the company fight failed: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
          }
+      }
+
+      /// <summary>The player's map battle is against the spike's band.</summary>
+      internal static bool IsSpikeBattle()
+         => _bandId != null && MapEvent.PlayerMapEvent?.InvolvedParties?.Any(p => p.MobileParty?.StringId == _bandId) == true;
+
+      /// <summary>The chief of the spike's band speaking inside the hideout battle (kept in case the no-chief state fails).</summary>
+      private static bool BossCondition()
+         => _bandId != null && Mission.Current?.GetMissionBehavior<HideoutMissionController>() != null
+                            && PlayerEncounter.EncounteredParty?.MobileParty?.StringId == _bandId;
+
+      /// <summary>Refusing the duel needs someone beside the player (the game's own rule for its chief).</summary>
+      private static bool HasMenAlongside(out TextObject explanation)
+      {
+         bool any = Mission.Current?.PlayerTeam?.ActiveAgents?.Any(a => !a.IsMount && a.Character != CharacterObject.PlayerCharacter) == true;
+         explanation = any ? TextObject.GetEmpty() : new TextObject("You don't have any men.");
+
+         return any;
       }
 
       private static void OnMapEventEnded(MapEvent mapEvent)

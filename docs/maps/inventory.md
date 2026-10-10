@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 472 types in 58 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 473 types in 58 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1016 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
@@ -581,7 +581,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitSpikeViewModel` | public class | View model for the portrait-spike test overlay: a runtime sprite plus a status line. |
 | `RuntimePortraitFactory` | internal static class | Builds a GauntletUI Sprite from an image file on disk. |
 
-### CalradiaRemembers.Quests (13)
+### CalradiaRemembers.Quests (14)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -596,6 +596,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestFactory` | public static class | Turns a QuestProposal (the LLM's words) into a concrete, persistable InformalQuest by resolving its named target to a real settlement, hero, or faction and computing the deadline. |
 | `QuestJournalBridge` | public static class | Bridges InformalQuest (our persisted record, authority) and CalradiaRemembersQuest (the QuestBase mirror that appears in the vanilla quest journal). |
 | `QuestService` | public static class | Owns the quest lifecycle on the SDK side of the bridge: issuing a quest the LLM offered, paying out a quest the LLM acknowledged as done, and the daily checks that expire overdue quests (with a consequence) or cancel one... |
+| `TaleCompanyFightNoChiefPatch` | public static class | Play test 1 (Gabriel, 10/10/2026): "can we not have the chief at all, and when the camp is beaten, go on with the tale's next stage?" The hideout controller already has that state, WithoutBossFight (every bandit spawns a... |
 | `TaleCompanyFightSpike` | public class | The spike's menu option and battle-end report. |
 | `ViableQuestScanner` | internal static class | Builds the giver's grounded quest menu for the prompt. |
 
