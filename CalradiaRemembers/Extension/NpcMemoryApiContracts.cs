@@ -30,6 +30,23 @@ namespace CalradiaRemembers
    }
 
    /// <summary>
+   ///   A memory a mod takes back (philip0105, Vivid World, 10/10/2026: rumors forgotten or corrected later). Matched by
+   ///   its exact text as AddMemory stored it, and only when it was added by this same mod (or before mods were
+   ///   recorded, 10/10/2026). See <see cref="CrNpcMemory.RemoveMemory" />.
+   /// </summary>
+   public sealed class CrMemoryRemoval
+   {
+      /// <summary>The NPC's hero StringId. REQUIRED.</summary>
+      public string NpcId { get; set; }
+
+      /// <summary>The memory's text, exactly as it was passed to AddMemory. REQUIRED.</summary>
+      public string Summary { get; set; }
+
+      /// <summary>The SourceMod it was added with. A memory another mod added is never removed.</summary>
+      public string SourceMod { get; set; }
+   }
+
+   /// <summary>
    ///   One memory a third-party mod wants an NPC to hold. CR normalises it (bounds the summary, maps the kind,
    ///   dates it) and stores it on the NPC's profile, from where it surfaces in later conversations as the NPC's
    ///   own recollection. The NPC is named by <see cref="NpcId" /> (a hero StringId), never a display name.

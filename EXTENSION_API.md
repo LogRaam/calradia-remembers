@@ -64,7 +64,7 @@ MemoryResult result = CrNpcMemory.AddMemory(new CrMemoryEntry
     Summary   = "We agreed to meet at the ford at dawn.",     // REQUIRED, the remembered line
     Kind      = "Agreement",                                  // optional; "Hearsay" for news heard; unknown/engine kinds become "Other"
     DaysAgo   = 0,                                            // optional; 0 = today, dated back from now
-    SourceMod = "MyMemoryAddon",                              // optional, for provenance in the logs
+    SourceMod = "MyMemoryAddon",                              // optional; kept with the memory since 2.7.9 (see RemoveMemory)
     Private   = false                                         // optional (2.6.10): true = said in confidence
 });
 // result: Added | RejectedInvalid | RejectedUnknownHero | RejectedNoStore
@@ -74,6 +74,34 @@ Injected memories become ordinary profile events, so they surface in later conve
 memories CR recorded itself, and are compacted over time by CR's own memory compressor. Mark one `Private`
 (since 2.6.10) and it follows CR's audience rule for private memories: the character speaks of it only in
 private, never in front of others (an embarrassing secret, something said in confidence).
+
+### Taking a memory back (`CrNpcMemory.RemoveMemory`, since 2.7.9)
+
+```csharp
+int removed = CrNpcMemory.RemoveMemory(new CrMemoryRemoval
+{
+    NpcId     = npcId,                                  // REQUIRED
+    Summary   = "We agreed to meet at the ford at dawn.",  // REQUIRED, the exact text you passed to AddMemory
+    SourceMod = "MyMemoryAddon"                         // the SourceMod you added it with
+});
+```
+
+Removes every memory of that character whose text is exactly what AddMemory stored and which YOUR mod added (asked
+for by philip0105 for Vivid World: rumors forgotten or corrected later). A memory another mod added is never
+removed. Memories injected before 2.7.9 carry no mod and are matched by their text alone, so you can clean up what
+you added earlier. Returns how many were removed. A memory CR's compressor has already folded into a summary is
+no longer there to remove.
+
+### Live knowledge every reply (`CrPrompt.RegisterVariable` + `heard_now.txt`, since 2.7.9)
+
+For knowledge that changes all the time (rumors heard, forgotten, denied), do not store it in CR at all: register a
+`{{variable}}` with `CrPrompt.RegisterVariable`, and ship `ModuleData/cr_patch/heard_now.txt` containing it. Your
+provider is called on every prompt build (every reply), on the game thread, with `PromptVarFacts` (`NpcId`, `Lean`
+when the prompt must be short). `heard_now.txt` is written in the uncached tail of the prompt, just before CR's
+output rules: changing text there costs no cache, and it does not push those rules up the way a long block in
+`post_history_instructions.txt` (which comes after them) would. Keep it to facts and who told them, around 800 to
+1,000 characters (about 300 when `Lean`). Never reference a changing variable from `world.txt` or the behaviour
+guidelines: they sit in the cached part of the prompt.
 
 Call `AddMemory` (and `GetMemories`) on the **game thread**: from a campaign event, a tick, or a menu or
 button handler, never from a background task. An injected memory never moves regard by itself; it is

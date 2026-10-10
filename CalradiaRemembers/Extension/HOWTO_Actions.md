@@ -301,7 +301,8 @@ flight, so you may retry when the player next has the floor. Call it on the main
   `{{name}}` token the prompt can reference, without an executable verb.
 - **Prompt text from your module (`cr_patch`)**: ship `YourModule/ModuleData/cr_patch/<file>` with the
   same name as one of CR's prompt files (`world.txt`, `behavior_guidelines.txt`, the four
-  `behavior_guidelines_<station>.txt`, `player_description.txt`, `post_history_instructions.txt`,
+  `behavior_guidelines_<station>.txt`, `player_description.txt`, `post_history_instructions.txt`, `heard_now.txt` (2.7.9:
+  live knowledge, uncached, just before CR's output rules; CR ships it empty),
   `council_seat.txt`). Its lines are added after CR's own, in launcher load order. Directives, each
   on its own line: `!remove <text>` drops every line containing that text; `!replace` discards
   everything so far (a total conversion); `!#` is a comment the model never sees; and, since 2.6.4,

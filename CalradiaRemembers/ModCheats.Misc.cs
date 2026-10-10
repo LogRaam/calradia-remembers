@@ -462,7 +462,7 @@ namespace CalradiaRemembers
          string[] files = {
             "world.txt", "player_description.txt", "behavior_guidelines.txt", "behavior_guidelines_gangleader.txt",
             "behavior_guidelines_notable.txt", "behavior_guidelines_wanderer.txt", "behavior_guidelines_companion.txt",
-            "post_history_instructions.txt", "council_seat.txt", "setting.json", "cultural_traditions.json",
+            "post_history_instructions.txt", "council_seat.txt", "heard_now.txt", "setting.json", "cultural_traditions.json",
             "jealousy_cultures.json", "character_overrides.json"
          };
 

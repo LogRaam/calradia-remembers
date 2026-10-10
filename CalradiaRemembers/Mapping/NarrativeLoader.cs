@@ -27,6 +27,9 @@ namespace CalradiaRemembers.Mapping
       public static string BehaviorGuidelines { get; private set; } = "";
       public static string PlayerDescription { get; private set; } = "";
       public static string PostHistoryInstructions { get; private set; } = "";
+
+      /// <summary>heard_now.txt: CR ships none; another mod's live knowledge, through cr_patch (philip0105, 10/10/2026).</summary>
+      public static string HeardNowInstructions { get; private set; } = "";
       public static string WorldDescription { get; private set; } = "";
 
       /// <summary>
@@ -42,6 +45,7 @@ namespace CalradiaRemembers.Mapping
          BehaviorGuidelines = ReadFile("behavior_guidelines.txt", "behavior guidelines");
          PostHistoryInstructions = ReadFile("post_history_instructions.txt", "post-history instructions");
          CouncilSeatTemplate = ReadFile("council_seat.txt", "council seat");
+         HeardNowInstructions = ReadFile("heard_now.txt", "heard now");
 
          _stationGuidelines.Clear();
          foreach (string station in new[] {"gangleader", "notable", "wanderer", "companion"})
@@ -100,15 +104,15 @@ namespace CalradiaRemembers.Mapping
       {
          string path = ResolveCustomFirst(filename);
          bool useCustom = path != Path.Combine(ModuleDataFolder(), filename);
-         if (!File.Exists(path))
+         // A file CR does not ship (council_seat.txt, heard_now.txt) is an empty base that other mods' patches still
+         // fill: returning early here meant a module's cr_patch for such a file was never read (found 10/10/2026).
+         string content = "";
+         if (!File.Exists(path)) ModLog.Info($"  [{label}] not found, empty base. ({path})");
+         else
          {
-            ModLog.Info($"  [{label}] not found — using built-in default. ({path})");
-
-            return "";
+            content = File.ReadAllText(path, Encoding.UTF8).Trim();
+            ModLog.Info($"  [{label}]{(useCustom ? " (custom)" : "")} loaded ({content.Length} chars).");
          }
-
-         string content = File.ReadAllText(path, Encoding.UTF8).Trim();
-         ModLog.Info($"  [{label}]{(useCustom ? " (custom)" : "")} loaded ({content.Length} chars).");
 
          // OTHER MODULES GET THEIR SAY, AFTER OURS AND AFTER THE PLAYER'S. The Custom folder above is the
          // PLAYER's override and stays the last word on what the base text is; patches are laid over whatever

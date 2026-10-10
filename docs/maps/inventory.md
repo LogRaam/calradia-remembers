@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 473 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1021 types in 27 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 474 types in 58 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1023 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (32)
+### CalradiaRemembers (33)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -55,6 +55,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrCultures` | public static class | Read-only readings of the cultures CR plays by (its ModuleData jealousy_cultures.json, or a Custom copy). |
 | `CrMemoryEntry` | public class | One memory a third-party mod wants an NPC to hold. |
 | `CrMemoryRecord` | public class | One memory CR already holds for an NPC, as read back through CrNpcMemory.GetMemories. |
+| `CrMemoryRemoval` | public class | A memory a mod takes back (philip0105, Vivid World, 10/10/2026: rumors forgotten or corrected later). |
 | `CrNpcMemory` | public static class | The public NPC-memory API. A caller identifies the NPC by its hero StringId (never a display name), reads its stored memories, and injects new ones. |
 | `CrPrompt` | public static class | The public facade a third-party mod calls to register (or unregister) one live prompt variable. |
 | `CrRegardChange` | public class | One change of a character's personal regard for the player (see CrNpcMemory.RegardChanged). |
@@ -814,7 +815,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (641)
+### CalradiaRemembers.Logic (643)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1077,6 +1078,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `IManagedPortrait` | public interface | A UI element that owns exactly one character portrait — which, on screen, is backed by a GPU render-target (a character tableau). |
 | `IRandomSource` | public interface | A source of bounded random integers. |
 | `IRumorRecord` | public interface | The minimum a stored world happening must expose for the pruner to reason about its lifetime: when it occurred and whether it is the player's own deed (kept long-term) or third-party rumour (aged out). |
+| `InjectedMemoryRemovalPolicy` | public static class | Whether a mod's removal takes this memory. |
 | `InterceptionFacts` | public class | The facts a single candidate lord's interception decision rests on — engine-gathered, pure to reason over. |
 | `InterceptionPacing` | public enum | How readily lords ride out to meet the player on the road. |
 | `InterceptionPacingRules` | public static class | Turns the player's chosen pacing into the two numbers that actually govern how often a lord appears. |
@@ -1162,6 +1164,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MeetingGapDescriber` | public static class | Turns a "days since the NPC last saw the player" count into a prompt-ready note, or null when the gap is too short (or unknown) to be worth remarking on. |
 | `MemoryCompressionPolicy` | public static class | Pure timing policy for when to run the LLM memory compressor: below the threshold it never runs, and above it, it runs at most once per handful of new events so a fruitless pass (the model kept everything) cannot turn in... |
 | `MemoryDayFormatter` | public static class | Renders a memory event's absolute game day as player-readable text: the raw day number plus a relative hint ("today", "yesterday", "N days ago"). |
+| `MemoryRemovalFacts` | public class | A stored memory, and the removal a mod asks for. |
 | `MercenaryDepartureFacts` | public class | The realm's situation when the contract ended. |
 | `MercenaryDeparturePolicy` | public static class | The rules of a mercenary's departure. |
 | `MercenaryDepartureVerdict` | public enum | How a realm takes the end of the player's mercenary contract. |

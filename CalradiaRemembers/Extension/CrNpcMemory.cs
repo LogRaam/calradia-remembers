@@ -93,6 +93,8 @@ namespace CalradiaRemembers
          NotableEvent injected = NpcMemoryInjection.BuildInjectedEvent(entry.Summary, entry.Kind, entry.DaysAgo, today, entry.Private);
 
          if (injected == null) return MemoryResult.RejectedInvalid;
+         // Kept with the memory since 10/10/2026, so the mod can take it back (RemoveMemory).
+         if (!string.IsNullOrWhiteSpace(entry.SourceMod)) injected.SourceMod = entry.SourceMod.Trim();
 
          NpcProfile profile = behavior.Store.Get(entry.NpcId) ?? HeroProfileMapper.FromHero(hero);
          profile.Events.Add(injected);
@@ -100,6 +102,32 @@ namespace CalradiaRemembers
          ModLog.Info($"[MEMORY API] {entry.SourceMod ?? "a mod"} injected a memory on {hero.Name} (day {injected.gameDay}, {injected.type}): {injected.summary}");
 
          return MemoryResult.Added;
+      }
+
+      /// <summary>
+      ///   Takes back memories a mod added through <see cref="AddMemory" /> (philip0105, Vivid World, 10/10/2026: what
+      ///   a character forgets or hears corrected in that mod must not linger in CR). Removes every memory of this NPC
+      ///   whose text is exactly the summary AddMemory stored, and which this same mod added; a memory stored before
+      ///   10/10/2026 carries no mod and is matched by its text alone. Returns how many were removed (0 when none
+      ///   matched, the id is unknown or no campaign is loaded). Call it on the game thread, like AddMemory.
+      /// </summary>
+      public static int RemoveMemory(CrMemoryRemoval removal)
+      {
+         if (removal == null || string.IsNullOrWhiteSpace(removal.NpcId) || string.IsNullOrWhiteSpace(removal.Summary)) return 0;
+
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         NpcProfile profile = store?.Get(removal.NpcId);
+         if (profile?.Events == null) return 0;
+
+         int removed = profile.Events.RemoveAll(e => e != null && InjectedMemoryRemovalPolicy.Removes(new MemoryRemovalFacts {
+            StoredSummary = e.summary, StoredSourceMod = e.SourceMod, RequestedSummary = removal.Summary, RequestedSourceMod = removal.SourceMod
+         }));
+         if (removed == 0) return 0;
+
+         store.Set(profile);
+         ModLog.Info($"[MEMORY API] {removal.SourceMod ?? "a mod"} took back {removed} memory(ies) from {profile.Name}.");
+
+         return removed;
       }
 
       /// <summary>

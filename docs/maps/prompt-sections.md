@@ -119,6 +119,7 @@ the section is handed the level and decides for itself; blank means it is writte
 | 105 | `AppendClaimsAreNotProof` | tail | aware |  | The general form of a rule this prompt already stated in three separate silos, and therefore never applied where it was actually needed. |
 | 106 | `AppendLanguageMirror` | tail | aware |  | Which language the reply is written in. |
 | 107 | `AppendPlayerDescription` | tail | aware |  | (no summary) |
-| 108 | `AppendRoleAnchor` | tail | aware |  | A short, forceful restatement of the machine-read output contract, emitted at the very end of the prompt (highest recency). |
-| 109 | `AppendFormatReminder` | tail | aware |  | (no summary) |
-| 110 | `AppendPostHistoryInstructions` | tail |  |  | Appends the modder's post_history_instructions.txt verbatim (aside from {{token}} expansion, see PromptVariableExpander) at the very end of the system prompt: the highest-recency position, read immediately before the con... |
+| 108 | `AppendHeardNow` | tail |  |  | heard_now.txt, expanded with this build's variables; nothing when it is empty or expands to nothing. |
+| 109 | `AppendRoleAnchor` | tail | aware |  | A short, forceful restatement of the machine-read output contract, emitted at the very end of the prompt (highest recency). |
+| 110 | `AppendFormatReminder` | tail | aware |  | (no summary) |
+| 111 | `AppendPostHistoryInstructions` | tail |  |  | Appends the modder's post_history_instructions.txt verbatim (aside from {{token}} expansion, see PromptVariableExpander) at the very end of the system prompt: the highest-recency position, read immediately before the con... |

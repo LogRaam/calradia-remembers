@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-455 rules read 352 facts.
+454 rules read 351 facts.
 
 ## Facts read by more than one rule
 
@@ -499,7 +499,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `MercenaryEnlistmentPolicy.CanJoin`: `Clan.Kingdom`, `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`
 - `MirrorFacts`: `Hero.IsAlive`
 - `MotherDispositionFacts`: `Hero.GetRelation`, `Hero.GetTraitLevel`
-- `NarrativePatchComposer.Compose`: `Encoding.UTF8`
 - `NemesisBountyRewardPolicy.ComputeGold`: `Hero.OneToOneConversationHero`
 - `NemesisBountyRewardPolicy.ComputeRelation`: `Hero.OneToOneConversationHero`
 - `NemesisRumorLine.Compose`: `Hero.OneToOneConversationHero`

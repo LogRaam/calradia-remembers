@@ -1129,6 +1129,7 @@ namespace CalradiaRemembers.Services
             PlayerDescription = NarrativeLoader.PlayerDescription,
             BehaviorGuidelinesOverride = NarrativeLoader.BehaviorGuidelines,
             PostHistoryInstructions = NarrativeLoader.PostHistoryInstructions,
+            HeardNowInstructions = NarrativeLoader.HeardNowInstructions,
             ReplyLanguage = ModSettings.ReplyLanguage,
             ActionVocabulary = BuildActionVocabulary(ModSettings.RelationWarmth),
             // The intimacy consent bar follows the same Relationship Pacing dial as every other gate; the
