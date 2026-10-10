@@ -2,6 +2,29 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.8.. 2026-10-10
+
+### New
+- **Family asks for a private word** (HakiTakiUmba): `TravellingAudiencePolicy` (hired companion or player's clan in
+  the party; the last one asked waits while anyone else has a matter), SDK `EncounterContext.AudienceFromKin`.
+- **Letters from castles and villages** (raphareish): "Send a letter" in the castle and village menus
+  (`CourierHirePlacePolicy`, `TaverneLetterBehavior`).
+- **Tale band `on_defeat`** (Gabriel): `AuthoredDefeat`, `AuthoredQuestEngine.PlayerLostTo`, heard on
+  `MapEventEnded`; the wolf resumes. Editor and four parity fixtures.
+
+### Fixed
+- **Raid close** (Zivkyn): `MapEncounterCloseFacts.BattleIsRaid`; a raid is finished as before 2.7.5.
+- **Accents** (elpyf0, fkasad): the language rule keeps an accent or dialect (SDK).
+
+### Changed
+- **THE PLAYER in the prompt's tail** (fkasad): before WHO IS WHO, uncached per turn (SDK).
+- **Marriage length floor** (fkasad, Windmolen): `SpouseTenurePolicy.LongStanding` from the couple's eldest child.
+
+### Developer tools
+- cr.testall kin_audience, courier_menu_option; authored_quest_opening loses to the band; wedding_day_line.
+- `cr.tale_fight_spike` (spike: company-only hideout battle over the map battle, no chief).
+- Tooling: release scripts in `Tools/Release`, em-dash git hooks, `Tools/edit.py`, CLAUDE.md trimmed.
+
 ## v2.7.7.. 2026-10-09
 
 ### For modders

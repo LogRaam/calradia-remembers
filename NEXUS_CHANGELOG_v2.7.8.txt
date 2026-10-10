@@ -1,0 +1,32 @@
+Version 2.7.8
+
+Your family speaks up on the road, a tale's last fight can be lost, letters leave castles and villages, and characters keep your description and their accents in mind.
+
+New
+
+- Your family travelling in your party (your spouse, brothers and sisters, grown children) now asks for a private word, like your companions: a report, counsel about the party, an old memory, news they heard, thanks, a warning, an ambition of their own. They speak to you as family, not as hired help, and they take turns with your companions, so no single voice takes every conversation. (Thank you, HakiTakiUmba.)
+- You can send a letter from a castle or a village: "Send a letter" in their menu, with the same choice of recipient, escort and price as a town's tavern keeper. (Thank you, raphareish.)
+- A written tale's band can beat you, and the tale can say what that means. The Wolf of the Wood goes on: the lord and the village remember that you were thrown back, and the slavers are still there to beat before they flee.
+
+Fixed
+
+- Ending a conversation while raiding a village left you on the "attack, surrender or try to escape" menu. It now ends as it did before 2.7.5. (Thank you, Zivkyn.)
+- A character told to speak with an accent (a French cadence for Vlandians, say) no longer has it "corrected" back to plain speech by the reply-language rule: an accent or dialect is the same language. (Thank you, elpyf0 and fkasad.)
+
+Changed
+
+- Your own player description now sits near the end of what each character reads, just before the reply rules, instead of in the middle where smaller models forgot it after a few turns. (Thank you, fkasad.)
+- A marriage the mod did not see happen (an older save, a campaign that starts married) no longer reads as brand new: when the couple has a child of two or more, the spouse knows they have been wed for years. (Thank you, fkasad and Windmolen.)
+
+For modders
+
+- Written tales: a band's "on_defeat" says what a lost fight makes of the tale. Without "next", the tale goes on (a journal line, the giver's memory and regard, and consequences, told once per stage); with "next": "end:<id>", the tale ends on that ending. The Tale Editor has it under the band ("If you lose to it"), and HOWTO_Quests.md explains it.
+
+Developer tools
+
+- New cr.testall tests: kin_audience, courier_menu_option. authored_quest_opening now also loses to the wolf's band twice before beating it; wedding_day_line checks the marriage length on a real lord.
+- cr.tale_fight_spike: an experiment for a tale's last fight fought by you and the heroes riding with you only, in the nearest hideout's scene. Not part of any tale yet.
+
+Notes
+
+- Your existing saves load as they are, a tale already under way included.

@@ -428,6 +428,17 @@ MUST = [
     # 2.7.7
     ("logic", b"TaleModuleFolder"),
     ("mod",   "tale_mod_folders".encode("utf-16-le")),
+    # 2.7.8
+    ("logic", b"TravellingAudiencePolicy"),
+    ("logic", b"CourierHirePlacePolicy"),
+    ("logic", b"AuthoredDefeat"),
+    ("logic", b"LongStanding"),
+    ("logic", b"BattleIsRaid"),
+    ("mod",   "kin_audience".encode("utf-16-le")),
+    ("mod",   "courier_menu_option".encode("utf-16-le")),
+    ("mod",   b"TaleCompanyFightNoChiefPatch"),
+    ("sdk",   b"AudienceFromKin"),
+    ("sdk",   "accents too".encode("utf-16-le")),
 ]
 MUST_NOT = [
     ("mod",   "A predator wearing a lord's title".encode("utf-16-le")),   # 2.6.11: the retired archetype is gone (the testall keeps the 'Sadistic' opening on purpose)
@@ -484,7 +495,9 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersSceneBackdrop.xml", "CalradiaRemembersSceneBackdropWindow"),
                      ("CalradiaRemembers/ModuleData/behavior_guidelines_wanderer.txt", "between engagements"),
                      ("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf_of_the_wood.json", '"image"'),
-                     ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersChat_Manuscript.xml", "SceneImageArea")]:
+                     ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersChat_Manuscript.xml", "SceneImageArea"),
+                     ("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf_of_the_wood.json", '"on_defeat"'),
+                     ("CalradiaRemembers/Docs/HOWTO_Quests.md", "on_defeat")]:
     found = path in names and needle in zn.read(path).decode("utf-8", "ignore")
     ok &= found
     print("  %-70s %s" % (path[18:], "YES" if found else "*** MISSING ***"))
