@@ -8,6 +8,8 @@
 #   spec.json: {"model": "openai/gpt-5.4-image-2", "tale_style": "...", "images": [{"file": "x.jpg", "scene": "..."}]}
 #   An image (or the whole spec) may name "provider": "xai" and a Grok Imagine "model" (Gabriel, 10/10/2026: the fallback
 #   when the main model refuses a scene). xAI reads XAI_API_KEY; the same style block and scene go to both providers.
+#   --warm <0..1> [--warm-box x0,y0,x1,y1] warms the mid tones of pale cloth after generation (warm.py), so soaked
+#   linen reads as linen over skin; a colour grade only.
 #   --provider xai|openrouter and --model <id> override the spec for the whole run (Gabriel, 10/10/2026: the main model is
 #   chosen per tale, OpenAI at about 0.18 USD an image or Grok imagine-image-2.0 at about 0.04).
 #   With file names after the folder, only those images are made (to redo one); an existing image is never overwritten
@@ -75,7 +77,7 @@ def save_jpg(raw, path):
 def main():
     args = sys.argv[1:]
     overrides = {}
-    for flag in ("--provider", "--model"):
+    for flag in ("--provider", "--model", "--warm", "--warm-box"):
         if flag in args:
             i = args.index(flag)
             overrides[flag[2:]] = args[i + 1]
@@ -83,6 +85,8 @@ def main():
     if len(args) < 2:
         sys.exit("usage: generate.py <spec.json> <out_folder> [--provider xai|openrouter] [--model id] [image_file ...]")
     spec = json.load(open(args[0], encoding="utf-8"))
+    warm_strength = float(overrides.pop("warm")) if "warm" in overrides else None
+    warm_box = tuple(float(v) for v in overrides.pop("warm-box").split(",")) if "warm-box" in overrides else None
     spec.update(overrides)
     for image in spec["images"]:
         for k in overrides:
@@ -106,6 +110,10 @@ def main():
             sys.exit(("XAI_API_KEY" if provider == "xai" else "OPENROUTER_API_KEY") + " is not set")
         raw, usage = (generate_xai if provider == "xai" else generate)(chosen, prompt_for(spec, image), key)
         size = save_jpg(raw, path)
+        if warm_strength:
+            from warm import warm
+            from PIL import Image
+            warm(Image.open(path), warm_strength, warm_box).save(path, "JPEG", quality=90)
         print("made   ", image["file"], "%dx%d" % size, "| usage:", json.dumps(usage))
 
 
