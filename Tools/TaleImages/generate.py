@@ -22,8 +22,11 @@ XAI_API = "https://api.x.ai/v1/images/generations"
 def generate_xai(model, prompt, key):
     body = json.dumps({"model": model, "prompt": prompt, "n": 1, "response_format": "b64_json"}).encode("utf-8")
     req = urllib.request.Request(XAI_API, data=body, headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=300) as r:
-        data = json.load(r)
+    try:
+        with urllib.request.urlopen(req, timeout=300) as r:
+            data = json.load(r)
+    except urllib.error.HTTPError as e:
+        raise RuntimeError("xAI refused (%d): %s" % (e.code, e.read().decode("utf-8", "replace")[:400]))
     items = data.get("data") or []
     if not items or not items[0].get("b64_json"):
         raise RuntimeError("no image in the answer: " + json.dumps(data)[:400])
