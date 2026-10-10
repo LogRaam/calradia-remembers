@@ -13,6 +13,7 @@ using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
+using TaleWorlds.CampaignSystem.GameMenus;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
@@ -60,6 +61,35 @@ namespace CalradiaRemembers.Letters
                 "Of course. A rider leaves within the hour. Who shall receive your message?",
                 null,
                 OnHireCourier);
+
+            // raphareish (Nexus, 10/10/2026): castles and villages have no tavern, so they had no courier at all, though
+            // the courier rides from any gate. The same service in their own menu (CourierHirePlacePolicy).
+            foreach (string menu in new[] {"castle", "village"})
+                starter.AddGameMenuOption(menu, "cr_send_letter_" + menu, $"Send a letter (courier, {CourierHireCost} denars)",
+                    MenuCondition, _ => OnHireCourier());
+        }
+
+        /// <summary>The place the player stands in, for <see cref="CourierHirePlacePolicy" />.</summary>
+        internal static CourierHirePlace PlaceOf(Settlement s)
+            => s == null ? CourierHirePlace.Elsewhere
+               : s.IsTown ? CourierHirePlace.Town
+               : s.IsCastle ? CourierHirePlace.Castle
+               : s.IsVillage ? CourierHirePlace.Village
+               : CourierHirePlace.Elsewhere;
+
+        /// <summary>Shown in a castle's or a village's menu when someone can be written to; greyed, with why, when the fee cannot be paid.</summary>
+        private static bool MenuCondition(MenuCallbackArgs args)
+        {
+            args.optionLeaveType = GameMenuOption.LeaveType.Submenu;
+            if (!CourierHirePlacePolicy.OfferedInTheMenu(PlaceOf(Settlement.CurrentSettlement)) || !CanHireCourier()) return false;
+
+            if (!CourierHireClickable(out TextObject why))
+            {
+                args.IsEnabled = false;
+                args.Tooltip = why;
+            }
+
+            return true;
         }
 
         // ── Conditions ────────────────────────────────────────────────────────

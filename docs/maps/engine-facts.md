@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-453 rules read 351 facts.
+454 rules read 351 facts.
 
 ## Facts read by more than one rule
 
@@ -50,8 +50,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Clan.Settlements` (9) | `AppointmentOfferFacts`, `GrantOfferFacts`, `HeldCaptive`, `LordRecruitmentFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `PowerBalanceFacts`, `RevokeOfferFacts`, `ServiceOfferPolicy.ChooseEnticement` |
 | `Hero.GetSkillValue` (9) | `CombatantFacts`, `CompanionCounselPolicy.Select`, `CompanionMissions.CanAttempt`, `CompanionMissions.LootForResult`, `ErrandFacts`, `PartyCounselFacts`, `TeachSkillPolicy.CanTeach`, `TeachSkillPolicy.CanTeachPlayer`, `TeachSkillPolicy.GrantedXp` |
 | `MobileParty.MapEvent` (9) | `DeedRefusal`, `EscortContinuationPolicy.Describe`, `EscortContinuationPolicy.Resolve`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `EscortStandingFacts`, `MapEncounterCloseFacts`, `RoadAudienceFacts` |
+| `Settlement.IsTown` (9) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts`, `ProvideGoodsPolicy.MarketKey`, `ScoutTownFacts`, `ScoutTownPolicy.MayAsk`, `TownNeedsPolicy.MostLacking` |
 | `ModSettings.AdultContentLevel` (8) | `ExecutionFacts`, `HarmFacts`, `IntimateChroniclePolicy.BuildLine`, `LeverageArchetype`, `RegardProposal`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible`, `SharedIntimacyFacts` |
-| `Settlement.IsTown` (8) | `CommonerChatContext`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts`, `ProvideGoodsPolicy.MarketKey`, `ScoutTownFacts`, `ScoutTownPolicy.MayAsk`, `TownNeedsPolicy.MostLacking` |
 | `Clan.Renown` (7) | `BastardPrestigePolicy.PrestigeScore`, `BastardPrestigePolicy.Resolve`, `FirstImpressionDescriber.Describe`, `FirstImpressionInputs`, `FirstImpressionPolicy.Resolve`, `InterceptionFacts`, `InterceptionPolicy.Choose` |
 | `EquipmentElement.Item` (7) | `CompanionCounselPolicy.Select`, `GiftCandidate`, `GiftEquipFacts`, `GiftQuantityPolicy.Resolve`, `GiveItemPolicy.IsGiveableItem`, `PartyCounselFacts`, `ScatteredLootItem` |
 | `Hero.IsClanLeader` (7) | `DivorceBlockFacts`, `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `DivorcedSpouseFacts`, `FactionGuidelinesPolicy.NarrowToOwnCulture`, `StationGuidelinesPolicy.ResolveStationKey`, `StationGuidelinesPolicy.SelectStationText` |
@@ -63,6 +63,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `PartyBase.MobileParty` (7) | `BrigandageFacts`, `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
 | `Romantic.AcceptsPlayersOtherPartners` (7) | `JealousyReaction.Severity`, `JealousyReactionPolicy.AcceptedAgainstCultureDelta`, `JealousyReactionPolicy.SharingRankDelta`, `JealousyTrackFacts`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot` |
 | `Romantic.IsConsort` (7) | `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
+| `Settlement.CurrentSettlement` (7) | `CouncilSceneImagePolicy.Resolve`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DuelPublicityPolicy.Audience`, `DuelStagingSupport.CanStage`, `DuelVenuePolicy.Choose`, `FoodTradeFacts`, `TownFoodPolicy.IsHungry` |
 | `Town.Governor` (7) | `AppointmentOfferFacts`, `CompanionAmbitionFacts`, `CompanionAmbitionPolicy.Select`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `ResolutionEligibilityPolicy.OfferedExecutableKeysForScope`, `ResolutionWorldFacts` |
 | `Clan.IsUnderMercenaryService` (6) | `ArrestPolicy.CanBeArrested`, `ArrestStandingFacts`, `PlayerStandingFacts`, `PlayerStandingPolicy.Resolve`, `RegardProposal`, `VassalageFacts` |
 | `Clan.MapFaction` (6) | `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `HostageBreachFacts`, `HostageBreachPolicy.IsPledgerAtFault` |
@@ -71,7 +72,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.LordsApproaching` (6) | `FiefAudiencePolicy.ChooseFiefValid`, `FiefAudiencePolicy.IsOnCooldown`, `InterceptionFacts`, `InterceptionPacingRules.CooldownDays`, `InterceptionPacingRules.DailyChancePercent`, `InterceptionPacingRules.IsOff` |
 | `PartyBelongedTo.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `EscortCostPolicy.EscortPremium`, `JealousyHearingPolicy.WithinEarshot` |
 | `Romantic.IsOpenArrangement` (6) | `LoverEligibilityFacts`, `OpenRelationshipPolicy.SuppressesJealousy`, `PartnerStanding`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot` |
-| `Settlement.CurrentSettlement` (6) | `CouncilSceneImagePolicy.Resolve`, `DuelPublicityPolicy.Audience`, `DuelStagingSupport.CanStage`, `DuelVenuePolicy.Choose`, `FoodTradeFacts`, `TownFoodPolicy.IsHungry` |
 | `Settlement.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `AuthoredQuestEngine.NightPassed`, `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
 | `Town.FoodStocks` (6) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination`, `TownFoodPolicy.StocksAfterRelief` |
 | `Array.Empty` (5) | `AppreciationPolicy.SelectDominant`, `GrudgePolicy.SelectDominant`, `SceneChoiceMenu.Items`, `SceneChoiceMenu.Read`, `SceneChoiceMenuFacts` |
@@ -80,6 +80,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `IFaction.IsAtWarWith` (5) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `MarriageStateFacts`, `OutlawPolicy.IsBrigandage` |
 | `PartyBelongedTo.MapEvent` (5) | `AssemblyInvitationFacts`, `AssemblyTravelFacts`, `AssemblyTravelOutcome.Evaluate`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate` |
 | `Romantic.Status` (5) | `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
+| `Settlement.IsCastle` (5) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts` |
 | `Settlement.IsStarving` (5) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination` |
 | `Settlement.MapFaction` (5) | `InterceptionFacts`, `InterceptionPolicy.Choose`, `ScoutTownFacts`, `ScoutTownPolicy.MayAsk`, `SettlementSafetyFacts` |
 | `Town.FoodChange` (5) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination` |
@@ -99,7 +100,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Provider.SelectedValue` (4) | `ProviderRolePolicy.ParseKind`, `ProviderRolePolicy.ResolveRoleKind`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `Romantic.IsCompatibleWith` (4) | `JealousyTriggerPolicy.IsPlausibleCourtship`, `LoverCandidateFacts`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Settlement.Find` (4) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AuthoredQuestEngine.NightPassed`, `RumorAwareness.Explain` |
-| `Settlement.IsCastle` (4) | `CommonerChatContext`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts` |
 | `Settlement.OwnerClan` (4) | `FiefRewardFacts`, `PrisonerRecruitmentPolicy.Evaluate`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
 | `TroopRoster.GetTroopRoster` (4) | `CourtActionPolicy.IsPartyWeakened`, `PrisonerCustodyPolicy.HeldByPlayer`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `Vec2.Distance` (4) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CourierStuckPolicy.HasMoved`, `GeographyDescriber.Bearing` |
@@ -135,6 +135,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `OwnerClan.MapFaction` (3) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts` |
 | `Party.NumberOfHealthyMembers` (3) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.MayAsk`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `PartyBelongedToAsPrisoner.MapFaction` (3) | `PowerBalanceFacts`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
+| `Settlement.IsVillage` (3) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `SettlementSafetyFacts` |
 | `StatureReader.OfClan` (3) | `BastardPrestigePolicy.PrestigeScore`, `BastardPrestigePolicy.Resolve`, `LordRecruitmentFacts` |
 | `Status.IsCuriousOrDeeper` (3) | `CorrespondenceRankFacts`, `CorrespondenceRankPolicy.DealsInPerson`, `RegardProposal` |
 | `StringId.GetHashCode` (3) | `RomanticProfilePolicy.DetermineKinks`, `RomanticProfilePolicy.DetermineOrientation`, `RomanticProfilePolicy.DeterminePreferences` |
@@ -210,7 +211,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Romantic.Kinks` (2) | `CaptiveEncounterPolicy.EncounterProbability`, `CaptiveEncounterPolicy.SelectIntent` |
 | `Scan.Strength` (2) | `AudienceCandidate`, `TravellingAudiencePolicy.Choose` |
 | `ScreenManager.TopScreen` (2) | `ChatFocusArbitrationPolicy.Decide`, `ChatFocusArbitrationPolicy.ReasonFor` |
-| `Settlement.IsVillage` (2) | `CommonerChatContext`, `SettlementSafetyFacts` |
 | `Settlement.Name` (2) | `QuestMenuEntry`, `ThirdPartyDescriptor.WhereaboutsClause` |
 | `Settlement.Notables` (2) | `ScoutTownFacts`, `ScoutTownPolicy.MayAsk` |
 | `Settlement.SiegeEvent` (2) | `ChaseFacts`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter` |
@@ -347,6 +347,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CouncilTroopDelivery`: `Clan.Heroes`, `Hero.Clan`
 - `CouncilTroopLoanPolicy.ComputeLoan`: `Hero.PartyBelongedTo`, `MobileParty.MemberRoster`
 - `CourierGateFacts`: `GatePosition.ToVec2`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `MapDistanceModel.PathExistBetweenPoints`, `MobileParty.GetPosition2D`, `MobileParty.IsCurrentlyAtSea`, `Models.MapDistanceModel`, `NavigationType.Default`, `Vec2.Zero`
+- `CourierHirePlacePolicy.OfferedInTheMenu`: `Settlement.CurrentSettlement`, `Settlement.IsCastle`, `Settlement.IsTown`, `Settlement.IsVillage`
 - `CourierLossFacts`: `Clan.MapFaction`, `FactionManager.IsAtWarAgainstFaction`, `PartyBase.MapFaction`, `PartyBase.MobileParty`
 - `CourierRationPolicy.ShouldTopUp`: `MobileParty.TotalFoodAtInventory`
 - `CourierSecretPolicy.BecomesSecret`: `Clan.MapFaction`, `FactionManager.IsAtWarAgainstFaction`, `Hero.Clan`, `PartyBase.MapFaction`, `PartyBase.MobileParty`

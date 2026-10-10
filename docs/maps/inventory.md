@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 473 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1018 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1020 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -814,7 +814,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (639)
+### CalradiaRemembers.Logic (641)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -974,6 +974,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilSceneTerrain` | public enum | The terrain bucket a council scene image cares about: only Desert and Steppe get their own art (dunes, open grass); every other engine TerrainType (Forest, Mountain, Plain, Snow, Water...) shares one "forest/mountains" i... |
 | `CouncilVoiceMode` | public enum | How a council's turns are generated: together in one call, or each seated member their own. |
 | `CourierDispatchPolicy` | public static class | Pure gate for the reply-courier dispatch: whether a sender already has a courier on the road. |
+| `CourierHirePlace` | public enum | The kind of place the player stands in. |
+| `CourierHirePlacePolicy` | public static class | Where the courier is offered from the settlement's own menu. |
 | `CourierLoss` | public enum | What happened to a courier that never arrived. |
 | `CourierLossFacts` | public class | What is known about whoever destroyed a courier. |
 | `CourierRationPolicy` | public static class | Decides when a courier's larder is refilled mid-errand. |
