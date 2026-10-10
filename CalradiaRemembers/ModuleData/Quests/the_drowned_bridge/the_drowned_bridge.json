@@ -1,0 +1,331 @@
+{
+  "id": "cr_the_drowned_bridge",
+  "title": "The Drowned Bridge",
+  "author": "Claude for Gabriel Mailhot, 10/10/2026: an investigation that ends in a choice before the lord, not in a fight",
+  "unique": true,
+  "weight": 10,
+  "requires": {
+    "giver": {
+      "role": "lord",
+      "holds": "{village}",
+      "min_regard": 0,
+      "not_at_war_with_player": true
+    },
+    "village": {
+      "type": "village"
+    },
+    "rival": {
+      "role": "clan_leader",
+      "same_realm_as": "{giver}"
+    },
+    "player": {
+      "min_clan_tier": 0
+    }
+  },
+  "binds": {
+    "giver": "the lord who holds {village}",
+    "village": "a village on a river",
+    "rival": "the head of another house of the giver's realm"
+  },
+  "stages": [
+    {
+      "id": "the_request",
+      "journal": "{giver} has asked you to find out who broke the toll bridge of {village}.",
+      "image": "The Lord's Grief.jpg",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}"
+      },
+      "canvas": "The lord is angry and grieving at once. Pilgrims drowned on his land, and he is sure he knows whose hand was behind it. He wants proof he can lay before the realm.",
+      "facts": [
+        "The old toll bridge of {village} broke in the spring flood and carried a cart of pilgrims into the river.",
+        "The lord believes men of {rival} cut the pilings out of spite; there is old bad blood between the two houses.",
+        "He wants someone he trusts to find the proof."
+      ],
+      "knowers": {
+        "{giver}": [
+          "The toll bridge of {village} broke in the spring flood and drowned a cart of pilgrims on your land.",
+          "You believe men of {rival} cut its pilings; riders of that house were seen near the river before the flood.",
+          "You want proof you can lay before the realm."
+        ]
+      },
+      "on_complete": {
+        "next": "ask_the_village"
+      }
+    },
+    {
+      "id": "ask_the_village",
+      "journal": "Ask the people of {village} what happened at the bridge.",
+      "image": "Mourning on the Riverbank.jpg",
+      "objective": {
+        "type": "talk_to_locals",
+        "place": "{village}",
+        "count": 2
+      },
+      "canvas": "The village is still in mourning. People speak of the bridge with anger, and every one of them is sure who is to blame.",
+      "facts": [
+        "Riders wearing the colours of {rival} crossed the bridge a few days before the flood.",
+        "The toll keeper drowned with the pilgrims, trying to turn their cart back.",
+        "The bridge was old; people say it was mended every spring by the lord's steward."
+      ],
+      "knowers": {
+        "locals_of:{village}": [
+          "You saw riders in the colours of {rival} cross the bridge a few days before the flood, and you are sure they cut it.",
+          "The toll keeper drowned with the pilgrims, trying to turn their cart back; his daughter still keeps the toll house.",
+          "As far as you know, the lord's steward had the bridge mended every spring."
+        ]
+      },
+      "on_complete": {
+        "next": "the_bridge"
+      }
+    },
+    {
+      "id": "the_bridge",
+      "journal": "Go down to what is left of the bridge of {village} and see for yourself.",
+      "image": "The Bridge Under the Flood.jpg",
+      "objective": {
+        "type": "explore",
+        "scene": {
+          "opening": {
+            "canvas": "Dusk on the riverbank below {village}. The water is still high and brown, the broken pilings stand in the current, and the toll house is dark. End by asking what the player does.",
+            "facts": [
+              "Two pilings still stand in the river; the deck is gone.",
+              "The toll house on the near bank is shut, a thread of smoke from its chimney."
+            ]
+          },
+          "findings": [
+            {
+              "id": "old_cuts",
+              "image": "Rotten Pilings at Low Water.jpg",
+              "required": true,
+              "text": "Saw marks on the broken pilings, but old ones: grey, swollen and soft with rot. Nobody cut this wood this spring; it was never replaced."
+            },
+            {
+              "id": "the_ledger",
+              "image": "The Steward's Ledger.jpg",
+              "required": false,
+              "sets": ["ledger"],
+              "text": "In the toll house, the repair ledger: three springs of coin entered for new timber and pitch under the steward's mark, and not one beam bought."
+            }
+          ],
+          "hazards": [
+            {
+              "id": "rotten_deck",
+              "image": "The Deck Gives Way.jpg",
+              "trigger": "stepping out onto what remains of the deck",
+              "effect": {
+                "type": "injure",
+                "hit_points": [10, 25]
+              }
+            }
+          ],
+          "encounters": [
+            {
+              "id": "tollkeepers_daughter",
+              "image": "The Tollkeeper's Daughter.jpg",
+              "name": "the toll keeper's daughter",
+              "persona": "a young woman in mourning who still keeps the toll house; frightened, and slow to trust a stranger who comes from the lord",
+              "knows": [
+                "Last autumn the steward's men came with a cart and took away the new timber meant for the bridge; she heard it was sold at the market.",
+                "Her father complained of it, and was told to hold his tongue.",
+                "She is afraid that saying so will cost her the toll house."
+              ]
+            }
+          ],
+          "closing": "Whatever the player did, they leave the river knowing the bridge was not cut this spring: it fell because no one mended it."
+        }
+      },
+      "canvas": "",
+      "facts": [],
+      "knowers": {
+        "locals_of:{village}": [
+          "You are sure riders of {rival} cut the bridge; you saw them cross it before the flood.",
+          "The lord has sent someone to find out; you hope they bring {rival} to account."
+        ]
+      },
+      "on_complete": {
+        "next": "before_the_lord"
+      }
+    },
+    {
+      "id": "before_the_lord",
+      "journal": "You know why the bridge of {village} fell. What you tell {giver} is yours to decide.",
+      "image": "Before the Lord.jpg",
+      "choices": [
+        {
+          "id": "the_truth",
+          "label": "Tell {giver} his own steward let the bridge rot",
+          "journal": "Tell {giver} the truth about his steward, the ledger in hand.",
+          "if": "ledger",
+          "said": {
+            "to": "{giver}",
+            "meaning": "the player tells the lord that his own steward kept the repair coin and let the bridge rot"
+          },
+          "canvas": "The lord hears it with the ledger in front of him. His anger turns slowly from {rival} to his own house, and to himself.",
+          "facts": [
+            "The repair coin of three springs was entered and never spent on the bridge.",
+            "The steward's mark is on every line."
+          ],
+          "next": "end:justice"
+        },
+        {
+          "id": "blame_the_rival",
+          "label": "Let {giver} believe {rival}'s men cut it",
+          "journal": "Or tell {giver} what he wants to hear.",
+          "said": {
+            "to": "{giver}",
+            "meaning": "the player tells the lord, or lets him believe, that men of {rival} cut the bridge"
+          },
+          "canvas": "The lord hears what he expected to hear, and it hardens into certainty. He thanks the player and is already thinking of {rival}.",
+          "facts": [
+            "The lord now holds {rival} to blame for the drowned pilgrims."
+          ],
+          "next": "end:a_convenient_enemy"
+        },
+        {
+          "id": "recover_the_coin",
+          "label": "Go after the steward's men and the coin they carry",
+          "journal": "Or catch the steward's men on the road before they are gone with the coin.",
+          "objective": {
+            "type": "defeat_party",
+            "spawn": {
+              "id": "stewards_men",
+              "template": "local",
+              "size": [8, 14],
+              "name": "The steward's men",
+              "near": "{village}",
+              "scale_with_player": true,
+              "on_defeat": {
+                "next": "end:the_steward_escapes",
+                "journal": "The steward's men beat you back and rode off with the coin."
+              }
+            }
+          },
+          "next": "bring_back_the_coin"
+        }
+      ],
+      "knowers": {
+        "{giver}": [
+          "You asked the player to find out who broke the bridge of {village}; you believe men of {rival} cut it.",
+          "The player has come back from the river."
+        ],
+        "locals_of:{village}": [
+          "You are sure riders of {rival} cut the bridge.",
+          "The lord's champion went down to the river at dusk and came back with a face you could not read."
+        ]
+      }
+    },
+    {
+      "id": "bring_back_the_coin",
+      "journal": "Bring the recovered coin back to {giver}.",
+      "image": "The Coin Returned.jpg",
+      "objective": {
+        "type": "return"
+      },
+      "canvas": "The lord weighs the recovered purse in his hand, and the truth with it. He is ashamed of his steward and grateful to the player, plainly.",
+      "facts": [
+        "The steward's men carried the repair coin; the player took it back from them.",
+        "The bridge can be rebuilt properly this time."
+      ],
+      "knowers": {
+        "{giver}": [
+          "The player caught your steward's men on the road with the repair coin of three springs; your steward let the bridge rot and sold its timber.",
+          "Men of {rival} had nothing to do with it."
+        ]
+      },
+      "on_complete": {
+        "next": "reward"
+      }
+    }
+  ],
+  "reward": {
+    "regard": 12,
+    "gold": 400,
+    "memory": "The player found out why my bridge fell: my own steward stole the coin to mend it. They brought the coin back, and spared me an unjust feud with {rival}.",
+    "journal": "The coin is back, the steward exposed, and the bridge of {village} will be rebuilt.",
+    "consequences": [
+      {
+        "type": "memory",
+        "who": "locals_of:{village}",
+        "text": "The bridge fell because the steward stole the money to mend it. {rival}'s men had nothing to do with it, and the coin is back."
+      },
+      {
+        "type": "world_event",
+        "summary": "The steward of {giver} was found to have stolen the coin meant for the bridge of {village}; the drowned bridge was neglect, not sabotage.",
+        "magnitude": 25,
+        "place": "{village}"
+      }
+    ]
+  },
+  "endings": {
+    "justice": {
+      "regard": 8,
+      "gold": 200,
+      "memory": "The player told me a truth I did not want: my own steward let the bridge rot and drowned those pilgrims, not {rival}.",
+      "journal": "You told {giver} the truth about his steward. It was not what he wanted to hear.",
+      "consequences": [
+        {
+          "type": "memory",
+          "who": "locals_of:{village}",
+          "text": "The bridge fell from neglect; the lord's steward kept the money. {rival}'s men had nothing to do with it."
+        },
+        {
+          "type": "world_event",
+          "summary": "The drowned bridge of {village} fell from neglect: the steward of {giver} kept the coin to mend it.",
+          "magnitude": 20,
+          "place": "{village}"
+        }
+      ]
+    },
+    "a_convenient_enemy": {
+      "regard": 10,
+      "gold": 300,
+      "memory": "The player confirmed what I knew: men of {rival} cut my bridge and drowned pilgrims on my land.",
+      "journal": "You let {giver} blame {rival}. He paid you well for it.",
+      "consequences": [
+        {
+          "type": "grudge",
+          "who": "{giver}",
+          "against": "{rival}",
+          "text": "His men cut my bridge and drowned pilgrims on my land.",
+          "magnitude": 40
+        },
+        {
+          "type": "memory",
+          "who": "locals_of:{village}",
+          "text": "It was {rival}'s men who cut the bridge; the lord's champion found the proof."
+        },
+        {
+          "type": "world_event",
+          "summary": "{giver} accuses {rival} of breaking the bridge of {village} and drowning pilgrims.",
+          "magnitude": 30,
+          "place": "{village}"
+        }
+      ]
+    },
+    "the_steward_escapes": {
+      "regard": 2,
+      "memory": "The player went after my steward's thieves on the road, and they got away with the coin.",
+      "journal": "The steward's men are gone with the coin. {giver} knows the truth now, but the bridge money is lost.",
+      "consequences": [
+        {
+          "type": "memory",
+          "who": "locals_of:{village}",
+          "text": "The steward's men fled with the bridge money; the lord's champion could not stop them."
+        }
+      ]
+    }
+  },
+  "failure": {
+    "days": 40,
+    "regard": -3,
+    "memory": "I asked the player to find out who broke the bridge of {village}, and nothing came of it.",
+    "consequences": [
+      {
+        "type": "memory",
+        "who": "locals_of:{village}",
+        "text": "The lord sent someone about the bridge. Nothing came of it, and the pilgrims are still unavenged."
+      }
+    ]
+  }
+}

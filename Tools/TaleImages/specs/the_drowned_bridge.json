@@ -1,10 +1,42 @@
 {
   "model": "openai/gpt-5.4-image-2",
-  "tale_style": "The Drowned Bridge: a river village in early spring, swollen brown water, low grey sky, mud, bare willows and alders. Wet timber and old stone. Quiet grief and suspicion rather than battle. The same cold, misty light in every picture of this tale.",
+  "tale_style": "The Drowned Bridge: a river village in early spring, swollen brown water, low grey sky, mud, bare willows and alders. Wet timber and old stone. Quiet grief and suspicion rather than battle. The same cold, misty light in every picture of this tale. People are seen at a modest distance or from the side, never posing for the viewer.",
   "images": [
     {
       "file": "The Bridge Under the Flood.jpg",
       "scene": "At dusk, the remains of an old wooden toll bridge broken by a spring flood: two pilings still standing in fast brown water, the deck torn away, a wrecked ox cart caught on the debris downstream. A small timber toll house stands on the near bank. Mist over the river, a few distant villagers watching from the bank, faces unseen."
+    },
+    {
+      "file": "The Lord's Grief.jpg",
+      "scene": "Inside a modest stone keep's hall at grey daylight: a lord in fine dyed wool and a mail shirt stands by a long table, one fist pressed on it, jaw set in anger and grief. A wet, mud-stained pilgrim's satchel lies on the table before him. A hearth smoulders, banners hang slack. Seen from across the hall, the lord slightly turned away."
+    },
+    {
+      "file": "Mourning on the Riverbank.jpg",
+      "scene": "Village women and men in plain wool cloaks gathered on a muddy riverbank in light rain, by a row of fresh graves marked with simple wooden stakes and river stones. Some look toward the broken bridge downstream, whispering among themselves. Thatched timber houses behind them, smoke from a chimney. Seen from a little distance."
+    },
+    {
+      "file": "Rotten Pilings at Low Water.jpg",
+      "scene": "Close view at the water's edge of two broken bridge pilings: the wood grey, swollen, split and soft with rot, old saw marks blackened and furred with moss and slime, iron nails rusted through. Brown water swirling around their base, a gloved hand pressing into the soft wood shows how rotten it is."
+    },
+    {
+      "file": "The Steward's Ledger.jpg",
+      "scene": "Inside a dim timber toll house by candlelight: a worn leather-bound ledger lies open on a rough table, its pages covered in faded ink columns and tally marks that cannot be read, a wax seal mark at the foot of each page. A clay cup, a few coins and a stub of candle beside it. Rain on the small shutter."
+    },
+    {
+      "file": "The Deck Gives Way.jpg",
+      "scene": "At dusk on the broken bridge, a cloaked figure seen from behind steps onto the last remaining planks over the flood; the rotten boards split and give way under the boot, splinters flying, the brown water rushing below. Tense, sudden, the figure catching hold of a railing."
+    },
+    {
+      "file": "The Tollkeeper's Daughter.jpg",
+      "scene": "A young woman in a dark mourning shawl and plain wool dress stands in the doorway of a small timber toll house at dusk, half in shadow, holding a lantern low, wary and frightened, looking toward a visitor off to the side. Mist and the river behind her."
+    },
+    {
+      "file": "Before the Lord.jpg",
+      "scene": "In a stone hall lit by a hearth, a lord sits in a heavy wooden chair, listening with a hard, unreadable face to a travel-stained visitor seen from behind, standing before him. A steward in a fine robe waits at the lord's side holding a ring of keys. Tension in the room, firelight and shadow."
+    },
+    {
+      "file": "The Coin Returned.jpg",
+      "scene": "A lord in a stone hall weighs a heavy leather purse in his hand, coins spilling onto the table beside an open ledger, his face torn between shame and gratitude. In the background, through an open door, villagers carry fresh timber beams toward the river. Morning light after rain."
     }
   ]
 }

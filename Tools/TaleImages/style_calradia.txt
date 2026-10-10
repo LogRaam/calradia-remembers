@@ -14,7 +14,9 @@ Its peoples, each modelled on a real culture of that age:
 - The Khuzait: steppe nomads, Mongol-like. Felt yurts, lamellar, horse bows, endless grassland.
 - The Nords: Scandinavian seafarers. Longships, longhouses, fjords, wool and fur.
 
-Never show: plate armour, gothic cathedrals or pointed gothic arches, gunpowder, printed books, glass windows in a
+Never show: real-world religious symbols (no Christian crosses, crescents, stars of David; Calradia has its own gods,
+shown only as plain carved posts, standing stones or abstract sun and animal motifs), plate armour, gothic cathedrals
+or pointed gothic arches, glazed or paned windows (shutters, oiled hide or open slits instead), gunpowder, printed books, glass windows in a
 village, Renaissance or modern clothing, fantasy creatures, magic, elves, dragons, glowing effects, readable text or
 lettering, logos, watermarks, signatures, frames or borders.
 
