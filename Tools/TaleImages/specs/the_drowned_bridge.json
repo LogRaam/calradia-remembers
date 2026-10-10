@@ -1,0 +1,10 @@
+{
+  "model": "openai/gpt-5.4-image-2",
+  "tale_style": "The Drowned Bridge: a river village in early spring, swollen brown water, low grey sky, mud, bare willows and alders. Wet timber and old stone. Quiet grief and suspicion rather than battle. The same cold, misty light in every picture of this tale.",
+  "images": [
+    {
+      "file": "The Bridge Under the Flood.jpg",
+      "scene": "At dusk, the remains of an old wooden toll bridge broken by a spring flood: two pilings still standing in fast brown water, the deck torn away, a wrecked ox cart caught on the debris downstream. A small timber toll house stands on the near bank. Mist over the river, a few distant villagers watching from the bank, faces unseen."
+    }
+  ]
+}

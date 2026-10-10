@@ -1,0 +1,24 @@
+STYLE (applies to every image of a Calradia Remembers tale; the scene itself follows after this block):
+
+World: Calradia, the world of Mount & Blade II: Bannerlord. Its look blends LATE ANTIQUITY and the EARLY MIDDLE AGES,
+roughly the 6th to 11th centuries: a fading eastern Roman empire among younger kingdoms. Not the high or late Middle Ages,
+not fantasy.
+
+Its peoples, each modelled on a real culture of that age:
+- The Empire: late Roman / Byzantine. Lamellar and scale armour, mail, plumed or ridged helmets, red and purple cloth,
+  stone and brick, columns, frescoes, mosaics.
+- Vlandia: Norman and Frankish. Mail hauberks, kite shields, nasal helmets, early motte-and-bailey keeps, timber and stone.
+- Sturgia: Kievan Rus' and Norse. Fur, felt, spangenhelms, round shields, log houses, birch forests, cold rivers.
+- Battania: Celtic and Pictish highlanders. Wool, tartan-like cloth, torcs, painted wood, hill forts, misty glens and oaks.
+- The Aserai: early Arab and Bedouin. Robes, turbans, light mail, sandstone towns, desert, palms, tents.
+- The Khuzait: steppe nomads, Mongol-like. Felt yurts, lamellar, horse bows, endless grassland.
+- The Nords: Scandinavian seafarers. Longships, longhouses, fjords, wool and fur.
+
+Never show: plate armour, gothic cathedrals or pointed gothic arches, gunpowder, printed books, glass windows in a
+village, Renaissance or modern clothing, fantasy creatures, magic, elves, dragons, glowing effects, readable text or
+lettering, logos, watermarks, signatures, frames or borders.
+
+Look: a painterly, realistic illustration, like a historical painting or a high-quality game concept art: natural
+light, muted earthy palette, weathered and lived-in materials, believable people of ordinary build. Grounded and
+serious, never cartoonish, never glossy. Wide landscape composition (about 4:3), the subject readable at a glance.
+Common people dress in simple wool and linen; lords in finer dyed cloth and mail.
