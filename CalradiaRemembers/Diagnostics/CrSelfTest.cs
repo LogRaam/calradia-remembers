@@ -211,6 +211,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_bond_bar_agrees", Severity.Light, "player report 2026-09-09 ('the NPC is expressing affection, yet the system displays a message stating that intimacy is insufficient'), caused by ONE regard bar living as a literal 50 in three places while only the confession moved onto the Relationship Pacing dial. Drives the REAL EncounterContextBuilder.Build and the REAL bridge action take_as_secret_lover against a compatible companion at exactly MinRegardFor(current pacing) and one point below it, and asserts BOTH engine gates flip on the SAME number the confession uses. A pure test cannot catch this (it would compare the policy with itself); only driving the live sites can. EXTENDED 2026-09-09 with the THIRD site of that same bar, what the NPC may SAY: asserts the LIVE PromptBuilder the chat uses declares from the very number the confession roll measures from, and that the register reads Attachment at the bar and Interest one below it, where an NPC may flirt but must never speak of love nor open a courtship on standing alone. Restores the regard and undoes any bond formed", TestSecretBondBarAgrees),
          new SelfTest("captive_lord_withheld_from_defection", Severity.Heavy, "player report: a held captive lord below the recruit_prisoner regard floor could still narrate accepting the player's offer to defect, though nothing happened (an empty promise). Really captures a capturable in-party lord who is not their own clan's leader, drives EncounterContextBuilder.Build with regard just BELOW PrisonerRecruitmentPolicy.RegardFloor -> assert CanRecruitPrisoner is false and the new CaptiveLordWithheldFromDefection flag is true, then raises regard to the floor -> assert they FLIP (CanRecruitPrisoner true, the new flag false), proving the two are mutually exclusive on live engine facts. Releases the captive and restores regard afterwards", TestCaptiveLordWithheldFromDefection),
          new SelfTest("narrative_patch_scope", Severity.Light, "Found checking a modder's README against the code (tashmetu, 19/09/2026): the cr_patch scanner first read ModuleHelper.GetModules(), which is every module FOUND on disk, enabled or not. A bridge disabled in the launcher still had its prose read into every prompt, and with its assembly not loaded its {{variables}} reached the model as raw braces. Asserts that every module the scanner reads is one the player ENABLED, and that Calradia Remembers itself is among them (proof the list is the live one, not an empty fallback).", TestNarrativePatchScope),
+         new SelfTest("rescue_from_foe", Severity.Light, "zhenja1 (Nexus, 10/10/2026): 'I liberated two from Garios, and both are saying they were never prisoner.' The game hands a beaten lord's prisoners to the player's loot, and letting them go later from the player's own custody read as a pardon, so nothing was remembered. Takes a real lord prisoner into the player's party, marks them as taken from another real lord (the seam the battle start fills), releases them through the REAL EndCaptivityAction.ApplyByReleasedByChoice, and asserts the rescued lord now remembers being freed, naming the lord who held them. Leaves the gratitude it gave (as cr.rescue does) and forgets the once-per-lord credit", TestRescueFromFoe),
          new SelfTest("memory_api_remove", Severity.Light, "philip0105 (Vivid World, 10/10/2026): a mod could add memories through CrNpcMemory.AddMemory but never take them back, so rumors it later forgot or corrected lingered in CR. Adds a memory to a real lord through the REAL AddMemory with a SourceMod, asserts another mod's RemoveMemory of the same text takes nothing, then that the same mod's RemoveMemory takes exactly it and it is gone from GetMemories. Leaves the lord as found", TestMemoryApiRemove),
          new SelfTest("tale_content_level", Severity.Light, "Gabriel (10/10/2026): 'can a quest be classed Hardcore?' A tale now names the content level it needs (requires.content). Loads a hardcore tale written into the test through the REAL loader, and asserts the REAL offer decision refuses it, naming the level, unless the player's setting in the mod options is Hardcore; and that the shipped tales, which ask for none, are never held back by it. No tale is offered or started; the test tale is taken out after", TestTaleContentLevel),
          new SelfTest("courier_menu_option", Severity.Light, "raphareish (Nexus, 10/10/2026): letters could be sent only from a town's tavern keeper, so castles and villages, which have no tavern, had no courier at all. Asserts the castle and village menus of THIS game carry 'Send a letter', and reports what the place the player stands in offers. Opens nothing, charges nothing", TestCourierMenuOption),
@@ -3879,6 +3880,39 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("goneFromTheMemories", CrNpcMemory.GetMemories(lord.StringId).Any(m => m.Summary == text), false);
          }
          finally { CrNpcMemory.RemoveMemory(new CrMemoryRemoval {NpcId = lord.StringId, Summary = text, SourceMod = "CrSelfTest"}); }
+
+         return t.Line();
+      }
+
+      private static string TestRescueFromFoe(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("rescue_from_foe");
+
+         Rescue.RescueBehavior rescue = Rescue.RescueBehavior.Instance;
+         if (t.Skip(rescue == null, "the rescue behaviour is not active")) return t.Line();
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && !h.IsPrisoner && h.Clan != Clan.PlayerClan && !h.IsChild
+                                                             && h.PartyBelongedTo == null && h.Clan?.IsBanditFaction != true);
+         Hero captor = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h != lord && h.Clan != Clan.PlayerClan && !h.IsChild);
+         if (t.Skip(lord == null || captor == null, "no free, partyless lord and another lord to hold them")) return t.Line();
+
+         rescue.DebugForgetCredit(lord);
+         try
+         {
+            TakePrisonerAction.Apply(PartyBase.MainParty, lord);
+            rescue.DebugMarkTakenFromFoe(lord, captor, (int) CampaignTime.Now.ToDays);
+            EndCaptivityAction.ApplyByReleasedByChoice(lord, Hero.MainHero);
+
+            NpcProfile profile = behavior.Store.Get(lord.StringId);
+            string memory = profile?.Events?.LastOrDefault(e => e.summary?.StartsWith("You freed me from") == true)?.summary ?? "";
+            t.Note($"{lord.Name}: {memory}");
+            t.Expect("freedLordRemembersIt", memory.Length > 0, true);
+            t.Expect("andNamesWhoHeldThem", memory.Contains(captor.Name.ToString()), true);
+         }
+         finally
+         {
+            if (lord.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(lord);
+            rescue.DebugForgetCredit(lord);
+         }
 
          return t.Line();
       }

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Grudges;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Rescue;
 using CalradiaRemembers.Mapping;
@@ -16,6 +17,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 
@@ -35,6 +37,10 @@ namespace CalradiaRemembers.Rescue
     public sealed class RescueBehavior : CampaignBehaviorBase
     {
         private const string SaveKey = "CalradiaRemembers_Rescues_v1";
+
+        // zhenja1 (10/10/2026): lords the player took from a beaten foe who held them, by hero id: who held them, and
+        // the day. Let go by the player's choice within RescueFromFoePolicy.WindowDays, they were rescued.
+        private const string TakenFromFoeSaveKey = "CalradiaRemembers_TakenFromFoe_v1";
         private const int MaxFriends = 5;
         private const int MaxPendingBuffer = 64;
 
@@ -47,6 +53,12 @@ namespace CalradiaRemembers.Rescue
         // Once-per-lord: a lord already thanked for a rescue is not credited again (persisted across saves).
         private HashSet<string> _credited = new HashSet<string>();
 
+        /// <summary>The player's battle under way: the lords its enemies held, by hero id, read when it began.</summary>
+        private readonly Dictionary<string, HeldBy> _heldByFoeThisBattle = new Dictionary<string, HeldBy>();
+
+        /// <summary>Lords the player took from a beaten foe and still holds, by hero id (saved).</summary>
+        private Dictionary<string, HeldBy> _takenFromFoe = new Dictionary<string, HeldBy>();
+
         public RescueBehavior()
         {
             Instance = this;
@@ -56,6 +68,7 @@ namespace CalradiaRemembers.Rescue
         {
             CampaignEvents.HeroPrisonerReleased.AddNonSerializedListener(this, OnHeroPrisonerReleased);
             CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
+            CampaignEvents.MapEventStarted.AddNonSerializedListener(this, OnMapEventStarted);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -69,6 +82,20 @@ namespace CalradiaRemembers.Rescue
                 _credited = string.IsNullOrEmpty(blob)
                     ? new HashSet<string>()
                     : new HashSet<string>(blob.Split('\n'));
+
+            // Additive (10/10/2026): one line per lord, "id|captor label|settlement|faction|day"; absent on older saves.
+            string taken = string.Join("\n", _takenFromFoe.Select(kv => string.Join("|", kv.Key, Clean(kv.Value.CaptorLabel), Clean(kv.Value.SettlementName), Clean(kv.Value.FactionName), kv.Value.Day)));
+            dataStore.SyncData(TakenFromFoeSaveKey, ref taken);
+            if (dataStore.IsLoading)
+            {
+                _takenFromFoe = new Dictionary<string, HeldBy>();
+                foreach (string line in (taken ?? "").Split('\n'))
+                {
+                    string[] p = line.Split('|');
+                    if (p.Length == 5 && int.TryParse(p[4], out int day))
+                        _takenFromFoe[p[0]] = new HeldBy {CaptorLabel = Null(p[1]), SettlementName = Null(p[2]), FactionName = Null(p[3]), Day = day};
+                }
+            }
         }
 
         /// <summary>
@@ -105,10 +132,31 @@ namespace CalradiaRemembers.Rescue
                 return;
             }
 
+            // Whatever ends their captivity (a ransom, an escape, a release), the mark of a lord taken from a foe goes.
+            HeldBy taken = null;
+            if (prisoner != null && _takenFromFoe.TryGetValue(prisoner.StringId, out taken)) _takenFromFoe.Remove(prisoner.StringId);
+
             if (!RescueEligibilityPolicy.CanBeARescue(KindOf(detail))) return;
             if (prisoner == null || !prisoner.IsLord || prisoner == Hero.MainHero) return;
 
-            _pending.Add(new PendingRelease {Prisoner = prisoner, CaptorParty = party, CaptorFaction = faction});
+            // zhenja1 (10/10/2026): taken from a beaten foe and let go later from the player's own custody: a rescue,
+            // remembered with who held them. The battle is over by then, so it is credited at once.
+            int today = (int) CampaignTime.Now.ToDays;
+            // Only a release from the PLAYER's custody (their party, the loot not yet in a party, a dungeon of theirs): a
+            // lord the foe kept and let go of himself owes the player nothing.
+            bool fromPlayersCustody = party == null || party == PartyBase.MainParty || party.Owner == Hero.MainHero
+                                      || party.Settlement?.OwnerClan == Clan.PlayerClan;
+            if (taken != null && fromPlayersCustody)
+            {
+                if (RescueFromFoePolicy.IsRescue(new CustodyReleaseFacts {ReleasedByChoice = detail == EndCaptivityDetail.ReleasedByChoice, TakenFromFoeOnDay = taken.Day, Today = today}))
+                    CreditRescue(prisoner, null, null, false, today, heldBy: taken);
+
+                return;
+            }
+
+            // Freed from the player's loot during the battle the foe lost: who held them was read when it began.
+            _heldByFoeThisBattle.TryGetValue(prisoner.StringId, out HeldBy heldBy);
+            _pending.Add(new PendingRelease {Prisoner = prisoner, CaptorParty = party, CaptorFaction = faction, HeldBy = heldBy});
             if (_pending.Count > MaxPendingBuffer) _pending.RemoveAt(0);
         }
 
@@ -124,7 +172,7 @@ namespace CalradiaRemembers.Rescue
         {
             try
             {
-                if (_pending.Count == 0 || mapEvent == null) return;
+                if (mapEvent == null || (_pending.Count == 0 && (!mapEvent.IsPlayerMapEvent || _heldByFoeThisBattle.Count == 0))) return;
 
                 bool playerWon = mapEvent.IsPlayerMapEvent && mapEvent.HasWinner
                                                            && mapEvent.PlayerSide != BattleSideEnum.None
@@ -140,10 +188,19 @@ namespace CalradiaRemembers.Rescue
                 HashSet<PartyBase> defeatedParties = CollectDefeated(mapEvent, out HashSet<string> defeatedFactions);
                 var today = (int) CampaignTime.Now.ToDays;
 
+                // Lords the player took from the beaten foe and keeps for now: a release later, within the window, is a rescue.
+                foreach (KeyValuePair<string, HeldBy> held in _heldByFoeThisBattle)
+                {
+                    Hero h = Hero.FindFirst(x => x.StringId == held.Key);
+                    // Still a prisoner when the battle ends: in the player's loot, then their party or a dungeon of theirs.
+                    if (h != null && h.IsPrisoner)
+                        _takenFromFoe[held.Key] = new HeldBy {CaptorLabel = held.Value.CaptorLabel, CaptorId = held.Value.CaptorId, SettlementName = held.Value.SettlementName, FactionName = held.Value.FactionName, Day = today};
+                }
+
                 foreach (PendingRelease pr in _pending)
                 {
-                    if (!BelongsToDefeatedSide(pr, defeatedParties, defeatedFactions)) continue;
-                    CreditRescue(pr.Prisoner, pr.CaptorParty, pr.CaptorFaction, publicAction, today);
+                    if (pr.HeldBy == null && !BelongsToDefeatedSide(pr, defeatedParties, defeatedFactions)) continue;
+                    CreditRescue(pr.Prisoner, pr.CaptorParty, pr.CaptorFaction, publicAction, today, heldBy: pr.HeldBy);
                 }
             }
             catch (Exception ex)
@@ -153,10 +210,56 @@ namespace CalradiaRemembers.Rescue
             finally
             {
                 _pending.Clear();
+                if (mapEvent != null && mapEvent.IsPlayerMapEvent) _heldByFoeThisBattle.Clear();
             }
         }
 
-        private void CreditRescue(Hero prisoner, PartyBase captorParty, IFaction captorFaction, bool publicAction, int today, bool brokenOut = false)
+        /// <summary>
+        ///   zhenja1 (10/10/2026): the lords the player's enemies hold when a battle of the player's begins. The game hands
+        ///   a beaten party's prisoners to the player's loot, so who held them must be read before the battle moves them.
+        /// </summary>
+        private void OnMapEventStarted(MapEvent mapEvent, PartyBase attackerParty, PartyBase defenderParty)
+        {
+            try
+            {
+                if (mapEvent == null) return;
+                BattleSideEnum enemy = attackerParty == PartyBase.MainParty ? BattleSideEnum.Defender
+                    : defenderParty == PartyBase.MainParty ? BattleSideEnum.Attacker : BattleSideEnum.None;
+                if (enemy == BattleSideEnum.None) return;
+
+                _heldByFoeThisBattle.Clear();
+                foreach (MapEventParty mp in mapEvent.PartiesOnSide(enemy))
+                {
+                    PartyBase holder = mp?.Party;
+                    if (holder?.PrisonRoster == null) continue;
+                    foreach (TroopRosterElement e in holder.PrisonRoster.GetTroopRoster())
+                    {
+                        Hero held = e.Character?.HeroObject;
+                        if (held == null || held == Hero.MainHero || !held.IsLord) continue;
+                        _heldByFoeThisBattle[held.StringId] = HeldByOf(holder, (int) CampaignTime.Now.ToDays);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ModLog.Error($"[RESCUE] battle start read failed: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        /// <summary>Who holds a prisoner in this party, as the rescued would name it.</summary>
+        private static HeldBy HeldByOf(PartyBase holder, int day)
+        {
+            Hero captor = ResolveCaptorHero(holder, holder?.MapFaction);
+            return new HeldBy {
+                CaptorLabel = captor == null ? null : HeroLabel.Describe(new HeroLabel.HeroNaming {Name = captor.Name?.ToString(), ClanName = captor.Clan?.Name?.ToString(), CultureName = captor.Culture?.Name?.ToString()}),
+                CaptorId = captor?.StringId, SettlementName = holder?.Settlement?.Name?.ToString(), FactionName = holder?.MapFaction?.Name?.ToString(), Day = day
+            };
+        }
+
+        private static string Clean(string s) => (s ?? "").Replace("|", " ").Replace("\n", " ");
+        private static string Null(string s) => string.IsNullOrEmpty(s) ? null : s;
+
+        private void CreditRescue(Hero prisoner, PartyBase captorParty, IFaction captorFaction, bool publicAction, int today, bool brokenOut = false, HeldBy heldBy = null)
         {
             if (prisoner == null || _credited.Contains(prisoner.StringId)) return;
 
@@ -167,7 +270,10 @@ namespace CalradiaRemembers.Rescue
 
             _credited.Add(prisoner.StringId);
 
-            string captorDesc = DescribeCaptor(captorParty, captorFaction);
+            // zhenja1 (10/10/2026): the memory names the lord who held them, not only the realm.
+            HeldBy who = heldBy ?? HeldByOf(captorParty, today);
+            if (heldBy == null && captorParty == null && captorFaction != null) who = new HeldBy {FactionName = captorFaction.Name?.ToString(), Day = today};
+            string captorDesc = RescueFromFoePolicy.CaptorPhrase(new RescueCaptorFacts {CaptorLabel = who.CaptorLabel, SettlementName = who.SettlementName, FactionName = who.FactionName});
             List<(Hero hero, string label)> family = ResolveFamily(prisoner);
             var familyIds = new HashSet<string>(family.Select(f => f.hero.StringId));
 
@@ -185,7 +291,7 @@ namespace CalradiaRemembers.Rescue
                 ApplyGratitude(friend, RescueTie.Friend, null, today);
 
             // 4. The captor, if they trace it back to the player, resents it.
-            Hero captor = ResolveCaptorHero(captorParty, captorFaction);
+            Hero captor = (who.CaptorId != null ? Hero.FindFirst(h => h.StringId == who.CaptorId) : null) ?? ResolveCaptorHero(captorParty, captorFaction);
             if (captor != null && captor != Hero.MainHero && captor.IsAlive && GrudgeBehavior.Instance != null
                 && CaptorGrudgePolicy.Discovers(MBRandom.RandomFloat, publicAction))
             {
@@ -264,14 +370,6 @@ namespace CalradiaRemembers.Rescue
                 .ToList();
         }
 
-        private static string DescribeCaptor(PartyBase captorParty, IFaction captorFaction)
-        {
-            if (captorParty?.Settlement != null) return $"the dungeons of {captorParty.Settlement.Name}";
-            if (captorFaction != null) return $"the hands of {captorFaction.Name}";
-
-            return "captivity";
-        }
-
         private static Hero ResolveCaptorHero(PartyBase captorParty, IFaction captorFaction)
             => captorParty?.LeaderHero
                ?? captorParty?.Settlement?.OwnerClan?.Leader
@@ -310,7 +408,28 @@ namespace CalradiaRemembers.Rescue
             public Hero Prisoner;
             public PartyBase CaptorParty;
             public IFaction CaptorFaction;
+            public HeldBy HeldBy;
         }
+
+        /// <summary>Who held a lord the player freed, and when the player took them.</summary>
+        private sealed class HeldBy
+        {
+            public string CaptorLabel;
+            public string CaptorId;
+            public string SettlementName;
+            public string FactionName;
+            public int Day;
+        }
+
+        /// <summary>Self-test seam: a lord marked as taken from a beaten foe on <paramref name="day" />, held by <paramref name="captor" />.</summary>
+        internal void DebugMarkTakenFromFoe(Hero lord, Hero captor, int day)
+            => _takenFromFoe[lord.StringId] = new HeldBy {CaptorLabel = captor?.Name?.ToString(), CaptorId = captor?.StringId, FactionName = captor?.MapFaction?.Name?.ToString(), Day = day};
+
+        /// <summary>Self-test seam: the release handling, as the game's ReleasedByChoice would call it.</summary>
+        internal void DebugReleasedByChoice(Hero lord) => OnHeroPrisonerReleased(lord, PartyBase.MainParty, Hero.MainHero?.MapFaction, EndCaptivityDetail.ReleasedByChoice, false);
+
+        /// <summary>Self-test seam: forget a credited rescue (cleanup).</summary>
+        internal void DebugForgetCredit(Hero lord) => _credited.Remove(lord.StringId);
 
         #endregion
     }

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 474 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1023 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1026 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1865,12 +1865,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PrisonHolding` | public struct | One prison the game holds captives in, reduced to the plain facts custody scoring needs. |
 | `PrisonerCustodyPolicy` | public static class | Pure, engine-free custody rules: which prisons are the player's, and the captives they hold. |
 
-### CalradiaRemembers.Logic.Rescue (5)
+### CalradiaRemembers.Logic.Rescue (8)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CaptorGrudgePolicy` | public static class | Decides whether the captor who held a now-freed prisoner DISCOVERS the player was responsible, and how hard they resent it. |
+| `CustodyReleaseFacts` | public class | A lord let go from the player's custody, and how they came into it. |
+| `RescueCaptorFacts` | public class | Who held a rescued lord, as the rescued remember it. |
 | `RescueEligibilityPolicy` | public static class | Pure gate deciding whether a prisoner release should be credited to the player as a RESCUE worth consequences (gratitude from the freed lord and their circle, and a possible grudge from the captor who lost them). |
+| `RescueFromFoePolicy` | public static class | A rescue from an enemy's captivity through the player's custody, and how it is remembered. |
 | `RescueGratitude` | public struct | The gratitude a single NPC feels after a player rescue: how many personal-regard points it is worth, and whether it is significant enough to be recorded as a lasting memory (versus a fleeting warmth that leaves no trace)... |
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |

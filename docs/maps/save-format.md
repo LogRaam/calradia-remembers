@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (88)
+## Keys (89)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -89,6 +89,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_SpouseDivorceRefusalCount_v1` | `SpouseDivorceDemandBehavior` | constant `RefusalCountSaveKey` passed to `SyncDictionary`, which reaches SyncData (fact) |
 | `CalradiaRemembers_StolenLoveEstrangement_v1bytes` | `NpcMarriageEstrangementBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_SwayExposure_v1bytes` | `SwayExposureBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_TakenFromFoe_v1` | `RescueBehavior` | constant `TakenFromFoeSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_TournamentRivalry_v1bytes` | `TournamentRivalryBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_WarCouncilLastOfferDay_v1` | `WarCouncilOfferBehavior` | constant `LastOfferDaySaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_WearinessDeclined_v1` | `WarWearinessBehavior` | constant `DeclinedSaveKey` passed to `SyncDict`, which reaches SyncData (fact) |

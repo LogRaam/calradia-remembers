@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-454 rules read 351 facts.
+456 rules read 352 facts.
 
 ## Facts read by more than one rule
 
@@ -70,6 +70,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.Children` (6) | `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `SeductionFacts`, `ThirdPartyDescriptor.KnowledgeOf`, `ThirdPartyDescriptor.WhereaboutsClause`, `ThirdPartyFacts` |
 | `Hero.IsNotable` (6) | `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `NotableRecruitmentFacts` |
 | `ModSettings.LordsApproaching` (6) | `FiefAudiencePolicy.ChooseFiefValid`, `FiefAudiencePolicy.IsOnCooldown`, `InterceptionFacts`, `InterceptionPacingRules.CooldownDays`, `InterceptionPacingRules.DailyChancePercent`, `InterceptionPacingRules.IsOff` |
+| `PartyBase.MapFaction` (6) | `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `HeroNaming`, `RescueCaptorFacts` |
 | `PartyBelongedTo.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `EscortCostPolicy.EscortPremium`, `JealousyHearingPolicy.WithinEarshot` |
 | `Romantic.IsOpenArrangement` (6) | `LoverEligibilityFacts`, `OpenRelationshipPolicy.SuppressesJealousy`, `PartnerStanding`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot` |
 | `Settlement.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `AuthoredQuestEngine.NightPassed`, `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
@@ -86,12 +87,12 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Town.FoodChange` (5) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination` |
 | `Character.HeroObject` (4) | `CompanionCounselPolicy.Select`, `CouncilRosterPolicy.IsOldEnoughToSit`, `PartyCounselFacts`, `PrisonerCustodyPolicy.HeldByPlayer` |
 | `Clan.Influence` (4) | `ClaimantBackerFacts`, `CourtActionPolicy.CanAffordInfluenceGrant`, `CourtActionPolicy.ClanNeedsInfluence`, `KingdomPowerFacts` |
+| `EndCaptivityDetail.ReleasedByChoice` (4) | `CustodyReleaseFacts`, `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `GetPosition2D.Distance` (4) | `AuthoredQuestEngine.NightPassed`, `ChaseFacts`, `NewsDestinationSelector.Choose`, `RumorAwareness.Explain` |
 | `Hero.CompanionOf` (4) | `FactionGuidelinesPolicy.NarrowToOwnCulture`, `PrisonerExchangePolicy.IsExchangeable`, `StationGuidelinesPolicy.ResolveStationKey`, `StationGuidelinesPolicy.SelectStationText` |
 | `Hero.StayingInSettlement` (4) | `EscortCostPolicy.EscortPremium`, `LetterWhereaboutsPolicy.ForPlayer`, `LetterWhereaboutsPolicy.ForWriter`, `WhereaboutsFacts` |
 | `MobileParty.MemberRoster` (4) | `CouncilTroopLoanPolicy.ComputeLoan`, `CourtActionPolicy.IsPartyWeakened`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `MobileParty.Party` (4) | `GiftEquipFacts`, `GiftEquipPolicy.WearsOnBattleSet`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
-| `PartyBase.MapFaction` (4) | `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory` |
 | `PartyBase.Settlement` (4) | `CourierSecretPolicy.WhoGetsTheSecret`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend`, `SecretDefeaterFacts` |
 | `PartyBelongedTo.Army` (4) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate` |
 | `PartyBelongedToAsPrisoner.MobileParty` (4) | `CaptiveEncounterPolicy.BanditCollectiveParticipantCap`, `CaptiveEncounterPolicy.BanditWitnessCount`, `CaptiveEncounterPolicy.ShouldBanditSceneBeCollective`, `CompanionScenePolicy.ShouldTargetCompanion` |
@@ -111,7 +112,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Current.CurrentMenuContext` (3) | `DuelStagingSupport.ReadyToOpenTheSquare`, `RoadAudienceFacts`, `SquareReadinessFacts` |
 | `Current.MapSceneWrapper` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
 | `EndCaptivityDetail.ReleasedAfterBattle` (3) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
-| `EndCaptivityDetail.ReleasedByChoice` (3) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `GameStateBridge.GetCurrentGameDay` (3) | `ConversationResumeIdentity`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `PendingSummaryJob` |
 | `Hero.BattleEquipment` (3) | `GiftEquipFacts`, `PlayerDressPolicy.Classify`, `ScatteredLootItem` |
 | `Hero.HitPoints` (3) | `BodyHurtPolicy.Read`, `CaptiveActionOutcomePolicy.Succeeds`, `CaptiveActionOutcomePolicy.SuccessChance` |
@@ -132,8 +132,10 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MobileParty.Position` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
 | `ModSettings.CompanionAudienceCadence` (3) | `CompanionAudiencePacingRules.CooldownDays`, `CompanionAudiencePacingRules.DailyChancePercent`, `CompanionAudiencePacingRules.IsOff` |
 | `Objective.Spawn` (3) | `AuthoredBandSizeFacts`, `AuthoredQuestEngine.Bound`, `AuthoredQuestEngine.Fill` |
+| `OwnerClan.Leader` (3) | `HeroNaming`, `NotHisToSellFacts`, `RescueCaptorFacts` |
 | `OwnerClan.MapFaction` (3) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts` |
 | `Party.NumberOfHealthyMembers` (3) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.MayAsk`, `ReinforceGarrisonPolicy.TroopsToAsk` |
+| `PartyBase.LeaderHero` (3) | `HeroNaming`, `NotHisToSellFacts`, `RescueCaptorFacts` |
 | `PartyBelongedToAsPrisoner.MapFaction` (3) | `PowerBalanceFacts`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
 | `Settlement.IsVillage` (3) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `SettlementSafetyFacts` |
 | `StatureReader.OfClan` (3) | `BastardPrestigePolicy.PrestigeScore`, `BastardPrestigePolicy.Resolve`, `LordRecruitmentFacts` |
@@ -168,6 +170,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.HeroState` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `Hero.IsDead` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `Hero.IsWanderer` (2) | `MarryCompanionFacts`, `PrisonerExchangePolicy.IsExchangeable` |
+| `IFaction.Leader` (2) | `HeroNaming`, `RescueCaptorFacts` |
 | `Item.Tier` (2) | `HeldItem`, `ScatteredLootItem` |
 | `ItemObject.IsCivilian` (2) | `GiftEquipFacts`, `GiftEquipPolicy.WearsOnBattleSet` |
 | `Kingdom.Culture` (2) | `MercenaryDeparturePolicy.IsAidOfKin`, `MercenaryDeparturePolicy.RegardShift` |
@@ -202,7 +205,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `NewEventData.Type` (2) | `CoerciveSceneEventPolicy.ShouldDropRomanticEvent`, `JealousyTriggerPolicy.IsPlausibleCourtship` |
 | `Owner.Clan` (2) | `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
 | `Party.LeaderHero` (2) | `BattleWorthFacts`, `LiberationFacts` |
-| `PartyBase.LeaderHero` (2) | `HeroNaming`, `NotHisToSellFacts` |
 | `PartyBase.NumberOfHealthyMembers` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `PartyBase.PartySizeLimit` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `Requires.Content` (2) | `AuthoredContentPolicy.Allows`, `AuthoredQuestOfferPolicy.WhyNot` |
@@ -363,6 +365,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CourtActionPolicy.IsPartyWeakened`: `Hero.PartyBelongedTo`, `MobileParty.MemberRoster`, `Party.PartySizeLimit`, `TroopRoster.GetTroopRoster`
 - `CourtActionPolicy.IsPlayerHousehold`: `Hero.Clan`
 - `CraftWeaponPolicy.Answers`: `ItemObject.IsCraftedByPlayer`
+- `CustodyReleaseFacts`: `EndCaptivityDetail.ReleasedByChoice`
 - `DayMoodFactsPolicy.From`: `Clan.Kingdom`, `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.IsPrisoner`, `Settlement.IsCastle`, `Settlement.IsTown`, `Settlement.IsUnderSiege`
 - `DayMoodReadings`: `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.IsPrisoner`, `Settlement.IsCastle`, `Settlement.IsTown`, `Settlement.IsUnderSiege`
 - `DeedRefusal`: `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `MobileParty.Army`, `MobileParty.LeaderHero`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`
@@ -430,7 +433,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `HarmFacts`: `ModSettings.AdultContentLevel`, `PartyBelongedToAsPrisoner.LeaderHero`
 - `HeldCaptive`: `Clan.Settlements`, `MobileParty.PrisonRoster`, `Party.PrisonRoster`
 - `HeldItem`: `Item.Tier`
-- `HeroNaming`: `Hero.PartyBelongedToAsPrisoner`, `PartyBase.LeaderHero`, `PartyBase.Owner`, `Romantic.TakenLoverId`
+- `HeroNaming`: `Hero.PartyBelongedToAsPrisoner`, `IFaction.Leader`, `OwnerClan.Leader`, `PartyBase.LeaderHero`, `PartyBase.MapFaction`, `PartyBase.Owner`, `Romantic.TakenLoverId`
 - `HireAgreementPolicy.AgreedPrice`: `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice`
 - `HireAgreementPolicy.CanAfford`: `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice`, `Hero.Gold`
 - `HostageBreachFacts`: `Clan.MapFaction`, `Hero.MapFaction`
@@ -573,6 +576,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ReleaseFacts`: `Clan.IsBanditFaction`, `Hero.Clan`, `Hero.IsLord`
 - `ReleaseLineFacts`: `Hero.IsFemale`
 - `ReliefSeat`: `Settlement.IsStarving`, `Town.FoodChange`, `Town.FoodStocks`
+- `RescueCaptorFacts`: `IFaction.Leader`, `OwnerClan.Leader`, `PartyBase.LeaderHero`, `PartyBase.MapFaction`
 - `RescueEligibilityPolicy.CanBeARescue`: `EndCaptivityDetail.ReleasedAfterBattle`, `EndCaptivityDetail.ReleasedByChoice`
 - `RescueGratitudePolicy.CanFeelTheDebt`: `Hero.IsChild`
 - `ResistanceRollFacts`: `Hero.GetTraitLevel`
