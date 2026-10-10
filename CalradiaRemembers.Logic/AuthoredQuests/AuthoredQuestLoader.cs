@@ -50,6 +50,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>Who may give a tale (anything else is read as "any").</summary>
       public static readonly IReadOnlyList<string> GiverRoles = new[] {"lord", "notable", "gang_leader", "any"};
 
+      /// <summary>The content levels a tale may ask for (AuthoredContentPolicy).</summary>
+      public static readonly IReadOnlyList<string> ContentLevels = AuthoredContentPolicy.Levels;
+
       /// <summary>What a {rival} may be.</summary>
       public static readonly IReadOnlyList<string> RivalRoles = new[] {"clan_leader"};
 
@@ -180,6 +183,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          var binds = new HashSet<string>(q.Binds?.Keys ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
          foreach (string unbound in Placeholder.Matches(text).Cast<Match>().Select(m => m.Groups[1].Value).Distinct().Where(p => !binds.Contains(p)))
             cosmetic.Add($"{{{unbound}}} is used but no role binds it (add it to \"binds\"), so it would reach the player as written.");
+
+         if (AuthoredContentPolicy.Required(q.Requires?.Content) == null)
+            blocking.Add($"requires.content '{q.Requires.Content}' is no content level ({string.Join(", ", ContentLevels)}).");
 
          RivalRequirement rival = q.Requires?.Rival;
          if (rival != null && !RivalRoles.Contains(rival.Role))

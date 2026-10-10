@@ -49,6 +49,12 @@
       "gang_leader",
       "any"
     ],
+    "ContentLevels": [
+      "none",
+      "mature",
+      "explicit",
+      "hardcore"
+    ],
     "RivalRoles": [
       "clan_leader"
     ],
@@ -194,6 +200,22 @@
           "x-kind": "object:PlayerRequirement",
           "description": "What the player must be.",
           "x-default-empty": true
+        },
+        "content": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The content level the tale needs, as the mod options name it: none (every player), mature, explicit or hardcore. A tale is offered only when the player's setting reaches it.",
+          "enum": [
+            "none",
+            "mature",
+            "explicit",
+            "hardcore"
+          ],
+          "x-closed-list": "ContentLevels",
+          "default": "none"
         }
       }
     },

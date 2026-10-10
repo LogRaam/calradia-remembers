@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-454 rules read 351 facts.
+455 rules read 352 facts.
 
 ## Facts read by more than one rule
 
@@ -46,12 +46,12 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `PartyBelongedToAsPrisoner.LeaderHero` (11) | `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `ExecutionFacts`, `HarmFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `PlayerStandingFacts`, `PlayerStandingPolicy.Resolve`, `PrivateAudienceFacts`, `RegardProposal` |
 | `Hero.OneToOneConversationHero` (10) | `BriefingReturnDecision.Decide`, `BriefingReturnDecision.HostIsLive`, `CommonerChatContext`, `LandfallFacts`, `NemesisBountyRewardPolicy.ComputeGold`, `NemesisBountyRewardPolicy.ComputeRelation`, `NemesisRumorLine.Compose`, `RoadAudienceFacts`, `StagedStartFacts`, `StagingHostFacts` |
 | `MobileParty.SiegeEvent` (10) | `DeedRefusal`, `EscortContinuationPolicy.Describe`, `EscortContinuationPolicy.Resolve`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `EscortStandingFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `RoadAudienceFacts` |
+| `ModSettings.AdultContentLevel` (10) | `AuthoredContentPolicy.Allows`, `AuthoredQuestOfferPolicy.WhyNot`, `ExecutionFacts`, `HarmFacts`, `IntimateChroniclePolicy.BuildLine`, `LeverageArchetype`, `RegardProposal`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible`, `SharedIntimacyFacts` |
 | `Settlement.IsUnderSiege` (10) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `AssemblyTravelFacts`, `AssemblyTravelOutcome.Evaluate`, `ChaseFacts`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `SettlementSafetyFacts` |
 | `Clan.Settlements` (9) | `AppointmentOfferFacts`, `GrantOfferFacts`, `HeldCaptive`, `LordRecruitmentFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `PowerBalanceFacts`, `RevokeOfferFacts`, `ServiceOfferPolicy.ChooseEnticement` |
 | `Hero.GetSkillValue` (9) | `CombatantFacts`, `CompanionCounselPolicy.Select`, `CompanionMissions.CanAttempt`, `CompanionMissions.LootForResult`, `ErrandFacts`, `PartyCounselFacts`, `TeachSkillPolicy.CanTeach`, `TeachSkillPolicy.CanTeachPlayer`, `TeachSkillPolicy.GrantedXp` |
 | `MobileParty.MapEvent` (9) | `DeedRefusal`, `EscortContinuationPolicy.Describe`, `EscortContinuationPolicy.Resolve`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `EscortStandingFacts`, `MapEncounterCloseFacts`, `RoadAudienceFacts` |
 | `Settlement.IsTown` (9) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts`, `ProvideGoodsPolicy.MarketKey`, `ScoutTownFacts`, `ScoutTownPolicy.MayAsk`, `TownNeedsPolicy.MostLacking` |
-| `ModSettings.AdultContentLevel` (8) | `ExecutionFacts`, `HarmFacts`, `IntimateChroniclePolicy.BuildLine`, `LeverageArchetype`, `RegardProposal`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible`, `SharedIntimacyFacts` |
 | `Clan.Renown` (7) | `BastardPrestigePolicy.PrestigeScore`, `BastardPrestigePolicy.Resolve`, `FirstImpressionDescriber.Describe`, `FirstImpressionInputs`, `FirstImpressionPolicy.Resolve`, `InterceptionFacts`, `InterceptionPolicy.Choose` |
 | `EquipmentElement.Item` (7) | `CompanionCounselPolicy.Select`, `GiftCandidate`, `GiftEquipFacts`, `GiftQuantityPolicy.Resolve`, `GiveItemPolicy.IsGiveableItem`, `PartyCounselFacts`, `ScatteredLootItem` |
 | `Hero.IsClanLeader` (7) | `DivorceBlockFacts`, `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `DivorcedSpouseFacts`, `FactionGuidelinesPolicy.NarrowToOwnCulture`, `StationGuidelinesPolicy.ResolveStationKey`, `StationGuidelinesPolicy.SelectStationText` |
@@ -205,6 +205,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `PartyBase.LeaderHero` (2) | `HeroNaming`, `NotHisToSellFacts` |
 | `PartyBase.NumberOfHealthyMembers` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `PartyBase.PartySizeLimit` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
+| `Requires.Content` (2) | `AuthoredContentPolicy.Allows`, `AuthoredQuestOfferPolicy.WhyNot` |
 | `Requires.Giver` (2) | `AuthoredCulturePolicy.Describe`, `AuthoredCulturePolicy.Matches` |
 | `Requires.Village` (2) | `AuthoredCulturePolicy.Describe`, `AuthoredCulturePolicy.Matches` |
 | `Romantic.IsSecretLover` (2) | `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
@@ -250,6 +251,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AudienceLocationFacts`: `LocationComplex.GetListOfLocations`
 - `AuthoredBandMakeupFacts`: `Character.IsHero`, `Character.Tier`, `MemberRoster.GetTroopRoster`
 - `AuthoredBandSizeFacts`: `MemberRoster.TotalHealthyCount`, `Objective.Spawn`
+- `AuthoredContentPolicy.Allows`: `ModSettings.AdultContentLevel`, `Requires.Content`
 - `AuthoredCulturePolicy.Describe`: `Requires.Giver`, `Requires.Village`
 - `AuthoredCulturePolicy.Matches`: `Requires.Giver`, `Requires.Village`
 - `AuthoredQuestEngine.Bound`: `Objective.Spawn`
@@ -257,7 +259,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AuthoredQuestEngine.Fill`: `Failure.Journal`, `Objective.Scene`, `Objective.Spawn`, `OnDefeat.Journal`, `Scene.Title`
 - `AuthoredQuestEngine.NightPassed`: `GetPosition2D.Distance`, `Objective.Place`, `Objective.Radius`, `Settlement.Find`, `Settlement.GetPosition2D`
 - `AuthoredQuestOfferPolicy.PickByWeight`: `q.Weight`
-- `AuthoredQuestOfferPolicy.WhyNot`: `Hero.Issue`
+- `AuthoredQuestOfferPolicy.WhyNot`: `Hero.Issue`, `ModSettings.AdultContentLevel`, `Requires.Content`
 - `AuthoredQuestPrompt.ForCharacter`: `Hero.CurrentSettlement`, `Hero.HomeSettlement`
 - `AuthoredQuestPrompt.Narrator`: `Current.MapSceneWrapper`, `MobileParty.Position`
 - `AuthoredRivalPolicy.Choose`: `Clan.Kingdom`, `Hero.Clan`, `Kingdom.Clans`

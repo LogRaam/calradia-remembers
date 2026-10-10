@@ -76,6 +76,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       [QuestField("What the player must be.")]
       [JsonProperty("player")] public PlayerRequirement Player { get; set; } = new();
+
+      /// <summary>Gabriel (10/10/2026): the content level the tale needs; see AuthoredContentPolicy.</summary>
+      [QuestField("The content level the tale needs, as the mod options name it: none (every player), mature, explicit or hardcore. A tale is offered only when the player's setting reaches it.", ClosedList = nameof(AuthoredQuestLoader.ContentLevels))]
+      [JsonProperty("content")] public string Content { get; set; } = "none";
    }
 
    public sealed class GiverRequirement

@@ -455,6 +455,12 @@ input[type="number"] { max-width: 160px; }
       "gang_leader",
       "any"
     ],
+    "ContentLevels": [
+      "none",
+      "mature",
+      "explicit",
+      "hardcore"
+    ],
     "RivalRoles": [
       "clan_leader"
     ],
@@ -600,6 +606,22 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "object:PlayerRequirement",
           "description": "What the player must be.",
           "x-default-empty": true
+        },
+        "content": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The content level the tale needs, as the mod options name it: none (every player), mature, explicit or hardcore. A tale is offered only when the player's setting reaches it.",
+          "enum": [
+            "none",
+            "mature",
+            "explicit",
+            "hardcore"
+          ],
+          "x-closed-list": "ContentLevels",
+          "default": "none"
         }
       }
     },
@@ -2563,6 +2585,11 @@ input[type="number"] { max-width: 160px; }
       cosmetic.push('{' + p + '} is used but no role binds it (add it to "binds"), so it would reach the player as written.');
     });
 
+    // The tale's content level (10/10/2026): a word that is no level is refused, as the game does.
+    var content = q.requires == null ? null : q.requires.content;
+    if (!blank(content) && !has(LISTS.ContentLevels || [], String(content).trim().toLowerCase()))
+      blocking.push("requires.content '" + content + "' is no content level (" + (LISTS.ContentLevels || []).join(', ') + ').');
+
     var rival = q.requires == null ? null : q.requires.rival;
     if (rival != null && !has(LISTS.RivalRoles, rival.role))
       blocking.push("requires.rival asks for a '" + (rival.role == null ? '' : rival.role) + "', but the game binds a rival only as a \"clan_leader\" of the giver's realm.");
@@ -3717,7 +3744,7 @@ input[type="number"] { max-width: 160px; }
   'use strict';
   root.TaleEditorFields = {
     AuthoredQuest: ['id', 'title', 'author', 'unique', 'repeat_cooldown_days', 'weight', 'requires', 'binds', 'stages', 'reward', 'endings', 'failure'],
-    AuthoredRequires: ['giver', 'village', 'rival', 'player'],
+    AuthoredRequires: ['giver', 'village', 'rival', 'player', 'content'],
     GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player', 'culture'],
     PlaceRequirement: ['type', 'near', 'culture'],
     RivalRequirement: ['role', 'same_realm_as'],
@@ -4544,6 +4571,8 @@ input[type="number"] { max-width: 160px; }
       t.unique === false ? numberField('tale/repeat_cooldown_days', 'Days before it may come back', 'AuthoredQuest', 'repeat_cooldown_days', t, {min: 0}) : null)));
 
     var r = lazy(t, 'requires');
+    ed.appendChild(section('Content level', help('AuthoredRequires', 'content'), h('div.grid',
+      selectField('tale/requires.content', 'Needs at least', 'AuthoredRequires', 'content', r, list('ContentLevels')))));
     var giver = lazy(r, 'giver');
     ed.appendChild(section('Who gives it', help('AuthoredRequires', 'giver'), h('div.grid',
       selectField('tale/requires.giver.role', 'Role', 'GiverRequirement', 'role', giver, list('GiverRoles')),

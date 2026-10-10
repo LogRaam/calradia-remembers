@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 473 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1020 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1021 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1612,7 +1612,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (64)
+### CalradiaRemembers.Logic.AuthoredQuests (65)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1623,6 +1623,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredBeat` | public class | (no summary) |
 | `AuthoredChoice` | public class | One way out of a stage (branching tales, 04/10/2026). |
 | `AuthoredConsequence` | public class | (no summary) |
+| `AuthoredContentPolicy` | public static class | A tale's content level against the player's setting. |
 | `AuthoredCulturePolicy` | public static class | Whether a giver or a village is of the culture a tale asks for (id or name, any case; none asked is any). |
 | `AuthoredDefeat` | public class | A lost fight against a tale's band (Gabriel, 10/10/2026): an ending of its own, or, without a next, the tale goes on (told once per stage: memories, news, a journal line), the band still there to beat before it flees. |
 | `AuthoredDefeatResult` | public class | What a lost fight against a tale's band makes of the tale (AuthoredQuestEngine.PlayerLostTo). |

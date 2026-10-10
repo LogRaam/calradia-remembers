@@ -139,6 +139,7 @@ The rules around every offer:
 | `village.culture` | The village's culture, written the same way. A tale with `"holds": "{village}"` then looks among the giver's villages for one of that culture. |
 | `rival` | A second lord, bound as `{rival}`: the head of another house of the giver's own realm, someone the player can find. Never the giver's house or the player's. A giver with no realm has no rival, so the tale is not offered by them. |
 | `player.min_clan_tier` | 0 to 6. |
+| `content` | The content level the tale needs, as the mod options name it: `none` (the default, every player), `mature`, `explicit` or `hardcore`. The tale is offered only when the player's setting reaches it, and a tale under way stops, without reward or penalty, if the player lowers the setting below it. Any other word refuses the tale. |
 
 When the quest is offered, each role is bound to a real hero or place, and every `{role}` in your
 text is filled with its name. The roles the game binds are `{giver}`, `{village}` (with

@@ -1,0 +1,1 @@
+blocking_content_not_a_level.json: quest 'fx_tale': requires.content 'hardcor' is no content level (none, mature, explicit, hardcore). The quest is not loaded.

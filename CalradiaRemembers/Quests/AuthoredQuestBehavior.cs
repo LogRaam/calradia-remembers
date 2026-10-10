@@ -302,7 +302,8 @@ namespace CalradiaRemembers.Quests
          Today = today, StoryUnderWay = _run is {Status: AuthoredQuestStatus.Active}, Unique = q.Unique, AlreadyPlayed = _done.Contains(q.Id),
          GiverHasVanillaQuest = HasATaskOfTheirOwn(giver),
          LastPlayedOnDay = _playedOn.TryGetValue(q.Id, out int p) ? p : (int?) null, RepeatCooldownDays = q.RepeatCooldownDays,
-         DeclinedOnDay = _declined.TryGetValue(q.Id, out int d) ? d : (int?) null, Chance = AuthoredQuestOfferPolicy.OfferChance
+         DeclinedOnDay = _declined.TryGetValue(q.Id, out int d) ? d : (int?) null, Chance = AuthoredQuestOfferPolicy.OfferChance,
+         ContentAllowed = AuthoredContentPolicy.Allows(q.Requires?.Content, ModSettings.AdultContentLevel), Content = q.Requires?.Content
       };
 
       /// <summary>
@@ -495,7 +496,20 @@ namespace CalradiaRemembers.Quests
       {
          ReconcileJournal();
          if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return;
+         if (StopIfContentLowered(q)) return;
          Apply(q, AuthoredQuestEngine.Day(_run, q, (int) CampaignTime.Now.ToDays));
+      }
+
+      /// <summary>
+      ///   Gabriel (10/10/2026): a tale whose content level is now above the player's setting (they lowered it) stops,
+      ///   without reward or penalty, rather than go on sending what they switched off. True when it stopped.
+      /// </summary>
+      internal bool StopIfContentLowered(AuthoredQuest q)
+      {
+         if (AuthoredContentPolicy.Allows(q?.Requires?.Content, ModSettings.AdultContentLevel)) return false;
+         Abandon($"its content level ({q?.Requires?.Content}) is above the setting chosen in the mod options");
+
+         return true;
       }
 
       /// <summary>
@@ -1272,6 +1286,10 @@ namespace CalradiaRemembers.Quests
 
       /// <summary>Self-test seam: takes a tale the test loaded out of the tales in play.</summary>
       internal void DebugForgetTale(string questId) => _quests.Remove(questId);
+
+      /// <summary>Self-test seam: why this loaded tale would not be offered now, the giver and the dice aside; null when nothing stands in the way.</summary>
+      internal string DebugWhyNotOffered(string questId)
+         => _quests.TryGetValue(questId, out AuthoredQuest q) ? AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, null, (int) CampaignTime.Now.ToDays)) : "not loaded";
 
       /// <summary>Self-test seam: the scene closes, through the real handling (no window was opened).</summary>
       internal void DebugCloseScene()

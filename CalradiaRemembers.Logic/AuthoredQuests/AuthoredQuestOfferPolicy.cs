@@ -37,6 +37,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// </summary>
       public bool GiverHasVanillaQuest { get; init; }
 
+      /// <summary>The player's content setting reaches the tale's "requires.content" (AuthoredContentPolicy).</summary>
+      public bool ContentAllowed { get; init; } = true;
+
+      /// <summary>The tale's content level, for the reason given when the setting does not reach it.</summary>
+      public string Content { get; init; }
+
       /// <summary>The day the player last declined this quest, or null.</summary>
       public int? DeclinedOnDay { get; init; }
 
@@ -64,6 +70,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public static string WhyNot(AuthoredOfferFacts f)
       {
          if (f == null) return "nothing to judge";
+         if (!f.ContentAllowed) return $"it needs the {f.Content} content level, above your setting in the mod options";
          if (f.StoryUnderWay) return "a tale is already under way";
          if (f.GiverHasVanillaQuest) return "they already have a task of their own for you";
          if (f.Unique && f.AlreadyPlayed) return "it was already played in this campaign";
