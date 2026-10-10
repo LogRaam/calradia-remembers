@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 471 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1013 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1016 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -812,7 +812,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (636)
+### CalradiaRemembers.Logic (639)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -841,6 +841,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ArrestPolicy` | public static class | The rules of an arrest. |
 | `ArrestStage` | public enum | Where an arrest stands. |
 | `ArrestStandingFacts` | public class | Where the player stands in their realm. |
+| `AudienceCandidate` | public class | One traveller with something to say, and how strong it is. |
 | `AudienceLocationFacts` | public class | What the choice of location is made on. |
 | `AudienceLocationPolicy` | public static class | Picks the location a staged conversation opens at. |
 | `AudiencePromiseLedger` | public class | What a granted audience will change, held until the conversation really opens. |
@@ -1425,6 +1426,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TranscriptLine` | public class | One attributed line of conversation history, as it was recorded. |
 | `TransientPartyEntry` | public class | One tracked transient party. |
 | `TransientPartyLedger` | public class | Which transient party is whose. |
+| `TravellerFacts` | public class | What is known of one hero travelling with the player, for the private-word roster. |
+| `TravellingAudiencePolicy` | public static class | The private-word roster and its turn-taking. |
 | `TroopFacts` | public class | One kind of soldier in the player's party, as a recruit task reads it. |
 | `TruncationFallbackPolicy` | public static class | Decides whether a PROSE turn should be redone on the configured fallback model. |
 | `TrystPolicy` | public static class | Pure rule for a taken lover being met when the player is away: the modest weekly chance a tryst happens. |

@@ -1503,7 +1503,7 @@ namespace CalradiaRemembers.Chat
                $"on your errand. What happened: {topicDetail}]",
             CompanionAudienceReason.CompanionConflict =>
                "[You asked the player for a private word. Open the conversation yourself: raise, in your own voice, " +
-               $"a grudge you carry against a fellow companion, and ask the player to hear your side: {topicDetail}]",
+               $"a grudge you carry against someone travelling with you, and ask the player to hear your side: {topicDetail}]",
             CompanionAudienceReason.PracticalCounsel =>
                "[You asked the player for a private word. Open the conversation yourself: raise a practical concern " +
                $"about the party that you have noticed yourself, in your own voice: {topicDetail}]",

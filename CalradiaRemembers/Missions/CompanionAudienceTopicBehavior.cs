@@ -101,6 +101,10 @@ namespace CalradiaRemembers.Missions
       // from the spend-once sets above: an ambition is not a one-shot fact, so it is throttled by time instead.
       private Dictionary<string, int> _ambitionAskedDays = new();
 
+      // Who was last offered a private word (HakiTakiUmba / Gabriel, 09/10/2026): they let another speak next while
+      // anyone else has something to say (TravellingAudiencePolicy.Choose).
+      private string _lastAudienceHeroId;
+
       // The offer currently on the table (between RequestAudience and the player's answer), so GrantAudience
       // knows exactly what was promised without re-scanning (live state could have shifted in the interim).
       private string _pendingCompanionId;
@@ -178,7 +182,8 @@ namespace CalradiaRemembers.Missions
                   UsedCallbackKeys = new List<string>(_usedCallbackKeys),
                   ThankedKeys = new List<string>(_thankedKeys),
                   WarnedKeys = new List<string>(_warnedKeys),
-                  AmbitionAskedDays = new Dictionary<string, int>(_ambitionAskedDays)
+                  AmbitionAskedDays = new Dictionary<string, int>(_ambitionAskedDays),
+                  LastAudienceHeroId = _lastAudienceHeroId
                };
                bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(snapshot, Formatting.None));
             }
@@ -215,6 +220,8 @@ namespace CalradiaRemembers.Missions
                // Additive, save-safe key (absent in older saves): AmbitionAskedDays deserializes to null, and
                // the ?? below degrades it to an empty map, same as every field here on an old save.
                _ambitionAskedDays = new Dictionary<string, int>(state?.AmbitionAskedDays ?? new Dictionary<string, int>());
+               // Additive (09/10/2026): absent in older saves, where nobody has had the last word yet.
+               _lastAudienceHeroId = state?.LastAudienceHeroId;
             }
             catch (Exception ex)
             {
@@ -225,6 +232,7 @@ namespace CalradiaRemembers.Missions
                _thankedKeys = new HashSet<string>();
                _warnedKeys = new HashSet<string>();
                _ambitionAskedDays = new Dictionary<string, int>();
+               _lastAudienceHeroId = null;
             }
          }
       }
@@ -337,20 +345,28 @@ namespace CalradiaRemembers.Missions
 
       #region private
 
-      private static IEnumerable<Hero> Companions()
+      /// <summary>
+      ///   Everyone travelling with the player who may ask for a private word: the hired companions and, since
+      ///   HakiTakiUmba's report (09/10/2026), the player's own family riding in the party.
+      /// </summary>
+      internal static IEnumerable<Hero> Companions()
          => Hero.AllAliveHeroes.Where(h =>
-            Mapping.ActionGate.Allows(h, Logic.ActionKind.CompanionAudience) && h.IsPlayerCompanion
-            && h.PartyBelongedTo == MobileParty.MainParty);
+            Mapping.ActionGate.Allows(h, Logic.ActionKind.CompanionAudience)
+            && TravellingAudiencePolicy.MayAskForAWord(CompanionAudienceTopicResolver.TravellerFactsOf(h)));
 
       private int CooldownDaysRemaining()
          => _lastAskedDay == NeverAsked
             ? 0
             : Math.Max(0, CompanionAudiencePacingRules.CooldownDays(ModSettings.CompanionAudienceCadence) - (Today - _lastAskedDay));
 
-      /// <summary>The strongest (companion, topic) anywhere in the party, or null when nothing qualifies.</summary>
+      /// <summary>
+      ///   Who asks next, and on what: each traveller's strongest matter, then the strongest of those, except that
+      ///   whoever had the last word waits while anyone else has something to say (TravellingAudiencePolicy.Choose;
+      ///   Gabriel, 09/10/2026: a wife with a long shared past must not take every audience). Null when nothing qualifies.
+      /// </summary>
       private (Hero Companion, CompanionAudienceTopicScan Scan)? FindBestAcrossRoster()
       {
-         (Hero Companion, CompanionAudienceTopicScan Scan)? best = null;
+         var found = new List<(Hero Companion, CompanionAudienceTopicScan Scan)>();
 
          // Deterministic roster order (StringId) so that, on an exact tie in strength, the SAME companion
          // always wins regardless of iteration order the engine happens to hand back Hero.AllAliveHeroes in.
@@ -361,12 +377,14 @@ namespace CalradiaRemembers.Missions
 
             if (topic == CompanionAudienceReason.None) continue;
 
-            CompanionAudienceTopicScan scan = scans.First(s => s.Topic == topic);
-
-            if (best == null || scan.Strength > best.Value.Scan.Strength) best = (h, scan);
+            found.Add((h, scans.First(s => s.Topic == topic)));
          }
 
-         return best;
+         AudienceCandidate chosen = TravellingAudiencePolicy.Choose(
+            found.Select(f => new AudienceCandidate {HeroId = f.Companion.StringId, Strength = f.Scan.Strength}).ToList(), _lastAudienceHeroId);
+         if (chosen == null) return null;
+
+         return found.First(f => f.Companion.StringId == chosen.HeroId);
       }
 
       private void GrantAudience()
@@ -611,6 +629,7 @@ namespace CalradiaRemembers.Missions
          // The GLOBAL clock starts the moment the popup is raised, whether or not the player answers it, the
          // same "never silently, but never spammed either" rule the existing audiences already follow.
          _lastAskedDay = Today;
+         _lastAudienceHeroId = h.StringId;
          _pendingCompanionId = h.StringId;
          _pendingTopic = scan.Topic;
          _pendingDetail = scan.Detail;
@@ -648,6 +667,7 @@ namespace CalradiaRemembers.Missions
          public List<string> UsedCallbackKeys { get; set; }
          public List<string> WarnedKeys { get; set; }
          public Dictionary<string, int> AmbitionAskedDays { get; set; }
+         public string LastAudienceHeroId { get; set; }
       }
 
       #endregion

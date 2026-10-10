@@ -211,6 +211,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_bond_bar_agrees", Severity.Light, "player report 2026-09-09 ('the NPC is expressing affection, yet the system displays a message stating that intimacy is insufficient'), caused by ONE regard bar living as a literal 50 in three places while only the confession moved onto the Relationship Pacing dial. Drives the REAL EncounterContextBuilder.Build and the REAL bridge action take_as_secret_lover against a compatible companion at exactly MinRegardFor(current pacing) and one point below it, and asserts BOTH engine gates flip on the SAME number the confession uses. A pure test cannot catch this (it would compare the policy with itself); only driving the live sites can. EXTENDED 2026-09-09 with the THIRD site of that same bar, what the NPC may SAY: asserts the LIVE PromptBuilder the chat uses declares from the very number the confession roll measures from, and that the register reads Attachment at the bar and Interest one below it, where an NPC may flirt but must never speak of love nor open a courtship on standing alone. Restores the regard and undoes any bond formed", TestSecretBondBarAgrees),
          new SelfTest("captive_lord_withheld_from_defection", Severity.Heavy, "player report: a held captive lord below the recruit_prisoner regard floor could still narrate accepting the player's offer to defect, though nothing happened (an empty promise). Really captures a capturable in-party lord who is not their own clan's leader, drives EncounterContextBuilder.Build with regard just BELOW PrisonerRecruitmentPolicy.RegardFloor -> assert CanRecruitPrisoner is false and the new CaptiveLordWithheldFromDefection flag is true, then raises regard to the floor -> assert they FLIP (CanRecruitPrisoner true, the new flag false), proving the two are mutually exclusive on live engine facts. Releases the captive and restores regard afterwards", TestCaptiveLordWithheldFromDefection),
          new SelfTest("narrative_patch_scope", Severity.Light, "Found checking a modder's README against the code (tashmetu, 19/09/2026): the cr_patch scanner first read ModuleHelper.GetModules(), which is every module FOUND on disk, enabled or not. A bridge disabled in the launcher still had its prose read into every prompt, and with its assembly not loaded its {{variables}} reached the model as raw braces. Asserts that every module the scanner reads is one the player ENABLED, and that Calradia Remembers itself is among them (proof the list is the live one, not an empty fallback).", TestNarrativePatchScope),
+         new SelfTest("kin_audience", Severity.Light, "HakiTakiUmba (Nexus, 09/10/2026): the player's family riding in the party (siblings, a spouse) never asked for a private word, only hired companions did. Finds a family member of the player's clan riding in the party (skips when none), asserts the REAL roster the audience offer reads now holds them, that the REAL topic scan runs for them, and that the context built for their audience through the REAL EncounterContextBuilder tells the model they speak as kin. No popup, no LLM call; creates only a missing profile", TestKinAudience),
          new SelfTest("tale_mod_folders", Severity.Light, "Gabriel (09/10/2026), for tashmetu's fifteen tales: another mod ships its tales in its own ModuleData/cr_quests. Asserts the mods whose tales folders are read are ENABLED ones (a mod disabled in the launcher must not leave its tales behind), that Calradia Remembers is not read a second time as another mod, and that each folder sits inside its own mod's folder. Reports the tales loaded from other mods. Mutates nothing", TestTaleModFolders),
          new SelfTest("deliver_prisoner_by_sale", Severity.Heavy, "Player report (Lordfadooboo, 18/09/2026): a lord asked for a Nord lord in chains, the player handed one over in words, got PAID, and the bargain stayed open for good. Two verbs hand a captive to an NPC and only give_prisoner ever looked at the bargain; buy_prisoner paid a price and touched nothing. Seeds a REALM-keyed DeliverPrisoner bargain, takes a lord of that realm prisoner, then runs buy_prisoner (the SALE) through the real bridge and asserts the bargain is SETTLED anyway and the captive left the player: handing a lord the very captive he asked for keeps his bargain, whatever the word.", TestDeliverPrisonerBySale),
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
@@ -3791,6 +3792,27 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"scanned {scanned.Count} module(s), {enabled.Count} enabled");
          t.Expect("everyScannedModuleIsEnabled", scanned.All(id => enabled.Contains(id)), true);
          t.Expect("thisModIsAmongThem", scanned.Any(id => string.Equals(id, "CalradiaRemembers", StringComparison.OrdinalIgnoreCase)), true);
+
+         return t.Line();
+      }
+
+      private static string TestKinAudience(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("kin_audience");
+
+         Hero kin = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && !h.IsPlayerCompanion && h.Clan == Clan.PlayerClan
+                                                             && h.PartyBelongedTo == MobileParty.MainParty && !h.IsChild);
+         if (t.Skip(kin == null, "no family member of your clan is riding in your party; take a sibling or your spouse along")) return t.Line();
+
+         t.Note($"{kin.Name} ({(kin == Hero.MainHero.Spouse ? "spouse" : "family")})");
+         t.Expect("onTheAudienceRoster", Missions.CompanionAudienceTopicBehavior.Companions().Contains(kin), true);
+         string scan = Missions.CompanionAudienceTopicBehavior.Instance?.DescribeScan(kin) ?? "";
+         t.Expect("topicScanRuns", scan.StartsWith(kin.Name.ToString()), true);
+
+         NpcProfile profile = GetOrCreate(behavior, kin);
+         EncounterContext ctx = EncounterContextBuilder.Build(kin, profile, behavior.GameStateBridge, null,
+            companionAudience: CompanionAudienceReason.Callback);
+         t.Expect("speaksAsKin", ctx.AudienceFromKin, true);
 
          return t.Line();
       }

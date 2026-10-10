@@ -151,15 +151,27 @@ namespace CalradiaRemembers.Missions
          };
       }
 
-      /// <summary>The live hero for this StringId, only when they are another companion presently in the main party.</summary>
+      /// <summary>
+      ///   The live hero for this StringId, only when they are another traveller of the player's party who may ask for
+      ///   a word (a companion, or the player's family since 09/10/2026): a grudge between a sister and a companion counts.
+      /// </summary>
       private static Hero FindPartyCompanion(string targetId, Hero exclude)
       {
          if (string.IsNullOrEmpty(targetId)) return null;
 
          return Hero.AllAliveHeroes.FirstOrDefault(h =>
             h != null && h != exclude && h.StringId == targetId
-            && h.IsPlayerCompanion && h.PartyBelongedTo == MobileParty.MainParty);
+            && TravellingAudiencePolicy.MayAskForAWord(TravellerFactsOf(h)));
       }
+
+      /// <summary>What the private-word roster needs to know of a hero (TravellingAudiencePolicy).</summary>
+      public static TravellerFacts TravellerFactsOf(Hero h)
+         => new() {
+            IsPlayer = h == Hero.MainHero,
+            IsHiredCompanion = h?.IsPlayerCompanion == true,
+            IsOfPlayersClan = h?.Clan != null && h.Clan == Clan.PlayerClan,
+            InPlayersParty = h?.PartyBelongedTo != null && h.PartyBelongedTo == MobileParty.MainParty
+         };
 
       #endregion
 

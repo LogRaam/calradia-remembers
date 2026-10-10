@@ -415,6 +415,9 @@ namespace CalradiaRemembers.Mapping
             CaptiveVictimIsFemale = captiveVictimIsFemale,
             CompanionAudience = companionAudience,
             AudienceRetirementIsLanded = audienceRetirementIsLanded,
+            // HakiTakiUmba (09/10/2026): the player's family asks for a word too, and speaks as kin.
+            AudienceFromKin = companionAudience != CompanionAudienceReason.None
+                              && TravellingAudiencePolicy.IsKin(Missions.CompanionAudienceTopicResolver.TravellerFactsOf(hero)),
             LeanLevel = leanLevel,
             IsFinalSceneBeat = isFinalSceneBeat,
             SceneStage = sceneStage,
