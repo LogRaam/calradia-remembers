@@ -102,8 +102,7 @@ namespace CalradiaRemembers.Mapping
          // her husband was the ruler's eldest son, and invented his family).
          if (hero.Spouse is {IsAlive: true})
             // How recent the wedding is, when CR saw it (raphareish, 01/10/2026: a bride of days spoke of years).
-            parts.Add($"Spouse: {hero.Spouse.Name}{DescribeParentage(hero.Spouse)}{CaptiveClause(hero.Spouse)}"
-                      + SpouseTenurePolicy.Clause(WeddingDayBehavior.WeddedOn(hero), (int) CampaignTime.Now.ToDays));
+            parts.Add($"Spouse: {hero.Spouse.Name}{DescribeParentage(hero.Spouse)}{CaptiveClause(hero.Spouse)}" + SpouseTenure(hero));
 
          // Parents are listed whether alive or dead, but a deceased one is marked as such —
          // otherwise the NPC reads "Father: X" and speaks of a dead parent as living,
@@ -214,6 +213,18 @@ namespace CalradiaRemembers.Mapping
       ///   spouse (e.g. a child from a deceased first wife), that parent is named inline so the
       ///   LLM understands the child is NOT shared with the current spouse.
       /// </summary>
+      /// <summary>How long the marriage has lasted: the day CR saw it, or else the couple's eldest living child (fkasad, 10/10/2026).</summary>
+      private static string SpouseTenure(Hero hero)
+      {
+         int? wed = WeddingDayBehavior.WeddedOn(hero);
+         if (wed != null) return SpouseTenurePolicy.Clause(wed, (int) CampaignTime.Now.ToDays);
+
+         Hero eldest = hero.Children?.Where(c => c is {IsDead: false} && (c.Father == hero.Spouse || c.Mother == hero.Spouse))
+                                     .OrderByDescending(c => c.Age).FirstOrDefault();
+
+         return eldest == null ? "" : SpouseTenurePolicy.LongStanding(eldest.Name?.ToString(), (int) eldest.Age);
+      }
+
       private static string DescribeChild(Hero child, Hero npcHero)
       {
          string sex = child.IsFemale

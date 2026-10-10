@@ -1,7 +1,8 @@
 // Code written by Gabriel Mailhot, 01/10/2026.
 // raphareish (Nexus, 01/10/2026): a character just married (the notification was in the chat log) spoke of her spouse as
 // if they had been married for years. The family line now says how recent the wedding is. If this rule is wrong, a bride
-// of three days reminisces about years of marriage, or a couple wed long ago is called newlyweds.
+// of three days reminisces about years of marriage, or a couple wed long ago is called newlyweds (or, fkasad 10/10/2026,
+// a mother of three thinks she wed last week).
 
 #region
 
@@ -40,6 +41,22 @@ namespace CalradiaRemembers.Tests
             SpouseTenurePolicy.Clause(weddedOnDay: 100, today: 100 + SpouseTenurePolicy.ThisYearDays + 1).Should().BeEmpty();
             SpouseTenurePolicy.Clause(weddedOnDay: null, today: 100).Should().BeEmpty();
             SpouseTenurePolicy.Clause(weddedOnDay: 120, today: 100).Should().BeEmpty();
+        }
+
+        // fkasad (Nexus, 10/10/2026): "a woman with three kids wouldn't believe she married a week ago". A marriage CR
+        // never saw has no day, but the couple's eldest child says it is not new: the line gives that floor as a fact.
+        [Test]
+        public void GIVEN_an_unseen_wedding_and_a_child_of_some_years_WHEN_the_spouse_is_named_THEN_the_marriage_reads_as_years_old()
+        {
+            SpouseTenurePolicy.LongStanding("Elys", 12).Should().Be(", wed for years: Elys, your eldest together, is 12");
+        }
+
+        // An infant or a one-year-old proves no long marriage, and no child proves nothing: nothing is claimed.
+        [Test]
+        public void GIVEN_no_child_or_a_very_young_one_WHEN_the_spouse_is_named_THEN_no_length_is_claimed()
+        {
+            SpouseTenurePolicy.LongStanding("Elys", 1).Should().BeEmpty();
+            SpouseTenurePolicy.LongStanding(null, 12).Should().BeEmpty();
         }
     }
 }

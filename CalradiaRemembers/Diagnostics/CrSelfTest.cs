@@ -303,7 +303,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("duel_audience", Severity.Light, "fkasad (Nexus, 01/10/2026): a duel in a keep with fifteen lords logged 0 witnesses and weighed 6 as news. Finds a lord standing in a settlement with other lords or notables present, expects the duel's audience to count them (never him), capped at ten, and the news of beating him before them to outweigh a duel fought alone. Fights nothing.", TestDuelAudience),
          new SelfTest("self_esteem_climb", Severity.Light, "fkasad (Nexus, 01/10/2026): lords at 100 from chores. A lord set high (shift +60) wins a battle through the real service: the gain must shrink to almost nothing; set low (shift -60), the same win lands whole. Restores his shift exactly. Uses the MCM Self-Esteem Climb as set.", TestSelfEsteemClimb),
          new SelfTest("spouse_status_at_wedding", Severity.Light, "brorespeta123 (Nexus, 01/10/2026): a new wife 'forgot who I was'. A marriage through the game's own proposal left her romantic status stale until the next load. Gives a lord's CR profile a stale SecretLover status, runs the same heal the wedding now runs, expects Committed, then restores the profile exactly. Weds nobody.", TestSpouseStatusAtWedding),
-         new SelfTest("wedding_day_line", Severity.Light, "raphareish (Nexus, 01/10/2026): a character wed days before spoke of her spouse as if married for years. Takes a married lord, sets his wedding day to three days ago for a moment, expects his family line to call them newlyweds, then forgets the day and expects the line as before. Weds nobody.", TestWeddingDayLine),
+         new SelfTest("wedding_day_line", Severity.Light, "fkasad (10/10/2026): a marriage CR never saw reads as years old when the couple's eldest living child is 2 or more (checked on a real lord when one exists). raphareish (Nexus, 01/10/2026): a character wed days before spoke of her spouse as if married for years. Takes a married lord, sets his wedding day to three days ago for a moment, expects his family line to call them newlyweds, then forgets the day and expects the line as before. Weds nobody.", TestWeddingDayLine),
          new SelfTest("arrange_match_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): the matchmaker; Gabriel: a real marriage, her heart then her family's consent. Finds an unwed lord and a lawful match of another house at peace, issues the task through the real QuestFactory, and asks the real match check WITHOUT applying it: the law must pass, and the answer must be one of wed / not yet won over / family refuses, never a legal refusal. Weds nobody.", TestArrangeMatchQuest),
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
@@ -9673,6 +9673,19 @@ namespace CalradiaRemembers.Diagnostics
          finally { Mapping.WeddingDayBehavior.DebugSet(lord, null); }
 
          t.Expect("anUnknownWeddingSaysNothing", Mapping.RelationshipsBuilder.Build(lord).Contains("newlyweds"), false);
+
+         // fkasad (10/10/2026): a marriage CR never saw, with a child of the couple old enough, reads as years old.
+         Hero parent = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.Spouse is {IsDead: false}
+                                                                && Mapping.WeddingDayBehavior.WeddedOn(h) == null
+                                                                && h.Children.Any(c => !c.IsDead && (c.Father == h.Spouse || c.Mother == h.Spouse)
+                                                                                       && c.Age >= Logic.SpouseTenurePolicy.YearsThatProveAMarriage));
+         if (parent != null)
+         {
+            string line = Mapping.RelationshipsBuilder.Build(parent);
+            t.Note($"{parent.Name}: {(line.Contains("wed for years") ? "wed for years" : "no clause")}");
+            t.Expect("anOldMarriageWithChildrenReadsAsYearsOld", line.Contains("wed for years:") && line.Contains("your eldest together"), true);
+         }
+         else t.Note("no married lord with an unseen wedding and a child of the couple aged 2 or more; the floor was not checked");
 
          return t.Line();
       }

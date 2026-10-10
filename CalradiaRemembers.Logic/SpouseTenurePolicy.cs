@@ -3,7 +3,8 @@
 // and spoke of their spouse as if they were married for years." The prompt named the spouse and nothing else, and a
 // model told "Spouse: X" assumes a marriage of long standing. The game keeps no wedding date, so CR records the day of
 // every wedding it sees (WeddingDayBehavior) and the spouse line says how recent it is. A marriage CR never saw (an
-// old save, a campaign that starts married) has no date and reads as before.
+// old save, a campaign that starts married) has no date; since fkasad's note (10/10/2026) the couple's eldest child, when
+// old enough, says it is not new.
 
 #region
 
@@ -37,5 +38,17 @@ namespace CalradiaRemembers.Logic
 
             return days <= ThisYearDays ? ", wed less than a year ago" : "";
         }
+
+        /// <summary>A child this old proves the marriage is not new.</summary>
+        public const int YearsThatProveAMarriage = 2;
+
+        /// <summary>
+        ///   fkasad (10/10/2026): for a marriage whose day CR never saw, the couple's eldest living child says it is not new:
+        ///   ", wed for years: Elys, your eldest together, is 12". Empty without such a child, or with one too young to prove it.
+        /// </summary>
+        public static string LongStanding(string eldestTogether, int eldestTogetherYears)
+            => string.IsNullOrWhiteSpace(eldestTogether) || eldestTogetherYears < YearsThatProveAMarriage
+               ? ""
+               : $", wed for years: {eldestTogether}, your eldest together, is {eldestTogetherYears}";
     }
 }
