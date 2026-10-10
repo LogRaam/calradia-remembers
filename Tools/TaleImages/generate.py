@@ -8,6 +8,8 @@
 #   spec.json: {"model": "openai/gpt-5.4-image-2", "tale_style": "...", "images": [{"file": "x.jpg", "scene": "..."}]}
 #   An image (or the whole spec) may name "provider": "xai" and a Grok Imagine "model" (Gabriel, 10/10/2026: the fallback
 #   when the main model refuses a scene). xAI reads XAI_API_KEY; the same style block and scene go to both providers.
+#   --provider xai|openrouter and --model <id> override the spec for the whole run (Gabriel, 10/10/2026: the main model is
+#   chosen per tale, OpenAI at about 0.18 USD an image or Grok imagine-image-2.0 at about 0.04).
 #   With file names after the folder, only those images are made (to redo one); an existing image is never overwritten
 #   unless it is named that way. Writes JPG (quality 90, longest side 1536 at most), like the Wolf of the Wood's.
 import base64, io, json, os, sys, urllib.request
@@ -68,11 +70,22 @@ def save_jpg(raw, path):
 
 
 def main():
-    if len(sys.argv) < 3:
-        sys.exit("usage: generate.py <spec.json> <out_folder> [image_file ...]")
-    spec = json.load(open(sys.argv[1], encoding="utf-8"))
-    out = sys.argv[2]
-    only = set(sys.argv[3:])
+    args = sys.argv[1:]
+    overrides = {}
+    for flag in ("--provider", "--model"):
+        if flag in args:
+            i = args.index(flag)
+            overrides[flag[2:]] = args[i + 1]
+            del args[i:i + 2]
+    if len(args) < 2:
+        sys.exit("usage: generate.py <spec.json> <out_folder> [--provider xai|openrouter] [--model id] [image_file ...]")
+    spec = json.load(open(args[0], encoding="utf-8"))
+    spec.update(overrides)
+    for image in spec["images"]:
+        for k in overrides:
+            image.pop(k, None)
+    out = args[1]
+    only = set(args[2:])
     os.makedirs(out, exist_ok=True)
     model = spec.get("model", "openai/gpt-5.4-image-2")
 
