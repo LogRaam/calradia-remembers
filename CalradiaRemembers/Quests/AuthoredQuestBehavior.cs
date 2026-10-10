@@ -588,6 +588,10 @@ namespace CalradiaRemembers.Quests
          else _run.ChoiceBands[way.Choice.Id] = partyId;
       }
 
+      /// <summary>The tale band's own spawn, for cr.tale_fight_spike (TaleCompanyFightSpike).</summary>
+      internal static MobileParty SpawnBandForSpike(Vec2 at, Settlement home, string name, string template, int size)
+         => SpawnBand(at, home, name, template, size);
+
       /// <summary>A bandit-owned band of the template's troops, patrolling around its place.</summary>
       private static MobileParty SpawnBand(Vec2 at, Settlement home, string name, string template, int size)
       {

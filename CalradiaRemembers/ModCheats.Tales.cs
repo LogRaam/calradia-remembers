@@ -105,6 +105,16 @@ namespace CalradiaRemembers
          return $"'{q.Id}' taken on from {giver.Name}. {StoryStatus(null)}";
       }
 
+      /// <summary>cr.tale_fight_spike [size]: SPIKE, a band beside the player to fight with his company only (TaleCompanyFightSpike).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("tale_fight_spike", "cr")]
+      public static string TaleFightSpike(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         int size = args != null && args.Count > 0 && int.TryParse(args[0], out int n) ? n : 6;
+
+         return TaleCompanyFightSpike.SpawnBand(size);
+      }
+
       /// <summary>cr.story_step: completes the current stage as though its objective were met.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("story_step", "cr")]
       public static string StoryStep(List<string> args)

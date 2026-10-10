@@ -302,6 +302,7 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new Mapping.WeddingDayBehavior());
          campaignStarter.AddBehavior(new Marriage.ForeignDivorceBehavior());
          campaignStarter.AddBehavior(new Quests.AuthoredQuestBehavior());
+         campaignStarter.AddBehavior(new Quests.TaleCompanyFightSpike());
          // War-weariness: wounds and captures accrue a toll on each companion (a SEPARATE axis from happiness);
          // rest eases it; a spent veteran asks for an honorable retirement — a landless one leaves, a landed one
          // (governor / party-leader) steps back from the field but stays in the clan. Pure model in Logic.
