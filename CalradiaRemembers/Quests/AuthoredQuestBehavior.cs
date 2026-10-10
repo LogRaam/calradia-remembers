@@ -19,6 +19,7 @@ using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.MapEvents;
 using CalradiaRemembers.Travel;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
@@ -72,6 +73,7 @@ namespace CalradiaRemembers.Quests
          CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, _ => SafeRun.Step("AuthoredQuests.Load", OnSessionLaunched));
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, () => SafeRun.Step("AuthoredQuests.Daily", OnDailyTick));
          CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, () => SafeRun.Step("AuthoredQuests.Hourly", OnHourlyTick));
+         CampaignEvents.MapEventEnded.AddNonSerializedListener(this, e => SafeRun.Step("AuthoredQuests.MapEventEnded", () => OnMapEventEnded(e)));
          // The conversation events are static and this behaviour is made anew for each campaign: hook once, and
          // forward to whichever instance is current, so a second loaded campaign does not answer twice.
          if (_hooked) return;
@@ -665,6 +667,54 @@ namespace CalradiaRemembers.Quests
          }
 
          return men == 0 ? 1 : (double) tiers / men;
+      }
+
+      /// <summary>
+      ///   A battle ended: if the player fought the tale's band and lost, the tale hears of it (Gabriel, 10/10/2026: the
+      ///   band's on_defeat). A battle the player won is OnBandDestroyed's; one the player was not in is no concern here.
+      /// </summary>
+      private void OnMapEventEnded(MapEvent e)
+      {
+         if (e == null || !e.HasWinner || _run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return;
+
+         var tale = new HashSet<string>(_run.ChoiceBands.Values) {_run.SpawnedPartyId ?? ""};
+         string bandId = e.InvolvedParties.Select(p => p?.MobileParty?.StringId).FirstOrDefault(id => id != null && tale.Contains(id));
+         if (bandId == null) return;
+
+         BattleSideEnum? playerSide = e.PartiesOnSide(BattleSideEnum.Attacker).Any(p => p.Party == PartyBase.MainParty) ? BattleSideEnum.Attacker
+            : e.PartiesOnSide(BattleSideEnum.Defender).Any(p => p.Party == PartyBase.MainParty) ? BattleSideEnum.Defender
+            : (BattleSideEnum?) null;
+         if (playerSide == null || e.DefeatedSide != playerSide) return;
+
+         OnPlayerDefeated(q, bandId);
+      }
+
+      /// <summary>The player lost to the tale's band: its on_defeat is told once per stage, and may end the tale.</summary>
+      private void OnPlayerDefeated(AuthoredQuest q, string bandId)
+      {
+         AuthoredDefeatResult lost = AuthoredQuestEngine.PlayerLostTo(_run, q, bandId, (int) CampaignTime.Now.ToDays);
+         if (lost.OnDefeat == null)
+         {
+            ModLog.Info($"[TALE] '{q.Id}': the player lost to the band; the tale says nothing of a defeat, it waits.");
+
+            return;
+         }
+
+         ModLog.Info($"[TALE] '{q.Id}': the player lost to the band ({(lost.Tell ? "told" : "already told on this stage")}; " +
+                     $"{(lost.Step.Kind == AuthoredStepKind.Completed ? "ends: " + lost.Step.EndingId : "the tale goes on")}).");
+         if (lost.Tell)
+         {
+            CarryOut(q, lost.OnDefeat.AsOutcome());
+            if (!string.IsNullOrWhiteSpace(lost.OnDefeat.Journal)) Journal(q.Id)?.Log(AuthoredQuestEngine.Fill(_run, lost.OnDefeat.Journal));
+         }
+
+         Apply(q, lost.Step);
+      }
+
+      /// <summary>Self-test seam: the player lost to the tale's own band, through the real handling after the battle.</summary>
+      internal void DebugPlayerLostToBand()
+      {
+         if (_run != null && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q) && _run.SpawnedPartyId != null) OnPlayerDefeated(q, _run.SpawnedPartyId);
       }
 
       /// <summary>The band was destroyed: by the player, its way out is taken; by anyone else, it regroups on the next hour.</summary>

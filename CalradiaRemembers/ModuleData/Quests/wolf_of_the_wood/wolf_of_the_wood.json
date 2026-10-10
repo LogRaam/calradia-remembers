@@ -223,7 +223,18 @@
           "near": "{village}",
           "behavior": "hide_near",
           "flee_after_days": 20,
-          "scale_with_player": true
+          "scale_with_player": true,
+          "on_defeat": {
+            "journal": "The slavers threw you back. They are still in the wood near {village}, and they will not wait forever.",
+            "memory": "The player went against the slavers of {village} and was thrown back. They are still out there.",
+            "consequences": [
+              {
+                "type": "memory",
+                "who": "locals_of:{village}",
+                "text": "The lord's champion went into the wood after the slavers and came back beaten. The slavers are still out there."
+              }
+            ]
+          }
         }
       },
       "canvas": "",

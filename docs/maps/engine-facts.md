@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-452 rules read 350 facts.
+452 rules read 351 facts.
 
 ## Facts read by more than one rule
 
@@ -254,7 +254,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AuthoredCulturePolicy.Matches`: `Requires.Giver`, `Requires.Village`
 - `AuthoredQuestEngine.Bound`: `Objective.Spawn`
 - `AuthoredQuestEngine.ConversationOpened`: `Hero.CurrentSettlement`, `Hero.HomeSettlement`
-- `AuthoredQuestEngine.Fill`: `Failure.Journal`, `Objective.Scene`, `Objective.Spawn`, `Scene.Title`
+- `AuthoredQuestEngine.Fill`: `Failure.Journal`, `Objective.Scene`, `Objective.Spawn`, `OnDefeat.Journal`, `Scene.Title`
 - `AuthoredQuestEngine.NightPassed`: `GetPosition2D.Distance`, `Objective.Place`, `Objective.Radius`, `Settlement.Find`, `Settlement.GetPosition2D`
 - `AuthoredQuestOfferPolicy.PickByWeight`: `q.Weight`
 - `AuthoredQuestOfferPolicy.WhyNot`: `Hero.Issue`

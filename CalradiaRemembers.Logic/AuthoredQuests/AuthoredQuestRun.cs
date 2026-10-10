@@ -89,6 +89,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>defeat_party for a choice: the band spawned for each such choice of this stage, by choice id.</summary>
       public Dictionary<string, string> ChoiceBands { get; set; } = new();
 
+      /// <summary>
+      ///   The defeats already told (stage, way and the day the stage began), so a band beating the player twice is told
+      ///   once (Gabriel, 10/10/2026). Added 10/10/2026: absent in older saves, where none was told.
+      /// </summary>
+      public List<string> DefeatsTold { get; set; } = new();
+
       /// <summary>explore: the choice the narration took in the scene, carried out when the scene closes.</summary>
       public string SceneChoiceId { get; set; }
 
@@ -133,6 +139,21 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public string EndingId { get; init; }
 
       public static readonly AuthoredStep Nothing = new() {Kind = AuthoredStepKind.None};
+   }
+
+   /// <summary>What a lost fight against a tale's band makes of the tale (AuthoredQuestEngine.PlayerLostTo).</summary>
+   public sealed class AuthoredDefeatResult
+   {
+      /// <summary>The band's on_defeat; null when the band is not the tale's, or says nothing of a defeat.</summary>
+      public AuthoredDefeat OnDefeat { get; init; }
+
+      /// <summary>The defeat is told now (memories, news, journal): the first time on this stage.</summary>
+      public bool Tell { get; init; }
+
+      /// <summary>The ending reached, when on_defeat names one; Nothing when the tale goes on.</summary>
+      public AuthoredStep Step { get; init; } = AuthoredStep.Nothing;
+
+      public static readonly AuthoredDefeatResult None = new();
    }
 
    /// <summary>One way out of the current stage: its own objective (no choice), or an open choice.</summary>
@@ -407,6 +428,34 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
                                                                    : run.ChoiceBands.TryGetValue(w.Choice.Id, out string band) && band == partyId));
 
          return way != null ? GoTo(run, q, s, way.Choice, way.Next, today) : AuthoredStep.Nothing;
+      }
+
+      /// <summary>
+      ///   The player lost a fight to a band (Gabriel, 10/10/2026). The tale's own band's on_defeat is told once per stage
+      ///   and, when it names an ending, the tale ends there; otherwise it goes on. Another party's victory is no concern
+      ///   of the tale's.
+      /// </summary>
+      public static AuthoredDefeatResult PlayerLostTo(AuthoredQuestRun run, AuthoredQuest q, string partyId, int today)
+      {
+         AuthoredStage s = Active(run, q);
+         if (s == null || partyId == null) return AuthoredDefeatResult.None;
+
+         AuthoredWay way = Ways(run, q).FirstOrDefault(w => w.Objective.Type == "defeat_party"
+                                                            && (w.Choice == null ? partyId == run.SpawnedPartyId
+                                                                   : run.ChoiceBands.TryGetValue(w.Choice.Id, out string band) && band == partyId));
+         AuthoredDefeat onDefeat = way?.Objective.Spawn?.OnDefeat;
+         if (onDefeat == null) return AuthoredDefeatResult.None;
+
+         run.DefeatsTold ??= new List<string>();
+         string key = $"{s.Id}/{way.Choice?.Id}@{run.StageStartDay}";
+         bool tell = !run.DefeatsTold.Contains(key);
+         if (tell) run.DefeatsTold.Add(key);
+
+         AuthoredStep step = AuthoredQuestLoader.EndingId(onDefeat.Next) != null
+            ? GoTo(run, q, s, null, onDefeat.Next, today)
+            : AuthoredStep.Nothing;
+
+         return new AuthoredDefeatResult {OnDefeat = onDefeat, Tell = tell, Step = step};
       }
 
       /// <summary>defeat_party: the bands the current stage hunts now, the stage's own (null choice) and each open choice's.</summary>

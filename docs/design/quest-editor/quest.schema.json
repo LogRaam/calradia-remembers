@@ -921,6 +921,11 @@
           "x-kind": "bool",
           "description": "The band grows with the player's men (never below its size, up to a ceiling), so a climax stays one for a lord with an army.",
           "default": false
+        },
+        "on_defeat": {
+          "$ref": "#/$defs/AuthoredDefeat",
+          "x-kind": "object:AuthoredDefeat",
+          "description": "What the tale makes of the player losing a fight to this band. Without it, a lost fight changes nothing: the player may try again until the tale's clocks run out."
         }
       }
     },
@@ -1147,6 +1152,57 @@
           "$ref": "#/$defs/flags",
           "x-kind": "flags",
           "description": "Flags set when they are met.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredDefeat": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "A lost fight against a tale's band (Gabriel, 10/10/2026): an ending of its own, or, without a next, the tale goes on (told once per stage: memories, news, a journal line), the band still there to beat before it flees.",
+      "properties": {
+        "next": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "An ending (\"end:<id>\") the tale reaches when the player loses to this band. Without it, the tale goes on."
+        },
+        "regard": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "Added to the giver's regard for the player (negative takes it away).",
+          "default": 0
+        },
+        "memory": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the giver remembers of the defeat, in the giver's own voice."
+        },
+        "journal": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The line written in the journal when the player loses to this band."
+        },
+        "consequences": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredConsequence"
+          },
+          "x-kind": "object:AuthoredConsequence[]",
+          "description": "What else the defeat leaves in the world (memory, world_event, grudge). A consequence may hold only under a flag.",
           "x-default-empty": true
         }
       }

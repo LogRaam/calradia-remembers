@@ -1327,6 +1327,11 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "bool",
           "description": "The band grows with the player's men (never below its size, up to a ceiling), so a climax stays one for a lord with an army.",
           "default": false
+        },
+        "on_defeat": {
+          "$ref": "#/$defs/AuthoredDefeat",
+          "x-kind": "object:AuthoredDefeat",
+          "description": "What the tale makes of the player losing a fight to this band. Without it, a lost fight changes nothing: the player may try again until the tale's clocks run out."
         }
       }
     },
@@ -1553,6 +1558,57 @@ input[type="number"] { max-width: 160px; }
           "$ref": "#/$defs/flags",
           "x-kind": "flags",
           "description": "Flags set when they are met.",
+          "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredDefeat": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "A lost fight against a tale's band (Gabriel, 10/10/2026): an ending of its own, or, without a next, the tale goes on (told once per stage: memories, news, a journal line), the band still there to beat before it flees.",
+      "properties": {
+        "next": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "An ending (\"end:<id>\") the tale reaches when the player loses to this band. Without it, the tale goes on."
+        },
+        "regard": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "Added to the giver's regard for the player (negative takes it away).",
+          "default": 0
+        },
+        "memory": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the giver remembers of the defeat, in the giver's own voice."
+        },
+        "journal": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The line written in the journal when the player loses to this band."
+        },
+        "consequences": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredConsequence"
+          },
+          "x-kind": "object:AuthoredConsequence[]",
+          "description": "What else the defeat leaves in the world (memory, world_event, grudge). A consequence may hold only under a flag.",
           "x-default-empty": true
         }
       }
@@ -1896,7 +1952,18 @@ input[type="number"] { max-width: 160px; }
           "near": "{village}",
           "behavior": "hide_near",
           "flee_after_days": 20,
-          "scale_with_player": true
+          "scale_with_player": true,
+          "on_defeat": {
+            "journal": "The slavers threw you back. They are still in the wood near {village}, and they will not wait forever.",
+            "memory": "The player went against the slavers of {village} and was thrown back. They are still out there.",
+            "consequences": [
+              {
+                "type": "memory",
+                "who": "locals_of:{village}",
+                "text": "The lord's champion went into the wood after the slavers and came back beaten. The slavers are still out there."
+              }
+            ]
+          }
         }
       },
       "canvas": "",
@@ -2472,8 +2539,9 @@ input[type="number"] { max-width: 160px; }
     });
 
     validatePaths(q, ids, endings, blocking, cosmetic);
+    validateDefeats(q, endings, blocking);
 
-    var outcomes = [q.reward, q.failure].concat(Array.from(endings.values()));
+    var outcomes = [q.reward, q.failure].concat(Array.from(endings.values())).concat(defeats(q).map(function (x) { return x.defeat; }));
     outcomes.forEach(function (o) {
       if (o == null) return;
       arr(o.consequences).forEach(function (c) {
@@ -2500,6 +2568,34 @@ input[type="number"] { max-width: 160px; }
       blocking.push("requires.rival asks for a '" + (rival.role == null ? '' : rival.role) + "', but the game binds a rival only as a \"clan_leader\" of the giver's realm.");
     if (rival != null && rival.same_realm_as !== '{giver}')
       blocking.push("requires.rival is of the same realm as '" + (rival.same_realm_as == null ? '' : rival.same_realm_as) + "', but the game binds a rival only in the giver's realm (\"{giver}\").");
+  }
+
+  /** Every band's on_defeat in the tale, with where it stands (a stage's own band, or a choice's). */
+  function defeats(q) {
+    var out = [];
+    arr(q.stages).forEach(function (s) {
+      if (s == null) return;
+      var own = s.objective && s.objective.spawn ? s.objective.spawn.on_defeat : null;
+      if (own != null) out.push({where: "stage '" + str(s.id) + "'", defeat: own});
+      arr(s.choices).forEach(function (c) {
+        var d = c && c.objective && c.objective.spawn ? c.objective.spawn.on_defeat : null;
+        if (d != null) out.push({where: "stage '" + str(s.id) + "', choice '" + str(c.id) + "'", defeat: d});
+      });
+    });
+    return out;
+  }
+
+  /** A defeat leads to one of the tale's endings, or nowhere (the tale goes on); never to a stage. */
+  function validateDefeats(q, endings, blocking) {
+    defeats(q).forEach(function (x) {
+      var next = x.defeat.next;
+      if (blank(next)) return;
+      var ending = endingId(next);
+      if (ending === null)
+        blocking.push(x.where + ": on_defeat.next '" + next + "' must be an ending (\"end:<id>\"); leave it out and the tale goes on after a defeat.");
+      else if (!endings.has(ending))
+        blocking.push(x.where + ": on_defeat leads to ending '" + ending + "', which \"endings\" does not define.");
+    });
   }
 
   function checkNext(what, next, ids, endings, blocking) {
@@ -2591,6 +2687,13 @@ input[type="number"] { max-width: 160px; }
     var hasChoices = s.choices != null && s.choices.length > 0;
     if ((!hasChoices || s.objective != null) && s.on_complete != null && !blank(s.on_complete.next)) out.push(s.on_complete.next);
     if (hasChoices) s.choices.forEach(function (c) { if (c != null && !blank(c.next)) out.push(c.next); });
+    // A defeat that ends the tale is a way out too: its ending is reached.
+    var own = s.objective && s.objective.spawn ? s.objective.spawn.on_defeat : null;
+    if (own != null && endingId(own.next) !== null) out.push(own.next);
+    if (hasChoices) s.choices.forEach(function (c) {
+      var d = c && c.objective && c.objective.spawn ? c.objective.spawn.on_defeat : null;
+      if (d != null && endingId(d.next) !== null) out.push(d.next);
+    });
     return out;
   }
 
@@ -3631,7 +3734,8 @@ input[type="number"] { max-width: 160px; }
     AuthoredHazard: ['id', 'trigger', 'effect', 'image'],
     AuthoredHazardEffect: ['type', 'hit_points', 'party', 'hours'],
     AuthoredEncounter: ['id', 'name', 'persona', 'knows', 'sets', 'may_materialize', 'materialize_when', 'escort_to', 'image'],
-    AuthoredSpawn: ['id', 'template', 'size', 'name', 'near', 'behavior', 'flee_after_days', 'scale_with_player'],
+    AuthoredSpawn: ['id', 'template', 'size', 'name', 'near', 'behavior', 'flee_after_days', 'scale_with_player', 'on_defeat'],
+    AuthoredDefeat: ['next', 'regard', 'memory', 'journal', 'consequences'],
     AuthoredOutcome: ['days', 'regard', 'gold', 'memory', 'journal', 'consequences'],
     AuthoredConsequence: ['type', 'who', 'against', 'text', 'summary', 'magnitude', 'place', 'if'],
 
@@ -4032,6 +4136,7 @@ input[type="number"] { max-width: 160px; }
   function fieldOf(rest, inChoice) {
     var rules = [
       [/is never reached from the first stage|can never reach an ending/, ''],
+      [/on_defeat/, '/objective.spawn'],
       [/ has no next | leads to |has no on_complete\.next|a scene with choices needs a way out|so its on_complete\.next is never used/, inChoice ? '/next' : '/on_complete.next'],
       [/has no objective\.$| asks for '/, '/objective.type'],
       [/talk_to needs "hero"/, '/objective.hero'],
@@ -4044,7 +4149,7 @@ input[type="number"] { max-width: 160px; }
       [/required finding|every finding needs|finding '/, '/objective.scene.findings'],
       [/hazard/, '/objective.scene.hazards'],
       [/encounter '/, '/objective.scene.encounters'],
-      [/spawn|flee_after_days/, '/objective.spawn'],
+      [/on_defeat|spawn|flee_after_days/, '/objective.spawn'],
       [/a choice has no id|several choices are marked default|every way out depends on flags|is the request/, '/choices'],
       [/both an objective and a "said"|no way to be taken/, '/mode'],
       [/"said" needs| is said to /, '/said'],
@@ -4590,7 +4695,18 @@ input[type="number"] { max-width: 160px; }
       textField(k + '.template', 'Troops', 'AuthoredSpawn', 'template', sp, {mono: true}),
       numberField(k + '.flee_after_days', 'Flees after days', 'AuthoredSpawn', 'flee_after_days', sp, {min: 0}),
       boolField(k + '.scale_with_player', 'Grows with your men', 'AuthoredSpawn', 'scale_with_player', sp),
-      textField(k + '.behavior', 'Behaviour', 'AuthoredSpawn', 'behavior', sp, {mono: true})), h('div.field-problems'));
+      textField(k + '.behavior', 'Behaviour', 'AuthoredSpawn', 'behavior', sp, {mono: true})), defeatEditor(k, sp), h('div.field-problems'));
+  }
+
+  /** If the player loses to the band: an ending, or the tale goes on with what the defeat leaves. */
+  function defeatEditor(k, sp) {
+    var d = lazy(sp, 'on_defeat'), dk = k + '.on_defeat';
+    return h('div', h('div.subhead', 'If you lose to it'), h('div.grid',
+      textField(dk + '.next', 'Ends the tale with', 'AuthoredDefeat', 'next', d, {mono: true, placeholder: 'empty: the tale goes on'}),
+      numberField(dk + '.regard', 'Regard', 'AuthoredDefeat', 'regard', d),
+      textField(dk + '.memory', 'The giver remembers', 'AuthoredDefeat', 'memory', d, {multiline: true, short: true, wide: true}),
+      textField(dk + '.journal', 'Journal line', 'AuthoredDefeat', 'journal', d, {wide: true})),
+      consequenceCards(dk + '.consequences', d));
   }
 
   /** A list of cards (findings, hazards, encounters, choices, consequences), each with its tools. */
@@ -4802,6 +4918,10 @@ input[type="number"] { max-width: 160px; }
       if (!s) return;
       if (s.on_complete && typeof s.on_complete === 'object') fn(s.on_complete, 'next');
       arr(s.choices).forEach(function (c) { if (c) fn(c, 'next'); });
+      [s].concat(arr(s.choices)).forEach(function (x) {
+        var d = x && x.objective && x.objective.spawn ? x.objective.spawn.on_defeat : null;
+        if (d && typeof d === 'object') fn(d, 'next');
+      });
     });
   }
 
@@ -4835,7 +4955,13 @@ input[type="number"] { max-width: 160px; }
       kind !== 'failure' && o.days !== undefined ? numberField(key + '/days', 'Days (only read on failure)', 'AuthoredOutcome', 'days', o, {min: 0}) : null,
       textField(key + '/memory', 'The giver remembers', 'AuthoredOutcome', 'memory', o, {multiline: true, short: true, wide: true}),
       textField(key + '/journal', 'Last journal line', 'AuthoredOutcome', 'journal', o, {wide: true}))));
-    ed.appendChild(section('Consequences', help('AuthoredOutcome', 'consequences'), cardList(key + '/consequences', 'Consequences', null, o, 'consequences', function (c, i, ck) {
+    ed.appendChild(section('Consequences', help('AuthoredOutcome', 'consequences'), consequenceCards(key + '/consequences', o)));
+    return ed;
+  }
+
+  /** The consequences an outcome or a defeat leaves, as cards. */
+  function consequenceCards(key, o) {
+    return cardList(key, 'Consequences', null, o, 'consequences', function (c, i, ck) {
       var used = F.consequenceFields[c.type] || ['who', 'text', 'summary', 'magnitude', 'place', 'if'];
       var g = h('div.grid', selectField(ck + '/type', 'Type', 'AuthoredConsequence', 'type', c, list('ConsequenceTypes'), {empty: c.type ? undefined : '(choose)'}));
       var grudge = c.type === 'grudge';
@@ -4848,8 +4974,7 @@ input[type="number"] { max-width: 160px; }
       if (used.indexOf('text') >= 0) body.push(textField(ck + '/text', grudge ? 'The cause, in their words' : 'What they remember', 'AuthoredConsequence', 'text', c, {multiline: true, short: true, wide: true}));
       if (used.indexOf('summary') >= 0) body.push(textField(ck + '/summary', 'The news', 'AuthoredConsequence', 'summary', c, {multiline: true, short: true, wide: true}));
       return {title: c.type === 'memory' ? 'A memory for ' + (c.who || '...') : c.type === 'world_event' ? 'News: ' + (c.summary || '...') : (c.type || '(no type)'), chip: c.type, body: body};
-    }, function () { return {type: 'memory', who: 'locals_of:{village}', text: ''}; }, 'Add a consequence')));
-    return ed;
+    }, function () { return {type: 'memory', who: 'locals_of:{village}', text: ''}; }, 'Add a consequence');
   }
 
   function renameEnding(oldName, newName) {

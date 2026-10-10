@@ -167,8 +167,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          }
 
          ValidatePaths(q, ids, endings, blocking, cosmetic);
+         ValidateDefeats(q, endings, blocking);
 
-         IEnumerable<AuthoredOutcome> outcomes = new[] {q.Reward, q.Failure}.Concat(endings.Values);
+         IEnumerable<AuthoredOutcome> outcomes = new[] {q.Reward, q.Failure}.Concat(endings.Values)
+                                                                           .Concat(Defeats(q).Select(d => d.Defeat.AsOutcome()));
          foreach (AuthoredConsequence c in outcomes.Where(o => o != null).SelectMany(o => o.Consequences ?? new List<AuthoredConsequence>()))
             if (c != null && !ConsequenceTypes.Contains(c.Type))
                cosmetic.Add($"consequence '{c.Type}' is not carried out yet (known: {string.Join(", ", ConsequenceTypes)}); it is skipped.");
@@ -184,6 +186,31 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             blocking.Add($"requires.rival asks for a '{rival.Role}', but the game binds a rival only as a \"clan_leader\" of the giver's realm.");
          if (rival != null && rival.SameRealmAs != "{giver}")
             blocking.Add($"requires.rival is of the same realm as '{rival.SameRealmAs}', but the game binds a rival only in the giver's realm (\"{{giver}}\").");
+      }
+
+      /// <summary>Every band's on_defeat in the tale, with where it stands (a stage's own band, or a choice's).</summary>
+      private static IEnumerable<(string Where, AuthoredDefeat Defeat)> Defeats(AuthoredQuest q)
+      {
+         foreach (AuthoredStage s in q.Stages.Where(s => s != null))
+         {
+            if (s.Objective?.Spawn?.OnDefeat is AuthoredDefeat own) yield return ($"stage '{s.Id}'", own);
+            foreach (AuthoredChoice c in (s.Choices ?? new List<AuthoredChoice>()).Where(c => c?.Objective?.Spawn?.OnDefeat != null))
+               yield return ($"stage '{s.Id}', choice '{c.Id}'", c.Objective.Spawn.OnDefeat);
+         }
+      }
+
+      /// <summary>A defeat leads to one of the tale's endings, or nowhere (the tale goes on); never to a stage.</summary>
+      private static void ValidateDefeats(AuthoredQuest q, Dictionary<string, AuthoredOutcome> endings, List<string> blocking)
+      {
+         foreach ((string where, AuthoredDefeat d) in Defeats(q))
+         {
+            if (string.IsNullOrWhiteSpace(d.Next)) continue;
+            string ending = EndingId(d.Next);
+            if (ending == null)
+               blocking.Add($"{where}: on_defeat.next '{d.Next}' must be an ending (\"end:<id>\"); leave it out and the tale goes on after a defeat.");
+            else if (!endings.ContainsKey(ending))
+               blocking.Add($"{where}: on_defeat leads to ending '{ending}', which \"endings\" does not define.");
+         }
       }
 
       private static void CheckNext(string what, string next, HashSet<string> ids, Dictionary<string, AuthoredOutcome> endings, List<string> blocking)
@@ -350,6 +377,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          bool hasChoices = s.Choices != null && s.Choices.Count > 0;
          if ((!hasChoices || s.Objective != null) && !string.IsNullOrWhiteSpace(s.OnComplete?.Next)) exits.Add(s.OnComplete.Next);
          if (hasChoices) exits.AddRange(s.Choices.Where(c => c != null && !string.IsNullOrWhiteSpace(c.Next)).Select(c => c.Next));
+         // A defeat that ends the tale is a way out too (Gabriel, 10/10/2026): its ending is reached.
+         if (EndingId(s.Objective?.Spawn?.OnDefeat?.Next) != null) exits.Add(s.Objective.Spawn.OnDefeat.Next);
+         if (hasChoices)
+            exits.AddRange(s.Choices.Where(c => EndingId(c?.Objective?.Spawn?.OnDefeat?.Next) != null).Select(c => c.Objective.Spawn.OnDefeat.Next));
 
          return exits;
       }

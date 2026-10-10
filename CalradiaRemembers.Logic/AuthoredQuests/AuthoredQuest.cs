@@ -454,6 +454,35 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>fkasad (07/10/2026): "no climax" for a lord with an army; see AuthoredBandSizePolicy.</summary>
       [QuestField("The band grows with the player's men (never below its size, up to a ceiling), so a climax stays one for a lord with an army.")]
       [JsonProperty("scale_with_player")] public bool ScaleWithPlayer { get; set; }
+
+      /// <summary>Gabriel (10/10/2026): what a lost fight against this band makes of the tale; see AuthoredDefeat.</summary>
+      [QuestField("What the tale makes of the player losing a fight to this band. Without it, a lost fight changes nothing: the player may try again until the tale's clocks run out.")]
+      [JsonProperty("on_defeat")] public AuthoredDefeat OnDefeat { get; set; }
+   }
+
+   /// <summary>
+   ///   A lost fight against a tale's band (Gabriel, 10/10/2026): an ending of its own, or, without a next, the tale goes on
+   ///   (told once per stage: memories, news, a journal line), the band still there to beat before it flees.
+   /// </summary>
+   public sealed class AuthoredDefeat
+   {
+      [QuestField("An ending (\"end:<id>\") the tale reaches when the player loses to this band. Without it, the tale goes on.")]
+      [JsonProperty("next")] public string Next { get; set; }
+
+      [QuestField("Added to the giver's regard for the player (negative takes it away).")]
+      [JsonProperty("regard")] public int Regard { get; set; }
+
+      [QuestField("What the giver remembers of the defeat, in the giver's own voice.")]
+      [JsonProperty("memory")] public string Memory { get; set; }
+
+      [QuestField("The line written in the journal when the player loses to this band.")]
+      [JsonProperty("journal")] public string Journal { get; set; }
+
+      [QuestField("What else the defeat leaves in the world (memory, world_event, grudge). A consequence may hold only under a flag.")]
+      [JsonProperty("consequences")] public List<AuthoredConsequence> Consequences { get; set; } = new();
+
+      /// <summary>The defeat as an outcome, carried out the way an ending's is.</summary>
+      public AuthoredOutcome AsOutcome() => new() {Regard = Regard, Memory = Memory, Consequences = Consequences ?? new List<AuthoredConsequence>()};
    }
 
    /// <summary>What success, failure or a named ending leaves behind.</summary>

@@ -233,6 +233,24 @@ larger. `"template": "local"` makes it of the region's bandits (those of the nea
 men that follows how seasoned the player's own troops are. With `"scale_with_player": true` the band grows with the player's healthy men (about six in ten of
 them, never below its own `size`, at most 120), so the last fight stays a fight for a lord with an army.
 
+**If the player loses to the band.** By default a lost fight changes nothing: the band is still there, and the player
+may try again until `flee_after_days` or the tale's `failure.days` run out. `"on_defeat"` makes the defeat a moment
+of the tale:
+
+```json
+"spawn": { "id": "slavers", "near": "{village}", "size": [12, 20],
+           "on_defeat": {
+             "journal": "The slavers threw you back. They are still in the wood near {village}.",
+             "memory": "The player went against the slavers of {village} and was thrown back.",
+             "consequences": [ { "type": "memory", "who": "locals_of:{village}",
+                                 "text": "The lord's champion came back beaten. The slavers are still out there." } ] } }
+```
+
+Without `"next"`, the tale goes on: the journal line, the giver's `memory` and `regard`, and the `consequences`
+(memory, world_event, grudge, as in an ending) are carried out the first time the player loses on this stage, never
+twice; the band stays to be beaten. With `"next": "end:<id>"`, a defeat ends the tale on that named ending (it must be
+in `"endings"`; a stage is refused, since the band leaves with its stage). The Wolf of the Wood goes on after a defeat.
+
 ## 7. Choices: a story with several paths
 
 A stage may carry `choices` instead of (or as well as) a single objective. Each choice is one way

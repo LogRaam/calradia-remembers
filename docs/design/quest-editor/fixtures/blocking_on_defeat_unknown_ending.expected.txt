@@ -1,0 +1,1 @@
+blocking_on_defeat_unknown_ending.json: quest 'fx_tale': stage 'go': on_defeat leads to ending 'nowhere', which "endings" does not define. The quest is not loaded.
