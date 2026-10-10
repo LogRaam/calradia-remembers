@@ -1327,9 +1327,11 @@ namespace CalradiaRemembers.Chat
             var facts = new Logic.Conversation.MapEncounterCloseFacts {
                HasEncounter = PlayerEncounter.Current != null, InMission = Mission.Current != null,
                InsideSettlement = PlayerEncounter.Current != null && PlayerEncounter.InsideSettlement,
-               BriefingReturnPending = CompanionBriefingCoordinator.HasPendingReturn, BattleUnderWay = battle
+               BriefingReturnPending = CompanionBriefingCoordinator.HasPendingReturn, BattleUnderWay = battle,
+               BattleIsRaid = (PlayerEncounter.Battle ?? TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapEvent)?.IsRaid == true
             };
-            if (battle) ModLog.Info("[CLOSE] encounter kept: a battle is under way in it; the game settles it.");
+            if (battle && facts.BattleIsRaid) ModLog.Info("[CLOSE] the player is raiding: the encounter is finished as before 2.7.5.");
+            else if (battle) ModLog.Info("[CLOSE] encounter kept: a battle is under way in it; the game settles it.");
 
             // A briefing is a step INSIDE a meeting, never the end of one. Gabriel asked Ira for a moment to
             // brief his companion (2026-09-12) and closing that briefing left him on the map with the meeting

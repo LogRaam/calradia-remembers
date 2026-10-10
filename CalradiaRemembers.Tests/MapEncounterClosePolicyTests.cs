@@ -28,11 +28,20 @@ namespace CalradiaRemembers.Tests
          MapEncounterClosePolicy.MayFinish(Field()).Should().BeTrue();
       }
 
-      // Maifailun's crash: a fight was under way in the encounter. It is the game's to settle.
+      // Maifailun's crash: a fight was under way in the encounter (not a raid). It is the game's to settle.
       [Test]
       public void GIVEN_a_battle_under_way_in_the_encounter_WHEN_the_chat_closes_THEN_the_encounter_is_left_to_the_game()
       {
          MapEncounterClosePolicy.MayFinish(new MapEncounterCloseFacts {HasEncounter = true, BattleUnderWay = true}).Should().BeFalse();
+      }
+
+      // Zivkyn (Nexus, 10/10/2026), since 2.7.5: an ally spoke to him while he raided a village, and closing the chat
+      // left him on "attack, surrender or try to escape". A raid is the player's own action, not a fight to settle: the
+      // close finishes it as it did before 2.7.5 (the game's own raid branch ends it cleanly), Maifailun's fix untouched.
+      [Test]
+      public void GIVEN_the_player_raiding_a_village_WHEN_the_chat_closes_THEN_the_encounter_is_finished_as_before()
+      {
+         MapEncounterClosePolicy.MayFinish(new MapEncounterCloseFacts {HasEncounter = true, BattleUnderWay = true, BattleIsRaid = true}).Should().BeTrue();
       }
 
       // The guards that were already there still hold: no encounter, a scene, a settlement, or a briefing that returns.
