@@ -67,6 +67,9 @@
     "SpeakingRoles": [
       "{giver}",
       "{rival}"
+    ],
+    "GameBoundRoles": [
+      "player"
     ]
   },
   "$defs": {

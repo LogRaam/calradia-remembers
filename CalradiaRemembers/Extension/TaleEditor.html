@@ -476,6 +476,9 @@ input[type="number"] { max-width: 160px; }
     "SpeakingRoles": [
       "{giver}",
       "{rival}"
+    ],
+    "GameBoundRoles": [
+      "player"
     ]
   },
   "$defs": {
@@ -2683,6 +2686,7 @@ input[type="number"] { max-width: 160px; }
     validateFlags(q, cosmetic);
 
     var binds = new Set(q.binds == null ? [] : Array.from(q.binds.keys()));
+    (LISTS.GameBoundRoles || []).forEach(function (r) { binds.add(r); }); // bound by the game for every tale ({player}: tashmetu, 11/10/2026)
     var seen = [];
     strings(q, 'object:AuthoredQuest', []).forEach(function (s) {
       var m;

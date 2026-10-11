@@ -1,0 +1,7 @@
+{
+  "id": "fx_player",
+  "binds": { "giver": "a lord" },
+  "stages": [
+    { "id": "ask", "journal": "{giver} asked {player} for help.", "objective": { "type": "talk_to", "hero": "{giver}" }, "on_complete": { "next": "reward" } }
+  ]
+}

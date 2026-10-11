@@ -175,6 +175,11 @@ text is filled with its name. The roles the game binds are `{giver}`, `{village}
 `requires.village`) and `{rival}` (with `requires.rival`). List every role you use under `binds`,
 with a short description for the reader of the file.
 
+`{player}` is the player's name, filled in every tale (since 2.7.9) with no `binds` entry. Use it
+where the words are the character's own, above all in memories: a memory saying "The player found
+them" reads out of character in the memories panel, and the character may repeat it. Text the
+model reads as instructions (canvases) may keep saying "the player", as CR's own prompts do.
+
 ## 5. Stages
 
 ```json

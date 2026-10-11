@@ -398,6 +398,9 @@ namespace CalradiaRemembers.Quests
 
          ids["giver"] = giver.StringId;
          names["giver"] = giver.Name?.ToString();
+         // tashmetu (11/10/2026): {player} names the player in a tale's journal, canvases, memories and consequences
+         // (AuthoredQuestLoader.GameBoundRoles). A name only: no hero id, so no objective or knower can target the player.
+         names["player"] = Hero.MainHero?.Name?.ToString();
 
          PlaceRequirement v = q.Requires?.Village;
          if (v != null)

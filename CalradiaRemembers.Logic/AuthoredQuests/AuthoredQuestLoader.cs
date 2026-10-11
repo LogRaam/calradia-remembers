@@ -66,6 +66,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       private const string Reward = "reward";
       private const string EndPrefix = "end:";
       private static readonly Regex Placeholder = new(@"\{([a-z_]+)\}", RegexOptions.Compiled);
+
+      /// <summary>
+      ///   Roles the game binds for every tale, with no "binds" entry (tashmetu, 11/10/2026): {player}, the player's name, so
+      ///   a tale's memories and journal can name the player instead of saying "the player".
+      /// </summary>
+      public static readonly IReadOnlyCollection<string> GameBoundRoles = new[] {"player"};
       private static readonly Regex MarkerName = new(@"^[A-Za-z0-9_]+$", RegexOptions.Compiled);
 
       /// <summary>Several files at once: ids are unique across all of them; a repeat is refused and named.</summary>
@@ -189,6 +195,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          ValidateFlags(q, cosmetic);
 
          var binds = new HashSet<string>(q.Binds?.Keys ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+         binds.UnionWith(GameBoundRoles);
          foreach (string unbound in Placeholder.Matches(text).Cast<Match>().Select(m => m.Groups[1].Value).Distinct().Where(p => !binds.Contains(p)))
             cosmetic.Add($"{{{unbound}}} is used but no role binds it (add it to \"binds\"), so it would reach the player as written.");
 

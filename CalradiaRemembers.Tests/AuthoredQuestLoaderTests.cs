@@ -71,6 +71,17 @@ namespace CalradiaRemembers.Tests
          r.Problems.Should().Contain(p => p.Contains("{rival}"));
       }
 
+      // tashmetu (Nexus, 11/10/2026): a tale had no way to name the player, so its memories said "The player found the ones
+      // who burned our old village..." in the giver's own memory panel, and the character could repeat it. The game binds
+      // {player} to the player's name for every tale, so it needs no "binds" entry and is never reported as unbound.
+      [Test]
+      public void GIVEN_a_tale_naming_the_player_without_binding_it_WHEN_loaded_THEN_nothing_is_reported()
+      {
+         AuthoredQuestLoadResult r = AuthoredQuestLoader.Parse(Minimal.Replace("Go to {village}.", "{player}, go to {village}."), "test.json");
+
+         r.Problems.Should().NotContain(p => p.Contains("{player}"));
+      }
+
       // An exploration scene must have something to find, or the stage can never be completed.
       [Test]
       public void GIVEN_a_scene_with_no_required_finding_WHEN_loaded_THEN_the_quest_is_refused()
