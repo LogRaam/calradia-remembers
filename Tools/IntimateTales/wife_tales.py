@@ -1,6 +1,10 @@
 # Generates the six other wife tales (Gabriel, 11/10/2026) on the shape of "Beneath the Falls" (Khuzait):
 # found [-> watch more ...] -> together -> free states (each to every other and to the invitation) -> invitation
 # [-> further moments] [-> afterwards] -> reward. Images are copied from "Image tests 2026-10-10/Wife tale <Nation>".
+# Gabriel (11/10/2026): several moments (or several afterwards) are not steps to click through one by one but STATES of
+# one moment, like the body states before the invitation: each reached by what the player says or does, each its picture.
+# A chain of two or more becomes such a group: the invitation leads to any of them, each to every other, and one way out
+# ("You are together"; afterwards, "Back to the camp").
 import json, os, shutil
 
 ROOT = r"V:\OneDrive\Programmation\GIT Workspace\Bannerlord LLM project"
@@ -45,8 +49,22 @@ def build(n):
 
     after = n.get("after", [])
     end_target = after[0]["id"] if after else "reward"
+    together_way = {"id": "as_one", "label": "You are together", "said": said("they make love, or their lovemaking reaches its end"), "next": end_target}
     for i in inv:
-        chain = [i] + i.get("then", [])
+        moments = i.get("then", [])
+        if len(moments) >= 2:
+            # States of one moment: from the invitation to any of them, from each to every other, one way out.
+            def to(m): return {"id": m["id"], "label": m["label"], "said": said(m["meaning"]), "next": m["id"]}
+            choices = [to(m) for m in moments]
+            for alt in i.get("alt", []):
+                choices.append({"id": "turn_" + alt["to"], "label": alt["label"], "said": said(alt["meaning"]), "next": alt["to"]})
+            choices.append({"id": "back", "label": "Not yet", "said": said("they linger and return to the water together, not yet ready"), "next": "together"})
+            stages.append({"id": i["id"], "journal": i["journal"], "image": i["image"], "canvas": i["canvas"], "choices": choices})
+            for m in moments:
+                stages.append({"id": m["id"], "journal": m["journal"], "image": m["image"], "canvas": m["canvas"],
+                               "choices": [to(o) for o in moments if o["id"] != m["id"]] + [together_way]})
+            continue
+        chain = [i] + moments
         for k, st in enumerate(chain):
             choices = []
             if k + 1 < len(chain):
@@ -61,8 +79,9 @@ def build(n):
             stages.append({"id": st["id"], "journal": st["journal"], "image": st["image"], "canvas": st["canvas"], "choices": choices})
     for k, a in enumerate(after):
         choices = []
-        if k + 1 < len(after):
-            choices.append({"id": "linger", "label": "Linger", "said": said(after[k + 1]["meaning"]), "next": after[k + 1]["id"]})
+        if len(after) >= 2:
+            # States of the afterwards, each reached by what the player says or does (Gabriel, 11/10/2026).
+            choices += [{"id": o["id"], "label": o["label"], "said": said(o["meaning"]), "next": o["id"]} for o in after if o["id"] != a["id"]]
         choices.append({"id": "rest", "label": "Back to the camp", "said": said("they rest, dress, or speak of going back to the camp"), "next": "reward"})
         stages.append({"id": a["id"], "journal": a["journal"], "image": a["image"], "canvas": a["canvas"], "choices": choices})
 
@@ -104,15 +123,15 @@ NATIONS.append({"folder": "Aserai", "id": "crit_wife_aserai_oasis", "title": "Th
             st("legs", "7_legs.jpg", "You gather your robe above your knees and step through the shallows toward the player.", "{giver} lifts the hem of her robe.")],
  "invitations": [{"id": "invitation", "label": "She draws you down onto the sand", "meaning": "she draws the player down onto the warm sand and comes over them, inviting them",
                   "image": "8a_invitation.jpg", "canvas": "You have drawn the player down onto the warm sand and you lean over them, your braids falling around you, inviting them.", "journal": "{giver} draws you down onto the sand.",
-                  "then": [st("moment_1", "8b_invitation.jpg", "You are with the player on the warm sand under the evening sky, above them.", "With {giver} under the evening sky.", "Under the evening sky", "their lovemaking goes on"),
-                           st("moment_2", "8c_invitation.jpg", "You and the player are lovers under the burning sky; you hold nothing back.", "With {giver}.", "Closer", "their lovemaking goes on"),
-                           st("moment_3", "8d_invitation.jpg", "You guide the player's hands to you as the sun goes down.", "With {giver}.", "Closer", "their lovemaking goes on"),
-                           st("moment_4", "8e_invitation.jpg", "You smile down at the player, glowing in the last light.", "With {giver}.", "Closer", "their lovemaking goes on"),
-                           st("moment_5", "8f_invitation.jpg", "You lie with the player in the warm sand, laughing softly.", "With {giver}.", "Closer", "their lovemaking goes on"),
-                           st("moment_6", "8g_invitation.jpg", "The sky burns above you both; you are wholly the player's and they are yours.", "With {giver}.", "Closer", "their lovemaking goes on")]}],
- "after": [st("after", "9a_pretty_smile.jpg", "It is over, and you lie in the warm sand with the player, smiling, in no hurry to go back.", "Afterwards, {giver} smiles at you.", meaning="they rest together afterwards"),
-           st("after_2", "9b_pretty_smile.jpg", "You smile at the player, sand on your skin, happy.", "{giver} smiles.", meaning="they linger together, she smiles at the player"),
-           st("after_3", "9c_pretty_face.jpg", "The sun is setting; you look at the player a long while, content.", "{giver} looks at you.", meaning="they linger as the sun sets")],
+                  "then": [st("above_you", "8b_invitation.jpg", "You are with the player on the warm sand under the evening sky, above them.", "With {giver} under the evening sky.", "She is above you", "she is above the player on the warm sand, under the evening sky"),
+                           st("nothing_held_back", "8c_invitation.jpg", "You and the player are lovers under the burning sky; you hold nothing back.", "With {giver}.", "Nothing held back", "they give themselves to each other wholly, holding nothing back"),
+                           st("her_hands", "8d_invitation.jpg", "You guide the player's hands to you as the sun goes down.", "With {giver}.", "She guides your hands", "she takes the player's hands and guides them to her"),
+                           st("her_glow", "8e_invitation.jpg", "You smile down at the player, glowing in the last light.", "With {giver}.", "She smiles down at you", "she smiles down at the player, glowing in the last light"),
+                           st("laughing", "8f_invitation.jpg", "You lie with the player in the warm sand, laughing softly.", "With {giver}.", "Laughing in the sand", "they lie together in the warm sand and laugh softly"),
+                           st("burning_sky", "8g_invitation.jpg", "The sky burns above you both; you are wholly the player's and they are yours.", "With {giver}.", "Under the burning sky", "the sky burns above them and they are wholly each other's")]}],
+ "after": [st("after", "9a_pretty_smile.jpg", "It is over, and you lie in the warm sand with the player, smiling, in no hurry to go back.", "Afterwards, {giver} smiles at you.", "Resting together", "they rest together afterwards in the warm sand"),
+           st("her_smile", "9b_pretty_smile.jpg", "You smile at the player, sand on your skin, happy.", "{giver} smiles.", "Her happy smile", "she smiles at the player, happy, sand on her skin"),
+           st("at_sunset", "9c_pretty_face.jpg", "The sun is setting; you look at the player a long while, content.", "{giver} looks at you.", "As the sun sets", "the sun sets and she looks at the player a long while, content")],
  "memory": "An afternoon at a hidden oasis in the land of my people, when my spouse followed me and we were alone together until sunset.",
  "reward_journal": "An afternoon at the hidden oasis that neither of you will forget."})
 
