@@ -436,6 +436,9 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("nemesis_tavern_rumor", Severity.Light, "tavern-keeper rumour discoverability (ROADMAP follow-up): mint a nemesis anchored to a real tavern keeper's own region and mark him ENCOUNTERED -> assert NemesisTavernRumorDialogFlow.FindRumorNemesisFor's gate finds him eligible, and that it hides him again while latent (TimesEncountered 0) and once TURNED -> assert NemesisRumorLine.Compose names him and his region without stating a reward figure. PLANTS a test nemesis (reload after)", TestNemesisTavernRumor),
          new SelfTest("declare_war", Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it", TestDeclareWar),
          new SelfTest("scenario", Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals", TestScenario),
+         new SelfTest("scenario_packs", Severity.Light, "Gabriel (11/10/2026): the scripted scenarios ship in every release but were never checked in game ('ajoute les scenarios dans testall'). Reads the packs the REAL loader loaded: asserts the five shipped rules are there, that every trigger, guard and consequence is one the engine knows, and that every hero and faction a rule names resolves in this world (a kingdom name that does not resolve means the war is skipped while its message is still told). Nothing is changed", TestScenarioPacks),
+         new SelfTest("scenario_death", Severity.Light, "Gabriel (11/10/2026): the shipped rule 'the eagles turn on a leaderless South' must answer Rhagaea's own death and nothing else. Asks the REAL guards with the context a real death builds: asserts the rule is eligible when Rhagaea dies, NOT eligible when Rhagaea is the one who killed (an execution or a battle she wins would otherwise tell the realm she fell and seal the rule), and that its two wars name the Northern and Western Empires against the Southern. Nothing is fired, no war is declared", TestScenarioDeath),
+         new SelfTest("scenario_marriage", Severity.Light, "Gabriel (11/10/2026): the four shipped outcomes of the player marrying Rhagaea (consort, two crowns, regent, suspicious). Fires each one through the REAL runtime with the context a real marriage builds, the other three held sealed so the draw has one choice: asserts it fires, Rhagaea remembers its line, the realm is told its message, and it seals; two crowns must stay closed while the player rules no kingdom. Nobody is married; memory, world event, relation, influence and seals are put back", TestScenarioMarriage),
          new SelfTest("llm_dialogue", Severity.Light, "LLM: a plain greeting -> log the reply (relevance judged from the log)", TestLlmDialogue, true),
          new SelfTest("chat_memory", Severity.Light, "LLM: seed a shared history -> ask about it -> does the reply reference it?", TestChatMemory, true),
          new SelfTest("chat_stance", Severity.Light, "LLM: set a distinctive stance (fear/distrust) -> ask -> does the tone match?", TestChatStance, true),
@@ -12645,6 +12648,214 @@ namespace CalradiaRemembers.Diagnostics
          ScenarioRule again = runtime.Fire(KeywordToken.Parse("ON_DEATH"), ctx);
          t.Note($"fired '{first.Id}', refire={(again == null ? "null" : again.Id)}");
          t.Expect("sealed", again == null, true);
+
+         return t.Line();
+      }
+
+      // The id of Rhagaea in the game's lords.xml: a name can be translated, an id cannot.
+      private const string RhagaeaId = "lord_1_14";
+
+      private static Hero AliveRhagaea()
+         => Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == RhagaeaId);
+
+      private static string TestScenarioPacks(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("scenario_packs");
+
+         ScenarioRuntime runtime = ScenarioBehavior.Instance?.Runtime;
+         if (t.Abort(runtime == null, "scenario engine not ready")) return t.Line();
+
+         string[] shipped =
+         {
+            "rhagaea_death_eagles_turn", "rhagaea_marriage_consort", "rhagaea_marriage_two_crowns", "rhagaea_marriage_regent",
+            "rhagaea_marriage_suspicious"
+         };
+         var loaded = new HashSet<string>(runtime.Rules.Select(r => r.Id));
+         t.Expect("shippedMissing", string.Join(",", shipped.Where(id => !loaded.Contains(id))), "");
+
+         // An empty context: references resolve against the whole world, as a rule's author meant them.
+         var world = new ScenarioContext();
+         var problems = new List<string>();
+
+         foreach (ScenarioRule rule in runtime.Rules)
+         {
+            if (!ScenarioBehavior.KnownTriggers.Contains(rule.Trigger?.Verb)) problems.Add($"{rule.Id}: trigger {rule.Trigger}");
+
+            foreach (KeywordToken g in rule.Guards)
+               if (!ScenarioGuardResolver.KnownVerbs.Contains(g.Verb)) problems.Add($"{rule.Id}: unknown guard {g.Verb}");
+               else if (g.Verb == "IF_HERO_IS" && !ScenarioHeroExists(world, g.Payload)) problems.Add($"{rule.Id}: no hero '{g.Payload}'");
+               else if (g.Verb == "IF_PLAYER_AT_WAR" && world.ResolveFaction(g.Payload) == null) problems.Add($"{rule.Id}: no faction '{g.Payload}'");
+
+            foreach (KeywordToken c in rule.Consequences)
+            {
+               if (!ScenarioConsequenceExecutor.KnownVerbs.Contains(c.Verb))
+               {
+                  problems.Add($"{rule.Id}: unknown consequence {c.Verb}");
+                  continue;
+               }
+
+               switch (c.Verb)
+               {
+                  case "DECLARE_WAR":
+                  case "MAKE_PEACE":
+                     IFaction a = c.Args.Count > 0 ? world.ResolveFaction(c.Args[0]) : null;
+                     IFaction b = c.Args.Count > 1 ? world.ResolveFaction(c.Args[1]) : null;
+                     if (a == null || b == null || a == b) problems.Add($"{rule.Id}: {c.Verb} '{c.Payload}' resolves to {a?.StringId ?? "nothing"} / {b?.StringId ?? "nothing"}");
+                     break;
+                  case "CHANGE_RELATION":
+                  case "CHANGE_INFLUENCE":
+                     if (!ScenarioArgs.TryParseTargetDelta(c.Payload, out string target, out _) || !ScenarioHeroExists(world, target))
+                        problems.Add($"{rule.Id}: {c.Verb} '{c.Payload}' names no hero");
+                     break;
+                  case "INJECT_MEMORY":
+                     if (!ScenarioArgs.TryParseTargetRest(c.Payload, out string who, out _) || !ScenarioHeroExists(world, who))
+                        problems.Add($"{rule.Id}: INJECT_MEMORY names no hero");
+                     break;
+               }
+            }
+         }
+
+         t.Note($"{runtime.Rules.Count} rule(s) loaded");
+         t.Expect("problems", problems.Count == 0 ? "none" : string.Join("; ", problems), "none");
+
+         return t.Line();
+      }
+
+      // A hero a rule names exists in this world, alive or not (a dead Rhagaea is a fact of this save, not a broken pack).
+      private static bool ScenarioHeroExists(ScenarioContext world, string reference)
+      {
+         if (world.ResolveHero(reference) != null) return true;
+         string r = reference?.Trim();
+         if (string.IsNullOrEmpty(r)) return false;
+
+         return Hero.DeadOrDisabledHeroes.Any(h => string.Equals(h.StringId, r, StringComparison.OrdinalIgnoreCase)
+                                                   || (h.Name?.ToString() ?? "").IndexOf(r, StringComparison.OrdinalIgnoreCase) >= 0);
+      }
+
+      private static string TestScenarioDeath(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("scenario_death");
+
+         ScenarioRuntime runtime = ScenarioBehavior.Instance?.Runtime;
+         if (t.Abort(runtime == null, "scenario engine not ready")) return t.Line();
+
+         ScenarioRule rule = runtime.Rules.FirstOrDefault(r => r.Id == "rhagaea_death_eagles_turn");
+         if (t.Skip(rule == null, "the shipped death rule is not loaded (see scenario_packs)")) return t.Line();
+         if (t.Skip(runtime.FiredRuleIds.Contains(rule.Id), "the death rule is already sealed in this save")) return t.Line();
+
+         Hero rhagaea = AliveRhagaea();
+         if (t.Skip(rhagaea == null, "Rhagaea is not alive in this campaign")) return t.Line();
+
+         Hero other = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != rhagaea && h != Hero.MainHero && h.MapFaction != null && h.MapFaction != rhagaea.MapFaction)
+                      ?? Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != rhagaea && h != Hero.MainHero);
+         if (t.Skip(other == null, "no other living lord to stand in the death")) return t.Line();
+
+         KeywordToken onDeath = KeywordToken.Parse("ON_DEATH");
+         ScenarioContext sheDies = ScenarioBehavior.ForDeath(rhagaea, other);
+         ScenarioContext sheKills = ScenarioBehavior.ForDeath(other, rhagaea);
+         var only = new[] {rule};
+
+         bool whenSheDies = ScenarioSelector.Eligible(onDeath, only, g => ScenarioGuardResolver.Resolve(g, sheDies), runtime.FiredRuleIds).Count == 1;
+         bool whenSheKills = ScenarioSelector.Eligible(onDeath, only, g => ScenarioGuardResolver.Resolve(g, sheKills), runtime.FiredRuleIds).Count == 1;
+
+         // The wars as the executor would resolve them on her death: each side as the game's kingdom id.
+         string wars = string.Join(",", rule.Consequences.Where(c => c.Verb == "DECLARE_WAR").Select(c =>
+            $"{(c.Args.Count > 0 ? sheDies.ResolveFaction(c.Args[0])?.StringId : null) ?? "?"}->{(c.Args.Count > 1 ? sheDies.ResolveFaction(c.Args[1])?.StringId : null) ?? "?"}"));
+
+         t.Note($"other={other.Name} ({other.MapFaction?.StringId})");
+         t.Expect("firesWhenSheDies", whenSheDies, true);
+         t.Expect("firesWhenSheKills", whenSheKills, false);
+         t.Expect("wars", wars, "empire->empire_s,empire_w->empire_s");
+
+         return t.Line();
+      }
+
+      private static string TestScenarioMarriage(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("scenario_marriage");
+         const string prefix = "rhagaea_marriage_";
+
+         ScenarioRuntime runtime = ScenarioBehavior.Instance?.Runtime;
+         if (t.Abort(runtime == null, "scenario engine not ready")) return t.Line();
+         var store = behavior?.Store;
+         if (t.Abort(store == null || WorldEventStore.Instance == null, "memory or world-event store not ready")) return t.Line();
+
+         List<ScenarioRule> outcomes = runtime.Rules.Where(r => r.Id != null && r.Id.StartsWith(prefix, StringComparison.Ordinal)).ToList();
+         if (t.Skip(outcomes.Count == 0, "the shipped marriage rules are not loaded (see scenario_packs)")) return t.Line();
+
+         Hero rhagaea = AliveRhagaea();
+         Hero player = Hero.MainHero;
+         if (t.Skip(rhagaea == null || player == null, "Rhagaea is not alive in this campaign")) return t.Line();
+         if (t.Skip(rhagaea.Spouse == player, "Rhagaea is already the player's spouse in this save")) return t.Line();
+
+         var firedBefore = new HashSet<string>(runtime.FiredRuleIds);
+         if (t.Skip(outcomes.Any(r => firedBefore.Contains(r.Id)), "a marriage outcome is already sealed in this save")) return t.Line();
+
+         // What the outcomes touch, kept to be put back exactly (a relation gain is scaled by the game, so no -delta).
+         bool profileCreated = store.Get(rhagaea.StringId) == null;
+         if (profileCreated) store.Set(HeroProfileMapper.FromHero(rhagaea));
+         NpcProfile profile = store.Get(rhagaea.StringId);
+         List<NotableEvent> eventsBefore = profile.Events.ToList();
+         var worldBefore = new HashSet<string>(WorldEventStore.Instance.All().Select(e => e.Id));
+         Campaign.Current.Models.DiplomacyModel.GetHeroesForEffectiveRelation(player, rhagaea, out Hero side1, out Hero side2);
+         int relationBefore = CharacterRelationManager.GetHeroRelation(side1, side2);
+         float influenceBefore = Clan.PlayerClan?.Influence ?? 0f;
+         bool playerRules = player.MapFaction is Kingdom kingdom && kingdom.Leader == player;
+
+         ScenarioContext wedding = ScenarioBehavior.ForMarriage(rhagaea, player);
+         try
+         {
+            foreach (ScenarioRule rule in outcomes)
+            {
+               string name = rule.Id.Substring(prefix.Length);
+               string memory = rule.Consequences.Where(c => c.Verb == "INJECT_MEMORY")
+                                   .Select(c => ScenarioArgs.TryParseTargetRest(c.Payload, out _, out string text) ? text : null)
+                                   .FirstOrDefault();
+
+               // The other outcomes held sealed, so the draw has this one choice.
+               runtime.FiredRuleIds.Clear();
+               foreach (string id in firedBefore) runtime.FiredRuleIds.Add(id);
+               foreach (ScenarioRule other in outcomes.Where(o => o != rule)) runtime.FiredRuleIds.Add(other.Id);
+
+               ScenarioRule fired = runtime.Fire(KeywordToken.Parse("ON_MARRIAGE"), wedding);
+
+               if (rule.Guards.Any(g => g.Verb == "IF_PLAYER_RULES") && !playerRules)
+               {
+                  t.Expect($"{name}ClosedWithoutACrown", fired == null, true);
+                  continue;
+               }
+
+               t.Expect($"{name}Fired", fired?.Id, rule.Id);
+               if (fired == null) continue;
+
+               bool remembered = memory == null || profile.Events.Any(e => e.summary == memory);
+               bool told = WorldEventStore.Instance.All().Any(e => !worldBefore.Contains(e.Id) && e.Summary == rule.Message);
+               t.Expect($"{name}Remembered", remembered, true);
+               t.Expect($"{name}Told", told, true);
+               t.Expect($"{name}Sealed", runtime.FiredRuleIds.Contains(rule.Id), true);
+            }
+         }
+         finally
+         {
+            runtime.FiredRuleIds.Clear();
+            foreach (string id in firedBefore) runtime.FiredRuleIds.Add(id);
+
+            foreach (WorldEvent e in WorldEventStore.Instance.All().Where(e => !worldBefore.Contains(e.Id)).ToList())
+               WorldEventStore.Instance.Remove(e.Id);
+
+            if (profileCreated) store.Remove(rhagaea.StringId);
+            else
+            {
+               profile.Events.RemoveAll(e => !eventsBefore.Any(b => ReferenceEquals(b, e)));
+               store.Set(profile);
+            }
+
+            side1.SetPersonalRelation(side2, relationBefore);
+            float influenceDrift = influenceBefore - (Clan.PlayerClan?.Influence ?? 0f);
+            if (Clan.PlayerClan != null && Math.Abs(influenceDrift) > 0.01f) ChangeClanInfluenceAction.Apply(Clan.PlayerClan, influenceDrift);
+         }
+
+         t.Note($"playerRules={playerRules}, profileCreated={profileCreated}, relation back to {CharacterRelationManager.GetHeroRelation(side1, side2)} (was {relationBefore})");
 
          return t.Line();
       }

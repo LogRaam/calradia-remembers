@@ -7,6 +7,7 @@
 #region
 
 using System;
+using System.Collections.Generic;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
@@ -20,6 +21,12 @@ namespace CalradiaRemembers.Scenarios
    /// <summary>Applies one scenario consequence keyword as a real game mutation.</summary>
    public static class ScenarioConsequenceExecutor
    {
+      /// <summary>The consequences <see cref="Execute" /> performs; any other is skipped (checked by cr.testall scenario_packs).</summary>
+      public static readonly IReadOnlyCollection<string> KnownVerbs = new[]
+      {
+         "DECLARE_WAR", "MAKE_PEACE", "CHANGE_RELATION", "CHANGE_INFLUENCE", "INJECT_MEMORY"
+      };
+
       public static void Execute(KeywordToken consequence, ScenarioContext context)
       {
          if (consequence == null || context == null) return;

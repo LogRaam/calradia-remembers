@@ -27,6 +27,20 @@ namespace CalradiaRemembers.Scenarios
          Runtime = new ScenarioRuntime(_fired);
       }
 
+      /// <summary>The triggers this behavior feeds; a pack naming any other never fires (checked by cr.testall scenario_packs).</summary>
+      public static readonly IReadOnlyCollection<string> KnownTriggers = new[] {"ON_DEATH", "ON_MARRIAGE", "ON_WAR_DECLARED", "ON_PEACE"};
+
+      /// <summary>
+      ///   What a death is about, exactly as the feeder hands it to the rules: the one who died first, then the one who
+      ///   killed them. Shared with cr.testall so the self-test asks the rules what a real death asks them.
+      /// </summary>
+      public static ScenarioContext ForDeath(Hero victim, Hero killer)
+         => new(HeroList(victim, killer), FactionsOf(victim, killer));
+
+      /// <summary>What a marriage is about, exactly as the feeder hands it to the rules: the two who wed.</summary>
+      public static ScenarioContext ForMarriage(Hero a, Hero b)
+         => new(HeroList(a, b), FactionsOf(a, b));
+
       /// <summary>The runtime (loaded rules + fired set), exposed for the console diagnostics/test-fire.</summary>
       public ScenarioRuntime Runtime { get; private set; }
 
@@ -111,7 +125,7 @@ namespace CalradiaRemembers.Scenarios
 
       private void OnHeroesMarried(Hero a, Hero b, bool showNotification)
       {
-         Fire(KeywordToken.Parse("ON_MARRIAGE"), new ScenarioContext(HeroList(a, b), FactionsOf(a, b)));
+         Fire(KeywordToken.Parse("ON_MARRIAGE"), ForMarriage(a, b));
       }
 
       // ── Trigger feeders ─────────────────────────────────────────────────────
@@ -119,7 +133,7 @@ namespace CalradiaRemembers.Scenarios
       private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
       {
          if (victim == null) return;
-         Fire(KeywordToken.Parse("ON_DEATH"), new ScenarioContext(HeroList(victim, killer), FactionsOf(victim, killer)));
+         Fire(KeywordToken.Parse("ON_DEATH"), ForDeath(victim, killer));
       }
 
       private void OnMakePeace(IFaction faction1, IFaction faction2, MakePeaceAction.MakePeaceDetail detail)
