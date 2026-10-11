@@ -310,6 +310,9 @@ input[type="number"] { max-width: 160px; }
 .node text { fill: var(--text); font: 600 13px var(--font); }
 .node text.sub { fill: var(--text-3); font: 11.5px var(--font); }
 .node text.tag { fill: var(--accent); font: 700 10px var(--font); letter-spacing: 0.06em; }
+.group-frame rect { fill: var(--surface-2); stroke: var(--ok); stroke-width: 1.5; stroke-dasharray: 3 4; }
+.group-frame text { fill: var(--ok); font: 700 10px var(--font); letter-spacing: 0.06em; }
+.group-frame text.sub { fill: var(--text-3); font: 11px var(--font); letter-spacing: 0; }
 .edge { fill: none; stroke: var(--text-3); stroke-width: 1.6; }
 .edge.act { stroke: var(--accent); }
 .edge.scene { stroke: var(--info); stroke-dasharray: 7 5; }
@@ -5268,60 +5271,129 @@ input[type="number"] { max-width: 160px; }
     return {nodes: nodes, edges: edges};
   }
 
+  /**
+   * Stages that all lead to one another (Gabriel, 11/10/2026: the states of one conversation in the wife tales, eleven
+   * stages and some ninety ways between them) are a GROUP: a strongly connected set of three or more stages where each
+   * reaches at least half of the others directly. The map stacks a group in one framed column and leaves its inner ways
+   * to the tooltips, so the ways in and out of it can be read.
+   */
+  function stateGroups(g, byKey) {
+    var index = 0, stack = [], on = {}, idx = {}, low = {}, comps = [];
+    var stagesOnly = g.nodes.filter(function (n) { return n.kind === 'stage'; });
+    function strong(n) {
+      idx[n.key] = low[n.key] = index++;
+      stack.push(n); on[n.key] = true;
+      n.out.forEach(function (e) {
+        var m = byKey[e.to];
+        if (!m || m.kind !== 'stage') return;
+        if (idx[m.key] === undefined) { strong(m); low[n.key] = Math.min(low[n.key], low[m.key]); }
+        else if (on[m.key]) low[n.key] = Math.min(low[n.key], idx[m.key]);
+      });
+      if (low[n.key] === idx[n.key]) {
+        var comp = [], m;
+        do { m = stack.pop(); on[m.key] = false; comp.push(m); } while (m !== n);
+        comps.push(comp);
+      }
+    }
+    stagesOnly.forEach(function (n) { if (idx[n.key] === undefined) strong(n); });
+    var groups = [];
+    comps.forEach(function (comp) {
+      if (comp.length < 3) return;
+      var members = {};
+      comp.forEach(function (n) { members[n.key] = true; });
+      var reaching = comp.filter(function (n) {
+        var targets = {};
+        n.out.forEach(function (e) { if (members[e.to] && e.to !== n.key) targets[e.to] = true; });
+        return Object.keys(targets).length * 2 >= comp.length - 1;
+      });
+      if (reaching.length * 2 < comp.length) return;
+      comp.sort(function (a, b) { return a.index - b.index; });
+      var group = {key: 'group' + groups.length, members: comp, count: 0};
+      comp.forEach(function (n) { n.group = group; });
+      groups.push(group);
+    });
+    g.edges.forEach(function (e) {
+      var a = byKey[e.from], b = byKey[e.to];
+      if (a && b && a.group && a.group === b.group) { e.inner = true; a.group.count++; }
+    });
+    return groups;
+  }
+
   function layout(g) {
-    var W = 230, H = 66, GX = 210, GY = 64;
+    var W = 230, H = 66, GX = 210, GY = 64, GIN = 18, FRAME = 34;
     var byKey = {};
-    g.nodes.forEach(function (n) { byKey[n.key] = n; n.out = []; n.in = []; });
+    g.nodes.forEach(function (n) { byKey[n.key] = n; n.out = []; n.in = []; n.group = null; });
     g.edges.forEach(function (e) { if (byKey[e.from] && byKey[e.to]) { byKey[e.from].out.push(e); byKey[e.to].in.push(e); } });
+    var groups = stateGroups(g, byKey);
+    // A unit is what the layers place: a stage or ending alone, or a whole group.
+    function unitOf(n) { return n.group || n; }
+    var units = [];
+    g.nodes.forEach(function (n) { var u = unitOf(n); if (units.indexOf(u) < 0) units.push(u); });
+    units.forEach(function (u) { u.nodes = u.members || [u]; u.uout = []; u.uin = []; });
+    g.edges.forEach(function (e) {
+      if (e.inner || !byKey[e.from] || !byKey[e.to]) return;
+      var a = unitOf(byKey[e.from]), b = unitOf(byKey[e.to]);
+      if (a === b) return;
+      a.uout.push({e: e, to: b}); b.uin.push({e: e, from: a});
+    });
     // Back edges: those closing a loop on the walk from the first stage, drawn as returns.
     var state2 = {};
-    function dfs(n) {
-      state2[n.key] = 1;
-      n.out.forEach(function (e) {
-        var to = byKey[e.to];
-        if (state2[to.key] === 1) e.back = true;
-        else if (!state2[to.key]) dfs(to);
+    function dfs(u) {
+      state2[u.key] = 1;
+      u.uout.forEach(function (o) {
+        if (state2[o.to.key] === 1) o.e.back = true;
+        else if (!state2[o.to.key]) dfs(o.to);
       });
-      state2[n.key] = 2;
+      state2[u.key] = 2;
     }
-    g.nodes.filter(function (n) { return n.kind === 'stage'; }).forEach(function (n) { if (!state2[n.key]) dfs(n); });
-    g.nodes.forEach(function (n) { if (!state2[n.key]) dfs(n); });
-    // Layers: the longest forward path from a node with no way in.
+    units.filter(function (u) { return u.members || u.kind === 'stage'; }).forEach(function (u) { if (!state2[u.key]) dfs(u); });
+    units.forEach(function (u) { if (!state2[u.key]) dfs(u); });
+    // Layers: the longest forward path from a unit with no way in.
     var layer = {};
-    function depth(n, seen) {
-      if (layer[n.key] !== undefined) return layer[n.key];
-      if (seen[n.key]) return 0;
-      seen[n.key] = true;
+    function depth(u, seen) {
+      if (layer[u.key] !== undefined) return layer[u.key];
+      if (seen[u.key]) return 0;
+      seen[u.key] = true;
       var d = 0;
-      n.in.forEach(function (e) { if (!e.back) d = Math.max(d, depth(byKey[e.from], seen) + 1); });
-      layer[n.key] = d;
+      u.uin.forEach(function (i) { if (!i.e.back) d = Math.max(d, depth(i.from, seen) + 1); });
+      layer[u.key] = d;
       return d;
     }
-    g.nodes.forEach(function (n) { depth(n, {}); });
+    units.forEach(function (u) { depth(u, {}); });
     var maxStage = 0;
-    g.nodes.forEach(function (n) { if (n.kind === 'stage') maxStage = Math.max(maxStage, layer[n.key]); });
-    g.nodes.forEach(function (n) { if (n.kind !== 'stage') layer[n.key] = Math.max(layer[n.key], n.in.length ? layer[n.key] : maxStage + 1); });
+    units.forEach(function (u) { if (u.members || u.kind === 'stage') maxStage = Math.max(maxStage, layer[u.key]); });
+    units.forEach(function (u) { if (!u.members && u.kind !== 'stage') layer[u.key] = Math.max(layer[u.key], u.uin.length ? layer[u.key] : maxStage + 1); });
     var layers = [];
-    g.nodes.forEach(function (n) { (layers[layer[n.key]] = layers[layer[n.key]] || []).push(n); });
+    units.forEach(function (u) { (layers[layer[u.key]] = layers[layer[u.key]] || []).push(u); });
     layers = layers.map(function (l) { return l || []; });
-    layers.forEach(function (l) { l.forEach(function (n, i) { n.order = i; }); });
+    layers.forEach(function (l) { l.forEach(function (u, i) { u.order = i; }); });
     for (var sweep = 0; sweep < 6; sweep++) {
       var down = sweep % 2 === 0;
       (down ? layers : layers.slice().reverse()).forEach(function (l) {
-        l.forEach(function (n) {
-          var ref = (down ? n.in.map(function (e) { return byKey[e.from]; }) : n.out.map(function (e) { return byKey[e.to]; })).filter(function (m) { return m && m !== n; });
-          n.bary = ref.length ? ref.reduce(function (s, m) { return s + m.order; }, 0) / ref.length : n.order;
+        l.forEach(function (u) {
+          var ref = (down ? u.uin.map(function (i) { return i.from; }) : u.uout.map(function (o) { return o.to; })).filter(function (m) { return m && m !== u; });
+          u.bary = ref.length ? ref.reduce(function (s, m) { return s + m.order; }, 0) / ref.length : u.order;
         });
         l.sort(function (a, b) { return a.bary - b.bary; });
-        l.forEach(function (n, i) { n.order = i; });
+        l.forEach(function (u, i) { u.order = i; });
       });
     }
-    var tallest = Math.max.apply(null, layers.map(function (l) { return l.length; }).concat([1]));
+    function unitHeight(u) { return u.members ? u.members.length * (H + GIN) - GIN + 2 * FRAME : H; }
+    function layerHeight(l) { return l.reduce(function (s, u) { return s + unitHeight(u); }, 0) + Math.max(0, l.length - 1) * GY; }
+    var tallest = Math.max.apply(null, layers.map(layerHeight).concat([H]));
     layers.forEach(function (l, li) {
-      var offset = (tallest - l.length) * (H + GY) / 2;
-      l.forEach(function (n, i) { n.x = li * (W + GX); n.y = offset + i * (H + GY); n.w = W; n.h = H; });
+      var y = (tallest - layerHeight(l)) / 2;
+      l.forEach(function (u) {
+        if (u.members) {
+          u.x = li * (W + GX) - 16; u.y = y; u.w = W + 32; u.h = unitHeight(u);
+          u.members.forEach(function (n, i) { n.x = li * (W + GX); n.y = y + FRAME + i * (H + GIN); n.w = W; n.h = H; n.layer = li; });
+        } else {
+          u.x = li * (W + GX); u.y = y; u.w = W; u.h = H; u.layer = li;
+        }
+        y += unitHeight(u) + GY;
+      });
     });
-    return {width: layers.length * (W + GX), height: tallest * (H + GY), byKey: byKey};
+    return {width: layers.length * (W + GX), height: tallest, byKey: byKey, groups: groups};
   }
 
   function svgEl(tag, attrs, text) {
@@ -5349,29 +5421,45 @@ input[type="number"] { max-width: 160px; }
     svg.appendChild(defs);
     var root = svgEl('g', {transform: 'translate(' + view.x + ',' + view.y + ') scale(' + view.k + ')'});
     svg.appendChild(root);
-    var edgeLayer = svgEl('g'), labelLayer = svgEl('g'), nodeLayer = svgEl('g');
+    var groupLayer = svgEl('g'), edgeLayer = svgEl('g'), labelLayer = svgEl('g'), nodeLayer = svgEl('g');
+    root.appendChild(groupLayer);
     root.appendChild(edgeLayer);
     root.appendChild(nodeLayer);
     root.appendChild(labelLayer);
 
-    var spread = {};
+    // A group of states (see stateGroups): one frame, its inner ways told by each stage's tooltip rather than drawn.
+    L.groups.forEach(function (gr) {
+      var u = gr.members[0].group, fg = svgEl('g', {class: 'group-frame'});
+      fg.appendChild(svgEl('title', {}, 'These stages lead to one another by words: hover a stage for its own ways.'));
+      fg.appendChild(svgEl('rect', {x: u.x, y: u.y, width: u.w, height: u.h, rx: 14}));
+      fg.appendChild(svgEl('text', {x: u.x + 14, y: u.y + 15}, 'STATES OF ONE CONVERSATION'));
+      fg.appendChild(svgEl('text', {x: u.x + 14, y: u.y + 28, class: 'sub'}, gr.members.length + ' stages, ' + gr.count + ' ways between them'));
+      groupLayer.appendChild(fg);
+    });
+    var spread = {}, above = 0, below = 0;
     g.edges.forEach(function (e) {
       var a = L.byKey[e.from], b = L.byKey[e.to];
-      if (!a || !b) return;
+      if (!a || !b || e.inner) return;
       var cls = 'edge ' + (e.broken ? 'broken' : e.mode === 'own' ? '' : e.mode) + (e.unreached ? ' unreached' : '');
       var marker = 'url(#arrow-' + (e.broken ? 'broken' : e.mode) + ')';
       var k = e.from + '>' + e.to;
       spread[k] = (spread[k] || 0) + 1;
       var bend = (spread[k] - 1) * 18;
       var d, lx, ly;
-      if (e.back || b.x <= a.x) {
-        var x1 = a.x + a.w / 2, y1 = a.y + a.h, x2 = b.x + b.w / 2, y2 = b.y + b.h, drop = 60 + bend + Math.abs(a.x - b.x) * 0.08;
+      var long = !e.back && b.x > a.x && b.layer - a.layer > 1 && !a.group && !b.group;
+      if (long) {
+        // A way that skips a column would cross the stages between: it goes over them, each at its own height.
+        var ux1 = a.x + a.w / 2, uy1 = a.y, ux2 = b.x + b.w / 2, uy2 = b.y, high = Math.min(uy1, uy2) - 46 - (above++ % 6) * 24;
+        d = 'M' + ux1 + ' ' + uy1 + ' C' + ux1 + ' ' + high + ' ' + ux2 + ' ' + high + ' ' + ux2 + ' ' + (uy2 - 2);
+        lx = (ux1 + ux2) / 2; ly = high + 18;
+      } else if (e.back || b.x <= a.x) {
+        var x1 = a.x + a.w / 2, y1 = a.y + a.h, x2 = b.x + b.w / 2, y2 = b.y + b.h, drop = 60 + bend + (below++ % 6) * 24 + Math.abs(a.x - b.x) * 0.04;
         var low = Math.max(y1, y2) + drop;
         d = 'M' + x1 + ' ' + y1 + ' C' + x1 + ' ' + low + ' ' + x2 + ' ' + low + ' ' + x2 + ' ' + (y2 + 2);
         lx = (x1 + x2) / 2; ly = low - 6;
       } else {
         // Each way out leaves its stage at its own height, in the order of where it leads, so their labels never stack.
-        var outs = a.out.filter(function (o) { return !o.back && L.byKey[o.to] && L.byKey[o.to].x > a.x; })
+        var outs = a.out.filter(function (o) { return !o.back && !o.inner && L.byKey[o.to] && L.byKey[o.to].x > a.x; })
           .sort(function (p, q) { return L.byKey[p.to].y - L.byKey[q.to].y; });
         var slot = Math.max(0, outs.indexOf(e));
         var sx = a.x + a.w, sy = a.y + a.h * (slot + 1) / (outs.length + 1), tx = b.x, ty = b.y + b.h / 2;
@@ -5399,7 +5487,9 @@ input[type="number"] { max-width: 160px; }
       var cls = 'node ' + n.kind + (n.index === 0 && n.kind === 'stage' ? ' first' : '') + (n.reward ? ' reward' : '') + (n.named ? ' named' : '')
         + (n.dead ? ' dead' : '') + (n.unreached ? ' unreached' : '') + (selected ? ' selected' : '');
       var ng = svgEl('g', {class: cls, transform: 'translate(' + n.x + ',' + n.y + ')', tabindex: '0', role: 'button'});
-      ng.appendChild(svgEl('title', {}, n.title + (n.dead ? ': can never reach an ending' : n.unreached ? ': never reached' : n.kind === 'missing' ? ': no stage or ending has this name' : '')));
+      var innerWays = n.group ? n.out.filter(function (e) { return e.inner; }).map(function (e) { return '\n  ' + clip(e.label || '', 40) + ' \u2192 ' + L.byKey[e.to].title; }).join('') : '';
+      ng.appendChild(svgEl('title', {}, n.title + (n.dead ? ': can never reach an ending' : n.unreached ? ': never reached' : n.kind === 'missing' ? ': no stage or ending has this name' : '')
+        + (innerWays ? '\nWithin its group:' + innerWays : '')));
       ng.appendChild(svgEl('rect', {width: n.w, height: n.h, rx: n.kind === 'stage' ? 10 : 33}));
       if (n.tag) ng.appendChild(svgEl('text', {x: 14, y: 17, class: 'tag'}, n.tag));
       ng.appendChild(svgEl('text', {x: 14, y: n.tag ? 37 : 30}, clip(n.title, 28)));
