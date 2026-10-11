@@ -46,7 +46,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public static readonly IReadOnlyList<string> HazardEffects = new[] {"injure", "alert", "lose_time"};
 
       /// <summary>The consequences the game carries out.</summary>
-      public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event", "grudge"};
+      public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event", "grudge", "conception"};
 
       /// <summary>Who may give a tale (anything else is read as "any").</summary>
       public static readonly IReadOnlyList<string> GiverRoles = new[] {"lord", "notable", "gang_leader", "spouse", "any"};
@@ -179,8 +179,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          IEnumerable<AuthoredOutcome> outcomes = new[] {q.Reward, q.Failure}.Concat(endings.Values)
                                                                            .Concat(Defeats(q).Select(d => d.Defeat.AsOutcome()));
          foreach (AuthoredConsequence c in outcomes.Where(o => o != null).SelectMany(o => o.Consequences ?? new List<AuthoredConsequence>()))
+         {
             if (c != null && !ConsequenceTypes.Contains(c.Type))
                cosmetic.Add($"consequence '{c.Type}' is not carried out yet (known: {string.Join(", ", ConsequenceTypes)}); it is skipped.");
+            if (c != null && !TaleConceptionPolicy.IsAChance(c.Chance))
+               blocking.Add($"consequence '{c.Type}' has a chance of {c.Chance.ToString(CultureInfo.InvariantCulture)}, which must be from 0 to 1.");
+         }
 
          ValidateFlags(q, cosmetic);
 

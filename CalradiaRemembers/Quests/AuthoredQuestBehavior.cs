@@ -1227,6 +1227,8 @@ namespace CalradiaRemembers.Quests
                      Grudges.GrudgeBehavior.Instance?.TryPlant(holder, target, Logic.Grudges.GrudgeSource.Tale, g.Cause, g.Magnitude,
                         knownToPlayer: true, today: (int) CampaignTime.Now.ToDays);
                }
+               else if (c.Type == "conception")
+                  Conceive(c);
                else if (c.Type == "world_event")
                   WorldEventStore.Instance?.Record(new WorldEvent {
                      Type = WorldEventType.Other, Day = (int) CampaignTime.Now.ToDays, Magnitude = c.Magnitude,
@@ -1236,6 +1238,54 @@ namespace CalradiaRemembers.Quests
             }
             catch (Exception ex) { ModLog.Error($"[TALE] consequence '{c?.Type}' of '{q.Id}' failed: {ex.GetType().Name}: {ex.Message}"); }
          }
+      }
+
+      /// <summary>
+      ///   Gabriel (10/10/2026): a tale of intimacy ends on a chance of a child. The woman of the player and their partner
+      ///   carries it, through the same conception as every intimate scene (PregnancyService: of age, not already with
+      ///   child, Life and Death Cycle on); two women or two men conceive nothing.
+      /// </summary>
+      private void Conceive(AuthoredConsequence c)
+      {
+         (Hero mother, Hero father, string why) = ConceptionPlan(c, MBRandom.RandomFloat);
+         if (mother == null)
+         {
+            ModLog.Info($"[TALE] no child from '{_run?.QuestId}': {why}.");
+
+            return;
+         }
+
+         string note = GameState.PregnancyService.TryConceive(mother, father, force: true);
+         ModLog.Info($"[TALE] '{_run?.QuestId}' ends on a chance of a child: {note ?? $"{mother.Name} could not conceive now (age, a child already on the way, a recent birth, or the Life and Death Cycle off)"}.");
+      }
+
+      /// <summary>Who would carry a child from this consequence on this roll, and who would father it; the reason otherwise.</summary>
+      private (Hero Mother, Hero Father, string WhyNot) ConceptionPlan(AuthoredConsequence c, double roll)
+      {
+         Hero partner = Find(AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c?.Who) ? "{giver}" : c.Who)), player = Hero.MainHero;
+         if (partner == null || player == null) return (null, null, "the partner is not bound");
+
+         ConceptionMother m = TaleConceptionPolicy.Mother(new ConceptionFacts {PlayerIsFemale = player.IsFemale, PartnerIsFemale = partner.IsFemale});
+         if (m == ConceptionMother.None) return (null, null, "two women or two men");
+         double chance = c?.Chance ?? TaleConceptionPolicy.DefaultChance;
+         if (!TaleConceptionPolicy.Conceives(chance, roll)) return (null, null, $"the {chance:P0} chance did not fall");
+
+         return m == ConceptionMother.Partner ? (partner, player, null) : (player, partner, null);
+      }
+
+      /// <summary>Self-test seam: who would carry a child of this loaded tale's partner on this roll, without conceiving anything.</summary>
+      internal string DebugConceptionPlan(string partnerId, double chance, double roll)
+      {
+         AuthoredQuestRun keep = _run;
+         try
+         {
+            _run = new AuthoredQuestRun {QuestId = "cr_selftest_conception"};
+            _run.BoundIds["giver"] = partnerId;
+            (Hero mother, Hero father, string why) = ConceptionPlan(new AuthoredConsequence {Type = "conception", Chance = chance}, roll);
+
+            return mother == null ? "none: " + why : $"mother {mother.StringId}, father {father.StringId}";
+         }
+         finally { _run = keep; }
       }
 
       /// <summary>The heroes a consequence names: a role, or "locals_of:{place}" (the notables of a bound place).</summary>

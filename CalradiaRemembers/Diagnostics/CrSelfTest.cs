@@ -214,6 +214,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("rescue_from_foe", Severity.Light, "zhenja1 (Nexus, 10/10/2026): 'I liberated two from Garios, and both are saying they were never prisoner.' The game hands a beaten lord's prisoners to the player's loot, and letting them go later from the player's own custody read as a pardon, so nothing was remembered. Takes a real lord prisoner into the player's party, marks them as taken from another real lord (the seam the battle start fills), releases them through the REAL EndCaptivityAction.ApplyByReleasedByChoice, and asserts the rescued lord now remembers being freed, naming the lord who held them. Leaves the gratitude it gave (as cr.rescue does) and forgets the once-per-lord credit", TestRescueFromFoe),
          new SelfTest("memory_api_remove", Severity.Light, "philip0105 (Vivid World, 10/10/2026): a mod could add memories through CrNpcMemory.AddMemory but never take them back, so rumors it later forgot or corrected lingered in CR. Adds a memory to a real lord through the REAL AddMemory with a SourceMod, asserts another mod's RemoveMemory of the same text takes nothing, then that the same mod's RemoveMemory takes exactly it and it is gone from GetMemories. Leaves the lord as found", TestMemoryApiRemove),
          new SelfTest("tale_spouse_giver", Severity.Light, "Gabriel (10/10/2026): a tale of intimacy with the player's own wife, whatever the player's sex, while she travels with him and is not already with child. Loads a tale asking for a spouse giver (role spouse, a woman, with the player, not pregnant) through the REAL loader, and asserts the REAL binding refuses a lady who is not the player's spouse, and, when the player is married, answers for the spouse according to her sex, her party and whether she is with child. Nothing is offered or started; the test tale is taken out after", TestTaleSpouseGiver),
+         new SelfTest("tale_conception", Severity.Light, "Gabriel (10/10/2026): a tale of intimacy ends on a chance of a child ('Une chance de tomber enceinte'). Asks the REAL ending's conception plan, without conceiving anything, with the player's spouse (or a lord) as the partner: on a sure roll the woman of the two carries the child (the partner for a man, the player for a woman) and two of the same sex conceive nothing; on a roll over the chance, no child. Nothing is changed in the world", TestTaleConception),
          new SelfTest("tale_states", Severity.Light, "Gabriel (10/10/2026): a tale whose stages are states of one conversation, passed from one to another and back by what is said, each with its picture ('Les etapes optionnelles sont comme des etats'). Loads such a tale through the REAL loader, starts it with a lord, and takes choices by words through the REAL TakeSaidChoice: asserts the lord is told the moment they are in, speaks from the new state after the words move them (not the old one), comes back to the first, and that each change calls for that state's picture. The test tale is abandoned and taken out after", TestTaleStates),
          new SelfTest("tale_on_map", Severity.Light, "Gabriel (10/10/2026): a tale that begins by itself on the map when the party waits by day in the wife's own lands, on a chance each day, never in a conversation. Loads such a tale through the REAL loader and asserts the REAL conversation offer refuses it with the player's spouse (or any lady) even on a sure roll; then reads the REAL map check against the world as it stands and names what holds it back (no wife with the player, night, the sea, a settlement, the hours still, the lands). Nothing is offered, rolled or started; the test tale is taken out after", TestTaleOnMap),
          new SelfTest("tale_content_level", Severity.Light, "Gabriel (10/10/2026): 'can a quest be classed Hardcore?' A tale now names the content level it needs (requires.content). Loads a hardcore tale written into the test through the REAL loader, and asserts the REAL offer decision refuses it, naming the level, unless the player's setting in the mod options is Hardcore; and that the shipped tales, which ask for none, are never held back by it. No tale is offered or started; the test tale is taken out after", TestTaleContentLevel),
@@ -3863,6 +3864,29 @@ namespace CalradiaRemembers.Diagnostics
                t.Expect(shipped + "IsNeverHeldBackByContent", (b.DebugWhyNotOffered(shipped) ?? "").Contains("content level"), false);
          }
          finally { b.DebugForgetTale("cr_selftest_hardcore"); }
+
+         return t.Line();
+      }
+
+      private static string TestTaleConception(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_conception");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null, "authored quests are not active")) return t.Line();
+         Hero player = Hero.MainHero;
+         Hero partner = player?.Spouse ?? Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != player && !h.IsChild);
+         if (t.Skip(partner == null, "no partner to ask about")) return t.Line();
+
+         string sure = b.DebugConceptionPlan(partner.StringId, 0.5, 0.0);
+         t.Note($"{player.Name} (female {player.IsFemale}) with {partner.Name} (female {partner.IsFemale}): {sure}");
+         if (player.IsFemale == partner.IsFemale) t.Expect("theSameSexConceiveNothing", sure.StartsWith("none: two women or two men"), true);
+         else if (partner.IsFemale) t.Expect("theWifeWouldCarryIt", sure, $"mother {partner.StringId}, father {player.StringId}");
+         else t.Expect("thePlayerWouldCarryIt", sure, $"mother {player.StringId}, father {partner.StringId}");
+
+         if (player.IsFemale != partner.IsFemale)
+            t.Expect("overTheChanceNoChild", b.DebugConceptionPlan(partner.StringId, 0.5, 0.9).StartsWith("none: the 50% chance"), true);
+         t.Expect("noChanceWrittenIsTheGamesOwn", b.DebugConceptionPlan(partner.StringId, new Logic.AuthoredQuests.AuthoredConsequence().Chance, 0.2).StartsWith("none"), true);
 
          return t.Line();
       }

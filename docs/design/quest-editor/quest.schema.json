@@ -41,7 +41,8 @@
     "ConsequenceTypes": [
       "memory",
       "world_event",
-      "grudge"
+      "grudge",
+      "conception"
     ],
     "GiverRoles": [
       "lord",
@@ -832,11 +833,12 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "memory, world_event or grudge.",
+          "description": "memory, world_event, grudge or conception.",
           "enum": [
             "memory",
             "world_event",
-            "grudge"
+            "grudge",
+            "conception"
           ],
           "x-closed-list": "ConsequenceTypes"
         },
@@ -846,7 +848,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role."
+          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty)."
         },
         "text": {
           "type": [
@@ -885,6 +887,12 @@
           ],
           "x-kind": "string",
           "description": "grudge: who it is held against, a role (Gabriel, 06/10/2026: a tale may set two lords at odds)."
+        },
+        "chance": {
+          "type": "number",
+          "x-kind": "number",
+          "description": "conception: the chance of a child, 0 to 1; the game's own 0.15 when left out. The woman of the two carries it; two women or two men conceive nothing.",
+          "default": 0.15
         },
         "if": {
           "$ref": "#/$defs/flags",

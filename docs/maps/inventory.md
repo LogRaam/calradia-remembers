@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 474 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1031 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1034 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1615,7 +1615,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (70)
+### CalradiaRemembers.Logic.AuthoredQuests (73)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1666,6 +1666,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredTaleImages` | public static class | A tale's images: which one shows, and what is wrong with them. |
 | `AuthoredTaleRoles` | public static class | Who holds a role in the tale under way. |
 | `AuthoredWay` | public class | One way out of the current stage: its own objective (no choice), or an open choice. |
+| `ConceptionFacts` | public class | The two who were together, for a tale's conception. |
+| `ConceptionMother` | public enum | Which of the two would carry the child. |
 | `GiverFacts` | public class | What the game knows of a character who might give a tale. |
 | `GiverRequirement` | public class | (no summary) |
 | `MapTriggerFacts` | public class | Where the player's party is now, for a tale that begins on the map. |
@@ -1684,6 +1686,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneMarkers` | public class | A narration with its game markers taken out. |
 | `SceneSurroundingsFacts` | public class | What the game knows of a scene's surroundings. |
 | `SceneSurroundingsText` | public static class | The narrator's block about the scene's surroundings. |
+| `TaleConceptionPolicy` | public static class | Who would carry a child from a tale's ending, and on what chance. |
 | `TaleGrudge` | public class | A grudge a tale's ending plants between two of its heroes. |
 | `TaleJournalFacts` | public class | One open journal entry of a tale, against the tale the game is running. |
 | `TaleJournalPolicy` | public static class | tashmetu (07/10/2026): "a finished tale stays listed twice, under Old Quests and still under Active Quests". |

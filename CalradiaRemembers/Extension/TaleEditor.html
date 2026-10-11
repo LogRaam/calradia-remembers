@@ -447,7 +447,8 @@ input[type="number"] { max-width: 160px; }
     "ConsequenceTypes": [
       "memory",
       "world_event",
-      "grudge"
+      "grudge",
+      "conception"
     ],
     "GiverRoles": [
       "lord",
@@ -1238,11 +1239,12 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "memory, world_event or grudge.",
+          "description": "memory, world_event, grudge or conception.",
           "enum": [
             "memory",
             "world_event",
-            "grudge"
+            "grudge",
+            "conception"
           ],
           "x-closed-list": "ConsequenceTypes"
         },
@@ -1252,7 +1254,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role."
+          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty)."
         },
         "text": {
           "type": [
@@ -1291,6 +1293,12 @@ input[type="number"] { max-width: 160px; }
           ],
           "x-kind": "string",
           "description": "grudge: who it is held against, a role (Gabriel, 06/10/2026: a tale may set two lords at odds)."
+        },
+        "chance": {
+          "type": "number",
+          "x-kind": "number",
+          "description": "conception: the chance of a child, 0 to 1; the game's own 0.15 when left out. The woman of the two carries it; two women or two men conceive nothing.",
+          "default": 0.15
         },
         "if": {
           "$ref": "#/$defs/flags",
@@ -2664,6 +2672,8 @@ input[type="number"] { max-width: 160px; }
       arr(o.consequences).forEach(function (c) {
         if (c != null && !has(LISTS.ConsequenceTypes, c.type))
           cosmetic.push("consequence '" + (c.type == null ? '' : c.type) + "' is not carried out yet (known: " + LISTS.ConsequenceTypes.join(', ') + '); it is skipped.');
+        if (c != null && c.chance != null && (Number(c.chance) < 0 || Number(c.chance) > 1))
+          blocking.push("consequence '" + (c.type == null ? '' : c.type) + "' has a chance of " + String(Number(c.chance)) + ', which must be from 0 to 1.');
       });
     });
 
@@ -3877,7 +3887,7 @@ input[type="number"] { max-width: 160px; }
     AuthoredSpawn: ['id', 'template', 'size', 'name', 'near', 'behavior', 'flee_after_days', 'scale_with_player', 'on_defeat'],
     AuthoredDefeat: ['next', 'regard', 'memory', 'journal', 'consequences'],
     AuthoredOutcome: ['days', 'regard', 'gold', 'memory', 'journal', 'consequences'],
-    AuthoredConsequence: ['type', 'who', 'against', 'text', 'summary', 'magnitude', 'place', 'if'],
+    AuthoredConsequence: ['type', 'who', 'against', 'text', 'summary', 'magnitude', 'place', 'chance', 'if'],
 
     /** Which fields of an objective each type uses; the rest stay hidden for that type. */
     objectiveFields: {
@@ -3895,7 +3905,8 @@ input[type="number"] { max-width: 160px; }
     consequenceFields: {
       memory: ['who', 'text', 'if'],
       world_event: ['summary', 'magnitude', 'place', 'if'],
-      grudge: ['who', 'against', 'text', 'magnitude', 'if']
+      grudge: ['who', 'against', 'text', 'magnitude', 'if'],
+      conception: ['who', 'chance', 'if']
     }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
@@ -5131,6 +5142,7 @@ input[type="number"] { max-width: 160px; }
       if (used.indexOf('against') >= 0) g.appendChild(roleField(ck + '/against', 'Against whom', 'AuthoredConsequence', 'against', c, {placeholder: '{rival}'}));
       if (used.indexOf('magnitude') >= 0) g.appendChild(numberField(ck + '/magnitude', grudge ? 'How deep' : 'How loud', 'AuthoredConsequence', 'magnitude', c, {min: 0, max: 100}));
       if (used.indexOf('place') >= 0) g.appendChild(roleField(ck + '/place', 'Where', 'AuthoredConsequence', 'place', c, {placeholder: '{village}'}));
+      if (used.indexOf('chance') >= 0) g.appendChild(numberField(ck + '/chance', 'Chance of a child', 'AuthoredConsequence', 'chance', c, {min: 0, max: 1}));
       g.appendChild(flagsField(ck + '/if', 'Only if', 'AuthoredConsequence', 'if', c, {placeholder: 'always'}));
       var body = [g];
       if (used.indexOf('text') >= 0) body.push(textField(ck + '/text', grudge ? 'The cause, in their words' : 'What they remember', 'AuthoredConsequence', 'text', c, {multiline: true, short: true, wide: true}));

@@ -371,7 +371,7 @@ reaches. `failure` is what the tale leaves when its time runs out before any end
 | `gold` | Paid to the player by the game (positive amounts only). |
 | `memory` | What the giver remembers, in the giver's own voice. |
 | `journal` | The last line written in the journal when the tale ends this way. |
-| `consequences` | `memory`: `who` (a role or `locals_of:{place}`) remembers `text`. `world_event`: news that spreads through the realm (`summary`, `magnitude` 0 to 100, `place`). `grudge`: `who` (a role) holds `text`, the cause in their words, `against` another role, `magnitude` 0 to 100 deep (30 when left out); it fades with time like every grudge. Any of them may carry `if`: it is carried out only when its flags hold. |
+| `consequences` | `memory`: `who` (a role or `locals_of:{place}`) remembers `text`. `world_event`: news that spreads through the realm (`summary`, `magnitude` 0 to 100, `place`). `grudge`: `who` (a role) holds `text`, the cause in their words, `against` another role, `magnitude` 0 to 100 deep (30 when left out); it fades with time like every grudge. `conception`: a chance of a child between the player and `who` (a role, `{giver}` when left out), `chance` 0 to 1 (the game's own 0.15 when left out); the woman of the two carries it, through the same conception as every intimate scene (of age, not already with child, the Life and Death Cycle on), and two women or two men conceive nothing. Any of them may carry `if`: it is carried out only when its flags hold. |
 | `failure.days` | The tale fails that many days after it was accepted. Without it, the tale never fails on its own. |
 
 Every ending closes the journal entry as completed; the time-out closes it as failed.

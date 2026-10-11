@@ -1,1 +1,1 @@
-cosmetic_unknown_consequence.json: quest 'fx_tale': consequence 'war_averted' is not carried out yet (known: memory, world_event, grudge); it is skipped.
+cosmetic_unknown_consequence.json: quest 'fx_tale': consequence 'war_averted' is not carried out yet (known: memory, world_event, grudge, conception); it is skipped.
