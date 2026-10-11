@@ -337,18 +337,12 @@ namespace CalradiaRemembers.Quests
          }
 
          GiverRequirement g = q.Requires?.Giver ?? new GiverRequirement();
-         bool roleOk = g.Role switch {
-            "lord" => giver.IsLord,
-            "notable" => giver.IsNotable,
-            "gang_leader" => giver.IsGangLeader,
-            _ => true
-         };
-         if (!roleOk)
-         {
-            whyNot = $"the quest wants a giver who is a {g.Role}";
-
-            return false;
-         }
+         whyNot = AuthoredGiverPolicy.WhyNot(g, new GiverFacts {
+            IsLord = giver.IsLord, IsNotable = giver.IsNotable, IsGangLeader = giver.IsGangLeader,
+            IsPlayersSpouse = Hero.MainHero?.Spouse == giver, IsFemale = giver.IsFemale,
+            InPlayersParty = giver.PartyBelongedTo != null && giver.PartyBelongedTo == MobileParty.MainParty, IsPregnant = giver.IsPregnant
+         });
+         if (whyNot != null) return false;
 
          if (!AuthoredCulturePolicy.Matches(g.Culture, giver.Culture?.StringId, giver.Culture?.Name?.ToString()))
          {
@@ -1283,6 +1277,10 @@ namespace CalradiaRemembers.Quests
 
          return r.Problems;
       }
+
+      /// <summary>Self-test seam: could this character give this loaded tale now (cr.story_check's answer)?</summary>
+      internal string DebugEligibility(Hero hero, string questId)
+         => _quests.TryGetValue(questId, out AuthoredQuest q) ? Eligibility(hero, q) : "not loaded";
 
       /// <summary>Self-test seam: takes a tale the test loaded out of the tales in play.</summary>
       internal void DebugForgetTale(string questId) => _quests.Remove(questId);

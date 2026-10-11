@@ -453,7 +453,12 @@ input[type="number"] { max-width: 160px; }
       "lord",
       "notable",
       "gang_leader",
+      "spouse",
       "any"
+    ],
+    "GiverGenders": [
+      "female",
+      "male"
     ],
     "ContentLevels": [
       "none",
@@ -785,11 +790,12 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "lord, notable, gang_leader, or any.",
+          "description": "lord, notable, gang_leader, spouse (the player's own husband or wife), or any.",
           "enum": [
             "lord",
             "notable",
             "gang_leader",
+            "spouse",
             "any"
           ],
           "x-closed-list": "GiverRoles",
@@ -820,6 +826,31 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "flags",
           "description": "The giver's culture, one or a list (\"battania\", or [\"battania\", \"sturgia\"]); empty for any.",
           "x-default-empty": true
+        },
+        "gender": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "female or male: the giver must be a woman, or a man; empty for either.",
+          "enum": [
+            "female",
+            "male"
+          ],
+          "x-closed-list": "GiverGenders"
+        },
+        "with_player": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: the giver must be travelling in the player's own party.",
+          "default": false
+        },
+        "not_pregnant": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: never while the giver is with child.",
+          "default": false
         }
       }
     },
@@ -2590,6 +2621,11 @@ input[type="number"] { max-width: 160px; }
     if (!blank(content) && !has(LISTS.ContentLevels || [], String(content).trim().toLowerCase()))
       blocking.push("requires.content '" + content + "' is no content level (" + (LISTS.ContentLevels || []).join(', ') + ').');
 
+    // The giver's sex (11/10/2026): a word that is neither is refused, as the game does.
+    var gender = q.requires == null || q.requires.giver == null ? null : q.requires.giver.gender;
+    if (!blank(gender) && !has(LISTS.GiverGenders || [], String(gender).trim().toLowerCase()))
+      blocking.push("requires.giver.gender '" + gender + "' is neither " + (LISTS.GiverGenders || []).join(' nor ') + '.');
+
     var rival = q.requires == null ? null : q.requires.rival;
     if (rival != null && !has(LISTS.RivalRoles, rival.role))
       blocking.push("requires.rival asks for a '" + (rival.role == null ? '' : rival.role) + "', but the game binds a rival only as a \"clan_leader\" of the giver's realm.");
@@ -3745,7 +3781,7 @@ input[type="number"] { max-width: 160px; }
   root.TaleEditorFields = {
     AuthoredQuest: ['id', 'title', 'author', 'unique', 'repeat_cooldown_days', 'weight', 'requires', 'binds', 'stages', 'reward', 'endings', 'failure'],
     AuthoredRequires: ['giver', 'village', 'rival', 'player', 'content'],
-    GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player', 'culture'],
+    GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player', 'culture', 'gender', 'with_player', 'not_pregnant'],
     PlaceRequirement: ['type', 'near', 'culture'],
     RivalRequirement: ['role', 'same_realm_as'],
     PlayerRequirement: ['min_clan_tier'],
@@ -4579,7 +4615,10 @@ input[type="number"] { max-width: 160px; }
       roleField('tale/requires.giver.holds', 'Holds', 'GiverRequirement', 'holds', giver, {placeholder: '{village}'}),
       numberField('tale/requires.giver.min_regard', 'Least regard for the player', 'GiverRequirement', 'min_regard', giver, {min: -100, max: 100}),
       boolField('tale/requires.giver.not_at_war_with_player', 'Never while at war with the player', 'GiverRequirement', 'not_at_war_with_player', giver),
-      flagsField('tale/requires.giver.culture', 'Of the culture', 'GiverRequirement', 'culture', giver, {placeholder: 'any (battania, sturgia)'}))));
+      flagsField('tale/requires.giver.culture', 'Of the culture', 'GiverRequirement', 'culture', giver, {placeholder: 'any (battania, sturgia)'}),
+      selectField('tale/requires.giver.gender', 'A woman or a man', 'GiverRequirement', 'gender', giver, list('GiverGenders'), {empty: 'either'}),
+      boolField('tale/requires.giver.with_player', 'Travelling in the player's party', 'GiverRequirement', 'with_player', giver),
+      boolField('tale/requires.giver.not_pregnant', 'Never while with child', 'GiverRequirement', 'not_pregnant', giver))));
 
     var villageOn = r.village && typeof r.village === 'object';
     ed.appendChild(section('The village', help('AuthoredRequires', 'village'), [

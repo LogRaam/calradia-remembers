@@ -48,7 +48,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event", "grudge"};
 
       /// <summary>Who may give a tale (anything else is read as "any").</summary>
-      public static readonly IReadOnlyList<string> GiverRoles = new[] {"lord", "notable", "gang_leader", "any"};
+      public static readonly IReadOnlyList<string> GiverRoles = new[] {"lord", "notable", "gang_leader", "spouse", "any"};
+
+      /// <summary>The sexes a tale may ask its giver to be (empty for either).</summary>
+      public static readonly IReadOnlyList<string> GiverGenders = new[] {"female", "male"};
 
       /// <summary>The content levels a tale may ask for (AuthoredContentPolicy).</summary>
       public static readonly IReadOnlyList<string> ContentLevels = AuthoredContentPolicy.Levels;
@@ -186,6 +189,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          if (AuthoredContentPolicy.Required(q.Requires?.Content) == null)
             blocking.Add($"requires.content '{q.Requires.Content}' is no content level ({string.Join(", ", ContentLevels)}).");
+
+         string gender = q.Requires?.Giver?.Gender;
+         if (!string.IsNullOrWhiteSpace(gender) && !GiverGenders.Contains(gender.Trim().ToLowerInvariant()))
+            blocking.Add($"requires.giver.gender '{gender}' is neither {string.Join(" nor ", GiverGenders)}.");
 
          RivalRequirement rival = q.Requires?.Rival;
          if (rival != null && !RivalRoles.Contains(rival.Role))

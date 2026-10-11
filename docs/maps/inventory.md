@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 474 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1026 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1028 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1615,7 +1615,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (65)
+### CalradiaRemembers.Logic.AuthoredQuests (67)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1633,6 +1633,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredEncounter` | public class | (no summary) |
 | `AuthoredFinding` | public class | (no summary) |
 | `AuthoredFlags` | public static class | Tests a list of flag conditions against the flags a run has set. |
+| `AuthoredGiverPolicy` | public static class | Whether a character fits the giver a tale asks for. |
 | `AuthoredHazard` | public class | (no summary) |
 | `AuthoredHazardEffect` | public class | (no summary) |
 | `AuthoredLine` | public class | A line an author may write plain ("text") or under flags ({"text": "...", "if": "flag"}): it reaches the model only while its flags hold. |
@@ -1663,6 +1664,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredTaleImages` | public static class | A tale's images: which one shows, and what is wrong with them. |
 | `AuthoredTaleRoles` | public static class | Who holds a role in the tale under way. |
 | `AuthoredWay` | public class | One way out of the current stage: its own objective (no choice), or an open choice. |
+| `GiverFacts` | public class | What the game knows of a character who might give a tale. |
 | `GiverRequirement` | public class | (no summary) |
 | `OneOrManyConverter` | public class | A list of flag names: "name", or ["a", "!b"]. |
 | `PlaceRequirement` | public class | (no summary) |

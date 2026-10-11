@@ -84,8 +84,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
    public sealed class GiverRequirement
    {
-      /// <summary>"lord", "notable", "gang_leader", "any" (Gabriel: any character may offer a quest).</summary>
-      [QuestField("lord, notable, gang_leader, or any.", ClosedList = nameof(AuthoredQuestLoader.GiverRoles))]
+      /// <summary>"lord", "notable", "gang_leader", "spouse", "any" (Gabriel: any character may offer a quest).</summary>
+      [QuestField("lord, notable, gang_leader, spouse (the player's own husband or wife), or any.", ClosedList = nameof(AuthoredQuestLoader.GiverRoles))]
       [JsonProperty("role")] public string Role { get; set; } = "lord";
 
       /// <summary>A role the giver must hold (a village of theirs), e.g. "{village}".</summary>
@@ -103,6 +103,18 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [JsonProperty("culture")]
       [JsonConverter(typeof(OneOrManyConverter))]
       public List<string> Culture { get; set; } = new();
+
+      /// <summary>Gabriel (10/10/2026): a tale of intimacy with the player's wife, whatever the player's sex; see AuthoredGiverPolicy.</summary>
+      [QuestField("female or male: the giver must be a woman, or a man; empty for either.", ClosedList = nameof(AuthoredQuestLoader.GiverGenders))]
+      [JsonProperty("gender")] public string Gender { get; set; }
+
+      /// <summary>Gabriel (10/10/2026): "l'epouse doit voyager avec le joueur".</summary>
+      [QuestField("On: the giver must be travelling in the player's own party.")]
+      [JsonProperty("with_player")] public bool WithPlayer { get; set; }
+
+      /// <summary>Gabriel (10/10/2026): "il faut aussi que la femme ne soit pas deja enceinte".</summary>
+      [QuestField("On: never while the giver is with child.")]
+      [JsonProperty("not_pregnant")] public bool NotPregnant { get; set; }
    }
 
    public sealed class PlaceRequirement

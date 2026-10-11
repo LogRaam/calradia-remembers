@@ -1,0 +1,1 @@
+blocking_giver_gender_unknown.json: quest 'fx_tale': requires.giver.gender 'woman' is neither female nor male. The quest is not loaded.

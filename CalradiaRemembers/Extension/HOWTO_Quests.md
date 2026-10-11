@@ -130,11 +130,14 @@ The rules around every offer:
 
 | Field | Meaning |
 |---|---|
-| `giver.role` | `lord`, `notable`, `gang_leader`, or `any`. |
+| `giver.role` | `lord`, `notable`, `gang_leader`, `spouse` (the player's own husband or wife), or `any`. |
 | `giver.holds` | `"{village}"`: the village is picked among the giver's clan villages. Without it, the giver's home settlement is used, when it is a village. |
 | `giver.min_regard` | The giver's regard for the player on Calradia Remembers' own ledger (the one built in conversation, not the game's relation). |
 | `giver.not_at_war_with_player` | Default `true`. |
 | `giver.culture` | The giver's culture: one id (`"battania"`) or a list (`["battania", "sturgia"]`). The culture's name works too, in any case. Omit it for any culture. |
+| `giver.gender` | `female` or `male`: the giver must be a woman, or a man. Omit it for either. A tale for "the player's wife" is `"role": "spouse", "gender": "female"`, whatever the player's own sex. |
+| `giver.with_player` | `true`: the giver must be travelling in the player's own party. |
+| `giver.not_pregnant` | `true`: never while the giver is with child. |
 | `village.near` | `"forest"`, or omit it. |
 | `village.culture` | The village's culture, written the same way. A tale with `"holds": "{village}"` then looks among the giver's villages for one of that culture. |
 | `rival` | A second lord, bound as `{rival}`: the head of another house of the giver's own realm, someone the player can find. Never the giver's house or the player's. A giver with no realm has no rival, so the tale is not offered by them. |

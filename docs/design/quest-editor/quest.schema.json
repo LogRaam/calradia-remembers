@@ -47,7 +47,12 @@
       "lord",
       "notable",
       "gang_leader",
+      "spouse",
       "any"
+    ],
+    "GiverGenders": [
+      "female",
+      "male"
     ],
     "ContentLevels": [
       "none",
@@ -379,11 +384,12 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "lord, notable, gang_leader, or any.",
+          "description": "lord, notable, gang_leader, spouse (the player's own husband or wife), or any.",
           "enum": [
             "lord",
             "notable",
             "gang_leader",
+            "spouse",
             "any"
           ],
           "x-closed-list": "GiverRoles",
@@ -414,6 +420,31 @@
           "x-kind": "flags",
           "description": "The giver's culture, one or a list (\"battania\", or [\"battania\", \"sturgia\"]); empty for any.",
           "x-default-empty": true
+        },
+        "gender": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "female or male: the giver must be a woman, or a man; empty for either.",
+          "enum": [
+            "female",
+            "male"
+          ],
+          "x-closed-list": "GiverGenders"
+        },
+        "with_player": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: the giver must be travelling in the player's own party.",
+          "default": false
+        },
+        "not_pregnant": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: never while the giver is with child.",
+          "default": false
         }
       }
     },
