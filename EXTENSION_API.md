@@ -123,8 +123,14 @@ reference to CR. Packs are read in this order: CR's own (`ModuleData/scenarios`)
   so a name only resolves in one language. An exact id always wins over a name.
 - `IF_HERO_IS` asks who the event is about: for a death, the one who died (never the killer); for a marriage, either
   spouse.
-- When several rules answer the same trigger and their guards pass, ONE of them is drawn at random, whichever pack it
-  comes from. Keep your guards narrow, or a broad rule of yours will take the place of another's.
+- Every rule that answers an event plays, one after the other in reading order, each checked at its own turn (it sees
+  what the rules before it changed). Rules sharing a `group` are alternatives: one of them is drawn, by `weight`. Use a
+  group for outcomes that exclude each other (CR's four outcomes of marrying Rhagaea are the group `rhagaea_marriage`).
+- A rule plays only when every one of its consequences can really apply now: a war between realms already at war, a
+  peace between realms at peace, a memory on someone the player never met. Otherwise it waits, unsealed, and its message
+  is not told. Guards check the rest: `IF_AT_WAR:A,B`, `IF_AT_PEACE:A,B`, `IF_ALIVE:hero`, `IF_KINGDOM_EXISTS:kingdom`,
+  `IF_RULES:hero,kingdom`, besides `IF_HERO_IS`, `IF_PLAYER_INVOLVED`, `IF_PLAYER_RULES`, `IF_PLAYER_AT_WAR` and the
+  player's sex.
 - In game: `cr.scenarios` lists the loaded rules and whose pack each came from; `cr.testall` (`scenario_packs`)
   reports a rule whose trigger, guard or consequence CR does not know, or whose hero or kingdom does not resolve.
 

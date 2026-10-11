@@ -24,9 +24,11 @@ namespace CalradiaRemembers.Logic
          IReadOnlyList<KeywordToken> consequences,
          string message,
          bool fireOnce = false,
-         int weight = 1)
+         int weight = 1,
+         string group = null)
       {
          Id = id;
+         Group = string.IsNullOrWhiteSpace(group) ? null : group.Trim();
          Trigger = trigger;
          Guards = guards ?? Array.Empty<KeywordToken>();
          Consequences = consequences ?? Array.Empty<KeywordToken>();
@@ -39,6 +41,12 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>The declarative world mutations to apply, in order, when this rule is chosen.</summary>
       public IReadOnlyList<KeywordToken> Consequences { get; }
+
+      /// <summary>
+      ///   The alternatives this rule belongs to, or null. Rules of one group exclude each other: one is drawn by weight
+      ///   (the four outcomes of marrying Rhagaea); a rule with no group always plays when ready (Gabriel, 11/10/2026).
+      /// </summary>
+      public string Group { get; }
 
       /// <summary>True for a one-shot rule: once it has fired it is sealed and never drawn again.</summary>
       public bool FireOnce { get; }
@@ -55,7 +63,7 @@ namespace CalradiaRemembers.Logic
       /// <summary>The event that arms this rule (e.g. <c>ON_MARRIAGE:Rhagaea,Player</c>).</summary>
       public KeywordToken Trigger { get; }
 
-      /// <summary>Relative draw weight among rules sharing a trigger. Clamped to a minimum of 1.</summary>
+      /// <summary>Relative draw weight among the alternatives of a group. Clamped to a minimum of 1.</summary>
       public int Weight { get; }
 
       /// <summary>
@@ -69,14 +77,16 @@ namespace CalradiaRemembers.Logic
          IEnumerable<string> consequences,
          string message,
          bool fireOnce = false,
-         int weight = 1) => new(
+         int weight = 1,
+         string group = null) => new(
          id,
          KeywordToken.Parse(trigger),
          ParseEach(guards),
          ParseEach(consequences),
          message,
          fireOnce,
-         weight);
+         weight,
+         group);
 
       #region private
 

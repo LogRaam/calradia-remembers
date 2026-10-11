@@ -19,7 +19,8 @@ namespace CalradiaRemembers.Scenarios
       /// <summary>The guards <see cref="Resolve" /> knows; any other fails (checked by cr.testall scenario_packs).</summary>
       public static readonly IReadOnlyCollection<string> KnownVerbs = new[]
       {
-         "IF_PLAYER_RULES", "IF_PLAYER_IS_FEMALE", "IF_PLAYER_IS_MALE", "IF_PLAYER_INVOLVED", "IF_HERO_IS", "IF_PLAYER_AT_WAR"
+         "IF_PLAYER_RULES", "IF_PLAYER_IS_FEMALE", "IF_PLAYER_IS_MALE", "IF_PLAYER_INVOLVED", "IF_HERO_IS", "IF_PLAYER_AT_WAR",
+         "IF_AT_WAR", "IF_AT_PEACE", "IF_ALIVE", "IF_KINGDOM_EXISTS", "IF_RULES"
       };
 
       public static bool Resolve(KeywordToken guard, ScenarioContext context)
@@ -34,10 +35,34 @@ namespace CalradiaRemembers.Scenarios
             case "IF_PLAYER_INVOLVED":  return context.InvolvesPlayer;
             case "IF_HERO_IS":          return context.IsAbout(guard.Payload);
             case "IF_PLAYER_AT_WAR":    return PlayerAtWar(guard.Payload, context);
+            // Gabriel (11/10/2026): guards that check the game is in a state where the scenario makes sense.
+            case "IF_AT_WAR":           return Pair(guard, context, out IFaction w1, out IFaction w2) && FactionManager.IsAtWarAgainstFaction(w1, w2);
+            case "IF_AT_PEACE":         return Pair(guard, context, out IFaction p1, out IFaction p2) && !FactionManager.IsAtWarAgainstFaction(p1, p2);
+            case "IF_ALIVE":            return Mapping.HeroPresence.IsInTheWorld(context.ResolveHero(guard.Payload));
+            case "IF_KINGDOM_EXISTS":   return context.ResolveFaction(guard.Payload) is Kingdom k && !k.IsEliminated;
+            case "IF_RULES":            return Rules(guard, context);
             default:
                ModLog.Info($"[SCENARIO] unknown guard '{guard.Verb}' — treated as failing (rule will not fire).");
                return false;
          }
+      }
+
+      // Two distinct factions named by the guard's two arguments (IF_AT_WAR:empire,empire_s).
+      private static bool Pair(KeywordToken guard, ScenarioContext context, out IFaction a, out IFaction b)
+      {
+         a = guard.Args.Count > 0 ? context.ResolveFaction(guard.Args[0]) : null;
+         b = guard.Args.Count > 1 ? context.ResolveFaction(guard.Args[1]) : null;
+
+         return a != null && b != null && a != b;
+      }
+
+      // IF_RULES:hero,kingdom: the hero leads that kingdom, which still stands.
+      private static bool Rules(KeywordToken guard, ScenarioContext context)
+      {
+         Hero hero = guard.Args.Count > 0 ? context.ResolveHero(guard.Args[0]) : null;
+         Kingdom kingdom = guard.Args.Count > 1 ? context.ResolveFaction(guard.Args[1]) as Kingdom : null;
+
+         return hero != null && kingdom != null && !kingdom.IsEliminated && kingdom.Leader == hero;
       }
 
       private static bool PlayerRules()

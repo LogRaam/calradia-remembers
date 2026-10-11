@@ -4,6 +4,8 @@
 // ones — trigger matched, not a spent one-shot, guards passed — form a pool from which exactly one is drawn
 // at random. That single mechanism gives replayability with no authored branching. Pure: the RNG and the
 // guard/fired-once facts are injected, so every path is deterministically testable.
+// 11/10/2026: an event no longer plays a single rule (ScenarioPass plays every ready one, Gabriel's ruling); Draw is
+// what remains of the one-of-many pick, used for the alternatives of a group.
 
 #region
 
@@ -68,8 +70,16 @@ namespace CalradiaRemembers.Logic
             ISet<string> firedRuleIds,
             Func<int, int> nextBelow)
         {
-            IReadOnlyList<ScenarioRule> eligible = Eligible(firedEvent, rules, guardResolver, firedRuleIds);
-            if (eligible.Count == 0) return null;
+            return Draw(Eligible(firedEvent, rules, guardResolver, firedRuleIds), nextBelow);
+        }
+
+        /// <summary>
+        ///   One rule drawn by weight among <paramref name="eligible" /> (the alternatives of a group), or null when there
+        ///   are none; a single one is returned outright. <paramref name="nextBelow" /> returns a value in [0, upper).
+        /// </summary>
+        public static ScenarioRule Draw(IReadOnlyList<ScenarioRule> eligible, Func<int, int> nextBelow)
+        {
+            if (eligible == null || eligible.Count == 0) return null;
             if (eligible.Count == 1) return eligible[0];
 
             int totalWeight = 0;

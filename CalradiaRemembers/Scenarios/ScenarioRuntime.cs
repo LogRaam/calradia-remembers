@@ -51,39 +51,38 @@ namespace CalradiaRemembers.Scenarios
          => ruleId != null && _sources.TryGetValue(ruleId, out string source) ? source : "?";
 
       /// <summary>
-      ///   Picks the one rule for this event (pure selection: trigger + one-shot + guards, then a weighted
-      ///   random draw), applies its consequences, records its message, and seals it if one-shot. Returns the
-      ///   rule that fired, or null when none applied.
+      ///   Plays every rule this event calls for (ScenarioPass, Gabriel 11/10/2026): in reading order, each ready at its
+      ///   turn (not sealed, guards hold, every consequence can apply), one alternative per group; each applies its
+      ///   consequences, records its message, and seals if one-shot. Returns the rules played, never null.
       /// </summary>
-      public ScenarioRule Fire(KeywordToken firedEvent, ScenarioContext context)
+      public IReadOnlyList<ScenarioRule> Fire(KeywordToken firedEvent, ScenarioContext context)
       {
          if (_isFiring)
          {
-            ModLog.Info($"[SCENARIO] re-entrant trigger {firedEvent} during a firing scenario — skipped (no cascade).");
-            return null;
+            ModLog.Info($"[SCENARIO] re-entrant trigger {firedEvent} during a firing scenario: skipped (no cascade).");
+            return new List<ScenarioRule>();
          }
 
          _isFiring = true;
          try
          {
-            ScenarioRule rule = ScenarioSelector.Select(
-               firedEvent,
-               _rules,
-               guard => ScenarioGuardResolver.Resolve(guard, context),
-               _fired,
-               upper => MBRandom.RandomInt(upper));
+            return ScenarioPass.Play(firedEvent, _rules, new ScenarioChecks
+            {
+               Sealed = _fired,
+               GuardPasses = guard => ScenarioGuardResolver.Resolve(guard, context),
+               ConsequenceApplies = consequence => ScenarioConsequenceExecutor.CanApply(consequence, context),
+               NextBelow = upper => MBRandom.RandomInt(upper),
+               Play = rule =>
+               {
+                  foreach (KeywordToken consequence in rule.Consequences)
+                     ScenarioConsequenceExecutor.Execute(consequence, context);
 
-            if (rule == null) return null;
+                  RecordMessage(rule, context);
 
-            foreach (KeywordToken consequence in rule.Consequences)
-               ScenarioConsequenceExecutor.Execute(consequence, context);
-
-            RecordMessage(rule, context);
-
-            if (rule.FireOnce) _fired.Add(rule.Id);
-            ModLog.Info($"[SCENARIO] fired '{rule.Id}' on {firedEvent}.");
-
-            return rule;
+                  if (rule.FireOnce) _fired.Add(rule.Id);
+                  ModLog.Info($"[SCENARIO] fired '{rule.Id}' ({SourceOf(rule.Id)}) on {firedEvent}.");
+               }
+            });
          }
          finally
          {

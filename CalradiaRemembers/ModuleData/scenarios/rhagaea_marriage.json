@@ -1,5 +1,5 @@
 {
-  "_comment": "The Rhagaea marriage: four outcomes on one trigger, one drawn at random and sealed. Rhagaea is the empress-stateswoman who never abdicates FOR the player; each outcome keeps her true to herself and is surfaced through her own memory (she speaks of the union's nature). B (two crowns) only applies if the player already rules. All fire only when the player marries Rhagaea (IF_PLAYER_INVOLVED + IF_HERO_IS:lord_1_14, Rhagaea's game id, which holds in every language). Test: cr.scenario_fire ON_MARRIAGE Rhagaea.",
+  "_comment": "The Rhagaea marriage: four outcomes on one trigger, alternatives of one group (\"rhagaea_marriage\"): one drawn at random and sealed. Rhagaea is the empress-stateswoman who never abdicates FOR the player; each outcome keeps her true to herself and is surfaced through her own memory (she speaks of the union's nature). B (two crowns) only applies if the player already rules. All fire only when the player marries Rhagaea (IF_PLAYER_INVOLVED + IF_HERO_IS:lord_1_14, Rhagaea's game id, which holds in every language). Test: cr.scenario_fire ON_MARRIAGE Rhagaea.",
   "rules": [
     {
       "id": "rhagaea_marriage_consort",
@@ -11,7 +11,8 @@
       ],
       "message": "Rhagaea has wed the outlander, yet she keeps her crown, and her new consort stands as her sword.",
       "fireOnce": true,
-      "weight": 1
+      "weight": 1,
+      "group": "rhagaea_marriage"
     },
     {
       "id": "rhagaea_marriage_two_crowns",
@@ -23,7 +24,8 @@
       ],
       "message": "Two crowns are joined by marriage, the Southern Empire and the realm of its new ally, yet neither bends to the other.",
       "fireOnce": true,
-      "weight": 1
+      "weight": 1,
+      "group": "rhagaea_marriage"
     },
     {
       "id": "rhagaea_marriage_regent",
@@ -35,7 +37,8 @@
       ],
       "message": "The empress weds and names her consort strategos of the South; the throne stays hers, the sword becomes theirs.",
       "fireOnce": true,
-      "weight": 1
+      "weight": 1,
+      "group": "rhagaea_marriage"
     },
     {
       "id": "rhagaea_marriage_suspicious",
@@ -46,7 +49,8 @@
       ],
       "message": "Rhagaea has taken a spouse, but the court whispers that she watches them closely; her cause is hers alone.",
       "fireOnce": true,
-      "weight": 1
+      "weight": 1,
+      "group": "rhagaea_marriage"
     }
   ]
 }

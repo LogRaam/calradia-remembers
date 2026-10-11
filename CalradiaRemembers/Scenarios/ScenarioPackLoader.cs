@@ -54,7 +54,7 @@ namespace CalradiaRemembers.Scenarios
                      read.Add(new SourcedScenarioRule
                      {
                         Source = folder.Source,
-                        Rule = ScenarioRule.Parse(dto.Id, dto.Trigger, dto.Guards, dto.Consequences, dto.Message, dto.FireOnce, dto.Weight <= 0 ? 1 : dto.Weight)
+                        Rule = ScenarioRule.Parse(dto.Id, dto.Trigger, dto.Guards, dto.Consequences, dto.Message, dto.FireOnce, dto.Weight <= 0 ? 1 : dto.Weight, dto.Group)
                      });
                   }
                }
@@ -110,6 +110,7 @@ namespace CalradiaRemembers.Scenarios
          [JsonProperty("message")]      public string Message { get; set; }
          [JsonProperty("fireOnce")]     public bool FireOnce { get; set; }
          [JsonProperty("weight")]       public int Weight { get; set; } = 1;
+         [JsonProperty("group")]        public string Group { get; set; }
       }
    }
 }

@@ -92,11 +92,11 @@ namespace CalradiaRemembers
             : trigger.Verb == "ON_DEATH" ? ScenarioBehavior.ForDeath(hero, Hero.MainHero)
             : trigger.Verb == "ON_MARRIAGE" ? ScenarioBehavior.ForMarriage(hero, Hero.MainHero)
             : new ScenarioContext(heroes, factions);
-         ScenarioRule fired = runtime.Fire(trigger, ctx);
+         IReadOnlyList<ScenarioRule> fired = runtime.Fire(trigger, ctx);
 
-         return fired != null
-            ? $"Fired '{fired.Id}' on {verb}."
-            : $"No rule fired for {verb}.";
+         return fired.Count > 0
+            ? $"Fired {string.Join(", ", fired.Select(r => "'" + r.Id + "'"))} on {verb}."
+            : $"No rule fired for {verb} (none ready: sealed, a guard failed, or a consequence could not apply).";
       }
 
       /// <summary>
@@ -186,7 +186,7 @@ namespace CalradiaRemembers
          var sb = new StringBuilder();
          sb.AppendLine($"Loaded scenario rules: {runtime.Rules.Count}");
          foreach (ScenarioRule r in runtime.Rules)
-            sb.AppendLine($"  [{r.Id}] {r.Trigger}  guards:{r.Guards.Count} consequences:{r.Consequences.Count}{(r.FireOnce ? " (once)" : "")}  from {runtime.SourceOf(r.Id)}");
+            sb.AppendLine($"  [{r.Id}] {r.Trigger}  guards:{r.Guards.Count} consequences:{r.Consequences.Count}{(r.FireOnce ? " (once)" : "")}{(r.Group != null ? "  group " + r.Group : "")}  from {runtime.SourceOf(r.Id)}");
          sb.Append($"Fired one-shots: {(runtime.FiredRuleIds.Count == 0 ? "none" : string.Join(", ", runtime.FiredRuleIds))}");
 
          return sb.ToString();

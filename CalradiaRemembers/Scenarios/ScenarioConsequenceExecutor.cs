@@ -27,6 +27,53 @@ namespace CalradiaRemembers.Scenarios
          "DECLARE_WAR", "MAKE_PEACE", "CHANGE_RELATION", "CHANGE_INFLUENCE", "INJECT_MEMORY"
       };
 
+      /// <summary>
+      ///   Whether the consequence can really apply in the world as it is now (Gabriel, 11/10/2026: a rule plays only when
+      ///   all of them can, so the realm is never told of a war that was not declared). The same checks
+      ///   <see cref="Execute" /> makes before acting; an unknown verb cannot apply.
+      /// </summary>
+      public static bool CanApply(KeywordToken consequence, ScenarioContext context)
+      {
+         if (consequence == null || context == null) return false;
+
+         try
+         {
+            switch (consequence.Verb)
+            {
+               case "DECLARE_WAR":
+               case "MAKE_PEACE":
+                  if (!TryFactions(consequence, context, out IFaction a, out IFaction b)) return false;
+                  return consequence.Verb == "DECLARE_WAR" ? !FactionManager.IsAtWarAgainstFaction(a, b) : FactionManager.IsAtWarAgainstFaction(a, b);
+               case "CHANGE_RELATION":
+                  return ScenarioArgs.TryParseTargetDelta(consequence.Payload, out string who, out int delta) && delta != 0
+                         && context.ResolveHero(who) is { } hero && hero != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(hero);
+               case "CHANGE_INFLUENCE":
+                  return ScenarioArgs.TryParseTargetDelta(consequence.Payload, out string whose, out int amount) && amount != 0
+                         && context.ResolveHero(whose)?.Clan != null;
+               case "INJECT_MEMORY":
+                  return ScenarioArgs.TryParseTargetRest(consequence.Payload, out string target, out _)
+                         && context.ResolveHero(target) is { } remembers && remembers != Hero.MainHero
+                         && NpcMemoryCampaignBehavior.Instance?.Store?.Get(remembers.StringId) != null;
+               default:
+                  return false;
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[SCENARIO] checking consequence '{consequence.Verb}' failed: {ex.GetType().Name}: {ex.Message}");
+            return false;
+         }
+      }
+
+      // Two distinct factions named by the consequence's two arguments.
+      private static bool TryFactions(KeywordToken c, ScenarioContext ctx, out IFaction a, out IFaction b)
+      {
+         a = c.Args.Count > 0 ? ctx.ResolveFaction(c.Args[0]) : null;
+         b = c.Args.Count > 1 ? ctx.ResolveFaction(c.Args[1]) : null;
+
+         return a != null && b != null && a != b;
+      }
+
       public static void Execute(KeywordToken consequence, ScenarioContext context)
       {
          if (consequence == null || context == null) return;

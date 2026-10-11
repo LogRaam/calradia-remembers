@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 474 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1041 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1043 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -815,7 +815,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (650)
+### CalradiaRemembers.Logic (652)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1337,9 +1337,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |
 | `ScenarioArgs` | public static class | Parsing helpers for the scripted-scenarios keyword payloads. |
 | `ScenarioCandidate` | public class | One hero or faction a reference may name. |
+| `ScenarioChecks` | public class | What a fired event asks of the world while it plays its rules, and how it plays one. |
 | `ScenarioMergeResult` | public class | The rules kept, where each came from, and what was dropped. |
 | `ScenarioPackFolder` | public class | A folder of scenario packs and who it belongs to. |
 | `ScenarioPackFolders` | public static class | Where scenario packs are read from, in order. |
+| `ScenarioPass` | public static class | Plays every rule a fired event calls for. |
 | `ScenarioReferenceMatch` | public static class | How well a scenario reference names a candidate, and which candidate it names. |
 | `ScenarioRule` | public class | One reactive rule: a Trigger, optional Guards (eligibility, AND-combined), a list of Consequences (declarative world mutations), and a Message for the World-Event store. |
 | `ScenarioRuleMerge` | public static class | Keeps one rule per id, the first read. |

@@ -59,7 +59,9 @@
   <div class="how">
     <strong>How it works.</strong> A scenario is a stateless reactive rule: when its <em>trigger</em> fires and
     its <em>guards</em> pass, its <em>consequences</em> mutate the world and its <em>message</em> is told in
-    game. If several rules share a trigger, one is chosen at random.
+    game. Every rule for an event plays, one after the other, if every one of its consequences can really apply
+    (no war is declared twice, and nothing is told that did not happen). Rules given the same <em>group</em> are
+    alternatives: one of them is drawn, by weight.
     <br>1) Add rules below. 2) <strong>Download pack</strong>. 3) Drop the file into
     <code>scenarios</code> in your Custom folder (<code>Modules/CalradiaRemembers/ModuleData/Custom/scenarios/</code>, or the Custom folder set in MCM), which CR updates never replace. A mod ships its packs in its own <code>ModuleData/cr_scenarios/</code>. Give each rule an id of its own, and name heroes and kingdoms by their game id (<code>lord_1_14</code>, <code>empire_s</code>): names are translated. 4) In game:
     <code>cr.scenarios</code> to list them, <code>cr.scenario_fire ON_DEATH Rhagaea</code> to test one.
@@ -107,7 +109,12 @@ const VOCAB = {
     { key:"IF_PLAYER_RULES",    args:[],                                desc:"The player is a kingdom ruler." },
     { key:"IF_PLAYER_IS_FEMALE",args:[],                                desc:"The player is female." },
     { key:"IF_PLAYER_IS_MALE",  args:[],                                desc:"The player is male." },
-    { key:"IF_PLAYER_AT_WAR",   args:[{n:"faction", ph:"e.g. Vlandia"}],desc:"The player's faction is at war with this faction." }
+    { key:"IF_PLAYER_AT_WAR",   args:[{n:"faction", ph:"e.g. vlandia"}],desc:"The player's faction is at war with this faction." },
+    { key:"IF_AT_WAR",          args:[{n:"faction A",ph:"e.g. empire"},{n:"faction B",ph:"e.g. empire_s"}], fmt:"comma", desc:"These two factions are at war." },
+    { key:"IF_AT_PEACE",        args:[{n:"faction A",ph:"e.g. empire"},{n:"faction B",ph:"e.g. empire_s"}], fmt:"comma", desc:"These two factions are at peace." },
+    { key:"IF_ALIVE",           args:[{n:"hero", ph:"e.g. lord_1_14, or PLAYER"}], desc:"This hero is alive (and not disabled)." },
+    { key:"IF_KINGDOM_EXISTS",  args:[{n:"kingdom", ph:"e.g. empire_s"}], desc:"This kingdom still stands (not eliminated)." },
+    { key:"IF_RULES",           args:[{n:"hero",ph:"e.g. lord_1_14"},{n:"kingdom",ph:"e.g. empire_s"}], fmt:"comma", desc:"This hero rules this kingdom." }
   ],
   consequences: [
     { key:"DECLARE_WAR",     args:[{n:"faction A",ph:"e.g. empire (Northern Empire)"},{n:"faction B",ph:"e.g. empire_s (Southern Empire)"}], fmt:"comma",  desc:"Start a war between two factions." },
@@ -119,7 +126,7 @@ const VOCAB = {
 };
 
 // ── State ───────────────────────────────────────────────────────────────────────────────────────
-// rules: [{ id, trigger, guards:[{verb,vals:[]}], consequences:[{verb,vals:[]}], message, fireOnce, weight }]
+// rules: [{ id, trigger, guards:[{verb,vals:[]}], consequences:[{verb,vals:[]}], message, fireOnce, weight, group }]
 let rules = [];
 
 function findVocab(list, key){ return list.find(v => v.key === key) || null; }
@@ -127,7 +134,7 @@ function blankClause(list){ return { verb: list[0].key, vals: [] }; }
 
 function addRule(){
   rules.push({ id:"new_rule_"+(rules.length+1), trigger:VOCAB.triggers[0].key,
-               guards:[], consequences:[blankClause(VOCAB.consequences)], message:"", fireOnce:true, weight:1 });
+               guards:[], consequences:[blankClause(VOCAB.consequences)], message:"", fireOnce:true, weight:1, group:"" });
   render();
 }
 function removeRule(i){ rules.splice(i,1); render(); }
@@ -154,6 +161,7 @@ function ruleToObject(r){
   o.message = r.message||"";
   if(r.fireOnce) o.fireOnce = true;
   if(r.weight && r.weight!==1) o.weight = Number(r.weight);
+  if(r.group && r.group.trim()) o.group = r.group.trim();
   return o;
 }
 function packObject(){
@@ -222,7 +230,8 @@ function ruleCard(r, i){
   const trF=el("label",{class:"fld"},["trigger"]); trF.appendChild(selectFor(VOCAB.triggers, r.trigger, val=>{r.trigger=val; render();}));
   const foF=el("label",{class:"fld"},["fire once"]); const foIn=el("input",{type:"checkbox"}); foIn.checked=!!r.fireOnce; foIn.onchange=e=>{r.fireOnce=e.target.checked; preview();}; foF.appendChild(foIn);
   const wF=el("label",{class:"fld"},["weight"]); const wIn=el("input",{type:"number",min:"1",value:r.weight||1}); wIn.style.width="64px"; wIn.oninput=e=>{r.weight=Number(e.target.value)||1; preview();}; wF.appendChild(wIn);
-  top.appendChild(idF); top.appendChild(trF); top.appendChild(foF); top.appendChild(wF);
+  const gF=el("label",{class:"fld"},["group (alternatives)"]); const gIn=el("input",{type:"text",value:r.group||"",placeholder:"none: always plays"}); gIn.oninput=e=>{r.group=e.target.value; preview();}; gF.appendChild(gIn);
+  top.appendChild(idF); top.appendChild(trF); top.appendChild(foF); top.appendChild(wF); top.appendChild(gF);
   const trigV=findVocab(VOCAB.triggers,r.trigger);
   card.appendChild(top);
   if(trigV) card.appendChild(el("div",{class:"hint",style:"font-size:11px;color:var(--muted);margin:2px 0 0;"},[trigV.desc]));
@@ -278,7 +287,7 @@ function loadPack(obj){
     id:o.id||"rule", trigger:(o.trigger||"ON_DEATH").split(":")[0].trim().toUpperCase(),
     guards:(o.guards||[]).map(s=>stringToClause(s,VOCAB.guards)).filter(Boolean),
     consequences:(o.consequences||[]).map(s=>stringToClause(s,VOCAB.consequences)).filter(Boolean),
-    message:o.message||"", fireOnce:!!o.fireOnce, weight:o.weight||1
+    message:o.message||"", fireOnce:!!o.fireOnce, weight:o.weight||1, group:o.group||""
   }));
   render();
 }

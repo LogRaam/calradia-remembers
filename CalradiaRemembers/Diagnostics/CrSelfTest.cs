@@ -439,6 +439,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scenario_packs", Severity.Light, "Gabriel (11/10/2026): the scripted scenarios ship in every release but were never checked in game ('ajoute les scenarios dans testall'). Reads the packs the REAL loader loaded: asserts the five shipped rules are there, that every trigger, guard and consequence is one the engine knows, and that every hero and faction a rule names resolves in this world (a kingdom name that does not resolve means the war is skipped while its message is still told). Nothing is changed", TestScenarioPacks),
          new SelfTest("scenario_death", Severity.Light, "Gabriel (11/10/2026): the shipped rule 'the eagles turn on a leaderless South' must answer Rhagaea's own death and nothing else. Asks the REAL guards with the context a real death builds: asserts the rule is eligible when Rhagaea dies, NOT eligible when Rhagaea is the one who killed (an execution or a battle she wins would otherwise tell the realm she fell and seal the rule), and that its two wars name the Northern and Western Empires against the Southern. Nothing is fired, no war is declared", TestScenarioDeath),
          new SelfTest("scenario_sources", Severity.Light, "Gabriel (11/10/2026): scenarios supported by mods too ('les scenarios soient aussi supportes par des mods'), read from CR's folder, the player's Custom/scenarios and each mod's ModuleData/cr_scenarios. Drives the REAL loader over CR's folder and a test mod's folder written for the occasion: asserts the mod's new rule loads under the mod's name, and that its rule reusing one of CR's ids is dropped and reported (seals are kept by id, so the two would switch each other off) while CR's keeps it. The test folder is deleted; the rules the game runs are not touched", TestScenarioSources),
+         new SelfTest("scenario_all_play", Severity.Light, "Gabriel (11/10/2026): 'Si plusieurs regles existent pour la mort de Rhagaea, tous devraient etre joues', alternatives in a group excepted, and a rule whose consequence cannot apply is not played. Fires five test rules on one event through the REAL runtime (its own, not the game's): asserts both plain rules play, one alternative of the group plays, the rule whose consequence is impossible (a realm making peace with itself) is neither played, sealed nor told, and every played rule is told. Its world events are removed", TestScenarioAllPlay),
+         new SelfTest("scenario_guards", Severity.Light, "Gabriel (11/10/2026): guards that check the game allows the scenario. Asks the REAL guards and consequence checks about two standing kingdoms and their rulers: IF_AT_WAR / IF_AT_PEACE read the game's war state, IF_ALIVE, IF_KINGDOM_EXISTS, IF_RULES hold for what is true and fail otherwise; a war is possible only at peace, a peace only at war, never with oneself; an unknown consequence never applies. Nothing is changed", TestScenarioGuards),
          new SelfTest("scenario_marriage", Severity.Light, "Gabriel (11/10/2026): the four shipped outcomes of the player marrying Rhagaea (consort, two crowns, regent, suspicious). Fires each one through the REAL runtime with the context a real marriage builds, the other three held sealed so the draw has one choice: asserts it fires, Rhagaea remembers its line, the realm is told its message, and it seals; two crowns must stay closed while the player rules no kingdom. Nobody is married; memory, world event, relation, influence and seals are put back", TestScenarioMarriage),
          new SelfTest("llm_dialogue", Severity.Light, "LLM: a plain greeting -> log the reply (relevance judged from the log)", TestLlmDialogue, true),
          new SelfTest("chat_memory", Severity.Light, "LLM: seed a shared history -> ask about it -> does the reply reference it?", TestChatMemory, true),
@@ -12642,13 +12644,13 @@ namespace CalradiaRemembers.Diagnostics
          if (rhagaea.MapFaction != null) factions.Add(rhagaea.MapFaction);
          var ctx = new ScenarioContext(heroes, factions);
 
-         ScenarioRule first = runtime.Fire(KeywordToken.Parse("ON_DEATH"), ctx);
+         IReadOnlyList<ScenarioRule> first = runtime.Fire(KeywordToken.Parse("ON_DEATH"), ctx);
 
-         if (t.Skip(first == null, "no rule fired for ON_DEATH:Rhagaea (already sealed this campaign, or example pack not loaded — check cr.scenarios on a fresh save)")) return t.Line();
+         if (t.Skip(first.Count == 0, "no rule fired for ON_DEATH:Rhagaea (already sealed, its wars already under way, or the pack not loaded: check cr.scenarios)")) return t.Line();
 
-         ScenarioRule again = runtime.Fire(KeywordToken.Parse("ON_DEATH"), ctx);
-         t.Note($"fired '{first.Id}', refire={(again == null ? "null" : again.Id)}");
-         t.Expect("sealed", again == null, true);
+         IReadOnlyList<ScenarioRule> again = runtime.Fire(KeywordToken.Parse("ON_DEATH"), ctx);
+         t.Note($"fired {string.Join(",", first.Select(r => r.Id))}, refire={again.Count}");
+         t.Expect("sealed", again.Count(r => r.FireOnce), 0);
 
          return t.Line();
       }
@@ -12733,6 +12735,81 @@ namespace CalradiaRemembers.Diagnostics
 
          return Hero.DeadOrDisabledHeroes.Any(h => string.Equals(h.StringId, r, StringComparison.OrdinalIgnoreCase)
                                                    || (h.Name?.ToString() ?? "").IndexOf(r, StringComparison.OrdinalIgnoreCase) >= 0);
+      }
+
+      private static string TestScenarioAllPlay(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("scenario_all_play");
+         if (t.Abort(WorldEventStore.Instance == null, "world-event store not ready")) return t.Line();
+
+         Kingdom kingdom = Kingdom.All.FirstOrDefault(k => !k.IsEliminated);
+         if (t.Skip(kingdom == null, "no kingdom standing in this campaign")) return t.Line();
+
+         // A runtime of its own: the rules the game runs and their seals are not touched.
+         var seals = new HashSet<string>();
+         var runtime = new ScenarioRuntime(seals);
+         const string group = "cr_selftest_group";
+         runtime.Load(new[] {
+            ScenarioRule.Parse("cr_selftest_war", "ON_PEACE", new[] {"IF_ALIVE:PLAYER"}, null, "cr selftest: the first of two", true),
+            ScenarioRule.Parse("cr_selftest_pretender", "ON_PEACE", null, null, "cr selftest: the second of two", true),
+            ScenarioRule.Parse("cr_selftest_alt1", "ON_PEACE", null, null, "cr selftest: an alternative", true, 1, group),
+            ScenarioRule.Parse("cr_selftest_alt2", "ON_PEACE", null, null, "cr selftest: the other alternative", true, 1, group),
+            // A realm cannot make peace with itself: this consequence can never apply, so the rule must not be told.
+            ScenarioRule.Parse("cr_selftest_blocked", "ON_PEACE", null, new[] {$"MAKE_PEACE:{kingdom.StringId},{kingdom.StringId}"}, "cr selftest: never told", true)
+         });
+
+         var worldBefore = new HashSet<string>(WorldEventStore.Instance.All().Select(e => e.Id));
+         try
+         {
+            List<string> played = runtime.Fire(KeywordToken.Parse("ON_PEACE"), new ScenarioContext()).Select(r => r.Id).ToList();
+            List<string> told = WorldEventStore.Instance.All().Where(e => !worldBefore.Contains(e.Id)).Select(e => e.Summary).ToList();
+
+            t.Note("played=" + string.Join(",", played));
+            t.Expect("bothRulesPlay", played.Contains("cr_selftest_war") && played.Contains("cr_selftest_pretender"), true);
+            t.Expect("oneAlternative", played.Count(id => id.StartsWith("cr_selftest_alt", StringComparison.Ordinal)), 1);
+            t.Expect("impossibleNotPlayed", played.Contains("cr_selftest_blocked"), false);
+            t.Expect("impossibleNotSealed", seals.Contains("cr_selftest_blocked"), false);
+            t.Expect("impossibleNotTold", told.Contains("cr selftest: never told"), false);
+            t.Expect("eachPlayedIsTold", told.Count, played.Count);
+         }
+         finally
+         {
+            foreach (WorldEvent e in WorldEventStore.Instance.All().Where(e => !worldBefore.Contains(e.Id)).ToList())
+               WorldEventStore.Instance.Remove(e.Id);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestScenarioGuards(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("scenario_guards");
+
+         List<Kingdom> standing = Kingdom.All.Where(k => !k.IsEliminated && k.Leader != null).ToList();
+         if (t.Skip(standing.Count < 2, "fewer than two kingdoms standing with a ruler")) return t.Line();
+
+         Kingdom a = standing[0];
+         Kingdom b = standing[1];
+         bool atWar = FactionManager.IsAtWarAgainstFaction(a, b);
+         var world = new ScenarioContext();
+         bool Guard(string raw) => ScenarioGuardResolver.Resolve(KeywordToken.Parse(raw), world);
+         bool Applies(string raw) => ScenarioConsequenceExecutor.CanApply(KeywordToken.Parse(raw), world);
+
+         t.Note($"{a.StringId} vs {b.StringId}: atWar={atWar}");
+         t.Expect("atWarReadsTheGame", Guard($"IF_AT_WAR:{a.StringId},{b.StringId}"), atWar);
+         t.Expect("atPeaceReadsTheGame", Guard($"IF_AT_PEACE:{a.StringId},{b.StringId}"), !atWar);
+         t.Expect("playerAlive", Guard("IF_ALIVE:PLAYER"), true);
+         Hero dead = Hero.DeadOrDisabledHeroes.FirstOrDefault(h => h.IsDead && h.IsLord);
+         if (dead != null) t.Expect("deadLordNotAlive", Guard($"IF_ALIVE:{dead.StringId}"), false);
+         t.Expect("kingdomExists", Guard($"IF_KINGDOM_EXISTS:{a.StringId}"), true);
+         t.Expect("rulerRules", Guard($"IF_RULES:{a.Leader.StringId},{a.StringId}"), true);
+         t.Expect("rulerDoesNotRuleAnother", Guard($"IF_RULES:{a.Leader.StringId},{b.StringId}"), false);
+         t.Expect("warPossibleOnlyAtPeace", Applies($"DECLARE_WAR:{a.StringId},{b.StringId}"), !atWar);
+         t.Expect("peacePossibleOnlyAtWar", Applies($"MAKE_PEACE:{a.StringId},{b.StringId}"), atWar);
+         t.Expect("noWarWithItself", Applies($"DECLARE_WAR:{a.StringId},{a.StringId}"), false);
+         t.Expect("unknownConsequenceNever", Applies("SUMMON_DRAGON:x"), false);
+
+         return t.Line();
       }
 
       private static string TestScenarioSources(NpcMemoryCampaignBehavior behavior)
@@ -12851,28 +12928,26 @@ namespace CalradiaRemembers.Diagnostics
                                    .Select(c => ScenarioArgs.TryParseTargetRest(c.Payload, out _, out string text) ? text : null)
                                    .FirstOrDefault();
 
-               // The other outcomes held sealed, so the draw has this one choice.
-               runtime.FiredRuleIds.Clear();
-               foreach (string id in firedBefore) runtime.FiredRuleIds.Add(id);
-               // Every other loaded rule too: a mod's ON_MARRIAGE rule must neither join the draw nor run its consequences here.
-               foreach (ScenarioRule other in runtime.Rules.Where(o => o != rule)) runtime.FiredRuleIds.Add(other.Id);
-
-               ScenarioRule fired = runtime.Fire(KeywordToken.Parse("ON_MARRIAGE"), wedding);
+               // A runtime holding this outcome alone, through the REAL Fire: no other rule (another outcome, a mod's
+               // marriage rule, repeatable or not) can play here, and the game's own seals are not touched.
+               var solo = new ScenarioRuntime(new HashSet<string>(firedBefore));
+               solo.Load(new[] {rule});
+               IReadOnlyList<ScenarioRule> fired = solo.Fire(KeywordToken.Parse("ON_MARRIAGE"), wedding);
 
                if (rule.Guards.Any(g => g.Verb == "IF_PLAYER_RULES") && !playerRules)
                {
-                  t.Expect($"{name}ClosedWithoutACrown", fired == null, true);
+                  t.Expect($"{name}ClosedWithoutACrown", fired.Count, 0);
                   continue;
                }
 
-               t.Expect($"{name}Fired", fired?.Id, rule.Id);
-               if (fired == null) continue;
+               t.Expect($"{name}Fired", string.Join(",", fired.Select(r => r.Id)), rule.Id);
+               if (fired.Count == 0) continue;
 
                bool remembered = memory == null || profile.Events.Any(e => e.summary == memory);
                bool told = WorldEventStore.Instance.All().Any(e => !worldBefore.Contains(e.Id) && e.Summary == rule.Message);
                t.Expect($"{name}Remembered", remembered, true);
                t.Expect($"{name}Told", told, true);
-               t.Expect($"{name}Sealed", runtime.FiredRuleIds.Contains(rule.Id), true);
+               t.Expect($"{name}Sealed", solo.FiredRuleIds.Contains(rule.Id), true);
             }
          }
          finally
