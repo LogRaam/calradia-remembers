@@ -436,6 +436,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("nemesis_tavern_rumor", Severity.Light, "tavern-keeper rumour discoverability (ROADMAP follow-up): mint a nemesis anchored to a real tavern keeper's own region and mark him ENCOUNTERED -> assert NemesisTavernRumorDialogFlow.FindRumorNemesisFor's gate finds him eligible, and that it hides him again while latent (TimesEncountered 0) and once TURNED -> assert NemesisRumorLine.Compose names him and his region without stating a reward figure. PLANTS a test nemesis (reload after)", TestNemesisTavernRumor),
          new SelfTest("declare_war", Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it", TestDeclareWar),
          new SelfTest("scenario", Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals", TestScenario),
+         new SelfTest("video_decoder", Severity.Light, "Gabriel (11/10/2026): CR plays its own video (.crvid, a zip of JPEG frames) because the game's player stops in conversations. Writes a tiny .crvid to temp (three solid-colour frames), decodes it through the REAL decoder on its own thread: asserts all frames decoded, in order, at full size, opaque, and the first (red) frame red in the byte order the channel switch gives. The file is deleted; nothing in the game is touched", TestVideoDecoder),
          new SelfTest("scenario_packs", Severity.Light, "Gabriel (11/10/2026): the scripted scenarios ship in every release but were never checked in game ('ajoute les scenarios dans testall'). Reads the packs the REAL loader loaded: asserts the five shipped rules are there, that every trigger, guard and consequence is one the engine knows, and that every hero and faction a rule names resolves in this world (a kingdom name that does not resolve means the war is skipped while its message is still told). Nothing is changed", TestScenarioPacks),
          new SelfTest("scenario_death", Severity.Light, "Gabriel (11/10/2026): the shipped rule 'the eagles turn on a leaderless South' must answer Rhagaea's own death and nothing else. Asks the REAL guards with the context a real death builds: asserts the rule is eligible when Rhagaea dies, NOT eligible when Rhagaea is the one who killed (an execution or a battle she wins would otherwise tell the realm she fell and seal the rule), and that its two wars name the Northern and Western Empires against the Southern. Nothing is fired, no war is declared", TestScenarioDeath),
          new SelfTest("scenario_sources", Severity.Light, "Gabriel (11/10/2026): scenarios supported by mods too ('les scenarios soient aussi supportes par des mods'), read from CR's folder, the player's Custom/scenarios and each mod's ModuleData/cr_scenarios. Drives the REAL loader over CR's folder and a test mod's folder written for the occasion: asserts the mod's new rule loads under the mod's name, and that its rule reusing one of CR's ids is dropped and reported (seals are kept by id, so the two would switch each other off) while CR's keeps it. The test folder is deleted; the rules the game runs are not touched", TestScenarioSources),
@@ -12662,6 +12663,62 @@ namespace CalradiaRemembers.Diagnostics
 
       private static Hero AliveRhagaea()
          => Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == RhagaeaId);
+
+      private static string TestVideoDecoder(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("video_decoder");
+         string file = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cr_selftest_{Guid.NewGuid():N}.crvid");
+         const int w = 16, h = 8;
+         System.Drawing.Color[] colours = {System.Drawing.Color.Red, System.Drawing.Color.Lime, System.Drawing.Color.Blue};
+         Video.CrvidDecoder decoder = null;
+         try
+         {
+            // A tiny .crvid written as Tools/Video/make_crvid.py writes one: a manifest and three solid-colour JPEG frames.
+            using (System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.Open(file, System.IO.Compression.ZipArchiveMode.Create))
+            {
+               using (var writer = new System.IO.StreamWriter(zip.CreateEntry("manifest.json").Open()))
+                  writer.Write($"{{\"version\": 1, \"fps\": 30, \"width\": {w}, \"height\": {h}, \"frames\": {colours.Length}, \"loop\": false}}");
+               for (var i = 0; i < colours.Length; i++)
+                  using (var bitmap = new System.Drawing.Bitmap(w, h))
+                  {
+                     using (System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(bitmap)) g.Clear(colours[i]);
+                     using (System.IO.Stream s = zip.CreateEntry(Logic.Video.CrvidRules.FrameEntry(i), System.IO.Compression.CompressionLevel.NoCompression).Open())
+                        bitmap.Save(s, System.Drawing.Imaging.ImageFormat.Jpeg);
+                  }
+            }
+
+            decoder = Video.CrvidDecoder.Open(file, false, out string problem);
+            if (t.Abort(decoder == null, "the decoder refused the test file: " + problem)) return t.Line();
+
+            var frames = new List<Video.DecodedFrame>();
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            while (frames.Count < colours.Length && clock.ElapsedMilliseconds < 3000)
+               if (decoder.TryTake(out Video.DecodedFrame f)) frames.Add(f);
+               else Thread.Sleep(5);
+            while (decoder.TryTakeError(out string error)) t.Note("decoder: " + error);
+
+            t.Expect("allFramesDecoded", frames.Count, colours.Length);
+            t.Expect("inOrder", string.Join(",", frames.Select(f => f.Index)), "0,1,2");
+            t.Expect("fullSize", frames.All(f => f.Pixels.Length == w * h * 4), true);
+            if (frames.Count == colours.Length)
+            {
+               // The first frame is red: with the channel swap on (the default), the bytes come R,G,B,A; off, GDI+'s B,G,R,A.
+               byte[] p = frames[0].Pixels;
+               int red = Video.CrvidDecoder.SwapRedBlue ? p[0] : p[2], blue = Video.CrvidDecoder.SwapRedBlue ? p[2] : p[0];
+               t.Note($"first pixel bytes {p[0]},{p[1]},{p[2]},{p[3]} (swaprb={Video.CrvidDecoder.SwapRedBlue})");
+               t.Expect("redWhereTheOrderSaysRed", red > 200 && blue < 60, true);
+               t.Expect("opaque", p[3], (byte) 255);
+            }
+         }
+         finally
+         {
+            decoder?.Dispose();
+            try { System.IO.File.Delete(file); }
+            catch { /* a temp file left behind is harmless */ }
+         }
+
+         return t.Line();
+      }
 
       private static string TestScenarioPacks(NpcMemoryCampaignBehavior behavior)
       {

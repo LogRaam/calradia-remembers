@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-463 rules read 361 facts.
+464 rules read 362 facts.
 
 ## Facts read by more than one rule
 
@@ -684,6 +684,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `TroopLoanFacts`: `Hero.GetRelation`, `Hero.PartyBelongedTo`, `MemberRoster.TotalManCount`, `MobileParty.MemberRoster`, `Party.PartySizeLimit`, `TroopRoster.GetTroopRoster`
 - `UnknownActionNotice.Compose`: `ModSettings.ReportUnsupportedActions`
 - `VassalageFacts`: `Clan.IsUnderMercenaryService`, `Clan.Kingdom`, `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`, `Kingdom.Leader`
+- `VideoClock.At`: `Elapsed.TotalSeconds`
 - `ViolencePolicy.IsPermitted`: `ModSettings.AllowKillingCharacters`
 - `ViolencePolicy.Resolve`: `ModSettings.AllowKillingCharacters`, `ViolenceSceneReader.FactsFor`
 - `ViolencePolicy.RobberyTake`: `Hero.Gold`

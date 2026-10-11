@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 476 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1044 types in 27 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 479 types in 59 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1048 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 254 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -73,7 +73,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 57 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 58 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `ModLog` | internal static class | Writes timestamped log entries to a file in the Bannerlord Logs folder AND shows them in the in-game console. |
 | `ModSettings` | public static class | Mod-wide settings façade. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
@@ -158,7 +158,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 
-### CalradiaRemembers.Chat (52)
+### CalradiaRemembers.Chat (53)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -193,6 +193,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilLift` | internal static class | Settles a council's agreed pledges against the world as it stands now, reporting through a callback. |
 | `CouncilParticipantViewModel` | public class | One seated member of the bespoke COUNCIL window's left "CLAN JOUEUR" strip: a portrait tile (the anchor or a witness) with a seat label, clickable to open that hero's dossier. |
 | `CrFramePumpSpike` | internal static class | Shows a new engine texture per frame in the tale's picture frame, at a fixed rate, and measures it. |
+| `CrVideoPlayer` | internal static class | Plays one .crvid in the tale's picture frame of the open conversation. |
 | `EnvoyAudience` | public class | What an envoy audience carries: whose envoy, and the mandate he was given. |
 | `ExplorationBackdrop` | internal static class | The suspended-map backdrop an exploration scene's chat window sits on. |
 | `ExplorationSession` | public class | What an exploration scene is, supplied by whoever opens it. |
@@ -751,6 +752,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SwayOpinionVerb` | public class | sway_opinion (RP with teeth, increment 1): the player's case, made in conversation, genuinely moves the NPC's own regard for a named THIRD PARTY (not the player). |
 | `VerbContext` | public class | Everything a conversation verb needs to decide eligibility, compose its teaching text, or execute: the NPC and their profile, the live game-state bridge, the player's current message (when teaching mid-conversation), and... |
 | `VerbRegistry` | public class | The one shared registry of every IConversationVerb: composes eligible verbs' teaching text (consumed by EncounterContextBuilder), and routes an incoming [ACTION] to its verb (consumed by BannerlordGameStateBridge.Execute... |
+
+### CalradiaRemembers.Video (2)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `CrvidDecoder` | internal class | Decodes a .crvid's frames ahead, on its own thread, into reused buffers. |
+| `DecodedFrame` | internal class | One decoded frame: its index and its pixels (width x height x 4 bytes). |
 
 ### CalradiaRemembers.Violence (3)
 
@@ -1938,6 +1946,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `IStatesUnavailability` | public interface | A verb that can name its own closed door BEFORE the model speaks, instead of only refusing afterwards. |
 | `IVerb` | public interface | One self-contained verb: whether it currently applies, what it teaches the LLM, and how it executes when invoked. |
 | `VerbRegistryCore` | public class | Holds a set of IVerb{TContext,TAction,TResult} and composes/dispatches over them. |
+
+### CalradiaRemembers.Logic.Video (4)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `CrvidManifest` | public class | A .crvid's manifest.json: what the frames are and how fast they play. |
+| `CrvidRules` | public static class | What a manifest must say for the game to play it. |
+| `VideoClock` | public static class | The frame a video shows at a moment. |
+| `VideoMoment` | public struct | Which frame shows Seconds into a video, and whether a played-once video is over. |
 
 ### CalradiaRemembers.Logic.Violence (8)
 
