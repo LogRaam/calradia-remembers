@@ -12689,7 +12689,13 @@ namespace CalradiaRemembers.Diagnostics
             foreach (KeywordToken g in rule.Guards)
                if (!ScenarioGuardResolver.KnownVerbs.Contains(g.Verb)) problems.Add($"{who}: unknown guard {g.Verb}");
                else if (g.Verb == "IF_HERO_IS" && !ScenarioHeroExists(world, g.Payload)) problems.Add($"{who}: no hero '{g.Payload}'");
-               else if (g.Verb == "IF_PLAYER_AT_WAR" && world.ResolveFaction(g.Payload) == null) problems.Add($"{who}: no faction '{g.Payload}'");
+               else if ((g.Verb == "IF_PLAYER_AT_WAR" || g.Verb == "IF_KINGDOM_EXISTS") && world.ResolveFaction(g.Payload) == null) problems.Add($"{who}: no faction '{g.Payload}'");
+               else if (g.Verb == "IF_ALIVE" && !ScenarioHeroExists(world, g.Payload)) problems.Add($"{who}: no hero '{g.Payload}'");
+               else if ((g.Verb == "IF_AT_WAR" || g.Verb == "IF_AT_PEACE")
+                        && (g.Args.Count < 2 || world.ResolveFaction(g.Args[0]) == null || world.ResolveFaction(g.Args[1]) == null))
+                  problems.Add($"{who}: {g.Verb} '{g.Payload}' does not name two factions");
+               else if (g.Verb == "IF_RULES" && (g.Args.Count < 2 || !ScenarioHeroExists(world, g.Args[0]) || world.ResolveFaction(g.Args[1]) == null))
+                  problems.Add($"{who}: IF_RULES '{g.Payload}' does not name a hero and a kingdom");
 
             foreach (KeywordToken c in rule.Consequences)
             {
@@ -12869,16 +12875,24 @@ namespace CalradiaRemembers.Diagnostics
          KeywordToken onDeath = KeywordToken.Parse("ON_DEATH");
          ScenarioContext sheDies = ScenarioBehavior.ForDeath(rhagaea, other);
          ScenarioContext sheKills = ScenarioBehavior.ForDeath(other, rhagaea);
-         var only = new[] {rule};
 
-         bool whenSheDies = ScenarioSelector.Eligible(onDeath, only, g => ScenarioGuardResolver.Resolve(g, sheDies), runtime.FiredRuleIds).Count == 1;
-         bool whenSheKills = ScenarioSelector.Eligible(onDeath, only, g => ScenarioGuardResolver.Resolve(g, sheKills), runtime.FiredRuleIds).Count == 1;
+         // The readiness the game asks (ScenarioPass.IsReady), its wars taken as possible: who the death is about decides.
+         ScenarioChecks Checks(ScenarioContext ctx, bool realWars) => new()
+         {
+            Sealed = runtime.FiredRuleIds,
+            GuardPasses = g => ScenarioGuardResolver.Resolve(g, ctx),
+            ConsequenceApplies = c => !realWars || ScenarioConsequenceExecutor.CanApply(c, ctx)
+         };
+         bool whenSheDies = ScenarioSelector.TriggerMatches(rule.Trigger, onDeath) && ScenarioPass.IsReady(rule, Checks(sheDies, false));
+         bool whenSheKills = ScenarioSelector.TriggerMatches(rule.Trigger, onDeath) && ScenarioPass.IsReady(rule, Checks(sheKills, false));
+         // On this save, as it stands: would her death play it? Only when the North and the West are both at peace with the South.
+         bool readyNow = ScenarioPass.IsReady(rule, Checks(sheDies, true));
 
          // The wars as the executor would resolve them on her death: each side as the game's kingdom id.
          string wars = string.Join(",", rule.Consequences.Where(c => c.Verb == "DECLARE_WAR").Select(c =>
             $"{(c.Args.Count > 0 ? sheDies.ResolveFaction(c.Args[0])?.StringId : null) ?? "?"}->{(c.Args.Count > 1 ? sheDies.ResolveFaction(c.Args[1])?.StringId : null) ?? "?"}"));
 
-         t.Note($"other={other.Name} ({other.MapFaction?.StringId})");
+         t.Note($"other={other.Name} ({other.MapFaction?.StringId}); her death would play it on this save now: {readyNow}");
          t.Expect("firesWhenSheDies", whenSheDies, true);
          t.Expect("firesWhenSheKills", whenSheKills, false);
          t.Expect("wars", wars, "empire->empire_s,empire_w->empire_s");
@@ -12908,10 +12922,9 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(outcomes.Any(r => firedBefore.Contains(r.Id)), "a marriage outcome is already sealed in this save")) return t.Line();
 
          // What the outcomes touch, kept to be put back exactly (a relation gain is scaled by the game, so no -delta).
-         bool profileCreated = store.Get(rhagaea.StringId) == null;
-         if (profileCreated) store.Set(HeroProfileMapper.FromHero(rhagaea));
-         NpcProfile profile = store.Get(rhagaea.StringId);
-         List<NotableEvent> eventsBefore = profile.Events.ToList();
+         // Her profile is taken as the save has it: a marriage must play its outcome even when CR never recorded her yet.
+         bool hadProfile = store.Get(rhagaea.StringId) != null;
+         List<NotableEvent> eventsBefore = store.Get(rhagaea.StringId)?.Events.ToList() ?? new List<NotableEvent>();
          var worldBefore = new HashSet<string>(WorldEventStore.Instance.All().Select(e => e.Id));
          Campaign.Current.Models.DiplomacyModel.GetHeroesForEffectiveRelation(player, rhagaea, out Hero side1, out Hero side2);
          int relationBefore = CharacterRelationManager.GetHeroRelation(side1, side2);
@@ -12943,7 +12956,7 @@ namespace CalradiaRemembers.Diagnostics
                t.Expect($"{name}Fired", string.Join(",", fired.Select(r => r.Id)), rule.Id);
                if (fired.Count == 0) continue;
 
-               bool remembered = memory == null || profile.Events.Any(e => e.summary == memory);
+               bool remembered = memory == null || store.Get(rhagaea.StringId)?.Events.Any(e => e.summary == memory) == true;
                bool told = WorldEventStore.Instance.All().Any(e => !worldBefore.Contains(e.Id) && e.Summary == rule.Message);
                t.Expect($"{name}Remembered", remembered, true);
                t.Expect($"{name}Told", told, true);
@@ -12958,8 +12971,9 @@ namespace CalradiaRemembers.Diagnostics
             foreach (WorldEvent e in WorldEventStore.Instance.All().Where(e => !worldBefore.Contains(e.Id)).ToList())
                WorldEventStore.Instance.Remove(e.Id);
 
-            if (profileCreated) store.Remove(rhagaea.StringId);
-            else
+            NpcProfile profile = store.Get(rhagaea.StringId);
+            if (!hadProfile && profile != null) store.Remove(rhagaea.StringId);
+            else if (profile != null)
             {
                profile.Events.RemoveAll(e => !eventsBefore.Any(b => ReferenceEquals(b, e)));
                store.Set(profile);
@@ -12970,7 +12984,7 @@ namespace CalradiaRemembers.Diagnostics
             if (Clan.PlayerClan != null && Math.Abs(influenceDrift) > 0.01f) ChangeClanInfluenceAction.Apply(Clan.PlayerClan, influenceDrift);
          }
 
-         t.Note($"playerRules={playerRules}, profileCreated={profileCreated}, relation back to {CharacterRelationManager.GetHeroRelation(side1, side2)} (was {relationBefore})");
+         t.Note($"playerRules={playerRules}, hadProfile={hadProfile}, relation back to {CharacterRelationManager.GetHeroRelation(side1, side2)} (was {relationBefore})");
 
          return t.Line();
       }

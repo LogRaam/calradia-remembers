@@ -101,8 +101,9 @@ namespace CalradiaRemembers.Tests
         }
 
         // STAKE: "des guards devraient proteger le jeu". If the North is already at war with the South, the rule that declares
-        // that war must not play: otherwise the realm is told the eagles turned while nothing changed. It stays unsealed,
-        // so it can still play the day its war is possible.
+        // that war must not play: otherwise the realm is told the eagles turned while nothing changed. It is not sealed, so
+        // the next time the same trigger fires it is asked again (a death happens once, so for Rhagaea's death that is the
+        // end of it; a rule on a repeating event gets its chance again).
         [Test]
         public void GIVEN_a_rule_one_of_whose_consequences_cannot_apply_WHEN_the_event_fires_THEN_it_does_not_play_and_is_not_sealed()
         {

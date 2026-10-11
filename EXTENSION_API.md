@@ -127,8 +127,9 @@ reference to CR. Packs are read in this order: CR's own (`ModuleData/scenarios`)
   what the rules before it changed). Rules sharing a `group` are alternatives: one of them is drawn, by `weight`. Use a
   group for outcomes that exclude each other (CR's four outcomes of marrying Rhagaea are the group `rhagaea_marriage`).
 - A rule plays only when every one of its consequences can really apply now: a war between realms already at war, a
-  peace between realms at peace, a memory on someone the player never met. Otherwise it waits, unsealed, and its message
-  is not told. Guards check the rest: `IF_AT_WAR:A,B`, `IF_AT_PEACE:A,B`, `IF_ALIVE:hero`, `IF_KINGDOM_EXISTS:kingdom`,
+  peace between realms at peace, a relation with someone no longer in the world. Otherwise it does not play for this
+  event and its message is not told; it is not sealed, so it is asked again only if the same trigger fires again (a
+  death happens once: a rule on one hero's death that cannot apply then never plays). Guards check the rest: `IF_AT_WAR:A,B`, `IF_AT_PEACE:A,B`, `IF_ALIVE:hero`, `IF_KINGDOM_EXISTS:kingdom`,
   `IF_RULES:hero,kingdom`, besides `IF_HERO_IS`, `IF_PLAYER_INVOLVED`, `IF_PLAYER_RULES`, `IF_PLAYER_AT_WAR` and the
   player's sex.
 - In game: `cr.scenarios` lists the loaded rules and whose pack each came from; `cr.testall` (`scenario_packs`)

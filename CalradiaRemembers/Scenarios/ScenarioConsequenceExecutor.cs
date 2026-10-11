@@ -53,7 +53,7 @@ namespace CalradiaRemembers.Scenarios
                case "INJECT_MEMORY":
                   return ScenarioArgs.TryParseTargetRest(consequence.Payload, out string target, out _)
                          && context.ResolveHero(target) is { } remembers && remembers != Hero.MainHero
-                         && NpcMemoryCampaignBehavior.Instance?.Store?.Get(remembers.StringId) != null;
+                         && Mapping.HeroPresence.IsInTheWorld(remembers) && NpcMemoryCampaignBehavior.Instance?.Store != null;
                default:
                   return false;
             }
@@ -158,8 +158,10 @@ namespace CalradiaRemembers.Scenarios
          ModLog.Info($"[SCENARIO] CHANGE_INFLUENCE: {clan.Name} {(delta >= 0 ? "+" : "")}{delta}.");
       }
 
-      // INJECT_MEMORY:Ref:text — record a memory on an NPC's profile so they reference it in conversation
-      // (the "Calradia remembers" channel). Only NPCs the player has actually met (a profile exists).
+      // INJECT_MEMORY:Ref:text: record a memory on an NPC's profile so they reference it in conversation (the "Calradia
+      // remembers" channel). 11/10/2026: the profile is created when CR holds none yet, as CrNpcMemory.AddMemory does. A
+      // rule now plays only when all its consequences can apply, so a missing profile would have silently cancelled
+      // every Rhagaea marriage outcome for a player CR had never recorded her with.
       private static void InjectMemory(KeywordToken c, ScenarioContext ctx)
       {
          if (!ScenarioArgs.TryParseTargetRest(c.Payload, out string target, out string text))
@@ -172,8 +174,8 @@ namespace CalradiaRemembers.Scenarios
          if (hero == null || hero == Hero.MainHero) return;
 
          var store = NpcMemoryCampaignBehavior.Instance?.Store;
-         NpcProfile profile = store?.Get(hero.StringId);
-         if (profile == null) return; // not yet met — nothing to remember on
+         if (store == null) return;
+         NpcProfile profile = store.Get(hero.StringId) ?? Mapping.HeroProfileMapper.FromHero(hero);
 
          profile.Events.Add(new NotableEvent((int) CampaignTime.Now.ToDays, NotableEventType.Other, text));
          store.Set(profile);
