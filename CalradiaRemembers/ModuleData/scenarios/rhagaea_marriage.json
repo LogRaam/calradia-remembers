@@ -1,13 +1,13 @@
 {
-  "_comment": "The Rhagaea marriage — four outcomes on one trigger, one drawn at random and sealed. Rhagaea is the empress-stateswoman who never abdicates FOR the player; each outcome keeps her true to herself and is surfaced through her own memory (she speaks of the union's nature). B (two crowns) only applies if the player already rules. All fire only when the player marries Rhagaea (IF_PLAYER_INVOLVED + IF_HERO_IS:Rhagaea). Test: cr.scenario_fire ON_MARRIAGE Rhagaea.",
+  "_comment": "The Rhagaea marriage: four outcomes on one trigger, one drawn at random and sealed. Rhagaea is the empress-stateswoman who never abdicates FOR the player; each outcome keeps her true to herself and is surfaced through her own memory (she speaks of the union's nature). B (two crowns) only applies if the player already rules. All fire only when the player marries Rhagaea (IF_PLAYER_INVOLVED + IF_HERO_IS:lord_1_14, Rhagaea's game id, which holds in every language). Test: cr.scenario_fire ON_MARRIAGE Rhagaea.",
   "rules": [
     {
       "id": "rhagaea_marriage_consort",
       "trigger": "ON_MARRIAGE",
-      "guards": [ "IF_PLAYER_INVOLVED", "IF_HERO_IS:Rhagaea" ],
+      "guards": [ "IF_PLAYER_INVOLVED", "IF_HERO_IS:lord_1_14" ],
       "consequences": [
-        "INJECT_MEMORY:Rhagaea:On our wedding day I kept my throne. My spouse took their place at my side as my consort and my sword, not my successor. The Empire of the South remains mine to restore.",
-        "CHANGE_RELATION:Rhagaea:+10"
+        "INJECT_MEMORY:lord_1_14:On our wedding day I kept my throne. My spouse took their place at my side as my consort and my sword, not my successor. The Empire of the South remains mine to restore.",
+        "CHANGE_RELATION:lord_1_14:+10"
       ],
       "message": "Rhagaea has wed the outlander, yet she keeps her crown, and her new consort stands as her sword.",
       "fireOnce": true,
@@ -16,9 +16,9 @@
     {
       "id": "rhagaea_marriage_two_crowns",
       "trigger": "ON_MARRIAGE",
-      "guards": [ "IF_PLAYER_INVOLVED", "IF_HERO_IS:Rhagaea", "IF_PLAYER_RULES" ],
+      "guards": [ "IF_PLAYER_INVOLVED", "IF_HERO_IS:lord_1_14", "IF_PLAYER_RULES" ],
       "consequences": [
-        "INJECT_MEMORY:Rhagaea:Ours is a pact of two crowns, not a merger. I rule the South; my spouse rules their own realm. The question that hangs between us is whose blood inherits, my daughter Ira or their line.",
+        "INJECT_MEMORY:lord_1_14:Ours is a pact of two crowns, not a merger. I rule the South; my spouse rules their own realm. The question that hangs between us is whose blood inherits, my daughter Ira or their line.",
         "CHANGE_INFLUENCE:PLAYER:+50"
       ],
       "message": "Two crowns are joined by marriage, the Southern Empire and the realm of its new ally, yet neither bends to the other.",
@@ -28,10 +28,10 @@
     {
       "id": "rhagaea_marriage_regent",
       "trigger": "ON_MARRIAGE",
-      "guards": [ "IF_PLAYER_INVOLVED", "IF_HERO_IS:Rhagaea" ],
+      "guards": [ "IF_PLAYER_INVOLVED", "IF_HERO_IS:lord_1_14" ],
       "consequences": [
-        "INJECT_MEMORY:Rhagaea:I named my spouse war-leader of my armies and kept the crown for myself. They may yet rise to the throne, but only by winning it, with my blessing earned, or upon my death. Never by my surrender.",
-        "CHANGE_RELATION:Rhagaea:+5"
+        "INJECT_MEMORY:lord_1_14:I named my spouse war-leader of my armies and kept the crown for myself. They may yet rise to the throne, but only by winning it, with my blessing earned, or upon my death. Never by my surrender.",
+        "CHANGE_RELATION:lord_1_14:+5"
       ],
       "message": "The empress weds and names her consort strategos of the South; the throne stays hers, the sword becomes theirs.",
       "fireOnce": true,
@@ -40,9 +40,9 @@
     {
       "id": "rhagaea_marriage_suspicious",
       "trigger": "ON_MARRIAGE",
-      "guards": [ "IF_PLAYER_INVOLVED", "IF_HERO_IS:Rhagaea" ],
+      "guards": [ "IF_PLAYER_INVOLVED", "IF_HERO_IS:lord_1_14" ],
       "consequences": [
-        "INJECT_MEMORY:Rhagaea:I wed them, but I did not hand them my cause. This union holds only so long as they serve my restoration. Should they reach for my throne behind my back, I will know it, and I will not forgive it."
+        "INJECT_MEMORY:lord_1_14:I wed them, but I did not hand them my cause. This union holds only so long as they serve my restoration. Should they reach for my throne behind my back, I will know it, and I will not forgive it."
       ],
       "message": "Rhagaea has taken a spouse, but the court whispers that she watches them closely; her cause is hers alone.",
       "fireOnce": true,

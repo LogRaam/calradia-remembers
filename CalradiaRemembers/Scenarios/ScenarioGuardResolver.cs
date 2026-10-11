@@ -32,7 +32,7 @@ namespace CalradiaRemembers.Scenarios
             case "IF_PLAYER_IS_FEMALE": return Hero.MainHero?.IsFemale == true;
             case "IF_PLAYER_IS_MALE":   return Hero.MainHero?.IsFemale == false;
             case "IF_PLAYER_INVOLVED":  return context.InvolvesPlayer;
-            case "IF_HERO_IS":          return context.InvolvesHero(guard.Payload);
+            case "IF_HERO_IS":          return context.IsAbout(guard.Payload);
             case "IF_PLAYER_AT_WAR":    return PlayerAtWar(guard.Payload, context);
             default:
                ModLog.Info($"[SCENARIO] unknown guard '{guard.Verb}' — treated as failing (rule will not fire).");

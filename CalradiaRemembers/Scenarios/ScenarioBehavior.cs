@@ -32,10 +32,11 @@ namespace CalradiaRemembers.Scenarios
 
       /// <summary>
       ///   What a death is about, exactly as the feeder hands it to the rules: the one who died first, then the one who
-      ///   killed them. Shared with cr.testall so the self-test asks the rules what a real death asks them.
+      ///   killed them; only the one who died is its subject (IF_HERO_IS), so a rule on a lord's death never answers a
+      ///   death they dealt. Shared with cr.testall so the self-test asks the rules what a real death asks them.
       /// </summary>
       public static ScenarioContext ForDeath(Hero victim, Hero killer)
-         => new(HeroList(victim, killer), FactionsOf(victim, killer));
+         => new(HeroList(victim, killer), FactionsOf(victim, killer), HeroList(victim));
 
       /// <summary>What a marriage is about, exactly as the feeder hands it to the rules: the two who wed.</summary>
       public static ScenarioContext ForMarriage(Hero a, Hero b)

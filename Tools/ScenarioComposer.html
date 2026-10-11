@@ -96,13 +96,13 @@
 // ── VOCABULARY (mirror the engine; extend here when the engine grows) ────────────────────────────
 const VOCAB = {
   triggers: [
-    { key:"ON_DEATH",        desc:"A hero died. Scope to one with a guard IF_HERO_IS." },
+    { key:"ON_DEATH",        desc:"A hero died. Scope to one with a guard IF_HERO_IS (it asks about the one who died, never the killer)." },
     { key:"ON_MARRIAGE",     desc:"Two heroes wed. Scope with IF_HERO_IS / IF_PLAYER_INVOLVED." },
     { key:"ON_WAR_DECLARED", desc:"War was declared between two factions." },
     { key:"ON_PEACE",        desc:"Peace was made between two factions." }
   ],
   guards: [
-    { key:"IF_HERO_IS",         args:[{n:"hero", ph:"e.g. Rhagaea"}],   desc:"An involved hero matches this name or id." },
+    { key:"IF_HERO_IS",         args:[{n:"hero", ph:"e.g. lord_1_14 (Rhagaea)"}],   desc:"The event is about this hero (a death: the one who died; a marriage: either spouse). Prefer the game id: names are translated." },
     { key:"IF_PLAYER_INVOLVED", args:[],                                desc:"The player is one of the event's heroes." },
     { key:"IF_PLAYER_RULES",    args:[],                                desc:"The player is a kingdom ruler." },
     { key:"IF_PLAYER_IS_FEMALE",args:[],                                desc:"The player is female." },
@@ -110,7 +110,7 @@ const VOCAB = {
     { key:"IF_PLAYER_AT_WAR",   args:[{n:"faction", ph:"e.g. Vlandia"}],desc:"The player's faction is at war with this faction." }
   ],
   consequences: [
-    { key:"DECLARE_WAR",     args:[{n:"faction A",ph:"e.g. Northern Empire"},{n:"faction B",ph:"e.g. Southern Empire"}], fmt:"comma",  desc:"Start a war between two factions." },
+    { key:"DECLARE_WAR",     args:[{n:"faction A",ph:"e.g. empire (Northern Empire)"},{n:"faction B",ph:"e.g. empire_s (Southern Empire)"}], fmt:"comma",  desc:"Start a war between two factions." },
     { key:"MAKE_PEACE",      args:[{n:"faction A",ph:"e.g. Vlandia"},{n:"faction B",ph:"e.g. Battania"}],               fmt:"comma",  desc:"End a war between two factions." },
     { key:"CHANGE_RELATION", args:[{n:"hero",ph:"name, id, or PLAYER"},{n:"delta",ph:"e.g. +10"}],                       fmt:"reldelta",desc:"Shift the player's relation with a hero." },
     { key:"CHANGE_INFLUENCE",args:[{n:"hero",ph:"PLAYER, or a hero (their clan)"},{n:"delta",ph:"e.g. +50"}],            fmt:"reldelta",desc:"Change a hero's clan influence (PLAYER = your clan)." },
@@ -296,8 +296,8 @@ function downloadPack(){
 }
 function loadExample(){
   loadPack({ rules:[{
-    id:"rhagaea_death_eagles_turn", trigger:"ON_DEATH", guards:["IF_HERO_IS:Rhagaea"],
-    consequences:["DECLARE_WAR:Northern Empire,Southern Empire","DECLARE_WAR:Western Empire,Southern Empire"],
+    id:"rhagaea_death_eagles_turn", trigger:"ON_DEATH", guards:["IF_HERO_IS:lord_1_14"],
+    consequences:["DECLARE_WAR:empire,empire_s","DECLARE_WAR:empire_w,empire_s"],
     message:"With the empress Rhagaea fallen, the eagles of the North and West turn upon a leaderless South.",
     fireOnce:true, weight:1 }]});
 }

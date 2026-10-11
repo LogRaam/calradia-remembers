@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 474 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1034 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1036 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -815,7 +815,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (643)
+### CalradiaRemembers.Logic (645)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1336,6 +1336,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScatteredLootLedger` | public class | Save-serializable carrier for every item currently scattered among bandit bands, awaiting recovery. |
 | `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |
 | `ScenarioArgs` | public static class | Parsing helpers for the scripted-scenarios keyword payloads. |
+| `ScenarioCandidate` | public class | One hero or faction a reference may name. |
+| `ScenarioReferenceMatch` | public static class | How well a scenario reference names a candidate, and which candidate it names. |
 | `ScenarioRule` | public class | One reactive rule: a Trigger, optional Guards (eligibility, AND-combined), a list of Consequences (declarative world mutations), and a Message for the World-Event store. |
 | `ScenarioSelector` | public static class | Selects the single scenario rule to fire for an event, or null when none apply. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |

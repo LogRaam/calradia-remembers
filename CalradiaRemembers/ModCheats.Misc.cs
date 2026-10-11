@@ -57,7 +57,8 @@ namespace CalradiaRemembers
       ///   cr.scenario_fire &lt;VERB[:payload]&gt; [heroName]
       ///   Manually fires a trigger to test scenarios without waiting for the real event. An optional hero
       ///   name becomes the event's primary hero (and their faction a context faction); the player is always
-      ///   included. E.g. cr.scenario_fire ON_DEATH Rhagaea.
+      ///   included. ON_DEATH and ON_MARRIAGE build the context the real event builds (the hero dies at the
+      ///   player's hand; the hero weds the player). E.g. cr.scenario_fire ON_DEATH Rhagaea.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("scenario_fire", "cr")]
       public static string FireScenario(List<string> args)
@@ -86,8 +87,12 @@ namespace CalradiaRemembers
          var factions = new List<IFaction>();
          if (hero?.MapFaction != null) factions.Add(hero.MapFaction);
 
-         var ctx = new ScenarioContext(heroes, factions);
-         ScenarioRule fired = runtime.Fire(KeywordToken.Parse(verb), ctx);
+         KeywordToken trigger = KeywordToken.Parse(verb);
+         ScenarioContext ctx = hero == null ? new ScenarioContext(heroes, factions)
+            : trigger.Verb == "ON_DEATH" ? ScenarioBehavior.ForDeath(hero, Hero.MainHero)
+            : trigger.Verb == "ON_MARRIAGE" ? ScenarioBehavior.ForMarriage(hero, Hero.MainHero)
+            : new ScenarioContext(heroes, factions);
+         ScenarioRule fired = runtime.Fire(trigger, ctx);
 
          return fired != null
             ? $"Fired '{fired.Id}' on {verb}."
