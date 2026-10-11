@@ -45,13 +45,22 @@
       "canvas": "You went to bathe in the lily pond in your thin lace shift. You know the player followed you; you let them watch, and you take your time.",
       "choices": [
         {
-          "id": "watch",
-          "label": "Watch her a while longer",
+          "id": "among_the_lilies",
+          "label": "She kneels among the lilies",
           "said": {
             "to": "{giver}",
-            "meaning": "the player keeps watching her, or she kneels in the water, knowing they watch"
+            "meaning": "she kneels in the shallow water among the lilies, knowing the player watches"
           },
-          "next": "found_2"
+          "next": "among_the_lilies"
+        },
+        {
+          "id": "looking_back",
+          "label": "She looks back at you",
+          "said": {
+            "to": "{giver}",
+            "meaning": "she lifts the hem of her wet shift and looks back over her shoulder at the player"
+          },
+          "next": "looking_back"
         },
         {
           "id": "joins",
@@ -65,19 +74,28 @@
       ]
     },
     {
-      "id": "found_2",
+      "id": "among_the_lilies",
       "journal": "{giver} kneels among the lilies.",
       "image": "1b_observe_her_more.jpg",
       "canvas": "You kneel in the shallow water among the lilies, knowing the player watches.",
       "choices": [
         {
-          "id": "watch",
-          "label": "Watch her a while longer",
+          "id": "found",
+          "label": "Bathing among the lilies",
           "said": {
             "to": "{giver}",
-            "meaning": "the player keeps watching her, or she lifts her shift and looks back at them"
+            "meaning": "she bathes in the lily pond in her lace shift and the player watches her"
           },
-          "next": "found_3"
+          "next": "found"
+        },
+        {
+          "id": "looking_back",
+          "label": "She looks back at you",
+          "said": {
+            "to": "{giver}",
+            "meaning": "she lifts the hem of her wet shift and looks back over her shoulder at the player"
+          },
+          "next": "looking_back"
         },
         {
           "id": "joins",
@@ -91,11 +109,29 @@
       ]
     },
     {
-      "id": "found_3",
+      "id": "looking_back",
       "journal": "{giver} looks back at you.",
       "image": "2c_observe_evenm_more.jpg",
       "canvas": "You lift the hem of your wet shift and look back over your shoulder at the player.",
       "choices": [
+        {
+          "id": "found",
+          "label": "Bathing among the lilies",
+          "said": {
+            "to": "{giver}",
+            "meaning": "she bathes in the lily pond in her lace shift and the player watches her"
+          },
+          "next": "found"
+        },
+        {
+          "id": "among_the_lilies",
+          "label": "She kneels among the lilies",
+          "said": {
+            "to": "{giver}",
+            "meaning": "she kneels in the shallow water among the lilies, knowing the player watches"
+          },
+          "next": "among_the_lilies"
+        },
         {
           "id": "joins",
           "label": "She comes to you",

@@ -27,8 +27,9 @@ def build(n):
     first_after_found = n.get("approach", [{"id": "together"}])[0]["id"]
     for i, f in enumerate(found):
         choices = []
-        if i + 1 < len(found):
-            choices.append({"id": "watch", "label": "Watch her a while longer", "said": said(found[i + 1]["meaning"]), "next": found[i + 1]["id"]})
+        if len(found) >= 2:
+            # Gabriel (11/10/2026): the ways she is found are optional states to explore, not steps: each leads to every other.
+            choices += [{"id": o["id"], "label": o["label"], "said": said(o["meaning"]), "next": o["id"]} for o in found if o["id"] != f["id"]]
         choices.append({"id": "joins", "label": "She comes to you", "said": said("she sees the player and wades over to them, or the player goes to her, and they come close together"), "next": first_after_found})
         stages.append({"id": f["id"], "journal": f["journal"], "image": f["image"], "canvas": f["canvas"], "choices": choices})
     for a in n.get("approach", []):
@@ -139,9 +140,9 @@ NATIONS.append({"folder": "Aserai", "id": "crit_wife_aserai_oasis", "title": "Th
 NATIONS.append({"folder": "Battania", "id": "crit_wife_battania_glen", "title": "The Glen of the Falls", "culture": "battania", "people": "Battanian",
  "popup": "While your company makes camp under the oaks, {giver} slips away down a path toward the sound of a waterfall in the glen, her plaid over her arm. She glances back at you once, and the green swallows her.",
  "invite_journal": "{giver} slipped away toward a waterfall in the glen.",
- "found": [st("found", "1a_found_bathing.jpg", "You went down to bathe beneath the falls in the glen, as the women of your people do, bare to the waist, your plaid knotted at your hips. You know the player followed; you let them watch, and you take your time.", "You found {giver} bathing in the glen."),
-           st("found_2", "1b_observe_more_bathing.jpg", "You crouch in the pool to wash, knowing the player is watching, and you do not hurry.", "{giver} bathes, unhurried.", meaning="the player keeps watching her bathe, or she goes on bathing, knowing they watch"),
-           st("found_3", "1c_observe_even_more_bathing.jpg", "You kneel in the water beneath the falls and let it run over you, aware of the player's eyes.", "{giver} kneels beneath the falls.", meaning="the player keeps watching her, or she kneels in the water beneath the falls")],
+ "found": [st("found", "1a_found_bathing.jpg", "You went down to bathe beneath the falls in the glen, as the women of your people do, bare to the waist, your plaid knotted at your hips. You know the player followed; you let them watch, and you take your time.", "You found {giver} bathing in the glen.", "Bathing in the glen", "she bathes beneath the falls, bare to the waist, and the player watches her"),
+           st("crouching", "1b_observe_more_bathing.jpg", "You crouch in the pool to wash, knowing the player is watching, and you do not hurry.", "{giver} bathes, unhurried.", "She crouches to wash", "she crouches in the pool to wash, unhurried, knowing the player watches"),
+           st("under_the_falls", "1c_observe_even_more_bathing.jpg", "You kneel in the water beneath the falls and let it run over you, aware of the player's eyes.", "{giver} kneels beneath the falls.", "She kneels under the falls", "she kneels in the water beneath the falls and lets it run over her")],
  "together": st("together", "3_she_joins_him.jpg", "You have come up out of the pool to the player, wet and smiling, your braid over your shoulder. An hour alone with your spouse, in the land of your people.", "{giver} has come to you."),
  "states": [st("shoulder", "2_shoulder.jpg", "Water runs over your freckled shoulder; you let the player look.", "{giver}'s shoulder."),
             st("breast", "4_breast.jpg", "The player admires your breasts, and you welcome it.", "You admire {giver}."),
@@ -176,9 +177,9 @@ NATIONS.append({"folder": "Empire", "id": "crit_wife_empire_stream", "title": "T
 NATIONS.append({"folder": "Vlandia", "id": "crit_wife_vlandia_pond", "title": "The Lily Pond", "culture": "vlandia", "people": "Vlandian",
  "popup": "While your company makes camp by the meadows, {giver} takes off her shoes and walks toward a still pond among the willows, in only her linen shift. She looks back at you once from the bank, and steps out of sight.",
  "invite_journal": "{giver} walked toward a lily pond among the willows.",
- "found": [st("found", "1_found_bathing.jpg", "You went to bathe in the lily pond in your thin lace shift. You know the player followed you; you let them watch, and you take your time.", "You found {giver} bathing in the lily pond."),
-           st("found_2", "1b_observe_her_more.jpg", "You kneel in the shallow water among the lilies, knowing the player watches.", "{giver} kneels among the lilies.", meaning="the player keeps watching her, or she kneels in the water, knowing they watch"),
-           st("found_3", "2c_observe_evenm_more.jpg", "You lift the hem of your wet shift and look back over your shoulder at the player.", "{giver} looks back at you.", meaning="the player keeps watching her, or she lifts her shift and looks back at them")],
+ "found": [st("found", "1_found_bathing.jpg", "You went to bathe in the lily pond in your thin lace shift. You know the player followed you; you let them watch, and you take your time.", "You found {giver} bathing in the lily pond.", "Bathing among the lilies", "she bathes in the lily pond in her lace shift and the player watches her"),
+           st("among_the_lilies", "1b_observe_her_more.jpg", "You kneel in the shallow water among the lilies, knowing the player watches.", "{giver} kneels among the lilies.", "She kneels among the lilies", "she kneels in the shallow water among the lilies, knowing the player watches"),
+           st("looking_back", "2c_observe_evenm_more.jpg", "You lift the hem of your wet shift and look back over your shoulder at the player.", "{giver} looks back at you.", "She looks back at you", "she lifts the hem of her wet shift and looks back over her shoulder at the player")],
  "together": st("together", "3_she_joins_him.jpg", "You have walked out of the pond to the player in your soaked shift, smiling. An hour alone with your spouse, in the land of your people.", "{giver} has come to you."),
  "states": [st("shoulder", "2_shoulder.jpg", "Your wet shift clings to your shoulder; you let the player look.", "{giver}'s shoulder."),
             st("breast", "4_breast.jpg", "The player admires your breasts through the soaked lace, and you welcome it.", "You admire {giver}."),
