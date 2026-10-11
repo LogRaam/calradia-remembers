@@ -124,6 +124,11 @@
           "description": "Who may give the tale, and what it needs of the world and of the player.",
           "x-default-empty": true
         },
+        "on_map": {
+          "$ref": "#/$defs/AuthoredMapTrigger",
+          "x-kind": "object:AuthoredMapTrigger",
+          "description": "The tale begins by itself on the map, never in a conversation: when the player's party has stood still long enough, by day, in the giver's own lands, on a chance each day. The giver must travel with the player (requires.giver.with_player)."
+        },
         "binds": {
           "type": [
             "object",
@@ -221,6 +226,65 @@
           ],
           "x-closed-list": "ContentLevels",
           "default": "none"
+        }
+      }
+    },
+    "AuthoredMapTrigger": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "How a tale that begins on the map is set off, and the popup that asks the player (Gabriel, 10/10/2026).",
+      "properties": {
+        "still_hours": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "Hours the player's party must have stood in the same place, out in the open. Default 3.",
+          "default": 3
+        },
+        "by_day": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On (the default): only by day.",
+          "default": true
+        },
+        "in_givers_lands": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On (the default): only when the nearest settlement is of the giver's own culture.",
+          "default": true
+        },
+        "chance_per_day": {
+          "type": "number",
+          "x-kind": "number",
+          "description": "The chance the tale begins, once a day when everything else holds: above 0, at most 1. Default 0.15.",
+          "default": 0.15
+        },
+        "invitation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The popup's text, which sets the scene; {giver} is filled with the giver's name."
+        },
+        "accept": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The popup's yes, which begins the tale and opens the conversation with the giver.",
+          "default": "Go to them"
+        },
+        "decline": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The popup's no: nothing is lost, and the tale may come back after a season.",
+          "default": "Not now"
         }
       }
     },

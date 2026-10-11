@@ -129,6 +129,15 @@ namespace CalradiaRemembers.Chat
             OnInterceptLineReached,
             200);
 
+         // A tale that began on the map: the player came to find them. A quiet line, covered by the chat within a few frames.
+         starter.AddDialogLine(
+            "cr_tale_meeting_stage_intercept",
+            "start", "cr_captive_stage_hold",
+            "Oh. It is you.",
+            () => IsStaging && _pending?.Kind == ChatSceneKind.TaleMeeting,
+            OnInterceptLineReached,
+            200);
+
          // An envoy under a flag of truce: a neutral opener in his mouth, covered by the chat within a few frames.
          starter.AddDialogLine(
             "cr_envoy_stage_intercept",
@@ -297,6 +306,17 @@ namespace CalradiaRemembers.Chat
             AttachParty = PartyBase.MainParty,
             Envoy = envoy,
             EnvoyName = envoyName
+         });
+      }
+
+      /// <summary>A written tale that began on the map: the conversation with its giver, who travels with the player.</summary>
+      public static void StageTaleMeeting(Hero giver)
+      {
+         Open(new ChatSceneRequest {
+            Kind = ChatSceneKind.TaleMeeting,
+            Partner = giver,
+            // The giver rides in the player's own party, as a companion does.
+            AttachParty = giver?.PartyBelongedTo?.Party ?? PartyBase.MainParty
          });
       }
 
@@ -847,6 +867,11 @@ namespace CalradiaRemembers.Chat
 
             case ChatSceneKind.EnvoyAudience:
                ChatManager.OpenForEnvoyAudienceDirect(r.EnvoyName, r.PortraitCharacter, r.Envoy);
+
+               return;
+
+            case ChatSceneKind.TaleMeeting:
+               NpcMemoryCampaignBehavior.Instance?.DialogFlow?.OpenChatForTaleMeeting(r.Partner);
 
                return;
 

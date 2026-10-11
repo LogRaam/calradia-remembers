@@ -1,0 +1,1 @@
+blocking_on_map_without_invitation.json: quest 'fx_tale': on_map.invitation is empty: the popup would ask the player nothing. The quest is not loaded.

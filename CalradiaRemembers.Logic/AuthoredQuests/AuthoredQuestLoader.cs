@@ -11,7 +11,8 @@
 #region
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -189,6 +190,18 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          if (AuthoredContentPolicy.Required(q.Requires?.Content) == null)
             blocking.Add($"requires.content '{q.Requires.Content}' is no content level ({string.Join(", ", ContentLevels)}).");
+
+         // A tale that begins on the map (11/10/2026): someone travelling with the player gives it, by a popup.
+         AuthoredMapTrigger onMap = q.OnMap;
+         if (onMap != null)
+         {
+            if (q.Requires?.Giver?.WithPlayer != true)
+               blocking.Add("on_map: the tale begins on the map, so its giver must travel with the player: set requires.giver.with_player to true.");
+            if (onMap.ChancePerDay <= 0 || onMap.ChancePerDay > 1)
+               blocking.Add($"on_map.chance_per_day {onMap.ChancePerDay.ToString(CultureInfo.InvariantCulture)} must be above 0 and at most 1.");
+            if (onMap.StillHours < 0) blocking.Add($"on_map.still_hours {onMap.StillHours} cannot be below 0.");
+            if (string.IsNullOrWhiteSpace(onMap.Invitation)) blocking.Add("on_map.invitation is empty: the popup would ask the player nothing.");
+         }
 
          string gender = q.Requires?.Giver?.Gender;
          if (!string.IsNullOrWhiteSpace(gender) && !GiverGenders.Contains(gender.Trim().ToLowerInvariant()))

@@ -1,0 +1,1 @@
+blocking_on_map_negative_still_hours.json: quest 'fx_tale': on_map.still_hours -2 cannot be below 0. The quest is not loaded.

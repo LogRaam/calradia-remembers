@@ -28,6 +28,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.ModuleManager;
+using TaleWorlds.MountAndBlade;
 
 #endregion
 
@@ -54,6 +55,12 @@ namespace CalradiaRemembers.Quests
       // The offer being made in the conversation now open (transient: a conversation does not survive a save).
       private AuthoredQuestRun _offer;
       private string _offerHeroId;
+
+      // A tale that begins on the map (Gabriel, 10/10/2026): where the player's party stood last hour, how many hours it
+      // has stood there, and the day the dice were last cast (transient: after a load the party counts its hours again).
+      private Vec2 _lastPartyPosition;
+      private int _stillHours;
+      private int _mapRolledOn = -1;
 
       public AuthoredQuestBehavior() => Instance = this;
 
@@ -268,6 +275,13 @@ namespace CalradiaRemembers.Quests
          var open = new List<(AuthoredQuest q, Dictionary<string, string> ids, Dictionary<string, string> names)>();
          foreach (AuthoredQuest q in _quests.Values.Where(q => onlyQuestId == null || q.Id == onlyQuestId))
          {
+            if (q.OnMap != null)
+            {
+               whyNot = "it begins by itself on the map, never in a conversation";
+
+               continue;
+            }
+
             if (!TryBind(q, hero, out Dictionary<string, string> ids, out Dictionary<string, string> names, out whyNot)) continue;
             whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, hero, today));
             if (whyNot == null) open.Add((q, ids, names));
@@ -315,6 +329,13 @@ namespace CalradiaRemembers.Quests
          if (!TryBind(q, hero, out _, out Dictionary<string, string> names, out string whyNot)) return "no: " + whyNot;
          whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, hero, (int) CampaignTime.Now.ToDays));
          if (whyNot != null) return "not now: " + whyNot;
+         if (q.OnMap != null)
+         {
+            whyNot = AuthoredMapTriggerPolicy.WhyNot(q.OnMap, MapFactsFor(hero));
+            if (whyNot != null) return "not now: " + whyNot;
+
+            return $"yes, on the map, on a {q.OnMap.ChancePerDay:P0} chance today ({string.Join(", ", names.Select(kv => kv.Key + "=" + kv.Value))})";
+         }
 
          return $"yes, on a {AuthoredQuestOfferPolicy.OfferChance:P0} chance per conversation ({string.Join(", ", names.Select(kv => kv.Key + "=" + kv.Value))})";
       }
@@ -514,6 +535,7 @@ namespace CalradiaRemembers.Quests
       /// </summary>
       private void OnHourlyTick()
       {
+         SafeRun.Step("AuthoredQuests.MapTrigger", TickMapTrigger);
          if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return;
          AuthoredStage s = AuthoredQuestEngine.Current(_run, q);
          var today = (int) CampaignTime.Now.ToDays;
@@ -539,6 +561,149 @@ namespace CalradiaRemembers.Quests
                break;
          }
       }
+
+      // ── A tale that begins on the map ────────────────────────────────────
+
+      /// <summary>
+      ///   Gabriel (10/10/2026): the party waits on the map, by day, in the giver's own lands, and a tale may begin. Counts
+      ///   the hours the party stands still, then, once a day when some tale could begin, casts the dice once for all of
+      ///   them (one weighted pick, its own chance), and asks the player by a popup.
+      /// </summary>
+      private void TickMapTrigger()
+      {
+         MobileParty main = MobileParty.MainParty;
+         if (main == null) return;
+         Vec2 at = main.GetPosition2D;
+         _stillHours = at.DistanceSquared(_lastPartyPosition) < 0.0001f ? _stillHours + 1 : 0;
+         _lastPartyPosition = at;
+
+         if (!ModSettings.AuthoredQuests || _run is {Status: AuthoredQuestStatus.Active} || ChatManager.IsOpen || Mission.Current != null) return;
+         var today = (int) CampaignTime.Now.ToDays;
+         if (_mapRolledOn == today) return;
+
+         List<MapOpening> open = MapTalesOpenNow(today, null, out _);
+         if (open.Count == 0) return;
+
+         _mapRolledOn = today;
+         int pick = AuthoredQuestOfferPolicy.PickByWeight(open.Select(o => o.Quest.Weight).ToArray(), open.Count == 1 ? 0 : MBRandom.RandomFloat);
+         if (pick < 0) return;
+         MapOpening chosen = open[pick];
+         if (!AuthoredMapTriggerPolicy.Begins(chosen.Quest.OnMap.ChancePerDay, MBRandom.RandomFloat))
+         {
+            ModLog.Info($"[TALE] '{chosen.Quest.Id}' could begin on the map today; the dice said no.");
+
+            return;
+         }
+
+         AuthoredQuestRun run = AuthoredQuestEngine.Start(chosen.Quest, chosen.Ids, chosen.Names, today);
+         ModLog.Info($"[TALE] '{chosen.Quest.Id}' begins on the map with {chosen.Giver.Name} ({string.Join(", ", chosen.Names.Select(kv => kv.Key + "=" + kv.Value))}).");
+         AskOnMap(chosen.Quest, run, chosen.Giver);
+      }
+
+      /// <summary>A tale that could begin on the map now, with whom, and the roles it bound.</summary>
+      private sealed class MapOpening
+      {
+         public AuthoredQuest Quest;
+         public Hero Giver;
+         public Dictionary<string, string> Ids;
+         public Dictionary<string, string> Names;
+      }
+
+      /// <summary>Every tale that begins on the map and could begin now with someone of the player's party; the last reason otherwise.</summary>
+      private List<MapOpening> MapTalesOpenNow(int today, string onlyQuestId, out string whyNot)
+      {
+         var open = new List<MapOpening>();
+         whyNot = "no tale that begins on the map is loaded";
+         List<Hero> party = MapGivers();
+         foreach (AuthoredQuest q in _quests.Values.Where(q => q.OnMap != null && (onlyQuestId == null || q.Id == onlyQuestId)))
+         {
+            whyNot = "no one travelling with you could give it";
+            foreach (Hero hero in party)
+            {
+               if (!TryBind(q, hero, out Dictionary<string, string> ids, out Dictionary<string, string> names, out string why))
+               {
+                  whyNot = why;
+
+                  continue;
+               }
+
+               why = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, hero, today)) ?? AuthoredMapTriggerPolicy.WhyNot(q.OnMap, MapFactsFor(hero));
+               if (why != null)
+               {
+                  whyNot = why;
+
+                  continue;
+               }
+
+               open.Add(new MapOpening {Quest = q, Giver = hero, Ids = ids, Names = names});
+               break;
+            }
+         }
+
+         return open;
+      }
+
+      /// <summary>The characters travelling in the player's party, the player's spouse first.</summary>
+      private static List<Hero> MapGivers()
+      {
+         var heroes = new List<Hero>();
+         if (Hero.MainHero?.Spouse is Hero spouse) heroes.Add(spouse);
+         foreach (TroopRosterElement e in MobileParty.MainParty?.MemberRoster?.GetTroopRoster() ?? new List<TroopRosterElement>())
+         {
+            Hero h = e.Character?.HeroObject;
+            if (h != null && h != Hero.MainHero && !heroes.Contains(h)) heroes.Add(h);
+         }
+
+         return heroes;
+      }
+
+      /// <summary>Where the player's party is now, read for a tale given by <paramref name="giver" />.</summary>
+      private MapTriggerFacts MapFactsFor(Hero giver)
+      {
+         MobileParty main = MobileParty.MainParty;
+         Vec2 at = main?.GetPosition2D ?? Vec2.Zero;
+         Settlement near = Settlement.All.Where(s => s.IsTown || s.IsCastle || s.IsVillage).OrderBy(s => s.GetPosition2D.DistanceSquared(at)).FirstOrDefault();
+
+         return new MapTriggerFacts {
+            StillHours = _stillHours, IsDay = CampaignTime.Now.IsDayTime, InSettlement = main?.CurrentSettlement != null,
+            InBattle = main?.MapEvent != null || main?.SiegeEvent != null || main?.BesiegedSettlement != null, AtSea = main?.IsCurrentlyAtSea == true,
+            InGiversLands = near?.Culture != null && near.Culture == giver?.Culture, LandsCulture = near?.Culture?.Name?.ToString()
+         };
+      }
+
+      /// <summary>The popup: yes begins the tale and opens the conversation with the giver; no costs nothing for a season.</summary>
+      private void AskOnMap(AuthoredQuest q, AuthoredQuestRun run, Hero giver)
+      {
+         var today = (int) CampaignTime.Now.ToDays;
+         InformationManager.ShowInquiry(new InquiryData(
+            q.Title,
+            AuthoredQuestEngine.Fill(run, q.OnMap.Invitation),
+            true, true, AuthoredQuestEngine.Fill(run, q.OnMap.Accept), AuthoredQuestEngine.Fill(run, q.OnMap.Decline),
+            () =>
+            {
+               Accept(q, run);
+               ChatSceneStager.StageTaleMeeting(giver);
+            },
+            () =>
+            {
+               _declined[q.Id] = today;
+               ModLog.Info($"[TALE] the player let '{q.Id}' pass on the map.");
+            }), true);
+      }
+
+      /// <summary>Self-test seam: why this loaded tale would not begin on the map now, the dice aside; null when it could.</summary>
+      internal string DebugMapWhyNot(string questId)
+      {
+         if (!_quests.TryGetValue(questId, out AuthoredQuest q)) return "not loaded";
+         if (q.OnMap == null) return "it does not begin on the map";
+         string whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, null, (int) CampaignTime.Now.ToDays));
+         if (whyNot != null) return whyNot;
+
+         return MapTalesOpenNow((int) CampaignTime.Now.ToDays, questId, out whyNot).Count > 0 ? null : whyNot;
+      }
+
+      /// <summary>Self-test seam: the hours the party has stood still, as the trigger counts them.</summary>
+      internal int DebugStillHours => _stillHours;
 
       // ── The quest's band ─────────────────────────────────────────────────
 

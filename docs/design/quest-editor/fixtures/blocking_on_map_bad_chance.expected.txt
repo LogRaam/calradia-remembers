@@ -1,0 +1,1 @@
+blocking_on_map_bad_chance.json: quest 'fx_tale': on_map.chance_per_day 1.5 must be above 0 and at most 1. The quest is not loaded.

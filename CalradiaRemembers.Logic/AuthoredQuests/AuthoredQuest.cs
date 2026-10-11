@@ -40,6 +40,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("Who may give the tale, and what it needs of the world and of the player.")]
       [JsonProperty("requires")] public AuthoredRequires Requires { get; set; } = new();
 
+      /// <summary>Gabriel (10/10/2026): a tale that begins by itself on the map, never in a conversation; see AuthoredMapTriggerPolicy.</summary>
+      [QuestField("The tale begins by itself on the map, never in a conversation: when the player's party has stood still long enough, by day, in the giver's own lands, on a chance each day. The giver must travel with the player (requires.giver.with_player).")]
+      [JsonProperty("on_map")] public AuthoredMapTrigger OnMap { get; set; }
+
       /// <summary>The roles the story needs ({giver}, {village}...), with a word on each for the author.</summary>
       [QuestField("Every role your text uses, with a short description for the reader of the file. Each {role} is filled with a real name.")]
       [JsonProperty("binds")] public Dictionary<string, string> Binds { get; set; } = new();
@@ -80,6 +84,31 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>Gabriel (10/10/2026): the content level the tale needs; see AuthoredContentPolicy.</summary>
       [QuestField("The content level the tale needs, as the mod options name it: none (every player), mature, explicit or hardcore. A tale is offered only when the player's setting reaches it.", ClosedList = nameof(AuthoredQuestLoader.ContentLevels))]
       [JsonProperty("content")] public string Content { get; set; } = "none";
+   }
+
+   /// <summary>How a tale that begins on the map is set off, and the popup that asks the player (Gabriel, 10/10/2026).</summary>
+   public sealed class AuthoredMapTrigger
+   {
+      [QuestField("Hours the player's party must have stood in the same place, out in the open. Default 3.")]
+      [JsonProperty("still_hours")] public int StillHours { get; set; } = 3;
+
+      [QuestField("On (the default): only by day.")]
+      [JsonProperty("by_day")] public bool ByDay { get; set; } = true;
+
+      [QuestField("On (the default): only when the nearest settlement is of the giver's own culture.")]
+      [JsonProperty("in_givers_lands")] public bool InGiversLands { get; set; } = true;
+
+      [QuestField("The chance the tale begins, once a day when everything else holds: above 0, at most 1. Default 0.15.")]
+      [JsonProperty("chance_per_day")] public double ChancePerDay { get; set; } = 0.15;
+
+      [QuestField("The popup's text, which sets the scene; {giver} is filled with the giver's name.")]
+      [JsonProperty("invitation")] public string Invitation { get; set; }
+
+      [QuestField("The popup's yes, which begins the tale and opens the conversation with the giver.")]
+      [JsonProperty("accept")] public string Accept { get; set; } = "Go to them";
+
+      [QuestField("The popup's no: nothing is lost, and the tale may come back after a season.")]
+      [JsonProperty("decline")] public string Decline { get; set; } = "Not now";
    }
 
    public sealed class GiverRequirement

@@ -144,6 +144,32 @@ The rules around every offer:
 | `player.min_clan_tier` | 0 to 6. |
 | `content` | The content level the tale needs, as the mod options name it: `none` (the default, every player), `mature`, `explicit` or `hardcore`. The tale is offered only when the player's setting reaches it, and a tale under way stops, without reward or penalty, if the player lowers the setting below it. Any other word refuses the tale. |
 
+### A tale that begins on the map: `on_map`
+
+```json
+"requires": { "giver": { "role": "spouse", "gender": "female", "with_player": true, "not_pregnant": true } },
+"on_map": {
+  "still_hours": 3, "by_day": true, "in_givers_lands": true, "chance_per_day": 0.15,
+  "invitation": "While your people make camp, {giver} has slipped away toward the sound of falling water.",
+  "accept": "Go to her", "decline": "Leave her to her solitude"
+}
+```
+
+Such a tale is never offered in a conversation. Each hour the game counts how long the player's party has stood in
+the same place, out in the open (never in a settlement, a battle or at sea). Once a day, when a tale could begin
+with someone travelling in the party (the giver must, so `requires.giver.with_player` is required), the dice are
+cast once for all such tales: the tale begins on `chance_per_day`. A popup shows `invitation`; yes accepts the
+tale, its first stage being the invitation itself, and opens the conversation with the giver, the player having
+come to find them. No costs nothing, and the tale may come back after a season. A unique tale is played once.
+
+| Field | Meaning |
+|---|---|
+| `still_hours` | Hours the party must have stood still. Default 3. |
+| `by_day` | Default `true`: only by day. |
+| `in_givers_lands` | Default `true`: only when the nearest settlement is of the giver's own culture. |
+| `chance_per_day` | Above 0, at most 1. Default 0.15. |
+| `invitation`, `accept`, `decline` | The popup's text and its two answers. `{giver}` is filled. |
+
 When the quest is offered, each role is bound to a real hero or place, and every `{role}` in your
 text is filled with its name. The roles the game binds are `{giver}`, `{village}` (with
 `requires.village`) and `{rival}` (with `requires.rival`). List every role you use under `binds`,

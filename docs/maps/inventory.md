@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 474 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1028 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1031 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -29,6 +29,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1500+ | Mod | `Chat/ChatManager.cs` |
 | 1500+ | Mod | `GameState/CourtActionResolver.cs` |
 | 1500+ | Mod | `Interception/InterceptionBehavior.cs` |
+| 1500+ | Mod | `Quests/AuthoredQuestBehavior.cs` |
 | 1000+ | Sdk | `Actions/GameActionCatalog.cs` |
 | 1000+ | Logic | `Assemblies/ResolutionCatalog.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Council.cs` |
@@ -37,7 +38,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1000+ | Mod | `Letters/CourierService.cs` |
 | 1000+ | Mod | `Letters/LetterTriggerEvaluator.cs` |
 | 1000+ | Sdk | `Parsing/SectionResponseParser.cs` |
-| 1000+ | Mod | `Quests/AuthoredQuestBehavior.cs` |
 | 1000+ | Mod | `Services/LlmServices.cs` |
 | 1000+ | Mod | `WorldEvents/WorldEventFeeders.cs` |
 
@@ -1615,7 +1615,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (67)
+### CalradiaRemembers.Logic.AuthoredQuests (70)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1639,6 +1639,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredLine` | public class | A line an author may write plain ("text") or under flags ({"text": "...", "if": "flag"}): it reaches the model only while its flags hold. |
 | `AuthoredLineConverter` | public class | A line: "text", or {"text": "...", "if": ...}. Written back the shortest way that keeps it. |
 | `AuthoredLinesConverter` | public class | A canvas: one line, or a list of lines (each said only while its flags hold). |
+| `AuthoredMapTrigger` | public class | How a tale that begins on the map is set off, and the popup that asks the player (Gabriel, 10/10/2026). |
+| `AuthoredMapTriggerPolicy` | public static class | Whether a tale that begins on the map may begin here and now, the dice aside. |
 | `AuthoredObjective` | public class | One condition the engine verifies; which fields matter depends on Type. |
 | `AuthoredOfferFacts` | public class | The facts an offer is judged on, past the giver qualifying. |
 | `AuthoredOnComplete` | public class | (no summary) |
@@ -1666,6 +1668,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredWay` | public class | One way out of the current stage: its own objective (no choice), or an open choice. |
 | `GiverFacts` | public class | What the game knows of a character who might give a tale. |
 | `GiverRequirement` | public class | (no summary) |
+| `MapTriggerFacts` | public class | Where the player's party is now, for a tale that begins on the map. |
 | `OneOrManyConverter` | public class | A list of flag names: "name", or ["a", "!b"]. |
 | `PlaceRequirement` | public class | (no summary) |
 | `PlayerRequirement` | public class | (no summary) |

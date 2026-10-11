@@ -557,6 +557,28 @@ namespace CalradiaRemembers.Dialogue
          return string.Join(", ", names.GetRange(0, names.Count - 1)) + " and " + names[names.Count - 1];
       }
 
+      /// <summary>
+      ///   A written tale that began on the map (Gabriel, 10/10/2026): the player went to find the giver. The ordinary
+      ///   conversation, opened as if the player had chosen to speak: no interception opener, no reason ridden out for.
+      /// </summary>
+      public void OpenChatForTaleMeeting(Hero hero)
+      {
+         try
+         {
+            if (hero == null)
+            {
+               ModLog.Error("[TALE] no giver to open the tale's conversation with.");
+
+               return;
+            }
+
+            NpcMemoryCampaignBehavior.Instance?.DialogueRecorder?.Clear();
+            _pendingGreeting = null;
+            OnPlayerSelectedChat(hero);
+         }
+         catch (Exception ex) { ModLog.Error($"[TALE] OpenChatForTaleMeeting failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
       public void OpenChatForInterceptingHero(Hero hero)
       {
          try

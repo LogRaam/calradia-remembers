@@ -47,7 +47,14 @@ namespace CalradiaRemembers.Chat
       ///   An anonymous envoy, come under a flag of truce to treat for a captive the player holds (prisoner exchange,
       ///   fkasad 25/09/2026). No hero: a troop of the lord's people stands in the shot. See ChatManager.OpenForEnvoyAudienceDirect.
       /// </summary>
-      EnvoyAudience
+      EnvoyAudience,
+
+      /// <summary>
+      ///   A written tale that began on the map (Gabriel, 10/10/2026): the player went to find the giver, who travels
+      ///   with them. The ordinary conversation, the player seeking; no interception opener. See
+      ///   LlmDialogFlow.OpenChatForTaleMeeting.
+      /// </summary>
+      TaleMeeting
    }
 
    /// <summary>

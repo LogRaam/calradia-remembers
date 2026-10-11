@@ -214,6 +214,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("rescue_from_foe", Severity.Light, "zhenja1 (Nexus, 10/10/2026): 'I liberated two from Garios, and both are saying they were never prisoner.' The game hands a beaten lord's prisoners to the player's loot, and letting them go later from the player's own custody read as a pardon, so nothing was remembered. Takes a real lord prisoner into the player's party, marks them as taken from another real lord (the seam the battle start fills), releases them through the REAL EndCaptivityAction.ApplyByReleasedByChoice, and asserts the rescued lord now remembers being freed, naming the lord who held them. Leaves the gratitude it gave (as cr.rescue does) and forgets the once-per-lord credit", TestRescueFromFoe),
          new SelfTest("memory_api_remove", Severity.Light, "philip0105 (Vivid World, 10/10/2026): a mod could add memories through CrNpcMemory.AddMemory but never take them back, so rumors it later forgot or corrected lingered in CR. Adds a memory to a real lord through the REAL AddMemory with a SourceMod, asserts another mod's RemoveMemory of the same text takes nothing, then that the same mod's RemoveMemory takes exactly it and it is gone from GetMemories. Leaves the lord as found", TestMemoryApiRemove),
          new SelfTest("tale_spouse_giver", Severity.Light, "Gabriel (10/10/2026): a tale of intimacy with the player's own wife, whatever the player's sex, while she travels with him and is not already with child. Loads a tale asking for a spouse giver (role spouse, a woman, with the player, not pregnant) through the REAL loader, and asserts the REAL binding refuses a lady who is not the player's spouse, and, when the player is married, answers for the spouse according to her sex, her party and whether she is with child. Nothing is offered or started; the test tale is taken out after", TestTaleSpouseGiver),
+         new SelfTest("tale_on_map", Severity.Light, "Gabriel (10/10/2026): a tale that begins by itself on the map when the party waits by day in the wife's own lands, on a chance each day, never in a conversation. Loads such a tale through the REAL loader and asserts the REAL conversation offer refuses it with the player's spouse (or any lady) even on a sure roll; then reads the REAL map check against the world as it stands and names what holds it back (no wife with the player, night, the sea, a settlement, the hours still, the lands). Nothing is offered, rolled or started; the test tale is taken out after", TestTaleOnMap),
          new SelfTest("tale_content_level", Severity.Light, "Gabriel (10/10/2026): 'can a quest be classed Hardcore?' A tale now names the content level it needs (requires.content). Loads a hardcore tale written into the test through the REAL loader, and asserts the REAL offer decision refuses it, naming the level, unless the player's setting in the mod options is Hardcore; and that the shipped tales, which ask for none, are never held back by it. No tale is offered or started; the test tale is taken out after", TestTaleContentLevel),
          new SelfTest("courier_menu_option", Severity.Light, "raphareish (Nexus, 10/10/2026): letters could be sent only from a town's tavern keeper, so castles and villages, which have no tavern, had no courier at all. Asserts the castle and village menus of THIS game carry 'Send a letter', and reports what the place the player stands in offers. Opens nothing, charges nothing", TestCourierMenuOption),
          new SelfTest("kin_audience", Severity.Light, "HakiTakiUmba (Nexus, 09/10/2026): the player's family riding in the party (siblings, a spouse) never asked for a private word, only hired companions did. Finds a family member of the player's clan riding in the party (skips when none), asserts the REAL roster the audience offer reads now holds them, that the REAL topic scan runs for them, and that the context built for their audience through the REAL EncounterContextBuilder tells the model they speak as kin. No popup, no LLM call; creates only a missing profile", TestKinAudience),
@@ -3861,6 +3862,47 @@ namespace CalradiaRemembers.Diagnostics
                t.Expect(shipped + "IsNeverHeldBackByContent", (b.DebugWhyNotOffered(shipped) ?? "").Contains("content level"), false);
          }
          finally { b.DebugForgetTale("cr_selftest_hardcore"); }
+
+         return t.Line();
+      }
+
+      private static string TestTaleOnMap(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_on_map");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null, "authored quests are not active")) return t.Line();
+
+         const string json = @"{ ""id"": ""cr_selftest_on_map"", ""title"": ""[SELFTEST] By the Falls"",
+           ""requires"": { ""giver"": { ""role"": ""spouse"", ""with_player"": true, ""not_at_war_with_player"": false } },
+           ""on_map"": { ""invitation"": ""[SELFTEST] {giver} has gone down to the water."" },
+           ""binds"": { ""giver"": ""the player's spouse"" },
+           ""stages"": [ { ""id"": ""ask"", ""journal"": ""[SELFTEST]"", ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" },
+             ""on_complete"": { ""next"": ""reward"" } } ], ""reward"": { ""regard"": 1 } }";
+         try
+         {
+            t.Expect("theTaleLoads", b.DebugLoadTale(json, "selftest_on_map.json").Count, 0);
+
+            Hero someone = Hero.MainHero?.Spouse ?? Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && !h.IsChild && !h.IsPrisoner);
+            if (someone != null)
+            {
+               bool offered = b.TryOffer(someone, (int) CampaignTime.Now.ToDays, 0.0, "cr_selftest_on_map", out string why);
+               t.Note($"in a conversation with {someone.Name}: {why}");
+               t.Expect("neverOfferedInAConversation", offered, false);
+               t.Expect("andSaysItBeginsOnTheMap", (why ?? "").Contains("on the map"), true);
+            }
+
+            string mapWhy = b.DebugMapWhyNot("cr_selftest_on_map");
+            MobileParty main = MobileParty.MainParty;
+            Hero spouse = Hero.MainHero?.Spouse;
+            bool spouseWithPlayer = spouse != null && spouse.PartyBelongedTo == main;
+            t.Note($"on the map now (still {b.DebugStillHours}h, day {CampaignTime.Now.IsDayTime}, at sea {main?.IsCurrentlyAtSea == true}, in {main?.CurrentSettlement?.Name?.ToString() ?? "the open"}): {mapWhy ?? "it could begin"}");
+            if (!spouseWithPlayer) t.Expect("noSpouseWithThePlayerNoTale", mapWhy != null, true);
+            else if (main?.IsCurrentlyAtSea == true) t.Expect("neverAtSea", (mapWhy ?? "").Contains("sea"), true);
+            else if (main?.CurrentSettlement != null) t.Expect("neverInsideASettlement", (mapWhy ?? "").Contains("settlement"), true);
+            else if (!CampaignTime.Now.IsDayTime) t.Expect("neverByNight", (mapWhy ?? "").Contains("night"), true);
+         }
+         finally { b.DebugForgetTale("cr_selftest_on_map"); }
 
          return t.Line();
       }
