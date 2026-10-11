@@ -3987,7 +3987,7 @@ consequence executors are engine glue. Define the vocabulary first — the app i
 > `cr.scenario_fire <VERB> [hero]`. Sample pack `ModuleData/scenarios/example.json` = the Rhagaea-death→war
 > flagship (deployed to the install). **UNTESTED in game.**
 >
-> **COMPOSER APP BUILT 2026-06-24** — `Tools/ScenarioComposer.html`, a single self-contained offline HTML
+> **COMPOSER APP BUILT 2026-06-24**: `Extension/ScenarioComposer.html` (moved from `Tools/` 11/10/2026, ships in `Docs/` from 2.7.9), a single self-contained offline HTML
 > tool: pick trigger / guards / consequences from dropdowns (the vocabulary mirrors the engine in one editable
 > `VOCAB` block), fill message / fire-once / weight, live JSON preview, import/export, "Load Rhagaea example".
 > Exports exactly the `ModuleData/scenarios/*.json` schema the loader reads (verified by a stubbed-DOM
