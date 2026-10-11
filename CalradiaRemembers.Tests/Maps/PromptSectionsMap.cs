@@ -11,6 +11,10 @@
 //   - Fakade (20/09): who-is-who stated only near the TOP, the stretch a short-context model drops first.
 // Each was found by a player reading prompts from outside. With the order, the zone and the gate in one table, "why
 // is a one-shot fact in the cached prefix" is a question a reader can ask before a player has to.
+//
+// 11/10/2026 (Prompt Composer, increment 1): the order now lives in a REGISTRY, PromptBuilder.CharacterSections, one
+// Section("key", zone, render, lock) entry per section in the stock order; BuildSystemPrompt walks it. The map reads the
+// registry: each entry's key (the contract power users and modders name), zone, lock, gate and the Append it calls.
 
 #region
 
@@ -26,7 +30,9 @@ namespace CalradiaRemembers.Tests.Maps
    {
       public const string Path = "docs/maps/prompt-sections.md";
 
-      private const string BuilderMethod = "BuildSystemPrompt";
+      private const string Registry = "CharacterSections";
+
+      private const string EntryCall = "Section";
 
       /// <summary>The call that writes the literal marker the prefix cache is split on. Everything after it is the per-turn tail.</summary>
       private const string MarkerCall = "AppendEncounterContext";
@@ -34,10 +40,8 @@ namespace CalradiaRemembers.Tests.Maps
       public static string Generate(IReadOnlyList<SourceFile> files)
       {
          List<SourceFile> sdk = files.Where(f => f.Layer == Layer.Sdk).ToList();
-         MethodDeclarationSyntax? builder = sdk.SelectMany(f => f.Root.DescendantNodes().OfType<MethodDeclarationSyntax>())
-                                               .Where(m => m.Identifier.Text == BuilderMethod)
-                                               .OrderByDescending(m => AppendCallsIn(m).Count())
-                                               .FirstOrDefault();
+         PropertyDeclarationSyntax? registry = sdk.SelectMany(f => f.Root.DescendantNodes().OfType<PropertyDeclarationSyntax>())
+                                                  .FirstOrDefault(p => p.Identifier.Text == Registry);
 
          var sb = new StringBuilder();
          sb.AppendLine("# Prompt sections: the system prompt, in the order it is written");
@@ -46,9 +50,9 @@ namespace CalradiaRemembers.Tests.Maps
          sb.AppendLine("no longer matches the code; see `docs/maps/README.md`.");
          sb.AppendLine();
 
-         if (builder == null)
+         if (registry == null)
          {
-            sb.AppendLine($"`{BuilderMethod}` was not found. The prompt is no longer built where this map looks; fix `PromptSectionsMap`.");
+            sb.AppendLine($"`{Registry}` was not found. The prompt is no longer built where this map looks; fix `PromptSectionsMap`.");
 
             return sb.ToString();
          }
@@ -65,21 +69,29 @@ namespace CalradiaRemembers.Tests.Maps
          sb.AppendLine("**Compact.** `dropped by policy` names the `PromptSection` the compact (Lean) prompt may leave out; `aware` means");
          sb.AppendLine("the section is handed the level and decides for itself; blank means it is written the same in both.");
          sb.AppendLine();
-         sb.AppendLine("| # | Section | Zone | Compact | Gate | What it says |");
-         sb.AppendLine("|---|---|---|---|---|---|");
+         sb.AppendLine("**Key and lock.** The key is what a prompt profile's layout and text files name (a contract: never renamed once");
+         sb.AppendLine("shipped). `sealed`: cannot be turned off, moved or reworded; `required`: cannot be turned off; blank: free.");
+         sb.AppendLine();
+         sb.AppendLine("| # | Key | Section | Zone | Lock | Compact | Gate | What it says |");
+         sb.AppendLine("|---|---|---|---|---|---|---|---|");
 
-         var zone = "prefix";
          var order = 0;
 
-         foreach (InvocationExpressionSyntax call in AppendCallsIn(builder))
+         foreach (InvocationExpressionSyntax entry in registry.DescendantNodes().OfType<InvocationExpressionSyntax>().Where(c => NameOf(c) == EntryCall))
          {
-            string name = NameOf(call);
-            if (name == MarkerCall) zone = "tail";
+            Microsoft.CodeAnalysis.SeparatedSyntaxList<ArgumentSyntax> args = entry.ArgumentList.Arguments;
+            if (args.Count < 3) continue;
+
+            string key = args[0].Expression.ToString().Trim('"');
+            string zone = args[1].Expression is MemberAccessExpressionSyntax z ? z.Name.Identifier.Text.ToLowerInvariant() : "?";
+            string @lock = args.Count > 3 && args[3].Expression is MemberAccessExpressionSyntax l ? l.Name.Identifier.Text.ToLowerInvariant() : "";
+            InvocationExpressionSyntax? call = AppendCallsIn(args[2]).FirstOrDefault();
+            string name = call == null ? "?" : NameOf(call);
 
             order++;
-            string gate = GateOf(call, builder);
-            sb.AppendLine($"| {order} | `{name}` | {(name == MarkerCall ? "**marker**" : zone)} | {CompactOf(call, gate)} | {DocText.Cell(gate)} | "
-                        + $"{DocText.Cell(summaries.TryGetValue(name, out string? s) ? s : DocText.NoSummary)} |");
+            string gate = call == null ? "" : GateOf(call, args[2]);
+            sb.AppendLine($"| {order} | `{key}` | `{name}` | {(zone == "marker" ? "**marker**" : zone)} | {@lock} | {(call == null ? "" : CompactOf(call, gate))} | "
+                        + $"{DocText.Cell(gate)} | {DocText.Cell(summaries.TryGetValue(name, out string? s) ? s : DocText.NoSummary)} |");
          }
 
          sb.AppendLine();
@@ -89,9 +101,9 @@ namespace CalradiaRemembers.Tests.Maps
 
       #region private
 
-      private static IEnumerable<InvocationExpressionSyntax> AppendCallsIn(MethodDeclarationSyntax method)
-         => method.DescendantNodes().OfType<InvocationExpressionSyntax>()
-                  .Where(c => NameOf(c).StartsWith("Append", StringComparison.Ordinal) && c.Expression is IdentifierNameSyntax);
+      private static IEnumerable<InvocationExpressionSyntax> AppendCallsIn(Microsoft.CodeAnalysis.SyntaxNode node)
+         => node.DescendantNodes().OfType<InvocationExpressionSyntax>()
+                .Where(c => NameOf(c).StartsWith("Append", StringComparison.Ordinal));
 
       private static string NameOf(InvocationExpressionSyntax call) => call.Expression switch {
          IdentifierNameSyntax id => id.Identifier.Text,
@@ -99,10 +111,10 @@ namespace CalradiaRemembers.Tests.Maps
          _ => ""
       };
 
-      /// <summary>The condition of the nearest `if` around the call, inside the builder; blank when it is written unconditionally.</summary>
-      private static string GateOf(InvocationExpressionSyntax call, MethodDeclarationSyntax builder)
+      /// <summary>The condition of the nearest `if` around the call, inside its registry entry; blank when it is written unconditionally.</summary>
+      private static string GateOf(InvocationExpressionSyntax call, Microsoft.CodeAnalysis.SyntaxNode entry)
       {
-         IfStatementSyntax? gate = call.Ancestors().TakeWhile(a => a != builder).OfType<IfStatementSyntax>().FirstOrDefault();
+         IfStatementSyntax? gate = call.Ancestors().TakeWhile(a => a != entry).OfType<IfStatementSyntax>().FirstOrDefault();
          if (gate == null) return "";
 
          string condition = Regex.Replace(gate.Condition.ToString(), @"\s+", " ");
@@ -113,9 +125,12 @@ namespace CalradiaRemembers.Tests.Maps
       private static string CompactOf(InvocationExpressionSyntax call, string gate)
       {
          Match policy = Regex.Match(gate, @"LeanPromptPolicy\.Include\(PromptSection\.(\w+)");
-         if (policy.Success) return $"dropped by policy (`{policy.Groups[1].Value}`)";
+         // The else of an Include (written !(...) in the registry) is the Lean stand-in, not a section Lean drops.
+         if (policy.Success) return gate.StartsWith("!(", StringComparison.Ordinal)
+            ? $"Lean only (stand-in for `{policy.Groups[1].Value}`)"
+            : $"dropped by policy (`{policy.Groups[1].Value}`)";
 
-         return call.ArgumentList.Arguments.Any(a => a.Expression.ToString() == "lean") ? "aware" : "";
+         return call.ArgumentList.Arguments.Any(a => a.Expression.ToString() is "lean" or "s.Lean") ? "aware" : "";
       }
 
       #endregion

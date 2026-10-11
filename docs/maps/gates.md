@@ -329,7 +329,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 
 - executor: `ExecuteGivePrisoner`
 - taught in: `AppendDeliverPrisoner`
-- taught when: `context?.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context] AND LeanPromptPolicy.Include(PromptSection.DeliverPrisonerOffer, lean) && encounterContext?.WarStatus is DiplomaticStatus.AtPeace or DiplomaticStatus.Alli... [the caller's if]`
+- taught when: `context?.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context] AND LeanPromptPolicy.Include(PromptSection.DeliverPrisonerOffer, s.Lean) && s.Context?.WarStatus is DiplomaticStatus.AtPeace or DiplomaticStatus.Allied [the caller's if]`
 - the bridge refuses:
   - SilentRefusalMessages.GivePrisonerNoBargain()
   - $"(You do not hold {anyBargain.TargetHeroName ?? "the captive"} I asked for.)"

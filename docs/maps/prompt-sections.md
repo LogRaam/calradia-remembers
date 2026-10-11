@@ -10,116 +10,119 @@ every turn. A fact that is true on one turn and gone the next belongs in the tai
 **Compact.** `dropped by policy` names the `PromptSection` the compact (Lean) prompt may leave out; `aware` means
 the section is handed the level and decides for itself; blank means it is written the same in both.
 
-| # | Section | Zone | Compact | Gate | What it says |
-|---|---|---|---|---|---|
-| 1 | `AppendAdultFramingPreamble` | prefix |  |  | A short permission/role statement placed at the very top of the system prompt, where it carries the most interpretive weight. |
-| 2 | `AppendFormatInstructions` | prefix | aware |  | (no summary) |
-| 3 | `AppendDialogueStyle` | prefix |  |  | (no summary) |
-| 4 | `AppendProseCraft` | prefix | dropped by policy (`ProseCraftBlocklist`) | LeanPromptPolicy.Include(PromptSection.ProseCraftBlocklist, lean) | A short craft directive shared by the lord and commoner prompts: write like a novelist, not a language model. |
-| 5 | `AppendLeanProseCraft` | prefix | dropped by policy (`ProseCraftBlocklist`) | LeanPromptPolicy.Include(PromptSection.ProseCraftBlocklist, lean) | Lean mode's compressed stand-in for AppendProseCraft (task 8): a small local model has no context headroom for the full anti-cliche blocklist, so only the one line that matters most survives. |
-| 6 | `AppendWorldDescription` | prefix | dropped by policy (`WorldNarrative`) | LeanPromptPolicy.Include(PromptSection.WorldNarrative, lean) | (no summary) |
-| 7 | `AppendBehaviorGuidelines` | prefix |  | LeanPromptPolicy.UseFullBehaviorGuidelines(lean) | (no summary) |
-| 8 | `AppendLeanBehaviorGuidelines` | prefix |  | LeanPromptPolicy.UseFullBehaviorGuidelines(lean) | The LEAN-prompt substitute for the long behaviour guidelines — the essence in a few lines, so a small model's short context is not eaten by the full block. |
-| 9 | `AppendIdentity` | prefix |  |  | (no summary) |
-| 10 | `AppendPlayerStanding` | prefix | aware |  | States where the player stands with this character, or says nothing when the host could not answer. |
-| 11 | `AppendNpcSelfAppearance` | prefix |  |  | Renders the SPEAKING NPC's OWN appearance (Self voice, second person), so the character the LLM plays pictures its own body consistently and never invents contradictory looks. |
-| 12 | `AppendAuthoredBackstory` | prefix | dropped by policy (`AuthoredBackstory`) | LeanPromptPolicy.Include(PromptSection.AuthoredBackstory, lean) | (no summary) |
-| 13 | `AppendAuthoredConviction` | prefix | dropped by policy (`AuthoredBackstory`) | LeanPromptPolicy.Include(PromptSection.AuthoredBackstory, lean) | The one authored field that touches CONDUCT. The backstory block above tells the model, in as many words, that it shapes "HOW you speak and WHO you are, NOT what you decide", so a player who wrote "he believes he is secr... |
-| 14 | `AppendRelationships` | prefix | dropped by policy (`Relationships`) | LeanPromptPolicy.Include(PromptSection.Relationships, lean) | (no summary) |
-| 15 | `AppendRomanticContext` | prefix |  |  | (no summary) |
-| 16 | `AppendIntimacyConsentRules` | prefix |  |  | (no summary) |
-| 17 | `AppendSocialAttractionInstructions` | prefix |  |  | Injects behavioral guidance for NPC-initiated social interest when the player's public standing crosses a meaningful threshold. |
-| 18 | `AppendDiscoveredTraits` | prefix | aware |  | Injects the list of personal traits the player already knows about this NPC. Placed after ROMANTIC NATURE so the NPC can see what has already been shared and avoid emitting duplicate [DISCOVERY] blocks. |
-| 19 | `AppendInheritedNote` | prefix |  |  | (no summary) |
-| 20 | `AppendBackgroundContext` | prefix | dropped by policy (`CulturalBackground`) | LeanPromptPolicy.Include(PromptSection.CulturalBackground, lean) | (no summary) |
-| 21 | `AppendHistory` | prefix |  |  | (no summary) |
-| 22 | `AppendActiveQuests` | prefix |  | encounterContext?.PlayerStatus != PlayerStatusVsNpc.Captive && encounterContext?.SuppressQuests != true | (no summary) |
-| 23 | `AppendNativeQuestNote` | prefix |  | encounterContext?.PlayerStatus != PlayerStatusVsNpc.Captive && encounterContext?.SuppressQuests != true | Surfaces the tasks this NPC has given the player, split by state: outstanding (not yet done — the NPC may ask after it but has no proof), done-and-ready (the host verified the deed; the NPC may acknowledge it and emit [Q... |
-| 24 | `AppendNoAppointments` | prefix |  |  | The one promise the game cannot keep. yozakura12 (Nexus, 19/09/2026): "NPCs tell me when and where to meet them. |
-| 25 | `AppendCurrentStance` | prefix |  |  | (no summary) |
-| 26 | `AppendRegardShadowNote` | prefix |  |  | Renders EncounterContext.GrudgeNote verbatim, when the host supplied one for this NPC this conversation. |
-| 27 | `AppendStanceNote` | prefix |  |  | Posture block. |
-| 28 | `AppendStanceConsequence` | prefix |  |  | Injects how the NPC is inclined to ACT on their posture this meeting (cold-shoulder, hidden murderous intent, eagerness to aid, readiness to warn). |
-| 29 | `AppendGrudgeNote` | prefix |  |  | (no summary) |
-| 30 | `AppendAppreciationNote` | prefix |  |  | Renders EncounterContext.AppreciationNote verbatim, when the host supplied one for this NPC this conversation. |
-| 31 | `AppendStandingAccords` | prefix | aware |  | Council Tier 2 (2026-08-24): lists the still-standing council-born accords between this NPC and the player (from EncounterContext.StandingAccords), so the character can reference them in ordinary conversation ("the tribu... |
-| 32 | `AppendPlayerLetters` | prefix |  |  | (no summary) |
-| 33 | `AppendWitnesses` | prefix | aware |  | Injects the list of witnesses present during this encounter and, when the player has requested a private audience, instructs the NPC to decide and signal acceptance or refusal via [ACTION] type: request_privacy. |
-| 34 | `AppendBroughtCaptives` | prefix | aware |  | Bring-participants-to-a-captor-scene, increment 2 (2026-08-21): a dedicated, STABLE (per-conversation, cacheable prefix) framing for any WitnessEntry.IsBroughtCaptive participant, mirroring how AppendWitnesses lists the... |
-| 35 | `AppendRecruitment` | prefix |  |  | Taught only when the game says this NPC is genuinely recruitable (EncounterContext.CompanionAskingPrice non-null). |
-| 36 | `AppendMercenaryOffer` | prefix |  |  | Taught only when the NPC is a lord and the player's clan is free of any kingdom obligation (EncounterContext.MercenaryOfferKingdom non-null). |
-| 37 | `AppendMercenaryEnd` | prefix |  |  | Taught only when the player's clan is CURRENTLY under mercenary service ANYWHERE (EncounterContext.PlayerIsMercenary), the mirror of AppendMercenaryOffer. |
-| 38 | `AppendVassalOffer` | prefix |  |  | Taught only when the NPC is truly the kingdom's ruler (not merely one of its lords, unlike AppendMercenaryOffer) and the player's clan is not already a full vassal of a kingdom (EncounterContext.VassalOfferKingdom non-nu... |
-| 39 | `AppendMediatePeaceOffer` | prefix |  |  | mediate_peace brought to the 1:1 pipeline (2026-08-06, third-party war mediation): taught ONLY when the host confirms this NPC is a FACTION LEADER whose faction is at war with at least one realm and the player carries ge... |
-| 40 | `AppendAppointGovernorOffer` | prefix |  |  | appoint_governor brought to the 1:1 pipeline (2026-08-05, the reference personal-command verb): taught ONLY when the host confirms this NPC is a viable governor for a player-clan fief with no governor right now (Encounte... |
-| 41 | `AppendAssignPartyRoleOffer` | prefix |  |  | assign_party_role brought to the 1:1 pipeline (2026-08-05, party-command batch): taught ONLY when the host confirms this NPC is one of the player's own companions currently riding in the main party (EncounterContext.NpcC... |
-| 42 | `AppendRejoinPartyOffer` | prefix |  |  | rejoin_party brought to the 1:1 pipeline (2026-08-05, party-command batch): taught ONLY when the host confirms this NPC is one of the player's companions, alive and free, currently AWAY from the main party and not leadin... |
-| 43 | `AppendDispatchMissionOffer` | prefix |  |  | dispatch_mission brought to the 1:1 pipeline (2026-08-05, party-command batch): taught ONLY when the host confirms this NPC is a companion in the main party, free to ride out (EncounterContext.NpcCanBeDispatchedOnMission... |
-| 44 | `AppendGrantFiefOffer` | prefix |  |  | grant_fief brought to the 1:1 pipeline (2026-08-05, suzerain-command batch): taught ONLY when the host confirms the player rules a kingdom and this NPC is a vassal of a separate house in it, with a real crown fief open t... |
-| 45 | `AppendRevokeFiefOffer` | prefix |  |  | revoke_fief brought to the 1:1 pipeline (2026-08-05, suzerain-command batch): grant_fief's grim mirror, taught ONLY when the host confirms the player rules a kingdom and this NPC is a vassal of a separate house in it hol... |
-| 46 | `AppendExpelFromClanOffer` | prefix |  |  | expel_from_clan brought to the 1:1 pipeline (2026-08-05, suzerain-command batch): taught ONLY when the host confirms this NPC is a live, present companion of the player's own clan (not the player's spouse, not away on an... |
-| 47 | `AppendGrantStipendOffer` | prefix |  |  | grant_stipend brought to the 1:1 pipeline (2026-08-05, one of the two personal-command verbs that touch persisted save state): taught ONLY when the host confirms this NPC is one of the player's own clan companions with n... |
-| 48 | `AppendSwearOathOffer` | prefix |  |  | swear_oath brought to the 1:1 pipeline (2026-08-05, one of the two personal-command verbs that touch persisted save state): taught ONLY when the host confirms this NPC is a viable swearer with no oath already outstanding... |
-| 49 | `AppendFollowMe` | prefix |  |  | follow_me (1:1 bridge action, player wish: a companion promising to "stay by my side", this is the map-escort half that is doable now, the battlefield version stays roadmapped). |
-| 50 | `AppendDismissEscort` | prefix |  |  | dismiss_escort: the MIRROR of follow_me, taught only while THIS NPC's own party is CURRENTLY escorting the player (EncounterContext.NpcIsEscortingPlayer): either side may end the arrangement early, before its bounded ter... |
-| 51 | `AppendRideWithMe` | prefix |  |  | ride_with_me (1:1 bridge action): the idle-lord complement of follow_me. |
-| 52 | `AppendPartWays` | prefix |  |  | part_ways: the MIRROR of ride_with_me, taught only while THIS NPC is CURRENTLY riding in the player's party as a retainer (EncounterContext.NpcIsRidingWithPlayer): either side may end the arrangement, after which the lor... |
-| 53 | `AppendDuelChallenge` | prefix |  |  | Teaches the duel challenge, and ONLY when the host has already ruled the duel admissible and found a venue (EncounterContext.DuelChallengeAvailable): same conditional contract as RECRUITMENT, so the verb exists exactly w... |
-| 54 | `AppendPostDuelContext` | prefix |  |  | Holds the register when a conversation RESUMES right after a fought duel (EncounterContext.IsPostDuel): a beaten NPC concedes and does not boast, a victorious one speaks as the victor and does not grovel. |
-| 55 | `AppendLordRecruitment` | prefix |  |  | Lord-defection section. |
-| 56 | `AppendSchemeRecruitment` | prefix |  |  | Scheme-agent section. |
-| 57 | `AppendSchemeWarning` | prefix |  |  | Scheme-warning section. |
-| 58 | `AppendLoveMatchProposal` | prefix |  |  | Taught only when the NPC THEMSELVES is a viable marriage candidate (Phase A.3): player single, NPC eligible by sex/age/clan, and regard deep enough (personal reputation OR the live vanilla relation). |
-| 59 | `AppendConsortProposal` | prefix |  |  | Consort-bond section. |
-| 60 | `AppendSecretLoverProposal` | prefix |  |  | Secret-lover section, for one of the player's OWN companions bonded through shared war (EncounterContext.SecretLoverEligible). |
-| 61 | `AppendOpenRelationshipProposal` | prefix |  |  | (no summary) |
-| 62 | `AppendPluralAcceptance` | prefix |  |  | Open-arrangement section, rendered only for a COMMITTED partner (spouse or consort) via EncounterContext.OpenRelationshipEligible. |
-| 63 | `AppendPartnerLoverKnown` | prefix |  |  | Inc 3b-b: the conversation around a lover the player already KNOWS about, rendered only when EncounterContext.PartnerLoverKnown. |
-| 64 | `AppendHeldSecret` | prefix |  |  | Mystery-lover pillar (phase 3b): the payoff of a lord LEARNING the player's secret-lover identity (never deduced, only confessed or propagated). |
-| 65 | `AppendGiveItem` | prefix | aware |  | Teaches the give_item action. |
-| 66 | `AppendDeliverPrisoner` | prefix | dropped by policy (`DeliverPrisonerOffer`) | LeanPromptPolicy.Include(PromptSection.DeliverPrisonerOffer, lean) && encounterContext?.WarStatus is Diplomati... | Teaches the prisoner deed: a lord may demand an enemy captive as the price of a favor, and accepts the hand-over with the give_prisoner action. |
-| 67 | `AppendPrisonerFreedomBargain` | prefix |  |  | (no summary) |
-| 68 | `AppendOrdinaryPrisonerExecutionRule` | prefix |  |  | Player report (Nexus): a player sentenced a captured noble to death mid conversation, the LLM narrated the execution, and the noble was still alive in the prisoner list afterward, because AppendExecutePrisonerRule was on... |
-| 69 | `AppendRecruitPrisoner` | prefix |  |  | v1.34.3 recruit_prisoner. |
-| 70 | `AppendPrisonerCannotDefect` | prefix |  |  | The symmetric NEGATIVE of AppendRecruitPrisoner. |
-| 71 | `AppendRecruitNotable` | prefix |  |  | recruit_notable: a settlement NOTABLE (a town gang leader, headman, merchant, artisan, rural notable or preacher) can be persuaded to leave their post and take service in the player's clan as a companion, once a genuine,... |
-| 72 | `AppendTakeIntoService` | prefix |  |  | take_into_service: the player has companions THIS lord could take into their own household, and the game has confirmed each of them is genuinely free to go (EncounterContext.CompanionsOfferableToThisLord lists them by na... |
-| 73 | `AppendPrisonerRescueBargain` | prefix |  |  | Taught only when this NPC is a captive of SOMEONE ELSE (NpcIsPrisonerOfAnother) and the player visits their cell: the captive may bargain to be broken out — a rescue deed the player must earn by actually freeing them in... |
-| 74 | `AppendTeachSkill` | prefix |  |  | teach_skill: taught only when the game confirms this NPC has genuine mastery in at least one skill right now (EncounterContext.TeachableSkills non-empty, computed via CalradiaRemembers.Logic.TeachSkillPolicy.CanTeach aga... |
-| 75 | `AppendCompanionRecallOffer` | prefix |  |  | Taught only when this NPC is one of the player's OWN companions currently away on an errand and the player has met them (CompanionOnErrand): the player may order them to abandon the errand and return. |
-| 76 | `AppendCompanionNewsReport` | prefix |  |  | Taught only when the PLAYER holds this NPC prisoner (NpcIsCaptive) and comes to speak: the captive lord may bargain for their own freedom, offering a reward worth more than the ransom, and the deal is sealed with the fre... |
-| 77 | `AppendCompanionMoodNote` | prefix |  |  | Taught when this companion has grown unhappy in the player's service: the directive in EncounterContext.CompanionMoodNote (built by the host from the happiness band) tells them how restless they are and invites them to v... |
-| 78 | `AppendCompanionAudience` | prefix |  |  | Taught when THIS companion asked the player for the private audience that opened this conversation (EncounterContext.CompanionAudience). |
-| 79 | `AppendCompanionCampNote` | prefix |  |  | (no summary) |
-| 80 | `AppendCompanionBriefingScene` | prefix |  |  | Companion-briefing pillar, revised per Gabriel's ruling: the briefing chat must be a REAL conversation, so the model needs to know WHAT this scene is or it will answer as though EncounterContext.CompanionBriefingTargetNa... |
-| 81 | `AppendIntimacyBargain` | prefix |  |  | Taught when this companion feels strongly about a FELLOW companion: the directive in EncounterContext.CompanionCampNote names the camp friendship or feud and invites them to raise it with the player — naturally, only if... |
-| 82 | `AppendBastardMother` | prefix |  |  | Bastards: when this NPC is the mother of a still-hidden child of the player's, teach her to raise it in conversation in her own register — extort (mercenary), long (fond), reproach (resentful), or ask for the child's kee... |
-| 83 | `AppendMarriage` | prefix |  |  | Marriage-request section. |
-| 84 | `AppendMatchmaker` | prefix |  |  | Matchmaker section. |
-| 85 | `AppendNarrativeStyle` | prefix |  |  | (no summary) |
-| 86 | `AppendEncounterContext` | **marker** |  |  | (no summary) |
-| 87 | `AppendWhoSoughtWhom` | tail |  |  | Interception opener. |
-| 88 | `AppendInterception` | tail |  |  | (no summary) |
-| 89 | `AppendFormatFeedback` | tail |  |  | Feedback loop (quest audit C5): when the PREVIOUS reply's [QUEST] or [ACTION] block could not be registered, tell the MODEL so, not just the player. |
-| 90 | `AppendHeldPrisonersBrief` | tail | aware |  | Who holds the captives, in one line, in the per-turn tail. |
-| 91 | `AppendVolatileKnowledge` | tail |  |  | The knowledge that changes under the character - the hour, the sky, where they are standing. |
-| 92 | `AppendDayMood` | tail |  |  | The kind of day the character is having, and how far the player has moved it (THE MOOD OF THE DAY). |
-| 93 | `AppendWorldState` | tail |  |  | (no summary) |
-| 94 | `AppendAtSeaNote` | tail |  |  | (no summary) |
-| 95 | `AppendPlayerDressNote` | tail |  |  | A plain, factual note of how the player is dressed, rendered ONLY for a REMARKABLE state (Naked / Rags): the ordinary Civilian and Armoured states render nothing, or every single prompt in the game would grow for a fact... |
-| 96 | `AppendCourtshipChallenge` | tail |  |  | Courtship-duel opener. |
-| 97 | `AppendWitnessTurnDirectives` | tail |  |  | Per-turn witness directives, split out of AppendWitnesses (task 1b): the witness LIST and the reaction teaching are stable across a whole conversation and stay in the cacheable prefix; whether THIS turn is a witness-exch... |
-| 98 | `AppendSceneStageDirective` | tail |  | ShouldAppendCaptiveStageDirective(encounterContext) | (no summary) |
-| 99 | `AppendSceneStyleDirective` | tail |  |  | (no summary) |
-| 100 | `AppendNarrationFrequency` | tail |  |  | Replaces standard consent rules when the player is this NPC's captive at Hardcore level. |
-| 101 | `AppendPowerBalance` | tail |  |  | Injects a power-balance note when the game-side resolver detected a meaningful asymmetry between the player's realm and the NPC's position. |
-| 102 | `AppendPlayerGenderContext` | tail |  |  | Injects the [DISCOVERY] section format when romantic content is enabled. |
-| 103 | `AppendStayWithinWhatYouKnow` | tail | aware |  | Anti-confabulation guard: the primary fix for invented parent names and made-up troop movements. |
-| 104 | `AppendPlayerActionNarration` | tail | aware |  | Teaches that a captive's escape attempt is resolved by fate, not by the captor's narration: the single biggest reason the LLM otherwise "always wins". |
-| 105 | `AppendClaimsAreNotProof` | tail | aware |  | The general form of a rule this prompt already stated in three separate silos, and therefore never applied where it was actually needed. |
-| 106 | `AppendLanguageMirror` | tail | aware |  | Which language the reply is written in. |
-| 107 | `AppendPlayerDescription` | tail | aware |  | (no summary) |
-| 108 | `AppendHeardNow` | tail |  |  | heard_now.txt, expanded with this build's variables; nothing when it is empty or expands to nothing. |
-| 109 | `AppendRoleAnchor` | tail | aware |  | A short, forceful restatement of the machine-read output contract, emitted at the very end of the prompt (highest recency). |
-| 110 | `AppendFormatReminder` | tail | aware |  | (no summary) |
-| 111 | `AppendPostHistoryInstructions` | tail |  |  | Appends the modder's post_history_instructions.txt verbatim (aside from {{token}} expansion, see PromptVariableExpander) at the very end of the system prompt: the highest-recency position, read immediately before the con... |
+**Key and lock.** The key is what a prompt profile's layout and text files name (a contract: never renamed once
+shipped). `sealed`: cannot be turned off, moved or reworded; `required`: cannot be turned off; blank: free.
+
+| # | Key | Section | Zone | Lock | Compact | Gate | What it says |
+|---|---|---|---|---|---|---|---|
+| 1 | `adult_framing_preamble` | `AppendAdultFramingPreamble` | prefix |  |  |  | A short permission/role statement placed at the very top of the system prompt, where it carries the most interpretive weight. |
+| 2 | `format_instructions` | `AppendFormatInstructions` | prefix | sealed | aware |  | (no summary) |
+| 3 | `dialogue_style` | `AppendDialogueStyle` | prefix |  |  |  | (no summary) |
+| 4 | `prose_craft` | `AppendProseCraft` | prefix |  | dropped by policy (`ProseCraftBlocklist`) | LeanPromptPolicy.Include(PromptSection.ProseCraftBlocklist, s.Lean) | A short craft directive shared by the lord and commoner prompts: write like a novelist, not a language model. |
+| 5 | `lean_prose_craft` | `AppendLeanProseCraft` | prefix |  | Lean only (stand-in for `ProseCraftBlocklist`) | !(LeanPromptPolicy.Include(PromptSection.ProseCraftBlocklist, s.Lean)) | Lean mode's compressed stand-in for AppendProseCraft (task 8): a small local model has no context headroom for the full anti-cliche blocklist, so only the one line that matters most survives. |
+| 6 | `world_description` | `AppendWorldDescription` | prefix |  | dropped by policy (`WorldNarrative`) | LeanPromptPolicy.Include(PromptSection.WorldNarrative, s.Lean) | (no summary) |
+| 7 | `behavior_guidelines` | `AppendBehaviorGuidelines` | prefix |  |  | LeanPromptPolicy.UseFullBehaviorGuidelines(s.Lean) | (no summary) |
+| 8 | `lean_behavior_guidelines` | `AppendLeanBehaviorGuidelines` | prefix |  |  | !(LeanPromptPolicy.UseFullBehaviorGuidelines(s.Lean)) | The LEAN-prompt substitute for the long behaviour guidelines — the essence in a few lines, so a small model's short context is not eaten by the full block. |
+| 9 | `identity` | `AppendIdentity` | prefix |  |  |  | (no summary) |
+| 10 | `player_standing` | `AppendPlayerStanding` | prefix |  | aware |  | States where the player stands with this character, or says nothing when the host could not answer. |
+| 11 | `npc_self_appearance` | `AppendNpcSelfAppearance` | prefix |  |  |  | Renders the SPEAKING NPC's OWN appearance (Self voice, second person), so the character the LLM plays pictures its own body consistently and never invents contradictory looks. |
+| 12 | `authored_backstory` | `AppendAuthoredBackstory` | prefix |  | dropped by policy (`AuthoredBackstory`) | LeanPromptPolicy.Include(PromptSection.AuthoredBackstory, s.Lean) | (no summary) |
+| 13 | `authored_conviction` | `AppendAuthoredConviction` | prefix |  | dropped by policy (`AuthoredBackstory`) | LeanPromptPolicy.Include(PromptSection.AuthoredBackstory, s.Lean) | The one authored field that touches CONDUCT. The backstory block above tells the model, in as many words, that it shapes "HOW you speak and WHO you are, NOT what you decide", so a player who wrote "he believes he is secr... |
+| 14 | `relationships` | `AppendRelationships` | prefix |  | dropped by policy (`Relationships`) | LeanPromptPolicy.Include(PromptSection.Relationships, s.Lean) | (no summary) |
+| 15 | `romantic_context` | `AppendRomanticContext` | prefix |  |  |  | (no summary) |
+| 16 | `intimacy_consent_rules` | `AppendIntimacyConsentRules` | prefix | sealed |  |  | (no summary) |
+| 17 | `social_attraction_instructions` | `AppendSocialAttractionInstructions` | prefix |  |  |  | Injects behavioral guidance for NPC-initiated social interest when the player's public standing crosses a meaningful threshold. |
+| 18 | `discovered_traits` | `AppendDiscoveredTraits` | prefix |  | aware |  | Injects the list of personal traits the player already knows about this NPC. Placed after ROMANTIC NATURE so the NPC can see what has already been shared and avoid emitting duplicate [DISCOVERY] blocks. |
+| 19 | `inherited_note` | `AppendInheritedNote` | prefix |  |  |  | (no summary) |
+| 20 | `background_context` | `AppendBackgroundContext` | prefix |  | dropped by policy (`CulturalBackground`) | LeanPromptPolicy.Include(PromptSection.CulturalBackground, s.Lean) | (no summary) |
+| 21 | `history` | `AppendHistory` | prefix |  |  |  | (no summary) |
+| 22 | `active_quests` | `AppendActiveQuests` | prefix |  |  | s.Context?.PlayerStatus != PlayerStatusVsNpc.Captive && s.Context?.SuppressQuests != true | (no summary) |
+| 23 | `native_quest_note` | `AppendNativeQuestNote` | prefix |  |  | s.Context?.PlayerStatus != PlayerStatusVsNpc.Captive && s.Context?.SuppressQuests != true | Surfaces the tasks this NPC has given the player, split by state: outstanding (not yet done — the NPC may ask after it but has no proof), done-and-ready (the host verified the deed; the NPC may acknowledge it and emit [Q... |
+| 24 | `no_appointments` | `AppendNoAppointments` | prefix |  |  |  | The one promise the game cannot keep. yozakura12 (Nexus, 19/09/2026): "NPCs tell me when and where to meet them. |
+| 25 | `current_stance` | `AppendCurrentStance` | prefix |  |  |  | (no summary) |
+| 26 | `regard_shadow_note` | `AppendRegardShadowNote` | prefix |  |  |  | Renders EncounterContext.GrudgeNote verbatim, when the host supplied one for this NPC this conversation. |
+| 27 | `stance_note` | `AppendStanceNote` | prefix |  |  |  | Posture block. |
+| 28 | `stance_consequence` | `AppendStanceConsequence` | prefix |  |  |  | Injects how the NPC is inclined to ACT on their posture this meeting (cold-shoulder, hidden murderous intent, eagerness to aid, readiness to warn). |
+| 29 | `grudge_note` | `AppendGrudgeNote` | prefix |  |  |  | (no summary) |
+| 30 | `appreciation_note` | `AppendAppreciationNote` | prefix |  |  |  | Renders EncounterContext.AppreciationNote verbatim, when the host supplied one for this NPC this conversation. |
+| 31 | `standing_accords` | `AppendStandingAccords` | prefix |  | aware |  | Council Tier 2 (2026-08-24): lists the still-standing council-born accords between this NPC and the player (from EncounterContext.StandingAccords), so the character can reference them in ordinary conversation ("the tribu... |
+| 32 | `player_letters` | `AppendPlayerLetters` | prefix |  |  |  | (no summary) |
+| 33 | `witnesses` | `AppendWitnesses` | prefix |  | aware |  | Injects the list of witnesses present during this encounter and, when the player has requested a private audience, instructs the NPC to decide and signal acceptance or refusal via [ACTION] type: request_privacy. |
+| 34 | `brought_captives` | `AppendBroughtCaptives` | prefix |  | aware |  | Bring-participants-to-a-captor-scene, increment 2 (2026-08-21): a dedicated, STABLE (per-conversation, cacheable prefix) framing for any WitnessEntry.IsBroughtCaptive participant, mirroring how AppendWitnesses lists the... |
+| 35 | `recruitment` | `AppendRecruitment` | prefix |  |  |  | Taught only when the game says this NPC is genuinely recruitable (EncounterContext.CompanionAskingPrice non-null). |
+| 36 | `mercenary_offer` | `AppendMercenaryOffer` | prefix |  |  |  | Taught only when the NPC is a lord and the player's clan is free of any kingdom obligation (EncounterContext.MercenaryOfferKingdom non-null). |
+| 37 | `mercenary_end` | `AppendMercenaryEnd` | prefix |  |  |  | Taught only when the player's clan is CURRENTLY under mercenary service ANYWHERE (EncounterContext.PlayerIsMercenary), the mirror of AppendMercenaryOffer. |
+| 38 | `vassal_offer` | `AppendVassalOffer` | prefix |  |  |  | Taught only when the NPC is truly the kingdom's ruler (not merely one of its lords, unlike AppendMercenaryOffer) and the player's clan is not already a full vassal of a kingdom (EncounterContext.VassalOfferKingdom non-nu... |
+| 39 | `mediate_peace_offer` | `AppendMediatePeaceOffer` | prefix |  |  |  | mediate_peace brought to the 1:1 pipeline (2026-08-06, third-party war mediation): taught ONLY when the host confirms this NPC is a FACTION LEADER whose faction is at war with at least one realm and the player carries ge... |
+| 40 | `appoint_governor_offer` | `AppendAppointGovernorOffer` | prefix |  |  |  | appoint_governor brought to the 1:1 pipeline (2026-08-05, the reference personal-command verb): taught ONLY when the host confirms this NPC is a viable governor for a player-clan fief with no governor right now (Encounte... |
+| 41 | `assign_party_role_offer` | `AppendAssignPartyRoleOffer` | prefix |  |  |  | assign_party_role brought to the 1:1 pipeline (2026-08-05, party-command batch): taught ONLY when the host confirms this NPC is one of the player's own companions currently riding in the main party (EncounterContext.NpcC... |
+| 42 | `rejoin_party_offer` | `AppendRejoinPartyOffer` | prefix |  |  |  | rejoin_party brought to the 1:1 pipeline (2026-08-05, party-command batch): taught ONLY when the host confirms this NPC is one of the player's companions, alive and free, currently AWAY from the main party and not leadin... |
+| 43 | `dispatch_mission_offer` | `AppendDispatchMissionOffer` | prefix |  |  |  | dispatch_mission brought to the 1:1 pipeline (2026-08-05, party-command batch): taught ONLY when the host confirms this NPC is a companion in the main party, free to ride out (EncounterContext.NpcCanBeDispatchedOnMission... |
+| 44 | `grant_fief_offer` | `AppendGrantFiefOffer` | prefix |  |  |  | grant_fief brought to the 1:1 pipeline (2026-08-05, suzerain-command batch): taught ONLY when the host confirms the player rules a kingdom and this NPC is a vassal of a separate house in it, with a real crown fief open t... |
+| 45 | `revoke_fief_offer` | `AppendRevokeFiefOffer` | prefix |  |  |  | revoke_fief brought to the 1:1 pipeline (2026-08-05, suzerain-command batch): grant_fief's grim mirror, taught ONLY when the host confirms the player rules a kingdom and this NPC is a vassal of a separate house in it hol... |
+| 46 | `expel_from_clan_offer` | `AppendExpelFromClanOffer` | prefix |  |  |  | expel_from_clan brought to the 1:1 pipeline (2026-08-05, suzerain-command batch): taught ONLY when the host confirms this NPC is a live, present companion of the player's own clan (not the player's spouse, not away on an... |
+| 47 | `grant_stipend_offer` | `AppendGrantStipendOffer` | prefix |  |  |  | grant_stipend brought to the 1:1 pipeline (2026-08-05, one of the two personal-command verbs that touch persisted save state): taught ONLY when the host confirms this NPC is one of the player's own clan companions with n... |
+| 48 | `swear_oath_offer` | `AppendSwearOathOffer` | prefix |  |  |  | swear_oath brought to the 1:1 pipeline (2026-08-05, one of the two personal-command verbs that touch persisted save state): taught ONLY when the host confirms this NPC is a viable swearer with no oath already outstanding... |
+| 49 | `follow_me` | `AppendFollowMe` | prefix |  |  |  | follow_me (1:1 bridge action, player wish: a companion promising to "stay by my side", this is the map-escort half that is doable now, the battlefield version stays roadmapped). |
+| 50 | `dismiss_escort` | `AppendDismissEscort` | prefix |  |  |  | dismiss_escort: the MIRROR of follow_me, taught only while THIS NPC's own party is CURRENTLY escorting the player (EncounterContext.NpcIsEscortingPlayer): either side may end the arrangement early, before its bounded ter... |
+| 51 | `ride_with_me` | `AppendRideWithMe` | prefix |  |  |  | ride_with_me (1:1 bridge action): the idle-lord complement of follow_me. |
+| 52 | `part_ways` | `AppendPartWays` | prefix |  |  |  | part_ways: the MIRROR of ride_with_me, taught only while THIS NPC is CURRENTLY riding in the player's party as a retainer (EncounterContext.NpcIsRidingWithPlayer): either side may end the arrangement, after which the lor... |
+| 53 | `duel_challenge` | `AppendDuelChallenge` | prefix |  |  |  | Teaches the duel challenge, and ONLY when the host has already ruled the duel admissible and found a venue (EncounterContext.DuelChallengeAvailable): same conditional contract as RECRUITMENT, so the verb exists exactly w... |
+| 54 | `post_duel_context` | `AppendPostDuelContext` | prefix |  |  |  | Holds the register when a conversation RESUMES right after a fought duel (EncounterContext.IsPostDuel): a beaten NPC concedes and does not boast, a victorious one speaks as the victor and does not grovel. |
+| 55 | `lord_recruitment` | `AppendLordRecruitment` | prefix |  |  |  | Lord-defection section. |
+| 56 | `scheme_recruitment` | `AppendSchemeRecruitment` | prefix |  |  |  | Scheme-agent section. |
+| 57 | `scheme_warning` | `AppendSchemeWarning` | prefix |  |  |  | Scheme-warning section. |
+| 58 | `love_match_proposal` | `AppendLoveMatchProposal` | prefix |  |  |  | Taught only when the NPC THEMSELVES is a viable marriage candidate (Phase A.3): player single, NPC eligible by sex/age/clan, and regard deep enough (personal reputation OR the live vanilla relation). |
+| 59 | `consort_proposal` | `AppendConsortProposal` | prefix |  |  |  | Consort-bond section. |
+| 60 | `secret_lover_proposal` | `AppendSecretLoverProposal` | prefix |  |  |  | Secret-lover section, for one of the player's OWN companions bonded through shared war (EncounterContext.SecretLoverEligible). |
+| 61 | `open_relationship_proposal` | `AppendOpenRelationshipProposal` | prefix |  |  |  | (no summary) |
+| 62 | `plural_acceptance` | `AppendPluralAcceptance` | prefix |  |  |  | Open-arrangement section, rendered only for a COMMITTED partner (spouse or consort) via EncounterContext.OpenRelationshipEligible. |
+| 63 | `partner_lover_known` | `AppendPartnerLoverKnown` | prefix |  |  |  | Inc 3b-b: the conversation around a lover the player already KNOWS about, rendered only when EncounterContext.PartnerLoverKnown. |
+| 64 | `held_secret` | `AppendHeldSecret` | prefix |  |  |  | Mystery-lover pillar (phase 3b): the payoff of a lord LEARNING the player's secret-lover identity (never deduced, only confessed or propagated). |
+| 65 | `give_item` | `AppendGiveItem` | prefix |  | aware |  | Teaches the give_item action. |
+| 66 | `deliver_prisoner` | `AppendDeliverPrisoner` | prefix |  | dropped by policy (`DeliverPrisonerOffer`) | LeanPromptPolicy.Include(PromptSection.DeliverPrisonerOffer, s.Lean) && s.Context?.WarStatus is DiplomaticStat... | Teaches the prisoner deed: a lord may demand an enemy captive as the price of a favor, and accepts the hand-over with the give_prisoner action. |
+| 67 | `prisoner_freedom_bargain` | `AppendPrisonerFreedomBargain` | prefix |  |  |  | (no summary) |
+| 68 | `ordinary_prisoner_execution_rule` | `AppendOrdinaryPrisonerExecutionRule` | prefix |  |  |  | Player report (Nexus): a player sentenced a captured noble to death mid conversation, the LLM narrated the execution, and the noble was still alive in the prisoner list afterward, because AppendExecutePrisonerRule was on... |
+| 69 | `recruit_prisoner` | `AppendRecruitPrisoner` | prefix |  |  |  | v1.34.3 recruit_prisoner. |
+| 70 | `prisoner_cannot_defect` | `AppendPrisonerCannotDefect` | prefix |  |  |  | The symmetric NEGATIVE of AppendRecruitPrisoner. |
+| 71 | `recruit_notable` | `AppendRecruitNotable` | prefix |  |  |  | recruit_notable: a settlement NOTABLE (a town gang leader, headman, merchant, artisan, rural notable or preacher) can be persuaded to leave their post and take service in the player's clan as a companion, once a genuine,... |
+| 72 | `take_into_service` | `AppendTakeIntoService` | prefix |  |  |  | take_into_service: the player has companions THIS lord could take into their own household, and the game has confirmed each of them is genuinely free to go (EncounterContext.CompanionsOfferableToThisLord lists them by na... |
+| 73 | `prisoner_rescue_bargain` | `AppendPrisonerRescueBargain` | prefix |  |  |  | Taught only when this NPC is a captive of SOMEONE ELSE (NpcIsPrisonerOfAnother) and the player visits their cell: the captive may bargain to be broken out — a rescue deed the player must earn by actually freeing them in... |
+| 74 | `teach_skill` | `AppendTeachSkill` | prefix |  |  |  | teach_skill: taught only when the game confirms this NPC has genuine mastery in at least one skill right now (EncounterContext.TeachableSkills non-empty, computed via CalradiaRemembers.Logic.TeachSkillPolicy.CanTeach aga... |
+| 75 | `companion_recall_offer` | `AppendCompanionRecallOffer` | prefix |  |  |  | Taught only when this NPC is one of the player's OWN companions currently away on an errand and the player has met them (CompanionOnErrand): the player may order them to abandon the errand and return. |
+| 76 | `companion_news_report` | `AppendCompanionNewsReport` | prefix |  |  |  | Taught only when the PLAYER holds this NPC prisoner (NpcIsCaptive) and comes to speak: the captive lord may bargain for their own freedom, offering a reward worth more than the ransom, and the deal is sealed with the fre... |
+| 77 | `companion_mood_note` | `AppendCompanionMoodNote` | prefix |  |  |  | Taught when this companion has grown unhappy in the player's service: the directive in EncounterContext.CompanionMoodNote (built by the host from the happiness band) tells them how restless they are and invites them to v... |
+| 78 | `companion_audience` | `AppendCompanionAudience` | prefix |  |  |  | Taught when THIS companion asked the player for the private audience that opened this conversation (EncounterContext.CompanionAudience). |
+| 79 | `companion_camp_note` | `AppendCompanionCampNote` | prefix |  |  |  | (no summary) |
+| 80 | `companion_briefing_scene` | `AppendCompanionBriefingScene` | prefix |  |  |  | Companion-briefing pillar, revised per Gabriel's ruling: the briefing chat must be a REAL conversation, so the model needs to know WHAT this scene is or it will answer as though EncounterContext.CompanionBriefingTargetNa... |
+| 81 | `intimacy_bargain` | `AppendIntimacyBargain` | prefix |  |  |  | Taught when this companion feels strongly about a FELLOW companion: the directive in EncounterContext.CompanionCampNote names the camp friendship or feud and invites them to raise it with the player — naturally, only if... |
+| 82 | `bastard_mother` | `AppendBastardMother` | prefix |  |  |  | Bastards: when this NPC is the mother of a still-hidden child of the player's, teach her to raise it in conversation in her own register — extort (mercenary), long (fond), reproach (resentful), or ask for the child's kee... |
+| 83 | `marriage` | `AppendMarriage` | prefix |  |  |  | Marriage-request section. |
+| 84 | `matchmaker` | `AppendMatchmaker` | prefix |  |  |  | Matchmaker section. |
+| 85 | `narrative_style` | `AppendNarrativeStyle` | prefix |  |  |  | (no summary) |
+| 86 | `encounter_context` | `AppendEncounterContext` | **marker** |  |  |  | (no summary) |
+| 87 | `who_sought_whom` | `AppendWhoSoughtWhom` | tail |  |  |  | Interception opener. |
+| 88 | `interception` | `AppendInterception` | tail |  |  |  | (no summary) |
+| 89 | `format_feedback` | `AppendFormatFeedback` | tail |  |  |  | Feedback loop (quest audit C5): when the PREVIOUS reply's [QUEST] or [ACTION] block could not be registered, tell the MODEL so, not just the player. |
+| 90 | `held_prisoners_brief` | `AppendHeldPrisonersBrief` | tail |  | aware |  | Who holds the captives, in one line, in the per-turn tail. |
+| 91 | `volatile_knowledge` | `AppendVolatileKnowledge` | tail |  |  |  | The knowledge that changes under the character - the hour, the sky, where they are standing. |
+| 92 | `day_mood` | `AppendDayMood` | tail |  |  |  | The kind of day the character is having, and how far the player has moved it (THE MOOD OF THE DAY). |
+| 93 | `world_state` | `AppendWorldState` | tail |  |  |  | (no summary) |
+| 94 | `at_sea_note` | `AppendAtSeaNote` | tail |  |  |  | (no summary) |
+| 95 | `player_dress_note` | `AppendPlayerDressNote` | tail |  |  |  | A plain, factual note of how the player is dressed, rendered ONLY for a REMARKABLE state (Naked / Rags): the ordinary Civilian and Armoured states render nothing, or every single prompt in the game would grow for a fact... |
+| 96 | `courtship_challenge` | `AppendCourtshipChallenge` | tail |  |  |  | Courtship-duel opener. |
+| 97 | `witness_turn_directives` | `AppendWitnessTurnDirectives` | tail |  |  |  | Per-turn witness directives, split out of AppendWitnesses (task 1b): the witness LIST and the reaction teaching are stable across a whole conversation and stay in the cacheable prefix; whether THIS turn is a witness-exch... |
+| 98 | `scene_stage_directive` | `AppendSceneStageDirective` | tail |  |  | b.ShouldAppendCaptiveStageDirective(s.Context) | (no summary) |
+| 99 | `scene_style_directive` | `AppendSceneStyleDirective` | tail |  |  |  | (no summary) |
+| 100 | `narration_frequency` | `AppendNarrationFrequency` | tail | sealed |  |  | Replaces standard consent rules when the player is this NPC's captive at Hardcore level. |
+| 101 | `power_balance` | `AppendPowerBalance` | tail |  |  |  | Injects a power-balance note when the game-side resolver detected a meaningful asymmetry between the player's realm and the NPC's position. |
+| 102 | `player_gender_context` | `AppendPlayerGenderContext` | tail |  |  |  | Injects the [DISCOVERY] section format when romantic content is enabled. |
+| 103 | `stay_within_what_you_know` | `AppendStayWithinWhatYouKnow` | tail | required | aware |  | Anti-confabulation guard: the primary fix for invented parent names and made-up troop movements. |
+| 104 | `player_action_narration` | `AppendPlayerActionNarration` | tail | required | aware |  | Teaches that a captive's escape attempt is resolved by fate, not by the captor's narration: the single biggest reason the LLM otherwise "always wins". |
+| 105 | `claims_are_not_proof` | `AppendClaimsAreNotProof` | tail | required | aware |  | The general form of a rule this prompt already stated in three separate silos, and therefore never applied where it was actually needed. |
+| 106 | `language_mirror` | `AppendLanguageMirror` | tail |  | aware |  | Which language the reply is written in. |
+| 107 | `player_description` | `AppendPlayerDescription` | tail |  | aware |  | (no summary) |
+| 108 | `heard_now` | `AppendHeardNow` | tail |  |  |  | heard_now.txt, expanded with this build's variables; nothing when it is empty or expands to nothing. |
+| 109 | `role_anchor` | `AppendRoleAnchor` | tail | required | aware |  | A short, forceful restatement of the machine-read output contract, emitted at the very end of the prompt (highest recency). |
+| 110 | `format_reminder` | `AppendFormatReminder` | tail | required | aware |  | (no summary) |
+| 111 | `post_history_instructions` | `AppendPostHistoryInstructions` | tail |  |  |  | Appends the modder's post_history_instructions.txt verbatim (aside from {{token}} expansion, see PromptVariableExpander) at the very end of the system prompt: the highest-recency position, read immediately before the con... |

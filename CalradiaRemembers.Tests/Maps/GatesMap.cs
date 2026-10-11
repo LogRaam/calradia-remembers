@@ -43,6 +43,10 @@ namespace CalradiaRemembers.Tests.Maps
       {
          SourceFile? bridge = files.FirstOrDefault(f => f.RelativePath.EndsWith(BridgeFile, StringComparison.Ordinal));
          SourceFile? prompt = files.FirstOrDefault(f => f.RelativePath.EndsWith(PromptFile, StringComparison.Ordinal));
+         // PromptBuilder is partial since 11/10/2026 (Prompt Composer): its sections' gates live in PromptBuilder.Sections.cs.
+         List<SourceFile> promptParts = prompt == null
+            ? new List<SourceFile>()
+            : files.Where(f => f.RelativePath.Contains(PromptFile.Replace(".cs", ""), StringComparison.Ordinal)).ToList();
          SourceFile? context = files.FirstOrDefault(f => f.RelativePath.EndsWith(ContextFile, StringComparison.Ordinal));
 
          var sb = new StringBuilder();
@@ -64,7 +68,7 @@ namespace CalradiaRemembers.Tests.Maps
 
          foreach ((string action, string executor) in executorOf.OrderBy(kv => kv.Key, StringComparer.Ordinal))
          {
-            (string where, string condition) = TeachingOf(prompt, action);
+            (string where, string condition) = TeachingOf(prompt, promptParts, action);
             List<string> reads = DependsOn(condition, resolverReads);
 
             rows.Add(new Gate {
@@ -287,7 +291,7 @@ namespace CalradiaRemembers.Tests.Maps
       }
 
       /// <summary>The prompt section that names this action in a string literal, and the guard on it.</summary>
-      private static (string where, string condition) TeachingOf(SourceFile prompt, string action)
+      private static (string where, string condition) TeachingOf(SourceFile prompt, IReadOnlyList<SourceFile> parts, string action)
       {
          foreach (MethodDeclarationSyntax m in prompt.Root.DescendantNodes().OfType<MethodDeclarationSyntax>())
          {
@@ -311,7 +315,7 @@ namespace CalradiaRemembers.Tests.Maps
             }
 
             // And the `if` around the call, for the sections gated by their caller.
-            foreach (InvocationExpressionSyntax call in prompt.Root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            foreach (InvocationExpressionSyntax call in parts.SelectMany(p => p.Root.DescendantNodes().OfType<InvocationExpressionSyntax>()))
             {
                if (NameOfCall(call) != m.Identifier.Text) continue;
 

@@ -8,7 +8,7 @@ sentence beside each type is the first sentence of its own doc comment; `(no sum
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 475 types in 58 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1043 types in 27 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 254 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -18,7 +18,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | Lines | Layer | File |
 |---|---|---|
 | 17000+ | Mod | `Diagnostics/CrSelfTest.cs` |
-| 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
+| 8000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
 | 4000+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -2251,7 +2251,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
 | `StageDirectionDedupe` | public static class | Drops the second and later copies of the same *stage direction* in a reply. |
 
-### NpcMemoryService.Core.Prompts (30)
+### NpcMemoryService.Core.Prompts (34)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2275,13 +2275,17 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlayerStandingNote` | public static class | The one sentence that says where the player stands with this character: sworn, hired, kin, captive, or bound by nothing at all. |
 | `PrefixComparison` | public record | One request's cache verdict, in the terms a bill is paid in. |
 | `PrefixVerdict` | public enum | What happened to the cacheable prefix between two requests. |
-| `PromptBuilder` | public class | Assembles the system prompt with stability-ordered sections: the most stable content (universal format rules) comes first to maximize prompt cache hit rate on providers with prefix-matching caching (xAI Grok, OpenAI GPT-... |
+| `PromptBuildState` | internal class | What one build of the character prompt is about, handed to every section. |
+| `PromptBuilder` | public class, partial over 2 files | Assembles the system prompt with stability-ordered sections: the most stable content (universal format rules) comes first to maximize prompt cache hit rate on providers with prefix-matching caching (xAI Grok, OpenAI GPT-... |
 | `PromptCacheReport` | public static class | How much of a cacheable prefix survives from one request to the next. |
 | `PromptCacheSplit` | public static class | The cacheable/volatile boundary of a system prompt. |
 | `PromptCacheTracker` | public class | Remembers the last cacheable prefix per (model, subject) and reports what the next one costs. |
 | `PromptLore` | public static class | The setting's name, adjective, and which cultures read as patriarchal — used by the prompt sections. |
 | `PromptSection` | public enum | The heavy, always-on system-prompt sections a lean prompt may drop to save tokens. |
+| `PromptSectionLock` | public enum | How far a power user's layout may change a section (DESIGN.md, "Locks": only where the game breaks or safety is at stake). |
+| `PromptSectionSpec` | public class | One section of the character prompt: its key, its zone, its lock, and how it is written. |
 | `PromptVariableExpander` | public static class | Expands {{token}} placeholders in player-authored prompt text against a lookup of known variables (NPC name, player name, and the like), matching the "macro" convention SillyTavern users already know from {{char}}/{{user... |
+| `PromptZone` | public enum | Which side of the cache marker a section is written on. |
 | `RegardBands` | public static class | The single canonical banding of Models.NpcProfile.ReputationWithPlayer into the 15 named tiers (14 first established by the encyclopedia's "Personal regard" row (EncyclopediaHeroPagePersonalRelationMixin.Describe), plus... |
 | `SingleCallExtractionPromptBuilder` | public static class | Builds the single-call composer+extractor system prompt used by the spike (cr.single_call_probe). |
 | `VerbCatalogPolicy` | public static class | Decides which verbs the GAME ACTIONS catalogue lists, by reading back what the finished prompt already taught. |
