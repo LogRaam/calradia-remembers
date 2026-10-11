@@ -610,7 +610,7 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>Every tale that begins on the map and could begin now with someone of the player's party; the last reason otherwise.</summary>
-      private List<MapOpening> MapTalesOpenNow(int today, string onlyQuestId, out string whyNot)
+      private List<MapOpening> MapTalesOpenNow(int today, string onlyQuestId, out string whyNot, bool placeAndTime = true)
       {
          var open = new List<MapOpening>();
          whyNot = "no tale that begins on the map is loaded";
@@ -627,7 +627,7 @@ namespace CalradiaRemembers.Quests
                   continue;
                }
 
-               why = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, hero, today)) ?? AuthoredMapTriggerPolicy.WhyNot(q.OnMap, MapFactsFor(hero));
+               why = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, hero, today)) ?? (placeAndTime ? AuthoredMapTriggerPolicy.WhyNot(q.OnMap, MapFactsFor(hero)) : null);
                if (why != null)
                {
                   whyNot = why;
@@ -700,6 +700,32 @@ namespace CalradiaRemembers.Quests
          if (whyNot != null) return whyNot;
 
          return MapTalesOpenNow((int) CampaignTime.Now.ToDays, questId, out whyNot).Count > 0 ? null : whyNot;
+      }
+
+      /// <summary>
+      ///   cr.tale_on_map (Gabriel, 11/10/2026: test a tale that begins on the map without waiting on a 15% day): the popup of
+      ///   this tale now, every condition checked but the dice; with <paramref name="anyway" />, the place and the hour are
+      ///   skipped too (the giver and the tale's own rules still hold).
+      /// </summary>
+      internal string DebugBeginOnMap(string questId, bool anyway)
+      {
+         if (_run is {Status: AuthoredQuestStatus.Active}) return $"A tale is under way ('{_run.QuestId}'): finish or abandon it first (cr.story_abandon).";
+         AuthoredQuest q = _quests.Values.FirstOrDefault(x => x.Id == questId);
+         if (q == null) return $"No tale '{questId}' is loaded (cr.story_check lists them).";
+         if (q.OnMap == null) return $"'{questId}' does not begin on the map.";
+
+         // A test lever: the tale may be played again, as if never played or declined.
+         ForgetPlayed(questId);
+         var today = (int) CampaignTime.Now.ToDays;
+         List<MapOpening> open = MapTalesOpenNow(today, questId, out string whyNot, placeAndTime: !anyway);
+         if (open.Count == 0) return $"'{questId}' cannot begin now: {whyNot}." + (anyway ? "" : " Add 'anyway' to skip the place and the hour.");
+
+         MapOpening o = open[0];
+         AuthoredQuestRun run = AuthoredQuestEngine.Start(q, o.Ids, o.Names, today);
+         ModLog.Info($"[TALE] '{q.Id}' begun on the map by the console with {o.Giver.Name}.");
+         AskOnMap(q, run, o.Giver);
+
+         return $"'{questId}' begins with {o.Giver.Name}: the popup is open.";
       }
 
       /// <summary>Self-test seam: the hours the party has stood still, as the trigger counts them.</summary>

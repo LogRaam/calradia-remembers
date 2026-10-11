@@ -52,6 +52,18 @@ namespace CalradiaRemembers
          return sb.ToString().TrimEnd();
       }
 
+      /// <summary>cr.tale_on_map &lt;id&gt; [anyway]: the popup of a tale that begins on the map, now, the dice skipped.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("tale_on_map", "cr")]
+      public static string TaleOnMap(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (args == null || args.Count == 0) return "Usage: cr.tale_on_map <tale id> [anyway]   (tale ids: cr.story_check)";
+         AuthoredQuestBehavior b = AuthoredQuestBehavior.Instance;
+         if (b == null) return "Authored quests are not active.";
+
+         return b.DebugBeginOnMap(args[0], args.Skip(1).Any(a => a.Equals("anyway", System.StringComparison.OrdinalIgnoreCase)));
+      }
+
       /// <summary>cr.story_status: the tale under way, its stage, and who it is bound to.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("story_status", "cr")]
       public static string StoryStatus(List<string> args)
