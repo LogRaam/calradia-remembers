@@ -95,7 +95,10 @@ namespace CalradiaRemembers.Portraits
             }
         }
 
-        /// <summary>Stops the video and frees the player and its texture; the widget showing it goes blank.</summary>
+        /// <summary>
+        ///   Stops the video and frees the player, and its texture a few frames later. The caller takes the live picture off
+        ///   its widget FIRST (ChatViewModel.ClearLiveSceneImage): a widget must never draw a released texture.
+        /// </summary>
         public static void Stop()
         {
             try
@@ -110,7 +113,8 @@ namespace CalradiaRemembers.Portraits
             }
             catch (System.Exception ex) { ModLog.Error($"[VIDEO] stop failed: {ex.GetType().Name}: {ex.Message}"); }
 
-            try { _target?.Release(); }
+            // A few frames late: the layer may still draw this frame with the sprite it had.
+            try { _target?.ReleaseAfterNumberOfFrames(3); }
             catch (System.Exception ex) { ModLog.Error($"[VIDEO] texture release failed: {ex.GetType().Name}: {ex.Message}"); }
 
             _player = null;

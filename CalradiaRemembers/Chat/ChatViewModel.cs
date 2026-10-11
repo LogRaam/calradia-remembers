@@ -3252,6 +3252,7 @@ namespace CalradiaRemembers.Chat
       internal bool ShowLiveSceneImage(string livePath, float aspectW, float aspectH)
       {
          if (ChatManager.ActiveSkin != ChatManager.ManuscriptSkin) return false;
+         if (!SceneImagePath.StartsWith(CrVideoSurface.LivePrefix, StringComparison.Ordinal)) _pictureBeforeLive = SceneImagePath;
 
          const float marginBoxW = 1100f;
          const float marginBoxH = 820f;
@@ -3268,6 +3269,23 @@ namespace CalradiaRemembers.Chat
          OnPropertyChanged(nameof(IsSceneImageVisible));
 
          return true;
+      }
+
+      // The picture the frame held before a live one, put back when the video stops.
+      private string _pictureBeforeLive = "";
+
+      /// <summary>
+      ///   Takes a live picture off the frame BEFORE its texture is freed (a widget drawing a released texture could
+      ///   crash natively), putting back the picture it held before. Nothing to do when the frame shows a file.
+      /// </summary>
+      internal void ClearLiveSceneImage()
+      {
+         if (!SceneImagePath.StartsWith(CrVideoSurface.LivePrefix, StringComparison.Ordinal)) return;
+
+         SceneImagePath = _pictureBeforeLive ?? "";
+         if (string.IsNullOrEmpty(SceneImagePath)) _sceneImageShown = false;
+         OnPropertyChanged(nameof(SceneImagePath));
+         OnPropertyChanged(nameof(IsSceneImageVisible));
       }
 
       /// <summary>

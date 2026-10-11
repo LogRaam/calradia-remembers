@@ -24,6 +24,7 @@ namespace CalradiaRemembers
          switch (verb)
          {
             case "stop":
+               ChatManager.ActiveViewModel?.ClearLiveSceneImage();
                CrVideoSurface.Stop();
                return "Video stopped.";
             case "status":
@@ -44,9 +45,14 @@ namespace CalradiaRemembers
          ChatViewModel vm = ChatManager.ActiveViewModel;
          if (vm == null) return "Open a conversation first (the video shows where a tale's picture stands).";
 
+         vm.ClearLiveSceneImage(); // off the frame before Start frees a video already playing
          string live = CrVideoSurface.Start(file, w, h, fps, loop, out string report);
          if (live == null) return "Could not start: " + report;
-         if (!vm.ShowLiveSceneImage(live, w, h)) return report + " But the Classic skin is open: the spike shows the video on the Manuscript skin only.";
+         if (!vm.ShowLiveSceneImage(live, w, h))
+         {
+            CrVideoSurface.Stop();
+            return "The Classic skin is open: the spike shows the video on the Manuscript skin only (cr.skin). Nothing played.";
+         }
 
          return report;
       }
