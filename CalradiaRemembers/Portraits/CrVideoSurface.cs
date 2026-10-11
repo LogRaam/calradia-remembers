@@ -41,20 +41,23 @@ namespace CalradiaRemembers.Portraits
         ///   Plays <paramref name="file" /> into a new render target of <paramref name="width" /> x <paramref name="height" />
         ///   and returns its live path (null and a reason on failure). Any video already playing is stopped first.
         /// </summary>
-        public static string Start(string file, int width, int height, float fps, bool loop, out string report)
+        /// <param name="toScreen">
+        ///   Diagnostic (first run, 11/10/2026: the frame went blank, no video): no render target, the player drawn to the
+        ///   screen above the scene, as the game's own videos are. Shows whether the file plays at all.
+        /// </param>
+        /// <param name="clearColor">
+        ///   Diagnostic: the player clears its target to this colour (0 = untouched). A frame turning that colour proves the
+        ///   player renders INTO the texture, so a missing picture is the decoding, not the texture.
+        /// </param>
+        public static string Start(string file, int width, int height, float fps, bool loop, bool toScreen, uint clearColor, out string report)
         {
             Stop();
             _serial++;
             string name = $"cr_video_{_serial}";
+            // The game's own videos are always given as forward-slash paths (ModuleHelper.GetModuleFullPath + "Videos/..").
+            file = file.Replace('\\', '/');
             try
             {
-                _target = Texture.CreateRenderTarget(name, width, height, false, false, false, true);
-                if (_target == null)
-                {
-                    report = "CreateRenderTarget returned null.";
-                    return null;
-                }
-
                 _player = VideoPlayerView.CreateVideoPlayerView();
                 if (_player == null)
                 {
@@ -62,17 +65,35 @@ namespace CalradiaRemembers.Portraits
                     return null;
                 }
 
-                _player.SetRenderTarget(_target);
-                _player.SetRenderOrder(-10000);
-                _player.PlayVideo(file, "", fps, loop);
+                if (clearColor != 0) _player.SetClearColor(clearColor);
+                string live = null;
+                if (toScreen)
+                {
+                    _player.SetRenderOrder(10000);
+                }
+                else
+                {
+                    _target = Texture.CreateRenderTarget(name, width, height, false, false, false, true);
+                    if (_target == null)
+                    {
+                        report = "CreateRenderTarget returned null.";
+                        return null;
+                    }
 
-                string live = LivePrefix + name;
-                Sprites[live] = RuntimePortraitFactory.SpriteFromTexture(_target, name, width, height);
-                CurrentPath = live;
-                report = $"playing {System.IO.Path.GetFileName(file)} into {name} ({width}x{height}, {fps} fps, loop={loop}); target IsRenderTarget={_target.IsRenderTarget}.";
+                    _player.SetRenderTarget(_target);
+                    _player.SetRenderOrder(-10000);
+                    live = LivePrefix + name;
+                    Sprites[live] = RuntimePortraitFactory.SpriteFromTexture(_target, name, width, height);
+                }
+
+                _player.SetEnable(true);
+                _player.PlayVideo(file, "", fps, loop);
+                CurrentPath = live ?? (LivePrefix + name + "_screen");
+                report = $"playing {file} {(toScreen ? "TO THE SCREEN" : "into " + name)} ({width}x{height}, {fps} fps, loop={loop}, clear=0x{clearColor:X8}); "
+                       + $"file exists={System.IO.File.Exists(file)}, target IsRenderTarget={_target?.IsRenderTarget.ToString() ?? "none"}.";
                 ModLog.Info("[VIDEO] " + report);
 
-                return live;
+                return CurrentPath;
             }
             catch (System.Exception ex)
             {

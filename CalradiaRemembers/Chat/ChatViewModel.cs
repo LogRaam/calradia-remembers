@@ -3252,7 +3252,11 @@ namespace CalradiaRemembers.Chat
       internal bool ShowLiveSceneImage(string livePath, float aspectW, float aspectH)
       {
          if (ChatManager.ActiveSkin != ChatManager.ManuscriptSkin) return false;
-         if (!SceneImagePath.StartsWith(CrVideoSurface.LivePrefix, StringComparison.Ordinal)) _pictureBeforeLive = SceneImagePath;
+         if (!SceneImagePath.StartsWith(CrVideoSurface.LivePrefix, StringComparison.Ordinal))
+         {
+            _pictureBeforeLive = SceneImagePath;
+            _pictureBeforeLiveSize = (SceneImageWidth, SceneImageHeight);
+         }
 
          const float marginBoxW = 1100f;
          const float marginBoxH = 820f;
@@ -3271,8 +3275,10 @@ namespace CalradiaRemembers.Chat
          return true;
       }
 
-      // The picture the frame held before a live one, put back when the video stops.
+      // The picture the frame held before a live one, and its size, put back when the video stops (first run: the picture
+      // came back in the video's proportions).
       private string _pictureBeforeLive = "";
+      private (float Width, float Height) _pictureBeforeLiveSize;
 
       /// <summary>
       ///   Takes a live picture off the frame BEFORE its texture is freed (a widget drawing a released texture could
@@ -3283,8 +3289,12 @@ namespace CalradiaRemembers.Chat
          if (!SceneImagePath.StartsWith(CrVideoSurface.LivePrefix, StringComparison.Ordinal)) return;
 
          SceneImagePath = _pictureBeforeLive ?? "";
+         SceneImageWidth = _pictureBeforeLiveSize.Width;
+         SceneImageHeight = _pictureBeforeLiveSize.Height;
          if (string.IsNullOrEmpty(SceneImagePath)) _sceneImageShown = false;
          OnPropertyChanged(nameof(SceneImagePath));
+         OnPropertyChanged(nameof(SceneImageWidth));
+         OnPropertyChanged(nameof(SceneImageHeight));
          OnPropertyChanged(nameof(IsSceneImageVisible));
       }
 
