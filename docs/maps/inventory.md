@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 475 types in 58 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 476 types in 58 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1043 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 254 types in 17 namespaces, 9 without a summary
 
@@ -158,7 +158,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 
-### CalradiaRemembers.Chat (51)
+### CalradiaRemembers.Chat (52)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -192,6 +192,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilEntry` | public static class | Shared "convene a council" logic behind the campaign-bar button (reachable on the map and inside a settlement). |
 | `CouncilLift` | internal static class | Settles a council's agreed pledges against the world as it stands now, reporting through a callback. |
 | `CouncilParticipantViewModel` | public class | One seated member of the bespoke COUNCIL window's left "CLAN JOUEUR" strip: a portrait tile (the anchor or a witness) with a seat label, clickable to open that hero's dossier. |
+| `CrFramePumpSpike` | internal static class | Shows a new engine texture per frame in the tale's picture frame, at a fixed rate, and measures it. |
 | `EnvoyAudience` | public class | What an envoy audience carries: whose envoy, and the mandate he was given. |
 | `ExplorationBackdrop` | internal static class | The suspended-map backdrop an exploration scene's chat window sits on. |
 | `ExplorationSession` | public class | What an exploration scene is, supplied by whoever opens it. |

@@ -3275,6 +3275,13 @@ namespace CalradiaRemembers.Chat
          return true;
       }
 
+      /// <summary>SPIKE (frame pump): the next frame of a live picture already shown, its size unchanged.</summary>
+      internal void SwapLiveSceneImage(string livePath)
+      {
+         SceneImagePath = livePath;
+         OnPropertyChanged(nameof(SceneImagePath));
+      }
+
       // The picture the frame held before a live one, and its size, put back when the video stops (first run: the picture
       // came back in the video's proportions).
       private string _pictureBeforeLive = "";

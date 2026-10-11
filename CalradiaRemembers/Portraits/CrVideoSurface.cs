@@ -33,6 +33,12 @@ namespace CalradiaRemembers.Portraits
         /// <summary>The live path of the video playing now, or null.</summary>
         public static string CurrentPath { get; private set; }
 
+        /// <summary>Makes <paramref name="sprite" /> the one a widget shows for <paramref name="livePath" /> (the frame pump spike).</summary>
+        public static void Register(string livePath, Sprite sprite) => Sprites[livePath] = sprite;
+
+        /// <summary>Forgets a live sprite no widget shows any more.</summary>
+        public static void Unregister(string livePath) => Sprites.Remove(livePath);
+
         /// <summary>The sprite a widget shows for <paramref name="livePath" />, or null when nothing plays under it.</summary>
         public static Sprite SpriteFor(string livePath)
             => livePath != null && Sprites.TryGetValue(livePath, out Sprite s) ? s : null;

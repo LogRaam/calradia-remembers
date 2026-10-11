@@ -25,11 +25,19 @@ namespace CalradiaRemembers
          switch (verb)
          {
             case "stop":
+               CrFramePumpSpike.Stop();
                ChatManager.ActiveViewModel?.ClearLiveSceneImage();
                CrVideoSurface.Stop();
                return "Video stopped.";
             case "status":
                return CrVideoSurface.CurrentPath == null ? "No video playing." : $"{CrVideoSurface.CurrentPath}: finished={CrVideoSurface.IsFinished()?.ToString() ?? "?"}";
+            case "pump":
+               // cr.video_spike pump <width> <height> <hz> [seconds]: our own frame display, measured (CrFramePumpSpike).
+               if (args.Count < 4 || !int.TryParse(args[1], out int pw) || !int.TryParse(args[2], out int ph)
+                   || !float.TryParse(args[3], NumberStyles.Float, CultureInfo.InvariantCulture, out float phz) || pw <= 0 || ph <= 0 || phz <= 0)
+                  return "Usage: cr.video_spike pump <width> <height> <hz> [seconds]";
+               float psec = args.Count > 4 && float.TryParse(args[4], NumberStyles.Float, CultureInfo.InvariantCulture, out float s) && s > 0 ? s : 60f;
+               return CrFramePumpSpike.Start(pw, ph, phz, psec);
             case "start":
                break;
             default:
