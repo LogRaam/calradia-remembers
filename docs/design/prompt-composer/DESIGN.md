@@ -1,6 +1,8 @@
 # Prompt Composer: CR's prompts in the hands of power users and modders
 
-Status: PROPOSAL for Gabriel's review, 11/10/2026. Nothing here is built.
+Status: DESIGN AGREED 11/10/2026 (Gabriel: "fait les choix logiques pour laisser le plus de liberte. Un param MCM pourrait
+designer l'ordonnanceur a utiliser, car il pourrait y avoir plusieurs mods qui proposent un ordonnanceur. L'editeur dans
+Docs. Mise en page par type."). Nothing built yet. The decisions are in "Decisions" at the end.
 
 ## Why
 
@@ -92,23 +94,60 @@ To make this real, `BuildSystemPrompt` becomes a walk over a **section registry*
 order, instead of a hard-coded sequence. The stock layout is the current order. That refactor is the riskiest step and
 is done with no other change, guarded by golden prompts (increment 0).
 
+### Prompt profiles (the "ordonnanceur" a player chooses)
+
+Several mods may each offer their own way of composing CR's prompts, so a composition is a named **profile**, and the
+player picks ONE in MCM ("Prompt profile": a dropdown listing every profile found). A profile is a folder:
+
+```
+Prompts/
+  profile.json            name, author, description, based_on (the CR version it was made from)
+  layouts/<kind>.json     the order and the sections off, per kind of character (see below)
+  sections/<key>.txt      the reworded sections (only those it changes)
+```
+
+Where profiles are found:
+
+- **Stock**: CR's own `ModuleData/Prompts/`. Always listed, always complete. The default.
+- **Mods**: each enabled mod's `ModuleData/cr_prompts/<profile id>/`, one or more per mod.
+- **The player's**: `Custom/Prompts/<profile id>/` (the MCM Custom path, else `ModuleData/Custom`), which CR updates never
+  touch.
+
+Inside the chosen profile, anything it does not provide falls back to stock: a section it does not reword uses the stock
+text, a kind it has no layout for uses its own `default` layout, else stock's. So a profile can be one reworded section
+or a total overhaul. A player who likes a mod's profile but wants to change one line copies it to Custom (the editor does
+it in one click) and selects the copy. A profile can name a `parent` profile in `profile.json`, and falls back to the
+parent before stock, so a small tweak need not copy a whole overhaul.
+
+A missing or broken chosen profile falls back to stock, with a notice in the log and on screen. Stock is never more than
+one MCM switch away.
+
 ### Texts
 
-Stock texts ship as files, one per section: `ModuleData/Prompts/character/<key>.txt`. The texts move out of
-`PromptBuilder` verbatim, and the golden prompts prove nothing changed. Overrides, in rising precedence (the existing
-pattern):
+Stock texts ship as files, one per section: `ModuleData/Prompts/sections/<key>.txt`. The texts move out of
+`PromptBuilder` verbatim, and the golden prompts prove nothing changed. A profile's section file REPLACES the stock text
+(a section is rewritten, the most freedom); the existing directives remain available: `!append` adds to the stock text
+instead, `!remove <text>` drops lines, `!#` is a comment the model never sees.
 
-1. stock `ModuleData/Prompts/character/<key>.txt`;
-2. each enabled mod's `ModuleData/cr_patch/Prompts/character/<key>.txt`, in launcher order;
-3. the player's `Custom/Prompts/character/<key>.txt`.
+### Layouts, by kind of character
 
-A prompt file REPLACES the text below it by default (a section is rewritten, not added to), with the existing directives
-available: `!append` to add to it instead, `!remove <text>`, `!#` comments. (Proposed; see open questions.)
+One layout per kind, chosen by who is speaking. The kinds, most specific first (the first that fits is used, then
+`default`):
 
-### The layout
+- `spouse`
+- `companion`
+- `captive_scene` (a captive or captor scene)
+- `gang_leader`
+- `notable`
+- `wanderer`
+- `lord`
+- `default`
 
-`prompt_layout.character.json`, same precedence (stock, mods, Custom; the highest one wins whole, no merging between
-layouts):
+The commoner prompt has its own builder and gets its own `commoner` layout once it is in scope. The kinds follow the
+stations CR already distinguishes for the behaviour guidelines; which kind applies is decided by the engine, as the
+station is today.
+
+`layouts/<kind>.json`:
 
 ```json
 {
@@ -125,7 +164,9 @@ Loading a layout checks it (the same checks run in the editor):
 - **A section missing from the layout**:
   - a section CR has added since `based_on` is inserted at its stock position, with a notice;
   - any other missing section is treated as `off`, unless locked.
-- **A tail section listed in the prefix: refused.** A per-turn fact above the marker breaks the cache on every reply.
+- **A tail section listed in the prefix: allowed, with a strong warning.** A per-turn fact above the marker breaks
+  the cache on every reply, so every reply costs the full prompt. The editor shows that cost. It is the player's money
+  and the player's choice; it never breaks the game.
 - **A prefix section listed in the tail: allowed, with a warning.** It costs cache, not correctness.
 - **Locked sections**: see below.
 - **Lean**: the layout applies to both levels. Lean still drops what Lean drops. A warning appears if a custom Lean
@@ -139,20 +180,23 @@ Three levels:
 - **pinned**: cannot be turned off or moved.
 - **sealed**: pinned, and its text cannot be overridden.
 
-Proposed list (Gabriel decides):
+The list, chosen for the most freedom (Gabriel, 11/10/2026): a lock exists only where the GAME would break, or where
+the player's safety is at stake. Everything else is free, with a warning where it costs something.
 
 | Section | Lock | Why |
 |---|---|---|
-| `adult_framing_preamble` | pinned (first) | its interpretive weight comes from being first |
-| `format_instructions` | sealed | the parser's contract: `[DIALOGUE]`, `[ACTION]`, `[NARRATION]`... |
-| `format_reminder` | sealed (last before post-history) | the same contract, at highest recency |
-| `role_anchor` | required (tail) | who is who; without it the model speaks as the player |
-| `intimacy_consent_rules` | sealed | consent; protects the player and the mod page |
+| `format_instructions` | sealed | the parser's contract (`[DIALOGUE]`, `[ACTION]`, `[NARRATION]`...): reworded, the game stops understanding replies |
+| `intimacy_consent_rules` | sealed | consent: a protection, not a matter of style |
 | `narration_frequency` | sealed | the captive-scene counterpart of the consent rules |
-| `stay_within_what_you_know` | required (tail) | the anti-confabulation wall, kept for recency (standing ruling) |
-| `claims_are_not_proof` | required (tail) | no reward or regard for an unproven claim |
-| `player_action_narration` | required (tail) | fate, not narration, resolves a captive's escape |
-| the encounter context (marker) | not a section | the cache boundary |
+| `format_reminder` | required | the same contract at highest recency; its wording may change, it cannot go |
+| `role_anchor` | required | who is who; without it the model speaks as the player |
+| `stay_within_what_you_know` | required | the anti-confabulation wall |
+| `claims_are_not_proof` | required | no reward or regard for an unproven claim (the game acts on it) |
+| `player_action_narration` | required | fate, not narration, resolves a captive's escape (the game acts on it) |
+| the encounter context (marker) | not a section | the cache boundary itself |
+
+Everything else, `adult_framing_preamble` included, can be moved, reworded or turned off. The editor's tips say what
+each costs (the preamble, for instance, weighs most when it is first).
 
 Character age is not a prompt section: who may act toward the player is decided in the engine
 (`Mapping.ActionGate`), which no layout touches.
@@ -163,9 +207,9 @@ Character age is not a prompt section: who may act toward the player is decided 
   M off (<keys>)`. Stock: `[PROMPT] stock prompt`.
 - `cr.prompt_dump` heads its file with the same line; `cr.prompt_dump <name> sections` marks each section's start
   (`<<< identity >>>`), for the editor's preview.
-- `cr.prompt_check`: lists every problem in the layout and the texts, and every **drift** (below).
-- MCM: "Use custom prompts" (default on; off = stock, files kept). The player-report skill learns to ask for that line
-  first.
+- `cr.prompt_check`: lists every problem in the chosen profile, and every **drift** (below).
+- MCM: "Prompt profile" (default: stock). Choosing stock is the instant reset; no file is deleted. The player-report
+  skill learns to ask for the `[PROMPT]` line first.
 
 ### Drift between versions
 
@@ -191,7 +235,10 @@ Offline, one page, like the Tale Editor.
   verdicts (the Tale Editor's method: shared fixtures, the expected verdict written once).
 - **Preview**: open a `cr.prompt_dump ... sections` file to see the real prompt of a real character, section by section;
   the editor cannot compute game state itself.
-- **Output**: a folder to drop in `Custom/Prompts`, or in a mod's `cr_patch/Prompts`.
+- **Profiles**: open the stock profile, a mod's or the player's; "copy to Custom" in one click; set a parent.
+- **Kinds**: one tab per kind of character, each showing which layout applies (its own, `default`, or stock).
+- **Output**: a profile folder to drop in `Custom/Prompts/`, or in a mod's `ModuleData/cr_prompts/`.
+- **Where**: `Docs/PromptEditor.html`, shipped with CR beside the Tale Editor and the Scenario Composer.
 - **Tips**: written with the editor, from what CR learned. Examples:
   - position matters (first and last are read hardest);
   - anything that changes per turn goes in the tail, or the cache is lost every reply;
@@ -213,10 +260,11 @@ can never describe a prompt the game no longer builds.
    - Zone, lock and kind are declared.
    - A ratchet map of the keys is added.
    - No behaviour change: the golden prompts stay identical.
-2. **The layout.**
-   - `prompt_layout.character.json` with precedence and checks.
-   - Locks, the custom-active log line, `cr.prompt_check`, the MCM switch.
-   - `cr.testall`: a custom layout built through the real path, then the stock one restored.
+2. **Profiles and layouts.**
+   - Profiles found in stock, mods (`cr_prompts`) and Custom; the MCM "Prompt profile" choice; parents and fallback.
+   - Layouts by kind, with the checks and the locks.
+   - The custom-active log line, `cr.prompt_check`.
+   - `cr.testall`: a test profile built through the real path, then stock restored.
 3. **Texts out**, in batches:
    - first the sections people want to tune: dialogue style, prose craft, narrative framing, the intimacy texts (not
      the sealed rules), the Lean teachings;
@@ -241,13 +289,18 @@ Each increment ships on its own; 1 and 2 are useful to modders before any text m
 - **Letters** reuse the character prompt, so a custom layout changes letters too. That is consistent; the editor says
   so.
 
-## Open questions for Gabriel
+## Decisions (Gabriel, 11/10/2026: "fait les choix logiques pour laisser le plus de liberte")
 
-1. The lock list above: what to add, remove, or loosen? Should the consent rules be sealed (text included) or only
-   required?
-2. A prompt file replaces its section by default (`!append` to add). Or should it append by default, like the existing
-   `cr_patch` files, for consistency?
-3. Layout precedence: the player's Custom layout over a mod's, whole-file. Or should a mod's layout be able to forbid
-   the player's (an overhaul that depends on its own order)?
-4. One layout for every character, or one per kind (lord, companion, spouse, commoner) from the start?
-5. Does the editor ship with CR (in Docs, like the Tale Editor), or as its own download for power users?
+1. **Locks**: only where the game would break or the player's safety is at stake. Three sealed (format contract, consent,
+   captive-scene consent); five required with free wording; everything else free. Breaking the cache is warned about,
+   never forbidden.
+2. **A section file replaces** the stock text by default (`!append` to add instead).
+3. **No precedence between mods and the player**: the player chooses the profile in MCM ("un param MCM pourrait designer
+   l'ordonnanceur a utiliser, car il pourrait y avoir plusieurs mods qui proposent un ordonnanceur"). Stock is the
+   default and the reset.
+4. **Layouts by kind of character** from the start ("mise en page par type"), with fallback to the profile's `default`
+   layout, then stock.
+5. **The editor ships in Docs** with CR.
+
+Still to check when building: MCM must offer a dropdown filled at run time with the profiles found (increment 2 starts
+with that spike; if MCM cannot, a text field naming the profile id, listed by `cr.prompt_check`).
