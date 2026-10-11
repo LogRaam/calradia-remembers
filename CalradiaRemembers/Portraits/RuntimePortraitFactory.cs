@@ -185,27 +185,8 @@ namespace CalradiaRemembers.Portraits
                 // face (player report: the player's line wore the NPC's portrait). Hash the path into the name.
                 string spriteName = $"cr_runtime_portrait_{StableHash(fullPath):x8}";
 
-                var tex2d = new Texture(new EngineTexture(engineTexture));
-                var category = new SpriteCategory(spriteName, 1, false) {SheetSizes = new[] {new Vec2i(w, h)}};
-                SheetsField?.SetValue(category, new List<Texture> {tex2d});
-                IsLoadedSetter?.Invoke(category, new object[] {true});
-                diag += $", sheets={category.SpriteSheets?.Count ?? -1}, catLoaded={category.IsLoaded}, name={spriteName}";
-
-                // SheetID is 1-BASED (vanilla sprite data starts at 1; the engine indexes SpriteSheets[SheetID - 1]),
-                // so 0 underflows the sheet array: the earlier black frame and the IndexOutOfRangeException.
-                var part = new SpritePart($"{spriteName}_part", category, w, h) {SheetID = 1, SheetX = 0, SheetY = 0};
-                MinUField?.SetValue(part, 0f);
-                MinVField?.SetValue(part, 0f);
-                MaxUField?.SetValue(part, 1f);
-                MaxVField?.SetValue(part, 1f);
-                SheetWidthField?.SetValue(part, w);
-                SheetHeightField?.SetValue(part, h);
-                part.UpdateInitValues();
-
-                // Nine-patch: a flat sprite keeps the full-stretch behaviour (0,0,0,0); a frame passes its fixed
-                // corner widths so the borders stay crisp while the middle stretches to the widget's size.
-                var nine = new SpriteNinePatchParameters(ninePatch.Left, ninePatch.Right, ninePatch.Top, ninePatch.Bottom);
-                sprite = new SpriteGeneric(spriteName, part, nine);
+                sprite = SpriteFromTexture(engineTexture, spriteName, w, h, ninePatch);
+                diag += $", name={spriteName}";
 
                 return true;
             }
@@ -215,6 +196,36 @@ namespace CalradiaRemembers.Portraits
 
                 return false;
             }
+        }
+
+        /// <summary>
+        ///   A full-texture sprite over an engine texture already made: a file loaded above, or a render target a video
+        ///   plays into (Gabriel, 11/10/2026, the tale video spike). <paramref name="spriteName" /> must be unique: the
+        ///   render layer caches by name.
+        /// </summary>
+        public static Sprite SpriteFromTexture(EngTex engineTexture, string spriteName, int w, int h, NinePatch ninePatch = default)
+        {
+            var tex2d = new Texture(new EngineTexture(engineTexture));
+            var category = new SpriteCategory(spriteName, 1, false) {SheetSizes = new[] {new Vec2i(w, h)}};
+            SheetsField?.SetValue(category, new List<Texture> {tex2d});
+            IsLoadedSetter?.Invoke(category, new object[] {true});
+
+            // SheetID is 1-BASED (vanilla sprite data starts at 1; the engine indexes SpriteSheets[SheetID - 1]),
+            // so 0 underflows the sheet array: the earlier black frame and the IndexOutOfRangeException.
+            var part = new SpritePart($"{spriteName}_part", category, w, h) {SheetID = 1, SheetX = 0, SheetY = 0};
+            MinUField?.SetValue(part, 0f);
+            MinVField?.SetValue(part, 0f);
+            MaxUField?.SetValue(part, 1f);
+            MaxVField?.SetValue(part, 1f);
+            SheetWidthField?.SetValue(part, w);
+            SheetHeightField?.SetValue(part, h);
+            part.UpdateInitValues();
+
+            // Nine-patch: a flat sprite keeps the full-stretch behaviour (0,0,0,0); a frame passes its fixed
+            // corner widths so the borders stay crisp while the middle stretches to the widget's size.
+            var nine = new SpriteNinePatchParameters(ninePatch.Left, ninePatch.Right, ninePatch.Top, ninePatch.Bottom);
+
+            return new SpriteGeneric(spriteName, part, nine);
         }
 
         /// <summary>

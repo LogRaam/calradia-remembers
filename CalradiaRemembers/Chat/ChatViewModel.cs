@@ -3245,6 +3245,32 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   SPIKE (Gabriel, 11/10/2026, tale videos): shows a live picture (a video playing into a texture, see
+      ///   <see cref="CrVideoSurface" />) where a tale's picture stands in the Manuscript margin. Returns false on the
+      ///   Classic skin, which the spike does not cover.
+      /// </summary>
+      internal bool ShowLiveSceneImage(string livePath, float aspectW, float aspectH)
+      {
+         if (ChatManager.ActiveSkin != ChatManager.ManuscriptSkin) return false;
+
+         const float marginBoxW = 1100f;
+         const float marginBoxH = 820f;
+         float fit = Math.Min(marginBoxW / aspectW, marginBoxH / aspectH);
+         SceneImagePath = "";
+         OnPropertyChanged(nameof(SceneImagePath));
+         SceneImagePath = livePath;
+         SceneImageWidth = aspectW * fit;
+         SceneImageHeight = aspectH * fit;
+         _sceneImageShown = true;
+         OnPropertyChanged(nameof(SceneImagePath));
+         OnPropertyChanged(nameof(SceneImageWidth));
+         OnPropertyChanged(nameof(SceneImageHeight));
+         OnPropertyChanged(nameof(IsSceneImageVisible));
+
+         return true;
+      }
+
+      /// <summary>
       ///   Opens the left panel on a picture of the tale's scene (Gabriel, 08/10/2026: a stage's image, opening by itself
       ///   when its scene opens), drawn as a custom portrait is: fitted without distortion, under the scene's title, with
       ///   no dossier beside it. Both skins: the Manuscript left page, the Classic pop-out.

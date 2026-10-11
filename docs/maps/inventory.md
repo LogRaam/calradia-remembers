@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 474 types in 58 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 475 types in 58 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1043 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
@@ -73,7 +73,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 56 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 57 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `ModLog` | internal static class | Writes timestamped log entries to a file in the Bannerlord Logs folder AND shows them in the in-game console. |
 | `ModSettings` | public static class | Mod-wide settings façade. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
@@ -572,12 +572,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `ModulePaths` | public static class | The module's own folder, as the engine found it. |
 
-### CalradiaRemembers.Portraits (5)
+### CalradiaRemembers.Portraits (6)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ChatPortraitResolver` | internal static class | Finds a player-dropped chat portrait for a hero, by StringId then by normalized name. |
 | `CrRuntimeImageWidget` | public class | A widget that renders a runtime image loaded from ImagePath (bindable string). |
+| `CrVideoSurface` | internal static class | One video playing into a texture, shown by any CrRuntimeImageWidget whose path names it. |
 | `PortraitSpikeManager` | public static class | Show/hide lifecycle for the portrait-spike test overlay. |
 | `PortraitSpikeViewModel` | public class | View model for the portrait-spike test overlay: a runtime sprite plus a status line. |
 | `RuntimePortraitFactory` | internal static class | Builds a GauntletUI Sprite from an image file on disk. |

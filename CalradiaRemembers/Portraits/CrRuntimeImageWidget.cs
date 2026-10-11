@@ -67,7 +67,9 @@ namespace CalradiaRemembers.Portraits
         private void Rebuild()
             => Sprite = string.IsNullOrEmpty(_imagePath)
                 ? null
-                : RuntimePortraitFactory.GetOrCreateCached(_imagePath, _correctRedBlue, ParseNinePatch(_ninePatch));
+                : _imagePath.StartsWith(CrVideoSurface.LivePrefix, System.StringComparison.Ordinal)
+                    ? CrVideoSurface.SpriteFor(_imagePath)
+                    : RuntimePortraitFactory.GetOrCreateCached(_imagePath, _correctRedBlue, ParseNinePatch(_ninePatch));
 
         private static RuntimePortraitFactory.NinePatch ParseNinePatch(string s)
         {
