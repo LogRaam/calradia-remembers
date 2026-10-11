@@ -50,9 +50,11 @@ namespace CalradiaRemembers
          uint clear = flags.Contains("green") ? 0xFF00FF00u : 0u;
 
          ChatViewModel vm = ChatManager.ActiveViewModel;
-         if (vm == null) return "Open a conversation first (the video shows where a tale's picture stands).";
+         // Third run (11/10/2026): not one frame decoded, in a conversation (a Mission). Screen mode runs without one, on
+         // the campaign map, to tell whether the player works at all outside the game's own video screens.
+         if (vm == null && !toScreen) return "Open a conversation first (the video shows where a tale's picture stands), or add 'screen'.";
 
-         vm.ClearLiveSceneImage(); // off the frame before Start frees a video already playing
+         vm?.ClearLiveSceneImage(); // off the frame before Start frees a video already playing
          string live = CrVideoSurface.Start(file, w, h, fps, loop, toScreen, clear, out string report);
          if (live == null) return "Could not start: " + report;
          if (toScreen) return report + " (cr.video_spike stop to end it)";
