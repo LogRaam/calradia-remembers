@@ -49,6 +49,26 @@ namespace CalradiaRemembers
          bool toScreen = flags.Contains("screen");
          uint clear = flags.Contains("green") ? 0xFF00FF00u : 0u;
 
+         // Fourth run (11/10/2026): the video plays on the campaign map but never inside a conversation. "cinema" pushes
+         // the game's own video state over whatever is open, as the campaign intro is played, and pops back when it ends:
+         // the full-screen fallback, and a test of whether the conversation underneath blocks it too.
+         if (flags.Contains("cinema"))
+         {
+            string sound = System.IO.Path.ChangeExtension(file, ".ogg");
+            if (!System.IO.File.Exists(sound)) sound = "";
+            var state = TaleWorlds.Core.Game.Current.GameStateManager.CreateState<TaleWorlds.MountAndBlade.VideoPlaybackState>();
+            state.SetStartingParameters(file, sound, "", fps, true);
+            state.SetOnVideoFinisedDelegate(() =>
+            {
+               ModLog.Info("[VIDEO] cinema finished; back to what was open.");
+               TaleWorlds.Core.Game.Current.GameStateManager.PopState();
+            });
+            TaleWorlds.Core.Game.Current.GameStateManager.PushState(state);
+            ModLog.Info($"[VIDEO] cinema pushed: {file} with sound '{sound}', conversation open={ChatManager.ActiveViewModel != null}.");
+
+            return "Cinema pushed (Escape skips it).";
+         }
+
          ChatViewModel vm = ChatManager.ActiveViewModel;
          // Third run (11/10/2026): not one frame decoded, in a conversation (a Mission). Screen mode runs without one, on
          // the campaign map, to tell whether the player works at all outside the game's own video screens.
