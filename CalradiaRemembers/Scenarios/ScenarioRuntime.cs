@@ -21,6 +21,7 @@ namespace CalradiaRemembers.Scenarios
    {
       private readonly HashSet<string> _fired;
       private List<ScenarioRule> _rules = new();
+      private IReadOnlyDictionary<string, string> _sources = new Dictionary<string, string>();
 
       // Reentrancy guard: a consequence (e.g. DECLARE_WAR) raises its own campaign event (WarDeclared),
       // which our feeders catch and would route back into Fire — a badly-authored pack could cascade or
@@ -38,11 +39,16 @@ namespace CalradiaRemembers.Scenarios
       /// <summary>The ids of one-shot rules that have already fired (persisted by the behavior).</summary>
       public ISet<string> FiredRuleIds => _fired;
 
-      /// <summary>Replaces the loaded rule set (called on session launch from the JSON packs).</summary>
-      public void Load(IEnumerable<ScenarioRule> rules)
+      /// <summary>Replaces the loaded rule set (called on session launch from the JSON packs), with whose pack each rule came from.</summary>
+      public void Load(IEnumerable<ScenarioRule> rules, IReadOnlyDictionary<string, string> sources = null)
       {
          _rules = rules != null ? new List<ScenarioRule>(rules) : new List<ScenarioRule>();
+         _sources = sources ?? new Dictionary<string, string>();
       }
+
+      /// <summary>Whose pack a loaded rule came from ("CalradiaRemembers", "Custom" or a mod's id), or "?" when unknown.</summary>
+      public string SourceOf(string ruleId)
+         => ruleId != null && _sources.TryGetValue(ruleId, out string source) ? source : "?";
 
       /// <summary>
       ///   Picks the one rule for this event (pure selection: trigger + one-shot + guards, then a weighted

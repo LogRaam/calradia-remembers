@@ -144,7 +144,8 @@ namespace CalradiaRemembers.Scenarios
 
       private void OnSessionLaunched(CampaignGameStarter starter)
       {
-         Runtime.Load(ScenarioPackLoader.LoadAll());
+         ScenarioMergeResult packs = ScenarioPackLoader.LoadAll();
+         Runtime.Load(packs.Rules, packs.SourceOf);
       }
 
       private void OnWarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail detail)

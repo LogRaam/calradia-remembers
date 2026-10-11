@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 474 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1036 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1041 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 250 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -627,7 +627,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScenarioConsequenceExecutor` | public static class | Applies one scenario consequence keyword as a real game mutation. |
 | `ScenarioContext` | public class | The heroes and factions a fired trigger involves, with reference resolution by name or id. |
 | `ScenarioGuardResolver` | public static class | Resolves a single scenario guard keyword to true/false against the event context. |
-| `ScenarioPackLoader` | public static class | Reads and parses the scenario packs from ModuleData/scenarios into ScenarioRules. |
+| `ScenarioPackLoader` | public static class | Reads and parses the scenario packs into ScenarioRules. |
 | `ScenarioRuntime` | public class | Holds the loaded rules + the persisted fired-once set, and runs a fired trigger end to end. |
 
 ### CalradiaRemembers.Services (1)
@@ -815,7 +815,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (645)
+### CalradiaRemembers.Logic (650)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1337,8 +1337,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |
 | `ScenarioArgs` | public static class | Parsing helpers for the scripted-scenarios keyword payloads. |
 | `ScenarioCandidate` | public class | One hero or faction a reference may name. |
+| `ScenarioMergeResult` | public class | The rules kept, where each came from, and what was dropped. |
+| `ScenarioPackFolder` | public class | A folder of scenario packs and who it belongs to. |
+| `ScenarioPackFolders` | public static class | Where scenario packs are read from, in order. |
 | `ScenarioReferenceMatch` | public static class | How well a scenario reference names a candidate, and which candidate it names. |
 | `ScenarioRule` | public class | One reactive rule: a Trigger, optional Guards (eligibility, AND-combined), a list of Consequences (declarative world mutations), and a Message for the World-Event store. |
+| `ScenarioRuleMerge` | public static class | Keeps one rule per id, the first read. |
 | `ScenarioSelector` | public static class | Selects the single scenario rule to fire for an event, or null when none apply. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 | `SceneContentKind` | public enum | The kind of scene that is opening. |
@@ -1391,6 +1395,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SharedIntimacyResult` | public enum | What becomes of a night another mod reports. |
 | `SiegeParticipationMarker` | public static class | Decides whether a buffered "the player just stormed this settlement" marker still applies to a settlement whose ownership is changing. |
 | `SilentRefusalMessages` | public static class | Wording for the bridge executor refusal branches that used to return null. |
+| `SourcedScenarioRule` | public class | A loaded rule and the source it came from. |
 | `SpeakerNamesakePolicy` | public static class | Decides whether a hero matched in the player's message is merely a namesake of the character being spoken to. |
 | `SpeakerProfileSelector` | public static class | Chooses which stored profile represents the NPC currently speaking, so a memory never ends up on the wrong person. |
 | `SpokenFigure` | public static class | Reads the last sum named in a line of speech. |

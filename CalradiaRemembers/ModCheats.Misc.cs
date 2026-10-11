@@ -186,7 +186,7 @@ namespace CalradiaRemembers
          var sb = new StringBuilder();
          sb.AppendLine($"Loaded scenario rules: {runtime.Rules.Count}");
          foreach (ScenarioRule r in runtime.Rules)
-            sb.AppendLine($"  [{r.Id}] {r.Trigger}  guards:{r.Guards.Count} consequences:{r.Consequences.Count}{(r.FireOnce ? " (once)" : "")}");
+            sb.AppendLine($"  [{r.Id}] {r.Trigger}  guards:{r.Guards.Count} consequences:{r.Consequences.Count}{(r.FireOnce ? " (once)" : "")}  from {runtime.SourceOf(r.Id)}");
          sb.Append($"Fired one-shots: {(runtime.FiredRuleIds.Count == 0 ? "none" : string.Join(", ", runtime.FiredRuleIds))}");
 
          return sb.ToString();

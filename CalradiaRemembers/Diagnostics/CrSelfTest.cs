@@ -438,6 +438,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scenario", Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals", TestScenario),
          new SelfTest("scenario_packs", Severity.Light, "Gabriel (11/10/2026): the scripted scenarios ship in every release but were never checked in game ('ajoute les scenarios dans testall'). Reads the packs the REAL loader loaded: asserts the five shipped rules are there, that every trigger, guard and consequence is one the engine knows, and that every hero and faction a rule names resolves in this world (a kingdom name that does not resolve means the war is skipped while its message is still told). Nothing is changed", TestScenarioPacks),
          new SelfTest("scenario_death", Severity.Light, "Gabriel (11/10/2026): the shipped rule 'the eagles turn on a leaderless South' must answer Rhagaea's own death and nothing else. Asks the REAL guards with the context a real death builds: asserts the rule is eligible when Rhagaea dies, NOT eligible when Rhagaea is the one who killed (an execution or a battle she wins would otherwise tell the realm she fell and seal the rule), and that its two wars name the Northern and Western Empires against the Southern. Nothing is fired, no war is declared", TestScenarioDeath),
+         new SelfTest("scenario_sources", Severity.Light, "Gabriel (11/10/2026): scenarios supported by mods too ('les scenarios soient aussi supportes par des mods'), read from CR's folder, the player's Custom/scenarios and each mod's ModuleData/cr_scenarios. Drives the REAL loader over CR's folder and a test mod's folder written for the occasion: asserts the mod's new rule loads under the mod's name, and that its rule reusing one of CR's ids is dropped and reported (seals are kept by id, so the two would switch each other off) while CR's keeps it. The test folder is deleted; the rules the game runs are not touched", TestScenarioSources),
          new SelfTest("scenario_marriage", Severity.Light, "Gabriel (11/10/2026): the four shipped outcomes of the player marrying Rhagaea (consort, two crowns, regent, suspicious). Fires each one through the REAL runtime with the context a real marriage builds, the other three held sealed so the draw has one choice: asserts it fires, Rhagaea remembers its line, the realm is told its message, and it seals; two crowns must stay closed while the player rules no kingdom. Nobody is married; memory, world event, relation, influence and seals are put back", TestScenarioMarriage),
          new SelfTest("llm_dialogue", Severity.Light, "LLM: a plain greeting -> log the reply (relevance judged from the log)", TestLlmDialogue, true),
          new SelfTest("chat_memory", Severity.Light, "LLM: seed a shared history -> ask about it -> does the reply reference it?", TestChatMemory, true),
@@ -12679,18 +12680,20 @@ namespace CalradiaRemembers.Diagnostics
 
          foreach (ScenarioRule rule in runtime.Rules)
          {
-            if (!ScenarioBehavior.KnownTriggers.Contains(rule.Trigger?.Verb)) problems.Add($"{rule.Id}: trigger {rule.Trigger}");
+            // Whose pack it is, so a broken rule in another mod's pack is never read as CR's.
+            string who = $"{rule.Id} ({runtime.SourceOf(rule.Id)})";
+            if (!ScenarioBehavior.KnownTriggers.Contains(rule.Trigger?.Verb)) problems.Add($"{who}: trigger {rule.Trigger}");
 
             foreach (KeywordToken g in rule.Guards)
-               if (!ScenarioGuardResolver.KnownVerbs.Contains(g.Verb)) problems.Add($"{rule.Id}: unknown guard {g.Verb}");
-               else if (g.Verb == "IF_HERO_IS" && !ScenarioHeroExists(world, g.Payload)) problems.Add($"{rule.Id}: no hero '{g.Payload}'");
-               else if (g.Verb == "IF_PLAYER_AT_WAR" && world.ResolveFaction(g.Payload) == null) problems.Add($"{rule.Id}: no faction '{g.Payload}'");
+               if (!ScenarioGuardResolver.KnownVerbs.Contains(g.Verb)) problems.Add($"{who}: unknown guard {g.Verb}");
+               else if (g.Verb == "IF_HERO_IS" && !ScenarioHeroExists(world, g.Payload)) problems.Add($"{who}: no hero '{g.Payload}'");
+               else if (g.Verb == "IF_PLAYER_AT_WAR" && world.ResolveFaction(g.Payload) == null) problems.Add($"{who}: no faction '{g.Payload}'");
 
             foreach (KeywordToken c in rule.Consequences)
             {
                if (!ScenarioConsequenceExecutor.KnownVerbs.Contains(c.Verb))
                {
-                  problems.Add($"{rule.Id}: unknown consequence {c.Verb}");
+                  problems.Add($"{who}: unknown consequence {c.Verb}");
                   continue;
                }
 
@@ -12700,16 +12703,16 @@ namespace CalradiaRemembers.Diagnostics
                   case "MAKE_PEACE":
                      IFaction a = c.Args.Count > 0 ? world.ResolveFaction(c.Args[0]) : null;
                      IFaction b = c.Args.Count > 1 ? world.ResolveFaction(c.Args[1]) : null;
-                     if (a == null || b == null || a == b) problems.Add($"{rule.Id}: {c.Verb} '{c.Payload}' resolves to {a?.StringId ?? "nothing"} / {b?.StringId ?? "nothing"}");
+                     if (a == null || b == null || a == b) problems.Add($"{who}: {c.Verb} '{c.Payload}' resolves to {a?.StringId ?? "nothing"} / {b?.StringId ?? "nothing"}");
                      break;
                   case "CHANGE_RELATION":
                   case "CHANGE_INFLUENCE":
                      if (!ScenarioArgs.TryParseTargetDelta(c.Payload, out string target, out _) || !ScenarioHeroExists(world, target))
-                        problems.Add($"{rule.Id}: {c.Verb} '{c.Payload}' names no hero");
+                        problems.Add($"{who}: {c.Verb} '{c.Payload}' names no hero");
                      break;
                   case "INJECT_MEMORY":
-                     if (!ScenarioArgs.TryParseTargetRest(c.Payload, out string who, out _) || !ScenarioHeroExists(world, who))
-                        problems.Add($"{rule.Id}: INJECT_MEMORY names no hero");
+                     if (!ScenarioArgs.TryParseTargetRest(c.Payload, out string remembers, out _) || !ScenarioHeroExists(world, remembers))
+                        problems.Add($"{who}: INJECT_MEMORY names no hero");
                      break;
                }
             }
@@ -12730,6 +12733,42 @@ namespace CalradiaRemembers.Diagnostics
 
          return Hero.DeadOrDisabledHeroes.Any(h => string.Equals(h.StringId, r, StringComparison.OrdinalIgnoreCase)
                                                    || (h.Name?.ToString() ?? "").IndexOf(r, StringComparison.OrdinalIgnoreCase) >= 0);
+      }
+
+      private static string TestScenarioSources(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("scenario_sources");
+         const string mod = "CrSelfTestMod";
+         const string fresh = "crselftestmod_fresh_rule";
+         const string taken = "rhagaea_death_eagles_turn";
+
+         string folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "cr_selftest_scenarios_" + Guid.NewGuid().ToString("N"));
+         try
+         {
+            System.IO.Directory.CreateDirectory(folder);
+            System.IO.File.WriteAllText(System.IO.Path.Combine(folder, "test_pack.json"),
+               "{\"rules\":[{\"id\":\"" + fresh + "\",\"trigger\":\"ON_PEACE\",\"message\":\"a test line\"},"
+               + "{\"id\":\"" + taken + "\",\"trigger\":\"ON_PEACE\",\"message\":\"an impostor\"}]}");
+
+            ScenarioMergeResult r = ScenarioPackLoader.Load(new List<ScenarioPackFolder> {
+               new() {Source = ScenarioPackFolders.OwnSource, Folder = ScenarioPackLoader.ShippedFolder()},
+               new() {Source = mod, Folder = folder}
+            });
+
+            ScenarioRule kept = r.Rules.FirstOrDefault(x => x.Id == taken);
+            t.Expect("modRuleLoaded", r.Rules.Any(x => x.Id == fresh), true);
+            t.Expect("modRuleSource", r.SourceOf.TryGetValue(fresh, out string s) ? s : null, mod);
+            t.Expect("crKeepsItsId", r.SourceOf.TryGetValue(taken, out string owner) ? owner : null, ScenarioPackFolders.OwnSource);
+            t.Expect("crRuleIsCrs", kept?.Trigger?.Verb, "ON_DEATH");
+            t.Expect("impostorReported", r.Problems.Any(p => p.Contains(taken) && p.Contains(mod)), true);
+         }
+         finally
+         {
+            try { System.IO.Directory.Delete(folder, true); }
+            catch { /* a temp folder left behind is harmless */ }
+         }
+
+         return t.Line();
       }
 
       private static string TestScenarioDeath(NpcMemoryCampaignBehavior behavior)
@@ -12815,7 +12854,8 @@ namespace CalradiaRemembers.Diagnostics
                // The other outcomes held sealed, so the draw has this one choice.
                runtime.FiredRuleIds.Clear();
                foreach (string id in firedBefore) runtime.FiredRuleIds.Add(id);
-               foreach (ScenarioRule other in outcomes.Where(o => o != rule)) runtime.FiredRuleIds.Add(other.Id);
+               // Every other loaded rule too: a mod's ON_MARRIAGE rule must neither join the draw nor run its consequences here.
+               foreach (ScenarioRule other in runtime.Rules.Where(o => o != rule)) runtime.FiredRuleIds.Add(other.Id);
 
                ScenarioRule fired = runtime.Fire(KeywordToken.Parse("ON_MARRIAGE"), wedding);
 

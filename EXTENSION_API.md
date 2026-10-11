@@ -108,6 +108,26 @@ button handler, never from a background task. An injected memory never moves reg
 something the character remembers and can speak from. Do not inject what CR already records on its own (a
 rescue from captivity, a battle, a tournament, a letter): the character would remember it twice.
 
+### Scenario packs (`ModuleData/cr_scenarios`, since 2.7.9)
+
+A scenario is a rule that makes the world react: when a trigger fires (`ON_DEATH`, `ON_MARRIAGE`, `ON_WAR_DECLARED`,
+`ON_PEACE`) and its guards pass, its consequences change the world and its message is told in the realm. Build a pack
+with `Docs/ScenarioComposer.html` and ship it in your own module's `ModuleData/cr_scenarios/*.json`; no code and no
+reference to CR. Packs are read in this order: CR's own (`ModuleData/scenarios`), the player's
+(`Custom/scenarios`, kept across CR updates), then each enabled mod's, in launcher order.
+
+- **Give every rule an id of its own, prefixed with your module id** (`bellum_siege_song`). A one-shot rule is
+  sealed in the save by its id alone, so the first pack read keeps an id and a later rule reusing it is dropped and
+  logged (`[SCENARIO] rule '...' from YourMod skipped`).
+- **Name heroes and kingdoms by their game id** (`lord_1_14`, `empire_s`), not by name: the game translates names,
+  so a name only resolves in one language. An exact id always wins over a name.
+- `IF_HERO_IS` asks who the event is about: for a death, the one who died (never the killer); for a marriage, either
+  spouse.
+- When several rules answer the same trigger and their guards pass, ONE of them is drawn at random, whichever pack it
+  comes from. Keep your guards narrow, or a broad rule of yours will take the place of another's.
+- In game: `cr.scenarios` lists the loaded rules and whose pack each came from; `cr.testall` (`scenario_packs`)
+  reports a rule whose trigger, guard or consequence CR does not know, or whose hero or kingdom does not resolve.
+
 ### Reading regard (`CrNpcMemory.GetRegard`, since 2.7.4)
 
 ```csharp
