@@ -64,6 +64,84 @@ namespace CalradiaRemembers
          return b.DebugBeginOnMap(args[0], args.Skip(1).Any(a => a.Equals("anyway", System.StringComparison.OrdinalIgnoreCase)));
       }
 
+      /// <summary>
+      ///   cr.tale_test &lt;tale id&gt; [wife's name] (Gabriel, 11/10/2026: "il faut injecter et arranger car je ne prendrai
+      ///   pas le temps de jouer pour mettre toutes les conditions en place"). For a spouse tale that begins on the map:
+      ///   finds a spouse who fits it (the one named, else one of the tale's culture, of age, not with child, free to
+      ///   marry), divorces the player's present spouse when it is someone else, marries them, brings them into the
+      ///   player's party, raises their regard to the tale's least, then opens the popup with the place and hour skipped.
+      ///   It changes the campaign for good (a divorce, a marriage): a test save only.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("tale_test", "cr")]
+      public static string TaleTest(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         if (args == null || args.Count == 0) return "Usage: cr.tale_test <tale id> [spouse's name]   (tale ids: cr.story_check). Changes the campaign: a test save only.";
+         AuthoredQuestBehavior b = AuthoredQuestBehavior.Instance;
+         if (b == null) return "Authored quests are not active.";
+         AuthoredQuest q = b.Quests.FirstOrDefault(x => x.Id == args[0]);
+         if (q == null) return $"No tale '{args[0]}' is loaded (cr.story_check lists them).";
+         GiverRequirement g = q.Requires?.Giver ?? new GiverRequirement();
+         if (g.Role != "spouse") return $"'{q.Id}' is not given by the player's spouse; cr.tale_on_map opens a map tale as it stands.";
+
+         Hero player = Hero.MainHero;
+         string gender = g.Gender?.Trim().ToLowerInvariant();
+         bool Fits(Hero h) => h != null && h != player && h.IsAlive && !h.IsChild && h.Age >= 18 && h.Age <= 45 && !h.IsPrisoner
+                              && (gender == null || gender == (h.IsFemale ? "female" : "male"))
+                              && AuthoredCulturePolicy.Matches(g.Culture, h.Culture?.StringId, h.Culture?.Name?.ToString())
+                              && !(g.NotPregnant && h.IsPregnant);
+         bool Free(Hero h) => h.Spouse == null && !h.IsClanLeader && h.GovernorOf == null && !(h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h)
+                              && h.Clan != null && h.Clan != Clan.PlayerClan;
+
+         Hero wife;
+         if (args.Count > 1)
+         {
+            wife = ResolveHero(args.Skip(1));
+            if (wife == null) return "No character by that name.";
+            if (wife != player.Spouse && !Free(wife)) return $"{wife.Name} cannot be married for the test (already wed, heads a clan, governs, or leads a party).";
+         }
+         else
+            wife = Fits(player.Spouse) ? player.Spouse : Hero.AllAliveHeroes.Where(h => Fits(h) && Free(h) && h.IsLord).OrderBy(h => h.Age).FirstOrDefault();
+
+         if (!Fits(wife)) return $"No one fits '{q.Id}' ({AuthoredCulturePolicy.Describe(g.Culture)}, {gender ?? "either sex"}, 18 to 45, not with child, free to marry).";
+
+         var sb = new StringBuilder();
+         if (player.Spouse != null && player.Spouse != wife)
+         {
+            Hero former = player.Spouse;
+            if (!Marriage.MarriageDissolutionService.TryDissolvePlayerMarriage(former, out string why)) return $"Could not divorce {former.Name}: {why}.";
+            sb.AppendLine($"Divorced {former.Name}.");
+         }
+
+         if (player.Spouse != wife)
+         {
+            TaleWorlds.CampaignSystem.Actions.MarriageAction.Apply(player, wife);
+            if (player.Spouse != wife) return sb + $"The game refused the marriage with {wife.Name} (an army or a battle under way?).";
+            sb.AppendLine($"Married {wife.Name} ({wife.Culture?.Name}).");
+         }
+
+         if (g.WithPlayer && wife.PartyBelongedTo != TaleWorlds.CampaignSystem.Party.MobileParty.MainParty)
+         {
+            TaleWorlds.CampaignSystem.Actions.AddHeroToPartyAction.Apply(wife, TaleWorlds.CampaignSystem.Party.MobileParty.MainParty, false);
+            sb.AppendLine($"{wife.Name} rides with you.");
+         }
+
+         NpcMemoryService.Core.Models.NpcProfile profile = behavior.Store.Get(wife.StringId) ?? Mapping.HeroProfileMapper.FromHero(wife);
+         if (profile.ReputationWithPlayer < g.MinRegard)
+         {
+            NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, g.MinRegard - profile.ReputationWithPlayer, NpcMemoryService.Core.Standing.RegardCause.SelfTest);
+            sb.AppendLine($"Her regard for you raised to {profile.ReputationWithPlayer}.");
+         }
+         behavior.Store.Set(profile);
+
+         if (!AuthoredContentPolicy.Allows(q.Requires?.Content, ModSettings.AdultContentLevel))
+            return sb + $"The tale needs the '{q.Requires?.Content}' content level and the mod options are at {ModSettings.AdultContentLevel}: raise it in the mod options, then run cr.tale_on_map {q.Id} anyway.";
+
+         sb.Append(b.DebugBeginOnMap(q.Id, true));
+
+         return sb.ToString();
+      }
+
       /// <summary>cr.story_status: the tale under way, its stage, and who it is bound to.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("story_status", "cr")]
       public static string StoryStatus(List<string> args)
