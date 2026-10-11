@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 476 types in 58 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1043 types in 27 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1044 types in 27 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 254 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1626,7 +1626,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (73)
+### CalradiaRemembers.Logic.AuthoredQuests (74)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1693,6 +1693,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneChoiceMenuFacts` | public class | What the chat knows when it asks whether, and what, to list under the narration. |
 | `SceneChoiceMenuItem` | public class | One line of the list. |
 | `SceneCompanionMemory` | public static class | What a companion who walked a scene with the player remembers of it. |
+| `SceneImageLayout` | public static class | The size of a tale's picture beside the chat, kept to its own proportions. |
 | `SceneLeavePolicy` | public static class | Whether ending a scene asks first. |
 | `SceneMarkers` | public class | A narration with its game markers taken out. |
 | `SceneSurroundingsFacts` | public class | What the game knows of a scene's surroundings. |

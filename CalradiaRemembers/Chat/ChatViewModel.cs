@@ -623,6 +623,8 @@ namespace CalradiaRemembers.Chat
             _isManuscriptLeftPageOpen = value;
             OnPropertyChangedWithValue(value);
             OnPropertyChanged(nameof(IsSceneImageVisible));
+            OnPropertyChanged(nameof(IsSceneImageLarge));
+            OnPropertyChanged(nameof(IsSceneImageCompact));
          }
       }
 
@@ -643,6 +645,18 @@ namespace CalradiaRemembers.Chat
       /// <summary>Shown while a picture is set, and hidden while the leather dossier page is open over the same ground.</summary>
       [DataSourceProperty]
       public bool IsSceneImageVisible => _sceneImageShown && !_isManuscriptLeftPageOpen;
+
+      // Gabriel (11/10/2026): during a conversation the picture is small, in the top-left corner, so it never hides the
+      // character spoken to; only a scene with nobody in it (a tale's exploration) shows it large beside the chat.
+      private bool _sceneImageCompact;
+
+      /// <summary>The picture large and centred in the margin: a scene with no character in it.</summary>
+      [DataSourceProperty]
+      public bool IsSceneImageLarge => IsSceneImageVisible && !_sceneImageCompact;
+
+      /// <summary>The picture small, top-left: a conversation with a character, who stays in view.</summary>
+      [DataSourceProperty]
+      public bool IsSceneImageCompact => IsSceneImageVisible && _sceneImageCompact;
 
       /// <summary>
       ///   True when there is a real hero across the conversation to open an encyclopedia page for
@@ -3258,19 +3272,20 @@ namespace CalradiaRemembers.Chat
             _pictureBeforeLiveSize = (SceneImageWidth, SceneImageHeight);
          }
 
-         const float marginBoxW = 1100f;
-         const float marginBoxH = 820f;
-         float fit = Math.Min(marginBoxW / aspectW, marginBoxH / aspectH);
+         _sceneImageCompact = !IsExplorationScene;
+         (float w, float h) = Logic.AuthoredQuests.SceneImageLayout.Fit(aspectW, aspectH, _sceneImageCompact);
          SceneImagePath = "";
          OnPropertyChanged(nameof(SceneImagePath));
          SceneImagePath = livePath;
-         SceneImageWidth = aspectW * fit;
-         SceneImageHeight = aspectH * fit;
+         SceneImageWidth = w;
+         SceneImageHeight = h;
          _sceneImageShown = true;
          OnPropertyChanged(nameof(SceneImagePath));
          OnPropertyChanged(nameof(SceneImageWidth));
          OnPropertyChanged(nameof(SceneImageHeight));
          OnPropertyChanged(nameof(IsSceneImageVisible));
+         OnPropertyChanged(nameof(IsSceneImageLarge));
+         OnPropertyChanged(nameof(IsSceneImageCompact));
 
          return true;
       }
@@ -3303,6 +3318,8 @@ namespace CalradiaRemembers.Chat
          OnPropertyChanged(nameof(SceneImageWidth));
          OnPropertyChanged(nameof(SceneImageHeight));
          OnPropertyChanged(nameof(IsSceneImageVisible));
+         OnPropertyChanged(nameof(IsSceneImageLarge));
+         OnPropertyChanged(nameof(IsSceneImageCompact));
       }
 
       /// <summary>
@@ -3325,17 +3342,19 @@ namespace CalradiaRemembers.Chat
          // portrait box; the dossier page keeps its own portrait.
          if (ChatManager.ActiveSkin == ChatManager.ManuscriptSkin)
          {
-            const float marginBoxW = 1100f;
-            const float marginBoxH = 820f;
-            float fit = Math.Min(marginBoxW / aspectW, marginBoxH / aspectH);
+            // Gabriel (11/10/2026): large only in a scene with nobody in it; small, top-left, when a character is spoken to.
+            _sceneImageCompact = !IsExplorationScene;
+            (float w, float h) = Logic.AuthoredQuests.SceneImageLayout.Fit(aspectW, aspectH, _sceneImageCompact);
             SceneImagePath = path;
-            SceneImageWidth = aspectW * fit;
-            SceneImageHeight = aspectH * fit;
+            SceneImageWidth = w;
+            SceneImageHeight = h;
             _sceneImageShown = true;
             OnPropertyChanged(nameof(SceneImagePath));
             OnPropertyChanged(nameof(SceneImageWidth));
             OnPropertyChanged(nameof(SceneImageHeight));
             OnPropertyChanged(nameof(IsSceneImageVisible));
+            OnPropertyChanged(nameof(IsSceneImageLarge));
+            OnPropertyChanged(nameof(IsSceneImageCompact));
             ModLog.Info($"[SCENE] image shown in the margin: {System.IO.Path.GetFileName(path)}.");
 
             return;

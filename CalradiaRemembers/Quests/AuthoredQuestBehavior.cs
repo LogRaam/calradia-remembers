@@ -1022,8 +1022,10 @@ namespace CalradiaRemembers.Quests
          try
          {
             if (PromptBlockFor(hero) == null) return null;
+            // Gabriel (11/10/2026): only the conversation that IS the step under way, never one with a character the tale
+            // merely concerns (an "A word with you" with a notable opened the wolf's picture).
             if (_run is {Status: AuthoredQuestStatus.Active} && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q))
-               return SceneImagePath(q) is string p ? (p, q.Title) : null;
+               return AuthoredTaleImages.ConversationIsTheStep(_run, q, hero.StringId, LocalOf(hero)) && SceneImagePath(q) is string p ? (p, q.Title) : null;
             if (_offer != null && _offerHeroId == hero.StringId && _quests.TryGetValue(_offer.QuestId, out AuthoredQuest o))
                return ImagePath(o, o.Stages.FirstOrDefault()?.Image) is string first ? (first, o.Title) : null;
          }
@@ -1037,7 +1039,9 @@ namespace CalradiaRemembers.Quests
       {
          if (place == null || PromptBlockForLocalsOf(place) == null) return null;
          if (_run is {Status: AuthoredQuestStatus.Active} && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q))
-            return SceneImagePath(q) is string p ? (p, q.Title) : null;
+            return AuthoredTaleImages.ConversationIsTheStep(_run, q, "commoner_of_" + place.StringId, place.StringId) && SceneImagePath(q) is string p
+               ? (p, q.Title)
+               : null;
 
          return null;
       }

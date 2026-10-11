@@ -42,6 +42,71 @@ namespace CalradiaRemembers.Tests
          AuthoredTaleImages.ImageFor(AuthoredTales.At(q, "the_road"), q).Should().BeNull();
       }
 
+      // Gabriel (11/10/2026): "A word with you" with a notable opened the wolf's picture though the conversation was no step
+      // of the tale. At the questioning of the village, a villager of that village IS the step; the lord who gave the tale
+      // is only concerned by it, and is spoken to without the picture.
+      [Test]
+      public void GIVEN_the_village_being_questioned_WHEN_a_villager_or_the_giver_is_spoken_to_THEN_only_the_villager_conversation_is_the_step()
+      {
+         AuthoredQuest wolf = AuthoredTales.Wolf();
+         AuthoredQuestRun run = AuthoredTales.At(wolf, "question_the_village");
+
+         AuthoredTaleImages.ConversationIsTheStep(run, wolf, "notable_x", AuthoredTales.Village).Should().BeTrue();
+         AuthoredTaleImages.ConversationIsTheStep(run, wolf, AuthoredTales.Giver, null).Should().BeFalse();
+         AuthoredTaleImages.ConversationIsTheStep(run, wolf, "notable_y", "village_elsewhere").Should().BeFalse();
+      }
+
+      // When the step is going back to the lord, he is the step and a villager is not.
+      [Test]
+      public void GIVEN_a_step_to_tell_the_lord_WHEN_he_or_a_villager_is_spoken_to_THEN_only_the_lord_is_the_step()
+      {
+         AuthoredQuest wolf = AuthoredTales.Wolf();
+         AuthoredQuestRun run = AuthoredTales.At(wolf, "tell_the_lord");
+
+         AuthoredTaleImages.ConversationIsTheStep(run, wolf, AuthoredTales.Giver, null).Should().BeTrue();
+         AuthoredTaleImages.ConversationIsTheStep(run, wolf, "notable_x", AuthoredTales.Village).Should().BeFalse();
+      }
+
+      // While the step is a night's watch, no conversation is it: nobody's chat opens on the picture.
+      [Test]
+      public void GIVEN_a_step_that_is_no_conversation_WHEN_anyone_is_spoken_to_THEN_none_is_the_step()
+      {
+         AuthoredQuest wolf = AuthoredTales.Wolf();
+         AuthoredQuestRun run = AuthoredTales.At(wolf, "keep_watch");
+
+         AuthoredTaleImages.ConversationIsTheStep(run, wolf, AuthoredTales.Giver, null).Should().BeFalse();
+         AuthoredTaleImages.ConversationIsTheStep(run, wolf, "notable_x", AuthoredTales.Village).Should().BeFalse();
+      }
+
+      // The states of one conversation (the wife tales): the choices are said to the giver, so the conversation with her is
+      // the step and her picture shows.
+      [Test]
+      public void GIVEN_choices_said_to_the_giver_WHEN_she_is_spoken_to_THEN_it_is_the_step()
+      {
+         // The road's two talking choices made choices by words said to the giver, so no objective names her.
+         const string said = "\"said\": {\"to\": \"{giver}\", \"meaning\": \"the player decides\"}";
+         AuthoredQuest q = AuthoredTales.Load(AuthoredTales.Fork
+            .Replace("\"objective\": { \"type\": \"be_at\", \"place\": \"{village}\" }, \"next\": \"the_wood\"", said + ", \"next\": \"the_wood\"")
+            .Replace("\"objective\": { \"type\": \"talk_to\", \"hero\": \"{giver}\" }, \"sets\": \"refused\"", said + ", \"sets\": \"refused\""));
+         AuthoredQuestRun run = AuthoredTales.At(q, "the_road");
+
+         AuthoredTaleImages.ConversationIsTheStep(run, q, AuthoredTales.Giver, null).Should().BeTrue();
+      }
+
+      // Gabriel (11/10/2026): "plus petite, affichee en haut a gauche de l'ecran pour ne pas masquer le NPC anime". In a
+      // conversation the picture fits the small box; in a scene with nobody in it, the large one; never distorted.
+      [Test]
+      public void GIVEN_a_picture_WHEN_a_character_is_spoken_to_THEN_it_is_small_and_keeps_its_proportions()
+      {
+         (float cw, float ch) = SceneImageLayout.Fit(1448, 1086, compact: true);
+         (float lw, float lh) = SceneImageLayout.Fit(1448, 1086, compact: false);
+
+         cw.Should().BeLessThanOrEqualTo(SceneImageLayout.CompactWidth);
+         ch.Should().BeLessThanOrEqualTo(SceneImageLayout.CompactHeight);
+         lw.Should().BeGreaterThan(cw * 2);
+         (cw / ch).Should().BeApproximately(1448f / 1086f, 0.01f);
+      }
+
       // Present, well named: nothing to say.
       [Test]
       public void GIVEN_an_image_present_in_the_tales_folder_WHEN_checked_THEN_no_problem()

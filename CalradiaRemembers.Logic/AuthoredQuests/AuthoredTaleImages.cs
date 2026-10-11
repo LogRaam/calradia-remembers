@@ -37,6 +37,33 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public static string ImageToShow(string shown, string next)
          => !string.IsNullOrWhiteSpace(next) && !string.Equals(shown, next, StringComparison.OrdinalIgnoreCase) ? next : null;
 
+      /// <summary>
+      ///   Gabriel (11/10/2026): a tale's picture opened beside an ordinary "A word with you" with a notable the tale only
+      ///   concerned ("il ne faudrait pas que ca apparaisse lorsque je ne suis pas dans le contexte du conte"). A conversation
+      ///   shows the stage's picture only when it IS the stage under way: the hero a talk_to (or return) objective names, a
+      ///   local of the place a talk_to_locals objective names, or the one a choice is said to. A character the stage merely
+      ///   concerns (a knower, the giver between two steps) is spoken to without it.
+      /// </summary>
+      public static bool ConversationIsTheStep(AuthoredQuestRun run, AuthoredQuest q, string heroId, string localOfPlaceId)
+      {
+         if (run is not {Status: AuthoredQuestStatus.Active} || string.IsNullOrEmpty(heroId)) return false;
+         AuthoredStage stage = AuthoredQuestEngine.Current(run, q);
+         if (stage == null) return false;
+
+         foreach (AuthoredWay way in AuthoredQuestEngine.Ways(run, q))
+         {
+            bool step = way.Objective?.Type switch {
+               "talk_to" => heroId == AuthoredQuestEngine.Bound(run, way.Objective.Hero),
+               "return" => heroId == AuthoredQuestEngine.Bound(run, "{giver}"),
+               "talk_to_locals" => localOfPlaceId != null && localOfPlaceId == AuthoredQuestEngine.Bound(run, way.Objective.Place),
+               _ => false
+            };
+            if (step) return true;
+         }
+
+         return (stage.Choices ?? new List<AuthoredChoice>()).Any(c => c?.Said?.To != null && heroId == AuthoredQuestEngine.Bound(run, c.Said.To));
+      }
+
       /// <summary>The image of the stage under way, or null when it has none.</summary>
       public static string ImageFor(AuthoredQuestRun run, AuthoredQuest q)
       {
