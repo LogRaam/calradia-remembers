@@ -298,7 +298,20 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          run.SpokenHeroId = heroId;
          run.SpokenChoiceId = way.Choice?.Id;
 
-         return GoTo(run, q, s, way.Choice, way.Next, today);
+         AuthoredStep step = GoTo(run, q, s, way.Choice, way.Next, today);
+
+         // Gabriel (10/10/2026): stages that are states of one conversation. When the stage reached is itself decided by
+         // words with the same character, and the choice says nothing of its own (no canvas, facts or knowers, which
+         // the character would speak from), the conversation goes on in it: they speak from the new stage, not the old.
+         bool choiceSpeaks = way.Choice != null && (way.Choice.Canvas?.Count > 0 || way.Choice.Facts?.Count > 0 || way.Choice.Knowers?.Count > 0);
+         if (!choiceSpeaks && run.Status == AuthoredQuestStatus.Active && run.StageId != s.Id && SaidChoicesFor(run, q, heroId).Count > 0)
+         {
+            run.SpokenStageId = null;
+            run.SpokenHeroId = null;
+            run.SpokenChoiceId = null;
+         }
+
+         return step;
       }
 
       /// <summary>

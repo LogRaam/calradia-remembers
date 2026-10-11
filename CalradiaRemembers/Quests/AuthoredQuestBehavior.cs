@@ -1328,6 +1328,7 @@ namespace CalradiaRemembers.Quests
          IReadOnlyList<AuthoredChoice> open = AuthoredQuestEngine.SaidChoicesFor(_run, q, hero.StringId);
          string id = SaidChoiceId.Match(choiceId, open.Select(x => x.Id).ToList()) ?? choiceId.Trim();
          AuthoredChoice c = open.FirstOrDefault(x => x.Id == id);
+         string shown = AuthoredTaleImages.ImageFor(_run, q);
          AuthoredStep step = AuthoredQuestEngine.Said(_run, q, hero.StringId, id, (int) CampaignTime.Now.ToDays);
          if (c == null || step.Kind == AuthoredStepKind.None)
          {
@@ -1338,9 +1339,35 @@ namespace CalradiaRemembers.Quests
 
          ModLog.Info($"[TALE] choice by words '{c.Id}' taken with {hero.Name}.");
          Apply(q, step);
+         ShowStateImage(q, shown);
 
          return AuthoredQuestEngine.Fill(_run, string.IsNullOrWhiteSpace(c.Label) ? c.Id : c.Label);
       }
+
+      /// <summary>
+      ///   Gabriel (10/10/2026): stages that are states of one conversation, each with its picture. After a choice by words
+      ///   moved the tale, the new stage's picture opens beside the chat still open, when it has one of its own.
+      /// </summary>
+      private void ShowStateImage(AuthoredQuest q, string shown)
+      {
+         string next = _run is {Status: AuthoredQuestStatus.Active} ? AuthoredTaleImages.ImageToShow(shown, AuthoredTaleImages.ImageFor(_run, q)) : null;
+         if (next == null) return;
+         _lastStateImage = next;
+         string path = ImagePath(q, next);
+         if (path == null) return;
+
+         string title = q.Title;
+         MainThreadDispatcher.Enqueue(() =>
+         {
+            if (ChatManager.IsOpen) ChatManager.ActiveViewModel?.ShowSceneImage(path, title);
+            ModLog.Info($"[TALE] the state's picture {next} shown.");
+         });
+      }
+
+      private string _lastStateImage;
+
+      /// <summary>Self-test seam: the last picture a change of state called for (whether or not its file is there).</summary>
+      internal string DebugLastStateImage => _lastStateImage;
 
       // ── Helpers ──────────────────────────────────────────────────────────
 

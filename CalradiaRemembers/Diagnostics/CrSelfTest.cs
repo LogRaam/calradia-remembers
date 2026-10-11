@@ -214,6 +214,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("rescue_from_foe", Severity.Light, "zhenja1 (Nexus, 10/10/2026): 'I liberated two from Garios, and both are saying they were never prisoner.' The game hands a beaten lord's prisoners to the player's loot, and letting them go later from the player's own custody read as a pardon, so nothing was remembered. Takes a real lord prisoner into the player's party, marks them as taken from another real lord (the seam the battle start fills), releases them through the REAL EndCaptivityAction.ApplyByReleasedByChoice, and asserts the rescued lord now remembers being freed, naming the lord who held them. Leaves the gratitude it gave (as cr.rescue does) and forgets the once-per-lord credit", TestRescueFromFoe),
          new SelfTest("memory_api_remove", Severity.Light, "philip0105 (Vivid World, 10/10/2026): a mod could add memories through CrNpcMemory.AddMemory but never take them back, so rumors it later forgot or corrected lingered in CR. Adds a memory to a real lord through the REAL AddMemory with a SourceMod, asserts another mod's RemoveMemory of the same text takes nothing, then that the same mod's RemoveMemory takes exactly it and it is gone from GetMemories. Leaves the lord as found", TestMemoryApiRemove),
          new SelfTest("tale_spouse_giver", Severity.Light, "Gabriel (10/10/2026): a tale of intimacy with the player's own wife, whatever the player's sex, while she travels with him and is not already with child. Loads a tale asking for a spouse giver (role spouse, a woman, with the player, not pregnant) through the REAL loader, and asserts the REAL binding refuses a lady who is not the player's spouse, and, when the player is married, answers for the spouse according to her sex, her party and whether she is with child. Nothing is offered or started; the test tale is taken out after", TestTaleSpouseGiver),
+         new SelfTest("tale_states", Severity.Light, "Gabriel (10/10/2026): a tale whose stages are states of one conversation, passed from one to another and back by what is said, each with its picture ('Les etapes optionnelles sont comme des etats'). Loads such a tale through the REAL loader, starts it with a lord, and takes choices by words through the REAL TakeSaidChoice: asserts the lord is told the moment they are in, speaks from the new state after the words move them (not the old one), comes back to the first, and that each change calls for that state's picture. The test tale is abandoned and taken out after", TestTaleStates),
          new SelfTest("tale_on_map", Severity.Light, "Gabriel (10/10/2026): a tale that begins by itself on the map when the party waits by day in the wife's own lands, on a chance each day, never in a conversation. Loads such a tale through the REAL loader and asserts the REAL conversation offer refuses it with the player's spouse (or any lady) even on a sure roll; then reads the REAL map check against the world as it stands and names what holds it back (no wife with the player, night, the sea, a settlement, the hours still, the lands). Nothing is offered, rolled or started; the test tale is taken out after", TestTaleOnMap),
          new SelfTest("tale_content_level", Severity.Light, "Gabriel (10/10/2026): 'can a quest be classed Hardcore?' A tale now names the content level it needs (requires.content). Loads a hardcore tale written into the test through the REAL loader, and asserts the REAL offer decision refuses it, naming the level, unless the player's setting in the mod options is Hardcore; and that the shipped tales, which ask for none, are never held back by it. No tale is offered or started; the test tale is taken out after", TestTaleContentLevel),
          new SelfTest("courier_menu_option", Severity.Light, "raphareish (Nexus, 10/10/2026): letters could be sent only from a town's tavern keeper, so castles and villages, which have no tavern, had no courier at all. Asserts the castle and village menus of THIS game carry 'Send a letter', and reports what the place the player stands in offers. Opens nothing, charges nothing", TestCourierMenuOption),
@@ -9097,6 +9098,72 @@ namespace CalradiaRemembers.Diagnostics
 
             b.DebugCloseScene();
             t.Expect("closingFollowsItToItsEnding", $"{b.ActiveRun.Status}/{b.ActiveRun.EndingId}", "Completed/secret");
+         }
+         finally
+         {
+            b.Abandon("Self-test.");
+            b.ForgetPlayed(id);
+            b.DebugForgetTale(id);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>The tale tale_states walks: stages that are states of one conversation (Gabriel, 10/10/2026).</summary>
+      private const string StatesSelfTestTale = @"{
+        ""id"": ""cr_selftest_states"", ""title"": ""[SELFTEST] By the Falls"",
+        ""requires"": { ""giver"": { ""role"": ""lord"", ""min_regard"": -100, ""not_at_war_with_player"": false } },
+        ""binds"": { ""giver"": ""a lord"" },
+        ""stages"": [
+          { ""id"": ""ask"", ""journal"": ""[SELFTEST] {giver} waits."", ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" },
+            ""on_complete"": { ""next"": ""together"" } },
+          { ""id"": ""together"", ""journal"": ""[SELFTEST] Together."", ""image"": ""selftest_together.jpg"",
+            ""canvas"": ""[SELFTEST] You stand beneath the falls."",
+            ""choices"": [
+              { ""id"": ""shoulder"", ""label"": ""Shoulder"", ""said"": { ""to"": ""{giver}"", ""meaning"": ""the player looks at the shoulder"" }, ""next"": ""shoulder"" },
+              { ""id"": ""done"", ""label"": ""Done"", ""said"": { ""to"": ""{giver}"", ""meaning"": ""they part"" }, ""next"": ""end:quiet"" } ] },
+          { ""id"": ""shoulder"", ""journal"": ""[SELFTEST] Shoulder."", ""image"": ""selftest_shoulder.jpg"",
+            ""canvas"": ""[SELFTEST] The dress has slipped from one shoulder."",
+            ""choices"": [
+              { ""id"": ""back"", ""label"": ""Back"", ""said"": { ""to"": ""{giver}"", ""meaning"": ""they turn back"" }, ""next"": ""together"" },
+              { ""id"": ""done"", ""label"": ""Done"", ""said"": { ""to"": ""{giver}"", ""meaning"": ""they part"" }, ""next"": ""end:quiet"" } ] }
+        ],
+        ""endings"": { ""quiet"": { } }
+      }";
+
+      private static string TestTaleStates(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_states");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null, "authored quests are not active")) return t.Line();
+         if (t.Skip(b.ActiveRun is {Status: Logic.AuthoredQuests.AuthoredQuestStatus.Active}, "a real tale is under way; not disturbing it")) return t.Line();
+
+         const string id = "cr_selftest_states";
+         t.Expect("theTaleLoadsClean", string.Join(" | ", b.DebugLoadTale(StatesSelfTestTale, "selftest_states.json")), "");
+         Logic.AuthoredQuests.AuthoredQuest tale = b.Quests.FirstOrDefault(q => q.Id == id);
+         if (t.Abort(tale == null, "the tale did not load")) return t.Line();
+
+         try
+         {
+            var today = (int) CampaignTime.Now.ToDays;
+            Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && b.TryOffer(h, today, 0, id));
+            if (t.Skip(giver == null, "no lord could give it")) return t.Line();
+
+            b.Accept(tale, b.Offer);
+            t.Expect("acceptingLeadsToTheFirstState", b.ActiveRun.StageId, "together");
+            t.Expect("theyAreToldTheMomentTheyAreIn", (b.PromptBlockFor(giver) ?? "").Contains("beneath the falls"), true);
+
+            t.Expect("theWordsAreTaken", b.TakeSaidChoice(giver, "shoulder") != null, true);
+            t.Expect("toTheNextState", b.ActiveRun.StageId, "shoulder");
+            string block = b.PromptBlockFor(giver) ?? "";
+            t.Expect("theySpeakFromTheNewState", block.Contains("slipped from one shoulder"), true);
+            t.Expect("notFromTheOldOne", block.Contains("beneath the falls"), false);
+            t.Expect("itsPictureIsCalledFor", b.DebugLastStateImage, "selftest_shoulder.jpg");
+
+            b.TakeSaidChoice(giver, "back");
+            t.Expect("andBackAgain", b.ActiveRun.StageId, "together");
+            t.Expect("withItsPicture", b.DebugLastStateImage, "selftest_together.jpg");
          }
          finally
          {

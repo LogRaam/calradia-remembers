@@ -29,6 +29,14 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          return Extensions.Any(e => name.EndsWith(e, StringComparison.OrdinalIgnoreCase));
       }
 
+      /// <summary>
+      ///   Gabriel (10/10/2026): a tale whose stages are states of one conversation, each with its picture. When the state
+      ///   changes, the picture to show now: the new one when it differs from the one shown; null (keep what is shown)
+      ///   when the new state has none or it is the same.
+      /// </summary>
+      public static string ImageToShow(string shown, string next)
+         => !string.IsNullOrWhiteSpace(next) && !string.Equals(shown, next, StringComparison.OrdinalIgnoreCase) ? next : null;
+
       /// <summary>The image of the stage under way, or null when it has none.</summary>
       public static string ImageFor(AuthoredQuestRun run, AuthoredQuest q)
       {

@@ -46,7 +46,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          AuthoredChoice choice = inTheirConversation && run.SpokenChoiceId != null ? stage.Choices?.FirstOrDefault(c => c?.Id == run.SpokenChoiceId) : null;
          List<AuthoredLine> canvasLines = stage.Canvas, factLines = stage.Facts;
          List<string> lines = KnowerLines(run, stage.Knowers, heroId, localOfPlaceId);
-         bool speaks = heroId == AuthoredQuestEngine.Bound(run, "{giver}") && (offering || run.SpokenStageId == stage.Id);
+         // Gabriel (10/10/2026): the giver also speaks the moment of a stage decided by words with them, the conversation
+         // that decides it being theirs (stages that are states of one conversation).
+         bool decidedWithThem = !inTheirConversation && AuthoredQuestEngine.SaidChoicesFor(run, q, heroId).Count > 0;
+         bool speaks = heroId == AuthoredQuestEngine.Bound(run, "{giver}") && (offering || run.SpokenStageId == stage.Id || decidedWithThem);
 
          if (choice != null && (choice.Canvas?.Count > 0 || choice.Facts?.Count > 0 || choice.Knowers?.Count > 0))
          {

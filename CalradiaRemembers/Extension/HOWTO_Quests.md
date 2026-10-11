@@ -335,6 +335,13 @@ Whatever way a choice is taken, the game decides: the model never takes one by s
 Loops are allowed when there is a way out of them: the player may turn back to an earlier stage as
 often as they like, as long as some path still leads to an ending.
 
+**Stages as states of one conversation.** Stages whose choices are all said to the same character can be
+moments of a single conversation that the player moves between and back by what is said: each stage a state
+with its own `canvas` and `image`, each linking to the others. The character speaks the `canvas` of the stage
+they are in; when words move the tale to another such stage, they speak from the new one, and its picture
+replaces the one beside the chat (a stage with no image keeps the one shown). A choice that carries its own
+`canvas`, `facts` or `knowers` is spoken from instead, as for any choice.
+
 ## 8. Endings, reward, failure and consequences
 
 ```json
