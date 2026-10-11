@@ -86,10 +86,15 @@ namespace CalradiaRemembers.Portraits
                     Sprites[live] = RuntimePortraitFactory.SpriteFromTexture(_target, name, width, height);
                 }
 
+                // Second run (11/10/2026): nothing drawn anywhere, not even the clear colour. Every video the game plays
+                // comes with its sound file (the main menu requires the .ogg beside the .ivf), so the player may need
+                // one to run: a silent .ogg of the same name beside the video is used when present.
+                string sound = System.IO.Path.ChangeExtension(file, ".ogg");
+                if (!System.IO.File.Exists(sound)) sound = "";
                 _player.SetEnable(true);
-                _player.PlayVideo(file, "", fps, loop);
+                _player.PlayVideo(file, sound, fps, loop);
                 CurrentPath = live ?? (LivePrefix + name + "_screen");
-                report = $"playing {file} {(toScreen ? "TO THE SCREEN" : "into " + name)} ({width}x{height}, {fps} fps, loop={loop}, clear=0x{clearColor:X8}); "
+                report = $"playing {file} with sound '{sound}' {(toScreen ? "TO THE SCREEN" : "into " + name)} ({width}x{height}, {fps} fps, loop={loop}, clear=0x{clearColor:X8}); "
                        + $"file exists={System.IO.File.Exists(file)}, target IsRenderTarget={_target?.IsRenderTarget.ToString() ?? "none"}.";
                 ModLog.Info("[VIDEO] " + report);
 
