@@ -198,7 +198,19 @@ namespace CalradiaRemembers.Logic
 
            /// <summary>The settlement the player is in is besieged, or being besieged.</summary>
            public bool PlayerSettlementBesieged { get; set; }
+
+           /// <summary>
+           ///   The player's own party is in a siege (besieging or besieged) or a battle on the map. A pursuer reaching
+           ///   him then makes the game's own encounter, a fight (Maifailun, 10/10/2026).
+           /// </summary>
+           public bool PlayerInSiegeOrBattle { get; set; }
         }
+
+        /// <summary>
+        ///   Whether a lord may ride out to the player now: never while the player besieges, is besieged, or fights
+        ///   (Maifailun, 10/10/2026: a lord reaching a besieging army forced a fight).
+        /// </summary>
+        public static bool PlayerCanBeApproached(bool playerInSiegeOrBattle) => !playerInSiegeOrBattle;
 
         /// <summary>
         ///   Whether a lord gives up the chase. A pursuer right on top of the player keeps pressing no
@@ -228,6 +240,9 @@ namespace CalradiaRemembers.Logic
             // took the player with it. A besieged fief ends the wait at once; inside walls, nearness proves nothing,
             // so the day limit below applies to a lord at the gate as to one on the road.
             if (facts.PlayerInsideSettlement && facts.PlayerSettlementBesieged) return true;
+            // Maifailun (10/10/2026): reaching a player who besieges or fights is a fight, not a meeting. At once,
+            // however close: closeness is exactly the danger here.
+            if (facts.PlayerInSiegeOrBattle) return true;
             if (!facts.PlayerInsideSettlement)
             {
                 if (distance < AbandonMinDistance) return false; // about to connect: never give up now

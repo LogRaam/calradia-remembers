@@ -28,6 +28,26 @@ namespace CalradiaRemembers.Tests
          }).Should().BeTrue();
       }
 
+      // Maifailun (Nexus, 10/10/2026): leading an army in a long siege, a lord who had followed him (follow_me) rode in "to
+      // talk" once the escort ended, and the contact made the game's own encounter: "no choice but to fight or use
+      // tactics skills to sacrifice troops", a save to reload. A player besieging, or in a battle, cannot be approached:
+      // the pursuer stands down at once, however close.
+      [Test]
+      public void GIVEN_the_player_besieging_or_in_a_battle_WHEN_judging_the_chase_THEN_the_pursuer_stands_down_at_once_however_close()
+      {
+         InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {
+            Distance = 0.5f, DaysPursuing = 0, IsClosing = true, PlayerInSiegeOrBattle = true
+         }).Should().BeTrue();
+      }
+
+      // Same report: no chase may begin while the player is besieging or fighting.
+      [Test]
+      public void GIVEN_the_player_besieging_or_in_a_battle_WHEN_a_lord_would_ride_out_THEN_nobody_does()
+      {
+         InterceptionPolicy.PlayerCanBeApproached(playerInSiegeOrBattle: true).Should().BeFalse();
+         InterceptionPolicy.PlayerCanBeApproached(playerInSiegeOrBattle: false).Should().BeTrue();
+      }
+
       // Inside walls, "almost caught" means nothing: the day limit applies, so nobody camps at the gate for good.
       [Test]
       public void GIVEN_the_player_inside_a_fief_past_the_day_limit_WHEN_judging_THEN_the_pursuer_gives_up_even_at_the_gate()

@@ -458,11 +458,24 @@ namespace CalradiaRemembers.Interception
       {
          try
          {
-            if (_activePursuerId == null || _activePursuerIsFiefAudience || !PlayerFiefBesieged()) return;
+            if (_activePursuerId == null || _activePursuerIsFiefAudience || (!PlayerFiefBesieged() && !PlayerInSiegeOrBattle())) return;
 
             ReleaseStalePursuit((int) CampaignTime.Now.ToDays);
          }
          catch (Exception ex) { ModLog.Error($"[INTERCEPT] siege check failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   The player's own party besieges, is besieged or fights on the map (Maifailun, 10/10/2026: a lord reaching a
+      ///   besieging army made the game's own encounter, a fight). Includes an army the player leads in a siege.
+      /// </summary>
+      internal static bool PlayerInSiegeOrBattle()
+      {
+         MobileParty main = MobileParty.MainParty;
+         if (main == null) return false;
+
+         return main.SiegeEvent != null || main.MapEvent != null || main.BesiegedSettlement != null
+                || main.Army?.LeaderParty?.SiegeEvent != null;
       }
 
       /// <summary>The settlement the player is in is under siege, or a siege camp is closing on it.</summary>
@@ -1284,6 +1297,13 @@ namespace CalradiaRemembers.Interception
          // Last line of defense against the army-encounter crash: never engage a party the player is already
          // with (a subordinate army member, a shared army, or an attached party).
          if (PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(lord.PartyBelongedTo)) return;
+         // Maifailun (10/10/2026): every way a chase begins, not only the daily one, stays out of a siege or a battle.
+         if (!InterceptionPolicy.PlayerCanBeApproached(PlayerInSiegeOrBattle()))
+         {
+            ModLog.Info($"[INTERCEPT] {lord.Name} does not ride out: the player is in a siege or a battle.");
+
+            return;
+         }
 
          EndPursuitSteering(); // a chase forced over another (cr.intercept) must not leave the first lord locked
          SteerTowardPlayer(lord.PartyBelongedTo);
@@ -1403,6 +1423,8 @@ namespace CalradiaRemembers.Interception
          // A council staging its own conversation scene is the same kind of "about to hand focus to a
          // conversation" moment as a captive scene staging one; a lord riding out mid-stage would collide.
          if (CouncilConversationStager.IsStaging) return false;
+         // Maifailun (10/10/2026): a siege camp or a battle is no open map, whatever menu shows.
+         if (PlayerInSiegeOrBattle()) return false;
 
          return true;
       }
@@ -1462,7 +1484,8 @@ namespace CalradiaRemembers.Interception
          bool giveUp = !invalid &&
                        InterceptionPolicy.ShouldAbandonChase(new InterceptionPolicy.ChaseFacts {
                           PursuerSpeed = pursuerParty.Speed, PlayerSpeed = main.Speed, Distance = distance, DaysPursuing = today - _activePursuerSince,
-                          IsClosing = isClosing, PlayerInsideSettlement = Hero.MainHero?.CurrentSettlement != null, PlayerSettlementBesieged = PlayerFiefBesieged()
+                          IsClosing = isClosing, PlayerInsideSettlement = Hero.MainHero?.CurrentSettlement != null, PlayerSettlementBesieged = PlayerFiefBesieged(),
+                          PlayerInSiegeOrBattle = PlayerInSiegeOrBattle()
                        });
 
          if (!invalid && !giveUp)
@@ -1474,7 +1497,7 @@ namespace CalradiaRemembers.Interception
 
          InterceptionTrigger trigger = _activePursuerTrigger; // read before the fields below are cleared
          string detail = _activePursuerDetail;                // ditto
-         AbandonReason reason = !invalid && PlayerFiefBesieged() ? AbandonReason.Siege : DetermineAbandonReason(atSea, invalid, today - _activePursuerSince);
+         AbandonReason reason = !invalid && (PlayerFiefBesieged() || PlayerInSiegeOrBattle()) ? AbandonReason.Siege : DetermineAbandonReason(atSea, invalid, today - _activePursuerSince);
          var pursuerAlive = pursuer is {IsAlive: true};
 
          ModLog.Info($"[INTERCEPT] {pursuer?.Name} stands down ({reason}, distance {distance:0.0}, " +
@@ -1598,6 +1621,7 @@ namespace CalradiaRemembers.Interception
          if (main == null || Hero.MainHero == null) return;
          if (PlayerIsSubordinateInArmy()) return; // never intercept a player attached inside another lord's army
          if (main.IsCurrentlyAtSea) return;       // no one rides out to a ship (see InterceptionPolicy.CanMeetOnLand)
+         if (!InterceptionPolicy.PlayerCanBeApproached(PlayerInSiegeOrBattle())) return; // Maifailun: not into a siege or a battle
 
          Vec2 playerPos = main.GetPosition2D;
          IFaction territory = NearestSettlementFaction(playerPos);

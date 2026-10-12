@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-464 rules read 362 facts.
+465 rules read 363 facts.
 
 ## Facts read by more than one rule
 
@@ -33,18 +33,18 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MobileParty.Army` (18) | `BattleFacts`, `ChaseFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `DeedRefusal`, `EscortContinuationPolicy.Describe`, `EscortContinuationPolicy.Resolve`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `EscortStandingFacts`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `LetterWhereaboutsPolicy.ForPlayer`, `LetterWhereaboutsPolicy.ForWriter`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `PlayerForcePolicy.Resolve`, `WhereaboutsFacts` |
 | `Hero.Age` (15) | `ActorFacts`, `AppearanceFacts`, `BastardDiscoveryPolicy.DiscoveryChancePercent`, `ConceptionFacts`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `CouncilRosterPolicy.IsOldEnoughToSit`, `MarriageMatchFacts`, `MarryCompanionFacts`, `NpcActionGate.Check`, `Participant`, `SpouseTenurePolicy.LongStanding`, `WardCandidateFacts`, `WardEligibilityPolicy.IsEligible`, `WardPolicy.IsWithinAgeBand` |
 | `Hero.IsLord` (15) | `ClaimantBackerFacts`, `ConceptionChroniclePolicy.IsPublicHeir`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `GiverFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `NotableRecruitmentFacts`, `PrisonerBuyerCandidate`, `PrisonerExchangePolicy.IsExchangeable`, `ReleaseFacts`, `RideWithMeFacts` |
+| `MobileParty.SiegeEvent` (15) | `AuthoredMapTriggerPolicy.WhyNot`, `ChaseFacts`, `DeedRefusal`, `EscortContinuationPolicy.Describe`, `EscortContinuationPolicy.Resolve`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `EscortStandingFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `MapTriggerFacts`, `RoadAudienceFacts` |
 | `Hero.Father` (14) | `CorrespondenceRankFacts`, `CorrespondenceRankPolicy.DealsInPerson`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `MarryCompanionFacts`, `MeetingGapDescriber.Describe`, `ParentageFacts`, `PartnerFacts`, `PlayerPartnersText.OtherPartners`, `PredecessorFacts`, `SuccessionMemoryPolicy.Reframe`, `ThirdPartyDescriptor.KnowledgeOf`, `ThirdPartyDescriptor.WhereaboutsClause`, `ThirdPartyFacts` |
 | `Hero.Mother` (14) | `CorrespondenceRankFacts`, `CorrespondenceRankPolicy.DealsInPerson`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `MarryCompanionFacts`, `MeetingGapDescriber.Describe`, `ParentageFacts`, `PartnerFacts`, `PlayerPartnersText.OtherPartners`, `PredecessorFacts`, `SuccessionMemoryPolicy.Reframe`, `ThirdPartyDescriptor.KnowledgeOf`, `ThirdPartyDescriptor.WhereaboutsClause`, `ThirdPartyFacts` |
 | `MobileParty.GetPosition2D` (14) | `AuthoredMapTriggerPolicy.WhyNot`, `BattleFacts`, `CaptureFacts`, `ChaseFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `CourierGateFacts`, `CourierStuckPolicy.HasMoved`, `EscortCostPolicy.EscortPremium`, `GeographyDescriber.Bearing`, `InterceptionFacts`, `InterceptionPolicy.Choose`, `MapTriggerFacts`, `NewsDestinationSelector.Choose` |
 | `MobileParty.IsCurrentlyAtSea` (14) | `AuthoredMapTriggerPolicy.WhyNot`, `ChaseFacts`, `CourierGateFacts`, `DuelStagingSupport.CanStage`, `DuelVenuePolicy.Choose`, `InterceptionPolicy.CanMeetOnLand`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `LandfallFacts`, `LetterDeliveryPolicy.ShouldHoldDeliveryAtSea`, `MapTriggerFacts`, `PresenceDescriber.Describe`, `RoadAudienceFacts`, `StagingHostFacts`, `StagingHostPolicy.AnEnvoyCanReachThePlayer` |
+| `MobileParty.MapEvent` (14) | `AuthoredMapTriggerPolicy.WhyNot`, `ChaseFacts`, `DeedRefusal`, `EscortContinuationPolicy.Describe`, `EscortContinuationPolicy.Resolve`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `EscortStandingFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `MapEncounterCloseFacts`, `MapTriggerFacts`, `RoadAudienceFacts` |
 | `StatureReader.Of` (14) | `ArrangedMatchFacts`, `CombatantFacts`, `CorrespondenceRankFacts`, `CorrespondenceRankPolicy.DealsInPerson`, `CorrespondenceRankPolicy.ScribeTitle`, `DuelAcceptanceContext`, `DuelPublicityPolicy.Magnitude`, `PerceivedImageFacts`, `RomanticProfilePolicy.DeterminePreferences`, `SelfEsteemBaselineFacts`, `SelfEsteemClimb`, `SelfEsteemPolicy.BandOf`, `SelfEsteemPolicy.Current`, `SelfEsteemPolicy.Record` |
 | `Hero.GovernorOf` (13) | `AppointmentOfferFacts`, `CompanionAmbitionFacts`, `CompanionAmbitionPolicy.Select`, `CompanionChargeFacts`, `CompanionServiceTransferFacts`, `CompanionServiceTransferPolicy.Evaluate`, `DivorceBlockFacts`, `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `DivorcedSpouseFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts` |
 | `Hero.IsChild` (13) | `ActorFacts`, `CompanionMatchFacts`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `EarnRegardPolicy.MayBeNamed`, `EarnRegardTargetFacts`, `HostageCandidateFacts`, `HostageEligibilityPolicy.IsEligible`, `NotableRecruitmentFacts`, `NpcActionGate.Check`, `PleadCasePolicy.MayBePleadedTo`, `PrisonerExchangePolicy.IsExchangeable`, `RescueGratitudePolicy.CanFeelTheDebt` |
 | `PartyBelongedTo.LeaderHero` (13) | `CompanionAmbitionFacts`, `CompanionAmbitionPolicy.Select`, `CompanionChargeFacts`, `CompanionRescuePolicy.ShouldAttempt`, `DivorceBlockFacts`, `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `DivorcedSpouseFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `OathOfferFacts`, `RejoinPartyFacts` |
 | `Hero.Gold` (12) | `BastardBlackmailPolicy.DemandAmount`, `GoldPledgePolicy.ClampPayable`, `HireAgreementPolicy.CanAfford`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `OathOfferFacts`, `PrisonerTradePolicy.PriceDifferenceNote`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend`, `StipendOfferFacts`, `TributePolicy.CanPay`, `ViolencePolicy.RobberyTake` |
-| `MobileParty.SiegeEvent` (12) | `AuthoredMapTriggerPolicy.WhyNot`, `DeedRefusal`, `EscortContinuationPolicy.Describe`, `EscortContinuationPolicy.Resolve`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `EscortStandingFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `MapTriggerFacts`, `RoadAudienceFacts` |
 | `MemberRoster.TotalManCount` (11) | `CaptiveEncounterPolicy.BanditCollectiveParticipantCap`, `CaptiveEncounterPolicy.BanditWitnessCount`, `CaptiveEncounterPolicy.ShouldBanditSceneBeCollective`, `LetterWhereaboutsPolicy.ForPlayer`, `LetterWhereaboutsPolicy.ForWriter`, `OutlawPolicy.HunterStrength`, `PlayerForcePolicy.Resolve`, `RecruitTroopsPolicy.TroopsToAsk`, `TroopGiftFacts`, `TroopLoanFacts`, `WhereaboutsFacts` |
-| `MobileParty.MapEvent` (11) | `AuthoredMapTriggerPolicy.WhyNot`, `DeedRefusal`, `EscortContinuationPolicy.Describe`, `EscortContinuationPolicy.Resolve`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `EscortStandingFacts`, `MapEncounterCloseFacts`, `MapTriggerFacts`, `RoadAudienceFacts` |
 | `PartyBelongedToAsPrisoner.LeaderHero` (11) | `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `ExecutionFacts`, `HarmFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `PlayerStandingFacts`, `PlayerStandingPolicy.Resolve`, `PrivateAudienceFacts`, `RegardProposal` |
 | `Hero.OneToOneConversationHero` (10) | `BriefingReturnDecision.Decide`, `BriefingReturnDecision.HostIsLive`, `CommonerChatContext`, `LandfallFacts`, `NemesisBountyRewardPolicy.ComputeGold`, `NemesisBountyRewardPolicy.ComputeRelation`, `NemesisRumorLine.Compose`, `RoadAudienceFacts`, `StagedStartFacts`, `StagingHostFacts` |
 | `ModSettings.AdultContentLevel` (10) | `AuthoredContentPolicy.Allows`, `AuthoredQuestOfferPolicy.WhyNot`, `ExecutionFacts`, `HarmFacts`, `IntimateChroniclePolicy.BuildLine`, `LeverageArchetype`, `RegardProposal`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible`, `SharedIntimacyFacts` |
@@ -79,6 +79,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `CurrentSettlement.GetPosition2D` (5) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `JealousyHearingPolicy.WithinEarshot` |
 | `DayMoodReader.Draw` (5) | `CorrespondencePreferenceParser.Parse`, `LetterRegardPolicy.ParseTone`, `LetterRegardPolicy.StripToneLine`, `LetterReplyDecisionParser.Parse`, `PerceivedImageFacts` |
 | `IFaction.IsAtWarWith` (5) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `MarriageStateFacts`, `OutlawPolicy.IsBrigandage` |
+| `MobileParty.BesiegedSettlement` (5) | `AuthoredMapTriggerPolicy.WhyNot`, `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `MapTriggerFacts` |
 | `PartyBelongedTo.MapEvent` (5) | `AssemblyInvitationFacts`, `AssemblyTravelFacts`, `AssemblyTravelOutcome.Evaluate`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate` |
 | `Romantic.Status` (5) | `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Settlement.IsCastle` (5) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts` |
@@ -125,6 +126,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.Siblings` (3) | `MeetingGapDescriber.Describe`, `PredecessorFacts`, `SuccessionMemoryPolicy.Reframe` |
 | `IFaction.IsKingdomFaction` (3) | `FirstImpressionDescriber.Describe`, `FirstImpressionInputs`, `FirstImpressionPolicy.Resolve` |
 | `Kingdom.Clans` (3) | `ArrestPolicy.CouncilSeats`, `AuthoredRivalPolicy.Choose`, `TrialVerdictPolicy.DefaultConviction` |
+| `LeaderParty.SiegeEvent` (3) | `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter` |
 | `MapEvent.EventType` (3) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause` |
 | `MapEvent.MapEventSettlement` (3) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause` |
 | `MapEvent.WinningSide` (3) | `BattleWorthFacts`, `LiberationFacts`, `ScatteredLootPolicy.SelectRecoverable` |
@@ -183,7 +185,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MapEvent.GetMapEventSide` (2) | `BattleWorthFacts`, `LiberationFacts` |
 | `MobileParty.ActualClan` (2) | `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
 | `MobileParty.AttachedTo` (2) | `ChaseFacts`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter` |
-| `MobileParty.BesiegedSettlement` (2) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts` |
 | `MobileParty.CurrentSettlement` (2) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts` |
 | `MobileParty.EffectiveEngineer` (2) | `CompanionAmbitionFacts`, `CompanionAmbitionPolicy.Select` |
 | `MobileParty.EffectiveQuartermaster` (2) | `CompanionAmbitionFacts`, `CompanionAmbitionPolicy.Select` |
@@ -307,7 +308,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CaptureNorm.StakeOf`: `Hero.Clan`
 - `CaptureQuestPolicy.TypeToIssue`: `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`
 - `CardinalDirectionPolicy.Describe`: `Settlement.GetPosition2D`, `Vec2.x`, `Vec2.y`
-- `ChaseFacts`: `Army.LeaderParty`, `GetPosition2D.Distance`, `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `MobileParty.Army`, `MobileParty.AttachedTo`, `MobileParty.GetPosition2D`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.Speed`, `Settlement.IsUnderSiege`, `Settlement.SiegeEvent`
+- `ChaseFacts`: `Army.LeaderParty`, `GetPosition2D.Distance`, `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `LeaderParty.SiegeEvent`, `MobileParty.Army`, `MobileParty.AttachedTo`, `MobileParty.BesiegedSettlement`, `MobileParty.GetPosition2D`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`, `MobileParty.Speed`, `Settlement.IsUnderSiege`, `Settlement.SiegeEvent`
 - `ChatClosePlan.For`: `ActiveViewModel.IsExplorationScene`
 - `ChatCompositionModePolicy.Parse`: `ChatCompositionModeSetting.SelectedValue`
 - `ChatEscapeFacts`: `ScreenManager.FocusedLayer`
@@ -457,7 +458,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `InterceptionPacingRules.IsOff`: `ModSettings.LordsApproaching`
 - `InterceptionPolicy.CanMeetOnLand`: `Hero.PartyBelongedTo`, `MobileParty.IsCurrentlyAtSea`
 - `InterceptionPolicy.Choose`: `Clan.Renown`, `FactionManager.IsAtWarAgainstFaction`, `Hero.GetRelation`, `Hero.MapFaction`, `MobileParty.GetPosition2D`, `Settlement.MapFaction`
-- `InterceptionPolicy.ShouldWriteMissedMeetingLetter`: `Army.LeaderParty`, `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `MobileParty.Army`, `MobileParty.AttachedTo`, `MobileParty.IsCurrentlyAtSea`, `Settlement.IsUnderSiege`, `Settlement.SiegeEvent`
+- `InterceptionPolicy.PlayerCanBeApproached`: `LeaderParty.SiegeEvent`, `MobileParty.BesiegedSettlement`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`
+- `InterceptionPolicy.ShouldWriteMissedMeetingLetter`: `Army.LeaderParty`, `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `LeaderParty.SiegeEvent`, `MobileParty.Army`, `MobileParty.AttachedTo`, `MobileParty.BesiegedSettlement`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`, `Settlement.IsUnderSiege`, `Settlement.SiegeEvent`
 - `InterestDampers`: `Hero.Spouse`
 - `IntimacyPacingRules.Relief`: `ModSettings.RelationWarmth`
 - `IntimateChroniclePolicy.BuildLine`: `Hero.IsFemale`, `ModSettings.AdultContentLevel`
