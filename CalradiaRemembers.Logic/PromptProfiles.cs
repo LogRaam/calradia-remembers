@@ -161,8 +161,29 @@ namespace CalradiaRemembers.Logic
         /// <summary>Its layouts, by kind.</summary>
         public Dictionary<string, PromptLayout> Layouts { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>Its rewordings, by section key (sections/&lt;key&gt;.txt; increment 3).</summary>
+        public Dictionary<string, PromptSectionText> Sections { get; init; } = new(StringComparer.Ordinal);
+
+        /// <summary>The "!# based_on: key@hash" a rewording carries, by key, for the drift check.</summary>
+        public Dictionary<string, string> SectionBasedOn { get; init; } = new(StringComparer.Ordinal);
+
         /// <summary>What was wrong in its files, for the log and cr.prompt_check.</summary>
         public List<string> Problems { get; init; } = new();
+    }
+
+    /// <summary>The rewordings a profile chain gives the prompt. Pure.</summary>
+    public static class PromptSectionTexts
+    {
+        /// <summary>Nearest profile first: its rewording of a section wins over a parent's. Null when nothing is reworded.</summary>
+        public static IReadOnlyDictionary<string, PromptSectionText> Of(IEnumerable<PromptProfile> chain)
+        {
+            var texts = new Dictionary<string, PromptSectionText>(StringComparer.Ordinal);
+            foreach (PromptProfile p in chain ?? Enumerable.Empty<PromptProfile>())
+            foreach (KeyValuePair<string, PromptSectionText> s in p.Sections)
+                if (!texts.ContainsKey(s.Key)) texts[s.Key] = s.Value;
+
+            return texts.Count == 0 ? null : texts;
+        }
     }
 
     /// <summary>Reads a profile's files. Pure: file reading is handed in.</summary>
@@ -209,7 +230,57 @@ namespace CalradiaRemembers.Logic
                 };
             }
 
+            ReadSections(source, readFile, filesIn, p);
+
             return p;
+        }
+
+        // sections/<key>.txt: the words replace the stock text; "!append" adds them; "!remove <text>" drops stock lines;
+        // "!# ..." is a note ("!# based_on: key@hash" kept for the drift check).
+        private static void ReadSections(PromptProfileSource source, Func<string, string> readFile, Func<string, IEnumerable<string>> filesIn, PromptProfile p)
+        {
+            string folder = Path.Combine(source.Folder, "sections");
+            IEnumerable<string> files;
+            try { files = filesIn(folder) ?? Enumerable.Empty<string>(); }
+            catch { files = Enumerable.Empty<string>(); }
+
+            var known = new HashSet<string>(PromptBuilder.CharacterSections.Select(s => s.Key), StringComparer.Ordinal);
+            foreach (string file in files.Where(f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase)).OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+            {
+                string key = Path.GetFileNameWithoutExtension(file);
+                if (!known.Contains(key))
+                {
+                    p.Problems.Add($"sections/{Path.GetFileName(file)}: '{key}' is no section of the prompt: left out (cr.prompt_dump <name> lists them).");
+                    continue;
+                }
+
+                string raw = SafeRead(readFile, file);
+                if (raw == null) continue;
+
+                var words = new List<string>();
+                var remove = new List<string>();
+                var append = false;
+                foreach (string line in raw.Replace("\r\n", "\n").Split('\n'))
+                {
+                    string trimmed = line.Trim();
+                    if (trimmed.StartsWith("!#", StringComparison.Ordinal))
+                    {
+                        string note = trimmed.Substring(2).Trim();
+                        if (note.StartsWith("based_on:", StringComparison.OrdinalIgnoreCase)) p.SectionBasedOn[key] = note.Substring("based_on:".Length).Trim();
+                        continue;
+                    }
+
+                    if (trimmed.Equals("!append", StringComparison.OrdinalIgnoreCase)) append = true;
+                    else if (trimmed.StartsWith("!remove ", StringComparison.OrdinalIgnoreCase)) remove.Add(trimmed.Substring("!remove ".Length).Trim());
+                    else words.Add(line.TrimEnd());
+                }
+
+                string text = string.Join("\n", words).Trim('\n');
+                p.Sections[key] = new PromptSectionText {
+                    Text = text.Length == 0 && (append || remove.Count > 0) ? null : text, Append = append, RemoveLines = remove,
+                    Source = $"profile '{p.Id}' ({p.Source}), sections/{key}.txt"
+                };
+            }
         }
 
         private static string SafeRead(Func<string, string> readFile, string path)

@@ -628,6 +628,8 @@ namespace CalradiaRemembers.Mapping
                InCaptiveScene = isCaptorScene || isCollectiveCaptiveScene || playerStatus == PlayerStatusVsNpc.Captive || playerStatus == PlayerStatusVsNpc.NpcIsCaptive,
                StationKey = StationKeyOf(hero)
             })),
+            // Increment 3: the sections the profile rewords (read with the profile; each meets its own gate in the SDK).
+            PromptTexts = PromptProfileService.Texts,
             LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
             MarriageBlockedBecause = ResolveMarriageBlockReason(hero, profile),
             LoveMatchReluctant = ResolveLoveMatchReluctant(hero, profile),

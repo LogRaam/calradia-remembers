@@ -30,6 +30,7 @@ namespace CalradiaRemembers.Mapping
       private static List<PromptProfileSource> _sources = new() {new PromptProfileSource {Id = PromptProfileFolders.StockId, Source = ScenarioPackFolders.OwnSource}};
       private static readonly List<string> FindProblems = new();
       private static IReadOnlyList<PromptProfile> _chain = new List<PromptProfile>();
+      private static IReadOnlyDictionary<string, PromptSectionText> _texts;
       private static readonly List<string> ChainProblems = new();
       private static string _appliedId = PromptProfileFolders.StockId;
       private static int _appliedIndex;
@@ -98,6 +99,9 @@ namespace CalradiaRemembers.Mapping
          }
       }
 
+      /// <summary>The sections the profile in use rewords (increment 3), or null; read once with the profile, never per reply.</summary>
+      internal static IReadOnlyDictionary<string, PromptSectionText> Texts => _texts;
+
       /// <summary>cr.prompt_check: every profile found, the one in use and its parents, and each kind's layout with what the locks changed.</summary>
       internal static string Check()
       {
@@ -115,6 +119,20 @@ namespace CalradiaRemembers.Mapping
 
          foreach (string problem in FindProblems.Concat(ChainProblems)) sb.AppendLine("  ! " + problem);
          if (_chain.Count == 0) return sb.ToString();
+
+         if (_texts != null)
+         {
+            sb.AppendLine("Sections reworded:");
+            foreach (KeyValuePair<string, PromptSectionText> t in _texts.OrderBy(t => t.Key, StringComparer.Ordinal))
+            {
+               PromptSectionSpec spec = NpcMemoryService.Core.Prompts.PromptBuilder.CharacterSections.FirstOrDefault(s => s.Key == t.Key);
+               string how = t.Value.Append ? "added to" : t.Value.Text == null ? "lines removed from" : "replaces";
+               string refused = spec?.Lock == PromptSectionLock.Sealed ? "  ! sealed: ignored, the stock text stays"
+                  : spec?.Lock == PromptSectionLock.Required && string.IsNullOrWhiteSpace(t.Value.Text) && !t.Value.Append && t.Value.RemoveLines.Count == 0
+                     ? "  ! required: an empty text is ignored" : "";
+               sb.AppendLine($"  {t.Key}: {how} the stock text ({t.Value.Source}){refused}");
+            }
+         }
 
          sb.AppendLine("Layouts in use, by kind of character:");
          foreach (string kind in PromptKinds.All)
@@ -138,14 +156,16 @@ namespace CalradiaRemembers.Mapping
 
          PromptProfile p = _chain[0];
          string kinds = string.Join(", ", _chain.SelectMany(c => c.Layouts.Keys).Distinct());
+         int reworded = _texts?.Count ?? 0;
          return $"[PROMPT] custom prompt active: profile '{p.Id}' ({p.Source}){(_chain.Count > 1 ? ", parents " + string.Join(" > ", _chain.Skip(1).Select(c => c.Id)) : "")}; " +
-                $"layouts: {(kinds.Length == 0 ? "none (stock order)" : kinds)}; {_chain.Sum(c => c.Problems.Count) + ChainProblems.Count} problem(s), see cr.prompt_check";
+                $"layouts: {(kinds.Length == 0 ? "none (stock order)" : kinds)}; {reworded} section(s) reworded{(reworded == 0 ? "" : " (" + string.Join(", ", _texts.Keys) + ")")}; {_chain.Sum(c => c.Problems.Count) + ChainProblems.Count} problem(s), see cr.prompt_check";
       }
 
       /// <summary>Self-test seam: uses <paramref name="profile" /> as the chosen one (no MCM, no files); <see cref="Refresh" /> puts the real pick back.</summary>
       internal static void DebugUse(PromptProfile profile)
       {
          _chain = profile == null ? new List<PromptProfile>() : new List<PromptProfile> {profile};
+         _texts = PromptSectionTexts.Of(_chain);
          _appliedId = profile?.Id ?? PromptProfileFolders.StockId;
          _appliedIndex = ModSettings.PromptProfile?.SelectedIndex ?? 0;
       }
@@ -156,6 +176,7 @@ namespace CalradiaRemembers.Mapping
       {
          ChainProblems.Clear();
          _chain = PromptProfileChain.Of(id, read, ChainProblems);
+         _texts = PromptSectionTexts.Of(_chain);
          _appliedId = _chain.Count == 0 ? PromptProfileFolders.StockId : id;
          _appliedIndex = index;
          // Stock is always first, so its place never shifts: only another pick needs remembering by id (and a stale record
@@ -169,6 +190,7 @@ namespace CalradiaRemembers.Mapping
       private static void UseStock()
       {
          _chain = new List<PromptProfile>();
+         _texts = null;
          _appliedId = PromptProfileFolders.StockId;
          _appliedIndex = 0;
       }

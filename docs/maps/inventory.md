@@ -7,8 +7,8 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 481 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1062 types in 28 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 256 types in 17 namespaces, 9 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1063 types in 28 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 258 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -827,7 +827,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (666)
+### CalradiaRemembers.Logic (667)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1295,6 +1295,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PromptProfileReader` | public static class | Reads a profile's files. |
 | `PromptProfileSelection` | public static class | Keeps the player's pick when the list of profiles changes under MCM's saved place. |
 | `PromptProfileSource` | public class | A profile found on disk (or stock, which has no folder). |
+| `PromptSectionTexts` | public static class | The rewordings a profile chain gives the prompt. |
 | `PromptSelection` | public class | The profile to use and the place MCM should show. |
 | `PromptSelectionFacts` | public class | What the MCM pick is judged on. |
 | `ProvideGoodsPolicy` | public static class | Pure rules for a ProvideGoods supply task: category normalization, count clamp, satisfaction. |
@@ -2286,7 +2287,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
 | `StageDirectionDedupe` | public static class | Drops the second and later copies of the same *stage direction* in a reply. |
 
-### NpcMemoryService.Core.Prompts (36)
+### NpcMemoryService.Core.Prompts (38)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2321,6 +2322,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PromptSection` | public enum | The heavy, always-on system-prompt sections a lean prompt may drop to save tokens. |
 | `PromptSectionLock` | public enum | How far a power user's layout may change a section (DESIGN.md, "Locks": only where the game breaks or safety is at stake). |
 | `PromptSectionSpec` | public class | One section of the character prompt: its key, its zone, its lock, and how it is written. |
+| `PromptSectionText` | public class | A profile's rewording of one section (a sections/<key>.txt). |
+| `PromptSectionTextApplier` | public static class | Applies a section's rewording to the stock text the section rendered. |
 | `PromptVariableExpander` | public static class | Expands {{token}} placeholders in player-authored prompt text against a lookup of known variables (NPC name, player name, and the like), matching the "macro" convention SillyTavern users already know from {{char}}/{{user... |
 | `PromptZone` | public enum | Which side of the cache marker a section is written on. |
 | `RegardBands` | public static class | The single canonical banding of Models.NpcProfile.ReputationWithPlayer into the 15 named tiers (14 first established by the encyclopedia's "Personal regard" row (EncyclopediaHeroPagePersonalRelationMixin.Describe), plus... |

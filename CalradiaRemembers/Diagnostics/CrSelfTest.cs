@@ -316,7 +316,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
-         new SelfTest("prompt_profile", Severity.Light, "The Prompt Composer (Gabriel, 11/10/2026: \"un param MCM pourrait designer l'ordonnanceur a utiliser\"; \"mise en page par type\"). Uses a made-up profile whose default layout turns every free section off, builds a real lord's prompt through the real context and builder, and asserts it is shorter than stock while the sealed parser contract stays; then puts the player's real pick back and asserts the profile in use is the one it was. The made-up profile is never written to disk.", TestPromptProfile),
+         new SelfTest("prompt_profile", Severity.Light, "The Prompt Composer (Gabriel, 11/10/2026: \"un param MCM pourrait designer l'ordonnanceur a utiliser\"; \"mise en page par type\"). Uses a made-up profile whose default layout turns every free section off and which rewords the role anchor and (in vain) the sealed format contract, builds a real lord's prompt through the real context and builder, and asserts it is shorter than stock, carries the reworded anchor with his name filled in, and keeps the sealed contract word for word; then puts the player's real pick back and asserts the profile in use is the one it was. The made-up profile is never written to disk.", TestPromptProfile),
          new SelfTest("tutorial_gate", Severity.Light, "Lordfadooboo and crazyblox (Nexus, 12/10/2026): a new Story Mode game hung on the training field's loading screen; the elder brother in the party could ask for a private word as its mission opened. Asserts CR finds the game's own tutorial flag (MainStoryLine.IsPlayerInteractionRestricted) when StoryMode is loaded, and that the one initiative gate refuses exactly when the game restricts interaction. Changes nothing.", TestTutorialGate),
          new SelfTest("envoy_pacing", Severity.Light, "fkasad (Nexus, 12/10/2026): eight envoys about one prisoner in half an hour, each from another lord of his realm, the same offer every time. Drives the REAL envoy bookkeeping on made-up captives: after lord A's envoy, lord B waits out the captive's spacing and may come after it, and an envoy about another prisoner waits out the quiet days after any envoy (Gabriel, 12/10/2026); once enough envoys came and left without the captive, nobody comes even a year on. Touches no hero; the made-up captive's records are forgotten.", TestEnvoyPacing),
          new SelfTest("ransom_envoy_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Here is 5000 denars. Bring my lad alive. You can keep the change.' Finds a captive lord held by a realm the player is at peace with, whose own lord can afford the purse; issues the task through the real QuestFactory and expects it bound to him with the purse at half again his ransom value. SKIP when no such captive exists. Pays nothing, frees nobody.", TestRansomEnvoyQuest),
@@ -10116,7 +10116,12 @@ namespace CalradiaRemembers.Diagnostics
                .Select(s => s.Key).ToList();
             var profileUsed = new PromptProfile {
                Id = "cr_selftest_profile", Name = "Self-test", Source = "Custom",
-               Layouts = {[PromptKinds.Default] = new NpcMemoryService.Core.Prompts.PromptLayout {Off = everyFreeSectionOff, Source = "self-test"}}
+               Layouts = {[PromptKinds.Default] = new NpcMemoryService.Core.Prompts.PromptLayout {Off = everyFreeSectionOff, Source = "self-test"}},
+               // Increment 3: a reworded required section reaches the prompt; a sealed one is never reworded.
+               Sections = {
+                  ["role_anchor"] = new NpcMemoryService.Core.Prompts.PromptSectionText {Text = "CR_SELFTEST_ROLE_ANCHOR {{char}}"},
+                  ["format_instructions"] = new NpcMemoryService.Core.Prompts.PromptSectionText {Text = "CR_SELFTEST_SEALED"}
+               }
             };
             Mapping.PromptProfileService.DebugUse(profileUsed);
             string custom = Build();
@@ -10124,6 +10129,8 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"{lord.Name}: stock {stock.Length} chars, every free section off {custom.Length} chars");
             t.Expect("theLayoutReachedTheRealPrompt", custom.Length < stock.Length, true);
             t.Expect("theSealedParserContractStays", custom.Contains("[DIALOGUE]"), true);
+            t.Expect("aRewordedSectionReachesThePrompt", custom.Contains("CR_SELFTEST_ROLE_ANCHOR " + lord.Name), true);
+            t.Expect("aSealedSectionIsNeverReworded", custom.Contains("CR_SELFTEST_SEALED"), false);
             t.Expect("theLogSaysACustomPromptIsActive", Mapping.PromptProfileService.ActiveLine().Contains("cr_selftest_profile"), true);
          }
          finally { Mapping.PromptProfileService.Refresh(); }

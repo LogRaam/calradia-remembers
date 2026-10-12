@@ -133,6 +133,50 @@ namespace CalradiaRemembers.Tests
             p.Problems.Should().ContainSingle(x => x.Contains("lords"));
         }
 
+        // ── What a profile rewords (increment 3) ────────────────────────────
+
+        // STAKE: DESIGN.md: a section file REPLACES the stock text by default; "!#" lines are notes the model never sees.
+        [Test]
+        public void GIVEN_a_section_file_WHEN_read_THEN_its_words_replace_the_stock_text_and_notes_are_dropped()
+        {
+            PromptProfile p = Read(new Dictionary<string, string> {
+                [@"P\terse\sections\dialogue_style.txt"] = "!# based_on: dialogue_style@abc\nSpeak tersely.\nNo flourishes."
+            });
+
+            p.Sections["dialogue_style"].Text.Should().Be("Speak tersely.\nNo flourishes.");
+            p.Sections["dialogue_style"].Append.Should().BeFalse();
+            p.SectionBasedOn["dialogue_style"].Should().Be("dialogue_style@abc");
+        }
+
+        // STAKE: "!append" keeps CR's text and adds the player's; "!remove" drops only the lines named.
+        [Test]
+        public void GIVEN_append_and_remove_directives_WHEN_read_THEN_they_are_taken()
+        {
+            PromptProfile p = Read(new Dictionary<string, string> {
+                [@"P\terse\sections\prose_craft.txt"] = "!append\nNever rhyme.",
+                [@"P\terse\sections\identity.txt"] = "!remove purple prose\n!remove ornate"
+            });
+
+            p.Sections["prose_craft"].Append.Should().BeTrue();
+            p.Sections["prose_craft"].Text.Should().Be("Never rhyme.");
+            p.Sections["identity"].Text.Should().BeNull();
+            p.Sections["identity"].RemoveLines.Should().Equal("purple prose", "ornate");
+        }
+
+        // STAKE: the nearest profile's rewording wins, then the parent's: a small tweak over an overhaul rewords on top.
+        [Test]
+        public void GIVEN_a_profile_and_its_parent_both_rewording_WHEN_merged_THEN_the_nearest_wins_and_the_rest_comes_from_the_parent()
+        {
+            var tweak = new PromptProfile {Id = "tweak", Sections = {["identity"] = new PromptSectionText {Text = "mine"}}};
+            var baseProfile = new PromptProfile {Id = "base", Sections = {["identity"] = new PromptSectionText {Text = "theirs"}, ["prose_craft"] = new PromptSectionText {Text = "craft"}}};
+
+            IReadOnlyDictionary<string, PromptSectionText> texts = PromptSectionTexts.Of(new[] {tweak, baseProfile});
+
+            texts["identity"].Text.Should().Be("mine");
+            texts["prose_craft"].Text.Should().Be("craft");
+            PromptSectionTexts.Of(new PromptProfile[0]).Should().BeNull();
+        }
+
         // ── Which layout a character gets ───────────────────────────────────
 
         private static PromptProfile Profile(string id, string parent, params string[] kinds)
