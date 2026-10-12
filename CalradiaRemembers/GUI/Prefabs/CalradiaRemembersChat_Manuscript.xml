@@ -158,7 +158,11 @@
                 SuggestedHeight="!Book.Height"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Center"
-                PositionXOffset="@ChatVisualOffsetX">
+                PositionXOffset="@ChatVisualOffsetX"
+                DoNotAcceptEvents="true">
+          <!-- DoNotAcceptEvents: the book is 958 wide even while its left page is hidden, and that empty ground took the
+               clicks meant for the tale picture's buttons under it (Gabriel, 11/10/2026: the right half of LOOP did not
+               answer). Its pages and buttons still take their own clicks. -->
           <Children>
 
             <!-- ============================ LEFT PAGE: the NPC dossier ============================ -->
