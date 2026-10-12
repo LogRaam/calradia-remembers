@@ -26,6 +26,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   IF_RULES. The Scenario Composer ships in Docs/.
 
 ### Fixed
+- **New Story Mode game hung on the training field's loading screen** (Lordfadooboo, crazyblox): not reproduced; the
+  likely cause is the elder brother's private word (2.7.8 family audiences) raised as the tutorial mission opened. The
+  one initiative gate honours the game's own tutorial restriction (`StoryModeTutorial`, `ActionRefusal.TutorialUnderWay`).
+- **Envoy spam about one prisoner** (fkasad): `EnvoyVisitFacts`, `CaptiveSpacingDays` 5 after any envoy about him,
+  `EnvoysBeforeGivingUp` 2 per captivity, one bitter enemy per realm (`PrisonerBuyerPolicy.Order`); additive save key
+  `CR_PrisonerEnvoysCame_v1bytes`.
 - **Freed lords forgot their captivity** (zhenja1): a lord freed from a beaten party's prisoners (the player's loot)
   remembers the rescue and who held them.
 - **A tale's picture in unrelated conversations** (Gabriel): `AuthoredTaleImages.ConversationIsTheStep`; in a
@@ -49,7 +55,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ### Developer tools
 - cr.testall scenario_packs, scenario_death, scenario_marriage, scenario_sources, scenario_all_play, scenario_guards,
-  video_decoder.
+  video_decoder, envoy_pacing, tutorial_gate.
 - cr.tale_on_map, cr.tale_test, cr.video.
 - SDK: golden prompts (28 configurations) and the prompt as a registry of 111 keyed sections, written exactly as
   before (e2a1644, 8ecdbf4); Prompt Composer design in docs/design/prompt-composer.

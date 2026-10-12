@@ -461,6 +461,11 @@ MUST = [
     ("mod",   "scenario_all_play".encode("utf-16-le")),
     ("mod",   "video_decoder".encode("utf-16-le")),
     ("sdk",   b"PromptSectionSpec"),
+    ("logic", b"EnvoyVisitFacts"),
+    ("logic", b"TutorialUnderWay"),
+    ("mod",   b"StoryModeTutorial"),
+    ("mod",   "envoy_pacing".encode("utf-16-le")),
+    ("mod",   "tutorial_gate".encode("utf-16-le")),
 ]
 MUST_NOT = [
     ("mod",   "A predator wearing a lord's title".encode("utf-16-le")),   # 2.6.11: the retired archetype is gone (the testall keeps the 'Sadistic' opening on purpose)

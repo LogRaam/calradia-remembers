@@ -12,6 +12,8 @@ New
 
 Fixed
 
+- A new Story Mode game could hang on the loading screen of the training field after character creation. The most likely cause, found in the code: your elder brother, riding with you there, could ask for a private word just as the tutorial opened. No Calradia Remembers character now takes the initiative while the game's tutorial restricts talking to people. (Thank you, Lordfadooboo and crazyblox.)
+- Envoys about a prisoner you hold no longer come one after another: a few days pass between them whoever sends them, only one lord who hates the prisoner speaks for your realm, and after two envoys have come and gone without him, nobody comes again while you keep him. A no is a no. (Thank you, fkasad.)
 - A lord you freed from the prisoners of a party you beat now remembers being held, by whom, and that you freed them. (Thank you, zhenja1.)
 - The Wolf of the Wood's picture no longer opens when you speak with someone the tale merely concerns.
 - Scripted scenarios: a rule about a character's death could answer to the killer instead of the one who died, and kingdom names did not match in a translated game.
@@ -27,9 +29,9 @@ For modders
 
 Developer tools
 
-- New cr.testall tests: scenario_packs, scenario_death, scenario_marriage, scenario_sources, scenario_all_play, scenario_guards, video_decoder.
+- New cr.testall tests: scenario_packs, scenario_death, scenario_marriage, scenario_sources, scenario_all_play, scenario_guards, video_decoder, envoy_pacing, tutorial_gate.
 - cr.tale_on_map opens a map tale's prompt now; cr.tale_test sets up a spouse tale and opens it; cr.video plays a .crvid in the open conversation.
 
 Notes
 
-- Your existing saves load as they are, a tale already under way included.
+- Your existing saves load as they are, a tale already under way included. For prisoners you already hold, the count of envoys starts from zero.
