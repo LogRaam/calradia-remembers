@@ -681,7 +681,6 @@ namespace CalradiaRemembers.Chat
       /// <summary>LOOP on or off.</summary>
       public void ExecuteVideoLoop()
       {
-         ModLog.Info($"[VIDEO] LOOP clicked: loop was {CrVideoPlayer.Loop}, clicked view is the active one: {ReferenceEquals(this, ChatManager.ActiveViewModel)}.");
          CrVideoPlayer.SetLoop(!CrVideoPlayer.Loop);
          RefreshVideoControls();
       }
@@ -3317,14 +3316,14 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   SPIKE (Gabriel, 11/10/2026, tale videos): shows a live picture (a video playing into a texture, see
-      ///   <see cref="CrVideoSurface" />) where a tale's picture stands in the Manuscript margin. Returns false on the
-      ///   Classic skin, which the spike does not cover.
+      ///   Shows a live picture (a frame of a tale's video, see <see cref="LiveSprites" />) where a tale's picture stands
+      ///   in the Manuscript margin (Gabriel, 11/10/2026). Returns false on the Classic skin, which shows a video's first
+      ///   frame as a still instead.
       /// </summary>
       internal bool ShowLiveSceneImage(string livePath, float aspectW, float aspectH)
       {
          if (ChatManager.ActiveSkin != ChatManager.ManuscriptSkin) return false;
-         if (!SceneImagePath.StartsWith(CrVideoSurface.LivePrefix, StringComparison.Ordinal))
+         if (!SceneImagePath.StartsWith(LiveSprites.LivePrefix, StringComparison.Ordinal))
          {
             _pictureBeforeLive = SceneImagePath;
             _pictureBeforeLiveSize = (SceneImageWidth, SceneImageHeight);
@@ -3369,7 +3368,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       internal void ClearLiveSceneImage()
       {
-         if (!SceneImagePath.StartsWith(CrVideoSurface.LivePrefix, StringComparison.Ordinal)) return;
+         if (!SceneImagePath.StartsWith(LiveSprites.LivePrefix, StringComparison.Ordinal)) return;
 
          SceneImagePath = _pictureBeforeLive ?? "";
          SceneImageWidth = _pictureBeforeLiveSize.Width;

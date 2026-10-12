@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 480 types in 59 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 479 types in 59 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1048 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 254 types in 17 namespaces, 9 without a summary
 
@@ -73,7 +73,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 58 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 57 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `ModLog` | internal static class | Writes timestamped log entries to a file in the Bannerlord Logs folder AND shows them in the in-game console. |
 | `ModSettings` | public static class | Mod-wide settings façade. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
@@ -158,7 +158,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 
-### CalradiaRemembers.Chat (53)
+### CalradiaRemembers.Chat (52)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -192,7 +192,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilEntry` | public static class | Shared "convene a council" logic behind the campaign-bar button (reachable on the map and inside a settlement). |
 | `CouncilLift` | internal static class | Settles a council's agreed pledges against the world as it stands now, reporting through a callback. |
 | `CouncilParticipantViewModel` | public class | One seated member of the bespoke COUNCIL window's left "CLAN JOUEUR" strip: a portrait tile (the anchor or a witness) with a seat label, clickable to open that hero's dossier. |
-| `CrFramePumpSpike` | internal static class | Shows a new engine texture per frame in the tale's picture frame, at a fixed rate, and measures it. |
 | `CrVideoPlayer` | internal static class | Plays one .crvid in the tale's picture frame of the open conversation. |
 | `EnvoyAudience` | public class | What an envoy audience carries: whose envoy, and the mandate he was given. |
 | `ExplorationBackdrop` | internal static class | The suspended-map backdrop an exploration scene's chat window sits on. |
@@ -580,7 +579,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `ChatPortraitResolver` | internal static class | Finds a player-dropped chat portrait for a hero, by StringId then by normalized name. |
 | `CrRuntimeImageWidget` | public class | A widget that renders a runtime image loaded from ImagePath (bindable string). |
-| `CrVideoSurface` | internal static class | One video playing into a texture, shown by any CrRuntimeImageWidget whose path names it. |
+| `LiveSprites` | internal static class | Sprites made at run time, shown by any CrRuntimeImageWidget whose path names them. |
 | `PortraitSpikeManager` | public static class | Show/hide lifecycle for the portrait-spike test overlay. |
 | `PortraitSpikeViewModel` | public class | View model for the portrait-spike test overlay: a runtime sprite plus a status line. |
 | `RuntimePortraitFactory` | internal static class | Builds a GauntletUI Sprite from an image file on disk. |

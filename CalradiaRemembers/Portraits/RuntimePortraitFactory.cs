@@ -199,9 +199,9 @@ namespace CalradiaRemembers.Portraits
         }
 
         /// <summary>
-        ///   A full-texture sprite over an engine texture already made: a file loaded above, or a render target a video
-        ///   plays into (Gabriel, 11/10/2026, the tale video spike). <paramref name="spriteName" /> must be unique: the
-        ///   render layer caches by name.
+        ///   A full-texture sprite over an engine texture already made: a file loaded above, or a frame of a tale's video
+        ///   (Chat/CrVideoPlayer, Gabriel 11/10/2026). <paramref name="spriteName" /> must be unique: the render layer caches
+        ///   by name.
         /// </summary>
         public static Sprite SpriteFromTexture(EngTex engineTexture, string spriteName, int w, int h, NinePatch ninePatch = default)
         {

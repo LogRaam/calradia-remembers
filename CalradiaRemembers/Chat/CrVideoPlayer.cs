@@ -2,8 +2,8 @@
 // CR's own video player, shown where a tale's picture stands beside the chat. The game's player stops in conversations;
 // this one is driven by the application tick, which runs in them. Each game frame, the clock (Logic/Video/VideoClock) says
 // which frame of the video is due; when it changes, the decoded frame (Video/CrvidDecoder, a thread of its own) becomes a
-// new engine texture shown in the frame, and older textures are released a few frames later (the pump spike measured it:
-// 768x1152 at 30 Hz, nothing skipped, the game unslowed, graphics memory flat). Gabriel (11/10/2026): played once, the video
+// new engine texture shown in the frame, and older textures are released a few frames later (a spike measured it on
+// 11/10/2026: 768x1152 at 30 Hz, nothing skipped, the game unslowed, graphics memory flat). Gabriel (11/10/2026): played once, the video
 // comes back to its first frame and waits; a play icon plays it again, a loop icon makes it start over at the end. The
 // first frame's texture is kept for that. If the decoder falls behind, the last frame stays rather than a stale one shown.
 
@@ -133,10 +133,6 @@ namespace CalradiaRemembers.Chat
          Loop = loop;
          if (_decoder != null) _decoder.Loop = loop;
          ChatManager.ActiveViewModel?.RefreshVideoControls();
-         // Gabriel (11/10/2026): the LOOP icon would not turn off while the video looped, nor after STOP, until PLAY.
-         // One line per change, to tell a click that never arrives from one that fires twice or an icon that does not redraw.
-         ModLog.Info($"[VIDEO] loop -> {Loop}: decoder={(_decoder != null ? "open" : "none")}, playing={IsPlaying}, "
-                     + $"icon={System.IO.Path.GetFileName(ChatManager.ActiveViewModel?.VideoLoopIconPath ?? "(no conversation)")}.");
       }
 
       /// <summary>Called every game frame (the submodule's application tick).</summary>
@@ -178,7 +174,7 @@ namespace CalradiaRemembers.Chat
          while (Live.Count > 0) Retire();
          if (_firstTexture != null)
          {
-            CrVideoSurface.Unregister(_firstPath);
+            LiveSprites.Unregister(_firstPath);
             try { _firstTexture.ReleaseAfterNumberOfFrames(3); }
             catch (Exception ex) { ModLog.Error($"[VIDEO] release failed: {ex.GetType().Name}: {ex.Message}"); }
          }
@@ -228,8 +224,8 @@ namespace CalradiaRemembers.Chat
 
          string name = $"cr_video_frame_{++_serial}";
          Sprite sprite = RuntimePortraitFactory.SpriteFromTexture(texture, name, _manifest.Width, _manifest.Height);
-         string path = CrVideoSurface.LivePrefix + name;
-         CrVideoSurface.Register(path, sprite);
+         string path = LiveSprites.LivePrefix + name;
+         LiveSprites.Register(path, sprite);
 
          if (_first) vm.ShowLiveSceneImage(path, _manifest.Width, _manifest.Height);
          else vm.SwapLiveSceneImage(path);
@@ -251,7 +247,7 @@ namespace CalradiaRemembers.Chat
       private static void Retire()
       {
          (Texture texture, string path) = Live.Dequeue();
-         CrVideoSurface.Unregister(path);
+         LiveSprites.Unregister(path);
          try { texture?.ReleaseAfterNumberOfFrames(3); }
          catch (Exception ex) { ModLog.Error($"[VIDEO] release failed: {ex.GetType().Name}: {ex.Message}"); }
       }

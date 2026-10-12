@@ -415,10 +415,9 @@ namespace CalradiaRemembers.Chat
             // a no-op outside its own mode and idempotent. The async summary either may
             // launch captures the data it needs, so it survives the teardown below.
             SafeStep(() => ActiveViewModel?.FinalizeStoryLog(), "FinalizeStoryLog");
-            // Tale video spike: a video playing into the picture frame must not outlive the window showing it.
+            // A tale's video playing in the picture frame must not outlive the window showing it.
             SafeStep(CrVideoPlayer.Stop, "StopVideoPlayer");
             SafeStep(() => ActiveViewModel?.ClearLiveSceneImage(), "ClearLiveSceneImage");
-            SafeStep(Portraits.CrVideoSurface.Stop, "StopVideo");
             SafeStep(() => ActiveViewModel?.FinalizeCaptiveSceneMemory(), "FinalizeCaptiveSceneMemory");
             SafeStep(() => ActiveViewModel?.FinalizeCaptorSceneMemory(), "FinalizeCaptorSceneMemory");
             SafeStep(() => ActiveViewModel?.FinalizeCompanionAudience(), "FinalizeCompanionAudience");
