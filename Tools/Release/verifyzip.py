@@ -468,6 +468,8 @@ MUST = [
     ("mod",   "tutorial_gate".encode("utf-16-le")),
     ("logic", b"EscapeCloseLatch"),
     ("mod",   b"TickEscapeClose"),
+    ("logic", b"PlayerCanBeApproached"),
+    ("logic", b"PlayerInSiegeOrBattle"),
 ]
 MUST_NOT = [
     ("mod",   "A predator wearing a lord's title".encode("utf-16-le")),   # 2.6.11: the retired archetype is gone (the testall keeps the 'Sadistic' opening on purpose)
