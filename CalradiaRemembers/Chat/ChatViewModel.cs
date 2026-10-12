@@ -625,6 +625,7 @@ namespace CalradiaRemembers.Chat
             OnPropertyChanged(nameof(IsSceneImageVisible));
             OnPropertyChanged(nameof(IsSceneImageLarge));
             OnPropertyChanged(nameof(IsSceneImageCompact));
+            OnPropertyChanged(nameof(IsVideoControlsVisible));
          }
       }
 
@@ -649,6 +650,58 @@ namespace CalradiaRemembers.Chat
       // Gabriel (11/10/2026): during a conversation the picture is small, in the top-left corner, so it never hides the
       // character spoken to; only a scene with nobody in it (a tale's exploration) shows it large beside the chat.
       private bool _sceneImageCompact;
+
+      // The picture's proportions, to refit it when the player enlarges or shrinks it; and whether the player chose the size
+      // (option 3, Gabriel 11/10/2026: a click on the picture enlarges it, another shrinks it; kept for the conversation).
+      private float _sceneAspectW = 4f, _sceneAspectH = 3f;
+      private bool _sceneImageSizedByPlayer;
+
+      private static string VideoIcon(string file) => System.IO.Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", file);
+
+      /// <summary>The PLAY, STOP and LOOP icons show over a video, bottom-right (Gabriel, 11/10/2026).</summary>
+      [DataSourceProperty]
+      public bool IsVideoControlsVisible => CrVideoPlayer.IsOpen && IsSceneImageVisible;
+
+      [DataSourceProperty]
+      public string VideoPlayIconPath => VideoIcon("cr_video_play.png");
+
+      [DataSourceProperty]
+      public string VideoStopIconPath => VideoIcon("cr_video_stop.png");
+
+      /// <summary>LOOP on (gold) or off (grey).</summary>
+      [DataSourceProperty]
+      public string VideoLoopIconPath => VideoIcon(CrVideoPlayer.Loop ? "cr_video_loop_on.png" : "cr_video_loop_off.png");
+
+      /// <summary>PLAY: the video from its first frame.</summary>
+      public void ExecuteVideoPlay() => CrVideoPlayer.Replay();
+
+      /// <summary>STOP: back to the first frame.</summary>
+      public void ExecuteVideoStop() => CrVideoPlayer.StopPlayback();
+
+      /// <summary>LOOP on or off.</summary>
+      public void ExecuteVideoLoop() => CrVideoPlayer.SetLoop(!CrVideoPlayer.Loop);
+
+      /// <summary>A click on the picture (or video): large if it was small, small if it was large; kept for this conversation.</summary>
+      public void ExecuteToggleSceneImageSize()
+      {
+         _sceneImageSizedByPlayer = true;
+         _sceneImageCompact = !_sceneImageCompact;
+         (float w, float h) = Logic.AuthoredQuests.SceneImageLayout.Fit(_sceneAspectW, _sceneAspectH, _sceneImageCompact);
+         SceneImageWidth = w;
+         SceneImageHeight = h;
+         OnPropertyChanged(nameof(SceneImageWidth));
+         OnPropertyChanged(nameof(SceneImageHeight));
+         OnPropertyChanged(nameof(IsSceneImageLarge));
+         OnPropertyChanged(nameof(IsSceneImageCompact));
+         OnPropertyChanged(nameof(IsVideoControlsVisible));
+      }
+
+      /// <summary>The player's state changed: the icons follow.</summary>
+      internal void RefreshVideoControls()
+      {
+         OnPropertyChanged(nameof(IsVideoControlsVisible));
+         OnPropertyChanged(nameof(VideoLoopIconPath));
+      }
 
       /// <summary>The picture large and centred in the margin: a scene with no character in it.</summary>
       [DataSourceProperty]
@@ -3272,7 +3325,9 @@ namespace CalradiaRemembers.Chat
             _pictureBeforeLiveSize = (SceneImageWidth, SceneImageHeight);
          }
 
-         _sceneImageCompact = !IsExplorationScene;
+         if (!_sceneImageSizedByPlayer) _sceneImageCompact = !IsExplorationScene;
+         _sceneAspectW = aspectW;
+         _sceneAspectH = aspectH;
          (float w, float h) = Logic.AuthoredQuests.SceneImageLayout.Fit(aspectW, aspectH, _sceneImageCompact);
          SceneImagePath = "";
          OnPropertyChanged(nameof(SceneImagePath));
@@ -3286,6 +3341,7 @@ namespace CalradiaRemembers.Chat
          OnPropertyChanged(nameof(IsSceneImageVisible));
          OnPropertyChanged(nameof(IsSceneImageLarge));
          OnPropertyChanged(nameof(IsSceneImageCompact));
+         OnPropertyChanged(nameof(IsVideoControlsVisible));
 
          return true;
       }
@@ -3320,6 +3376,7 @@ namespace CalradiaRemembers.Chat
          OnPropertyChanged(nameof(IsSceneImageVisible));
          OnPropertyChanged(nameof(IsSceneImageLarge));
          OnPropertyChanged(nameof(IsSceneImageCompact));
+         OnPropertyChanged(nameof(IsVideoControlsVisible));
       }
 
       /// <summary>
@@ -3330,6 +3387,27 @@ namespace CalradiaRemembers.Chat
       internal void ShowSceneImage(string path, string title)
       {
          if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) return;
+
+         // Gabriel (11/10/2026): a tale's picture may be a video (.crvid), whose first frame is its picture. The Manuscript
+         // margin plays it; the Classic pop-out takes an image file, so it shows the first frame still.
+         if (Logic.AuthoredQuests.AuthoredTaleImages.IsVideo(path))
+         {
+            if (ChatManager.ActiveSkin == ChatManager.ManuscriptSkin)
+            {
+               string why = CrVideoPlayer.Play(path, false);
+               if (why != null) ModLog.Error("[VIDEO] " + why);
+               else ModLog.Info($"[SCENE] video shown in the margin: {System.IO.Path.GetFileName(path)}.");
+
+               return;
+            }
+
+            path = Video.CrvidPoster.FirstFrameOf(path);
+            if (path == null) return;
+         }
+         else if (CrVideoPlayer.IsOpen)
+         {
+            CrVideoPlayer.Stop();
+         }
 
          float aspectW = 4f, aspectH = 3f;
          if (RuntimePortraitFactory.TryGetDimensions(path, out int iw, out int ih) && iw > 0 && ih > 0)
@@ -3342,8 +3420,11 @@ namespace CalradiaRemembers.Chat
          // portrait box; the dossier page keeps its own portrait.
          if (ChatManager.ActiveSkin == ChatManager.ManuscriptSkin)
          {
-            // Gabriel (11/10/2026): large only in a scene with nobody in it; small, top-left, when a character is spoken to.
-            _sceneImageCompact = !IsExplorationScene;
+            // Gabriel (11/10/2026): large only in a scene with nobody in it; small, top-left, when a character is spoken to;
+            // unless the player has chosen the size by clicking the picture.
+            if (!_sceneImageSizedByPlayer) _sceneImageCompact = !IsExplorationScene;
+            _sceneAspectW = aspectW;
+            _sceneAspectH = aspectH;
             (float w, float h) = Logic.AuthoredQuests.SceneImageLayout.Fit(aspectW, aspectH, _sceneImageCompact);
             SceneImagePath = path;
             SceneImageWidth = w;
@@ -3355,6 +3436,7 @@ namespace CalradiaRemembers.Chat
             OnPropertyChanged(nameof(IsSceneImageVisible));
             OnPropertyChanged(nameof(IsSceneImageLarge));
             OnPropertyChanged(nameof(IsSceneImageCompact));
+            OnPropertyChanged(nameof(IsVideoControlsVisible));
             ModLog.Info($"[SCENE] image shown in the margin: {System.IO.Path.GetFileName(path)}.");
 
             return;

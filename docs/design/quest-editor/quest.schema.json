@@ -321,7 +321,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "An image file of the tale's own folder (.png or .jpg), opened beside the chat when this stage's scene opens, or a conversation of this stage (with its characters or the people of its place)."
+          "description": "An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), opened beside the chat when this stage's scene opens, or a conversation of this stage (with its characters or the people of its place)."
         },
         "objective": {
           "$ref": "#/$defs/AuthoredObjective",
@@ -1135,7 +1135,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "An image file of the tale's own folder (.png or .jpg), shown beside the chat when the narration reveals it."
+          "description": "An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), shown beside the chat when the narration reveals it."
         },
         "required": {
           "type": "boolean",
@@ -1180,7 +1180,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "An image file of the tale's own folder (.png or .jpg), shown beside the chat when it springs."
+          "description": "An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), shown beside the chat when it springs."
         },
         "trigger": {
           "type": [
@@ -1218,7 +1218,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "An image file of the tale's own folder (.png or .jpg), shown beside the chat when they are met."
+          "description": "An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), shown beside the chat when they are met."
         },
         "name": {
           "type": [

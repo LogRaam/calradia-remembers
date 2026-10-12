@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 479 types in 59 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 480 types in 59 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1048 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 254 types in 17 namespaces, 9 without a summary
 
@@ -753,11 +753,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `VerbContext` | public class | Everything a conversation verb needs to decide eligibility, compose its teaching text, or execute: the NPC and their profile, the live game-state bridge, the player's current message (when teaching mid-conversation), and... |
 | `VerbRegistry` | public class | The one shared registry of every IConversationVerb: composes eligible verbs' teaching text (consumed by EncounterContextBuilder), and routes an incoming [ACTION] to its verb (consumed by BannerlordGameStateBridge.Execute... |
 
-### CalradiaRemembers.Video (2)
+### CalradiaRemembers.Video (3)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CrvidDecoder` | internal class | Decodes a .crvid's frames ahead, on its own thread, into reused buffers. |
+| `CrvidPoster` | internal static class | The first frame of a .crvid, as a JPEG file the image loaders can read. |
 | `DecodedFrame` | internal class | One decoded frame: its index and its pixels (width x height x 4 bytes). |
 
 ### CalradiaRemembers.Violence (3)

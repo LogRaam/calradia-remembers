@@ -107,6 +107,17 @@ namespace CalradiaRemembers.Tests
          (cw / ch).Should().BeApproximately(1448f / 1086f, 0.01f);
       }
 
+      // Gabriel (11/10/2026): "on accepte une image OU une video. Le premier frame du video EST l'image." A .crvid is accepted
+      // wherever a picture is, and is known for a video so the game plays it instead of loading it as a still.
+      [Test]
+      public void GIVEN_a_crvid_named_as_a_stage_picture_WHEN_checked_THEN_it_is_accepted_and_known_for_a_video()
+      {
+         AuthoredTaleImages.IsAcceptedName("bath.crvid").Should().BeTrue();
+         AuthoredTaleImages.IsVideo("Bath.CRVID").Should().BeTrue();
+         AuthoredTaleImages.IsVideo("bath.jpg").Should().BeFalse();
+         AuthoredTaleImages.Problems(Tale("dusk.crvid"), name => name == "dusk.crvid").Should().BeEmpty();
+      }
+
       // Present, well named: nothing to say.
       [Test]
       public void GIVEN_an_image_present_in_the_tales_folder_WHEN_checked_THEN_no_problem()
@@ -161,6 +172,7 @@ namespace CalradiaRemembers.Tests
          AuthoredTaleImages.IsAcceptedName("../other/dusk.jpg").Should().BeFalse();
          AuthoredTaleImages.IsAcceptedName("images/dusk.jpg").Should().BeFalse();
          AuthoredTaleImages.IsAcceptedName("dusk.gif").Should().BeFalse();
+         AuthoredTaleImages.IsAcceptedName("../dusk.crvid").Should().BeFalse();
          AuthoredTaleImages.Problems(Tale("../dusk.jpg"), _ => true).Should().ContainSingle();
       }
    }

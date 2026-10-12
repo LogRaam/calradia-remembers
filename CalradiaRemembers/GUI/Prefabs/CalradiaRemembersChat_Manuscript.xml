@@ -44,29 +44,121 @@
                 IsVisible="@IsSceneImageVisible"
                 DoNotAcceptEvents="true">
           <Children>
-            <CrRuntimeImageWidget Id="SceneImage"
-                                  WidthSizePolicy="Fixed"
-                                  HeightSizePolicy="Fixed"
-                                  SuggestedWidth="@SceneImageWidth"
-                                  SuggestedHeight="@SceneImageHeight"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
-                                  ImagePath="@SceneImagePath"
-                                  IsVisible="@IsSceneImageLarge"
-                                  IsDisabled="true" />
+            <Widget Id="SceneImageLargeFrame"
+                    WidthSizePolicy="Fixed"
+                    HeightSizePolicy="Fixed"
+                    SuggestedWidth="@SceneImageWidth"
+                    SuggestedHeight="@SceneImageHeight"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    IsVisible="@IsSceneImageLarge">
+              <Children>
+                <!-- A click on the picture or video enlarges it, another shrinks it (option 3, Gabriel 11/10/2026). -->
+                <ButtonWidget WidthSizePolicy="StretchToParent"
+                              HeightSizePolicy="StretchToParent"
+                              DoNotPassEventsToChildren="true"
+                              Command.Click="ExecuteToggleSceneImageSize">
+                  <Children>
+                    <CrRuntimeImageWidget WidthSizePolicy="StretchToParent"
+                                          HeightSizePolicy="StretchToParent"
+                                          ImagePath="@SceneImagePath"
+                                          IsDisabled="true" />
+                  </Children>
+                </ButtonWidget>
+                <!-- PLAY, STOP and LOOP (on/off), bottom-right of a video (Gabriel, 11/10/2026). -->
+                <ListPanel WidthSizePolicy="CoverChildren"
+                           HeightSizePolicy="CoverChildren"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Bottom"
+                           MarginRight="8"
+                           MarginBottom="8"
+                           StackLayout.LayoutMethod="HorizontalLeftToRight"
+                           IsVisible="@IsVideoControlsVisible">
+                  <Children>
+                    <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="30" SuggestedHeight="30" MarginLeft="4"
+                                  DoNotPassEventsToChildren="true" Command.Click="ExecuteVideoPlay">
+                      <Children>
+                        <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                              ImagePath="@VideoPlayIconPath" CorrectRedBlue="false" IsDisabled="true" />
+                      </Children>
+                    </ButtonWidget>
+                    <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="30" SuggestedHeight="30" MarginLeft="4"
+                                  DoNotPassEventsToChildren="true" Command.Click="ExecuteVideoStop">
+                      <Children>
+                        <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                              ImagePath="@VideoStopIconPath" CorrectRedBlue="false" IsDisabled="true" />
+                      </Children>
+                    </ButtonWidget>
+                    <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="30" SuggestedHeight="30" MarginLeft="4"
+                                  DoNotPassEventsToChildren="true" Command.Click="ExecuteVideoLoop">
+                      <Children>
+                        <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                              ImagePath="@VideoLoopIconPath" CorrectRedBlue="false" IsDisabled="true" />
+                      </Children>
+                    </ButtonWidget>
+                  </Children>
+                </ListPanel>
+              </Children>
+            </Widget>
             <!-- Gabriel (11/10/2026): during a conversation the picture is small, top-left, so the character stays in view. -->
-            <CrRuntimeImageWidget Id="SceneImageCompact"
-                                  WidthSizePolicy="Fixed"
-                                  HeightSizePolicy="Fixed"
-                                  SuggestedWidth="@SceneImageWidth"
-                                  SuggestedHeight="@SceneImageHeight"
-                                  HorizontalAlignment="Left"
-                                  VerticalAlignment="Top"
-                                  MarginLeft="30"
-                                  MarginTop="30"
-                                  ImagePath="@SceneImagePath"
-                                  IsVisible="@IsSceneImageCompact"
-                                  IsDisabled="true" />
+            <Widget Id="SceneImageCompactFrame"
+                    WidthSizePolicy="Fixed"
+                    HeightSizePolicy="Fixed"
+                    SuggestedWidth="@SceneImageWidth"
+                    SuggestedHeight="@SceneImageHeight"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    MarginLeft="30"
+                    MarginTop="30"
+                    IsVisible="@IsSceneImageCompact">
+              <Children>
+                <!-- A click on the picture or video enlarges it, another shrinks it (option 3, Gabriel 11/10/2026). -->
+                <ButtonWidget WidthSizePolicy="StretchToParent"
+                              HeightSizePolicy="StretchToParent"
+                              DoNotPassEventsToChildren="true"
+                              Command.Click="ExecuteToggleSceneImageSize">
+                  <Children>
+                    <CrRuntimeImageWidget WidthSizePolicy="StretchToParent"
+                                          HeightSizePolicy="StretchToParent"
+                                          ImagePath="@SceneImagePath"
+                                          IsDisabled="true" />
+                  </Children>
+                </ButtonWidget>
+                <!-- PLAY, STOP and LOOP (on/off), bottom-right of a video (Gabriel, 11/10/2026). -->
+                <ListPanel WidthSizePolicy="CoverChildren"
+                           HeightSizePolicy="CoverChildren"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Bottom"
+                           MarginRight="8"
+                           MarginBottom="8"
+                           StackLayout.LayoutMethod="HorizontalLeftToRight"
+                           IsVisible="@IsVideoControlsVisible">
+                  <Children>
+                    <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="30" SuggestedHeight="30" MarginLeft="4"
+                                  DoNotPassEventsToChildren="true" Command.Click="ExecuteVideoPlay">
+                      <Children>
+                        <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                              ImagePath="@VideoPlayIconPath" CorrectRedBlue="false" IsDisabled="true" />
+                      </Children>
+                    </ButtonWidget>
+                    <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="30" SuggestedHeight="30" MarginLeft="4"
+                                  DoNotPassEventsToChildren="true" Command.Click="ExecuteVideoStop">
+                      <Children>
+                        <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                              ImagePath="@VideoStopIconPath" CorrectRedBlue="false" IsDisabled="true" />
+                      </Children>
+                    </ButtonWidget>
+                    <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="30" SuggestedHeight="30" MarginLeft="4"
+                                  DoNotPassEventsToChildren="true" Command.Click="ExecuteVideoLoop">
+                      <Children>
+                        <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                              ImagePath="@VideoLoopIconPath" CorrectRedBlue="false" IsDisabled="true" />
+                      </Children>
+                    </ButtonWidget>
+                  </Children>
+                </ListPanel>
+              </Children>
+            </Widget>
           </Children>
         </Widget>
 

@@ -188,7 +188,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [JsonProperty("journal")] public string Journal { get; set; }
 
       /// <summary>Gabriel (08/10/2026): a picture of the stage, shown beside the chat when its scene opens.</summary>
-      [QuestField("An image file of the tale's own folder (.png or .jpg), opened beside the chat when this stage's scene opens, or a conversation of this stage (with its characters or the people of its place).")]
+      [QuestField("An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), opened beside the chat when this stage's scene opens, or a conversation of this stage (with its characters or the people of its place).")]
       [JsonProperty("image")] public string Image { get; set; }
 
       [QuestField("What the game checks to complete the stage. A stage with choices may have none.")]
@@ -393,7 +393,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("The finding's name, used in its marker.")]
       [JsonProperty("id")] public string Id { get; set; }
 
-      [QuestField("An image file of the tale's own folder (.png or .jpg), shown beside the chat when the narration reveals it.")]
+      [QuestField("An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), shown beside the chat when the narration reveals it.")]
       [JsonProperty("image")] public string Image { get; set; }
 
       [QuestField("A required finding the player never reached is told when the scene closes.")]
@@ -413,7 +413,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("The hazard's name, used in its marker.")]
       [JsonProperty("id")] public string Id { get; set; }
 
-      [QuestField("An image file of the tale's own folder (.png or .jpg), shown beside the chat when it springs.")]
+      [QuestField("An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), shown beside the chat when it springs.")]
       [JsonProperty("image")] public string Image { get; set; }
 
       /// <summary>What the player must do to spring it, written into the narrator's prompt.</summary>
@@ -445,7 +445,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("The person's name in the file, used in its marker.")]
       [JsonProperty("id")] public string Id { get; set; }
 
-      [QuestField("An image file of the tale's own folder (.png or .jpg), shown beside the chat when they are met.")]
+      [QuestField("An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), shown beside the chat when they are met.")]
       [JsonProperty("image")] public string Image { get; set; }
 
       [QuestField("How the narrator names them (\"a girl from {village}\").")]

@@ -730,7 +730,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "An image file of the tale's own folder (.png or .jpg), opened beside the chat when this stage's scene opens, or a conversation of this stage (with its characters or the people of its place)."
+          "description": "An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), opened beside the chat when this stage's scene opens, or a conversation of this stage (with its characters or the people of its place)."
         },
         "objective": {
           "$ref": "#/$defs/AuthoredObjective",
@@ -1544,7 +1544,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "An image file of the tale's own folder (.png or .jpg), shown beside the chat when the narration reveals it."
+          "description": "An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), shown beside the chat when the narration reveals it."
         },
         "required": {
           "type": "boolean",
@@ -1589,7 +1589,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "An image file of the tale's own folder (.png or .jpg), shown beside the chat when it springs."
+          "description": "An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), shown beside the chat when it springs."
         },
         "trigger": {
           "type": [
@@ -1627,7 +1627,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "An image file of the tale's own folder (.png or .jpg), shown beside the chat when they are met."
+          "description": "An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), shown beside the chat when they are met."
         },
         "name": {
           "type": [
@@ -4937,9 +4937,12 @@ input[type="number"] { max-width: 160px; }
     // Gabriel (08/10/2026): the picture only. A button of our own stands for the browser's file input, so "No file
     // chosen" shows only when no image is chosen; the file's name shows only when its picture cannot be (a tale
     // reopened: the page cannot read the disk by itself).
-    var input = h('input', {type: 'file', accept: '.png,.jpg,.jpeg', style: 'display:none', on: {change: function (e) {
+    var input = h('input', {type: 'file', accept: '.png,.jpg,.jpeg,.crvid', style: 'display:none', on: {change: function (e) {
       var file = e.target.files && e.target.files[0];
       if (!file) return;
+      // Gabriel (11/10/2026): a picture may be a video (.crvid, made by Tools/Video/make_crvid.py); its first frame is its
+      // picture in the game. The page names it; it does not play it.
+      if (/\.crvid$/i.test(file.name)) { edit(key + '/image', function () { s.image = file.name; }, true); return; }
       var reader = new FileReader();
       reader.onload = function () {
         imagePreviews[file.name] = String(reader.result);
@@ -4949,11 +4952,14 @@ input[type="number"] { max-width: 160px; }
     }}});
     var url = s.image ? imagePreviews[s.image] : null;
     var row = h('div', {style: 'display:flex;gap:8px;align-items:center;margin-top:4px'},
-      h('button.btn', {type: 'button', on: {click: function () { input.click(); }}}, s.image ? 'Change image...' : 'Choose image...'),
+      h('button.btn', {type: 'button', on: {click: function () { input.click(); }}}, s.image ? 'Change image or video...' : 'Choose image or video...'),
       s.image
         ? h('button.btn.ghost', {type: 'button', on: {click: function () { edit(key + '/image', function () { delete s.image; }, true); }}}, 'Remove')
         : h('span', {style: 'color:var(--text-3);font-size:13px'}, 'No file chosen'));
-    var shown = url
+    var isVideo = s.image && /\.crvid$/i.test(s.image);
+    var shown = isVideo
+      ? h('p.empty-note', s.image + ": a video. It plays beside the chat in the game, once, then rests on its first frame (PLAY, STOP and LOOP below it). It must sit in the tale's own folder, beside its JSON.")
+      : url
       ? h('img', {src: url, alt: s.image, style: 'max-width:100%;max-height:220px;border-radius:6px;margin-top:8px;display:block'})
       : s.image ? h('p.empty-note', s.image + ': choose it again to see it here. It must sit in the tale\'s own folder, beside its JSON.') : null;
     return field(key + '/image', label, defName, 'image', h('div', input, row, shown), {wide: true});

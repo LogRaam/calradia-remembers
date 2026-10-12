@@ -17,7 +17,16 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    /// <summary>A tale's images: which one shows, and what is wrong with them. Pure.</summary>
    public static class AuthoredTaleImages
    {
-      private static readonly string[] Extensions = {".png", ".jpg", ".jpeg"};
+      // Gabriel (11/10/2026): "on accepte une image OU une video. Le premier frame du video EST l'image." A .crvid (CR's own
+      // video) stands wherever a picture does; its first frame is its picture.
+      private static readonly string[] Extensions = {".png", ".jpg", ".jpeg", ".crvid"};
+
+      /// <summary>CR's own video format (Logic/Video/Crvid.cs): a tale's picture that moves.</summary>
+      public const string VideoExtension = ".crvid";
+
+      /// <summary>Whether a tale's picture is a video rather than a still image.</summary>
+      public static bool IsVideo(string image)
+         => !string.IsNullOrWhiteSpace(image) && image.Trim().EndsWith(VideoExtension, StringComparison.OrdinalIgnoreCase);
 
       /// <summary>A bare file name in a format the game loads: no folder, no climb out of it.</summary>
       public static bool IsAcceptedName(string image)
@@ -100,7 +109,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          {
             if (string.IsNullOrWhiteSpace(image)) return;
             if (!IsAcceptedName(image))
-               problems.Add($"quest '{q.Id}': {where} names the image '{image}', which must be a .png or .jpg file name in the tale's own folder.");
+               problems.Add($"quest '{q.Id}': {where} names the image '{image}', which must be a .png, .jpg or .crvid file name in the tale's own folder.");
             else if (existsInTheTalesFolder == null || !existsInTheTalesFolder(image.Trim()))
                problems.Add($"quest '{q.Id}': {where} names the image '{image}', which is not in the tale's folder; it is not shown.");
          }

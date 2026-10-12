@@ -226,14 +226,26 @@ conversation where it is offered, so it cannot offer choices. Put them on the ne
 ### A stage's image
 
 `"image": "tracks_at_dusk.jpg"` on a stage names a picture of the tale's own folder (`.png` or `.jpg`, a bare
-file name). When that stage's scene opens, or a conversation of that stage begins (with a character the stage speaks
-to, the one offering the tale for its first stage, or a villager of the place it turns on), the picture opens by
+file name). When that stage's scene opens, or a conversation that IS that stage begins (the character an objective
+names, the one a choice is said to, the one offering the tale for its first stage, or a villager of the place a
+questioning turns on), the picture opens by
 itself in the panel left of the chat, drawn whole and never stretched. Any shape works: a wide 4:3 or 16:9 view,
 a tall 2:3 figure, a square; the panel fits the picture at its own proportions. A scene's findings, hazards and people met may
 carry an `"image"` too: it opens when the narration reveals, springs or brings them in (a person met shows over a
 danger, a danger over a finding). A name with a folder in it, another format, or a file that is not
 there is reported by `cr.story_check` and the scene opens without it. In the Tale Editor, pick the file beside the
 stage's Image field to fill its name and see it.
+
+In a scene with nobody in it (an exploration), the picture stands large beside the chat; in a conversation it is small,
+in the top-left corner, so the character stays in view. A click on it enlarges it, another shrinks it.
+
+**A picture that moves** (since 2.7.9): the image may be a video, a `.crvid` (CR's own format: the frames as JPEG in a
+zip, with a small manifest). Its first frame IS its picture. It plays once where the picture would show, then rests on its
+first frame; PLAY, STOP and LOOP (on/off) sit at its bottom-right corner. On the Classic skin the first frame shows still.
+Make one from any video with `python Tools/Video/make_crvid.py clip.mp4 clip.crvid` (it needs ffmpeg): the frame is
+fitted within 768x1152 (the largest the game plays), at 30 frames a second by default. Keep clips short: a few seconds
+at full size is tens of megabytes. For a slow zoom over a still picture, do not use ffmpeg's `zoompan` filter as is: it
+rounds the frame to whole pixels and the picture trembles; zoom with sub-pixel precision instead.
 
 ## 6. Objectives
 

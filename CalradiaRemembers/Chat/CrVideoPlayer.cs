@@ -73,18 +73,48 @@ namespace CalradiaRemembers.Chat
          IsPlaying = true;
          Clock.Restart();
          ModLog.Info($"[VIDEO] playing {Describe()}");
+         vm.RefreshVideoControls();
 
          return null;
       }
 
-      /// <summary>Plays the open video again from its first frame (the play icon).</summary>
-      public static string Replay() => _file == null ? "No video open." : Play(_file, Loop);
+      /// <summary>The STOP icon (Gabriel, 11/10/2026): the video stops and shows its first frame again; PLAY starts it over.</summary>
+      public static void StopPlayback()
+      {
+         if (IsPlaying) Finish();
+      }
+
+      /// <summary>
+      ///   Plays the open video again from its first frame (the PLAY icon). The frame shown stays until the new first frame
+      ///   is decoded, so nothing else flashes in between (a full Stop would put back the picture the video replaced).
+      /// </summary>
+      public static string Replay()
+      {
+         if (_file == null) return "No video open.";
+         _decoder?.Dispose();
+         _decoder = CrvidDecoder.Open(_file, Loop, out string problem);
+         if (_decoder == null)
+         {
+            IsPlaying = false;
+            ChatManager.ActiveViewModel?.RefreshVideoControls();
+            return $"{System.IO.Path.GetFileName(_file)} cannot play: {problem}";
+         }
+
+         _shown = -1;
+         IsPlaying = true;
+         Clock.Restart();
+         ModLog.Info($"[VIDEO] played again: {System.IO.Path.GetFileName(_file)}.");
+         ChatManager.ActiveViewModel?.RefreshVideoControls();
+
+         return null;
+      }
 
       /// <summary>Starts over at the end, or not (the loop icon). Takes effect now, on the playing video too.</summary>
       public static void SetLoop(bool loop)
       {
          Loop = loop;
          if (_decoder != null) _decoder.Loop = loop;
+         ChatManager.ActiveViewModel?.RefreshVideoControls();
       }
 
       /// <summary>Called every game frame (the submodule's application tick).</summary>
@@ -137,6 +167,7 @@ namespace CalradiaRemembers.Chat
          _file = null;
          IsPlaying = false;
          Clock.Reset();
+         ChatManager.ActiveViewModel?.RefreshVideoControls();
       }
 
       // A frame behind the due one (a loop's wrap counted: in a loop, a frame just before the end is behind frame 0).
@@ -161,6 +192,7 @@ namespace CalradiaRemembers.Chat
          }
 
          ModLog.Info($"[VIDEO] finished; back on its first frame: {System.IO.Path.GetFileName(_file)}.");
+         ChatManager.ActiveViewModel?.RefreshVideoControls();
       }
 
       private static void Show(DecodedFrame frame)
