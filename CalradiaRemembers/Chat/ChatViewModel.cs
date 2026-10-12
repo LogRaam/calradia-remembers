@@ -679,7 +679,12 @@ namespace CalradiaRemembers.Chat
       public void ExecuteVideoStop() => CrVideoPlayer.StopPlayback();
 
       /// <summary>LOOP on or off.</summary>
-      public void ExecuteVideoLoop() => CrVideoPlayer.SetLoop(!CrVideoPlayer.Loop);
+      public void ExecuteVideoLoop()
+      {
+         ModLog.Info($"[VIDEO] LOOP clicked: loop was {CrVideoPlayer.Loop}, clicked view is the active one: {ReferenceEquals(this, ChatManager.ActiveViewModel)}.");
+         CrVideoPlayer.SetLoop(!CrVideoPlayer.Loop);
+         RefreshVideoControls();
+      }
 
       /// <summary>A click on the picture (or video): large if it was small, small if it was large; kept for this conversation.</summary>
       public void ExecuteToggleSceneImageSize()

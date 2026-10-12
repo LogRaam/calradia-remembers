@@ -99,7 +99,7 @@ namespace CalradiaRemembers.Chat
       /// <summary>The STOP icon (Gabriel, 11/10/2026): the video stops and shows its first frame again; PLAY starts it over.</summary>
       public static void StopPlayback()
       {
-         if (IsPlaying) Finish();
+         if (IsPlaying) Finish("STOP");
       }
 
       /// <summary>
@@ -121,7 +121,7 @@ namespace CalradiaRemembers.Chat
          _shown = -1;
          IsPlaying = true;
          Clock.Restart();
-         ModLog.Info($"[VIDEO] played again: {System.IO.Path.GetFileName(_file)}.");
+         ModLog.Info($"[VIDEO] played again: {System.IO.Path.GetFileName(_file)}, loop={Loop}.");
          ChatManager.ActiveViewModel?.RefreshVideoControls();
 
          return null;
@@ -133,6 +133,10 @@ namespace CalradiaRemembers.Chat
          Loop = loop;
          if (_decoder != null) _decoder.Loop = loop;
          ChatManager.ActiveViewModel?.RefreshVideoControls();
+         // Gabriel (11/10/2026): the LOOP icon would not turn off while the video looped, nor after STOP, until PLAY.
+         // One line per change, to tell a click that never arrives from one that fires twice or an icon that does not redraw.
+         ModLog.Info($"[VIDEO] loop -> {Loop}: decoder={(_decoder != null ? "open" : "none")}, playing={IsPlaying}, "
+                     + $"icon={System.IO.Path.GetFileName(ChatManager.ActiveViewModel?.VideoLoopIconPath ?? "(no conversation)")}.");
       }
 
       /// <summary>Called every game frame (the submodule's application tick).</summary>
@@ -152,7 +156,7 @@ namespace CalradiaRemembers.Chat
          VideoMoment moment = VideoClock.At(Clock.Elapsed.TotalSeconds, _manifest.Fps, _manifest.Frames, Loop);
          if (moment.Finished)
          {
-            Finish();
+            Finish($"end of play after {Clock.Elapsed.TotalSeconds:0.0}s");
             return;
          }
 
@@ -198,7 +202,7 @@ namespace CalradiaRemembers.Chat
       }
 
       // Played once and over: back to the first frame, which waits; the decoder's work is done.
-      private static void Finish()
+      private static void Finish(string why)
       {
          IsPlaying = false;
          _decoder?.Dispose();
@@ -209,7 +213,7 @@ namespace CalradiaRemembers.Chat
             _shown = 0;
          }
 
-         ModLog.Info($"[VIDEO] finished; back on its first frame: {System.IO.Path.GetFileName(_file)}.");
+         ModLog.Info($"[VIDEO] finished ({why}); back on its first frame: {System.IO.Path.GetFileName(_file)}.");
          ChatManager.ActiveViewModel?.RefreshVideoControls();
       }
 
