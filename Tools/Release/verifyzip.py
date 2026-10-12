@@ -439,6 +439,28 @@ MUST = [
     ("mod",   b"TaleCompanyFightNoChiefPatch"),
     ("sdk",   b"AudienceFromKin"),
     ("sdk",   "accents too".encode("utf-16-le")),
+    # 2.7.9
+    ("logic", b"CrvidRules"),
+    ("logic", b"VideoClock"),
+    ("logic", b"ScenarioPass"),
+    ("logic", b"ScenarioPackFolders"),
+    ("logic", b"ScenarioRuleMerge"),
+    ("logic", b"ScenarioReferenceMatch"),
+    ("logic", b"AuthoredGiverPolicy"),
+    ("logic", b"TaleConceptionPolicy"),
+    ("logic", b"AuthoredContentPolicy"),
+    ("logic", b"InjectedMemoryRemovalPolicy"),
+    ("logic", b"SceneImageLayout"),
+    ("logic", b"ConversationIsTheStep"),
+    ("logic", b"GameBoundRoles"),
+    ("mod",   b"CrVideoPlayer"),
+    ("mod",   b"CrvidDecoder"),
+    ("mod",   b"CrvidPoster"),
+    ("mod",   b"LiveSprites"),
+    ("mod",   b"ExecuteVideoLoop"),
+    ("mod",   "scenario_all_play".encode("utf-16-le")),
+    ("mod",   "video_decoder".encode("utf-16-le")),
+    ("sdk",   b"PromptSectionSpec"),
 ]
 MUST_NOT = [
     ("mod",   "A predator wearing a lord's title".encode("utf-16-le")),   # 2.6.11: the retired archetype is gone (the testall keeps the 'Sadistic' opening on purpose)
@@ -456,6 +478,9 @@ MUST_NOT = [
     ("logic", b"InitiatorFacts"),   # 2.6.8: renamed ActorFacts
     ("mod", b"InitiativeGate"),   # 2.6.8: renamed ActionGate
     ("sdk", "In the lines below, ".encode("utf-16-le")),   # 2.7.0: the unbounded history header is gone
+    ("mod", b"CrVideoSurface"),   # 2.7.9: the native video spike, removed before release
+    ("mod", b"CrFramePumpSpike"),   # 2.7.9: the frame pump spike, removed before release
+    ("mod", "video_spike".encode("utf-16-le")),   # 2.7.9: its console command
 ]
 
 print()
@@ -497,7 +522,15 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf_of_the_wood.json", '"image"'),
                      ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersChat_Manuscript.xml", "SceneImageArea"),
                      ("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf_of_the_wood.json", '"on_defeat"'),
-                     ("CalradiaRemembers/Docs/HOWTO_Quests.md", "on_defeat")]:
+                     ("CalradiaRemembers/Docs/HOWTO_Quests.md", "on_defeat"),
+                     # 2.7.9
+                     ("CalradiaRemembers/Docs/HOWTO_Quests.md", ".crvid"),
+                     ("CalradiaRemembers/Docs/HOWTO_Quests.md", "{player}"),
+                     ("CalradiaRemembers/Docs/ScenarioComposer.html", "IF_KINGDOM_EXISTS"),
+                     ("CalradiaRemembers/Docs/EXTENSION_API.md", "RemoveMemory"),
+                     ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersChat_Manuscript.xml", "ExecuteVideoLoop"),
+                     ("CalradiaRemembers/ModuleData/Quests/the_drowned_bridge/the_drowned_bridge.json", '"image"'),
+                     ("CalradiaRemembers/ModuleData/scenarios/rhagaea_marriage.json", "rhagaea_marriage")]:
     found = path in names and needle in zn.read(path).decode("utf-8", "ignore")
     ok &= found
     print("  %-70s %s" % (path[18:], "YES" if found else "*** MISSING ***"))

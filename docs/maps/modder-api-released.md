@@ -1,4 +1,4 @@
-Released in v2.7.8
+Released in v2.7.9
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -85,6 +85,14 @@ _One memory CR already holds for an NPC, as read back through CrNpcMemory.GetMem
 - `string Kind { get; }`
 - `string Summary { get; }`
 
+### CrMemoryRemoval
+
+_A memory a mod takes back (philip0105, Vivid World, 10/10/2026: rumors forgotten or corrected later)._
+
+- `string NpcId { get; set; }`
+- `string SourceMod { get; set; }`
+- `string Summary { get; set; }`
+
 ### CrNpcMemory
 
 _The public NPC-memory API. A caller identifies the NPC by its hero StringId (never a display name), reads its stored memories, and injects new ones._
@@ -93,6 +101,7 @@ _The public NPC-memory API. A caller identifies the NPC by its hero StringId (ne
 - `static IReadOnlyList<CrMemoryRecord> GetMemories(string npcId)`
 - `static MemoryResult AddMemory(CrMemoryEntry entry)`
 - `static event Action<CrRegardChange> RegardChanged`
+- `static int RemoveMemory(CrMemoryRemoval removal)`
 - `static int? GetRegard(string npcId)`
 
 ### CrPrompt

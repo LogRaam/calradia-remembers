@@ -1,0 +1,35 @@
+Version 2.7.9
+
+Written tales grow up: a picture can move, a tale can start on the road by itself, and scripted scenarios all play when their moment comes.
+
+New
+
+- A tale's picture can be a short video. It plays once where the picture stands, then rests on its first frame; small PLAY, STOP and LOOP buttons sit at its corner. On the Classic chat skin its first frame shows as a still picture.
+- Click a tale's picture to enlarge it, click again to shrink it.
+- A tale's picture now shows only in the conversation that is that step of the tale, and during a conversation it is small, in the top-left corner, so the character stays in view.
+- The Drowned Bridge: a second written tale, with its pictures. A flood broke a village's toll bridge; the lord blames a rival. What you find at the river, and what you tell the lord, decides how it ends.
+- Scripted scenarios: when several rules answer the same event (a death, a marriage), all of them that can happen now play, instead of one picked at random. A rule plays only when everything it does is possible, and new conditions guard the game (at war, at peace, still alive, the kingdom still exists).
+
+Fixed
+
+- A lord you freed from the prisoners of a party you beat now remembers being held, by whom, and that you freed them. (Thank you, zhenja1.)
+- The Wolf of the Wood's picture no longer opens when you speak with someone the tale merely concerns.
+- Scripted scenarios: a rule about a character's death could answer to the killer instead of the one who died, and kingdom names did not match in a translated game.
+- The Tale Editor (in Docs) opens again.
+
+For modders
+
+- Written tales: {player} is now the player's name everywhere in a tale (journal, memories, facts, consequences). (Thank you, tashmetu.)
+- Written tales: a tale can be given by the player's spouse (role "spouse", with gender, travelling with the player, not with child), can begin by itself on the map ("on_map": hours standing still, by day, in the giver's lands, a daily chance), can have stages that are states of one conversation (each with its picture), can end with a chance of a child ("conception"), and names its content level ("requires.content"; it waits for a player whose setting reaches it).
+- Written tales: an image may be a .crvid video (CR's own format; Tools/Video/make_crvid.py makes one from any clip). HOWTO_Quests.md explains it.
+- Scripted scenarios: other mods can ship scenario packs in ModuleData/cr_scenarios, and your own packs in Custom/scenarios survive updates. Rules of one "group" are alternatives: one of them plays. The Scenario Composer now ships in Docs, beside the Tale Editor.
+- CrNpcMemory.RemoveMemory takes back memories your mod added, and a live prompt variable can read a heard_now.txt each reply. EXTENSION_API.md explains both. (Thank you, philip0105.)
+
+Developer tools
+
+- New cr.testall tests: scenario_packs, scenario_death, scenario_marriage, scenario_sources, scenario_all_play, scenario_guards, video_decoder.
+- cr.tale_on_map opens a map tale's prompt now; cr.tale_test sets up a spouse tale and opens it; cr.video plays a .crvid in the open conversation.
+
+Notes
+
+- Your existing saves load as they are, a tale already under way included.

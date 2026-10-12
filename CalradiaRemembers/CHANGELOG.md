@@ -2,6 +2,58 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.9.. 2026-10-12
+
+### New
+- **A tale's picture may be a video** (Gabriel): `.crvid`, CR's own format (JPEG frames in a zip, a manifest;
+  `CrvidRules`, `VideoClock`), decoded ahead on a thread (`CrvidDecoder`), shown as a new texture per frame by
+  `CrVideoPlayer` on the application tick (the game's `VideoPlayerView` does not play inside a conversation). Played
+  once it rests on its first frame; PLAY, STOP, LOOP at its bottom-right. Classic skin: the first frame as a still
+  (`CrvidPoster`). `Tools/Video/make_crvid.py`. The Tale Editor's picker takes a `.crvid`.
+- **A click on a tale's picture enlarges or shrinks it** (`SceneImageLayout`, kept for the conversation).
+- **Tales given by the player's spouse** (Gabriel): `requires.giver` role `spouse`, `gender`, `with_player`,
+  `not_pregnant` (`AuthoredGiverPolicy`).
+- **Tales that begin on the map** (Gabriel): `on_map` (hours still, by day, giver's lands, daily chance, popup;
+  `ChatSceneKind.TaleMeeting`).
+- **Tale stages as states** of one conversation (Gabriel): the character speaks from the state reached by words, its
+  picture shows (`AuthoredQuestEngine.Spoken`).
+- **Consequence `conception`** (Gabriel): `TaleConceptionPolicy`, then `PregnancyService.TryConceive`.
+- **A tale's content level** (Gabriel): `requires.content` none/mature/explicit/hardcore (`AuthoredContentPolicy`); the
+  offer waits for a player whose setting reaches it, a tale under way stops if the setting is lowered.
+- **The Drowned Bridge**, a second written tale, with its pictures.
+- **Scenarios** (Gabriel): every ready rule for an event plays (`ScenarioPass`), `group` for alternatives, a rule plays
+  only when all its consequences can happen (`CanApply`); guards IF_AT_WAR, IF_AT_PEACE, IF_ALIVE, IF_KINGDOM_EXISTS,
+  IF_RULES. The Scenario Composer ships in Docs/.
+
+### Fixed
+- **Freed lords forgot their captivity** (zhenja1): a lord freed from a beaten party's prisoners (the player's loot)
+  remembers the rescue and who held them.
+- **A tale's picture in unrelated conversations** (Gabriel): `AuthoredTaleImages.ConversationIsTheStep`; in a
+  conversation the picture is small, top-left (`SceneImageLayout.Fit`).
+- **Scenarios:** IF_HERO_IS matched a death's killer (`ScenarioContext.Subjects`, `ScenarioBehavior.ForDeath`);
+  kingdom names did not resolve in a translated game (`ScenarioReferenceMatch`, game ids in the packs); an injected
+  memory needs no prior profile.
+- **The Tale Editor would not open** (an apostrophe in a script string); `ShippedHtmlToolsParseTests` runs
+  `node --check` on both shipped HTML tools.
+- **Manuscript chat book took clicks over the picture** beside it: `BookRoot` DoNotAcceptEvents.
+
+### Changed
+- Tale Editor story map: stages that lead to one another form one framed group; long edges go over the row.
+
+### For modders
+- `{player}` in every tale (tashmetu): `AuthoredQuestLoader.GameBoundRoles`.
+- Scenario packs from other mods (`ModuleData/cr_scenarios`) and the player's own (`Custom/scenarios`):
+  `ScenarioPackFolders`, `ScenarioRuleMerge` (first read keeps an id).
+- Vivid World (philip0105): `CrNpcMemory.RemoveMemory` (`InjectedMemoryRemovalPolicy`), memories keep `SourceMod`,
+  `heard_now.txt` for a live `CrPrompt` variable (SDK 40ffa9a).
+
+### Developer tools
+- cr.testall scenario_packs, scenario_death, scenario_marriage, scenario_sources, scenario_all_play, scenario_guards,
+  video_decoder.
+- cr.tale_on_map, cr.tale_test, cr.video.
+- SDK: golden prompts (28 configurations) and the prompt as a registry of 111 keyed sections, written exactly as
+  before (e2a1644, 8ecdbf4); Prompt Composer design in docs/design/prompt-composer.
+
 ## v2.7.8.. 2026-10-10
 
 ### New
