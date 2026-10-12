@@ -73,7 +73,46 @@ Each step is pure logic tested first, then the engine, a `cr.testall` test, the 
 taught the new pieces, and HOWTO_Quests.md / EXTENSION_API.md. The reference tale is written (with the `cr-tale` skill)
 once steps 1 to 4 exist, and is the first thing `cr.testall` plays through them.
 
-## Questions for Gabriel
+## Gabriel's decisions (12/10/2026)
+
+1. **A husband who does not rule**: he holds the grudge AND presses his king toward war ("rancune et pousse son roi vers
+   la guerre"). The king still decides (the leader-only rule): a small pure policy weighs the husband's standing with his
+   king, the king's open wars and the strength of the two realms, and the king declares, or not, within a few days. Its
+   numbers are marked TUNE.
+2. **Never offered by the queen of the player's own realm** ("jamais par la Reine de mon royaume"): a requirement of the
+   tale, not a scenario alternative.
+3. **She rides as a guest, and may be married** ("Invitee et epousable"): free and single in the player's party; a
+   marriage later goes through conversation, relaxed as for a Stolen Love divorcee.
+4. **The war is declared because of the player's act, and everyone knows it**; **the queen's return to her husband is
+   the condition of peace** ("Le retour de la Reine a son mari est la condition de paix").
+
+What 4 changes in the mechanics:
+- The elopement is not an ending: the tale goes ON through the war. The choice leads to a stage "the war", with no time
+  limit while the war lasts, whose ways out are endings: **returned** (the player gives her back: her marriage restored,
+  she goes home, and the scenario answers with peace), and the ends the world may bring (the war ends some other way;
+  she or the king dies; the player marries her, which closes the way back).
+- So scenarios answer tale STAGES as well as endings: `ON_TALE:<tale id>:<stage or ending id>`, with the tale's roles.
+- The war carries its reason: a `world_event` everyone hears ("{husband}'s realm goes to war over {giver}, taken by
+  {player}"), and every lord of both realms remembers why. Peace terms in conversation name the queen's return.
+
+New pieces, added to the list above: `requires.giver.not_of_players_realm`; a consequence `return_spouse` (marriage
+restored through the game's own marriage, she leaves the party for her husband's); `PRESS_FOR_WAR:{husband}` (the
+king's decision, point 1); `ON_TALE` firing on stages as well as endings.
+
+## A character with a chosen face (Gabriel, 12/10/2026)
+
+"est-ce possible de creer un NPC avec une apparence precise? Je pourrais creer l'epouse dans le character editor et
+ressortir les valeurs." Yes: the game reads a face from the editor's own key (`BodyProperties.FromString` on the
+`<BodyProperties version=... age=... weight=... build=... key=... />` the face editor copies with Ctrl+C), and a hero's
+`StaticBodyProperties` is settable and saved with the campaign. Hair and beard are in the key; clothes are not.
+
+The question is WHO wears it. Re-dressing an existing queen changes her face for the whole campaign (encyclopedia
+included). Proposed instead: the tale CREATES its queen (`HeroCreator.CreateSpecialHero` from a lady of her culture),
+with the tale's name, age and face, married at the tale's start to a lord or king who has no wife; the tale is offered
+only where such a husband exists. A reusable piece: any tale may create its own characters (`"creates": {...}`), the
+wife tales included.
+
+## Questions for Gabriel (first round, answered above)
 
 1. **A husband who does not rule.** The leader-only rule says he cannot declare war. Proposed: the `elope` grudge only
    (as Stolen Love), and later, when vassal pressure exists, he presses his king. Or should the tale simply require a
