@@ -126,7 +126,13 @@ namespace CalradiaRemembers.Logic
       Prisoner,
 
       /// <summary>The game has taken the character out of the world (disabled): no whereabouts, no action.</summary>
-      OutOfTheWorld
+      OutOfTheWorld,
+
+      /// <summary>
+      ///   The Story Mode tutorial is under way, where the game itself disables every interaction (Lordfadooboo, crazyblox,
+      ///   12/10/2026: a new game hung on the training field's loading screen).
+      /// </summary>
+      TutorialUnderWay
    }
 
    /// <summary>The facts the gate reads about the character who would act.</summary>
@@ -149,6 +155,12 @@ namespace CalradiaRemembers.Logic
       public int? Age { get; set; }
 
       public bool IsPlayer { get; set; }
+
+      /// <summary>
+      ///   The game's Story Mode tutorial restricts the player's interactions (MainStoryLine.IsPlayerInteractionRestricted).
+      ///   True, nobody takes the initiative: the game has disabled talking to anyone until the tutorial is over.
+      /// </summary>
+      public bool TutorialRestrictsInteraction { get; set; }
    }
 
    /// <summary>The base conditions of every action a character takes. Pure.</summary>
@@ -164,6 +176,7 @@ namespace CalradiaRemembers.Logic
       public static ActionRefusal Check(ActorFacts f, ActionKind kind)
       {
          if (f == null || !f.Exists) return ActionRefusal.NoOne;
+         if (f.TutorialRestrictsInteraction) return ActionRefusal.TutorialUnderWay;
          if (!f.IsAlive) return ActionRefusal.Dead;
          if (f.IsDisabled) return ActionRefusal.OutOfTheWorld;
          if (f.IsPlayer) return ActionRefusal.IsThePlayer;

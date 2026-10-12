@@ -316,6 +316,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
+         new SelfTest("tutorial_gate", Severity.Light, "Lordfadooboo and crazyblox (Nexus, 12/10/2026): a new Story Mode game hung on the training field's loading screen; the elder brother in the party could ask for a private word as its mission opened. Asserts CR finds the game's own tutorial flag (MainStoryLine.IsPlayerInteractionRestricted) when StoryMode is loaded, and that the one initiative gate refuses exactly when the game restricts interaction. Changes nothing.", TestTutorialGate),
          new SelfTest("envoy_pacing", Severity.Light, "fkasad (Nexus, 12/10/2026): eight envoys about one prisoner in half an hour, each from another lord of his realm, the same offer every time. Drives the REAL envoy bookkeeping on a made-up captive: after lord A's envoy, lord B waits out the captive's spacing and may come after it; once enough envoys came and left without the captive, nobody comes even a year on. Touches no hero; the made-up captive's records are forgotten.", TestEnvoyPacing),
          new SelfTest("ransom_envoy_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Here is 5000 denars. Bring my lad alive. You can keep the change.' Finds a captive lord held by a realm the player is at peace with, whose own lord can afford the purse; issues the task through the real QuestFactory and expects it bound to him with the purse at half again his ransom value. SKIP when no such captive exists. Pays nothing, frees nobody.", TestRansomEnvoyQuest),
          new SelfTest("prison_break_rescue", Severity.Light, "01/10/2026: the game's own prison break names the player as the one who freed the captive, but the release event does not carry it. Expects CR's prefix to be attached to EndCaptivityAction.ApplyByEscape (a game update renaming it would silently lose every prison-break rescue), the mark to answer for the marked lord only and to clear, and the rescue evidence to name the prison. Frees nobody.", TestPrisonBreakRescue),
@@ -10088,6 +10089,23 @@ namespace CalradiaRemembers.Diagnostics
       ///   fkasad (12/10/2026): envoys about one prisoner came from every lord of the realm in turn, each on his own wait,
       ///   and a refusal stopped nobody. The real bookkeeping of PrisonerEnvoyBehavior, on a made-up captive.
       /// </summary>
+      private static string TestTutorialGate(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tutorial_gate");
+         bool storyModeLoaded = AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "StoryMode");
+         if (t.Skip(!storyModeLoaded, "StoryMode is not loaded: there is no tutorial to honour")) return t.Line();
+
+         t.Expect("theGamesFlagIsFound", Mapping.StoryModeTutorial.FlagFound, true);
+         bool restricted = Mapping.StoryModeTutorial.RestrictsInteraction();
+         t.Note($"restricted={restricted}");
+         Hero anyone = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsChild && !h.IsPrisoner && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(anyone == null, "no free adult lord to ask the gate about")) return t.Line();
+
+         t.Expect("theGateRefusesExactlyDuringTheTutorial", Mapping.ActionGate.Check(anyone, ActionKind.CompanionAudience) == ActionRefusal.TutorialUnderWay, restricted);
+
+         return t.Line();
+      }
+
       private static string TestEnvoyPacing(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("envoy_pacing");

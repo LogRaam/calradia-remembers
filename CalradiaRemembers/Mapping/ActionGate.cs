@@ -38,7 +38,8 @@ namespace CalradiaRemembers.Mapping
             ? new ActorFacts {Exists = false}
             : new ActorFacts {
                IsAlive = hero.IsAlive, IsChild = hero.IsChild, IsPrisoner = hero.IsPrisoner, IsPlayer = hero == Hero.MainHero,
-               IsDisabled = !HeroPresence.IsInTheWorld(hero) && hero.IsAlive, Age = (int) hero.Age
+               IsDisabled = !HeroPresence.IsInTheWorld(hero) && hero.IsAlive, Age = (int) hero.Age,
+               TutorialRestrictsInteraction = StoryModeTutorial.RestrictsInteraction()
             };
    }
 }

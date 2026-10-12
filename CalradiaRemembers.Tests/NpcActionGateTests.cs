@@ -33,6 +33,17 @@ namespace CalradiaRemembers.Tests
          NpcActionGate.Check(new ActorFacts {IsChild = true}).Should().Be(ActionRefusal.Child);
       }
 
+      // Lordfadooboo and crazyblox (Nexus, 12/10/2026): a new Story Mode game hung on the loading screen of the training
+      // field. The elder brother rides in the player's party there, so since 2.7.8 (family asks for a private word) he
+      // could ask for one as the tutorial's mission opened. The game itself disables every interaction during its
+      // tutorial ("Interaction with this person is disabled during tutorial stage"); CR's characters keep that rule.
+      [Test]
+      public void GIVEN_the_story_modes_tutorial_restricts_interaction_WHEN_anyone_would_take_the_initiative_THEN_it_does_not_happen()
+      {
+         NpcActionGate.Check(new ActorFacts {TutorialRestrictsInteraction = true}, ActionKind.CompanionAudience).Should().Be(ActionRefusal.TutorialUnderWay);
+         NpcActionGate.Check(new ActorFacts {TutorialRestrictsInteraction = true}, ActionKind.Letter).Should().Be(ActionRefusal.TutorialUnderWay);
+      }
+
       // A captive sends no courier and rides out to no one (the letters' own M15 rule, now everyone's).
       [Test]
       public void GIVEN_a_prisoner_WHEN_they_would_take_the_initiative_THEN_it_does_not_happen()

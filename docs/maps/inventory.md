@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 479 types in 59 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 480 types in 59 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1049 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 254 types in 17 namespaces, 9 without a summary
 
@@ -475,7 +475,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (24)
+### CalradiaRemembers.Mapping (25)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -500,6 +500,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SeductionFactsMapper` | public static class | Builds SeductionFacts for a married NPC from live game state. |
 | `SettlementContextResolver` | public static class | Builds a ready-to-inject geography note for the LLM prompt from live map data. |
 | `StatureReader` | public static class | Reads a Stature from the live game. |
+| `StoryModeTutorial` | internal static class | Whether the game's Story Mode tutorial restricts the player's interactions right now. |
 | `TownNeeds` | public static class | What the towns a character answers for are short of. |
 | `Traits` | public class | (no summary) |
 | `WeddingDayBehavior` | public class | The day each married hero was wed, as CR saw it happen. |
