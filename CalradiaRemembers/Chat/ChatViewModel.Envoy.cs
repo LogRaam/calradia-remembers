@@ -41,6 +41,9 @@ namespace CalradiaRemembers.Chat
       /// <summary>True when the lord wants the captive back and free; false when he wants him in his own custody.</summary>
       public bool WantsCaptiveBack { get; set; } = true;
 
+      /// <summary>An envoy about this captive was already sent away: this one brings a better offer (fkasad, 12/10/2026).</summary>
+      public bool ComesAgainWithMore { get; set; }
+
       /// <summary>What the envoy offers first (half his ceiling, never below the honest floor), or 0 on an older save.</summary>
       public int OpeningOffer { get; set; }
 
@@ -124,6 +127,7 @@ namespace CalradiaRemembers.Chat
                WantsCaptiveBack = _envoy.WantsCaptiveBack,
                RansomCeiling = _envoy.Mandate.RansomCeiling,
                OpeningOffer = _envoy.OpeningOffer,
+               ComesAgainWithMore = _envoy.ComesAgainWithMore,
                ExchangeCaptiveName = string.IsNullOrWhiteSpace(_envoy.Mandate.ExchangeCaptiveName) ? null : _envoy.Mandate.ExchangeCaptiveName,
                ExchangeGoldToPlayer = _envoy.ExchangeGoldToPlayer,
                LordRegardWords = EnvoyMandatePolicy.RegardWords(RegardBands.Describe(lordProfile?.ReputationWithPlayer ?? 0)),

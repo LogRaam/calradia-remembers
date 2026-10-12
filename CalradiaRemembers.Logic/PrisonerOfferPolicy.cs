@@ -14,14 +14,22 @@ namespace CalradiaRemembers.Logic
         public const double PersonalStakePremium = 1.5;
 
         /// <summary>
+        ///   TUNE: what each envoy already sent away adds to the offer, in ransom anchors (fkasad, 12/10/2026: "if they
+        ///   really want their guy back, they could at least raise the price a bit"). 0.5: a kinsman's 1.5 becomes 2.0.
+        /// </summary>
+        public const double RaisePerEnvoyTurnedAway = 0.5;
+
+        /// <summary>
         ///   The gold the lord offers for the captive: the game's ransom anchor, lifted by
-        ///   <see cref="PersonalStakePremium" /> when the lord has a personal stake, then clamped into the honest
+        ///   <see cref="PersonalStakePremium" /> when the lord has a personal stake and by <see cref="RaisePerEnvoyTurnedAway" />
+        ///   for each envoy about this captive the player already sent away, then clamped into the honest
         ///   band (<see cref="PrisonerTradePolicy.ClampPrice" />) so a letter never names an absurd sum.
         /// </summary>
-        public static int OfferAmount(int ransomAnchor, bool personalStake)
+        public static int OfferAmount(int ransomAnchor, bool personalStake, int envoysTurnedAway = 0)
         {
             int anchor = ransomAnchor > 0 ? ransomAnchor : PrisonerTradePolicy.FallbackAnchor;
-            int raw = personalStake ? (int) (anchor * PersonalStakePremium) : anchor;
+            double premium = (personalStake ? PersonalStakePremium : 1.0) + RaisePerEnvoyTurnedAway * System.Math.Max(0, envoysTurnedAway);
+            int raw = (int) System.Math.Min(int.MaxValue, anchor * premium);
 
             return PrisonerTradePolicy.ClampPrice(raw, anchor);
         }

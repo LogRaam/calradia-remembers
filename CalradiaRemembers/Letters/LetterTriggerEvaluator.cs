@@ -523,7 +523,9 @@ namespace CalradiaRemembers.Letters
             // A letter an older save still has pending about this captive is honoured: no envoy on top of it.
             if (alreadyOffered) continue;
 
-            int amount = PrisonerOfferPolicy.OfferAmount(anchor, personalStake: true);
+            // fkasad (12/10/2026): a lord whose envoy was sent away raises his offer with the next.
+            int turnedAway = PrisonerEnvoyBehavior.Instance?.EnvoysTurnedAway(captive) ?? 0;
+            int amount = PrisonerOfferPolicy.OfferAmount(anchor, personalStake: true, envoysTurnedAway: turnedAway);
 
             int baseWeight = LetterWeights.BaseWeight(LetterReason.PrisonerOffer);
             int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = baseWeight, SenderInterest = buyerProfile.CorrespondenceInterest, SubjectInterest = GetSubjectInterest(LetterReason.PrisonerOffer), GlobalInterest = GlobalInterest});
@@ -542,13 +544,14 @@ namespace CalradiaRemembers.Letters
             int capturedAmount = amount;
             Hero capturedCaptive = captive;
             PrisonerBuyerRole capturedRole = buyerRole;
+            bool capturedAgain = turnedAway > 0;
             release[candidate] = () =>
             {
                // An envoy, carrying the same fair ceiling the letter named, who can also offer an exchange. Family and
                // realm want the captive back; a bitter enemy wants him in his own hands.
                PrisonerEnvoyBehavior.Instance?.Send(capturedBuyer, capturedCaptive, capturedAmount,
                   PrisonerBuyerPolicy.Stake(capturedRole, capturedBuyer.Name?.ToString(), capturedCaptive.IsFemale),
-                  PrisonerBuyerPolicy.WantsCaptiveBack(capturedRole));
+                  PrisonerBuyerPolicy.WantsCaptiveBack(capturedRole), capturedAgain);
 
                ModLog.Info($"[LETTER] {capturedProfile.Name} sends an envoy about the player's prisoner {capturedCaptiveId} (up to {capturedAmount} denars).");
             };

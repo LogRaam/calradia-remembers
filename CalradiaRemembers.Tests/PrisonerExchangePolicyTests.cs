@@ -179,6 +179,18 @@ namespace CalradiaRemembers.Tests
          PrisonerExchangePolicy.EnvoyMayCome(facts).Should().BeFalse();
       }
 
+      // Gabriel (12/10/2026): "on peut reduire la frequence des demandes de Lords pour racheter un prisonnier car il faut
+      // eviter le spamming." A player holding six lords drew six streams of envoys. Whatever the prisoner, one envoy and
+      // then a few quiet days.
+      [Test]
+      public void GIVEN_an_envoy_came_about_another_prisoner_days_ago_WHEN_one_would_come_about_this_one_THEN_he_waits()
+      {
+         EnvoyVisitFacts Visit(int today) => new() {LastAboutAnyCaptiveDay = 100, Today = today};
+
+         PrisonerExchangePolicy.EnvoyMayCome(Visit(100 + PrisonerExchangePolicy.AnyCaptiveSpacingDays - 1)).Should().BeFalse();
+         PrisonerExchangePolicy.EnvoyMayCome(Visit(100 + PrisonerExchangePolicy.AnyCaptiveSpacingDays)).Should().BeTrue();
+      }
+
       // One refusal is not yet a no: the player may have wanted a better offer, or the other buyer.
       [Test]
       public void GIVEN_fewer_envoys_than_the_limit_came_WHEN_the_spacing_has_passed_THEN_another_may_come()

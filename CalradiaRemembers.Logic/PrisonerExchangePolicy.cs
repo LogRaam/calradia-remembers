@@ -32,6 +32,12 @@ namespace CalradiaRemembers.Logic
       /// </summary>
       public int EnvoysCameThisCaptivity { get; init; }
 
+      /// <summary>
+      ///   The day the last envoy about ANY prisoner the player holds came (or was sent); null if never. Too recent, every
+      ///   envoy waits (Gabriel, 12/10/2026: several prisoners drew several streams of envoys).
+      /// </summary>
+      public int? LastAboutAnyCaptiveDay { get; init; }
+
       /// <summary>Today, in campaign days.</summary>
       public int Today { get; init; }
    }
@@ -150,9 +156,16 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>
       ///   TUNE: days after any envoy about a captive before another lord's may come. fkasad (Nexus, 12/10/2026): eight
-      ///   envoys about one prisoner in half an hour, each lord of the realm on his own wait.
+      ///   envoys about one prisoner in half an hour, each lord of the realm on his own wait. 5 in 2.7.9, 10 since Gabriel
+      ///   asked for fewer envoys (12/10/2026).
       /// </summary>
-      public const int CaptiveSpacingDays = 5;
+      public const int CaptiveSpacingDays = 10;
+
+      /// <summary>
+      ///   TUNE: days after any envoy, whatever the prisoner, before the next may come. Gabriel (12/10/2026): "on peut
+      ///   reduire la frequence des demandes de Lords pour racheter un prisonnier car il faut eviter le spamming."
+      /// </summary>
+      public const int AnyCaptiveSpacingDays = 3;
 
       /// <summary>
       ///   TUNE: envoys about one captive, in one captivity, after which nobody comes again while the player holds him.
@@ -162,13 +175,15 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>
       ///   Whether an envoy may come about this captive today: not after <see cref="EnvoysBeforeGivingUp" /> have come and
-      ///   left without him, not within <see cref="CaptiveSpacingDays" /> of any envoy about him, and not within
+      ///   left without him, not within <see cref="AnyCaptiveSpacingDays" /> of any envoy at all, not within
+      ///   <see cref="CaptiveSpacingDays" /> of any envoy about him, and not within
       ///   <see cref="EnvoyCooldownDays" /> of this lord's own. A refused audience counts: an envoy turned away does not
       ///   come back the next morning, nor does another lord's.
       /// </summary>
       public static bool EnvoyMayCome(EnvoyVisitFacts facts)
          => facts != null
             && facts.EnvoysCameThisCaptivity < EnvoysBeforeGivingUp
+            && (facts.LastAboutAnyCaptiveDay is not int anyone || facts.Today - anyone >= AnyCaptiveSpacingDays)
             && (facts.LastAboutTheCaptiveDay is not int any || facts.Today - any >= CaptiveSpacingDays)
             && (facts.LastFromThisLordDay is not int own || facts.Today - own >= EnvoyCooldownDays);
 

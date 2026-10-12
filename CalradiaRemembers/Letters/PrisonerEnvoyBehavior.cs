@@ -74,18 +74,26 @@ namespace CalradiaRemembers.Letters
          if (string.IsNullOrEmpty(captiveId) || string.IsNullOrEmpty(lordId)) return false;
 
          string prefix = captiveId + "|";
-         int? lastAbout = null;
+         int? lastAbout = null, lastAny = null;
          foreach (KeyValuePair<string, int> e in _lastEnvoyDay)
+         {
+            if (lastAny == null || e.Value > lastAny) lastAny = e.Value;
             if (e.Key.StartsWith(prefix, StringComparison.Ordinal) && (lastAbout == null || e.Value > lastAbout))
                lastAbout = e.Value;
+         }
 
          return PrisonerExchangePolicy.EnvoyMayCome(new EnvoyVisitFacts {
             LastFromThisLordDay = _lastEnvoyDay.TryGetValue(Key(captiveId, lordId), out int own) ? own : null,
             LastAboutTheCaptiveDay = lastAbout,
+            LastAboutAnyCaptiveDay = lastAny,
             EnvoysCameThisCaptivity = _envoysCame.TryGetValue(CaptivityKey(captiveId, captureDay), out int came) ? came : 0,
             Today = today
          });
       }
+
+      /// <summary>Envoys who reached the player about this captive in this captivity, each sent away (he is still held).</summary>
+      public int EnvoysTurnedAway(Hero captive)
+         => captive != null && _envoysCame.TryGetValue(CaptivityKey(captive.StringId, CaptureDay(captive)), out int n) ? n : 0;
 
       /// <summary>An envoy reached the player about this captive (the popup): one more who will leave without him unless a deal is struck.</summary>
       internal void RecordCame(string captiveId, int captureDay)
@@ -115,7 +123,7 @@ namespace CalradiaRemembers.Letters
       ///   Sends <paramref name="lord" />'s envoy about <paramref name="captive" />, offering up to
       ///   <paramref name="ransomCeiling" />. The cooldown starts now; the popup comes when the player is free.
       /// </summary>
-      public void Send(Hero lord, Hero captive, int ransomCeiling, string stake, bool wantsCaptiveBack)
+      public void Send(Hero lord, Hero captive, int ransomCeiling, string stake, bool wantsCaptiveBack, bool comesAgainWithMore = false)
       {
          if (lord == null || captive == null || _pending != null) return;
 
@@ -141,6 +149,7 @@ namespace CalradiaRemembers.Letters
                LordRealm = lord.MapFaction?.Name?.ToString(),
                WantedStake = stake,
                WantsCaptiveBack = wantsCaptiveBack,
+               ComesAgainWithMore = comesAgainWithMore,
                ExchangeGoldToPlayer = exchangeGold,
                OpeningOffer = EnvoyMandatePolicy.OpeningOffer(ransomCeiling, PrisonerTradePolicy.MinAcceptablePayment(BuyPrisonerVerb.RansomAnchor(captive))),
                Mandate = mandate

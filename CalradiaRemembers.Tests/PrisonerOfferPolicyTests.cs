@@ -40,6 +40,23 @@ namespace CalradiaRemembers.Tests
                 .Should().BeGreaterThanOrEqualTo(PrisonerTradePolicy.MinPrice); // never a giveaway
         }
 
+        // fkasad (Nexus, 12/10/2026): "if they really want their guy back, they could at least raise the price a bit." A
+        // lord whose first envoy was sent away sends the next with a better offer.
+        [Test]
+        public void GIVEN_an_envoy_already_turned_away_WHEN_the_lord_sends_another_THEN_he_offers_more()
+        {
+            PrisonerOfferPolicy.OfferAmount(1000, true, envoysTurnedAway: 1)
+                .Should().BeGreaterThan(PrisonerOfferPolicy.OfferAmount(1000, true));
+        }
+
+        // The raise stays inside the honest band like every other figure: a refusal is never a lever to an absurd sum.
+        [Test]
+        public void GIVEN_many_envoys_turned_away_WHEN_pricing_THEN_the_raise_stays_inside_the_band()
+        {
+            PrisonerOfferPolicy.OfferAmount(1000, true, envoysTurnedAway: 50)
+                .Should().BeLessThanOrEqualTo(PrisonerTradePolicy.MaxPrice(1000));
+        }
+
         // A missing / unreadable ransom value must not crash or price at zero: it falls to the policy's fallback
         // anchor, the same one PrisonerTradePolicy uses, so the letter still names a fair figure.
         [Test]
