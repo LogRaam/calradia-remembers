@@ -24,7 +24,7 @@ namespace CalradiaRemembers.Scenarios
       /// <summary>The consequences <see cref="Execute" /> performs; any other is skipped (checked by cr.testall scenario_packs).</summary>
       public static readonly IReadOnlyCollection<string> KnownVerbs = new[]
       {
-         "DECLARE_WAR", "MAKE_PEACE", "CHANGE_RELATION", "CHANGE_INFLUENCE", "INJECT_MEMORY"
+         "DECLARE_WAR", "MAKE_PEACE", "CHANGE_RELATION", "CHANGE_INFLUENCE", "INJECT_MEMORY", "PRESS_FOR_WAR"
       };
 
       /// <summary>
@@ -44,6 +44,9 @@ namespace CalradiaRemembers.Scenarios
                case "MAKE_PEACE":
                   if (!TryFactions(consequence, context, out IFaction a, out IFaction b)) return false;
                   return consequence.Verb == "DECLARE_WAR" ? !FactionManager.IsAtWarAgainstFaction(a, b) : FactionManager.IsAtWarAgainstFaction(a, b);
+               case "PRESS_FOR_WAR":
+                  return Pressing(consequence, context, out _, out Kingdom pressed, out IFaction pressedOn)
+                         && pressed != pressedOn && !FactionManager.IsAtWarAgainstFaction(pressed, pressedOn);
                case "CHANGE_RELATION":
                   return ScenarioArgs.TryParseTargetDelta(consequence.Payload, out string who, out int delta) && delta != 0
                          && context.ResolveHero(who) is { } hero && hero != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(hero);
@@ -83,6 +86,7 @@ namespace CalradiaRemembers.Scenarios
             switch (consequence.Verb)
             {
                case "DECLARE_WAR":      DeclareWar(consequence, context); break;
+               case "PRESS_FOR_WAR":    PressForWar(consequence, context); break;
                case "MAKE_PEACE":       MakePeace(consequence, context); break;
                case "CHANGE_RELATION":  ChangeRelation(consequence, context); break;
                case "CHANGE_INFLUENCE": ChangeInfluence(consequence, context); break;
@@ -99,6 +103,35 @@ namespace CalradiaRemembers.Scenarios
       }
 
       // DECLARE_WAR:FactionA,FactionB — start a war between two factions (no-op if already at war).
+      // PRESS_FOR_WAR:presser,target (the tale-scenario bridge, Gabriel 12/10/2026: "rancune et pousse son roi vers la
+      // guerre"): the presser's king weighs it (WarPressPolicy) and declares on the target's realm, or does not.
+      private static bool Pressing(KeywordToken c, ScenarioContext ctx, out Hero presser, out Kingdom pressed, out IFaction target)
+      {
+         presser = c.Args.Count > 0 ? ctx.ResolveHero(c.Args[0]) : null;
+         pressed = presser?.MapFaction as Kingdom;
+         target = c.Args.Count > 1 ? ctx.ResolveFaction(c.Args[1]) : null;
+
+         return presser != null && Mapping.HeroPresence.IsInTheWorld(presser) && pressed != null && !pressed.IsEliminated
+                && pressed.Leader != null && target != null;
+      }
+
+      private static void PressForWar(KeywordToken c, ScenarioContext ctx)
+      {
+         if (!Pressing(c, ctx, out Hero presser, out Kingdom pressed, out IFaction target)) return;
+         if (pressed == target || FactionManager.IsAtWarAgainstFaction(pressed, target)) return;
+
+         Hero king = pressed.Leader;
+         var facts = new WarPressFacts {
+            PresserRules = king == presser, KingRegardForPresser = king.GetRelation(presser),
+            KingOpenWars = System.Linq.Enumerable.Count(Kingdom.All, k => k != pressed && !k.IsEliminated && FactionManager.IsAtWarAgainstFaction(pressed, k)),
+            StrengthRatio = target.CurrentTotalStrength > 0 ? pressed.CurrentTotalStrength / target.CurrentTotalStrength : 10.0
+         };
+         bool declares = WarPressPolicy.KingDeclares(facts);
+         ModLog.Info($"[SCENARIO] PRESS_FOR_WAR: {presser.Name} presses {king.Name} against {target.Name} (regard {facts.KingRegardForPresser}, "
+                     + $"wars {facts.KingOpenWars}, strength {facts.StrengthRatio:0.00}): {(declares ? "war" : "declined")}.");
+         if (declares) DeclareWarAction.ApplyByDefault(pressed, target);
+      }
+
       private static void DeclareWar(KeywordToken c, ScenarioContext ctx)
       {
          if (c.Args.Count < 2) { ModLog.Info("[SCENARIO] DECLARE_WAR needs two factions."); return; }

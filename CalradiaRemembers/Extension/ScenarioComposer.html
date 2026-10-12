@@ -101,7 +101,8 @@ const VOCAB = {
     { key:"ON_DEATH",        desc:"A hero died. Scope to one with a guard IF_HERO_IS (it asks about the one who died, never the killer)." },
     { key:"ON_MARRIAGE",     desc:"Two heroes wed. Scope with IF_HERO_IS / IF_PLAYER_INVOLVED." },
     { key:"ON_WAR_DECLARED", desc:"War was declared between two factions." },
-    { key:"ON_PEACE",        desc:"Peace was made between two factions." }
+    { key:"ON_PEACE",        desc:"Peace was made between two factions." },
+    { key:"ON_TALE",         ph:"cr_kings_hall:end:eloped", desc:"A written tale reached a stage, or an ending (end:<ending>). Name the tale alone to answer all of it. The tale's people are roles: {giver}, {husband}, {rival}, {player}." }
   ],
   guards: [
     { key:"IF_HERO_IS",         args:[{n:"hero", ph:"e.g. lord_1_14 (Rhagaea)"}],   desc:"The event is about this hero (a death: the one who died; a marriage: either spouse). Prefer the game id: names are translated." },
@@ -114,14 +115,15 @@ const VOCAB = {
     { key:"IF_AT_PEACE",        args:[{n:"faction A",ph:"e.g. empire"},{n:"faction B",ph:"e.g. empire_s"}], fmt:"comma", desc:"These two factions are at peace." },
     { key:"IF_ALIVE",           args:[{n:"hero", ph:"e.g. lord_1_14, or PLAYER"}], desc:"This hero is alive (and not disabled)." },
     { key:"IF_KINGDOM_EXISTS",  args:[{n:"kingdom", ph:"e.g. empire_s"}], desc:"This kingdom still stands (not eliminated)." },
-    { key:"IF_RULES",           args:[{n:"hero",ph:"e.g. lord_1_14"},{n:"kingdom",ph:"e.g. empire_s"}], fmt:"comma", desc:"This hero rules this kingdom." }
+    { key:"IF_RULES",           args:[{n:"hero",ph:"e.g. lord_1_14, or {husband}"},{n:"kingdom",ph:"e.g. empire_s; empty: his own"}], fmt:"comma", desc:"This hero rules this kingdom (left empty: the kingdom he belongs to)." }
   ],
   consequences: [
     { key:"DECLARE_WAR",     args:[{n:"faction A",ph:"e.g. empire (Northern Empire)"},{n:"faction B",ph:"e.g. empire_s (Southern Empire)"}], fmt:"comma",  desc:"Start a war between two factions." },
     { key:"MAKE_PEACE",      args:[{n:"faction A",ph:"e.g. Vlandia"},{n:"faction B",ph:"e.g. Battania"}],               fmt:"comma",  desc:"End a war between two factions." },
     { key:"CHANGE_RELATION", args:[{n:"hero",ph:"name, id, or PLAYER"},{n:"delta",ph:"e.g. +10"}],                       fmt:"reldelta",desc:"Shift the player's relation with a hero." },
     { key:"CHANGE_INFLUENCE",args:[{n:"hero",ph:"PLAYER, or a hero (their clan)"},{n:"delta",ph:"e.g. +50"}],            fmt:"reldelta",desc:"Change a hero's clan influence (PLAYER = your clan)." },
-    { key:"INJECT_MEMORY",   args:[{n:"hero",ph:"name or id"},{n:"text",ph:"what they now remember"}],                   fmt:"targetrest",desc:"Plant a memory on an NPC so they reference it in conversation." }
+    { key:"INJECT_MEMORY",   args:[{n:"hero",ph:"name or id"},{n:"text",ph:"what they now remember"}],                   fmt:"targetrest",desc:"Plant a memory on an NPC so they reference it in conversation." },
+    { key:"PRESS_FOR_WAR",   args:[{n:"who presses",ph:"e.g. {husband}"},{n:"against",ph:"e.g. {player} (their realm)"}], fmt:"comma",  desc:"A lord presses his king toward war against a realm; the king weighs it (his regard for him, his open wars, the strength he would face). A king pressing himself declares." }
   ]
 };
 
@@ -153,7 +155,7 @@ function clauseToString(c, vocabList){
   return v.key + ":" + vals.join(",");
 }
 function ruleToObject(r){
-  const o = { id:r.id, trigger:r.trigger };
+  const o = { id:r.id, trigger:r.trigger + (r.triggerAbout && r.triggerAbout.trim() ? ":" + r.triggerAbout.trim() : "") };
   const g = (r.guards||[]).map(c=>clauseToString(c,VOCAB.guards)).filter(s=>s);
   const cs = (r.consequences||[]).map(c=>clauseToString(c,VOCAB.consequences)).filter(s=>s);
   if(g.length) o.guards = g;
@@ -231,8 +233,9 @@ function ruleCard(r, i){
   const foF=el("label",{class:"fld"},["fire once"]); const foIn=el("input",{type:"checkbox"}); foIn.checked=!!r.fireOnce; foIn.onchange=e=>{r.fireOnce=e.target.checked; preview();}; foF.appendChild(foIn);
   const wF=el("label",{class:"fld"},["weight"]); const wIn=el("input",{type:"number",min:"1",value:r.weight||1}); wIn.style.width="64px"; wIn.oninput=e=>{r.weight=Number(e.target.value)||1; preview();}; wF.appendChild(wIn);
   const gF=el("label",{class:"fld"},["group (alternatives)"]); const gIn=el("input",{type:"text",value:r.group||"",placeholder:"none: always plays"}); gIn.oninput=e=>{r.group=e.target.value; preview();}; gF.appendChild(gIn);
-  top.appendChild(idF); top.appendChild(trF); top.appendChild(foF); top.appendChild(wF); top.appendChild(gF);
   const trigV=findVocab(VOCAB.triggers,r.trigger);
+  const abF=el("label",{class:"fld"},["about (optional)"]); const abIn=el("input",{type:"text",value:r.triggerAbout||"",placeholder:(trigV&&trigV.ph)||"empty: any"}); abIn.oninput=e=>{r.triggerAbout=e.target.value; preview();}; abF.appendChild(abIn);
+  top.appendChild(idF); top.appendChild(trF); top.appendChild(abF); top.appendChild(foF); top.appendChild(wF); top.appendChild(gF);
   card.appendChild(top);
   if(trigV) card.appendChild(el("div",{class:"hint",style:"font-size:11px;color:var(--muted);margin:2px 0 0;"},[trigV.desc]));
 
@@ -285,6 +288,7 @@ function loadPack(obj){
   if(!obj||!Array.isArray(obj.rules)) throw new Error("not a scenario pack (missing 'rules' array)");
   rules = obj.rules.map(o=>({
     id:o.id||"rule", trigger:(o.trigger||"ON_DEATH").split(":")[0].trim().toUpperCase(),
+    triggerAbout:(o.trigger||"").indexOf(":")>=0 ? o.trigger.substring(o.trigger.indexOf(":")+1).trim() : "",
     guards:(o.guards||[]).map(s=>stringToClause(s,VOCAB.guards)).filter(Boolean),
     consequences:(o.consequences||[]).map(s=>stringToClause(s,VOCAB.consequences)).filter(Boolean),
     message:o.message||"", fireOnce:!!o.fireOnce, weight:o.weight||1, group:o.group||""

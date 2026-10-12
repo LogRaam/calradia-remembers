@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 481 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1069 types in 28 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1073 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 258 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -827,7 +827,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (667)
+### CalradiaRemembers.Logic (671)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1370,6 +1370,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScenarioPackFolders` | public static class | Where scenario packs are read from, in order. |
 | `ScenarioPass` | public static class | Plays every rule a fired event calls for. |
 | `ScenarioReferenceMatch` | public static class | How well a scenario reference names a candidate, and which candidate it names. |
+| `ScenarioRoleRef` | public static class | A reference written as a tale role, "{husband}". |
+| `ScenarioRoleText` | public static class | Fills a rule's message with the names of the tale's people. |
 | `ScenarioRule` | public class | One reactive rule: a Trigger, optional Guards (eligibility, AND-combined), a list of Consequences (declarative world mutations), and a Message for the World-Event store. |
 | `ScenarioRuleMerge` | public static class | Keeps one rule per id, the first read. |
 | `ScenarioSelector` | public static class | Selects the single scenario rule to fire for an event, or null when none apply. |
@@ -1482,6 +1484,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `VentriloquizedReactionPolicy` | public static class | Decides when a speaker's witness reactions must yield to the round-table lap. |
 | `WarDeedMatcher` | public static class | Decides whether a war declaration satisfies a deliver-war-on-faction deed. |
 | `WarLoomingPolicy` | public static class | Pure threshold and cadence gate for the "war looming" world condition. |
+| `WarPressFacts` | public class | What a king weighs when a lord of his realm presses him toward war. |
+| `WarPressPolicy` | public static class | Whether a king goes to war when a lord presses him (PRESS_FOR_WAR). |
 | `WarSides` | public struct | The two sides of one war declaration, as faction ids. |
 | `WarWeariness` | public static class | Pure war-weariness arithmetic: clamp, the per-event tolls, rest recovery, the Valor-scaled retirement tolerance, banding, the "wants to retire" test, and the retirement shape by landedness. |
 | `WearinessBand` | public enum | How worn down by war a companion is — the bands the accumulating score falls into. |

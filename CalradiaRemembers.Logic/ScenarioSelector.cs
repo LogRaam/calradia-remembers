@@ -29,7 +29,10 @@ namespace CalradiaRemembers.Logic
             if (!string.Equals(ruleTrigger.Verb, firedEvent.Verb, StringComparison.OrdinalIgnoreCase)) return false;
             if (ruleTrigger.IsWildcardPayload) return true;
 
-            return string.Equals(ruleTrigger.Payload, firedEvent.Payload, StringComparison.OrdinalIgnoreCase);
+            // A payload is a path (ON_TALE:<tale>:<stage>, Gabriel 12/10/2026): a rule naming its first parts answers
+            // everything under them, never a sibling whose name merely begins the same.
+            return string.Equals(ruleTrigger.Payload, firedEvent.Payload, StringComparison.OrdinalIgnoreCase)
+                   || firedEvent.Payload.StartsWith(ruleTrigger.Payload + ":", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

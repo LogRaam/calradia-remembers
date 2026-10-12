@@ -56,10 +56,12 @@ namespace CalradiaRemembers.Scenarios
          return a != null && b != null && a != b;
       }
 
-      // IF_RULES:hero,kingdom: the hero leads that kingdom, which still stands.
+      // IF_RULES:hero,kingdom: the hero leads that kingdom, which still stands. IF_RULES:hero alone (a tale's {husband}):
+      // the hero leads the kingdom he belongs to.
       private static bool Rules(KeywordToken guard, ScenarioContext context)
       {
          Hero hero = guard.Args.Count > 0 ? context.ResolveHero(guard.Args[0]) : null;
+         if (guard.Args.Count == 1) return hero?.MapFaction is Kingdom own && !own.IsEliminated && own.Leader == hero;
          Kingdom kingdom = guard.Args.Count > 1 ? context.ResolveFaction(guard.Args[1]) as Kingdom : null;
 
          return hero != null && kingdom != null && !kingdom.IsEliminated && kingdom.Leader == hero;

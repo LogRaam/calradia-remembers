@@ -25,12 +25,20 @@ namespace CalradiaRemembers.Scenarios
       /// <param name="heroes">Everyone the event involves, the principal first.</param>
       /// <param name="factions">The factions the event involves.</param>
       /// <param name="subjects">Who the event is ABOUT, for IF_HERO_IS; null means all of <paramref name="heroes" />.</param>
-      public ScenarioContext(IReadOnlyList<Hero> heroes = null, IReadOnlyList<IFaction> factions = null, IReadOnlyList<Hero> subjects = null)
+      public ScenarioContext(IReadOnlyList<Hero> heroes = null, IReadOnlyList<IFaction> factions = null, IReadOnlyList<Hero> subjects = null,
+                             IReadOnlyDictionary<string, string> roles = null)
       {
          Heroes = heroes ?? Array.Empty<Hero>();
          Factions = factions ?? Array.Empty<IFaction>();
          Subjects = subjects ?? Heroes;
+         Roles = roles ?? new Dictionary<string, string>();
       }
+
+      /// <summary>
+      ///   A tale's bound roles ("giver", "husband", "player"...) to game ids, when the event is a tale's (ON_TALE; the
+      ///   tale-scenario bridge, Gabriel 12/10/2026); empty for every other event.
+      /// </summary>
+      public IReadOnlyDictionary<string, string> Roles { get; }
 
       /// <summary>The heroes the event is about (victim/killer, the wed pair, …). The first is the primary.</summary>
       public IReadOnlyList<Hero> Heroes { get; }
@@ -54,6 +62,7 @@ namespace CalradiaRemembers.Scenarios
          string r = reference.Trim();
          if (string.Equals(r, "PLAYER", StringComparison.OrdinalIgnoreCase))
             return Contains(Heroes, Hero.MainHero);
+         if (ScenarioRoleRef.TryRole(r, out _)) return Contains(Heroes, ResolveHero(r));
 
          return FindHero(Heroes, r) != null;
       }
@@ -65,6 +74,7 @@ namespace CalradiaRemembers.Scenarios
          string r = reference.Trim();
          if (string.Equals(r, "PLAYER", StringComparison.OrdinalIgnoreCase))
             return Contains(Subjects, Hero.MainHero);
+         if (ScenarioRoleRef.TryRole(r, out _)) return Contains(Subjects, ResolveHero(r));
 
          return FindHero(Subjects, r) != null;
       }
@@ -79,6 +89,9 @@ namespace CalradiaRemembers.Scenarios
          if (string.IsNullOrWhiteSpace(reference)) return null;
          string r = reference.Trim();
          if (string.Equals(r, "PLAYER", StringComparison.OrdinalIgnoreCase)) return Hero.MainHero;
+         // A tale's role ({husband}; the tale-scenario bridge, Gabriel 12/10/2026): exactly the hero the tale bound, or none.
+         if (ScenarioRoleRef.TryRole(r, out string role))
+            return Roles.TryGetValue(role, out string id) ? Hero.FindFirst(h => h != null && h.StringId == id) : null;
 
          return FindHero(Heroes.Concat(Hero.AllAliveHeroes), r);
       }
@@ -87,8 +100,23 @@ namespace CalradiaRemembers.Scenarios
       public IFaction ResolveFaction(string reference)
       {
          if (string.IsNullOrWhiteSpace(reference)) return null;
+         // A role where a realm is meant: the realm that hero stands for (his kingdom, or his own house when he has none).
+         if (ScenarioRoleRef.TryRole(reference, out _)) return ResolveHero(reference)?.MapFaction;
 
          return FindFaction(Factions.Concat(Kingdom.All), reference.Trim());
+      }
+
+      /// <summary>The names of the tale's people by role, to fill a rule's message (ScenarioRoleText).</summary>
+      public IReadOnlyDictionary<string, string> RoleNames()
+      {
+         var names = new Dictionary<string, string>();
+         foreach (KeyValuePair<string, string> r in Roles)
+         {
+            Hero h = Hero.FindFirst(x => x != null && x.StringId == r.Value);
+            if (h != null) names[r.Key] = h.Name?.ToString();
+         }
+
+         return names;
       }
 
       private static bool Contains(IEnumerable<Hero> heroes, Hero target)

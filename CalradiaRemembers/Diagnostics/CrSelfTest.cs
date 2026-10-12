@@ -316,6 +316,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
+         new SelfTest("tale_scenario_bridge", Severity.Light, "The tale-scenario bridge (Gabriel, 12/10/2026: a queen leaves with the player and her husband's realm answers). In a runtime of its own, fires ON_TALE for a made-up tale's ending with a real lady and her husband as roles: a rule naming the whole tale and one naming that ending both play, one naming another ending or another tale does not, the news names the husband (never '{husband}'), and PRESS_FOR_WAR between his realm and the player's applies exactly when they are two realms at peace. Declares nothing; the news it wrote is removed.", TestTaleScenarioBridge),
          new SelfTest("tale_elopement", Severity.Heavy, "The Troy-inspired tale (Gabriel, 12/10/2026: she leaves with the player as a guest who may be married; her return to her husband is the condition of peace). On a real married lady of another realm: 'elope' ends her marriage, puts her in the player's party, plants her husband's StolenSpouse grudge and marks her free to marry the player; 'return_spouse' weds them again and takes her out of the party. Restores her house, takes back the grudge and the marker.", TestTaleElopement),
          new SelfTest("tale_husband", Severity.Light, "The Troy-inspired tale (Gabriel, 12/10/2026: a queen leaves with the player, her husband answers). Loads a made-up tale asking for a married giver of another realm who does not lead her house, and her husband as {husband}; binds it around a real such lady and expects her own husband bound, then around an unmarried lady and expects her refused for not being married. The tale is unloaded; nothing is offered.", TestTaleHusband),
          new SelfTest("prompt_profile", Severity.Light, "The Prompt Composer (Gabriel, 11/10/2026: \"un param MCM pourrait designer l'ordonnanceur a utiliser\"; \"mise en page par type\"). Uses a made-up profile whose default layout turns every free section off and which rewords the role anchor and (in vain) the sealed format contract, builds a real lord's prompt through the real context and builder, and asserts it is shorter than stock, carries the reworded anchor with his name filled in, and keeps the sealed contract word for word; then puts the player's real pick back and asserts the profile in use is the one it was. The made-up profile is never written to disk.", TestPromptProfile),
@@ -10092,6 +10093,53 @@ namespace CalradiaRemembers.Diagnostics
       ///   fkasad (12/10/2026): envoys about one prisoner came from every lord of the realm in turn, each on his own wait,
       ///   and a refusal stopped nobody. The real bookkeeping of PrisonerEnvoyBehavior, on a made-up captive.
       /// </summary>
+      private static string TestTaleScenarioBridge(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_scenario_bridge");
+         if (t.Abort(WorldEventStore.Instance == null, "world-event store not ready")) return t.Line();
+
+         Hero lady = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.IsFemale && h.Spouse != null && h.Spouse != Hero.MainHero
+                                                            && Mapping.HeroPresence.IsInTheWorld(h) && Mapping.HeroPresence.IsInTheWorld(h.Spouse));
+         if (t.Skip(lady == null || Hero.MainHero == null, "no married lady in the world")) return t.Line();
+
+         Hero husband = lady.Spouse;
+         var roles = new Dictionary<string, string> {["giver"] = lady.StringId, ["husband"] = husband.StringId, ["player"] = Hero.MainHero.StringId};
+         ScenarioContext ctx = Scenarios.ScenarioBehavior.ForTale(roles);
+         var runtime = new ScenarioRuntime(new HashSet<string>());
+         runtime.Load(new[] {
+            ScenarioRule.Parse("cr_selftest_whole_tale", "ON_TALE:cr_selftest_tale", new[] {"IF_ALIVE:{husband}"}, null, "cr selftest: {husband} heard of it", true),
+            ScenarioRule.Parse("cr_selftest_this_end", "ON_TALE:cr_selftest_tale:end:won", new[] {"IF_HERO_IS:{giver}"}, null, "cr selftest: this ending", true),
+            ScenarioRule.Parse("cr_selftest_other_end", "ON_TALE:cr_selftest_tale:end:lost", null, null, "cr selftest: never", true),
+            ScenarioRule.Parse("cr_selftest_other_tale", "ON_TALE:cr_selftest_tale_two", null, null, "cr selftest: never", true)
+         });
+
+         var worldBefore = new HashSet<string>(WorldEventStore.Instance.All().Select(e => e.Id));
+         try
+         {
+            List<string> played = runtime.Fire(KeywordToken.Parse("ON_TALE:cr_selftest_tale:end:won"), ctx).Select(r => r.Id).ToList();
+            List<string> told = WorldEventStore.Instance.All().Where(e => !worldBefore.Contains(e.Id)).Select(e => e.Summary).ToList();
+            t.Note($"{lady.Name}, wife of {husband.Name}: played={string.Join(",", played)}");
+
+            t.Expect("theWholeTaleRuleAnswers", played.Contains("cr_selftest_whole_tale"), true);
+            t.Expect("theEndingRuleAnswers", played.Contains("cr_selftest_this_end"), true);
+            t.Expect("anotherEndingDoesNot", played.Contains("cr_selftest_other_end"), false);
+            t.Expect("anotherTaleDoesNot", played.Contains("cr_selftest_other_tale"), false);
+            t.Expect("theNewsNamesTheHusband", told.Any(s => s.Contains(husband.Name.ToString()) && !s.Contains("{husband}")), true);
+
+            IFaction his = husband.MapFaction, mine = Hero.MainHero.MapFaction;
+            bool twoRealmsAtPeace = his is Kingdom && mine != null && his != mine && !FactionManager.IsAtWarAgainstFaction(his, mine);
+            t.Expect("pressForWarAppliesExactlyBetweenTwoRealmsAtPeace",
+               ScenarioConsequenceExecutor.CanApply(KeywordToken.Parse("PRESS_FOR_WAR:{husband},{player}"), ctx), twoRealmsAtPeace);
+         }
+         finally
+         {
+            foreach (WorldEvent e in WorldEventStore.Instance.All().Where(e => !worldBefore.Contains(e.Id)).ToList())
+               WorldEventStore.Instance.Remove(e.Id);
+         }
+
+         return t.Line();
+      }
+
       private static string TestTaleElopement(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("tale_elopement");

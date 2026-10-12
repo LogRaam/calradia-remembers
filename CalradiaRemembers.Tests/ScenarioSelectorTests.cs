@@ -55,6 +55,21 @@ namespace CalradiaRemembers.Tests
                 .Should().BeFalse();
         }
 
+        // The tale-scenario bridge (Gabriel, 12/10/2026, the Troy-inspired tale): a tale fires ON_TALE:<tale>:<stage>, and
+        // ON_TALE:<tale>:end:<ending>. A rule naming the tale alone answers every step of it, one naming the stage or the
+        // ending answers only that; another tale whose id merely begins the same never answers.
+        [Test]
+        public void GIVEN_a_rule_naming_a_tale_WHEN_one_of_its_steps_fires_THEN_it_answers_and_a_rule_naming_the_step_answers_only_it()
+        {
+            KeywordToken eloped = KeywordToken.Parse("ON_TALE:cr_kings_hall:eloped");
+
+            ScenarioSelector.TriggerMatches(KeywordToken.Parse("ON_TALE:cr_kings_hall"), eloped).Should().BeTrue();
+            ScenarioSelector.TriggerMatches(KeywordToken.Parse("ON_TALE:cr_kings_hall:eloped"), eloped).Should().BeTrue();
+            ScenarioSelector.TriggerMatches(KeywordToken.Parse("ON_TALE:cr_kings_hall:refused"), eloped).Should().BeFalse();
+            ScenarioSelector.TriggerMatches(KeywordToken.Parse("ON_TALE:cr_kings"), eloped).Should().BeFalse();
+            ScenarioSelector.TriggerMatches(KeywordToken.Parse("ON_TALE:cr_kings_hall:end"), KeywordToken.Parse("ON_TALE:cr_kings_hall:end:returned")).Should().BeTrue();
+        }
+
         // ── Selection: filtering ───────────────────────────────────────────────
 
         // ScenarioRuntime.Fire calls Select on every relevant CampaignEvent; the common case is that nothing

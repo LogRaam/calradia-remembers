@@ -28,7 +28,42 @@ namespace CalradiaRemembers.Scenarios
       }
 
       /// <summary>The triggers this behavior feeds; a pack naming any other never fires (checked by cr.testall scenario_packs).</summary>
-      public static readonly IReadOnlyCollection<string> KnownTriggers = new[] {"ON_DEATH", "ON_MARRIAGE", "ON_WAR_DECLARED", "ON_PEACE"};
+      public static readonly IReadOnlyCollection<string> KnownTriggers = new[] {"ON_DEATH", "ON_MARRIAGE", "ON_WAR_DECLARED", "ON_PEACE", "ON_TALE"};
+
+      /// <summary>
+      ///   A tale reached a stage, or an ending ("end:&lt;id&gt;"): ON_TALE:&lt;tale&gt;:&lt;where&gt;, carrying the tale's roles
+      ///   (the tale-scenario bridge, Gabriel 12/10/2026: the player leaves with the queen, and her husband's realm
+      ///   answers). The giver is the event's subject; every bound hero is among its heroes.
+      /// </summary>
+      public void FireTale(string taleId, string where, IReadOnlyDictionary<string, string> roles)
+      {
+         if (string.IsNullOrWhiteSpace(taleId) || string.IsNullOrWhiteSpace(where)) return;
+
+         Fire(KeywordToken.Parse($"ON_TALE:{taleId}:{where}"), ForTale(roles));
+      }
+
+      /// <summary>What a tale's event is about, exactly as FireTale hands it to the rules (shared with cr.testall).</summary>
+      public static ScenarioContext ForTale(IReadOnlyDictionary<string, string> roles)
+      {
+         roles ??= new Dictionary<string, string>();
+         var heroes = new List<Hero>();
+         Hero giver = null;
+         foreach (KeyValuePair<string, string> r in roles)
+         {
+            Hero h = Hero.FindFirst(x => x != null && x.StringId == r.Value);
+            if (h == null || heroes.Contains(h)) continue;
+            if (r.Key == "giver") giver = h;
+            heroes.Add(h);
+         }
+
+         if (giver != null)
+         {
+            heroes.Remove(giver);
+            heroes.Insert(0, giver);
+         }
+
+         return new ScenarioContext(heroes, FactionsOf(heroes.ToArray()), giver != null ? new List<Hero> {giver} : heroes, roles);
+      }
 
       /// <summary>
       ///   What a death is about, exactly as the feeder hands it to the rules: the one who died first, then the one who

@@ -1208,6 +1208,7 @@ namespace CalradiaRemembers.Quests
                foreach (string line in AuthoredQuestEngine.JournalLines(_run, q)) journal?.Log(AuthoredQuestEngine.Fill(_run, line));
                AnnounceStage(AuthoredStageNotice.Text(q.Title, AuthoredQuestEngine.Fill(_run, AuthoredQuestEngine.Current(_run, q)?.Journal)));
                ModLog.Info($"[TALE] '{q.Id}': {step.FromStage} -> {step.ToStage}{taken}.");
+               FireTaleEvent(q, step.ToStage);
                if (AuthoredQuestEngine.Current(_run, q)?.Objective?.Type == "explore") MainThreadDispatcher.Enqueue(() => OpenScene(q));
 
                break;
@@ -1220,6 +1221,7 @@ namespace CalradiaRemembers.Quests
                _done.Add(q.Id);
                _playedOn[q.Id] = (int) CampaignTime.Now.ToDays;
                ModLog.Info($"[TALE] '{q.Id}' completed{taken}, ending '{step.EndingId ?? "reward"}'.");
+               FireTaleEvent(q, "end:" + (step.EndingId ?? "reward"));
                ReconcileJournal();
 
                break;
@@ -1231,10 +1233,25 @@ namespace CalradiaRemembers.Quests
                _done.Add(q.Id);
                _playedOn[q.Id] = (int) CampaignTime.Now.ToDays;
                ModLog.Info($"[TALE] '{q.Id}' failed at stage {step.FromStage}.");
+               FireTaleEvent(q, "end:failure");
                ReconcileJournal();
 
                break;
          }
+      }
+
+      /// <summary>
+      ///   The tale-scenario bridge (Gabriel, 12/10/2026): every stage reached and every ending sets off the scenario rules
+      ///   that answer ON_TALE:&lt;tale&gt;:&lt;stage&gt; or ON_TALE:&lt;tale&gt;:end:&lt;ending&gt;, with the tale's roles (the player
+      ///   included) so a rule can name {husband}.
+      /// </summary>
+      private void FireTaleEvent(AuthoredQuest q, string where)
+      {
+         if (_run == null) return;
+
+         var roles = new Dictionary<string, string>(_run.BoundIds);
+         if (Hero.MainHero != null) roles["player"] = Hero.MainHero.StringId;
+         Scenarios.ScenarioBehavior.Instance?.FireTale(q.Id, where, roles);
       }
 
       /// <summary>The last stage notice shown (cr.testall reads it back).</summary>

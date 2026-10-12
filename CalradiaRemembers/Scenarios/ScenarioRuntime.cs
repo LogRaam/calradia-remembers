@@ -104,7 +104,7 @@ namespace CalradiaRemembers.Scenarios
                Type = WorldEventType.Other,
                Day = (int) CampaignTime.Now.ToDays,
                Magnitude = 60,
-               Summary = rule.Message,
+               Summary = ScenarioRoleText.Fill(rule.Message, context.RoleNames()), // a tale's {husband} named (Gabriel, 12/10/2026)
                FactionIds = FactionIds(context)
             });
          }

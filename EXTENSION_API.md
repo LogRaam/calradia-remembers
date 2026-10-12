@@ -134,6 +134,14 @@ reference to CR. Packs are read in this order: CR's own (`ModuleData/scenarios`)
   player's sex.
 - In game: `cr.scenarios` lists the loaded rules and whose pack each came from; `cr.testall` (`scenario_packs`)
   reports a rule whose trigger, guard or consequence CR does not know, or whose hero or kingdom does not resolve.
+- **Answering a written tale** (since 2.7.10): every stage a tale reaches fires `ON_TALE:<tale id>:<stage id>`, and
+  every ending `ON_TALE:<tale id>:end:<ending id>` (`end:reward`, `end:failure`). A rule naming the tale alone
+  (`ON_TALE:<tale id>`) answers all of it. The tale's people are written as roles, in braces, wherever a rule names a
+  hero: `{giver}`, `{husband}`, `{rival}`, `{player}`; where a realm is meant, a role stands for the realm that hero
+  belongs to (`DECLARE_WAR:{husband},{player}`). `IF_RULES:{husband}` alone asks whether he rules his own kingdom.
+  The rule's message names them too ("{husband}'s realm goes to war"). `PRESS_FOR_WAR:{husband},{player}`: a lord
+  presses his king toward war; the king weighs his regard for him, the wars he already fights and the strength he
+  would face, and declares or not (a king pressing himself declares).
 
 ### Reading regard (`CrNpcMemory.GetRegard`, since 2.7.4)
 
