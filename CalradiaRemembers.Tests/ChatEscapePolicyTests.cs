@@ -41,6 +41,41 @@ namespace CalradiaRemembers.Tests
                          .Should().Be(ChatEscapeAction.ClosePanel);
       }
 
+      // philip0105 (Nexus, 11/10/2026): "game will crash if you leave a conversation with Esc key instead of the 'End
+      // conversation' button". The close ran inside the chat's own per-frame widget update, while the same Escape press
+      // was still live for the game underneath. It now waits: the key is let go, one more frame passes, then it closes.
+      [Test]
+      public void GIVEN_escape_asked_to_close_WHEN_the_key_is_still_held_THEN_the_conversation_does_not_close_yet()
+      {
+         var latch = new EscapeCloseLatch();
+         latch.Arm();
+
+         latch.Step(escapeDown: true).Should().BeFalse();
+         latch.Step(escapeDown: true).Should().BeFalse();
+      }
+
+      // Same report: the frame the key comes up still carries its release for the game, so the close comes the frame after.
+      [Test]
+      public void GIVEN_escape_asked_to_close_WHEN_the_key_is_let_go_THEN_it_closes_one_frame_later_and_only_once()
+      {
+         var latch = new EscapeCloseLatch();
+         latch.Arm();
+
+         latch.Step(escapeDown: false).Should().BeFalse();
+         latch.Step(escapeDown: false).Should().BeTrue();
+         latch.Step(escapeDown: false).Should().BeFalse();
+      }
+
+      // Nothing asked, nothing closes: the latch never closes a conversation on its own.
+      [Test]
+      public void GIVEN_no_close_asked_WHEN_frames_pass_THEN_nothing_closes()
+      {
+         var latch = new EscapeCloseLatch();
+
+         latch.Step(escapeDown: false).Should().BeFalse();
+         latch.Step(escapeDown: false).Should().BeFalse();
+      }
+
       // A half-typed message is not thrown away by a reflex: the first Escape only leaves the field, the second closes.
       [Test]
       public void GIVEN_a_message_being_typed_WHEN_escape_is_pressed_THEN_typing_stops_and_the_draft_stays()

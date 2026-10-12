@@ -250,10 +250,42 @@ namespace CalradiaRemembers.Chat
             {
                case ChatEscapeAction.ClosePanel: vm.CloseTopSidePanel(); break;
                case ChatEscapeAction.StopTyping: ChatInputWidget.StopTyping(); break;
-               case ChatEscapeAction.CloseChat: vm.ExecuteClose(); break;
+               // philip0105 (11/10/2026): closing here, inside the chat's own widget update with the press still live
+               // for the game, crashed it. The close waits for the application tick (TickEscapeClose).
+               case ChatEscapeAction.CloseChat: EscapeClose.Arm(); break;
             }
          }
          catch (Exception ex) { ModLog.Error($"[CHAT] Escape handling failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      private static readonly EscapeCloseLatch EscapeClose = new();
+
+      /// <summary>
+      ///   Called every application frame: closes the conversation an Escape asked to close, once the key is up and one
+      ///   more frame has passed, outside any widget's update (EscapeCloseLatch).
+      /// </summary>
+      public static void TickEscapeClose()
+      {
+         if (!EscapeClose.Armed) return;
+         if (!IsOpen || ActiveViewModel == null)
+         {
+            EscapeClose.Disarm();
+
+            return;
+         }
+
+         try
+         {
+            if (!EscapeClose.Step(TaleWorlds.InputSystem.Input.IsKeyDown(TaleWorlds.InputSystem.InputKey.Escape))) return;
+
+            ModLog.Info("[CHAT] Escape: closing now, the key let go.");
+            ActiveViewModel.ExecuteClose();
+         }
+         catch (Exception ex)
+         {
+            EscapeClose.Disarm();
+            ModLog.Error($"[CHAT] Escape close failed: {ex.GetType().Name}: {ex.Message}");
+         }
       }
 
       public static void ArbitrateFocus()
