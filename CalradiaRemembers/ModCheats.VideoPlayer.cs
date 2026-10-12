@@ -15,7 +15,7 @@ namespace CalradiaRemembers
 {
    public static partial class ModCheats
    {
-      /// <summary>cr.video play &lt;file.crvid&gt; [loop] | replay | loop on|off | stop | status | swaprb on|off | flip on|off.</summary>
+      /// <summary>cr.video play &lt;file.crvid&gt; [loop] | show &lt;file&gt; | replay | loop on|off | stop | status | swaprb on|off | flip on|off.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("video", "cr")]
       public static string Video(List<string> args)
       {
@@ -29,6 +29,16 @@ namespace CalradiaRemembers
                if (!System.IO.File.Exists(file)) return "No such file: " + file;
                bool? loop = args.Count > 2 && args[2].ToLowerInvariant() == "loop" ? true : null;
                return CrVideoPlayer.Play(file, loop) ?? CrVideoPlayer.Describe();
+            case "show":
+               // The tale's own path (ChatViewModel.ShowSceneImage): a .crvid plays in the Manuscript margin, a still stops a
+               // video, the Classic pop-out shows a video's first frame. No tale or file edited to test it.
+               if (args.Count < 2) return "Usage: cr.video show <file.crvid|.jpg|.png>";
+               string shown = args[1].Trim('"');
+               if (!System.IO.File.Exists(shown)) return "No such file: " + shown;
+               ChatViewModel vm = ChatManager.ActiveViewModel;
+               if (vm == null) return "Open a conversation first.";
+               vm.ShowSceneImage(shown, "Video test");
+               return "Shown through the tale's path. " + CrVideoPlayer.Describe();
             case "replay":
                return CrVideoPlayer.Replay() ?? CrVideoPlayer.Describe();
             case "loop":

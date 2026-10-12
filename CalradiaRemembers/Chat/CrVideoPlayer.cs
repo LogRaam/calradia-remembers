@@ -58,12 +58,30 @@ namespace CalradiaRemembers.Chat
       /// <summary>Opens <paramref name="file" /> in the open conversation's picture frame and plays it. Null on success, else why not.</summary>
       public static string Play(string file, bool? loop)
       {
-         Stop();
          ChatViewModel vm = ChatManager.ActiveViewModel;
-         if (vm == null) return "Open a conversation first: the video shows where a tale's picture stands.";
+         if (vm == null)
+         {
+            Stop();
+            return "Open a conversation first: the video shows where a tale's picture stands.";
+         }
+
+         // One video after another (a tale's states, each its own video): the frame shown stays until the new video's first
+         // frame is decoded; a full Stop would put back, for that moment, the still picture the first video replaced.
+         if (IsOpen)
+         {
+            _decoder?.Dispose();
+            _decoder = null;
+            if (_firstTexture != null) Live.Enqueue((_firstTexture, _firstPath));
+            _firstTexture = null;
+            _firstPath = null;
+         }
 
          _decoder = CrvidDecoder.Open(file, loop, out string problem);
-         if (_decoder == null) return $"{System.IO.Path.GetFileName(file)} cannot play: {problem}";
+         if (_decoder == null)
+         {
+            Stop();
+            return $"{System.IO.Path.GetFileName(file)} cannot play: {problem}";
+         }
 
          _file = file;
          _manifest = _decoder.Manifest;
