@@ -32,6 +32,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 - **Envoy spam about one prisoner** (fkasad): `EnvoyVisitFacts`, `CaptiveSpacingDays` 5 after any envoy about him,
   `EnvoysBeforeGivingUp` 2 per captivity, one bitter enemy per realm (`PrisonerBuyerPolicy.Order`); additive save key
   `CR_PrisonerEnvoysCame_v1bytes`.
+- **Escape out of a conversation crashed the game** (philip0105): not reproduced; the close ran inside the chat's own
+  widget update with the press live for the game. `EscapeCloseLatch` + `ChatManager.TickEscapeClose` (application tick,
+  key up, one frame later).
 - **Freed lords forgot their captivity** (zhenja1): a lord freed from a beaten party's prisoners (the player's loot)
   remembers the rescue and who held them.
 - **A tale's picture in unrelated conversations** (Gabriel): `AuthoredTaleImages.ConversationIsTheStep`; in a
