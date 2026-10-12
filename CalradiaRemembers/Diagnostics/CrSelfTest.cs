@@ -316,6 +316,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
+         new SelfTest("tale_husband", Severity.Light, "The Troy-inspired tale (Gabriel, 12/10/2026: a queen leaves with the player, her husband answers). Loads a made-up tale asking for a married giver of another realm who does not lead her house, and her husband as {husband}; binds it around a real such lady and expects her own husband bound, then around an unmarried lady and expects her refused for not being married. The tale is unloaded; nothing is offered.", TestTaleHusband),
          new SelfTest("prompt_profile", Severity.Light, "The Prompt Composer (Gabriel, 11/10/2026: \"un param MCM pourrait designer l'ordonnanceur a utiliser\"; \"mise en page par type\"). Uses a made-up profile whose default layout turns every free section off and which rewords the role anchor and (in vain) the sealed format contract, builds a real lord's prompt through the real context and builder, and asserts it is shorter than stock, carries the reworded anchor with his name filled in, and keeps the sealed contract word for word; then puts the player's real pick back and asserts the profile in use is the one it was. The made-up profile is never written to disk.", TestPromptProfile),
          new SelfTest("tutorial_gate", Severity.Light, "Lordfadooboo and crazyblox (Nexus, 12/10/2026): a new Story Mode game hung on the training field's loading screen; the elder brother in the party could ask for a private word as its mission opened. Asserts CR finds the game's own tutorial flag (MainStoryLine.IsPlayerInteractionRestricted) when StoryMode is loaded, and that the one initiative gate refuses exactly when the game restricts interaction. Changes nothing.", TestTutorialGate),
          new SelfTest("envoy_pacing", Severity.Light, "fkasad (Nexus, 12/10/2026): eight envoys about one prisoner in half an hour, each from another lord of his realm, the same offer every time. Drives the REAL envoy bookkeeping on made-up captives: after lord A's envoy, lord B waits out the captive's spacing and may come after it, and an envoy about another prisoner waits out the quiet days after any envoy (Gabriel, 12/10/2026); once enough envoys came and left without the captive, nobody comes even a year on. Touches no hero; the made-up captive's records are forgotten.", TestEnvoyPacing),
@@ -10090,6 +10091,42 @@ namespace CalradiaRemembers.Diagnostics
       ///   fkasad (12/10/2026): envoys about one prisoner came from every lord of the realm in turn, each on his own wait,
       ///   and a refusal stopped nobody. The real bookkeeping of PrisonerEnvoyBehavior, on a made-up captive.
       /// </summary>
+      private static string TestTaleHusband(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_husband");
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null, "authored quests are not active")) return t.Line();
+
+         const string json = @"{ ""id"": ""cr_selftest_husband"", ""title"": ""[SELFTEST] A Queen's Tale"",
+           ""requires"": { ""giver"": { ""role"": ""lord"", ""gender"": ""female"", ""married"": true, ""not_clan_leader"": true, ""not_of_players_realm"": true, ""not_at_war_with_player"": false },
+                           ""husband"": { ""role"": ""spouse_of_giver"" } },
+           ""binds"": { ""giver"": ""a married lady"", ""husband"": ""her husband"" },
+           ""stages"": [ { ""id"": ""ask"", ""journal"": ""[SELFTEST] {husband}"", ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" },
+             ""on_complete"": { ""next"": ""reward"" } } ], ""reward"": { ""regard"": 1 } }";
+         try
+         {
+            t.Expect("theTaleLoads", b.DebugLoadTale(json, "selftest_husband.json").Count, 0);
+
+            IFaction mine = Hero.MainHero?.MapFaction;
+            Hero lady = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.IsFemale && !h.IsChild && h.Spouse != null && h.Spouse != Hero.MainHero
+                                                               && Mapping.HeroPresence.IsInTheWorld(h) && Mapping.HeroPresence.IsInTheWorld(h.Spouse)
+                                                               && h.Clan?.Leader != h && h.MapFaction != null && h.MapFaction != mine);
+            if (t.Skip(lady == null, "no married lady of another realm who does not lead her house")) return t.Line();
+
+            string why = b.DebugBind("cr_selftest_husband", lady, out Dictionary<string, string> ids);
+            t.Note($"{lady.Name}, wife of {lady.Spouse.Name}: {(why ?? "bound")}");
+            t.Expect("herHusbandIsBound", why == null && ids != null && ids.TryGetValue("husband", out string h) && h == lady.Spouse.StringId, true);
+
+            Hero single = Hero.AllAliveHeroes.FirstOrDefault(x => x.IsLord && x.IsFemale && !x.IsChild && x.Spouse == null && Mapping.HeroPresence.IsInTheWorld(x)
+                                                                 && x.Clan?.Leader != x && x.MapFaction != null && x.MapFaction != mine);
+            if (single != null)
+               t.Expect("anUnmarriedLadyIsRefused", (b.DebugBind("cr_selftest_husband", single, out _) ?? "").Contains("married"), true);
+         }
+         finally { b.DebugForgetTale("cr_selftest_husband"); }
+
+         return t.Line();
+      }
+
       private static string TestPromptProfile(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("prompt_profile");

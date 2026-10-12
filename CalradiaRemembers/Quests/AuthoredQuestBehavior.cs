@@ -361,7 +361,11 @@ namespace CalradiaRemembers.Quests
          whyNot = AuthoredGiverPolicy.WhyNot(g, new GiverFacts {
             IsLord = giver.IsLord, IsNotable = giver.IsNotable, IsGangLeader = giver.IsGangLeader,
             IsPlayersSpouse = Hero.MainHero?.Spouse == giver, IsFemale = giver.IsFemale,
-            InPlayersParty = giver.PartyBelongedTo != null && giver.PartyBelongedTo == MobileParty.MainParty, IsPregnant = giver.IsPregnant
+            InPlayersParty = giver.PartyBelongedTo != null && giver.PartyBelongedTo == MobileParty.MainParty, IsPregnant = giver.IsPregnant,
+            // The Troy-inspired tale (Gabriel, 12/10/2026): a married giver of another realm who could leave her house.
+            IsMarriedToAnother = giver.Spouse != null && giver.Spouse != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(giver.Spouse),
+            IsClanLeader = giver.Clan != null && giver.Clan.Leader == giver,
+            IsOfPlayersRealm = giver.MapFaction != null && giver.MapFaction == Hero.MainHero?.MapFaction
          });
          if (whyNot != null) return false;
 
@@ -423,6 +427,20 @@ namespace CalradiaRemembers.Quests
 
             ids["village"] = village.StringId;
             names["village"] = village.Name?.ToString();
+         }
+
+         // The giver's husband (the Troy-inspired tale, Gabriel 12/10/2026): her own spouse, bound as {husband}.
+         if (q.Requires?.Husband != null)
+         {
+            Hero husband = giver.Spouse;
+            whyNot = AuthoredHusbandPolicy.WhyNot(q.Requires.Husband, new HusbandFacts {
+               Exists = husband != null, InTheWorld = husband != null && Mapping.HeroPresence.IsInTheWorld(husband),
+               RulesARealm = husband?.Clan?.Kingdom != null && husband.Clan.Kingdom.Leader == husband
+            });
+            if (whyNot != null) return false;
+
+            ids["husband"] = husband.StringId;
+            names["husband"] = husband.Name?.ToString();
          }
 
          // Branching tales (smoke_over_the_hills): the head of another house of the giver's realm, chosen by
@@ -1564,6 +1582,15 @@ namespace CalradiaRemembers.Quests
       /// <summary>Self-test seam: why this loaded tale would not be offered now, the giver and the dice aside; null when nothing stands in the way.</summary>
       internal string DebugWhyNotOffered(string questId)
          => _quests.TryGetValue(questId, out AuthoredQuest q) ? AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, null, (int) CampaignTime.Now.ToDays)) : "not loaded";
+
+      /// <summary>Self-test seam: binds a loaded tale's roles around this giver, as an offer would, without offering it.</summary>
+      internal string DebugBind(string questId, Hero giver, out Dictionary<string, string> ids)
+      {
+         ids = null;
+         if (!_quests.TryGetValue(questId, out AuthoredQuest q)) return "not loaded";
+
+         return TryBind(q, giver, out ids, out _, out string whyNot) ? null : whyNot;
+      }
 
       /// <summary>Self-test seam: the scene closes, through the real handling (no window was opened).</summary>
       internal void DebugCloseScene()

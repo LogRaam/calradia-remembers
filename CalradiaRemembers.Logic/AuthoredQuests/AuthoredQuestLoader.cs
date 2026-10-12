@@ -61,7 +61,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public static readonly IReadOnlyList<string> RivalRoles = new[] {"clan_leader"};
 
       /// <summary>The roles a "said" choice may be said to: the characters the game binds.</summary>
-      public static readonly IReadOnlyList<string> SpeakingRoles = new[] {"{giver}", "{rival}"};
+      public static readonly IReadOnlyList<string> SpeakingRoles = new[] {"{giver}", "{rival}", "{husband}"};
+
+      /// <summary>What a {husband} may be (the Troy-inspired tale, Gabriel 12/10/2026).</summary>
+      public static readonly IReadOnlyList<string> HusbandRoles = new[] {"spouse_of_giver"};
 
       private const string Reward = "reward";
       private const string EndPrefix = "end:";
@@ -221,6 +224,11 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          RivalRequirement rival = q.Requires?.Rival;
          if (rival != null && !RivalRoles.Contains(rival.Role))
             blocking.Add($"requires.rival asks for a '{rival.Role}', but the game binds a rival only as a \"clan_leader\" of the giver's realm.");
+         HusbandRequirement husband = q.Requires?.Husband;
+         if (husband != null && !HusbandRoles.Contains(husband.Role))
+            blocking.Add($"requires.husband asks for a '{husband.Role}', but the game binds a husband only as \"spouse_of_giver\".");
+         if (husband != null && q.Requires?.Giver?.Married != true)
+            blocking.Add("requires.husband binds the giver's husband, so requires.giver.married must be true.");
          if (rival != null && rival.SameRealmAs != "{giver}")
             blocking.Add($"requires.rival is of the same realm as '{rival.SameRealmAs}', but the game binds a rival only in the giver's realm (\"{{giver}}\").");
       }
@@ -312,6 +320,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
                   blocking.Add($"{choice}: \"said\" needs \"to\" (a role, \"{{giver}}\") and \"meaning\" (what the player's words must mean).");
                else if (!SpeakingRoles.Contains(c.Said.To.Trim()))
                   blocking.Add($"{choice} is said to '{c.Said.To}', but a choice can be said only to {string.Join(" or ", SpeakingRoles)}.");
+               else if (c.Said.To.Trim() == "{husband}" && q.Requires?.Husband == null)
+                  blocking.Add($"{choice} is said to {{husband}}, but no husband is bound: add \"husband\" to \"requires\".");
                else if (c.Said.To.Trim() == "{rival}" && q.Requires?.Rival == null)
                   blocking.Add($"{choice} is said to {{rival}}, but no rival is bound: add \"rival\" to \"requires\".");
             }

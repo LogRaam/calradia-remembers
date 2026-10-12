@@ -1,1 +1,1 @@
-blocking_choice_said_to_unknown_role.json: quest 'fx_branch': stage 'crossroads', choice 'stay' is said to '{village}', but a choice can be said only to {giver} or {rival}. The quest is not loaded.
+blocking_choice_said_to_unknown_role.json: quest 'fx_branch': stage 'crossroads', choice 'stay' is said to '{village}', but a choice can be said only to {giver} or {rival} or {husband}. The quest is not loaded.

@@ -25,6 +25,43 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>Already with child.</summary>
       public bool IsPregnant { get; init; }
+
+      /// <summary>Married, and not to the player (a living spouse in the world).</summary>
+      public bool IsMarriedToAnother { get; init; }
+
+      /// <summary>Leads her (or his) own house.</summary>
+      public bool IsClanLeader { get; init; }
+
+      /// <summary>Of the player's own realm.</summary>
+      public bool IsOfPlayersRealm { get; init; }
+   }
+
+   /// <summary>What the game knows of the giver's husband.</summary>
+   public sealed class HusbandFacts
+   {
+      /// <summary>The giver has a spouse at all.</summary>
+      public bool Exists { get; init; }
+
+      /// <summary>Alive and in the world (not disabled).</summary>
+      public bool InTheWorld { get; init; }
+
+      /// <summary>Rules a realm.</summary>
+      public bool RulesARealm { get; init; }
+   }
+
+   /// <summary>Whether the giver's husband fits the tale. Pure.</summary>
+   public static class AuthoredHusbandPolicy
+   {
+      /// <summary>Null when he fits; otherwise why not, for cr.story_check.</summary>
+      public static string WhyNot(HusbandRequirement h, HusbandFacts f)
+      {
+         f ??= new HusbandFacts();
+         if (!f.Exists) return "the quest wants the giver's husband, and she has none";
+         if (!f.InTheWorld) return "the quest wants the giver's husband, and he is not in the world";
+         if (h?.RulesARealm == true && !f.RulesARealm) return "the quest wants a husband who rules a realm, and hers rules no realm";
+
+         return null;
+      }
    }
 
    /// <summary>Whether a character fits the giver a tale asks for. Pure.</summary>
@@ -51,6 +88,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          if (g.WithPlayer && !f.InPlayersParty) return "the quest wants the giver travelling in your party";
          if (g.NotPregnant && f.IsPregnant) return "they are with child, and the quest waits until they are not";
+         if (g.Married && !f.IsMarriedToAnother) return "the quest wants a giver married to someone other than you";
+         if (g.NotClanLeader && f.IsClanLeader) return "they lead their house, and the quest wants one who could leave it";
+         if (g.NotOfPlayersRealm && f.IsOfPlayersRealm) return "they are of your own realm";
 
          return null;
       }

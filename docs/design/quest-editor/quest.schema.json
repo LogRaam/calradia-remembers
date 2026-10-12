@@ -66,7 +66,11 @@
     ],
     "SpeakingRoles": [
       "{giver}",
-      "{rival}"
+      "{rival}",
+      "{husband}"
+    ],
+    "HusbandRoles": [
+      "spouse_of_giver"
     ],
     "GameBoundRoles": [
       "player"
@@ -208,6 +212,11 @@
           "$ref": "#/$defs/RivalRequirement",
           "x-kind": "object:RivalRequirement",
           "description": "A second lord the tale needs, bound as {rival}: the leader of another house of the giver's realm."
+        },
+        "husband": {
+          "$ref": "#/$defs/HusbandRequirement",
+          "x-kind": "object:HusbandRequirement",
+          "description": "The giver's husband, bound as {husband}. Needs requires.giver.married."
         },
         "player": {
           "$ref": "#/$defs/PlayerRequirement",
@@ -513,6 +522,24 @@
           "x-kind": "bool",
           "description": "On: never while the giver is with child.",
           "default": false
+        },
+        "married": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: the giver must be married, to someone other than the player (a tale that binds her husband needs it).",
+          "default": false
+        },
+        "not_clan_leader": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: never a giver who leads her house (she could not leave it).",
+          "default": false
+        },
+        "not_of_players_realm": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: never a giver of the player's own realm.",
+          "default": false
         }
       }
     },
@@ -576,6 +603,34 @@
           "x-kind": "string",
           "description": "\"{giver}\": the rival serves the same realm as the giver.",
           "default": "{giver}"
+        }
+      }
+    },
+    "HusbandRequirement": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The giver's husband, bound as {husband} (the Troy-inspired tale, Gabriel 12/10/2026).",
+      "properties": {
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "spouse_of_giver: the giver's own husband or wife.",
+          "enum": [
+            "spouse_of_giver"
+          ],
+          "x-closed-list": "HusbandRoles",
+          "default": "spouse_of_giver"
+        },
+        "rules_a_realm": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: the husband must rule a realm (he declares its wars himself). Off: any husband, who presses his ruler.",
+          "default": false
         }
       }
     },

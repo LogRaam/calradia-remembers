@@ -95,6 +95,41 @@ namespace CalradiaRemembers.Tests
          r.Problems.Should().Contain(p => p.Contains("required finding"));
       }
 
+      // The Troy-inspired tale (Gabriel, 12/10/2026): {husband} is the giver's husband. Binding him from a giver who need
+      // not be married would leave the role empty, so the loader asks for both.
+      [Test]
+      public void GIVEN_a_husband_required_of_a_giver_who_need_not_be_married_WHEN_loaded_THEN_the_quest_is_refused()
+      {
+         string json = Minimal.Replace(@"""binds"": {", @"""requires"": { ""husband"": { ""role"": ""spouse_of_giver"" } }, ""binds"": { ""husband"": ""her husband"",");
+
+         AuthoredQuestLoadResult r = AuthoredQuestLoader.Parse(json, "test.json");
+
+         r.Quests.Should().BeEmpty();
+         r.Problems.Should().Contain(p => p.Contains("married"));
+      }
+
+      // With a married giver, the husband binds and a choice may be said to him, like to the giver or the rival.
+      [Test]
+      public void GIVEN_a_married_giver_and_her_husband_WHEN_loaded_THEN_the_quest_loads_and_he_may_be_spoken_to()
+      {
+         string json = Minimal.Replace(@"""binds"": {", @"""requires"": { ""giver"": { ""married"": true }, ""husband"": { ""role"": ""spouse_of_giver"" } }, ""binds"": { ""husband"": ""her husband"",")
+                              .Replace("Go to {village}.", "Go to {village}, far from {husband}.");
+
+         AuthoredQuestLoadResult r = AuthoredQuestLoader.Parse(json, "test.json");
+
+         r.Quests.Should().ContainSingle();
+         AuthoredQuestLoader.SpeakingRoles.Should().Contain("{husband}");
+      }
+
+      // A role the game cannot bind is refused by name, as for the rival.
+      [Test]
+      public void GIVEN_a_husband_of_an_unknown_kind_WHEN_loaded_THEN_the_quest_is_refused()
+      {
+         string json = Minimal.Replace(@"""binds"": {", @"""requires"": { ""giver"": { ""married"": true }, ""husband"": { ""role"": ""lover"" } }, ""binds"": {");
+
+         AuthoredQuestLoader.Parse(json, "test.json").Problems.Should().Contain(p => p.Contains("lover"));
+      }
+
       // Two quests with one id would be one quest played twice: the second is refused.
       [Test]
       public void GIVEN_two_files_with_the_same_id_WHEN_loaded_together_THEN_the_second_is_refused()

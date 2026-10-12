@@ -78,6 +78,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("A second lord the tale needs, bound as {rival}: the leader of another house of the giver's realm.")]
       [JsonProperty("rival")] public RivalRequirement Rival { get; set; }
 
+      /// <summary>The giver's husband (the Troy-inspired tale, Gabriel 12/10/2026); needs requires.giver.married.</summary>
+      [QuestField("The giver's husband, bound as {husband}. Needs requires.giver.married.")]
+      [JsonProperty("husband")] public HusbandRequirement Husband { get; set; }
+
       [QuestField("What the player must be.")]
       [JsonProperty("player")] public PlayerRequirement Player { get; set; } = new();
 
@@ -144,6 +148,27 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>Gabriel (10/10/2026): "il faut aussi que la femme ne soit pas deja enceinte".</summary>
       [QuestField("On: never while the giver is with child.")]
       [JsonProperty("not_pregnant")] public bool NotPregnant { get; set; }
+
+      /// <summary>The Troy-inspired tale (Gabriel, 12/10/2026): a giver with a husband to leave; see AuthoredGiverPolicy.</summary>
+      [QuestField("On: the giver must be married, to someone other than the player (a tale that binds her husband needs it).")]
+      [JsonProperty("married")] public bool Married { get; set; }
+
+      [QuestField("On: never a giver who leads her house (she could not leave it).")]
+      [JsonProperty("not_clan_leader")] public bool NotClanLeader { get; set; }
+
+      /// <summary>Gabriel (12/10/2026): "jamais par la Reine de mon royaume".</summary>
+      [QuestField("On: never a giver of the player's own realm.")]
+      [JsonProperty("not_of_players_realm")] public bool NotOfPlayersRealm { get; set; }
+   }
+
+   /// <summary>The giver's husband, bound as {husband} (the Troy-inspired tale, Gabriel 12/10/2026).</summary>
+   public sealed class HusbandRequirement
+   {
+      [QuestField("spouse_of_giver: the giver's own husband or wife.", ClosedList = nameof(AuthoredQuestLoader.HusbandRoles))]
+      [JsonProperty("role")] public string Role { get; set; } = "spouse_of_giver";
+
+      [QuestField("On: the husband must rule a realm (he declares its wars himself). Off: any husband, who presses his ruler.")]
+      [JsonProperty("rules_a_realm")] public bool RulesARealm { get; set; }
    }
 
    public sealed class PlaceRequirement

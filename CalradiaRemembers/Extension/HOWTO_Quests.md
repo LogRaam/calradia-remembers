@@ -138,6 +138,10 @@ The rules around every offer:
 | `giver.gender` | `female` or `male`: the giver must be a woman, or a man. Omit it for either. A tale for "the player's wife" is `"role": "spouse", "gender": "female"`, whatever the player's own sex. |
 | `giver.with_player` | `true`: the giver must be travelling in the player's own party. |
 | `giver.not_pregnant` | `true`: never while the giver is with child. |
+| `giver.married` | `true`: the giver is married, to someone other than the player. Needed by `husband`. |
+| `giver.not_clan_leader` | `true`: never a giver who leads her house (she could not leave it). |
+| `giver.not_of_players_realm` | `true`: never a giver of the player's own realm. |
+| `husband` | The giver's own husband (or wife), bound as `{husband}`: `"husband": { "role": "spouse_of_giver" }`. He must be alive and in the world. `"rules_a_realm": true` asks that he rule a realm. A choice may be `said` to `{husband}`, as to `{giver}` or `{rival}`. |
 | `village.near` | `"forest"`, or omit it. |
 | `village.culture` | The village's culture, written the same way. A tale with `"holds": "{village}"` then looks among the giver's villages for one of that culture. |
 | `rival` | A second lord, bound as `{rival}`: the head of another house of the giver's own realm, someone the player can find. Never the giver's house or the player's. A giver with no realm has no rival, so the tale is not offered by them. |

@@ -475,7 +475,11 @@ input[type="number"] { max-width: 160px; }
     ],
     "SpeakingRoles": [
       "{giver}",
-      "{rival}"
+      "{rival}",
+      "{husband}"
+    ],
+    "HusbandRoles": [
+      "spouse_of_giver"
     ],
     "GameBoundRoles": [
       "player"
@@ -617,6 +621,11 @@ input[type="number"] { max-width: 160px; }
           "$ref": "#/$defs/RivalRequirement",
           "x-kind": "object:RivalRequirement",
           "description": "A second lord the tale needs, bound as {rival}: the leader of another house of the giver's realm."
+        },
+        "husband": {
+          "$ref": "#/$defs/HusbandRequirement",
+          "x-kind": "object:HusbandRequirement",
+          "description": "The giver's husband, bound as {husband}. Needs requires.giver.married."
         },
         "player": {
           "$ref": "#/$defs/PlayerRequirement",
@@ -922,6 +931,24 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "bool",
           "description": "On: never while the giver is with child.",
           "default": false
+        },
+        "married": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: the giver must be married, to someone other than the player (a tale that binds her husband needs it).",
+          "default": false
+        },
+        "not_clan_leader": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: never a giver who leads her house (she could not leave it).",
+          "default": false
+        },
+        "not_of_players_realm": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: never a giver of the player's own realm.",
+          "default": false
         }
       }
     },
@@ -985,6 +1012,34 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "string",
           "description": "\"{giver}\": the rival serves the same realm as the giver.",
           "default": "{giver}"
+        }
+      }
+    },
+    "HusbandRequirement": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The giver's husband, bound as {husband} (the Troy-inspired tale, Gabriel 12/10/2026).",
+      "properties": {
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "spouse_of_giver: the giver's own husband or wife.",
+          "enum": [
+            "spouse_of_giver"
+          ],
+          "x-closed-list": "HusbandRoles",
+          "default": "spouse_of_giver"
+        },
+        "rules_a_realm": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: the husband must rule a realm (he declares its wars himself). Off: any husband, who presses his ruler.",
+          "default": false
         }
       }
     },
@@ -2722,6 +2777,12 @@ input[type="number"] { max-width: 160px; }
     var rival = q.requires == null ? null : q.requires.rival;
     if (rival != null && !has(LISTS.RivalRoles, rival.role))
       blocking.push("requires.rival asks for a '" + (rival.role == null ? '' : rival.role) + "', but the game binds a rival only as a \"clan_leader\" of the giver's realm.");
+    // The giver's husband (the Troy-inspired tale, 12/10/2026): a role the game binds, from a married giver.
+    var husband = q.requires == null ? null : q.requires.husband;
+    if (husband != null && !has(LISTS.HusbandRoles || [], husband.role))
+      blocking.push("requires.husband asks for a '" + (husband.role == null ? '' : husband.role) + "', but the game binds a husband only as \"spouse_of_giver\".");
+    if (husband != null && !(q.requires.giver != null && q.requires.giver.married === true))
+      blocking.push("requires.husband binds the giver's husband, so requires.giver.married must be true.");
     if (rival != null && rival.same_realm_as !== '{giver}')
       blocking.push("requires.rival is of the same realm as '" + (rival.same_realm_as == null ? '' : rival.same_realm_as) + "', but the game binds a rival only in the giver's realm (\"{giver}\").");
   }
@@ -2807,6 +2868,8 @@ input[type="number"] { max-width: 160px; }
           blocking.push(choice + ': "said" needs "to" (a role, "{giver}") and "meaning" (what the player\'s words must mean).');
         else if (!has(LISTS.SpeakingRoles, to.trim()))
           blocking.push(choice + " is said to '" + to + "', but a choice can be said only to " + LISTS.SpeakingRoles.join(' or ') + '.');
+        else if (to.trim() === '{husband}' && (q.requires == null || q.requires.husband == null))
+          blocking.push(choice + ' is said to {husband}, but no husband is bound: add "husband" to "requires".');
         else if (to.trim() === '{rival}' && (q.requires == null || q.requires.rival == null))
           blocking.push(choice + ' is said to {rival}, but no rival is bound: add "rival" to "requires".');
       } else if (!isScene)
@@ -3874,8 +3937,9 @@ input[type="number"] { max-width: 160px; }
   root.TaleEditorFields = {
     AuthoredQuest: ['id', 'title', 'author', 'unique', 'repeat_cooldown_days', 'weight', 'requires', 'on_map', 'binds', 'stages', 'reward', 'endings', 'failure'],
     AuthoredMapTrigger: ['still_hours', 'by_day', 'in_givers_lands', 'chance_per_day', 'invitation', 'accept', 'decline'],
-    AuthoredRequires: ['giver', 'village', 'rival', 'player', 'content'],
-    GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player', 'culture', 'gender', 'with_player', 'not_pregnant'],
+    AuthoredRequires: ['giver', 'village', 'rival', 'husband', 'player', 'content'],
+    GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player', 'culture', 'gender', 'with_player', 'not_pregnant', 'married', 'not_clan_leader', 'not_of_players_realm'],
+    HusbandRequirement: ['role', 'rules_a_realm'],
     PlaceRequirement: ['type', 'near', 'culture'],
     RivalRequirement: ['role', 'same_realm_as'],
     PlayerRequirement: ['min_clan_tier'],
@@ -4273,6 +4337,7 @@ input[type="number"] { max-width: 160px; }
     if (/^the reward is never reached/.test(m)) { p.key = 'reward'; return p; }
     if (/^\{\w+\} is used but no role binds it/.test(m)) { p.key = 'tale/binds'; return p; }
     if (/^requires\.rival/.test(m)) { p.key = 'tale/requires.rival'; return p; }
+    if (/^requires\.husband/.test(m)) { p.key = 'tale/requires.husband'; return p; }
     if ((x = /^consequence '([^']*)'/.exec(m))) { p.key = outcomeWith(function (c) { return (c.type || '') === x[1]; }) + '/consequences'; return p; }
     if ((x = /^flag '([^']*)' is tested/.exec(m))) { p.key = flagUse(x[1]); return p; }
     if (/^a flag test is empty/.test(m)) { p.key = flagUse(''); return p; }
@@ -4713,7 +4778,10 @@ input[type="number"] { max-width: 160px; }
       flagsField('tale/requires.giver.culture', 'Of the culture', 'GiverRequirement', 'culture', giver, {placeholder: 'any (battania, sturgia)'}),
       selectField('tale/requires.giver.gender', 'A woman or a man', 'GiverRequirement', 'gender', giver, list('GiverGenders'), {empty: 'either'}),
       boolField('tale/requires.giver.with_player', "Travelling in the player's party", 'GiverRequirement', 'with_player', giver),
-      boolField('tale/requires.giver.not_pregnant', 'Never while with child', 'GiverRequirement', 'not_pregnant', giver))));
+      boolField('tale/requires.giver.not_pregnant', 'Never while with child', 'GiverRequirement', 'not_pregnant', giver),
+      boolField('tale/requires.giver.married', 'Married, not to the player', 'GiverRequirement', 'married', giver),
+      boolField('tale/requires.giver.not_clan_leader', 'Never one who leads her house', 'GiverRequirement', 'not_clan_leader', giver),
+      boolField('tale/requires.giver.not_of_players_realm', "Never of the player's own realm", 'GiverRequirement', 'not_of_players_realm', giver))));
 
     // A tale that begins by itself on the map (11/10/2026): someone travelling with the player, by a popup.
     var mapOn = t.on_map && typeof t.on_map === 'object';
@@ -4754,6 +4822,18 @@ input[type="number"] { max-width: 160px; }
         selectField('tale/requires.rival.role', 'Role', 'RivalRequirement', 'role', r.rival, list('RivalRoles')),
         roleField('tale/requires.rival.same_realm_as', 'Same realm as', 'RivalRequirement', 'same_realm_as', r.rival)) : null
     ], {dataKey: 'tale/requires.rival'}));
+
+    // The giver's husband (the Troy-inspired tale, 12/10/2026), bound as {husband}.
+    var husbandOn = r.husband && typeof r.husband === 'object';
+    ed.appendChild(section('Her husband', help('AuthoredRequires', 'husband'), [
+      h('label.check', {style: 'margin-bottom:12px'}, h('input', {type: 'checkbox', checked: husbandOn, on: {change: function (e) {
+        var on = e.target.checked;
+        edit('tale/requires.husband', function () { if (on) r.husband = {role: 'spouse_of_giver'}; else delete r.husband; }, true);
+      }}}), "The tale needs the giver's husband, bound as {husband}"),
+      husbandOn ? h('div.grid',
+        selectField('tale/requires.husband.role', 'Role', 'HusbandRequirement', 'role', r.husband, list('HusbandRoles')),
+        boolField('tale/requires.husband.rules_a_realm', 'He rules a realm', 'HusbandRequirement', 'rules_a_realm', r.husband)) : null
+    ], {dataKey: 'tale/requires.husband'}));
 
     ed.appendChild(section('The player', help('AuthoredRequires', 'player'), h('div.grid',
       numberField('tale/requires.player.min_clan_tier', 'Least clan tier', 'PlayerRequirement', 'min_clan_tier', lazy(r, 'player'), {min: 0, max: 6}))));

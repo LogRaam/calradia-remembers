@@ -93,5 +93,62 @@ namespace CalradiaRemembers.Tests
 
          AuthoredGiverPolicy.WhyNot(new GiverRequirement {Role = "spouse"}, husband).Should().BeNull();
       }
+
+      // ── A married giver (the Troy-inspired tale, Gabriel 12/10/2026: docs/design/tale-scenario-bridge) ──
+
+      private static GiverRequirement Queen() => new() {Role = "lord", Gender = "female", Married = true, NotClanLeader = true, NotOfPlayersRealm = true};
+
+      private static GiverFacts Lady(bool married = true, bool leadsHouse = false, bool ofPlayersRealm = false)
+         => new() {IsLord = true, IsFemale = true, IsMarriedToAnother = married, IsClanLeader = leadsHouse, IsOfPlayersRealm = ofPlayersRealm};
+
+      // The tale is about leaving a husband: a married lady of another realm, who does not lead her house, may give it.
+      [Test]
+      public void GIVEN_a_married_lady_of_another_realm_WHEN_the_queens_tale_asks_THEN_she_may_give_it()
+      {
+         AuthoredGiverPolicy.WhyNot(Queen(), Lady()).Should().BeNull();
+      }
+
+      // No husband, no tale: the elopement and the war it brings need someone she leaves.
+      [Test]
+      public void GIVEN_an_unmarried_lady_WHEN_the_queens_tale_asks_THEN_she_may_not()
+      {
+         AuthoredGiverPolicy.WhyNot(Queen(), Lady(married: false)).Should().Contain("married");
+      }
+
+      // A woman who leads her house cannot leave it (Stolen Love's own limit: such a divorce is never completed).
+      [Test]
+      public void GIVEN_a_lady_who_leads_her_house_WHEN_the_queens_tale_asks_THEN_she_may_not()
+      {
+         AuthoredGiverPolicy.WhyNot(Queen(), Lady(leadsHouse: true)).Should().Contain("house");
+      }
+
+      // Gabriel (12/10/2026): "jamais par la Reine de mon royaume". A war against one's own realm cannot be.
+      [Test]
+      public void GIVEN_a_lady_of_the_players_own_realm_WHEN_the_queens_tale_asks_THEN_she_may_not()
+      {
+         AuthoredGiverPolicy.WhyNot(Queen(), Lady(ofPlayersRealm: true)).Should().Contain("your own realm");
+      }
+
+      // ── Her husband ──
+
+      // The tale's war is declared by a husband who rules; when the tale asks for one, a husband who rules no realm fails it.
+      [Test]
+      public void GIVEN_a_tale_wanting_a_ruling_husband_WHEN_he_rules_no_realm_THEN_the_tale_is_not_offered()
+      {
+         var wants = new HusbandRequirement {RulesARealm = true};
+
+         AuthoredHusbandPolicy.WhyNot(wants, new HusbandFacts {Exists = true, InTheWorld = true, RulesARealm = false}).Should().Contain("rules no realm");
+         AuthoredHusbandPolicy.WhyNot(wants, new HusbandFacts {Exists = true, InTheWorld = true, RulesARealm = true}).Should().BeNull();
+      }
+
+      // Gabriel (12/10/2026): a husband who does not rule still holds the grudge and presses his king, so by default any
+      // husband will do; but he must be alive and in the world, or nobody is left to answer the insult.
+      [Test]
+      public void GIVEN_a_husband_out_of_the_world_WHEN_the_tale_asks_THEN_it_is_not_offered()
+      {
+         AuthoredHusbandPolicy.WhyNot(new HusbandRequirement(), new HusbandFacts {Exists = true, InTheWorld = true}).Should().BeNull();
+         AuthoredHusbandPolicy.WhyNot(new HusbandRequirement(), new HusbandFacts {Exists = true, InTheWorld = false}).Should().NotBeNull();
+         AuthoredHusbandPolicy.WhyNot(new HusbandRequirement(), new HusbandFacts()).Should().NotBeNull();
+      }
    }
 }

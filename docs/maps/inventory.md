@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 481 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1063 types in 28 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1066 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 258 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1651,7 +1651,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (74)
+### CalradiaRemembers.Logic.AuthoredQuests (77)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1672,6 +1672,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredGiverPolicy` | public static class | Whether a character fits the giver a tale asks for. |
 | `AuthoredHazard` | public class | (no summary) |
 | `AuthoredHazardEffect` | public class | (no summary) |
+| `AuthoredHusbandPolicy` | public static class | Whether the giver's husband fits the tale. |
 | `AuthoredLine` | public class | A line an author may write plain ("text") or under flags ({"text": "...", "if": "flag"}): it reaches the model only while its flags hold. |
 | `AuthoredLineConverter` | public class | A line: "text", or {"text": "...", "if": ...}. Written back the shortest way that keeps it. |
 | `AuthoredLinesConverter` | public class | A canvas: one line, or a list of lines (each said only while its flags hold). |
@@ -1706,6 +1707,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ConceptionMother` | public enum | Which of the two would carry the child. |
 | `GiverFacts` | public class | What the game knows of a character who might give a tale. |
 | `GiverRequirement` | public class | (no summary) |
+| `HusbandFacts` | public class | What the game knows of the giver's husband. |
+| `HusbandRequirement` | public class | The giver's husband, bound as {husband} (the Troy-inspired tale, Gabriel 12/10/2026). |
 | `MapTriggerFacts` | public class | Where the player's party is now, for a tale that begins on the map. |
 | `OneOrManyConverter` | public class | A list of flag names: "name", or ["a", "!b"]. |
 | `PlaceRequirement` | public class | (no summary) |

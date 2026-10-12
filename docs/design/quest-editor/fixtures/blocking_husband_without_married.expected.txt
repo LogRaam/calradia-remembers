@@ -1,0 +1,1 @@
+blocking_husband_without_married.json: quest 'fx_tale': requires.husband binds the giver's husband, so requires.giver.married must be true. The quest is not loaded.
