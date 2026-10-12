@@ -931,6 +931,22 @@ namespace CalradiaRemembers.Quests
          Apply(q, lost.Step);
       }
 
+      /// <summary>Self-test seam: a tale's "elope" or "return_spouse" between these two, through the real handling.</summary>
+      internal void DebugElopement(string consequenceType, Hero her, Hero him)
+      {
+         AuthoredQuestRun keep = _run;
+         try
+         {
+            _run = new AuthoredQuestRun {QuestId = "cr_selftest_elopement"};
+            _run.BoundIds["giver"] = her?.StringId;
+            _run.BoundIds["husband"] = him?.StringId;
+            var c = new AuthoredConsequence {Type = consequenceType};
+            if (consequenceType == "elope") Elope(c);
+            else ReturnSpouse(c);
+         }
+         finally { _run = keep; }
+      }
+
       /// <summary>Self-test seam: the player lost to the tale's own band, through the real handling after the battle.</summary>
       internal void DebugPlayerLostToBand()
       {
@@ -1280,6 +1296,10 @@ namespace CalradiaRemembers.Quests
                }
                else if (c.Type == "conception")
                   Conceive(c);
+               else if (c.Type == "elope")
+                  Elope(c);
+               else if (c.Type == "return_spouse")
+                  ReturnSpouse(c);
                else if (c.Type == "world_event")
                   WorldEventStore.Instance?.Record(new WorldEvent {
                      Type = WorldEventType.Other, Day = (int) CampaignTime.Now.ToDays, Magnitude = c.Magnitude,
@@ -1289,6 +1309,74 @@ namespace CalradiaRemembers.Quests
             }
             catch (Exception ex) { ModLog.Error($"[TALE] consequence '{c?.Type}' of '{q.Id}' failed: {ex.GetType().Name}: {ex.Message}"); }
          }
+      }
+
+      /// <summary>
+      ///   The Troy-inspired tale (Gabriel, 12/10/2026): she leaves her husband with the player. Her marriage ends through
+      ///   the game's own dissolution (she goes back to her own house, single), she rides in the player's party as a guest
+      ///   (the council hostages' way), may later be married as a Stolen Love divorcee is, and her husband holds a
+      ///   StolenSpouse grudge sized as Stolen Love's. Nothing moves unless all of it can (TaleElopementPolicy).
+      /// </summary>
+      private void Elope(AuthoredConsequence c)
+      {
+         Hero her = Find(AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c.Who) ? "{giver}" : c.Who));
+         Hero him = Find(AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c.Spouse) ? "{husband}" : c.Spouse));
+         var facts = new ElopementFacts {
+            SheIsMarriedToHim = her != null && him != null && her.Spouse == him && him.Spouse == her,
+            BothInTheWorld = her != null && him != null && Mapping.HeroPresence.IsInTheWorld(her) && Mapping.HeroPresence.IsInTheWorld(him),
+            EitherIsPrisoner = her?.IsPrisoner == true || him?.IsPrisoner == true, SheIsPregnant = her?.IsPregnant == true,
+            SheLeadsHerHouse = her?.Clan != null && her.Clan.Leader == her,
+            SheLeadsAParty = her?.PartyBelongedTo != null && her.PartyBelongedTo.LeaderHero == her, SheGoverns = her?.GovernorOf != null
+         };
+         string whyNot = TaleElopementPolicy.WhyNotElope(facts);
+         if (whyNot != null)
+         {
+            ModLog.Info($"[TALE] '{_run?.QuestId}': {her?.Name} does not leave {him?.Name}: {whyNot}.");
+            return;
+         }
+
+         if (TaleElopementPolicy.MustReleasePost(facts)) Marriage.MarriageDissolutionService.ReleaseStructuralRoles(her);
+         if (!Marriage.MarriageDissolutionService.TryDissolve(her, him, out string reason))
+         {
+            ModLog.Info($"[TALE] '{_run?.QuestId}': {her.Name}'s marriage to {him.Name} could not end ({reason}); she stays.");
+            return;
+         }
+
+         var today = (int) CampaignTime.Now.ToDays;
+         if (MobileParty.MainParty != null) TaleWorlds.CampaignSystem.Actions.AddHeroToPartyAction.Apply(her, MobileParty.MainParty, false);
+         int magnitude = Logic.StolenSpouseGrudgePolicy.Magnitude(him.GetRelation(her), him.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Mercy));
+         Grudges.GrudgeBehavior.Instance?.TryPlant(him, Hero.MainHero, Logic.Grudges.GrudgeSource.StolenSpouse,
+            $"the player took {her.Name}, my wife, from my own hall", magnitude, knownToPlayer: true, today: today);
+         Marriage.NpcMarriageEstrangementBehavior.Instance?.RecordElopement(her.StringId, him.StringId, today);
+         ModLog.Info($"[TALE] '{_run?.QuestId}': {her.Name} has left {him.Name} and rides with the player; {him.Name} holds a grudge ({magnitude}).");
+      }
+
+      /// <summary>
+      ///   The Troy-inspired tale (Gabriel, 12/10/2026: "Le retour de la Reine a son mari est la condition de paix"): she
+      ///   goes back to her husband. The game's own marriage weds them again, and she leaves the player's party for his, or
+      ///   for his house's home. Not when either is gone, captive, or wed to someone else (TaleElopementPolicy).
+      /// </summary>
+      private void ReturnSpouse(AuthoredConsequence c)
+      {
+         Hero her = Find(AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c.Who) ? "{giver}" : c.Who));
+         Hero him = Find(AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c.Spouse) ? "{husband}" : c.Spouse));
+         string whyNot = TaleElopementPolicy.WhyNotReturn(new ReturnFacts {
+            BothInTheWorld = her != null && him != null && Mapping.HeroPresence.IsInTheWorld(her) && Mapping.HeroPresence.IsInTheWorld(him),
+            SheIsSingle = her != null && her.Spouse == null, HeIsSingle = him != null && him.Spouse == null,
+            EitherIsPrisoner = her?.IsPrisoner == true || him?.IsPrisoner == true
+         });
+         if (whyNot != null)
+         {
+            ModLog.Info($"[TALE] '{_run?.QuestId}': {her?.Name} is not returned to {him?.Name}: {whyNot}.");
+            return;
+         }
+
+         TaleWorlds.CampaignSystem.Actions.MarriageAction.Apply(her, him, false);
+         if (him.PartyBelongedTo != null && him.PartyBelongedTo.LeaderHero == him)
+            TaleWorlds.CampaignSystem.Actions.AddHeroToPartyAction.Apply(her, him.PartyBelongedTo, false);
+         else if (him.Clan?.HomeSettlement != null)
+            TaleWorlds.CampaignSystem.Actions.TeleportHeroAction.ApplyImmediateTeleportToSettlement(her, him.Clan.HomeSettlement);
+         ModLog.Info($"[TALE] '{_run?.QuestId}': {her.Name} has gone back to {him.Name}.");
       }
 
       /// <summary>

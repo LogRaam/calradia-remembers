@@ -316,6 +316,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
+         new SelfTest("tale_elopement", Severity.Heavy, "The Troy-inspired tale (Gabriel, 12/10/2026: she leaves with the player as a guest who may be married; her return to her husband is the condition of peace). On a real married lady of another realm: 'elope' ends her marriage, puts her in the player's party, plants her husband's StolenSpouse grudge and marks her free to marry the player; 'return_spouse' weds them again and takes her out of the party. Restores her house, takes back the grudge and the marker.", TestTaleElopement),
          new SelfTest("tale_husband", Severity.Light, "The Troy-inspired tale (Gabriel, 12/10/2026: a queen leaves with the player, her husband answers). Loads a made-up tale asking for a married giver of another realm who does not lead her house, and her husband as {husband}; binds it around a real such lady and expects her own husband bound, then around an unmarried lady and expects her refused for not being married. The tale is unloaded; nothing is offered.", TestTaleHusband),
          new SelfTest("prompt_profile", Severity.Light, "The Prompt Composer (Gabriel, 11/10/2026: \"un param MCM pourrait designer l'ordonnanceur a utiliser\"; \"mise en page par type\"). Uses a made-up profile whose default layout turns every free section off and which rewords the role anchor and (in vain) the sealed format contract, builds a real lord's prompt through the real context and builder, and asserts it is shorter than stock, carries the reworded anchor with his name filled in, and keeps the sealed contract word for word; then puts the player's real pick back and asserts the profile in use is the one it was. The made-up profile is never written to disk.", TestPromptProfile),
          new SelfTest("tutorial_gate", Severity.Light, "Lordfadooboo and crazyblox (Nexus, 12/10/2026): a new Story Mode game hung on the training field's loading screen; the elder brother in the party could ask for a private word as its mission opened. Asserts CR finds the game's own tutorial flag (MainStoryLine.IsPlayerInteractionRestricted) when StoryMode is loaded, and that the one initiative gate refuses exactly when the game restricts interaction. Changes nothing.", TestTutorialGate),
@@ -10091,6 +10092,51 @@ namespace CalradiaRemembers.Diagnostics
       ///   fkasad (12/10/2026): envoys about one prisoner came from every lord of the realm in turn, each on his own wait,
       ///   and a refusal stopped nobody. The real bookkeeping of PrisonerEnvoyBehavior, on a made-up captive.
       /// </summary>
+      private static string TestTaleElopement(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_elopement");
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null || MobileParty.MainParty == null, "authored quests are not active, or no player party")) return t.Line();
+
+         IFaction mine = Hero.MainHero?.MapFaction;
+         Hero her = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.IsFemale && !h.IsChild && !h.IsPregnant && !h.IsPrisoner
+                                                           && h.Spouse != null && h.Spouse != Hero.MainHero && !h.Spouse.IsPrisoner
+                                                           && Mapping.HeroPresence.IsInTheWorld(h) && Mapping.HeroPresence.IsInTheWorld(h.Spouse)
+                                                           && h.Clan?.Leader != h && h.GovernorOf == null && (h.PartyBelongedTo == null || h.PartyBelongedTo.LeaderHero != h)
+                                                           && h.MapFaction != null && h.MapFaction != mine);
+         if (t.Skip(her == null, "no married lady of another realm free to leave")) return t.Line();
+
+         Hero him = her.Spouse;
+         Clan herClan = her.Clan;
+         var grudgesBefore = new HashSet<Logic.Grudges.Grudge>((IEnumerable<Logic.Grudges.Grudge>) Grudges.GrudgeBehavior.Instance?.GrudgesFor(him.StringId) ?? new List<Logic.Grudges.Grudge>());
+         try
+         {
+            b.DebugElopement("elope", her, him);
+            t.Note($"{her.Name} and {him.Name}");
+            t.Expect("herMarriageEnded", her.Spouse == null && him.Spouse == null, true);
+            t.Expect("sheRidesWithThePlayer", her.PartyBelongedTo == MobileParty.MainParty, true);
+            t.Expect("herHusbandHoldsAGrudge", ((IEnumerable<Logic.Grudges.Grudge>) Grudges.GrudgeBehavior.Instance?.GrudgesFor(him.StringId) ?? new List<Logic.Grudges.Grudge>())
+               .Any(g => !grudgesBefore.Contains(g) && g.Source == Logic.Grudges.GrudgeSource.StolenSpouse), true);
+            t.Expect("sheMayMarryThePlayer", Marriage.NpcMarriageEstrangementBehavior.Instance?.HasConcludedFor(her.StringId) == true, true);
+
+            b.DebugElopement("return_spouse", her, him);
+            t.Expect("sheIsHisWifeAgain", her.Spouse == him && him.Spouse == her, true);
+            t.Expect("sheLeftThePlayersParty", her.PartyBelongedTo != MobileParty.MainParty, true);
+         }
+         finally
+         {
+            if (her.Spouse != him && her.Spouse == null && him.Spouse == null) TaleWorlds.CampaignSystem.Actions.MarriageAction.Apply(her, him, false);
+            if (her.PartyBelongedTo == MobileParty.MainParty && him.Clan?.HomeSettlement != null)
+               TaleWorlds.CampaignSystem.Actions.TeleportHeroAction.ApplyImmediateTeleportToSettlement(her, him.Clan.HomeSettlement);
+            if (herClan != null && her.Clan != herClan) her.Clan = herClan;
+            foreach (Logic.Grudges.Grudge g in ((IEnumerable<Logic.Grudges.Grudge>) Grudges.GrudgeBehavior.Instance?.GrudgesFor(him.StringId) ?? new List<Logic.Grudges.Grudge>()).Where(g => !grudgesBefore.Contains(g)).ToList())
+               Grudges.GrudgeBehavior.Instance?.RemoveGrudge(g);
+            Marriage.NpcMarriageEstrangementBehavior.Instance?.DebugClear(her.StringId);
+         }
+
+         return t.Line();
+      }
+
       private static string TestTaleHusband(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("tale_husband");

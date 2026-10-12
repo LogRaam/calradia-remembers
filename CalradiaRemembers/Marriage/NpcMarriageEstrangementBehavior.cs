@@ -84,6 +84,26 @@ namespace CalradiaRemembers.Marriage
       /// <summary>True once this NPC's stolen-love arc has concluded (the divorce fired, or could not and was given up); read by the marry/sabotage exits.</summary>
       public bool HasConcludedFor(string npcId) => Find(npcId)?.DivorcedDay.HasValue == true;
 
+      /// <summary>
+      ///   A written tale's elopement (the Troy-inspired tale, Gabriel 12/10/2026: "Invitee et epousable"): she has left
+      ///   her spouse for the player, so a marriage to the player later is the willing match Stolen Love opens (no family
+      ///   blessing, no forced-marriage grudge). Recorded as a concluded arc, the marker every exit already reads.
+      /// </summary>
+      public void RecordElopement(string npcId, string spouseId, int today)
+      {
+         if (string.IsNullOrEmpty(npcId)) return;
+
+         StolenLoveEstrangement e = Find(npcId);
+         if (e == null)
+         {
+            e = new StolenLoveEstrangement {NpcId = npcId, SpouseId = spouseId, StartDay = today};
+            _active.Add(e);
+         }
+
+         e.DeclaredDay ??= today;
+         e.DivorcedDay = today;
+      }
+
       // ── Debug seam (cr.stolen_love + the self-test): drive the arc without waiting weeks ──────────────
 
       /// <summary>Test/dev: seed (or report an existing) estrangement for a third-party-married NPC, bypassing the affair/seducibility gate. Returns a short status line.</summary>

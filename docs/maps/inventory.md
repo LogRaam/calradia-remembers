@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 481 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1066 types in 28 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1069 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 258 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1651,7 +1651,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (77)
+### CalradiaRemembers.Logic.AuthoredQuests (80)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1705,6 +1705,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredWay` | public class | One way out of the current stage: its own objective (no choice), or an open choice. |
 | `ConceptionFacts` | public class | The two who were together, for a tale's conception. |
 | `ConceptionMother` | public enum | Which of the two would carry the child. |
+| `ElopementFacts` | public class | What decides whether a married lady can leave her husband with the player. |
 | `GiverFacts` | public class | What the game knows of a character who might give a tale. |
 | `GiverRequirement` | public class | (no summary) |
 | `HusbandFacts` | public class | What the game knows of the giver's husband. |
@@ -1714,6 +1715,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlaceRequirement` | public class | (no summary) |
 | `PlayerRequirement` | public class | (no summary) |
 | `QuestFieldAttribute` | public class | What an author is told about one field of a quest file, in the guide's words. |
+| `ReturnFacts` | public class | What decides whether she can be returned to her husband. |
 | `RivalCandidate` | public class | One lord who might be bound as the {rival}, as the engine reads him. |
 | `RivalRequirement` | public class | The {rival}: a clan leader of the giver's realm who is not the giver (branching tales, 04/10/2026). |
 | `SaidChoiceId` | public static class | Reads back the id of a choice by words the interpreter reported. |
@@ -1727,6 +1729,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneSurroundingsFacts` | public class | What the game knows of a scene's surroundings. |
 | `SceneSurroundingsText` | public static class | The narrator's block about the scene's surroundings. |
 | `TaleConceptionPolicy` | public static class | Who would carry a child from a tale's ending, and on what chance. |
+| `TaleElopementPolicy` | public static class | When a tale's elopement and return can really happen. |
 | `TaleGrudge` | public class | A grudge a tale's ending plants between two of its heroes. |
 | `TaleJournalFacts` | public class | One open journal entry of a tale, against the tale the game is running. |
 | `TaleJournalPolicy` | public static class | tashmetu (07/10/2026): "a finished tale stays listed twice, under Old Quests and still under Active Quests". |

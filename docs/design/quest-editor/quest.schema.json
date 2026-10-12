@@ -42,7 +42,9 @@
       "memory",
       "world_event",
       "grudge",
-      "conception"
+      "conception",
+      "elope",
+      "return_spouse"
     ],
     "GiverRoles": [
       "lord",
@@ -891,12 +893,14 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "memory, world_event, grudge or conception.",
+          "description": "memory, world_event, grudge, conception, elope (she leaves her husband with the player) or return_spouse (she goes back to him).",
           "enum": [
             "memory",
             "world_event",
             "grudge",
-            "conception"
+            "conception",
+            "elope",
+            "return_spouse"
           ],
           "x-closed-list": "ConsequenceTypes"
         },
@@ -906,7 +910,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty)."
+          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty). elope, return_spouse: the lady who leaves or goes back ({giver} when empty)."
         },
         "text": {
           "type": [
@@ -945,6 +949,14 @@
           ],
           "x-kind": "string",
           "description": "grudge: who it is held against, a role (Gabriel, 06/10/2026: a tale may set two lords at odds)."
+        },
+        "spouse": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "elope: the husband she leaves; return_spouse: the husband she goes back to. A role, {husband} when empty."
         },
         "chance": {
           "type": "number",

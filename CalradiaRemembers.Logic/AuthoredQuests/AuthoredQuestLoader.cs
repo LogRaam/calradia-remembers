@@ -46,7 +46,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public static readonly IReadOnlyList<string> HazardEffects = new[] {"injure", "alert", "lose_time"};
 
       /// <summary>The consequences the game carries out.</summary>
-      public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event", "grudge", "conception"};
+      public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event", "grudge", "conception", "elope", "return_spouse"};
 
       /// <summary>Who may give a tale (anything else is read as "any").</summary>
       public static readonly IReadOnlyList<string> GiverRoles = new[] {"lord", "notable", "gang_leader", "spouse", "any"};
@@ -191,6 +191,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          {
             if (c != null && !ConsequenceTypes.Contains(c.Type))
                cosmetic.Add($"consequence '{c.Type}' is not carried out yet (known: {string.Join(", ", ConsequenceTypes)}); it is skipped.");
+            // The Troy-inspired tale (Gabriel, 12/10/2026): an elopement or a return names a husband the game must bind.
+            if (c != null && (c.Type == "elope" || c.Type == "return_spouse") && (string.IsNullOrWhiteSpace(c.Spouse) || c.Spouse.Trim() == "{husband}")
+                && q.Requires?.Husband == null)
+               blocking.Add($"consequence '{c.Type}' names the giver's husband, but no husband is bound: add \"husband\" to \"requires\".");
             if (c != null && !TaleConceptionPolicy.IsAChance(c.Chance))
                blocking.Add($"consequence '{c.Type}' has a chance of {c.Chance.ToString(CultureInfo.InvariantCulture)}, which must be from 0 to 1.");
          }

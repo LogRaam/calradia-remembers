@@ -130,6 +130,32 @@ namespace CalradiaRemembers.Tests
          AuthoredQuestLoader.Parse(json, "test.json").Problems.Should().Contain(p => p.Contains("lover"));
       }
 
+      // Gabriel (12/10/2026): she leaves her husband with the player. An "elope" with no husband bound would end nobody's
+      // marriage while the tale says she left: refused, with the fix named.
+      [Test]
+      public void GIVEN_an_elopement_in_a_tale_with_no_husband_WHEN_loaded_THEN_the_quest_is_refused()
+      {
+         string json = Minimal.Replace(@"""reward"": { ""regard"": 5 }", @"""reward"": { ""regard"": 5, ""consequences"": [ { ""type"": ""elope"" } ] }");
+
+         AuthoredQuestLoadResult r = AuthoredQuestLoader.Parse(json, "test.json");
+
+         r.Quests.Should().BeEmpty();
+         r.Problems.Should().Contain(p => p.Contains("elope") && p.Contains("husband"));
+      }
+
+      // With her husband bound, the elopement and the return both load.
+      [Test]
+      public void GIVEN_an_elopement_and_a_return_with_the_husband_bound_WHEN_loaded_THEN_the_quest_loads()
+      {
+         string json = Minimal.Replace(@"""binds"": {", @"""requires"": { ""giver"": { ""married"": true }, ""husband"": { ""role"": ""spouse_of_giver"" } }, ""binds"": { ""husband"": ""her husband"",")
+                              .Replace(@"""reward"": { ""regard"": 5 }", @"""reward"": { ""regard"": 5, ""consequences"": [ { ""type"": ""elope"" }, { ""type"": ""return_spouse"", ""who"": ""{giver}"", ""spouse"": ""{husband}"" } ] }");
+
+         AuthoredQuestLoadResult r = AuthoredQuestLoader.Parse(json, "test.json");
+
+         r.Quests.Should().ContainSingle();
+         r.Problems.Should().BeEmpty();
+      }
+
       // Two quests with one id would be one quest played twice: the second is refused.
       [Test]
       public void GIVEN_two_files_with_the_same_id_WHEN_loaded_together_THEN_the_second_is_refused()

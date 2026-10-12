@@ -581,10 +581,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    public sealed class AuthoredConsequence
    {
       /// <summary>memory, world_event (increment 1); the rest of the closed list later.</summary>
-      [QuestField("memory, world_event, grudge or conception.", ClosedList = nameof(AuthoredQuestLoader.ConsequenceTypes))]
+      [QuestField("memory, world_event, grudge, conception, elope (she leaves her husband with the player) or return_spouse (she goes back to him).", ClosedList = nameof(AuthoredQuestLoader.ConsequenceTypes))]
       [JsonProperty("type")] public string Type { get; set; }
 
-      [QuestField("memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty).")]
+      [QuestField("memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty). elope, return_spouse: the lady who leaves or goes back ({giver} when empty).")]
       [JsonProperty("who")] public string Who { get; set; }
 
       [QuestField("memory: what they remember. grudge: the cause, in the holder's words.")]
@@ -601,6 +601,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       [QuestField("grudge: who it is held against, a role (Gabriel, 06/10/2026: a tale may set two lords at odds).")]
       [JsonProperty("against")] public string Against { get; set; }
+
+      /// <summary>The Troy-inspired tale (Gabriel, 12/10/2026): the husband she leaves or goes back to; see TaleElopementPolicy.</summary>
+      [QuestField("elope: the husband she leaves; return_spouse: the husband she goes back to. A role, {husband} when empty.")]
+      [JsonProperty("spouse")] public string Spouse { get; set; }
 
       /// <summary>Gabriel (10/10/2026): "Une chance de tomber enceinte"; see TaleConceptionPolicy.</summary>
       [QuestField("conception: the chance of a child, 0 to 1; the game's own 0.15 when left out. The woman of the two carries it; two women or two men conceive nothing.")]

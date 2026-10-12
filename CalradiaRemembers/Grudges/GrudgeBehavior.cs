@@ -64,6 +64,12 @@ namespace CalradiaRemembers.Grudges
          if (!string.IsNullOrEmpty(holderId)) _ledger.Grudges.RemoveAll(g => g.HolderId == holderId);
       }
 
+      /// <summary>Self-test support: takes back one grudge a test planted, leaving the holder's others as they were.</summary>
+      internal void RemoveGrudge(Grudge grudge)
+      {
+         if (grudge != null) _ledger.Grudges.Remove(grudge);
+      }
+
       public IReadOnlyList<Grudge> GrudgesFor(string holderId)
          => string.IsNullOrEmpty(holderId)
             ? Array.Empty<Grudge>()

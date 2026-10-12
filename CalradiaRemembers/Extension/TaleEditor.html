@@ -451,7 +451,9 @@ input[type="number"] { max-width: 160px; }
       "memory",
       "world_event",
       "grudge",
-      "conception"
+      "conception",
+      "elope",
+      "return_spouse"
     ],
     "GiverRoles": [
       "lord",
@@ -1300,12 +1302,14 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "memory, world_event, grudge or conception.",
+          "description": "memory, world_event, grudge, conception, elope (she leaves her husband with the player) or return_spouse (she goes back to him).",
           "enum": [
             "memory",
             "world_event",
             "grudge",
-            "conception"
+            "conception",
+            "elope",
+            "return_spouse"
           ],
           "x-closed-list": "ConsequenceTypes"
         },
@@ -1315,7 +1319,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty)."
+          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty). elope, return_spouse: the lady who leaves or goes back ({giver} when empty)."
         },
         "text": {
           "type": [
@@ -1354,6 +1358,14 @@ input[type="number"] { max-width: 160px; }
           ],
           "x-kind": "string",
           "description": "grudge: who it is held against, a role (Gabriel, 06/10/2026: a tale may set two lords at odds)."
+        },
+        "spouse": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "elope: the husband she leaves; return_spouse: the husband she goes back to. A role, {husband} when empty."
         },
         "chance": {
           "type": "number",
@@ -2733,6 +2745,10 @@ input[type="number"] { max-width: 160px; }
       arr(o.consequences).forEach(function (c) {
         if (c != null && !has(LISTS.ConsequenceTypes, c.type))
           cosmetic.push("consequence '" + (c.type == null ? '' : c.type) + "' is not carried out yet (known: " + LISTS.ConsequenceTypes.join(', ') + '); it is skipped.');
+        // The Troy-inspired tale (12/10/2026): an elopement or a return names a husband the game must bind.
+        if (c != null && (c.type === 'elope' || c.type === 'return_spouse') && (blank(c.spouse) || String(c.spouse).trim() === '{husband}')
+            && (q.requires == null || q.requires.husband == null))
+          blocking.push("consequence '" + c.type + "' names the giver's husband, but no husband is bound: add \"husband\" to \"requires\".");
         if (c != null && c.chance != null && (Number(c.chance) < 0 || Number(c.chance) > 1))
           blocking.push("consequence '" + (c.type == null ? '' : c.type) + "' has a chance of " + String(Number(c.chance)) + ', which must be from 0 to 1.');
       });
@@ -3958,7 +3974,7 @@ input[type="number"] { max-width: 160px; }
     AuthoredSpawn: ['id', 'template', 'size', 'name', 'near', 'behavior', 'flee_after_days', 'scale_with_player', 'on_defeat'],
     AuthoredDefeat: ['next', 'regard', 'memory', 'journal', 'consequences'],
     AuthoredOutcome: ['days', 'regard', 'gold', 'memory', 'journal', 'consequences'],
-    AuthoredConsequence: ['type', 'who', 'against', 'text', 'summary', 'magnitude', 'place', 'chance', 'if'],
+    AuthoredConsequence: ['type', 'who', 'against', 'spouse', 'text', 'summary', 'magnitude', 'place', 'chance', 'if'],
 
     /** Which fields of an objective each type uses; the rest stay hidden for that type. */
     objectiveFields: {
@@ -3977,7 +3993,9 @@ input[type="number"] { max-width: 160px; }
       memory: ['who', 'text', 'if'],
       world_event: ['summary', 'magnitude', 'place', 'if'],
       grudge: ['who', 'against', 'text', 'magnitude', 'if'],
-      conception: ['who', 'chance', 'if']
+      conception: ['who', 'chance', 'if'],
+      elope: ['who', 'spouse', 'if'],
+      return_spouse: ['who', 'spouse', 'if']
     }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
