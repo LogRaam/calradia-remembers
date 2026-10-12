@@ -16,6 +16,10 @@ ROOT = "CalradiaRemembers"
 
 # ChatPortraits is excluded deliberately: the mod recreates that folder itself (2.5.3 onward).
 SKIP_DIRS = {"ChatPortraits"}
+# The player's own prompt profiles and the record of the MCM pick (the Prompt Composer, 2.7.10) live here when no Custom
+# path is set: the developer's own must never ship. Skipped by PATH, since CR's stock texts will ship under
+# ModuleData/Prompts.
+SKIP_PATHS = {os.path.join("ModuleData", "Custom", "Prompts")}
 
 if os.path.exists(OUT):
     os.remove(OUT)
@@ -23,8 +27,8 @@ if os.path.exists(OUT):
 count = 0
 with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as z:
     for dirpath, dirnames, filenames in os.walk(SRC):
-        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         rel_dir = os.path.relpath(dirpath, SRC)
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and os.path.normpath(os.path.join(rel_dir, d)) not in SKIP_PATHS]
         arc_dir = ROOT if rel_dir == "." else ROOT + "/" + rel_dir.replace("\\", "/")
         if rel_dir != ".":
             z.writestr(arc_dir + "/", "")

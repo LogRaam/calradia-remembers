@@ -36,6 +36,14 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> AdultContentLevel { get; set; } =
          new(new[] {"Off", "Mature", "Explicit", "Hardcore"}, 1); // default: Mature
 
+      // The Prompt Composer (Gabriel, 11/10/2026: "Un param MCM pourrait designer l'ordonnanceur a utiliser"). Filled with the
+      // profiles found at the main menu and at each session launch (Mapping.PromptProfileService); MCM saves only the place
+      // in this list, so the service also keeps the pick by id.
+      [SettingPropertyDropdown("Prompt Profile", RequireRestart = false, Order = 40,
+         HintText = "Which prompt profile composes what characters read: stock, your own (Custom/Prompts) or one a mod ships (cr_prompts). Stock is the reset. cr.prompt_check lists what each profile changes.")]
+      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      public Dropdown<string> PromptProfile { get; set; } = new(new[] {"Stock (Calradia Remembers)"}, 0);
+
       [SettingPropertyDropdown("Chat Window Style", RequireRestart = false, Order = 5,
          HintText = "The look of the conversation window. Origin is the original panel; Dark Leather is the " +
                     "illuminated leather book. Both are the same conversation, only the look differs. Applies on " +

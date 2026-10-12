@@ -95,6 +95,9 @@ namespace CalradiaRemembers
          // Same class of problem, same shape of guard: the map keeps reading its own hotkeys under a pushed panel,
          // so the face generator opened while the player was typing a letter reply (Gabriel, 2026-09-06).
          UI.MapNavigationInputGuard.EnsurePatched();
+         // The Prompt Composer: fill MCM's "Prompt Profile" list before its screen can be opened (MCM's saved place may
+         // point past the one-entry list the settings start with).
+         Mapping.PromptProfileService.Refresh();
          Log($"{ModName} ready (main menu reached).");
       }
 

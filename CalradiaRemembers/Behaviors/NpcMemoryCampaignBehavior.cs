@@ -256,6 +256,7 @@ namespace CalradiaRemembers.Behaviors
          // must never prevent the rest of the session from wiring itself up.
          SafeRun.Step("OnSessionLaunched.CulturalTraditionsLoader.Load", CulturalTraditionsLoader.Load);
          SafeRun.Step("OnSessionLaunched.NarrativeLoader.Load", NarrativeLoader.Load);
+         SafeRun.Step("OnSessionLaunched.PromptProfiles", PromptProfileService.Refresh); // the Prompt Composer: profiles found again, the pick kept
          SafeRun.Step("OnSessionLaunched.JealousyCultureLoader.Load", JealousyCultureLoader.Load);
          SafeRun.Step("OnSessionLaunched.LlmServices.Invalidate", LlmServices.Invalidate); // rebuild PromptBuilder with fresh file content
          SafeRun.Step("OnSessionLaunched.StoryLog.WriteSessionHeader", StoryLog.WriteSessionHeader);

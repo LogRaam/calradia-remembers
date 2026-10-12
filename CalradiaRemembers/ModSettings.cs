@@ -97,6 +97,9 @@ namespace CalradiaRemembers
       /// </summary>
       public static bool CompanionContentment => CrSettings.Instance?.CompanionContentment ?? true;
 
+      /// <summary>The MCM "Prompt Profile" list (the Prompt Composer), filled and read by Mapping.PromptProfileService; null without MCM.</summary>
+      public static MCM.Common.Dropdown<string> PromptProfile => CrSettings.Instance?.PromptProfile;
+
       /// <summary>When ON (default), the player can convene a council from a settlement menu and the campaign-map button; OFF hides those entry points (console still works).</summary>
       public static bool EnableCouncil => CrSettings.Instance?.EnableCouncil ?? true;
 

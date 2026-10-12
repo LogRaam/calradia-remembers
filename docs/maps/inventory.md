@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 480 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1050 types in 28 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 254 types in 17 namespaces, 9 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 481 types in 59 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1062 types in 28 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 256 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -475,7 +475,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (25)
+### CalradiaRemembers.Mapping (26)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -494,6 +494,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
 | `PlayerPrisonBreakPatch` | public static class | Who the player is breaking out of prison right now, for the listeners of that release. |
+| `PromptProfileService` | internal static class | The prompt profile in use, and the layout each kind of character gets from it. |
 | `RealmWarFooting` | public static class | Reads a realm's war footing from the live game. |
 | `RelationshipsBuilder` | public static class | Builds a human-readable RELATIONSHIPS block for an NPC from live game state. |
 | `RomanticProfileBuilder` | public static class | Builds a deterministic RomanticProfile for a Bannerlord Hero. |
@@ -826,7 +827,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (654)
+### CalradiaRemembers.Logic (666)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1284,6 +1285,18 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PrivateAudienceFacts` | public class | The state a request for privacy is judged on. |
 | `PrivateAudiencePolicy` | public static class | Decides a request for privacy. |
 | `PrivateAudienceVerdict` | public enum | What a request for privacy does. |
+| `PromptKindFacts` | public class | What decides the kind of the character speaking. |
+| `PromptKindPolicy` | public static class | Which kind a character is, for the layout. |
+| `PromptKinds` | public static class | The kinds of character a profile may give its own layout (DESIGN.md, most specific first). |
+| `PromptLayoutChoice` | public static class | Which layout a character gets. |
+| `PromptProfile` | public class | A profile as read: its layouts by kind, and what was wrong in its files. |
+| `PromptProfileChain` | public static class | The chosen profile and its parents, nearest first. |
+| `PromptProfileFolders` | public static class | Where prompt profiles are found. |
+| `PromptProfileReader` | public static class | Reads a profile's files. |
+| `PromptProfileSelection` | public static class | Keeps the player's pick when the list of profiles changes under MCM's saved place. |
+| `PromptProfileSource` | public class | A profile found on disk (or stock, which has no folder). |
+| `PromptSelection` | public class | The profile to use and the place MCM should show. |
+| `PromptSelectionFacts` | public class | What the MCM pick is judged on. |
 | `ProvideGoodsPolicy` | public static class | Pure rules for a ProvideGoods supply task: category normalization, count clamp, satisfaction. |
 | `ProviderKind` | public enum | The concrete OpenAI-compatible service a request is sent to. |
 | `ProviderModelPolicy` | public static class | Whether a configured model id is a real choice for the provider a role is pointed at, and what to send when it is not. |
@@ -2273,7 +2286,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
 | `StageDirectionDedupe` | public static class | Drops the second and later copies of the same *stage direction* in a reply. |
 
-### NpcMemoryService.Core.Prompts (34)
+### NpcMemoryService.Core.Prompts (36)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2302,6 +2315,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PromptCacheReport` | public static class | How much of a cacheable prefix survives from one request to the next. |
 | `PromptCacheSplit` | public static class | The cacheable/volatile boundary of a system prompt. |
 | `PromptCacheTracker` | public class | Remembers the last cacheable prefix per (model, subject) and reports what the next one costs. |
+| `PromptLayout` | public class | One order for the character prompt's sections (a layouts/<kind>.json of a prompt profile). |
+| `PromptLayoutResolver` | public static class | Turns a layout into the sections written, in order, keeping the locks. |
 | `PromptLore` | public static class | The setting's name, adjective, and which cultures read as patriarchal — used by the prompt sections. |
 | `PromptSection` | public enum | The heavy, always-on system-prompt sections a lean prompt may drop to save tokens. |
 | `PromptSectionLock` | public enum | How far a power user's layout may change a section (DESIGN.md, "Locks": only where the game breaks or safety is at stake). |

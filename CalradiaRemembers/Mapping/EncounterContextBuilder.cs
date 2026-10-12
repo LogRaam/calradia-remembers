@@ -621,6 +621,13 @@ namespace CalradiaRemembers.Mapping
             SpouseEstrangementNote = ResolveSpouseEstrangementNote(hero),
             NpcMarriageFrayingNote = ResolveNpcMarriageFrayingNote(hero),
             StationGuidelinesOverride = ResolveStationGuidelines(hero),
+            // The Prompt Composer (increment 2): the order of this character's sections under the player's prompt profile,
+            // by kind (null: the stock order). The same station the guidelines above follow decides the kind.
+            PromptLayout = PromptProfileService.LayoutFor(PromptKindPolicy.Of(new PromptKindFacts {
+               IsPlayerSpouse = npcIsSpouse, IsPlayerCompanion = npcIsPlayerCompanion, IsLord = hero?.IsLord == true,
+               InCaptiveScene = isCaptorScene || isCollectiveCaptiveScene || playerStatus == PlayerStatusVsNpc.Captive || playerStatus == PlayerStatusVsNpc.NpcIsCaptive,
+               StationKey = StationKeyOf(hero)
+            })),
             LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
             MarriageBlockedBecause = ResolveMarriageBlockReason(hero, profile),
             LoveMatchReluctant = ResolveLoveMatchReluctant(hero, profile),
@@ -4148,6 +4155,17 @@ namespace CalradiaRemembers.Mapping
       ///   from her throne" greeting: the voice register follows the SPEAKER's station, including for
       ///   witness-routed turns, since the context is rebuilt per speaker.
       /// </summary>
+      /// <summary>The station the behaviour guidelines follow (StationGuidelinesPolicy), or null for the lordly register.</summary>
+      private static string StationKeyOf(Hero hero)
+      {
+         if (hero == null) return null;
+
+         bool isPlayerCompanion = hero.CompanionOf == Clan.PlayerClan;
+         bool holdsFief = hero.IsClanLeader && (hero.Clan?.Settlements?.Any(s => s != null && (s.IsTown || s.IsCastle)) ?? false);
+
+         return StationGuidelinesPolicy.ResolveStationKey(hero.Occupation.ToString(), isPlayerCompanion, holdsFief);
+      }
+
       private static string ResolveStationGuidelines(Hero hero)
       {
          if (hero == null) return null;

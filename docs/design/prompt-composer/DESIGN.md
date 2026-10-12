@@ -304,3 +304,20 @@ Each increment ships on its own; 1 and 2 are useful to modders before any text m
 
 Still to check when building: MCM must offer a dropdown filled at run time with the profiles found (increment 2 starts
 with that spike; if MCM cannot, a text field naming the profile id, listed by `cr.prompt_check`).
+
+## Built (increment 2, 12/10/2026)
+
+- **The MCM spike** (MCMv5 decompiled): a `Dropdown<string>` can be filled at run time (its values come from CR), but MCM
+  saves only the selected PLACE in the list (`DropdownJsonConverter` writes `SelectedIndex`) and never clamps it. So
+  `Mapping.PromptProfileService` fills the list at the main menu and at each session launch, and keeps the pick by id in
+  `Custom/Prompts/selection.json` (written only when the pick is not stock, which is always first): when a mod adds or
+  removes a profile, the profile chosen last time is found again (`PromptProfileSelection`), and a vanished one falls
+  back to stock with a log line.
+- **One departure from "Layouts" above**: a section a layout does not list keeps its stock place, with a notice; only
+  `off` turns one off. The draft rule (missing = off, unless added since `based_on`) needed a version of introduction for
+  every key, which does not exist; the chosen rule gives the same freedom, and a layout made for an older CR never loses
+  what came since. `based_on` is read and kept for the drift check of increment 3.
+- SDK: `PromptLayout`, `PromptLayoutResolver` (locks), `EncounterContext.PromptLayout`. Mod: `PromptKindPolicy`,
+  `PromptProfileFolders`, `PromptProfileReader`, `PromptProfileChain`, `PromptLayoutChoice`, `PromptProfileSelection`
+  (Logic, tested); MCM "Prompt Profile"; `[PROMPT]` log line (also heading `cr.prompt_dump`); `cr.prompt_check`;
+  `cr.testall prompt_profile`. Release archives skip `ModuleData/Custom/Prompts`.

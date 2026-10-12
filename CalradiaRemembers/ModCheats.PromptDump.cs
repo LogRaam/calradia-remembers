@@ -66,7 +66,8 @@ namespace CalradiaRemembers
                "Mount and Blade II Bannerlord", "Logs",
                $"CalradiaRemembers_prompt_{Sanitise(hero.Name?.ToString())}_{Sanitise(hero.StringId)}.txt"); // the id too: namesakes no longer overwrite each other
 
-            File.WriteAllText(path, prompt);
+            // DESIGN.md (Prompt Composer): a dump says first whether a custom prompt profile composed it.
+            File.WriteAllText(path, PromptProfileService.ActiveLine() + Environment.NewLine + Environment.NewLine + prompt);
 
             return $"cr.prompt_dump: {hero.Name} ({hero.StringId})'s prompt ({prompt.Length} chars) written to {path}{namesakes}";
          }
@@ -74,6 +75,17 @@ namespace CalradiaRemembers
          {
             return $"cr.prompt_dump failed: {ex.GetType().Name}: {ex.Message}";
          }
+      }
+
+      /// <summary>
+      ///   cr.prompt_check: the prompt profiles found (stock, the player's Custom/Prompts, each mod's cr_prompts), the one in
+      ///   use and its parents, and for each kind of character the layout it gets and what the locks changed in it.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("prompt_check", "cr")]
+      public static string PromptCheck(List<string> args)
+      {
+         try { return PromptProfileService.Check(); }
+         catch (Exception ex) { return $"cr.prompt_check failed: {ex.GetType().Name}: {ex.Message}"; }
       }
 
       #region private
