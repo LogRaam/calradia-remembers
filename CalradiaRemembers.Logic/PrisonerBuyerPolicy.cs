@@ -61,11 +61,14 @@ namespace CalradiaRemembers.Logic
    {
       /// <summary>
       ///   The candidates who may treat, in the order an envoy is sent: the captive's house, then a parent of another
-      ///   house, then the realm, then an enemy, the most hateful first. An "enemy" who does not bitterly hate the
-      ///   captive (at or below <see cref="VanillaRelation.BitterTier" />) is nobody's buyer. One entry per lord.
+      ///   house, then the realm, then an enemy. An "enemy" who does not bitterly hate the captive (at or below
+      ///   <see cref="VanillaRelation.BitterTier" />) is nobody's buyer, and only the most hateful one speaks for the
+      ///   player's realm (fkasad, 12/10/2026: a vampire lord in a dwarf realm drew every dwarf lord's envoy in turn). One
+      ///   entry per lord.
       /// </summary>
       public static List<PrisonerBuyerCandidate> Order(IEnumerable<PrisonerBuyerCandidate> candidates)
-         => (candidates ?? Enumerable.Empty<PrisonerBuyerCandidate>())
+      {
+         List<PrisonerBuyerCandidate> ordered = (candidates ?? Enumerable.Empty<PrisonerBuyerCandidate>())
             .Where(c => c != null && c.CanTreat && !c.IsOfPlayersClan && !string.IsNullOrEmpty(c.HeroId))
             .Where(c => c.Role != PrisonerBuyerRole.Enemy || c.RelationToCaptive <= VanillaRelation.BitterTier)
             .OrderBy(c => (int) c.Role)
@@ -73,6 +76,11 @@ namespace CalradiaRemembers.Logic
             .GroupBy(c => c.HeroId)
             .Select(g => g.First())
             .ToList();
+
+         PrisonerBuyerCandidate bitterest = ordered.FirstOrDefault(c => c.Role == PrisonerBuyerRole.Enemy);
+
+         return ordered.Where(c => c.Role != PrisonerBuyerRole.Enemy || c == bitterest).ToList();
+      }
 
       /// <summary>Family and realm want the captive back and free; an enemy wants him in his own custody.</summary>
       public static bool WantsCaptiveBack(PrisonerBuyerRole role) => role != PrisonerBuyerRole.Enemy;

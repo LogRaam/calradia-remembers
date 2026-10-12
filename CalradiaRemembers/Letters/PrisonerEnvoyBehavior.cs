@@ -35,12 +35,17 @@ namespace CalradiaRemembers.Letters
    public sealed class PrisonerEnvoyBehavior : CampaignBehaviorBase
    {
       private const string SaveKey = "CR_PrisonerEnvoys_v1bytes";
+      private const string CameSaveKey = "CR_PrisonerEnvoysCame_v1bytes";
 
       public static PrisonerEnvoyBehavior Instance { get; private set; }
 
       // "captiveId|lordId" -> the day that lord's envoy last came (or was sent) about that captive. Per pair, so a
       // father's envoy and a bitter enemy's can each come about the same prisoner (fkasad, increment 4).
       private Dictionary<string, int> _lastEnvoyDay = new();
+
+      // "captiveId|captureDay" -> how many envoys reached the player about that captive in that captivity (fkasad,
+      // 12/10/2026: "a no is a no"). Keyed by the day he was taken, so a man freed and taken again starts over.
+      private Dictionary<string, int> _envoysCame = new();
 
       // The envoy waiting for the player to be free enough to receive him. In memory only: a reload before the
       // popup simply lets the next daily evaluation send him again once the cooldown allows.
@@ -57,11 +62,54 @@ namespace CalradiaRemembers.Letters
          => CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
 
       /// <summary>Whether this lord's envoy may come about this captive today (the letter evaluator asks first).</summary>
-      public bool EnvoyMayCome(string captiveId, string lordId)
-         => !string.IsNullOrEmpty(captiveId) && !string.IsNullOrEmpty(lordId)
-            && PrisonerExchangePolicy.EnvoyMayCome(_lastEnvoyDay.TryGetValue(Key(captiveId, lordId), out int d) ? d : (int?) null, Today);
+      public bool EnvoyMayCome(Hero captive, string lordId)
+         => captive != null && MayCome(captive.StringId, CaptureDay(captive), lordId, Today);
+
+      /// <summary>
+      ///   The rule on the recorded days and counts (PrisonerExchangePolicy.EnvoyMayCome): this lord's own wait, the wait
+      ///   after ANY envoy about the captive, and no more envoys once enough came and left without him.
+      /// </summary>
+      internal bool MayCome(string captiveId, int captureDay, string lordId, int today)
+      {
+         if (string.IsNullOrEmpty(captiveId) || string.IsNullOrEmpty(lordId)) return false;
+
+         string prefix = captiveId + "|";
+         int? lastAbout = null;
+         foreach (KeyValuePair<string, int> e in _lastEnvoyDay)
+            if (e.Key.StartsWith(prefix, StringComparison.Ordinal) && (lastAbout == null || e.Value > lastAbout))
+               lastAbout = e.Value;
+
+         return PrisonerExchangePolicy.EnvoyMayCome(new EnvoyVisitFacts {
+            LastFromThisLordDay = _lastEnvoyDay.TryGetValue(Key(captiveId, lordId), out int own) ? own : null,
+            LastAboutTheCaptiveDay = lastAbout,
+            EnvoysCameThisCaptivity = _envoysCame.TryGetValue(CaptivityKey(captiveId, captureDay), out int came) ? came : 0,
+            Today = today
+         });
+      }
+
+      /// <summary>An envoy reached the player about this captive (the popup): one more who will leave without him unless a deal is struck.</summary>
+      internal void RecordCame(string captiveId, int captureDay)
+      {
+         string key = CaptivityKey(captiveId, captureDay);
+         _envoysCame[key] = (_envoysCame.TryGetValue(key, out int n) ? n : 0) + 1;
+      }
+
+      /// <summary>Self-test seam: an envoy sent by <paramref name="lordId" /> on <paramref name="day" />.</summary>
+      internal void RecordSent(string captiveId, string lordId, int day) => _lastEnvoyDay[Key(captiveId, lordId)] = day;
+
+      /// <summary>Self-test cleanup: forgets everything recorded about <paramref name="captiveId" />.</summary>
+      internal void Forget(string captiveId)
+      {
+         string prefix = captiveId + "|";
+         foreach (string k in _lastEnvoyDay.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList()) _lastEnvoyDay.Remove(k);
+         foreach (string k in _envoysCame.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList()) _envoysCame.Remove(k);
+      }
 
       private static string Key(string captiveId, string lordId) => captiveId + "|" + lordId;
+
+      private static string CaptivityKey(string captiveId, int captureDay) => captiveId + "|" + captureDay;
+
+      private static int CaptureDay(Hero captive) => (int) captive.CaptivityStartTime.ToDays;
 
       /// <summary>
       ///   Sends <paramref name="lord" />'s envoy about <paramref name="captive" />, offering up to
@@ -118,7 +166,38 @@ namespace CalradiaRemembers.Letters
             try { dataStore.SyncData(SaveKey, ref bytes); }
             catch (Exception ex) { ModLog.Error($"[ENVOY] save failed: {ex.GetType().Name}: {ex.Message}"); }
 
+            byte[] came;
+            try { came = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_envoysCame, Formatting.None)); }
+            catch (Exception ex)
+            {
+               ModLog.Error($"[ENVOY] serialize of the envoy counts failed, persisting none this save. {ex.GetType().Name}: {ex.Message}");
+               came = Encoding.UTF8.GetBytes("{}");
+            }
+
+            try { dataStore.SyncData(CameSaveKey, ref came); }
+            catch (Exception ex) { ModLog.Error($"[ENVOY] save of the envoy counts failed: {ex.GetType().Name}: {ex.Message}"); }
+
             return;
+         }
+
+         // Additive (12/10/2026): absent in older saves, where no envoy has been counted yet.
+         byte[] cameLoaded = null;
+         try { dataStore.SyncData(CameSaveKey, ref cameLoaded); }
+         catch
+         {
+            /* key absent in older saves */
+         }
+
+         try
+         {
+            _envoysCame = cameLoaded is {Length: > 0}
+               ? JsonConvert.DeserializeObject<Dictionary<string, int>>(Encoding.UTF8.GetString(cameLoaded)) ?? new Dictionary<string, int>()
+               : new Dictionary<string, int>();
+         }
+         catch (Exception ex)
+         {
+            _envoysCame = new Dictionary<string, int>();
+            ModLog.Error($"[ENVOY] load of the envoy counts failed, counts dropped for this load. {ex.GetType().Name}: {ex.Message}");
          }
 
          byte[] loaded = null;
@@ -166,6 +245,9 @@ namespace CalradiaRemembers.Letters
 
             return;
          }
+
+         Hero captive = BuyPrisonerVerb.PlayerHeldHeroPrisoners().First(h => h.StringId == envoy.CaptiveId);
+         RecordCame(captive.StringId, CaptureDay(captive));
 
          string envoyName = EnvoyMandatePolicy.DisplayName(lord.Name?.ToString());
          CharacterObject portrait = lord.Clan?.BasicTroop ?? lord.Culture?.BasicTroop;

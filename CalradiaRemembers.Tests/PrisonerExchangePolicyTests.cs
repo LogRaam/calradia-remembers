@@ -137,19 +137,58 @@ namespace CalradiaRemembers.Tests
       // ── When an envoy may come ───────────────────────────────────────────
 
       // The envoy replaces a letter, and a letter was never sent twice about one captive in quick succession: one
-      // envoy, then a while before the next, whether he was heard or turned away.
+      // envoy, then a while before the same lord sends another, whether he was heard or turned away.
       [Test]
-      public void GIVEN_an_envoy_came_about_a_captive_recently_WHEN_another_would_come_THEN_he_waits()
+      public void GIVEN_a_lords_envoy_came_about_a_captive_recently_WHEN_that_lord_would_send_another_THEN_he_waits()
       {
-         PrisonerExchangePolicy.EnvoyMayCome(lastEnvoyDay: 100, today: 100 + PrisonerExchangePolicy.EnvoyCooldownDays - 1).Should().BeFalse();
-         PrisonerExchangePolicy.EnvoyMayCome(100, 100 + PrisonerExchangePolicy.EnvoyCooldownDays).Should().BeTrue();
+         EnvoyVisitFacts Visit(int today) => new() {LastFromThisLordDay = 100, LastAboutTheCaptiveDay = 100, Today = today, EnvoysCameThisCaptivity = 1};
+
+         PrisonerExchangePolicy.EnvoyMayCome(Visit(100 + PrisonerExchangePolicy.EnvoyCooldownDays - 1)).Should().BeFalse();
+         PrisonerExchangePolicy.EnvoyMayCome(Visit(100 + PrisonerExchangePolicy.EnvoyCooldownDays)).Should().BeTrue();
       }
 
       // The first envoy about a captive needs no wait.
       [Test]
       public void GIVEN_no_envoy_ever_came_about_a_captive_WHEN_one_would_come_THEN_he_may()
       {
-         PrisonerExchangePolicy.EnvoyMayCome(null, 5).Should().BeTrue();
+         PrisonerExchangePolicy.EnvoyMayCome(new EnvoyVisitFacts {Today = 5}).Should().BeTrue();
+      }
+
+      // fkasad (Nexus, 12/10/2026): eight envoys about one Sylvanian lord in half an hour, each from a different dwarf
+      // lord of his own realm, because the wait was counted per lord. After any envoy about a captive, the next one,
+      // whoever sends him, waits a few days.
+      [Test]
+      public void GIVEN_another_lords_envoy_came_about_the_captive_days_ago_WHEN_a_new_lord_would_send_one_THEN_he_waits_out_the_captives_spacing()
+      {
+         EnvoyVisitFacts Visit(int today) => new() {LastFromThisLordDay = null, LastAboutTheCaptiveDay = 100, Today = today, EnvoysCameThisCaptivity = 1};
+
+         PrisonerExchangePolicy.EnvoyMayCome(Visit(100 + PrisonerExchangePolicy.CaptiveSpacingDays - 1)).Should().BeFalse();
+         PrisonerExchangePolicy.EnvoyMayCome(Visit(100 + PrisonerExchangePolicy.CaptiveSpacingDays)).Should().BeTrue();
+      }
+
+      // fkasad (12/10/2026): "after a couple of discarded offers for the same guy, they should stop." Every envoy who came
+      // about a captive still in the player's hands left without him: a no is a no while he stays a prisoner.
+      [Test]
+      public void GIVEN_envoys_already_came_about_a_captive_he_still_holds_WHEN_another_would_come_THEN_nobody_comes_any_more()
+      {
+         var facts = new EnvoyVisitFacts {
+            LastFromThisLordDay = null, LastAboutTheCaptiveDay = 100, Today = 400,
+            EnvoysCameThisCaptivity = PrisonerExchangePolicy.EnvoysBeforeGivingUp
+         };
+
+         PrisonerExchangePolicy.EnvoyMayCome(facts).Should().BeFalse();
+      }
+
+      // One refusal is not yet a no: the player may have wanted a better offer, or the other buyer.
+      [Test]
+      public void GIVEN_fewer_envoys_than_the_limit_came_WHEN_the_spacing_has_passed_THEN_another_may_come()
+      {
+         var facts = new EnvoyVisitFacts {
+            LastFromThisLordDay = null, LastAboutTheCaptiveDay = 100, Today = 100 + PrisonerExchangePolicy.CaptiveSpacingDays,
+            EnvoysCameThisCaptivity = PrisonerExchangePolicy.EnvoysBeforeGivingUp - 1
+         };
+
+         PrisonerExchangePolicy.EnvoyMayCome(facts).Should().BeTrue();
       }
 
       // aphareish (Nexus, 04/10/2026): "ransom couriers being triggered merely seconds after capture". Word of a capture

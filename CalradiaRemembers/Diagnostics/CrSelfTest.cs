@@ -316,6 +316,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
+         new SelfTest("envoy_pacing", Severity.Light, "fkasad (Nexus, 12/10/2026): eight envoys about one prisoner in half an hour, each from another lord of his realm, the same offer every time. Drives the REAL envoy bookkeeping on a made-up captive: after lord A's envoy, lord B waits out the captive's spacing and may come after it; once enough envoys came and left without the captive, nobody comes even a year on. Touches no hero; the made-up captive's records are forgotten.", TestEnvoyPacing),
          new SelfTest("ransom_envoy_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Here is 5000 denars. Bring my lad alive. You can keep the change.' Finds a captive lord held by a realm the player is at peace with, whose own lord can afford the purse; issues the task through the real QuestFactory and expects it bound to him with the purse at half again his ransom value. SKIP when no such captive exists. Pays nothing, frees nobody.", TestRansomEnvoyQuest),
          new SelfTest("prison_break_rescue", Severity.Light, "01/10/2026: the game's own prison break names the player as the one who freed the captive, but the release event does not carry it. Expects CR's prefix to be attached to EndCaptivityAction.ApplyByEscape (a game update renaming it would silently lose every prison-break rescue), the mark to answer for the marked lord only and to clear, and the rescue evidence to name the prison. Frees nobody.", TestPrisonBreakRescue),
          new SelfTest("garrison_reinforcement", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Works for garrison reinforcement too.' Finds a place whose garrison is thin by the seat pack's own bands, issues a reinforce_garrison task through the real QuestFactory for its governor or holder, and expects it bound to that place with a number of men within the band and the room on its walls. SKIP when no held garrison is thin. Moves no troops, records nothing.", TestGarrisonReinforcement),
@@ -10079,6 +10080,35 @@ namespace CalradiaRemembers.Diagnostics
          t.Note(report);
          t.Expect("boundToTheTown", quest.TargetSettlement, town.Name.ToString());
          t.Expect("theReportNamesInformantAndTown", report.Contains(gang.Name.ToString()) && report.Contains(town.Name.ToString()), true);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   fkasad (12/10/2026): envoys about one prisoner came from every lord of the realm in turn, each on his own wait,
+      ///   and a refusal stopped nobody. The real bookkeeping of PrisonerEnvoyBehavior, on a made-up captive.
+      /// </summary>
+      private static string TestEnvoyPacing(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("envoy_pacing");
+         Letters.PrisonerEnvoyBehavior envoys = Letters.PrisonerEnvoyBehavior.Instance;
+         if (t.Abort(envoys == null, "the envoy behaviour is not registered")) return t.Line();
+
+         const string captive = "cr_selftest_envoy_captive";
+         const int taken = 1000;
+         envoys.Forget(captive);
+         try
+         {
+            envoys.RecordSent(captive, "lord_a", taken + 3);
+            envoys.RecordCame(captive, taken);
+            t.Expect("anotherLordWaitsAfterAnEnvoy", envoys.MayCome(captive, taken, "lord_b", taken + 4), false);
+            t.Expect("anotherLordMayComeAfterTheSpacing", envoys.MayCome(captive, taken, "lord_b", taken + 3 + PrisonerExchangePolicy.CaptiveSpacingDays), true);
+
+            for (int i = 1; i < PrisonerExchangePolicy.EnvoysBeforeGivingUp; i++) envoys.RecordCame(captive, taken);
+            t.Expect("aNoIsANo", envoys.MayCome(captive, taken, "lord_b", taken + 400), false);
+            t.Expect("aNewCaptivityStartsOver", envoys.MayCome(captive, taken + 300, "lord_b", taken + 400), true);
+         }
+         finally { envoys.Forget(captive); }
 
          return t.Line();
       }

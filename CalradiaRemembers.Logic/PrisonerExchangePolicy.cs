@@ -17,6 +17,25 @@ using System.Linq;
 
 namespace CalradiaRemembers.Logic
 {
+   /// <summary>What decides whether an envoy may come about a captive the player holds (PrisonerExchangePolicy.EnvoyMayCome).</summary>
+   public sealed class EnvoyVisitFacts
+   {
+      /// <summary>The day THIS lord's envoy last came (or was sent) about the captive; null if never. Too recent, he waits.</summary>
+      public int? LastFromThisLordDay { get; init; }
+
+      /// <summary>The day ANY lord's envoy last came (or was sent) about the captive; null if never. Too recent, everyone waits.</summary>
+      public int? LastAboutTheCaptiveDay { get; init; }
+
+      /// <summary>
+      ///   Envoys who reached the player about the captive in this captivity. He is still held, so each left without him:
+      ///   enough of them and nobody comes again.
+      /// </summary>
+      public int EnvoysCameThisCaptivity { get; init; }
+
+      /// <summary>Today, in campaign days.</summary>
+      public int Today { get; init; }
+   }
+
    /// <summary>What an exchange needs to know about one captive.</summary>
    public sealed class ExchangeCaptiveFacts
    {
@@ -126,15 +145,32 @@ namespace CalradiaRemembers.Logic
       public static ExchangeHandover HandoverTo(bool captiveBelongsToReceiver)
          => captiveBelongsToReceiver ? ExchangeHandover.Freed : ExchangeHandover.IntoCustody;
 
-      /// <summary>TUNE: days before another envoy may come about the same captive, whether the last was heard or not.</summary>
+      /// <summary>TUNE: days before the same lord sends another envoy about the same captive, whether the last was heard or not.</summary>
       public const int EnvoyCooldownDays = 20;
 
       /// <summary>
-      ///   Whether an envoy may come about this captive today: never before, or not within <see cref="EnvoyCooldownDays" />.
-      ///   A refused audience counts: an envoy turned away does not come back the next morning.
+      ///   TUNE: days after any envoy about a captive before another lord's may come. fkasad (Nexus, 12/10/2026): eight
+      ///   envoys about one prisoner in half an hour, each lord of the realm on his own wait.
       /// </summary>
-      public static bool EnvoyMayCome(int? lastEnvoyDay, int today)
-         => lastEnvoyDay is not int last || today - last >= EnvoyCooldownDays;
+      public const int CaptiveSpacingDays = 5;
+
+      /// <summary>
+      ///   TUNE: envoys about one captive, in one captivity, after which nobody comes again while the player holds him.
+      ///   fkasad (12/10/2026): "after a couple of discarded offers for the same guy, they should stop."
+      /// </summary>
+      public const int EnvoysBeforeGivingUp = 2;
+
+      /// <summary>
+      ///   Whether an envoy may come about this captive today: not after <see cref="EnvoysBeforeGivingUp" /> have come and
+      ///   left without him, not within <see cref="CaptiveSpacingDays" /> of any envoy about him, and not within
+      ///   <see cref="EnvoyCooldownDays" /> of this lord's own. A refused audience counts: an envoy turned away does not
+      ///   come back the next morning, nor does another lord's.
+      /// </summary>
+      public static bool EnvoyMayCome(EnvoyVisitFacts facts)
+         => facts != null
+            && facts.EnvoysCameThisCaptivity < EnvoysBeforeGivingUp
+            && (facts.LastAboutTheCaptiveDay is not int any || facts.Today - any >= CaptiveSpacingDays)
+            && (facts.LastFromThisLordDay is not int own || facts.Today - own >= EnvoyCooldownDays);
 
       /// <summary>
       ///   TUNE: days a captive must have been held before anyone comes to treat for him: word of the capture reaches

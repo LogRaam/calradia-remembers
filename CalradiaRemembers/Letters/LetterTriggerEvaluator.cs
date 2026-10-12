@@ -488,7 +488,7 @@ namespace CalradiaRemembers.Letters
             var buyerRole = PrisonerBuyerRole.House;
             foreach ((Hero prospect, PrisonerBuyerRole role) in ResolvePrisonerBuyers(captive))
             {
-               if (PrisonerEnvoyBehavior.Instance?.EnvoyMayCome(captive.StringId, prospect.StringId) != true) continue;
+               if (PrisonerEnvoyBehavior.Instance?.EnvoyMayCome(captive, prospect.StringId) != true) continue;
                if (prospect.Gold < PrisonerTradePolicy.MinAcceptablePayment(anchor)) continue; // cannot pay a fair price
 
                buyer = prospect;

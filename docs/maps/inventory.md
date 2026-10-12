@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 479 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1048 types in 28 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1049 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 254 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -825,7 +825,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (652)
+### CalradiaRemembers.Logic (653)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1027,6 +1027,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EnvoyMandatePolicy` | public static class | Holds an envoy to his mandate, and names him. |
 | `EnvoyReleaseFacts` | public class | How a captive's captivity ended, as the envoy task reads it. |
 | `EnvoyTurnFacts` | public class | What the turn that produced a deal said: the facts a gift and a plain acceptance are read from. |
+| `EnvoyVisitFacts` | public class | What decides whether an envoy may come about a captive the player holds (PrisonerExchangePolicy.EnvoyMayCome). |
 | `EquipmentLoadoutPolicy` | public static class | Chooses which equipment loadout (civilian or battle) the notable-gear clause should read for a scene. |
 | `EquipmentModifierQualityPolicy` | public static class | Pure, engine-free mapping from an item modifier's plain facts to a GearQuality band. |
 | `EquipmentNotabilityPolicy` | public static class | Pure, engine-free scoring and phrasing of a hero's NOTABLE equipment. |

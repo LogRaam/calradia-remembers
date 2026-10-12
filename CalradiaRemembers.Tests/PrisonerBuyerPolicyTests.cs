@@ -36,15 +36,17 @@ namespace CalradiaRemembers.Tests
          order.Select(c => c.HeroId).Should().Equal("husbands_house", "father", "king");
       }
 
-      // fkasad's ally: a lord who bitterly hates the captive may want him, and the most hateful comes first.
+      // fkasad's ally: a lord who bitterly hates the captive may want him. Only the most hateful speaks for the player's
+      // realm (fkasad, 12/10/2026: a vampire lord held in a dwarf realm drew an envoy from every dwarf lord in turn).
       [Test]
-      public void GIVEN_lords_who_bitterly_hate_the_captive_WHEN_buyers_are_ordered_THEN_they_may_come_the_most_hateful_first()
+      public void GIVEN_lords_who_bitterly_hate_the_captive_WHEN_buyers_are_ordered_THEN_only_the_most_hateful_is_one()
       {
          List<PrisonerBuyerCandidate> order = PrisonerBuyerPolicy.Order(new[] {
-            C("resents", PrisonerBuyerRole.Enemy, VanillaRelation.BitterTier), C("loathes", PrisonerBuyerRole.Enemy, -80)
+            C("resents", PrisonerBuyerRole.Enemy, VanillaRelation.BitterTier), C("loathes", PrisonerBuyerRole.Enemy, -80),
+            C("king", PrisonerBuyerRole.Realm)
          });
 
-         order.Select(c => c.HeroId).Should().Equal("loathes", "resents");
+         order.Select(c => c.HeroId).Should().Equal("king", "loathes");
       }
 
       // Mere dislike is not a reason to pay gold for a man: below the bitter-enemy tier, nobody's buyer.
