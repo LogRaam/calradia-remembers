@@ -1301,7 +1301,8 @@ namespace CalradiaRemembers.Quests
          ConceptionMother m = TaleConceptionPolicy.Mother(new ConceptionFacts {PlayerIsFemale = player.IsFemale, PartnerIsFemale = partner.IsFemale});
          if (m == ConceptionMother.None) return (null, null, "two women or two men");
          double chance = c?.Chance ?? TaleConceptionPolicy.DefaultChance;
-         if (!TaleConceptionPolicy.Conceives(chance, roll)) return (null, null, $"the {chance:P0} chance did not fall");
+         // Whole percent, culture-free: "P0" writes "50 %" on a French system (cr.testall tale_conception failed there, 12/10/2026).
+         if (!TaleConceptionPolicy.Conceives(chance, roll)) return (null, null, $"the {(int) Math.Round(chance * 100)}% chance did not fall");
 
          return m == ConceptionMother.Partner ? (partner, player, null) : (player, partner, null);
       }
