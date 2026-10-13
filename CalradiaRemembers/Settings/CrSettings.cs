@@ -327,7 +327,13 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public bool LeanPrompt { get; set; } = false;
 
-      [SettingPropertyBool("Compress old memories", RequireRestart = false, Order = 13,
+      [SettingPropertyInteger("Local model context (tokens)", 0, 262144, "0", RequireRestart = false, Order = 13,
+         HintText = "0 = off (cloud models). For a local/custom server: the context length set there, per request. CR then trims " +
+                    "each request to fit it (oldest lines first, then the compact prompt) instead of the server cutting it blind.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public int LocalContextTokens { get; set; } = 0;
+
+      [SettingPropertyBool("Compress old memories", RequireRestart = false, Order = 14,
          HintText = "Lets characters fold old, superseded memories into a short outline, so a long campaign stops inflating " +
                     "every prompt (the usual cause of slow replies on a local model). First meetings, recent events and grave " +
                     "moments are never dropped.")]

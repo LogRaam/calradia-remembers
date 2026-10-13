@@ -26,6 +26,15 @@ namespace CalradiaRemembers.Chat
    /// </summary>
    public static class ActionInterpreterComposer
    {
+      /// <summary>The interpreter's reply budget (see the request below for why 900).</summary>
+      private const int InterpreterReplyTokens = 900;
+
+      private static bool FitsWindow(int window, string prompt)
+         => ContextFitPolicy.Fit(new ContextFitFacts {
+            WindowTokens = window, PromptChars = prompt?.Length ?? 0, ReplyTokens = InterpreterReplyTokens,
+            Messages = new[] {new ContextFitMessage {IsUser = true, Chars = ActionInterpreterPromptBuilder.FinalInstruction.Length}}
+         }).Fits;
+
       /// <summary>
       ///   Runs the MCM-configured ACTION INTERPRETER over the already-produced <paramref name="proseResponse" /> ONE
       ///   shot and returns a <see cref="ParsedResponse" /> that keeps every prose field but REPLACES the machine tags
@@ -51,6 +60,7 @@ namespace CalradiaRemembers.Chat
             return WithInterpretedTags(proseResponse, null); // nothing to read -> apply no tags
 
          string prompt;
+         LeanPromptLevel level = context?.LeanLevel ?? LeanPromptLevel.Full;
          try
          {
             string contextFacts = ActionInterpreterContextBuilder.Project(context, profile, playerLabel, conversationInProgress);
@@ -58,7 +68,18 @@ namespace CalradiaRemembers.Chat
             // ~17.6k tokens it is more than twice the whole context of the 8,192-token models the setting is
             // named for, so for those players this call could never once succeed - and the failure below is
             // swallowed, so they played on with no deed ever recorded and nothing saying why.
-            prompt = ActionInterpreterPromptBuilder.Build(prose, contextFacts, context?.LeanLevel ?? LeanPromptLevel.Full);
+            prompt = ActionInterpreterPromptBuilder.Build(prose, contextFacts, level);
+
+            // The interpreter's own fit (fkasad, 13/10/2026): on a local endpoint with a declared window, its full
+            // prompt (~17.6k tokens) is replaced by the compact one when it would not fit with its reply, rather than
+            // being cut by the server (its action catalogue is exactly what a truncation removes).
+            int window = LlmServices.ContextWindowFor(Logic.ServiceRole.Interpret);
+            if (window > 0 && level == LeanPromptLevel.Full && !FitsWindow(window, prompt))
+            {
+               level = LeanPromptLevel.Lean;
+               prompt = ActionInterpreterPromptBuilder.Build(prose, contextFacts, level);
+               ModLog.Info($"[CONTEXT] interpreter: the full reading prompt does not fit the local window ({window}); compact used, fits: {FitsWindow(window, prompt)}.");
+            }
          }
          catch (Exception ex)
          {
@@ -74,7 +95,7 @@ namespace CalradiaRemembers.Chat
             // Being cacheable and being CACHED are not the same thing: nothing ever asked for the breakpoint,
             // so every turn re-sent that block at full price, on top of the prose call's own prompt. Claimed
             // here. The prompt's text and order are untouched; only where cache_control falls changes.
-            StableSystemPrompt = ActionInterpreterPromptBuilder.StablePrefixFor(context?.LeanLevel ?? LeanPromptLevel.Full),
+            StableSystemPrompt = ActionInterpreterPromptBuilder.StablePrefixFor(level),
             // Diagnostic only: which character this reading is FOR, so a wire observer compares the
             // interpreter's prefix against its own and never against the prose call's (see LlmRequest.Subject).
             Subject = profile?.Id,
@@ -85,7 +106,7 @@ namespace CalradiaRemembers.Chat
             // with reasoning pinned off (LlmServices.InterpreterReasoningEffort) some models emit stray reasoning
             // tokens too, so the headroom is doubly earned. Must match the bench (ActionBenchRunner) so the bench
             // measures what the game does.
-            Parameters = new LlmParameters {MaxTokens = 900, Creativity = 0.2f},
+            Parameters = new LlmParameters {MaxTokens = InterpreterReplyTokens, Creativity = 0.2f},
             // The dedicated InterpreterClient below owns the interpreter's provider, key, base URL AND model
             // (ResolveInterpreterModel: the configured Actions Interpreter model, or the scene's model when blank),
             // so no ModelOverride is needed here. Its ModelProvider still honours the TestModelOverride bench seam.

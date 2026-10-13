@@ -633,6 +633,17 @@ namespace CalradiaRemembers.Services
          => ResolveKindForRole(ActiveMainRole());
 
       /// <summary>
+      ///   The context window a role's requests must fit (fkasad, 13/10/2026): the declared local window when that role
+      ///   runs on the OpenAI-compatible (local/custom) endpoint, 0 otherwise (a cloud model is never trimmed).
+      /// </summary>
+      public static int ContextWindowFor(ServiceRole role)
+         => ResolveKindForRole(role) == ProviderKind.OpenAiCompatible ? ModSettings.LocalContextTokens : 0;
+
+      /// <summary>The context window of the role the current turn uses (see <see cref="ContextWindowFor" />).</summary>
+      public static int ActiveContextWindow()
+         => ContextWindowFor(ActiveMainRole());
+
+      /// <summary>
       ///   Resolves a <paramref name="role" />'s API key for a provider <paramref name="kind" />. A key entered in
       ///   the MCM menu wins; the provider's environment variable (<c>OPENROUTER_API_KEY</c> / <c>NANOGPT_API_KEY</c>)
       ///   remains a fallback for developer setups and power users. Only the OpenAI-Compatible kind varies by role:
@@ -1161,6 +1172,8 @@ namespace CalradiaRemembers.Services
             LlmClient,
             new SectionResponseParser(),
             promptBuilder) {
+            // Every turn on the main client is fitted to the window of the role it runs on (fkasad, 13/10/2026).
+            ContextWindowProvider = ActiveContextWindow,
             // Audit M13. The MaxTokens/Creativity values restate the SDK defaults deliberately: the whole
             // generation shape is one decision, and splitting it across two projects is how it drifts.
             // MaxTokens raised 1500->3000 (2026-08-15): long explicit captive/Director beats were truncated

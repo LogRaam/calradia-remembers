@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 487 types in 59 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 488 types in 59 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1085 types in 28 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 258 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (33)
+### CalradiaRemembers (34)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -70,6 +70,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `Feed` | public static class | The public, one-way inbound API: a third-party mod calls Record to feed CR a world fact. |
 | `FeedResult` | public enum | The outcome of feeding an event through Feed (record / update / retract). |
 | `InterpretTestRunner` | internal static class | The runner behind cr.interpret_test. |
+| `LocalContextState` | public static class | The session's record of fitting requests to the local model's window. |
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
@@ -2315,13 +2316,18 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
 | `StageDirectionDedupe` | public static class | Drops the second and later copies of the same *stage direction* in a reply. |
 
-### NpcMemoryService.Core.Prompts (38)
+### NpcMemoryService.Core.Prompts (43)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionInterpreterContextBuilder` | public static class | Projects a live EncounterContext (plus the speaking NPC's NpcProfile) into the compact SETTING / PLAYER / YOU digest the PROSE + INTERPRETER action interpreter receives as its VARIABLE per-turn tail, after ActionInterpre... |
 | `ActionInterpreterPromptBuilder` | public static class | Builds the lean system prompt for the PROSE + INTERPRETER spike's SECOND model: an ACTION INTERPRETER that reads a roleplay reply already written by a first model and emits only the structured [ACTION]/[EVENT] tags the p... |
 | `ActionVocabularyPolicy` | public static class | How much of each action's description a prompt can afford to spell out. |
+| `ContextFit` | public class | The fit of one request. |
+| `ContextFitFacts` | public class | What one request is made of. |
+| `ContextFitMessage` | public class | One message of the conversation, as the fit sees it. |
+| `ContextFitPolicy` | public static class | Whether a request fits a declared context window, and which old lines to leave out so it does. |
+| `ContextFitReport` | public class | What CR did to one request to fit it, for the host's log and its one notice to the player. |
 | `CouncilMemberInput` | public class | One seated councillor for a CouncilPromptInput. |
 | `CouncilPromptBuilder` | public static class | Builds the system prompt for one council one-call group-scene turn. |
 | `CouncilPromptInput` | public class | Everything CouncilPromptBuilder.Build needs to assemble one council group-scene turn. |

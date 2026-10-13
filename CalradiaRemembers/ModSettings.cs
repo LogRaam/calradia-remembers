@@ -495,7 +495,13 @@ namespace CalradiaRemembers
       ///   When true, the system prompt is trimmed to fit a small / short-context model (the "Compact prompt for
       ///   small models" option). Read live from the MCM menu; OFF by default (full prompt for capable models).
       /// </summary>
-      public static bool LeanPrompt => CrSettings.Instance?.LeanPrompt ?? false;
+      // Also on once CR had to turn to the compact prompt to fit the local model's declared window (fkasad, 13/10/2026):
+      // it stays compact for the session, so the prompt does not flip back and forth (and a local server does not
+      // re-read ~20k tokens of prefix on every flip). See LocalContextState.
+      public static bool LeanPrompt => (CrSettings.Instance?.LeanPrompt ?? false) || LocalContextState.CompactThisSession;
+
+      /// <summary>The local model's context window in tokens, as the player declared it; 0 when none (cloud models).</summary>
+      public static int LocalContextTokens => Math.Max(0, CrSettings.Instance?.LocalContextTokens ?? 0);
 
       /// <summary>
       ///   Whether characters may compress their own old memories (folding superseded events into a background

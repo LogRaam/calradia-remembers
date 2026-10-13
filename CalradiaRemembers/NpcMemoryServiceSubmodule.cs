@@ -436,6 +436,8 @@ namespace CalradiaRemembers
          NpcMemoryService.Core.Services.ProfileMutator.RegardChanged += CrNpcMemory.ForwardRegardChange;
          // The same notice completes an earn_regard task (Lordfadooboo, 01/10/2026). Static, so subscribed once here.
          NpcMemoryService.Core.Services.ProfileMutator.RegardChanged += Quests.QuestDeedTracker.OnRegardChanged;
+         // What CR did to fit a local model's declared window (fkasad, 13/10/2026): logged, kept, told once.
+         NpcMemoryService.Core.Services.NpcChatService.ContextFitted += LocalContextState.OnFitted;
 
          try
          {

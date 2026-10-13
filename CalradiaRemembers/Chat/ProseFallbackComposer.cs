@@ -55,7 +55,9 @@ namespace CalradiaRemembers.Chat
          session.RollbackLastMessage(); // the player's message, re-added by ChatAsync below (or restored on failure)
 
          var fallbackService = new NpcChatService(client ?? services.InterpreterClient, new SectionResponseParser(), services.ChatService.PromptBuilder) {
-            ChatParameters = services.ChatService.ChatParameters
+            ChatParameters = services.ChatService.ChatParameters,
+            // The interpreter's client by default, so the interpreter role's window; a role client otherwise.
+            ContextWindowProvider = () => LlmServices.ContextWindowFor(client == null ? Logic.ServiceRole.Interpret : Logic.ServiceRole.Nsfw)
          };
 
          int budgetSeconds = Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) + 5;

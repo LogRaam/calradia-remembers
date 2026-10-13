@@ -330,6 +330,10 @@ namespace CalradiaRemembers.Chat
                   session.AddPlayerMessage(turn.Text);
 
                   break;
+               case SessionTurnRole.Witness when turn.SpeakerName == ConversationTranscript.SummaryLabel:
+                  session.AddRunningSummary(turn.SpeakerName, turn.Text); // the recap: kept when a request is fitted to a small window
+
+                  break;
                case SessionTurnRole.Witness:
                   session.AddWitnessStatement(turn.SpeakerName, turn.Text); // anyone else, attributed
 

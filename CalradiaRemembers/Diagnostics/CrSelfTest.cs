@@ -316,6 +316,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
+         new SelfTest("local_context", Severity.Light, "A local model's declared context window (fkasad, 13/10/2026: LM Studio cut CR's oversized request in its middle and the rules for a give were lost). On a real character with a CR memory, sends a long conversation through the real prompt builder to a capturing client (no model is called) with an 8,192-token window, and expects what would go out to fit, to still teach GAME ACTIONS, to keep the recap and the new line, to open the raw lines on a player's turn and to carry the compact reply budget; with no window, expects the whole conversation to go as built. Tells the player nothing and keeps nothing.", TestLocalContext),
          new SelfTest("audience_who", Severity.Light, "Who is asking for a word (Lordfadooboo, 13/10/2026: \"who is that?\" and a way to open their encyclopedia page from the invitation). Expects the popup button and its patch in place; writes the Who line for a real lord and expects their name in it; raises a real test invitation and expects it to carry that lord and show the button on the map; then starts the encyclopedia detour without opening the page, expects the invitation hidden, lets the wait run out and expects the same invitation back. Closes it at the end.", TestAudienceWho),
          new SelfTest("realm_faces", Severity.Light, "Queens with a chosen face (Gabriel, 12/10/2026: one queen per realm, made in the character editor; CR dresses the ruler's wife). Reports the faces files read and their problems; on a real ruler's wife, dresses her in a face (the first one read, else a test face) and expects her face to be exactly that one, expects the chat to show her realm's portrait when the faces file names one (Gabriel, 12/10/2026, unless the player dropped their own), then gives it back and expects her own face and usual portrait again, then lets the daily pass dress whom it should. Changes no one for good.", TestRealmFaces),
          new SelfTest("tale_scenario_bridge", Severity.Light, "The tale-scenario bridge (Gabriel, 12/10/2026: a queen leaves with the player and her husband's realm answers). In a runtime of its own, fires ON_TALE for a made-up tale's ending with a real lady and her husband as roles: a rule naming the whole tale and one naming that ending both play, one naming another ending or another tale does not, the news names the husband (never '{husband}'), and PRESS_FOR_WAR between his realm and the player's applies exactly when they are two realms at peace. Declares nothing; the news it wrote is removed.", TestTaleScenarioBridge),
@@ -10095,6 +10096,82 @@ namespace CalradiaRemembers.Diagnostics
       ///   fkasad (12/10/2026): envoys about one prisoner came from every lord of the realm in turn, each on his own wait,
       ///   and a refusal stopped nobody. The real bookkeeping of PrisonerEnvoyBehavior, on a made-up captive.
       /// </summary>
+      private static string TestLocalContext(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("local_context");
+         if (t.Skip(behavior?.LlmServices?.ChatService == null, "the chat service is not ready")) return t.Line();
+
+         Hero hero = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h) && behavior.Store?.Get(h.StringId) != null);
+         if (t.Skip(hero == null, "no character in the world with a CR memory")) return t.Line();
+
+         NpcProfile profile = behavior.Store.Get(hero.StringId);
+         var world = new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()};
+         EncounterContext ctx = EncounterContextBuilder.Build(hero, profile, behavior.GameStateBridge).WithLeanLevel(LeanPromptLevel.Full);
+         const string newLine = "[testall] And what will you give me for the sword?";
+
+         ChatSession Conversation()
+         {
+            var s = new ChatSession();
+            s.AddRunningSummary(ConversationTranscript.SummaryLabel, new string('r', 1200));
+            for (var i = 0; i < 20; i++)
+               if (i % 2 == 0) s.AddPlayerMessage(new string('p', 700));
+               else s.AddNpcMessage(new string('n', 700));
+
+            return s;
+         }
+
+         LlmRequest SendWith(int window)
+         {
+            var client = new CapturingLlmClient();
+            var service = new NpcChatService(client, new NpcMemoryService.Core.Parsing.SectionResponseParser(), behavior.LlmServices.ChatService.PromptBuilder) {
+               ChatParameters = behavior.LlmServices.ChatService.ChatParameters, ContextWindowProvider = () => window
+            };
+            service.ChatAsync(profile, world, Conversation(), newLine, ctx).GetAwaiter().GetResult();
+
+            return client.Last;
+         }
+
+         // The player is not told about a test, and the session keeps nothing from it.
+         NpcChatService.ContextFitted -= LocalContextState.OnFitted;
+         try
+         {
+            LlmRequest small = SendWith(8192);
+            if (t.Abort(small == null, "nothing was sent")) return t.Line();
+
+            int estimate = (int) Math.Ceiling((small.SystemPrompt.Length + small.Messages.Sum(m => m.Content.Length)) / ContextFitPolicy.DefaultCharsPerToken
+                                              + small.Messages.Count * ContextFitPolicy.PerMessageTokens + small.Parameters.MaxTokens);
+            t.Note($"8192 window: ~{estimate} tokens, {small.Messages.Count} message(s), reply budget {small.Parameters.MaxTokens}");
+            t.Expect("itFitsTheWindow", estimate <= (int) (8192 * ContextFitPolicy.UsableShare), true);
+            t.Expect("itStillTeachesTheActions", small.SystemPrompt.Contains("GAME ACTIONS:"), true);
+            t.Expect("theRecapStays", small.Messages.First().Content.Contains(ConversationTranscript.SummaryLabel), true);
+            t.Expect("theRawLinesOpenOnThePlayer", small.Messages.Count < 2 || small.Messages[1].Role == MessageRole.User, true);
+            t.Expect("theNewLineStays", small.Messages.Last().Content, newLine);
+            t.Expect("theCompactReplyBudget", small.Parameters.MaxTokens <= LeanReplyBudget.Tokens, true);
+
+            LlmRequest cloud = SendWith(0);
+            t.Expect("noWindowSendsItAllAsBuilt", cloud?.Messages.Count, 22);
+         }
+         finally
+         {
+            NpcChatService.ContextFitted += LocalContextState.OnFitted;
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>local_context: records the request instead of sending it.</summary>
+      private sealed class CapturingLlmClient : NpcMemoryService.Core.LlmClient.ILlmClient
+      {
+         public LlmRequest Last { get; private set; }
+
+         public System.Threading.Tasks.Task<LlmResponse> CompleteAsync(LlmRequest request, CancellationToken ct = default)
+         {
+            Last = request;
+
+            return System.Threading.Tasks.Task.FromResult(new LlmResponse {Content = "[DIALOGUE]Aye.[/DIALOGUE]", IsSuccess = true});
+         }
+      }
+
       private static string TestAudienceWho(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("audience_who");
@@ -10987,7 +11064,9 @@ namespace CalradiaRemembers.Diagnostics
             ["CouncilZoomPercent"] = ("CouncilScale", SettingShape.Reshapes,
                "a percent the player reads becomes the scale factor the window uses"),
             ["SelfEsteemClimb"] = ("SelfEsteemClimb", SettingShape.Honours,
-               "0 must keep every gain whole, 4 must be the steepest climb the menu promises")
+               "0 must keep every gain whole, 4 must be the steepest climb the menu promises"),
+            ["LocalContextTokens"] = ("LocalContextTokens", SettingShape.Honours,
+               "the window the player declared is the window each local request is fitted to; 0 must mean off")
          };
 
       /// <summary>
