@@ -19,7 +19,12 @@ SKIP_DIRS = {"ChatPortraits"}
 # The player's own prompt profiles and the record of the MCM pick (the Prompt Composer, 2.7.10) live here when no Custom
 # path is set: the developer's own must never ship. Skipped by PATH, since CR's stock texts will ship under
 # ModuleData/Prompts.
-SKIP_PATHS = {os.path.join("ModuleData", "Custom", "Prompts")}
+SKIP_PATHS = {os.path.join("ModuleData", "Custom", "Prompts"),
+              # The realm queens are held back (Gabriel, 13/10/2026: "ne livre pas les reines"); their data lives in
+              # Extras/RealmQueens. Skipped here too, so a copy left in an older deploy can never ship.
+              os.path.join("ModuleData", "QueenPortraits"),
+              os.path.join("ModuleData", "Quests", "the_kings_hall")}
+SKIP_FILES = {os.path.join("ModuleData", "faces.json")}
 
 if os.path.exists(OUT):
     os.remove(OUT)
@@ -34,6 +39,8 @@ with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as z:
             z.writestr(arc_dir + "/", "")
             count += 1
         for f in sorted(filenames):
+            if os.path.normpath(os.path.join(rel_dir, f)) in SKIP_FILES:
+                continue
             z.write(os.path.join(dirpath, f), arc_dir + "/" + f)
             count += 1
 
