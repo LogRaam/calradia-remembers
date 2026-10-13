@@ -9,6 +9,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Actions;
+using CalradiaRemembers.Logic.Items;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 
@@ -43,6 +44,9 @@ namespace CalradiaRemembers.Chat
       /// <summary>True while at least one action is queued and waiting for the player's confirmation.</summary>
       public bool HasPending => _pending.Count > 0;
 
+      /// <summary>Self-test seam: the question the next confirmation would ask, or null.</summary>
+      internal string DebugNextQuestion => _pending.Count > 0 ? _pending.Peek().Question : null;
+
       /// <summary>
       ///   Preprocesses a coin/commit action before the loop would run it. An identical action already resolved
       ///   this conversation is dropped (<see cref="ActionDisposition.Skip" />), taming the LLM re-emitting the
@@ -55,6 +59,12 @@ namespace CalradiaRemembers.Chat
          if (action == null) return ActionDisposition.ExecuteInline;
 
          string type = action.Type ?? "";
+
+         // An item leaving the player's hands (3chmidt, 13/10/2026): a sale always, a gift written in words, is asked
+         // first, naming the real item the game would take; the pending action then takes exactly that one.
+         if (type.Equals("sell_item", StringComparison.OrdinalIgnoreCase) || type.Equals("give_item", StringComparison.OrdinalIgnoreCase))
+            return PreprocessItem(action, npc, profile, context, type);
+
          bool tracked = type.Equals("give_gold", StringComparison.OrdinalIgnoreCase)
                         || type.Equals("take_gold", StringComparison.OrdinalIgnoreCase)
                         || type.Equals("join_party", StringComparison.OrdinalIgnoreCase)
@@ -83,6 +93,57 @@ namespace CalradiaRemembers.Chat
             Context = context,
             Amount = amount,
             Question = ActionConfirmationPolicy.BuildQuestion(type, npcName, amount)
+         });
+
+         return ActionDisposition.Queued;
+      }
+
+      /// <summary>
+      ///   give_item and sell_item. A gift picked from the bag runs as before; a gift written in words and every sale
+      ///   are queued with the real item (BannerlordGameStateBridge.PreviewItem, the executor's own resolution) and, for a
+      ///   sale, the price the buyer can pay (ItemSalePolicy). The pending context carries that item's id, so the item the
+      ///   player says yes to is the item that leaves. Nothing resolvable or a refused sale runs inline, where the bridge
+      ///   says why. A repeat of the same item (and price) this conversation is dropped.
+      /// </summary>
+      private ActionDisposition PreprocessItem(GameAction action, Hero npc, NpcProfile profile, ActionContext context, string type)
+      {
+         bool sale = type.Equals("sell_item", StringComparison.OrdinalIgnoreCase);
+         bool pickedFromBag = !string.IsNullOrWhiteSpace(context?.OfferedItemId);
+         if (!sale && !ActionConfirmationPolicy.GiveItemNeedsConfirmation(pickedFromBag)) return ActionDisposition.ExecuteInline;
+
+         ItemPreview item = BannerlordGameStateBridge.PreviewItem(action, context);
+         if (item == null) return ActionDisposition.ExecuteInline; // the bridge refuses it, saying why
+
+         int agreed = ExtractAmount(action);
+         ItemSaleDecision deal = sale
+            ? ItemSalePolicy.Settle(new ItemSaleFacts {AgreedPrice = agreed, BuyerPurse = npc?.Gold ?? 0, PlayerStillHolds = true, ItemValue = item.Value})
+            : null;
+         if (sale && deal.Refusal != ItemSaleRefusal.None) return ActionDisposition.ExecuteInline; // the bridge refuses it, saying why
+
+         string key = $"{type.ToLowerInvariant()}:{npc?.StringId}:{item.Id}:{agreed}";
+         if (_resolvedKeys.Contains(key))
+         {
+            ModLog.Info($"[CONFIRM] repeat suppressed ({key}): the LLM re-emitted an already-resolved item deed.");
+
+            return ActionDisposition.Skip;
+         }
+
+         _resolvedKeys.Add(key);
+
+         var pinned = new ActionContext(context?.Profile ?? profile, context?.EmittedEvent) {
+            OfferedItemId = item.Id, PlayerWordsThisConversation = context?.PlayerWordsThisConversation
+         };
+         _pending.Enqueue(new PendingConfirmation
+         {
+            Action = action,
+            Npc = npc,
+            Profile = profile,
+            Context = pinned,
+            Amount = deal?.Price ?? 0,
+            Question = ActionConfirmationPolicy.BuildItemQuestion(new ItemConfirmationFacts {
+               ActionType = type, ItemName = item.Name, NpcName = npc?.Name?.ToString() ?? profile?.Name ?? "them",
+               Price = deal?.Price ?? 0, ClampedToPurse = deal?.ClampedToPurse == true
+            })
          });
 
          return ActionDisposition.Queued;
@@ -159,16 +220,7 @@ namespace CalradiaRemembers.Chat
       ///   so "10,000 denars" and "10 000" both parse to 10000. A leading minus is dropped: a transfer amount is
       ///   always non-negative here.
       /// </summary>
-      private static int ParseCoinAmount(string raw)
-      {
-         if (string.IsNullOrWhiteSpace(raw)) return 0;
-
-         var digits = new StringBuilder(raw.Length);
-         foreach (char c in raw)
-            if (char.IsDigit(c)) digits.Append(c);
-
-         return digits.Length > 0 && int.TryParse(digits.ToString(), out int parsed) ? parsed : 0;
-      }
+      private static int ParseCoinAmount(string raw) => CoinAmount.Parse(raw);
 
       /// <summary>Executes a confirmed action through the bridge and reports it, exactly as the inline path would have.</summary>
       private void ApplyConfirmedAction(IActionConfirmationHost host, PendingConfirmation p)

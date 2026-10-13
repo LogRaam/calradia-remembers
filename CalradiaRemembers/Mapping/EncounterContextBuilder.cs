@@ -117,6 +117,17 @@ namespace CalradiaRemembers.Mapping
       ///   questions about third parties accurately — or ask for clarification when
       ///   a name is ambiguous.
       /// </summary>
+      // The item the player picked from the bag, by id, or null.
+      private static TaleWorlds.Core.ItemObject OfferedItem(string itemId)
+      {
+         if (string.IsNullOrWhiteSpace(itemId)) return null;
+         try { return TaleWorlds.ObjectSystem.MBObjectManager.Instance?.GetObject<TaleWorlds.Core.ItemObject>(itemId); }
+         catch
+         {
+            return null; // an id that no longer resolves: the character simply sees no offer
+         }
+      }
+
       public static EncounterContext Build(
          Hero hero,
          NpcProfile profile,
@@ -163,7 +174,10 @@ namespace CalradiaRemembers.Mapping
          // target is absent and cannot hear it) instead of letting a companion answer as though they were
          // standing right there. companionBriefingTargetName names that absent person for the framing.
          bool isCompanionBriefingScene = false,
-         string companionBriefingTargetName = null)
+         string companionBriefingTargetName = null,
+         // 3chmidt (13/10/2026): the item the player held out with the bag this turn, so the character knows what it
+         // is worth and what their own purse can pay before naming a price.
+         string offeredItemId = null)
       {
          int daysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge);
          bool npcIsPrisonerOfAnother = IsPrisonerOfAnother(hero);
@@ -419,6 +433,9 @@ namespace CalradiaRemembers.Mapping
             AudienceFromKin = companionAudience != CompanionAudienceReason.None
                               && TravellingAudiencePolicy.IsKin(Missions.CompanionAudienceTopicResolver.TravellerFactsOf(hero)),
             LeanLevel = leanLevel,
+            ItemOnOffer = OfferedItem(offeredItemId)?.Name?.ToString(),
+            ItemOnOfferValue = OfferedItem(offeredItemId)?.Value ?? 0,
+            Purse = string.IsNullOrWhiteSpace(offeredItemId) || hero == null ? null : hero.Gold,
             IsFinalSceneBeat = isFinalSceneBeat,
             SceneStage = sceneStage,
             AggressorKind = aggressorKind,

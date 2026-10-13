@@ -38,6 +38,19 @@ namespace CalradiaRemembers.GameState
         public string PlayerWordsThisConversation { get; set; }
     }
 
+    /// <summary>The roster item a give_item or sell_item would take, as the player's confirmation names it.</summary>
+    public sealed class ItemPreview
+    {
+        /// <summary>Its StringId, carried into the pending action so exactly this item leaves.</summary>
+        public string Id { get; set; }
+
+        /// <summary>Its display name.</summary>
+        public string Name { get; set; }
+
+        /// <summary>Its market value in denars.</summary>
+        public int Value { get; set; }
+    }
+
     /// <summary>
     ///   The visible result of executing one action, surfaced as a line in the chat
     ///   window. Returned null by the bridge when an action changed nothing

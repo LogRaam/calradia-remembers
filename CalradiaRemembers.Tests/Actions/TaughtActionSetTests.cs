@@ -70,6 +70,15 @@ namespace CalradiaRemembers.Tests.Actions
             set.Should().NotContain("give_item");
         }
 
+        // Selling rides with giving (3chmidt, 13/10/2026): taught whenever the player can hand an item over, and never
+        // to a captive, who has nothing in hand to sell.
+        [Test]
+        public void GIVEN_the_player_free_or_captive_WHEN_the_set_is_built_THEN_sell_item_follows_give_item()
+        {
+            TaughtActionSet.ForTurn(new TaughtActionFacts {PlayerIsCaptive = false}).Should().Contain("sell_item");
+            TaughtActionSet.ForTurn(new TaughtActionFacts {PlayerIsCaptive = true}).Should().NotContain("sell_item");
+        }
+
         // The reference personal-command verb (2026-08-05): appoint_governor is taught ONLY when the host proved
         // the NPC can be seated as a governor this turn. Present when the fact is set...
         [Test]

@@ -655,6 +655,17 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - the bridge refuses:
   - "(There is no plot against them you could warn of just now.)"
 
+### sell_item
+
+- executor: `ExecuteSellItem`
+- taught in: `AppendGiveItem`
+- taught when: `context?.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
+- the bridge refuses:
+  - "(No one here has a purse of their own to buy it with.)"
+  - "(No price was settled, so nothing was sold.)"
+  - "(You don't seem to have anything like that to sell.)"
+  - $"({npcHero.Name} has no coin to pay for it, so nothing was sold.)"
+
 ### sell_prisoner
 
 - executor: `Execute`

@@ -212,6 +212,8 @@ namespace CalradiaRemembers.Logic.Actions
          // give_item is taught in every ordinary turn where the player is not the captive (a prisoner has no
          // access to their inventory), see PromptBuilder.AppendGiveItem.
          if (!facts.PlayerIsCaptive) set.Add("give_item");
+         // sell_item is taught beside it (3chmidt, 13/10/2026), under the same condition.
+         if (!facts.PlayerIsCaptive) set.Add("sell_item");
 
          // Personal-command batch.
          if (facts.NpcCanBeAppointedGovernor) set.Add("appoint_governor");

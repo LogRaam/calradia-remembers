@@ -223,7 +223,7 @@ namespace CalradiaRemembers.GameState
          "end_mercenary", "join_as_vassal", "mediate_peace", "join_clan", "scheme_assist", "scheme_heed",
          "marry", "take_as_consort", "take_as_secret_lover", "open_relationship", "close_relationship",
          "accept_other_partners",
-         "end_affair", "give_item", "give_prisoner", "free_prisoner", "execute_prisoner", "execute_player",
+         "end_affair", "give_item", "sell_item", "give_prisoner", "free_prisoner", "execute_prisoner", "execute_player",
          "turn_nemesis", "recruit_prisoner", "recruit_notable",
          "take_into_service", "grant_blessing", "arrange_marriage",
          "appoint_governor", "assign_party_role", "rejoin_party", "dispatch_mission", "grant_fief",
@@ -283,6 +283,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteEndAffair(npcHero, context);
             case "give_item":
                return ExecuteGiveItem(action, npcHero, context);
+            case "sell_item":
+               return ExecuteSellItem(action, npcHero, context);
             case "give_prisoner":
                return ExecuteGivePrisoner(action, npcHero, context);
             case "free_prisoner":
@@ -1693,6 +1695,110 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
+      ///   The roster item a give_item or sell_item names: the bag pick by id first (immune to the model rewording the
+      ///   name), else an exact name, else the fuzzy resolver. A narrated gift word ("a pendant") rarely matches a roster
+      ///   entry's literal name even when the player plainly holds something that fits (a "Jewelry" trade good; player
+      ///   report: a wife offered "a pendant" got a false "you don't have that"), so a name miss is fuzzy-resolved
+      ///   (exact/token/synonym-category) before giving up. Shared with the confirmation, so the item the player says
+      ///   yes to is the item that leaves (3chmidt, 13/10/2026).
+      /// </summary>
+      internal static ItemRosterElement ResolveNamedItem(string itemName, string itemId, out bool fuzzy)
+      {
+         fuzzy = false;
+         bool byName = string.IsNullOrWhiteSpace(itemId);
+         ItemRosterElement found = !byName ? FindRosterElementById(itemId) : FindItemInRoster(itemName);
+         if (byName && found.EquipmentElement.Item == null && !string.IsNullOrWhiteSpace(itemName))
+         {
+            GiftCandidate? match = GiftNameResolver.Resolve(itemName, BuildGiftCandidates());
+            if (match.HasValue)
+            {
+               found = FindRosterElementById(match.Value.Id);
+               fuzzy = true;
+            }
+         }
+
+         return found;
+      }
+
+      /// <summary>
+      ///   The item a give_item or sell_item would take, for the player's confirmation: its id (carried into the pending
+      ///   action so exactly this one leaves), its name and its market value. Null when the player holds nothing like it.
+      /// </summary>
+      public static ItemPreview PreviewItem(GameAction action, ActionContext context)
+      {
+         try
+         {
+            if (MobileParty.MainParty?.ItemRoster == null || action?.Parameters == null) return null;
+
+            action.Parameters.TryGetValue("item", out string itemName);
+            ItemRosterElement found = ResolveNamedItem(itemName, context?.OfferedItemId, out _);
+            ItemObject item = found.EquipmentElement.Item;
+
+            return item == null ? null : new ItemPreview {Id = item.StringId, Name = item.Name?.ToString(), Value = item.Value};
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] item preview failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   sell_item (3chmidt, 13/10/2026): the player's item goes to the NPC and the NPC's coin to the player, as one
+      ///   deal, at the agreed price brought down to what the buyer can pay (ItemSalePolicy). The item leaves first and
+      ///   comes back if the payment fails, so neither half can happen alone. The buyer may wear what they bought.
+      /// </summary>
+      private static ActionOutcome ExecuteSellItem(GameAction action, Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            if (MobileParty.MainParty?.ItemRoster == null || Hero.MainHero == null) return null;
+            if (npcHero == null) return ActionOutcome.Refused("(No one here has a purse of their own to buy it with.)");
+
+            action.Parameters.TryGetValue("item", out string itemName);
+            action.Parameters.TryGetValue("price", out string priceText);
+            ItemRosterElement found = ResolveNamedItem(itemName, context?.OfferedItemId, out _);
+            ItemObject item = found.EquipmentElement.Item;
+
+            ItemSaleDecision deal = ItemSalePolicy.Settle(new ItemSaleFacts {
+               AgreedPrice = CoinAmount.Parse(priceText), BuyerPurse = npcHero.Gold, PlayerStillHolds = item != null && found.Amount > 0,
+               ItemValue = item?.Value ?? 0
+            });
+            switch (deal.Refusal)
+            {
+               case ItemSaleRefusal.NoPrice:
+                  return ActionOutcome.Refused("(No price was settled, so nothing was sold.)");
+               case ItemSaleRefusal.ItemGone:
+                  return ActionOutcome.Refused("(You don't seem to have anything like that to sell.)");
+               case ItemSaleRefusal.BuyerCannotPay:
+                  return ActionOutcome.Refused($"({npcHero.Name} has no coin to pay for it, so nothing was sold.)");
+            }
+
+            MobileParty.MainParty.ItemRoster.AddToCounts(found.EquipmentElement, -1);
+            try { GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, deal.Price); }
+            catch
+            {
+               MobileParty.MainParty.ItemRoster.AddToCounts(found.EquipmentElement, 1);
+               throw;
+            }
+
+            string name = item.Name.ToString();
+            ModLog.Info($"[ACTION] sell_item: player sold '{name}' (value {item.Value}) to {npcHero.Name} for {deal.Price}{(deal.ClampedToPurse ? " (all they had)" : "")}");
+            string equipTail = TryEquipGift(npcHero, item);
+
+            return new ActionOutcome($"You sell {name} to {npcHero.Name} for {deal.Price} denars (purse: {Hero.MainHero.Gold}).{equipTail}", true,
+               appliedGoldAmount: deal.Price);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] sell_item failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
       ///   give_item: transfers one unit of the named item from the player's party
       ///   inventory to the NPC. The item name must match a roster entry exactly
       ///   (case-insensitive). Quest items are always refused — this guard sits on both
@@ -1711,25 +1817,8 @@ namespace CalradiaRemembers.GameState
             if (string.IsNullOrWhiteSpace(itemName) && string.IsNullOrWhiteSpace(itemId))
                return ActionOutcome.Refused(SilentRefusalMessages.GiveItemNoneNamed());
 
-            // Prefer the exact item the player picked from the bag (by id); fall back to a name match
-            // for a gift offered purely in free text. The id path is immune to the LLM rewording the name.
             bool isFreeTextGift = string.IsNullOrWhiteSpace(itemId);
-            ItemRosterElement found = !isFreeTextGift
-               ? FindRosterElementById(itemId)
-               : FindItemInRoster(itemName);
-
-            // Free-text gift, exact name miss: a narrated personal-gift word ("a pendant") rarely matches a
-            // roster entry's literal name, even when the player plainly holds something that fits (a
-            // "Jewelry" trade good). Player report: married, pregnant wife offered "a pendant" in chat, got
-            // a false "you don't have that" though the Jewelry good sat right there in the roster. Fuzzy-
-            // resolve (exact/token/synonym-category) before giving up; the picker (OfferedItemId) path never
-            // reaches here, so it is untouched.
-            GiftCandidate? fuzzyMatch = null;
-            if (isFreeTextGift && found.EquipmentElement.Item == null)
-            {
-               fuzzyMatch = GiftNameResolver.Resolve(itemName, BuildGiftCandidates());
-               if (fuzzyMatch.HasValue) found = FindRosterElementById(fuzzyMatch.Value.Id);
-            }
+            ItemRosterElement found = ResolveNamedItem(itemName, itemId, out bool fuzzy);
 
             if (found.EquipmentElement.Item == null)
             {
@@ -1745,7 +1834,7 @@ namespace CalradiaRemembers.GameState
                return ActionOutcome.Refused($"(You don't seem to have '{label}' to give.)");
             }
 
-            if (fuzzyMatch.HasValue)
+            if (fuzzy)
                ModLog.Info($"[ACTION] give_item: fuzzy-resolved '{itemName}' -> '{found.EquipmentElement.Item.Name}'");
 
             // Honour the STATED quantity, clamped to what the player holds (player report: "I give you 10 ingots"

@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 488 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1085 types in 28 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 489 types in 59 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1093 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -352,7 +352,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitData` | public struct | The flat portrait binding a widget renders from: image id, texture provider name, extra args. |
 | `PortraitTextureGuard` | public static class | The single gate for every character portrait the mod shows (chat lines, the courier letter). |
 
-### CalradiaRemembers.GameState (36)
+### CalradiaRemembers.GameState (37)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -376,6 +376,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GrantStipendVerdict` | public struct | The verdict of CourtActionResolver.TryGrantStipend: the result, the clamped daily amount on GrantStipendResult.Started (zero otherwise), and FailReason - the escrow's own player-facing reason - only on GrantStipendResult... |
 | `IGameStateBridge` | public interface | Abstraction over TaleWorlds' campaign state for everything the mod needs to read from or write to the game world. |
 | `ItemOffer` | public struct | One item the player offers to settle an item bargain: a roster item id and how many. |
+| `ItemPreview` | public class | The roster item a give_item or sell_item would take, as the player's confirmation names it. |
 | `JsonCampaignState` | public static class | Shared byte[] JSON persistence for campaign behaviors, mirroring the pattern already proven in Storage.BannerlordNpcMemoryStore. |
 | `LordRecruitmentFactsBuilder` | public static class | Reads the live game state into a pure LordRecruitmentFacts for LordRecruitment. |
 | `PendingMatch` | public class | A match some lord has sent the player to broker, as the one with the say over the lady reads it. |
@@ -834,7 +835,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (676)
+### CalradiaRemembers.Logic (677)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -931,6 +932,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CoercionOutcome` | public enum | How a coerced captive answers a freedom bargain, decided by their Fear/Respect and traits. |
 | `CoercionResult` | public class | The resolved answer: what happens to the bargain's terms, and what it costs in secret. |
 | `CoerciveSceneEventPolicy` | public static class | Decides whether a romantic [EVENT] emitted mid-scene must be discarded because the scene is coercive (the player is a captive, or holds the NPC captive). |
+| `CoinAmount` | public static class | Reads a coin amount tolerantly. |
 | `CommitmentJournalText` | public static class | Pure formatting for the vanilla quest-journal mirror of a pledge (pledge_against / TrackedCommitment): a stable title and one log line per lifecycle transition. |
 | `CommitmentKind` | public enum | The flavour of a tracked commitment. |
 | `CommitmentPolicy` | public static class | Pure math and tuning for a TrackedCommitment's deadline and its fulfilled/breached consequences. |
@@ -1515,13 +1517,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
 
-### CalradiaRemembers.Logic.Actions (13)
+### CalradiaRemembers.Logic.Actions (16)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionConfirmationPolicy` | public static class | Pure policy for the terminal-style "confirm this action?" prompt shown in chat before a consequential LLM action (moving coin or committing to a service) is applied. |
 | `ActionsPanelGate` | public static class | Decides whether the Actions tile opens the new panel or the vanilla menu it replaces. |
 | `ConfirmationAnswer` | public enum | How the player answered a pending in-chat confirmation prompt. |
+| `ItemConfirmationFacts` | public class | What the question about an item leaving the player's hands names. |
 | `ManualActionAvailability` | public static class | Decides, from a ManualActionFacts snapshot, exactly which ManualActionCatalog entries the manual menu may offer for THIS conversation right now. |
 | `ManualActionCatalog` | public static class | The fixed set of every action the manual menu may offer, in the stable order the menu lists them (grouped Coin & Goods, Prisoner, Companion, Governance, Diplomacy). |
 | `ManualActionEntry` | public class | One action the manual menu can inject: its bridge Type, the label shown in the menu, the Group it is listed under, what parameter (if any) the menu must collect before building the GameAction, the exact dictionary key th... |
@@ -1532,6 +1535,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ManualActionStatus` | public class | One catalogue entry with where it stands, and why when it is closed. |
 | `TaughtActionFacts` | public struct | The eligibility facts that decide which conditional 1:1 [ACTION] verbs a single conversation turn teaches. |
 | `TaughtActionSet` | public static class | BEST-EFFORT, LOG-ONLY. Returns the set of 1:1 [ACTION] type keys taught on a single ordinary (non-council) conversation turn, so the host can OBSERVE, without refusing, an [ACTION] that executed yet was never taught (aud... |
+| `TradeBatchAction` | public class | One action of a turn, as far as a sale is concerned. |
+| `TradeBatchPolicy` | public static class | Which actions of a turn a sale makes redundant. |
 
 ### CalradiaRemembers.Logic.Appreciations (15)
 
@@ -1918,12 +1923,16 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RecentMatterWording` | public static class | Words the clause naming the matter a character raises. |
 | `RecentMatterWordingFacts` | public class | What the matter's clause is written from. |
 
-### CalradiaRemembers.Logic.Items (2)
+### CalradiaRemembers.Logic.Items (6)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `GiftCandidate` | public struct | One roster item as far as gift-name resolution is concerned: enough to match a narrated word against and, once matched, to hand back to the caller for the real transfer. |
 | `GiftNameResolver` | public static class | Resolves a narrated free-text gift word (e.g. "pendant") against the player's real roster items, so a flourish of narration does not hard-fail just because nothing is literally named that. |
+| `ItemSaleDecision` | public class | How a sale is settled. |
+| `ItemSaleFacts` | public class | What a sale is settled on. |
+| `ItemSalePolicy` | public static class | Settles a sale. |
+| `ItemSaleRefusal` | public enum | Why a sale does not go through. |
 
 ### CalradiaRemembers.Logic.Narrative (2)
 

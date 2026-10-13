@@ -96,6 +96,8 @@ namespace CalradiaRemembers.Tests.Maps
          c.Read["give_item"].Should().Contain(new[] {"item", "count"});
          c.Read.Should().ContainKey("sell_prisoner", "a verb class (SellPrisonerVerb) is followed too");
          c.Read["sell_prisoner"].Should().Contain("target");
+         c.Read.Should().ContainKey("sell_item", "the bridge's switch dispatches sell_item to ExecuteSellItem");
+         c.Read["sell_item"].Should().Contain(new[] {"item", "price"});
          c.Read["take_into_service"].Should().Contain("target", "read as action?.Parameters?.TryGetValue(\"target\", ...)");
          c.Read.Count.Should().BeGreaterThan(20, "most actions have an executor this test can follow");
       }

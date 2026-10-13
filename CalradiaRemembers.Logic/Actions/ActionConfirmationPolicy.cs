@@ -27,6 +27,25 @@ namespace CalradiaRemembers.Logic.Actions
       Recompose
    }
 
+   /// <summary>What the question about an item leaving the player's hands names.</summary>
+   public sealed class ItemConfirmationFacts
+   {
+      /// <summary>"give_item" or "sell_item".</summary>
+      public string ActionType { get; init; }
+
+      /// <summary>The real roster item that would leave (resolved, not the model's word for it).</summary>
+      public string ItemName { get; init; }
+
+      /// <summary>The other party's display name.</summary>
+      public string NpcName { get; init; }
+
+      /// <summary>The price a sale pays (ItemSalePolicy), 0 for a gift.</summary>
+      public int Price { get; init; }
+
+      /// <summary>The price was brought down to what the buyer can pay.</summary>
+      public bool ClampedToPurse { get; init; }
+   }
+
    /// <summary>
    ///   Pure policy for the terminal-style "confirm this action?" prompt shown in chat before a
    ///   consequential LLM action (moving coin or committing to a service) is applied. Decides which
@@ -85,7 +104,30 @@ namespace CalradiaRemembers.Logic.Actions
       {
          if (string.IsNullOrEmpty(actionType)) return false;
 
-         return string.Equals(actionType, "take_gold", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "join_party", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "free_prisoner", StringComparison.OrdinalIgnoreCase);
+         return string.Equals(actionType, "take_gold", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "join_party", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "free_prisoner", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(actionType, "sell_item", StringComparison.OrdinalIgnoreCase);
+      }
+
+      /// <summary>
+      ///   A gift written in words is confirmed; one picked from the bag is not (the player chose it item by item).
+      ///   3chmidt (Nexus, 13/10/2026): "the game just takes another sword out of my inventory" - a gift resolved from a
+      ///   word picks among several matching items, so the player sees which one leaves before it does.
+      /// </summary>
+      public static bool GiveItemNeedsConfirmation(bool pickedFromBag) => !pickedFromBag;
+
+      /// <summary>
+      ///   "Sell Crafted Two Handed Sword to Poison Menja for 9000 coins?" or "Give Crafted Two Handed Sword to Poison
+      ///   Menja?": the real item and, for a sale, the real price, said as all the buyer has when it was brought down.
+      /// </summary>
+      public static string BuildItemQuestion(ItemConfirmationFacts f)
+      {
+         string item = string.IsNullOrWhiteSpace(f?.ItemName) ? "this" : f.ItemName.Trim();
+         string npc = string.IsNullOrWhiteSpace(f?.NpcName) ? "them" : f.NpcName.Trim();
+
+         if (string.Equals(f?.ActionType, "sell_item", StringComparison.OrdinalIgnoreCase))
+            return $"Sell {item} to {npc} for {f.Price} coins{(f.ClampedToPurse ? " (all they have)" : "")}?";
+
+         return $"Give {item} to {npc}?";
       }
    }
 }

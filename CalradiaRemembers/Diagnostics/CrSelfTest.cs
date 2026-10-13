@@ -227,6 +227,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("quest_rescue_release_credit", Severity.Heavy, "v2.5.3 player report ('his success cancelled his quest'): capture a real in-party lord bound to a real outstanding RescuePrisoner quest, free them through the REAL free_prisoner bridge action (not a battle, not a Debug seam) so the REAL CampaignEvents.HeroPrisonerReleased dispatch reaches QuestDeedTracker's new hook, and assert the quest is stamped SATISFIED, not left outstanding; then runs the REAL daily maintenance sweep and asserts it still does not CANCEL the now-satisfied quest (the exact bug: the void sweep used to read the freed target as proof the task was impossible). Releases the captive and drops the seeded quest afterwards", TestRescueCreditedOnRelease),
          new SelfTest("captive_kin", Severity.Heavy, "capture an in-party enemy lord who has a living parent -> build that parent's RELATIONSHIPS -> assert the captured child is marked as held by the player (the 'you are a liar, my child is safe' denial bug), then release", TestCaptiveKinAwareness),
          new SelfTest("give_item", Severity.Light, "pick a player item -> give_item -> assert it left the inventory", TestGiveItem),
+         new SelfTest("sell_item", Severity.Light, "Selling an item in chat (3chmidt, 13/10/2026: a sale became a gift plus a payment the wrong way, 'Give Poison Menja 9000 coins?', and a second sword left). Seeds a trade good, sells it to a lord with coin through the real bridge and expects the item gone, the player paid and the lord's purse lighter by the same sum; then a gift written in words (no bag pick) is queued for confirmation naming the real item. Puts the coin back and removes the seeded goods.", TestSellItem),
          new SelfTest("gift_equip", Severity.Light, "gift an equippable weapon to a companion/spouse -> assert they equipped it", TestGiftEquip),
          new SelfTest("style_reload", Severity.Light, "select a style, edit its file -> assert the next message picks the edit up", TestStyleReload),
          new SelfTest("presence", Severity.Light, "Mechanical: a companion riding in your party is told they travel at your side and is NEVER told how long since they last saw you, even with a 60-day-stale memory (the 'crew acts abandoned between two ports' report); a lord genuinely away STILL hears the time apart. BORROWS a companion into your party if none is riding along, and puts them back", TestPresence),
@@ -4791,6 +4792,54 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Expect("sameTownGangLeaderFramedAsRival", framedAsRival, true);
          t.Note($"{npc.Name} asked about same-town gang leader {rival.Name}: {(framedAsRival ? "RIVAL" : "NOT framed rival")}. | hint: {Show(hint)}");
+
+         return t.Line();
+      }
+
+      private static string TestSellItem(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("sell_item");
+         ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+         if (t.Abort(roster == null || Hero.MainHero == null, "no player item roster")) return t.Line();
+
+         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.Gold >= 500 && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(buyer == null, "no lord in the world with 500 denars")) return t.Line();
+
+         // A trade good: nothing anyone would wear, so the sale moves only the item and the coin.
+         ItemObject good = MBObjectManager.Instance?.GetObjectTypeList<ItemObject>()?.FirstOrDefault(it => it != null && it.IsTradeGood && it.Value > 0);
+         if (t.Skip(good == null, "no trade good in the game data")) return t.Line();
+
+         int heldBefore = roster.GetItemNumber(good);
+         int playerGold = Hero.MainHero.Gold;
+         int buyerGold = buyer.Gold;
+         const int price = 100;
+         roster.AddToCounts(good, 1);
+         var paid = 0;
+         try
+         {
+            var ctx = new ActionContext(GetOrCreate(behavior, buyer), null) {OfferedItemId = good.StringId};
+            var sale = new GameAction {Type = "sell_item", Parameters = new Dictionary<string, string> {["item"] = good.Name.ToString(), ["price"] = price.ToString()}};
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(sale, buyer, ctx);
+            paid = Hero.MainHero.Gold - playerGold;
+            t.Note($"{good.Name} to {buyer.Name}: {outcome?.Message}");
+            t.Expect("theItemIsGone", roster.GetItemNumber(good), heldBefore);
+            t.Expect("thePlayerIsPaid", paid, price);
+            t.Expect("theBuyerPaysTheSame", buyerGold - buyer.Gold, price);
+
+            // A gift written in words is asked first, naming the real item the game would take.
+            roster.AddToCounts(good, 1);
+            var confirmation = new ActionConfirmationController();
+            var gift = new GameAction {Type = "give_item", Parameters = new Dictionary<string, string> {["item"] = good.Name.ToString()}};
+            ActionDisposition d = confirmation.Preprocess(gift, buyer, GetOrCreate(behavior, buyer), new ActionContext(GetOrCreate(behavior, buyer), null));
+            t.Expect("aWordedGiftIsAskedFirst", d, ActionDisposition.Queued);
+            t.Expect("theQuestionNamesTheRealItem", confirmation.DebugNextQuestion?.Contains(good.Name.ToString()) == true, true);
+         }
+         finally
+         {
+            if (paid > 0) GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, buyer, paid);
+            int extra = roster.GetItemNumber(good) - heldBefore;
+            if (extra > 0) roster.AddToCounts(good, -extra);
+         }
 
          return t.Line();
       }

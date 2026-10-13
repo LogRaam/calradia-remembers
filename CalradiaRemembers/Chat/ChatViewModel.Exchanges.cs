@@ -772,6 +772,7 @@ namespace CalradiaRemembers.Chat
                captiveSceneStyle: _captiveSceneStyle,
                companionAudience: _audienceReason,
                audienceRetirementIsLanded: _audienceLanded,
+               offeredItemId: _offer.OfferedItemId,
                // The scene has not been established yet, so this turn sets it (Gabriel 2026-07-19: an
                // opening narration, then sporadic). Consumed ONCE per conversation rather than derived from
                // the turn counter: a captor's opening turn carries suppressPlayerLine and so never
@@ -1316,6 +1317,10 @@ namespace CalradiaRemembers.Chat
                // Same shape for every deal that moves its own coin (tashmetu, 27/09/2026: a captive ransomed): a
                // give_gold or take_gold beside it ("I will pay it now") is the same payment written twice.
                List<string> actionTypesThisTurn = response.Actions.Select(a => a?.Type).ToList();
+               var supersededBySale = new HashSet<GameAction>(TradeBatchPolicy.Superseded(response.Actions
+                     .Select(a => new TradeBatchAction {Type = a?.Type, Item = a?.Parameters != null && a.Parameters.TryGetValue("item", out string it) ? it : null})
+                     .ToList())
+                  .Select(i => response.Actions[i]));
 
                // M-R3: at content Off an intimacy [EVENT] is a hallucination (the romance system is disabled), so
                // it must not grant the RelationGate's intimacy-tier boost (+3, cooldown bypassed). Downgrade it so
@@ -1407,6 +1412,14 @@ namespace CalradiaRemembers.Chat
                          StringComparison.OrdinalIgnoreCase))
                   {
                      ModLog.Info("[ACTION] take_gold dropped — join_party in the same response already transfers the hire payment.");
+
+                     continue;
+                  }
+
+                  // A sale read twice (3chmidt, 13/10/2026): beside a sell_item, a give_item of the same thing is the sale.
+                  if (supersededBySale.Contains(action))
+                  {
+                     ModLog.Info($"[ACTION] {action.Type} dropped: a sale in the same response already moves this item.");
 
                      continue;
                   }
