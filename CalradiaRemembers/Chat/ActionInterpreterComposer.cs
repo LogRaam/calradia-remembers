@@ -60,7 +60,9 @@ namespace CalradiaRemembers.Chat
             return WithInterpretedTags(proseResponse, null); // nothing to read -> apply no tags
 
          string prompt;
-         LeanPromptLevel level = context?.LeanLevel ?? LeanPromptLevel.Full;
+         // From the player's own toggle, not the chat's session compact: the interpreter may run on a cloud endpoint
+         // while the chat is local, and it fits its own window below.
+         LeanPromptLevel level = ModSettings.LeanPromptChosen ? LeanPromptLevel.Lean : LeanPromptLevel.Full;
          try
          {
             string contextFacts = ActionInterpreterContextBuilder.Project(context, profile, playerLabel, conversationInProgress);

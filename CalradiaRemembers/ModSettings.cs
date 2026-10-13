@@ -500,6 +500,12 @@ namespace CalradiaRemembers
       // re-read ~20k tokens of prefix on every flip). See LocalContextState.
       public static bool LeanPrompt => (CrSettings.Instance?.LeanPrompt ?? false) || LocalContextState.CompactThisSession;
 
+      /// <summary>
+      ///   The player's own Compact toggle, without the session's forced compact. For a caller on ANOTHER endpoint than
+      ///   the chat (the action interpreter), which fits its own window and must not lose quality to the chat's.
+      /// </summary>
+      public static bool LeanPromptChosen => CrSettings.Instance?.LeanPrompt ?? false;
+
       /// <summary>The local model's context window in tokens, as the player declared it; 0 when none (cloud models).</summary>
       public static int LocalContextTokens => Math.Max(0, CrSettings.Instance?.LocalContextTokens ?? 0);
 
