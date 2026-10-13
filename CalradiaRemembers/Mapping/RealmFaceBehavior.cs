@@ -40,11 +40,14 @@ namespace CalradiaRemembers.Mapping
       // The women CR dressed: hero id to the realm whose face they wear and their own face, to give back.
       private Dictionary<string, DressedQueen> _dressed = new();
       private IReadOnlyDictionary<string, RealmFace> _faces = new Dictionary<string, RealmFace>();
+      // Each face's folder, so its portrait resolves next to the file that named it (a mod ships its own pictures).
+      private readonly Dictionary<RealmFace, string> _folderOf = new();
       private readonly List<string> _problems = new();
 
       public RealmFaceBehavior()
       {
          Instance = this;
+         Portraits.ChatPortraitResolver.ByHero = heroId => Instance?.PortraitFor(heroId);
       }
 
       /// <summary>What reading the faces files found wrong (cr.testall reports it).</summary>
@@ -102,12 +105,18 @@ namespace CalradiaRemembers.Mapping
       internal void LoadFaces()
       {
          _problems.Clear();
+         _folderOf.Clear();
          var all = new List<RealmFace>();
          void Read(string path, string source)
          {
             try
             {
-               if (File.Exists(path)) all.AddRange(RealmFaceFile.Parse(File.ReadAllText(path), source, _problems));
+               if (!File.Exists(path)) return;
+               foreach (RealmFace f in RealmFaceFile.Parse(File.ReadAllText(path), source, _problems))
+               {
+                  all.Add(f);
+                  _folderOf[f] = Path.GetDirectoryName(path);
+               }
             }
             catch (Exception ex) { _problems.Add($"{path} could not be read ({ex.GetType().Name}: {ex.Message})."); }
          }
@@ -124,6 +133,9 @@ namespace CalradiaRemembers.Mapping
 
          Read(Path.Combine(NarrativeLoader.ModuleDataFolder(), FileName), ScenarioPackFolders.OwnSource);
          _faces = RealmFaceFile.Merge(all);
+         foreach (RealmFace f in _faces.Values)
+            if (f.Portrait != null && !File.Exists(PortraitPath(f)))
+               _problems.Add($"{f.Source}: the portrait '{f.Portrait}' for '{f.RealmId}' is not there; she keeps the usual chat portrait.");
          foreach (string problem in _problems) ModLog.Info("[FACES] ! " + problem);
          ModLog.Info($"[FACES] {_faces.Count} queen face(s): {string.Join(", ", _faces.Values.Select(f => f.RealmId + " (" + f.Source + ")"))}.");
       }
@@ -150,6 +162,28 @@ namespace CalradiaRemembers.Mapping
          foreach (KeyValuePair<string, DressedQueen> d in _dressed.ToList())
             if (_faces.TryGetValue(d.Value.Realm, out RealmFace face) && face.Key != d.Value.Key)
                Dress(d.Key, d.Value.Realm, face.Key);
+      }
+
+      /// <summary>
+      ///   The chat portrait of a woman CR dressed as a queen, from her realm's faces file, or null (Gabriel, 12/10/2026:
+      ///   a chat portrait per queen). It follows the face: a former queen given her own face back keeps her usual portrait.
+      /// </summary>
+      internal string PortraitFor(string heroId)
+      {
+         if (string.IsNullOrEmpty(heroId) || !_dressed.TryGetValue(heroId, out DressedQueen d) || d.Realm == null) return null;
+         if (!_faces.TryGetValue(d.Realm, out RealmFace face) || face.Portrait == null) return null;
+
+         string path = PortraitPath(face);
+
+         return path != null && File.Exists(path) ? path : null;
+      }
+
+      /// <summary>The full path of a face's portrait, or null when it names none.</summary>
+      internal string PortraitPath(RealmFace face)
+      {
+         if (face?.Portrait == null || !_folderOf.TryGetValue(face, out string folder) || folder == null) return null;
+
+         return Path.Combine(folder, face.Portrait.Replace('/', Path.DirectorySeparatorChar));
       }
 
       /// <summary>Self-test seam: dresses this hero in a face, as the plan would, and records her own face.</summary>

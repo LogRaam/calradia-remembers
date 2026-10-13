@@ -152,6 +152,12 @@ changes: her name, age and build stay hers. Read in this order, the first one ke
 `Custom/faces.json`, each mod's `ModuleData/cr_faces.json` in launcher order, CR's `ModuleData/faces.json`.
 `cr.testall` (`realm_faces`) reports a line that does not load and a realm id the game does not know.
 
+A realm can also carry her chat portrait: `"<realm id>": { "face": "<BodyProperties ... />", "portrait":
+"QueenPortraits/queen_<realm>.jpg" }`. The picture (.png or .jpg, any shape: the chat keeps its proportions) sits under
+the faces file's own folder, never outside it. It follows the face: the woman wearing it shows it in chat, letters and
+the council, and a former queen goes back to her usual portrait. A picture the player dropped in `ChatPortraits` for
+that hero still wins.
+
 ### Reading regard (`CrNpcMemory.GetRegard`, since 2.7.4)
 
 ```csharp

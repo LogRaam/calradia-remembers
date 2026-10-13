@@ -58,6 +58,39 @@ namespace CalradiaRemembers.Tests
          merged.Keys.Should().BeEquivalentTo("sturgia", "battania");
       }
 
+      // Gabriel (12/10/2026) sends a chat portrait per queen: a realm may name one beside its face, and the plain line
+      // (a face alone) still reads as before, so a file written for 2.7.10's first faces keeps working.
+      [Test]
+      public void GIVEN_a_realm_with_a_face_and_a_portrait_WHEN_read_THEN_both_are_kept_and_a_face_alone_still_reads()
+      {
+         var problems = new List<string>();
+         string esc = Key.Replace("\"", "\\\"");
+         IReadOnlyList<RealmFace> faces = RealmFaceFile.Parse(
+            "{ \"queens\": { \"aserai\": { \"face\": \"" + esc + "\", \"portrait\": \"QueenPortraits/queen_aserai.jpg\" }, \"vlandia\": \"" + esc + "\" } }",
+            "faces.json", problems);
+
+         faces.Should().ContainSingle(f => f.RealmId == "aserai" && f.Key == Key && f.Portrait == "QueenPortraits/queen_aserai.jpg");
+         faces.Should().ContainSingle(f => f.RealmId == "vlandia" && f.Key == Key && f.Portrait == null);
+         problems.Should().BeEmpty();
+      }
+
+      // A faces file can come from any mod: its portrait must stay a picture inside that mod's own folder, never a path
+      // that climbs out of it or points anywhere on the disk. A bad portrait is reported and dropped; the face still dresses her.
+      [Test]
+      public void GIVEN_a_portrait_outside_the_faces_folder_or_no_picture_WHEN_read_THEN_it_is_reported_and_the_face_alone_is_kept()
+      {
+         string esc = Key.Replace("\"", "\\\"");
+         foreach (string bad in new[] {"../../secret.jpg", "C:/Windows/x.png", "/etc/x.png", "queen.exe", "QueenPortraits\\\\..\\\\x.jpg"})
+         {
+            var problems = new List<string>();
+            IReadOnlyList<RealmFace> faces = RealmFaceFile.Parse(
+               "{ \"queens\": { \"khuzait\": { \"face\": \"" + esc + "\", \"portrait\": \"" + bad + "\" } } }", "faces.json", problems);
+
+            faces.Should().ContainSingle(f => f.RealmId == "khuzait" && f.Key == Key && f.Portrait == null, bad);
+            problems.Should().ContainSingle(bad);
+         }
+      }
+
       // ── Who wears it ──
 
       // The ruler's wife wears her realm's face; the queen already dressed is left as she is.

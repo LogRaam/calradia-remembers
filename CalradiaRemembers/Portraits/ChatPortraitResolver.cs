@@ -21,6 +21,12 @@ namespace CalradiaRemembers.Portraits
     {
         private static readonly string[] Extensions = {".png", ".jpg", ".jpeg"};
 
+        /// <summary>
+        ///   A portrait the game gives a hero when the player dropped none (the realm queens' portraits, set by
+        ///   Mapping.RealmFaceBehavior). A hook rather than a call, so this folder knows nothing of Mapping.
+        /// </summary>
+        internal static System.Func<string, string> ByHero { get; set; }
+
         /// <summary>The folder the player drops images into (may not exist).</summary>
         public static string PortraitDir()
             => Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "ModuleData", "ChatPortraits");
@@ -53,20 +59,24 @@ namespace CalradiaRemembers.Portraits
             }
         }
 
-        /// <summary>Full path of the image for this hero, or null when none exists.</summary>
+        /// <summary>
+        ///   Full path of the image for this hero, or null when none exists. The player's own drop wins; else a queen CR
+        ///   dressed in her realm's face shows that realm's portrait (Gabriel, 12/10/2026: a chat portrait per queen).
+        /// </summary>
         public static string ResolveForHero(string stringId, string displayName)
         {
             try
             {
                 string dir = PortraitDir();
-                if (!Directory.Exists(dir)) return null;
+                if (Directory.Exists(dir))
+                    foreach (string key in Keys(stringId, displayName))
+                        foreach (string ext in Extensions)
+                        {
+                            string path = Path.Combine(dir, key + ext);
+                            if (File.Exists(path)) return path;
+                        }
 
-                foreach (string key in Keys(stringId, displayName))
-                    foreach (string ext in Extensions)
-                    {
-                        string path = Path.Combine(dir, key + ext);
-                        if (File.Exists(path)) return path;
-                    }
+                return ByHero?.Invoke(stringId);
             }
             catch
             {

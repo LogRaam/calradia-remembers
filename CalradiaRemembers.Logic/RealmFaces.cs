@@ -28,6 +28,12 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>Where it came from: "Custom", a mod's id, or "CalradiaRemembers".</summary>
       public string Source { get; init; }
+
+      /// <summary>
+      ///   The queen's chat portrait, a picture relative to the faces file's own folder ("QueenPortraits/queen_aserai.jpg"),
+      ///   or null. It follows whoever wears the face (Gabriel, 12/10/2026: a chat portrait per queen).
+      /// </summary>
+      public string Portrait { get; init; }
    }
 
    /// <summary>Reads and merges faces files. Pure.</summary>
@@ -37,8 +43,9 @@ namespace CalradiaRemembers.Logic
       public const string KeyPrefix = "<BodyProperties ";
 
       /// <summary>
-      ///   { "queens": { "&lt;realm id&gt;": "&lt;BodyProperties .../&gt;" } }. A line that is not the editor's, or a file
-      ///   that is not JSON, is reported and left out; nothing here throws.
+      ///   { "queens": { "&lt;realm id&gt;": "&lt;BodyProperties .../&gt;" } }, or per realm { "face": "...", "portrait":
+      ///   "QueenPortraits/queen_x.jpg" }. A line that is not the editor's, or a file that is not JSON, is reported and left
+      ///   out; a portrait that is not a picture inside the file's folder is reported and dropped. Nothing here throws.
       /// </summary>
       public static IReadOnlyList<RealmFace> Parse(string json, string source, List<string> problems)
       {
@@ -55,17 +62,44 @@ namespace CalradiaRemembers.Logic
 
          foreach (JProperty p in queens.Properties())
          {
-            string key = p.Value.Type == JTokenType.String ? ((string) p.Value).Trim() : null;
+            JToken faceToken = p.Value is JObject o ? o["face"] : p.Value;
+            string key = faceToken?.Type == JTokenType.String ? ((string) faceToken).Trim() : null;
             if (key == null || !key.StartsWith(KeyPrefix, StringComparison.OrdinalIgnoreCase))
             {
                problems?.Add($"{source}: the face for '{p.Name}' is not the face editor's line (it starts \"{KeyPrefix.Trim()}\"): left out.");
                continue;
             }
 
-            faces.Add(new RealmFace {RealmId = p.Name.Trim().ToLowerInvariant(), Key = key, Source = source});
+            string portrait = null;
+            if (p.Value is JObject withPortrait && withPortrait["portrait"] is JToken pt && pt.Type != JTokenType.Null)
+            {
+               string asked = pt.Type == JTokenType.String ? ((string) pt).Trim() : null;
+               if (IsAcceptedPortrait(asked)) portrait = asked;
+               else problems?.Add($"{source}: the portrait for '{p.Name}' must be a .png or .jpg inside the faces file's own folder: left out, the face still applies.");
+            }
+
+            faces.Add(new RealmFace {RealmId = p.Name.Trim().ToLowerInvariant(), Key = key, Source = source, Portrait = portrait});
          }
 
          return faces;
+      }
+
+      /// <summary>
+      ///   A portrait name stays inside the folder of the file that names it: relative, no "..", a picture. A faces file
+      ///   can come from any mod, and its portrait must never reach elsewhere on the disk.
+      /// </summary>
+      public static bool IsAcceptedPortrait(string name)
+      {
+         if (string.IsNullOrWhiteSpace(name)) return false;
+
+         string n = name.Trim().Replace('\\', '/');
+         if (n.StartsWith("/") || n.Contains(":")) return false;
+         if (n.Split('/').Any(part => part.Length == 0 || part == "." || part == "..")) return false;
+         if (n.Any(c => c < ' ' || "<>\"|?*".IndexOf(c) >= 0)) return false;
+
+         string lower = n.ToLowerInvariant();
+
+         return lower.EndsWith(".png") || lower.EndsWith(".jpg") || lower.EndsWith(".jpeg");
       }
 
       /// <summary>One face per realm: the first read keeps it (the player's own, then a mod's, then CR's).</summary>
