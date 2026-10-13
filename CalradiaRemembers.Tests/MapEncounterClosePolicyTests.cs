@@ -5,6 +5,11 @@
 // fight in the same instant ("[SELF-ESTEEM] Dhamshut: SkirmishWon" written during the close), and the game then drew its
 // map conversation with a leader no longer there (NullReferenceException in MapConversationTableau.SpawnOpponentLeader).
 // An encounter with a battle under way belongs to the game: it is left for the game's own menu to settle.
+// Wallace1067 (Nexus, 13/10/2026): "I ride up to a friendly lord ... standing alone on open ground ... On End
+// Conversation the encounter is not closed, and I'm left in the vanilla encounter menu ... It happens every time."
+// A MapEvent that had already finalized, or already had a winner, was still read as "a battle under way", so a
+// settled fight kept the encounter open forever. MapEventSighting.IsLive tells a genuinely live fight (Maifailun,
+// still kept) from one that is merely attached but over (Wallace1067, must be finished).
 
 #region
 
@@ -52,6 +57,40 @@ namespace CalradiaRemembers.Tests
          MapEncounterClosePolicy.MayFinish(new MapEncounterCloseFacts {HasEncounter = true, InMission = true}).Should().BeFalse();
          MapEncounterClosePolicy.MayFinish(new MapEncounterCloseFacts {HasEncounter = true, InsideSettlement = true}).Should().BeFalse();
          MapEncounterClosePolicy.MayFinish(new MapEncounterCloseFacts {HasEncounter = true, BriefingReturnPending = true}).Should().BeFalse();
+      }
+
+      // Maifailun's crash, restated as a sighting: a fight genuinely still going (attached, not finalized, no
+      // winner yet) is live, and the game must be left to settle it or the close settles it mid-way.
+      [Test]
+      public void GIVEN_a_fight_still_going_WHEN_sighted_THEN_the_event_is_live()
+      {
+         MapEncounterClosePolicy.IsLive(new MapEventSighting {Exists = true}).Should().BeTrue();
+      }
+
+      // Wallace1067: "On End Conversation the encounter is not closed ... It happens every time." The MapEvent had
+      // reached WaitingRemoval (the state the game uses once a fight is done and only cleanup is pending), so an
+      // event merely still ATTACHED was read as a battle under way and the encounter never finished.
+      [Test]
+      public void GIVEN_a_finalized_event_WHEN_sighted_THEN_it_is_not_live()
+      {
+         MapEncounterClosePolicy.IsLive(new MapEventSighting {Exists = true, IsFinalized = true}).Should().BeFalse();
+      }
+
+      // Wallace1067, the other shape of the same settled fight: a winner was already decided, so there is nothing
+      // left for the game's own menu to settle, and the chat close must not wait on it either.
+      [Test]
+      public void GIVEN_an_event_with_a_winner_WHEN_sighted_THEN_it_is_not_live()
+      {
+         MapEncounterClosePolicy.IsLive(new MapEventSighting {Exists = true, HasWinner = true}).Should().BeFalse();
+      }
+
+      // No event at all (the ordinary friendly chat Wallace1067 describes, nobody fighting anywhere): nothing to
+      // settle, so this reads as not live just the same as a settled one, never as a missing fact to guess at.
+      [Test]
+      public void GIVEN_no_event_at_all_WHEN_sighted_THEN_it_is_not_live()
+      {
+         MapEncounterClosePolicy.IsLive(new MapEventSighting()).Should().BeFalse();
+         MapEncounterClosePolicy.IsLive(null).Should().BeFalse();
       }
    }
 }

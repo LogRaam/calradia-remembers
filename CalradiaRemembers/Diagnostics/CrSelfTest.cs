@@ -319,6 +319,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
          new SelfTest("local_context", Severity.Light, "A local model's declared context window (fkasad, 13/10/2026: LM Studio cut CR's oversized request in its middle and the rules for a give were lost). On a real character with a CR memory, sends a long conversation through the real prompt builder to a capturing client (no model is called) with an 8,192-token window, and expects what would go out to fit, to still teach GAME ACTIONS, to keep the recap and the new line, to open the raw lines on a player's turn and to carry the compact reply budget; with no window, expects the whole conversation to go as built. Tells the player nothing and keeps nothing.", TestLocalContext),
          new SelfTest("audience_who", Severity.Light, "Who is asking for a word (Lordfadooboo, 13/10/2026: \"who is that?\" and a way to open their encyclopedia page from the invitation). Expects the popup button and its patch in place; writes the Who line for a real lord and expects their name in it; raises a real test invitation and expects it to carry that lord and show the button on the map; then starts the encyclopedia detour without opening the page, expects the invitation hidden, lets the wait run out and expects the same invitation back. Closes it at the end.", TestAudienceWho),
+         new SelfTest("close_settled_battle", Severity.Light, "Wallace1067 (Nexus, 13/10/2026): a friendly lord with no battle anywhere still left him on the vanilla encounter menu after every chat, because a MapEvent merely attached (already finalized, or already with a winner) read as a battle under way. Drives MapEncounterClosePolicy.IsLive on a live sighting, a finalized one and one with a winner, and MayFinish with BattleUnderWay computed from each, expecting a live fight kept and a settled one finished. Notes the real MapEvent on the player's own party if one is attached. Changes no game state.", TestCloseSettledBattle),
          new SelfTest("realm_faces", Severity.Light, "Queens with a chosen face (Gabriel, 12/10/2026: one queen per realm, made in the character editor; CR dresses the ruler's wife). Reports the faces files read and their problems; on a real ruler's wife, dresses her in a face (the first one read, else a test face) and expects her face to be exactly that one, expects the chat to show her realm's portrait when the faces file names one (Gabriel, 12/10/2026, unless the player dropped their own), then gives it back and expects her own face and usual portrait again, then lets the daily pass dress whom it should. Changes no one for good.", TestRealmFaces),
          new SelfTest("tale_scenario_bridge", Severity.Light, "The tale-scenario bridge (Gabriel, 12/10/2026: a queen leaves with the player and her husband's realm answers). In a runtime of its own, fires ON_TALE for a made-up tale's ending with a real lady and her husband as roles: a rule naming the whole tale and one naming that ending both play, one naming another ending or another tale does not, the news names the husband (never '{husband}'), and PRESS_FOR_WAR between his realm and the player's applies exactly when they are two realms at peace. Declares nothing; the news it wrote is removed.", TestTaleScenarioBridge),
          new SelfTest("tale_elopement", Severity.Heavy, "The Troy-inspired tale (Gabriel, 12/10/2026: she leaves with the player as a guest who may be married; her return to her husband is the condition of peace). On a real married lady of another realm: 'elope' ends her marriage, puts her in the player's party, plants her husband's StolenSpouse grudge and marks her free to marry the player; 'return_spouse' weds them again and takes her out of the party. Restores her house, takes back the grudge and the marker.", TestTaleElopement),
@@ -10274,6 +10275,39 @@ namespace CalradiaRemembers.Diagnostics
             AudienceInquiry.DebugCancelDetour();
             if (AudienceInquiry.Showing == data) TaleWorlds.Library.InformationManager.HideInquiry();
          }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Wallace1067 (Nexus, 13/10/2026): "I ride up to a friendly lord ... standing alone on open ground ...
+      ///   On End Conversation the encounter is not closed, and I'm left in the vanilla encounter menu ... It
+      ///   happens every time." His log: "[CLOSE] encounter kept: a battle is under way in it; the game settles
+      ///   it", with no battle anywhere. Drives the pure policy with each of the three sighting shapes directly,
+      ///   so this stays green without a live fight on the map to arrange.
+      /// </summary>
+      private static string TestCloseSettledBattle(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("close_settled_battle");
+
+         var live = new Logic.Conversation.MapEventSighting {Exists = true};
+         var finalized = new Logic.Conversation.MapEventSighting {Exists = true, IsFinalized = true};
+         var hasWinner = new Logic.Conversation.MapEventSighting {Exists = true, HasWinner = true};
+         var none = new Logic.Conversation.MapEventSighting();
+
+         t.Expect("aLiveFightIsLive", Logic.Conversation.MapEncounterClosePolicy.IsLive(live), true);
+         t.Expect("aFinalizedFightIsNotLive", Logic.Conversation.MapEncounterClosePolicy.IsLive(finalized), false);
+         t.Expect("aFightWithAWinnerIsNotLive", Logic.Conversation.MapEncounterClosePolicy.IsLive(hasWinner), false);
+         t.Expect("noEventIsNotLive", Logic.Conversation.MapEncounterClosePolicy.IsLive(none), false);
+
+         Logic.Conversation.MapEncounterCloseFacts FactsFor(bool battleUnderWay) => new() {HasEncounter = true, BattleUnderWay = battleUnderWay};
+
+         t.Expect("aLiveFightKeepsTheEncounter", Logic.Conversation.MapEncounterClosePolicy.MayFinish(FactsFor(Logic.Conversation.MapEncounterClosePolicy.IsLive(live))), false);
+         t.Expect("aFinalizedFightLetsItFinish", Logic.Conversation.MapEncounterClosePolicy.MayFinish(FactsFor(Logic.Conversation.MapEncounterClosePolicy.IsLive(finalized))), true);
+         t.Expect("aFightWithAWinnerLetsItFinish", Logic.Conversation.MapEncounterClosePolicy.MayFinish(FactsFor(Logic.Conversation.MapEncounterClosePolicy.IsLive(hasWinner))), true);
+
+         TaleWorlds.CampaignSystem.MapEvents.MapEvent mainPartyEvent = TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapEvent;
+         if (mainPartyEvent != null) t.Note($"player's own party has a live MapEvent: finalized={mainPartyEvent.IsFinalized}, hasWinner={mainPartyEvent.HasWinner}, raid={mainPartyEvent.IsRaid}");
 
          return t.Line();
       }

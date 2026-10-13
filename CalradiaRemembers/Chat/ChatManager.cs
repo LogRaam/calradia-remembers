@@ -1357,8 +1357,17 @@ namespace CalradiaRemembers.Chat
             // Maifailun (08/10/2026): finishing an encounter with a battle under way settled the fight mid-close, and the
             // game then drew its map conversation with a leader no longer there (NRE in SpawnOpponentLeader). The guards
             // are one pure rule now (MapEncounterClosePolicy); a battle is left for the game's own menu to settle.
-            bool battle = PlayerEncounter.Current != null
-                          && (PlayerEncounter.Battle != null || TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapEvent != null || PlayerEncounter.EncounteredParty?.MapEvent != null);
+            // Wallace1067 (13/10/2026): a friendly lord with no fight anywhere still left him on the vanilla encounter
+            // menu after every chat, because a MapEvent that was merely ATTACHED (already finalized, or already with a
+            // winner) read as "a battle under way". Each of the three places a battle can hide is now a sighting of its
+            // own, and only a genuinely live one (MapEncounterClosePolicy.IsLive) keeps the encounter.
+            var encounterEvent = ToSighting(PlayerEncounter.Battle);
+            var mainPartyEvent = ToSighting(TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapEvent);
+            var metPartyEvent = ToSighting(PlayerEncounter.EncounteredParty?.MapEvent);
+            bool encounterLive = Logic.Conversation.MapEncounterClosePolicy.IsLive(encounterEvent);
+            bool mainPartyLive = Logic.Conversation.MapEncounterClosePolicy.IsLive(mainPartyEvent);
+            bool metPartyLive = Logic.Conversation.MapEncounterClosePolicy.IsLive(metPartyEvent);
+            bool battle = PlayerEncounter.Current != null && (encounterLive || mainPartyLive || metPartyLive);
             var facts = new Logic.Conversation.MapEncounterCloseFacts {
                HasEncounter = PlayerEncounter.Current != null, InMission = Mission.Current != null,
                InsideSettlement = PlayerEncounter.Current != null && PlayerEncounter.InsideSettlement,
@@ -1366,7 +1375,23 @@ namespace CalradiaRemembers.Chat
                BattleIsRaid = (PlayerEncounter.Battle ?? TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapEvent)?.IsRaid == true
             };
             if (battle && facts.BattleIsRaid) ModLog.Info("[CLOSE] the player is raiding: the encounter is finished as before 2.7.5.");
-            else if (battle) ModLog.Info("[CLOSE] encounter kept: a battle is under way in it; the game settles it.");
+            else if (battle)
+            {
+               string which = encounterLive ? "encounter" : mainPartyLive ? "player's party" : "party met";
+               var live = encounterLive ? encounterEvent : mainPartyLive ? mainPartyEvent : metPartyEvent;
+               var liveEvent = encounterLive ? PlayerEncounter.Battle
+                  : mainPartyLive ? TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapEvent
+                  : PlayerEncounter.EncounteredParty?.MapEvent;
+               string attacker = liveEvent?.AttackerSide?.LeaderParty?.Name?.ToString();
+               string defender = liveEvent?.DefenderSide?.LeaderParty?.Name?.ToString();
+               ModLog.Info($"[CLOSE] encounter kept: a battle is under way ({which}; finalized={live?.IsFinalized}, hasWinner={live?.HasWinner}, raid={facts.BattleIsRaid}; attacker={attacker ?? "?"}, defender={defender ?? "?"}); the game settles it.");
+            }
+            else
+            {
+               if (encounterEvent.Exists) ModLog.Info($"[CLOSE] a settled map event was ignored: encounter (finalized={encounterEvent.IsFinalized}, hasWinner={encounterEvent.HasWinner})");
+               if (mainPartyEvent.Exists) ModLog.Info($"[CLOSE] a settled map event was ignored: player's party (finalized={mainPartyEvent.IsFinalized}, hasWinner={mainPartyEvent.HasWinner})");
+               if (metPartyEvent.Exists) ModLog.Info($"[CLOSE] a settled map event was ignored: party met (finalized={metPartyEvent.IsFinalized}, hasWinner={metPartyEvent.HasWinner})");
+            }
 
             // A briefing is a step INSIDE a meeting, never the end of one. Gabriel asked Ira for a moment to
             // brief his companion (2026-09-12) and closing that briefing left him on the map with the meeting
@@ -1389,6 +1414,10 @@ namespace CalradiaRemembers.Chat
       }
 
       // ── Private ───────────────────────────────────────────────────────────
+
+      /// <summary>A MapEvent as a pure sighting for MapEncounterClosePolicy (null reads as Exists=false).</summary>
+      private static Logic.Conversation.MapEventSighting ToSighting(TaleWorlds.CampaignSystem.MapEvents.MapEvent e)
+         => new() {Exists = e != null, IsFinalized = e?.IsFinalized == true, HasWinner = e?.HasWinner == true};
 
       private static void EndVanillaConversation()
       {
