@@ -772,7 +772,7 @@ namespace CalradiaRemembers.Chat
                captiveSceneStyle: _captiveSceneStyle,
                companionAudience: _audienceReason,
                audienceRetirementIsLanded: _audienceLanded,
-               offeredItemId: _offer.OfferedItemId,
+               offeredItemId: _offer.ItemOnTheTable,
                // The scene has not been established yet, so this turn sets it (Gabriel 2026-07-19: an
                // opening narration, then sporadic). Consumed ONCE per conversation rather than derived from
                // the turn counter: a captor's opening turn carries suppressPlayerLine and so never
@@ -1317,9 +1317,17 @@ namespace CalradiaRemembers.Chat
                // Same shape for every deal that moves its own coin (tashmetu, 27/09/2026: a captive ransomed): a
                // give_gold or take_gold beside it ("I will pay it now") is the same payment written twice.
                List<string> actionTypesThisTurn = response.Actions.Select(a => a?.Type).ToList();
-               var supersededBySale = new HashSet<GameAction>(TradeBatchPolicy.Superseded(response.Actions
-                     .Select(a => new TradeBatchAction {Type = a?.Type, Item = a?.Parameters != null && a.Parameters.TryGetValue("item", out string it) ? it : null})
-                     .ToList())
+               var saleContext = new ActionContext(profile, null) {OfferedItemId = _offer.OfferedItemId, ItemOnTheTableId = _offer.ItemOnTheTable};
+               bool saleThisTurn = response.Actions.Any(a => string.Equals(a?.Type, "sell_item", StringComparison.OrdinalIgnoreCase));
+               var supersededBySale = new HashSet<GameAction>(TradeBatchPolicy.Superseded(new TradeBatchFacts {
+                     ItemPickedFromBag = !string.IsNullOrWhiteSpace(_offer.OfferedItemId),
+                     Actions = response.Actions.Select(a => new TradeBatchAction {
+                        Type = a?.Type,
+                        Item = a?.Parameters != null && a.Parameters.TryGetValue("item", out string it) ? it : null,
+                        // Only worth resolving when a sale is in the turn: the roster item each names decides, not words.
+                        ResolvedId = saleThisTurn ? BannerlordGameStateBridge.PreviewItem(a, saleContext)?.Id : null
+                     }).ToList()
+                  })
                   .Select(i => response.Actions[i]));
 
                // M-R3: at content Off an intimacy [EVENT] is a hallucination (the romance system is disabled), so
@@ -1332,6 +1340,7 @@ namespace CalradiaRemembers.Chat
                string playerWords = string.Join("\n", _transcript.Lines.Where(l => l != null && l.IsPlayer && !string.IsNullOrWhiteSpace(l.Text)).Select(l => l.Text));
                var actionContext = new ActionContext(profile, emittedForGate) {
                   OfferedItemId = _offer.OfferedItemId,
+                  ItemOnTheTableId = _offer.ItemOnTheTable,
                   PlayerWordsThisConversation = playerWords
                };
                // B2 (quest audit): at most one change_relation applies per turn, so a weak model that emits
@@ -1441,7 +1450,7 @@ namespace CalradiaRemembers.Chat
 
                   ActionContext actorActionContext = ReferenceEquals(actorProfile, profile)
                      ? actionContext
-                     : new ActionContext(actorProfile, emittedForGate) {OfferedItemId = _offer.OfferedItemId, PlayerWordsThisConversation = playerWords};
+                     : new ActionContext(actorProfile, emittedForGate) {OfferedItemId = _offer.OfferedItemId, ItemOnTheTableId = _offer.ItemOnTheTable, PlayerWordsThisConversation = playerWords};
 
                   // Coin/commit actions are preprocessed: a repeat of one already resolved this conversation is
                   // dropped (the LLM re-emitting the same transfer), and a player-outgoing spend (take_gold /

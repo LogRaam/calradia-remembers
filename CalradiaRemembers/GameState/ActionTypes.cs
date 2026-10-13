@@ -31,6 +31,13 @@ namespace CalradiaRemembers.GameState
         public string OfferedItemId { get; set; }
 
         /// <summary>
+        ///   StringId of the item the player last held out with the bag in THIS conversation, kept past its turn so a
+        ///   sale haggled over several replies still sells that item (3chmidt, 13/10/2026). Only sell_item reads it; a
+        ///   give_item stays bound to this turn's <see cref="OfferedItemId" />.
+        /// </summary>
+        public string ItemOnTheTableId { get; set; }
+
+        /// <summary>
         ///   Everything the player has said in this conversation, or null on a path that carries no conversation
         ///   (a council lift, a manual menu, a self-test). A verb that acts "at the player's word" reads it to know
         ///   the word was said (Maifailun, 01/10/2026: a bow turned a lady against someone nobody had named).

@@ -45,6 +45,13 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public void ClearOfferedItem() => _offeredItemId = null;
 
+      // The item last held out with the bag in this conversation: kept past its turn for a sale haggled over several
+      // replies (3chmidt, 13/10/2026). This controller lives as long as the chat, so it ends with the conversation.
+      private string _itemOnTheTable;
+
+      /// <summary>The item last held out with the bag in this conversation, or null; only a sale reads it.</summary>
+      public string ItemOnTheTable => _itemOnTheTable;
+
       /// <summary>
       ///   The bag: the ONE "what do you offer?" control. It gives an item, gold, OR (when the player holds hero
       ///   captives) a prisoner, so no separate prisoner button clutters the row. A bargain awaiting payment-in-kind
@@ -117,6 +124,7 @@ namespace CalradiaRemembers.Chat
             (itemId, name, value) =>
             {
                _offeredItemId = itemId;
+               _itemOnTheTable = itemId;
                // Frame it as a COMPLETED handover (a stage direction), not a tentative "I would like to offer":
                // the offer wording read as a proposal, so the NPC reacted to the OFFER and the gift needed a
                // second turn to land (player report: two reactions for one gift). Handing it over now makes the

@@ -4833,6 +4833,9 @@ namespace CalradiaRemembers.Diagnostics
             ActionDisposition d = confirmation.Preprocess(gift, buyer, GetOrCreate(behavior, buyer), new ActionContext(GetOrCreate(behavior, buyer), null));
             t.Expect("aWordedGiftIsAskedFirst", d, ActionDisposition.Queued);
             t.Expect("theQuestionNamesTheRealItem", confirmation.DebugNextQuestion?.Contains(good.Name.ToString()) == true, true);
+            // The item the player says yes to is the item that leaves: the pending gift is pinned to the resolved item.
+            string resolved = BannerlordGameStateBridge.PreviewItem(gift, new ActionContext(GetOrCreate(behavior, buyer), null))?.Id;
+            t.Expect("theConfirmedGiftTakesThatItem", confirmation.DebugNextContext?.OfferedItemId, resolved);
          }
          finally
          {

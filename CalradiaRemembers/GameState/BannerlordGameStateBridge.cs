@@ -1721,6 +1721,29 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
+      ///   The item a sale sells: this turn's bag pick; else the item still on the table from an earlier bag pick in this
+      ///   conversation, when the sale names nothing, names nothing the player holds, or names it in a shared word
+      ///   (a sale haggled over several replies, 3chmidt 13/10/2026); else the item named.
+      /// </summary>
+      private static ItemRosterElement ResolveSaleItem(string itemName, ActionContext context)
+      {
+         if (!string.IsNullOrWhiteSpace(context?.OfferedItemId)) return ResolveNamedItem(itemName, context.OfferedItemId, out _);
+
+         ItemRosterElement byName = ResolveNamedItem(itemName, null, out _);
+         string table = context?.ItemOnTheTableId;
+         if (string.IsNullOrWhiteSpace(table)) return byName;
+
+         ItemRosterElement onTable = FindRosterElementById(table);
+         if (onTable.EquipmentElement.Item == null) return byName;
+         if (byName.EquipmentElement.Item == null || string.IsNullOrWhiteSpace(itemName)) return onTable;
+
+         string tableName = onTable.EquipmentElement.Item.Name?.ToString() ?? "";
+         bool sharesAWord = itemName.Split(' ').Any(w => w.Length >= 3 && tableName.IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0);
+
+         return sharesAWord ? onTable : byName;
+      }
+
+      /// <summary>
       ///   The item a give_item or sell_item would take, for the player's confirmation: its id (carried into the pending
       ///   action so exactly this one leaves), its name and its market value. Null when the player holds nothing like it.
       /// </summary>
@@ -1731,7 +1754,9 @@ namespace CalradiaRemembers.GameState
             if (MobileParty.MainParty?.ItemRoster == null || action?.Parameters == null) return null;
 
             action.Parameters.TryGetValue("item", out string itemName);
-            ItemRosterElement found = ResolveNamedItem(itemName, context?.OfferedItemId, out _);
+            ItemRosterElement found = string.Equals(action.Type, "sell_item", StringComparison.OrdinalIgnoreCase)
+               ? ResolveSaleItem(itemName, context)
+               : ResolveNamedItem(itemName, context?.OfferedItemId, out _);
             ItemObject item = found.EquipmentElement.Item;
 
             return item == null ? null : new ItemPreview {Id = item.StringId, Name = item.Name?.ToString(), Value = item.Value};
@@ -1758,7 +1783,7 @@ namespace CalradiaRemembers.GameState
 
             action.Parameters.TryGetValue("item", out string itemName);
             action.Parameters.TryGetValue("price", out string priceText);
-            ItemRosterElement found = ResolveNamedItem(itemName, context?.OfferedItemId, out _);
+            ItemRosterElement found = ResolveSaleItem(itemName, context);
             ItemObject item = found.EquipmentElement.Item;
 
             ItemSaleDecision deal = ItemSalePolicy.Settle(new ItemSaleFacts {

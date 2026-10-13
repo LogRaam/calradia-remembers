@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 489 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1093 types in 28 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1094 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1517,7 +1517,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
 
-### CalradiaRemembers.Logic.Actions (16)
+### CalradiaRemembers.Logic.Actions (17)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1536,6 +1536,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TaughtActionFacts` | public struct | The eligibility facts that decide which conditional 1:1 [ACTION] verbs a single conversation turn teaches. |
 | `TaughtActionSet` | public static class | BEST-EFFORT, LOG-ONLY. Returns the set of 1:1 [ACTION] type keys taught on a single ordinary (non-council) conversation turn, so the host can OBSERVE, without refusing, an [ACTION] that executed yet was never taught (aud... |
 | `TradeBatchAction` | public class | One action of a turn, as far as a sale is concerned. |
+| `TradeBatchFacts` | public class | A turn's actions, and whether the player picked the item from the bag this turn. |
 | `TradeBatchPolicy` | public static class | Which actions of a turn a sale makes redundant. |
 
 ### CalradiaRemembers.Logic.Appreciations (15)

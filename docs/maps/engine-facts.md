@@ -95,7 +95,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `GetPosition2D.Distance` (4) | `AuthoredQuestEngine.NightPassed`, `ChaseFacts`, `NewsDestinationSelector.Choose`, `RumorAwareness.Explain` |
 | `Hero.Culture` (4) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts`, `MercenaryDeparturePolicy.IsAidOfKin`, `MercenaryDeparturePolicy.RegardShift` |
 | `Hero.StayingInSettlement` (4) | `EscortCostPolicy.EscortPremium`, `LetterWhereaboutsPolicy.ForPlayer`, `LetterWhereaboutsPolicy.ForWriter`, `WhereaboutsFacts` |
-| `MobileParty.ItemRoster` (4) | `CompanionCounselPolicy.Select`, `GiftQuantityPolicy.Resolve`, `ItemSaleFacts`, `PartyCounselFacts` |
 | `MobileParty.MemberRoster` (4) | `CouncilTroopLoanPolicy.ComputeLoan`, `CourtActionPolicy.IsPartyWeakened`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `MobileParty.Party` (4) | `GiftEquipFacts`, `GiftEquipPolicy.WearsOnBattleSet`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
 | `PartyBase.Settlement` (4) | `CourierSecretPolicy.WhoGetsTheSecret`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend`, `SecretDefeaterFacts` |
@@ -134,6 +133,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MapEvent.WinningSide` (3) | `BattleWorthFacts`, `LiberationFacts`, `ScatteredLootPolicy.SelectRecoverable` |
 | `MarketData.GetPriceFactor` (3) | `MarketReading`, `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
 | `MemberRoster.GetTroopRoster` (3) | `AuthoredBandMakeupFacts`, `CompanionCounselPolicy.Select`, `PartyCounselFacts` |
+| `MobileParty.ItemRoster` (3) | `CompanionCounselPolicy.Select`, `GiftQuantityPolicy.Resolve`, `PartyCounselFacts` |
 | `MobileParty.Morale` (3) | `CompanionCounselPolicy.Select`, `PartyCounselFacts`, `PartyMoraleMood.DriverFor` |
 | `MobileParty.Position` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
 | `ModSettings.CompanionAudienceCadence` (3) | `CompanionAudiencePacingRules.CooldownDays`, `CompanionAudiencePacingRules.DailyChancePercent`, `CompanionAudiencePacingRules.IsOff` |
@@ -474,7 +474,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `IntimacyPacingRules.Relief`: `ModSettings.RelationWarmth`
 - `IntimateChroniclePolicy.BuildLine`: `Hero.IsFemale`, `ModSettings.AdultContentLevel`
 - `ItemConfirmationFacts`: `Hero.Gold`
-- `ItemSaleFacts`: `EquipmentElement.Item`, `Hero.Gold`, `ItemRosterElement.Amount`, `MobileParty.ItemRoster`
+- `ItemSaleFacts`: `EquipmentElement.Item`, `Hero.Gold`, `ItemRosterElement.Amount`
 - `JealousyHearingPolicy.WithinEarshot`: `CurrentSettlement.GetPosition2D`, `PartyBelongedTo.GetPosition2D`, `Value.Distance`
 - `JealousyReaction.BuildGrievance`: `StatureReader.Player`
 - `JealousyReaction.BuildLetterContext`: `StatureReader.Player`

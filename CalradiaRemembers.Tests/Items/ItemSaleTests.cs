@@ -80,7 +80,29 @@ namespace CalradiaRemembers.Tests.Items
             new() {Type = "change_relation"}
          };
 
-         TradeBatchPolicy.Superseded(batch).Should().BeEquivalentTo(new[] {1});
+         TradeBatchPolicy.Superseded(new TradeBatchFacts {Actions = batch}).Should().BeEquivalentTo(new[] {1});
+      }
+
+      // With the bag, the gift and the sale are the picked item whatever the model called them: "blade" beside "sword"
+      // shares no word, and left standing it would hand the sword over unasked and leave the sale nothing to sell.
+      [Test]
+      public void GIVEN_a_bag_pick_and_a_gift_named_differently_beside_the_sale_WHEN_settled_THEN_the_gift_still_goes()
+      {
+         var batch = new List<TradeBatchAction> {new() {Type = "sell_item", Item = "sword"}, new() {Type = "give_item", Item = "blade"}};
+
+         TradeBatchPolicy.Superseded(new TradeBatchFacts {Actions = batch, ItemPickedFromBag = true}).Should().BeEquivalentTo(new[] {1});
+      }
+
+      // Without the bag, the roster item each resolves to decides, not the words: two names for one item are one item,
+      // two items sharing a word are two.
+      [Test]
+      public void GIVEN_resolved_items_WHEN_settled_THEN_the_resolved_item_decides_not_the_words()
+      {
+         var same = new List<TradeBatchAction> {new() {Type = "sell_item", Item = "sword", ResolvedId = "crafted_1"}, new() {Type = "give_item", Item = "blade", ResolvedId = "crafted_1"}};
+         var other = new List<TradeBatchAction> {new() {Type = "sell_item", Item = "long sword", ResolvedId = "crafted_1"}, new() {Type = "give_item", Item = "short sword", ResolvedId = "falchion"}};
+
+         TradeBatchPolicy.Superseded(new TradeBatchFacts {Actions = same}).Should().BeEquivalentTo(new[] {1});
+         TradeBatchPolicy.Superseded(new TradeBatchFacts {Actions = other}).Should().BeEmpty();
       }
 
       // ...and the payment the model wrote beside it ("Give Poison Menja 9000 coins?") is the sale's own coin: the
@@ -101,14 +123,14 @@ namespace CalradiaRemembers.Tests.Items
             new() {Type = "give_item", Item = "Jewelry"}
          };
 
-         TradeBatchPolicy.Superseded(batch).Should().BeEmpty();
+         TradeBatchPolicy.Superseded(new TradeBatchFacts {Actions = batch}).Should().BeEmpty();
       }
 
       // No sale in the turn: nothing is touched, exactly as before.
       [Test]
       public void GIVEN_no_sale_WHEN_settled_THEN_nothing_is_dropped()
       {
-         TradeBatchPolicy.Superseded(new List<TradeBatchAction> {new() {Type = "give_item", Item = "sword"}}).Should().BeEmpty();
+         TradeBatchPolicy.Superseded(new TradeBatchFacts {Actions = new List<TradeBatchAction> {new() {Type = "give_item", Item = "sword"}}}).Should().BeEmpty();
       }
 
       // ── What the player is asked ──

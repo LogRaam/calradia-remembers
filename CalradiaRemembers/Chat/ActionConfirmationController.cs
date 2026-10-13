@@ -47,6 +47,9 @@ namespace CalradiaRemembers.Chat
       /// <summary>Self-test seam: the question the next confirmation would ask, or null.</summary>
       internal string DebugNextQuestion => _pending.Count > 0 ? _pending.Peek().Question : null;
 
+      /// <summary>Self-test seam: the context the next confirmed action would run with (its pinned item), or null.</summary>
+      internal ActionContext DebugNextContext => _pending.Count > 0 ? _pending.Peek().Context : null;
+
       /// <summary>
       ///   Preprocesses a coin/commit action before the loop would run it. An identical action already resolved
       ///   this conversation is dropped (<see cref="ActionDisposition.Skip" />), taming the LLM re-emitting the

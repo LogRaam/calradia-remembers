@@ -26,6 +26,22 @@ namespace CalradiaRemembers.Logic.Actions
 
       /// <summary>The item it names, or null.</summary>
       public string Item { get; init; }
+
+      /// <summary>The roster item it resolves to (its id), or null when unknown.</summary>
+      public string ResolvedId { get; init; }
+   }
+
+   /// <summary>A turn's actions, and whether the player picked the item from the bag this turn.</summary>
+   public sealed class TradeBatchFacts
+   {
+      /// <summary>The turn's actions, in order.</summary>
+      public IReadOnlyList<TradeBatchAction> Actions { get; init; } = Array.Empty<TradeBatchAction>();
+
+      /// <summary>
+      ///   The player picked an item from the bag this turn: then a give_item and a sell_item beside it both resolve to
+      ///   that one item, whatever words the model used for it.
+      /// </summary>
+      public bool ItemPickedFromBag { get; init; }
    }
 
    /// <summary>Which actions of a turn a sale makes redundant. Pure.</summary>
@@ -34,12 +50,15 @@ namespace CalradiaRemembers.Logic.Actions
       private static readonly HashSet<string> Filler = new(StringComparer.OrdinalIgnoreCase) {"the", "of", "and", "a", "an", "my", "your", "this", "that"};
 
       /// <summary>
-      ///   The indexes to drop: beside each sell_item, any give_item naming the same thing (a shared word). Nothing when
-      ///   the turn holds no sale. (A gold move beside the sale is TurnPaymentPolicy's.)
+      ///   The indexes to drop: beside each sell_item, any give_item of the same item. The same item is: any item at all
+      ///   when the player picked it from the bag this turn (both resolve to the pick, "blade" and "sword" alike); else
+      ///   the same resolved roster item when both are known; else a shared word. Nothing when the turn holds no sale.
+      ///   (A gold move beside the sale is TurnPaymentPolicy's.)
       /// </summary>
-      public static IReadOnlyCollection<int> Superseded(IReadOnlyList<TradeBatchAction> batch)
+      public static IReadOnlyCollection<int> Superseded(TradeBatchFacts f)
       {
          var dropped = new SortedSet<int>();
+         IReadOnlyList<TradeBatchAction> batch = f?.Actions;
          if (batch == null) return dropped;
 
          foreach (TradeBatchAction sale in batch.Where(a => Is(a, "sell_item")))
@@ -47,7 +66,7 @@ namespace CalradiaRemembers.Logic.Actions
             {
                TradeBatchAction a = batch[i];
                if (a == null || ReferenceEquals(a, sale)) continue;
-               if (Is(a, "give_item") && SameThing(a.Item, sale.Item)) dropped.Add(i);
+               if (Is(a, "give_item") && SameItem(a, sale, f.ItemPickedFromBag)) dropped.Add(i);
             }
 
          return dropped;
@@ -56,6 +75,15 @@ namespace CalradiaRemembers.Logic.Actions
       #region private
 
       private static bool Is(TradeBatchAction a, string type) => a != null && string.Equals(a.Type, type, StringComparison.OrdinalIgnoreCase);
+
+      private static bool SameItem(TradeBatchAction gift, TradeBatchAction sale, bool pickedFromBag)
+      {
+         if (pickedFromBag) return true;
+         if (!string.IsNullOrEmpty(gift.ResolvedId) && !string.IsNullOrEmpty(sale.ResolvedId))
+            return string.Equals(gift.ResolvedId, sale.ResolvedId, StringComparison.Ordinal);
+
+         return SameThing(gift.Item, sale.Item);
+      }
 
       private static bool SameThing(string a, string b)
       {
