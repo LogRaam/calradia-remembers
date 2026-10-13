@@ -25,6 +25,36 @@ namespace CalradiaRemembers.Tests
          "\"id\": \"the_wood\", \"journal\": \"Search the wood by {village}.\",",
          "\"id\": \"the_wood\", \"journal\": \"Search the wood by {village}.\", \"image\": \"" + image + "\","));
 
+      // Gabriel (12/10/2026): one queen per realm, each with her picture, for the Troy-inspired tale ("Image dans les
+      // contes"). A stage names "queen_{giver_realm}.jpg" and shows the picture of the queen of the realm the tale is
+      // played in.
+      [Test]
+      public void GIVEN_an_image_named_by_the_givers_realm_WHEN_its_stage_opens_THEN_the_picture_of_that_realm_is_shown()
+      {
+         AuthoredQuest q = Tale("queen_{giver_realm}.jpg");
+         AuthoredQuestRun run = AuthoredTales.At(q, "the_wood");
+         run.BoundIds["giver_realm"] = "vlandia";
+
+         AuthoredTaleImages.ImageFor(run, q).Should().Be("queen_vlandia.jpg");
+      }
+
+      // A realm the tale was not bound to leaves the name unfilled: no file has such a name, so nothing is shown rather
+      // than a wrong queen; and a filled name can never climb out of the tale's folder.
+      [Test]
+      public void GIVEN_a_role_not_bound_or_a_value_with_a_path_WHEN_resolved_THEN_no_picture_and_never_outside_the_folder()
+      {
+         AuthoredTaleImages.Resolve("queen_{giver_realm}.jpg", new Dictionary<string, string>()).Should().BeNull();
+         AuthoredTaleImages.Resolve("queen_{giver_realm}.jpg", new Dictionary<string, string> {["giver_realm"] = "../x"}).Should().BeNull();
+         AuthoredTaleImages.Resolve("dusk.jpg", null).Should().Be("dusk.jpg");
+      }
+
+      // An author is not told a per-realm picture is missing: each realm's file is looked for when that realm plays it.
+      [Test]
+      public void GIVEN_an_image_named_by_realm_WHEN_checked_at_load_THEN_its_files_are_not_demanded()
+      {
+         AuthoredTaleImages.Problems(Tale("queen_{giver_realm}.jpg"), _ => false).Should().BeEmpty();
+      }
+
       // A stage carries its image's file name.
       [Test]
       public void GIVEN_a_stage_with_an_image_WHEN_loaded_THEN_it_keeps_the_file_name()

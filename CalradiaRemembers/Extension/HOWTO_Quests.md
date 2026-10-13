@@ -243,6 +243,11 @@ stage's Image field to fill its name and see it.
 In a scene with nobody in it (an exploration), the picture stands large beside the chat; in a conversation it is small,
 in the top-left corner, so the character stays in view. A click on it enlarges it, another shrinks it.
 
+**A picture by realm** (since 2.7.10): an image name may carry `{giver_realm}`, the game id of the giver's realm
+(`vlandia`, `empire`, `aserai`...): `"image": "queen_{giver_realm}.jpg"` shows `queen_vlandia.jpg` when the tale is
+played in Vlandia. Put one file per realm in the tale's folder; a realm with no file shows no picture.
+`{giver_realm}` in a line of text names the realm.
+
 **A picture that moves** (since 2.7.9): the image may be a video, a `.crvid` (CR's own format: the frames as JPEG in a
 zip, with a small manifest). Its first frame IS its picture. It plays once where the picture would show, then rests on its
 first frame; PLAY, STOP and LOOP (on/off) sit at its bottom-right corner. On the Classic skin the first frame shows still.

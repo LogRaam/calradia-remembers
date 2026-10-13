@@ -78,8 +78,32 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       {
          string image = AuthoredQuestEngine.Current(run, q)?.Image;
 
-         return IsAcceptedName(image) ? image.Trim() : null;
+         return IsAcceptedName(image) ? Resolve(image, run?.BoundIds) : null;
       }
+
+      private static readonly System.Text.RegularExpressions.Regex Placeholder = new(@"\{([a-z_]+)\}");
+
+      /// <summary>
+      ///   Gabriel (12/10/2026): one queen per realm, each with her picture ("Image dans les contes"). An image name may carry
+      ///   a role, "queen_{giver_realm}.jpg", filled with what the tale bound ("vlandia"). Null when a role is not bound, or
+      ///   when the filled name would not be a bare file name of the tale's own folder.
+      /// </summary>
+      public static string Resolve(string image, IReadOnlyDictionary<string, string> boundIds)
+      {
+         if (string.IsNullOrWhiteSpace(image)) return null;
+         var missing = false;
+         string filled = Placeholder.Replace(image.Trim(), m =>
+         {
+            if (boundIds != null && boundIds.TryGetValue(m.Groups[1].Value, out string v) && !string.IsNullOrWhiteSpace(v)) return v.Trim();
+            missing = true;
+            return m.Value;
+         });
+
+         return !missing && IsAcceptedName(filled) ? filled : null;
+      }
+
+      /// <summary>Whether an image name is filled by role when the tale plays ("queen_{giver_realm}.jpg").</summary>
+      public static bool IsByRole(string image) => !string.IsNullOrEmpty(image) && Placeholder.IsMatch(image);
 
       /// <summary>
       ///   The picture a scene narration calls for (Gabriel, 08/10/2026): of the people it brings in, else the dangers it
@@ -98,7 +122,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
                        ?? Last(sprung, scene.Hazards ?? new List<AuthoredHazard>(), h => h.Id, h => h.Image)
                        ?? Last(found, scene.Findings ?? new List<AuthoredFinding>(), f => f.Id, f => f.Image);
 
-         return pick?.Trim();
+         return Resolve(pick, run?.BoundIds);
       }
 
       /// <summary>What is wrong with the tale's images; <paramref name="existsInTheTalesFolder" /> answers for a file name.</summary>
@@ -110,7 +134,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             if (string.IsNullOrWhiteSpace(image)) return;
             if (!IsAcceptedName(image))
                problems.Add($"quest '{q.Id}': {where} names the image '{image}', which must be a .png, .jpg or .crvid file name in the tale's own folder.");
-            else if (existsInTheTalesFolder == null || !existsInTheTalesFolder(image.Trim()))
+            else if (!IsByRole(image) && (existsInTheTalesFolder == null || !existsInTheTalesFolder(image.Trim())))
                problems.Add($"quest '{q.Id}': {where} names the image '{image}', which is not in the tale's folder; it is not shown.");
          }
 

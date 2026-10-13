@@ -74,7 +74,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       ///   Roles the game binds for every tale, with no "binds" entry (tashmetu, 11/10/2026): {player}, the player's name, so
       ///   a tale's memories and journal can name the player instead of saying "the player".
       /// </summary>
-      public static readonly IReadOnlyCollection<string> GameBoundRoles = new[] {"player"};
+      public static readonly IReadOnlyCollection<string> GameBoundRoles = new[] {"player", "giver_realm"};
       private static readonly Regex MarkerName = new(@"^[A-Za-z0-9_]+$", RegexOptions.Compiled);
 
       /// <summary>Several files at once: ids are unique across all of them; a repeat is refused and named.</summary>

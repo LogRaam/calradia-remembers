@@ -75,7 +75,8 @@
       "spouse_of_giver"
     ],
     "GameBoundRoles": [
-      "player"
+      "player",
+      "giver_realm"
     ]
   },
   "$defs": {

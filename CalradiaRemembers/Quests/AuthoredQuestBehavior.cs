@@ -405,6 +405,13 @@ namespace CalradiaRemembers.Quests
          // tashmetu (11/10/2026): {player} names the player in a tale's journal, canvases, memories and consequences
          // (AuthoredQuestLoader.GameBoundRoles). A name only: no hero id, so no objective or knower can target the player.
          names["player"] = Hero.MainHero?.Name?.ToString();
+         // Gabriel (12/10/2026): one queen per realm, each with her picture: "queen_{giver_realm}.jpg" names the realm's
+         // own file, and {giver_realm} in a line names the realm.
+         if (giver.MapFaction != null)
+         {
+            ids["giver_realm"] = giver.MapFaction.StringId;
+            names["giver_realm"] = giver.MapFaction.Name?.ToString();
+         }
 
          PlaceRequirement v = q.Requires?.Village;
          if (v != null)
@@ -1061,7 +1068,7 @@ namespace CalradiaRemembers.Quests
             if (_run is {Status: AuthoredQuestStatus.Active} && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q))
                return AuthoredTaleImages.ConversationIsTheStep(_run, q, hero.StringId, LocalOf(hero)) && SceneImagePath(q) is string p ? (p, q.Title) : null;
             if (_offer != null && _offerHeroId == hero.StringId && _quests.TryGetValue(_offer.QuestId, out AuthoredQuest o))
-               return ImagePath(o, o.Stages.FirstOrDefault()?.Image) is string first ? (first, o.Title) : null;
+               return ImagePath(o, AuthoredTaleImages.Resolve(o.Stages.FirstOrDefault()?.Image, _offer.BoundIds)) is string first ? (first, o.Title) : null;
          }
          catch (Exception ex) { ModLog.Error($"[TALE] conversation image failed: {ex.GetType().Name}: {ex.Message}"); }
 
