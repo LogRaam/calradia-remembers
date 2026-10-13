@@ -320,6 +320,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("local_context", Severity.Light, "A local model's declared context window (fkasad, 13/10/2026: LM Studio cut CR's oversized request in its middle and the rules for a give were lost). On a real character with a CR memory, sends a long conversation through the real prompt builder to a capturing client (no model is called) with an 8,192-token window, and expects what would go out to fit, to still teach GAME ACTIONS, to keep the recap and the new line, to open the raw lines on a player's turn and to carry the compact reply budget; with no window, expects the whole conversation to go as built. Tells the player nothing and keeps nothing.", TestLocalContext),
          new SelfTest("audience_who", Severity.Light, "Who is asking for a word (Lordfadooboo, 13/10/2026: \"who is that?\" and a way to open their encyclopedia page from the invitation). Expects the popup button and its patch in place; writes the Who line for a real lord and expects their name in it; raises a real test invitation and expects it to carry that lord and show the button on the map; then starts the encyclopedia detour without opening the page, expects the invitation hidden, lets the wait run out and expects the same invitation back. Closes it at the end.", TestAudienceWho),
          new SelfTest("close_settled_battle", Severity.Light, "Wallace1067 (Nexus, 13/10/2026): a friendly lord with no battle anywhere still left him on the vanilla encounter menu after every chat, because a MapEvent merely attached (already finalized, or already with a winner) read as a battle under way. Drives MapEncounterClosePolicy.IsLive on a live sighting, a finalized one and one with a winner, and MayFinish with BattleUnderWay computed from each, expecting a live fight kept and a settled one finished. Notes the real MapEvent on the player's own party if one is attached. Changes no game state.", TestCloseSettledBattle),
+         new SelfTest("battle_memory_wording", Severity.Light, "tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): a witness line read 'I saw you cut down 168 of them yourself at at the siege of Thorios Castle', doubling the preposition and addressing the player as 'you'. Builds the same siege place WorldEventFeeders builds and drives the REAL BattleFeatReporter the way it now wires it (the engagement noun phrase, not the already-shaped place clause), expecting exactly one 'at', no 'you', and the player named. Mutates nothing.", TestBattleMemoryWording),
          new SelfTest("realm_faces", Severity.Light, "Queens with a chosen face (Gabriel, 12/10/2026: one queen per realm, made in the character editor; CR dresses the ruler's wife). Reports the faces files read and their problems; on a real ruler's wife, dresses her in a face (the first one read, else a test face) and expects her face to be exactly that one, expects the chat to show her realm's portrait when the faces file names one (Gabriel, 12/10/2026, unless the player dropped their own), then gives it back and expects her own face and usual portrait again, then lets the daily pass dress whom it should. Changes no one for good.", TestRealmFaces),
          new SelfTest("tale_scenario_bridge", Severity.Light, "The tale-scenario bridge (Gabriel, 12/10/2026: a queen leaves with the player and her husband's realm answers). In a runtime of its own, fires ON_TALE for a made-up tale's ending with a real lady and her husband as roles: a rule naming the whole tale and one naming that ending both play, one naming another ending or another tale does not, the news names the husband (never '{husband}'), and PRESS_FOR_WAR between his realm and the player's applies exactly when they are two realms at peace. Declares nothing; the news it wrote is removed.", TestTaleScenarioBridge),
          new SelfTest("tale_elopement", Severity.Heavy, "The Troy-inspired tale (Gabriel, 12/10/2026: she leaves with the player as a guest who may be married; her return to her husband is the condition of peace). On a real married lady of another realm: 'elope' ends her marriage, puts her in the player's party, plants her husband's StolenSpouse grudge and marks her free to marry the player; 'return_spouse' weds them again and takes her out of the party. Restores her house, takes back the grudge and the marker.", TestTaleElopement),
@@ -10308,6 +10309,41 @@ namespace CalradiaRemembers.Diagnostics
 
          TaleWorlds.CampaignSystem.MapEvents.MapEvent mainPartyEvent = TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapEvent;
          if (mainPartyEvent != null) t.Note($"player's own party has a live MapEvent: finalized={mainPartyEvent.IsFinalized}, hasWinner={mainPartyEvent.HasWinner}, raid={mainPartyEvent.IsRaid}");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   tashmetu (Nexus, 13/10/2026, via cr.prompt_dump of a companion on 2.7.9): "I saw you cut down 168 of
+      ///   them yourself at at the siege of Thorios Castle" doubled the preposition (WorldEventFeeders used to
+      ///   hand the feat reporter the already-shaped place CLAUSE, " at the siege of X", where BattleFeatText's
+      ///   own " at " expects the bare noun phrase) and addressed the player as "you" in a line that should name
+      ///   them. Builds the same siege place the real feeder builds (BattleMemoryText.PlaceClause /
+      ///   ChronicleEngagement) and drives the real BattleFeatReporter the way WorldEventFeeders now does
+      ///   (engagement, not placeClause), with a synthetic rank-and-file toll. Mutates nothing: no journal, event,
+      ///   or profile is persisted.
+      /// </summary>
+      private static string TestBattleMemoryWording(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("battle_memory_wording");
+
+         const string settlementName = "Thorios Castle";
+         string placeClause = BattleMemoryText.PlaceClause(BattleSetting.Siege, settlementName);
+         string engagement = BattleMemoryText.ChronicleEngagement(BattleSetting.Siege, settlementName);
+         t.Note($"placeClause='{placeClause}' engagement='{engagement}'");
+
+         var journal = new CalradiaRemembers.Battles.BattleFeatJournal();
+         journal.DebugRecord(null, null, 168); // a rank-and-file toll well past RemarkableTollThreshold
+
+         // The real wiring (WorldEventFeeders.RecordBattlePerformanceIntoProfiles) hands the reporter ENGAGEMENT,
+         // the noun phrase, never placeClause (which already carries its own " at "/" in "/" near ").
+         string line = CalradiaRemembers.Battles.BattleFeatReporter.BuildReport(journal, engagement)
+            .LinesFor("some_bystander").FirstOrDefault() ?? "";
+
+         t.Note($"line='{line}'");
+         t.Expect("a siege engagement yields exactly one 'at'", line.Contains("at at"), false);
+         t.Expect("the witness line never addresses the player as 'you'", line.Contains(" you "), false);
+         t.Expect("the witness line names the player", line.Contains(Hero.MainHero?.Name?.ToString() ?? "the player"), true);
 
          return t.Line();
       }

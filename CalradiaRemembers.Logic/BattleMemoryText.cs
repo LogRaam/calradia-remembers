@@ -64,6 +64,12 @@ namespace CalradiaRemembers.Logic
         ///   <paramref name="sharedEffort" /> is true when the player fought as part of a larger host (an army, or
         ///   allies beside them), so the memory reads as a shared victory rather than crediting the player alone,
         ///   the player report where lords congratulated a solo triumph after an army siege.
+        ///   <para>
+        ///     tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): "Fought at Can's side when they broke the enemy"
+        ///     left "they" reading as either the player or the army. When the effort was NOT shared, the one who
+        ///     broke the enemy is the very person just named, so the solo branches name them again rather than
+        ///     reusing "they".
+        ///   </para>
         /// </summary>
         public static string AllySummary(bool playerWon, string placeClause, bool sharedEffort, string playerName = null)
         {
@@ -72,11 +78,11 @@ namespace CalradiaRemembers.Logic
             if (playerWon)
                 return sharedEffort
                     ? $"Fought at {who}'s side when we broke the enemy together{placeClause}."
-                    : $"Fought at {who}'s side when they broke the enemy{placeClause}.";
+                    : $"Fought at {who}'s side when {who} broke the enemy{placeClause}.";
 
             return sharedEffort
                 ? $"Fought at {who}'s side when we stood against the enemy{placeClause}."
-                : $"Fought at {who}'s side when they stood against the enemy{placeClause}.";
+                : $"Fought at {who}'s side when {who} stood against the enemy{placeClause}.";
         }
 
         /// <summary>

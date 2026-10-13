@@ -204,7 +204,7 @@ namespace CalradiaRemembers.Battles
          if (_digest.BestFeat != null)
             lines.Add(isTheBestedFoe
                ? BattleFeatText.SubjectBestedByPlayer(_digest.BestFeat.Outcome, _engagement, PlayerName)
-               : BattleFeatText.WitnessedFeat(_digest.BestFeat.FoeName, _digest.BestFeat.Outcome, _engagement));
+               : BattleFeatText.WitnessedFeat(_digest.BestFeat.FoeName, _digest.BestFeat.Outcome, _engagement, PlayerName));
 
          if (!string.IsNullOrEmpty(_digest.DownedThePlayer))
             lines.Add(isTheOneWhoDownedThePlayer
@@ -212,7 +212,7 @@ namespace CalradiaRemembers.Battles
                : BattleFeatText.WitnessedPlayerDowned(_digest.DownedThePlayer, _engagement, PlayerName));
 
          if (_digest.TollToMention > 0)
-            lines.Add(BattleFeatText.WitnessedToll(_digest.TollToMention, _engagement));
+            lines.Add(BattleFeatText.WitnessedToll(_digest.TollToMention, _engagement, PlayerName));
 
          return lines;
       }

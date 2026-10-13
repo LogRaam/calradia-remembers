@@ -58,6 +58,49 @@ namespace CalradiaRemembers.Tests.Battles
             BattleFeatText.WitnessedPlayerDowned("Lucon", "").Should().StartWith("I saw");
         }
 
+        // tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): '"you" means two people: in the instructions "you" is
+        // the character; in these memories "you" is the player. The model once said the character won a tournament
+        // the player won.' Quoted line: "I saw you best Lady Nadea of Comnos (Empire) in the fighting." Named now,
+        // the same convention WitnessedPlayerDowned already follows.
+        [Test]
+        public void GIVEN_a_player_name_WHEN_witnessing_a_feat_THEN_the_player_is_named_not_you()
+        {
+            string line = BattleFeatText.WitnessedFeat("Lady Nadea of Comnos (Empire)", CombatFeatOutcome.Bested, "", "Aeliana");
+
+            line.Should().Be("I saw Aeliana best Lady Nadea of Comnos (Empire) in the fighting.");
+            line.Should().NotContain(" you ");
+        }
+
+        // With no name to hand, WitnessedFeat must still never say "you", the same fallback WitnessedPlayerDowned uses.
+        [Test]
+        public void GIVEN_no_player_name_WHEN_witnessing_a_feat_THEN_it_falls_back_to_the_player()
+        {
+            BattleFeatText.WitnessedFeat("Lucon", CombatFeatOutcome.Bested, "").Should().Contain("the player").And.NotContain(" you ");
+        }
+
+        // tashmetu's other quoted line: "I saw you cut down 15 of them yourself." (BattleFeatText.WitnessedToll).
+        // Named now; "yourself" is dropped rather than repeating the name a second time.
+        [Test]
+        public void GIVEN_a_remarkable_toll_WHEN_witnessed_THEN_the_player_is_named_not_you()
+        {
+            string line = BattleFeatText.WitnessedToll(15, "", "Aeliana");
+
+            line.Should().Be("I saw Aeliana cut down 15 of them.");
+            line.Should().NotContain(" you ").And.NotContain("yourself");
+        }
+
+        // tashmetu's example sentence: "I saw you cut down 168 of them yourself at at the siege of Thorios Castle."
+        // doubled the preposition. WitnessedFeat/WitnessedToll's own contract adds " at "; a caller handing in the
+        // correct noun phrase (BattleMemoryText.ChronicleEngagement, no leading "at") must yield exactly one.
+        [Test]
+        public void GIVEN_a_siege_noun_phrase_engagement_WHEN_witnessing_a_toll_THEN_there_is_exactly_one_at()
+        {
+            string line = BattleFeatText.WitnessedToll(168, "the siege of Thorios Castle", "Aeliana");
+
+            line.Should().Be("I saw Aeliana cut down 168 of them at the siege of Thorios Castle.");
+            line.Should().NotContain("at at");
+        }
+
         // The mirror deed is recorded too: who put the PLAYER down. It seeds rivalries and grudges, so it must name
         // the foe rather than blur into a generic defeat.
         [Test]

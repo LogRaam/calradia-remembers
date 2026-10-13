@@ -4,6 +4,9 @@
 // fix routes both through the single AllySummary string. A second player report (17/08/2026): a SIEGE was recorded
 // as an "open battle near" the settlement, and a battle fought as part of an army read as a solo win. So the place
 // clause is now setting-aware and the ally line reflects a shared effort. These pin all of that wording.
+// tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): "Fought at Can's side when they broke the enemy" left "they"
+// reading as either the player or the army. The solo branches (sharedEffort: false) now name the one who broke
+// the enemy explicitly instead of "they", so the existing pins below changed with it.
 
 #region
 
@@ -26,7 +29,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_no_player_name_WHEN_writing_the_ally_line_THEN_it_falls_back_to_naming_them_the_player()
         {
             BattleMemoryText.AllySummary(playerWon: true, placeClause: "", sharedEffort: false)
-                .Should().Be("Fought at the player's side when they broke the enemy.")
+                .Should().Be("Fought at the player's side when the player broke the enemy.")
                 .And.NotContain("your");
         }
 
@@ -36,7 +39,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_won_solo_battle_WHEN_writing_the_ally_line_THEN_it_credits_the_player()
         {
             BattleMemoryText.AllySummary(playerWon: true, placeClause: "", sharedEffort: false, playerName: "Adam")
-                .Should().Be("Fought at Adam's side when they broke the enemy.");
+                .Should().Be("Fought at Adam's side when Adam broke the enemy.");
         }
 
         // A loss must still leave a "stood with you" memory, not silence: fighting a losing battle
@@ -45,7 +48,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_lost_solo_battle_WHEN_writing_the_ally_line_THEN_it_reads_as_standing_together()
         {
             BattleMemoryText.AllySummary(playerWon: false, placeClause: "", sharedEffort: false, playerName: "Adam")
-                .Should().Be("Fought at Adam's side when they stood against the enemy.");
+                .Should().Be("Fought at Adam's side when Adam stood against the enemy.");
         }
 
         // The place clause arrives pre-shaped (leading space, no trailing period) so it slots in before the
@@ -54,7 +57,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_a_named_place_WHEN_writing_the_ally_line_THEN_the_place_clause_is_appended_cleanly()
         {
             BattleMemoryText.AllySummary(playerWon: true, placeClause: " near Pravend", sharedEffort: false, playerName: "Adam")
-                .Should().Be("Fought at Adam's side when they broke the enemy near Pravend.");
+                .Should().Be("Fought at Adam's side when Adam broke the enemy near Pravend.");
         }
 
         // Player report 17/08/2026: a siege won as part of an army had lords congratulate a SOLO triumph. When the
@@ -64,6 +67,18 @@ namespace CalradiaRemembers.Tests
         {
             BattleMemoryText.AllySummary(playerWon: true, placeClause: " at the siege of Redwall", sharedEffort: true, playerName: "Adam")
                 .Should().Be("Fought at Adam's side when we broke the enemy together at the siege of Redwall.");
+        }
+
+        // tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): "Fought at Can's side when they broke the enemy" left
+        // "they" meaning either the player or the army. Not shared means it was the named player alone, so the
+        // subject is now named explicitly rather than left to a pronoun that could be misread either way.
+        [Test]
+        public void GIVEN_a_solo_win_WHEN_writing_the_ally_line_THEN_the_subject_who_broke_the_enemy_is_named_not_they()
+        {
+            string line = BattleMemoryText.AllySummary(playerWon: true, placeClause: "", sharedEffort: false, playerName: "Can");
+
+            line.Should().Be("Fought at Can's side when Can broke the enemy.");
+            line.Should().NotContain("they");
         }
 
         // The core of the siege fix: an assault is named as a siege, a raid as a raid, and only an actual field

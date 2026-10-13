@@ -20,20 +20,27 @@ namespace CalradiaRemembers.Logic.Battles
         ///   memory, the LIVED register the recent-matter approach already speaks in). <paramref name="engagement" />
         ///   is the shaped place clause from <see cref="BattleMemoryText.ChronicleEngagement" /> ("the siege of
         ///   Poros", "open battle") or empty.
+        ///   <para>
+        ///     tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): "I saw you cut down 15 of them yourself" reads
+        ///     "you" as the character these memory lines sit under, when it means the PLAYER. Naming the player
+        ///     (<see cref="BattleMemoryText.NameOrPlayer" />, the same convention <see cref="WitnessedPlayerDowned" />
+        ///     already follows) removes the question.
+        ///   </para>
         /// </summary>
-        public static string WitnessedFeat(string foeName, CombatFeatOutcome outcome, string engagement)
+        public static string WitnessedFeat(string foeName, CombatFeatOutcome outcome, string engagement, string playerName = null)
         {
             string who = string.IsNullOrWhiteSpace(foeName) ? "a foe" : foeName.Trim();
             string place = string.IsNullOrWhiteSpace(engagement) ? "" : $" at {engagement.Trim()}";
+            string hero = BattleMemoryText.NameOrPlayer(playerName);
 
             switch (outcome)
             {
                 case CombatFeatOutcome.TakenAlive:
-                    return $"I saw you beat {who} down and take them alive{place}.";
+                    return $"I saw {hero} beat {who} down and take them alive{place}.";
                 case CombatFeatOutcome.Slain:
-                    return $"I saw you cut {who} down{place}.";
+                    return $"I saw {hero} cut {who} down{place}.";
                 default:
-                    return $"I saw you best {who} in the fighting{place}.";
+                    return $"I saw {hero} best {who} in the fighting{place}.";
             }
         }
 
@@ -105,12 +112,18 @@ namespace CalradiaRemembers.Logic.Battles
         ///   A remarkable showing against the rank and file, who really do die. Only ever built when the tally is
         ///   genuinely worth remarking on (the caller decides): a plain count of ordinary kills is a statistic, not
         ///   a memory, and NPCs must not recite statistics.
+        ///   <para>
+        ///     tashmetu (Nexus, 13/10/2026): names the player instead of "you", same convention as
+        ///     <see cref="WitnessedFeat" />. "yourself" is dropped rather than turned into a second mention of the
+        ///     name: "I saw Adam cut down 15 of them" reads just as naturally.
+        ///   </para>
         /// </summary>
-        public static string WitnessedToll(int foesFelled, string engagement)
+        public static string WitnessedToll(int foesFelled, string engagement, string playerName = null)
         {
             string place = string.IsNullOrWhiteSpace(engagement) ? "" : $" at {engagement.Trim()}";
+            string hero = BattleMemoryText.NameOrPlayer(playerName);
 
-            return $"I saw you cut down {foesFelled} of them yourself{place}.";
+            return $"I saw {hero} cut down {foesFelled} of them{place}.";
         }
     }
 }

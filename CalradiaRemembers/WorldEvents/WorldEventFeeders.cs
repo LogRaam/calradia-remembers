@@ -137,7 +137,7 @@ namespace CalradiaRemembers.WorldEvents
       ///   Leaves a memory of the player's battlefield in the profiles of those who were present: the lords
       ///   who led their own party (either side), and the companions who rode inside the player's own party.
       /// </summary>
-      private static void RecordBattlePerformanceIntoProfiles(MapEvent mapEvent, bool playerAttacker, bool playerWon, string placeClause, bool sharedEffort)
+      private static void RecordBattlePerformanceIntoProfiles(MapEvent mapEvent, bool playerAttacker, bool playerWon, string placeClause, bool sharedEffort, string engagement)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
@@ -154,7 +154,11 @@ namespace CalradiaRemembers.WorldEvents
          // (no mission, so no per-combatant truth to report) and for a fight that left nothing of note.
          // Rendered PER RECIPIENT: the man a deed is ABOUT lived it, and must not read "I saw you best Lucon" in
          // Lucon's own memory.
-         BattleFeatReport deeds = BattleFeatReporter.ConsumeReport(placeClause);
+         // tashmetu (Nexus, 13/10/2026): the feat reporter's own "at " contract (BattleFeatText) wants the NOUN
+         // PHRASE from ChronicleEngagement ("the siege of X"), never placeClause (already shaped as " at the
+         // siege of X"); passing placeClause here doubled the preposition into "cut down 168 of them at at the
+         // siege of Thorios Castle".
+         BattleFeatReport deeds = BattleFeatReporter.ConsumeReport(engagement);
 
          foreach (BattleSideEnum side in new[] {BattleSideEnum.Attacker, BattleSideEnum.Defender})
          {
@@ -477,6 +481,9 @@ namespace CalradiaRemembers.WorldEvents
                   ? BattleSetting.Raid
                   : BattleSetting.OpenField;
             string placeClause = BattleMemoryText.PlaceClause(setting, place?.Name?.ToString());
+            // The noun-phrase form (no leading preposition): the chronicle line below wants it, and so does the
+            // battle-feat reporter, which already adds its own " at " (BattleFeatText's contract).
+            string engagement = BattleMemoryText.ChronicleEngagement(setting, place?.Name?.ToString());
             // The player fought within a larger host when their own side fielded an army (more than one party), so a
             // siege or pitched battle won that way is a shared triumph, never the solo one lords used to congratulate.
             bool sharedEffort = playerAttacker ? attackerHasArmy : defenderHasArmy;
@@ -507,7 +514,6 @@ namespace CalradiaRemembers.WorldEvents
             };
             if (playerIn)
             {
-               string engagement = BattleMemoryText.ChronicleEngagement(setting, place?.Name?.ToString());
                e.ChronicleLine = playerWon
                   ? $"the lord {PlayerName} met {loseName} in {engagement}, and by sword and valour put the foe to flight"
                   : $"the lord {PlayerName} gave battle to {winName} in {engagement}, but fortune turned against him and the field was lost";
@@ -515,7 +521,7 @@ namespace CalradiaRemembers.WorldEvents
 
             Store.Record(e);
 
-            if (playerIn) RecordBattlePerformanceIntoProfiles(mapEvent, playerAttacker, playerWon, placeClause, sharedEffort);
+            if (playerIn) RecordBattlePerformanceIntoProfiles(mapEvent, playerAttacker, playerWon, placeClause, sharedEffort, engagement);
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] battle feeder failed: {ex.GetType().Name}: {ex.Message}"); }
       }
