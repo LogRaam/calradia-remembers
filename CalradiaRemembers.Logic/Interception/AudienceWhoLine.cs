@@ -23,7 +23,7 @@ namespace CalradiaRemembers.Logic.Interception
       /// <summary>Their station in the game's words ("a lord of Battania", "a merchant of Askar"), or null.</summary>
       public string Station { get; init; }
 
-      /// <summary>The game's own flag that the player has met them.</summary>
+      /// <summary>The game's own flag that the player has met them (set when a conversation with them ends).</summary>
       public bool HasMet { get; init; }
 
       /// <summary>Their personal regard on CR's ledger, or null when CR holds no memory of them.</summary>
@@ -48,7 +48,10 @@ namespace CalradiaRemembers.Logic.Interception
       /// <summary>Their realm's name, or null when their house serves none.</summary>
       public string RealmName { get; init; }
 
-      /// <summary>The game's own word for their trade ("Merchant"), for anyone who is not a lord.</summary>
+      /// <summary>
+      ///   Their trade by its game name ("Merchant", "GangLeader"), for anyone who is not a lord. The name, not the game's
+      ///   display text: the game has none for most notable trades and prints an ERROR line instead.
+      /// </summary>
       public string OccupationName { get; init; }
 
       /// <summary>The town or village a notable belongs to, or null.</summary>
@@ -75,10 +78,23 @@ namespace CalradiaRemembers.Logic.Interception
 
          if (string.IsNullOrWhiteSpace(f.OccupationName)) return null;
 
-         string trade = f.OccupationName.Trim().ToLowerInvariant();
+         string trade = Words(f.OccupationName.Trim());
          string article = "aeiou".IndexOf(trade[0]) >= 0 ? "an " : "a ";
 
          return article + trade + (string.IsNullOrWhiteSpace(f.SettlementName) ? "" : " of " + f.SettlementName.Trim());
+      }
+
+      // "GangLeader" to "gang leader".
+      private static string Words(string name)
+      {
+         var sb = new System.Text.StringBuilder();
+         for (int i = 0; i < name.Length; i++)
+         {
+            if (i > 0 && char.IsUpper(name[i]) && !char.IsUpper(name[i - 1])) sb.Append(' ');
+            sb.Append(char.ToLowerInvariant(name[i]));
+         }
+
+         return sb.ToString();
       }
    }
 
@@ -86,9 +102,10 @@ namespace CalradiaRemembers.Logic.Interception
    public static class AudienceWhoLine
    {
       /// <summary>
-      ///   "\n\nWho: Luichan of Fen Company (Battanian), a lord of Battania. You have never met." Someone CR remembers
-      ///   has been met, whatever the engine's flag says, and their regard is given; someone CR does not remember gets
-      ///   no regard at all, never an invented one. Empty when there is no name.
+      ///   "\n\nWho: Luichan of Fen Company (Battanian), a lord of Battania. You have never met." Met is the game's own
+      ///   flag: CR remembers people the player never stood before (letters, witnesses), so remembering is not meeting.
+      ///   The regard is given whenever CR remembers them, as the encyclopedia row does, and never invented when it does
+      ///   not. Empty when there is no name.
       /// </summary>
       public static string For(AudienceWhoFacts f)
       {
@@ -97,8 +114,7 @@ namespace CalradiaRemembers.Logic.Interception
          string who = f.Label.Trim();
          if (!string.IsNullOrWhiteSpace(f.Station)) who += ", " + f.Station.Trim();
 
-         bool met = f.HasMet || f.Regard.HasValue;
-         string line = "\n\nWho: " + who + "." + (met ? " You have met." : " You have never met.");
+         string line = "\n\nWho: " + who + "." + (f.HasMet ? " You have met." : " You have never met.");
          if (f.Regard.HasValue) line += " Their regard for you: " + RegardBands.Describe(f.Regard.Value) + ".";
 
          return line;

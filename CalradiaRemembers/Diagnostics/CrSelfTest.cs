@@ -10109,6 +10109,24 @@ namespace CalradiaRemembers.Diagnostics
          t.Note(who.Trim());
          t.Expect("theWhoLineNamesHim", who.Contains("Who: ") && who.Contains(lord.Name.ToString()), true);
 
+         // THE REPORTED CASE: a stranger reads as one. A lord never met and never remembered says so, with no regard.
+         Hero stranger = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.HasMet && h != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h) && behavior?.Store?.Get(h.StringId) == null);
+         if (stranger != null)
+         {
+            string strangerLine = AudienceInquiry.WhoLine(stranger);
+            t.Expect("aStrangerReadsAsNeverMet", strangerLine.Contains("You have never met.") && !strangerLine.Contains("regard"), true);
+         }
+         else t.Note("no lord unmet and unremembered: the stranger case is not checked");
+
+         // A notable's trade in plain words: the game has no text for most trades and would print an ERROR line.
+         Hero notable = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsNotable && Mapping.HeroPresence.IsInTheWorld(h) && h.Occupation != Occupation.Merchant);
+         if (notable != null)
+         {
+            string notableLine = AudienceInquiry.WhoLine(notable);
+            t.Note(notableLine.Trim());
+            t.Expect("aNotablesTradeReadsPlainly", !notableLine.Contains("ERROR") && notableLine.Contains("Who: "), true);
+         }
+
          TaleWorlds.Library.InquiryData data = AudienceInquiry.Show(lord, "[testall] audience_who", "A test invitation. It closes itself.", "Close", "Close", null, null);
          try
          {

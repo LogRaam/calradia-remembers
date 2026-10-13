@@ -48,12 +48,13 @@ namespace CalradiaRemembers.Tests.Interception
                         .Should().Be("\n\nWho: Ira. You have met.");
       }
 
-      // CR remembering them IS having met, even if the engine's flag was never set (a letter, a council seat).
+      // CR keeps a memory of people the player has never stood before (a letter, a witness, word of a deed), so
+      // remembering is not meeting: the line still says they never met, and gives the regard as the encyclopedia does.
       [Test]
-      public void GIVEN_a_character_CR_remembers_WHEN_the_engine_says_never_met_THEN_they_still_read_as_met()
+      public void GIVEN_someone_never_met_whom_CR_remembers_WHEN_written_THEN_it_says_never_met_and_still_gives_their_regard()
       {
          AudienceWhoLine.For(new AudienceWhoFacts {Label = "Ira", HasMet = false, Regard = 0})
-                        .Should().Be("\n\nWho: Ira. You have met. Their regard for you: neutral.");
+                        .Should().Be("\n\nWho: Ira. You have never met. Their regard for you: neutral.");
       }
 
       // ── Their station: who they are in the world, which is what decides whether a stranger is worth the time ──
@@ -71,12 +72,15 @@ namespace CalradiaRemembers.Tests.Interception
          AudienceStation.Describe(new AudienceStationFacts {IsLord = true}).Should().Be("a lord");
       }
 
-      // A notable is known by trade and town, in the game's own word for the trade.
+      // A notable is known by trade and town. The game has no display word for most notable trades (a lookup of
+      // "GangLeader" prints "ERROR: Text with id ... doesn't exist!"), so the trade is read from its own name.
       [Test]
-      public void GIVEN_a_notable_WHEN_described_THEN_their_trade_and_town_are_named()
+      public void GIVEN_a_notable_WHEN_described_THEN_their_trade_and_town_are_named_in_plain_words()
       {
          AudienceStation.Describe(new AudienceStationFacts {OccupationName = "Merchant", SettlementName = "Askar"})
                         .Should().Be("a merchant of Askar");
+         AudienceStation.Describe(new AudienceStationFacts {OccupationName = "GangLeader", SettlementName = "Pravend"})
+                        .Should().Be("a gang leader of Pravend");
          AudienceStation.Describe(new AudienceStationFacts {OccupationName = "Artisan"})
                         .Should().Be("an artisan");
       }

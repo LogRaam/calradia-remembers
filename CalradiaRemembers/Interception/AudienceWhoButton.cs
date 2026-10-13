@@ -33,6 +33,7 @@ namespace CalradiaRemembers.Interception
    public sealed class AudienceWhoButtonMixin : BaseViewModelMixin<SingleQueryPopUpVM>
    {
       private bool _isCrWhoShown;
+      private string _crWhoText = "";
 
       /// <summary>The popup's mixin (the game keeps one popup and reuses it).</summary>
       internal static AudienceWhoButtonMixin Current { get; private set; }
@@ -54,14 +55,29 @@ namespace CalradiaRemembers.Interception
          }
       }
 
+      // Empty while hidden: the label hides its button when empty, so a mixin that failed to bind (no text at all)
+      // leaves no stray button on the game's other popups.
       [DataSourceProperty]
-      public string CrWhoText => "Who is this?";
+      public string CrWhoText
+      {
+         get => _crWhoText;
+         set
+         {
+            if (_crWhoText == value) return;
+            _crWhoText = value;
+            ViewModel?.OnPropertyChanged();
+         }
+      }
 
       [DataSourceMethod]
       public void ExecuteCrWho() => AudienceInquiry.OnWhoClicked();
 
       /// <summary>Shows or hides the button for the popup now shown.</summary>
-      internal void Refresh(bool shown) => IsCrWhoShown = shown;
+      internal void Refresh(bool shown)
+      {
+         CrWhoText = shown ? "Who is this?" : "";
+         IsCrWhoShown = shown;
+      }
    }
 
    /// <summary>Tells AudienceInquiry which invitation the popup shows.</summary>

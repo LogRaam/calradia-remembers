@@ -174,15 +174,9 @@ namespace CalradiaRemembers.Interception
       private static string StationOf(Hero hero)
       {
          bool isLord = hero.IsLord;
-         string occupation = null;
-         if (!isLord)
-         {
-            try { occupation = GameTexts.FindText("str_occupation", hero.Occupation.ToString())?.ToString(); }
-            catch
-            {
-               // a trade the game has no word for: the line keeps the name alone
-            }
-         }
+         // The trade's game name, never GameTexts "str_occupation": it has no entry for Headman, GangLeader, Artisan,
+         // Preacher or RuralNotable, and a missing entry prints an ERROR line rather than failing.
+         string occupation = isLord ? null : hero.Occupation.ToString();
 
          return AudienceStation.Describe(new AudienceStationFacts {
             IsLord = isLord,

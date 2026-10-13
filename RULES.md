@@ -7585,9 +7585,9 @@ _that an invitation to talk says who is asking, before the player decides whethe
 - GIVEN a stranger asking for a word, WHEN the invitation is written, THEN it says who they are and that you never met
 - GIVEN someone you have spoken with, WHEN the invitation is written, THEN it gives their regard in the encyclopedias words
 - GIVEN someone met but never spoken with through CR, WHEN written, THEN no regard is claimed
-- GIVEN a character CR remembers, WHEN the engine says never met, THEN they still read as met
+- GIVEN someone never met whom CR remembers, WHEN written, THEN it says never met and still gives their regard
 - GIVEN a ruler a house head and a plain lord, WHEN described, THEN each reads at their rank
-- GIVEN a notable, WHEN described, THEN their trade and town are named
+- GIVEN a notable, WHEN described, THEN their trade and town are named in plain words
 - GIVEN no station, WHEN described, THEN nothing is said
 - GIVEN no name, WHEN written, THEN nothing is added
 

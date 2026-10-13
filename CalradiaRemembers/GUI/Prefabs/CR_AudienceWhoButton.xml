@@ -8,10 +8,10 @@
                     UpdateChildrenStates="true"
                     Command.Click="ExecuteCrWho">
         <Children>
-          <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+          <AutoHideRichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                       HorizontalAlignment="Center" VerticalAlignment="Center"
                       Brush="Popup.Button.Text" Brush.FontSize="17"
-                      Text="@CrWhoText" />
+                      Text="@CrWhoText" WidgetToHideIfEmpty="..\..\." />
         </Children>
       </ButtonWidget>
     </Children>
