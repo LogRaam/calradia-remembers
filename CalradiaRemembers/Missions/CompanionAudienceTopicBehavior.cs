@@ -640,12 +640,10 @@ namespace CalradiaRemembers.Missions
 
          // Neutral wording on purpose (mirrors CompanionAffectionBehavior/CompanionHappinessBehavior): the
          // specific thing found belongs in the conversation, not the popup.
-         InformationManager.ShowInquiry(new InquiryData(
-            title.ToString(), body.ToString(),
-            true, true,
-            "Speak with them", "Not now",
+         // A companion is known: no "Who:" line, but the "Who is this?" button to their page (Lordfadooboo, 13/10/2026).
+         Interception.AudienceInquiry.Show(h, title.ToString(), body.ToString(), "Speak with them", "Not now",
             GrantAudience,
-            () => ModLog.Info($"[AUDIENCE_TOPIC] {h.Name}'s private word was declined, no penalty, free refusal.")), true);
+            () => ModLog.Info($"[AUDIENCE_TOPIC] {h.Name}'s private word was declined, no penalty, free refusal."), sayWho: false);
       }
 
       /// <summary>Mirrors CompanionAudienceTopicPolicy.SelectTopic over a resolver scan.</summary>

@@ -316,6 +316,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
+         new SelfTest("audience_who", Severity.Light, "Who is asking for a word (Lordfadooboo, 13/10/2026: \"who is that?\" and a way to open their encyclopedia page from the invitation). Expects the popup button and its patch in place; writes the Who line for a real lord and expects their name in it; raises a real test invitation and expects it to carry that lord and show the button on the map; then starts the encyclopedia detour without opening the page, expects the invitation hidden, lets the wait run out and expects the same invitation back. Closes it at the end.", TestAudienceWho),
          new SelfTest("realm_faces", Severity.Light, "Queens with a chosen face (Gabriel, 12/10/2026: one queen per realm, made in the character editor; CR dresses the ruler's wife). Reports the faces files read and their problems; on a real ruler's wife, dresses her in a face (the first one read, else a test face) and expects her face to be exactly that one, expects the chat to show her realm's portrait when the faces file names one (Gabriel, 12/10/2026, unless the player dropped their own), then gives it back and expects her own face and usual portrait again, then lets the daily pass dress whom it should. Changes no one for good.", TestRealmFaces),
          new SelfTest("tale_scenario_bridge", Severity.Light, "The tale-scenario bridge (Gabriel, 12/10/2026: a queen leaves with the player and her husband's realm answers). In a runtime of its own, fires ON_TALE for a made-up tale's ending with a real lady and her husband as roles: a rule naming the whole tale and one naming that ending both play, one naming another ending or another tale does not, the news names the husband (never '{husband}'), and PRESS_FOR_WAR between his realm and the player's applies exactly when they are two realms at peace. Declares nothing; the news it wrote is removed.", TestTaleScenarioBridge),
          new SelfTest("tale_elopement", Severity.Heavy, "The Troy-inspired tale (Gabriel, 12/10/2026: she leaves with the player as a guest who may be married; her return to her husband is the condition of peace). On a real married lady of another realm: 'elope' ends her marriage, puts her in the player's party, plants her husband's StolenSpouse grudge and marks her free to marry the player; 'return_spouse' weds them again and takes her out of the party. Restores her house, takes back the grudge and the marker.", TestTaleElopement),
@@ -10094,6 +10095,42 @@ namespace CalradiaRemembers.Diagnostics
       ///   fkasad (12/10/2026): envoys about one prisoner came from every lord of the realm in turn, each on his own wait,
       ///   and a refusal stopped nobody. The real bookkeeping of PrisonerEnvoyBehavior, on a made-up captive.
       /// </summary>
+      private static string TestAudienceWho(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("audience_who");
+         t.Expect("theButtonIsOnThePopup", AudienceWhoButtonMixin.Current != null, true);
+         MethodInfo setData = HarmonyLib.AccessTools.Method(typeof(TaleWorlds.MountAndBlade.ViewModelCollection.Inquiries.SingleQueryPopUpVM), "SetData");
+         t.Expect("thePopupTellsWhatItShows", HarmonyLib.Harmony.GetPatchInfo(setData)?.Postfixes.Any(p => p.PatchMethod.DeclaringType == typeof(AudienceWhoSetDataPatch)) == true, true);
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.Clan?.Kingdom != null && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(lord == null, "no lord of a realm in the world")) return t.Line();
+
+         string who = AudienceInquiry.WhoLine(lord);
+         t.Note(who.Trim());
+         t.Expect("theWhoLineNamesHim", who.Contains("Who: ") && who.Contains(lord.Name.ToString()), true);
+
+         TaleWorlds.Library.InquiryData data = AudienceInquiry.Show(lord, "[testall] audience_who", "A test invitation. It closes itself.", "Close", "Close", null, null);
+         try
+         {
+            if (t.Skip(AudienceInquiry.Showing != data, "another popup is up: the test invitation waits behind it")) return t.Line();
+
+            t.Expect("theInvitationCarriesHim", AudienceInquiry.DebugHeroOf(data), lord.StringId);
+            t.Expect("theButtonShowsOnTheMap", AudienceWhoButtonMixin.Current?.IsCrWhoShown == true, TaleWorlds.MountAndBlade.Mission.Current == null);
+
+            AudienceInquiry.DebugStartDetour(data);
+            t.Expect("theInvitationStepsAside", AudienceInquiry.Showing == null && AudienceInquiry.DebugDetourPending, true);
+            AudienceInquiry.Tick(Logic.Interception.EncyclopediaDetour.SecondsToOpen + 0.1f);
+            t.Expect("theSameInvitationComesBack", AudienceInquiry.Showing == data && !AudienceInquiry.DebugDetourPending, true);
+         }
+         finally
+         {
+            AudienceInquiry.DebugCancelDetour();
+            if (AudienceInquiry.Showing == data) TaleWorlds.Library.InformationManager.HideInquiry();
+         }
+
+         return t.Line();
+      }
+
       private static string TestRealmFaces(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("realm_faces");

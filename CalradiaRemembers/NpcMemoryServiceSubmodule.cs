@@ -78,6 +78,7 @@ namespace CalradiaRemembers
          UI.Spike.CrMapTickSpike.Tick(dt); // throwaway spike (cr.tick_probe): closes its own measurement window
          Chat.CrVideoPlayer.Tick(); // CR's own video player: the frame due, as a new texture (runs in conversations too)
          Chat.ChatManager.TickEscapeClose(); // an Escape close, once the key is up, outside the chat's widget update (philip0105)
+         Interception.AudienceInquiry.Tick(dt); // an invitation away while its "Who is this?" encyclopedia page is read (Lordfadooboo)
          Map.MapNavigationCouncilItemPatch.Tick(); // reports ONCE if another mod removed our council bar button
       }
 

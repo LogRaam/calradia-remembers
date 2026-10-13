@@ -74,6 +74,10 @@
       <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.Core.ViewModelCollection.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="TaleWorlds.MountAndBlade.ViewModelCollection">
+      <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.MountAndBlade.ViewModelCollection.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="TaleWorlds.CampaignSystem.ViewModelCollection">
       <HintPath>$(BannerlordGameBinaryDir)\TaleWorlds.CampaignSystem.ViewModelCollection.dll</HintPath>
       <Private>false</Private>

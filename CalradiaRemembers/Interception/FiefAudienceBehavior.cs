@@ -257,12 +257,10 @@ namespace CalradiaRemembers.Interception
          var body = new TextObject(
             $"{npc.Name}, standing here, catches your eye and seems to want a private word with you.{about}");
 
-         InformationManager.ShowInquiry(new InquiryData(
-            title.ToString(), body.ToString(),
-            true, true,
-            "Speak with them", "Not now",
+         // WHO IS ASKING (Lordfadooboo, 13/10/2026): said in the invitation, with a "Who is this?" button to their page.
+         AudienceInquiry.Show(npc, title.ToString(), body.ToString(), "Speak with them", "Not now",
             GrantAudience,
-            () => ModLog.Info($"[FIEF_AUDIENCE] {npc.Name}'s word was declined, no penalty, free refusal.")), true);
+            () => ModLog.Info($"[FIEF_AUDIENCE] {npc.Name}'s word was declined, no penalty, free refusal."));
       }
 
       private void GrantAudience()

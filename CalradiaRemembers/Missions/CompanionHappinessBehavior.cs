@@ -321,12 +321,9 @@ namespace CalradiaRemembers.Missions
 
          // Hear them out (opens a real conversation where you can win them back in your own words), or turn them
          // away (a slight that sours them further and counts toward their leaving).
-         InformationManager.ShowInquiry(new InquiryData(
-            title.ToString(), body.ToString(),
-            true, true,
-            "Let us speak of it…", "I've no time for this.",
+         Interception.AudienceInquiry.Show(h, title.ToString(), body.ToString(), "Let us speak of it…", "I've no time for this.",
             () => GrantAudience(h),
-            () => RefuseAudience(h)), true);
+            () => RefuseAudience(h), sayWho: false);
       }
 
       private void RunRetention(Hero h)

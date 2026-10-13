@@ -1,0 +1,19 @@
+<DummyRoot>
+  <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginBottom="6" IsVisible="@IsCrWhoShown">
+    <Children>
+      <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="220" SuggestedHeight="40"
+                    HorizontalAlignment="Center"
+                    Brush="ButtonBrush1"
+                    DoNotPassEventsToChildren="true"
+                    UpdateChildrenStates="true"
+                    Command.Click="ExecuteCrWho">
+        <Children>
+          <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                      Brush="Popup.Button.Text" Brush.FontSize="17"
+                      Text="@CrWhoText" />
+        </Children>
+      </ButtonWidget>
+    </Children>
+  </Widget>
+</DummyRoot>

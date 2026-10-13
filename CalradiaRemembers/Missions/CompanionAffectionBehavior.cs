@@ -162,12 +162,10 @@ namespace CalradiaRemembers.Missions
             $"{h.Name} seems to have something personal on their mind, and asks for a quiet moment alone with you.");
 
          // Neutral wording on purpose: the reveal belongs in the conversation, not the popup.
-         InformationManager.ShowInquiry(new InquiryData(
-            title.ToString(), body.ToString(),
-            true, true,
-            "Speak with them", "Not now",
+         // A companion is known: no "Who:" line, but the "Who is this?" button to their page (Lordfadooboo, 13/10/2026).
+         Interception.AudienceInquiry.Show(h, title.ToString(), body.ToString(), "Speak with them", "Not now",
             () => GrantAudience(h),
-            () => ModLog.Info($"[AFFECTION] {h.Name}'s private word was deferred.")), true);
+            () => ModLog.Info($"[AFFECTION] {h.Name}'s private word was deferred."), sayWho: false);
       }
 
       #endregion

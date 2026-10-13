@@ -261,13 +261,12 @@ namespace CalradiaRemembers.Letters
          string envoyName = EnvoyMandatePolicy.DisplayName(lord.Name?.ToString());
          CharacterObject portrait = lord.Clan?.BasicTroop ?? lord.Culture?.BasicTroop;
 
-         InformationManager.ShowInquiry(new InquiryData(
-            "An envoy under a flag of truce",
+         // The envoy is nobody; the lord who sends them is who the player weighs (Lordfadooboo, 13/10/2026: "who is that?").
+         Interception.AudienceInquiry.Show(lord, "An envoy under a flag of truce",
             $"An envoy of {lord.Name} rides up under a flag of truce and asks to speak with you about {envoy.Audience.Mandate.WantedCaptiveName}, whom you hold.",
-            true, true,
             "Receive the envoy", "Send them away",
             () => MainThreadDispatcher.Enqueue(() => ChatSceneStager.StageEnvoyAudience(envoyName, portrait, envoy.Audience)),
-            () => ModLog.Info($"[ENVOY] the player sent {lord.Name}'s envoy away.")), true);
+            () => ModLog.Info($"[ENVOY] the player sent {lord.Name}'s envoy away."));
       }
 
       /// <summary>

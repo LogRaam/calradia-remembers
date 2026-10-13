@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 482 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1078 types in 28 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 487 types in 59 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1085 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 258 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 17000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 17500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
@@ -403,10 +403,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GrudgeResolutionService` | public static class | Shared glue between the make_amends verb and the gift-routing hooks (ExecuteTakeGold, ExecuteGiveItem): evaluate the player's offered gesture against the holder's dominant resolvable live grudge, apply the verdict, and p... |
 | `SwayExposureBehavior` | public class | Owns the delayed reveal for the GrudgeSource.SwayExposed grudge source. |
 
-### CalradiaRemembers.Interception (2)
+### CalradiaRemembers.Interception (7)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `AudienceInquiry` | public static class | Raises an invitation to talk that says who is asking and can open their encyclopedia page. |
+| `AudienceWhoButtonMixin` | public class | The button's data on the game's popup: hidden unless the popup shows one of CR's invitations. |
+| `AudienceWhoButtonPatch` | internal class | Inserts the button (GUI/Prefabs/CR_AudienceWhoButton.xml) above the popup's two buttons. |
+| `AudienceWhoClearPatch` | internal static class | The popup closed: no invitation shown. |
+| `AudienceWhoSetDataPatch` | internal static class | Tells AudienceInquiry which invitation the popup shows. |
 | `FiefAudienceBehavior` | public class | On the player's party ENTERING A SETTLEMENT (driven by CompanionAudienceTopicBehavior, see the class header), offers an Accept/Decline "may I have a word" audience for the strongest partyless NPC standing there with a li... |
 | `InterceptionBehavior` | public class | Once a day, at most one nearby lord may be sent to intercept the player when InterceptionPolicy says a trigger fires (a hostile territorial challenge, or a reaction to fresh news of the player). |
 
@@ -1894,11 +1899,18 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `UnblessedMarriageFacts` | public class | Facts for Tier2GrudgeRules.UnblessedMarriageGrudge: a family member who opposed an unblessed marriage the player made. |
 | `WorldEventFacts` | public class | A persisted WorldEvent, as read by the engine-side scan. |
 
-### CalradiaRemembers.Logic.Interception (6)
+### CalradiaRemembers.Logic.Interception (13)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `AudienceStation` | public static class | Someone's station in a few words ("ruler of Vlandia", "a merchant of Askar"). |
+| `AudienceStationFacts` | public class | What decides how someone's station is said. |
 | `AudienceTopicLine` | public static class | The " It seems to be about X." tail of an audience invitation, or nothing when there is no subject to name. |
+| `AudienceWhoFacts` | public class | What the invitation can say about who is asking. |
+| `AudienceWhoLine` | public static class | The "Who: ..." paragraph of an audience invitation. |
+| `EncyclopediaDetour` | public static class | When the invitation comes back. |
+| `EncyclopediaDetourFacts` | public class | Where the detour stands, read once a frame. |
+| `EncyclopediaDetourStep` | public enum | What to do this frame. |
 | `RecentMatter` | public class | One recent matter a lord could raise with the player: what it is, when it happened, its register, and a stable key for the once-per-NPC guard. |
 | `RecentMatterRegister` | public enum | How a lord relates to a recent matter, which decides the tone he raises it in. |
 | `RecentMatterSelector` | public static class | Picks the single matter a lord raises: the most recent one, within a recency window, that he has not already raised. |

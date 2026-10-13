@@ -119,7 +119,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Lore` | 9 | 4 |
 | `CalradiaRemembers.OpenPartnerLover` | 9 | 2 |
 | `CalradiaRemembers.Rescue` | 9 | 2 |
-| `NpcMemoryService.Core.Prompts` | 8 | 16 |
+| `NpcMemoryService.Core.Prompts` | 8 | 17 |
 | `CalradiaRemembers.Standing` | 8 | 6 |
 | `CalradiaRemembers.Witnesses` | 8 | 6 |
 | `CalradiaRemembers.Chronicle` | 8 | 2 |
@@ -167,6 +167,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `NpcMemoryService.Core.LlmClient.OpenRouter` | 1 | 3 |
 | `NpcMemoryService.Core.Memory` | 1 | 3 |
 | `CalradiaRemembers.Logic.Diagnostics` | 1 | 2 |
+| `CalradiaRemembers.Logic.Interception` | 1 | 2 |
 | `CalradiaRemembers.UI.Spike` | 1 | 1 |
 | `NpcMemoryService.Core.Storage` | 1 | 1 |
 | `CalradiaRemembers.Paths` | 0 | 13 |
@@ -181,7 +182,6 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Video` | 0 | 3 |
 | `CalradiaRemembers.Logic.WorldAlmanac` | 0 | 3 |
 | `CalradiaRemembers.Logic.Actions` | 0 | 2 |
-| `CalradiaRemembers.Logic.Interception` | 0 | 2 |
 | `CalradiaRemembers.Logic.Narrative` | 0 | 2 |
 | `CalradiaRemembers.Logic.Prisoners` | 0 | 2 |
 | `CalradiaRemembers.Logic.Styles` | 0 | 2 |
@@ -407,7 +407,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 ### CalradiaRemembers.Logic.Interception
 
-- uses: nothing
+- uses: `NpcMemoryService.Core.Prompts`
 - used by: `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Interception`
 
 ### CalradiaRemembers.Logic.Items
@@ -698,7 +698,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 ### NpcMemoryService.Core.Prompts
 
 - uses: `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Extension`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Memory`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Mood`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Services`, `CalradiaRemembers.Styles`, `CalradiaRemembers.WorldAlmanac`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Interception`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Services`, `CalradiaRemembers.Styles`, `CalradiaRemembers.WorldAlmanac`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
 
 ### NpcMemoryService.Core.Services
 

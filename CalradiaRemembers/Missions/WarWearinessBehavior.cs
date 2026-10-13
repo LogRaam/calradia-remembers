@@ -327,13 +327,9 @@ namespace CalradiaRemembers.Missions
 
          // Two roads: hear them out (opens a real conversation where you grant their leave or talk them round), or
          // turn them away (a slight that sours them and re-presents later).
-         InformationManager.ShowInquiry(new InquiryData(
-            $"{h.Name} asks for a word",
-            body,
-            true, true,
-            "Let us speak of it…", "I've no time for this.",
+         Interception.AudienceInquiry.Show(h, $"{h.Name} asks for a word", body, "Let us speak of it…", "I've no time for this.",
             () => OnTalk(h, landed),
-            () => OnDismiss(h)), true);
+            () => OnDismiss(h), sayWho: false);
       }
 
       #endregion
