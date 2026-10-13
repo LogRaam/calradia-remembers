@@ -143,6 +143,15 @@ reference to CR. Packs are read in this order: CR's own (`ModuleData/scenarios`)
   presses his king toward war; the king weighs his regard for him, the wars he already fights and the strength he
   would face, and declares or not (a king pressing himself declares).
 
+### Queens with a chosen face (`ModuleData/cr_faces.json`, since 2.7.10)
+
+`{ "queens": { "<realm id>": "<BodyProperties version=... key=... />" } }`: the line the face editor copies with
+Ctrl+C, one per realm id (`vlandia`, `empire_s`...). CR dresses each realm's ruler's wife in it, at each session and
+each day, and gives a former queen her own face back when the king remarries or the face is taken out. Only the face
+changes: her name, age and build stay hers. Read in this order, the first one keeping a realm: the player's
+`Custom/faces.json`, each mod's `ModuleData/cr_faces.json` in launcher order, CR's `ModuleData/faces.json`.
+`cr.testall` (`realm_faces`) reports a line that does not load and a realm id the game does not know.
+
 ### Reading regard (`CrNpcMemory.GetRegard`, since 2.7.4)
 
 ```csharp

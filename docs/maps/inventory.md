@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 481 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1073 types in 28 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 482 types in 59 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1078 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 258 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -475,7 +475,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (26)
+### CalradiaRemembers.Mapping (27)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -495,6 +495,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
 | `PlayerPrisonBreakPatch` | public static class | Who the player is breaking out of prison right now, for the listeners of that release. |
 | `PromptProfileService` | internal static class | The prompt profile in use, and the layout each kind of character gets from it. |
+| `RealmFaceBehavior` | public class | Dresses each realm's queen in the face its faces file gives, and gives a former queen her own face back. |
 | `RealmWarFooting` | public static class | Reads a realm's war footing from the live game. |
 | `RelationshipsBuilder` | public static class | Builds a human-readable RELATIONSHIPS block for an NPC from live game state. |
 | `RomanticProfileBuilder` | public static class | Builds a deterministic RomanticProfile for a Bannerlord Hero. |
@@ -827,7 +828,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (671)
+### CalradiaRemembers.Logic (676)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1321,6 +1322,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RansomEnvoyPolicy` | public static class | The rules of a ransom_envoy task. |
 | `RapportBand` | public enum | How two companions stand with each other — banded from their accumulated mutual relation. |
 | `ReactionKind` | public enum | The kind of reaction one party has to a divorce. |
+| `RealmFace` | public class | The face a realm's queen wears, and the file it came from. |
+| `RealmFaceFacts` | public class | Who wears what now. |
+| `RealmFaceFile` | public static class | Reads and merges faces files. |
+| `RealmFacePlan` | public class | What to change. |
+| `RealmFacePlanner` | public static class | Who to dress and who to give her face back. |
 | `RealmServiceLine` | public class | The news line, the chronicle line and the reach of the player's clan entering a realm's service. |
 | `RealmServiceWording` | public static class | Words the player's entry into a realm as what it was: an oath of fealty, or a hired contract. |
 | `RealmTidingsPolicy` | public static class | Pure subject-selection for a realm-tidings letter: given the world events a writer could relay and the ones they have already relayed, picks the single most worth-telling fresh event, or nothing. |

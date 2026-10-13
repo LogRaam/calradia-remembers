@@ -316,6 +316,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
+         new SelfTest("realm_faces", Severity.Light, "Queens with a chosen face (Gabriel, 12/10/2026: one queen per realm, made in the character editor; CR dresses the ruler's wife). Reports the faces files read and their problems; on a real ruler's wife, dresses her in a face (the first one read, else a test face) and expects her face to be exactly that one, then gives it back and expects her own face again, then lets the daily pass dress whom it should. Changes no one for good.", TestRealmFaces),
          new SelfTest("tale_scenario_bridge", Severity.Light, "The tale-scenario bridge (Gabriel, 12/10/2026: a queen leaves with the player and her husband's realm answers). In a runtime of its own, fires ON_TALE for a made-up tale's ending with a real lady and her husband as roles: a rule naming the whole tale and one naming that ending both play, one naming another ending or another tale does not, the news names the husband (never '{husband}'), and PRESS_FOR_WAR between his realm and the player's applies exactly when they are two realms at peace. Declares nothing; the news it wrote is removed.", TestTaleScenarioBridge),
          new SelfTest("tale_elopement", Severity.Heavy, "The Troy-inspired tale (Gabriel, 12/10/2026: she leaves with the player as a guest who may be married; her return to her husband is the condition of peace). On a real married lady of another realm: 'elope' ends her marriage, puts her in the player's party, plants her husband's StolenSpouse grudge and marks her free to marry the player; 'return_spouse' weds them again and takes her out of the party. Restores her house, takes back the grudge and the marker.", TestTaleElopement),
          new SelfTest("tale_husband", Severity.Light, "The Troy-inspired tale (Gabriel, 12/10/2026: a queen leaves with the player, her husband answers). Loads a made-up tale asking for a married giver of another realm who does not lead her house, and her husband as {husband}; binds it around a real such lady and expects her own husband bound, then around an unmarried lady and expects her refused for not being married. The tale is unloaded; nothing is offered.", TestTaleHusband),
@@ -10093,6 +10094,41 @@ namespace CalradiaRemembers.Diagnostics
       ///   fkasad (12/10/2026): envoys about one prisoner came from every lord of the realm in turn, each on his own wait,
       ///   and a refusal stopped nobody. The real bookkeeping of PrisonerEnvoyBehavior, on a made-up captive.
       /// </summary>
+      private static string TestRealmFaces(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("realm_faces");
+         Mapping.RealmFaceBehavior b = Mapping.RealmFaceBehavior.Instance;
+         if (t.Skip(b == null, "the faces behaviour is not active")) return t.Line();
+
+         b.LoadFaces();
+         t.Note($"{b.Faces.Count} face(s): {string.Join(", ", b.Faces.Keys)}; problems: {b.Problems.Count}");
+         t.Expect("everyFaceFileReads", b.Problems.Count, 0);
+         foreach (string realm in b.Faces.Keys)
+            t.Expect(realm + "IsARealm", Kingdom.All.Any(k => string.Equals(k.StringId, realm, StringComparison.OrdinalIgnoreCase)), true);
+
+         Kingdom kingdom = Kingdom.All.FirstOrDefault(k => !k.IsEliminated && k.Leader?.Spouse != null && Mapping.HeroPresence.IsInTheWorld(k.Leader.Spouse));
+         if (t.Skip(kingdom == null, "no ruler with a wife in the world")) return t.Line();
+
+         Hero queen = kingdom.Leader.Spouse;
+         StaticBodyProperties before = queen.StaticBodyProperties;
+         string key = b.Faces.Values.FirstOrDefault()?.Key ?? "<BodyProperties version=\"4\" age=\"20\" weight=\"0.5\" build=\"0.5\" key=\"000A980810003015757A74679866577687B5878679788C47987777788567956720300602078868950701350000CC06200000000000000007000000003EFC10C2\" />";
+         BodyProperties.FromString(key, out BodyProperties wanted);
+         try
+         {
+            t.Expect("sheIsDressed", b.DebugDress(queen, kingdom.StringId, key), true);
+            t.Expect("sheWearsTheFace", queen.StaticBodyProperties == wanted.StaticProperties, true);
+            t.Expect("herFaceIsGivenBack", b.DebugGiveBack(queen), true);
+            t.Expect("sheIsHerselfAgain", queen.StaticBodyProperties == before, true);
+         }
+         finally
+         {
+            if (queen.StaticBodyProperties != before) b.DebugGiveBack(queen);
+            b.Apply();
+         }
+
+         return t.Line();
+      }
+
       private static string TestTaleScenarioBridge(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("tale_scenario_bridge");

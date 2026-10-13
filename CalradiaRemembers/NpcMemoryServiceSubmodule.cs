@@ -307,6 +307,7 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new Mapping.WeddingDayBehavior());
          campaignStarter.AddBehavior(new Marriage.ForeignDivorceBehavior());
          campaignStarter.AddBehavior(new Quests.AuthoredQuestBehavior());
+         campaignStarter.AddBehavior(new Mapping.RealmFaceBehavior()); // queens with a chosen face (Gabriel, 12/10/2026)
          campaignStarter.AddBehavior(new Quests.TaleCompanyFightSpike());
          // War-weariness: wounds and captures accrue a toll on each companion (a SEPARATE axis from happiness);
          // rest eases it; a spent veteran asks for an honorable retirement — a landless one leaves, a landed one

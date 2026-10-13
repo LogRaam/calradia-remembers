@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-477 rules read 369 facts.
+478 rules read 370 facts.
 
 ## Facts read by more than one rule
 
@@ -227,6 +227,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Settlement.Town` (2) | `HardshipPolicy.ShouldRecord`, `TownFoodPolicy.StocksAfterRelief` |
 | `Status.IsCourtingOrDeeper` (2) | `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible` |
 | `Store.MostRecentMatching` (2) | `HardshipPolicy.ShouldRecord`, `WarLoomingPolicy.ShouldRecord` |
+| `StringComparer.OrdinalIgnoreCase` (2) | `RealmFaceFacts`, `SpeakerNamesakePolicy.IsMerelyANamesake` |
 | `Summary.IndexOf` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `Town.MarketData` (2) | `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
 | `ViolenceSceneReader.FactsFor` (2) | `ViolencePolicy.Resolve`, `ViolencePolicy.SuccessChance` |
@@ -588,6 +589,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `RansomEnvoyFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.Clan`, `Hero.Gold`, `Hero.MapFaction`, `Hero.PartyBelongedToAsPrisoner`, `MobileParty.Party`, `PartyBase.Settlement`, `PartyBelongedToAsPrisoner.MapFaction`, `Settlement.OwnerClan`
 - `RansomEnvoyPolicy.Advance`: `Hero.MapFaction`
 - `RansomEnvoyPolicy.MaySend`: `FactionManager.IsAtWarAgainstFaction`, `Hero.Clan`, `Hero.Gold`, `Hero.MapFaction`, `Hero.PartyBelongedToAsPrisoner`, `MobileParty.Party`, `PartyBase.Settlement`, `PartyBelongedToAsPrisoner.MapFaction`, `Settlement.OwnerClan`
+- `RealmFaceFacts`: `StringComparer.OrdinalIgnoreCase`, `Value.Realm`
 - `RealmServiceWording.Joined`: `Kingdom.Leader`
 - `ReasoningWirePolicy.UsesEffortString`: `ModSettings.ActionInterpreterProviderSelection`, `ModSettings.CncProviderSelection`, `ModSettings.HousekeepingProviderSelection`, `ModSettings.RoleplayProviderSelection`, `Provider.SelectedValue`
 - `RecruitTroopsPolicy.TroopsToAsk`: `Hero.PartyBelongedTo`, `MemberRoster.TotalManCount`, `Party.PartySizeLimit`
