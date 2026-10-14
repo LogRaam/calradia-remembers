@@ -219,7 +219,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("tale_on_map", Severity.Light, "Gabriel (10/10/2026): a tale that begins by itself on the map when the party waits by day in the wife's own lands, on a chance each day, never in a conversation. Loads such a tale through the REAL loader and asserts the REAL conversation offer refuses it with the player's spouse (or any lady) even on a sure roll; then reads the REAL map check against the world as it stands and names what holds it back (no wife with the player, night, the sea, a settlement, the hours still, the lands). Nothing is offered, rolled or started; the test tale is taken out after", TestTaleOnMap),
          new SelfTest("tale_content_level", Severity.Light, "Gabriel (10/10/2026): 'can a quest be classed Hardcore?' A tale now names the content level it needs (requires.content). Loads a hardcore tale written into the test through the REAL loader, and asserts the REAL offer decision refuses it, naming the level, unless the player's setting in the mod options is Hardcore; and that the shipped tales, which ask for none, are never held back by it. No tale is offered or started; the test tale is taken out after", TestTaleContentLevel),
          new SelfTest("courier_menu_option", Severity.Light, "raphareish (Nexus, 10/10/2026): letters could be sent only from a town's tavern keeper, so castles and villages, which have no tavern, had no courier at all. Asserts the castle and village menus of THIS game carry 'Send a letter', and reports what the place the player stands in offers. Opens nothing, charges nothing", TestCourierMenuOption),
-         new SelfTest("kin_audience", Severity.Light, "HakiTakiUmba (Nexus, 09/10/2026): the player's family riding in the party (siblings, a spouse) never asked for a private word, only hired companions did. Finds a family member of the player's clan riding in the party (skips when none), asserts the REAL roster the audience offer reads now holds them, that the REAL topic scan runs for them, and that the context built for their audience through the REAL EncounterContextBuilder tells the model they speak as kin. No popup, no LLM call; creates only a missing profile", TestKinAudience),
+         new SelfTest("kin_audience", Severity.Light, "HakiTakiUmba (Nexus, 09/10/2026): the player's family riding in the party (siblings, a spouse) never asked for a private word, only hired companions did. Finds a family member of the player's clan riding in the party, borrowing one who is merely elsewhere, or (GABRIEL'S RULE, 13/10/2026) marrying a disposable test spouse into the party when the clan has none at all; asserts the REAL roster the audience offer reads now holds them, that the REAL topic scan runs for them, and that the context built for their audience through the REAL EncounterContextBuilder tells the model they speak as kin. No popup, no LLM call; restores the borrow/marriage after, creates only a missing profile", TestKinAudience),
          new SelfTest("tale_mod_folders", Severity.Light, "Gabriel (09/10/2026), for tashmetu's fifteen tales: another mod ships its tales in its own ModuleData/cr_quests. Asserts the mods whose tales folders are read are ENABLED ones (a mod disabled in the launcher must not leave its tales behind), that Calradia Remembers is not read a second time as another mod, and that each folder sits inside its own mod's folder. Reports the tales loaded from other mods. Mutates nothing", TestTaleModFolders),
          new SelfTest("deliver_prisoner_by_sale", Severity.Heavy, "Player report (Lordfadooboo, 18/09/2026): a lord asked for a Nord lord in chains, the player handed one over in words, got PAID, and the bargain stayed open for good. Two verbs hand a captive to an NPC and only give_prisoner ever looked at the bargain; buy_prisoner paid a price and touched nothing. Seeds a REALM-keyed DeliverPrisoner bargain, takes a lord of that realm prisoner, then runs buy_prisoner (the SALE) through the real bridge and asserts the bargain is SETTLED anyway and the captive left the player: handing a lord the very captive he asked for keeps his bargain, whatever the word.", TestDeliverPrisonerBySale),
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
@@ -240,7 +240,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("fief_audience", Severity.Light, "Player wish (Fakade, roadmap): road-only InterceptionBehavior needs a field party to move, so anyone without one (ladies, notables, a garrisoned lord standing around in a fief) never got a turn. Finds a real partyless hero standing in a live settlement; asserts the pure gate (FiefAudiencePolicy.ChooseFiefValid) raises nothing for a no-reason fact set; seeds a fresh, high-reach, player-involving WorldEvent so the SAME live fact HeardRecentPlayerDeed the road path reads is real, not fabricated; drives the REAL candidate scan (FiefAudienceBehavior.DebugScanAndStamp, never the live UI inquiry, never an LLM call) and asserts it offers that NPC with a fief-valid trigger; then asserts the SAME NPC asked again is WITHHELD by the per-NPC cooldown the offer itself just stamped. Removes the seeded WorldEvent and clears the stamped cooldown afterwards", TestFiefAudience),
          new SelfTest("interception_grudge_appreciation", Severity.Light, "Two new proactive channels for the mod's two signature event-anchored affect ledgers (design brief 2026-08-20): a lord who holds a live, significant grudge against the PLAYER rides out/asks for a word to air it (Grudge), and one who holds a significant, recent appreciation of the player does likewise to acknowledge it (AppreciationOwed), on BOTH the road (InterceptionBehavior) and the fief-audience channel (FiefAudienceBehavior), since both reuse the SAME InterceptionPolicy.Choose. Seeds a real Grudge (TryPlant) on a clean-slate lord and asserts InterceptionBehavior.HoldsLiveGrudgeAgainstPlayer finds it (false before planting), the pure InterceptionPolicy.Choose surfaces Grudge, and Grudge is fief-valid; does the same for a real Appreciation and AppreciationOwed; then asserts the priority pin (Grudge outranks AppreciationOwed when both hold on the same facts, mirroring InterceptionPolicyTests). Removes the seeded grudge afterwards (mirrors appreciation_flow/companion_gratitude: no removal API exists for an appreciation, so it is left, exactly like every other appreciation-seeding self-test)", TestInterceptionGrudgeAppreciation),
          new SelfTest("grudge_answered", Severity.Light, "Player report (Zivkyn, 18/09/2026): a lord kept asking why the player killed his kin, months later, however often it had been explained, and kept riding out to confront the player about it. Plants a real grudge against the player on a clean-slate lord and makes it a VENDETTA, asserts it drives an interception and hear_account is offered, then runs hear_account through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes) and asserts: the grudge is answered with the account, still a vendetta and exactly as heavy, the lord's built GrudgeNote now carries the account and the do-not-ask-again instruction, the interception no longer fires, and hear_account is no longer offered. No LLM call. Clears the lord's grudges afterwards", TestGrudgeAnswered),
-         new SelfTest("duel_venue_here", Severity.Light, "Player reports (FloatingMammal 10/09/2026, yozakura12 17, 18 and 20/09/2026): the duel was offered in places it could not be staged, and staged in places the engine could not open. Reports where the player is standing RIGHT NOW (settlement, town or castle, inside the walls or merely on it, and whether it owns the 'center' location a duel opens) and asserts the two halves agree: that a town or a castle really does own a duelling ground in THIS install, and that the venue the resolver chooses is the one the staging would accept. Skips on the open map, so walk into a castle and run it there. No duel is armed and no scene is opened", TestDuelVenueHere),
+         new SelfTest("duel_venue_here", Severity.Light, "Player reports (FloatingMammal 10/09/2026, yozakura12 17, 18 and 20/09/2026): the duel was offered in places it could not be staged, and staged in places the engine could not open. Reports where the player is standing RIGHT NOW (settlement, town or castle, inside the walls or merely on it, and whether it owns the 'center' location a duel opens) and asserts the two halves agree: that a town or a castle really does own a duelling ground in THIS install, and that the venue the resolver chooses is the one the staging would accept. On the open map (GABRIEL'S RULE, 13/10/2026), drives the same pure DuelStagingSupport/DuelVenuePolicy seam directly against a real town and a real castle instead (inside=true supplied as the fact, never the live PlayerEncounter global, and nothing moves the main party); MANUAL only when no town or castle exists at all. No duel is armed and no scene is opened", TestDuelVenueHere),
          new SelfTest("plural_acceptance", Severity.Light, "Player report (yozakura12, 22/09/2026): playing with multiple spouses, jealousy cost the full betrayal price even for a wife who says in her own voice that she accepts the harem, and the only thing close to that state was open_relationship, which is RECIPROCAL and suppresses her jealousy outright. Borrows a lady as a committed consort, sets her regard to devotion, and runs accept_other_partners through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes): asserts her word is recorded, that it is NOT reciprocal open terms, that the jealousy track moves from Betrayal to AcceptedAgainstCulture, that saying it twice is refused, and that a woman who is no partner of the player is refused. Restores her bond, her regard and her acceptance", TestPluralAcceptance),
          new SelfTest("conversation_resume", Severity.Light, "Player report (fkasad, 20/09/2026): roleplay takes longer than a battle, so he quits mid-negotiation, saves, closes the game, comes back, and the lord remembers TALKING to him but not a word of what was said, so the bargain starts over. Drives the REAL store the chat uses (NpcMemoryCampaignBehavior.ConvResume): keeps a built transcript against a real lord, then asserts it comes back whole for the same lord on the same day with its memory anchor, that the SAME open cannot take it twice, and that it is refused and DISCARDED for another lord, another day, or a staged scene, which is the report's own 'deleted as soon as you open a new chat' rule. No LLM call, no window opened. Forgets whatever it kept afterwards", TestConversationResume),
          new SelfTest("approach_framing", Severity.Light, "Player report (Fakade, 19/09/2026, local model): a lord rode out to him, then from the next turn spoke as though the player had come to HIM. The opening directive is consumed on read, so who sought whom was in the prompt once and never again. Stashes a real fief-audience reason on a lord, builds the encounter context twice through the REAL builder, and asserts the directive fires on the first build and is spent on the second while NpcSoughtThePlayer stays true on both; then asserts opening a new conversation (ForgetConversationSeeker) clears it. Leaves no pursuit behind", TestApproachFraming),
@@ -262,7 +262,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("interception_holds_course", Severity.Light, "Lordfadooboo (Nexus, 30/09/2026): a lord announced as riding out to meet the player passed him by or rode into a city. Steers a real free lord party onto the player as a pursuit does and checks it is held on course (its own AI may not take the order back), then ends the steering and checks the party is its own again and told to think afresh. Refuses while a real pursuit runs.", TestInterceptionHoldsCourse),
          new SelfTest("party_release", Severity.Light, "Mechanical: the STARVING LORD bug (Fakade). Freeze a real lord party exactly as the old stand-down did (SetMoveModeHold, which is an ORDER to stand still, not a release), prove it looks stranded, then prove BOTH halves of the fix: releasing hands it back to its own AI (RethinkAtNextHourlyTick), and the on-load rescue frees a party already stranded by an earlier version", TestPartyRelease),
          new SelfTest("retainer_spike", Severity.Heavy, "FEASIBILITY SPIKE: take a real OTHER-CLAN, partyless lord/lady into MobileParty.MainParty via AddHeroToPartyAction, assert (a) they are in the main member roster and (b) their Hero.Clan is UNCHANGED (still their own, NOT the player clan) with occupation still Lord; drive one RunDailyObservation (this behavior's daily handler) and assert they SURVIVED it at peace (reports honestly - this drives only the mod's own daily seam, not vanilla's full party-spawn tick); assert the pure RetainerLeavePolicy forces a leave on war; then release and assert they left the roster and are partyless again. Restores all borrowed state; skips MANUAL when no partyless other-clan lord exists (a party-leading lord's own party would be disbanded, which is not cleanly reversible in a live campaign)", TestRetainerSpike),
-         new SelfTest("ride_with_me", Severity.Heavy, "the PLAYER-FACING ride_with_me / part_ways path through the REAL bridge (not the raw mechanism the retainer_spike test drives): (e) while RetainerBehavior.Enabled is OFF the verb REFUSES and takes no one; (a) enabled, an idle at-peace other-clan lord ends up in MainParty.MemberRoster with Hero.Clan UNCHANGED (not the player clan); (b) a party-LEADING lord is REFUSED (that is follow_me's job) with their own party intact, proving the two verbs are mutually exclusive on the leads-a-party fact; (c) part_ways removes them (out of the roster, partyless, untracked); (d) the pure RetainerLeavePolicy forces a leave on war. Restores regard + the feature switch in a finally; skips MANUAL when no partyless at-peace other-clan lord exists to borrow", TestRideWithMe),
+         new SelfTest("ride_with_me", Severity.Heavy, "the PLAYER-FACING ride_with_me / part_ways path through the REAL bridge (not the raw mechanism the retainer_spike test drives): (e) while RetainerBehavior.Enabled is OFF the verb REFUSES and takes no one; (a) enabled, an idle at-peace other-clan lord ends up in MainParty.MemberRoster with Hero.Clan UNCHANGED (not the player clan); (b) a party-LEADING lord is REFUSED (that is follow_me's job) with their own party intact, proving the two verbs are mutually exclusive on the leads-a-party fact; (c) part_ways removes them (out of the roster, partyless, untracked); (d) the pure RetainerLeavePolicy forces a leave on war. Restores regard + the feature switch + any paused war (GABRIEL'S RULE, 13/10/2026: made peace via the real MakePeaceAction when no candidate was already at peace with everyone, re-declared after) in a finally; skips MANUAL only when no partyless other-clan lord exists at all to borrow", TestRideWithMe),
          new SelfTest("stolen_love", Severity.Light, "Stolen Love pillar (non-destructive): on a real third-party-married NPC, assert the seducibility pipeline runs on live facts (SeductionFactsMapper -> SeductionEligibilityPolicy) without throwing and yields a bounded verdict; drive the estrangement state machine via the debug seam (seed -> None in the opening grace -> declare -> ReadyToDivorce) and assert NO divorce has fired (HasConcludedFor false); assert the jilted-spouse grudge magnitude for the real couple sits within [Min,Max]. Clears the seeded estrangement in a finally so NO marriage is ever touched. Skips when no third-party-married NPC exists", TestStolenLove),
          new SelfTest("reasoning_scrub", Severity.Light, "Mechanical: the inline <think> leak (tthheerroocckk, nemotron on High reasoning). The save/load itself is STUBBED: corrupted memories are written straight into the store as an old save would carry them (a trace before real prose, a memory that is ONLY a truncated trace, a corrupted background paragraph) -> the REAL session-launch scrub runs -> assert the prose is recovered, the all-trace memory becomes the honest 'faded' line (never invented content), the background returns to null, and a second pass is a no-op. Removes its seeds afterwards", TestReasoningScrub),
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
@@ -274,7 +274,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("seasonal_chronicle", Severity.Light, "The seasonal historian (Gabriel's design): at each turn of the season every realm is read, and what MOVED - a stronghold taken, coffers grown, armies thinned - is written into the world as ordinary news. Computed deterministically from the almanac's own power facts rather than written by a model, because \"Vlandia grew rich\" IS a delta description and a background call every season would cost tokens forever, fail halfway, and have a language to get wrong. Drives the REAL behaviour against the REAL store with a perturbed reading (the honest alternative is waiting a season and hoping), and asserts it is ordinary news rather than a fourth memory store. Removes the row it writes", TestSeasonalChronicle),
          new SelfTest("world_claims", Severity.Light, "Invented facts (Gabriel, 2026-09-12): a character makes up a blight, the gate judges it, and if it passes it becomes a real low-weight rumour a DIFFERENT character can have heard - which is the incoherence Gabriel named, closed through the rumour road that already existed instead of a second world model. A unit test can prove the RULE and never that the row reached the world, so this drives the real injector against the real store. Also asserts the two refusals that matter: the PLAYER never authors the world, and nothing the engine keeps on a screen is ever invented into it. Removes every row it writes", TestWorldClaims),
          new SelfTest("knowledge_composition", Severity.Light, "Mechanical (Gabriel + fkasad, 2026-09-11): the half a unit test CANNOT do. A unit test builds its own EncounterContext, so it can prove a companion WOULD carry his house's standing and never that anyone supplied it - which is exactly where the governor bug lived (the prompt was right, the rule would have been right, the host never filled the field). Sweeps up to 60 free REAL heroes PLUS up to 15 PRISONERS, asks NpcKnowledgeFactory which knowledge packs each one CARRIES, and asserts the live context actually SUPPLIED every one of them; reports the pack census so a pack that reaches nobody is visible rather than silently vacuous. Prisoners joined the sample on 16/09/2026: excluding them left the whole IsCutOff composition unverified in a live game - the one branch where packs are meant to go SILENT, and so the one where a mistake is hardest to spot by reading a transcript - and that blind spot was covering a real defect, since realm_news and underworld ignored the flag and a man in a cell was reading his realm's current fortunes. Read-only: builds contexts, mutates nothing", TestKnowledgeComposition),
-         new SelfTest("unavailable_deeds", Severity.Light, "Mechanical (Gabriel's ruling 09/09/2026: \"il faudrait que le LLM declare en connaissant deja le gating\"): a verb used to have TWO states in the prompt, taught in full or ABSENT, and absence does not read to a language model as forbidden, it reads as not mentioned, so the model supplied the permission itself and the player met the contradiction one deed later as a system message refusing what the NPC had just promised. Verbs now state their own closed door BEFORE the model speaks (IStatesUnavailability, the inward twin of the IProvidesGuidance channel built for modders on 30/08/2026 and never turned inward). Sweeps up to 60 real living foreign lords, driving the LIVE VerbRegistry.ComposeUnavailability and ComposeTeachings against each, and asserts: no refusal ever leaks a verb id or an [ACTION] block (which would teach the model the very token it must not emit), and no verb is ever taught and refused in the same prompt. Then takes the first lord the world supplied who has the means but not the trust and drives the REAL EncounterContextBuilder.Build, asserting the block reaches the live EncounterContext.UnavailableDeeds and forbids the PROMISE, not merely the deed (a deferred promise being the same failure). MANUAL when no lord in this world is currently in that state. Read-only: builds contexts, mutates nothing", TestUnavailableDeeds),
+         new SelfTest("unavailable_deeds", Severity.Light, "Mechanical (Gabriel's ruling 09/09/2026: \"il faudrait que le LLM declare en connaissant deja le gating\"): a verb used to have TWO states in the prompt, taught in full or ABSENT, and absence does not read to a language model as forbidden, it reads as not mentioned, so the model supplied the permission itself and the player met the contradiction one deed later as a system message refusing what the NPC had just promised. Verbs now state their own closed door BEFORE the model speaks (IStatesUnavailability, the inward twin of the IProvidesGuidance channel built for modders on 30/08/2026 and never turned inward). Sweeps up to 60 real living foreign lords, driving the LIVE VerbRegistry.ComposeUnavailability and ComposeTeachings against each, and asserts: no refusal ever leaks a verb id or an [ACTION] block (which would teach the model the very token it must not emit), and no verb is ever taught and refused in the same prompt. Then takes the first lord the world supplied who has the means but not the trust (arranging one via a REAL ChangeRelationAction when none already stands that way, GABRIEL'S RULE 13/10/2026, restored after) and drives the REAL EncounterContextBuilder.Build, asserting the block reaches the live EncounterContext.UnavailableDeeds and forbids the PROMISE, not merely the deed (a deferred promise being the same failure). MANUAL only when no party-leading lord with a healthy enough force exists at all to arrange", TestUnavailableDeeds),
          new SelfTest("chat_focus_arbiter", Severity.Light, "Mechanical (tashmetu, 2026-09-09): the chat overlay slid off screen on NPC-initiated conversations and never came back, killing every later conversation until a restart. The old arbiter decided \"a screen is above us\" by COUNTING the host screen's layers against the count taken when the chat opened, and vanilla's own MissionGauntletConversationView adds a layer to that SAME screen while the conversation starts: click an NPC and it is already counted, be approached BY one and it arrives after, so the count grows and the chat yields to the very window it exists to replace, forever, because that layer stays for the whole conversation. The rule is now the engine's own IsFocusLayer, with the two vanilla conversation windows named and exempt. Builds REAL GauntletLayers on the live top screen exactly as vanilla builds them (\"MissionConversation\" order 49, \"MissionEscapeMenu\" order 50, IsFocusLayer set, no input restrictions taken) and asserts: ScreenLayer.Name really hands back the name the layer was built with (the one assumption a pure test cannot check), the vanilla conversation layer changes the verdict by nothing at all, a real modal still takes the screen and is NAMED in the log, and removing it reclaims the screen. EXTENDED after Gabriel's play-test (2026-09-09) proved a name list cannot be complete: he opened a chat in a TAVERN, where vanilla's settlement menu \"MapMenuOverlay\" holds focus for the whole conversation, and the chat yielded to the very backdrop it had been drawn over, never appeared, and let the vanilla dialogue run on underneath. Whatever already claims focus when the chat OPENS is scenery, whatever it is called; only what arrives afterwards can be a screen above. Now also builds a real \"MapMenuOverlay\" layer and asserts it is held through when recorded as backdrop, yields when it is not (the exact bug), and that a genuine modal opening OVER that backdrop still takes the screen. Removes every layer in a finally, so a failed assertion can never leave one on the player's screen. No LLM, mutates nothing", TestChatFocusArbiter),
          new SelfTest("panel_state_hosting", Severity.Light, "Mechanical: the panel-hosting migration (PushScreen -> PushState). cr.tick_probe measured a pushed SCREEN leaving MapState ticking at exactly the same rate as nothing pushed at all (481 settlement-visual + 481 map-input ticks per 4s window), while a pushed STATE silenced both to zero, because GameStateManager deactivates MapState before the new screen even exists. Drives a REAL open/close cycle through LetterWindowManager.OpenCompose/Close (the shared CrPanelHost, defaulted to the state strategy) on a borrowed lord's profile, and asserts: the live GameState becomes CrPanelState while open, CrPanelHost.AnyPanelOwnsScreen (the tick-suppression flag every guard reads) engages then fully clears, and the state stack returns to EXACTLY the state that was active before, never left substituted or stuck. Force-closes the window in a finally even if an assertion throws, so a broken assertion can never leave a panel open or the map muted. No LLM", TestPanelStateHosting),
          new SelfTest("dialogue_entry_trace", Severity.Light, "Mechanical (missing-CR-option player reports): DialogueEntryTraceCollector resolves ConversationManager.ActiveToken to a name via reflection on the private stateMap field. Forward-resolves 'hero_main_options' (a token that certainly exists, registered by LlmDialogFlow) to its live index, then reverse-resolves that same index back, driving the real reflection path both ways rather than a parallel copy; asserts the round-trip returns the original name, so a future game update renaming stateMap is caught here instead of silently degrading the diagnostic to raw indices. Also asserts DialogueEntryTracePolicy renders the expected YES/NO verdict for an offered and a not-offered trace. Read-only: touches no live conversation state, nothing to restore", TestDialogueEntryTrace),
@@ -301,7 +301,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file, then closes the scene and deletes the file.", TestSceneImageShown),
          new SelfTest("scene_close_gives_the_map_back", Severity.Light, "fkasad (Nexus, 07/10/2026): closing a tale's scene left a black screen with no way back. The close queued the backdrop's pop for the next frame, then wiped its own queue at the end. Opens a scene through the real door (its narration refused before any model call, so the log shows one [SCENE] error on purpose), closes it as the button does, runs one frame: the scene's own close must have run, what it queued must have run, and the map must be given back.", TestSceneCloseGivesTheMapBack),
          new SelfTest("scene_backdrop_suspends_the_map", Severity.Light, "Gabriel's play test (04/10/2026): closing a written tale's scene crashed the game natively; the scene had opened over the bare live map, which the hosting rule forbids. The scene's chat now sits on a pushed GameState. Opens that backdrop through the real host: the map must be suspended (a CrPanelState active, the settlement-visual tick suppressed), then given back exactly as it was, with the clock stopped. Opens no chat.", TestSceneBackdropSuspendsTheMap),
-         new SelfTest("player_company", Severity.Light, "Gabriel's Invite / Request Private design (03/10/2026, after nerethi). Reads the player's real company (party, escorts, prison): never the player, every prisoner truly held, the one spoken to never offered for invitation, and a room made only of the company, seated as Invite seats them, is cleared at once. Changes nothing.", TestPlayerCompany),
+         new SelfTest("player_company", Severity.Light, "Gabriel's Invite / Request Private design (03/10/2026, after nerethi). Reads the player's real company (party, escorts, prison): never the player, every prisoner truly held, the one spoken to never offered for invitation, and a room made only of the company, seated as Invite seats them, is cleared at once. Arranges a disposable companion into the main party when nobody travels with the player (GABRIEL'S RULE, 13/10/2026), restored after via ArrangedCompanion.", TestPlayerCompany),
          new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
          new SelfTest("memory_repair_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026) and Gabriel: one command to mend every memory the console mangled before the fix. Stores a mangled memory on a real lord, as an old save holds it, runs cr.memory_repair_accents through the engine's console: the memory must read as typed. Removes it after.", TestMemoryRepairAccents),
          new SelfTest("console_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026): accents typed into cr.memory_add / cr.memory_set came out as mojibake (the console reads UTF-8 back as Windows-1252). Sends cr.memory_add, through the engine's own console dispatch, a line mangled exactly as the console mangles it: the stored memory must read exactly as typed. Removes the memory after.", TestConsoleAccents),
@@ -318,7 +318,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
          new SelfTest("local_context", Severity.Light, "A local model's declared context window (fkasad, 13/10/2026: LM Studio cut CR's oversized request in its middle and the rules for a give were lost). On a real character with a CR memory, sends a long conversation through the real prompt builder to a capturing client (no model is called) with an 8,192-token window, and expects what would go out to fit, to still teach GAME ACTIONS, to keep the recap and the new line, to open the raw lines on a player's turn and to carry the compact reply budget; with no window, expects the whole conversation to go as built. Tells the player nothing and keeps nothing.", TestLocalContext),
-         new SelfTest("audience_who", Severity.Light, "Who is asking for a word (Lordfadooboo, 13/10/2026: \"who is that?\" and a way to open their encyclopedia page from the invitation). Expects the popup button and its patch in place; writes the Who line for a real lord and expects their name in it; raises a real test invitation and expects it to carry that lord and show the button on the map; then starts the encyclopedia detour without opening the page, expects the invitation hidden, lets the wait run out and expects the same invitation back. Closes it at the end.", TestAudienceWho),
+         new SelfTest("audience_who", Severity.Light, "Who is asking for a word (Lordfadooboo, 13/10/2026: \"who is that?\" and a way to open their encyclopedia page from the invitation). Expects the popup button and its patch in place; writes the Who line for a real lord and expects their name in it; raises a real test invitation and expects it to carry that lord and show the button on the map; then starts the encyclopedia detour without opening the page, expects the invitation hidden, lets the wait run out and expects the same invitation back. Closes it at the end. Checks InformationManager.IsAnyInquiryActive FIRST (GABRIEL'S RULE, 13/10/2026) so a real pre-existing popup is never queued behind or dismissed; MANUAL only then, never for an unexplained race.", TestAudienceWho),
          new SelfTest("close_settled_battle", Severity.Light, "Wallace1067 (Nexus, 13/10/2026): a friendly lord with no battle anywhere still left him on the vanilla encounter menu after every chat, because a MapEvent merely attached (already finalized, or already with a winner) read as a battle under way. Drives MapEncounterClosePolicy.IsLive on a live sighting, a finalized one and one with a winner, and MayFinish with BattleUnderWay computed from each, expecting a live fight kept and a settled one finished. Notes the real MapEvent on the player's own party if one is attached. Changes no game state.", TestCloseSettledBattle),
          new SelfTest("battle_memory_wording", Severity.Light, "tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): a witness line read 'I saw you cut down 168 of them yourself at at the siege of Thorios Castle', doubling the preposition and addressing the player as 'you'. Builds the same siege place WorldEventFeeders builds and drives the REAL BattleFeatReporter the way it now wires it (the engagement noun phrase, not the already-shaped place clause), expecting exactly one 'at', no 'you', and the player named. Mutates nothing.", TestBattleMemoryWording),
          new SelfTest("realm_faces", Severity.Light, "Queens with a chosen face (Gabriel, 12/10/2026: one queen per realm, made in the character editor; CR dresses the ruler's wife). Reports the faces files read and their problems; on a real ruler's wife, dresses her in a face (the first one read, else a test face) and expects her face to be exactly that one, expects the chat to show her realm's portrait when the faces file names one (Gabriel, 12/10/2026, unless the player dropped their own), then gives it back and expects her own face and usual portrait again, then lets the daily pass dress whom it should. Changes no one for good.", TestRealmFaces),
@@ -339,7 +339,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("private_memory_injection", Severity.Light, "tashmetu (01/10/2026): another mod injects a memory said in confidence. Injects one through the public CrNpcMemory.AddMemory with Private set on a real met character, checks it is stored private (kept to private talk) and that an unmarked one stays public. Both are removed.", TestPrivateMemoryInjection),
          new SelfTest("escaped_target", Severity.Light, "fkasad (Nexus, 01/10/2026): the lord a capture task named was beaten and escaped, and the player paid the broken-word price. On a real met lord, a temporary capture task whose target was beaten: the giver's acceptance ([QUEST_COMPLETE]) settles it through the real quest path for HALF the reward, and words alone never settle one whose target was not beaten. The task, the purse, the regard and the memory are put back.", TestEscapedTarget),
          new SelfTest("privacy_survives_interpreter", Severity.Light, "Lufaine and Maifailun (Nexus, 30/09/2026): a character agreed to speak privately and the room stayed full. In the two-call chat the interpreter's actions replaced the scene model's, which is the one taught request_privacy. Drives the real splice (ActionInterpreterComposer.WithInterpretedTags): the character's acceptance survives an interpreter that recorded none, and a gift the scene model tagged does not. No LLM.", TestPrivacySurvivesInterpreter),
-         new SelfTest("no_tasks_from_enemies", Severity.Light, "fkasad (Nexus, 29/09/2026): an enemy lord buying back a prisoner slid into demanding a deed, then into invalid-quest messages. Builds the REAL context for a lord at war with the player: it says so, and the prompt built from it teaches no task to offer and no prisoner bargain. Skips when the player is at war with no one. No LLM, nothing stored.", TestNoTasksFromEnemies),
+         new SelfTest("no_tasks_from_enemies", Severity.Light, "fkasad (Nexus, 29/09/2026): an enemy lord buying back a prisoner slid into demanding a deed, then into invalid-quest messages. Builds the REAL context for a lord at war with the player: it says so, and the prompt built from it teaches no task to offer and no prisoner bargain. Declares a real war via DeclareWarAction when the player is at war with no one (GABRIEL'S RULE, 13/10/2026), made peace again after; MANUAL only when no living lord's faction exists at all. No LLM, nothing stored.", TestNoTasksFromEnemies),
          new SelfTest("quests_suppressed_in_nsfw", Severity.Light, "Mechanical: build the REAL EncounterContext in NSFW mode -> SuppressQuests is true (an intimate scene never mints a quest from a vow, player report); in Roleplay it stays false (quests remain). Restores the active mode. No LLM.", TestQuestsSuppressedInNsfw),
          new SelfTest("witness_recalls_own_memory", Severity.Light, "Mechanical: seed a memory on a hero -> the witness recall a group scene would give them (the real BuildWitnessMemory path + cap) includes it, so a companion no longer answers a group scene as if a prior one-on-one agreement never happened. Removes the seed afterwards.", TestWitnessRecallsOwnMemory),
          new SelfTest("witness_density_thins_the_room", Severity.Light, "Mechanical: player complaint that conversations are ALWAYS crowded. Drives the REAL WitnessPresencePolicy.Filter directly against a fixed eligible list: Sparse thins the room down to its cap of 1; Bustling with an always-passing rng keeps every one of them, the exact passthrough that reproduces today's live behaviour for a player who never opens the menu. No LLM, mutates nothing.", TestWitnessDensityThinsTheRoom),
@@ -445,7 +445,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("nemesis_bounty_capture", Severity.Light, "mint a nemesis anchored to a real lord's own region -> assert NemesisBountyDialogFlow's gate finds him eligible -> IssueNemesisBounty (real reward math) -> real TakePrisonerAction on him -> assert QuestDeedTracker's widened CapturePrisoner hook stamps the NemesisBounty quest satisfied", TestNemesisBountyCapture),
          new SelfTest("nemesis_bounty_execute", Severity.Light, "mint a nemesis anchored to a real lord's own region -> IssueNemesisBounty -> capture then execute him via the real execute_prisoner bridge action -> assert the widened HeroKilledEvent hook stamps the NemesisBounty quest AND NemesisResolutionBehavior resolves the identity, both off the same event", TestNemesisBountyExecute),
          new SelfTest("nemesis_dossier", Severity.Light, "encyclopedia discoverability (player report SuperGraham339): mint a nemesis (TimesEncountered stays 0, latent) -> assert NemesisDossierFactory.BuildFor hides him -> bump TimesEncountered/RecaptureCount + plant a NotableEvent on his profile -> assert the SAME factory (the mixin's own source) now renders his identity, counters, and the planted history sentence. PLANTS a test nemesis (reload after)", TestNemesisDossier),
-         new SelfTest("nemesis_tavern_rumor", Severity.Light, "tavern-keeper rumour discoverability (ROADMAP follow-up): mint a nemesis anchored to a real tavern keeper's own region and mark him ENCOUNTERED -> assert NemesisTavernRumorDialogFlow.FindRumorNemesisFor's gate finds him eligible, and that it hides him again while latent (TimesEncountered 0) and once TURNED -> assert NemesisRumorLine.Compose names him and his region without stating a reward figure. PLANTS a test nemesis (reload after)", TestNemesisTavernRumor),
+         new SelfTest("nemesis_tavern_rumor", Severity.Light, "tavern-keeper rumour discoverability (ROADMAP follow-up): mint a nemesis anchored to a stand-in keeper's own region (GABRIEL'S RULE, 13/10/2026: a tavern keeper is a LocationCharacter, never a Hero, in the 1.4.8 engine, so the gate is proven against any living lord with a resolvable region instead, exactly as FindRumorNemesisFor itself reads: HomeSettlement/CurrentSettlement/Culture, never Occupation) and mark him ENCOUNTERED -> assert NemesisTavernRumorDialogFlow.FindRumorNemesisFor's gate finds him eligible, and that it hides him again while latent (TimesEncountered 0) and once TURNED -> assert NemesisRumorLine.Compose names him and his region without stating a reward figure. PLANTS a test nemesis (reload after)", TestNemesisTavernRumor),
          new SelfTest("declare_war", Severity.Irreversible, "seed deed -> declare war -> assert WarDeclared stamps it", TestDeclareWar),
          new SelfTest("scenario", Severity.Irreversible, "fire ON_DEATH:Rhagaea x2 -> assert a rule fires then seals", TestScenario),
          new SelfTest("video_decoder", Severity.Light, "Gabriel (11/10/2026): CR plays its own video (.crvid, a zip of JPEG frames) because the game's player stops in conversations. Writes a tiny .crvid to temp (three solid-colour frames), decodes it through the REAL decoder on its own thread: asserts all frames decoded, in order, at full size, opaque, and the first (red) frame red in the byte order the channel switch gives; and its first frame extracted as a JPEG (the still picture of the Classic skin). The files are deleted; nothing in the game is touched", TestVideoDecoder),
@@ -486,7 +486,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("assembly_revalidate", Severity.Light, "Mechanical (ASSEMBLY Inc 1 robustness): the daily re-validation reads the live host + traveller state and leaves a healthy assembly intact (host/traveller edge combinations are pinned by the pure policy tests)", TestAssemblyRevalidate),
          new SelfTest("council_parley_snapshot", Severity.Light, "Mechanical (Parley council): CouncilSessionSnapshot's additive ParleyTargetFactionId field round-trips through the exact JsonConvert path CouncilSessionBehavior.SyncData uses, both WITH a value set and WITHOUT one present in the JSON at all (an old pre-Parley snapshot) -> the missing-field case must deserialize to null rather than throw. No live campaign state touched", TestCouncilParleySnapshot),
          new SelfTest("council_attendance", Severity.Light, "Mechanical (Convergence Inc 2; the dead never sit, Maifailun 30/09/2026): drives the REAL CouncilAttendanceResolver.Resolve against the live campaign for CouncilScope.Party -> every hero it seats is InParty (skips if the party carries no other hero); then, mechanically, feeds CouncilAttendancePolicy.Decide a constructed far own-faction fact directly -> asserts Absent/TooFar and never Ambassador (the 'your own house never sends a stand-in' guarantee); a live prisoner, if any exists, resolves to Absent/Prisoner. No world mutation", TestCouncilAttendance),
-         new SelfTest("council_roster_swap", Severity.Light, "Mechanical (Convergence Inc 3a): for a live NON-parley scope (ClanLords), every hero CouncilAttendanceResolver.SeatedInPersonHeroes seats is independently re-judged InPerson via DebugDecideFor, no seated hero is a prisoner, and no Absent-rated candidate from the scope's own pool got seated (the 'war council felt magic' fix: a far own-faction lord is now absent). For Parley, asserts the helper is still a pure pass-through to the OLD CouncilRosterResolver.Seated (identical set), proving this increment left that scope untouched. Skips MANUAL when the campaign has no ClanLords candidate. No world mutation", TestCouncilRosterSwap),
+         new SelfTest("council_roster_swap", Severity.Light, "Mechanical (Convergence Inc 3a): for a live NON-parley scope (ClanLords), every hero CouncilAttendanceResolver.SeatedInPersonHeroes seats is independently re-judged InPerson via DebugDecideFor, no seated hero is a prisoner, and no Absent-rated candidate from the scope's own pool got seated (the 'war council felt magic' fix: a far own-faction lord is now absent). For Parley, asserts the helper is still a pure pass-through to the OLD CouncilRosterResolver.Seated (identical set), proving this increment left that scope untouched. Marries the player to a disposable test spouse (GABRIEL'S RULE, 13/10/2026, dissolved after) when the campaign has no ClanLords candidate at all; MANUAL only if none could be arranged", TestCouncilRosterSwap),
          new SelfTest("envoy_identity", Severity.Light, "Mechanical (Convergence Inc 4): picks any live OTHER-faction kingdom leader, drives the REAL EnvoyFactory.Create -> asserts a non-null synthetic profile whose Name is 'Herald of {faction}', whose persona names both the faction and the leader, whose Id starts with 'cr_envoy_', and which was NEVER written to the store (Store.Get right after Create is null). Skips MANUAL when no other-faction kingdom has a live leader. No world mutation, nothing to clean up (never persisted)", TestEnvoyIdentity),
          new SelfTest("stance_gate", Severity.Light, "Mechanical: the Trust delegated-risk gate BITES — lend_troops is TAUGHT when Trust is earned, REFUSED when Trust/relation/regard are all low; skips if no lord with a healthy party", TestStanceGate),
          new SelfTest("courtship_trial", Severity.Light, "Mechanical (COURTSHIP TRIAL): the pure override table proves a passed trial clears ONLY soft RegardTooLow and NEVER a hard blocker; a REAL hard-blocked hero force-marked passed still resolves to that hard reason (offer stays CLOSED); then a real soft-blocked prospect (regard forced low) is driven through the behavior's own daily-eval seam for the full term -> assert the trial passes, a MarriageProposal letter is queued FROM her, and MarriageBlockedBecause becomes None; a trial that STOPS accompanying before the term lapses (no completion). Restores regard + trial + letter; skips MANUAL when the player is already wed or no soft-blockable prospect exists", TestCourtshipTrial),
@@ -525,6 +525,24 @@ namespace CalradiaRemembers.Diagnostics
 
       // Set by RunChat ("test mode"): show the whole reply in the report instead of a 180-char preview.
       private static bool _fullReplies;
+
+      // True while the run includes the IRREVERSIBLE tests ('cr.test full' / 'cr.test <name>' on a throwaway save). Only
+      // then may a test ARRANGE its context through diplomacy (a war, a peace, a realm joined or left): CR's world-event
+      // feeders, commitments, retainers and scenario rules all listen to those, so a routine cr.testall on a real save
+      // must never change them (13/10/2026: Gabriel's rule to arrange every test, held against keeping his saves clean).
+      private static bool _diplomacyMayBeArranged;
+
+      /// <summary>
+      ///   Whether this test may arrange a diplomatic change; when not, marks it MANUAL saying why and how to run it.
+      ///   <paramref name="missing" /> names the context the save lacks ("the player is at war with no one").
+      /// </summary>
+      private static bool MayArrangeDiplomacy(TestRun t, string missing)
+      {
+         if (_diplomacyMayBeArranged) return true;
+         t.Skip(true, missing + ": it would take a real war, peace or change of realm, which CR records as world news and scenario rules answer; arranged only in 'cr.test full' on a throwaway save");
+
+         return false;
+      }
 
       /// <summary>How costly a test's mutations are to undo — drives the run warning and `cr.test list`.</summary>
       private enum Severity
@@ -704,8 +722,10 @@ namespace CalradiaRemembers.Diagnostics
          {
             if (when)
             {
+               // The FIRST reason stands: a test that already said why it cannot arrange its context (a diplomacy change
+               // held back for 'cr.test full') must not be overwritten by its own later, vaguer skip.
+               if (!_manual) _manualReason = reason;
                _manual = true;
-               _manualReason = reason;
             }
 
             return when;
@@ -917,13 +937,126 @@ namespace CalradiaRemembers.Diagnostics
       ///   spouse_divorce self-test's own seed, mirroring cr.divorce_setup's FindTestSpouse but for the
       ///   PLAYER's marriage rather than an NPC's. <paramref name="exclude" /> lets the test find a SECOND,
       ///   distinct candidate for its decline scenario after the first has already been dissolved.
+      ///   <para>
+      ///     GABRIEL'S RULE (13/10/2026): pre-filtered by the REAL
+      ///     <c>Campaign.Current.Models.MarriageModel.IsCoupleSuitableForMarriage</c> (verified in the 1.4.8
+      ///     decompile's <c>DefaultMarriageModel</c>), which already covers the courtship, minor-faction,
+      ///     army/MapEvent, engagement and age preconditions <c>MarriageAction.Apply</c> itself checks, so a
+      ///     candidate this returns actually weds on the native path instead of silently refusing it. The
+      ///     remaining checks here (governor, leads-their-own-party) are facts the model does not ask about but
+      ///     that would still make the arrangement a liability to relocate and restore.
+      ///   </para>
       /// </summary>
       private static Hero FindTestSpouseForPlayer(Hero exclude = null)
       {
          bool playerFemale = Hero.MainHero.IsFemale;
 
          return Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != null && h != Hero.MainHero && h != exclude && h.Spouse == null && h.IsAlive && !h.IsChild && h.IsLord && h.Clan != null && !h.IsClanLeader && h.IsFemale != playerFemale && h.GovernorOf == null && !(h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h));
+            h != null && h != Hero.MainHero && h != exclude && Mapping.HeroPresence.IsInTheWorld(h) && !h.IsChild
+            && h.Clan != null && h.GovernorOf == null
+            && !(h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h)
+            && h.IsFemale != playerFemale
+            && Campaign.Current.Models.MarriageModel.IsCoupleSuitableForMarriage(Hero.MainHero, h));
+      }
+
+      /// <summary>
+      ///   Shared seed for every self-test that weds the player to a disposable test spouse (GABRIEL'S RULE,
+      ///   13/10/2026: arrange the context for the real path rather than report MANUAL around it).
+      ///   <para>
+      ///     Tries the REAL native pipeline first: <paramref name="viaCr" /> picks
+      ///     <see cref="MarriageApprovalBehavior.MarryThroughCr" /> (sets the brokered-by-CR flag so the
+      ///     unblessed-family judgment applies, for <c>grudge_unblessed_marriage</c>) over the bare
+      ///     <see cref="MarriageAction.Apply" /> the divorce/estrangement tests use. Both end in
+      ///     <c>MarriageAction.ApplyInternal</c>, which fires <c>CampaignEventDispatcher.OnBeforeHeroesMarried</c>
+      ///     (the real wedding hook every listener, CR's own included, subscribes to) and moves the partner into
+      ///     <c>Clan.PlayerClan</c> (verified in the decompile's <c>DefaultMarriageModel.GetClanAfterMarriage</c>:
+      ///     always the player's clan when one side <c>IsHumanPlayerCharacter</c>).
+      ///   </para>
+      ///   <para>
+      ///     Falls back to the DIRECT form only when the native call still silently refuses (a precondition
+      ///     <see cref="FindTestSpouseForPlayer" />'s pre-filter cannot see from here, e.g. a courtship that
+      ///     resolved between the filter and this call): <c>Hero.Spouse</c>'s setter links both sides (verified
+      ///     in the decompile's <c>Hero.cs</c>), the same direct idiom <c>AuthoredQuestBehavior.TryReturn</c>'s
+      ///     RestoreDirectly branch uses. This path does NOT fire the wedding hook (no dispatcher call), so a
+      ///     caller that specifically asserts on that hook (only <c>grudge_unblessed_marriage</c> does) must
+      ///     fire it itself and say so in its own note.
+      ///   </para>
+      /// </summary>
+      private static string SeedPlayerMarriage(Hero partner, bool viaCr)
+      {
+         if (viaCr) MarriageApprovalBehavior.MarryThroughCr(Hero.MainHero, partner);
+         else MarriageAction.Apply(Hero.MainHero, partner);
+
+         if (Hero.MainHero.Spouse == partner) return "native";
+
+         if (partner.Clan != Hero.MainHero.Clan) partner.Clan = Hero.MainHero.Clan;
+         partner.Spouse = Hero.MainHero;
+         ChangeRomanticStateAction.Apply(partner, Hero.MainHero, Romance.RomanceLevelEnum.Marriage);
+
+         return Hero.MainHero.Spouse == partner ? "direct" : null;
+      }
+
+      /// <summary>
+      ///   Shared tier-forcing seed (GABRIEL'S RULE, 13/10/2026): on a brand-new game the player's clan sits
+      ///   at Tier 0, which several real gates read directly (PlayerRankTooLow in <see cref="LordRecruitment" />,
+      ///   <c>JealousyCulture.ToleratesSharedPartners</c>'s <c>PolygamyEliteTier</c> floor) and would otherwise
+      ///   refuse every live candidate before trust/culture even enters it. Raises <paramref name="clan" />'s
+      ///   Tier to at least <paramref name="minTier" /> through the REAL <c>Clan.AddRenown</c> (verified in the
+      ///   1.4.8 decompile's Clan.cs: it recalculates Tier via <c>ClanTierModel.CalculateTier</c> and fires
+      ///   <c>OnClanTierChanged</c>, never a synthetic flag), with notifications suppressed. Returns false (no
+      ///   lasting change) when the clan already meets <paramref name="minTier" />.
+      /// </summary>
+      private static bool ForceClanTierAtLeast(Clan clan, int minTier, out float renownBefore, out int tierBefore)
+      {
+         renownBefore = clan?.Renown ?? 0f;
+         tierBefore = clan?.Tier ?? 0;
+
+         if (clan == null || minTier <= tierBefore) return false;
+
+         int requiredRenown = Campaign.Current.Models.ClanTierModel.GetRequiredRenownForTier(minTier);
+         clan.AddRenown(Math.Max(1f, requiredRenown - clan.Renown + 1f), false);
+
+         return clan.Tier != tierBefore;
+      }
+
+      /// <summary>
+      ///   Every live IFaction <paramref name="faction" /> is currently at war with, mirroring
+      ///   <see cref="BannerlordGameStateBridge.FactionIsAtWarWithAnyone" />'s own scan (kingdoms, plus
+      ///   independent non-bandit clans) so a self-test can pause and later restore the EXACT same wars
+      ///   that fact reads, through the real <see cref="MakePeaceAction" />/<see cref="DeclareWarAction" />.
+      /// </summary>
+      private static List<IFaction> EnemiesOf(IFaction faction)
+      {
+         var enemies = new List<IFaction>();
+         if (faction == null) return enemies;
+
+         try
+         {
+            if (Kingdom.All != null)
+               foreach (Kingdom k in Kingdom.All)
+                  if (k != faction && !k.IsBanditFaction && FactionManager.IsAtWarAgainstFaction(faction, k)) enemies.Add(k);
+
+            if (Clan.All != null)
+               foreach (Clan c in Clan.All)
+                  if (c.Kingdom == null && c != faction && !c.IsBanditFaction
+                      && FactionManager.IsAtWarAgainstFaction(faction, c)) enemies.Add(c);
+         }
+         catch (Exception ex) { ModLog.Info($"[SELFTEST] EnemiesOf failed: {ex.GetType().Name}: {ex.Message}"); }
+
+         return enemies;
+      }
+
+      /// <summary>Undoes <see cref="ForceClanTierAtLeast" />: the only public path back down is a full reset to
+      /// Renown 0 (<see cref="Clan.ResetClanRenown" />), then re-applying the ORIGINAL renown through the same
+      /// real <see cref="Clan.AddRenown" /> path so Tier is recalculated back to what it was, not merely assigned.</summary>
+      private static void RestoreClanTier(Clan clan, float renownBefore, int tierBefore)
+      {
+         if (clan == null) return;
+
+         clan.ResetClanRenown();
+         if (renownBefore > 0f) clan.AddRenown(renownBefore, false);
+
+         ModLog.Info($"[SELFTEST] RestoreClanTier: {clan.Name} renown/tier -> {clan.Renown:0}/{clan.Tier} (wanted {renownBefore:0}/{tierBefore})");
       }
 
       private static NpcProfile GetOrCreate(NpcMemoryCampaignBehavior behavior, Hero hero)
@@ -1187,11 +1320,23 @@ namespace CalradiaRemembers.Diagnostics
       ///   Mints a nemesis anchored to a real tavern keeper's own region (home settlement, else current
       ///   settlement, else culture), mirroring <see cref="MintBountyEligibleNemesis" /> but for a keeper
       ///   giver instead of a lord, so the tavern-rumour gate genuinely matches instead of being simulated.
-      ///   Returns (null, null, null) when no tavern keeper has a resolvable region.
+      ///   <para>
+      ///     GABRIEL'S RULE (13/10/2026): a tavern keeper is never a <c>Hero</c> at all in the 1.4.8 engine,
+      ///     verified in the decompile's SandBox.CampaignBehaviors.TavernEmployeesCampaignBehavior
+      ///     (CreateTavernkeeper spawns a plain LocationCharacter from culture.Tavernkeeper, never registered
+      ///     in Hero.AllAliveHeroes), so the strict Occupation.Tavernkeeper filter this helper used to apply
+      ///     could never match on ANY campaign, not only a new one. The production gate it feeds,
+      ///     <see cref="NemesisTavernRumorDialogFlow.FindRumorNemesisFor" />, never reads Occupation either:
+      ///     it reads only HomeSettlement/CurrentSettlement/Culture. So this now falls back to any living
+      ///     lord with a resolvable region, which exercises the exact same real gate the dialogue line calls.
+      ///   </para>
+      ///   Returns (null, null, null) when no hero at all has a resolvable region.
       /// </summary>
       private static (Hero Keeper, Hero NemesisHero, NemesisIdentity Identity) MintRumorEligibleNemesis(int today)
       {
-         Hero keeper = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsAlive && h.Occupation == Occupation.Tavernkeeper);
+         Hero keeper = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsAlive && h.Occupation == Occupation.Tavernkeeper)
+                       ?? Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsAlive && h.IsLord
+                          && (h.HomeSettlement != null || h.CurrentSettlement != null || h.Culture != null));
 
          if (keeper == null) return (null, null, null);
 
@@ -1464,6 +1609,7 @@ namespace CalradiaRemembers.Diagnostics
              fail = 0,
              manual = 0;
          var totalStopwatch = Stopwatch.StartNew();
+         _diplomacyMayBeArranged = tests.Any(x => x.Severity == Severity.Irreversible);
          foreach (SelfTest test in tests)
          {
             int budgetSeconds = BudgetSecondsFor(test, llmBudgetOverrideSeconds);
@@ -2719,31 +2865,70 @@ namespace CalradiaRemembers.Diagnostics
             .Distinct()
             .ToList();
 
-         if (t.Skip(candidatePool.Count == 0, $"no {scope} candidate exists in this campaign to prove the swap against")) return t.Line();
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. CouncilRosterResolver's
+         // ClanLords pool reads Clan.PlayerClan.Heroes.Where(IsLord), and a brand-new player clan may have
+         // no lord besides the player. Marry the player to a disposable test spouse through the shared
+         // SeedPlayerMarriage helper (Group A): the native wedding pipeline moves a REAL lord into
+         // Clan.PlayerClan, which is exactly what this pool reads. Dissolved again in the finally below.
+         Hero arrangedSpouse = null;
+         string arrangedSeedPath = null;
 
-         List<Hero> seatedInPerson = CouncilAttendanceResolver.SeatedInPersonHeroes(scope);
+         try
+         {
+            if (candidatePool.Count == 0)
+            {
+               Hero candidate = Hero.MainHero.Spouse ?? FindTestSpouseForPlayer();
 
-         t.Note($"candidatePoolCount={candidatePool.Count}, seatedInPersonCount={seatedInPerson.Count}");
-         t.Expect("everyReturnedHeroIsRatedInPerson",
-            seatedInPerson.All(h =>
-               CouncilAttendanceResolver.DebugDecideFor(h, scope, CouncilAttendanceResolver.DefaultThresholdDays).Attendance
-               == CouncilAttendance.InPerson),
-            true);
-         t.Expect("noReturnedHeroIsAPrisoner", seatedInPerson.Any(h => h.IsPrisoner), false);
+               if (candidate != null)
+               {
+                  if (Hero.MainHero.Spouse != candidate)
+                  {
+                     arrangedSeedPath = SeedPlayerMarriage(candidate, viaCr: false);
+                     if (arrangedSeedPath != null) arrangedSpouse = candidate; // only ours to undo when WE seeded it
+                  }
 
-         List<Hero> absentCandidates = candidatePool
-            .Where(h =>
-               CouncilAttendanceResolver.DebugDecideFor(h, scope, CouncilAttendanceResolver.DefaultThresholdDays).Attendance
-               == CouncilAttendance.Absent)
-            .ToList();
-         t.Note($"absentCandidateCount={absentCandidates.Count}");
-         t.Expect("noAbsentCandidateSeated", absentCandidates.Any(h => seatedInPerson.Contains(h)), false);
+                  if (candidate.Clan == Clan.PlayerClan)
+                  {
+                     candidatePool = CouncilRosterResolver.Resolve(scope).Select(s => s.Hero).Where(h => h != null).Distinct().ToList();
+                     t.Note($"arranged: married the player to {candidate.Name} (seed path={arrangedSeedPath ?? "already married"}) so the ClanLords pool is non-empty");
+                  }
+               }
+            }
 
-         string parleyTargetFactionId = Kingdom.All?.FirstOrDefault(k => k != null)?.StringId;
-         List<Hero> parleyOld = CouncilRosterResolver.Seated(CouncilScope.Parley, parleyTargetFactionId);
-         List<Hero> parleyNew = CouncilAttendanceResolver.SeatedInPersonHeroes(CouncilScope.Parley, parleyTargetFactionId);
-         t.Note($"parleyTargetFactionId={parleyTargetFactionId ?? "(none)"}, parleyOldCount={parleyOld.Count}, parleyNewCount={parleyNew.Count}");
-         t.Expect("parleyScopeUntouched", parleyNew.SequenceEqual(parleyOld), true);
+            if (t.Skip(candidatePool.Count == 0, $"no {scope} candidate exists in this campaign, and none could be arranged, to prove the swap against")) return t.Line();
+
+            List<Hero> seatedInPerson = CouncilAttendanceResolver.SeatedInPersonHeroes(scope);
+
+            t.Note($"candidatePoolCount={candidatePool.Count}, seatedInPersonCount={seatedInPerson.Count}");
+            t.Expect("everyReturnedHeroIsRatedInPerson",
+               seatedInPerson.All(h =>
+                  CouncilAttendanceResolver.DebugDecideFor(h, scope, CouncilAttendanceResolver.DefaultThresholdDays).Attendance
+                  == CouncilAttendance.InPerson),
+               true);
+            t.Expect("noReturnedHeroIsAPrisoner", seatedInPerson.Any(h => h.IsPrisoner), false);
+
+            List<Hero> absentCandidates = candidatePool
+               .Where(h =>
+                  CouncilAttendanceResolver.DebugDecideFor(h, scope, CouncilAttendanceResolver.DefaultThresholdDays).Attendance
+                  == CouncilAttendance.Absent)
+               .ToList();
+            t.Note($"absentCandidateCount={absentCandidates.Count}");
+            t.Expect("noAbsentCandidateSeated", absentCandidates.Any(h => seatedInPerson.Contains(h)), false);
+
+            string parleyTargetFactionId = Kingdom.All?.FirstOrDefault(k => k != null)?.StringId;
+            List<Hero> parleyOld = CouncilRosterResolver.Seated(CouncilScope.Parley, parleyTargetFactionId);
+            List<Hero> parleyNew = CouncilAttendanceResolver.SeatedInPersonHeroes(CouncilScope.Parley, parleyTargetFactionId);
+            t.Note($"parleyTargetFactionId={parleyTargetFactionId ?? "(none)"}, parleyOldCount={parleyOld.Count}, parleyNewCount={parleyNew.Count}");
+            t.Expect("parleyScopeUntouched", parleyNew.SequenceEqual(parleyOld), true);
+         }
+         finally
+         {
+            if (arrangedSpouse != null)
+            {
+               bool dissolved = MarriageDissolutionService.TryDissolvePlayerMarriage(arrangedSpouse, out string why);
+               t.Note($"restore: dissolved the test marriage={dissolved} ({why ?? "ok"})");
+            }
+         }
 
          return t.Line();
       }
@@ -4033,19 +4218,93 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("kin_audience");
 
-         Hero kin = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && !h.IsPlayerCompanion && h.Clan == Clan.PlayerClan
-                                                             && h.PartyBelongedTo == MobileParty.MainParty && !h.IsChild);
-         if (t.Skip(kin == null, "no family member of your clan is riding in your party; take a sibling or your spouse along")) return t.Line();
+         // "A family member of your clan" here means Clan.PlayerClan AND not a companion (the AudienceFromKin
+         // fact below), which the test's own note already treats a spouse as satisfying ("kin == spouse ?
+         // spouse : family"). Excludes a sitting governor (AddHeroToPartyAction.Apply would un-govern them,
+         // verified in the decompile), a prisoner, and a party leader (borrowing one orphans/disbands their
+         // party, the same guard ArrangedCompanion uses).
+         bool Fits(Hero h) =>
+            h != null && h != Hero.MainHero && !h.IsPlayerCompanion && h.Clan == Clan.PlayerClan && !h.IsChild
+            && Mapping.HeroPresence.IsInTheWorld(h) && !h.IsPrisoner && h.GovernorOf == null
+            && !(h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h);
 
-         t.Note($"{kin.Name} ({(kin == Hero.MainHero.Spouse ? "spouse" : "family")})");
-         t.Expect("onTheAudienceRoster", Missions.CompanionAudienceTopicBehavior.Companions().Contains(kin), true);
-         string scan = Missions.CompanionAudienceTopicBehavior.Instance?.DescribeScan(kin) ?? "";
-         t.Expect("topicScanRuns", scan.StartsWith(kin.Name.ToString()), true);
+         Hero kin = Hero.AllAliveHeroes.FirstOrDefault(h => Fits(h) && h.PartyBelongedTo == MobileParty.MainParty);
 
-         NpcProfile profile = GetOrCreate(behavior, kin);
-         EncounterContext ctx = EncounterContextBuilder.Build(kin, profile, behavior.GameStateBridge, null,
-            companionAudience: CompanionAudienceReason.Callback);
-         t.Expect("speaksAsKin", ctx.AudienceFromKin, true);
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. Tier 1: borrow an existing
+         // family member of the clan who is simply elsewhere right now. Tier 2: a brand-new game may have
+         // none at all (no spouse, no grown sibling/child yet): marry a disposable test spouse via the
+         // shared SeedPlayerMarriage helper (Group A) and bring THEM into the party instead.
+         MobileParty borrowedFromParty = null;
+         Settlement borrowedFromSettlement = null;
+         Hero marriedSpouse = null;
+         string seedPath = null;
+
+         if (kin == null)
+         {
+            kin = Hero.AllAliveHeroes.FirstOrDefault(Fits);
+
+            if (kin != null)
+            {
+               borrowedFromParty = kin.PartyBelongedTo;
+               borrowedFromSettlement = kin.CurrentSettlement;
+               AddHeroToPartyAction.Apply(kin, MobileParty.MainParty, false);
+               t.Note($"borrowed {kin.Name} into the main party");
+            }
+            else
+            {
+               marriedSpouse = Hero.MainHero.Spouse ?? FindTestSpouseForPlayer();
+
+               if (marriedSpouse != null && Hero.MainHero.Spouse != marriedSpouse)
+               {
+                  seedPath = SeedPlayerMarriage(marriedSpouse, viaCr: false);
+                  if (seedPath == null) marriedSpouse = null;
+               }
+
+               if (marriedSpouse != null)
+               {
+                  borrowedFromParty = marriedSpouse.PartyBelongedTo;
+                  borrowedFromSettlement = marriedSpouse.CurrentSettlement;
+                  AddHeroToPartyAction.Apply(marriedSpouse, MobileParty.MainParty, false);
+                  kin = marriedSpouse;
+                  t.Note($"arranged: married the player to {kin.Name} (seed path={seedPath ?? "already married"}) and brought them into the main party");
+               }
+            }
+         }
+
+         try
+         {
+            if (t.Skip(kin == null,
+                   "no family member of your clan is riding in your party, and the live world offered neither one to borrow nor an eligible test spouse to marry")) return t.Line();
+
+            t.Note($"{kin.Name} ({(kin == Hero.MainHero.Spouse ? "spouse" : "family")})");
+            t.Expect("onTheAudienceRoster", Missions.CompanionAudienceTopicBehavior.Companions().Contains(kin), true);
+            string scan = Missions.CompanionAudienceTopicBehavior.Instance?.DescribeScan(kin) ?? "";
+            t.Expect("topicScanRuns", scan.StartsWith(kin.Name.ToString()), true);
+
+            NpcProfile profile = GetOrCreate(behavior, kin);
+            EncounterContext ctx = EncounterContextBuilder.Build(kin, profile, behavior.GameStateBridge, null,
+               companionAudience: CompanionAudienceReason.Callback);
+            t.Expect("speaksAsKin", ctx.AudienceFromKin, true);
+         }
+         finally
+         {
+            if (borrowedFromParty != null && borrowedFromParty != MobileParty.MainParty)
+            {
+               AddHeroToPartyAction.Apply(kin, borrowedFromParty, false);
+               t.Note($"returned {kin.Name} to their own party");
+            }
+            else if (borrowedFromSettlement != null)
+            {
+               EnterSettlementAction.ApplyForCharacterOnly(kin, borrowedFromSettlement);
+               t.Note($"returned {kin.Name} to {borrowedFromSettlement.Name}");
+            }
+
+            if (marriedSpouse != null && seedPath != null)
+            {
+               bool dissolved = MarriageDissolutionService.TryDissolvePlayerMarriage(marriedSpouse, out string why);
+               t.Note($"restore: dissolved the test marriage={dissolved} ({why ?? "ok"})");
+            }
+         }
 
          return t.Line();
       }
@@ -5316,57 +5575,75 @@ namespace CalradiaRemembers.Diagnostics
          ArrangeCleanNpc(behavior, behavior.Store.Get(gateNpc.StringId) ?? gateProfile, gateNpc); // undo the gate seed
 
          // ── Part 2: the competition open-exclusion on the REAL selection path ──
-         int playerTier = Hero.MainHero?.Clan?.Tier ?? 0;
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. On a brand-new game the
+         // player's clan sits at Tier 0, and JealousyCulture.ToleratesSharedPartners requires the clan tier
+         // to clear each culture's OWN "polygamyEliteTier" (ModuleData/jealousy_cultures.json: Aserai 1,
+         // Khuzait 2, Nords 3, Battania 4, Vlandia/Empire/Sturgia never tolerate at all (High exclusivity), so at
+         // Tier 0 no culture ever tolerates and the pool is always empty. Force the player's clan to Tier 4
+         // (covers every tolerant culture written today) through the shared ForceClanTierAtLeast helper,
+         // restored in the finally below regardless of which exit this test takes.
+         Clan playerClanP2 = Hero.MainHero?.Clan;
+         bool p2TierForced = ForceClanTierAtLeast(playerClanP2, 4, out float p2RenownBefore, out int p2TierBefore);
+         if (p2TierForced) t.Note($"arranged: raised {playerClanP2?.Name}'s tier {p2TierBefore}->{playerClanP2?.Tier} to clear the culture's elite-tier floor");
 
-         bool Tolerant(Hero h) => JealousyCultureLoader.GetCulture(h.Culture?.Name?.ToString()).ToleratesSharedPartners(playerTier);
-
-         List<Hero> pool = Hero.AllAliveHeroes
-                               .Where(h => h != null && h != Hero.MainHero && h.IsAlive && h.IsLord && !h.IsPrisoner
-                                           && h != Hero.MainHero.Spouse && !PlayerPresenceResolver.IsBeside(h) && Tolerant(h))
-                               .Take(3).ToList();
-
-         if (t.Skip(pool.Count < 3, $"need 3 tolerant-culture lords away from the player (found {pool.Count}, playerTier={playerTier})")) return t.Line();
-
-         Hero favoured = pool[0]; // well attended: sets the most-attended baseline
-         Hero slighted = pool[1]; // neglected, non-open
-         Hero mostNeglected = pool[2]; // most neglected: naturally aggrieved, then marked open
-         var seeded = new List<Hero> {favoured, slighted, mostNeglected};
-
-         Seed(favoured, today - 2);
-         Seed(slighted, today - 25);
-         Seed(mostNeglected, today - 45);
-
-         // Run 1 (no open flags): the naturally most-slighted partner is chosen.
-         string selected1 = JealousyBehavior.Instance.DebugSelectAggrieved(today);
-
-         if (selected1 == null)
+         try
          {
-            t.Note("Part 2 skipped: no aggrieved partner formed on the real path (culture/tier/presence did not cooperate)");
+            int playerTier = Hero.MainHero?.Clan?.Tier ?? 0;
+
+            bool Tolerant(Hero h) => JealousyCultureLoader.GetCulture(h.Culture?.Name?.ToString()).ToleratesSharedPartners(playerTier);
+
+            List<Hero> pool = Hero.AllAliveHeroes
+                                  .Where(h => h != null && h != Hero.MainHero && h.IsAlive && h.IsLord && !h.IsPrisoner
+                                              && h != Hero.MainHero.Spouse && !PlayerPresenceResolver.IsBeside(h) && Tolerant(h))
+                                  .Take(3).ToList();
+
+            if (t.Skip(pool.Count < 3, $"need 3 tolerant-culture lords away from the player (found {pool.Count}, playerTier={playerTier}), even after raising the player's own clan tier")) return t.Line();
+
+            Hero favoured = pool[0]; // well attended: sets the most-attended baseline
+            Hero slighted = pool[1]; // neglected, non-open
+            Hero mostNeglected = pool[2]; // most neglected: naturally aggrieved, then marked open
+            var seeded = new List<Hero> {favoured, slighted, mostNeglected};
+
+            Seed(favoured, today - 2);
+            Seed(slighted, today - 25);
+            Seed(mostNeglected, today - 45);
+
+            // Run 1 (no open flags): the naturally most-slighted partner is chosen.
+            string selected1 = JealousyBehavior.Instance.DebugSelectAggrieved(today);
+
+            if (selected1 == null)
+            {
+               t.Note("Part 2 skipped: no aggrieved partner formed on the real path (culture/tier/presence did not cooperate)");
+               Restore(seeded);
+               settings.EnableJealousy = savedEnable;
+
+               return t.Line();
+            }
+
+            // Mark whoever was chosen as holding OPEN terms, then re-run: she must now be excluded, and a
+            // DIFFERENT, non-open partner chosen in her place (the reported no-jealousy pact, on the real path).
+            NpcProfile openProfile = behavior.Store.Get(selected1);
+            if (openProfile?.Romantic != null)
+            {
+               openProfile.Romantic.IsOpenArrangement = true;
+               behavior.Store.Set(openProfile);
+            }
+
+            string selected2 = JealousyBehavior.Instance.DebugSelectAggrieved(today);
+
+            t.Note($"run1 aggrieved={selected1}, after marking her open run2 aggrieved={selected2 ?? "none"}");
+            t.Expect("secondRunStillPicksSomeone", selected2 != null, true);
+            t.Expect("openPartnerExcluded", selected2 != selected1, true);
+
             Restore(seeded);
             settings.EnableJealousy = savedEnable;
 
             return t.Line();
          }
-
-         // Mark whoever was chosen as holding OPEN terms, then re-run: she must now be excluded, and a
-         // DIFFERENT, non-open partner chosen in her place (the reported no-jealousy pact, on the real path).
-         NpcProfile openProfile = behavior.Store.Get(selected1);
-         if (openProfile?.Romantic != null)
+         finally
          {
-            openProfile.Romantic.IsOpenArrangement = true;
-            behavior.Store.Set(openProfile);
+            if (p2TierForced) RestoreClanTier(playerClanP2, p2RenownBefore, p2TierBefore);
          }
-
-         string selected2 = JealousyBehavior.Instance.DebugSelectAggrieved(today);
-
-         t.Note($"run1 aggrieved={selected1}, after marking her open run2 aggrieved={selected2 ?? "none"}");
-         t.Expect("secondRunStillPicksSomeone", selected2 != null, true);
-         t.Expect("openPartnerExcluded", selected2 != selected1, true);
-
-         Restore(seeded);
-         settings.EnableJealousy = savedEnable;
-
-         return t.Line();
       }
 
       // ── Open partner takes a lover (Inc 3a): the weekly autonomy is engine glue (it walks the live store, ──
@@ -6310,10 +6587,22 @@ namespace CalradiaRemembers.Diagnostics
          // Deliberately NEVER call MarriageApprovalBehavior.Instance.Grant: this match is unblessed by
          // construction, exercising the exact real path a match CR seals with no seeded blessing takes. Through
          // CR's own door: since 25/09/2026 a marriage the base game makes is approved by construction.
-         MarriageApprovalBehavior.MarryThroughCr(Hero.MainHero, spouse);
+         string seedPath = SeedPlayerMarriage(spouse, viaCr: true);
 
-         if (t.Skip(Hero.MainHero.Spouse != spouse,
-                "could not seed the marriage on this campaign (native MarriageAction did not take)")) return t.Line();
+         if (t.Skip(seedPath == null,
+                "could not seed the marriage on this campaign (neither the native MarriageAction nor the direct fallback took)")) return t.Line();
+
+         // The DIRECT fallback cannot carry MarriageApprovalBehavior's own "_crIsMarrying" flag (private, and
+         // MarryThroughCr's own try/finally has already reset it by the time its MarriageAction.Apply call
+         // returns false): MarriageGuardPolicy.FamilyApproves reads "!madeThroughCr || ..." (verified in
+         // CalradiaRemembers.Logic/MarriageGuardPolicy.cs), so without that flag the match reads as the base
+         // game's own and is approved by construction, no matter how the dispatcher is fired. Rather than fire
+         // the hook anyway and risk a FALSE FAIL that reads as a product regression, skip honestly: this is the
+         // one seed in the group where the direct fallback cannot stand in for the native path.
+         if (t.Skip(seedPath == "direct",
+                "the native wedding pipeline refused on this campaign; the direct fallback cannot carry the CR-brokered flag this test's unblessed judgment depends on, so it would mis-report rather than prove anything")) return t.Line();
+
+         t.Note("seed path=native");
 
          bool grudgePlanted = GrudgeBehavior.Instance.GrudgesFor(kin.StringId)
                                             .Any(g => g.Source == GrudgeSource.UnblessedMarriage && g.TargetId == Hero.MainHero.StringId && !g.IsResolved);
@@ -6825,7 +7114,7 @@ namespace CalradiaRemembers.Diagnostics
          var today = (int) CampaignTime.Now.ToDays;
          (Hero keeper, Hero nemesisHero, NemesisIdentity nem) = MintRumorEligibleNemesis(today);
 
-         if (t.Skip(keeper == null, "no tavern keeper hero with a resolvable region available in this campaign")) return t.Line();
+         if (t.Skip(keeper == null, "no hero with a resolvable region available in this campaign to stand in for the keeper")) return t.Line();
          if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
 
          t.Expect("eligibleWhenEncountered", NemesisTavernRumorDialogFlow.FindRumorNemesisFor(keeper) == nem, true);
@@ -6966,12 +7255,14 @@ namespace CalradiaRemembers.Diagnostics
 
             if (t.Skip(spouseA == null, "no eligible test spouse found to marry the player (scenario A)")) return t.Line();
 
-            MarriageAction.Apply(Hero.MainHero, spouseA);
+            // GABRIEL'S RULE (13/10/2026): try the native pipeline, fall back to the direct seed form rather
+            // than report MANUAL when the context can be arranged (FindTestSpouseForPlayer pre-filters by the
+            // same MarriageModel predicate MarriageAction.Apply itself checks, so this nearly always lands).
+            string seedPathA = SeedPlayerMarriage(spouseA, viaCr: false);
+            t.Note($"scenario A seed path={seedPathA ?? "none"}");
 
-            // Seeding is best-effort: a clan-leader player the model will not relocate, etc. Skip cleanly
-            // rather than mis-report the action path as broken.
-            if (t.Skip(Hero.MainHero.Spouse != spouseA,
-                   "could not seed a marriage on this campaign (native MarriageAction did not take); end_own_marriage path unchanged")) return t.Line();
+            if (t.Skip(seedPathA == null,
+                   "could not seed a marriage on this campaign (neither the native MarriageAction nor the direct fallback took); end_own_marriage path unchanged")) return t.Line();
          }
 
          NpcProfile profileA = GetOrCreate(behavior, spouseA);
@@ -6999,10 +7290,11 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Skip(spouseB == null, "no second eligible test spouse found for the mutual scenario")) return t.Line();
 
-         MarriageAction.Apply(Hero.MainHero, spouseB);
+         string seedPathB = SeedPlayerMarriage(spouseB, viaCr: false);
+         t.Note($"scenario B seed path={seedPathB ?? "none"}");
 
-         if (t.Skip(Hero.MainHero.Spouse != spouseB,
-                "could not seed the second marriage on this campaign (native MarriageAction did not take); mutual path unexercised")) return t.Line();
+         if (t.Skip(seedPathB == null,
+                "could not seed the second marriage on this campaign (neither the native MarriageAction nor the direct fallback took); mutual path unexercised")) return t.Line();
 
          NpcProfile profileB = GetOrCreate(behavior, spouseB);
          ArrangeCleanNpc(behavior, profileB, spouseB);
@@ -7439,7 +7731,14 @@ namespace CalradiaRemembers.Diagnostics
          Settlement prison = Clan.PlayerClan?.Settlements?.FirstOrDefault(s =>
             s != null && (s.IsTown || s.IsCastle) && s.Party != null);
 
-         if (t.Skip(prison == null, "the player owns no town or castle to hold a prisoner in")) return t.Line();
+         // GABRIEL'S RULE (13/10/2026) considered and declined: PlayerHeldHeroPrisoners() (BuyPrisonerVerb.cs)
+         // reads REAL ownership off Clan.PlayerClan.Settlements, so arranging this would mean a real
+         // ChangeOwnerOfSettlementAction transfer. That fires CampaignEventDispatcher.OnSettlementOwnerChanged
+         // to every listener (garrison spin-up, notable reactions, diplomatic stance recalculation, and CR's
+         // own world-event feeders may record the seizure as a lasting memory a later transfer-back would NOT
+         // undo), which is not a self-test's to risk for one assertion. MANUAL stays, for this reason, not
+         // merely because the fact is missing.
+         if (t.Skip(prison == null, "the player owns no town or castle to hold a prisoner in, and arranging one would require a real, hard-to-cleanly-reverse settlement-ownership transfer")) return t.Line();
 
          Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h =>
             h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != null && h.Clan?.Leader != h);
@@ -8788,15 +9087,94 @@ namespace CalradiaRemembers.Diagnostics
             return facts != null && LordRecruitment.IsEligible(facts);
          });
 
-         if (t.Skip(lord == null, "no eligible lord to recruit (need a landless/broken/estranged lord of tier <= yours)")) return t.Line();
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. On a brand-new game the
+         // player's clan is tier 0 while almost no other lord's clan is, so PlayerRankTooLow refuses every
+         // real candidate before trust/vulnerability even matter. Finds any lord who clears the STRUCTURAL
+         // gates (not their own clan's leader, genuinely vulnerable: landless, clan weak/destroyed, or
+         // estranged from their liege) regardless of tier/trust/respect, then forces only the facts a
+         // self-test is allowed to force: the lord's personal regard + stance respect (the same NpcProfile
+         // fields every other verb test writes), and the player's own clan TIER, raised through the REAL
+         // Clan.AddRenown (verified in the 1.4.8 decompile's Clan.cs: recalculates Tier via
+         // ClanTierModel.CalculateTier, the same path any renown gain takes, never a synthetic flag).
+         float renownBefore = 0f;
+         int tierBefore = playerClan.Tier;
+         bool tierForced = false;
+         Hero arrangedLord = null;
+         NpcProfile arrangedProfile = null;
+         int regardBefore = 0;
+         int respectBefore = 0;
+         bool hadProfile = false;
 
-         string oldClan = lord.Clan?.Name?.ToString() ?? "—";
+         try
+         {
+            if (lord == null)
+            {
+               lord = Hero.AllAliveHeroes.FirstOrDefault(h =>
+               {
+                  if (h == Hero.MainHero || !h.IsLord || h.Clan == playerClan) return false;
+                  LordRecruitmentFacts f = LordRecruitmentFactsBuilder.Build(h);
 
-         // The bridge re-validates the gate ("the prompt is advice, the bridge is law")
-         behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "join_clan"}, lord, null);
+                  return f != null && !f.IsClanLeader
+                     && (f.LordIsLandless || f.LordClanWeakOrDestroyed
+                        || (f.HasLiege && f.RelationWithLiege <= LordRecruitment.LiegeResentmentThreshold));
+               });
 
-         t.Note($"{lord.Name}: {oldClan} -> {lord.Clan?.Name?.ToString() ?? "—"}");
-         t.Expect("joinedYourClan", lord.Clan == playerClan, true);
+               if (lord != null)
+               {
+                  LordRecruitmentFacts facts = LordRecruitmentFactsBuilder.Build(lord);
+                  int targetTier = facts?.LordClanTier ?? 0;
+
+                  tierForced = ForceClanTierAtLeast(playerClan, targetTier, out renownBefore, out tierBefore);
+                  if (tierForced) t.Note($"arranged: raised {playerClan.Name}'s tier {tierBefore}->{playerClan.Tier} via Clan.AddRenown to clear PlayerRankTooLow");
+
+                  arrangedLord = lord;
+                  hadProfile = behavior.Store.Get(lord.StringId) != null;
+                  arrangedProfile = GetOrCreate(behavior, lord);
+                  regardBefore = arrangedProfile.ReputationWithPlayer;
+                  respectBefore = arrangedProfile.StanceRespect;
+                  arrangedProfile.ReputationWithPlayer = LordRecruitment.MinRelation;
+                  arrangedProfile.StanceRespect = StanceGatePolicy.RespectFloor; // clears CommandsRespectToJoinClan
+                  behavior.Store.Set(arrangedProfile);
+                  t.Note($"arranged: forced {lord.Name}'s personal regard + stance respect to the deep-bond/trust floor");
+               }
+            }
+
+            if (t.Skip(lord == null,
+                   "no lord structurally vulnerable (landless/clan weak or destroyed/estranged from liege) and not their own clan's leader exists in this world to arrange")) return t.Line();
+
+            Clan oldClan = lord.Clan;
+
+            // The bridge re-validates the gate ("the prompt is advice, the bridge is law")
+            behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "join_clan"}, lord, null);
+
+            t.Note($"{lord.Name}: {oldClan?.Name?.ToString() ?? "-"} -> {lord.Clan?.Name?.ToString() ?? "-"}");
+            t.Expect("joinedYourClan", lord.Clan == playerClan, true);
+
+            if (lord.Clan == playerClan && oldClan != playerClan)
+            {
+               lord.Clan = oldClan;
+               t.Note($"restore: returned {lord.Name} to {oldClan?.Name?.ToString() ?? "their own house"}");
+            }
+         }
+         finally
+         {
+            if (arrangedLord != null && arrangedProfile != null)
+            {
+               if (!hadProfile) behavior.Store.Remove(arrangedLord.StringId);
+               else
+               {
+                  arrangedProfile.ReputationWithPlayer = regardBefore;
+                  arrangedProfile.StanceRespect = respectBefore;
+                  behavior.Store.Set(arrangedProfile);
+               }
+            }
+
+            if (tierForced)
+            {
+               RestoreClanTier(playerClan, renownBefore, tierBefore);
+               t.Note($"restore: {playerClan.Name}'s renown/tier returned toward {renownBefore:0}/{tierBefore} (now {playerClan.Renown:0}/{playerClan.Tier})");
+            }
+         }
 
          return t.Line();
       }
@@ -9753,10 +10131,56 @@ namespace CalradiaRemembers.Diagnostics
             Hero h = Hero.FindFirst(x => x.StringId == id);
             if (h is {IsDead: false} && !partners.Contains(h)) partners.Add(h);
          }
-         if (t.Skip(partners.Count < 2, "the player has fewer than two partners")) return t.Line();
 
-         foreach (Hero h in partners)
-            t.Expect($"{h.StringId}KnowsTheOthers", (Mapping.RelationshipsBuilder.Build(h) ?? "").Contains("The player's other partners"), true);
+         // GABRIEL'S RULE (13/10/2026): arrange the missing partner(s) rather than report MANUAL. No marriage
+         // needed: PlayerPartners() (CalradiaRemembers/Mapping/RelationshipsBuilder.cs) reads the CR consort
+         // bond directly (Romantic.IsConsort or Status.Committed), the same flag TestOpenRelationship's own
+         // Seed/Restore idiom already seeds for a committed consort. Arranges up to two disposable consorts
+         // (never Hero.MainHero or one already a partner), restoring each one's prior Romantic value (or
+         // removing the profile outright when this test is the one that created it).
+         var arranged = new List<(Hero Hero, bool HadProfile, RomanticProfile Previous)>();
+
+         try
+         {
+            while (partners.Count < 2)
+            {
+               Hero candidate = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                  Mapping.HeroPresence.IsInTheWorld(h) && h != Hero.MainHero && !h.IsChild
+                  && !partners.Contains(h) && arranged.All(a => a.Hero != h));
+
+               if (candidate == null) break;
+
+               bool hadProfile = behavior.Store.Get(candidate.StringId) != null;
+               NpcProfile p = GetOrCreate(behavior, candidate);
+               arranged.Add((candidate, hadProfile, p.Romantic));
+               p.Romantic = new RomanticProfile {IsConsort = true};
+               behavior.Store.Set(p);
+               partners.Add(candidate);
+            }
+
+            if (arranged.Count > 0)
+               t.Note($"arranged {arranged.Count} disposable consort(s): {string.Join(", ", arranged.Select(a => a.Hero.Name))}");
+
+            if (t.Skip(partners.Count < 2,
+                   "the player has fewer than two partners, and the live world offered no further hero to arrange as a disposable consort")) return t.Line();
+
+            foreach (Hero h in partners)
+               t.Expect($"{h.StringId}KnowsTheOthers", (Mapping.RelationshipsBuilder.Build(h) ?? "").Contains("The player's other partners"), true);
+         }
+         finally
+         {
+            foreach ((Hero hero, bool hadProfile, RomanticProfile previous) in arranged)
+            {
+               if (!hadProfile) { behavior.Store.Remove(hero.StringId); continue; }
+
+               NpcProfile p = behavior.Store.Get(hero.StringId);
+               if (p == null) continue;
+               p.Romantic = previous;
+               behavior.Store.Set(p);
+            }
+
+            if (arranged.Count > 0) t.Note("restored arranged consort profile(s)");
+         }
 
          return t.Line();
       }
@@ -9809,12 +10233,52 @@ namespace CalradiaRemembers.Diagnostics
          var t = new TestRun("birth_house_known");
          Hero moved = Hero.AllAliveHeroes.FirstOrDefault(h => h.Spouse != null && h.Clan != null
                                                              && (Marriage.HeroClanCompat.OriginClanOrNull(h) ?? h.Father?.Clan) is Clan born && born != h.Clan);
-         if (t.Skip(moved == null, "no married character living outside the house they were born into")) return t.Line();
 
-         Clan birth = Marriage.HeroClanCompat.OriginClanOrNull(moved) ?? moved.Father?.Clan;
-         string family = Mapping.RelationshipsBuilder.Build(moved) ?? "";
-         t.Note($"{moved.Name} of {moved.Clan.Name}, born into {birth?.Name}");
-         t.Expect("theBirthHouseIsNamed", family.Contains("Born into the " + birth?.Name), true);
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. Hero.Clan's setter stamps
+         // OriginClan ONLY the first time a hero is ever given a clan (verified in the 1.4.8 decompile's
+         // Hero.cs: "if (_clan == null) _originClan = value;"), so a test spouse who already had a clan
+         // keeps their BIRTH clan in OriginClan forever while their live Clan moves to Clan.PlayerClan at
+         // the wedding, exactly the fact this test reads. Reuses a real existing marriage when the player
+         // already has one; seeds a disposable one via the shared SeedPlayerMarriage helper otherwise, and
+         // dissolves it again through the real MarriageDissolutionService in the finally.
+         Hero seeded = null;
+         string seedPath = null;
+
+         if (moved == null)
+         {
+            seeded = Hero.MainHero.Spouse ?? FindTestSpouseForPlayer();
+
+            if (t.Skip(seeded == null,
+                   "no married character living outside the house they were born into, and no eligible test spouse to arrange one")) return t.Line();
+
+            if (Hero.MainHero.Spouse != seeded)
+            {
+               seedPath = SeedPlayerMarriage(seeded, viaCr: false);
+
+               if (t.Skip(seedPath == null,
+                      "could not seed a marriage on this campaign (neither the native MarriageAction nor the direct fallback took)")) return t.Line();
+
+               t.Note($"arranged: married the player to {seeded.Name} (seed path={seedPath})");
+            }
+
+            moved = seeded;
+         }
+
+         try
+         {
+            Clan birth = Marriage.HeroClanCompat.OriginClanOrNull(moved) ?? moved.Father?.Clan;
+            string family = Mapping.RelationshipsBuilder.Build(moved) ?? "";
+            t.Note($"{moved.Name} of {moved.Clan.Name}, born into {birth?.Name}");
+            t.Expect("theBirthHouseIsNamed", family.Contains("Born into the " + birth?.Name), true);
+         }
+         finally
+         {
+            if (seedPath != null)
+            {
+               bool dissolved = MarriageDissolutionService.TryDissolvePlayerMarriage(seeded, out string why);
+               t.Note($"restore: dissolved the test marriage={dissolved} ({why ?? "ok"})");
+            }
+         }
 
          return t.Line();
       }
@@ -9966,7 +10430,21 @@ namespace CalradiaRemembers.Diagnostics
          var t = new TestRun("player_company");
 
          List<(Hero Hero, CompanyRole Role)> members = Witnesses.PlayerCompany.Members();
-         if (t.Skip(members.Count == 0, "nobody travels with the player")) return t.Line();
+
+         // GABRIEL'S RULE (13/10/2026): arrange a companion into the main party when nobody travels with the
+         // player, rather than report MANUAL. PlayerCompany.Members() reads MobileParty.MainParty.MemberRoster
+         // directly (CalradiaRemembers/Witnesses/PlayerCompany.cs), which is exactly what ArrangedCompanion's
+         // mustBeInMainParty tier puts a hero into.
+         using var arranged = members.Count == 0 ? ArrangedCompanion.Get(behavior, mustBeInMainParty: true) : null;
+
+         if (arranged != null)
+         {
+            t.Note($"arranged {arranged.Companion.Name} into the main party");
+            members = Witnesses.PlayerCompany.Members();
+         }
+
+         if (t.Skip(members.Count == 0,
+                "nobody travels with the player, and no companion/wanderer template was available to arrange one")) return t.Line();
 
          t.Note(string.Join(", ", members.Select(m => $"{m.Hero.Name} ({m.Role})")));
          t.Expect("thePlayerIsNeverOfHisOwnCompany", members.Any(m => m.Hero == Hero.MainHero), false);
@@ -10532,10 +11010,20 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("aNotablesTradeReadsPlainly", !notableLine.Contains("ERROR") && notableLine.Contains("Who: "), true);
          }
 
+         // GABRIEL'S RULE (13/10/2026) considered: a popup already up when this test starts (a live CR
+         // audience invitation raised by real gameplay, or some other feature's inquiry) is a REAL one, not
+         // test residue (no OTHER self-test in this file ever leaves an InquiryData open), so it is never
+         // dismissed to force this test through. Checked BEFORE calling Show at all, via the engine's own
+         // InformationManager.IsAnyInquiryActive, so this test's own popup is never even queued behind it
+         // (InformationManager.ShowInquiry's default prioritize=false would otherwise leave AudienceInquiry
+         // .Showing pointing at the OTHER inquiry, which used to read as a vague, unexplained MANUAL).
+         if (t.Skip(TaleWorlds.Library.InformationManager.IsAnyInquiryActive(),
+                "a real popup/inquiry is already up (another feature's, or a live CR audience invitation); left untouched rather than dismissed to force this test through")) return t.Line();
+
          TaleWorlds.Library.InquiryData data = AudienceInquiry.Show(lord, "[testall] audience_who", "A test invitation. It closes itself.", "Close", "Close", null, null);
          try
          {
-            if (t.Skip(AudienceInquiry.Showing != data, "another popup is up: the test invitation waits behind it")) return t.Line();
+            if (t.Skip(AudienceInquiry.Showing != data, "another popup appeared the instant this test's own invitation was shown (a genuine race, not a pre-existing one): the test invitation waits behind it")) return t.Line();
 
             t.Expect("theInvitationCarriesHim", AudienceInquiry.DebugHeroOf(data), lord.StringId);
             t.Expect("theButtonShowsOnTheMap", AudienceWhoButtonMixin.Current?.IsCrWhoShown == true, TaleWorlds.MountAndBlade.Mission.Current == null);
@@ -11225,16 +11713,48 @@ namespace CalradiaRemembers.Diagnostics
          IFaction mine = Hero.MainHero?.MapFaction;
          Hero enemy = mine == null ? null : Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && !h.IsChild
                                                                                  && h.MapFaction != null && FactionManager.IsAtWarAgainstFaction(h.MapFaction, mine));
-         if (t.Skip(enemy == null, "the player is at war with no one")) return t.Line();
 
-         NpcProfile profile = behavior.Store?.Get(enemy.StringId) ?? HeroProfileMapper.FromHero(enemy);
-         EncounterContext ctx = EncounterContextBuilder.Build(enemy, profile, behavior.GameStateBridge, "hello");
-         string prompt = new PromptBuilder {EnableQuests = true}.BuildSystemPrompt(profile, new WorldState {CurrentDay = (int) CampaignTime.Now.ToDays}, ctx);
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. On a brand-new game the player
+         // is usually at war with no one at all. Declares a real war, through the REAL DeclareWarAction,
+         // between the player's own faction and a living lord's faction, and makes peace again (MakePeaceAction)
+         // in the finally, the exact war/peace pair technique already used for ride_with_me's partyless gate.
+         IFaction arrangedEnemyFaction = null;
 
-         t.Note($"{enemy.Name} ({enemy.MapFaction?.Name}): WarStatus={ctx.WarStatus}");
-         t.Expect("theContextSaysWar", ctx.WarStatus, DiplomaticStatus.AtWar);
-         t.Expect("noTaskIsTaught", prompt.Contains("OFFERING TASKS"), false);
-         t.Expect("noPrisonerBargainIsTaught", prompt.Contains("IF YOU WANT AN ENEMY CAPTIVE"), false);
+         try
+         {
+            if (enemy == null && mine != null && MayArrangeDiplomacy(t, "the player is at war with no one"))
+            {
+               Hero candidate = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                  h != Hero.MainHero && h.IsLord && !h.IsPrisoner && !h.IsChild && h.MapFaction != null && h.MapFaction != mine);
+
+               if (candidate?.MapFaction != null)
+               {
+                  DeclareWarAction.ApplyByDefault(mine, candidate.MapFaction);
+                  arrangedEnemyFaction = candidate.MapFaction;
+                  enemy = candidate;
+                  t.Note($"arranged: declared war between {mine.Name} and {candidate.MapFaction.Name} via the real DeclareWarAction");
+               }
+            }
+
+            if (t.Skip(enemy == null, "the player is at war with no one, and no living lord's faction exists to arrange a war with")) return t.Line();
+
+            NpcProfile profile = behavior.Store?.Get(enemy.StringId) ?? HeroProfileMapper.FromHero(enemy);
+            EncounterContext ctx = EncounterContextBuilder.Build(enemy, profile, behavior.GameStateBridge, "hello");
+            string prompt = new PromptBuilder {EnableQuests = true}.BuildSystemPrompt(profile, new WorldState {CurrentDay = (int) CampaignTime.Now.ToDays}, ctx);
+
+            t.Note($"{enemy.Name} ({enemy.MapFaction?.Name}): WarStatus={ctx.WarStatus}");
+            t.Expect("theContextSaysWar", ctx.WarStatus, DiplomaticStatus.AtWar);
+            t.Expect("noTaskIsTaught", prompt.Contains("OFFERING TASKS"), false);
+            t.Expect("noPrisonerBargainIsTaught", prompt.Contains("IF YOU WANT AN ENEMY CAPTIVE"), false);
+         }
+         finally
+         {
+            if (arrangedEnemyFaction != null && mine != null)
+            {
+               MakePeaceAction.Apply(mine, arrangedEnemyFaction);
+               t.Note($"restore: made peace between {mine.Name} and {arrangedEnemyFaction.Name}");
+            }
+         }
 
          return t.Line();
       }
@@ -12078,14 +12598,13 @@ namespace CalradiaRemembers.Diagnostics
          int stating = 0, contradictions = 0, leakedVerbIds = 0;
          Hero nearMiss = null;
 
-         foreach (Hero lord in lords)
+         void Judge(Hero lord, NpcProfile profile)
          {
-            NpcProfile profile = behavior.Store.Get(lord.StringId);
-            if (profile == null) continue;
+            if (profile == null) return;
 
             var verbCtx = new VerbContext(lord, profile, behavior.GameStateBridge, null, null);
             List<DeedRefusal> refusals = VerbRegistry.Instance.ComposeUnavailability(verbCtx);
-            if (refusals.Count == 0) continue;
+            if (refusals.Count == 0) return;
 
             stating++;
             if (nearMiss == null) nearMiss = lord;
@@ -12106,21 +12625,83 @@ namespace CalradiaRemembers.Diagnostics
             }
          }
 
-         t.Note($"{lords.Count} lords swept, {stating} naming a shut deed" + (nearMiss != null ? $" (e.g. {nearMiss.Name})" : ""));
-         t.Expect("noVerbIdEverLeaksIntoARefusal", leakedVerbIds, 0);
-         t.Expect("aVerbIsNeverTaughtAndRefusedAtOnce", contradictions, 0);
+         foreach (Hero lord in lords) Judge(lord, behavior.Store.Get(lord.StringId));
 
-         // End to end, on the one lord the world actually supplied: the block must reach the REAL EncounterContext
-         // the chat builds, or every rule above is true of a string nobody reads.
-         if (t.Skip(nearMiss == null, "no lord in this world currently has the means but not the trust, so the plumbing cannot be driven")) return t.Line();
+         // GABRIEL'S RULE (13/10/2026): arrange the near-miss rather than report MANUAL when the live world
+         // supplies none (every lord above was skipped for having no CR profile yet, which is the normal
+         // state on a brand-new game). Picks a lord already leading a healthy party, LendTroopsVerb's own
+         // "means" gate (CourtActionResolver.TryLendTroops: a party LEADER with at least
+         // CourtActionPolicy.TroopLoanMinPartyStrength healthy regular troops), and forces ONLY the vanilla
+         // relation that same gate reads, through the REAL ChangeRelationAction, restored after. Trust
+         // (StanceTrust), Affection (ReputationWithPlayer) and ClanRelationWithPlayer are left at a fresh
+         // profile's default of 0, below every one of StanceGatePolicy.WillDelegateRisk's three bypasses:
+         // the means are real, the trust is not, exactly the near-miss this test needs.
+         Hero arrangedNearMiss = null;
+         int arrangedRelationBefore = 0;
+         bool arrangedHadProfile = false;
 
-         NpcProfile nearProfile = behavior.Store.Get(nearMiss.StringId);
-         EncounterContext ctx = EncounterContextBuilder.Build(nearMiss, nearProfile, behavior.GameStateBridge, null);
+         try
+         {
+            if (nearMiss == null)
+            {
+               Hero candidate = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                  h != null && h != Hero.MainHero && h.IsAlive && h.IsLord && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan
+                  && h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h
+                  && CourtActionResolver.HealthyRegularTroopCount(h.PartyBelongedTo.MemberRoster) >= CourtActionPolicy.TroopLoanMinPartyStrength);
 
-         t.Note($"{nearMiss.Name}: UnavailableDeeds={(string.IsNullOrWhiteSpace(ctx?.UnavailableDeeds) ? "(none)" : ctx.UnavailableDeeds.Replace(Environment.NewLine, " | "))}");
-         t.Expect("theShutDeedReachesTheLiveEncounterContext", !string.IsNullOrWhiteSpace(ctx?.UnavailableDeeds), true);
-         t.Expect("theRefusalForbidsThePromiseAndNotOnlyTheDeed",
-                  ctx?.UnavailableDeeds?.IndexOf("do not promise", StringComparison.OrdinalIgnoreCase) >= 0, true);
+               if (candidate != null)
+               {
+                  arrangedHadProfile = behavior.Store.Get(candidate.StringId) != null;
+                  NpcProfile candidateProfile = GetOrCreate(behavior, candidate);
+                  ArrangeCleanNpc(behavior, candidateProfile, candidate); // clears any stale cooldown marker + neutralises relation first
+
+                  arrangedRelationBefore = candidate.GetRelation(Hero.MainHero);
+                  int need = CourtActionPolicy.TroopLoanMinRelation - arrangedRelationBefore;
+                  if (need > 0) ChangeRelationAction.ApplyRelationChangeBetweenHeroes(candidate, Hero.MainHero, need, false);
+
+                  // Re-run through the SAME Judge the real sweep used (not a separate TryLendTroops probe),
+                  // so the leak/contradiction counters above are actually exercised against a real refusal
+                  // instead of staying true-by-vacuity.
+                  Judge(candidate, candidateProfile);
+
+                  if (nearMiss == candidate)
+                  {
+                     arrangedNearMiss = candidate;
+                     t.Note($"arranged: raised {candidate.Name}'s vanilla relation to clear lend_troops' means-gate, left Trust/Affection at 0 so only trust is missing");
+                  }
+                  else
+                     t.Note($"candidate {candidate.Name} still names no shut deed after relation was raised (the player's own party likely has no room); leaving nearMiss unset");
+               }
+            }
+
+            t.Note($"{lords.Count} lords swept, {stating} naming a shut deed" + (nearMiss != null ? $" (e.g. {nearMiss.Name})" : ""));
+            t.Expect("noVerbIdEverLeaksIntoARefusal", leakedVerbIds, 0);
+            t.Expect("aVerbIsNeverTaughtAndRefusedAtOnce", contradictions, 0);
+
+            // End to end, on the one lord the world actually supplied: the block must reach the REAL EncounterContext
+            // the chat builds, or every rule above is true of a string nobody reads.
+            if (t.Skip(nearMiss == null,
+                   "no lord in this world currently has the means but not the trust, and none could be arranged (no party-leading lord with a healthy enough force, or the player's own party has no room)")) return t.Line();
+
+            NpcProfile nearProfile = behavior.Store.Get(nearMiss.StringId);
+            EncounterContext ctx = EncounterContextBuilder.Build(nearMiss, nearProfile, behavior.GameStateBridge, null);
+
+            t.Note($"{nearMiss.Name}: UnavailableDeeds={(string.IsNullOrWhiteSpace(ctx?.UnavailableDeeds) ? "(none)" : ctx.UnavailableDeeds.Replace(Environment.NewLine, " | "))}");
+            t.Expect("theShutDeedReachesTheLiveEncounterContext", !string.IsNullOrWhiteSpace(ctx?.UnavailableDeeds), true);
+            t.Expect("theRefusalForbidsThePromiseAndNotOnlyTheDeed",
+                     ctx?.UnavailableDeeds?.IndexOf("do not promise", StringComparison.OrdinalIgnoreCase) >= 0, true);
+         }
+         finally
+         {
+            if (arrangedNearMiss != null)
+            {
+               ChangeRelationAction.ApplyRelationChangeBetweenHeroes(arrangedNearMiss, Hero.MainHero,
+                  arrangedRelationBefore - arrangedNearMiss.GetRelation(Hero.MainHero), false);
+
+               if (!arrangedHadProfile) behavior.Store.Remove(arrangedNearMiss.StringId);
+               t.Note($"restore: {arrangedNearMiss.Name}'s relation returned to {arrangedRelationBefore}");
+            }
+         }
 
          return t.Line();
       }
@@ -12402,17 +12983,52 @@ namespace CalradiaRemembers.Diagnostics
          var t = new TestRun("claimant_support_evaluates");
 
          Clan playerClan = Clan.PlayerClan;
-         if (t.Skip(playerClan?.Kingdom == null, "the player leads no kingdom to back a claim in")) return t.Line();
 
-         Hero backer = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h is {IsLord: true, IsPrisoner: false} && h.Clan != null && h.Clan != playerClan && h.Clan.Kingdom == playerClan.Kingdom);
-         if (t.Skip(backer == null, "no other lord of your kingdom to stand in as a backer")) return t.Line();
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. EvaluateSupportClaimant only
+         // reads "playerClan.Kingdom != null" (CalradiaRemembers/Chat/CouncilLift.cs: inPlayerKingdom), which
+         // means a VASSAL clan qualifies too, not only a ruling one, far lighter than founding a kingdom.
+         // Joins the player's clan to a living kingdom through the REAL ChangeKingdomAction.ApplyByJoinToKingdom
+         // (no fiefs to transfer on a brand-new clan), and leaves again through its own real mirror,
+         // ApplyByLeaveKingdom, in the finally.
+         bool arrangedJoin = false;
+         float influenceBefore = playerClan?.Influence ?? 0f;
 
-         ClaimantSupportResult r = CouncilLift.EvaluateSupportClaimant(backer);
+         try
+         {
+            if (playerClan?.Kingdom == null && playerClan != null && MayArrangeDiplomacy(t, "the player's clan belongs to no kingdom"))
+            {
+               Kingdom targetKingdom = Kingdom.All?.FirstOrDefault(k => k is {IsEliminated: false});
 
-         t.Note($"{backer.Name}: outcome={r.Outcome}, amount={r.Amount}");
-         bool clearedWhoGates = r.Outcome == ClaimantSupportOutcome.Applied || r.Outcome == ClaimantSupportOutcome.CannotAfford;
-         t.Expect("clearedWhoGatesToTheAmountDecision", clearedWhoGates, true);
+               if (targetKingdom != null)
+               {
+                  ChangeKingdomAction.ApplyByJoinToKingdom(playerClan, targetKingdom, default, false);
+                  arrangedJoin = playerClan.Kingdom == targetKingdom;
+                  if (arrangedJoin) t.Note($"arranged: joined the player's clan to {targetKingdom.Name} as a vassal via the real ChangeKingdomAction");
+               }
+            }
+
+            if (t.Skip(playerClan?.Kingdom == null, "the player's clan belongs to no kingdom, and no living kingdom exists to arrange a vassalage with")) return t.Line();
+
+            Hero backer = Hero.AllAliveHeroes.FirstOrDefault(h =>
+               h != Hero.MainHero && h is {IsLord: true, IsPrisoner: false} && h.Clan != null && h.Clan != playerClan && h.Clan.Kingdom == playerClan.Kingdom);
+            if (t.Skip(backer == null, "no other lord of your kingdom to stand in as a backer")) return t.Line();
+
+            ClaimantSupportResult r = CouncilLift.EvaluateSupportClaimant(backer);
+
+            t.Note($"{backer.Name}: outcome={r.Outcome}, amount={r.Amount}");
+            bool clearedWhoGates = r.Outcome == ClaimantSupportOutcome.Applied || r.Outcome == ClaimantSupportOutcome.CannotAfford;
+            t.Expect("clearedWhoGatesToTheAmountDecision", clearedWhoGates, true);
+         }
+         finally
+         {
+            if (arrangedJoin && playerClan != null)
+            {
+               ChangeKingdomAction.ApplyByLeaveKingdom(playerClan, false);
+               // Leaving a realm zeroes the clan's influence (Clan.ClanLeaveKingdom): give back what it had.
+               ChangeClanInfluenceAction.Apply(playerClan, influenceBefore - playerClan.Influence);
+               t.Note($"restore: the player's clan left the arranged kingdom, Kingdom=(none), influence {playerClan.Influence:0} (was {influenceBefore:0})");
+            }
+         }
 
          return t.Line();
       }
@@ -12813,16 +13429,55 @@ namespace CalradiaRemembers.Diagnostics
          var t = new TestRun("mercenary_company_judged");
 
          Clan company = Clan.All.FirstOrDefault(c => c != null && c != Clan.PlayerClan && c.IsUnderMercenaryService && c.Kingdom != null && c.Leader != null);
-         if (t.Skip(company == null, "no company of the game is in a realm's pay right now")) return t.Line();
-         if (t.Abort(WorldEvents.MercenaryReputationBehavior.Instance == null, "the mercenary behaviour is not running")) return t.Line();
 
-         (MercenaryDepartureVerdict verdict, string summary) = WorldEvents.MercenaryReputationBehavior.Instance.DebugJudgeCompany(company, company.Kingdom);
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. No company may currently be in
+         // a realm's pay at all on a brand-new game. Signs an independent (Kingdom == null, so nobody is
+         // defected OUT of a real vassalage), non-bandit, living-leader clan into a living kingdom's pay
+         // through the REAL ChangeKingdomAction.ApplyByJoinFactionAsMercenary (verified in the 1.4.8
+         // decompile: sets Clan.Kingdom, clan.StartMercenaryService(), fires OnMercenaryServiceStarted, the
+         // same action a real contract takes), undone through its own real mirror,
+         // ApplyByLeaveKingdomAsMercenary, which returns the clan to Kingdom == null exactly as found.
+         Clan arrangedCompany = null;
 
-         t.Note($"{company.Name} in {company.Kingdom.Name}'s pay: {verdict}; \"{summary}\"");
-         t.Expect("theNewsNamesTheCompany", summary.Contains(company.Name.ToString()), true);
-         t.Expect("theNewsNamesTheRealm", summary.Contains(company.Kingdom.Name.ToString()), true);
-         t.Expect("onlyAbandonmentOrBetrayalIsNews", MercenaryDeparturePolicy.CompanyDepartureIsNews(verdict),
-            verdict == MercenaryDepartureVerdict.Abandoned || verdict == MercenaryDepartureVerdict.Betrayal);
+         try
+         {
+            if (company == null && MayArrangeDiplomacy(t, "no company of the game is in a realm's pay"))
+            {
+               Clan candidate = Clan.All.FirstOrDefault(c =>
+                  c != null && c != Clan.PlayerClan && c.Kingdom == null && !c.IsBanditFaction && !c.IsRebelClan
+                  && !c.IsEliminated && c.Leader is {IsAlive: true});
+               Kingdom targetKingdom = Kingdom.All?.FirstOrDefault(k => k is {IsEliminated: false});
+
+               if (candidate != null && targetKingdom != null)
+               {
+                  ChangeKingdomAction.ApplyByJoinFactionAsMercenary(candidate, targetKingdom, default, 50, false);
+                  arrangedCompany = candidate;
+                  company = candidate;
+                  t.Note($"arranged: signed {candidate.Name} into {targetKingdom.Name}'s pay via the real ChangeKingdomAction");
+               }
+            }
+
+            if (t.Skip(company == null,
+                   "no company of the game is in a realm's pay, and none could be arranged (no independent non-bandit clan with a living leader, or no living kingdom to sign with)")) return t.Line();
+
+            if (t.Abort(WorldEvents.MercenaryReputationBehavior.Instance == null, "the mercenary behaviour is not running")) return t.Line();
+
+            (MercenaryDepartureVerdict verdict, string summary) = WorldEvents.MercenaryReputationBehavior.Instance.DebugJudgeCompany(company, company.Kingdom);
+
+            t.Note($"{company.Name} in {company.Kingdom.Name}'s pay: {verdict}; \"{summary}\"");
+            t.Expect("theNewsNamesTheCompany", summary.Contains(company.Name.ToString()), true);
+            t.Expect("theNewsNamesTheRealm", summary.Contains(company.Kingdom.Name.ToString()), true);
+            t.Expect("onlyAbandonmentOrBetrayalIsNews", MercenaryDeparturePolicy.CompanyDepartureIsNews(verdict),
+               verdict == MercenaryDepartureVerdict.Abandoned || verdict == MercenaryDepartureVerdict.Betrayal);
+         }
+         finally
+         {
+            if (arrangedCompany != null)
+            {
+               ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(arrangedCompany, false);
+               t.Note($"restore: {arrangedCompany.Name} left mercenary service, Kingdom={arrangedCompany.Kingdom?.Name?.ToString() ?? "(none)"}");
+            }
+         }
 
          return t.Line();
       }
@@ -13192,37 +13847,105 @@ namespace CalradiaRemembers.Diagnostics
 
          (Hero lord, NpcProfile profile, int expected)? seed = SeedGiveTroopsEligible(behavior);
 
-         if (t.Skip(seed == null, "no lord leading a genuinely under-strength party nearby, even after forcing relation")) return t.Line();
-         (Hero lord, NpcProfile profile, int expected) = seed.Value;
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. SeedGiveTroopsEligible only
+         // PICKS an existing genuinely under-strength party (mirrors SeedTroopsEligible's "pick, don't
+         // force" pattern), and a brand-new game may have none yet. Pick any lord leading a party that
+         // could structurally qualify (PartySizeLimit high enough) and temporarily THIN it, removing only
+         // regular troops, never a hero, the lowest-tier roster slots first, down to under
+         // CourtActionPolicy.GiveTroopsWeakenedFraction of its limit, restoring the EXACT troops removed
+         // (never touching whatever give_troops itself then adds, the test's own real effect) afterward.
+         Hero thinnedLord = null;
+         var removedTroops = new List<TroopRosterElement>();
 
-         MobileParty npcParty = lord.PartyBelongedTo;
-         MobileParty playerParty = MobileParty.MainParty;
+         try
+         {
+            if (seed == null)
+            {
+               Hero candidate = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                  h != Hero.MainHero && h.IsAlive && !h.IsPrisoner && h.Clan != Clan.PlayerClan
+                  && h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h
+                  && h.PartyBelongedTo.Party.PartySizeLimit >= CourtActionPolicy.GiveTroopsMinPartySizeLimit);
 
-         if (t.Abort(npcParty == null || playerParty == null, "a party vanished between eligibility check and execution")) return t.Line();
+               if (candidate != null)
+               {
+                  MobileParty party = candidate.PartyBelongedTo;
+                  int limit = party.Party.PartySizeLimit;
+                  int targetMax = (int) (limit * CourtActionPolicy.GiveTroopsWeakenedFraction) - 1;
+                  int toRemove = party.MemberRoster.TotalManCount - targetMax;
 
-         int npcBefore = npcParty.MemberRoster.TotalManCount;
-         int playerBefore = playerParty.MemberRoster.TotalManCount;
-         var today = (int) CampaignTime.Now.ToDays;
+                  if (targetMax >= 0 && toRemove > 0)
+                  {
+                     TroopRoster roster = party.MemberRoster;
+                     for (int i = roster.Count - 1; i >= 0 && toRemove > 0; i--)
+                     {
+                        TroopRosterElement el = roster.GetElementCopyAtIndex(i);
+                        if (el.Character == null || el.Character.IsHero || el.Number <= 0) continue;
 
-         ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
-            new GameAction {Type = "give_troops"}, lord, new ActionContext(profile, null));
+                        int take = Math.Min(toRemove, el.Number);
+                        roster.AddToCounts(el.Character, -take);
+                        removedTroops.Add(new TroopRosterElement(el.Character) {Number = take});
+                        toRemove -= take;
+                     }
 
-         int npcAfter = npcParty.MemberRoster.TotalManCount;
-         int playerAfter = playerParty.MemberRoster.TotalManCount;
-         NpcProfile after = behavior.Store.Get(lord.StringId);
-         bool marked = after != null &&
-                       after.CourtActionCooldowns.ContainsKey(CourtActionResolver.GiveTroopsMarker)
-                       && !after.Events.Any(e => (e.summary ?? "").Contains("[cr_"));
+                     thinnedLord = candidate;
+                  }
 
-         IReadOnlyList<Appreciation> appreciations = AppreciationBehavior.Instance?.AppreciationsFor(lord.StringId) ?? Array.Empty<Appreciation>();
-         bool appreciationPlanted = appreciations.Any(a => a.Source == AppreciationSource.TroopsOrInfluenceSpentForThem && a.EventDay == today);
+                  NpcProfile candidateProfile = GetOrCreate(behavior, candidate);
+                  int relBefore = candidate.GetRelation(Hero.MainHero);
+                  ChangeRelationAction.ApplyRelationChangeBetweenHeroes(candidate, Hero.MainHero, 30 - relBefore, false);
 
-         t.Note($"lord={lord.Name} expected={expected}, npcTroops {npcBefore}->{npcAfter}, playerTroops {playerBefore}->{playerAfter}");
-         t.Expect("outcomePositive", outcome?.IsPositive, true);
-         t.Expect("npcGained", npcAfter - npcBefore, expected);
-         t.Expect("playerLost", playerBefore - playerAfter, expected);
-         t.Expect("markerStamped", marked, true);
-         t.Expect("appreciationPlanted", appreciationPlanted, true);
+                  if (CourtActionResolver.TryGiveTroops(candidate, candidateProfile, out int count))
+                  {
+                     seed = (candidate, candidateProfile, count);
+                     t.Note($"arranged: temporarily thinned {candidate.Name}'s party ({removedTroops.Sum(r => r.Number)} troops) to clear the genuinely-under-strength gate");
+                  }
+                  else
+                     t.Note($"candidate {candidate.Name} still fails TryGiveTroops after thinning their party");
+               }
+            }
+
+            if (t.Skip(seed == null,
+                   "no lord leading a party nearby could be arranged into the genuinely-under-strength gate (none structurally qualifies, or forcing relation still left TryGiveTroops refusing)")) return t.Line();
+
+            (Hero lord, NpcProfile profile, int expected) = seed.Value;
+
+            MobileParty npcParty = lord.PartyBelongedTo;
+            MobileParty playerParty = MobileParty.MainParty;
+
+            if (t.Abort(npcParty == null || playerParty == null, "a party vanished between eligibility check and execution")) return t.Line();
+
+            int npcBefore = npcParty.MemberRoster.TotalManCount;
+            int playerBefore = playerParty.MemberRoster.TotalManCount;
+            var today = (int) CampaignTime.Now.ToDays;
+
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "give_troops"}, lord, new ActionContext(profile, null));
+
+            int npcAfter = npcParty.MemberRoster.TotalManCount;
+            int playerAfter = playerParty.MemberRoster.TotalManCount;
+            NpcProfile after = behavior.Store.Get(lord.StringId);
+            bool marked = after != null &&
+                          after.CourtActionCooldowns.ContainsKey(CourtActionResolver.GiveTroopsMarker)
+                          && !after.Events.Any(e => (e.summary ?? "").Contains("[cr_"));
+
+            IReadOnlyList<Appreciation> appreciations = AppreciationBehavior.Instance?.AppreciationsFor(lord.StringId) ?? Array.Empty<Appreciation>();
+            bool appreciationPlanted = appreciations.Any(a => a.Source == AppreciationSource.TroopsOrInfluenceSpentForThem && a.EventDay == today);
+
+            t.Note($"lord={lord.Name} expected={expected}, npcTroops {npcBefore}->{npcAfter}, playerTroops {playerBefore}->{playerAfter}");
+            t.Expect("outcomePositive", outcome?.IsPositive, true);
+            t.Expect("npcGained", npcAfter - npcBefore, expected);
+            t.Expect("playerLost", playerBefore - playerAfter, expected);
+            t.Expect("markerStamped", marked, true);
+            t.Expect("appreciationPlanted", appreciationPlanted, true);
+         }
+         finally
+         {
+            if (thinnedLord?.PartyBelongedTo?.MemberRoster != null && removedTroops.Count > 0)
+            {
+               foreach (TroopRosterElement el in removedTroops) thinnedLord.PartyBelongedTo.MemberRoster.AddToCounts(el.Character, el.Number);
+               t.Note($"restore: returned {removedTroops.Sum(r => r.Number)} troops temporarily removed from {thinnedLord.Name}'s party");
+            }
+         }
 
          return t.Line();
       }
@@ -13991,13 +14714,15 @@ namespace CalradiaRemembers.Diagnostics
 
             if (t.Skip(spouseA == null, "no eligible test spouse found to marry the player (scenario A)")) return t.Line();
 
-            MarriageAction.Apply(Hero.MainHero, spouseA);
+            // GABRIEL'S RULE (13/10/2026): try the native pipeline, fall back to the direct seed form rather
+            // than report MANUAL when the context can be arranged. Seeding is still best-effort: skip cleanly
+            // rather than mis-report the demand path as broken. The path itself is exercised in full whenever
+            // the player already has a spouse.
+            string seedPathA = SeedPlayerMarriage(spouseA, viaCr: false);
+            t.Note($"scenario A seed path={seedPathA ?? "none"}");
 
-            // The native marriage does not always take from a console context (a clan-leader player the model
-            // will not relocate, etc.). Seeding is best-effort: skip cleanly rather than mis-report the demand
-            // path as broken. The path itself is exercised in full whenever the player already has a spouse.
-            if (t.Skip(Hero.MainHero.Spouse != spouseA,
-                   "could not seed a marriage on this campaign (native MarriageAction did not take); demand path unchanged")) return t.Line();
+            if (t.Skip(seedPathA == null,
+                   "could not seed a marriage on this campaign (neither the native MarriageAction nor the direct fallback took); demand path unchanged")) return t.Line();
          }
 
          NpcProfile profileA = GetOrCreate(behavior, spouseA);
@@ -14039,10 +14764,11 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Skip(spouseB == null, "no second eligible test spouse found for the decline scenario")) return t.Line();
 
-         MarriageAction.Apply(Hero.MainHero, spouseB);
+         string seedPathB = SeedPlayerMarriage(spouseB, viaCr: false);
+         t.Note($"scenario B seed path={seedPathB ?? "none"}");
 
-         if (t.Skip(Hero.MainHero.Spouse != spouseB,
-                "could not seed the second marriage on this campaign (native MarriageAction did not take); decline path unexercised")) return t.Line();
+         if (t.Skip(seedPathB == null,
+                "could not seed the second marriage on this campaign (neither the native MarriageAction nor the direct fallback took); decline path unexercised")) return t.Line();
 
          NpcProfile profileB = GetOrCreate(behavior, spouseB);
          ArrangeCleanNpc(behavior, profileB, spouseB);
@@ -14120,10 +14846,13 @@ namespace CalradiaRemembers.Diagnostics
 
             if (t.Skip(spouseA == null, "no eligible test spouse found to marry the player (scenario A)")) return t.Line();
 
-            MarriageAction.Apply(Hero.MainHero, spouseA);
+            // GABRIEL'S RULE (13/10/2026): try the native pipeline, fall back to the direct seed form rather
+            // than report MANUAL when the context can be arranged.
+            string seedPathA = SeedPlayerMarriage(spouseA, viaCr: false);
+            t.Note($"scenario A seed path={seedPathA ?? "none"}");
 
-            if (t.Skip(Hero.MainHero.Spouse != spouseA,
-                   "could not seed a marriage on this campaign (native MarriageAction did not take); walk-out path unexercised")) return t.Line();
+            if (t.Skip(seedPathA == null,
+                   "could not seed a marriage on this campaign (neither the native MarriageAction nor the direct fallback took); walk-out path unexercised")) return t.Line();
          }
 
          NpcProfile profileA = GetOrCreate(behavior, spouseA);
@@ -14167,10 +14896,11 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Skip(spouseB == null, "no second eligible test spouse found for the reconciliation scenario")) return t.Line();
 
-         MarriageAction.Apply(Hero.MainHero, spouseB);
+         string seedPathB = SeedPlayerMarriage(spouseB, viaCr: false);
+         t.Note($"scenario B seed path={seedPathB ?? "none"}");
 
-         if (t.Skip(Hero.MainHero.Spouse != spouseB,
-                "could not seed the second marriage on this campaign (native MarriageAction did not take); reconciliation path unexercised")) return t.Line();
+         if (t.Skip(seedPathB == null,
+                "could not seed the second marriage on this campaign (neither the native MarriageAction nor the direct fallback took); reconciliation path unexercised")) return t.Line();
 
          NpcProfile profileB = GetOrCreate(behavior, spouseB);
          ArrangeCleanNpc(behavior, profileB, spouseB);
@@ -15374,7 +16104,35 @@ namespace CalradiaRemembers.Diagnostics
                       && FactionManager.IsAtWarAgainstFaction(h.MapFaction, Hero.MainHero.MapFaction))
                  && !BannerlordGameStateBridge.FactionIsAtWarWithAnyone(h.MapFaction));
 
-         if (t.Skip(idle == null, "no partyless other-clan lord whose realm is at peace with everyone exists to borrow")) return t.Line();
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. PARTYLESS cannot be forced
+         // without disbanding a real party (irreversible), so when no candidate is already at peace with
+         // everyone, pick any partyless other-clan lord regardless of war state and make peace, through the
+         // REAL MakePeaceAction, with every faction EnemiesOf finds them at war with, the exact same scan
+         // FactionIsAtWarWithAnyone itself runs. Each war is re-declared through DeclareWarAction in the
+         // finally below, restoring the map to its prior footing.
+         var pausedWars = new List<(IFaction A, IFaction B)>();
+
+         if (idle == null && MayArrangeDiplomacy(t, "no partyless other-clan lord at peace with everyone"))
+         {
+            Hero partylessAny = Hero.AllAliveHeroes.FirstOrDefault(
+               h => h != Hero.MainHero && h.IsAlive && h.IsLord && !h.IsPrisoner
+                    && h.Clan != null && h.Clan != Clan.PlayerClan
+                    && h.PartyBelongedTo == null && !retainer.IsRetainer(h.StringId));
+
+            if (partylessAny?.MapFaction != null)
+            {
+               foreach (IFaction enemy in EnemiesOf(partylessAny.MapFaction))
+               {
+                  MakePeaceAction.Apply(partylessAny.MapFaction, enemy);
+                  pausedWars.Add((partylessAny.MapFaction, enemy));
+               }
+
+               idle = partylessAny;
+               t.Note($"arranged: made peace between {idle.MapFaction?.Name} and {pausedWars.Count} enemy faction(s) so the at-peace-with-everyone fact holds for {idle.Name}");
+            }
+         }
+
+         if (t.Skip(idle == null, "no partyless other-clan lord exists at all to borrow (even ignoring war state)")) return t.Line();
 
          // A party-LEADING other-clan lord for the mutual-exclusivity half. They are only ever REFUSED here, so
          // their party is never disbanded and nothing about them needs restoring beyond their forced regard.
@@ -15454,6 +16212,9 @@ namespace CalradiaRemembers.Diagnostics
             idleProfile.ReputationWithPlayer = originalRegard;
             behavior.Store.Set(idleProfile);
             RetainerBehavior.Enabled = originalEnabled;
+
+            foreach ((IFaction a, IFaction b) in pausedWars) DeclareWarAction.ApplyByDefault(a, b);
+            if (pausedWars.Count > 0) t.Note($"restore: re-declared {pausedWars.Count} paused war(s) for {idle.MapFaction?.Name}");
          }
 
          return t.Line();
@@ -16413,7 +17174,39 @@ namespace CalradiaRemembers.Diagnostics
          var t = new TestRun("duel_venue_here");
 
          Settlement here = Settlement.CurrentSettlement;
-         if (t.Skip(here == null, "on the open map; walk into a town or a castle and run this there")) return t.Line();
+
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. On the open map there is no
+         // Settlement.CurrentSettlement to read, but the two-halves-agree claim this test exists to prove
+         // (DuelStagingSupport.CanHoldATownDuel, DuelVenuePolicy.Choose, DuelStagingSupport.CanStage) is
+         // PURE and already takes "inside" as an explicit bool, never the live PlayerEncounter.InsideSettlement
+         // global directly. Rather than move the main party into a real encounter (the one thing this seam is
+         // NOT allowed to do), supply inside=true as the fact and drive the same real decision against a real
+         // town and a real castle in this campaign instead of wherever the player happens to stand.
+         if (here == null)
+         {
+            bool atSeaArranged = MobileParty.MainParty?.IsCurrentlyAtSea ?? false;
+            var sites = new List<Settlement>();
+            Settlement town = Settlement.All.FirstOrDefault(s => s != null && s.IsTown);
+            Settlement castle = Settlement.All.FirstOrDefault(s => s != null && s.IsCastle);
+            if (town != null) sites.Add(town);
+            if (castle != null) sites.Add(castle);
+
+            if (t.Skip(sites.Count == 0, "on the open map, and no town or castle exists in this campaign to drive the seam against instead")) return t.Line();
+
+            foreach (Settlement site in sites)
+            {
+               bool hasGroundArranged = site.LocationComplex?.GetLocationWithId("center") != null;
+               bool canHoldArranged = DuelStagingSupport.CanHoldATownDuel(true, hasGroundArranged); // inside=true supplied as the fact, never the live global
+               DuelVenue venueArranged = DuelVenuePolicy.Choose(atSeaArranged, canHoldArranged);
+
+               t.Note($"{site.Name} ({(site.IsTown ? "town" : "castle")}): duellingGround={hasGroundArranged}, venue={venueArranged}");
+               t.Expect($"{site.StringId}_ownsADuellingGround", hasGroundArranged, true);
+               t.Expect($"{site.StringId}_venueMatchesWhatTheStagingWouldAccept", venueArranged == DuelVenue.TownGates, !atSeaArranged && canHoldArranged);
+               t.Expect($"{site.StringId}_hasABuiltMission", DuelStagingSupport.CanStage(venueArranged), !atSeaArranged);
+            }
+
+            return t.Line();
+         }
 
          bool inside = TaleWorlds.CampaignSystem.Encounters.PlayerEncounter.InsideSettlement;
          bool hasGround = here.LocationComplex?.GetLocationWithId("center") != null;
@@ -17468,21 +18261,42 @@ namespace CalradiaRemembers.Diagnostics
          };
          WorldEventStore.Instance.Record(seeded);
 
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. ResolveQueryRelevantFacts
+         // deliberately SKIPS whatever already sits in the top-N ambient slice (GetKnownEventsRated), and on
+         // a quiet save a fresh magnitude-80 seed can land there itself. Rather than skip the test, push it
+         // OUT of that slice with higher-ranked filler events (same day/faction, higher magnitude, so they
+         // outrank it on recency+magnitude+faction alone), removed again in the finally alongside the seed.
+         var filler = new List<WorldEvent>();
+
          try
          {
             string namedQuestion = $"Tell me, what do you know of {other.Name}?";
             string unrelatedQuestion = "How fares the harvest this year?";
 
-            // The query block deliberately SKIPS whatever is already ambient (ResolveQueryRelevantFacts drops the
-            // top few known events, since those are injected as ambient rumour elsewhere). A fresh magnitude-80
-            // seed can land in that top slice on a quiet save, and then the correct behaviour is to say nothing
-            // here, which used to read as a failure. Detect that and SKIP: a test that cannot run is not a bug.
-            IReadOnlyList<(WorldEvents.WorldEvent Event, Logic.RumorConfidence Confidence)> knownNow =
-               WorldEvents.WorldEventStore.Instance?.GetKnownEventsRated(npc, today, 6);
-            bool seededIsAlreadyAmbient = knownNow != null && knownNow.Any(k => k.Event?.Id == seeded.Id);
+            bool SeededIsAmbient() =>
+               WorldEventStore.Instance?.GetKnownEventsRated(npc, today, 6)?.Any(k => k.Event?.Id == seeded.Id) == true;
 
-            if (t.Skip(seededIsAlreadyAmbient,
-                   "the seeded fact is already in this NPC's ambient top slice, which the query block skips by design")) return t.Line();
+            for (int i = 0; i < 6 && SeededIsAmbient(); i++)
+            {
+               // ActorIds names the NPC, never "other": a filler that also named "other" could outrank and
+               // replace the seeded event as the NAMED-ENTITY match ResolveQueryRelevantFacts picks, which
+               // would then fail on text this filler never wrote.
+               var push = new WorldEvent {
+                  Type = WorldEventType.Battle,
+                  Day = today,
+                  Magnitude = 100,
+                  Summary = $"(selftest filler {i}) a far greater clash eclipsed lesser news.",
+                  ActorIds = new List<string> {npc.StringId},
+                  FactionIds = factionIds
+               };
+               WorldEventStore.Instance.Record(push);
+               filler.Add(push);
+            }
+
+            if (filler.Count > 0) t.Note($"arranged: pushed {filler.Count} higher-ranked filler event(s) so the seeded fact clears the ambient top slice");
+
+            if (t.Skip(SeededIsAmbient(),
+                   "the seeded fact stayed in this NPC's ambient top slice even after pushing filler events, which the query block skips by design")) return t.Line();
 
             string namedBlock = EncounterContextBuilder.ResolveQueryRelevantFacts(npc, namedQuestion, today);
             string unrelatedBlock = EncounterContextBuilder.ResolveQueryRelevantFacts(npc, unrelatedQuestion, today);
@@ -17496,6 +18310,7 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             WorldEventStore.Instance.Remove(seeded.Id);
+            foreach (WorldEvent push in filler) WorldEventStore.Instance.Remove(push.Id);
          }
       }
 
@@ -17585,21 +18400,76 @@ namespace CalradiaRemembers.Diagnostics
 
          (Hero lord, NpcProfile profile, int count)? seed = SeedTroopsEligible(behavior); // seeds StanceTrust=25
 
-         if (t.Skip(seed == null, "no lord leading a healthy party to test the Trust gate")) return t.Line();
-         (Hero lord, NpcProfile profile, int _) = seed.Value;
+         // GABRIEL'S RULE (13/10/2026): arrange it rather than report MANUAL. SeedTroopsEligible only PICKS a
+         // party already at or above 20 men (never forces one), and on a brand-new game every lord party is
+         // still small. Pick any lord leading their own party and top up their roster with their own
+         // culture's basic troop (CourtActionResolver.TryLendTroops's "means" floor is 10 healthy regular
+         // troops), restoring the exact count removed afterward.
+         Hero toppedUpLord = null;
+         CharacterObject toppedUpTroop = null;
+         int toppedUpCount = 0;
 
-         EncounterContext open = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "Lend me some soldiers for the road.");
-         bool taughtWhenTrusted = open.ExtraActionTeachings?.IndexOf("lend_troops", StringComparison.OrdinalIgnoreCase) >= 0;
-         t.Expect("lendTaughtWhenTrusted", taughtWhenTrusted, true);
+         try
+         {
+            if (seed == null)
+            {
+               Hero candidate = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                  h != Hero.MainHero && h.IsAlive && !h.IsPrisoner
+                  && h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h && h.PartyBelongedTo.MemberRoster != null);
 
-         profile.StanceTrust = 0;
-         profile.ClanRelationWithPlayer = 0;
-         profile.ReputationWithPlayer = 0;
-         EncounterContext closed = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "Lend me some soldiers for the road.");
-         bool taughtWhenUntrusted = closed.ExtraActionTeachings?.IndexOf("lend_troops", StringComparison.OrdinalIgnoreCase) >= 0;
-         t.Expect("lendRefusedWhenUntrusted", taughtWhenUntrusted, false);
+               if (candidate != null)
+               {
+                  CharacterObject basicTroop = candidate.Culture?.BasicTroop;
+                  int have = candidate.PartyBelongedTo.MemberRoster.TotalManCount;
 
-         t.Note($"Trust gate on {lord.Name}: taught at Trust 25, refused at Trust/relation/regard 0. The stance layer bites.");
+                  if (basicTroop != null && have < 20)
+                  {
+                     toppedUpTroop = basicTroop;
+                     toppedUpCount = 20 - have;
+                     candidate.PartyBelongedTo.MemberRoster.AddToCounts(basicTroop, toppedUpCount);
+                     toppedUpLord = candidate;
+                  }
+
+                  NpcProfile candidateProfile = GetOrCreate(behavior, candidate);
+                  candidateProfile.StanceTrust = 25;
+                  int relBefore = candidate.GetRelation(Hero.MainHero);
+                  ChangeRelationAction.ApplyRelationChangeBetweenHeroes(candidate, Hero.MainHero, 100 - relBefore, false);
+
+                  if (CourtActionResolver.TryLendTroops(candidate, candidateProfile, out int count))
+                  {
+                     seed = (candidate, candidateProfile, count);
+                     t.Note($"arranged: topped up {candidate.Name}'s party by {toppedUpCount} {basicTroop?.Name} and forced trust/relation to clear the means-gate");
+                  }
+                  else
+                     t.Note($"candidate {candidate.Name} still fails TryLendTroops even after topping up their party (the player's own party likely has no room)");
+               }
+            }
+
+            if (t.Skip(seed == null, "no lord leading a party exists at all, or none can be arranged to clear the Trust gate's means precondition")) return t.Line();
+
+            (Hero lord, NpcProfile profile, int _) = seed.Value;
+
+            EncounterContext open = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "Lend me some soldiers for the road.");
+            bool taughtWhenTrusted = open.ExtraActionTeachings?.IndexOf("lend_troops", StringComparison.OrdinalIgnoreCase) >= 0;
+            t.Expect("lendTaughtWhenTrusted", taughtWhenTrusted, true);
+
+            profile.StanceTrust = 0;
+            profile.ClanRelationWithPlayer = 0;
+            profile.ReputationWithPlayer = 0;
+            EncounterContext closed = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "Lend me some soldiers for the road.");
+            bool taughtWhenUntrusted = closed.ExtraActionTeachings?.IndexOf("lend_troops", StringComparison.OrdinalIgnoreCase) >= 0;
+            t.Expect("lendRefusedWhenUntrusted", taughtWhenUntrusted, false);
+
+            t.Note($"Trust gate on {lord.Name}: taught at Trust 25, refused at Trust/relation/regard 0. The stance layer bites.");
+         }
+         finally
+         {
+            if (toppedUpLord?.PartyBelongedTo?.MemberRoster != null && toppedUpTroop != null)
+            {
+               toppedUpLord.PartyBelongedTo.MemberRoster.AddToCounts(toppedUpTroop, -toppedUpCount);
+               t.Note($"restore: removed the {toppedUpCount} {toppedUpTroop.Name} topped up onto {toppedUpLord.Name}'s party");
+            }
+         }
 
          return t.Line();
       }

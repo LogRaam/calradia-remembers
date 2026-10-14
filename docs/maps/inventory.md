@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 17500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 18500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
