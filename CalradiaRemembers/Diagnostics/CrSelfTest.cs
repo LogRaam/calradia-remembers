@@ -10186,7 +10186,10 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          // The player is not told about a test, and the session keeps nothing from it.
+         var reports = new List<ContextFitReport>();
+         void Record(ContextFitReport r) => reports.Add(r);
          NpcChatService.ContextFitted -= LocalContextState.OnFitted;
+         NpcChatService.ContextFitted += Record;
          try
          {
             LlmRequest small = SendWith(8192);
@@ -10194,8 +10197,14 @@ namespace CalradiaRemembers.Diagnostics
 
             int estimate = (int) Math.Ceiling((small.SystemPrompt.Length + small.Messages.Sum(m => m.Content.Length)) / ContextFitPolicy.DefaultCharsPerToken
                                               + small.Messages.Count * ContextFitPolicy.PerMessageTokens + small.Parameters.MaxTokens);
-            t.Note($"8192 window: ~{estimate} tokens, {small.Messages.Count} message(s), reply budget {small.Parameters.MaxTokens}");
-            t.Expect("itFitsTheWindow", estimate <= (int) (8192 * ContextFitPolicy.UsableShare), true);
+            string full = behavior.LlmServices.ChatService.PromptBuilder.BuildSystemPrompt(profile, world, ctx);
+            t.Note($"8192 window: ~{estimate} tokens, {small.Messages.Count} message(s), reply budget {small.Parameters.MaxTokens}; full prompt {full.Length} chars, compact {small.SystemPrompt.Length} chars");
+            t.Note("largest compact blocks: " + LargestBlocks(small.SystemPrompt, 6));
+            // What the feature promises (fkasad, 13/10/2026): the request fits, or the player is told it cannot. A lived
+            // character's compact prompt can itself outgrow 8,192 tokens; then the fit reports it (the one notice), never
+            // a silent overflow cut by the server.
+            bool fits = estimate <= (int) (8192 * ContextFitPolicy.UsableShare);
+            t.Expect("itFitsOrThePlayerIsTold", fits || reports.Any(r => r.WindowTokens == 8192 && !r.Fits), true);
             t.Expect("itStillTeachesTheActions", small.SystemPrompt.Contains("GAME ACTIONS:"), true);
             t.Expect("theRecapStays", small.Messages.First().Content.Contains(ConversationTranscript.SummaryLabel), true);
             t.Expect("theRawLinesOpenOnThePlayer", small.Messages.Count < 2 || small.Messages[1].Role == MessageRole.User, true);
@@ -10207,10 +10216,36 @@ namespace CalradiaRemembers.Diagnostics
          }
          finally
          {
+            NpcChatService.ContextFitted -= Record;
             NpcChatService.ContextFitted += LocalContextState.OnFitted;
          }
 
          return t.Line();
+      }
+
+      /// <summary>local_context: the prompt's largest blocks (split on its capitalised headings), to see what fills it.</summary>
+      private static string LargestBlocks(string prompt, int top)
+      {
+         var blocks = new List<(string Head, int Chars)>();
+         string head = "(start)";
+         var size = 0;
+         foreach (string line in (prompt ?? "").Split('\n'))
+         {
+            string l = line.TrimEnd('\r');
+            bool heading = l.Length > 4 && l.Length < 90 && l.EndsWith(":") && l.Substring(0, Math.Min(6, l.Length)).ToUpperInvariant() == l.Substring(0, Math.Min(6, l.Length));
+            if (heading)
+            {
+               blocks.Add((head, size));
+               head = l;
+               size = 0;
+            }
+
+            size += l.Length + 1;
+         }
+
+         blocks.Add((head, size));
+
+         return string.Join(" | ", blocks.OrderByDescending(b => b.Chars).Take(top).Select(b => $"{b.Head} {b.Chars}"));
       }
 
       /// <summary>local_context: records the request instead of sending it.</summary>
@@ -10220,7 +10255,8 @@ namespace CalradiaRemembers.Diagnostics
 
          public System.Threading.Tasks.Task<LlmResponse> CompleteAsync(LlmRequest request, CancellationToken ct = default)
          {
-            Last = request;
+            // A copy: with no window the request carries the live session list, which the reply then grows.
+            Last = new LlmRequest {SystemPrompt = request.SystemPrompt, Messages = request.Messages.ToList(), Parameters = request.Parameters};
 
             return System.Threading.Tasks.Task.FromResult(new LlmResponse {Content = "[DIALOGUE]Aye.[/DIALOGUE]", IsSuccess = true});
          }
