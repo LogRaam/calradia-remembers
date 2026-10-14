@@ -937,6 +937,202 @@ namespace CalradiaRemembers.Diagnostics
          return p;
       }
 
+      /// <summary>
+      ///   GABRIEL'S RULE (13/10/2026, verbatim): "il faut injecter un arrangement pour chaque test afin
+      ///   que le context soit compatible. On ne doit pas passer par-dessus un test sans l'exécuter à
+      ///   cause que le contexte n'est pas là." On a brand-new game, testall's single most common missing
+      ///   actor across its FAIL/MANUAL list is a companion in the player's own clan/party. This arranges
+      ///   one in up to three tiers, the cheapest that works:
+      ///   <list type="number">
+      ///     <item>REUSE a companion already matching the facts asked for (no footprint at all).</item>
+      ///     <item>
+      ///       BORROW one who exists but is elsewhere (another party, another settlement), moving them
+      ///       into the main party and back on <see cref="Dispose" />. Generalises the identical ad hoc
+      ///       "borrow a companion" block TestPresence and TestCompanionBattleMemory each carried on
+      ///       their own.
+      ///     </item>
+      ///     <item>
+      ///       MINT a disposable wanderer when the player has none at all, removed again on
+      ///       <see cref="Dispose" />. Minted exactly the way <c>CompanionsCampaignBehavior</c> mints a
+      ///       real one: <c>HeroCreator.CreateSpecialHero</c> with NO faction, so <c>CompanionOf</c> alone
+      ///       carries clan membership (<c>Hero.Clan</c> reads <c>CompanionOf ?? _clan</c>, verified in the
+      ///       1.4.8 decompile's Hero.cs), so the minted hero starts and ends clanless.
+      ///     </item>
+      ///   </list>
+      ///   All four actions (<c>AddCompanionAction</c>, <c>AddHeroToPartyAction</c>,
+      ///   <c>RemoveCompanionAction</c>, <c>KillCharacterAction</c>) live in
+      ///   <c>TaleWorlds.CampaignSystem.Actions</c> (verified there). <c>KillCharacterAction.ApplyByRemove</c>
+      ///   (detail <c>Lost</c>) runs <c>RemoveCompanionAction.ApplyByDeath</c> internally on its own
+      ///   (verified in <c>KillCharacterAction.ApplyInternal</c>), never <c>ApplyByFire</c>, so disposing a
+      ///   minted hero never makes them a fugitive and never resets their equipment.
+      /// </summary>
+      private sealed class ArrangedCompanion : IDisposable
+      {
+         private enum Lifecycle { Reused, Borrowed, Minted }
+
+         public Hero Companion { get; }
+
+         /// <summary>True only for a freshly-minted companion (never a reused or borrowed real one). Callers use
+         /// this to force a fact (e.g. a compatible romantic orientation) that must never be imposed on a real,
+         /// already-established companion.</summary>
+         public bool WasMinted => _life == Lifecycle.Minted;
+
+         private readonly NpcMemoryCampaignBehavior _behavior;
+         private readonly Lifecycle _life;
+         private readonly MobileParty _borrowedFromParty;
+         private readonly Settlement _borrowedFromSettlement;
+
+         private ArrangedCompanion(NpcMemoryCampaignBehavior behavior, Hero companion, Lifecycle life,
+            MobileParty borrowedFromParty, Settlement borrowedFromSettlement)
+         {
+            _behavior = behavior;
+            Companion = companion;
+            _life = life;
+            _borrowedFromParty = borrowedFromParty;
+            _borrowedFromSettlement = borrowedFromSettlement;
+         }
+
+         /// <summary>
+         ///   <paramref name="exclude" /> is never offered (e.g. a lord already standing in as the confidant).
+         ///   <paramref name="oppositeSexOfPlayer" /> isolates a romance/marriage test from the engine's own
+         ///   same-sex refusal. <paramref name="unwed" /> keeps a marriage test off somebody already somebody's
+         ///   spouse. <paramref name="mustBeInMainParty" /> is for a test that reads the party roster itself
+         ///   (presence, troop count, a mission dispatch); without it, a companion anywhere in the player's
+         ///   clan is reused untouched. Returns null only when neither an existing companion nor a single
+         ///   wanderer template exists at all (should not happen on a real install); callers still
+         ///   t.Skip/t.Abort on a null result.
+         /// </summary>
+         public static ArrangedCompanion Get(NpcMemoryCampaignBehavior behavior, Hero exclude = null,
+            bool oppositeSexOfPlayer = false, bool unwed = false, bool mustBeInMainParty = false)
+         {
+            bool playerFemale = Hero.MainHero?.IsFemale ?? false;
+
+            // A disposable companion for ANY of these tests must never be the player's own spouse, a sitting
+            // governor, mid-errand (CompanionMissionBehavior detaches them into their own traveling party), or
+            // the LEADER of a party of their own (the same idiom FindTestSpouseForPlayer already uses, above:
+            // borrowing a leader orphans or disbands their party, per RemoveCompanionAction.ApplyInternal in the
+            // decompile). Each would make the arrangement a liability rather than a convenience. Strict
+            // hero.IsPlayerCompanion (not MarryCompanionResolver's broader clan-wanderer reading), because that
+            // is the exact fact every converted test's own feature reads (SecretBondFactsFor, take_into_service's
+            // theyStartAsYourOwnCompanion, the audience resolver); a minted hero satisfies it too, via
+            // AddCompanionAction. Mapping.HeroPresence.IsInTheWorld, not a bare IsAlive read (the ratchet
+            // TestAll's maps enforce, see RULES.md).
+            bool Fits(Hero h) =>
+               h != null && h != Hero.MainHero && h != exclude && h != Hero.MainHero?.Spouse
+               && Mapping.HeroPresence.IsInTheWorld(h) && !h.IsPrisoner && h.GovernorOf == null
+               && !(h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h)
+               && CompanionMissionBehavior.Instance?.IsAway(h.StringId) != true
+               && h.IsPlayerCompanion
+               && (!oppositeSexOfPlayer || h.IsFemale != playerFemale)
+               && (!unwed || h.Spouse == null);
+
+            Hero inPlace = Hero.AllAliveHeroes.FirstOrDefault(h =>
+               Fits(h) && (!mustBeInMainParty || h.PartyBelongedTo == MobileParty.MainParty));
+
+            if (inPlace != null)
+            {
+               ModLog.Info($"[SELFTEST] ArrangedCompanion: reusing {inPlace.Name}, already in place");
+               return new ArrangedCompanion(behavior, inPlace, Lifecycle.Reused, null, null);
+            }
+
+            if (Clan.PlayerClan == null || MobileParty.MainParty == null) return null;
+
+            if (mustBeInMainParty)
+            {
+               Hero spare = Hero.AllAliveHeroes.FirstOrDefault(Fits);
+
+               if (spare != null)
+               {
+                  MobileParty from = spare.PartyBelongedTo;
+                  Settlement fromSettlement = spare.CurrentSettlement;
+                  AddHeroToPartyAction.Apply(spare, MobileParty.MainParty, false);
+                  ModLog.Info($"[SELFTEST] ArrangedCompanion: borrowed {spare.Name} into the main party");
+                  return new ArrangedCompanion(behavior, spare, Lifecycle.Borrowed, from, fromSettlement);
+               }
+            }
+
+            // MINT, the way CompanionsCampaignBehavior mints a real one: NO faction on creation, so the minted
+            // hero starts (and, on Dispose, ends) clanless; AddCompanionAction alone carries clan membership
+            // for as long as this test needs it.
+            CharacterObject template = MBObjectManager.Instance.GetObjectTypeList<CharacterObject>()
+               .FirstOrDefault(c => c != null && c.IsTemplate && c.Occupation == Occupation.Wanderer
+                  && (!oppositeSexOfPlayer || c.IsFemale != playerFemale));
+
+            if (template == null) return null;
+
+            int age = (Campaign.Current?.Models?.AgeModel?.HeroComesOfAge ?? 18) + 5;
+            Hero minted = HeroCreator.CreateSpecialHero(template, null, null, null, age);
+            minted.ChangeState(Hero.CharacterStates.Active);
+
+            AddCompanionAction.Apply(Clan.PlayerClan, minted);
+            AddHeroToPartyAction.Apply(minted, MobileParty.MainParty, false);
+
+            ModLog.Info($"[SELFTEST] ArrangedCompanion: minted {minted.Name} (template {template.StringId}) into the player's clan/party");
+
+            return new ArrangedCompanion(behavior, minted, Lifecycle.Minted, null, null);
+         }
+
+         public void Dispose()
+         {
+            if (Companion == null) return;
+
+            try
+            {
+               switch (_life)
+               {
+                  case Lifecycle.Borrowed:
+                     if (_borrowedFromParty != null && _borrowedFromParty != MobileParty.MainParty)
+                     {
+                        AddHeroToPartyAction.Apply(Companion, _borrowedFromParty, false);
+                        ModLog.Info($"[SELFTEST] ArrangedCompanion: returned {Companion.Name} to their own party");
+                     }
+                     else if (_borrowedFromSettlement != null)
+                     {
+                        EnterSettlementAction.ApplyForCharacterOnly(Companion, _borrowedFromSettlement);
+                        ModLog.Info($"[SELFTEST] ArrangedCompanion: returned {Companion.Name} to {_borrowedFromSettlement.Name}");
+                     }
+                     else
+                        ModLog.Info($"[SELFTEST] ArrangedCompanion: {Companion.Name} had nowhere to return to and remains in the main party; reload to discard");
+
+                     break;
+
+                  case Lifecycle.Minted:
+                     // marry_companion marries and then divorces this exact hero: MarriageDissolutionService's
+                     // Spouse=null setter files them into Hero.MainHero.ExSpouses (both sides), and
+                     // MarriageApprovalBehavior.OnHeroKilled treats ANY HeroKilledEvent for a current or former
+                     // player spouse as cause to resolve EVERY live UnblessedMarriage grudge against the player,
+                     // not only one tied to this hero. Killing them here would silently clear a real grudge from
+                     // an unrelated marriage. Leave them alive (clanless, as the test's own restore already set
+                     // them) rather than risk that; the released wanderer is a real but harmless leftover.
+                     if (Hero.MainHero?.Spouse == Companion || Hero.MainHero?.ExSpouses?.Contains(Companion) == true)
+                     {
+                        ModLog.Info($"[SELFTEST] ArrangedCompanion: {Companion.Name} is the player's (ex-)spouse; left alive and clanless rather than killed, to avoid resolving real UnblessedMarriage grudges via MarriageApprovalBehavior.OnHeroKilled");
+
+                        break;
+                     }
+
+                     // Zero the gold FIRST: inside KillCharacterAction.ApplyInternal, a non-leader victim's
+                     // purse is handed to their clan leader (the player) BEFORE CompanionOf is even cleared,
+                     // which would otherwise mint the player free gold on every sweep.
+                     if (Companion.Gold != 0) Companion.ChangeHeroGold(-Companion.Gold);
+
+                     // Verified in the decompile: ApplyByRemove (detail Lost) runs RemoveCompanionAction.ApplyByDeath
+                     // internally on its own, never ApplyByFire, so this never flags the minted hero a fugitive
+                     // and never resets their equipment; showNotification defaults false, so nothing is shown.
+                     KillCharacterAction.ApplyByRemove(Companion);
+                     _behavior?.Store?.Remove(Companion.StringId);
+                     ModLog.Info($"[SELFTEST] ArrangedCompanion: removed minted {Companion.Name}");
+
+                     break;
+               }
+            }
+            catch (Exception ex)
+            {
+               ModLog.Info($"[SELFTEST] ArrangedCompanion cleanup failed for {Companion.Name}: {ex.GetType().Name}: {ex.Message}");
+            }
+         }
+      }
+
       /// <summary>True when <paramref name="candidate" /> is <paramref name="npc" />'s spouse, child, parent, or sibling.</summary>
       private static bool IsCloseKin(Hero npc, Hero candidate)
          => npc.Spouse == candidate || npc.Father == candidate || npc.Mother == candidate || npc.Children != null && npc.Children.Contains(candidate) || npc.Siblings != null && npc.Siblings.Contains(candidate);
@@ -3575,10 +3771,17 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Abort(missions == null, "companion-mission system not active")) return t.Line();
 
-         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && (h.IsPlayerCompanion || h.Clan == Clan.PlayerClan) && h.PartyBelongedTo == MobileParty.MainParty && !missions.IsAway(h.StringId));
+         // Arranged per GABRIEL'S RULE (13/10/2026): reuses an available companion already in the main party,
+         // borrows one from elsewhere, or mints one when the player has none at all.
+         using var arranged = ArrangedCompanion.Get(behavior, mustBeInMainParty: true);
+         if (t.Skip(arranged == null, "no available companion in your party, and no wanderer template to arrange one")) return t.Line();
+         Hero companion = arranged.Companion;
 
-         if (t.Skip(companion == null, "no available companion in your party to dispatch")) return t.Line();
+         // A fresh mint rolls whatever Scouting a random wanderer template happens to carry, which can sit
+         // below CompanionMissions.MinSkillToAttempt (25) and refuse the dispatch for a reason that has
+         // nothing to do with the feature under test. Only a minted hero is nudged; a real companion's skills
+         // are never touched.
+         if (arranged.WasMinted) companion.SetSkillValue(DefaultSkills.Scouting, 40);
 
          (bool dispatched, string _) = missions.Dispatch(companion, CompanionMissionType.GatherNews, null);
 
@@ -3816,7 +4019,7 @@ namespace CalradiaRemembers.Diagnostics
             ModuleHelper.GetActiveModules().Where(m => m != null).Select(m => m.Id),
             StringComparer.OrdinalIgnoreCase);
 
-         t.Note($"scanned {scanned.Count} module(s), {enabled.Count} enabled");
+         t.Note($"scanned {scanned.Count} module(s), {enabled.Count} enabled; scanned but not enabled: {string.Join(", ", scanned.Where(id => !enabled.Contains(id)).DefaultIfEmpty("none"))}");
          t.Expect("everyScannedModuleIsEnabled", scanned.All(id => enabled.Contains(id)), true);
          t.Expect("thisModIsAmongThem", scanned.Any(id => string.Equals(id, "CalradiaRemembers", StringComparison.OrdinalIgnoreCase)), true);
 
@@ -4887,7 +5090,11 @@ namespace CalradiaRemembers.Diagnostics
          Hero receiver = Hero.AllAliveHeroes.FirstOrDefault(
             h => h != Hero.MainHero && h.IsAlive && (h.IsPlayerCompanion || h.Spouse == Hero.MainHero));
 
-         if (t.Skip(receiver == null, "no companion or spouse (a sentimental receiver) to test the equip")) return t.Line();
+         // Arranged per GABRIEL'S RULE (13/10/2026) only when neither a companion nor a spouse already exists.
+         using var arranged = receiver == null ? ArrangedCompanion.Get(behavior) : null;
+         receiver ??= arranged?.Companion;
+
+         if (t.Skip(receiver == null, "no companion or spouse (a sentimental receiver), and no wanderer template to arrange one")) return t.Line();
 
          ItemRoster roster = MobileParty.MainParty?.ItemRoster;
 
@@ -6668,6 +6875,13 @@ namespace CalradiaRemembers.Diagnostics
 
          NpcProfile profile = GetOrCreate(behavior, hero);
 
+         // Arranged, not rolled (Gabriel, 13/10/2026: a test arranges its context). The minted bandit's Honor, Valor and
+         // Calculating came from a random template: "Nabb the Faceless Fox" refused as TooDefiant where "Sley the Grim"
+         // had turned. Pin him to the archetype that turns (neither principled nor needing a calculator's override).
+         hero.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor, 0);
+         hero.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Valor, 0);
+         hero.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Calculating, 0);
+
          // Refusal: a nemesis who does not fear you enough will not bend, and stays your prisoner.
          profile.StanceFear = NemesisTurnPolicy.FearFloor - 20;
          profile.StanceRespect = NemesisTurnPolicy.RespectFloor + 20;
@@ -6677,11 +6891,13 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("stillPrisonerAfterRefusal", hero.IsPrisoner, true);
          t.Expect("notTurnedAfterRefusal", nem.IsTurned, false);
 
-         // Acceptance: cowed AND respectful, with a light grudge, the archetype that turns.
+         // Acceptance: cowed AND respectful, the archetype that turns. The margin over both floors is past
+         // DominanceOvercomesHatredMargin, so whatever grudge the mint carries cannot decide the outcome.
          profile.StanceFear = NemesisTurnPolicy.FearFloor + 30;
-         profile.StanceRespect = NemesisTurnPolicy.RespectFloor + 20;
+         profile.StanceRespect = NemesisTurnPolicy.RespectFloor + NemesisTurnPolicy.DominanceOvercomesHatredMargin;
          behavior.Store.Set(profile);
          ActionOutcome turned = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "turn_nemesis"}, hero, null);
+         t.Note(turned?.Message ?? "(no outcome)");
          t.Expect("cowedRespectfulTurns", turned?.IsPositive, true);
          t.Expect("identityMarkedTurned", nem.IsTurned, true);
          t.Expect("releasedFromCaptivity", hero.IsPrisoner, false);
@@ -6701,15 +6917,17 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("party_troop_count");
 
-         Hero member = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != null && h != Hero.MainHero && h.IsAlive && h.PartyBelongedTo == MobileParty.MainParty);
-
-         if (t.Skip(member == null, "no companion in the player's party")) return t.Line();
-
          // A captive player's zero is the DESIGNED answer (PlayerForcePolicy: the party does not follow
          // them into a cell), not a wiring failure; asserting >0 there would fail the feature for doing
-         // exactly what its own doc promises. Run free to test the wiring (testall 2026-07-23).
+         // exactly what its own doc promises. Run free to test the wiring (testall 2026-07-23). Checked
+         // before arranging anyone, since a captive player needs no interlocutor at all for this test.
          if (t.Skip(Hero.MainHero?.IsPrisoner == true, "the player is a captive, whose visible force is 0 by design; run free")) return t.Line();
+
+         // Arranged per GABRIEL'S RULE (13/10/2026): reuses any party member already riding along, borrows
+         // one from elsewhere, or mints one when the player has none at all.
+         using var arranged = ArrangedCompanion.Get(behavior, mustBeInMainParty: true);
+         if (t.Skip(arranged == null, "no companion in the player's party, and no wanderer template to arrange one")) return t.Line();
+         Hero member = arranged.Companion;
 
          NpcProfile profile = GetOrCreate(behavior, member);
          EncounterContext ctx = EncounterContextBuilder.Build(
@@ -6828,14 +7046,15 @@ namespace CalradiaRemembers.Diagnostics
 
          // A DISPOSABLE companion: an opposite-sex (so orientation is not the confound), adult, unwed, free
          // wanderer of the player's own clan. Opposite sex isolates the real feature (a promoted companion weds)
-         // from the engine's separate same-sex refusal.
-         bool playerFemale = Hero.MainHero.IsFemale;
-         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != null && h != Hero.MainHero && h.IsAlive && !h.IsChild && h.Spouse == null && !h.IsPrisoner
-            && MarryCompanionResolver.IsPlayerCompanion(h) && h.IsFemale != playerFemale);
+         // from the engine's separate same-sex refusal. Arranged per GABRIEL'S RULE (13/10/2026): minted when
+         // the player has none at all. Divorcing a REAL spouse is never safe to arrange, so the player-already-wed
+         // skip above stays exactly as it was.
+         using var arranged = ArrangedCompanion.Get(behavior, oppositeSexOfPlayer: true, unwed: true);
 
-         if (t.Skip(companion == null, "no disposable opposite-sex unwed adult companion in the player's clan to drive"))
+         if (t.Skip(arranged == null, "no disposable opposite-sex unwed adult companion in the player's clan, and no wanderer template to arrange one"))
             return t.Line();
+
+         Hero companion = arranged.Companion;
 
          // ── The CARVE-OUT: an eligible non-kin companion no longer emits SameClan; a blood-kin clan member still does ──
          t.Note($"companion={companion.Name}, occupation={companion.Occupation}, clan==player={companion.Clan == Clan.PlayerClan}");
@@ -7364,9 +7583,11 @@ namespace CalradiaRemembers.Diagnostics
          Hero npc = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
          if (t.Abort(npc == null, "no live lord to confess to")) return t.Line();
 
-         // A player-clan companion stands in as the hidden lover: PlayerSecretLoverSubjectIds only counts companions.
-         Hero subject = Clan.PlayerClan?.Companions?.FirstOrDefault(h => h != null && h != Hero.MainHero && h != npc);
-         if (t.Abort(subject == null, "no player-clan companion to stand in as the secret-lover subject")) return t.Line();
+         // A companion stands in as the hidden lover: PlayerSecretLoverSubjectIds only counts companions.
+         // Arranged per GABRIEL'S RULE (13/10/2026): minted when the player has none at all.
+         using var arranged = ArrangedCompanion.Get(behavior, exclude: npc);
+         if (t.Abort(arranged == null, "no wanderer template available to arrange a secret-lover subject from")) return t.Line();
+         Hero subject = arranged.Companion;
 
          NpcProfile subjectProfile = GetOrCreate(behavior, subject);
          if (subjectProfile.Romantic == null) subjectProfile.Romantic = new RomanticProfile();
@@ -7420,8 +7641,10 @@ namespace CalradiaRemembers.Diagnostics
          Hero npc = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
          if (t.Abort(npc == null, "no live lord to hold the secret")) return t.Line();
 
-         Hero subject = Clan.PlayerClan?.Companions?.FirstOrDefault(h => h != null && h != Hero.MainHero && h != npc);
-         if (t.Abort(subject == null, "no player-clan companion to stand in as the secret-lover subject")) return t.Line();
+         // Arranged per GABRIEL'S RULE (13/10/2026): minted when the player has no companion at all.
+         using var arranged = ArrangedCompanion.Get(behavior, exclude: npc);
+         if (t.Abort(arranged == null, "no wanderer template available to arrange a secret-lover subject from")) return t.Line();
+         Hero subject = arranged.Companion;
 
          NpcProfile subjectProfile = GetOrCreate(behavior, subject);
          if (subjectProfile.Romantic == null) subjectProfile.Romantic = new RomanticProfile();
@@ -7534,8 +7757,10 @@ namespace CalradiaRemembers.Diagnostics
          Hero npc = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
          if (t.Abort(npc == null, "no live lord to hold the secret")) return t.Line();
 
-         Hero subject = Clan.PlayerClan?.Companions?.FirstOrDefault(h => h != null && h != Hero.MainHero && h != npc);
-         if (t.Abort(subject == null, "no player-clan companion to stand in as the secret-lover subject")) return t.Line();
+         // Arranged per GABRIEL'S RULE (13/10/2026): minted when the player has no companion at all.
+         using var arranged = ArrangedCompanion.Get(behavior, exclude: npc);
+         if (t.Abort(arranged == null, "no wanderer template available to arrange a secret-lover subject from")) return t.Line();
+         Hero subject = arranged.Companion;
 
          NpcProfile subjectProfile = GetOrCreate(behavior, subject);
          if (subjectProfile.Romantic == null) subjectProfile.Romantic = new RomanticProfile();
@@ -8690,14 +8915,12 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(lord == null, "no other-clan lord to take anyone into service")) return t.Line();
 
          // Exactly the candidates the gate itself would offer, so the test cannot pass on someone the feature
-         // would never have touched (a spouse, a sitting governor, someone away on an errand).
-         Hero companion = playerClan.Companions.FirstOrDefault(
-            c => c is {IsAlive: true, IsPrisoner: false}
-              && c != Hero.MainHero.Spouse
-              && c.GovernorOf == null
-              && CompanionMissionBehavior.Instance?.IsAway(c.StringId) != true);
-
-         if (t.Skip(companion == null, "the player has no spare companion who is free to go")) return t.Line();
+         // would never have touched (a spouse, a sitting governor, someone away on an errand). Arranged per
+         // GABRIEL'S RULE (13/10/2026): minted when the player has no spare companion at all; ArrangedCompanion's
+         // own Fits() already excludes the spouse, a governor and anyone away, exactly as this test asks.
+         using var arranged = ArrangedCompanion.Get(behavior);
+         if (t.Skip(arranged == null, "the player has no spare companion who is free to go, and no wanderer template to arrange one")) return t.Line();
+         Hero companion = arranged.Companion;
 
          MobileParty cameFrom = companion.PartyBelongedTo;
          Clan lordClan = lord.Clan;
@@ -8706,8 +8929,9 @@ namespace CalradiaRemembers.Diagnostics
          // Prove the ground truth the assertions below rest on, so a pass cannot mean "they were never ours".
          t.Expect("theyStartAsYourOwnCompanion", companion.IsPlayerCompanion, true);
 
-         NpcProfile lordProfile = behavior.Store?.Get(lord.StringId);
-         if (t.Skip(lordProfile == null, "no stored profile for the lord to act through")) return t.Line();
+         // A brand-new game has no stored profile for the lord either; GetOrCreate arranges one rather than
+         // skipping (on a new game the old "no stored profile" skip was real).
+         NpcProfile lordProfile = GetOrCreate(behavior, lord);
 
          ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
             new GameAction {
@@ -8835,12 +9059,19 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(ModSettings.AdultContentLevel == AdultContentLevel.Off,
                     "adult content is off, which gates this whole arc before any regard is read")) return t.Line();
 
-         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsPlayerCompanion && h.IsAlive && h != Hero.MainHero.Spouse);
-
-         if (t.Skip(companion == null, "no living companion in the player's own party")) return t.Line();
+         // Arranged per GABRIEL'S RULE (13/10/2026): minted when the player has no companion at all. Opposite
+         // sex of the player isolates orientation from the engine's own same-sex refusal, same as marry_companion.
+         using var arranged = ArrangedCompanion.Get(behavior, oppositeSexOfPlayer: true);
+         if (t.Skip(arranged == null, "no living companion in the player's own party, and no wanderer template to arrange one")) return t.Line();
+         Hero companion = arranged.Companion;
 
          NpcProfile profile = GetOrCreate(behavior, companion);
+
+         // A minted companion's orientation was rolled at random by RomanticProfileBuilder and may land
+         // incompatible; force it ONLY on a freshly-minted hero, never on a real, already-established one
+         // (whose orientation is theirs to keep, and whose incompatibility is a genuine Skip below).
+         if (arranged.WasMinted && profile.Romantic != null)
+            profile.Romantic.Orientation = SexualOrientation.Heterosexual;
 
          if (t.Skip(profile.Romantic == null, $"{companion.Name} has no romantic profile to judge")) return t.Line();
          if (t.Skip(!profile.Romantic.IsCompatibleWith(Hero.MainHero.IsFemale),
@@ -9315,7 +9546,9 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("acceptingLeadsToTheAnswer", b.ActiveRun.StageId, "answer");
 
             string taught = b.InterpreterChoicesFor(giver) ?? "";
-            t.Expect("theInterpreterIsTaughtTheOpenChoice", taught.Contains("choice give_up"), true);
+            // The choice line opens on the id alone since 7208baa ("- give_up: ..."; "- choice voice:" was read back as
+            // "choice_voice"); this check still looked for the old "choice give_up" and failed on a working choice.
+            t.Expect("theInterpreterIsTaughtTheOpenChoice", taught.Contains("- give_up:"), true);
             t.Expect("andNotTheClosedOne", taught.Contains("tell_secret"), false);
             t.Expect("anotherLordsInterpreterIsTaughtNothing", other == null ? null : b.InterpreterChoicesFor(other), null);
 
@@ -9346,8 +9579,10 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("audience_not_spent_unheard");
 
-         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsPlayerCompanion && h != Hero.MainHero);
-         if (t.Skip(companion == null, "no companion")) return t.Line();
+         // Arranged per GABRIEL'S RULE (13/10/2026): minted when the player has no companion at all.
+         using var arranged = ArrangedCompanion.Get(behavior);
+         if (t.Skip(arranged == null, "no companion, and no wanderer template to arrange one")) return t.Line();
+         Hero companion = arranged.Companion;
 
          // As a grant does: promise what the audience changes, then the open fails (here: no profile to open with).
          var spent = false;
@@ -10485,7 +10720,10 @@ namespace CalradiaRemembers.Diagnostics
                                                            && h.Spouse != null && h.Spouse != Hero.MainHero && !h.Spouse.IsPrisoner
                                                            && Mapping.HeroPresence.IsInTheWorld(h) && Mapping.HeroPresence.IsInTheWorld(h.Spouse)
                                                            && h.Clan?.Leader != h && h.GovernorOf == null && (h.PartyBelongedTo == null || h.PartyBelongedTo.LeaderHero != h)
-                                                           && h.MapFaction != null && h.MapFaction != mine);
+                                                           && h.MapFaction != null && h.MapFaction != mine
+                                                           // Arranged: a husband the game can wed again now (not in an army or a battle). On a new game
+                                                           // the first pair found had Arcor away on campaign, and the game refused in silence.
+                                                           && h.Spouse.PartyBelongedTo?.Army == null && h.Spouse.PartyBelongedTo?.MapEvent == null);
          if (t.Skip(her == null, "no married lady of another realm free to leave")) return t.Line();
 
          Hero him = her.Spouse;
@@ -10504,6 +10742,7 @@ namespace CalradiaRemembers.Diagnostics
             b.DebugElopement("return_spouse", her, him);
             t.Expect("sheIsHisWifeAgain", her.Spouse == him && him.Spouse == her, true);
             t.Expect("sheLeftThePlayersParty", her.PartyBelongedTo != MobileParty.MainParty, true);
+            t.Expect("nothingIsLeftWaiting", b.DebugReturnsWaiting.Any(k => k.StartsWith(her.StringId + "|")), false);
          }
          finally
          {
@@ -15351,28 +15590,12 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("presence");
 
-         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(
-            h => h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && h.PartyBelongedTo == MobileParty.MainParty);
-
-         // A test that only runs when the campaign happens to be arranged just so is a test that never runs. If no
-         // companion is riding along, BORROW one for the assertion and put them back afterwards, the way the rest
-         // of this harness seeds the state it needs.
-         MobileParty borrowedFrom = null;
-         var borrowed = false;
-
-         if (companion == null)
-         {
-            Hero spare = Hero.AllAliveHeroes.FirstOrDefault(
-               h => h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner);
-
-            if (t.Skip(spare == null || MobileParty.MainParty == null, "the player has no companion at all to place at their side")) return t.Line();
-
-            borrowedFrom = spare.PartyBelongedTo;
-            borrowed = true;
-            AddHeroToPartyAction.Apply(spare, MobileParty.MainParty, false);
-            companion = spare;
-            t.Note($"(borrowed {spare.Name} into the player's party for this test)");
-         }
+         // A test that only runs when the campaign happens to be arranged just so is a test that never runs.
+         // Arranged per GABRIEL'S RULE (13/10/2026): reuses a companion already riding along, borrows one from
+         // elsewhere, or mints one when the player has none at all, then undoes whichever it did.
+         using var arranged = ArrangedCompanion.Get(behavior, mustBeInMainParty: true);
+         if (t.Skip(arranged == null, "the player has no companion at all, and no wanderer template to arrange one")) return t.Line();
+         Hero companion = arranged.Companion;
 
          PresenceTier tier = PlayerPresenceResolver.Resolve(companion);
          t.Note($"{companion.Name}: tier={tier}");
@@ -15427,17 +15650,6 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("anAwayConsortIsFramedAsOfYourHouse", hctx.MeetingGapNote?.Contains("own house") == true, true);
          }
          else t.Note("no away lord to contrast against");
-
-         // Put the borrowed companion back where they were, so the test does not quietly conscript someone.
-         if (borrowed)
-         {
-            if (borrowedFrom != null && borrowedFrom != MobileParty.MainParty)
-            {
-               AddHeroToPartyAction.Apply(companion, borrowedFrom, false);
-               t.Note($"(returned {companion.Name} to their party)");
-            }
-            else t.Note($"(NOTE: {companion.Name} had no party to return to and remains in yours; reload to discard)");
-         }
 
          return t.Line();
       }
@@ -15582,14 +15794,12 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(CompanionHappinessBehavior.Instance == null, "the contentment behaviour is not registered")) return t.Line();
          if (t.Skip(!ModSettings.CompanionContentment, "companion contentment is switched OFF in Mod Options")) return t.Line();
 
-         // Pick a companion who is NOT kept from a spouse, so this pass exercises idleness alone (a separated
+         // A companion who is NOT kept from a spouse, so this pass exercises idleness alone (a separated
          // spouse is a real grievance and is DESIGNED to sour them slowly, which would confound the reading).
-         Hero subject = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner
-            && (h.Spouse == null || !h.Spouse.IsAlive || h.Spouse == Hero.MainHero
-                || h.Spouse.PartyBelongedTo == h.PartyBelongedTo));
-
-         if (t.Skip(subject == null, "no companion free of a separated spouse to run an idleness pass on")) return t.Line();
+         // Arranged per GABRIEL'S RULE (13/10/2026): a minted wanderer starts unwed, so it always qualifies.
+         using var arranged = ArrangedCompanion.Get(behavior, unwed: true);
+         if (t.Skip(arranged == null, "no companion free of a separated spouse, and no wanderer template to arrange one")) return t.Line();
+         Hero subject = arranged.Companion;
 
          GetOrCreate(behavior, subject);
 
@@ -15658,10 +15868,10 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Abort(AppreciationBehavior.Instance == null, "AppreciationBehavior not active")) return t.Line();
 
-         Hero subject = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner);
-
-         if (t.Skip(subject == null, "no living companion to seed a kindness on")) return t.Line();
+         // Arranged per GABRIEL'S RULE (13/10/2026): minted when the player has no companion at all.
+         using var arranged = ArrangedCompanion.Get(behavior);
+         if (t.Skip(arranged == null, "no living companion, and no wanderer template to arrange one")) return t.Line();
+         Hero subject = arranged.Companion;
 
          GetOrCreate(behavior, subject);
 
@@ -15742,10 +15952,10 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Abort(SchemeStore.Instance == null, "SchemeStore not active")) return t.Line();
          if (t.Abort(Hero.MainHero == null, "no main hero")) return t.Line();
 
-         Hero subject = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner);
-
-         if (t.Skip(subject == null, "no living companion to drive the resolver against")) return t.Line();
+         // Arranged per GABRIEL'S RULE (13/10/2026): minted when the player has no companion at all.
+         using var arranged = ArrangedCompanion.Get(behavior);
+         if (t.Skip(arranged == null, "no living companion, and no wanderer template to arrange one")) return t.Line();
+         Hero subject = arranged.Companion;
 
          if (t.Skip(SchemeStore.Instance.HasSecretSchemeAgainst(Hero.MainHero),
                 "a scheme against the player is already afoot from an earlier run (reload to re-test)")) return t.Line();
@@ -15834,10 +16044,12 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("companion_ambition");
 
-         Hero subject = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner && h.PartyBelongedTo == MobileParty.MainParty);
-
-         if (t.Skip(subject == null, "no living companion currently riding in the main party to drive the resolver against")) return t.Line();
+         // Arranged per GABRIEL'S RULE (13/10/2026): reuses a companion already in the main party, borrows one
+         // from elsewhere, or mints one when the player has none at all (the Command ambition holds trivially
+         // for a minted wanderer too: no field party of their own).
+         using var arranged = ArrangedCompanion.Get(behavior, mustBeInMainParty: true);
+         if (t.Skip(arranged == null, "no living companion in the main party, and no wanderer template to arrange one")) return t.Line();
+         Hero subject = arranged.Companion;
 
          GetOrCreate(behavior, subject);
          int originalHappiness = CompanionHappinessService.Get(subject);
@@ -17115,27 +17327,12 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Abort(behavior.Store == null, "memory store not active")) return t.Line();
          if (t.Abort(MobileParty.MainParty == null, "no main party to hold a companion")) return t.Line();
 
-         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(
-            h => h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && h.PartyBelongedTo == MobileParty.MainParty);
-
-         // A test that only runs when a companion happens to be riding along is a test that rarely runs; BORROW one
-         // and put them back afterwards, the way the rest of this harness seeds the state it needs.
-         MobileParty borrowedFrom = null;
-         var borrowed = false;
-
-         if (companion == null)
-         {
-            Hero spare = Hero.AllAliveHeroes.FirstOrDefault(
-               h => h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion && !h.IsPrisoner);
-
-            if (t.Skip(spare == null, "the player has no companion at all to place in the party")) return t.Line();
-
-            borrowedFrom = spare.PartyBelongedTo;
-            borrowed = true;
-            AddHeroToPartyAction.Apply(spare, MobileParty.MainParty, false);
-            companion = spare;
-            t.Note($"(borrowed {spare.Name} into the player's party for this test)");
-         }
+         // A test that only runs when a companion happens to be riding along is a test that rarely runs.
+         // Arranged per GABRIEL'S RULE (13/10/2026): reuses one already in the party, borrows one from
+         // elsewhere, or mints one when the player has none at all, then undoes whichever it did.
+         using var arranged = ArrangedCompanion.Get(behavior, mustBeInMainParty: true);
+         if (t.Skip(arranged == null, "the player has no companion at all, and no wanderer template to arrange one")) return t.Line();
+         Hero companion = arranged.Companion;
 
          NpcProfile profile = GetOrCreate(behavior, companion);
          int eventsBefore = profile.Events.Count;
@@ -17152,20 +17349,10 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("companionGainedMemory", profile.Events.Count > eventsBefore, true);
          t.Expect("theMemoryNamesThePlayerHeFoughtBeside", profile.Events.Last().summary == expected, true);
 
-         // Cleanup: drop only the ally memory this test planted (this exact summary, dated today), then return the
-         // borrowed companion so the test does not quietly conscript someone.
+         // Cleanup: drop only the ally memory this test planted (this exact summary, dated today). Whatever
+         // ArrangedCompanion did (reused/borrowed/minted) is undone by its own Dispose.
          profile.Events.RemoveAll(e => e.gameDay == today && e.summary == expected);
          behavior.Store.Set(profile);
-
-         if (borrowed)
-         {
-            if (borrowedFrom != null && borrowedFrom != MobileParty.MainParty)
-            {
-               AddHeroToPartyAction.Apply(companion, borrowedFrom, false);
-               t.Note($"(returned {companion.Name} to their party)");
-            }
-            else t.Note($"(NOTE: {companion.Name} had no party to return to and remains in yours; reload to discard)");
-         }
 
          return t.Line();
       }
