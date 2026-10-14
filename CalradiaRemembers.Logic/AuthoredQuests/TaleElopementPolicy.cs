@@ -52,6 +52,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>The game's own marriage rule would wed them (MarriageModel.IsCoupleSuitableForMarriage).</summary>
       public bool TheGameWouldWedThem { get; init; } = true;
+
+      /// <summary>She heads a house of her own now: it cannot be left without its head.</summary>
+      public bool SheLeadsHerHouse { get; init; }
    }
 
    /// <summary>Whether she goes back now, waits, or not at all.</summary>
@@ -62,6 +65,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>The reason passes (a campaign, a captivity): the return is tried again later.</summary>
       public bool WaitAndRetry { get; init; }
+
+      /// <summary>
+      ///   Only the game's rule for NEW matches refuses them: the marriage the tale ended is restored directly, she joining
+      ///   his house (Gabriel's cr.testall, 13/10/2026).
+      /// </summary>
+      public bool RestoreDirectly { get; init; }
    }
 
    /// <summary>When a tale's elopement and return can really happen. Pure.</summary>
@@ -89,7 +98,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>
       ///   Now, wait, or never. What closes the way back for good ends it; a captivity or a husband away on campaign is a
       ///   wait, tried again later (Gabriel's cr.testall, 13/10/2026: the game weds nobody in an army or a battle, and had
-      ///   refused in silence); the game's own marriage rule refusing them otherwise ends it, said plainly.
+      ///   refused in silence); when only the game's rule for new matches refuses them, the marriage is restored directly.
       /// </summary>
       public static ReturnDecision DecideReturn(ReturnFacts f)
       {
@@ -99,9 +108,11 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          if (!f.HeIsSingle) return new ReturnDecision {Why = "he has wed again"};
          if (f.EitherIsPrisoner) return new ReturnDecision {Why = "one of them is held captive", WaitAndRetry = true};
          if (f.HeIsOnCampaign) return new ReturnDecision {Why = "he is away on campaign (an army or a battle)", WaitAndRetry = true};
-         if (!f.TheGameWouldWedThem) return new ReturnDecision {Why = "the game will not wed them again"};
+         if (f.SheLeadsHerHouse) return new ReturnDecision {Why = "she heads a house of her own now, which cannot be left"};
 
-         return new ReturnDecision();
+         // The game's rule is for NEW matches (two clan heads, a courtship elsewhere, a minor house); this marriage was
+         // ended by the tale itself and her return is the condition of peace, so it is restored directly.
+         return new ReturnDecision {RestoreDirectly = !f.TheGameWouldWedThem};
       }
    }
 }

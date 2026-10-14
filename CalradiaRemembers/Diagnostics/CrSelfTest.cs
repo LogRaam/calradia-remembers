@@ -4020,7 +4020,10 @@ namespace CalradiaRemembers.Diagnostics
             StringComparer.OrdinalIgnoreCase);
 
          t.Note($"scanned {scanned.Count} module(s), {enabled.Count} enabled; scanned but not enabled: {string.Join(", ", scanned.Where(id => !enabled.Contains(id)).DefaultIfEmpty("none"))}");
-         t.Expect("everyScannedModuleIsEnabled", scanned.All(id => enabled.Contains(id)), true);
+         // The game switches its OFFICIAL modules on and off by campaign type (StoryMode stays loaded but inactive in a
+         // sandbox game: Gabriel's new game, 13/10/2026). What this guards is a COMMUNITY mod turned off in the launcher.
+         var official = new HashSet<string>(ModuleHelper.GetModules(m => m != null && m.IsOfficial).Select(m => m.Id), StringComparer.OrdinalIgnoreCase);
+         t.Expect("everyScannedModuleIsEnabled", scanned.All(id => enabled.Contains(id) || official.Contains(id)), true);
          t.Expect("thisModIsAmongThem", scanned.Any(id => string.Equals(id, "CalradiaRemembers", StringComparison.OrdinalIgnoreCase)), true);
 
          return t.Line();

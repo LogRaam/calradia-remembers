@@ -1416,7 +1416,8 @@ namespace CalradiaRemembers.Quests
             SheIsSingle = her != null && her.Spouse == null, HeIsSingle = him != null && him.Spouse == null,
             EitherIsPrisoner = her?.IsPrisoner == true || him?.IsPrisoner == true,
             HeIsOnCampaign = him?.PartyBelongedTo?.Army != null || him?.PartyBelongedTo?.MapEvent != null,
-            TheGameWouldWedThem = her != null && him != null && Campaign.Current.Models.MarriageModel.IsCoupleSuitableForMarriage(her, him)
+            TheGameWouldWedThem = her != null && him != null && Campaign.Current.Models.MarriageModel.IsCoupleSuitableForMarriage(her, him),
+            SheLeadsHerHouse = her?.Clan != null && her.Clan.Leader == her
          });
          string key = $"{her?.StringId}|{him?.StringId}|{questId}";
 
@@ -1441,7 +1442,21 @@ namespace CalradiaRemembers.Quests
             return false;
          }
 
-         TaleWorlds.CampaignSystem.Actions.MarriageAction.Apply(her, him, false);
+         if (d.RestoreDirectly)
+         {
+            // The game's rule for NEW matches refused them (Gabriel's cr.testall, 13/10/2026: Susada and Arcor, no campaign
+            // in the way). Its reasons are logged so the next report names the conjunct; the marriage the tale ended is
+            // restored as MarriageAction would, she joining his house.
+            var model = Campaign.Current.Models.MarriageModel;
+            ModLog.Info($"[TALE] '{questId}': the game's match rule refused {her.Name} and {him.Name} (her clan {her.Clan?.Name}, leader {her.Clan?.Leader?.Name}; his {him.Clan?.Name}, leader {him.Clan?.Leader?.Name}; "
+                      + $"she suitable {model.IsSuitableForMarriage(her)}, he suitable {model.IsSuitableForMarriage(him)}); the marriage is restored directly.");
+            if (him.Clan != null && her.Clan != him.Clan) her.Clan = him.Clan;
+            her.Spouse = him;
+            TaleWorlds.CampaignSystem.Actions.ChangeRomanticStateAction.Apply(her, him, TaleWorlds.CampaignSystem.Romance.RomanceLevelEnum.Marriage);
+         }
+         else
+            TaleWorlds.CampaignSystem.Actions.MarriageAction.Apply(her, him, false);
+
          if (her.Spouse != him)
          {
             _returnsWaiting.Remove(key);

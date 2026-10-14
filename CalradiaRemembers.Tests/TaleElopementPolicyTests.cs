@@ -83,18 +83,31 @@ namespace CalradiaRemembers.Tests
          captive.WaitAndRetry.Should().BeTrue();
       }
 
-      // What closes the way back for good is not waited on, and the game refusing to wed them is said, never hidden
-      // behind a line claiming she went back.
+      // What closes the way back for good is not waited on.
       [Test]
-      public void GIVEN_the_way_back_closed_or_the_game_refusing_WHEN_decided_THEN_it_ends_and_says_why()
+      public void GIVEN_the_way_back_closed_WHEN_decided_THEN_it_ends_and_says_why()
       {
          ReturnDecision remarried = TaleElopementPolicy.DecideReturn(new ReturnFacts {BothInTheWorld = true, SheIsSingle = true});
-         ReturnDecision refused = TaleElopementPolicy.DecideReturn(new ReturnFacts {BothInTheWorld = true, SheIsSingle = true, HeIsSingle = true, TheGameWouldWedThem = false});
 
          remarried.WaitAndRetry.Should().BeFalse();
-         refused.WaitAndRetry.Should().BeFalse();
-         refused.Why.Should().Contain("will not wed");
+         remarried.Why.Should().Contain("wed again");
          TaleElopementPolicy.DecideReturn(Returnable()).Why.Should().BeNull();
+      }
+
+      // Gabriel's second cr.testall run (13/10/2026): with Arcor free of any campaign, the game still refused to wed
+      // Susada back. Its rule is for NEW matches (two clan heads, a courtship elsewhere, a minor house); this couple's
+      // marriage was ended by the tale itself, and her return is the condition of peace. When only that rule stands in
+      // the way, the marriage is restored directly, unless she now heads a house of her own, which cannot be left.
+      [Test]
+      public void GIVEN_only_the_games_matchmaking_rule_refusing_WHEN_she_is_returned_THEN_the_marriage_is_restored_directly()
+      {
+         ReturnDecision refusedByTheGame = TaleElopementPolicy.DecideReturn(new ReturnFacts {BothInTheWorld = true, SheIsSingle = true, HeIsSingle = true, TheGameWouldWedThem = false});
+         ReturnDecision sheLeadsAHouse = TaleElopementPolicy.DecideReturn(new ReturnFacts {BothInTheWorld = true, SheIsSingle = true, HeIsSingle = true, TheGameWouldWedThem = false, SheLeadsHerHouse = true});
+
+         refusedByTheGame.Why.Should().BeNull();
+         refusedByTheGame.RestoreDirectly.Should().BeTrue();
+         sheLeadsAHouse.Why.Should().Contain("heads");
+         sheLeadsAHouse.WaitAndRetry.Should().BeFalse();
       }
    }
 }
