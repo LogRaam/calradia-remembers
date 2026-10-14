@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 489 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1096 types in 28 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1101 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -835,7 +835,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (677)
+### CalradiaRemembers.Logic (682)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -893,6 +893,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BountyReason` | public enum | Why a realm has put a price on the player's head. |
 | `BrigandageFacts` | public class | What was attacked, for brigandage. |
 | `CaptiveActionOutcomePolicy` | public static class | Decides whether the player's physical attempt in a captive scene lands, this turn. |
+| `CaptiveDisposition` | public enum | How readily she bargains. |
 | `CaptiveEncounterPolicy` | public static class | The pure decisions behind a captive encounter: the per-tick probability a captor acts (EncounterProbability) and the intent the scene takes (SelectIntent). |
 | `CaptiveEscapeResolution` | public enum | How a captive-escape encounter resolved. |
 | `CaptiveGearLossPolicy` | public static class | The single decision point for WHEN an escape encounter's outcome should transfer the player's equipment to their captor's holder. |
@@ -900,8 +901,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptiveIntentRules` | public static class | Classifies a CaptiveSceneIntent for the chat flow's scene handling. |
 | `CaptiveKinDescriber` | public static class | Builds the captivity clause for a kinsman named in an NPC's RELATIONSHIPS block. |
 | `CaptiveNotoriety` | public static class | Whose capture is talked of, and how far the news carries. |
+| `CaptiveOffer` | public class | What she may offer, and how readily. |
+| `CaptiveOfferFacts` | public class | What decides a captive's offer. |
+| `CaptiveOfferPolicy` | public static class | Decides a captive's offer. |
 | `CaptiveSceneArcPolicy` | public static class | Picks the lead captor's opening arc as a WEIGHTED draw over SceneArc, mirroring CaptiveEncounterPolicy.SelectIntent's draw style: context LEANS the odds rather than gating them, and every arc keeps a floor weight so it c... |
 | `CaptiveSceneDirector` | public class | The "director" of a captive scene: a small state machine that owns the dramatic structure so the model never has to (and never loops a beat). |
+| `CaptiveTerm` | public enum | A term a captive may put on the table for her freedom. |
 | `CaptivityEndReason` | public enum | Engine-free mirror of TaleWorlds.CampaignSystem.Actions.EndCaptivityDetail. |
 | `CaptivityReleaseNarrator` | public static class | Composes the chronicle wording for the end of the player's captivity. |
 | `CaptorReleasePolicy` | public static class | Pure gate for chat-negotiated player release. |

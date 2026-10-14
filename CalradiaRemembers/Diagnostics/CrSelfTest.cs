@@ -227,6 +227,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("quest_rescue_release_credit", Severity.Heavy, "v2.5.3 player report ('his success cancelled his quest'): capture a real in-party lord bound to a real outstanding RescuePrisoner quest, free them through the REAL free_prisoner bridge action (not a battle, not a Debug seam) so the REAL CampaignEvents.HeroPrisonerReleased dispatch reaches QuestDeedTracker's new hook, and assert the quest is stamped SATISFIED, not left outstanding; then runs the REAL daily maintenance sweep and asserts it still does not CANCEL the now-satisfied quest (the exact bug: the void sweep used to read the freed target as proof the task was impossible). Releases the captive and drops the seeded quest afterwards", TestRescueCreditedOnRelease),
          new SelfTest("captive_kin", Severity.Heavy, "capture an in-party enemy lord who has a living parent -> build that parent's RELATIONSHIPS -> assert the captured child is marked as held by the player (the 'you are a liar, my child is safe' denial bug), then release", TestCaptiveKinAwareness),
          new SelfTest("give_item", Severity.Light, "pick a player item -> give_item -> assert it left the inventory", TestGiveItem),
+         new SelfTest("captive_terms", Severity.Heavy, "A captive bargains for her freedom (Maifailun, 14/10/2026: Adrichea, Honor -1, answered 'kill me if you must'; Gabriel: the captive proposes terms herself, intimacy in Mature and above for the honorless). Takes a free lord of another realm captive, gives them Adrichea's Honor -1 for the test, builds the REAL context and prompt, and expects the captive to be told she offers first, with the ransom her house can pay and intimacy only when the content level, age and orientation allow. Releases the lord and restores their traits.", TestCaptiveTerms),
          new SelfTest("sell_item", Severity.Light, "Selling an item in chat (3chmidt, 13/10/2026: a sale became a gift plus a payment the wrong way, 'Give Poison Menja 9000 coins?', and a second sword left). Seeds a trade good, sells it to a lord with coin through the real bridge and expects the item gone, the player paid and the lord's purse lighter by the same sum; then a gift written in words (no bag pick) is queued for confirmation naming the real item. Puts the coin back and removes the seeded goods.", TestSellItem),
          new SelfTest("gift_equip", Severity.Light, "gift an equippable weapon to a companion/spouse -> assert they equipped it", TestGiftEquip),
          new SelfTest("style_reload", Severity.Light, "select a style, edit its file -> assert the next message picks the edit up", TestStyleReload),
@@ -5291,6 +5292,47 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Expect("sameTownGangLeaderFramedAsRival", framedAsRival, true);
          t.Note($"{npc.Name} asked about same-town gang leader {rival.Name}: {(framedAsRival ? "RIVAL" : "NOT framed rival")}. | hint: {Show(hint)}");
+
+         return t.Line();
+      }
+
+      private static string TestCaptiveTerms(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("captive_terms");
+         if (t.Abort(Hero.MainHero == null || PartyBase.MainParty == null, "no player party")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && !h.IsChild
+                                                            && h.Clan != null && h.Clan != Clan.PlayerClan && h.MapFaction != Hero.MainHero.MapFaction
+                                                            && (h.PartyBelongedTo == null || h.PartyBelongedTo.LeaderHero != h)
+                                                            && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(lord == null, "no free lord of another realm outside a party exists to take captive")) return t.Line();
+
+         int honorBefore = lord.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor);
+         int calculatingBefore = lord.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Calculating);
+         TakePrisonerAction.Apply(PartyBase.MainParty, lord);
+         try
+         {
+            lord.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor, -1);
+            lord.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Calculating, 0);
+            NpcProfile profile = GetOrCreate(behavior, lord);
+            EncounterContext ctx = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge);
+            string prompt = behavior.LlmServices?.ChatService?.PromptBuilder?.BuildSystemPrompt(profile, new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()}, ctx) ?? "";
+            Hero payer = lord.Clan?.Leader ?? lord;
+            bool intimacyAllowed = ModSettings.AdultContentLevel != AdultContentLevel.Off && profile.Romantic?.IsCompatibleWith(Hero.MainHero.IsFemale) == true;
+
+            t.Note($"{lord.Name}: disposition={ctx.CaptiveDisposition}, terms={string.Join(",", ctx.CaptiveTerms)}, ransom up to {ctx.CaptiveRansomCeiling} (payer {payer.Name} holds {payer.Gold})");
+            t.Expect("sheIsThePlayersCaptive", ctx.PlayerStatus, PlayerStatusVsNpc.NpcIsCaptive);
+            t.Expect("anHonorlessCaptiveOffersFirst", ctx.CaptiveDisposition, "offers_first");
+            t.Expect("theRansomIsWhatHerHouseCanPay", ctx.CaptiveTerms.Contains("ransom") ? ctx.CaptiveRansomCeiling == payer.Gold : payer.Gold < CaptiveOfferPolicy.RansomFloor, true);
+            t.Expect("intimacyOnlyWhereAllowed", ctx.CaptiveTerms.Contains("intimacy"), intimacyAllowed);
+            t.Expect("theCaptiveIsToldWhatSheCanOffer", prompt.Contains("WHAT YOU CAN OFFER FOR YOUR FREEDOM (") && prompt.Contains("no taste for martyrdom"), true);
+         }
+         finally
+         {
+            lord.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor, honorBefore);
+            lord.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Calculating, calculatingBefore);
+            if (lord.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(lord, Hero.MainHero);
+         }
 
          return t.Line();
       }

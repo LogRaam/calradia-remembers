@@ -331,6 +331,7 @@ namespace CalradiaRemembers.Mapping
          // taught, so the offer (and this negative) were silently withheld for him (2026-08-14 settlement gap).
          bool playerHoldsPrisoner = BannerlordGameStateBridge.IsHeldByPlayer(hero);
          bool canRecruitPrisoner = ResolveCanRecruitPrisoner(hero, profile, playerHoldsPrisoner);
+         CaptiveOffer captiveOffer = ResolveCaptiveOffer(hero, profile, playerStatus, canRecruitPrisoner);
          bool captiveLordWithheldFromDefection = playerHoldsPrisoner
             && hero != null && hero.IsLord
             && !canRecruitPrisoner;
@@ -411,6 +412,12 @@ namespace CalradiaRemembers.Mapping
             CompanionActingOnCaptive = companionActingOnCaptive,
             IsBroughtCaptiveTurn = isBroughtCaptiveTurn,
             CaptiveFearCoerced = ResolveCaptiveFearCoerced(hero, profile, playerStatus),
+            CaptiveTerms = captiveOffer?.Terms.Select(term => term.ToString().ToLowerInvariant()).ToList() ?? new List<string>(),
+            CaptiveRansomCeiling = captiveOffer?.RansomCeiling ?? 0,
+            CaptiveFealtyRealm = captiveOffer != null && captiveOffer.Terms.Contains(CaptiveTerm.Fealty) ? Hero.MainHero?.Clan?.Kingdom?.Name?.ToString() : null,
+            CaptiveDisposition = captiveOffer == null ? null
+               : captiveOffer.Disposition == CaptiveDisposition.OffersFirst ? "offers_first"
+               : captiveOffer.Disposition == CaptiveDisposition.StandsOnPride ? "stands_on_pride" : "bargains",
             CaptorAllowsPersuasionRelease = ResolveCaptorReleaseVerdict(hero, playerStatus).AllowsPersuasion,
             CaptorAllowsRansomRelease = ResolveCaptorReleaseVerdict(hero, playerStatus).AllowsRansom,
             // Captivity EXECUTION (2026-08-04, player request via the "AI Executes" mod): the mod-side half of
@@ -1307,6 +1314,44 @@ namespace CalradiaRemembers.Mapping
       ///   never appears when the bargain itself is not taught. A null profile (no stance ever tracked)
       ///   leaves it false, same as the bridge's own untracked-captive default.
       /// </summary>
+      /// <summary>
+      ///   What a captive of the player may offer for her freedom (CaptiveOfferPolicy; Maifailun and Gabriel, 14/10/2026).
+      ///   Null for anyone who is not the player's captive. Ransom is paid by her house's head (herself when she leads it).
+      /// </summary>
+      private static CaptiveOffer ResolveCaptiveOffer(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus, bool canRecruitPrisoner)
+      {
+         try
+         {
+            if (playerStatus != PlayerStatusVsNpc.NpcIsCaptive || hero == null || Hero.MainHero == null) return null;
+
+            Hero payer = hero.Clan?.Leader ?? hero;
+            Kingdom playersRealm = Hero.MainHero.Clan?.Kingdom;
+            int comesOfAge = Campaign.Current?.Models?.AgeModel?.HeroComesOfAge ?? 18;
+
+            return CaptiveOfferPolicy.Decide(new CaptiveOfferFacts {
+               Traits = new CalradiaRemembers.Logic.Appreciations.TraitFacts {
+                  Honor = TraitLevel(hero, DefaultTraits.Honor), Valor = TraitLevel(hero, DefaultTraits.Valor), Mercy = TraitLevel(hero, DefaultTraits.Mercy),
+                  Calculating = TraitLevel(hero, DefaultTraits.Calculating), Generosity = TraitLevel(hero, DefaultTraits.Generosity)
+               },
+               Fear = profile != null ? StanceService.ToStance(profile).Fear : 0,
+               RansomMeans = payer.Gold,
+               LeadsHerClan = hero.Clan != null && hero.Clan.Leader == hero,
+               PlayerServesARealm = playersRealm != null,
+               HerClanIsInThatRealm = playersRealm != null && hero.Clan?.Kingdom == playersRealm,
+               ServiceIsOpen = canRecruitPrisoner,
+               ContentLevel = ModSettings.AdultContentLevel,
+               BothOfAge = hero.Age >= comesOfAge && Hero.MainHero.Age >= comesOfAge,
+               OrientationAllowsThePlayer = profile?.Romantic?.IsCompatibleWith(Hero.MainHero.IsFemale) == true
+            });
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[CAPTIVE] offer could not be decided for {hero?.Name}: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
       private static bool ResolveCaptiveFearCoerced(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus)
       {
          try
