@@ -46,6 +46,22 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>Either is held captive.</summary>
       public bool EitherIsPrisoner { get; init; }
+
+      /// <summary>His party is in an army or a battle: the game weds nobody then (a wait, not an end).</summary>
+      public bool HeIsOnCampaign { get; init; }
+
+      /// <summary>The game's own marriage rule would wed them (MarriageModel.IsCoupleSuitableForMarriage).</summary>
+      public bool TheGameWouldWedThem { get; init; } = true;
+   }
+
+   /// <summary>Whether she goes back now, waits, or not at all.</summary>
+   public sealed class ReturnDecision
+   {
+      /// <summary>Why not now, or null when she goes back now.</summary>
+      public string Why { get; init; }
+
+      /// <summary>The reason passes (a campaign, a captivity): the return is tried again later.</summary>
+      public bool WaitAndRetry { get; init; }
    }
 
    /// <summary>When a tale's elopement and return can really happen. Pure.</summary>
@@ -68,15 +84,24 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public static bool MustReleasePost(ElopementFacts f) => f != null && (f.SheLeadsAParty || f.SheGoverns);
 
       /// <summary>Null when she can be returned to her husband; otherwise why not.</summary>
-      public static string WhyNotReturn(ReturnFacts f)
+      public static string WhyNotReturn(ReturnFacts f) => DecideReturn(f).Why;
+
+      /// <summary>
+      ///   Now, wait, or never. What closes the way back for good ends it; a captivity or a husband away on campaign is a
+      ///   wait, tried again later (Gabriel's cr.testall, 13/10/2026: the game weds nobody in an army or a battle, and had
+      ///   refused in silence); the game's own marriage rule refusing them otherwise ends it, said plainly.
+      /// </summary>
+      public static ReturnDecision DecideReturn(ReturnFacts f)
       {
          f ??= new ReturnFacts();
-         if (!f.BothInTheWorld) return "one of them is no longer in the world";
-         if (!f.SheIsSingle) return "she is married now, so the way back is closed";
-         if (!f.HeIsSingle) return "he has wed again";
-         if (f.EitherIsPrisoner) return "one of them is held captive";
+         if (!f.BothInTheWorld) return new ReturnDecision {Why = "one of them is no longer in the world"};
+         if (!f.SheIsSingle) return new ReturnDecision {Why = "she is married now, so the way back is closed"};
+         if (!f.HeIsSingle) return new ReturnDecision {Why = "he has wed again"};
+         if (f.EitherIsPrisoner) return new ReturnDecision {Why = "one of them is held captive", WaitAndRetry = true};
+         if (f.HeIsOnCampaign) return new ReturnDecision {Why = "he is away on campaign (an army or a battle)", WaitAndRetry = true};
+         if (!f.TheGameWouldWedThem) return new ReturnDecision {Why = "the game will not wed them again"};
 
-         return null;
+         return new ReturnDecision();
       }
    }
 }

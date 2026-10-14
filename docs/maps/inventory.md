@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 489 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1095 types in 28 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1096 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1673,7 +1673,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (80)
+### CalradiaRemembers.Logic.AuthoredQuests (81)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1737,6 +1737,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlaceRequirement` | public class | (no summary) |
 | `PlayerRequirement` | public class | (no summary) |
 | `QuestFieldAttribute` | public class | What an author is told about one field of a quest file, in the guide's words. |
+| `ReturnDecision` | public class | Whether she goes back now, waits, or not at all. |
 | `ReturnFacts` | public class | What decides whether she can be returned to her husband. |
 | `RivalCandidate` | public class | One lord who might be bound as the {rival}, as the engine reads him. |
 | `RivalRequirement` | public class | The {rival}: a clan leader of the giver's realm who is not the giver (branching tales, 04/10/2026). |

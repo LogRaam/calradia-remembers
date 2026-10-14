@@ -74,6 +74,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.LordsApproaching` (6) | `FiefAudiencePolicy.ChooseFiefValid`, `FiefAudiencePolicy.IsOnCooldown`, `InterceptionFacts`, `InterceptionPacingRules.CooldownDays`, `InterceptionPacingRules.DailyChancePercent`, `InterceptionPacingRules.IsOff` |
 | `PartyBase.MapFaction` (6) | `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `HeroNaming`, `RescueCaptorFacts` |
 | `PartyBelongedTo.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `EscortCostPolicy.EscortPremium`, `JealousyHearingPolicy.WithinEarshot` |
+| `PartyBelongedTo.MapEvent` (6) | `AssemblyInvitationFacts`, `AssemblyTravelFacts`, `AssemblyTravelOutcome.Evaluate`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `ReturnFacts` |
 | `Romantic.IsOpenArrangement` (6) | `LoverEligibilityFacts`, `OpenRelationshipPolicy.SuppressesJealousy`, `PartnerStanding`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot` |
 | `Settlement.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `AuthoredQuestEngine.NightPassed`, `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
 | `Town.FoodStocks` (6) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination`, `TownFoodPolicy.StocksAfterRelief` |
@@ -82,7 +83,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.CompanionOf` (5) | `FactionGuidelinesPolicy.NarrowToOwnCulture`, `PrisonerExchangePolicy.IsExchangeable`, `PromptKindFacts`, `StationGuidelinesPolicy.ResolveStationKey`, `StationGuidelinesPolicy.SelectStationText` |
 | `IFaction.IsAtWarWith` (5) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `MarriageStateFacts`, `OutlawPolicy.IsBrigandage` |
 | `MobileParty.BesiegedSettlement` (5) | `AuthoredMapTriggerPolicy.WhyNot`, `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `MapTriggerFacts` |
-| `PartyBelongedTo.MapEvent` (5) | `AssemblyInvitationFacts`, `AssemblyTravelFacts`, `AssemblyTravelOutcome.Evaluate`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate` |
+| `PartyBelongedTo.Army` (5) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `ReturnFacts` |
 | `Romantic.Status` (5) | `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Settlement.IsCastle` (5) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts` |
 | `Settlement.IsStarving` (5) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination` |
@@ -98,7 +99,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MobileParty.MemberRoster` (4) | `CouncilTroopLoanPolicy.ComputeLoan`, `CourtActionPolicy.IsPartyWeakened`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `MobileParty.Party` (4) | `GiftEquipFacts`, `GiftEquipPolicy.WearsOnBattleSet`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
 | `PartyBase.Settlement` (4) | `CourierSecretPolicy.WhoGetsTheSecret`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend`, `SecretDefeaterFacts` |
-| `PartyBelongedTo.Army` (4) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate` |
 | `PartyBelongedToAsPrisoner.MobileParty` (4) | `CaptiveEncounterPolicy.BanditCollectiveParticipantCap`, `CaptiveEncounterPolicy.BanditWitnessCount`, `CaptiveEncounterPolicy.ShouldBanditSceneBeCollective`, `CompanionScenePolicy.ShouldTargetCompanion` |
 | `PlayerEncounter.InsideSettlement` (4) | `DuelStagingSupport.CanHoldATownDuel`, `DuelVenuePolicy.Choose`, `LandfallFacts`, `MapEncounterCloseFacts` |
 | `Profile.ReputationWithPlayer` (4) | `DelegatedRiskFacts`, `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion`, `PeaceMediationPolicy.Evaluate` |
@@ -187,6 +187,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Kingdom.RulingClan` (2) | `OutlawPolicy.IsBrigandage`, `WarLoomingPolicy.ShouldRecord` |
 | `LocationComplex.GetLocationWithId` (2) | `DuelStagingSupport.CanHoldATownDuel`, `DuelVenuePolicy.Choose` |
 | `MapEvent.GetMapEventSide` (2) | `BattleWorthFacts`, `LiberationFacts` |
+| `MarriageModel.IsCoupleSuitableForMarriage` (2) | `QuestMenuEntry`, `ReturnFacts` |
 | `MobileParty.ActualClan` (2) | `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
 | `MobileParty.AttachedTo` (2) | `ChaseFacts`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter` |
 | `MobileParty.CurrentSettlement` (2) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts` |
@@ -614,7 +615,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ResolutionEligibilityPolicy.OfferedExecutableKeysForScope`: `Clan.Kingdom`, `Kingdom.Leader`, `Town.Governor`
 - `ResolutionWorldFacts`: `Clan.Kingdom`, `Kingdom.Leader`, `Town.Governor`
 - `RetainerStandingFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`
-- `ReturnFacts`: `Hero.IsPrisoner`, `Hero.Spouse`
+- `ReturnFacts`: `Hero.IsPrisoner`, `Hero.Spouse`, `MarriageModel.IsCoupleSuitableForMarriage`, `PartyBelongedTo.Army`, `PartyBelongedTo.MapEvent`
 - `RevokeFacts`: `Clan.Kingdom`, `Hero.Clan`, `Kingdom.Leader`
 - `RevokeOfferFacts`: `Clan.Kingdom`, `Clan.Settlements`, `Hero.Clan`, `Kingdom.Leader`
 - `RideWithMeFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.Clan`, `Hero.IsAlive`, `Hero.IsLord`, `Hero.IsPrisoner`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `MobileParty.LeaderHero`

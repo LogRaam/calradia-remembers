@@ -68,5 +68,33 @@ namespace CalradiaRemembers.Tests
          TaleElopementPolicy.WhyNotReturn(new ReturnFacts {SheIsSingle = true, HeIsSingle = true}).Should().Contain("world");
          TaleElopementPolicy.WhyNotReturn(new ReturnFacts {BothInTheWorld = true, SheIsSingle = true, HeIsSingle = true, EitherIsPrisoner = true}).Should().Contain("captive");
       }
+
+      // Gabriel's cr.testall on a new game (13/10/2026): Susada was not wed to Arcor again, yet the tale said she had
+      // gone back to him. The game weds nobody whose party is in an army or a battle, and refused in silence. A husband
+      // away on campaign (or a captive) is a wait, not an end: the return is tried again until it can happen.
+      [Test]
+      public void GIVEN_a_husband_away_on_campaign_or_a_captive_WHEN_she_would_be_returned_THEN_the_return_waits_and_is_tried_again()
+      {
+         ReturnDecision campaign = TaleElopementPolicy.DecideReturn(new ReturnFacts {BothInTheWorld = true, SheIsSingle = true, HeIsSingle = true, HeIsOnCampaign = true});
+         ReturnDecision captive = TaleElopementPolicy.DecideReturn(new ReturnFacts {BothInTheWorld = true, SheIsSingle = true, HeIsSingle = true, EitherIsPrisoner = true});
+
+         campaign.WaitAndRetry.Should().BeTrue();
+         campaign.Why.Should().Contain("campaign");
+         captive.WaitAndRetry.Should().BeTrue();
+      }
+
+      // What closes the way back for good is not waited on, and the game refusing to wed them is said, never hidden
+      // behind a line claiming she went back.
+      [Test]
+      public void GIVEN_the_way_back_closed_or_the_game_refusing_WHEN_decided_THEN_it_ends_and_says_why()
+      {
+         ReturnDecision remarried = TaleElopementPolicy.DecideReturn(new ReturnFacts {BothInTheWorld = true, SheIsSingle = true});
+         ReturnDecision refused = TaleElopementPolicy.DecideReturn(new ReturnFacts {BothInTheWorld = true, SheIsSingle = true, HeIsSingle = true, TheGameWouldWedThem = false});
+
+         remarried.WaitAndRetry.Should().BeFalse();
+         refused.WaitAndRetry.Should().BeFalse();
+         refused.Why.Should().Contain("will not wed");
+         TaleElopementPolicy.DecideReturn(Returnable()).Why.Should().BeNull();
+      }
    }
 }

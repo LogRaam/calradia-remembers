@@ -45,12 +45,20 @@ namespace CalradiaRemembers.Quests
       // An older save has none, so a repeatable quest it already played may come back at once: harmless.
       private const string PlayedOnKey = "CalradiaRemembers_AuthoredQuestsPlayedOn_v1";
 
+      // A queen's return that had to wait (her husband away on campaign, or a captivity): "herId|himId|questId" to the day
+      // it was first asked. Additive key: an older save simply has none waiting.
+      private const string PendingReturnsKey = "CalradiaRemembers_TaleReturnsWaiting_v1";
+
+      /// <summary>How long a waiting return is tried before it is given up (and said so in the log).</summary>
+      private const int ReturnWaitDays = 60;
+
       private Dictionary<string, AuthoredQuest> _quests = new(StringComparer.Ordinal);
       private List<string> _problems = new();
       private AuthoredQuestRun _run;
       private HashSet<string> _done = new(StringComparer.Ordinal);
       private Dictionary<string, int> _declined = new(StringComparer.Ordinal);
       private Dictionary<string, int> _playedOn = new(StringComparer.Ordinal);
+      private Dictionary<string, int> _returnsWaiting = new(StringComparer.Ordinal);
 
       // The offer being made in the conversation now open (transient: a conversation does not survive a save).
       private AuthoredQuestRun _offer;
@@ -97,10 +105,16 @@ namespace CalradiaRemembers.Quests
          string done = string.Join("\n", _done);
          string declined = DayList(_declined);
          string playedOn = DayList(_playedOn);
+         string returnsWaiting = DayList(_returnsWaiting);
          dataStore.SyncData(RunKey, ref run);
          dataStore.SyncData(DoneKey, ref done);
          dataStore.SyncData(DeclinedKey, ref declined);
          dataStore.SyncData(PlayedOnKey, ref playedOn);
+         try { dataStore.SyncData(PendingReturnsKey, ref returnsWaiting); }
+         catch
+         {
+            returnsWaiting = ""; // an older save: no return waiting
+         }
 
          if (!dataStore.IsLoading) return;
 
@@ -108,6 +122,7 @@ namespace CalradiaRemembers.Quests
          _done = new HashSet<string>((done ?? "").Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries), StringComparer.Ordinal);
          _declined = ReadDayList(declined);
          _playedOn = ReadDayList(playedOn);
+         _returnsWaiting = ReadDayList(returnsWaiting);
       }
 
       private static string DayList(Dictionary<string, int> days) => string.Join("\n", days.Select(kv => kv.Key + "=" + kv.Value));
@@ -537,6 +552,7 @@ namespace CalradiaRemembers.Quests
 
       private void OnDailyTick()
       {
+         RetryWaitingReturns();
          ReconcileJournal();
          if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return;
          if (StopIfContentLowered(q)) return;
@@ -1384,24 +1400,93 @@ namespace CalradiaRemembers.Quests
       {
          Hero her = Find(AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c.Who) ? "{giver}" : c.Who));
          Hero him = Find(AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c.Spouse) ? "{husband}" : c.Spouse));
-         string whyNot = TaleElopementPolicy.WhyNotReturn(new ReturnFacts {
+         TryReturn(her, him, _run?.QuestId, firstAsked: true);
+      }
+
+      /// <summary>
+      ///   One attempt at her return (TaleElopementPolicy.DecideReturn): now, wait, or never. Gabriel's cr.testall on a new
+      ///   game (13/10/2026): the game weds nobody whose party is in an army or a battle, and refused in silence while
+      ///   the log claimed she had gone back. Now a passing reason sends her to his house's home and the wedding waits
+      ///   (retried daily, RetryWaitingReturns); a refusal is said; success is checked, not assumed. True when done.
+      /// </summary>
+      private bool TryReturn(Hero her, Hero him, string questId, bool firstAsked)
+      {
+         ReturnDecision d = TaleElopementPolicy.DecideReturn(new ReturnFacts {
             BothInTheWorld = her != null && him != null && Mapping.HeroPresence.IsInTheWorld(her) && Mapping.HeroPresence.IsInTheWorld(him),
             SheIsSingle = her != null && her.Spouse == null, HeIsSingle = him != null && him.Spouse == null,
-            EitherIsPrisoner = her?.IsPrisoner == true || him?.IsPrisoner == true
+            EitherIsPrisoner = her?.IsPrisoner == true || him?.IsPrisoner == true,
+            HeIsOnCampaign = him?.PartyBelongedTo?.Army != null || him?.PartyBelongedTo?.MapEvent != null,
+            TheGameWouldWedThem = her != null && him != null && Campaign.Current.Models.MarriageModel.IsCoupleSuitableForMarriage(her, him)
          });
-         if (whyNot != null)
+         string key = $"{her?.StringId}|{him?.StringId}|{questId}";
+
+         if (d.Why != null)
          {
-            ModLog.Info($"[TALE] '{_run?.QuestId}': {her?.Name} is not returned to {him?.Name}: {whyNot}.");
-            return;
+            if (d.WaitAndRetry)
+            {
+               if (firstAsked)
+               {
+                  _returnsWaiting[key] = (int) CampaignTime.Now.ToDays;
+                  if (her != null && !her.IsPrisoner && her.PartyBelongedTo == MobileParty.MainParty && him?.Clan?.HomeSettlement != null)
+                     TaleWorlds.CampaignSystem.Actions.TeleportHeroAction.ApplyImmediateTeleportToSettlement(her, him.Clan.HomeSettlement);
+                  ModLog.Info($"[TALE] '{questId}': {her?.Name}'s return to {him?.Name} waits: {d.Why}. She goes to his house's home; tried again each day.");
+               }
+
+               return false;
+            }
+
+            _returnsWaiting.Remove(key);
+            ModLog.Info($"[TALE] '{questId}': {her?.Name} is not returned to {him?.Name}: {d.Why}.");
+
+            return false;
          }
 
          TaleWorlds.CampaignSystem.Actions.MarriageAction.Apply(her, him, false);
+         if (her.Spouse != him)
+         {
+            _returnsWaiting.Remove(key);
+            ModLog.Error($"[TALE] '{questId}': the game did not wed {her.Name} to {him.Name} again; she is not returned.");
+
+            return false;
+         }
+
+         _returnsWaiting.Remove(key);
          if (him.PartyBelongedTo != null && him.PartyBelongedTo.LeaderHero == him)
             TaleWorlds.CampaignSystem.Actions.AddHeroToPartyAction.Apply(her, him.PartyBelongedTo, false);
          else if (him.Clan?.HomeSettlement != null)
             TaleWorlds.CampaignSystem.Actions.TeleportHeroAction.ApplyImmediateTeleportToSettlement(her, him.Clan.HomeSettlement);
-         ModLog.Info($"[TALE] '{_run?.QuestId}': {her.Name} has gone back to {him.Name}.");
+         ModLog.Info($"[TALE] '{questId}': {her.Name} has gone back to {him.Name}.");
+
+         return true;
       }
+
+      /// <summary>Daily: each waiting return is tried again; one waiting past ReturnWaitDays is given up, in the log.</summary>
+      private void RetryWaitingReturns()
+      {
+         int today = (int) CampaignTime.Now.ToDays;
+         foreach (KeyValuePair<string, int> w in _returnsWaiting.ToList())
+         {
+            string[] p = w.Key.Split('|');
+            if (p.Length < 3) { _returnsWaiting.Remove(w.Key); continue; }
+
+            Hero her = Find(p[0]);
+            Hero him = Find(p[1]);
+            if (today - w.Value > ReturnWaitDays)
+            {
+               _returnsWaiting.Remove(w.Key);
+               ModLog.Info($"[TALE] '{p[2]}': {her?.Name}'s return to {him?.Name} waited {ReturnWaitDays} days and is given up.");
+               continue;
+            }
+
+            TryReturn(her, him, p[2], firstAsked: false);
+         }
+      }
+
+      /// <summary>Self-test seam: the returns waiting now ("herId|himId|questId").</summary>
+      internal IReadOnlyCollection<string> DebugReturnsWaiting => _returnsWaiting.Keys.ToList();
+
+      /// <summary>Self-test seam: one return attempt between these two, as the consequence makes it.</summary>
+      internal bool DebugTryReturn(Hero her, Hero him) => TryReturn(her, him, "[testall]", firstAsked: true);
 
       /// <summary>
       ///   Gabriel (10/10/2026): a tale of intimacy ends on a chance of a child. The woman of the player and their partner
