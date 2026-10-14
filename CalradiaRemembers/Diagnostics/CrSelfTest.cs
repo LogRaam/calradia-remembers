@@ -533,6 +533,36 @@ namespace CalradiaRemembers.Diagnostics
       private static bool _diplomacyMayBeArranged;
 
       /// <summary>
+      ///   The safety net after every test (Gabriel's new-game run, 14/10/2026): spouse_divorce and spouse_estrangement left
+      ///   the player wed to the spouse they had seeded (their "still married" scenarios), and later tests then read the
+      ///   player as wed. A spouse the player did not have before the test is divorced again here, and said; a spouse the
+      ///   player HAD and lost is only reported (the real one is never re-wed blindly).
+      /// </summary>
+      private static string MarriageLeftBehind(string test, Hero spouseBefore)
+      {
+         try
+         {
+            Hero now = Hero.MainHero?.Spouse;
+            if (now == spouseBefore) return "";
+            if (now != null && spouseBefore == null)
+            {
+               bool undone = Marriage.MarriageDissolutionService.TryDissolvePlayerMarriage(now, out string why);
+               ModLog.Info($"[SELFTEST] {test} left the player wed to {now.Name}: dissolved={undone} ({why ?? "ok"}).");
+
+               return $" | SAFETY NET: left the player wed to {now.Name}, dissolved={undone}";
+            }
+
+            ModLog.Error($"[SELFTEST] {test} changed the player's spouse from {spouseBefore?.Name} to {now?.Name?.ToString() ?? "nobody"}: not undone automatically.");
+
+            return $" | SAFETY NET: the player's spouse changed ({spouseBefore?.Name} -> {now?.Name?.ToString() ?? "nobody"})";
+         }
+         catch (Exception ex)
+         {
+            return $" | SAFETY NET failed: {ex.GetType().Name}";
+         }
+      }
+
+      /// <summary>
       ///   Whether this test may arrange a diplomatic change; when not, marks it MANUAL saying why and how to run it.
       ///   <paramref name="missing" /> names the context the save lacks ("the player is at war with no one").
       /// </summary>
@@ -1618,7 +1648,9 @@ namespace CalradiaRemembers.Diagnostics
             // runs away, the completed lines up to it are already on record.
             ModLog.Info($"[SELFTEST] running '{test.Name}'… (budget {budgetSeconds}s)");
             var testStopwatch = Stopwatch.StartNew();
+            Hero spouseBefore = Hero.MainHero?.Spouse;
             string line = SafeRun(test, behavior, budgetSeconds);
+            line += MarriageLeftBehind(test.Name, spouseBefore);
             testStopwatch.Stop();
             line = $"{line} [{testStopwatch.Elapsed.TotalSeconds:0.0}s]";
             ModLog.Info(line);
@@ -14811,6 +14843,9 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"scenario C (demand-phase reconciliation) spouse={spouseB.Name}: withdrawn={demandWithdrawnOnReconcile}");
          t.Expect("demandWithdrawnOnReconciliation", demandWithdrawnOnReconcile, true);
 
+         // The scenario leaves them wed by design; the test's own seed is undone (Gabriel's new-game run, 14/10/2026).
+         if (Hero.MainHero.Spouse == spouseB) MarriageDissolutionService.TryDissolvePlayerMarriage(spouseB, out _);
+
          return t.Line();
       }
 
@@ -14925,6 +14960,9 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"scenario B (reconciliation) spouse={spouseB.Name}");
          t.Expect("stillMarriedAfterReconciliation", stillMarriedAfterReconciliation, true);
          t.Expect("escalationClearedAfterReconciliation", escalationClearedAfterReconciliation, true);
+
+         // The scenario leaves them wed by design; the test's own seed is undone (Gabriel's new-game run, 14/10/2026).
+         if (Hero.MainHero.Spouse == spouseB) MarriageDissolutionService.TryDissolvePlayerMarriage(spouseB, out _);
 
          return t.Line();
       }
