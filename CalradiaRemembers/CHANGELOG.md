@@ -2,6 +2,60 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.10.. 2026-10-14
+
+### New
+- **Selling an item** (3chmidt, 13/10): `sell_item` verb (catalogue, interpreter rule 4 + worked example, bench),
+  executed as one deal (`BannerlordGameStateBridge.ExecuteSellItem`: item out, coin in, item back if the payment
+  fails), price from `ItemSalePolicy` (purse, single-transfer ceiling), always confirmed (`BuildItemQuestion`).
+  Grounding before the price: `item_on_offer` tail section (value and the buyer's purse) from the bag pick, kept on
+  the table for the conversation (`OfferController.ItemOnTheTable`). A worded `give_item` is now confirmed naming the
+  real roster item (`ResolveNamedItem`/`PreviewItem`). One deal per turn: `TradeBatchPolicy` (same ITEM, not word)
+  and `TurnPaymentPolicy` (sell_item moves its own coin). SDK `7e34fec`; mod `c05d9e0`, `e5b8ef3`.
+- **Captive counter-offer** (Maifailun, 14/10; Gabriel: the captive proposes, intimacy a term in Mature+):
+  `CaptiveOfferPolicy` (terms open to HER: ransom by her house's means, fealty only from a clan head not ruling a
+  realm, service through the recruit gate, intimacy at Mature+ between adults if orientation allows and never from
+  an honorable captive; disposition from the nemesis turn thresholds), `captive_terms` tail section, `counter_offer`
+  verb executed after the player's [Y/n] (ransom, fealty via `ChangeKingdomAction.ApplyByJoinToKingdom`, service via
+  recruit_prisoner, then release). SDK `e5da52e`, `bbd4add`; mod `c522934`, `a094d5c`.
+- **Who is asking** (Lordfadooboo, fkasad, 13/10): `AudienceWhoLine`/`AudienceStation` on every invitation;
+  "Who is this?" button on the game's popup (UIExtenderEx prefab + mixin on `SingleQueryPopUpVM`, shown only for
+  `AudienceInquiry` invitations), `EncyclopediaDetour` brings the invitation back. Mod `859dddd`, `a5c837a`.
+- **Local model context window** (fkasad, 13/10): MCM "Local model context (tokens)" (0 = off); `ContextFitPolicy`
+  in `NpcChatService` fits each request (oldest raw lines after the pinned recap, then compact), recalibrated from
+  the server's prompt_tokens; commoner conversations too; the interpreter fits its own window; compact sticks for the
+  session (`LocalContextState`). SDK `e7d1439`, `6983452`; mod `85b6815`, `b4a20da`.
+- **Prompt Composer increments 2-3**: prompt profiles chosen in MCM, a layout per kind of character, sections
+  reworded by `sections/<key>.txt` within the locks; `cr.prompt_check`. SDK `ae5a0c3`, `79bb4ad`; mod `c666021`, `6dc428c`.
+
+### Changed
+- **Envoys** (fkasad, 12/10): a second envoy offers more (`PrisonerOfferPolicy.RaisePerEnvoyTurnedAway`), and fewer
+  come. SDK `2d215a5`; mod `384d5f1`.
+
+### Fixed
+- **Chat close on the map** (Wallace1067, 13/10): only a LIVE map event keeps the encounter
+  (`MapEncounterClosePolicy.IsLive`: not finalized, no winner); the `[CLOSE]` line names which. Mod `0c6913a`.
+- **Battle memories** (tashmetu, 13/10): no more "at at" (the feat reporter now gets the ChronicleEngagement noun
+  phrase), and the witness lines name the player instead of "you". Mod `d1098f2`.
+
+### For modders
+- **Tale-scenario bridge**: `requires.giver` married / not_clan_leader / not_of_players_realm, `requires.husband`
+  ({husband}), consequences `elope` and `return_spouse` (`TaleElopementPolicy.DecideReturn`: a husband on campaign or
+  a captivity waits and is retried daily, saved under `CalradiaRemembers_TaleReturnsWaiting_v1`; only the game's
+  new-match rule refusing restores the marriage directly), `ON_TALE` triggers, roles in rules, one-argument `IF_RULES`,
+  `PRESS_FOR_WAR`. Mod `cb343d6`, `4b7831e`, `b253a07`, `ed8fa46`, `0c2c627`.
+- `{giver_realm}` in tale image names (`AuthoredTaleImages.Resolve`). Mod `54e599a`.
+- Faces files (`RealmFaceBehavior`, Custom/faces.json, a mod's cr_faces.json, optional chat portrait through
+  `ChatPortraitResolver.ByHero`). CR's own queens are held back in `Extras/RealmQueens` (Gabriel, 13/10: "ne livre pas
+  les reines"); `makezip.py` skips them. Mod `f4aade9`, `857db18`, `e3f9aa7`.
+
+### Developer tools
+- `cr.testall` arranges its own context (Gabriel, 13/10): `ArrangedCompanion`, `SeedPlayerMarriage`, lords in a
+  given state, the player's state through seams; diplomacy arranged only in `cr.test full` (`MayArrangeDiplomacy`);
+  a marriage safety net after every test. Mod `bb46f16`, `ee48bc2`, `662dba0`, `6106aaf`.
+- New tests: audience_who, sell_item, captive_terms, captive_counter_offer, local_context, close_settled_battle,
+  battle_memory_wording, prompt_profile, realm_faces, tale_husband, tale_elopement, tale_scenario_bridge.
+
 ## v2.7.9.. 2026-10-12
 
 ### New

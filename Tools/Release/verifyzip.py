@@ -80,7 +80,7 @@ LITERALS = [
     ("mod",   "refused a settlement duel from outside the walls"),
     # 2.5.20, fkasad: the conversation you stepped out of comes back.
     ("mod",   "[CONV RESUME] kept"),
-    ("logic", "s side when they broke the enemy"),
+    ("logic", "s side when we broke the enemy together"),   # 2.7.10, tashmetu: worded "{who}'s side" since
     # 2.5.22, tashmetu: fed events get a place, cr.heard explains who heard what.
     ("mod",   "is not a settlement StringId, so the event was kept without a place."),
     ("logic", "This character could not hear it even on the day it happened."),
@@ -470,6 +470,23 @@ MUST = [
     ("mod",   b"TickEscapeClose"),
     ("logic", b"PlayerCanBeApproached"),
     ("logic", b"PlayerInSiegeOrBattle"),
+    # 2.7.10
+    ("logic", b"ItemSalePolicy"),
+    ("logic", b"TradeBatchPolicy"),
+    ("logic", b"CaptiveOfferPolicy"),
+    ("logic", b"AudienceWhoLine"),
+    ("logic", b"EncyclopediaDetour"),
+    ("logic", b"MapEventSighting"),
+    ("logic", b"ReturnDecision"),
+    ("mod",   b"AudienceInquiry"),
+    ("mod",   b"LocalContextState"),
+    ("mod",   b"ExecuteCounterOffer"),
+    ("mod",   b"ExecuteSellItem"),
+    ("mod",   "captive_counter_offer".encode("utf-16-le")),
+    ("mod",   "local_context".encode("utf-16-le")),
+    ("sdk",   b"ContextFitPolicy"),
+    ("sdk",   "counter_offer".encode("utf-16-le")),
+    ("sdk",   "sell_item".encode("utf-16-le")),
 ]
 MUST_NOT = [
     ("mod",   "A predator wearing a lord's title".encode("utf-16-le")),   # 2.6.11: the retired archetype is gone (the testall keeps the 'Sadistic' opening on purpose)
@@ -486,6 +503,7 @@ MUST_NOT = [
     ("logic", b"NpcInitiativeGate"),   # 2.6.8: renamed NpcActionGate
     ("logic", b"InitiatorFacts"),   # 2.6.8: renamed ActorFacts
     ("mod", b"InitiativeGate"),   # 2.6.8: renamed ActionGate
+    ("logic", "s side when they broke the enemy".encode("utf-16-le")),   # 2.7.10: the "you" wording tashmetu reported
     ("sdk", "In the lines below, ".encode("utf-16-le")),   # 2.7.0: the unbounded history header is gone
     ("mod", b"CrVideoSurface"),   # 2.7.9: the native video spike, removed before release
     ("mod", b"CrFramePumpSpike"),   # 2.7.9: the frame pump spike, removed before release
@@ -546,6 +564,9 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
 wolf_pictures = [n for n in names if n.startswith("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/") and n.endswith(".jpg")]
 ok &= len(wolf_pictures) == 13
 print("  wolf pictures:", len(wolf_pictures))
+queens = [n for n in names if n.endswith("ModuleData/faces.json") or "/QueenPortraits/" in n or "/the_kings_hall/" in n]
+ok &= not queens
+print("  queens held back (2.7.10):", "yes" if not queens else "*** NO: %s ***" % queens[:3])
 portraits = [n for n in names if "/ChatPortraits/" in n]
 ok &= not portraits
 print("  ChatPortraits excluded:", "yes" if not portraits else "*** NO ***")
