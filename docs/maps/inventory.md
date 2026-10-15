@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 496 types in 60 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 498 types in 61 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1130 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
@@ -85,6 +85,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `SingleCallProbeRunner` | internal static class | The runner behind cr.single_call_probe: sends each scenario as one composer+extractor call and reports. |
 | `StoryLog` | internal static class | Writes a clean, narrative-style transcript of conversations and letters to CalradiaRemembers_story.log. |
+
+### CalradiaRemembers.Aims (2)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `AimForContext` | internal class | What the encounter context is told of a lord's aim. |
+| `AimsBehavior` | public class | Keeps the standing aims and the per-conversation leave to raise them. |
 
 ### CalradiaRemembers.Appearance (7)
 

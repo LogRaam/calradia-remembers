@@ -110,6 +110,13 @@ prefix, 4 EncounterContext fields, compact one line; 5 tests). Nothing reaches a
   speak" below the existing ones in FiefAudience/RoadInterception, marked when granted. Each with a cr.testall test
   (register -> the prompt carries the want -> the leave holds on a later reply -> retract).
 
+**BUILT 15/10/2026, INTERNAL (Gabriel: the vassal war duty "passe par la nouvelle architecture"):** glue step (1),
+`Aims/AimsBehavior` (save key `cr_standing_aims`, leave decided at `CrConversation.Started`, closed at `Ended`, the
+four `OwnAim*` context fields from `EncounterContextBuilder`, daily expiry, an internal `Raised` event). Nothing is
+public yet: the `CrAims` door above stays PROPOSED until Gabriel and tashmetu have seen it. Aims seeded by CR itself
+(source `CalradiaRemembers`) are not voiced by `own_aim`: their mechanic has its own section (the war duty's terms).
+cr.testall `aims_conversation`. Letter and audience channels: next, with the war duty's summons.
+
 ## WISHED 2026-10-14 (tashmetu), ROADMAPPED: the captive PLAYER bargains for freedom
 
 The other half of the 2.7.10 `counter_offer` (a lord the player holds offers ransom, fealty, service, goodwill). Today a

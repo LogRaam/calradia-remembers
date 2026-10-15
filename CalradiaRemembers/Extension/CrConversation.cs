@@ -103,6 +103,9 @@ namespace CalradiaRemembers
          Invoke(LineSpoken, line);
       }
 
+      /// <summary>The id of the conversation open now (or the last one), for CR's own per-conversation state.</summary>
+      internal static string CurrentSessionId => _sequencer.SessionId;
+
       /// <summary>The loaded campaign's stable unique id, or null when no campaign is loaded.</summary>
       internal static string CurrentSaveId() => Campaign.Current?.UniqueGameId;
 

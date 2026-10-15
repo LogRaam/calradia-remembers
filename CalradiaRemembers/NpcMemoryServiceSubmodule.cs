@@ -188,6 +188,9 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new CommitmentBehavior());
          // Vassal war duty (Maifailun, Gabriel, 15/10/2026): keeps the service ledger; the ruler acts only with the MCM switch on.
          campaignStarter.AddBehavior(new WarDuty.WarDutyBehavior());
+         // CrAims (tashmetu 14/10, Gabriel 15/10): standing aims and the leave to raise one; internal until the public door is decided.
+         campaignStarter.AddBehavior(new Aims.AimsBehavior());
+         Aims.AimsBehavior.PersonalRegard = h => NpcMemoryCampaignBehavior.Instance?.Store?.Get(h.StringId)?.ReputationWithPlayer;
          // Divorce, Phase 1 (the first verb built on the IConversationVerb contract): end_marriage begins a
          // multi-day estrangement process (the spouse may resist, delay, or defeat it outright); reaching the
          // end day attempts the real dissolution and, on success, records a culture-scaled scandal. Console:

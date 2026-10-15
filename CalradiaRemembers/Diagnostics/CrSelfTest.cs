@@ -286,6 +286,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("background_hold", Severity.Light, "fkasad (Nexus, 15/10/2026): on a local server, summaries, memory compaction and letters slipped in between two replies, the server swapped its KV cache and replies timed out. With a conversation forced open through the seam: a background call routed to OpenAI-Compatible (local) waits; the same call routed to a cloud provider goes at once; with no conversation open a local call goes at once. Restores the provider dropdowns and the seam (the held wait ends within a second)", TestBackgroundHold),
          new SelfTest("war_duty_ledger", Severity.Light, "Maifailun (Nexus, 15/10/2026): a vassal who sits out the realm's war is called to account, so the mod must see his service. On a fresh ledger through the real upkeep: the realm the player is sworn to (none as a mercenary or a free lord) and its enemy kingdoms are recorded from today, so no one owes on the first day. A battle against a realm at war with his counts as service; one against bandits does not. Restores the player's own ledger", TestWarDutyLedger),
+         new SelfTest("aims_conversation", Severity.Light, "CrAims (tashmetu, 14/10/2026: lords with aims of their own; 'the real risk is a lord who brings up Lakonon in every conversation'). A test aim is registered on a real lord not at war with the player; a conversation opening with him gives him leave to raise it and the encounter context carries his want; a second conversation the same day does not give it again; the leave ends with the conversation. An aim Calradia Remembers seeds for its own mechanics is not voiced by the generic section. Retracts both aims", TestAimsConversation),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Then the refused-beat fallback (04/10/2026): the NSFW model resolves for its own provider, the NSFW role has its own client, a refusal is redone there in Enhanced mode, and nothing is redone with no NSFW model. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
          new SelfTest("authored_quest_opening", Severity.Light, "Authored quests Inc 1 (docs/design/AUTHORED_QUESTS.md). The werewolf loads; a real lord holding a village by a forest is bound to it and told to raise it; accepting puts a 'Tale:' entry in the journal and moves past the request; a local of that village believes in the beast and knows nothing of the slavers; two locals heard moves the tale to the watch. Then the watch ends in the scene: a declared finding recorded, an undeclared one refused, the snare hurts but never kills (health restored), closing early still yields the missed clue and moves on to the lord; the lord sends the player hunting, a real band is spawned near the village, and beaten by the player the tale turns home. Every tale binds {player} to the player's name (tashmetu, 11/10/2026). Stops before the reward; abandons the tale (the band is released) and forgets it after. Before the band is beaten, the player loses to it twice through the real after-battle handling (on_defeat, Gabriel 10/10/2026): the tale stays at the hunt and the lord remembers the defeat once.", TestAuthoredQuestOpening),
@@ -15688,6 +15689,61 @@ namespace CalradiaRemembers.Diagnostics
       ///   strings only, never a real key. Snapshots and restores every dropdown + the custom endpoint/key fields it
       ///   touches, so a real campaign is unchanged.
       /// </summary>
+      private static string TestAimsConversation(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("aims_conversation");
+
+         Aims.AimsBehavior aims = Aims.AimsBehavior.Instance;
+         if (t.Skip(aims == null, "the aims behavior is not registered")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h != null && h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Age >= 18
+                                                            && h.MapFaction != null && Hero.MainHero?.MapFaction != null
+                                                            && !FactionManager.IsAtWarAgainstFaction(h.MapFaction, Hero.MainHero.MapFaction)
+                                                            && aims.Book.ForNpc(h.StringId) == null
+                                                            && (behavior?.Store?.Get(h.StringId)?.ReputationWithPlayer ?? 0) > NpcMemoryService.Core.Standing.VanillaRelation.EnemyTier)
+                                               .Take(2).ToList();
+         if (t.Skip(lords.Count < 2, "no two lords at peace with the player to hold a test aim")) return t.Line();
+
+         Hero lord = lords[0];
+         int today = (int) CampaignTime.Now.ToDays;
+         const string source = "cr_selftest";
+         const string first = "cr_selftest_session_1", second = "cr_selftest_session_2";
+
+         try
+         {
+            const string want = "The selftest wants the mill at the ford rebuilt before the spring floods.";
+            t.Expect("registered", aims.Register(new Logic.Aims.StandingAim {Id = "aim", SourceMod = source, NpcId = lord.StringId, Want = want}),
+               Logic.Aims.AimAdmission.Accepted);
+
+            // STAKE: the lord brings his aim up in a conversation the player opens.
+            t.Expect("firstOpeningGivesLeave", aims.OnConversationStarted(new CrConversationInfo(lord.StringId, null, today, first)),
+               Logic.Aims.AimRaiseVerdict.MayRaise);
+            t.Expect("contextCarriesTheWant", aims.ForContext(lord, first)?.Want, want);
+            t.Expect("contextCarriesTheLeave", aims.ForContext(lord, first)?.MayRaise, (bool?) true);
+
+            // STAKE: tashmetu's worry: not in every conversation.
+            t.Expect("secondOpeningSameDayHasNoLeave", aims.OnConversationStarted(new CrConversationInfo(lord.StringId, null, today, second)),
+               Logic.Aims.AimRaiseVerdict.TooSoon);
+            t.Expect("secondContextKnowsButMayNotRaise", aims.ForContext(lord, second)?.MayRaise, (bool?) false);
+
+            aims.OnConversationEnded(first);
+            t.Expect("leaveEndsWithTheConversation", aims.ForContext(lord, first)?.MayRaise, (bool?) false);
+
+            // STAKE: the war duty has its own section with its terms; the generic one must not voice it a second time.
+            aims.Register(new Logic.Aims.StandingAim {Id = "cr_selftest_own", SourceMod = Aims.AimsBehavior.CrSource, NpcId = lords[1].StringId, Want = "A duty of CR's own."});
+            t.Expect("crOwnAimNotVoicedGenerically", aims.ForContext(lords[1], first) == null, true);
+         }
+         finally
+         {
+            aims.Retract(source, "aim");
+            aims.Retract(Aims.AimsBehavior.CrSource, "cr_selftest_own");
+            aims.OnConversationEnded(first);
+            aims.OnConversationEnded(second);
+         }
+
+         return t.Line();
+      }
+
       private static string TestWarDutyLedger(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("war_duty_ledger");

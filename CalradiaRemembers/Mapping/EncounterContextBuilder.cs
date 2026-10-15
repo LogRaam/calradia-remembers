@@ -625,6 +625,12 @@ namespace CalradiaRemembers.Mapping
             // Set AFTER the line above on purpose: resolving the reason is what records the seeker, so on the
             // first turn this reads the fact that call just wrote, and on every later turn it reads it again.
             NpcSoughtThePlayer = InterceptionBehavior.Instance?.SoughtThePlayerThisConversation(hero) ?? false,
+            // CrAims (tashmetu, 14/10/2026): the lord's own aim, and whether this conversation gave him leave to raise
+            // it (decided once, when it opened). Null when he holds none.
+            OwnAimWant = OwnAim(hero)?.Want,
+            OwnAimPlayerPart = OwnAim(hero)?.PlayerPart,
+            OwnAimApproach = OwnAim(hero)?.Approach,
+            OwnAimMayRaise = OwnAim(hero)?.MayRaise ?? false,
             // Resolved HERE, on the game's own thread, rather than inside the prompt builder: the chat call runs
             // the builder inside a Task.Run, and a third-party {{variable}} provider that reads Hero.MainHero or
             // Campaign.Current live (tashmetu's bridge does, on purpose) must never be handed a thread-pool
@@ -1898,6 +1904,17 @@ namespace CalradiaRemembers.Mapping
       ///   When this NPC sought the player out by intercepting them on the map, a one-shot opening
       ///   directive (consumed so it only colours the first turn). Null in an ordinary conversation.
       /// </summary>
+      private static Aims.AimForContext OwnAim(Hero hero)
+      {
+         try { return Aims.AimsBehavior.Instance?.ForContext(hero, CrConversation.CurrentSessionId); }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[AIMS] context read failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
       private static string ResolveInterceptionReason(Hero hero)
       {
          try { return InterceptionBehavior.Instance?.ConsumeInterceptionReason(hero); }
