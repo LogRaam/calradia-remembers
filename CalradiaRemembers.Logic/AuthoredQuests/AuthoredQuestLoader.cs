@@ -187,7 +187,11 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          IEnumerable<AuthoredOutcome> outcomes = new[] {q.Reward, q.Failure}.Concat(endings.Values)
                                                                            .Concat(Defeats(q).Select(d => d.Defeat.AsOutcome()));
-         foreach (AuthoredConsequence c in outcomes.Where(o => o != null).SelectMany(o => o.Consequences ?? new List<AuthoredConsequence>()))
+         // A stage's on_enter (tashmetu, 15/10/2026) is checked as an ending's consequences are.
+         IEnumerable<AuthoredConsequence> entered = q.Stages.Where(s => s != null).SelectMany(s => s.OnEnter ?? new List<AuthoredConsequence>());
+         if (first?.OnEnter is {Count: > 0})
+            cosmetic.Add($"stage '{first.Id}' is the request, entered before the tale is accepted: its on_enter is never carried out.");
+         foreach (AuthoredConsequence c in outcomes.Where(o => o != null).SelectMany(o => o.Consequences ?? new List<AuthoredConsequence>()).Concat(entered))
          {
             if (c != null && !ConsequenceTypes.Contains(c.Type))
                cosmetic.Add($"consequence '{c.Type}' is not carried out yet (known: {string.Join(", ", ConsequenceTypes)}); it is skipped.");
@@ -473,6 +477,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             AuthoredScene scene = s.Objective?.Scene;
             foreach (AuthoredFinding f in scene?.Findings ?? new List<AuthoredFinding>()) set.UnionWith(f?.Sets ?? new List<string>());
             foreach (AuthoredEncounter e in scene?.Encounters ?? new List<AuthoredEncounter>()) set.UnionWith(e?.Sets ?? new List<string>());
+
+            foreach (AuthoredConsequence c in (s.OnEnter ?? new List<AuthoredConsequence>()).Where(c => c != null)) Tests(c.If);
 
             foreach (AuthoredChoice c in (s.Choices ?? new List<AuthoredChoice>()).Where(c => c != null))
             {

@@ -4,6 +4,17 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.12.. open (2.7.11 skipped: a Nexus upload tagged 2.7.10 as both 2.7.10 and 2.7.11)
 
+### New
+- **Consequences on a stage (`on_enter`)** (tashmetu, 15/10: consequences ran only at an ending, so a lady could not
+  leave midway and be given back later in the same tale, which the Troy design needed). A stage's `on_enter` runs as
+  the tale enters it, under its own `if`; never on the first stage (the request; the loader and the editor say so).
+  Checked as endings' consequences are (types, the husband bound, flags). `AuthoredQuestEngine.OnEnter`.
+- **`CrTales` events for modders** (tashmetu, 15/10): `StageReached`, `Ended` (endings, failure, and
+  "end:abandoned", which is not sent to scenario rules) and `ConsequenceSettled` (a return that waited), with the
+  roles, the flags and each consequence's real outcome (`Done` / `NotDone` + reason / `Waiting`), so a mod never
+  answers an elopement that did not happen. On_enter runs before the stage is announced, so scenario rules and mods
+  both see it done. cr.testall `tale_on_enter` (Heavy), `tale_states` hears the abandon.
+
 ### Fixed
 - **A parent knows a child who died** (Maifailun via tashmetu, 15/10: the player's wife Debana died in childbirth and
   her father asked "Which Debana?"). `RelationshipsBuilder` listed living children only; dead children, a dead

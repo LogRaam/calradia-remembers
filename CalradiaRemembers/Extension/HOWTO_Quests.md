@@ -402,6 +402,19 @@ reaches. `failure` is what the tale leaves when its time runs out before any end
 
 Every ending closes the journal entry as completed; the time-out closes it as failed.
 
+**Consequences on a stage (`on_enter`).** A stage may carry the same consequences in `"on_enter": [ ... ]`: they are
+carried out when the tale enters that stage, each under its own `if` (the flags set by the choice that led there
+already hold). So a tale can carry a lady away midway and bring her back at an ending, or not:
+
+```json
+{ "id": "the_war", "journal": "{husband}'s realm takes up arms.",
+  "on_enter": [ { "type": "elope", "if": "with_her" } ],
+  "choices": [ { "id": "give_back", "label": "Give her back", "said": { "to": "{husband}", "meaning": "the player gives {giver} back" }, "next": "end:returned" } ] }
+```
+
+with `"returned": { "consequences": [ { "type": "return_spouse" } ] }` among the endings. The first stage is the
+request, left when the player accepts: its `on_enter` is never carried out, and the checker says so.
+
 ## 9. Flags
 
 Flags are a tale's memory of what happened: simple names, set and tested, with no numbers and no

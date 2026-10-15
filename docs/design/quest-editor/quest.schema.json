@@ -393,6 +393,18 @@
           "x-kind": "object:AuthoredOnComplete",
           "description": "What follows when the stage's own objective is met.",
           "x-default-empty": true
+        },
+        "on_enter": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredConsequence"
+          },
+          "x-kind": "object:AuthoredConsequence[]",
+          "description": "Consequences carried out when the tale enters this stage (the same kinds as an ending's, each with its own \"if\"), so a tale can carry someone away midway and bring them back later. Never on the first stage, which is the request.",
+          "x-default-empty": true
         }
       }
     },

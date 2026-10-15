@@ -141,6 +141,43 @@ _One line as it is DISPLAYED in a conversation, delivered in real time by CrConv
 - `string SpeakerName { get; }`
 - `string Text { get; }`
 
+### CrTaleConsequence
+
+_One consequence of a stage or an ending, and what became of it._
+
+- `CrTaleConsequenceStatus Status { get; }`
+- `string OtherId { get; }`
+- `string Reason { get; }`
+- `string Type { get; }`
+- `string WhoId { get; }`
+
+### CrTaleConsequenceStatus
+
+_Whether a tale's consequence really happened._
+
+- `Done`
+- `NotDone`
+- `Waiting`
+
+### CrTaleProgress
+
+_A tale's progress, delivered by CrTales._
+
+- `IReadOnlyDictionary<string, string> Roles { get; }`
+- `IReadOnlyList<CrTaleConsequence> Consequences { get; }`
+- `IReadOnlyList<string> Flags { get; }`
+- `int GameDay { get; }`
+- `string TaleId { get; }`
+- `string Where { get; }`
+
+### CrTales
+
+_The public tale-progress events other mods subscribe to._
+
+- `static event Action<CrTaleProgress> ConsequenceSettled`
+- `static event Action<CrTaleProgress> Ended`
+- `static event Action<CrTaleProgress> StageReached`
+
 ### CrTranscriptLine
 
 _One attributed line of a conversation, as delivered in CrConversationLog._

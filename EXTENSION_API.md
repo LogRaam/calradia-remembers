@@ -143,6 +143,29 @@ reference to CR. Packs are read in this order: CR's own (`ModuleData/scenarios`)
   presses his king toward war; the king weighs his regard for him, the wars he already fights and the strength he
   would face, and declares or not (a king pressing himself declares).
 
+### Tale progress (`CalradiaRemembers.CrTales`, since 2.7.12)
+
+Read-only events for a tale's progress, the same moments scenario rules answer with `ON_TALE`, for answers that belong
+in your own code:
+
+```csharp
+CrTales.StageReached += p => { /* p.Where is the stage id */ };
+CrTales.Ended += p =>
+{
+   // p.Where: "end:reward", "end:<id>", "end:failure" or "end:abandoned"
+   bool sheLeft = p.Consequences.Any(c => c.Type == "elope" && c.Status == CrTaleConsequenceStatus.Done);
+};
+CrTales.ConsequenceSettled += p => { /* a return that waited: Done, or NotDone after 60 days */ };
+```
+
+`CrTaleProgress` carries `TaleId`, `Where`, `GameDay`, `Roles` (role name to hero StringId or place id, the player as
+`player`), `Flags` (set so far on the path taken) and `Consequences`: what this stage's `on_enter` or this ending
+carried out, each with `Type`, `WhoId`, `OtherId`, `Status` (`Done`, `NotDone` with a `Reason`, or `Waiting`) and only
+the ones whose `if` held. Answer what is `Done`: an `elope` is `NotDone` when the marriage could not end (she is with
+child, a captive, or leads her house). A `return_spouse` is `Waiting` while her husband is on campaign or either is a
+captive; `ConsequenceSettled` follows (`Where` "settled") when it happens or is given up. An abandoned tale carries out
+nothing and is not sent to scenario rules. Tales whose id begins `cr_selftest_` are cr.testall's own.
+
 ### Queens with a chosen face (`ModuleData/cr_faces.json`, since 2.7.10)
 
 `{ "queens": { "<realm id>": "<BodyProperties version=... key=... />" } }`: the line the face editor copies with

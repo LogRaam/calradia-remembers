@@ -326,6 +326,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("battle_memory_wording", Severity.Light, "tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): a witness line read 'I saw you cut down 168 of them yourself at at the siege of Thorios Castle', doubling the preposition and addressing the player as 'you'. Builds the same siege place WorldEventFeeders builds and drives the REAL BattleFeatReporter the way it now wires it (the engagement noun phrase, not the already-shaped place clause), expecting exactly one 'at', no 'you', and the player named. Mutates nothing.", TestBattleMemoryWording),
          new SelfTest("realm_faces", Severity.Light, "Queens with a chosen face (Gabriel, 12/10/2026: one queen per realm, made in the character editor; CR dresses the ruler's wife). Reports the faces files read and their problems; on a real ruler's wife, dresses her in a face (the first one read, else a test face) and expects her face to be exactly that one, expects the chat to show her realm's portrait when the faces file names one (Gabriel, 12/10/2026, unless the player dropped their own), then gives it back and expects her own face and usual portrait again, then lets the daily pass dress whom it should. Changes no one for good.", TestRealmFaces),
          new SelfTest("tale_scenario_bridge", Severity.Light, "The tale-scenario bridge (Gabriel, 12/10/2026: a queen leaves with the player and her husband's realm answers). In a runtime of its own, fires ON_TALE for a made-up tale's ending with a real lady and her husband as roles: a rule naming the whole tale and one naming that ending both play, one naming another ending or another tale does not, the news names the husband (never '{husband}'), and PRESS_FOR_WAR between his realm and the player's applies exactly when they are two realms at peace. Declares nothing; the news it wrote is removed.", TestTaleScenarioBridge),
+         new SelfTest("tale_on_enter", Severity.Heavy, "tashmetu (15/10/2026): consequences ran only at an ending, so a lady could not leave midway and be given back later in the same tale; and other mods asked to hear a tale's progress (CrTales) with what was really carried out. On a real married lady of another realm, a test tale is offered and accepted; the player's choice enters a stage whose on_enter elopes: asserts she rides with the player, CrTales.StageReached reports the stage, the flag and the elopement as Done, the tale is still under way after a day, and giving her back ends it with CrTales.Ended reporting the return as Done and her wed to him again. Restores everything.", TestTaleOnEnter),
          new SelfTest("tale_elopement", Severity.Heavy, "The Troy-inspired tale (Gabriel, 12/10/2026: she leaves with the player as a guest who may be married; her return to her husband is the condition of peace). On a real married lady of another realm: 'elope' ends her marriage, puts her in the player's party, plants her husband's StolenSpouse grudge and marks her free to marry the player; 'return_spouse' weds them again and takes her out of the party. Restores her house, takes back the grudge and the marker.", TestTaleElopement),
          new SelfTest("tale_husband", Severity.Light, "The Troy-inspired tale (Gabriel, 12/10/2026: a queen leaves with the player, her husband answers). Loads a made-up tale asking for a married giver of another realm who does not lead her house, and her husband as {husband}; binds it around a real such lady and expects her own husband bound, then around an unmarried lady and expects her refused for not being married. The tale is unloaded; nothing is offered.", TestTaleHusband),
          new SelfTest("prompt_profile", Severity.Light, "The Prompt Composer (Gabriel, 11/10/2026: \"un param MCM pourrait designer l'ordonnanceur a utiliser\"; \"mise en page par type\"). Uses a made-up profile whose default layout turns every free section off and which rewords the role anchor and (in vain) the sealed format contract, builds a real lord's prompt through the real context and builder, and asserts it is shorter than stock, carries the reworded anchor with his name filled in, and keeps the sealed contract word for word; then puts the player's real pick back and asserts the profile in use is the one it was. The made-up profile is never written to disk.", TestPromptProfile),
@@ -10170,6 +10171,14 @@ namespace CalradiaRemembers.Diagnostics
             b.TakeSaidChoice(giver, "back");
             t.Expect("andBackAgain", b.ActiveRun.StageId, "together");
             t.Expect("withItsPicture", b.DebugLastStateImage, "selftest_together.jpg");
+
+            // tashmetu (15/10/2026): an abandoned tale is heard by other mods too (CrTales.Ended, "end:abandoned").
+            var ended = new List<CrTaleProgress>();
+            Action<CrTaleProgress> onEnded = p => { if (p.TaleId == id) ended.Add(p); };
+            CrTales.Ended += onEnded;
+            try { b.Abandon("Self-test."); }
+            finally { CrTales.Ended -= onEnded; }
+            t.Expect("anAbandonIsHeard", ended.LastOrDefault()?.Where, "end:abandoned");
          }
          finally
          {
@@ -11493,6 +11502,102 @@ namespace CalradiaRemembers.Diagnostics
          {
             foreach (WorldEvent e in WorldEventStore.Instance.All().Where(e => !worldBefore.Contains(e.Id)).ToList())
                WorldEventStore.Instance.Remove(e.Id);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>The tale tale_on_enter walks: she leaves on a stage, and is given back at an ending.</summary>
+      private const string OnEnterSelfTestTale = @"{
+        ""id"": ""cr_selftest_on_enter"", ""title"": ""[SELFTEST] The Garden"",
+        ""requires"": { ""giver"": { ""married"": true, ""min_regard"": -100 }, ""husband"": { ""role"": ""spouse_of_giver"" } },
+        ""binds"": { ""giver"": ""a lady"", ""husband"": ""her husband"" },
+        ""stages"": [
+          { ""id"": ""ask"", ""journal"": ""[SELFTEST] {giver} asks for a word."", ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" },
+            ""on_complete"": { ""next"": ""garden"" } },
+          { ""id"": ""garden"", ""journal"": ""[SELFTEST] {giver} waits."",
+            ""choices"": [
+              { ""id"": ""take_her"", ""label"": ""Leave with her"", ""sets"": ""with_her"",
+                ""said"": { ""to"": ""{giver}"", ""meaning"": ""the player agrees to take {giver} away"" }, ""next"": ""away"" } ] },
+          { ""id"": ""away"", ""journal"": ""[SELFTEST] {giver} rides with you."",
+            ""on_enter"": [ { ""type"": ""elope"", ""if"": ""with_her"" } ],
+            ""choices"": [
+              { ""id"": ""give_back"", ""label"": ""Give her back"",
+                ""said"": { ""to"": ""{husband}"", ""meaning"": ""the player gives {giver} back"" }, ""next"": ""end:returned"" } ] }
+        ],
+        ""endings"": { ""returned"": { ""consequences"": [ { ""type"": ""return_spouse"" } ] } }
+      }";
+
+      private static string TestTaleOnEnter(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_on_enter");
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null || MobileParty.MainParty == null, "authored quests are not active, or no player party")) return t.Line();
+         if (t.Skip(b.ActiveRun is {Status: Logic.AuthoredQuests.AuthoredQuestStatus.Active}, "a real tale is under way; not disturbing it")) return t.Line();
+
+         IFaction mine = Hero.MainHero?.MapFaction;
+         Hero her = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.IsFemale && !h.IsChild && !h.IsPregnant && !h.IsPrisoner
+                                                           && h.Spouse != null && h.Spouse != Hero.MainHero && !h.Spouse.IsPrisoner
+                                                           && Mapping.HeroPresence.IsInTheWorld(h) && Mapping.HeroPresence.IsInTheWorld(h.Spouse)
+                                                           && h.Clan?.Leader != h && h.GovernorOf == null && (h.PartyBelongedTo == null || h.PartyBelongedTo.LeaderHero != h)
+                                                           && h.MapFaction != null && h.MapFaction != mine
+                                                           && h.Spouse.PartyBelongedTo?.Army == null && h.Spouse.PartyBelongedTo?.MapEvent == null);
+         if (t.Skip(her == null, "no married lady of another realm free to leave")) return t.Line();
+
+         const string id = "cr_selftest_on_enter";
+         t.Expect("theTaleLoadsClean", string.Join(" | ", b.DebugLoadTale(OnEnterSelfTestTale, "selftest_on_enter.json")), "");
+         Logic.AuthoredQuests.AuthoredQuest tale = b.Quests.FirstOrDefault(q => q.Id == id);
+         if (t.Abort(tale == null, "the tale did not load")) return t.Line();
+
+         Hero him = her.Spouse;
+         Clan herClan = her.Clan;
+         var grudgesBefore = new HashSet<Logic.Grudges.Grudge>((IEnumerable<Logic.Grudges.Grudge>) Grudges.GrudgeBehavior.Instance?.GrudgesFor(him.StringId) ?? new List<Logic.Grudges.Grudge>());
+         var reached = new List<CrTaleProgress>();
+         var ended = new List<CrTaleProgress>();
+         Action<CrTaleProgress> onReached = p => { if (p.TaleId == id) reached.Add(p); };
+         Action<CrTaleProgress> onEnded = p => { if (p.TaleId == id) ended.Add(p); };
+         CrTales.StageReached += onReached;
+         CrTales.Ended += onEnded;
+         try
+         {
+            var today = (int) CampaignTime.Now.ToDays;
+            if (t.Abort(!b.TryOffer(her, today, 0, id, out string whyNot), $"{her.Name} could not give it: {whyNot}")) return t.Line();
+            b.Accept(tale, b.Offer);
+            t.Note($"{her.Name} and {him.Name}");
+
+            b.DebugChoose("take_her");
+            CrTaleProgress away = reached.LastOrDefault();
+            CrTaleConsequence elope = away?.Consequences.FirstOrDefault(c => c.Type == "elope");
+            t.Expect("theStageIsReported", away?.Where, "away");
+            t.Expect("withTheFlagTheChoiceSet", away?.Flags.Contains("with_her") == true, true);
+            t.Expect("andTheHusbandBound", away != null && away.Roles.TryGetValue("husband", out string h) && h == him.StringId, true);
+            t.Expect("theElopementIsReportedDone", elope?.Status.ToString(), "Done");
+            t.Expect("sheLeftHimMidway", her.Spouse == null && him.Spouse == null, true);
+            t.Expect("sheRidesWithThePlayer", her.PartyBelongedTo == MobileParty.MainParty, true);
+
+            b.DebugDailyTick();
+            t.Expect("theTaleGoesOnAfterADay", b.ActiveRun?.QuestId == id && b.ActiveRun.Status == Logic.AuthoredQuests.AuthoredQuestStatus.Active, true);
+
+            b.DebugChoose("give_back");
+            CrTaleProgress end = ended.LastOrDefault();
+            t.Expect("theEndingIsReported", end?.Where, "end:returned");
+            t.Expect("theReturnIsReportedDone", end?.Consequences.FirstOrDefault(c => c.Type == "return_spouse")?.Status.ToString(), "Done");
+            t.Expect("sheIsHisWifeAgain", her.Spouse == him && him.Spouse == her, true);
+         }
+         finally
+         {
+            CrTales.StageReached -= onReached;
+            CrTales.Ended -= onEnded;
+            b.Abandon("Self-test.");
+            b.ForgetPlayed(id);
+            b.DebugForgetTale(id);
+            if (her.Spouse != him && her.Spouse == null && him.Spouse == null) TaleWorlds.CampaignSystem.Actions.MarriageAction.Apply(her, him, false);
+            if (her.PartyBelongedTo == MobileParty.MainParty && him.Clan?.HomeSettlement != null)
+               TaleWorlds.CampaignSystem.Actions.TeleportHeroAction.ApplyImmediateTeleportToSettlement(her, him.Clan.HomeSettlement);
+            if (herClan != null && her.Clan != herClan) her.Clan = herClan;
+            foreach (Logic.Grudges.Grudge g in ((IEnumerable<Logic.Grudges.Grudge>) Grudges.GrudgeBehavior.Instance?.GrudgesFor(him.StringId) ?? new List<Logic.Grudges.Grudge>()).Where(g => !grudgesBefore.Contains(g)).ToList())
+               Grudges.GrudgeBehavior.Instance?.RemoveGrudge(g);
+            Marriage.NpcMarriageEstrangementBehavior.Instance?.DebugClear(her.StringId);
          }
 
          return t.Line();

@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 490 types in 59 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 494 types in 59 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1117 types in 29 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (34)
+### CalradiaRemembers (38)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -61,6 +61,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrRegardChange` | public class | One change of a character's personal regard for the player (see CrNpcMemory.RegardChanged). |
 | `CrRomance` | public static class | Reads and records intimacy with the player, held to the bar CR's own chat holds. |
 | `CrSpeechLine` | public class | One line as it is DISPLAYED in a conversation, delivered in real time by CrConversation.LineSpoken. |
+| `CrTaleConsequence` | public class | One consequence of a stage or an ending, and what became of it. |
+| `CrTaleConsequenceStatus` | public enum | Whether a tale's consequence really happened. |
+| `CrTaleProgress` | public class | A tale's progress, delivered by CrTales. |
+| `CrTales` | public static class | The public tale-progress events other mods subscribe to. |
 | `CrTranscriptLine` | public class | One attributed line of a conversation, as delivered in CrConversationLog. |
 | `ExternalActionParam` | public class | One named parameter an ExternalActionSpec accepts, taught to the LLM by name and meaning. |
 | `ExternalActionSpec` | public class | Everything a third-party mod supplies to register one executable conversation action through CrActions.Register. |

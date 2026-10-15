@@ -239,6 +239,13 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       [QuestField("What follows when the stage's own objective is met.")]
       [JsonProperty("on_complete")] public AuthoredOnComplete OnComplete { get; set; } = new();
+
+      /// <summary>
+      ///   tashmetu (15/10/2026): consequences only ran at an ending, so a lady could not leave midway and be given back
+      ///   later in the same tale, which the Troy-inspired design (12/10/2026) needed. These run when the stage is entered.
+      /// </summary>
+      [QuestField("Consequences carried out when the tale enters this stage (the same kinds as an ending's, each with its own \"if\"), so a tale can carry someone away midway and bring them back later. Never on the first stage, which is the request.")]
+      [JsonProperty("on_enter")] public List<AuthoredConsequence> OnEnter { get; set; } = new();
    }
 
    public sealed class AuthoredOnComplete

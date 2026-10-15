@@ -1231,32 +1231,35 @@ namespace CalradiaRemembers.Quests
                foreach (string line in AuthoredQuestEngine.JournalLines(_run, q)) journal?.Log(AuthoredQuestEngine.Fill(_run, line));
                AnnounceStage(AuthoredStageNotice.Text(q.Title, AuthoredQuestEngine.Fill(_run, AuthoredQuestEngine.Current(_run, q)?.Journal)));
                ModLog.Info($"[TALE] '{q.Id}': {step.FromStage} -> {step.ToStage}{taken}.");
-               FireTaleEvent(q, step.ToStage);
+               // tashmetu (15/10/2026): a stage's on_enter, carried out before the stage is announced to scenarios and mods,
+               // so both see an elopement the stage carried out as done.
+               List<CrTaleConsequence> entered = CarryOutConsequences(q, AuthoredQuestEngine.OnEnter(_run, q));
+               FireTaleEvent(q, step.ToStage, entered);
                if (AuthoredQuestEngine.Current(_run, q)?.Objective?.Type == "explore") MainThreadDispatcher.Enqueue(() => OpenScene(q));
 
                break;
             case AuthoredStepKind.Completed:
                ReleaseBands();
                AuthoredOutcome ending = AuthoredQuestEngine.Outcome(_run, q);
-               CarryOut(q, ending);
+               List<CrTaleConsequence> endedWith = CarryOut(q, ending);
                if (!string.IsNullOrWhiteSpace(ending?.Journal)) journal?.Log(AuthoredQuestEngine.Fill(_run, ending.Journal));
                journal?.CloseAsCompleted();
                _done.Add(q.Id);
                _playedOn[q.Id] = (int) CampaignTime.Now.ToDays;
                ModLog.Info($"[TALE] '{q.Id}' completed{taken}, ending '{step.EndingId ?? "reward"}'.");
-               FireTaleEvent(q, "end:" + (step.EndingId ?? "reward"));
+               FireTaleEvent(q, "end:" + (step.EndingId ?? "reward"), endedWith);
                ReconcileJournal();
 
                break;
             case AuthoredStepKind.Failed:
                ReleaseBands();
-               CarryOut(q, q.Failure);
+               List<CrTaleConsequence> failedWith = CarryOut(q, q.Failure);
                if (!string.IsNullOrWhiteSpace(q.Failure?.Journal)) journal?.Log(AuthoredQuestEngine.Fill(_run, q.Failure.Journal));
                journal?.CloseAsFailed("The time to act has passed.");
                _done.Add(q.Id);
                _playedOn[q.Id] = (int) CampaignTime.Now.ToDays;
                ModLog.Info($"[TALE] '{q.Id}' failed at stage {step.FromStage}.");
-               FireTaleEvent(q, "end:failure");
+               FireTaleEvent(q, "end:failure", failedWith);
                ReconcileJournal();
 
                break;
@@ -1268,13 +1271,26 @@ namespace CalradiaRemembers.Quests
       ///   that answer ON_TALE:&lt;tale&gt;:&lt;stage&gt; or ON_TALE:&lt;tale&gt;:end:&lt;ending&gt;, with the tale's roles (the player
       ///   included) so a rule can name {husband}.
       /// </summary>
-      private void FireTaleEvent(AuthoredQuest q, string where)
+      private void FireTaleEvent(AuthoredQuest q, string where, IEnumerable<CrTaleConsequence> carriedOut)
       {
          if (_run == null) return;
 
-         var roles = new Dictionary<string, string>(_run.BoundIds);
-         if (Hero.MainHero != null) roles["player"] = Hero.MainHero.StringId;
+         Dictionary<string, string> roles = TaleRoles();
          Scenarios.ScenarioBehavior.Instance?.FireTale(q.Id, where, roles);
+
+         // tashmetu (15/10/2026): the same moment, for other mods' code (CrTales), with what was really carried out.
+         var progress = new CrTaleProgress(q.Id, where, (int) CampaignTime.Now.ToDays, roles, _run.Flags, carriedOut);
+         if (where.StartsWith("end:", StringComparison.Ordinal)) CrTales.RaiseEnded(progress);
+         else CrTales.RaiseStageReached(progress);
+      }
+
+      /// <summary>The run's bound roles, the player included.</summary>
+      private Dictionary<string, string> TaleRoles()
+      {
+         var roles = new Dictionary<string, string>(_run?.BoundIds ?? new Dictionary<string, string>());
+         if (Hero.MainHero != null) roles["player"] = Hero.MainHero.StringId;
+
+         return roles;
       }
 
       /// <summary>The last stage notice shown (cr.testall reads it back).</summary>
@@ -1300,9 +1316,9 @@ namespace CalradiaRemembers.Quests
       ///   Regard and a memory for the giver, then the outcome's consequences (memory, world_event), each only when its
       ///   flags hold on the path the player walked.
       /// </summary>
-      private void CarryOut(AuthoredQuest q, AuthoredOutcome outcome)
+      private List<CrTaleConsequence> CarryOut(AuthoredQuest q, AuthoredOutcome outcome)
       {
-         if (outcome == null) return;
+         if (outcome == null) return new List<CrTaleConsequence>();
          Hero giver = Find(AuthoredQuestEngine.Bound(_run, "{giver}"));
 
          if (giver != null)
@@ -1319,37 +1335,68 @@ namespace CalradiaRemembers.Quests
          if (giver != null && !string.IsNullOrWhiteSpace(outcome.Memory)) Remember(giver.StringId, AuthoredQuestEngine.Fill(_run, outcome.Memory));
          if (outcome.Gold > 0) TaleWorlds.CampaignSystem.Actions.GiveGoldAction.ApplyBetweenCharacters(null, Hero.MainHero, outcome.Gold);
 
-         foreach (AuthoredConsequence c in AuthoredQuestEngine.Consequences(_run, outcome))
+         return CarryOutConsequences(q, AuthoredQuestEngine.Consequences(_run, outcome));
+      }
+
+      /// <summary>
+      ///   Carries out consequences (an ending's, or a stage's on_enter) and says what became of each (tashmetu, 15/10/2026:
+      ///   another mod must not answer an elopement that did not happen).
+      /// </summary>
+      private List<CrTaleConsequence> CarryOutConsequences(AuthoredQuest q, IEnumerable<AuthoredConsequence> consequences)
+      {
+         var results = new List<CrTaleConsequence>();
+         Hero giver = Find(AuthoredQuestEngine.Bound(_run, "{giver}"));
+         foreach (AuthoredConsequence c in consequences ?? Enumerable.Empty<AuthoredConsequence>())
          {
             try
             {
                if (c.Type == "memory")
-                  foreach (string id in Who(c.Who)) Remember(id, AuthoredQuestEngine.Fill(_run, c.Text));
+               {
+                  List<string> ids = Who(c.Who).ToList();
+                  foreach (string id in ids) Remember(id, AuthoredQuestEngine.Fill(_run, c.Text));
+                  results.Add(ids.Count > 0
+                     ? Result(c, ids[0], null, CrTaleConsequenceStatus.Done, null)
+                     : Result(c, null, null, CrTaleConsequenceStatus.NotDone, "nobody to remember it"));
+               }
                else if (c.Type == "grudge")
                {
                   // A tale may set two lords at odds (Gabriel, 06/10/2026); the grudge ledger fades it with time.
                   TaleGrudge g = AuthoredQuestEngine.GrudgeOf(_run, c);
                   Hero holder = Find(g?.HolderId), target = Find(g?.TargetId);
-                  if (holder != null && target != null)
-                     Grudges.GrudgeBehavior.Instance?.TryPlant(holder, target, Logic.Grudges.GrudgeSource.Tale, g.Cause, g.Magnitude,
-                        knownToPlayer: true, today: (int) CampaignTime.Now.ToDays);
+                  bool planted = holder != null && target != null && Grudges.GrudgeBehavior.Instance?.TryPlant(holder, target,
+                     Logic.Grudges.GrudgeSource.Tale, g.Cause, g.Magnitude, knownToPlayer: true, today: (int) CampaignTime.Now.ToDays) == true;
+                  results.Add(Result(c, g?.HolderId, g?.TargetId, planted ? CrTaleConsequenceStatus.Done : CrTaleConsequenceStatus.NotDone,
+                     planted ? null : "the grudge could not be planted"));
                }
                else if (c.Type == "conception")
-                  Conceive(c);
+                  results.Add(Conceive(c));
                else if (c.Type == "elope")
-                  Elope(c);
+                  results.Add(Elope(c));
                else if (c.Type == "return_spouse")
-                  ReturnSpouse(c);
+                  results.Add(ReturnSpouse(c));
                else if (c.Type == "world_event")
+               {
+                  bool told = WorldEventStore.Instance != null;
                   WorldEventStore.Instance?.Record(new WorldEvent {
                      Type = WorldEventType.Other, Day = (int) CampaignTime.Now.ToDays, Magnitude = c.Magnitude,
                      Summary = AuthoredQuestEngine.Fill(_run, c.Summary), PlaceId = AuthoredQuestEngine.Bound(_run, c.Place),
                      ActorIds = giver != null ? new List<string> {giver.StringId} : new List<string>(), InvolvesPlayer = true
                   });
+                  results.Add(Result(c, null, null, told ? CrTaleConsequenceStatus.Done : CrTaleConsequenceStatus.NotDone, told ? null : "no news store"));
+               }
             }
-            catch (Exception ex) { ModLog.Error($"[TALE] consequence '{c?.Type}' of '{q.Id}' failed: {ex.GetType().Name}: {ex.Message}"); }
+            catch (Exception ex)
+            {
+               ModLog.Error($"[TALE] consequence '{c?.Type}' of '{q.Id}' failed: {ex.GetType().Name}: {ex.Message}");
+               results.Add(Result(c, null, null, CrTaleConsequenceStatus.NotDone, "it failed"));
+            }
          }
+
+         return results;
       }
+
+      private static CrTaleConsequence Result(AuthoredConsequence c, string whoId, string otherId, CrTaleConsequenceStatus status, string reason)
+         => new CrTaleConsequence(c?.Type, whoId, otherId, status, reason);
 
       /// <summary>
       ///   The Troy-inspired tale (Gabriel, 12/10/2026): she leaves her husband with the player. Her marriage ends through
@@ -1357,7 +1404,7 @@ namespace CalradiaRemembers.Quests
       ///   (the council hostages' way), may later be married as a Stolen Love divorcee is, and her husband holds a
       ///   StolenSpouse grudge sized as Stolen Love's. Nothing moves unless all of it can (TaleElopementPolicy).
       /// </summary>
-      private void Elope(AuthoredConsequence c)
+      private CrTaleConsequence Elope(AuthoredConsequence c)
       {
          Hero her = Find(AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c.Who) ? "{giver}" : c.Who));
          Hero him = Find(AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c.Spouse) ? "{husband}" : c.Spouse));
@@ -1372,14 +1419,14 @@ namespace CalradiaRemembers.Quests
          if (whyNot != null)
          {
             ModLog.Info($"[TALE] '{_run?.QuestId}': {her?.Name} does not leave {him?.Name}: {whyNot}.");
-            return;
+            return Result(c, her?.StringId, him?.StringId, CrTaleConsequenceStatus.NotDone, whyNot);
          }
 
          if (TaleElopementPolicy.MustReleasePost(facts)) Marriage.MarriageDissolutionService.ReleaseStructuralRoles(her);
          if (!Marriage.MarriageDissolutionService.TryDissolve(her, him, out string reason))
          {
             ModLog.Info($"[TALE] '{_run?.QuestId}': {her.Name}'s marriage to {him.Name} could not end ({reason}); she stays.");
-            return;
+            return Result(c, her.StringId, him.StringId, CrTaleConsequenceStatus.NotDone, $"the marriage could not end ({reason})");
          }
 
          var today = (int) CampaignTime.Now.ToDays;
@@ -1389,6 +1436,8 @@ namespace CalradiaRemembers.Quests
             $"the player took {her.Name}, my wife, from my own hall", magnitude, knownToPlayer: true, today: today);
          Marriage.NpcMarriageEstrangementBehavior.Instance?.RecordElopement(her.StringId, him.StringId, today);
          ModLog.Info($"[TALE] '{_run?.QuestId}': {her.Name} has left {him.Name} and rides with the player; {him.Name} holds a grudge ({magnitude}).");
+
+         return Result(c, her.StringId, him.StringId, CrTaleConsequenceStatus.Done, null);
       }
 
       /// <summary>
@@ -1396,12 +1445,19 @@ namespace CalradiaRemembers.Quests
       ///   goes back to her husband. The game's own marriage weds them again, and she leaves the player's party for his, or
       ///   for his house's home. Not when either is gone, captive, or wed to someone else (TaleElopementPolicy).
       /// </summary>
-      private void ReturnSpouse(AuthoredConsequence c)
+      private CrTaleConsequence ReturnSpouse(AuthoredConsequence c)
       {
          Hero her = Find(AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c.Who) ? "{giver}" : c.Who));
          Hero him = Find(AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c.Spouse) ? "{husband}" : c.Spouse));
-         TryReturn(her, him, _run?.QuestId, firstAsked: true);
+         if (TryReturn(her, him, _run?.QuestId, firstAsked: true)) return Result(c, her?.StringId, him?.StringId, CrTaleConsequenceStatus.Done, null);
+
+         bool waits = _returnsWaiting.ContainsKey($"{her?.StringId}|{him?.StringId}|{_run?.QuestId}");
+
+         return Result(c, her?.StringId, him?.StringId, waits ? CrTaleConsequenceStatus.Waiting : CrTaleConsequenceStatus.NotDone, _lastReturnWhy);
       }
+
+      /// <summary>Why the last return attempt did not happen (or waits), in plain words.</summary>
+      private string _lastReturnWhy;
 
       /// <summary>
       ///   One attempt at her return (TaleElopementPolicy.DecideReturn): now, wait, or never. Gabriel's cr.testall on a new
@@ -1420,6 +1476,7 @@ namespace CalradiaRemembers.Quests
             SheLeadsHerHouse = her?.Clan != null && her.Clan.Leader == her
          });
          string key = $"{her?.StringId}|{him?.StringId}|{questId}";
+         _lastReturnWhy = d.Why;
 
          if (d.Why != null)
          {
@@ -1460,6 +1517,7 @@ namespace CalradiaRemembers.Quests
          if (her.Spouse != him)
          {
             _returnsWaiting.Remove(key);
+            _lastReturnWhy = "the game did not wed them again";
             ModLog.Error($"[TALE] '{questId}': the game did not wed {her.Name} to {him.Name} again; she is not returned.");
 
             return false;
@@ -1490,12 +1548,26 @@ namespace CalradiaRemembers.Quests
             {
                _returnsWaiting.Remove(w.Key);
                ModLog.Info($"[TALE] '{p[2]}': {her?.Name}'s return to {him?.Name} waited {ReturnWaitDays} days and is given up.");
+               Settled(p, CrTaleConsequenceStatus.NotDone, $"waited {ReturnWaitDays} days and was given up");
                continue;
             }
 
-            TryReturn(her, him, p[2], firstAsked: false);
+            if (TryReturn(her, him, p[2], firstAsked: false)) Settled(p, CrTaleConsequenceStatus.Done, null);
+            else if (!_returnsWaiting.ContainsKey(w.Key)) Settled(p, CrTaleConsequenceStatus.NotDone, _lastReturnWhy);
          }
       }
+
+      /// <summary>tashmetu (15/10/2026): a return that waited has settled; mods hear it (CrTales.ConsequenceSettled).</summary>
+      private static void Settled(string[] herHimQuest, CrTaleConsequenceStatus status, string reason)
+      {
+         var roles = new Dictionary<string, string> {["giver"] = herHimQuest[0], ["husband"] = herHimQuest[1]};
+         if (Hero.MainHero != null) roles["player"] = Hero.MainHero.StringId;
+         CrTales.RaiseConsequenceSettled(new CrTaleProgress(herHimQuest[2], "settled", (int) CampaignTime.Now.ToDays, roles, null,
+            new[] {new CrTaleConsequence("return_spouse", herHimQuest[0], herHimQuest[1], status, reason)}));
+      }
+
+      /// <summary>Self-test seam: one day passes for the tales, through the real daily handling.</summary>
+      internal void DebugDailyTick() => OnDailyTick();
 
       /// <summary>Self-test seam: the returns waiting now ("herId|himId|questId").</summary>
       internal IReadOnlyCollection<string> DebugReturnsWaiting => _returnsWaiting.Keys.ToList();
@@ -1508,18 +1580,22 @@ namespace CalradiaRemembers.Quests
       ///   carries it, through the same conception as every intimate scene (PregnancyService: of age, not already with
       ///   child, Life and Death Cycle on); two women or two men conceive nothing.
       /// </summary>
-      private void Conceive(AuthoredConsequence c)
+      private CrTaleConsequence Conceive(AuthoredConsequence c)
       {
          (Hero mother, Hero father, string why) = ConceptionPlan(c, MBRandom.RandomFloat);
          if (mother == null)
          {
             ModLog.Info($"[TALE] no child from '{_run?.QuestId}': {why}.");
 
-            return;
+            return Result(c, AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c?.Who) ? "{giver}" : c.Who), Hero.MainHero?.StringId,
+               CrTaleConsequenceStatus.NotDone, why);
          }
 
          string note = GameState.PregnancyService.TryConceive(mother, father, force: true);
          ModLog.Info($"[TALE] '{_run?.QuestId}' ends on a chance of a child: {note ?? $"{mother.Name} could not conceive now (age, a child already on the way, a recent birth, or the Life and Death Cycle off)"}.");
+
+         return Result(c, mother.StringId, father?.StringId, note != null ? CrTaleConsequenceStatus.Done : CrTaleConsequenceStatus.NotDone,
+            note != null ? null : "she could not conceive now");
       }
 
       /// <summary>Who would carry a child from this consequence on this roll, and who would father it; the reason otherwise.</summary>
@@ -1723,6 +1799,10 @@ namespace CalradiaRemembers.Quests
          ReleaseBands();
          Journal(_run.QuestId)?.CloseAsCancelled(reason);
          ModLog.Info($"[TALE] '{_run.QuestId}' abandoned: {reason}");
+         // tashmetu (15/10/2026): mods hear an abandoned tale too. Not the scenario rules: a rule naming the whole tale
+         // would otherwise answer an abandon (a war pressed over a tale dropped from the console).
+         if (_run.Status == AuthoredQuestStatus.Active)
+            CrTales.RaiseEnded(new CrTaleProgress(_run.QuestId, "end:abandoned", (int) CampaignTime.Now.ToDays, TaleRoles(), _run.Flags, null));
          _run = null;
       }
 

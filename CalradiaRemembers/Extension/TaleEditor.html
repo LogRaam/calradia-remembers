@@ -802,6 +802,18 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "object:AuthoredOnComplete",
           "description": "What follows when the stage's own objective is met.",
           "x-default-empty": true
+        },
+        "on_enter": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredConsequence"
+          },
+          "x-kind": "object:AuthoredConsequence[]",
+          "description": "Consequences carried out when the tale enters this stage (the same kinds as an ending's, each with its own \"if\"), so a tale can carry someone away midway and bring them back later. Never on the first stage, which is the request.",
+          "x-default-empty": true
         }
       }
     },
@@ -2741,8 +2753,13 @@ input[type="number"] { max-width: 160px; }
     validateDefeats(q, endings, blocking);
 
     var outcomes = [q.reward, q.failure].concat(Array.from(endings.values())).concat(defeats(q).map(function (x) { return x.defeat; }));
-    outcomes.forEach(function (o) {
-      if (o == null) return;
+    // A stage's on_enter (tashmetu, 15/10/2026) is checked as an ending's consequences are.
+    if (first != null && arr(first.on_enter).length > 0)
+      cosmetic.push("stage '" + first.id + "' is the request, entered before the tale is accepted: its on_enter is never carried out.");
+    var consequences = [];
+    outcomes.forEach(function (o) { if (o != null) consequences = consequences.concat(arr(o.consequences)); });
+    arr(q.stages).forEach(function (s) { if (s != null) consequences = consequences.concat(arr(s.on_enter)); });
+    [{consequences: consequences}].forEach(function (o) {
       arr(o.consequences).forEach(function (c) {
         if (c != null && !has(LISTS.ConsequenceTypes, c.type))
           cosmetic.push("consequence '" + (c.type == null ? '' : c.type) + "' is not carried out yet (known: " + LISTS.ConsequenceTypes.join(', ') + '); it is skipped.');
@@ -3041,6 +3058,7 @@ input[type="number"] { max-width: 160px; }
         arr(scene.findings).forEach(function (f) { if (f != null) sets(f.sets); });
         arr(scene.encounters).forEach(function (e) { if (e != null) sets(e.sets); });
       }
+      arr(s.on_enter).forEach(function (c) { if (c != null) tests(c.if); });
       arr(s.choices).forEach(function (c) {
         if (c == null) return;
         tests(c.if);
@@ -3960,7 +3978,7 @@ input[type="number"] { max-width: 160px; }
     PlaceRequirement: ['type', 'near', 'culture'],
     RivalRequirement: ['role', 'same_realm_as'],
     PlayerRequirement: ['min_clan_tier'],
-    AuthoredStage: ['id', 'journal', 'image', 'objective', 'on_complete', 'canvas', 'facts', 'knowers', 'choices'],
+    AuthoredStage: ['id', 'journal', 'image', 'objective', 'on_complete', 'on_enter', 'canvas', 'facts', 'knowers', 'choices'],
     AuthoredOnComplete: ['next'],
     AuthoredChoice: ['id', 'label', 'journal', 'next', 'if', 'sets', 'default', 'objective', 'said', 'canvas', 'facts', 'knowers'],
     AuthoredSaid: ['to', 'meaning'],
@@ -5101,6 +5119,10 @@ input[type="number"] { max-width: 160px; }
     }
     ed.appendChild(section('How the stage is completed', hasChoices ? 'A stage with choices is left by whichever way out comes first: its own objective, if it has one, or an open choice.' : null, body));
 
+    // tashmetu (15/10/2026): consequences carried out as the tale enters this stage. Never on the first, the request.
+    if (!isFirst || arr(s.on_enter).length > 0)
+      ed.appendChild(section('When the tale enters this stage', help('AuthoredStage', 'on_enter'), consequenceCards(key + '/on_enter', s, 'on_enter'), {collapseKey: key + '/on_enter'}));
+
     ed.appendChild(section('What is said', 'Spoken by the giver in the conversation that completes this stage; knower lines reach the characters named, while the stage lasts.', [
       linesField(key + '/canvas', 'Canvas', 'AuthoredStage', 'canvas', s, {single: true, placeholder: 'How the moment feels.'}),
       linesField(key + '/facts', 'Facts', 'AuthoredStage', 'facts', s, {add: 'Add a fact', placeholder: 'What must stay true in anything said.'}),
@@ -5244,9 +5266,9 @@ input[type="number"] { max-width: 160px; }
     return ed;
   }
 
-  /** The consequences an outcome or a defeat leaves, as cards. */
-  function consequenceCards(key, o) {
-    return cardList(key, 'Consequences', null, o, 'consequences', function (c, i, ck) {
+  /** The consequences an outcome or a defeat leaves (or a stage's on_enter carries out), as cards. */
+  function consequenceCards(key, o, field) {
+    return cardList(key, 'Consequences', null, o, field || 'consequences', function (c, i, ck) {
       var used = F.consequenceFields[c.type] || ['who', 'text', 'summary', 'magnitude', 'place', 'if'];
       var g = h('div.grid', selectField(ck + '/type', 'Type', 'AuthoredConsequence', 'type', c, list('ConsequenceTypes'), {empty: c.type ? undefined : '(choose)'}));
       var grudge = c.type === 'grudge';

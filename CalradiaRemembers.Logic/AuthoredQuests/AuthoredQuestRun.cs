@@ -534,7 +534,22 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>An outcome's consequences that hold for the path this run walked (a consequence under a flag only when it holds).</summary>
       public static IReadOnlyList<AuthoredConsequence> Consequences(AuthoredQuestRun run, AuthoredOutcome outcome)
-         => (outcome?.Consequences ?? new List<AuthoredConsequence>()).Where(c => c != null && AuthoredFlags.Hold(c.If, run?.Flags)).ToList();
+         => Consequences(run, outcome?.Consequences);
+
+      /// <summary>Those of these consequences that hold for the path this run walked.</summary>
+      public static IReadOnlyList<AuthoredConsequence> Consequences(AuthoredQuestRun run, IEnumerable<AuthoredConsequence> consequences)
+         => (consequences ?? new List<AuthoredConsequence>()).Where(c => c != null && AuthoredFlags.Hold(c.If, run?.Flags)).ToList();
+
+      /// <summary>
+      ///   tashmetu (15/10/2026): what the current stage carries out as the tale enters it, under the flags set so far (the
+      ///   choice that led here included). The first stage is the request and enters nothing.
+      /// </summary>
+      public static IReadOnlyList<AuthoredConsequence> OnEnter(AuthoredQuestRun run, AuthoredQuest q)
+      {
+         AuthoredStage s = Current(run, q);
+
+         return s == null || s == q.Stages[0] ? new List<AuthoredConsequence>() : Consequences(run, s.OnEnter);
+      }
 
       /// <summary>The bound StringId for a role written "{role}"; the text itself when it is no placeholder.</summary>
       public static string Bound(AuthoredQuestRun run, string role)
