@@ -632,6 +632,12 @@ namespace CalradiaRemembers.Services
       private static ProviderKind ActiveRoleKind()
          => ResolveKindForRole(ActiveMainRole());
 
+      /// <summary>Whether a role's requests go to the local (OpenAI-Compatible) server: background work then waits for the chat to close (fkasad, 15/10/2026).</summary>
+      public static bool RunsLocally(ServiceRole role) => ResolveKindForRole(role) == ProviderKind.OpenAiCompatible;
+
+      /// <summary>Whether the main client (prose, and the letters written through it) sends to the local server right now.</summary>
+      public static bool MainClientRunsLocally => ActiveRoleKind() == ProviderKind.OpenAiCompatible;
+
       /// <summary>
       ///   The context window a role's requests must fit (fkasad, 13/10/2026): the declared local window when that role
       ///   runs on the OpenAI-compatible (local/custom) endpoint, 0 otherwise (a cloud model is never trimmed).

@@ -120,6 +120,8 @@ namespace CalradiaRemembers.Memory
             {
                 var compressor = new LlmMemoryCompressor(behavior.LlmServices.HousekeepingClient, ModSettings.ReplyLanguage);
 
+                await Services.BackgroundCallHold.WhileConversationOpenAsync(Services.LlmServices.RunsLocally(ServiceRole.Housekeeping), $"memory compaction for {profile.Name}");
+
                 CompressionResult result;
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(TimeoutSeconds)))
                 {

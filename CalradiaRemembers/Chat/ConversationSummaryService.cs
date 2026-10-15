@@ -41,6 +41,8 @@ namespace CalradiaRemembers.Chat
 
             var summarizer = new CaptiveSceneSummarizer(behavior.LlmServices.HousekeepingClient);
 
+            await Services.BackgroundCallHold.WhileConversationOpenAsync(Services.LlmServices.RunsLocally(ServiceRole.Housekeeping), $"captive-scene summary for {captor.Name}");
+
             string rich;
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
             {
@@ -83,6 +85,8 @@ namespace CalradiaRemembers.Chat
             if (npc == null) return;
 
             var summarizer = new ConversationSummarizer(behavior.LlmServices.HousekeepingClient);
+
+            await Services.BackgroundCallHold.WhileConversationOpenAsync(Services.LlmServices.RunsLocally(ServiceRole.Housekeeping), $"summary for {npc.Name}");
 
             string rich;
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
@@ -146,6 +150,8 @@ namespace CalradiaRemembers.Chat
 
             var extractor = new WorldClaimExtractor(behavior.LlmServices.HousekeepingClient);
 
+            await Services.BackgroundCallHold.WhileConversationOpenAsync(Services.LlmServices.RunsLocally(ServiceRole.Housekeeping), $"world-claim reading for {npc.Name}");
+
             IReadOnlyList<WorldClaim> claims;
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
             {
@@ -188,6 +194,8 @@ namespace CalradiaRemembers.Chat
          try
          {
             var summarizer = new ConversationSummarizer(behavior.LlmServices.HousekeepingClient);
+
+            await Services.BackgroundCallHold.WhileConversationOpenAsync(Services.LlmServices.RunsLocally(ServiceRole.Housekeeping), $"queued summary for {npc.Name}");
 
             string rich;
             using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))

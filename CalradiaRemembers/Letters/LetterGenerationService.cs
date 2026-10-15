@@ -302,6 +302,10 @@ namespace CalradiaRemembers.Letters
                ActiveConflicts = ""
             };
 
+            // fkasad (15/10/2026): on a local server a letter waits for the open conversation to close, before its
+            // timeout starts. The prompt above is already built, so nothing here reads the game off its thread.
+            await BackgroundCallHold.WhileConversationOpenAsync(LlmServices.MainClientRunsLocally, $"letter from {profile.Name}");
+
             NpcChatResult result;
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(LetterLlmTimeoutSeconds)))
             {

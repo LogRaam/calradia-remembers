@@ -32,6 +32,18 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## REMOVED 2026-10-15 (fkasad), NOT BUILT: the interpreter's tags applied after the reply shows
+
+The MCM "Actions Interpreter Timing" dropdown offered "Asynchronous: the reply shows instantly, tags apply a moment
+later", but the code ran it synchronously behind a TODO. fkasad (Nexus, 15/10/2026) asked what it meant; the
+dropdown was removed in 2.7.12 rather than left lying. To build it for real: run the interpreter on a background
+task after control returns to the player, apply only the safe outcomes (memory, regard), and skip flow control
+(`end_conversation`) when the conversation has moved on. The inline consumption block in
+`ChatViewModel.Exchanges` has to come out of `ComposeByInterpretationAsync` first. On a local server it would also
+compete with the next reply, which is what fkasad's report was about.
+
+---
+
 ## WISHED 2026-10-14 (tashmetu, BC-CR bridge author), GABRIEL SAID BUILD, DESIGN FIRST: lords with aims of their own
 
 tashmetu (Nexus, 14/10/2026), from two of his testers: "in Calradia, nobody takes the first step with the player. If the

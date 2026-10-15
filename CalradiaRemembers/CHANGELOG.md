@@ -14,6 +14,19 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   roles, the flags and each consequence's real outcome (`Done` / `NotDone` + reason / `Waiting`), so a mod never
   answers an elopement that did not happen. On_enter runs before the stage is announced, so scenario rules and mods
   both see it done. cr.testall `tale_on_enter` (Heavy), `tale_states` hears the abandon.
+- **Background work waits for the conversation, on a local server** (fkasad, 15/10: summaries, memory compaction
+  and letters slipped in between two replies, the local server swapped its KV cache and replies timed out). A
+  background call routed to OpenAI-Compatible now waits for the open conversation to close before it is sent
+  (`BackgroundCallHoldPolicy`, capped at 10 minutes; log `[BG HOLD]`): conversation summaries (queued, captive,
+  world claims), memory compaction, letter memories, courier-secret judgements, and letters (held after their
+  prompt is built, before their timeout starts). Cloud providers are untouched. Not held: the transcript fold inside
+  a conversation, which the reply waits on. Trade-off: reopening a chat with the same character at once, on a local
+  server, the summary of the last one waits until this one ends. cr.testall `background_hold`.
+
+### Removed
+- **MCM "Actions Interpreter Timing"** (fkasad, 15/10): its "Asynchronous" choice ran synchronously all along (a
+  TODO). The interpreter always applies its actions with the reply, as it always did; the real async path is a
+  ROADMAP entry.
 
 ### Fixed
 - **A parent knows a child who died** (Maifailun via tashmetu, 15/10: the player's wife Debana died in childbirth and

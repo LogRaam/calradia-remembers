@@ -438,13 +438,6 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> ActionInterpreterProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
 
-      [SettingPropertyDropdown("Actions Interpreter Timing", RequireRestart = false, Order = 10,
-         HintText = "Only in Prose + Interpreter mode. Synchronous: tags apply with the reply (recommended). " +
-                    "Asynchronous: the reply shows instantly, tags apply a moment later.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
-      public Dropdown<string> ActionInterpreterTimingSetting { get; set; } =
-         new(new[] {ActionInterpreterTimingPolicy.SynchronousLabel, ActionInterpreterTimingPolicy.AsynchronousLabel}, 0); // default: Synchronous
-
       [SettingPropertyDropdown("Reasoning Effort (NSFW)", RequireRestart = false, Order = 2,
          HintText = "Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less " +
                     "prone to moralizing refusals, and speeds up scenes. OpenRouter and NanoGPT.")]

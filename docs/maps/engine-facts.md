@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-487 rules read 374 facts.
+486 rules read 373 facts.
 
 ## Facts read by more than one rule
 
@@ -239,7 +239,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 
 ## Every rule, and what it reads
 
-- `ActionInterpreterTimingPolicy.Parse`: `ActionInterpreterTimingSetting.SelectedValue`
 - `ActionRefusalNote.For`: `GameStateBridge.ExecuteAction`
 - `ActiveConflictsFormatter.Describe`: `Hero.MapFaction`
 - `ActorFacts`: `Hero.Age`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`

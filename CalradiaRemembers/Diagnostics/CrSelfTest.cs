@@ -284,6 +284,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("political_map", Severity.Light, "Mechanical: the political-map gather + grid + rasterise (World Almanac minimap, Inc B+C). Gathers one anchor per kingdom-held settlement (position + Kingdom.Color) from the live campaign, builds the pure PoliticalMapPolicy colour grid, and rasterises it to PNG; asserts the grid is the requested size, some cells are painted (territory), and the PNG carries a real PNG signature. Catches a renamed settlement/terrain API that would silently yield an empty map, or a broken rasteriser. MANUAL when the world has no kingdom-held settlement. No LLM, mutates nothing", TestPoliticalMap),
          new SelfTest("strategic_assessment", Severity.Light, "Mechanical: the Strategic Assessment gather (World Almanac). Builds the live PowerIndexResult, picks the advisor (highest-Tactics companion, else a warband soldier, else none when the player is alone), gathers the player's realm/rank/wars, and composes the OFFLINE factual summary; asserts the summary is non-empty and, when an advisor exists, the LLM prompt grounds on a real kingdom and forbids invention. The real async LLM counsel is Lane C (real LLM), not run here. No LLM, mutates nothing", TestStrategicAssessment),
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
+         new SelfTest("background_hold", Severity.Light, "fkasad (Nexus, 15/10/2026): on a local server, summaries, memory compaction and letters slipped in between two replies, the server swapped its KV cache and replies timed out. With a conversation forced open through the seam: a background call routed to OpenAI-Compatible (local) waits; the same call routed to a cloud provider goes at once; with no conversation open a local call goes at once. Restores the provider dropdowns and the seam (the held wait ends within a second)", TestBackgroundHold),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Then the refused-beat fallback (04/10/2026): the NSFW model resolves for its own provider, the NSFW role has its own client, a refusal is redone there in Enhanced mode, and nothing is redone with no NSFW model. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
          new SelfTest("authored_quest_opening", Severity.Light, "Authored quests Inc 1 (docs/design/AUTHORED_QUESTS.md). The werewolf loads; a real lord holding a village by a forest is bound to it and told to raise it; accepting puts a 'Tale:' entry in the journal and moves past the request; a local of that village believes in the beast and knows nothing of the slavers; two locals heard moves the tale to the watch. Then the watch ends in the scene: a declared finding recorded, an undeclared one refused, the snare hurts but never kills (health restored), closing early still yields the missed clue and moves on to the lord; the lord sends the player hunting, a real band is spawned near the village, and beaten by the player the tale turns home. Every tale binds {player} to the player's name (tashmetu, 11/10/2026). Stops before the reward; abandons the tale (the band is released) and forgets it after. Before the band is beaten, the player loses to it twice through the real after-battle handling (on_defeat, Gabriel 10/10/2026): the tale stays at the hunt and the lord remembers the defeat once.", TestAuthoredQuestOpening),
@@ -15682,6 +15683,49 @@ namespace CalradiaRemembers.Diagnostics
       ///   strings only, never a real key. Snapshots and restores every dropdown + the custom endpoint/key fields it
       ///   touches, so a real campaign is unchanged.
       /// </summary>
+      private static string TestBackgroundHold(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("background_hold");
+
+         CrSettings s = CrSettings.Instance;
+         if (t.Skip(s == null, "MCM settings unavailable, cannot route the background role")) return t.Line();
+         if (t.Skip(ChatManager.IsOpen, "a conversation is open; run it from the map")) return t.Line();
+
+         int priorRoleplay = s.Provider.SelectedIndex;
+         int priorHousekeepingProvider = s.HousekeepingProvider.SelectedIndex;
+
+         try
+         {
+            s.Provider.SelectedValue = ProviderRolePolicy.OpenRouterValue;
+            BackgroundCallHold.DebugConversationOpen = true;
+
+            // STAKE: fkasad's report. Background work sent to the local server mid-conversation evicts its KV cache.
+            s.HousekeepingProvider.SelectedValue = ProviderRolePolicy.OpenAiCompatibleValue;
+            t.Expect("backgroundRoleReadsLocal", LlmServices.RunsLocally(ServiceRole.Housekeeping), true);
+            Task local = BackgroundCallHold.WhileConversationOpenAsync(LlmServices.RunsLocally(ServiceRole.Housekeeping), "cr.testall local summary");
+            t.Expect("localCallWaitsWhileConversationOpen", local.IsCompleted, false);
+
+            // STAKE: a cloud player's summaries and letters must not wait for nothing.
+            s.HousekeepingProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
+            Task cloud = BackgroundCallHold.WhileConversationOpenAsync(LlmServices.RunsLocally(ServiceRole.Housekeeping), "cr.testall cloud summary");
+            t.Expect("cloudCallGoesAtOnce", cloud.IsCompleted, true);
+            t.Expect("cloudLetterGoesAtOnce", LlmServices.MainClientRunsLocally, false);
+
+            // STAKE: with no conversation open, a held summary would never be written.
+            BackgroundCallHold.DebugConversationOpen = false;
+            Task closed = BackgroundCallHold.WhileConversationOpenAsync(true, "cr.testall local summary, no conversation");
+            t.Expect("localCallGoesWithNoConversation", closed.IsCompleted, true);
+         }
+         finally
+         {
+            BackgroundCallHold.DebugConversationOpen = null;
+            s.Provider.SelectedIndex = priorRoleplay;
+            s.HousekeepingProvider.SelectedIndex = priorHousekeepingProvider;
+         }
+
+         return t.Line();
+      }
+
       private static string TestProviderRouting(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("provider_routing");

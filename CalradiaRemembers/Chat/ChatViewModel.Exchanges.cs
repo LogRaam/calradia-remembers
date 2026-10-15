@@ -541,15 +541,9 @@ namespace CalradiaRemembers.Chat
          ParsedResponse proseResponse, EncounterContext context, NpcProfile profile,
          NpcMemoryCampaignBehavior behavior, bool conversationInProgress)
       {
-         // TIMING: Asynchronous (show the reply, apply the tags off the turn) is NOT yet wired. Applying the
-         // tags back after control returned would mean lifting the inline consumption block out of this
-         // load-bearing method, a separate increment. Until then Asynchronous FALLS THROUGH to Synchronous: the
-         // player still waits the one short interpreter call, and no half-working async can corrupt state.
-         // TODO(prose-interpret async): run the interpreter on a background Task after control returns and apply
-         // only the safe outcomes (memory/regard), skipping flow-control (end_conversation) if the conversation moved on.
-         if (ModSettings.ActionInterpreterTiming == ActionInterpreterTiming.Asynchronous)
-            ModLog.Info("[PROSE-INTERPRET] Asynchronous timing selected; running synchronously for now (async apply-back is a later increment).");
-
+         // Always in-turn: the player waits the interpreter call. fkasad (15/10/2026) found the MCM "Actions Interpreter
+         // Timing" dropdown offered an Asynchronous choice that silently ran this same path; the dropdown was removed
+         // (2.7.12) and the async apply-back is a ROADMAP entry.
          // The interpreter core lives in the shared ActionInterpreterComposer so the live path and cr.rp_bench feed
          // the ACTION INTERPRETER through ONE code path. It does not switch threads; resume the main thread here,
          // exactly as this method always did, before the caller touches any UI / game state.

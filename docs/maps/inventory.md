@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 494 types in 59 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 495 types in 59 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1117 types in 29 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
@@ -647,10 +647,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScenarioPackLoader` | public static class | Reads and parses the scenario packs into ScenarioRules. |
 | `ScenarioRuntime` | public class | Holds the loaded rules + the persisted fired-once set, and runs a fired trigger end to end. |
 
-### CalradiaRemembers.Services (1)
+### CalradiaRemembers.Services (2)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `BackgroundCallHold` | public static class | Makes a background model call wait for the open conversation to close, on the local server only. |
 | `LlmServices` | public class | Centralizes the construction and lifetime of the LLM stack (HTTP client, OpenRouter client, parser, prompt builder, chat service). |
 
 ### CalradiaRemembers.Settings (2)
@@ -845,8 +846,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | Type | Kind | What it is |
 |---|---|---|
 | `AbandonReason` | public enum | Why an abandoned pursuit ended. |
-| `ActionInterpreterTiming` | public enum | When the PROSE + INTERPRETER action interpreter's tags are applied, relative to the reply the player already saw. |
-| `ActionInterpreterTimingPolicy` | public static class | Maps the "Actions Interpreter Timing" MCM dropdown value to ActionInterpreterTiming. |
 | `ActionKind` | public enum | The ways a character acts: toward the player on their own, or when summoned. |
 | `ActionMemoryLabel` | public static class | Turns a bridge action type into the short, player-facing label the Memories panel shows in blue beside a memory, so a journal entry that carries a REAL mechanical consequence (gold moved, a recruit, a fief granted, regar... |
 | `ActionRefusal` | public enum | Why an action did not happen. |
@@ -876,6 +875,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredTrait` | public enum | The five hand-authorable personality traits (mirrors the game's DefaultTraits set). |
 | `AutonomousSchemePolicy` | public static class | Pure eligibility, budget, and cooldown gates for the autonomous lord-scheme generator. |
 | `AwaitingReunionPolicy` | public static class | Pure timeout decision for a companion errand stuck in its AwaitingReunion phase. |
+| `BackgroundCallHoldFacts` | public class | The facts that decide whether a background model call waits for the conversation to close. |
+| `BackgroundCallHoldPolicy` | public static class | Decides whether a background model call keeps waiting for the conversation to close. |
 | `BackgroundCallTimeout` | public static class | The timeout of a call nobody waits on in a conversation. |
 | `BanditClearOfferPolicy` | public static class | Decides whether an open-field bandit-clearing deed is viable to offer near a giver's anchor town. |
 | `BastardBlackmailPolicy` | public static class | When the mother of a bastard can blackmail the player for her silence, and how much she demands. |

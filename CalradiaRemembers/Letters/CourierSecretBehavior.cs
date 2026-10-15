@@ -401,6 +401,8 @@ namespace CalradiaRemembers.Letters
             string liege = reader.MapFaction?.Leader != null && reader.MapFaction.Leader != reader ? reader.MapFaction.Leader.Name.ToString() : null;
             string prompt = SeverityPrompt(reader.Name.ToString(), liege, secret);
 
+            await Services.BackgroundCallHold.WhileConversationOpenAsync(Services.LlmServices.RunsLocally(ServiceRole.Housekeeping), $"secret judged by {reader.Name}");
+
             string answer = null;
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
             {
