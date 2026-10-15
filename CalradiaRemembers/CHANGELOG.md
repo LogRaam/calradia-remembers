@@ -2,6 +2,14 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.12.. open (2.7.11 skipped: a Nexus upload tagged 2.7.10 as both 2.7.10 and 2.7.11)
+
+### Fixed
+- **A parent knows a child who died** (Maifailun via tashmetu, 15/10: the player's wife Debana died in childbirth and
+  her father asked "Which Debana?"). `RelationshipsBuilder` listed living children only; dead children, a dead
+  spouse (the game moves them to the former spouses) and dead siblings are now named "the late", with how and when
+  (`KinDeathDescriber`), and "once the player's wife/husband" when so. cr.testall `dead_kin`.
+
 ## v2.7.10.. 2026-10-14
 
 ### New

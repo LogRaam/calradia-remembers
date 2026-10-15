@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 490 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1115 types in 29 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1117 types in 29 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -836,7 +836,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (682)
+### CalradiaRemembers.Logic (684)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1131,6 +1131,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyTriggerPolicy` | public static class | Pure gate deciding whether a recorded romantic act is plausible COURTSHIP worth a jealous reaction. |
 | `KeepPeaceBreachPolicy` | public static class | Decides whether a freshly declared war breaches a promisor's "keep the peace" oath. |
 | `KeywordToken` | public class | One parsed keyword: a Verb (uppercased, e.g. |
+| `KinDeathDescriber` | public static class | The clause that follows a dead relative's name: " (who died in childbirth 12 days ago)". |
+| `KinDeathFacts` | public class | What is known of a relative's death. |
 | `KinRecord` | public class | One person as the family tree sees them: who they are, their parents, and whom they married. |
 | `KinkParser` | public static class | Parses author-written kink names (case-insensitive) to Kink values. |
 | `KnowledgeTier` | public enum | How confidently an NPC could say where a third party is, from their social tie alone. |

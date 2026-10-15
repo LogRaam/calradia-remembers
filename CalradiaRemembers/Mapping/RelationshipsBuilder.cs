@@ -104,6 +104,11 @@ namespace CalradiaRemembers.Mapping
             // How recent the wedding is, when CR saw it (raphareish, 01/10/2026: a bride of days spoke of years).
             parts.Add($"Spouse: {hero.Spouse.Name}{DescribeParentage(hero.Spouse)}{CaptiveClause(hero.Spouse)}" + SpouseTenure(hero));
 
+         // A spouse who died: the game moves them from Spouse to the former spouses, so a widow read as never wed.
+         List<Hero> lateSpouses = hero.ExSpouses?.Where(s => s is {IsDead: true}).ToList();
+         if (lateSpouses is {Count: > 0})
+            parts.Add($"Spouse now dead: {string.Join(", ", lateSpouses.Select(s => $"the late {s.Name}{DescribeDeath(s)}"))}");
+
          // Parents are listed whether alive or dead, but a deceased one is marked as such —
          // otherwise the NPC reads "Father: X" and speaks of a dead parent as living,
          // even denying a death the player witnessed.
@@ -126,9 +131,11 @@ namespace CalradiaRemembers.Mapping
          // mother called her daughter her "son"). Co-parent is named when not the current spouse
          // so the LLM does not treat a step-child as a shared child (tester: a lord's son from
          // a deceased first wife was addressed as "our child" by the player-character spouse).
-         List<Hero> aliveChildren = hero.Children?.Where(c => c.IsAlive).ToList();
-         if (aliveChildren is {Count: > 0})
-            parts.Add($"Children: {string.Join(", ", aliveChildren.Select(c => DescribeChild(c, hero) + Partner(c)))}");
+         // Dead children too (Maifailun via tashmetu, 15/10/2026: the player's wife Debana died in childbirth and her
+         // father asked "Which Debana?", because a dead child was left out of his family altogether).
+         List<Hero> children = hero.Children?.Where(c => c != null).ToList();
+         if (children is {Count: > 0})
+            parts.Add($"Children: {string.Join(", ", children.Select(c => DescribeChild(c, hero) + Partner(c)))}");
 
 
          // Siblings, named with sex, so the NPC knows their own brothers and sisters.
@@ -238,16 +245,16 @@ namespace CalradiaRemembers.Mapping
             ? $"{child.Name} ({sex}, age {(int) child.Age}"
             : $"the late {child.Name} ({sex}";
 
-         string captive = CaptiveClause(child);
+         string after = child.IsAlive ? CaptiveClause(child) : DescribeDeath(child);
 
          if (other == null || other == npcHero.Spouse)
-            return baseName + ")" + captive;
+            return baseName + ")" + after;
 
          string coParent = other.IsAlive
             ? other.Name.ToString()
             : $"the late {other.Name}";
 
-         return $"{baseName}, by {coParent})" + captive;
+         return $"{baseName}, by {coParent})" + after;
       }
 
       /// <summary>
@@ -270,29 +277,14 @@ namespace CalradiaRemembers.Mapping
       {
          try
          {
-            if (kin.DeathDay.ToDays <= 0) return "";
-            double daysAgo = CampaignTime.Now.ToDays - kin.DeathDay.ToDays;
-
-            // Negative or absurdly old (> ~100 Calradian years) means the record is
-            // not real campaign history — say nothing rather than something false.
-            if (daysAgo < 0 || daysAgo > 8400) return "";
-
-            string when = daysAgo < 1 ? "this very day"
-               : daysAgo < WorldCalendar.DaysPerYear ? $"{(int) daysAgo} days ago"
-               : $"about {(int) (daysAgo / WorldCalendar.DaysPerYear)} year(s) ago";
-
-            string cause;
-            switch (kin.DeathMark.ToString())
-            {
-               case "DiedInBattle": cause = "fell in battle"; break;
-               case "DiedOfOldAge": cause = "died of old age"; break;
-               case "Executed": cause = "was executed"; break;
-               case "Murdered": cause = "was murdered"; break;
-               case "DiedInLabor": cause = "died in childbirth"; break;
-               default: cause = "died"; break;
-            }
-
-            return $" (who {cause} {when})";
+            double day = kin.DeathDay.ToDays;
+            Hero player = Hero.MainHero;
+            return KinDeathDescriber.Clause(new KinDeathFacts {
+               Cause = kin.DeathMark.ToString(),
+               DaysAgo = day > 0 ? CampaignTime.Now.ToDays - day : (double?) null,
+               WasPlayersSpouse = player != null && player != kin && player.ExSpouses?.Contains(kin) == true,
+               IsFemale = kin.IsFemale
+            });
          }
          catch
          {
@@ -322,7 +314,7 @@ namespace CalradiaRemembers.Mapping
 
          return h.IsAlive
             ? $"{h.Name} ({sex}, age {(int) h.Age}){CaptiveClause(h)}"
-            : $"the late {h.Name} ({sex})";
+            : $"the late {h.Name} ({sex}){DescribeDeath(h)}";
       }
 
       /// <summary>Names a relative, marking the deceased as "the late …" so the NPC speaks of them accurately.</summary>
