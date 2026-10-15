@@ -3,6 +3,8 @@
 #region
 
 using System;
+using System.Collections.Generic;
+using CalradiaRemembers.Logic;
 
 #endregion
 
@@ -44,6 +46,28 @@ namespace CalradiaRemembers.Logic.Actions
 
       /// <summary>The price was brought down to what the buyer can pay.</summary>
       public bool ClampedToPurse { get; init; }
+   }
+
+   /// <summary>What the question about a captive's counter_offer names.</summary>
+   public sealed class OfferConfirmationFacts
+   {
+      /// <summary>The captive's display name.</summary>
+      public string NpcName { get; init; }
+
+      /// <summary>Her pronoun ("her"/"him", "she"/"he"): a held prisoner is not always female.</summary>
+      public bool IsFemale { get; init; }
+
+      /// <summary>The terms she struck, in the order she (or the model) named them.</summary>
+      public IReadOnlyList<CaptiveTerm> Terms { get; init; } = new List<CaptiveTerm>();
+
+      /// <summary>The ransom in denars, already brought down to what the payer can pay; 0 when ransom is no term.</summary>
+      public int Ransom { get; init; }
+
+      /// <summary>The ransom named above was brought down to what the payer can pay.</summary>
+      public bool RansomClampedToPurse { get; init; }
+
+      /// <summary>The realm she would swear her house to, with fealty among her terms.</summary>
+      public string FealtyRealm { get; init; }
    }
 
    /// <summary>
@@ -105,7 +129,7 @@ namespace CalradiaRemembers.Logic.Actions
          if (string.IsNullOrEmpty(actionType)) return false;
 
          return string.Equals(actionType, "take_gold", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "join_party", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "free_prisoner", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(actionType, "sell_item", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(actionType, "sell_item", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "counter_offer", StringComparison.OrdinalIgnoreCase);
       }
 
       /// <summary>
@@ -128,6 +152,43 @@ namespace CalradiaRemembers.Logic.Actions
             return $"Sell {item} to {npc} for {f.Price} coins{(f.ClampedToPurse ? " (all they have)" : "")}?";
 
          return $"Give {item} to {npc}?";
+      }
+
+      /// <summary>
+      ///   "Accept Adrichea's offer (swear her house to the Northern Empire, 3000 coins) and set her free?": the
+      ///   counter_offer question names every term she struck, in the order she named them, and the ransom brought
+      ///   down to what the payer can pay when it was clamped.
+      /// </summary>
+      public static string BuildOfferQuestion(OfferConfirmationFacts f)
+      {
+         string npc = string.IsNullOrWhiteSpace(f?.NpcName) ? "them" : f.NpcName.Trim();
+         string possessive = f?.IsFemale == true ? "her" : "his";
+         string objective = f?.IsFemale == true ? "her" : "him";
+
+         var parts = new List<string>();
+         foreach (CaptiveTerm term in f?.Terms ?? new List<CaptiveTerm>())
+            switch (term)
+            {
+               case CaptiveTerm.Ransom:
+                  parts.Add($"{f.Ransom}{(f.RansomClampedToPurse ? " coins (all they have)" : " coins")}");
+                  break;
+               case CaptiveTerm.Fealty:
+                  parts.Add($"swear {possessive} house to {(string.IsNullOrWhiteSpace(f.FealtyRealm) ? "your realm" : f.FealtyRealm.Trim())}");
+                  break;
+               case CaptiveTerm.Service:
+                  parts.Add("take service in your clan");
+                  break;
+               case CaptiveTerm.Intimacy:
+                  parts.Add("a night together");
+                  break;
+               case CaptiveTerm.Goodwill:
+                  parts.Add($"{possessive} lasting goodwill");
+                  break;
+            }
+
+         string termsText = parts.Count > 0 ? string.Join(", ", parts) : $"{possessive} word alone";
+
+         return $"Accept {npc}'s offer ({termsText}) and set {objective} free?";
       }
    }
 }

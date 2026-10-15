@@ -21,7 +21,7 @@ namespace CalradiaRemembers.Logic
    {
       /// <summary>The verbs whose executor moves the coin itself.</summary>
       private static readonly string[] DealsMovingTheirOwnCoin =
-         {"buy_prisoner", "sell_prisoner", "exchange_prisoners", "pay_for_silence", "pay_blackmail", "rob_npc", "sell_item"};
+         {"buy_prisoner", "sell_prisoner", "exchange_prisoners", "pay_for_silence", "pay_blackmail", "rob_npc", "sell_item", "counter_offer"};
 
       /// <summary>
       ///   True when <paramref name="actionType" /> is a give_gold or take_gold in a turn that also carries a deal

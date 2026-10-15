@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 489 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1101 types in 28 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 490 types in 59 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1102 types in 28 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,9 +17,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 18500+ | Mod | `Diagnostics/CrSelfTest.cs` |
-| 8000+ | Sdk | `Prompts/PromptBuilder.cs` |
-| 5000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
+| 19000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
+| 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
 | 4000+ | Mod | `Mapping/EncounterContextBuilder.cs` |
 | 2500+ | Mod | `Chat/ChatViewModel.Exchanges.cs` |
@@ -352,7 +352,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitData` | public struct | The flat portrait binding a widget renders from: image id, texture provider name, extra args. |
 | `PortraitTextureGuard` | public static class | The single gate for every character portrait the mod shows (chat lines, the courier letter). |
 
-### CalradiaRemembers.GameState (37)
+### CalradiaRemembers.GameState (38)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -365,6 +365,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AssignPartyRoleResult` | public enum | The outcome of CourtActionResolver.TryAssignPartyRole, read by each caller to report its own message. |
 | `AssignPartyRoleVerdict` | public struct | The verdict of CourtActionResolver.TryAssignPartyRole: the result and, only on AssignPartyRoleResult.Assigned, the resolved Role so the caller can name it. |
 | `BannerlordGameStateBridge` | public class | Concrete implementation of IGameStateBridge using the TaleWorlds campaign API. This is the ONLY class in the mod that should reach directly into Hero.MainHero, Campaign.Current, FactionManager, etc. |
+| `CounterOfferPreview` | public class | The real terms a counter_offer would settle, for the player's confirmation and the executor alike (shared the same way ItemPreview is for a sale): the parsed terms re-checked against what is open to her NOW (CaptiveOffer... |
 | `CourtActionResolver` | public static class | Reads the live game state into the eligibility/amount facts for the "RP with teeth" court actions (give_influence, lend_troops, sway_opinion, release_prisoner, and their 04/07/2026 reciprocals give_troops/spend_influence... |
 | `DispatchMissionResult` | public enum | The outcome of CourtActionResolver.TryDispatchMission, read by each caller to report its own message. |
 | `DispatchMissionVerdict` | public struct | The verdict of CourtActionResolver.TryDispatchMission: the result, the resolved Type (whenever one was parsed), and the companion-mission behaviour's own Message on DispatchMissionResult.Dispatched or DispatchMissionResu... |
@@ -1522,7 +1523,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
 
-### CalradiaRemembers.Logic.Actions (17)
+### CalradiaRemembers.Logic.Actions (18)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1538,6 +1539,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ManualActionParameterKind` | public enum | What follow-up the menu must raise before the action can be built: a plain amount, an item from the player's roster, a fief name, a party role, a companion-mission kind, an enemy faction, or nothing at all (the action ca... |
 | `ManualActionState` | public enum | Where one manual action stands in this conversation, for the three ranks the panel shows. |
 | `ManualActionStatus` | public class | One catalogue entry with where it stands, and why when it is closed. |
+| `OfferConfirmationFacts` | public class | What the question about a captive's counter_offer names. |
 | `TaughtActionFacts` | public struct | The eligibility facts that decide which conditional 1:1 [ACTION] verbs a single conversation turn teaches. |
 | `TaughtActionSet` | public static class | BEST-EFFORT, LOG-ONLY. Returns the set of 1:1 [ACTION] type keys taught on a single ordinary (non-council) conversation turn, so the host can OBSERVE, without refusing, an [ACTION] that executed yet was never taught (aud... |
 | `TradeBatchAction` | public class | One action of a turn, as far as a sale is concerned. |

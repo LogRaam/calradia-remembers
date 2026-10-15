@@ -68,6 +68,11 @@ namespace CalradiaRemembers.Chat
          if (type.Equals("sell_item", StringComparison.OrdinalIgnoreCase) || type.Equals("give_item", StringComparison.OrdinalIgnoreCase))
             return PreprocessItem(action, npc, profile, context, type);
 
+         // counter_offer (Maifailun and Gabriel, 14/10/2026): a captive bargains real terms for her own freedom;
+         // always confirmed, naming every term struck, the same way a sale always is.
+         if (type.Equals("counter_offer", StringComparison.OrdinalIgnoreCase))
+            return PreprocessCounterOffer(action, npc, profile, context);
+
          bool tracked = type.Equals("give_gold", StringComparison.OrdinalIgnoreCase)
                         || type.Equals("take_gold", StringComparison.OrdinalIgnoreCase)
                         || type.Equals("join_party", StringComparison.OrdinalIgnoreCase)
@@ -146,6 +151,41 @@ namespace CalradiaRemembers.Chat
             Question = ActionConfirmationPolicy.BuildItemQuestion(new ItemConfirmationFacts {
                ActionType = type, ItemName = item.Name, NpcName = npc?.Name?.ToString() ?? profile?.Name ?? "them",
                Price = deal?.Price ?? 0, ClampedToPurse = deal?.ClampedToPurse == true
+            })
+         });
+
+         return ActionDisposition.Queued;
+      }
+
+      /// <summary>
+      ///   counter_offer. Shares <see cref="BannerlordGameStateBridge.PreviewCounterOffer" /> with the executor (the
+      ///   term the player says yes to is the term that happens), the same way <see cref="PreprocessItem" /> shares
+      ///   the bridge's own item resolution for a sale. A refusal from the preview runs inline, where the bridge
+      ///   says why; otherwise queued with a question naming every term she struck. Repeat key includes the terms
+      ///   and the clamped ransom, so a genuinely different bargain struck later in the same conversation is still
+      ///   asked, never silently dropped as a repeat.
+      /// </summary>
+      private ActionDisposition PreprocessCounterOffer(GameAction action, Hero npc, NpcProfile profile, ActionContext context)
+      {
+         CounterOfferPreview preview = BannerlordGameStateBridge.PreviewCounterOffer(action, npc, context);
+         if (preview == null || preview.Refusal != null) return ActionDisposition.ExecuteInline; // the bridge refuses it, saying why
+
+         string key = $"counter_offer:{npc?.StringId}:{string.Join("+", preview.Terms)}:{preview.Ransom}";
+         if (_resolvedKeys.Contains(key))
+         {
+            ModLog.Info($"[CONFIRM] repeat suppressed ({key}): the LLM re-emitted an already-resolved offer.");
+
+            return ActionDisposition.Skip;
+         }
+
+         _resolvedKeys.Add(key);
+
+         string npcName = npc?.Name?.ToString() ?? profile?.Name ?? "them";
+         _pending.Enqueue(new PendingConfirmation {
+            Action = action, Npc = npc, Profile = profile, Context = context, Amount = preview.Ransom,
+            Question = ActionConfirmationPolicy.BuildOfferQuestion(new OfferConfirmationFacts {
+               NpcName = npcName, IsFemale = npc?.IsFemale == true, Terms = preview.Terms,
+               Ransom = preview.Ransom, RansomClampedToPurse = preview.RansomClampedToPurse, FealtyRealm = preview.FealtyRealm
             })
          });
 

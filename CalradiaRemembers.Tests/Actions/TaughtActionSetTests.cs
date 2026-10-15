@@ -154,6 +154,7 @@ namespace CalradiaRemembers.Tests.Actions
             set.Should().Contain("free_prisoner");
             set.Should().Contain("execute_prisoner");
             set.Should().Contain("turn_nemesis");
+            set.Should().Contain("counter_offer");
         }
 
         // The whole point of the audit: a verb no fact enables (here appoint_governor on a bare turn) is genuinely

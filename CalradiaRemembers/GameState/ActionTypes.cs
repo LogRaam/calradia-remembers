@@ -2,6 +2,8 @@
 
 #region
 
+using System.Collections.Generic;
+using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
 
 #endregion
@@ -56,6 +58,32 @@ namespace CalradiaRemembers.GameState
 
         /// <summary>Its market value in denars.</summary>
         public int Value { get; set; }
+    }
+
+    /// <summary>
+    ///   The real terms a counter_offer would settle, for the player's confirmation and the executor alike (shared
+    ///   the same way <see cref="ItemPreview" /> is for a sale): the parsed terms re-checked against what is open
+    ///   to her NOW (CaptiveOfferPolicy, re-decided through EncounterContextBuilder.ResolveCaptiveOffer), the
+    ///   ransom already clamped to the payer's purse and the single-transfer ceiling, and the realm fealty would
+    ///   swear her house to. <see cref="Refusal" /> set means nothing else here is meaningful: the bridge refuses
+    ///   and changes nothing.
+    /// </summary>
+    public sealed class CounterOfferPreview
+    {
+        /// <summary>The terms she struck, in the order named, each one confirmed open to her right now.</summary>
+        public IReadOnlyList<CaptiveTerm> Terms { get; set; } = new List<CaptiveTerm>();
+
+        /// <summary>The ransom in denars, clamped to the payer's purse and GoldTransferLimit.MaxSingleTransfer.</summary>
+        public int Ransom { get; set; }
+
+        /// <summary>The ransom above was brought down from the amount named.</summary>
+        public bool RansomClampedToPurse { get; set; }
+
+        /// <summary>The realm she would swear her house to, when fealty is one of her terms; null otherwise.</summary>
+        public string FealtyRealm { get; set; }
+
+        /// <summary>Why the offer could not be settled, as a plain in-character note; null when it can be.</summary>
+        public string Refusal { get; set; }
     }
 
     /// <summary>

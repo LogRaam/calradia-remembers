@@ -11,6 +11,7 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using CalradiaRemembers.Logic.Appreciations;
 using NpcMemoryService.Core.Models;
@@ -32,7 +33,15 @@ namespace CalradiaRemembers.Logic
       Service,
 
       /// <summary>Her body, in Mature content and above, between adults.</summary>
-      Intimacy
+      Intimacy,
+
+      /// <summary>
+      ///   Her bare word alone, costing her nothing: always open, never gated, never added to
+      ///   <see cref="CaptiveOffer.Terms" /> by <see cref="CaptiveOfferPolicy.Decide" /> (it is the unconditional
+      ///   line every captive is told she may offer regardless of means or disposition). Named here only so an
+      ///   emitted counter_offer naming it parses to something, rather than an unrecognised word.
+      /// </summary>
+      Goodwill
    }
 
    /// <summary>How readily she bargains.</summary>
@@ -68,6 +77,18 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>Her clan already belongs to that realm (nothing to swear).</summary>
       public bool HerClanIsInThatRealm { get; init; }
+
+      /// <summary>
+      ///   Her clan RULES the kingdom it belongs to (she is its sovereign). Found reading the decompiled engine
+      ///   (ChangeKingdomAction.ApplyInternal / Clan.ClanLeaveKingdom, 14/10/2026) while building the executor that
+      ///   would actually carry fealty out: leaving a kingdom only clears Kingdom = null on the clan and never
+      ///   checks whether it was that kingdom's RulingClan, so swearing a captured QUEEN's house to another realm
+      ///   would leave her former kingdom's RulingClan pointing at a clan no longer in it, an orphaned kingdom the
+      ///   game has no path to repair. Fealty is a term only the game can truthfully carry out for her (the whole
+      ///   point of this policy), so a ruling clan's head never has fealty as a term at all, gated BEFORE she ever
+      ///   speaks rather than refused after (gating before declaration).
+      /// </summary>
+      public bool RulesHerRealm { get; init; }
 
       /// <summary>The recruit_prisoner gate is open for her (EncounterContext.CanRecruitPrisoner).</summary>
       public bool ServiceIsOpen { get; init; }
@@ -123,12 +144,37 @@ namespace CalradiaRemembers.Logic
          var terms = new List<CaptiveTerm>();
          bool ransom = f.RansomMeans >= RansomFloor;
          if (ransom) terms.Add(CaptiveTerm.Ransom);
-         if (f.LeadsHerClan && f.PlayerServesARealm && !f.HerClanIsInThatRealm) terms.Add(CaptiveTerm.Fealty);
+         if (f.LeadsHerClan && f.PlayerServesARealm && !f.HerClanIsInThatRealm && !f.RulesHerRealm) terms.Add(CaptiveTerm.Fealty);
          if (f.ServiceIsOpen) terms.Add(CaptiveTerm.Service);
          if (f.ContentLevel != AdultContentLevel.Off && f.BothOfAge && f.OrientationAllowsThePlayer && traits.Honor <= 0)
             terms.Add(CaptiveTerm.Intimacy);
 
          return new CaptiveOffer {Terms = terms, RansomCeiling = ransom ? f.RansomMeans : 0, Disposition = disposition};
+      }
+
+      /// <summary>
+      ///   Reads a counter_offer action's "terms" parameter (a comma list the model writes, e.g. "ransom, fealty")
+      ///   into the <see cref="CaptiveTerm" /> values it names, matching by keyword so "a ransom" or "her fealty"
+      ///   still parse. An unrecognised word is skipped rather than failing the whole parse; an empty or
+      ///   unparseable string yields an empty list, which the bridge reads as nothing to settle.
+      /// </summary>
+      public static IReadOnlyList<CaptiveTerm> ParseTerms(string raw)
+      {
+         var terms = new List<CaptiveTerm>();
+         if (string.IsNullOrWhiteSpace(raw)) return terms;
+
+         foreach (string part in raw.Split(','))
+         {
+            string w = part.Trim();
+            if (w.Length == 0) continue;
+            if (w.IndexOf("ransom", StringComparison.OrdinalIgnoreCase) >= 0) terms.Add(CaptiveTerm.Ransom);
+            else if (w.IndexOf("fealty", StringComparison.OrdinalIgnoreCase) >= 0) terms.Add(CaptiveTerm.Fealty);
+            else if (w.IndexOf("service", StringComparison.OrdinalIgnoreCase) >= 0) terms.Add(CaptiveTerm.Service);
+            else if (w.IndexOf("intimacy", StringComparison.OrdinalIgnoreCase) >= 0) terms.Add(CaptiveTerm.Intimacy);
+            else if (w.IndexOf("goodwill", StringComparison.OrdinalIgnoreCase) >= 0) terms.Add(CaptiveTerm.Goodwill);
+         }
+
+         return terms;
       }
    }
 }

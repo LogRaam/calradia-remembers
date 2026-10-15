@@ -129,5 +129,49 @@ namespace CalradiaRemembers.Tests
          CaptiveOfferPolicy.Decide(a).Terms.Should().NotContain(CaptiveTerm.Service);
          CaptiveOfferPolicy.Decide(new CaptiveOfferFacts {Traits = a.Traits, Fear = a.Fear, ServiceIsOpen = true}).Terms.Should().Contain(CaptiveTerm.Service);
       }
+
+      // Found reading the decompiled engine while building the counter_offer executor (14/10/2026): leaving a
+      // kingdom (ChangeKingdomAction / Clan.ClanLeaveKingdom) only clears Kingdom = null and never checks whether
+      // the clan WAS that kingdom's RulingClan, so swearing a captured sovereign's house to another realm would
+      // orphan the one she ruled, a state the game has no path to repair. Fealty must never be a term the game
+      // cannot truthfully carry out for her, so a ruling clan's head never has it on the table at all.
+      [Test]
+      public void GIVEN_a_captive_who_rules_her_own_realm_WHEN_decided_THEN_fealty_is_never_a_term()
+      {
+         CaptiveOfferFacts a = Adrichea();
+         CaptiveOffer offer = CaptiveOfferPolicy.Decide(new CaptiveOfferFacts {
+            Traits = a.Traits, Fear = a.Fear, LeadsHerClan = true, PlayerServesARealm = true, HerClanIsInThatRealm = false, RulesHerRealm = true
+         });
+
+         offer.Terms.Should().NotContain(CaptiveTerm.Fealty);
+      }
+
+      // Goodwill costs nothing and is always on the table (the unconditional line every captive is told she may
+      // offer), so it is never one of the gated terms Decide adds: a test enumerating every CaptiveTerm here would
+      // wrongly expect it gated like the rest.
+      [Test]
+      public void GIVEN_any_facts_WHEN_decided_THEN_goodwill_is_never_an_emitted_term()
+      {
+         CaptiveOfferPolicy.Decide(Adrichea()).Terms.Should().NotContain(CaptiveTerm.Goodwill);
+      }
+
+      // ParseTerms reads a counter_offer action's "terms" parameter: the bridge must read exactly what the model
+      // was taught to write (comma list, free-form wording), or a genuinely struck bargain settles nothing.
+      [Test]
+      public void GIVEN_a_comma_list_of_terms_WHEN_parsed_THEN_each_recognised_word_becomes_its_term()
+      {
+         CaptiveOfferPolicy.ParseTerms("ransom, fealty").Should().BeEquivalentTo(new[] {CaptiveTerm.Ransom, CaptiveTerm.Fealty});
+         CaptiveOfferPolicy.ParseTerms("her fealty, her service").Should().BeEquivalentTo(new[] {CaptiveTerm.Fealty, CaptiveTerm.Service});
+         CaptiveOfferPolicy.ParseTerms("intimacy").Should().BeEquivalentTo(new[] {CaptiveTerm.Intimacy});
+      }
+
+      // Nothing recognisable (empty, null, or an unknown word) parses to no terms, never a thrown exception.
+      [Test]
+      public void GIVEN_nothing_recognisable_WHEN_parsed_THEN_the_result_is_empty()
+      {
+         CaptiveOfferPolicy.ParseTerms(null).Should().BeEmpty();
+         CaptiveOfferPolicy.ParseTerms("").Should().BeEmpty();
+         CaptiveOfferPolicy.ParseTerms("her undying love").Should().BeEmpty();
+      }
    }
 }

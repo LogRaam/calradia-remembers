@@ -269,6 +269,8 @@ namespace CalradiaRemembers.Logic.Actions
             set.Add("free_prisoner");
             set.Add("execute_prisoner");
             set.Add("turn_nemesis");
+            // counter_offer (14/10/2026): taught by the same captive-terms section free_prisoner's bargain is.
+            set.Add("counter_offer");
          }
 
          // Captive-scene captor verbs (also resolved on dedicated paths; kept for completeness).

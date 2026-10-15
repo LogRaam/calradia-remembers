@@ -1317,8 +1317,10 @@ namespace CalradiaRemembers.Mapping
       /// <summary>
       ///   What a captive of the player may offer for her freedom (CaptiveOfferPolicy; Maifailun and Gabriel, 14/10/2026).
       ///   Null for anyone who is not the player's captive. Ransom is paid by her house's head (herself when she leads it).
+      ///   Internal (not private) so the bridge's counter_offer executor can re-decide the SAME offer at execution,
+      ///   the same way the prompt that taught it was decided (the prompt is advice, the bridge is law).
       /// </summary>
-      private static CaptiveOffer ResolveCaptiveOffer(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus, bool canRecruitPrisoner)
+      internal static CaptiveOffer ResolveCaptiveOffer(Hero hero, NpcProfile profile, PlayerStatusVsNpc playerStatus, bool canRecruitPrisoner)
       {
          try
          {
@@ -1338,6 +1340,7 @@ namespace CalradiaRemembers.Mapping
                LeadsHerClan = hero.Clan != null && hero.Clan.Leader == hero,
                PlayerServesARealm = playersRealm != null,
                HerClanIsInThatRealm = playersRealm != null && hero.Clan?.Kingdom == playersRealm,
+               RulesHerRealm = hero.Clan?.Kingdom != null && hero.Clan.Kingdom.RulingClan == hero.Clan,
                ServiceIsOpen = canRecruitPrisoner,
                ContentLevel = ModSettings.AdultContentLevel,
                BothOfAge = hero.Age >= comesOfAge && Hero.MainHero.Age >= comesOfAge,

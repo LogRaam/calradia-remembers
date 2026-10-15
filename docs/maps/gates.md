@@ -168,6 +168,15 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - $"({npcHero.Name} is not a committed partner of yours, so there are no open terms to revoke.)"
   - $"(You and {npcHero.Name} hold no open terms to revoke.)"
 
+### counter_offer
+
+- executor: `ExecuteCounterOffer`
+- taught in: `AppendCaptiveTerms`
+- taught when: `context?.PlayerStatus != PlayerStatusVsNpc.NpcIsCaptive || string.IsNullOrWhiteSpace(context.CaptiveDisposition) [early return naming context]`
+- the bridge refuses:
+  - preview.Refusal
+  - $"({npcHero.Name}'s service could not be settled after all.)"
+
 ### decline_divorce
 
 - executor: `ExecuteDeclineDivorce`

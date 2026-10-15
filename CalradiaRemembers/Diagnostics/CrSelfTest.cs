@@ -227,6 +227,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("quest_rescue_release_credit", Severity.Heavy, "v2.5.3 player report ('his success cancelled his quest'): capture a real in-party lord bound to a real outstanding RescuePrisoner quest, free them through the REAL free_prisoner bridge action (not a battle, not a Debug seam) so the REAL CampaignEvents.HeroPrisonerReleased dispatch reaches QuestDeedTracker's new hook, and assert the quest is stamped SATISFIED, not left outstanding; then runs the REAL daily maintenance sweep and asserts it still does not CANCEL the now-satisfied quest (the exact bug: the void sweep used to read the freed target as proof the task was impossible). Releases the captive and drops the seeded quest afterwards", TestRescueCreditedOnRelease),
          new SelfTest("captive_kin", Severity.Heavy, "capture an in-party enemy lord who has a living parent -> build that parent's RELATIONSHIPS -> assert the captured child is marked as held by the player (the 'you are a liar, my child is safe' denial bug), then release", TestCaptiveKinAwareness),
          new SelfTest("give_item", Severity.Light, "pick a player item -> give_item -> assert it left the inventory", TestGiveItem),
+         new SelfTest("captive_counter_offer", Severity.Heavy, "Maifailun (Nexus, 14/10/2026): he held Adrichea (Honor -1, a clan leader), asked her to swear fealty or share his bed, she answered 'kill me if you must', and nothing in CR could hold a counter-offer anyway. Takes a free lord of another realm captive, tops up the payer's purse, and drives the REAL counter_offer verb three ways: a fresh ActionConfirmationController queues a 300-denar ransom naming it, the real bridge settles it (player paid, payer charged, lord freed), and a term not open to her (service, regard 0) is refused and moves nothing. A fourth part (fealty actually swearing a house to a real realm) only runs under 'cr.test full', since CR records a realm change as world news; otherwise it notes why. Restores gold, regard, traits and captivity.", TestCaptiveCounterOffer),
          new SelfTest("captive_terms", Severity.Heavy, "A captive bargains for her freedom (Maifailun, 14/10/2026: Adrichea, Honor -1, answered 'kill me if you must'; Gabriel: the captive proposes terms herself, intimacy in Mature and above for the honorless). Takes a free lord of another realm captive, gives them Adrichea's Honor -1 for the test, builds the REAL context and prompt, and expects the captive to be told she offers first, with the ransom her house can pay and intimacy only when the content level, age and orientation allow. Releases the lord and restores their traits.", TestCaptiveTerms),
          new SelfTest("sell_item", Severity.Light, "Selling an item in chat (3chmidt, 13/10/2026: a sale became a gift plus a payment the wrong way, 'Give Poison Menja 9000 coins?', and a second sword left). Seeds a trade good, sells it to a lord with coin through the real bridge and expects the item gone, the player paid and the lord's purse lighter by the same sum; then a gift written in words (no bag pick) is queued for confirmation naming the real item. Puts the coin back and removes the seeded goods.", TestSellItem),
          new SelfTest("gift_equip", Severity.Light, "gift an equippable weapon to a companion/spouse -> assert they equipped it", TestGiftEquip),
@@ -5292,6 +5293,174 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Expect("sameTownGangLeaderFramedAsRival", framedAsRival, true);
          t.Note($"{npc.Name} asked about same-town gang leader {rival.Name}: {(framedAsRival ? "RIVAL" : "NOT framed rival")}. | hint: {Show(hint)}");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Maifailun (Nexus, 14/10/2026): he held Adrichea (Honor -1, a clan leader), asked her to swear fealty or
+      ///   share his bed, she answered "kill me if you must", and nothing in CR could hold a counter-offer anyway.
+      ///   Gabriel: the captive proposes terms herself, settled through one new verb. Drives the REAL path three
+      ///   ways on one held captive: (a) a fresh ActionConfirmationController queues a ransom offer, naming it; (b)
+      ///   the real bridge settles it, paying the player, charging the payer, freeing the captive; (c) a term not
+      ///   open to her right now (service, regard far under the recruit floor) is refused and moves nothing. A
+      ///   fourth part, fealty actually changing a real realm, only runs under 'cr.test full' (MayArrangeDiplomacy),
+      ///   since CR records a realm change as world news; otherwise it is noted, never silently skipped.
+      /// </summary>
+      private static string TestCaptiveCounterOffer(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("captive_counter_offer");
+         if (t.Abort(Hero.MainHero == null || PartyBase.MainParty == null, "no player party")) return t.Line();
+
+         // Same free-lord-of-another-realm arrangement TestCaptiveTerms uses, reused here.
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && !h.IsChild
+                                                            && h.Clan != null && h.Clan != Clan.PlayerClan && h.MapFaction != Hero.MainHero.MapFaction
+                                                            && (h.PartyBelongedTo == null || h.PartyBelongedTo.LeaderHero != h)
+                                                            && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(lord == null, "no free lord of another realm exists to take captive")) return t.Line();
+
+         int honorBefore = lord.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor);
+         Hero payer = lord.Clan?.Leader ?? lord;
+         int payerGoldBefore = payer.Gold;
+         int playerGoldBefore = Hero.MainHero.Gold;
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         int regardBefore = profile.ReputationWithPlayer;
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, lord);
+         bool captured = lord.IsPrisoner && lord.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+         if (t.Abort(!captured, $"capture failed for {lord.Name}")) return t.Line();
+
+         try
+         {
+            lord.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor, -1);
+
+            // GABRIEL'S RULE (13/10/2026): arrange it rather than skip. Ensure the payer can actually settle 300.
+            if (payer.Gold < 300) payer.ChangeHeroGold(300 - payer.Gold);
+
+            // A prior test in the same sweep may have already moved this lord's regard; part (c) needs it
+            // deterministically under the recruit floor (60) so "service" is closed to her whatever ran before.
+            profile.ReputationWithPlayer = 0;
+            behavior.Store.Set(profile);
+
+            // (a) A fresh ActionConfirmationController queues the offer, naming the ransom.
+            var ransomOffer = new GameAction {Type = "counter_offer", Parameters = new Dictionary<string, string> {["terms"] = "ransom", ["amount"] = "300"}};
+            var confirmation = new ActionConfirmationController();
+            ActionDisposition disposition = confirmation.Preprocess(ransomOffer, lord, profile, new ActionContext(profile, null));
+            t.Expect("ransomOfferIsQueued", disposition, ActionDisposition.Queued);
+            t.Expect("theQuestionNamesTheRansom", confirmation.DebugNextQuestion?.Contains("300") == true, true);
+
+            // (c) A term not open to her now (regard 0, far under the recruit floor) is refused, moving nothing.
+            var closedOffer = new GameAction {Type = "counter_offer", Parameters = new Dictionary<string, string> {["terms"] = "service"}};
+            ActionOutcome refused = behavior.GameStateBridge.ExecuteAction(closedOffer, lord, new ActionContext(profile, null));
+            t.Note($"closed term (service): {refused?.Message}");
+            t.Expect("aTermNotOpenIsRefused", refused?.WasRefused, true);
+            t.Expect("aRefusedOfferFreesNoOne", lord.IsPrisoner, true);
+
+            // (b) Execute the ransom for real: the player is paid, the payer pays, she walks free.
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(ransomOffer, lord, new ActionContext(profile, null));
+            int paidToPlayer = Hero.MainHero.Gold - playerGoldBefore;
+            t.Note($"{lord.Name}: {outcome?.Message}");
+            t.Expect("thePlayerIsPaidTheRansom", paidToPlayer, 300);
+            t.Expect("thePayerPaysTheRansom", payerGoldBefore - payer.Gold >= 300, true);
+            t.Expect("theLordWalksFree", lord.IsPrisoner, false);
+
+            // (d) Fealty actually swears a house to a real realm, which CR records as world news: only under
+            // 'cr.test full', never silently skipped otherwise (Gabriel: note why instead).
+            if (_diplomacyMayBeArranged)
+            {
+               Clan playerClan = Hero.MainHero.Clan;
+               Kingdom originalPlayerKingdom = playerClan?.Kingdom;
+               float playerInfluenceBefore = playerClan?.Influence ?? 0f;
+               var arrangedPlayerJoin = false;
+
+               try
+               {
+                  if (playerClan != null && originalPlayerKingdom == null)
+                  {
+                     Kingdom anyKingdom = Kingdom.All?.FirstOrDefault(k => k is {IsEliminated: false});
+                     if (anyKingdom != null)
+                     {
+                        ChangeKingdomAction.ApplyByJoinToKingdom(playerClan, anyKingdom, default, false);
+                        arrangedPlayerJoin = playerClan.Kingdom == anyKingdom;
+                     }
+                  }
+
+                  Kingdom realm = playerClan?.Kingdom;
+                  if (realm == null)
+                  {
+                     t.Note("fealty part (d) not run: the player's clan belongs to no kingdom, and no living kingdom exists to arrange one with");
+                  }
+                  else
+                  {
+                     // A clan leader whose house does NOT already rule a kingdom (CaptiveOfferPolicy.RulesHerRealm:
+                     // swearing a sovereign's house would orphan the realm she rules) and is not already in the
+                     // player's own realm.
+                     Hero fealtyLord = Hero.AllAliveHeroes.FirstOrDefault(h =>
+                        h != Hero.MainHero && h.IsLord && !h.IsPrisoner && !h.IsChild && h.Clan != null && h.Clan.Leader == h
+                        && h.Clan.Kingdom != null && h.Clan.Kingdom != realm && h.Clan.Kingdom.RulingClan != h.Clan
+                        && Mapping.HeroPresence.IsInTheWorld(h));
+
+                     if (fealtyLord == null)
+                     {
+                        t.Note("fealty part (d) not run: no clan-leading lord of another realm, not that realm's own sovereign, to swear fealty");
+                     }
+                     else
+                     {
+                        Kingdom fealtyLordOriginalKingdom = fealtyLord.Clan.Kingdom;
+                        TakePrisonerAction.Apply(PartyBase.MainParty, fealtyLord);
+                        bool fealtyLordCaptured = fealtyLord.IsPrisoner && fealtyLord.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+
+                        if (fealtyLordCaptured)
+                           try
+                           {
+                              var fealtyProfile = GetOrCreate(behavior, fealtyLord);
+                              var fealtyOffer = new GameAction {Type = "counter_offer", Parameters = new Dictionary<string, string> {["terms"] = "fealty"}};
+                              ActionOutcome fealtyOutcome = behavior.GameStateBridge.ExecuteAction(fealtyOffer, fealtyLord, new ActionContext(fealtyProfile, null));
+
+                              t.Note($"fealty: {fealtyLord.Name} of {fealtyLordOriginalKingdom?.Name} -> {fealtyOutcome?.Message}");
+                              t.Expect("fealtySwearsTheHouseToTheRealm", fealtyLord.Clan.Kingdom == realm, true);
+                              t.Expect("fealtyFreesHer", fealtyLord.IsPrisoner, false);
+                           }
+                           finally
+                           {
+                              if (fealtyLord.Clan.Kingdom != fealtyLordOriginalKingdom)
+                              {
+                                 float influenceBefore = fealtyLord.Clan.Influence;
+                                 if (fealtyLordOriginalKingdom != null) ChangeKingdomAction.ApplyByJoinToKingdom(fealtyLord.Clan, fealtyLordOriginalKingdom, default, false);
+                                 else ChangeKingdomAction.ApplyByLeaveKingdom(fealtyLord.Clan, false);
+                                 ChangeClanInfluenceAction.Apply(fealtyLord.Clan, influenceBefore - fealtyLord.Clan.Influence);
+                              }
+
+                              if (fealtyLord.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(fealtyLord, Hero.MainHero);
+                           }
+                        else
+                           t.Note($"fealty: capture of {fealtyLord.Name} failed, part (d) skipped");
+                     }
+                  }
+               }
+               finally
+               {
+                  if (arrangedPlayerJoin && playerClan != null)
+                  {
+                     ChangeKingdomAction.ApplyByLeaveKingdom(playerClan, false);
+                     ChangeClanInfluenceAction.Apply(playerClan, playerInfluenceBefore - playerClan.Influence);
+                  }
+               }
+            }
+            else
+            {
+               t.Note("fealty part (d) not run: would change a real realm, which CR records as world news; only arranged in 'cr.test full'");
+            }
+         }
+         finally
+         {
+            lord.SetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor, honorBefore);
+            if (lord.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(lord, Hero.MainHero);
+            Hero.MainHero.ChangeHeroGold(playerGoldBefore - Hero.MainHero.Gold);
+            payer.ChangeHeroGold(payerGoldBefore - payer.Gold);
+            profile.ReputationWithPlayer = regardBefore;
+            behavior.Store.Set(profile);
+         }
 
          return t.Line();
       }

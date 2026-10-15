@@ -1330,6 +1330,11 @@ namespace CalradiaRemembers.Chat
                   })
                   .Select(i => response.Actions[i]));
 
+               // counter_offer settles its own terms (14/10/2026): fealty rides its own "fealty" term, and its
+               // executor frees her itself, so a free_prisoner or join_clan beside it is the same deed read twice.
+               var supersededByCounterOffer = new HashSet<GameAction>(
+                  TradeBatchPolicy.SupersededByCounterOffer(actionTypesThisTurn).Select(i => response.Actions[i]));
+
                // M-R3: at content Off an intimacy [EVENT] is a hallucination (the romance system is disabled), so
                // it must not grant the RelationGate's intimacy-tier boost (+3, cooldown bypassed). Downgrade it so
                // change_relation is gated as a routine gain, matching the status arc being frozen off above.
@@ -1429,6 +1434,15 @@ namespace CalradiaRemembers.Chat
                   if (supersededBySale.Contains(action))
                   {
                      ModLog.Info($"[ACTION] {action.Type} dropped: a sale in the same response already moves this item.");
+
+                     continue;
+                  }
+
+                  // A counter_offer settled read twice (14/10/2026): beside it, a free_prisoner or join_clan is the
+                  // same bargain the counter_offer already carries.
+                  if (supersededByCounterOffer.Contains(action))
+                  {
+                     ModLog.Info($"[ACTION] {action.Type} dropped: a counter_offer in the same response already settles this.");
 
                      continue;
                   }

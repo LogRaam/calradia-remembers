@@ -223,7 +223,7 @@ namespace CalradiaRemembers.GameState
          "end_mercenary", "join_as_vassal", "mediate_peace", "join_clan", "scheme_assist", "scheme_heed",
          "marry", "take_as_consort", "take_as_secret_lover", "open_relationship", "close_relationship",
          "accept_other_partners",
-         "end_affair", "give_item", "sell_item", "give_prisoner", "free_prisoner", "execute_prisoner", "execute_player",
+         "end_affair", "give_item", "sell_item", "give_prisoner", "free_prisoner", "counter_offer", "execute_prisoner", "execute_player",
          "turn_nemesis", "recruit_prisoner", "recruit_notable",
          "take_into_service", "grant_blessing", "arrange_marriage",
          "appoint_governor", "assign_party_role", "rejoin_party", "dispatch_mission", "grant_fief",
@@ -289,6 +289,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteGivePrisoner(action, npcHero, context);
             case "free_prisoner":
                return ExecuteFreePrisoner(npcHero, context);
+            case "counter_offer":
+               return ExecuteCounterOffer(action, npcHero, context);
             case "execute_prisoner":
                return ExecuteExecutePrisoner(npcHero);
             case "execute_player":
@@ -1589,6 +1591,145 @@ namespace CalradiaRemembers.GameState
             return null;
          }
       }
+
+      /// <summary>
+      ///   The real terms a counter_offer would settle: shared between the confirmation controller (the question
+      ///   the player is asked) and the executor (what actually applies), so the term the player says yes to is the
+      ///   term that happens, exactly as <see cref="PreviewItem" /> is shared for a sale. Re-decides the SAME offer
+      ///   the captive-terms prompt section decided (<see cref="Mapping.EncounterContextBuilder.ResolveCaptiveOffer" />)
+      ///   and refuses any emitted term that is not open to her right now, by name: the prompt is advice, the bridge
+      ///   is law. The ransom is clamped here, once, to what the payer holds and <see cref="GoldTransferLimit.MaxSingleTransfer" />.
+      /// </summary>
+      public static CounterOfferPreview PreviewCounterOffer(GameAction action, Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null || action?.Parameters == null) return null;
+            if (!npcHero.IsPrisoner || npcHero.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero)
+               return new CounterOfferPreview {Refusal = $"({npcHero.Name} is not your prisoner to bargain with.)"};
+
+            action.Parameters.TryGetValue("terms", out string termsText);
+            action.Parameters.TryGetValue("amount", out string amountText);
+            IReadOnlyList<CaptiveTerm> wanted = CaptiveOfferPolicy.ParseTerms(termsText);
+            if (wanted.Count == 0)
+               return new CounterOfferPreview {Refusal = "(No terms could be read from that offer, so nothing was settled.)"};
+
+            NpcProfile profile = context?.Profile ?? NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
+            bool canRecruitPrisoner = PrisonerRecruitmentPolicy.CanRecruit(true, npcHero.Clan?.Leader == npcHero, profile?.ReputationWithPlayer ?? 0);
+            CaptiveOffer offer = EncounterContextBuilder.ResolveCaptiveOffer(npcHero, profile, PlayerStatusVsNpc.NpcIsCaptive, canRecruitPrisoner);
+            if (offer == null)
+               return new CounterOfferPreview {Refusal = $"({npcHero.Name} has no offer open to settle.)"};
+
+            foreach (CaptiveTerm term in wanted)
+            {
+               if (term == CaptiveTerm.Goodwill) continue; // always open, costs nothing, never gated
+
+               if (!offer.Terms.Contains(term))
+                  return new CounterOfferPreview {Refusal = $"({npcHero.Name} cannot really offer {ReadableCaptiveTerm(term)}; that is not open to her now.)"};
+            }
+
+            Hero payer = npcHero.Clan?.Leader ?? npcHero;
+            bool wantsRansom = wanted.Contains(CaptiveTerm.Ransom);
+            int named = CoinAmount.Parse(amountText);
+            int ransom = wantsRansom ? Math.Min(named, Math.Min(payer.Gold, GoldTransferLimit.MaxSingleTransfer)) : 0;
+
+            return new CounterOfferPreview {
+               Terms = wanted, Ransom = ransom, RansomClampedToPurse = wantsRansom && ransom < named,
+               FealtyRealm = wanted.Contains(CaptiveTerm.Fealty) ? Hero.MainHero.Clan?.Kingdom?.Name?.ToString() : null
+            };
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] counter_offer preview failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   counter_offer (Maifailun and Gabriel, 14/10/2026): a captive the player holds makes her own offer for
+      ///   freedom, or agrees to terms the player named, and the deal is struck in this reply. REFUSES outright
+      ///   unless <paramref name="npcHero" /> is genuinely the player's prisoner (same guard <see cref="ExecuteFreePrisoner" />
+      ///   uses) and reruns <see cref="PreviewCounterOffer" />, which refuses any term not open to her right now,
+      ///   by name, before a single piece of state moves. SERVICE RUNS FIRST: its own gate
+      ///   (<see cref="PrisonerRecruitmentPolicy" />, via <see cref="ExecuteRecruitPrisoner" />) is the only term
+      ///   whose refusal is still possible at this point (regard and leadership re-checked live), so putting it
+      ///   first is what keeps the rest all-or-nothing, since every other term (gold, a realm, a scene already
+      ///   played) has no refusal path left once reached. The final release is guarded by her STILL being a
+      ///   prisoner, not merely by service not having freed her already, since a realm change can cascade into a
+      ///   vanilla listener releasing her by some other path.
+      /// </summary>
+      private static ActionOutcome ExecuteCounterOffer(GameAction action, Hero npcHero, ActionContext context)
+      {
+         try
+         {
+            CounterOfferPreview preview = PreviewCounterOffer(action, npcHero, context);
+            if (preview == null) return null;
+            if (preview.Refusal != null) return ActionOutcome.Refused(preview.Refusal);
+
+            var done = new List<string>();
+            var freedByService = false;
+            var ransomApplied = 0;
+            string possessive = npcHero.IsFemale ? "her" : "his";
+
+            if (preview.Terms.Contains(CaptiveTerm.Service))
+            {
+               ActionOutcome serviceOutcome = ExecuteRecruitPrisoner(npcHero, context?.Profile);
+               if (serviceOutcome == null || serviceOutcome.WasRefused)
+                  return serviceOutcome ?? ActionOutcome.Refused($"({npcHero.Name}'s service could not be settled after all.)");
+
+               done.Add($"{possessive} service sworn to your clan");
+               freedByService = true;
+            }
+
+            if (preview.Terms.Contains(CaptiveTerm.Ransom) && preview.Ransom > 0)
+            {
+               Hero payer = npcHero.Clan?.Leader ?? npcHero;
+               GiveGoldAction.ApplyBetweenCharacters(payer, Hero.MainHero, preview.Ransom);
+               ransomApplied = preview.Ransom;
+               done.Add($"{preview.Ransom} denars ransomed from {payer.Name}{(preview.RansomClampedToPurse ? " (all they had)" : "")}");
+            }
+
+            if (preview.Terms.Contains(CaptiveTerm.Fealty) && npcHero.Clan != null && Hero.MainHero.Clan?.Kingdom != null)
+            {
+               ChangeKingdomAction.ApplyByJoinToKingdom(npcHero.Clan, Hero.MainHero.Clan.Kingdom);
+               done.Add($"the house of {npcHero.Clan.Name} sworn to {Hero.MainHero.Clan.Kingdom.Name}");
+            }
+
+            if (preview.Terms.Contains(CaptiveTerm.Intimacy))
+            {
+               ModLog.Info($"[ACTION] counter_offer: {npcHero.Name} pays her term of intimacy in the scene itself; nothing further to move.");
+               done.Add("herself, as agreed");
+            }
+
+            if (preview.Terms.Contains(CaptiveTerm.Goodwill))
+               done.Add($"{possessive} lasting goodwill");
+
+            if (!freedByService && npcHero.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(npcHero, Hero.MainHero);
+
+            string recap = done.Count > 0 ? string.Join(", ", done) : "her bare word";
+            ModLog.Info($"[ACTION] counter_offer: {npcHero.Name} freed on terms: {recap}.");
+
+            return new ActionOutcome($"{npcHero.Name} is set free: {recap}.", true,
+               appliedGoldAmount: ransomApplied > 0 ? (int?) ransomApplied : null);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] counter_offer failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>A plain-language name for a refused CaptiveTerm, for the player-facing refusal note.</summary>
+      private static string ReadableCaptiveTerm(CaptiveTerm term) => term switch {
+         CaptiveTerm.Ransom => "a ransom",
+         CaptiveTerm.Fealty => "her house's fealty",
+         CaptiveTerm.Service => "her service",
+         CaptiveTerm.Intimacy => "herself",
+         CaptiveTerm.Goodwill => "her goodwill",
+         _ => "that term"
+      };
 
       // give_influence, lend_troops, sway_opinion, release_prisoner executors moved to
       // CalradiaRemembers.Verbs (GiveInfluenceVerb / LendTroopsVerb / SwayOpinionVerb / ReleasePrisonerVerb),

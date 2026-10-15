@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-484 rules read 374 facts.
+485 rules read 374 facts.
 
 ## Facts read by more than one rule
 
@@ -26,7 +26,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.GetTraitLevel` (31) | `CaptiveOfferFacts`, `CaptorReleasePolicy.Resolve`, `CoercionFacts`, `FirstImpressionDescriber.Describe`, `FirstImpressionInputs`, `FirstImpressionPolicy.Resolve`, `LeverageArchetype`, `MotherDispositionFacts`, `NemesisTurnFacts`, `PerceivedImageFacts`, `PersonaTraitLevels`, `ResistanceRollFacts`, `RomanticProfilePolicy.DetermineKinks`, `RomanticProfilePolicy.DeterminePreferences`, `RomanticTraits`, `SchemeAdvancer.Advance`, `SchemeBacklash.WarnedPlotterResentment`, `SchemeBacklash.WarnedTargetGratitude`, `SeductionFacts`, `SelfEsteemBaselineFacts`, `SelfEsteemClimb`, `SelfEsteemPolicy.BandOf`, `SelfEsteemPolicy.Current`, `SelfEsteemPolicy.Record`, `SelfEsteemTemper`, `StolenSpouseGrudgePolicy.Magnitude`, `TournamentMemoryPolicy.Tone`, `TournamentRivalryPolicy.Evaluate`, `TournamentTraitFacts`, `TraitFacts`, `WarWeariness.WantsToRetire` |
 | `Clan.Leader` (28) | `AppointmentOfferFacts`, `AudienceStationFacts`, `AudienceWhoFacts`, `CaptiveOfferFacts`, `CompanionAmbitionFacts`, `CompanionAmbitionPolicy.Select`, `CompanionServiceTransferFacts`, `CompanionServiceTransferPolicy.Evaluate`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `ElopementFacts`, `ExpulsionFacts`, `FiefRewardFacts`, `GameRelationFacts`, `GiverFacts`, `HostageCandidateFacts`, `HostageEligibilityPolicy.IsEligible`, `LordRecruitmentFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `MatchFacts`, `OathOfferFacts`, `PrisonerRecruitmentPolicy.CanRecruit`, `PrisonerRecruitmentPolicy.Evaluate`, `ReturnFacts`, `TaleElopementPolicy.MustReleasePost`, `TaleElopementPolicy.WhyNotElope` |
 | `Hero.CurrentSettlement` (25) | `AssemblyInvitationFacts`, `AssemblyTravelFacts`, `AssemblyTravelOutcome.Evaluate`, `AudienceStationFacts`, `AudienceWhoFacts`, `AuthoredQuestEngine.ConversationOpened`, `AuthoredQuestPrompt.ForCharacter`, `AuthoredTaleImages.ConversationIsTheStep`, `ChaseFacts`, `CommonerChatContext`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `DuelPublicityPolicy.Audience`, `EscortCostPolicy.EscortPremium`, `GeographyDescriber.Bearing`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `LetterWhereaboutsPolicy.ForPlayer`, `LetterWhereaboutsPolicy.ForWriter`, `NotableRecruitmentFacts`, `QuestMenuEntry`, `RoadAudienceFacts`, `ThirdPartyDescriptor.KnowledgeOf`, `ThirdPartyDescriptor.WhereaboutsClause`, `ThirdPartyFacts`, `WhereaboutsFacts` |
-| `Hero.IsFemale` (24) | `AppearanceFacts`, `CaptiveOfferFacts`, `CompanionMatchFacts`, `ConceptionFacts`, `CorrespondenceRankPolicy.ScribeTitle`, `CouncilSceneImagePolicy.Resolve`, `EquipmentNotabilityPolicy.ComposeWorn`, `GiverFacts`, `IntimateChroniclePolicy.BuildLine`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `LeverageArchetype`, `MarriageMatchFacts`, `MarryCompanionFacts`, `Participant`, `PartnerFacts`, `PerceivedImageFacts`, `PlayerPartnersText.OtherPartners`, `PredecessorFacts`, `PrisonerBuyerPolicy.Stake`, `RegardProposal`, `ReleaseLineFacts`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible`, `SuccessionMemoryPolicy.Reframe` |
+| `Hero.IsFemale` (25) | `AppearanceFacts`, `CaptiveOfferFacts`, `CompanionMatchFacts`, `ConceptionFacts`, `CorrespondenceRankPolicy.ScribeTitle`, `CouncilSceneImagePolicy.Resolve`, `EquipmentNotabilityPolicy.ComposeWorn`, `GiverFacts`, `IntimateChroniclePolicy.BuildLine`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `LeverageArchetype`, `MarriageMatchFacts`, `MarryCompanionFacts`, `OfferConfirmationFacts`, `Participant`, `PartnerFacts`, `PerceivedImageFacts`, `PlayerPartnersText.OtherPartners`, `PredecessorFacts`, `PrisonerBuyerPolicy.Stake`, `RegardProposal`, `ReleaseLineFacts`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible`, `SuccessionMemoryPolicy.Reframe` |
 | `StatureReader.Player` (24) | `AmbushPolicy.EliteChiefTier`, `ArrangedMatchFacts`, `CompanionBaseline.From`, `CorrespondenceRankFacts`, `CorrespondenceRankPolicy.DealsInPerson`, `DuelAcceptanceContext`, `FirstImpressionDescriber.Describe`, `FirstImpressionInputs`, `FirstImpressionPolicy.Resolve`, `JealousyReaction.BuildGrievance`, `JealousyReaction.BuildLetterContext`, `JealousyReaction.Severity`, `JealousyReactionPolicy.AcceptedAgainstCultureDelta`, `JealousyReactionPolicy.SharingRankDelta`, `JealousyTrackFacts`, `LordRecruitmentFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `PartnerStanding`, `PeaceMediationPolicy.CanMediate`, `PeaceMediationPolicy.Evaluate`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot` |
 | `Kingdom.Leader` (21) | `AudienceStationFacts`, `AudienceWhoFacts`, `GrantFacts`, `GrantOfferFacts`, `HusbandFacts`, `LordRecruitmentFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `MarriageRewardFacts`, `OathOfferFacts`, `PlayerStandingFacts`, `PlayerStandingPolicy.Resolve`, `QuestMenuEntry`, `RealmServiceWording.Joined`, `RegardProposal`, `ResolutionEligibilityPolicy.OfferedExecutableKeysForScope`, `ResolutionWorldFacts`, `RevokeFacts`, `RevokeOfferFacts`, `SwapFacts`, `VassalageFacts` |
 | `Hero.IsPlayerCompanion` (19) | `AssignRoleFacts`, `CompanionLifecyclePolicy.MayReintegrate`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `DispatchMissionFacts`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `ExpulsionFacts`, `GiftEquipFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `MarryCompanionFacts`, `NotableRecruitmentFacts`, `PromptKindFacts`, `RejoinPartyFacts`, `SecretBondEligibility.IsEligible`, `StipendOfferFacts`, `TravellingAudiencePolicy.MayAskForAWord` |
@@ -127,6 +127,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.Siblings` (3) | `MeetingGapDescriber.Describe`, `PredecessorFacts`, `SuccessionMemoryPolicy.Reframe` |
 | `IFaction.IsKingdomFaction` (3) | `FirstImpressionDescriber.Describe`, `FirstImpressionInputs`, `FirstImpressionPolicy.Resolve` |
 | `Kingdom.Clans` (3) | `ArrestPolicy.CouncilSeats`, `AuthoredRivalPolicy.Choose`, `TrialVerdictPolicy.DefaultConviction` |
+| `Kingdom.RulingClan` (3) | `CaptiveOfferFacts`, `OutlawPolicy.IsBrigandage`, `WarLoomingPolicy.ShouldRecord` |
 | `LeaderParty.SiegeEvent` (3) | `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter` |
 | `MapEvent.EventType` (3) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause` |
 | `MapEvent.MapEventSettlement` (3) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause` |
@@ -184,7 +185,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ItemRosterElement.Amount` (2) | `GiftQuantityPolicy.Resolve`, `ItemSaleFacts` |
 | `Kingdom.Culture` (2) | `MercenaryDeparturePolicy.IsAidOfKin`, `MercenaryDeparturePolicy.RegardShift` |
 | `Kingdom.IsAtWarWith` (2) | `BalanceSurveyPolicy.ToLine`, `WarLoomingPolicy.ShouldRecord` |
-| `Kingdom.RulingClan` (2) | `OutlawPolicy.IsBrigandage`, `WarLoomingPolicy.ShouldRecord` |
 | `LocationComplex.GetLocationWithId` (2) | `DuelStagingSupport.CanHoldATownDuel`, `DuelVenuePolicy.Choose` |
 | `MapEvent.GetMapEventSide` (2) | `BattleWorthFacts`, `LiberationFacts` |
 | `MarriageModel.IsCoupleSuitableForMarriage` (2) | `QuestMenuEntry`, `ReturnFacts` |
@@ -311,7 +311,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CaptiveEncounterPolicy.ShouldBanditSceneBeCollective`: `CharacterObject.IsFemale`, `MemberRoster.TotalManCount`, `PartyBelongedToAsPrisoner.MobileParty`
 - `CaptiveGearStockPolicy.Merge`: `Holders.Add`
 - `CaptiveKinDescriber.Marker`: `Hero.IsPrisoner`
-- `CaptiveOfferFacts`: `AgeModel.HeroComesOfAge`, `Clan.Kingdom`, `Clan.Leader`, `Hero.Age`, `Hero.Clan`, `Hero.GetTraitLevel`, `Hero.Gold`, `Hero.IsFemale`, `ModSettings.AdultContentLevel`, `Romantic.IsCompatibleWith`
+- `CaptiveOfferFacts`: `AgeModel.HeroComesOfAge`, `Clan.Kingdom`, `Clan.Leader`, `Hero.Age`, `Hero.Clan`, `Hero.GetTraitLevel`, `Hero.Gold`, `Hero.IsFemale`, `Kingdom.RulingClan`, `ModSettings.AdultContentLevel`, `Romantic.IsCompatibleWith`
 - `CaptorReleasePolicy.Resolve`: `Hero.GetTraitLevel`
 - `CaptureFacts`: `GetPosition2D.DistanceSquared`, `MobileParty.GetPosition2D`
 - `CaptureNorm.StakeOf`: `Hero.Clan`
@@ -540,6 +540,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `NpcActionGate.Check`: `Hero.Age`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`
 - `OathOfferFacts`: `Clan.Kingdom`, `Clan.Leader`, `Hero.Clan`, `Hero.Gold`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Kingdom.Leader`, `PartyBelongedTo.LeaderHero`
 - `ObserverStakeFacts`: `Hero.Clan`
+- `OfferConfirmationFacts`: `Hero.IsFemale`
 - `OpenRelationshipPolicy.SuppressesJealousy`: `Romantic.IsOpenArrangement`
 - `OutlawPolicy.HunterStrength`: `MemberRoster.TotalManCount`
 - `OutlawPolicy.IsBrigandage`: `Clan.Kingdom`, `Hero.MapFaction`, `IFaction.IsAtWarWith`, `Kingdom.RulingClan`

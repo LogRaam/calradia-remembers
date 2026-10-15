@@ -72,6 +72,32 @@ namespace CalradiaRemembers.Logic.Actions
          return dropped;
       }
 
+      /// <summary>
+      ///   The indexes to drop beside a counter_offer in the same turn: free_prisoner (counter_offer's own executor
+      ///   frees her, with every term already validated against what is open now) and join_clan (fealty rides as
+      ///   counter_offer's own "fealty" term, never a separate join_clan). Nothing when the turn holds no
+      ///   counter_offer. Mirrors <see cref="Superseded" />'s shape (a set of indexes into the caller's own list),
+      ///   but on bare action TYPES: a counter_offer's redundancy is never about which ITEM two actions share.
+      /// </summary>
+      public static IReadOnlyCollection<int> SupersededByCounterOffer(IReadOnlyList<string> actionTypesThisTurn)
+      {
+         var dropped = new SortedSet<int>();
+         if (actionTypesThisTurn == null) return dropped;
+         if (!actionTypesThisTurn.Any(t => string.Equals(t, "counter_offer", StringComparison.OrdinalIgnoreCase))) return dropped;
+
+         for (var i = 0; i < actionTypesThisTurn.Count; i++)
+         {
+            string t = actionTypesThisTurn[i];
+            // recruit_prisoner too: it runs unconfirmed and would free and recruit her before the player answers the offer,
+            // whose own service term then finds her no longer a prisoner (found in review, 14/10/2026).
+            if (string.Equals(t, "free_prisoner", StringComparison.OrdinalIgnoreCase) || string.Equals(t, "join_clan", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(t, "recruit_prisoner", StringComparison.OrdinalIgnoreCase))
+               dropped.Add(i);
+         }
+
+         return dropped;
+      }
+
       #region private
 
       private static bool Is(TradeBatchAction a, string type) => a != null && string.Equals(a.Type, type, StringComparison.OrdinalIgnoreCase);
