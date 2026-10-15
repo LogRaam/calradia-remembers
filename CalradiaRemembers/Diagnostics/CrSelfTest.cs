@@ -7546,13 +7546,16 @@ namespace CalradiaRemembers.Diagnostics
          ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouseB, Hero.MainHero, miserable - spouseB.GetRelation(Hero.MainHero), false);
 
          int todayB = behavior.GameStateBridge.GetCurrentGameDay();
+         // Only a grudge THIS divorce plants counts: an earlier test's cleanup may already have divorced the same spouse
+         // today and left its own (Gabriel's run, 14/10/2026: spouse_divorce's undo planted one on Variasis first).
+         var grudgesBeforeMutual = new HashSet<Logic.Grudges.Grudge>(GrudgeBehavior.Instance.GrudgesFor(spouseB.StringId));
 
          ActionOutcome mutualOutcome = behavior.GameStateBridge.ExecuteAction(
             new GameAction {Type = "end_own_marriage"}, spouseB, new ActionContext(profileB, null));
 
          bool dissolvedMutual = Hero.MainHero.Spouse == null;
          bool noGrudgeAfterMutual = !GrudgeBehavior.Instance.GrudgesFor(spouseB.StringId)
-                                                   .Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == todayB);
+                                                   .Any(g => !grudgesBeforeMutual.Contains(g) && g.Source == GrudgeSource.Divorce && g.EventDay == todayB);
 
          t.Note($"scenario B (mutual) spouse={spouseB.Name}: outcome={(mutualOutcome != null ? mutualOutcome.IsPositive.ToString() : "null")}");
          t.Expect("mutualOutcomePositive", mutualOutcome is {IsPositive: true}, true);
