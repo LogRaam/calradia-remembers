@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 495 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1117 types in 29 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1130 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2058,6 +2058,24 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ViolenceRumorText` | public static class | The realm's own words for what the player did to someone. |
 | `ViolenceVerdict` | public enum | How an attempt ended. |
 | `ViolentAct` | public enum | What the player is attempting against an NPC, from least to most severe. |
+
+### CalradiaRemembers.Logic.WarDuty (13)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `WarDutyCase` | public class | One reckoning, persisted by the host (plain values, additive JSON). |
+| `WarDutyEffect` | public enum | What the host must do after a step. |
+| `WarDutyEvent` | public enum | What happened to the reckoning. |
+| `WarDutyFacts` | public class | The facts the duty reads. |
+| `WarDutyInput` | public class | One step's input. |
+| `WarDutyLadder` | public static class | Pure: opens a reckoning and moves it a step. |
+| `WarDutyLive` | public class | What the host reads live from the game on the day the duty is judged. |
+| `WarDutyPolicy` | public static class | Pure rule: does the player owe his liege war service today. |
+| `WarDutyStage` | public enum | Where a reckoning stands. |
+| `WarDutyStanding` | public enum | Why the player owes, or does not owe, war service today. |
+| `WarLevyFacts` | public class | What the levy reads. |
+| `WarLevyPolicy` | public static class | Pure: how much coin stands for a vassal's absence from a war. |
+| `WarServiceLedger` | public class | The war-duty ledger: service, wars, and the reckoning in progress. |
 
 ### CalradiaRemembers.Logic.WorldAlmanac (27)
 
