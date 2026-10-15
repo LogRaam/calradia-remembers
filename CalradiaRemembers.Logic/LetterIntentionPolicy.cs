@@ -32,6 +32,9 @@ namespace CalradiaRemembers.Logic
         bool SenderStanceStillFriendly(string senderId);
         bool SenderHasLiveJealousyGrudge(string senderId);
         bool SenderStillAdverseToPlayer(string senderId);
+
+        /// <summary>The sender's war-duty reckoning with the player is still open (not settled, dropped or closed).</summary>
+        bool WarDutyStillOpen(string senderId);
     }
 
     /// <summary>
@@ -72,6 +75,10 @@ namespace CalradiaRemembers.Logic
                 // no secret lover left to expose.
                 case LetterReason.Blackmail:               return world.PlayerIsMarried && world.PlayerHasSecretLover;
 
+                // A summons or a levy demand is stale once the reckoning closed in transit: he served, paid, or
+                // the war ended (the vassal war duty, 15/10/2026).
+                case LetterReason.WarSummons:
+                case LetterReason.WarLevyDemand:           return world.WarDutyStillOpen(senderId);
                 default:                                   return true;
             }
         }

@@ -231,6 +231,69 @@ namespace CalradiaRemembers.Tests
             .Should().Be(WarLevyPolicy.MaxLevy);
       }
 
+      // STAKE: gating before declaration. The summons names the war, the days to come, and only the next step the game
+      // will really take if he does not come: the levy, with its sum.
+      [Test]
+      public void GIVEN_a_summons_WHEN_its_context_is_worded_THEN_it_names_the_war_the_days_and_the_levy_that_follows()
+      {
+         string context = WarDutyWording.SummonsContext(new SummonsFacts {
+            EnemyNames = new[] {"Battania", "the Aserai"}, DaysAtWar = 34, DaysToCome = 20, LevyAmount = 3500
+         });
+
+         context.Should().Contain("at war with Battania and the Aserai for 34 days");
+         context.Should().Contain("within 20 days");
+         context.Should().Contain("a levy of 3500 denars");
+      }
+
+      // STAKE: Gabriel's last rung is a fief; a landless vassal has none, so the letter must not threaten one.
+      [Test]
+      public void GIVEN_a_landless_vassal_WHEN_the_levy_letter_is_worded_THEN_no_fief_is_threatened()
+      {
+         string context = WarDutyWording.LevyLetterContext(new LevyFacts {Outstanding = 2000, DaysLeft = 20, HoldsATakeableFief = false});
+
+         context.Should().NotContain("fief");
+         context.Should().Contain("you will remember it");
+      }
+
+      // STAKE: a vassal who holds a fief is told plainly what he stands to lose, and that goods or riding to war serve too.
+      [Test]
+      public void GIVEN_a_vassal_with_a_fief_WHEN_the_levy_letter_is_worded_THEN_the_fief_goods_and_service_are_named()
+      {
+         string context = WarDutyWording.LevyLetterContext(new LevyFacts {Outstanding = 2000, DaysLeft = 20, HoldsATakeableFief = true});
+
+         context.Should().Contain("a levy of 2000 denars");
+         context.Should().Contain("troops, horses or arms to that value");
+         context.Should().Contain("riding to war against your enemies before then settles it");
+         context.Should().Contain("you will take one of their fiefs");
+      }
+
+      // STAKE: the punishment stings without stripping the house of its seat: a castle goes before a town.
+      [Test]
+      public void GIVEN_a_town_and_a_castle_WHEN_a_fief_is_confiscated_THEN_the_castle_is_taken()
+      {
+         WarDutyConfiscation.Choose(new[] {
+            new FiefCandidate {Id = "town_seat", IsTown = true, Prosperity = 1000},
+            new FiefCandidate {Id = "castle_hill", IsTown = false, Prosperity = 3000}
+         }).Id.Should().Be("castle_hill");
+      }
+
+      // STAKE: of two castles, the poorer goes; the vassal keeps the better of what he holds.
+      [Test]
+      public void GIVEN_two_castles_WHEN_a_fief_is_confiscated_THEN_the_poorer_is_taken()
+      {
+         WarDutyConfiscation.Choose(new[] {
+            new FiefCandidate {Id = "castle_rich", Prosperity = 900},
+            new FiefCandidate {Id = "castle_poor", Prosperity = 200}
+         }).Id.Should().Be("castle_poor");
+      }
+
+      // STAKE: a fief under siege is never taken from the vassal holding it (and the engine would not hand it over).
+      [Test]
+      public void GIVEN_his_only_fief_under_siege_WHEN_judged_THEN_nothing_can_be_taken()
+      {
+         WarDutyConfiscation.HasTakeable(new[] {new FiefCandidate {Id = "castle_besieged", UnderSiege = true}}).Should().BeFalse();
+      }
+
       // STAKE: a broken or zero MCM scale must not make the levy free.
       [Test]
       public void GIVEN_a_scale_of_zero_WHEN_the_levy_is_set_THEN_the_levy_as_designed_is_asked()

@@ -31,6 +31,12 @@ namespace CalradiaRemembers.Letters
     {
         private static readonly ILetterIntentionWorld World = new CampaignWorld();
 
+        /// <summary>
+        ///   Whether the war-duty reckoning with this sender is still open. Supplied by the submodule, so Letters does
+        ///   not reach into WarDuty (which sends its letters through Letters). Null keeps the letter.
+        /// </summary>
+        internal static Func<string, bool> WarDutyOpenFor;
+
         /// <summary>True when <paramref name="letter" /> should be DROPPED (never delivered) because its sender's intention is gone.</summary>
         public static bool ShouldDrop(PendingLetter letter, Hero sender)
         {
@@ -117,6 +123,8 @@ namespace CalradiaRemembers.Letters
 
                 return regard < Regard.NeutralTier;
             }
+
+            public bool WarDutyStillOpen(string senderId) => WarDutyOpenFor?.Invoke(senderId) ?? true;
 
             private static Hero HeroById(string id)
                 => string.IsNullOrEmpty(id) ? null : Hero.FindFirst(h => h != null && h.StringId == id);

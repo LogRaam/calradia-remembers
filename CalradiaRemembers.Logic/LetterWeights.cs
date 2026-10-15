@@ -191,6 +191,8 @@ namespace CalradiaRemembers.Logic
                 case LetterReason.SpouseDivorceEscalation:
                 case LetterReason.CompanionFarewell:
                 case LetterReason.PlayerLetterReply:
+                case LetterReason.WarSummons:
+                case LetterReason.WarLevyDemand:
                     return WeightGuaranteedBypassSentinel;
 
                 default:

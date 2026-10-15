@@ -136,6 +136,15 @@ namespace CalradiaRemembers.Tests
             LetterIntentionPolicy.StillHolds(LetterReason.MarriageProposal, SenderId, null).Should().BeTrue();
         }
 
+        // STAKE: the vassal war duty (15/10/2026). A summons that reaches a vassal who already rode back to the war, or
+        // after the peace, would call him to account for nothing.
+        [Test]
+        public void GIVEN_a_war_summons_in_transit_WHEN_the_reckoning_closed_before_it_arrived_THEN_it_is_stale()
+        {
+            LetterIntentionPolicy.StillHolds(LetterReason.WarSummons, SenderId, new StubWorld {WarDutyOpen = false}).Should().BeFalse();
+            LetterIntentionPolicy.StillHolds(LetterReason.WarLevyDemand, SenderId, new StubWorld {WarDutyOpen = true}).Should().BeTrue();
+        }
+
         private sealed class StubWorld : ILetterIntentionWorld
         {
             public bool PlayerIsMarried { get; set; }
@@ -155,6 +164,8 @@ namespace CalradiaRemembers.Tests
             public bool SenderStanceStillFriendly(string senderId) => StanceFriendly;
             public bool SenderHasLiveJealousyGrudge(string senderId) => JealousyGrudge;
             public bool SenderStillAdverseToPlayer(string senderId) => Adverse;
+            public bool WarDutyOpen { get; set; }
+            public bool WarDutyStillOpen(string senderId) => WarDutyOpen;
         }
     }
 }

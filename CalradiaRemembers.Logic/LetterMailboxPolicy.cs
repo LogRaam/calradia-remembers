@@ -42,7 +42,11 @@ namespace CalradiaRemembers.Logic
                 || reason == LetterReason.SpouseDivorceEscalation
                 || reason == LetterReason.ChildSupportRequest
                 || reason == LetterReason.CompanionFarewell
-                || reason == LetterReason.PlayerLetterReply;
+                || reason == LetterReason.PlayerLetterReply
+                // The vassal war duty (15/10/2026): a summons and a levy demand carry a deadline the game holds the
+                // player to, so they can never lose the day's slot to a livelier subject.
+                || reason == LetterReason.WarSummons
+                || reason == LetterReason.WarLevyDemand;
         }
 
         /// <summary>

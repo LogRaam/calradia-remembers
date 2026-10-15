@@ -287,6 +287,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("background_hold", Severity.Light, "fkasad (Nexus, 15/10/2026): on a local server, summaries, memory compaction and letters slipped in between two replies, the server swapped its KV cache and replies timed out. With a conversation forced open through the seam: a background call routed to OpenAI-Compatible (local) waits; the same call routed to a cloud provider goes at once; with no conversation open a local call goes at once. Restores the provider dropdowns and the seam (the held wait ends within a second)", TestBackgroundHold),
          new SelfTest("war_duty_ledger", Severity.Light, "Maifailun (Nexus, 15/10/2026): a vassal who sits out the realm's war is called to account, so the mod must see his service. On a fresh ledger through the real upkeep: the realm the player is sworn to (none as a mercenary or a free lord) and its enemy kingdoms are recorded from today, so no one owes on the first day. A battle against a realm at war with his counts as service; one against bandits does not. Restores the player's own ledger", TestWarDutyLedger),
          new SelfTest("aims_conversation", Severity.Light, "CrAims (tashmetu, 14/10/2026: lords with aims of their own; 'the real risk is a lord who brings up Lakonon in every conversation'). A test aim is registered on a real lord not at war with the player; a conversation opening with him gives him leave to raise it and the encounter context carries his want; a second conversation the same day does not give it again; the leave ends with the conversation. An aim Calradia Remembers seeds for its own mechanics is not voiced by the generic section. Retracts both aims", TestAimsConversation),
+         new SelfTest("war_duty_reckoning", Severity.Light, "Maifailun (Nexus, 15/10/2026) and Gabriel's ladder: a summons, a levy in coin or goods, a fief. With the switch on for the test and the letters not written (no model call), a reckoning is opened for a real ruler of a realm: he holds the war duty's aim in CrAims; a conversation with him moves it to the levy demanded in person and he remembers it; two hand-overs that meet the levy settle it, he remembers that, and his aim is withdrawn. A second reckoning, never answered, past its deadline brings the levy by letter; riding to war settles it. Restores the ledger, the switch and the ruler's memories; no fief is ever touched", TestWarDutyReckoning),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Then the refused-beat fallback (04/10/2026): the NSFW model resolves for its own provider, the NSFW role has its own client, a refusal is redone there in Enhanced mode, and nothing is redone with no NSFW model. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
          new SelfTest("authored_quest_opening", Severity.Light, "Authored quests Inc 1 (docs/design/AUTHORED_QUESTS.md). The werewolf loads; a real lord holding a village by a forest is bound to it and told to raise it; accepting puts a 'Tale:' entry in the journal and moves past the request; a local of that village believes in the beast and knows nothing of the slavers; two locals heard moves the tale to the watch. Then the watch ends in the scene: a declared finding recorded, an undeclared one refused, the snare hurts but never kills (health restored), closing early still yields the missed clue and moves on to the lord; the lord sends the player hunting, a real band is spawned near the village, and beaten by the player the tale turns home. Every tale binds {player} to the player's name (tashmetu, 11/10/2026). Stops before the reward; abandons the tale (the band is released) and forgets it after. Before the band is beaten, the player loses to it twice through the real after-battle handling (on_defeat, Gabriel 10/10/2026): the tale stays at the hunt and the lord remembers the defeat once.", TestAuthoredQuestOpening),
@@ -15739,6 +15740,82 @@ namespace CalradiaRemembers.Diagnostics
             aims.Retract(Aims.AimsBehavior.CrSource, "cr_selftest_own");
             aims.OnConversationEnded(first);
             aims.OnConversationEnded(second);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestWarDutyReckoning(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("war_duty_reckoning");
+
+         WarDuty.WarDutyBehavior duty = WarDuty.WarDutyBehavior.Instance;
+         Aims.AimsBehavior aims = Aims.AimsBehavior.Instance;
+         CrSettings s = CrSettings.Instance;
+         if (t.Skip(duty == null || aims == null || s == null || behavior?.Store == null, "the war duty, CrAims, MCM or the profile store is not ready")) return t.Line();
+
+         Kingdom realm = Kingdom.All.FirstOrDefault(k => k != null && !k.IsEliminated && k.Leader != null && k.Leader != Hero.MainHero
+                                                         && Mapping.HeroPresence.IsInTheWorld(k.Leader) && aims.Book.ForNpc(k.Leader.StringId) == null);
+         if (t.Skip(realm == null, "no realm with a ruler free of any aim")) return t.Line();
+
+         Hero ruler = realm.Leader;
+         int today = WarDuty.WarDutyBehavior.Today;
+         Logic.WarDuty.WarServiceLedger prior = duty.Ledger;
+         bool priorSwitch = s.EnableWarDuty;
+         NpcProfile profile = behavior.Store.Get(ruler.StringId);
+         int priorEvents = profile?.Events?.Count ?? -1;
+
+         try
+         {
+            s.EnableWarDuty = true;
+            WarDuty.WarDutyBehavior.DebugSuppressLetters = true;
+            duty.Ledger = new Logic.WarDuty.WarServiceLedger();
+            duty.Ledger.NoteSworn(realm.StringId, today - 200);
+
+            // STAKE: Gabriel: the summons goes through CrAims; the ruler holds the duty as his own aim.
+            duty.Open(ruler, realm, today);
+            t.Expect("summoned", duty.Ledger.Case?.Stage, (Logic.WarDuty.WarDutyStage?) Logic.WarDuty.WarDutyStage.Summoned);
+            t.Expect("rulerHoldsTheDutyAim", aims.Book.Find(Aims.AimsBehavior.CrSource, WarDuty.WarDutyBehavior.AimId)?.NpcId, ruler.StringId);
+
+            // STAKE: coming before the ruler is answering the summons; the levy is demanded face to face.
+            duty.OnConversationStarted(ruler.StringId);
+            t.Expect("answeredInPerson", duty.Ledger.Case.Stage, Logic.WarDuty.WarDutyStage.Owing);
+
+            // STAKE: coin and goods add up; meeting the levy settles it and the aim is withdrawn.
+            int levy = duty.Ledger.Case.LevyAmount;
+            duty.Step(Logic.WarDuty.WarDutyEvent.LevyPaid, today, levy / 2);
+            t.Expect("halfIsNotEnough", duty.Ledger.Case.Stage, Logic.WarDuty.WarDutyStage.Owing);
+            duty.Step(Logic.WarDuty.WarDutyEvent.LevyPaid, today, levy - levy / 2);
+            t.Expect("paidInFullSettles", duty.Ledger.Case.Stage, Logic.WarDuty.WarDutyStage.Settled);
+            t.Expect("aimWithdrawnWhenSettled", aims.Book.Find(Aims.AimsBehavior.CrSource, WarDuty.WarDutyBehavior.AimId) == null, true);
+
+            NpcProfile after = behavior.Store.Get(ruler.StringId);
+            t.Expect("rulerRemembersTheReckoning", (after?.Events?.Count ?? 0) - Math.Max(0, priorEvents) >= 2, true);
+
+            // STAKE: a summons ignored brings the levy by letter; riding to war settles it at any step.
+            duty.Open(ruler, realm, today);
+            t.Expect("ignoredSummonsBringsTheLevyLetter", duty.Step(Logic.WarDuty.WarDutyEvent.DayPassed, today + Logic.WarDuty.WarDutyLadder.StageDays + 1),
+               Logic.WarDuty.WarDutyEffect.SendLevyLetter);
+            t.Expect("servingSettles", duty.Step(Logic.WarDuty.WarDutyEvent.Served, today + Logic.WarDuty.WarDutyLadder.StageDays + 2),
+               Logic.WarDuty.WarDutyEffect.Settled);
+         }
+         finally
+         {
+            WarDuty.WarDutyBehavior.DebugSuppressLetters = false;
+            s.EnableWarDuty = priorSwitch;
+            duty.Ledger = prior;
+            aims.Retract(Aims.AimsBehavior.CrSource, WarDuty.WarDutyBehavior.AimId);
+
+            NpcProfile now = behavior.Store.Get(ruler.StringId);
+            if (now?.Events != null)
+            {
+               if (priorEvents < 0) behavior.Store.Remove(ruler.StringId);
+               else
+               {
+                  if (now.Events.Count > priorEvents) now.Events.RemoveRange(priorEvents, now.Events.Count - priorEvents);
+                  behavior.Store.Set(now);
+               }
+            }
          }
 
          return t.Line();

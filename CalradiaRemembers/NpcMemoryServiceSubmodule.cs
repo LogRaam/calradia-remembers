@@ -188,6 +188,11 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new CommitmentBehavior());
          // Vassal war duty (Maifailun, Gabriel, 15/10/2026): keeps the service ledger; the ruler acts only with the MCM switch on.
          campaignStarter.AddBehavior(new WarDuty.WarDutyBehavior());
+         Letters.LetterIntentionResolver.WarDutyOpenFor = id =>
+         {
+            Logic.WarDuty.WarDutyCase open = WarDuty.WarDutyBehavior.Instance?.Ledger?.Case;
+            return open != null && open.IsOpen && open.RulerId == id;
+         };
          // CrAims (tashmetu 14/10, Gabriel 15/10): standing aims and the leave to raise one; internal until the public door is decided.
          campaignStarter.AddBehavior(new Aims.AimsBehavior());
          Aims.AimsBehavior.PersonalRegard = h => NpcMemoryCampaignBehavior.Instance?.Store?.Get(h.StringId)?.ReputationWithPlayer;

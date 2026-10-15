@@ -85,6 +85,8 @@ namespace CalradiaRemembers.Logic
                 case LetterReason.JealousThreat:
                 case LetterReason.CorruptionAttempt:
                 case LetterReason.Blackmail:
+                case LetterReason.WarSummons:
+                case LetterReason.WarLevyDemand:
                     return true;
                 default:
                     return false;
