@@ -225,7 +225,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("deliver_prisoner", Severity.Heavy, "capture -> give_prisoner -> assert transfer + deed stamp", TestDeliverPrisoner),
          new SelfTest("free_prisoner", Severity.Heavy, "capture -> free_prisoner -> assert released", TestFreePrisoner),
          new SelfTest("quest_rescue_release_credit", Severity.Heavy, "v2.5.3 player report ('his success cancelled his quest'): capture a real in-party lord bound to a real outstanding RescuePrisoner quest, free them through the REAL free_prisoner bridge action (not a battle, not a Debug seam) so the REAL CampaignEvents.HeroPrisonerReleased dispatch reaches QuestDeedTracker's new hook, and assert the quest is stamped SATISFIED, not left outstanding; then runs the REAL daily maintenance sweep and asserts it still does not CANCEL the now-satisfied quest (the exact bug: the void sweep used to read the freed target as proof the task was impossible). Releases the captive and drops the seeded quest afterwards", TestRescueCreditedOnRelease),
-         new SelfTest("dead_kin", Severity.Light, "Maifailun via tashmetu (15/10/2026): the player's wife died in childbirth and her father asked 'Which Debana?', because a dead child was left out of his family. Finds a living parent of a dead hero -> builds the parent's RELATIONSHIPS -> asserts the dead child is named as 'the late'; and a widowed hero's block names the dead spouse. Reads only, changes nothing.", TestDeadKin),
+         new SelfTest("dead_kin", Severity.Light, "Maifailun via tashmetu (15/10/2026): the player's wife died in childbirth and her father asked 'Which Debana?', because a dead child was left out of his family. Mints a clanless father, daughter and wife off the map -> both women die in labor -> asserts the father's RELATIONSHIPS names the late daughter (died in childbirth) and the late wife -> removes the father.", TestDeadKin),
          new SelfTest("captive_kin", Severity.Heavy, "capture an in-party enemy lord who has a living parent -> build that parent's RELATIONSHIPS -> assert the captured child is marked as held by the player (the 'you are a liar, my child is safe' denial bug), then release", TestCaptiveKinAwareness),
          new SelfTest("give_item", Severity.Light, "pick a player item -> give_item -> assert it left the inventory", TestGiveItem),
          new SelfTest("captive_counter_offer", Severity.Heavy, "Maifailun (Nexus, 14/10/2026): he held Adrichea (Honor -1, a clan leader), asked her to swear fealty or share his bed, she answered 'kill me if you must', and nothing in CR could hold a counter-offer anyway. Takes a free lord of another realm captive, tops up the payer's purse, and drives the REAL counter_offer verb three ways: a fresh ActionConfirmationController queues a 300-denar ransom naming it, the real bridge settles it (player paid, payer charged, lord freed), and a term not open to her (service, regard 0) is refused and moves nothing. A fourth part (fealty actually swearing a house to a real realm) only runs under 'cr.test full', since CR records a realm change as world news; otherwise it notes why. Restores gold, regard, traits and captivity.", TestCaptiveCounterOffer),
@@ -5237,37 +5237,52 @@ namespace CalradiaRemembers.Diagnostics
       ///   Releases the captive in cleanup so the sweep leaves no one caged.
       /// </summary>
       /// <summary>
-      ///   Maifailun via tashmetu (15/10/2026): a parent must know a child who died, and a widow the spouse who died.
-      ///   Reads the world as it is: a death cannot be arranged and undone, so it skips when the campaign has none yet.
+      ///   Maifailun via tashmetu (15/10/2026): a parent must know a daughter who died in childbirth, and a widower the wife
+      ///   who died. Arranges its own family (Gabriel, 13/10: testall arranges its context): three clanless wanderers minted
+      ///   off the map, a father, his daughter and his wife; the two women die in labor through the game's own action, the
+      ///   father's RELATIONSHIPS is read, then he is removed too. The dead stay in the save's dead list, harmless, as the
+      ///   minted companion of ArrangedCompanion does.
       /// </summary>
       private static string TestDeadKin(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("dead_kin");
 
-         Hero child = Hero.DeadOrDisabledHeroes.FirstOrDefault(h => h is {IsDead: true} && h != Hero.MainHero &&
-            ((h.Father is {IsDead: false} && h.Father != Hero.MainHero) || (h.Mother is {IsDead: false} && h.Mother != Hero.MainHero)));
-         Hero widow = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.ExSpouses?.Any(s => s is {IsDead: true}) == true);
+         List<CharacterObject> templates = MBObjectManager.Instance.GetObjectTypeList<CharacterObject>()
+            .Where(c => c != null && c.IsTemplate && c.Occupation == Occupation.Wanderer).ToList();
+         CharacterObject man = templates.FirstOrDefault(c => !c.IsFemale), woman = templates.FirstOrDefault(c => c.IsFemale);
+         if (t.Abort(man == null || woman == null, "no wanderer template of each sex to mint a family from")) return t.Line();
 
-         if (t.Skip(child == null && widow == null, "no dead hero with a living parent, and no widowed hero, in this campaign yet")) return t.Line();
-
-         if (child != null)
+         Hero father = null, daughter = null, wife = null;
+         try
          {
-            Hero parent = child.Father is {IsDead: false} && child.Father != Hero.MainHero ? child.Father : child.Mother;
-            string block = RelationshipsBuilder.Build(parent) ?? "";
-            bool named = block.IndexOf($"the late {child.Name}", StringComparison.OrdinalIgnoreCase) >= 0;
-            t.Note($"parent={parent.Name} child={child.Name} death={child.DeathMark}");
-            t.Expect("parentNamesTheDeadChild", named, true);
-         }
-         else t.Note("no dead hero with a living parent: child half not run");
+            father = HeroCreator.CreateSpecialHero(man, null, null, null, 50);
+            wife = HeroCreator.CreateSpecialHero(woman, null, null, null, 45);
+            daughter = HeroCreator.CreateSpecialHero(woman, null, null, null, 22);
+            daughter.Father = father;
+            father.Spouse = wife;
 
-         if (widow != null)
-         {
-            Hero late = widow.ExSpouses.First(s => s is {IsDead: true});
-            string block = RelationshipsBuilder.Build(widow) ?? "";
-            t.Note($"widow={widow.Name} late spouse={late.Name}");
-            t.Expect("widowNamesTheDeadSpouse", block.IndexOf($"the late {late.Name}", StringComparison.OrdinalIgnoreCase) >= 0, true);
+            KillCharacterAction.ApplyInLabor(daughter, false);
+            KillCharacterAction.ApplyInLabor(wife, false);
+            if (t.Abort(!daughter.IsDead || !wife.IsDead, "the game refused the deaths (another mod's CanHeroDie?)")) return t.Line();
+
+            string block = RelationshipsBuilder.Build(father) ?? "";
+            t.Note($"father={father.Name} daughter={daughter.Name} wife={wife.Name}: {block.Replace(Environment.NewLine, " | ")}");
+            t.Expect("fatherNamesTheDeadDaughter", block.IndexOf($"the late {daughter.Name} (female", StringComparison.OrdinalIgnoreCase) >= 0, true);
+            t.Expect("theDaughterDiedInChildbirth", block.IndexOf("died in childbirth this very day", StringComparison.OrdinalIgnoreCase) >= 0, true);
+            t.Expect("widowerNamesTheDeadWife", block.IndexOf($"Spouse now dead: the late {wife.Name}", StringComparison.OrdinalIgnoreCase) >= 0, true);
          }
-         else t.Note("no widowed hero: spouse half not run");
+         finally
+         {
+            try
+            {
+               if (father is {IsDead: false})
+               {
+                  if (father.Gold != 0) father.ChangeHeroGold(-father.Gold);
+                  KillCharacterAction.ApplyByRemove(father);
+               }
+            }
+            catch (Exception ex) { ModLog.Info($"[SELFTEST] dead_kin cleanup failed: {ex.GetType().Name}: {ex.Message}"); }
+         }
 
          return t.Line();
       }
