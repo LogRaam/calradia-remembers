@@ -88,7 +88,9 @@ prefix, 4 EncounterContext fields, compact one line; 5 tests). Nothing reaches a
   LordAlreadyHasAnAim, SourceAtCapacity, AlreadyExpired) and `CrAims.Retract(sourceMod, id) -> bool`.
 - `ExternalAim` (plain strings, like ExternalWorldEvent): Id, SourceMod, NpcId, Want, PlayerPart, MissionId (optional,
   a MissionBoard id), Channels ("conversation", "letter", "audience"; empty = all), ExpiresOnDay (optional).
-- `CrAims.Raised` event: AimId, SourceMod, NpcId, Channel, GameDay, so the bridge knows the matter is out.
+- `CrAims.Raised` event: AimId, SourceMod, NpcId, Channel, GameDay. It means the lord was GIVEN THE FLOOR (the
+  conversation opened with his leave, the letter was released, the audience granted), NOT that he said it: in a
+  conversation he may judge the moment wrong and stay silent. Say so to the bridge in those words.
 - Save: one additive key (`cr_standing_aims`, JSON byte[] like the other stores); an old save reads no aims.
 - Glue, in order: (1) conversation: CrConversation.Started -> AimConversationLeave.Open (enemy, captivity facts from the
   host), EncounterContextBuilder fills OwnAim*, Ended -> Close, Raised fired; (2) letter: a new LetterReason through
