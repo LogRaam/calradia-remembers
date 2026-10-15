@@ -19,7 +19,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 - **A parent knows a child who died** (Maifailun via tashmetu, 15/10: the player's wife Debana died in childbirth and
   her father asked "Which Debana?"). `RelationshipsBuilder` listed living children only; dead children, a dead
   spouse (the game moves them to the former spouses) and dead siblings are now named "the late", with how and when
-  (`KinDeathDescriber`), and "once the player's wife/husband" when so. cr.testall `dead_kin`.
+  (`KinDeathDescriber`), and "once the player's wife/husband" when so. A partner of the player is told the
+  player's spouses who died (Maifailun's other wife asked "Debana of Dolentos?"), and the name hint finds the
+  speaker's own dead kin (and the player's dead spouses, for a partner) instead of only a living namesake.
+  cr.testall `dead_kin` (arranges a minted family; the hint included).
 
 ## v2.7.10.. 2026-10-14
 

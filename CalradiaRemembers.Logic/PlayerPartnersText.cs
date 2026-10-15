@@ -23,6 +23,9 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>What they are to the character told ("your mother"), or null.</summary>
       public string KinToSubject { get; init; }
+
+      /// <summary>For a partner now dead: how and when, " (who died in childbirth 12 days ago)" (KinDeathDescriber), or "".</summary>
+      public string DeathClause { get; init; }
    }
 
    /// <summary>Lines about the player's partners. Pure.</summary>
@@ -41,6 +44,24 @@ namespace CalradiaRemembers.Logic
             $"{o.Name.Trim()}, their {(o.IsSpouse ? "spouse" : "consort")}{(string.IsNullOrWhiteSpace(o.KinToSubject) ? "" : $", who is {o.KinToSubject.Trim()}")}");
 
          return "The player's other partners (you know them all): " + string.Join("; ", parts) + ".";
+      }
+
+      /// <summary>
+      ///   Maifailun via tashmetu (15/10/2026): the player's wife Debana died in childbirth, and his other wife, travelling
+      ///   with him, asked whether he meant "Debana of Dolentos": the partners knew each other only while alive. A partner
+      ///   is told the player's spouses who died: "The player's spouses now dead: Debana (who died in childbirth 12 days
+      ///   ago)." Null when there are none. "Spouses" alone: the game keeps a dead spouse among the former ones, and a
+      ///   consort leaves no such trace.
+      /// </summary>
+      public static string LateSpouses(IReadOnlyList<PartnerFacts> late)
+      {
+         List<PartnerFacts> named = late?.Where(o => !string.IsNullOrWhiteSpace(o?.Name)).ToList() ?? new List<PartnerFacts>();
+         if (named.Count == 0) return null;
+
+         IEnumerable<string> parts = named.Select(o =>
+            $"{o.Name.Trim()}{o.DeathClause ?? ""}{(string.IsNullOrWhiteSpace(o.KinToSubject) ? "" : $", who was {o.KinToSubject.Trim()}")}");
+
+         return "The player's spouses now dead: " + string.Join("; ", parts) + ".";
       }
    }
 }

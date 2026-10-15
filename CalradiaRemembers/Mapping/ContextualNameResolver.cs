@@ -56,16 +56,71 @@ namespace CalradiaRemembers.Mapping
       public static string Resolve(Hero npc, string playerMessage, IGameStateBridge bridge = null)
       {
          List<(Hero Hero, string FullName, string Relationship)> mentioned = ResolveMentionedHeroes(npc, playerMessage);
+         List<(Hero Hero, string FullName, string Tie)> lost = DeadKinMentioned(npc, playerMessage);
 
-         if (mentioned.Count == 0) return null;
+         if (mentioned.Count == 0 && lost.Count == 0) return null;
 
          var matches = new List<(string FullName, string Gender, string Relationship, string Whereabouts, string Prisoner)>();
+
+         // The speaker's own dead first: the one a grieving father means when a living namesake shares the name.
+         foreach (var (dead, fullName, tie) in lost)
+            matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(dead.IsFemale), tie, null, null));
 
          foreach (var (other, fullName, relationship) in mentioned)
             matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(other.IsFemale),
                relationship, ResolveWhereabouts(npc, other, bridge), PrisonerStatusClause(npc, other, fullName)));
 
-         return BuildHint(matches);
+         string hint = BuildHint(matches);
+         if (lost.Count > 0 && mentioned.Count > 0)
+            hint += $"\n{lost[0].FullName} is {lost[0].Tie.Split('(')[0].Trim()}: unless the player says otherwise, that is who they mean; never ask which one.";
+
+         return hint;
+      }
+
+      /// <summary>
+      ///   Maifailun via tashmetu (15/10/2026): the player's wife Debana died in childbirth and her father asked "Which
+      ///   Debana?", because this scan read living heroes only and found just a living namesake. The speaker's own dead kin
+      ///   (children, parents, siblings, spouses), and the player's dead spouses when the speaker is the player's partner, are
+      ///   matched too, named with the tie and how they died. Only for this hint: entity resolution for verbs never targets
+      ///   the dead.
+      /// </summary>
+      private static List<(Hero Hero, string FullName, string Tie)> DeadKinMentioned(Hero npc, string playerMessage)
+      {
+         var result = new List<(Hero Hero, string FullName, string Tie)>();
+         if (npc == null || string.IsNullOrWhiteSpace(playerMessage)) return result;
+
+         HashSet<string> messageTokens = ExtractTokens(playerMessage);
+         if (messageTokens.Count == 0) return result;
+
+         var kin = new List<(Hero Hero, string Word)>();
+         if (npc.Father != null) kin.Add((npc.Father, "father"));
+         if (npc.Mother != null) kin.Add((npc.Mother, "mother"));
+         foreach (Hero c in npc.Children ?? Enumerable.Empty<Hero>()) kin.Add((c, c.IsFemale ? "daughter" : "son"));
+         foreach (Hero s in npc.Siblings ?? Enumerable.Empty<Hero>()) kin.Add((s, s.IsFemale ? "sister" : "brother"));
+         foreach (Hero s in npc.ExSpouses ?? Enumerable.Empty<Hero>()) kin.Add((s, s.IsFemale ? "wife" : "husband"));
+
+         Hero player = Hero.MainHero;
+         bool partner = player != null && (player.Spouse == npc || player.ExSpouses?.Contains(npc) == true);
+         var playerLate = new HashSet<Hero>(partner ? player.ExSpouses?.Where(s => s != npc) ?? Enumerable.Empty<Hero>() : Enumerable.Empty<Hero>());
+
+         List<string> speakerNameTokens = NameTokens(npc.Name?.ToString());
+         var seen = new HashSet<Hero>();
+         foreach (var (h, word) in kin.Concat(playerLate.Select(h => (h, "")))
+                                     .Where(k => k.Item1 is {IsDead: true} && k.Item1 != npc && !k.Item1.IsHumanPlayerCharacter))
+         {
+            if (!seen.Add(h)) continue;
+            string fullName = HeroLabel.Describe(new HeroLabel.HeroNaming {Name = h.Name?.ToString(), ClanName = h.Clan?.Name?.ToString(), CultureName = h.Culture?.Name?.ToString()});
+            if (string.IsNullOrEmpty(fullName)) continue;
+
+            List<string> matched = MatchedTokens(fullName, messageTokens);
+            if (matched.Count == 0 || SpeakerNamesakePolicy.IsMerelyANamesake(matched, speakerNameTokens)) continue;
+
+            string tie = word.Length > 0 ? $"your late {word}" : (h.IsFemale ? "the player's late wife" : "the player's late husband");
+            if (word.Length > 0 && playerLate.Contains(h)) tie += h.IsFemale ? ", the player's wife" : ", the player's husband";
+            result.Add((h, fullName, tie + RelationshipsBuilder.DeathOnly(h)));
+         }
+
+         return result;
       }
 
       /// <summary>

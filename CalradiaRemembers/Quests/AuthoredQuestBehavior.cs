@@ -1560,7 +1560,8 @@ namespace CalradiaRemembers.Quests
       /// <summary>tashmetu (15/10/2026): a return that waited has settled; mods hear it (CrTales.ConsequenceSettled).</summary>
       private static void Settled(string[] herHimQuest, CrTaleConsequenceStatus status, string reason)
       {
-         var roles = new Dictionary<string, string> {["giver"] = herHimQuest[0], ["husband"] = herHimQuest[1]};
+         // Only the player: the consequence names her and him (WhoId, OtherId); the tale's own role names are not kept.
+         var roles = new Dictionary<string, string>();
          if (Hero.MainHero != null) roles["player"] = Hero.MainHero.StringId;
          CrTales.RaiseConsequenceSettled(new CrTaleProgress(herHimQuest[2], "settled", (int) CampaignTime.Now.ToDays, roles, null,
             new[] {new CrTaleConsequence("return_spouse", herHimQuest[0], herHimQuest[1], status, reason)}));

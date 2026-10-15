@@ -5271,6 +5271,10 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("fatherNamesTheDeadDaughter", block.IndexOf($"the late {daughter.Name} (female", StringComparison.OrdinalIgnoreCase) >= 0, true);
             t.Expect("theDaughterDiedInChildbirth", block.IndexOf("died in childbirth this very day", StringComparison.OrdinalIgnoreCase) >= 0, true);
             t.Expect("widowerNamesTheDeadWife", block.IndexOf($"Spouse now dead: the late {wife.Name}", StringComparison.OrdinalIgnoreCase) >= 0, true);
+
+            // "Which Debana?": the name hint finds his own dead daughter when the player names her.
+            string hint = ContextualNameResolver.Resolve(father, $"I grieve for {daughter.Name}.") ?? "";
+            t.Expect("theNameHintFindsTheLateDaughter", hint.IndexOf("your late daughter", StringComparison.OrdinalIgnoreCase) >= 0, true);
          }
          finally
          {

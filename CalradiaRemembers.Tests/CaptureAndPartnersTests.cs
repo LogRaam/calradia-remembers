@@ -70,6 +70,34 @@ namespace CalradiaRemembers.Tests
          line.Should().Contain("Ira").And.Contain("spouse");
       }
 
+      // STAKE: Maifailun's report (via tashmetu, 15/10/2026): the player's wife Debana died in childbirth, and his other
+      // wife asked whether he meant "Debana of Dolentos". A partner must know a co-wife died, how and when.
+      [Test]
+      public void GIVEN_a_wife_of_the_player_who_died_WHEN_another_partner_is_told_THEN_she_knows_who_died_and_how()
+      {
+         string line = PlayerPartnersText.LateSpouses(new List<PartnerFacts> {
+            new() {Name = "Debana", DeathClause = " (who died in childbirth 12 days ago)"}
+         });
+
+         line.Should().Be("The player's spouses now dead: Debana (who died in childbirth 12 days ago).");
+      }
+
+      // STAKE: a late spouse who was also the partner's own kin (Windmolen's case, a mother wed to the player) is named
+      // with that tie, so the partner does not mourn her as a stranger.
+      [Test]
+      public void GIVEN_a_late_spouse_who_was_the_partners_mother_WHEN_told_THEN_the_tie_is_said()
+      {
+         PlayerPartnersText.LateSpouses(new List<PartnerFacts> {new() {Name = "Rhagaea", DeathClause = "", KinToSubject = "your mother"}})
+            .Should().Be("The player's spouses now dead: Rhagaea, who was your mother.");
+      }
+
+      // STAKE: with no spouse dead, nothing is added to the partner's family block.
+      [Test]
+      public void GIVEN_no_spouse_of_the_player_dead_WHEN_told_THEN_nothing_is_said()
+      {
+         PlayerPartnersText.LateSpouses(new List<PartnerFacts>()).Should().BeNull();
+      }
+
       // The only partner has no others to know of.
       [Test]
       public void GIVEN_no_other_partner_WHEN_told_THEN_nothing_is_said()

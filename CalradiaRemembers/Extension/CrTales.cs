@@ -34,7 +34,8 @@ namespace CalradiaRemembers
       /// <summary>
       ///   Fired when a consequence reported <see cref="CrTaleConsequenceStatus.Waiting" /> settles later: a lady's return
       ///   to her husband waits while he is on campaign or either is a captive, retried each day for up to 60 days.
-      ///   <see cref="CrTaleProgress.Where" /> is "settled"; the one consequence is Done or NotDone.
+      ///   <see cref="CrTaleProgress.Where" /> is "settled"; the one consequence is Done or NotDone, and names her
+      ///   (<see cref="CrTaleConsequence.WhoId" />) and him (<see cref="CrTaleConsequence.OtherId" />); Roles holds only the player.
       /// </summary>
       public static event Action<CrTaleProgress> ConsequenceSettled;
 

@@ -152,6 +152,12 @@ namespace CalradiaRemembers.Mapping
                Name = p.Hero.Name?.ToString(), IsSpouse = p.IsSpouse, KinToSubject = KinTo(hero, p.Hero)
             }).ToList());
             if (others != null) sb.AppendLine(others);
+
+            // Maifailun via tashmetu (15/10/2026): a co-wife who died is known too, how and when.
+            string late = PlayerPartnersText.LateSpouses(Hero.MainHero?.ExSpouses?.Where(s => s is {IsDead: true} && s != hero).Select(s => new PartnerFacts {
+               Name = s.Name?.ToString(), DeathClause = DeathOnly(s), KinToSubject = KinTo(hero, s)
+            }).ToList());
+            if (late != null) sb.AppendLine(late);
          }
       }
 
@@ -285,6 +291,20 @@ namespace CalradiaRemembers.Mapping
                WasPlayersSpouse = player != null && player != kin && player.ExSpouses?.Contains(kin) == true,
                IsFemale = kin.IsFemale
             });
+         }
+         catch
+         {
+            return "";
+         }
+      }
+
+      /// <summary>How and when a hero died, without saying they were wed to the player (the line already says so).</summary>
+      internal static string DeathOnly(Hero kin)
+      {
+         try
+         {
+            double day = kin.DeathDay.ToDays;
+            return KinDeathDescriber.Clause(new KinDeathFacts {Cause = kin.DeathMark.ToString(), DaysAgo = day > 0 ? CampaignTime.Now.ToDays - day : (double?) null});
          }
          catch
          {
