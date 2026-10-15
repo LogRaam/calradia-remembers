@@ -32,6 +32,53 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## WISHED 2026-10-14 (tashmetu, BC-CR bridge author), GABRIEL SAID BUILD, DESIGN FIRST: lords with aims of their own
+
+tashmetu (Nexus, 14/10/2026), from two of his testers: "in Calradia, nobody takes the first step with the player. If the
+player doesn't court, scheme or ask for something, no one does." He proposed a bridge prompt variable `{{bc_ambition}}`
+that gives ONE lord in a few an aim of his own (a fief his house lost, a claim it is fabricating, a council seat and the
+votes it needs, a grudge and the allies it wants, a rematch, a hidden fondness and a go-between, grain to borrow, a
+captain between contracts, a bastard wanting recognition, a feast), told as the lord's own want, with what the player has
+to do with it, and leave to raise it unbidden. He asked whether CR would rather own the "when" and the "already said".
+
+Why a prompt variable alone cannot do it (traced 14/10/2026): `PromptVarFacts` carries no turn, no conversation, no day,
+and a provider runs on EVERY reply, so the lord would bring up Lakonon every time. CR already owns the three things the
+idea needs: a "said once" ledger (`InterceptionBehavior._raisedMatterKeys`, marked when the opener is used), reasons for
+a lord to seek the player (RoadInterception, FiefAudience, both paced), and the paced mailbox (`LetterMailboxPolicy`,
+budget per window, 15-day per-NPC cooldown). Every one of them asks `ActionGate`.
+
+Ruling (Gabriel, 14/10/2026: "oui, vas-y"): CR builds a public door; the bridge says WHAT a lord wants, CR decides WHEN
+it surfaces and remembers that it did. It is also the door the 02/10 wish above needs ("I have work for you"): an aim
+whose service is a verifiable deed is a task that comes to the player.
+
+First shape (to discuss in prose before any code):
+- `CrAims.Register(ExternalAim)` / `Update` / `Retract(id)`, plain strings like `Feed.Record`: Id, NpcId, SourceMod,
+  Want (the lord's own want, bounded), PlayerPart (one line: what the player has to do with it), optional MissionId (a
+  `MissionBoard` mission that makes the asked service a real, verified deed), optional channels (conversation, letter,
+  audience), optional expiry day. Validation at the door: hero resolved, bounded text, one standing aim per NPC, quota
+  per source, persisted under an additive save key.
+- Conversation: the aim is part of what the lord knows and wants for as long as it stands; the LEAVE to raise it
+  unbidden is given until it has been raised, then withdrawn (re-raise after a cooldown is an open question).
+- Letter: an aim is a letter reason through the existing mailbox (budget, cooldown, `ActionGate.Letter`).
+- Audience: an aim is one more "live reason to speak" for FiefAudience / RoadInterception, below the existing ones.
+- How: from the lord's traits, in one CR-owned sentence: an honest lord asks openly; a calculating one works around
+  the player or keeps his purpose to himself. NPCs never lie: concealment, vagueness and silence, never a falsehood.
+  Gating before declaration: nothing is asked or promised that the game cannot carry; a service is a MissionBoard deed.
+- Back to the bridge: an event `CrAims.Raised(aimId, npcId, channel)` so it knows the matter is out.
+
+Open questions for Gabriel: what counts as "raised" (the floor given once, or the interpreter seeing it said); whether
+an aim may come up again after N days while it still stands; whether CR should later seed aims from its own data
+(tournament rivals, grudges, a lost fief), the door first either way.
+
+## WISHED 2026-10-14 (tashmetu), ROADMAPPED: the captive PLAYER bargains for freedom
+
+The other half of the 2.7.10 `counter_offer` (a lord the player holds offers ransom, fealty, service, goodwill). Today a
+player held by a lord can only plead: `release_player` is taught when the captor allows persuasion
+(`CaptorAllowsPersuasionRelease`), with no structured offer. Wanted: the player offers a ransom from his own purse, a
+favour owed (a pledge the captor can call in, ideally a verified deed), or information, and the captor weighs it in
+character. Strictly a bargain: nothing forced. Information must be true and groundable (NPCs never lie, and the captor
+must not accept a "secret" the game cannot hold the player to). Design after CrAims.
+
 ## WISHED 2026-10-02 (Lordfadooboo + fkasad, Nexus), NOT BUILT: characters who come to the player WITH a task
 
 Lordfadooboo (02/10/2026): "what do you think of characters being able to approach you with a quest? and maybe they could
