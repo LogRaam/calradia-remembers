@@ -285,6 +285,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("strategic_assessment", Severity.Light, "Mechanical: the Strategic Assessment gather (World Almanac). Builds the live PowerIndexResult, picks the advisor (highest-Tactics companion, else a warband soldier, else none when the player is alone), gathers the player's realm/rank/wars, and composes the OFFLINE factual summary; asserts the summary is non-empty and, when an advisor exists, the LLM prompt grounds on a real kingdom and forbids invention. The real async LLM counsel is Lane C (real LLM), not run here. No LLM, mutates nothing", TestStrategicAssessment),
          new SelfTest("provider_routing", Severity.Light, "Mechanical (per-role provider): set Prose->OpenRouter, Consensual->NanoGPT, Actions Interpreter->OpenAI-Compatible (+ a dummy endpoint) and assert the three resolved base URLs are DISTINCT and each kind matches, via LlmServices.DebugDescribeRoleRouting (no network call); then assert a per-role OpenAI-Compatible endpoint override sends each role to its OWN server while a blank override inherits the shared one; then set every role to (default) and assert all four roles collapse to the ONE default provider's base URL (the migration guarantee: an upgraded single-provider config is unchanged). Snapshots and restores every dropdown + the shared and per-role custom endpoint URLs", TestProviderRouting),
          new SelfTest("background_hold", Severity.Light, "fkasad (Nexus, 15/10/2026): on a local server, summaries, memory compaction and letters slipped in between two replies, the server swapped its KV cache and replies timed out. With a conversation forced open through the seam: a background call routed to OpenAI-Compatible (local) waits; the same call routed to a cloud provider goes at once; with no conversation open a local call goes at once. Restores the provider dropdowns and the seam (the held wait ends within a second)", TestBackgroundHold),
+         new SelfTest("war_duty_ledger", Severity.Light, "Maifailun (Nexus, 15/10/2026): a vassal who sits out the realm's war is called to account, so the mod must see his service. On a fresh ledger through the real upkeep: the realm the player is sworn to (none as a mercenary or a free lord) and its enemy kingdoms are recorded from today, so no one owes on the first day. A battle against a realm at war with his counts as service; one against bandits does not. Restores the player's own ledger", TestWarDutyLedger),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Then the refused-beat fallback (04/10/2026): the NSFW model resolves for its own provider, the NSFW role has its own client, a refusal is redone there in Enhanced mode, and nothing is redone with no NSFW model. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
          new SelfTest("authored_quest_opening", Severity.Light, "Authored quests Inc 1 (docs/design/AUTHORED_QUESTS.md). The werewolf loads; a real lord holding a village by a forest is bound to it and told to raise it; accepting puts a 'Tale:' entry in the journal and moves past the request; a local of that village believes in the beast and knows nothing of the slavers; two locals heard moves the tale to the watch. Then the watch ends in the scene: a declared finding recorded, an undeclared one refused, the snare hurts but never kills (health restored), closing early still yields the missed clue and moves on to the lord; the lord sends the player hunting, a real band is spawned near the village, and beaten by the player the tale turns home. Every tale binds {player} to the player's name (tashmetu, 11/10/2026). Stops before the reward; abandons the tale (the band is released) and forgets it after. Before the band is beaten, the player loses to it twice through the real after-battle handling (on_defeat, Gabriel 10/10/2026): the tale stays at the hunt and the lord remembers the defeat once.", TestAuthoredQuestOpening),
@@ -12394,7 +12395,11 @@ namespace CalradiaRemembers.Diagnostics
             ["SelfEsteemClimb"] = ("SelfEsteemClimb", SettingShape.Honours,
                "0 must keep every gain whole, 4 must be the steepest climb the menu promises"),
             ["LocalContextTokens"] = ("LocalContextTokens", SettingShape.Honours,
-               "the window the player declared is the window each local request is fitted to; 0 must mean off")
+               "the window the player declared is the window each local request is fitted to; 0 must mean off"),
+            ["WarDutyWindowDays"] = ("WarDutyWindowDays", SettingShape.Honours,
+               "the days of war a vassal may sit out are the days the duty waits; the policy's clamp matches the menu's ends"),
+            ["WarLevyScalePercent"] = ("WarLevyScale", SettingShape.Reshapes,
+               "a percent the player reads becomes the multiplier the levy is scaled by")
          };
 
       /// <summary>
@@ -15683,6 +15688,46 @@ namespace CalradiaRemembers.Diagnostics
       ///   strings only, never a real key. Snapshots and restores every dropdown + the custom endpoint/key fields it
       ///   touches, so a real campaign is unchanged.
       /// </summary>
+      private static string TestWarDutyLedger(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("war_duty_ledger");
+
+         WarDuty.WarDutyBehavior duty = WarDuty.WarDutyBehavior.Instance;
+         if (t.Skip(duty == null, "the war duty behavior is not registered")) return t.Line();
+
+         Logic.WarDuty.WarServiceLedger prior = duty.Ledger;
+         int today = WarDuty.WarDutyBehavior.Today;
+
+         try
+         {
+            duty.Ledger = new Logic.WarDuty.WarServiceLedger();
+            duty.Upkeep(today);
+
+            Kingdom sworn = WarDuty.WarDutyBehavior.SwornKingdom();
+            t.Expect("swornRealmRecorded", duty.Ledger.SwornKingdomId, sworn?.StringId);
+
+            // STAKE: save-migration rule; the first day the ledger sees anything, no one owes.
+            t.Expect("noOneOwesOnTheFirstDay",
+               Logic.WarDuty.WarDutyPolicy.Decide(duty.Ledger.Facts(today, WarDuty.WarDutyBehavior.Live())) == Logic.WarDuty.WarDutyStanding.Owes, false);
+
+            // STAKE: a battle against the realm's enemy is service; a fight with bandits is not the realm's war.
+            const string enemyId = "cr_selftest_enemy_realm";
+            duty.Ledger.WarSeenSince[enemyId] = today;
+            t.Expect("battleAgainstTheRealmsEnemyCounts", duty.ServedAgainst(enemyId), true);
+            t.Expect("serviceDayNoted", duty.Ledger.LastServedDay, (int?) today);
+
+            Clan bandits = Clan.BanditFactions?.FirstOrDefault();
+            if (bandits != null)
+               t.Expect("aFightWithBanditsIsNotService", duty.ServedAgainst(bandits.StringId), false);
+         }
+         finally
+         {
+            duty.Ledger = prior;
+         }
+
+         return t.Line();
+      }
+
       private static string TestBackgroundHold(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("background_hold");

@@ -162,6 +162,15 @@ namespace CalradiaRemembers
       /// </summary>
       public static bool EnableStolenLove => CrSettings.Instance?.EnableStolenLove ?? false;
 
+      /// <summary>Vassal war duty (Maifailun, Gabriel, 15/10/2026): off by default; gates what the ruler does, not the ledger.</summary>
+      public static bool EnableWarDuty => CrSettings.Instance?.EnableWarDuty ?? false;
+
+      /// <summary>Days of war a sworn vassal may go without serving (clamped by WarDutyPolicy.Window).</summary>
+      public static int WarDutyWindowDays => Logic.WarDuty.WarDutyPolicy.Window(CrSettings.Instance?.WarDutyWindowDays ?? Logic.WarDuty.WarDutyPolicy.DefaultWindowDays);
+
+      /// <summary>The levy multiplier (1 = as designed), from the MCM percentage.</summary>
+      public static double WarLevyScale => (CrSettings.Instance?.WarLevyScalePercent ?? 100) / 100.0;
+
       /// <summary>
       ///   Player violence (player request 2026-09-06): OFF by default, and it governs KILLING ONLY. Robbery and
       ///   assault are always available; while this is off, no exchange can end a character's life, whatever the

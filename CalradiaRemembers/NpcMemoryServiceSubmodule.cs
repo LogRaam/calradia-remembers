@@ -186,6 +186,8 @@ namespace CalradiaRemembers
          // Registered after SchemeStore, which notifies it on a scheme's success — load order does not
          // strictly matter (Instance is set in each behavior's own constructor).
          campaignStarter.AddBehavior(new CommitmentBehavior());
+         // Vassal war duty (Maifailun, Gabriel, 15/10/2026): keeps the service ledger; the ruler acts only with the MCM switch on.
+         campaignStarter.AddBehavior(new WarDuty.WarDutyBehavior());
          // Divorce, Phase 1 (the first verb built on the IConversationVerb contract): end_marriage begins a
          // multi-day estrangement process (the spouse may resist, delay, or defeat it outright); reaching the
          // end day attempts the real dissolution and, on success, records a culture-scaled scandal. Console:

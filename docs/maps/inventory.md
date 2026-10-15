@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 495 types in 59 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 496 types in 60 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1130 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
@@ -78,7 +78,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 57 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 58 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `ModLog` | internal static class | Writes timestamped log entries to a file in the Bannerlord Logs folder AND shows them in the in-game console. |
 | `ModSettings` | public static class | Mod-wide settings façade. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
@@ -789,6 +789,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | Type | Kind | What it is |
 |---|---|---|
 | `WarCouncilOfferBehavior` | public class | Watches the campaign events that mark a considerable army action and, when the player commands an army and the anti-spam cooldown has elapsed, offers to convene the war council. |
+
+### CalradiaRemembers.WarDuty (1)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `WarDutyBehavior` | public class | Keeps the war-duty ledger: the oath, the realm's wars, and the player's service. |
 
 ### CalradiaRemembers.Witnesses (2)
 

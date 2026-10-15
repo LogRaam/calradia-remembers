@@ -302,6 +302,27 @@ namespace CalradiaRemembers.Settings
       [SettingPropertyGroup("Relationships", GroupOrder = 8)]
       public bool JudgeMercenaryDepartures { get; set; } = true;
 
+      // Maifailun (Nexus, 15/10/2026) and Gabriel's ladder the same day: summons, levy, goods, a fief. OFF by default
+      // (it can cost the player a fief). Gates what the RULER does; the service ledger is kept either way.
+      [SettingPropertyBool("Vassal war duty", RequireRestart = false, Order = 6,
+         HintText = "Off (default). On: a sworn vassal (never a mercenary) who sits out the realm's war is summoned by " +
+                    "the ruler to answer for it, then asked a levy in coin, or troops, horses or arms instead, and may " +
+                    "lose a fief by giving nothing.")]
+      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      public bool EnableWarDuty { get; set; } = false;
+
+      [SettingPropertyInteger("War duty window (days)", 10, 120, "0", RequireRestart = false, Order = 7,
+         HintText = "Days of war a sworn vassal may go without fighting for the realm (a battle, a siege, a day in its " +
+                    "army) before the ruler calls them to account. Default 30.")]
+      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      public int WarDutyWindowDays { get; set; } = 30;
+
+      [SettingPropertyInteger("War levy scale (%)", 25, 400, "0 '%'", RequireRestart = false, Order = 8,
+         HintText = "Scales the levy a ruler asks of a vassal who did not fight (it grows with clan tier and fiefs " +
+                    "held, at most 10,000 per hand-over). 100 = as designed.")]
+      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      public int WarLevyScalePercent { get; set; } = 100;
+
       // tashmetu (30/09/2026): a clan at +54 with the player, and its lord met him as a near-stranger.
       [SettingPropertyBool("Clan standing warms first meetings", RequireRestart = false, Order = 4,
          HintText = "On (default): when you next speak with someone whose clan already counts you a friend, they " +
