@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 490 types in 59 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1102 types in 28 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1113 types in 29 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1545,6 +1545,22 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TradeBatchAction` | public class | One action of a turn, as far as a sale is concerned. |
 | `TradeBatchFacts` | public class | A turn's actions, and whether the player picked the item from the bag this turn. |
 | `TradeBatchPolicy` | public static class | Which actions of a turn a sale makes redundant. |
+
+### CalradiaRemembers.Logic.Aims (11)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `AimAdmission` | public enum | What became of a registration. |
+| `AimApproach` | public enum | How a lord pursues his aim with the player, in one sentence addressed to him. |
+| `AimApproachFacts` | public class | The traits and stakes the approach sentence reads. |
+| `AimApproachWording` | public static class | Pure: picks the approach and words it. |
+| `AimBook` | public class | The standing aims and what has been done with them. |
+| `AimChannels` | public enum | The ways an aim may reach the player. |
+| `AimRaiseFacts` | public class | The facts the raise decision reads. |
+| `AimRaisePolicy` | public static class | Pure rule: may the lord raise his aim, unbidden, through a given channel, today. |
+| `AimRaiseVerdict` | public enum | What the lord may do with his aim right now. |
+| `AimRules` | public static class | Normalisation and admission rules for an aim registered by another mod. |
+| `StandingAim` | public class | One aim a lord holds: his own want, told in his voice, and what the player has to do with it. |
 
 ### CalradiaRemembers.Logic.Appreciations (15)
 

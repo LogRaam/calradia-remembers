@@ -192,6 +192,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Extension` | 0 | 1 |
 | `CalradiaRemembers.Logic.Grudges.TraitFacts` | 0 | 1 |
 | `CalradiaRemembers.Logic.MissionResult` | 0 | 1 |
+| `CalradiaRemembers.Logic.Aims` | 0 | 0 |
 
 ## Every namespace, and its edges
 
@@ -334,6 +335,11 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 - uses: `CalradiaRemembers.Logic`
 - used by: `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`
+
+### CalradiaRemembers.Logic.Aims
+
+- uses: nothing
+- used by: nothing
 
 ### CalradiaRemembers.Logic.Appreciations
 
