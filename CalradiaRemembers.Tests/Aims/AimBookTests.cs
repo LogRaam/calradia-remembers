@@ -101,7 +101,7 @@ namespace CalradiaRemembers.Tests.Aims
       {
          var book = new AimBook();
          book.Register(Lakonon(), 1);
-         book.MarkRaised("bc_aim_lakonon", day: 5, channel: AimChannels.Conversation);
+         book.MarkRaised(book.ForNpc("lord_herra"), day: 5, channel: AimChannels.Conversation);
 
          var reworded = Lakonon(); reworded.Want = "Lakonon, and the Osticos know it now.";
          book.Register(reworded, 9).Should().Be(AimAdmission.Updated);
@@ -133,10 +133,40 @@ namespace CalradiaRemembers.Tests.Aims
          var book = new AimBook();
          book.Register(Lakonon(), 1);
 
-         book.Retract("bc_aim_lakonon").Should().BeTrue();
+         book.Retract("BCBridge", "bc_aim_lakonon").Should().BeTrue();
 
          book.ForNpc("lord_herra").Should().BeNull();
-         book.Retract("bc_aim_lakonon").Should().BeFalse();
+         book.Retract("BCBridge", "bc_aim_lakonon").Should().BeFalse();
+      }
+
+      // Two mods written apart will both reach for "aim_1". Without the source in the key the second silently rewrote
+      // the first one's aim, and either could take back the other's.
+      [Test]
+      public void GIVEN_two_sources_using_the_same_id_WHEN_each_registers_and_one_retracts_THEN_neither_touches_the_other()
+      {
+         var book = new AimBook();
+         book.Register(Lakonon(id: "aim_1", npc: "lord_a", source: "BCBridge"), 1).Should().Be(AimAdmission.Accepted);
+         book.Register(Lakonon(id: "aim_1", npc: "lord_b", source: "RegardStanding"), 1).Should().Be(AimAdmission.Accepted);
+
+         book.Retract("RegardStanding", "aim_1").Should().BeTrue();
+
+         book.ForNpc("lord_a").SourceMod.Should().Be("BCBridge");
+         book.ForNpc("lord_b").Should().BeNull();
+      }
+
+      // A bridge that re-targets its aim (the claim passed to the heir) must not leave the want on the old lord while
+      // it believes it moved; the new lord has said nothing yet, so he starts with a fresh leave.
+      [Test]
+      public void GIVEN_an_update_naming_another_lord_WHEN_registered_THEN_the_aim_moves_to_him_with_nothing_yet_raised()
+      {
+         var book = new AimBook();
+         book.Register(Lakonon(), 1);
+         book.MarkRaised(book.ForNpc("lord_herra"), 3, AimChannels.Conversation);
+
+         book.Register(Lakonon(npc: "lord_heir"), 5).Should().Be(AimAdmission.Accepted);
+
+         book.ForNpc("lord_herra").Should().BeNull();
+         book.ForNpc("lord_heir").TimesRaised.Should().Be(0);
       }
 
       // A feast that was last week is no aim; and one past its day drops out without the bridge having to remember it.
@@ -160,8 +190,9 @@ namespace CalradiaRemembers.Tests.Aims
       {
          var raised = Lakonon(); raised.TimesRaised = 1; raised.LastRaisedDay = 40;
          var damaged = Lakonon(id: "x", npc: null);
+         var secondForSameLord = Lakonon(id: "y");
 
-         var book = new AimBook(new[] { raised, damaged });
+         var book = new AimBook(new[] { raised, damaged, secondForSameLord });
 
          book.All.Should().HaveCount(1);
          book.ForNpc("lord_herra").TimesRaised.Should().Be(1);

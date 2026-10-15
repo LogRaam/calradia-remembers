@@ -1,5 +1,5 @@
 // Code written by Gabriel Mailhot, 14/10/2026.
-// Every standing aim, keyed by its id, with the raise ledger on each (tashmetu, 14/10/2026). Pure so the whole contract
+// Every standing aim, keyed by its source and its id, with the raise ledger on each (tashmetu, 14/10/2026). Pure so the whole contract
 // (admission, update keeping the ledger, retraction, expiry, the raise record) is held by tests; the mod resolves the
 // hero, persists the list and wires the channels.
 
@@ -24,7 +24,8 @@ namespace CalradiaRemembers.Logic.Aims
          if (saved == null) return;
 
          foreach (var aim in saved)
-            if (AimRules.HasRequiredIdentity(aim) && !string.IsNullOrWhiteSpace(aim.Want) && Find(aim.Id) == null)
+            if (AimRules.HasRequiredIdentity(aim) && !string.IsNullOrWhiteSpace(aim.Want)
+                && Find(aim.SourceMod, aim.Id) == null && ForNpc(aim.NpcId) == null)
                _aims.Add(aim);
       }
 
@@ -32,8 +33,10 @@ namespace CalradiaRemembers.Logic.Aims
       public IReadOnlyList<StandingAim> All => _aims;
 
       /// <summary>
-      ///   Registers or updates an aim. An existing id is UPDATED in place and keeps its raise ledger: a bridge that
-      ///   rewords an aim the lord already raised must not hand him a fresh leave to raise it again.
+      ///   Registers or updates an aim. An id is the SOURCE's own: two mods may both say "aim_1" without touching each
+      ///   other's. The same source and id again is an UPDATE in place that keeps the raise ledger: a bridge that
+      ///   rewords an aim the lord already raised must not hand him a fresh leave to raise it again. An update naming
+      ///   another lord moves the aim to him as a new one (he has raised nothing yet).
       /// </summary>
       public AimAdmission Register(StandingAim candidate, int today)
       {
@@ -43,7 +46,16 @@ namespace CalradiaRemembers.Logic.Aims
          if (want == null) return AimAdmission.EmptyWant;
          if (candidate.ExpiresOnDay.HasValue && candidate.ExpiresOnDay.Value < today) return AimAdmission.AlreadyExpired;
 
-         var existing = Find(candidate.Id);
+         var existing = Find(candidate.SourceMod, candidate.Id);
+         if (existing != null && !SameText(existing.NpcId, candidate.NpcId.Trim()))
+         {
+            var holder = ForNpc(candidate.NpcId);
+            if (holder != null) return AimAdmission.LordAlreadyHasAnAim;
+
+            _aims.Remove(existing);
+            existing = null;
+         }
+
          if (existing != null)
          {
             existing.Want = want;
@@ -73,10 +85,10 @@ namespace CalradiaRemembers.Logic.Aims
          return AimAdmission.Accepted;
       }
 
-      /// <summary>Removes an aim by id; false when none stood.</summary>
-      public bool Retract(string id)
+      /// <summary>Removes one of a source's aims by its id; false when none stood (another source's aim is never touched).</summary>
+      public bool Retract(string sourceMod, string id)
       {
-         var aim = Find(id);
+         var aim = Find(sourceMod, id);
          return aim != null && _aims.Remove(aim);
       }
 
@@ -84,15 +96,16 @@ namespace CalradiaRemembers.Logic.Aims
       public StandingAim ForNpc(string npcId)
          => string.IsNullOrWhiteSpace(npcId) ? null : _aims.FirstOrDefault(a => SameText(a.NpcId, npcId.Trim()));
 
-      /// <summary>The aim with this id, or null.</summary>
-      public StandingAim Find(string id)
-         => string.IsNullOrWhiteSpace(id) ? null : _aims.FirstOrDefault(a => string.Equals(a.Id, id.Trim(), StringComparison.Ordinal));
+      /// <summary>The aim a source registered under this id, or null.</summary>
+      public StandingAim Find(string sourceMod, string id)
+         => string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(sourceMod)
+            ? null
+            : _aims.FirstOrDefault(a => SameText(a.SourceMod, sourceMod.Trim()) && string.Equals(a.Id, id.Trim(), StringComparison.Ordinal));
 
       /// <summary>Records that the lord raised his aim with the player, through one channel, on a day.</summary>
-      public bool MarkRaised(string id, int day, AimChannels channel)
+      public bool MarkRaised(StandingAim aim, int day, AimChannels channel)
       {
-         var aim = Find(id);
-         if (aim == null) return false;
+         if (aim == null || !_aims.Contains(aim)) return false;
 
          aim.TimesRaised++;
          aim.LastRaisedDay = day;
