@@ -70,6 +70,32 @@ Open questions for Gabriel: what counts as "raised" (the floor given once, or th
 an aim may come up again after N days while it still stands; whether CR should later seed aims from its own data
 (tournament rivals, grudges, a lost fief), the door first either way.
 
+**Decided by Claude on Gabriel's delegation (14/10/2026 night, "je te laisse decider"), each overturnable in one line:**
+"raised" = the floor given once (marked at the conversation's opening, when a letter is released, when an audience is
+granted), as a recent matter is spent when its opener is used; twice at most, the second only after 60 days while it
+still stands; never toward an enemy (personal enemy band or realms at war), never inside a captivity; caps want 400,
+player's part 200, 40 standing aims per source; ONE aim per lord across all sources; guarded = Honor < 0 or
+Calculating > 0 (an honourable schemer still schemes), and the guarded sentence says in the same breath that he never
+states a falsehood; without a MissionBoard deed he may sound out but promise nothing unmade. CR seeding its own aims:
+later, the door first.
+
+**BUILT (pure, no engine glue), 14/10/2026:** mod `6d4c628` + `59f943e` (`Logic/Aims`: AimBook keyed by source+id,
+AimRules, AimRaisePolicy, AimApproachWording, AimConversationLeave; 30 tests), SDK `111e048` (section `own_aim` in the
+prefix, 4 EncounterContext fields, compact one line; 5 tests). Nothing reaches a player yet.
+
+**PROPOSED public shape (NOT built: modder-api.md and save-format.md are contracts; show Gabriel, then tashmetu):**
+- `CrAims.Register(ExternalAim) -> AimResult` (Accepted, Updated, MissingIdentity, EmptyWant, UnknownHero,
+  LordAlreadyHasAnAim, SourceAtCapacity, AlreadyExpired) and `CrAims.Retract(sourceMod, id) -> bool`.
+- `ExternalAim` (plain strings, like ExternalWorldEvent): Id, SourceMod, NpcId, Want, PlayerPart, MissionId (optional,
+  a MissionBoard id), Channels ("conversation", "letter", "audience"; empty = all), ExpiresOnDay (optional).
+- `CrAims.Raised` event: AimId, SourceMod, NpcId, Channel, GameDay, so the bridge knows the matter is out.
+- Save: one additive key (`cr_standing_aims`, JSON byte[] like the other stores); an old save reads no aims.
+- Glue, in order: (1) conversation: CrConversation.Started -> AimConversationLeave.Open (enemy, captivity facts from the
+  host), EncounterContextBuilder fills OwnAim*, Ended -> Close, Raised fired; (2) letter: a new LetterReason through
+  the mailbox (budget, cooldown, ActionGate.Letter), marked when released; (3) audience: one more "live reason to
+  speak" below the existing ones in FiefAudience/RoadInterception, marked when granted. Each with a cr.testall test
+  (register -> the prompt carries the want -> the leave holds on a later reply -> retract).
+
 ## WISHED 2026-10-14 (tashmetu), ROADMAPPED: the captive PLAYER bargains for freedom
 
 The other half of the 2.7.10 `counter_offer` (a lord the player holds offers ransom, fealty, service, goodwill). Today a
