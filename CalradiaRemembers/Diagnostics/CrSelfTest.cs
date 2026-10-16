@@ -514,7 +514,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_captive_variety", Severity.Light, "LLM (T6): two scenes with the SAME captor + one with a DIFFERENT captor (fresh writing lens each) -> score cross-scene phrase reuse; logs the ratio + worst offenders, rejects only a gross echo regression", TestChatCaptiveVariety, true, 9),
          new SelfTest("conv_summary_queue", Severity.Light, "LLM: seed a base 'Spoke with X.' event + a job whose transcript states a PLAN, run the queue worker -> assert the event is ENRICHED by value match (a promised plan reaches durable memory, not lost)", TestConvSummaryQueueJob, true, 1),
          new SelfTest("letter_font", Severity.Light, "player report: Russian letters rendered Galahad's broken per-glyph fallback (no Cyrillic glyphs). Mechanical: LetterFontPolicy prefers the plain font for the game's own Russian language id and keeps the decorative Galahad look for English; then forces LetterViewModel's language seam (LetterFontResolver.LanguageIdProvider, no real language switch) and asserts the VM's BodyBrush/HeadingBrush/InputBrush bindings actually pick the plain sibling brushes for Russian and the Galahad ones for English, proving the wiring end to end and not just the pure policy. Restores the seam", TestLetterFont),
-         new SelfTest("manual_conception_entry", Severity.Light, "tashmetu (Nexus, 16/10/2026), Gabriel's ruling the same day: the manual menu may record \"You lay together\" between lovers or spouses, never shown below Explicit. Arranges a partner of the other sex and of fertile age as the player's lover, then reads the REAL menu facts: at Explicit the entry is open; as a stranger it is blocked; at Mature it is not listed at all. Restores the content level and her romance", TestManualConceptionEntry),
+         new SelfTest("manual_conception_entry", Severity.Light, "tashmetu (Nexus, 16/10/2026), Gabriel's ruling the same day: the manual menu may record \"You lay together\" between lovers or spouses, never shown below Explicit. Arranges a partner of the other sex and of fertile age as the player's lover, then reads the REAL menu facts: at Explicit the entry is open; as a stranger, or at Mature, it is not listed at all. Restores the content level and her romance", TestManualConceptionEntry),
          new SelfTest("manual_action_menu", Severity.Light, "Mechanical: drives the REAL ManualActionAvailability gate (the manual action-injection menu) against seeded facts -> a held-and-eligible prisoner exposes execute/free/recruit together, a held-but-ineligible one keeps execute/free and withholds recruit (PrisonerRecruitmentPolicy's own regard/clan-leader gate), and an otherwise-empty (non-ruler) snapshot shows no governance entry but keeps take_gold, the always-on baseline. Pure logic against a plain facts struct, nothing to clean up", TestManualActionMenu)
       };
 
@@ -15735,8 +15735,8 @@ namespace CalradiaRemembers.Diagnostics
             behavior.Store.Set(profile);
             if (partner.Spouse != player)
             {
-               // STAKE: with someone who is not a lover, the click does not stand in for a scene never shared.
-               t.Expect("aStrangerIsBlocked", Entry()?.State == ManualActionState.Blocked, true);
+               // STAKE: with someone who is not a lover, the scene is not even shown.
+               t.Expect("notListedForAStranger", Entry() == null, true);
             }
 
             profile.Romantic.Status = RomanticStatus.Intimate;

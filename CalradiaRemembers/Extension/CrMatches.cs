@@ -47,6 +47,7 @@ namespace CalradiaRemembers
             MatchRegistrationResult result = PendingMatchBook.Judge(new MatchRegistrationFacts {
                AllKnown = known,
                SamePerson = known && suitor == bride,
+               PlayerIsOneOfThem = known && (suitor == Hero.MainHero || bride == Hero.MainHero),
                LawfulCouple = known && Campaign.Current?.Models?.MarriageModel?.IsCoupleSuitableForMarriage(suitor, bride) == true,
                DeciderHasSay = known && (decider == bride || MarriageProspectResolver.HasAuthority(decider, bride))
             });
@@ -71,12 +72,14 @@ namespace CalradiaRemembers
 
       /// <summary>
       ///   The registered match this decider has the say over, still standing; matches where one of the two died or was
-      ///   wed meanwhile are dropped first. Null when none.
+      ///   wed meanwhile, or whose decider no longer has the say over her (a new head of house), are dropped first, so a
+      ///   decider is never taught a match the law would then refuse him. Null when none.
       /// </summary>
       internal static PendingMatchEntry ForDecider(Hero decider)
       {
          if (decider == null) return null;
-         Book.Prune(e => Find(e.SuitorId) is {IsDead: false, Spouse: null} && Find(e.BrideId) is {IsDead: false, Spouse: null});
+         Book.Prune(e => Find(e.SuitorId) is {IsDead: false, Spouse: null} && Find(e.BrideId) is {IsDead: false, Spouse: null} bride
+                         && Find(e.DeciderId) is {IsDead: false} who && (who == bride || MarriageProspectResolver.HasAuthority(who, bride)));
 
          return Book.ForDecider(decider.StringId);
       }

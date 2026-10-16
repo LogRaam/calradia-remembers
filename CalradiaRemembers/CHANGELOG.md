@@ -54,8 +54,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   any mode, and a local interpreter now and then produced no tags; Gabriel approved it the same day). A new Intimacy
   section records a scene the two have played carried to completion, between the player and a spouse, consort or
   lover only; the bridge's own guards and the conception roll still decide, and the line says only "Whether a child
-  comes of it, time will tell." Below Explicit it is not listed at all, not even as blocked; with a stranger it is
-  blocked ("you are not lovers"). `ManualActionCatalog.ConceptionRisk` (outside `All`), three new facts in
+  comes of it, time will tell." It is listed only for a spouse, consort or lover, and never below Explicit; for
+  anyone else it is not shown at all, not even as blocked. `ManualActionCatalog.ConceptionRisk` (outside `All`), three new facts in
   `ManualActionFacts`; the pairing read is shared with the bridge (`PregnancyService.RoleOf`). cr.testall
   `manual_conception_entry`.
 

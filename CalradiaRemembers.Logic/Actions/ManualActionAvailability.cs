@@ -260,11 +260,12 @@ namespace CalradiaRemembers.Logic.Actions
          When(facts.CanRecruitNotable, ManualActionCatalog.RecruitNotable, "they are not a notable you could bring into your service");
          When(facts.CompanionAskingPrice.HasValue, ManualActionCatalog.JoinParty, "they are not for hire");
 
-         // Intimacy (Gabriel, 16/10/2026): never listed below Explicit, not even blocked.
-         if (facts.ContentPermitsConception)
+         // Intimacy (Gabriel, 16/10/2026): listed only for the player's spouse, consort or lover, and never below
+         // Explicit. Shown to anyone else, even blocked, it would offer a scene with a stranger, a parent or a child.
+         if (facts.ContentPermitsConception && facts.NpcIsIntimatePartner)
          {
-            if (!facts.PairingCanConceive) NotHer(ManualActionCatalog.ConceptionRisk, "no child could come of the two of you");
-            else When(facts.NpcIsIntimatePartner, ManualActionCatalog.ConceptionRisk, "you are not lovers");
+            if (facts.PairingCanConceive) Open(ManualActionCatalog.ConceptionRisk);
+            else NotHer(ManualActionCatalog.ConceptionRisk, "no child could come of the two of you");
          }
 
          return result;

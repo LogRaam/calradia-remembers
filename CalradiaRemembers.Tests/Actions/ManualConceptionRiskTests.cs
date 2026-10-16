@@ -38,19 +38,18 @@ namespace CalradiaRemembers.Tests.Actions
             .State.Should().Be(ManualActionState.Open);
       }
 
-      // STAKE: with someone who is not their lover, a click must not stand in for a scene the two never shared.
+      // STAKE: with someone who is not their lover (a stranger, a parent, a child) the scene is not even shown; listed as
+      // blocked it would read as something that could open this afternoon.
       [Test]
-      public void GIVEN_a_character_who_is_not_a_lover_WHEN_the_panel_is_built_THEN_the_scene_is_blocked_and_says_why()
+      public void GIVEN_a_character_who_is_not_a_lover_WHEN_the_panel_is_built_THEN_the_scene_is_not_listed()
       {
-         ManualActionStatus s = Find(new ManualActionFacts {ContentPermitsConception = true, PairingCanConceive = true, NpcIsIntimatePartner = false});
-
-         s.State.Should().Be(ManualActionState.Blocked);
-         s.Reason.Should().Be("you are not lovers");
+         Find(new ManualActionFacts {ContentPermitsConception = true, PairingCanConceive = true, NpcIsIntimatePartner = false}).Should().BeNull();
+         Find(new ManualActionFacts {ContentPermitsConception = true, PairingCanConceive = false, NpcIsIntimatePartner = false}).Should().BeNull();
       }
 
-      // STAKE: a pairing that cannot conceive is not offered a conception, whoever they are.
+      // STAKE: a partner with whom no child can come is told so rather than offered a conception.
       [Test]
-      public void GIVEN_a_pairing_that_cannot_conceive_WHEN_the_panel_is_built_THEN_it_does_not_apply_to_them()
+      public void GIVEN_a_partner_with_whom_no_child_can_come_WHEN_the_panel_is_built_THEN_it_does_not_apply_to_them()
       {
          Find(new ManualActionFacts {ContentPermitsConception = true, PairingCanConceive = false, NpcIsIntimatePartner = true})
             .State.Should().Be(ManualActionState.NotForThisPerson);

@@ -36,6 +36,9 @@ namespace CalradiaRemembers.Logic
       /// <summary>The suitor and the bride are the same person.</summary>
       RejectedSamePerson,
 
+      /// <summary>The player is the suitor or the bride: the player's own marriage goes through CR's own rules, not this door.</summary>
+      RejectedPlayer,
+
       /// <summary>The game would not wed this couple (age, kin, a marriage already, the same sex).</summary>
       RejectedNotLawful,
 
@@ -51,6 +54,9 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>The suitor and the bride are one person.</summary>
       public bool SamePerson { get; init; }
+
+      /// <summary>The player is the suitor or the bride.</summary>
+      public bool PlayerIsOneOfThem { get; init; }
 
       /// <summary>The game's own marriage model would wed them.</summary>
       public bool LawfulCouple { get; init; }
@@ -88,6 +94,7 @@ namespace CalradiaRemembers.Logic
       {
          if (f == null || !f.AllKnown) return MatchRegistrationResult.RejectedUnknown;
          if (f.SamePerson) return MatchRegistrationResult.RejectedSamePerson;
+         if (f.PlayerIsOneOfThem) return MatchRegistrationResult.RejectedPlayer;
          if (!f.LawfulCouple) return MatchRegistrationResult.RejectedNotLawful;
          if (!f.DeciderHasSay) return MatchRegistrationResult.RejectedNoAuthority;
 
@@ -110,7 +117,7 @@ namespace CalradiaRemembers.Logic
       public PendingMatchEntry ForDecider(string deciderId)
          => _entries.FirstOrDefault(e => string.Equals(e.DeciderId, deciderId, StringComparison.Ordinal));
 
-      /// <summary>Drops every match <paramref name="stillStands" /> says is over (one of them dead or wed).</summary>
+      /// <summary>Drops every match <paramref name="stillStands" /> says is over (one of them dead or wed, the decider's say lost).</summary>
       public int Prune(Func<PendingMatchEntry, bool> stillStands)
          => stillStands == null ? 0 : _entries.RemoveAll(e => !stillStands(e));
 

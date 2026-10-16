@@ -53,6 +53,15 @@ namespace CalradiaRemembers.Tests
                          .Should().Be(MatchRegistrationResult.RejectedSamePerson);
       }
 
+      // STAKE: the player's own marriage goes through CR's own rules; through this door the player would be wed by a third
+      // party, and the decider taught that the player comes on behalf of themselves.
+      [Test]
+      public void GIVEN_the_player_as_suitor_or_bride_WHEN_registered_THEN_it_is_refused()
+      {
+         PendingMatchBook.Judge(new MatchRegistrationFacts {AllKnown = true, PlayerIsOneOfThem = true, LawfulCouple = true, DeciderHasSay = true})
+                         .Should().Be(MatchRegistrationResult.RejectedPlayer);
+      }
+
       // STAKE: the head of house is taught the match registered for him, and no other decider is.
       [Test]
       public void GIVEN_a_registered_match_WHEN_its_decider_is_asked_THEN_it_is_found_and_another_decider_finds_nothing()

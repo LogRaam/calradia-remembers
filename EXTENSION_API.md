@@ -179,11 +179,12 @@ CrMatches.Withdraw(suitorId, brideId);
 
 `DeciderId` is the bride herself, or the head of her house or a parent. The door refuses at once, keeping nothing,
 what the law would refuse outright: an id that names no one (`RejectedUnknown`), one person twice
-(`RejectedSamePerson`), a couple the game will not wed (`RejectedNotLawful`), a decider with no say over her hand
+(`RejectedSamePerson`), the player on either side (`RejectedPlayer`: the player's own marriage keeps CR's own rules), a couple the game will not wed (`RejectedNotLawful`), a decider with no say over her hand
 (`RejectedNoAuthority`). What can change later is weighed when the decider consents in the chat, as for a match asked
 by letter: no captivity and no war between the houses, she must hold the suitor a friend, and her family's regard for
 the player or a gain in standing. `Settled` fires each time the decider is asked: a refused match stays registered and
-may be asked again; a wed one is dropped, as is a match whose suitor or bride died or was wed meanwhile. A match asked
+may be asked again; a wed one is dropped, as is a match whose suitor or bride died or was wed meanwhile, or whose
+decider lost the say over her (a new head of house: register again with the new one). A match asked
 of the player by letter is taught first. Kept in memory only and forgotten when the game is left: register again when a
 game is loaded.
 
