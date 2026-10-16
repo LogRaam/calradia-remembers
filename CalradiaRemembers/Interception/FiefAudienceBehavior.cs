@@ -149,12 +149,14 @@ namespace CalradiaRemembers.Interception
          Settlement here = Hero.MainHero?.CurrentSettlement;
          if (here == null) return false;
 
-         // The SAME "how often does an NPC seek the player out" roll the road uses, applied once per entry
-         // instead of once per day -- a settlement entry is this feature's equivalent of the daily tick.
-         if (MBRandom.RandomInt(100) >= InterceptionPacingRules.DailyChancePercent(ModSettings.LordsApproaching)) return false;
-
          FiefAudienceCandidate best = SelectBestCandidate(here, Today);
          if (best == null) return false;
+
+         // The SAME "how often does an NPC seek the player out" roll the road uses, applied once per entry
+         // instead of once per day -- a settlement entry is this feature's equivalent of the daily tick. A liege
+         // calling in his summoned vassal is not left to the roll: the vassal walked into his town.
+         if (best.Trigger != InterceptionTrigger.WarDutySummons
+             && MBRandom.RandomInt(100) >= InterceptionPacingRules.DailyChancePercent(ModSettings.LordsApproaching)) return false;
 
          Hero npc = Hero.FindFirst(h => h != null && h.StringId == best.HeroId);
          if (npc == null) return false;
@@ -188,16 +190,21 @@ namespace CalradiaRemembers.Interception
       internal static List<Hero> DebugEligible(Settlement settlement) => EligibleHeroes(settlement).ToList();
 
       private static IEnumerable<Hero> EligibleHeroes(Settlement settlement)
-         => Hero.AllAliveHeroes.Where(h =>
+      {
+         Hero summoner = GameState.WarLevyDesk.Summoner();
+
+         return Hero.AllAliveHeroes.Where(h =>
             Mapping.ActionGate.Allows(h, Logic.ActionKind.FiefAudience)
             && FiefAudiencePolicy.MaySeekAudience(new FiefAudienceSeekerFacts {
                StandsInThisSettlement = h.CurrentSettlement == settlement, IsPrisoner = h.IsPrisoner,
-               HasFieldParty = h.PartyBelongedTo != null, IsChild = h.IsChild
+               HasFieldParty = h.PartyBelongedTo != null, IsChild = h.IsChild, SummonsThePlayer = h == summoner
             }));
+      }
 
       private FiefAudienceCandidate SelectBestCandidate(Settlement settlement, int today)
       {
          var candidates = new List<FiefAudienceCandidate>();
+         Hero summoner = GameState.WarLevyDesk.Summoner();
 
          foreach (Hero h in EligibleHeroes(settlement))
          {
@@ -216,7 +223,8 @@ namespace CalradiaRemembers.Interception
                HeardRecentPlayerDeed = InterceptionBehavior.HeardRecentPlayerDeed(h, today),
                HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
                HoldsSignificantAppreciation = holdsAppreciation,
-               HasNemesisBountyToOffer = hasNemesisBounty
+               HasNemesisBountyToOffer = hasNemesisBounty,
+               HoldsWarDutyReckoning = h == summoner
             };
 
             InterceptionTrigger trigger = FiefAudiencePolicy.ChooseFiefValid(facts);
@@ -229,6 +237,8 @@ namespace CalradiaRemembers.Interception
                // HeardOfDeed is the commonest trigger by far and was the one with no detail at all, so the
                // invitation it raised could only say "someone wants a word". The matter is right there.
                InterceptionTrigger.HeardOfDeed => InterceptionBehavior.RecentMatterTopic(h, today),
+               // Named in the invitation only; the opener holds to the footing and the terms section to the amounts.
+               InterceptionTrigger.WarDutySummons => "the war you have sat out",
                _ => null
             };
 
@@ -256,6 +266,13 @@ namespace CalradiaRemembers.Interception
          string about = AudienceTopicLine.For(detail);
          var body = new TextObject(
             $"{npc.Name}, standing here, catches your eye and seems to want a private word with you.{about}");
+
+         // A liege does not catch his vassal's eye: he has him called before him (the war duty, inc 6).
+         if (trigger == InterceptionTrigger.WarDutySummons)
+         {
+            title = new TextObject($"{npc.Name} summons you");
+            body = new TextObject($"{npc.Name}, your liege, is here and has you called before them over the war you have sat out.");
+         }
 
          // WHO IS ASKING (Lordfadooboo, 13/10/2026): said in the invitation, with a "Who is this?" button to their page.
          AudienceInquiry.Show(npc, title.ToString(), body.ToString(), "Speak with them", "Not now",

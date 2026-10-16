@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-507 rules read 386 facts.
+508 rules read 386 facts.
 
 ## Facts read by more than one rule
 
@@ -86,6 +86,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.Name` (5) | `QuestMenuEntry`, `SkirmishFacts`, `SkirmishFoe`, `SkirmishLine`, `SkirmishMemoryText.CountIn` |
 | `IFaction.IsAtWarWith` (5) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `MarriageStateFacts`, `OutlawPolicy.IsBrigandage` |
 | `Kingdom.RulingClan` (5) | `CaptiveOfferFacts`, `OutlawPolicy.IsBrigandage`, `WarDutyLive`, `WarDutyPolicy.Decide`, `WarLoomingPolicy.ShouldRecord` |
+| `Ledger.Case` (5) | `LevyFacts`, `LevyTroopFacts`, `TermsFacts`, `WarDutyLadder.Advance`, `WarDutyLadder.CallsThePlayerIn` |
 | `MobileParty.BesiegedSettlement` (5) | `AuthoredMapTriggerPolicy.WhyNot`, `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `MapTriggerFacts` |
 | `PartyBelongedTo.Army` (5) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `ReturnFacts` |
 | `Romantic.IsCompatibleWith` (5) | `CaptiveOfferFacts`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `LoverCandidateFacts`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
@@ -101,7 +102,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `GetPosition2D.Distance` (4) | `AuthoredQuestEngine.NightPassed`, `ChaseFacts`, `NewsDestinationSelector.Choose`, `RumorAwareness.Explain` |
 | `Hero.Culture` (4) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts`, `MercenaryDeparturePolicy.IsAidOfKin`, `MercenaryDeparturePolicy.RegardShift` |
 | `Hero.StayingInSettlement` (4) | `EscortCostPolicy.EscortPremium`, `LetterWhereaboutsPolicy.ForPlayer`, `LetterWhereaboutsPolicy.ForWriter`, `WhereaboutsFacts` |
-| `Ledger.Case` (4) | `LevyFacts`, `LevyTroopFacts`, `TermsFacts`, `WarDutyLadder.Advance` |
 | `MapEvent.EventType` (4) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause`, `SkirmishFacts` |
 | `MapEvent.GetMapEventSide` (4) | `BattleWorthFacts`, `LiberationFacts`, `SkirmishFacts`, `SkirmishFoe` |
 | `MapEvent.MapEventSettlement` (4) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause`, `SkirmishFacts` |
@@ -747,6 +747,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `WarDutyConfiscation.HasTakeable`: `Town.Prosperity`
 - `WarDutyInput`: `Town.Prosperity`
 - `WarDutyLadder.Advance`: `Ledger.Case`
+- `WarDutyLadder.CallsThePlayerIn`: `Ledger.Case`
 - `WarDutyLive`: `Clan.IsUnderMercenaryService`, `Clan.Kingdom`, `Hero.IsPrisoner`, `Kingdom.RulingClan`, `ModSettings.WarDutyWindowDays`
 - `WarDutyPolicy.Decide`: `Clan.IsUnderMercenaryService`, `Clan.Kingdom`, `Hero.IsPrisoner`, `Kingdom.RulingClan`, `Ledger.Facts`, `ModSettings.WarDutyWindowDays`
 - `WarLevyFacts`: `Clan.Tier`, `ModSettings.WarLevyScale`

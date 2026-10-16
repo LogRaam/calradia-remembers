@@ -344,6 +344,21 @@ namespace CalradiaRemembers.WarDuty
          return LevyOwedTo(liege);
       }
 
+      /// <summary>
+      ///   The ruler who calls the player in himself now (inc 6, the audience channel): at his hall when the player walks
+      ///   into the town where he stands, or on the road. Null when the switch is off, nothing is open, or the player has
+      ///   already stood before him (WarDutyLadder.CallsThePlayerIn).
+      /// </summary>
+      internal Hero CallingRuler()
+      {
+         WarDutyCase c = Ledger.Case;
+         if (!ModSettings.EnableWarDuty || c == null || !c.IsOpen || !WarDutyLadder.CallsThePlayerIn(c)) return null;
+
+         Hero ruler = Hero.FindFirst(h => h != null && h.StringId == c.RulerId);
+
+         return Mapping.HeroPresence.IsInTheWorld(ruler) ? ruler : null;
+      }
+
       /// <summary>The terms this liege holds the player to, worded for the war_duty_terms section; null when nothing is owed.</summary>
       internal string TermsFor(Hero liege)
       {

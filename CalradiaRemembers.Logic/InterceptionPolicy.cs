@@ -62,7 +62,15 @@ namespace CalradiaRemembers.Logic
         ///   pointing them to the bounty. Announcement only: accepting the bounty itself stays entirely at
         ///   that existing scripted line, never here. Appended at the end of the enum (frozen ordinals).
         /// </summary>
-        NemesisBounty
+        NemesisBounty,
+
+        /// <summary>
+        ///   The realm's ruler holds the player, his sworn vassal, to the war duty (Maifailun and Gabriel, 15/10/2026):
+        ///   he summoned them to answer for sitting out his war, or demanded the levy by letter when they never came,
+        ///   and now calls them in himself. Footing only: what is owed and what follows is the war_duty_terms section's.
+        ///   Appended at the end of the enum (frozen ordinals).
+        /// </summary>
+        WarDutySummons
     }
 
     /// <summary>The facts a single candidate lord's interception decision rests on — engine-gathered, pure to reason over.</summary>
@@ -109,6 +117,12 @@ namespace CalradiaRemembers.Logic
         ///   bounty offer it announces from ever disagreeing about who is eligible.
         /// </summary>
         public bool HasNemesisBountyToOffer { get; set; }
+
+        /// <summary>
+        ///   This lord is the realm's ruler who holds the player to the war duty and calls them in now
+        ///   (<c>WarDutyLadder.CallsThePlayerIn</c>): summoned, or owing the levy without ever having come.
+        /// </summary>
+        public bool HoldsWarDutyReckoning { get; set; }
     }
 
     /// <summary>
@@ -267,14 +281,19 @@ namespace CalradiaRemembers.Logic
         ///   A genuinely impossible chase (out to sea) never does: nothing was ever going to connect, and
         ///   the grace window (<see cref="IsRememberedIntentActive" />) already covers the player who comes
         ///   back ashore and seeks the lord out.
+        ///   A liege who rode out over the war duty never writes one either: the duty sends its own levy letter
+        ///   when the player never came, and a second letter about the same matter would contradict or double it.
         /// </summary>
-        public static bool ShouldWriteMissedMeetingLetter(AbandonReason reason, bool pursuerAlive)
-            => reason is AbandonReason.GaveUp or AbandonReason.LostTrail
-               || (reason is AbandonReason.OtherBusiness or AbandonReason.Siege && pursuerAlive);
+        public static bool ShouldWriteMissedMeetingLetter(AbandonReason reason, bool pursuerAlive, InterceptionTrigger trigger = InterceptionTrigger.None)
+            => trigger != InterceptionTrigger.WarDutySummons
+               && (reason is AbandonReason.GaveUp or AbandonReason.LostTrail
+                   || (reason is AbandonReason.OtherBusiness or AbandonReason.Siege && pursuerAlive));
 
         /// <summary>
         ///   The reason this lord would intercept the player now, or <see cref="InterceptionTrigger.None"/>.
-        ///   Priority, after the guards: <see cref="InterceptionTrigger.TerritorialPatrol"/> (a hostile
+        ///   Priority, after the guards: <see cref="InterceptionTrigger.WarDutySummons"/> (a liege calling in
+        ///   his vassal: the one matter the player is bound to answer, and the ruler of the player's own realm is
+        ///   never the hostile lord of the next one) &gt; <see cref="InterceptionTrigger.TerritorialPatrol"/> (a hostile
         ///   realm defending its own land outranks everything else) &gt;
         ///   <see cref="InterceptionTrigger.Grudge"/> (a wrong pressed) &gt;
         ///   <see cref="InterceptionTrigger.NemesisBounty"/> (a lord asking for the player's help against a
@@ -287,6 +306,9 @@ namespace CalradiaRemembers.Logic
         {
             if (f == null) return InterceptionTrigger.None;
             if (f.OnCooldown || f.AnotherPursuerActive) return InterceptionTrigger.None;
+
+            if (f.HoldsWarDutyReckoning)
+                return InterceptionTrigger.WarDutySummons;
 
             if (f.FactionHostileToPlayer && f.PlayerInOwnTerritory && f.PlayerNotoriety >= NotorietyThreshold)
                 return InterceptionTrigger.TerritorialPatrol;

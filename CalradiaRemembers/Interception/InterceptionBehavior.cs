@@ -216,6 +216,12 @@ namespace CalradiaRemembers.Interception
                       "and rather than let it go unspoken you simply asked them for a private word where you " +
                       $"already stood. Open by acknowledging it warmly, in your own voice.{DetailClause(detail)}";
 
+            if (trigger == InterceptionTrigger.WarDutySummons)
+               return "It is YOU who sought this meeting: the player, your sworn vassal, has sat out your realm's war, " +
+                      "and when they came into the place where you stood you had them called before you. Open by " +
+                      "holding them to it, as their liege, in your own voice. What they owe and what follows is set " +
+                      "out in your reckoning below; hold to it and add nothing to it.";
+
             if (trigger == InterceptionTrigger.NemesisBounty)
                return "It is YOU who sought this meeting: a nemesis preys on your region still, and rather than " +
                       "wait for the player to ask you simply drew them aside where you already stood. Open by " +
@@ -241,6 +247,12 @@ namespace CalradiaRemembers.Interception
                    "find the player and raise it in person. Open by naming him and where he operates, urgent but " +
                    $"not a call to arms here and now.{DetailClause(detail)} Point them to the bounty you would " +
                    "pay, but do not settle it in this exchange -- that is raised and taken up the ordinary way, not here.";
+
+         if (trigger == InterceptionTrigger.WarDutySummons)
+            return "It is YOU who sought this meeting: the player, your sworn vassal, has sat out your realm's war, " +
+                   "and you rode out to hold them to it in person. Open on that footing, as their liege, in your own " +
+                   "voice. What they owe and what follows is set out in your reckoning below; hold to it and add " +
+                   "nothing to it.";
 
          if (trigger == InterceptionTrigger.TerritorialPatrol)
             return "It is YOU who sought this meeting: you rode out to challenge the player for crossing your realm's " +
@@ -286,6 +298,10 @@ namespace CalradiaRemembers.Interception
                "You rode out to seek the player and acknowledge a kindness they showed you, but the chase came " +
                "to nothing — and now they have come to YOU. Acknowledge it warmly now, in your own voice, as " +
                $"you meant to then.{DetailClause(detail)}",
+            InterceptionTrigger.WarDutySummons =>
+               "You rode out to hold the player, your sworn vassal, to the war they have sat out, but the chase " +
+               "came to nothing, and now they have come to YOU. Hold them to it now, as their liege. What they " +
+               "owe and what follows is set out in your reckoning below; hold to it and add nothing to it.",
             InterceptionTrigger.NemesisBounty =>
                "You rode out to find the player and warn them of a nemesis plaguing your region, but the chase " +
                "came to nothing — and now they have come to YOU. Name him now and where he operates, urgent " +
@@ -1320,6 +1336,7 @@ namespace CalradiaRemembers.Interception
             InterceptionTrigger.Grudge => $"{lord.Name} rides toward you, a grievance weighing on their mind.",
             InterceptionTrigger.AppreciationOwed => $"{lord.Name} rides toward you, wishing to speak of a kindness you showed them.",
             InterceptionTrigger.NemesisBounty => $"{lord.Name} rides toward you, wishing to speak of a nemesis plaguing their region.",
+            InterceptionTrigger.WarDutySummons => $"{lord.Name}, your liege, rides toward you to hold you to the war you have sat out.",
             _ => $"{lord.Name} rides toward you, having heard of your recent deeds."
          };
          try { MBInformationManager.AddQuickInformation(new TextObject(line)); }
@@ -1520,7 +1537,7 @@ namespace CalradiaRemembers.Interception
          // writes too, but only while the pursuer is alive to hold a pen; a chase lost at sea never does
          // (nothing was ever going to connect, and the remembered-intent window above already covers the
          // player who comes back ashore and seeks the lord out).
-         if (InterceptionPolicy.ShouldWriteMissedMeetingLetter(reason, pursuerAlive))
+         if (InterceptionPolicy.ShouldWriteMissedMeetingLetter(reason, pursuerAlive, trigger))
             TryWriteMissedMeetingLetter(pursuer, trigger, detail, today);
 
          // End the engage on any abandoned chase too, so a lord who timed out or was outrun stops bearing on the
@@ -1590,6 +1607,9 @@ namespace CalradiaRemembers.Interception
             NpcProfile profile = pursuer != null ? store?.Get(pursuer.StringId) : null;
 
             if (profile == null || behavior.LlmServices?.ChatService == null) return;
+            // Never for the war duty, which sends its own levy letter (the policy already says so); and never through
+            // the recent-matter default below, which would spend a matter.
+            if (trigger == InterceptionTrigger.WarDutySummons) return;
 
             string context = trigger switch {
                InterceptionTrigger.TerritorialPatrol =>
@@ -1627,8 +1647,14 @@ namespace CalradiaRemembers.Interception
          IFaction territory = NearestSettlementFaction(playerPos);
          var notoriety = (int) (Clan.PlayerClan?.Renown ?? 0f);
 
+         // The war duty (inc 6): the ruler who calls the player in is looked at first, so another lord's errand cannot
+         // take the day's one approach from him.
+         Hero summoner = GameState.WarLevyDesk.Summoner();
+         MobileParty summonerParty = summoner?.PartyBelongedTo?.LeaderHero == summoner ? summoner?.PartyBelongedTo : null;
+         IEnumerable<MobileParty> parties = summonerParty == null ? MobileParty.All : new[] {summonerParty}.Concat(MobileParty.All.Where(x => x != summonerParty));
+
          var scanned = 0;
-         foreach (MobileParty p in MobileParty.All)
+         foreach (MobileParty p in parties)
          {
             if (scanned >= MaxCandidates) break;
 
@@ -1642,7 +1668,9 @@ namespace CalradiaRemembers.Interception
 
             // Gabriel (28/09/2026): an empress does not ride out herself after a landless newcomer. A greater lord is
             // passed over, and another nearby lord may still come; the same rule as a letter written on their behalf.
-            if (!CorrespondenceRank.DealsInPerson(lord, NpcMemoryCampaignBehavior.Instance?.Store?.Get(lord.StringId), null)) continue;
+            // The war duty lifts it for the ruler who summoned this vassal himself: his business is with them.
+            bool summons = lord == summoner;
+            if (!summons && !CorrespondenceRank.DealsInPerson(lord, NpcMemoryCampaignBehavior.Instance?.Store?.Get(lord.StringId), null)) continue;
 
             scanned++;
 
@@ -1659,7 +1687,8 @@ namespace CalradiaRemembers.Interception
                HeardRecentPlayerDeed = HeardRecentPlayerDeed(lord, today),
                HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
                HoldsSignificantAppreciation = holdsAppreciation,
-               HasNemesisBountyToOffer = hasNemesisBounty
+               HasNemesisBountyToOffer = hasNemesisBounty,
+               HoldsWarDutyReckoning = summons
             };
 
             InterceptionTrigger trigger = InterceptionPolicy.Choose(facts);

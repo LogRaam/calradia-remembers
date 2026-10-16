@@ -1812,6 +1812,9 @@ namespace CalradiaRemembers.Chat
             case InterceptionTrigger.AppreciationOwed:
                return stood + "Open the conversation YOURSELF: warmly acknowledge, in your own voice, a " +
                       $"kindness they showed you{InterceptionDetailSuffix(detail)}. Do not wait for them to speak first.]";
+            case InterceptionTrigger.WarDutySummons:
+               return stood + "Open the conversation YOURSELF, as their liege: hold your sworn vassal to the war " +
+                      "they have sat out, on the terms set out in your reckoning. Do not wait for them to speak first.]";
             case InterceptionTrigger.NemesisBounty:
                return stood + "Open the conversation YOURSELF: name a nemesis preying on your region and where " +
                       $"he operates{InterceptionDetailSuffix(detail)}, urgent but not a call to arms. Point them " +

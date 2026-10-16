@@ -199,6 +199,7 @@ namespace CalradiaRemembers
          GameState.WarLevyDesk.PlanTroops = h => WarDuty.WarDutyBehavior.Instance?.PlanTroops(h) ?? new Logic.WarDuty.LevyTroopTake();
          GameState.WarLevyDesk.TakeTroops = h => WarDuty.WarDutyBehavior.Instance?.TakeTroops(h) ?? new Logic.WarDuty.LevyTroopTake();
          GameState.WarLevyDesk.TermsFor = h => WarDuty.WarDutyBehavior.Instance?.TermsFor(h);
+         GameState.WarLevyDesk.CallingRuler = () => WarDuty.WarDutyBehavior.Instance?.CallingRuler();
          campaignStarter.AddBehavior(new Aims.AimsBehavior());
          Aims.AimsBehavior.PersonalRegard = h => NpcMemoryCampaignBehavior.Instance?.Store?.Get(h.StringId)?.ReputationWithPlayer;
          // Divorce, Phase 1 (the first verb built on the IConversationVerb contract): end_marriage begins a

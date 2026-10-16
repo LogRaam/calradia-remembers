@@ -288,6 +288,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("background_hold", Severity.Light, "fkasad (Nexus, 15/10/2026): on a local server, summaries, memory compaction and letters slipped in between two replies, the server swapped its KV cache and replies timed out. With a conversation forced open through the seam: a background call routed to OpenAI-Compatible (local) waits; the same call routed to a cloud provider goes at once; with no conversation open a local call goes at once. Restores the provider dropdowns and the seam (the held wait ends within a second)", TestBackgroundHold),
          new SelfTest("war_duty_ledger", Severity.Light, "Maifailun (Nexus, 15/10/2026): a vassal who sits out the realm's war is called to account, so the mod must see his service. On a fresh ledger through the real upkeep: the realm the player is sworn to (none as a mercenary or a free lord) and its enemy kingdoms are recorded from today, so no one owes on the first day. A battle against a realm at war with his counts as service; one against bandits does not. Restores the player's own ledger", TestWarDutyLedger),
          new SelfTest("aims_conversation", Severity.Light, "CrAims (tashmetu, 14/10/2026: lords with aims of their own; 'the real risk is a lord who brings up Lakonon in every conversation'). A test aim is registered on a real lord not at war with the player; a conversation opening with him gives him leave to raise it and the encounter context carries his want; a second conversation the same day does not give it again; the leave ends with the conversation. An aim Calradia Remembers seeds for its own mechanics is not voiced by the generic section. Retracts both aims", TestAimsConversation),
+         new SelfTest("war_duty_audience", Severity.Light, "Gabriel's ladder (15/10/2026): the summoned vassal is called in by the ruler himself, at his hall or on the road, and no longer only by letter. With the switch on for the test, a reckoning is opened for a real ruler (one standing in a town when there is one); the duty names him as the one calling the player in; the REAL fief-audience scan of his town picks him with the war duty reason although he has a field party; his opener holds the vassal to the war and leaves the amounts to the terms; once the player has stood before him he no longer sends for them. No letter is written. Restores the ledger, the switch, the audience cooldown and the ruler's memories", TestWarDutyAudience),
          new SelfTest("war_duty_levy", Severity.Light, "Gabriel's ladder (15/10/2026): the levy is paid face to face in coin, horses, weapons or soldiers, and is no gift. With the switch on for the test, a reckoning is opened for a real ruler leading a party and answered in person; his conversation's terms name what is owed; then the REAL bridge (the path an LLM emission takes) runs take_gold, give_item with a horse, and give_troops with recruits arranged into the player's party, and each counts toward the levy until it is settled. No letter is written. Restores the player's and the ruler's gold, the soldiers, the ledger, the switch and the ruler's memories", TestWarDutyLevy),
          new SelfTest("war_duty_reckoning", Severity.Light, "Maifailun (Nexus, 15/10/2026) and Gabriel's ladder: a summons, a levy in coin or goods, a fief. With the switch on for the test and the letters not written (no model call), a reckoning is opened for a real ruler of a realm: he holds the war duty's aim in CrAims; a conversation with him moves it to the levy demanded in person and he remembers it; two hand-overs that meet the levy settle it, he remembers that, and his aim is withdrawn. A second reckoning, never answered, past its deadline brings the levy by letter; riding to war settles it. Restores the ledger, the switch and the ruler's memories; no fief is ever touched", TestWarDutyReckoning),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Then the refused-beat fallback (04/10/2026): the NSFW model resolves for its own provider, the NSFW role has its own client, a refusal is redone there in Enhanced mode, and nothing is redone with no NSFW model. Restores the NSFW model field", TestProseFallback),
@@ -15742,6 +15743,88 @@ namespace CalradiaRemembers.Diagnostics
             aims.Retract(Aims.AimsBehavior.CrSource, "cr_selftest_own");
             aims.OnConversationEnded(first);
             aims.OnConversationEnded(second);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestWarDutyAudience(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("war_duty_audience");
+
+         WarDuty.WarDutyBehavior duty = WarDuty.WarDutyBehavior.Instance;
+         Aims.AimsBehavior aims = Aims.AimsBehavior.Instance;
+         FiefAudienceBehavior fief = FiefAudienceBehavior.Instance;
+         InterceptionBehavior intercept = InterceptionBehavior.Instance;
+         CrSettings s = CrSettings.Instance;
+         if (t.Skip(duty == null || aims == null || fief == null || intercept == null || s == null || behavior?.Store == null, "the war duty, CrAims, the audience channels or MCM is not ready")) return t.Line();
+         if (t.Skip(intercept.HasActivePursuer, "a lord is already riding to the player; the one-shot opener slot is taken")) return t.Line();
+
+         // A ruler standing in a town when there is one, so the fief channel can be scanned for real.
+         List<Kingdom> realms = Kingdom.All.Where(k => k != null && !k.IsEliminated && k.Leader != null && k.Leader != Hero.MainHero
+                                                         && Mapping.HeroPresence.IsInTheWorld(k.Leader) && aims.Book.ForNpc(k.Leader.StringId) == null).ToList();
+         Kingdom realm = realms.FirstOrDefault(k => k.Leader.CurrentSettlement != null && !k.Leader.IsPrisoner) ?? realms.FirstOrDefault();
+         if (t.Skip(realm == null, "no realm with a ruler in the world")) return t.Line();
+
+         Hero ruler = realm.Leader;
+         Settlement hall = ruler.CurrentSettlement;
+         int today = WarDuty.WarDutyBehavior.Today;
+         Logic.WarDuty.WarServiceLedger prior = duty.Ledger;
+         bool priorSwitch = s.EnableWarDuty;
+         NpcProfile profile = behavior.Store.Get(ruler.StringId);
+         int priorEvents = profile?.Events?.Count ?? -1;
+
+         try
+         {
+            s.EnableWarDuty = true;
+            WarDuty.WarDutyBehavior.DebugSuppressLetters = true;
+            duty.Ledger = new Logic.WarDuty.WarServiceLedger();
+            duty.Ledger.NoteSworn(realm.StringId, today - 200);
+            duty.Open(ruler, realm, today);
+
+            // STAKE: the summoned vassal's liege is the one who calls them in.
+            t.Expect("theLiegeCallsTheVassalIn", GameState.WarLevyDesk.Summoner() == ruler, true);
+
+            // STAKE: walking into his town, the vassal is called to the hall, field party or not.
+            if (hall != null)
+            {
+               fief.DebugClearCooldown(ruler.StringId);
+               FiefAudienceCandidate chosen = fief.DebugScanAndStamp(hall);
+               t.Note($"{hall.Name}: {chosen?.HeroId} ({chosen?.Trigger})");
+               t.Expect("theRulerIsCalledToTheHall", chosen?.HeroId == ruler.StringId && chosen?.Trigger == InterceptionTrigger.WarDutySummons, true);
+               fief.DebugClearCooldown(ruler.StringId);
+            }
+            else t.Note($"{ruler.Name} stands in no settlement; the hall scan was not run");
+
+            // STAKE: he opens on the footing of the war and leaves what is owed to the terms the game holds him to.
+            intercept.StashFiefAudienceReason(ruler, InterceptionTrigger.WarDutySummons, "the war you have sat out");
+            string opener = intercept.ConsumeInterceptionReason(ruler);
+            intercept.ForgetConversationSeeker();
+            t.Expect("theOpenerHoldsTheVassalToTheWar", opener?.Contains("sat out your realm's war") == true, true);
+            t.Expect("theOpenerNamesNoSum", opener != null && !opener.Any(char.IsDigit), true);
+
+            // STAKE: once the vassal has stood before him, he does not send for them again.
+            duty.OnConversationStarted(ruler.StringId);
+            t.Expect("heSendsForThemNoMoreOnceTheyCame", GameState.WarLevyDesk.Summoner() == null, true);
+         }
+         finally
+         {
+            WarDuty.WarDutyBehavior.DebugSuppressLetters = false;
+            s.EnableWarDuty = priorSwitch;
+            duty.Ledger = prior;
+            aims.Retract(Aims.AimsBehavior.CrSource, WarDuty.WarDutyBehavior.AimId);
+            fief.DebugClearCooldown(ruler.StringId);
+
+            NpcProfile now = behavior.Store.Get(ruler.StringId);
+            if (now?.Events != null)
+            {
+               if (priorEvents < 0) behavior.Store.Remove(ruler.StringId);
+               else
+               {
+                  if (now.Events.Count > priorEvents) now.Events.RemoveRange(priorEvents, now.Events.Count - priorEvents);
+                  behavior.Store.Set(now);
+               }
+            }
          }
 
          return t.Line();

@@ -146,6 +146,15 @@ namespace CalradiaRemembers.Logic.WarDuty
             LevyAmount = levyAmount < 0 ? 0 : levyAmount
          };
 
+      /// <summary>
+      ///   Whether the ruler calls the player in himself, at his hall or on the road (Gabriel's ladder, 15/10/2026: the
+      ///   vassal is summoned to come and answer for it). While summoned, and while the levy is owed by letter because
+      ///   the player never came; once the player has stood before him, the levy is between them and he does not
+      ///   send for them again.
+      /// </summary>
+      public static bool CallsThePlayerIn(WarDutyCase c)
+         => c != null && (c.Stage == WarDutyStage.Summoned || (c.Stage == WarDutyStage.Owing && !c.Appeared));
+
       /// <summary>Moves the reckoning one step and says what the host must do. A closed reckoning never moves.</summary>
       public static WarDutyEffect Advance(WarDutyCase c, WarDutyInput input)
       {

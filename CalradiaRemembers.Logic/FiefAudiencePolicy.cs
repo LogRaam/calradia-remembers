@@ -57,6 +57,12 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>They are a child (Hero.IsChild): a child never asks for an audience, as a child never writes first.</summary>
         public bool IsChild { get; set; }
+
+        /// <summary>
+        ///   They are the realm's ruler calling the player in over the war duty. A ruler sitting in his own town still
+        ///   has a field party, but a summoned vassal who walks into his town is called to the hall all the same.
+        /// </summary>
+        public bool SummonsThePlayer { get; set; }
     }
 
     /// <summary>
@@ -73,7 +79,7 @@ namespace CalradiaRemembers.Logic
         ///   field party, and not a child (Nexusrrr, 28/09/2026: a baby son asked to discuss warfare).
         /// </summary>
         public static bool MaySeekAudience(FiefAudienceSeekerFacts f)
-            => f != null && f.StandsInThisSettlement && !f.HasFieldParty
+            => f != null && f.StandsInThisSettlement && (!f.HasFieldParty || f.SummonsThePlayer)
                && NpcActionGate.Allows(new ActorFacts {IsChild = f.IsChild, IsPrisoner = f.IsPrisoner});
 
         /// <summary>
@@ -88,13 +94,15 @@ namespace CalradiaRemembers.Logic
         ///   a grievance or a felt kindness is place-independent, unlike a claim about crossing a border, so
         ///   both are just as believable voiced by someone who never moved. <see cref="InterceptionTrigger.NemesisBounty" />
         ///   is the same: a lord raising a nemesis plaguing his region is just as plausible standing in his
-        ///   own fief as riding out to say it.
+        ///   own fief as riding out to say it. <see cref="InterceptionTrigger.WarDutySummons" /> above all: a summoned
+        ///   vassal who walks into his liege's town is called to the hall.
         /// </summary>
         public static bool IsFiefValid(InterceptionTrigger trigger)
             => trigger == InterceptionTrigger.HeardOfDeed
                || trigger == InterceptionTrigger.Grudge
                || trigger == InterceptionTrigger.AppreciationOwed
-               || trigger == InterceptionTrigger.NemesisBounty;
+               || trigger == InterceptionTrigger.NemesisBounty
+               || trigger == InterceptionTrigger.WarDutySummons;
 
         /// <summary>The trigger <see cref="InterceptionPolicy.Choose" /> would pick for these facts, narrowed to the fief-valid subset, or None.</summary>
         public static InterceptionTrigger ChooseFiefValid(InterceptionFacts facts)
@@ -117,12 +125,14 @@ namespace CalradiaRemembers.Logic
         ///   The single strongest fief-valid candidate, or null when none qualify. Deterministic tie-break by
         ///   HeroId so the SAME roster always yields the SAME winner regardless of scan order -- mirrors
         ///   CompanionAudienceTopicBehavior's own StringId ordering, for the same reason (a settlement's Notables
-        ///   enumeration order is not guaranteed stable).
+        ///   enumeration order is not guaranteed stable). A liege calling in his summoned vassal comes before anyone
+        ///   else in the town: the one meeting the vassal is bound to answer.
         /// </summary>
         public static FiefAudienceCandidate SelectCandidate(IEnumerable<FiefAudienceCandidate> candidates)
             => candidates?
                .Where(c => c != null && c.Trigger != InterceptionTrigger.None && !string.IsNullOrEmpty(c.HeroId))
-               .OrderBy(c => c.HeroId, StringComparer.Ordinal)
+               .OrderByDescending(c => c.Trigger == InterceptionTrigger.WarDutySummons)
+               .ThenBy(c => c.HeroId, StringComparer.Ordinal)
                .FirstOrDefault();
     }
 }
