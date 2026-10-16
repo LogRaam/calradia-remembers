@@ -53,6 +53,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   abandonment). `join_as_mercenary` passed today as the contract's minimum term where every vanilla hiring path
   passes none, and Mercenary Management reads that field as the end of its contract. Now no fixed term, as the game,
   and the pay rate asked of the game's own model (`GetMercenaryAwardFactorToJoinKingdom`) instead of a flat 50.
+  cr.testall `mercenary_join_term` (signs a real contract in the chat, then puts the clan back).
 - **Giving more than 10,000 at once says so** (tashmetu, 16/10: asked to give 20,000, gave 10,000, thought the rest
   was lost). The ceiling stays (a guard against an invented sum); the line now reads "the most that can change hands
   at once" when it held the sum back (`GoldTransferLimit.CappedNote`).

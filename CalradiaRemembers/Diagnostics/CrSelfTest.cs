@@ -376,6 +376,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("faction_block_realm", Severity.Light, "tashmetu (27/09/2026): a companion's or a notable's realm is not their people's, and pulled another people's FACTION BEHAVIOR block into their prompt (or retitled theirs). Reads real heroes: a lord of a kingdom of his own culture keeps that realm for the choice; a hero living in a realm of another culture gets none. Read-only.", TestFactionBlockRealm),
          new SelfTest("council_seat_note", Severity.Light, "The council's per-seat door for other mods (tashmetu, Bellum Civile bridge, 26/09/2026): registers a throwaway {{variable}}, then resolves a council_seat template for two real lords. Each seat must carry ITS OWN value (the provider is told which seat, and that it writes for a council seat), a seat whose variable comes back empty carries no note, and with no template no note exists at all. The variable is unregistered at the end.", TestCouncilSeatNote),
          new SelfTest("transient_party_registry", Severity.Light, "The one service for the mod's transient parties (26/09/2026, the event-listeners map's proposal): spawns two real throwaway parties and tracks them under a test role. A party the registry RELEASES leaves the map and is never reported as a loss; a party destroyed by anything else is reported to its owner exactly once. Both parties are gone at the end.", TestTransientPartyRegistry),
+         new SelfTest("mercenary_join_term", Severity.Light, "tashmetu (Nexus, 16/10/2026): a contract signed in the chat with Mercenary Management ran out on its first day, the clan left, and every lord judged it an abandonment. CR passed today as the contract's minimum term where the game passes none. Frees the player's clan if it serves a realm, signs a REAL contract through the bridge's join_as_mercenary with a ruler at peace with the player, and asserts the clan serves as a mercenary with no fixed term and the game's own pay rate. Then leaves the contract and puts the clan back where it was (a disposable test game: the departure judgement may fire)", TestMercenaryJoinTerm),
          new SelfTest("mercenary_departure_judged", Severity.Light, "fkasad's grid (25/09/2026): reads a real realm's war footing (at war, its strength against its enemies' combined strength) and judges how the end of a mercenary contract with it would be taken, without applying anything. Asserts a realm at peace is AtPeace and a realm at war is judged ReleasedInVictory or Abandoned as its strength says. No regard, memory or news is written.", TestMercenaryDepartureJudged),
          new SelfTest("courier_secret_travels", Severity.Light, "Courier secrets (raphareish 24/09/2026; Gabriel): an intercepted letter travels with its captors. Captures a [SELFTEST] letter onto a REAL bandit band, then has a real lord's party defeat the carrier (DebugDefeatCarrier, no LLM, no rumour) -> the secret leaves the band and the lord remembers what it said; a second capture defeated by the PLAYER's party is recovered unread. Removes the memory it added.", TestCourierSecretTravels),
          new SelfTest("courier_secret_reaction", Severity.Light, "Courier secrets Inc 4b (Gabriel: an action in proportion to the secret): runs the real reaction for another lord's letter read by a grudge-free lord -> NOTHING plants no grudge, AGAINST plants a LeakedLetter grudge on the letter's author, and the player (who wrote nothing) pays nothing. Clears the grudge it planted.", TestCourierSecretReaction),
@@ -10348,6 +10349,65 @@ namespace CalradiaRemembers.Diagnostics
             Requested = ChatManager.ManuscriptSkin, ManuscriptSkin = ChatManager.ManuscriptSkin, ClassicSkin = ChatManager.ClassicSkin, ManuscriptArtLoads = art
          });
          t.Expect("darkLeatherOnlyWithItsArt", opens, art ? ChatManager.ManuscriptSkin : ChatManager.ClassicSkin);
+
+         return t.Line();
+      }
+
+      private static string TestMercenaryJoinTerm(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("mercenary_join_term");
+         Clan clan = Clan.PlayerClan;
+         if (t.Abort(clan == null || behavior?.GameStateBridge == null, "no player clan or no bridge")) return t.Line();
+         if (t.Skip(clan.Kingdom != null && clan.Kingdom.RulingClan == clan, "the player rules a realm and cannot be hired")) return t.Line();
+
+         Kingdom priorRealm = clan.Kingdom;
+         bool priorMercenary = clan.IsUnderMercenaryService;
+         CampaignTime priorUntil = clan.ShouldStayInKingdomUntil;
+         int priorFactor = clan.MercenaryAwardMultiplier;
+
+         try
+         {
+            // Arranged: a free clan, the only kind join_as_mercenary hires.
+            if (clan.Kingdom != null)
+            {
+               if (clan.IsUnderMercenaryService) ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(clan, false);
+               else ChangeKingdomAction.ApplyByLeaveKingdom(clan, false);
+            }
+
+            Kingdom realm = Kingdom.All.FirstOrDefault(k => k != null && !k.IsEliminated && k.Leader != null && k.Leader != Hero.MainHero
+                                                             && Mapping.HeroPresence.IsInTheWorld(k.Leader)
+                                                             && !FactionManager.IsAtWarAgainstFaction(clan, k));
+            if (t.Skip(realm == null, "every realm is at war with the player")) return t.Line();
+
+            int gameFactor = Campaign.Current.Models.MinorFactionsModel.GetMercenaryAwardFactorToJoinKingdom(clan, realm);
+            ActionOutcome hired = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "join_as_mercenary"}, realm.Leader,
+                                                                         new ActionContext(behavior.Store?.Get(realm.Leader.StringId), null));
+            t.Note($"{realm.Name}: {hired?.Message}; until {clan.ShouldStayInKingdomUntil}, factor {clan.MercenaryAwardMultiplier} (game {gameFactor})");
+
+            // STAKE: the clan serves the realm as hired swords.
+            t.Expect("theClanServesAsAMercenary", clan.Kingdom == realm && clan.IsUnderMercenaryService, true);
+            // STAKE: no fixed term, as the game's own hiring, so a contract mod does not end it on its first day.
+            t.Expect("theContractHasNoFixedTerm", clan.ShouldStayInKingdomUntil == CampaignTime.Zero, true);
+            // STAKE: paid at the game's own rate, not a flat figure.
+            t.Expect("thePayRateIsTheGames", clan.MercenaryAwardMultiplier, gameFactor > 0 ? gameFactor : 50);
+         }
+         finally
+         {
+            if (clan.Kingdom != priorRealm || clan.IsUnderMercenaryService != priorMercenary)
+            {
+               if (clan.Kingdom != null)
+               {
+                  if (clan.IsUnderMercenaryService) ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(clan, false);
+                  else ChangeKingdomAction.ApplyByLeaveKingdom(clan, false);
+               }
+
+               if (priorRealm != null && !priorRealm.IsEliminated)
+               {
+                  if (priorMercenary) ChangeKingdomAction.ApplyByJoinFactionAsMercenary(clan, priorRealm, priorUntil, priorFactor, false);
+                  else ChangeKingdomAction.ApplyByJoinToKingdom(clan, priorRealm, priorUntil, false);
+               }
+            }
+         }
 
          return t.Line();
       }
