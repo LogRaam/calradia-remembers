@@ -255,6 +255,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("world_conditions", Severity.Light, "Mechanical: the engine reads the weekly world-conditions feeder depends on still work against the live game (a renamed field or a changed model signature would silently swallow to 0 inside the feeder's own guards, recording nothing forever). Reads GetScoreOfDeclaringWar in both directions between two live kingdoms and a live town's FoodStocks/FoodChange/Prosperity DIRECTLY, asserts each is finite, then runs the real RunScan and asserts both scanners ran. Skips when the world has fewer than two kingdoms or no town", TestWorldConditions),
          new SelfTest("realm_tidings", Severity.Light, "Mechanical: drives the REAL RealmTidingsBehavior.DebugEvaluate end to end and proves per-NPC dedup. Seeds a dominant known event for a friendly landed lord (regard forced to 30), asserts a RealmTidings letter candidate is queued and the event id enters the dedup ledger, then re-evaluates and asserts the same event is never relayed twice. Restores the writer's regard, ledger and candidates and removes the seed", TestRealmTidings),
          new SelfTest("siege_tidings_participation", Severity.Light, "Mechanical (player report: told by letter of a siege they FOUGHT IN, days later, as if it were news): stamps the REAL WorldEventFeeders siege-participation marker for a live settlement, then drives the REAL RecordSiegeCapture construction with a NON-player taker (a mere participant, never the credited capturer) -> assert the recorded WorldEvent has InvolvesPlayer true (so realm-tidings' own InvolvesPlayer filter will never relay it back) while Type stays SettlementCaptured and Aggrieved* stay empty (the conquest's attribution is NOT stolen from the real taker). Removes the seeded event afterwards", TestSiegeTidingsParticipation),
+         new SelfTest("companion_skirmish_memory", Severity.Light, "Thoragoros1 (Nexus, 15/10/2026): companions remembered none of the early fights (bandits, a patrol, lords' lone parties), because only chronicle-worthy battles left a memory. Arranges a companion in the party, drives the real small-fight recorder twice, and asserts the companion keeps ONE memory counting both fights and naming the foe. Restores the companion's memories exactly", TestCompanionSkirmishMemory),
          new SelfTest("companion_battle_memory", Severity.Light, "Mechanical: the companion 'fought together' memory (WorldEventFeeders' main-party companion loop), which a real MapEvent drives in game. Borrows a companion into the party if none rides along, calls the DebugRecordCompanionBattleMemories seam, and asserts the companion's profile gained a fresh 'Fought at your side' memory. Removes the memory it added and returns any borrowed companion", TestCompanionBattleMemory),
          new SelfTest("spotlight_cast", Severity.Light, "Spotlight pillar wiring (found in play by Gabriel 2026-09-12: he addressed his companion Sley by name in a conversation with Ira, the turn routed to Sley, and no [SPOTLIGHT] line was ever written - the promotion silently did nothing). ConversationCast has been correct and unit-tested since 27/08; both faults were in the HOST. (1) The cast was born inside SetWitnesses, so a conversation with no auto-detected witness - a lord standing alone - had no cast at all, not even its own anchor. (2) AddWitness never introduced the arrival, and AddWitness is how a companion joins: the picker resolves ASYNCHRONOUSLY, after the cast was built, so every brought companion sat in the witness list while absent from the cast, Promote read RoleOf == null and returned false. ConversationCast.Introduce was written for exactly this on 27/08 and had never once been called from the game. Drives the REAL ChatViewModel: sets a real anchor hero with NO witnesses and asserts a cast exists with that anchor Active (hole 1), then AddWitness a real companion and asserts they are IN the cast as a Witness and therefore promotable (hole 2), then promotes and asserts the scene became an ensemble. A pure test cannot catch either: it would build the very cast the host failed to fill", TestSpotlightCast),
          new SelfTest("private_memory", Severity.Light, "The leak guard the companion briefing is built on (Gabriel 2026-09-13: what was decided in a briefing should live in the companion MEMORY and be used from there). A memory is normally shared: a witness carries theirs into the prompt of whoever is speaking, which is right for \"he was there when you took the town\" and catastrophic for \"Arwa asked me to charm Ira\", read out in Ira own prompt while she stands there. Until now the briefing dealt with that by DROPPING its memories outright, so nothing of the private word survived. NotableEvent.IsPrivate now marks a memory the holder keeps to themselves. Plants one PUBLIC and one PRIVATE event on a real hero profile and drives the REAL ChatViewModel.DebugWitnessMemory - the same BuildWitnessMemory path a live turn uses, and the ONLY path by which one hero memories reach another hero prompt - asserting the public one is carried and the private one is not, and that a hero holding NOTHING but private memories contributes no recall at all rather than an empty husk. Restores the profile events in a finally", TestPrivateMemory),
@@ -18784,6 +18785,59 @@ namespace CalradiaRemembers.Diagnostics
          // ArrangedCompanion did (reused/borrowed/minted) is undone by its own Dispose.
          profile.Events.RemoveAll(e => e.gameDay == today && e.summary == expected);
          behavior.Store.Set(profile);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Thoragoros1 (Nexus, 15/10/2026): the small fights the chronicle does not record are folded into one
+      ///   running memory per companion. Drives WorldEventFeeders.RecordCompanionSkirmishMemories (the path a
+      ///   real MapEvent takes) twice against a real party and restores the companion's memories exactly.
+      /// </summary>
+      private static string TestCompanionSkirmishMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("companion_skirmish_memory");
+
+         if (t.Abort(behavior.Store == null, "memory store not active")) return t.Line();
+         if (t.Abort(MobileParty.MainParty == null, "no main party to hold a companion")) return t.Line();
+
+         using var arranged = ArrangedCompanion.Get(behavior, mustBeInMainParty: true);
+         if (t.Skip(arranged == null, "the player has no companion at all, and no wanderer template to arrange one")) return t.Line();
+         Hero companion = arranged.Companion;
+
+         NpcProfile profile = GetOrCreate(behavior, companion);
+         var kept = new List<NotableEvent>(profile.Events);
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+         string player = Hero.MainHero?.Name?.ToString() ?? "the player";
+
+         try
+         {
+            // A fold window that a real fight of today would extend is cleared first, so the count starts at one.
+            profile.Events.RemoveAll(e => SkirmishMemoryText.CountIn(e?.summary, player) > 0);
+            behavior.Store.Set(profile);
+
+            var looters = new SkirmishFacts {PlayerName = player, Foe = "a band of Looters", PlayerWon = true, PlaceClause = ""};
+            int reached = WorldEventFeeders.RecordCompanionSkirmishMemories(today, looters);
+            WorldEventFeeders.RecordCompanionSkirmishMemories(today, new SkirmishFacts {PlayerName = player, Foe = "men of Vlandia", PlayerWon = false, PlaceClause = ""});
+
+            profile = behavior.Store.Get(companion.StringId);
+            var lines = profile.Events.Where(e => SkirmishMemoryText.CountIn(e?.summary, player) > 0).ToList();
+            t.Note($"{companion.Name}: reached={reached}, lines={lines.Count}, last='{lines.LastOrDefault()?.summary ?? "(none)"}'");
+
+            // STAKE: Thoragoros1's companions remembered nothing of a bandit fight.
+            t.Expect("companionRemembersTheFight", reached >= 1 && lines.Count >= 1, true);
+            // STAKE: two fights fold into one line, or a bandit-hunting campaign bloats every profile.
+            t.Expect("twoFightsFoldIntoOneLine", lines.Count, 1);
+            t.Expect("theLineCountsBothFights", lines.Count == 1 ? SkirmishMemoryText.CountIn(lines[0].summary, player) : 0, 2);
+            t.Expect("theLineTellsTheLastFoe", lines.Count == 1 && lines[0].summary.Contains("men of Vlandia"), true);
+         }
+         finally
+         {
+            profile = behavior.Store.Get(companion.StringId) ?? profile;
+            profile.Events.Clear();
+            profile.Events.AddRange(kept);
+            behavior.Store.Set(profile);
+         }
 
          return t.Line();
       }

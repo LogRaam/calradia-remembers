@@ -257,6 +257,87 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       /// <summary>
+      ///   A fight the player fought that the chronicle does not record (a bandit band, a patrol, a lord's lone party):
+      ///   the companions riding in the main party fold it into their running "small fights" memory. No stance moves
+      ///   and no deed lines are written; a skirmish is remembered, not celebrated.
+      /// </summary>
+      private static void RecordCompanionSkirmish(MapEvent mapEvent, bool playerAttacker)
+      {
+         BattleSideEnum playerSide = playerAttacker
+            ? BattleSideEnum.Attacker
+            : BattleSideEnum.Defender;
+         BattleSideEnum foeSide = playerAttacker
+            ? BattleSideEnum.Defender
+            : BattleSideEnum.Attacker;
+
+         MapEventSide other = mapEvent.GetMapEventSide(foeSide);
+         PartyBase foeParty = other?.LeaderParty;
+         Hero foeLord = SideLeader(mapEvent, foeSide);
+         bool lordLed = foeLord is {IsLord: true} && !IsBandit(foeLord);
+         string foe = SkirmishMemoryText.Foe(new SkirmishFoe {
+            LordName = lordLed ? LeaderName(foeLord) : null,
+            PartyName = foeParty?.Name?.ToString(),
+            IsBandit = foeParty?.MapFaction?.IsBanditFaction == true,
+            FactionName = foeParty?.MapFaction?.Name?.ToString()
+         });
+
+         Settlement place = mapEvent.MapEventSettlement;
+         BattleSetting setting = mapEvent.EventType == MapEvent.BattleTypes.Raid
+            ? BattleSetting.Raid
+            : BattleSetting.OpenField;
+
+         RecordCompanionSkirmishMemories(Today, new SkirmishFacts {
+            PlayerName = PlayerName,
+            Foe = foe,
+            PlayerWon = mapEvent.WinningSide == playerSide,
+            PlaceClause = BattleMemoryText.PlaceClause(setting, place?.Name?.ToString())
+         });
+      }
+
+      /// <summary>
+      ///   Folds one small fight into the "small fights" memory of every companion riding in the main party (the
+      ///   same companions <see cref="RecordCompanionBattleMemories" /> visits), or starts that memory. Returns how
+      ///   many companions it reached. Also the cr.testall seam (companion_skirmish_memory).
+      /// </summary>
+      internal static int RecordCompanionSkirmishMemories(int day, SkirmishFacts fight)
+      {
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+
+         if (behavior?.Store == null || fight == null) return 0;
+
+         var roster = MobileParty.MainParty?.MemberRoster?.GetTroopRoster();
+
+         if (roster == null) return 0;
+
+         var reached = 0;
+
+         foreach (var el in roster)
+         {
+            Hero h = el.Character?.HeroObject;
+
+            if (h == null || h == Hero.MainHero || IsBandit(h)) continue;
+            NpcProfile companion = behavior.Store.Get(h.StringId);
+
+            if (companion?.Events == null) continue; // only companions the player has actually met
+
+            int at = companion.Events.FindLastIndex(e => SkirmishMemoryText.CountIn(e?.summary, fight.PlayerName) > 0);
+            var count = 1;
+
+            if (at >= 0 && SkirmishMemoryText.FoldsInto(new SkirmishLine {Day = companion.Events[at].gameDay, Summary = companion.Events[at].summary, PlayerName = fight.PlayerName}, day))
+            {
+               count = SkirmishMemoryText.CountIn(companion.Events[at].summary, fight.PlayerName) + 1;
+               companion.Events.RemoveAt(at);
+            }
+
+            companion.Events.Add(new NotableEvent(day, NotableEventType.Other, SkirmishMemoryText.Line(count, fight)));
+            behavior.Store.Set(companion);
+            reached++;
+         }
+
+         return reached;
+      }
+
+      /// <summary>
       ///   Self-test seam (cr.testall companion_battle_memory): records the companion "fought at your side" memory
       ///   for the current main party as if a notable battle had just ended, and returns how many main-party
       ///   companion profiles gained a fresh memory this call. Drives the exact
@@ -453,7 +534,15 @@ namespace CalradiaRemembers.WorldEvents
                ? BattleNotability.IsNotableForPlayer(new BattleNotability.BattleFacts {IsSiege = isSiege, AttackerHasArmy = attackerHasArmy, DefenderHasArmy = defenderHasArmy, TotalCombatants = TotalCombatants(mapEvent)})
                : BattleNotability.IsNotable(new BattleNotability.BattleFacts {IsSiege = isSiege, AttackerHasArmy = attackerHasArmy, DefenderHasArmy = defenderHasArmy});
 
-            if (!notable) return;
+            // Thoragoros1 (Nexus, 15/10/2026): companions remembered none of the early fights. A fight the
+            // chronicle does not record still happened to the companions who rode in it: they keep one folded
+            // "small fights" memory (SkirmishMemoryText), and nothing else is written.
+            if (!notable)
+            {
+               if (playerIn) RecordCompanionSkirmish(mapEvent, playerAttacker);
+
+               return;
+            }
 
             BattleSideEnum loseSide = mapEvent.WinningSide == BattleSideEnum.Attacker
                ? BattleSideEnum.Defender
@@ -466,7 +555,12 @@ namespace CalradiaRemembers.WorldEvents
             bool winLord = winLeader is {IsLord: true} && !IsBandit(winLeader);
             bool loseLord = loseLeader is {IsLord: true} && !IsBandit(loseLeader);
 
-            if (!winLord && !loseLord) return;
+            if (!winLord && !loseLord)
+            {
+               if (playerIn) RecordCompanionSkirmish(mapEvent, playerAttacker);
+
+               return;
+            }
 
             bool playerWon = playerIn &&
                              mapEvent.WinningSide ==

@@ -36,6 +36,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   player's spouses who died (Maifailun's other wife asked "Debana of Dolentos?"), and the name hint finds the
   speaker's own dead kin (and the player's dead spouses, for a partner) instead of only a living namesake.
   cr.testall `dead_kin` (arranges a minted family; the hint included).
+- **Companions remember the small fights too** (Thoragoros1, 15/10: three companions, battles against bandits, a
+  patrol and lords' parties, and nobody remembered any of them). Only a battle the chronicle records (a siege,
+  armies on both sides or 150 men, and a lord leading a side) left a companion memory. Now every fight the player
+  fights leaves one, and the small ones fold into a single running line per companion ("Rode with X in 3 small
+  fights of late; the last against a band of Looters, and we won it"), a new line after 30 days or 12 fights, so
+  the save does not grow a memory per looter band. No stance moves for a skirmish. `SkirmishMemoryText`.
+  cr.testall `companion_skirmish_memory`.
 
 ## v2.7.10.. 2026-10-14
 

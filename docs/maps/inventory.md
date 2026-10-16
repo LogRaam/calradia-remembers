@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 498 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1135 types in 30 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1139 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 19000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 19500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
@@ -854,7 +854,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (684)
+### CalradiaRemembers.Logic (688)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1466,6 +1466,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SharedIntimacyResult` | public enum | What becomes of a night another mod reports. |
 | `SiegeParticipationMarker` | public static class | Decides whether a buffered "the player just stormed this settlement" marker still applies to a settlement whose ownership is changing. |
 | `SilentRefusalMessages` | public static class | Wording for the bridge executor refusal branches that used to return null. |
+| `SkirmishFacts` | public class | The facts of one small fight a companion shared with the player, as its memory line reads them. |
+| `SkirmishFoe` | public class | The other side of a small fight, as the game knows it. |
+| `SkirmishLine` | public class | A memory line already in a companion's profile, as the fold reads it. |
+| `SkirmishMemoryText` | public static class | Pure: the folded "small fights" memory a companion keeps of the skirmishes shared with the player. |
 | `SourcedScenarioRule` | public class | A loaded rule and the source it came from. |
 | `SpeakerNamesakePolicy` | public static class | Decides whether a hero matched in the player's message is merely a namesake of the character being spoken to. |
 | `SpeakerProfileSelector` | public static class | Chooses which stored profile represents the NPC currently speaking, so a memory never ends up on the wrong person. |
