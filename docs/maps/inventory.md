@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 499 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1146 types in 30 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 502 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1150 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (38)
+### CalradiaRemembers (41)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -53,6 +53,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrConversationInfo` | public class | The identity of a conversation as it OPENS, delivered by CrConversation.Started. |
 | `CrConversationLog` | public class | A whole conversation as it CLOSES, delivered by CrConversation.Ended. |
 | `CrCultures` | public static class | Read-only readings of the cultures CR plays by (its ModuleData jealousy_cultures.json, or a Custom copy). |
+| `CrMatchOutcome` | public class | What came of a registered match when its decider was asked in the chat. |
+| `CrMatchRequest` | public class | A match offered to CrMatches.Register, its people named by hero StringId. |
+| `CrMatches` | public static class | Lets another mod hand the player a match to broker; CR teaches it to the one who decides and settles it. |
 | `CrMemoryEntry` | public class | One memory a third-party mod wants an NPC to hold. |
 | `CrMemoryRecord` | public class | One memory CR already holds for an NPC, as read back through CrNpcMemory.GetMemories. |
 | `CrMemoryRemoval` | public class | A memory a mod takes back (philip0105, Vivid World, 10/10/2026: rumors forgotten or corrected later). |
@@ -855,7 +858,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (689)
+### CalradiaRemembers.Logic (693)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1210,6 +1213,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MarriageProspectPolicy` | public static class | Whether a house would put a given kin forward as a marriage prospect of its own accord. |
 | `MarryCompanionEligibilityPolicy` | public static class | Pure eligibility rule for the "marry your own companion" carve-out: which same-clan wanderer companion the mod would let the player wed despite the ordinary SameClan bar. |
 | `MatchFacts` | public class | What decides a match the player brokers between two other people. |
+| `MatchRegistrationFacts` | public class | What the door reads about a match offered for registration. |
+| `MatchRegistrationResult` | public enum | Why a match was or was not taken into the book. |
 | `MatchVerdict` | public enum | The answer to a brokered match. |
 | `MatchmakerPolicy` | public static class | The rules of a match the player brokers (arrange_match). |
 | `MeetingGapDescriber` | public static class | Turns a "days since the NPC last saw the player" count into a prompt-ready note, or null when the gap is too short (or unknown) to be worth remarking on. |
@@ -1276,6 +1281,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PartyReaction` | public class | One party's verdict on a divorce. |
 | `PeaceMediationBlock` | public enum | Why the player cannot (yet) mediate peace with this leader, or None when they can. |
 | `PeaceMediationPolicy` | public static class | The pure gate behind mediate_peace. |
+| `PendingMatchBook` | public class | The matches other mods have registered, and the door they pass. |
+| `PendingMatchEntry` | public class | One match waiting for its decider's consent. |
 | `PendingSummaryJob` | public class | One pending "write the rich summary and replace the base event" job, captured as plain data so it can be persisted (a later increment wires it into SyncData) and replayed after a game reload. |
 | `PerceivedImageFacts` | public class | What the image is composed from. |
 | `PerceivedImagePolicy` | public static class | Composes the perceived image. |

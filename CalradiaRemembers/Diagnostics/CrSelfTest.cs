@@ -323,6 +323,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("self_esteem_climb", Severity.Light, "fkasad (Nexus, 01/10/2026): lords at 100 from chores. A lord set high (shift +60) wins a battle through the real service: the gain must shrink to almost nothing; set low (shift -60), the same win lands whole. Restores his shift exactly. Uses the MCM Self-Esteem Climb as set.", TestSelfEsteemClimb),
          new SelfTest("spouse_status_at_wedding", Severity.Light, "brorespeta123 (Nexus, 01/10/2026): a new wife 'forgot who I was'. A marriage through the game's own proposal left her romantic status stale until the next load. Gives a lord's CR profile a stale SecretLover status, runs the same heal the wedding now runs, expects Committed, then restores the profile exactly. Weds nobody.", TestSpouseStatusAtWedding),
          new SelfTest("wedding_day_line", Severity.Light, "fkasad (10/10/2026): a marriage CR never saw reads as years old when the couple's eldest living child is 2 or more (checked on a real lord when one exists). raphareish (Nexus, 01/10/2026): a character wed days before spoke of her spouse as if married for years. Takes a married lord, sets his wedding day to three days ago for a moment, expects his family line to call them newlyweds, then forgets the day and expects the line as before. Weds nobody.", TestWeddingDayLine),
+         new SelfTest("registered_match", Severity.Light, "tashmetu (Nexus, 16/10/2026): a head of house agreed in the chat to a match another mod had proposed, and nothing happened. Finds a lawful match of another house at peace, wins the bride over and the head's regard for the player (a disposable test game), registers it through the PUBLIC CrMatches.Register, checks a decider with no say is refused at the door, that the head is taught the match, then settles it through the REAL bridge (arrange_match): the game weds them, CrMatches.Settled reports it, and the match is no longer pending. Restores the head's regard; the marriage stays", TestRegisteredMatch),
          new SelfTest("arrange_match_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): the matchmaker; Gabriel: a real marriage, her heart then her family's consent. Finds an unwed lord and a lawful match of another house at peace, issues the task through the real QuestFactory, and asks the real match check WITHOUT applying it: the law must pass, and the answer must be one of wed / not yet won over / family refuses, never a legal refusal. Weds nobody.", TestArrangeMatchQuest),
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
@@ -11154,6 +11155,76 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("anOldMarriageWithChildrenReadsAsYearsOld", line.Contains("wed for years:") && line.Contains("your eldest together"), true);
          }
          else t.Note("no married lord with an unseen wedding and a child of the couple aged 2 or more; the floor was not checked");
+
+         return t.Line();
+      }
+
+      private static string TestRegisteredMatch(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("registered_match");
+         if (t.Abort(behavior?.Store == null || behavior.GameStateBridge == null, "the store or the bridge is not ready")) return t.Line();
+
+         Hero suitor = null, bride = null;
+         foreach (Hero lord in Hero.AllAliveHeroes.Where(h => h.IsLord && h != Hero.MainHero && h.Spouse == null && !h.IsChild && !h.IsPrisoner && h.Clan != null))
+         {
+            bride = Hero.AllAliveHeroes.FirstOrDefault(h => h.Clan != null && h.Clan != lord.Clan && h.Clan != Clan.PlayerClan && !h.IsPrisoner && h.Spouse == null
+                                                           && h.Clan.Leader != null && h.Clan.Leader != Hero.MainHero && !h.Clan.Leader.IsPrisoner
+                                                           && Campaign.Current.Models.MarriageModel.IsCoupleSuitableForMarriage(lord, h)
+                                                           && (h.MapFaction == null || lord.MapFaction == null || !FactionManager.IsAtWarAgainstFaction(h.MapFaction, lord.MapFaction)));
+            if (bride == null) continue;
+
+            suitor = lord;
+            break;
+         }
+
+         if (t.Skip(suitor == null, "no unwed lord with a lawful match of another house at peace")) return t.Line();
+
+         Hero head = bride.Clan.Leader;
+         NpcProfile headProfile = GetOrCreate(behavior, head);
+         int priorRegard = headProfile.ReputationWithPlayer;
+         CrMatchOutcome heard = null;
+         void OnSettled(CrMatchOutcome o) => heard = o;
+
+         try
+         {
+            // Arranged: her heart won, her family well disposed toward the broker.
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(bride, suitor, Math.Max(0, 60 - bride.GetRelation(suitor)), false);
+            headProfile.ReputationWithPlayer = 80;
+            behavior.Store.Set(headProfile);
+
+            // STAKE: a decider with no say over her hand is refused at the door, before anyone is taught anything.
+            t.Expect("aDeciderWithNoSayIsRefused", CrMatches.Register(new CrMatchRequest {SuitorId = suitor.StringId, BrideId = bride.StringId, DeciderId = suitor.StringId, SourceMod = "cr.testall"}), MatchRegistrationResult.RejectedNoAuthority);
+
+            MatchRegistrationResult registered = CrMatches.Register(new CrMatchRequest {SuitorId = suitor.StringId, BrideId = bride.StringId, DeciderId = head.StringId, SourceMod = "cr.testall"});
+            t.Note($"{suitor.Name} for {bride.Name} ({bride.Clan.Name}), decided by {head.Name}: {registered}");
+            // STAKE: a lawful match with the head of her house is taken.
+            t.Expect("aLawfulMatchIsRegistered", registered, MatchRegistrationResult.Registered);
+
+            PendingMatch taught = behavior.GameStateBridge.MatchToArrange(head);
+            // STAKE: the head of house is taught the match another mod proposed.
+            t.Expect("theHeadIsTaughtTheMatch", taught?.BrideName == bride.Name.ToString() && taught?.SuitorName == suitor.Name.ToString(), true);
+
+            CrMatches.Settled += OnSettled;
+            ActionOutcome outcome = behavior.GameStateBridge.SettleMatch(head);
+            t.Note($"arrange_match: {outcome?.Message}");
+            // STAKE: his consent weds them in the game, not only in the prose.
+            t.Expect("theGameWedsThem", bride.Spouse == suitor, true);
+            // STAKE: the mod that proposed it hears the outcome.
+            t.Expect("theProposingModHearsIt", heard?.Wed == true && heard.BrideId == bride.StringId, true);
+            // STAKE: a settled match is not taught again.
+            t.Expect("theMatchIsNoLongerPending", CrMatches.ForDecider(head) == null, true);
+         }
+         finally
+         {
+            CrMatches.Settled -= OnSettled;
+            CrMatches.Withdraw(suitor.StringId, bride.StringId);
+            NpcProfile now = behavior.Store.Get(head.StringId);
+            if (now != null)
+            {
+               now.ReputationWithPlayer = priorRegard;
+               behavior.Store.Set(now);
+            }
+         }
 
          return t.Line();
       }

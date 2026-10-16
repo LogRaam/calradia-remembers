@@ -42,6 +42,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   a conversation, which the reply waits on. Trade-off: reopening a chat with the same character at once, on a local
   server, the summary of the last one waits until this one ends. cr.testall `background_hold`.
 
+- **Another mod can hand the player a match to broker** (tashmetu, 16/10: a head of house agreed in the chat to give
+  his kinswoman to a lord of the player's house, as Regard and Standing's matchmaker had proposed, and nothing
+  happened; Gabriel approved the door the same day). For modders: `CrMatches.Register(new CrMatchRequest {...})` (suitor,
+  bride, decider, source, named) teaches the decider `arrange_match` for that match, and CR's own law settles it
+  (`CourtActionResolver.TryArrangeThirdPartyMatch`); the door refuses at once an unknown id, one person twice, a couple
+  the game will not wed, or a decider with no say over her hand (`PendingMatchBook.Judge`). `CrMatches.Settled`
+  reports each answer (wed, or the reason); `Withdraw` takes a match back. Memory only, forgotten when the game is
+  left. EXTENSION_API.md "Matches the player brokers". cr.testall `registered_match`.
 - **"You lay together" in the manual action menu** (tashmetu, 16/10: impregnation_risk could not be sent by hand in
   any mode, and a local interpreter now and then produced no tags; Gabriel approved it the same day). A new Intimacy
   section records a scene the two have played carried to completion, between the player and a spouse, consort or

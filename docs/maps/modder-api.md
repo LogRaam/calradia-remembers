@@ -60,6 +60,34 @@ _Read-only readings of the cultures CR plays by (its ModuleData jealousy_culture
 
 - `static MarriageCustomReading MarriageCustom(string cultureName, int clanTier)`
 
+### CrMatchOutcome
+
+_What came of a registered match when its decider was asked in the chat._
+
+- `bool Wed { get; }`
+- `string BrideId { get; }`
+- `string DeciderId { get; }`
+- `string Reason { get; }`
+- `string Source { get; }`
+- `string SuitorId { get; }`
+
+### CrMatchRequest
+
+_A match offered to CrMatches.Register, its people named by hero StringId._
+
+- `string BrideId { get; set; }`
+- `string DeciderId { get; set; }`
+- `string SourceMod { get; set; }`
+- `string SuitorId { get; set; }`
+
+### CrMatches
+
+_Lets another mod hand the player a match to broker; CR teaches it to the one who decides and settles it._
+
+- `static MatchRegistrationResult Register(CrMatchRequest request)`
+- `static bool Withdraw(string suitorId, string brideId)`
+- `static event Action<CrMatchOutcome> Settled`
+
 ### CrMemoryEntry
 
 _One memory a third-party mod wants an NPC to hold._

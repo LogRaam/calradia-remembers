@@ -106,6 +106,13 @@ namespace CalradiaRemembers
       ///   Called every time the user starts or loads a campaign. This is where
       ///   we hook our <see cref="CampaignBehaviorBase" /> into the active campaign.
       /// </summary>
+      /// <summary>Leaving a game forgets the matches other mods registered for it (CrMatches is never saved).</summary>
+      public override void OnGameEnd(Game game)
+      {
+         base.OnGameEnd(game);
+         CrMatches.Book.Clear();
+      }
+
       protected override void OnGameStart(Game game, IGameStarter gameStarterObject)
       {
          base.OnGameStart(game, gameStarterObject);

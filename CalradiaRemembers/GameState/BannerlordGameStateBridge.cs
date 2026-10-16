@@ -947,8 +947,15 @@ namespace CalradiaRemembers.GameState
       public PendingMatch MatchToArrange(Hero authorizer)
       {
          LetterErrand errand = QuestService.FindOutstandingMatchFor(authorizer, NpcMemoryCampaignBehavior.Instance?.Store);
+         if (errand != null) return new PendingMatch {BrideName = errand.Quest.TargetHeroName, SuitorName = errand.Giver.Name};
 
-         return errand == null ? null : new PendingMatch {BrideName = errand.Quest.TargetHeroName, SuitorName = errand.Giver.Name};
+         // A match another mod registered (tashmetu, 16/10/2026: CrMatches).
+         PendingMatchEntry entry = CrMatches.ForDecider(authorizer);
+         if (entry == null) return null;
+         Hero suitor = Hero.FindFirst(h => h.StringId == entry.SuitorId);
+         Hero bride = Hero.FindFirst(h => h.StringId == entry.BrideId);
+
+         return suitor == null || bride == null ? null : new PendingMatch {BrideName = bride.Name?.ToString(), SuitorName = suitor.Name?.ToString()};
       }
 
       /// <summary>
@@ -961,22 +968,35 @@ namespace CalradiaRemembers.GameState
          {
             BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
             LetterErrand errand = QuestService.FindOutstandingMatchFor(authorizer, store);
-            if (errand == null) return ActionOutcome.Refused("(No match has been asked of you; nothing is promised.)");
+            // A match another mod registered (CrMatches) when no lord sent the player by letter.
+            PendingMatchEntry registered = errand == null ? CrMatches.ForDecider(authorizer) : null;
+            if (errand == null && registered == null) return ActionOutcome.Refused("(No match has been asked of you; nothing is promised.)");
 
-            Hero suitor = Hero.FindFirst(h => h.StringId == errand.Giver.Id);
-            Hero bride = Hero.FindFirst(h => h.StringId == errand.Quest.TargetHeroId);
+            string suitorId = errand?.Giver.Id ?? registered.SuitorId;
+            string brideId = errand?.Quest.TargetHeroId ?? registered.BrideId;
+            Hero suitor = Hero.FindFirst(h => h.StringId == suitorId);
+            Hero bride = Hero.FindFirst(h => h.StringId == brideId);
             ArrangeMarriageVerdict v = CourtActionResolver.TryArrangeThirdPartyMatch(suitor, bride, authorizer, apply: true);
 
-            switch (v.Result)
+            string refusal = v.Result switch
             {
-               case ArrangeMarriageResult.NoAuthority: return ActionOutcome.Refused($"({authorizer.Name} has no say over {bride?.Name}'s hand.)");
-               case ArrangeMarriageResult.NotSuitable: return ActionOutcome.Refused($"({suitor?.Name} and {bride?.Name} cannot lawfully wed.)");
-               case ArrangeMarriageResult.BlockedByGuard: return ActionOutcome.Refused($"({suitor?.Name} and {bride?.Name} cannot be wed now: not across a war, nor from captivity.)");
-               case ArrangeMarriageResult.NotWonOver: return ActionOutcome.Refused($"({bride?.Name} does not yet hold {suitor?.Name} dear enough; she must be won over first.)");
-               case ArrangeMarriageResult.NotCrossClan: return ActionOutcome.Refused($"({suitor?.Name} and {bride?.Name} are of one house.)");
-               case ArrangeMarriageResult.RefusedStanding: return ActionOutcome.Refused($"({authorizer.Name} will not give {bride?.Name} to {suitor?.Name}'s house on your word as it stands.)");
-               case ArrangeMarriageResult.NoTargetKin: return ActionOutcome.Refused("(The match can no longer be found.)");
+               ArrangeMarriageResult.NoAuthority => $"({authorizer.Name} has no say over {bride?.Name}'s hand.)",
+               ArrangeMarriageResult.NotSuitable => $"({suitor?.Name} and {bride?.Name} cannot lawfully wed.)",
+               ArrangeMarriageResult.BlockedByGuard => $"({suitor?.Name} and {bride?.Name} cannot be wed now: not across a war, nor from captivity.)",
+               ArrangeMarriageResult.NotWonOver => $"({bride?.Name} does not yet hold {suitor?.Name} dear enough; she must be won over first.)",
+               ArrangeMarriageResult.NotCrossClan => $"({suitor?.Name} and {bride?.Name} are of one house.)",
+               ArrangeMarriageResult.RefusedStanding => $"({authorizer.Name} will not give {bride?.Name} to {suitor?.Name}'s house on your word as it stands.)",
+               ArrangeMarriageResult.NoTargetKin => "(The match can no longer be found.)",
+               _ => null
+            };
+
+            if (registered != null)
+            {
+               if (refusal == null) CrMatches.Withdraw(registered.SuitorId, registered.BrideId);
+               CrMatches.RaiseSettled(new CrMatchOutcome(registered, refusal == null, refusal));
             }
+
+            if (refusal != null) return ActionOutcome.Refused(refusal);
 
             var day = (int) CampaignTime.Now.ToDays;
             string player = Hero.MainHero?.Name?.ToString() ?? "the player";

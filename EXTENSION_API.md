@@ -166,6 +166,27 @@ child, a captive, or leads her house). A `return_spouse` is `Waiting` while her 
 captive; `ConsequenceSettled` follows (`Where` "settled") when it happens or is given up. An abandoned tale carries out
 nothing and is not sent to scenario rules. Tales whose id begins `cr_selftest_` are cr.testall's own.
 
+### Matches the player brokers (`CalradiaRemembers.CrMatches`, since 2.7.12)
+
+Hand the player a match to broker: the one who decides is taught `arrange_match` for it in CR's chat, and CR's own law
+settles it.
+
+```csharp
+MatchRegistrationResult r = CrMatches.Register(new CrMatchRequest {SuitorId = suitorId, BrideId = brideId, DeciderId = headId, SourceMod = "MyMod"});
+CrMatches.Settled += o => { /* o.Wed, or o.Reason: her heart, her family, a war between the houses... */ };
+CrMatches.Withdraw(suitorId, brideId);
+```
+
+`DeciderId` is the bride herself, or the head of her house or a parent. The door refuses at once, keeping nothing,
+what the law would refuse outright: an id that names no one (`RejectedUnknown`), one person twice
+(`RejectedSamePerson`), a couple the game will not wed (`RejectedNotLawful`), a decider with no say over her hand
+(`RejectedNoAuthority`). What can change later is weighed when the decider consents in the chat, as for a match asked
+by letter: no captivity and no war between the houses, she must hold the suitor a friend, and her family's regard for
+the player or a gain in standing. `Settled` fires each time the decider is asked: a refused match stays registered and
+may be asked again; a wed one is dropped, as is a match whose suitor or bride died or was wed meanwhile. A match asked
+of the player by letter is taught first. Kept in memory only and forgotten when the game is left: register again when a
+game is loaded.
+
 ### Queens with a chosen face (`ModuleData/cr_faces.json`, since 2.7.10)
 
 `{ "queens": { "<realm id>": "<BodyProperties version=... key=... />" } }`: the line the face editor copies with

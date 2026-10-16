@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-508 rules read 390 facts.
+509 rules read 390 facts.
 
 ## Facts read by more than one rule
 
@@ -145,6 +145,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `LeaderParty.SiegeEvent` (3) | `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter` |
 | `MapFaction.IsBanditFaction` (3) | `BattleFacts`, `SkirmishFacts`, `SkirmishFoe` |
 | `MarketData.GetPriceFactor` (3) | `MarketReading`, `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
+| `MarriageModel.IsCoupleSuitableForMarriage` (3) | `MatchRegistrationFacts`, `QuestMenuEntry`, `ReturnFacts` |
 | `MemberRoster.GetTroopRoster` (3) | `AuthoredBandMakeupFacts`, `CompanionCounselPolicy.Select`, `PartyCounselFacts` |
 | `MobileParty.Morale` (3) | `CompanionCounselPolicy.Select`, `PartyCounselFacts`, `PartyMoraleMood.DriverFor` |
 | `MobileParty.Position` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
@@ -200,7 +201,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Ledger.OpenCase` (2) | `StandingAim`, `SummonsFacts` |
 | `LocationComplex.GetLocationWithId` (2) | `DuelStagingSupport.CanHoldATownDuel`, `DuelVenuePolicy.Choose` |
 | `MapEventSide.LeaderParty` (2) | `SkirmishFacts`, `SkirmishFoe` |
-| `MarriageModel.IsCoupleSuitableForMarriage` (2) | `QuestMenuEntry`, `ReturnFacts` |
 | `MobileParty.ActualClan` (2) | `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
 | `MobileParty.AttachedTo` (2) | `ChaseFacts`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter` |
 | `MobileParty.CurrentSettlement` (2) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts` |
@@ -544,6 +544,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `MarriageStateFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.IsPrisoner`, `Hero.MapFaction`, `IFaction.IsAtWarWith`
 - `MarryCompanionFacts`: `Hero.Age`, `Hero.Clan`, `Hero.Father`, `Hero.IsAlive`, `Hero.IsFemale`, `Hero.IsPlayerCompanion`, `Hero.IsWanderer`, `Hero.Mother`, `Hero.Spouse`
 - `MatchFacts`: `Clan.Leader`, `Clan.Tier`, `Hero.Clan`, `Hero.GetRelation`
+- `MatchRegistrationFacts`: `MarriageModel.IsCoupleSuitableForMarriage`
 - `MeetingGapDescriber.Describe`: `Hero.Father`, `Hero.Mother`, `Hero.Siblings`, `Hero.Spouse`
 - `MemoryFacts`: `StringComparer.Ordinal`
 - `MercenaryDeparturePolicy.IsAidOfKin`: `Hero.Culture`, `Kingdom.Culture`
