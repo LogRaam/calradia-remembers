@@ -42,7 +42,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   fights leaves one, and the small ones fold into a single running line per companion ("Rode with X in 3 small
   fights of late; the last against a band of Looters, and we won it"), a new line after 30 days or 12 fights, so
   the save does not grow a memory per looter band. No stance moves for a skirmish. `SkirmishMemoryText`.
-  cr.testall `companion_skirmish_memory`.
+  A second cause: a companion (or kin) got a memory profile only from a first Calradia Remembers conversation, so
+  one hired through the game's own dialogue and never spoken to remembered no battle at all, small or great. Riding
+  in the player's party now makes one. cr.testall `companion_skirmish_memory` (runs with no profile, as theirs did).
 
 ## v2.7.10.. 2026-10-14
 

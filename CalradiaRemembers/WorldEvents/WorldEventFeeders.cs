@@ -238,7 +238,7 @@ namespace CalradiaRemembers.WorldEvents
             Hero h = el.Character?.HeroObject;
 
             if (h == null || h == Hero.MainHero || IsBandit(h)) continue;
-            NpcProfile companion = behavior.Store.Get(h.StringId);
+            NpcProfile companion = OwnPeopleProfile(behavior, h);
 
             if (companion == null) continue; // only companions the player has actually met
 
@@ -316,7 +316,7 @@ namespace CalradiaRemembers.WorldEvents
             Hero h = el.Character?.HeroObject;
 
             if (h == null || h == Hero.MainHero || IsBandit(h)) continue;
-            NpcProfile companion = behavior.Store.Get(h.StringId);
+            NpcProfile companion = OwnPeopleProfile(behavior, h);
 
             if (companion?.Events == null) continue; // only companions the player has actually met
 
@@ -335,6 +335,25 @@ namespace CalradiaRemembers.WorldEvents
          }
 
          return reached;
+      }
+
+      /// <summary>
+      ///   The profile of someone riding in the main party, created for the player's own clan (companions, kin) when
+      ///   none exists yet. A profile used to be made only by a first Calradia Remembers conversation, so a companion
+      ///   hired through the game's own dialogue and never spoken to here remembered no battle at all (Thoragoros1,
+      ///   15/10/2026). Riding in the player's party is having been met. Anyone else still needs a profile already.
+      /// </summary>
+      private static NpcProfile OwnPeopleProfile(NpcMemoryCampaignBehavior behavior, Hero h)
+      {
+         NpcProfile profile = behavior.Store.Get(h.StringId);
+
+         if (profile != null || h.Clan == null || h.Clan != Clan.PlayerClan) return profile;
+
+         profile = Mapping.HeroProfileMapper.FromHero(h);
+         behavior.Store.Set(profile);
+         ModLog.Info($"[WORLD] {h.Name} rides in the player's party with no profile yet; one is made so the fight is remembered.");
+
+         return profile;
       }
 
       /// <summary>
