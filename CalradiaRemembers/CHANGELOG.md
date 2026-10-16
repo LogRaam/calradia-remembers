@@ -42,6 +42,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   a conversation, which the reply waits on. Trade-off: reopening a chat with the same character at once, on a local
   server, the summary of the last one waits until this one ends. cr.testall `background_hold`.
 
+- **"You lay together" in the manual action menu** (tashmetu, 16/10: impregnation_risk could not be sent by hand in
+  any mode, and a local interpreter now and then produced no tags; Gabriel approved it the same day). A new Intimacy
+  section records a scene the two have played carried to completion, between the player and a spouse, consort or
+  lover only; the bridge's own guards and the conception roll still decide, and the line says only "Whether a child
+  comes of it, time will tell." Below Explicit it is not listed at all, not even as blocked; with a stranger it is
+  blocked ("you are not lovers"). `ManualActionCatalog.ConceptionRisk` (outside `All`), three new facts in
+  `ManualActionFacts`; the pairing read is shared with the bridge (`PregnancyService.RoleOf`). cr.testall
+  `manual_conception_entry`.
+
 ### Removed
 - **MCM "Actions Interpreter Timing"** (fkasad, 15/10): its "Asynchronous" choice ran synchronously all along (a
   TODO). The interpreter always applies its actions with the reply, as it always did; the real async path is a

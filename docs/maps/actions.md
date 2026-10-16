@@ -86,10 +86,10 @@ this memory still alive") where death alone is the question.
 | `Encyclopedia/EncyclopediaHeroPageAppearanceMixin.cs` | 1 |
 | `Encyclopedia/EncyclopediaHeroPageBearingMixin.cs` | 1 |
 | `Encyclopedia/EncyclopediaHeroPageHappinessMixin.cs` | 1 |
-| `GameState/BannerlordGameStateBridge.cs` | 28 |
+| `GameState/BannerlordGameStateBridge.cs` | 24 |
 | `GameState/CourtActionResolver.cs` | 16 |
 | `GameState/LordRecruitmentFactsBuilder.cs` | 2 |
-| `GameState/PregnancyService.cs` | 1 |
+| `GameState/PregnancyService.cs` | 5 |
 | `GameState/RecruitmentPricing.cs` | 1 |
 | `Grudges/ExecutedKinGrudgeBehavior.cs` | 5 |
 | `Grudges/GrudgeBehavior.cs` | 1 |

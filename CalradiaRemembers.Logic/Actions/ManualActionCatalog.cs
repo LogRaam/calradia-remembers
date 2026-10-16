@@ -5,6 +5,10 @@
 // belong here (a click is the player's own initiative), never an NPC-JUDGMENT verb (change_relation,
 // sway_opinion, give_gold, scheme_assist/heed, grant_blessing, turn_nemesis, execute_player...) or a
 // two-sided negotiation (marry, join_as_vassal, swear_oath...) a single click must not unilaterally settle.
+// One exception, Gabriel's ruling (16/10/2026, tashmetu's report the same day: impregnation_risk could not be sent by
+// hand in any mode, and a local interpreter sometimes produced no tags): "You lay together" records a scene the two
+// have already played, between lovers or spouses only, and the dice still decide; it is not in All, because below
+// Explicit it must not even be listed (ConceptionRisk, see ManualActionAvailability).
 // See ManualActionAvailability for which of these the player may pick RIGHT NOW.
 
 #region
@@ -22,7 +26,10 @@ namespace CalradiaRemembers.Logic.Actions
       Prisoner,
       Companion,
       Governance,
-      Diplomacy
+      Diplomacy,
+
+      /// <summary>The scene between lovers or spouses; listed only at a content level that permits it.</summary>
+      Intimacy
    }
 
    /// <summary>
@@ -169,6 +176,13 @@ namespace CalradiaRemembers.Logic.Actions
 
       public static readonly ManualActionEntry JoinParty = new(
          "join_party", "Hire them into your party", ManualActionGroup.Diplomacy, ManualActionParameterKind.Amount, "price", true);
+
+      /// <summary>
+      ///   The scene the two have played carried to completion, so a child may come of it (Gabriel, 16/10/2026). Not
+      ///   in <see cref="All" />: below Explicit it is never listed, not even as blocked.
+      /// </summary>
+      public static readonly ManualActionEntry ConceptionRisk = new(
+         "impregnation_risk", "You lay together (a child may come of it)", ManualActionGroup.Intimacy, ManualActionParameterKind.None, null, false);
 
       /// <summary>Every catalog entry, in the menu's stable display order.</summary>
       public static readonly IReadOnlyList<ManualActionEntry> All = new List<ManualActionEntry> {

@@ -366,6 +366,16 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
+            // The scene is silent by design (the bridge never says whether a child was conceived), so the click is
+            // acknowledged here, without the answer.
+            if (string.Equals(entry?.Type, ManualActionCatalog.ConceptionRisk.Type, StringComparison.OrdinalIgnoreCase))
+            {
+               NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.ExecuteAction(action, host.Npc, context);
+               host.AppendSystemMessageLine($"You and {host.Npc?.Name} lay together. Whether a child comes of it, time will tell.", true);
+
+               return;
+            }
+
             InjectDirect(host, action, context);
          }
          catch (Exception ex)
@@ -405,6 +415,7 @@ namespace CalradiaRemembers.Chat
             case ManualActionGroup.Companion: return "Companion";
             case ManualActionGroup.Governance: return "Governance";
             case ManualActionGroup.Diplomacy: return "Diplomacy";
+            case ManualActionGroup.Intimacy: return "Intimacy";
             default: return "Other";
          }
       }
@@ -412,6 +423,10 @@ namespace CalradiaRemembers.Chat
       // ── Fact resolution: reuses the SAME policies EncounterContextBuilder's own 1:1 teaching gates call, ──
       // ── never re-deriving a gate. EncounterContextBuilder.Build itself is deliberately not called (see the ──
       // ── file header): several of its fields are one-shot and consumed on read for the next real LLM turn. ──
+
+      /// <summary>The cr.testall seam: the panel this character would get, from the same facts the menu reads.</summary>
+      internal static IReadOnlyList<ManualActionStatus> DebugDescribe(Hero npc, NpcProfile profile, IGameStateBridge bridge)
+         => ManualActionAvailability.Describe(ResolveFacts(npc, profile, bridge));
 
       private static ManualActionFacts ResolveFacts(Hero npc, NpcProfile profile, IGameStateBridge bridge)
       {
@@ -524,7 +539,11 @@ namespace CalradiaRemembers.Chat
                MediatablePeaceFactions = mediatableFactions,
                CanRecruitNotable = canRecruitNotable,
                CompanionAskingPrice = RecruitmentPricing.GetHiringPrice(npc),
-               PlayerHasGiveableItems = itemCount > 0
+               PlayerHasGiveableItems = itemCount > 0,
+               ContentPermitsConception = ConceptionActionGate.PermitsConception(ModSettings.AdultContentLevel),
+               PairingCanConceive = Hero.MainHero != null && PregnancyService.RoleOf(Hero.MainHero, npc) != ConceptionRole.None,
+               NpcIsIntimatePartner = npc == Hero.MainHero?.Spouse
+                                      || profile?.Romantic != null && (profile.Romantic.IsConsort || profile.Romantic.Status.IsIntimateOrDeeper())
             };
          }
          catch (Exception ex)

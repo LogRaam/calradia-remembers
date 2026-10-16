@@ -513,6 +513,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_captive_variety", Severity.Light, "LLM (T6): two scenes with the SAME captor + one with a DIFFERENT captor (fresh writing lens each) -> score cross-scene phrase reuse; logs the ratio + worst offenders, rejects only a gross echo regression", TestChatCaptiveVariety, true, 9),
          new SelfTest("conv_summary_queue", Severity.Light, "LLM: seed a base 'Spoke with X.' event + a job whose transcript states a PLAN, run the queue worker -> assert the event is ENRICHED by value match (a promised plan reaches durable memory, not lost)", TestConvSummaryQueueJob, true, 1),
          new SelfTest("letter_font", Severity.Light, "player report: Russian letters rendered Galahad's broken per-glyph fallback (no Cyrillic glyphs). Mechanical: LetterFontPolicy prefers the plain font for the game's own Russian language id and keeps the decorative Galahad look for English; then forces LetterViewModel's language seam (LetterFontResolver.LanguageIdProvider, no real language switch) and asserts the VM's BodyBrush/HeadingBrush/InputBrush bindings actually pick the plain sibling brushes for Russian and the Galahad ones for English, proving the wiring end to end and not just the pure policy. Restores the seam", TestLetterFont),
+         new SelfTest("manual_conception_entry", Severity.Light, "tashmetu (Nexus, 16/10/2026), Gabriel's ruling the same day: the manual menu may record \"You lay together\" between lovers or spouses, never shown below Explicit. Arranges a partner of the other sex and of fertile age as the player's lover, then reads the REAL menu facts: at Explicit the entry is open; as a stranger it is blocked; at Mature it is not listed at all. Restores the content level and her romance", TestManualConceptionEntry),
          new SelfTest("manual_action_menu", Severity.Light, "Mechanical: drives the REAL ManualActionAvailability gate (the manual action-injection menu) against seeded facts -> a held-and-eligible prisoner exposes execute/free/recruit together, a held-but-ineligible one keeps execute/free and withholds recruit (PrisonerRecruitmentPolicy's own regard/clan-leader gate), and an otherwise-empty (non-ruler) snapshot shows no governance entry but keeps take_gold, the always-on baseline. Pure logic against a plain facts struct, nothing to clean up", TestManualActionMenu)
       };
 
@@ -15626,6 +15627,68 @@ namespace CalradiaRemembers.Diagnostics
       // ManualActionAvailabilityTests (CalradiaRemembers.Tests), this is the cr.testall smoke line proving the
       // wiring the task brief itself named: a held prisoner exposes execute/free/recruit, and a non-ruler
       // hides grant_fief while keeping the always-on take_gold baseline.
+      private static string TestManualConceptionEntry(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("manual_conception_entry");
+         CrSettings s = CrSettings.Instance;
+         Hero player = Hero.MainHero;
+         if (t.Abort(s?.AdultContentLevel == null || player == null || behavior?.Store == null, "MCM or the store is not ready")) return t.Line();
+
+         // Arranged: someone the player could have a child with (a woman of 18 to 45 for a man, a man for a woman).
+         Hero partner = Hero.AllAliveHeroes.FirstOrDefault(h => h != player && !h.IsPrisoner && h.IsFemale != player.IsFemale && !h.IsChild
+                                                                && (h.IsFemale ? h.Age >= 18 && h.Age <= 45 : player.Age >= 18 && player.Age <= 45));
+         if (t.Skip(partner == null, "no one of the other sex and of fertile age in the world")) return t.Line();
+
+         int priorLevel = s.AdultContentLevel.SelectedIndex;
+         NpcProfile profile = GetOrCreate(behavior, partner);
+         RomanticStatus? priorStatus = profile.Romantic?.Status;
+         bool priorConsort = profile.Romantic?.IsConsort ?? false;
+
+         ManualActionStatus Entry() => Chat.ManualActionMenuController.DebugDescribe(partner, behavior.Store.Get(partner.StringId), behavior.GameStateBridge)
+                                                                       .SingleOrDefault(x => x.Entry.Type == ManualActionCatalog.ConceptionRisk.Type);
+
+         try
+         {
+            if (profile.Romantic == null) profile.Romantic = new RomanticProfile();
+            profile.Romantic.IsConsort = false;
+            profile.Romantic.Status = RomanticStatus.Intimate;
+            behavior.Store.Set(profile);
+
+            s.AdultContentLevel.SelectedIndex = 2; // Explicit
+            ManualActionStatus asLovers = Entry();
+            t.Note($"{partner.Name}: lovers at Explicit {asLovers?.State}");
+            // STAKE: lovers whose scene was missed can record it by hand.
+            t.Expect("loversMayRecordTheScene", asLovers?.State == ManualActionState.Open, true);
+
+            profile.Romantic.Status = RomanticStatus.None;
+            behavior.Store.Set(profile);
+            if (partner.Spouse != player)
+            {
+               // STAKE: with someone who is not a lover, the click does not stand in for a scene never shared.
+               t.Expect("aStrangerIsBlocked", Entry()?.State == ManualActionState.Blocked, true);
+            }
+
+            profile.Romantic.Status = RomanticStatus.Intimate;
+            behavior.Store.Set(profile);
+            s.AdultContentLevel.SelectedIndex = 1; // Mature
+            // STAKE: below Explicit the option is not even listed.
+            t.Expect("notListedBelowExplicit", Entry() == null, true);
+         }
+         finally
+         {
+            s.AdultContentLevel.SelectedIndex = priorLevel;
+            NpcProfile now = behavior.Store.Get(partner.StringId);
+            if (now?.Romantic != null)
+            {
+               now.Romantic.Status = priorStatus ?? RomanticStatus.None;
+               now.Romantic.IsConsort = priorConsort;
+               behavior.Store.Set(now);
+            }
+         }
+
+         return t.Line();
+      }
+
       private static string TestManualActionMenu(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("manual_action_menu");

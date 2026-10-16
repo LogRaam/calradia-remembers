@@ -110,6 +110,15 @@ namespace CalradiaRemembers.Logic.Actions
 
       /// <summary>The player's own party carries at least one item that could be handed over.</summary>
       public bool PlayerHasGiveableItems { get; set; }
+
+      /// <summary>The content level permits a conception (Explicit or above); below it the scene is never listed.</summary>
+      public bool ContentPermitsConception { get; set; }
+
+      /// <summary>The player and this character could conceive a child together (a fertile woman and a man).</summary>
+      public bool PairingCanConceive { get; set; }
+
+      /// <summary>This character is the player's spouse, consort or lover.</summary>
+      public bool NpcIsIntimatePartner { get; set; }
    }
 
    /// <summary>Where one manual action stands in this conversation, for the three ranks the panel shows.</summary>
@@ -250,6 +259,13 @@ namespace CalradiaRemembers.Logic.Actions
          When(facts.PlayerCanMediatePeace, ManualActionCatalog.MediatePeace, "there is no war of theirs you could stand between");
          When(facts.CanRecruitNotable, ManualActionCatalog.RecruitNotable, "they are not a notable you could bring into your service");
          When(facts.CompanionAskingPrice.HasValue, ManualActionCatalog.JoinParty, "they are not for hire");
+
+         // Intimacy (Gabriel, 16/10/2026): never listed below Explicit, not even blocked.
+         if (facts.ContentPermitsConception)
+         {
+            if (!facts.PairingCanConceive) NotHer(ManualActionCatalog.ConceptionRisk, "no child could come of the two of you");
+            else When(facts.NpcIsIntimatePartner, ManualActionCatalog.ConceptionRisk, "you are not lovers");
+         }
 
          return result;
       }

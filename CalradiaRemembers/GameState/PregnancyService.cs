@@ -411,6 +411,13 @@ namespace CalradiaRemembers.GameState
       /// </summary>
       public static bool IsEligible(Hero mother) => IneligibilityReason(mother) == null;
 
+      /// <summary>Who would be the mother if the player and <paramref name="npc" /> conceived, read once for the bridge and the manual menu.</summary>
+      public static ConceptionRole RoleOf(Hero player, Hero npc)
+         => ConceptionResolver.Resolve(new ConceptionResolver.ConceptionFacts {
+            Player = new ConceptionResolver.Participant {IsFemale = player.IsFemale, IsAlive = player.IsAlive, Age = player.Age},
+            Npc = new ConceptionResolver.Participant {IsFemale = npc.IsFemale, IsAlive = npc.IsAlive, Age = npc.Age}
+         });
+
       /// <summary>Why <paramref name="mother" /> may not conceive now, in a few words for the log; null when she may.</summary>
       public static string IneligibilityReason(Hero mother)
       {

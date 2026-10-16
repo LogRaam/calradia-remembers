@@ -3028,12 +3028,7 @@ namespace CalradiaRemembers.GameState
             return null;
          }
 
-         ConceptionRole role = ConceptionResolver.Resolve(new ConceptionResolver.ConceptionFacts {
-            Player = new ConceptionResolver.Participant
-               {IsFemale = player.IsFemale, IsAlive = player.IsAlive, Age = player.Age},
-            Npc = new ConceptionResolver.Participant
-               {IsFemale = npcHero.IsFemale, IsAlive = npcHero.IsAlive, Age = npcHero.Age}
-         });
+         ConceptionRole role = PregnancyService.RoleOf(player, npcHero);
 
          switch (role)
          {
