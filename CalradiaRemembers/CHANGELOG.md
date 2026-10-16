@@ -48,6 +48,18 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   ROADMAP entry.
 
 ### Fixed
+- **A mercenary contract signed in the chat no longer runs out at once** (tashmetu, 16/10: hired through the chat
+  with Mercenary Management, the clan left the realm three days later and every lord lost 8 regard, judged an
+  abandonment). `join_as_mercenary` passed today as the contract's minimum term where every vanilla hiring path
+  passes none, and Mercenary Management reads that field as the end of its contract. Now no fixed term, as the game,
+  and the pay rate asked of the game's own model (`GetMercenaryAwardFactorToJoinKingdom`) instead of a flat 50.
+- **Giving more than 10,000 at once says so** (tashmetu, 16/10: asked to give 20,000, gave 10,000, thought the rest
+  was lost). The ceiling stays (a guard against an invented sum); the line now reads "the most that can change hands
+  at once" when it held the sum back (`GoldTransferLimit.CappedNote`).
+- **A conception that does not happen says why in the log** (tashmetu, 16/10: 30 nights, no child, nothing logged).
+  `[PREGNANCY] no conception:` with the reason (age, already with child, a recent birth, Life/Death Cycle off) or the
+  failed roll and its chance (`PregnancyService.IneligibilityReason`). The MCM help of "Adult Content Level" now says
+  a child can be conceived only at Explicit or above.
 - **No audience at a gate the player cannot walk through** (Gabriel, 16/10: a player sneaking into a town must not
   be summoned to the hall). The entry popup comes up at the gate, before the player chooses to sneak in, and only
   war blocked it; a town that turns the player away for a crime (disguise only), a castle barred by its owner, or a

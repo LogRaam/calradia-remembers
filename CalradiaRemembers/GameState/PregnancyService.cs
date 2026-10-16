@@ -65,8 +65,22 @@ namespace CalradiaRemembers.GameState
       {
          try
          {
-            if (!IsEligible(mother)) return null;
-            if (!force && MBRandom.RandomFloat >= ConceptionChance) return null;
+            // tashmetu (Nexus, 16/10/2026): a tester spent 30 nights with no child and the log said nothing; each
+            // way a conception does not happen now leaves a line.
+            string ineligible = IneligibilityReason(mother);
+            if (ineligible != null)
+            {
+               ModLog.Info($"[PREGNANCY] no conception: {mother?.Name} is not eligible ({ineligible}).");
+
+               return null;
+            }
+
+            if (!force && MBRandom.RandomFloat >= ConceptionChance)
+            {
+               ModLog.Info($"[PREGNANCY] no conception: the roll failed ({ConceptionChance:P0} chance), mother {mother.Name}.");
+
+               return null;
+            }
 
             Hero effectiveFather = father ?? GetOrCreateUnknownFather();
             if (effectiveFather == null)
@@ -395,22 +409,25 @@ namespace CalradiaRemembers.GameState
       ///   enabled so vanilla will actually deliver. Public so a caller (and the self-test) can pick a mother CR
       ///   truly accepts rather than guessing at a looser subset and getting a silent refusal.
       /// </summary>
-      public static bool IsEligible(Hero mother)
+      public static bool IsEligible(Hero mother) => IneligibilityReason(mother) == null;
+
+      /// <summary>Why <paramref name="mother" /> may not conceive now, in a few words for the log; null when she may.</summary>
+      public static string IneligibilityReason(Hero mother)
       {
-         if (mother is not {IsFemale: true} || !mother.IsAlive) return false;
-         if (mother.Age < MinFertileAge || mother.Age > MaxFertileAge) return false;
-         if (IsAlreadyPregnant(mother)) return false;
-         if (GaveBirthRecently(mother)) return false;
+         if (mother is not {IsFemale: true} || !mother.IsAlive) return "not a living woman";
+         if (mother.Age < MinFertileAge || mother.Age > MaxFertileAge) return $"age {mother.Age:0}, outside {MinFertileAge:0} to {MaxFertileAge:0}";
+         if (IsAlreadyPregnant(mother)) return "already with child";
+         if (GaveBirthRecently(mother)) return "gave birth recently";
 
          if (!PregnancyPolicy.MayConceive(BirthsDisabledInCampaign()))
          {
             ModLog.Info("[PREGNANCY] conception refused: this campaign's Life/Death Cycle option is " +
                         "disabled, so vanilla would never deliver the child (see PregnancyPolicy.MayConceive).");
 
-            return false;
+            return "the campaign's Life/Death Cycle is disabled";
          }
 
-         return true;
+         return null;
       }
 
       /// <summary>

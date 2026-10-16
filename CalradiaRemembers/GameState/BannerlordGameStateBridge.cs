@@ -3095,13 +3095,20 @@ namespace CalradiaRemembers.GameState
             // which CR's join then overwrote with 1 on the second. We pass the engine's own documented
             // default rather than a computed renown factor: matching vanilla's baseline exactly, with no
             // guessed formula, is the safe fix.
-            const int MercenaryAwardMultiplier = 50; // engine default for ApplyByJoinFactionAsMercenary
+            // tashmetu (Nexus, 16/10/2026): the game's own hiring dialogue asks the model for the factor
+            // (MinorFactionsModel.GetMercenaryAwardFactorToJoinKingdom, LordConversationsCampaignBehavior), so the
+            // rate now follows it, with 50 kept only when no model answers.
+            int mercenaryAwardMultiplier = Campaign.Current?.Models?.MinorFactionsModel?.GetMercenaryAwardFactorToJoinKingdom(playerClan, kingdom) ?? 50;
+            if (mercenaryAwardMultiplier <= 0) mercenaryAwardMultiplier = 50;
 
-            // shouldStayInKingdomUntil = Now (no forced lock-in beyond the standard contract logic)
+            // shouldStayInKingdomUntil = default, as every vanilla hiring path passes it (no fixed term). tashmetu
+            // (Nexus, 16/10/2026): CR passed CampaignTime.Now, and Mercenary Management reads that field as the
+            // end of its contract, so a contract signed in the chat ran out on its first daily check, the clan
+            // left, and every lord of the realm judged it an abandonment.
             ChangeKingdomAction.ApplyByJoinFactionAsMercenary(
-               playerClan, kingdom, CampaignTime.Now, MercenaryAwardMultiplier);
+               playerClan, kingdom, default(CampaignTime), mercenaryAwardMultiplier);
 
-            ModLog.Info($"[ACTION] join_as_mercenary: player clan joined {kingdom.Name} as mercenary (award multiplier {MercenaryAwardMultiplier}).");
+            ModLog.Info($"[ACTION] join_as_mercenary: player clan joined {kingdom.Name} as mercenary (award multiplier {mercenaryAwardMultiplier}, no fixed term).");
 
             return new ActionOutcome(
                $"Your clan takes service under {kingdom.Name}'s banner as hired swords.", true);
@@ -4253,6 +4260,7 @@ namespace CalradiaRemembers.GameState
          }
 
          // Never take more than the player actually carries (bandits simply empty the purse).
+         int asked = amount;
          amount = Math.Min(ClampInt(amount, 1, GoldTransferLimit.MaxSingleTransfer), Hero.MainHero.Gold);
 
          if (amount <= 0)
@@ -4303,7 +4311,7 @@ namespace CalradiaRemembers.GameState
                   ? $" It is not enough: she wants {owed} denars for her silence."
                   : grudgeTail;
 
-            return new ActionOutcome($"You give {npcHero.Name} {amount} denars (purse: {Hero.MainHero.Gold}).{tail}", false,
+            return new ActionOutcome($"You give {npcHero.Name} {amount} denars{GoldTransferLimit.CappedNote(asked, amount)} (purse: {Hero.MainHero.Gold}).{tail}", false,
                appliedGoldAmount: amount);
          }
 

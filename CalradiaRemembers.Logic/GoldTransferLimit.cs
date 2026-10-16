@@ -22,5 +22,13 @@ namespace CalradiaRemembers.Logic
       ///   balance choice: a model that writes "1000000" must neither conjure that coin nor empty a purse with it.
       /// </summary>
       public const int MaxSingleTransfer = 10000;
+
+      /// <summary>
+      ///   The words added to a transfer line when the ceiling, not the purse, held the sum back (tashmetu, Nexus,
+      ///   16/10/2026: a player asked to give 20,000, gave 10,000, and thought the rest had gone missing). Empty
+      ///   when the whole sum went, or when the purse was the limit.
+      /// </summary>
+      public static string CappedNote(int asked, int given)
+         => asked > MaxSingleTransfer && given == MaxSingleTransfer ? $", the most that can change hands at once" : "";
    }
 }

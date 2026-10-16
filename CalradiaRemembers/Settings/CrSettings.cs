@@ -31,7 +31,8 @@ namespace CalradiaRemembers.Settings
    {
       [SettingPropertyDropdown("Adult Content Level", RequireRestart = false, Order = 0,
          HintText = "How much romantic/intimate content NPCs may express. Off, Mature (romance, " +
-                    "nothing explicit), Explicit, or Hardcore. Applies on your next conversation.")]
+                    "nothing explicit), Explicit, or Hardcore. A child can be conceived only at Explicit or " +
+                    "above. Applies on your next conversation.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public Dropdown<string> AdultContentLevel { get; set; } =
          new(new[] {"Off", "Mature", "Explicit", "Hardcore"}, 1); // default: Mature
