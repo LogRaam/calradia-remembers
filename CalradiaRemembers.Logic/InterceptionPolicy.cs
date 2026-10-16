@@ -290,6 +290,14 @@ namespace CalradiaRemembers.Logic
                    || (reason is AbandonReason.OtherBusiness or AbandonReason.Siege && pursuerAlive));
 
         /// <summary>
+        ///   Whether this reason may send a lord riding out after the player on the road. The war duty summons never
+        ///   does (Gabriel, 16/10/2026: the king sits for the meeting, he does not go out in person; he is the busiest and
+        ///   most important person of the realm). He calls the vassal to his hall, and the summons letter does the rest.
+        /// </summary>
+        public static bool IsRoadValid(InterceptionTrigger trigger)
+            => trigger != InterceptionTrigger.WarDutySummons;
+
+        /// <summary>
         ///   The reason this lord would intercept the player now, or <see cref="InterceptionTrigger.None"/>.
         ///   Priority, after the guards: <see cref="InterceptionTrigger.WarDutySummons"/> (a liege calling in
         ///   his vassal: the one matter the player is bound to answer, and the ruler of the player's own realm is

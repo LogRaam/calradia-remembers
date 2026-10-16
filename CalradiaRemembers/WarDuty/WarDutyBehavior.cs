@@ -346,7 +346,7 @@ namespace CalradiaRemembers.WarDuty
 
       /// <summary>
       ///   The ruler who calls the player in himself now (inc 6, the audience channel): at his hall when the player walks
-      ///   into the town where he stands, or on the road. Null when the switch is off, nothing is open, or the player has
+      ///   into the town where he stands; never on the road (Gabriel, 16/10/2026). Null when the switch is off, nothing is open, or the player has
       ///   already stood before him (WarDutyLadder.CallsThePlayerIn).
       /// </summary>
       internal Hero CallingRuler()

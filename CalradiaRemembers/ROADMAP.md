@@ -122,13 +122,13 @@ pure rules in `Logic/WarDuty` (who owes, the ladder, the levy, the hand-overs), 
 `cr_war_duty`), the summons and levy letters (SDK `WarSummons`/`WarLevyDemand`), the CR aim on the ruler, the
 `war_duty_terms` tail section, and the levy paid in person through `take_gold`, `give_item` (horses, weapons) and
 `give_troops` (`GameState/WarLevyDesk`), and the audience channel (inc 6: trigger `WarDutySummons`, the ruler calls the
-player to his hall when they enter his town, field party or not, ahead of anyone else and outside the pacing roll; on
-the road he rides out like any lord, rank filter lifted; no missed-meeting letter; only until the player has stood
+player to his hall when they enter his town, field party or not, ahead of anyone else and outside the pacing roll; he
+never rides out on the road (Gabriel 16/10: the king sits for the meeting, he does not go out in person); no missed-meeting letter; only until the player has stood
 before him, `WarDutyLadder.CallsThePlayerIn`). MCM Relationships: switch (off), window, levy scale. Defaults accepted by
 Gabriel (15/10/2026): 20 days a stage, the levy formula, a castle before a town, the duty outranks another mod's aim on the same
 ruler, soldiers capped at half the player's healthy men, armour does not count (horses and weapons only), any horse,
 weapon or coin handed to the owed ruler counts toward the levy, the WarDuty namespace accepted in the cycle. Not done:
-a ruler leading an army or a siege never rides out (the road channel's own rule), several realms' rulers at once (one reckoning
+several realms' rulers at once (one reckoning
 at a time), a vassal of a vassal (the duty is owed to the realm's ruler only).
 
 ## WISHED 2026-10-14 (tashmetu), ROADMAPPED: the captive PLAYER bargains for freedom

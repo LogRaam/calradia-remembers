@@ -38,6 +38,16 @@ namespace CalradiaRemembers.Tests
          InterceptionPolicy.Choose(new InterceptionFacts {HoldsWarDutyReckoning = true, AnotherPursuerActive = true}).Should().Be(InterceptionTrigger.None);
       }
 
+      // STAKE: the king sits for the meeting and does not go out in person (Gabriel, 16/10/2026); a ruler chasing his
+      // vassal across the map reads as a lord with nothing better to do, and every other errand still rides out.
+      [Test]
+      public void GIVEN_the_war_duty_summons_WHEN_asked_whether_it_sends_the_ruler_out_on_the_road_THEN_it_never_does()
+      {
+         InterceptionPolicy.IsRoadValid(InterceptionTrigger.WarDutySummons).Should().BeFalse();
+         InterceptionPolicy.IsRoadValid(InterceptionTrigger.Grudge).Should().BeTrue();
+         InterceptionPolicy.IsRoadValid(InterceptionTrigger.HeardOfDeed).Should().BeTrue();
+      }
+
       // STAKE: a summoned vassal who walks into his liege's town is called to the hall; the summons reads as well from
       // a ruler who never moved as from one who rode out.
       [Test]

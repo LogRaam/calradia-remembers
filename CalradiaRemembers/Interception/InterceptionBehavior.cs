@@ -1665,14 +1665,11 @@ namespace CalradiaRemembers.Interception
          IFaction territory = NearestSettlementFaction(playerPos);
          var notoriety = (int) (Clan.PlayerClan?.Renown ?? 0f);
 
-         // The war duty (inc 6): the ruler who calls the player in is looked at first, so another lord's errand cannot
-         // take the day's one approach from him.
+         // The war duty: the ruler who calls the player in waits at his hall and never rides out (InterceptionPolicy.IsRoadValid).
          Hero summoner = GameState.WarLevyDesk.Summoner();
-         MobileParty summonerParty = summoner?.PartyBelongedTo?.LeaderHero == summoner ? summoner?.PartyBelongedTo : null;
-         IEnumerable<MobileParty> parties = summonerParty == null ? MobileParty.All : new[] {summonerParty}.Concat(MobileParty.All.Where(x => x != summonerParty));
 
          var scanned = 0;
-         foreach (MobileParty p in parties)
+         foreach (MobileParty p in MobileParty.All)
          {
             if (scanned >= MaxCandidates) break;
 
@@ -1686,9 +1683,7 @@ namespace CalradiaRemembers.Interception
 
             // Gabriel (28/09/2026): an empress does not ride out herself after a landless newcomer. A greater lord is
             // passed over, and another nearby lord may still come; the same rule as a letter written on their behalf.
-            // The war duty lifts it for the ruler who summoned this vassal himself: his business is with them.
-            bool summons = lord == summoner;
-            if (!summons && !CorrespondenceRank.DealsInPerson(lord, NpcMemoryCampaignBehavior.Instance?.Store?.Get(lord.StringId), null)) continue;
+            if (!CorrespondenceRank.DealsInPerson(lord, NpcMemoryCampaignBehavior.Instance?.Store?.Get(lord.StringId), null)) continue;
 
             scanned++;
 
@@ -1706,12 +1701,13 @@ namespace CalradiaRemembers.Interception
                HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
                HoldsSignificantAppreciation = holdsAppreciation,
                HasNemesisBountyToOffer = hasNemesisBounty,
-               HoldsWarDutyReckoning = summons
+               HoldsWarDutyReckoning = lord == summoner
             };
 
             InterceptionTrigger trigger = InterceptionPolicy.Choose(facts);
 
-            if (trigger == InterceptionTrigger.None) continue;
+            // A summoning ruler stays in his hall while the summons stands, for that errand or any other.
+            if (trigger == InterceptionTrigger.None || !InterceptionPolicy.IsRoadValid(trigger)) continue;
 
             string detail = trigger switch {
                InterceptionTrigger.Grudge => grudgeCause,

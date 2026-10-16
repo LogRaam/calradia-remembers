@@ -12,8 +12,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   at war receives a SUMMONS letter from the ruler: come and answer for it within 20 days. Until the player has stood
   before him, the ruler also calls them in himself: walking into the town or castle where he stands, he summons
   them to his hall (ahead of anyone else there, a companion's private word included, whatever the "Lords
-  approaching" roll; "Off" still stops it), and on the road he may ride out to them like any lord with business,
-  unless he leads an army. If the matter is settled while he rides, he does not accuse the player. Coming before him (a conversation, or riding in his army) brings the
+  approaching" roll; "Off" still stops it). He never rides out after them on the road: the king sits for the
+  meeting, he does not go out in person. Coming before him (a conversation, or riding in his army) brings the
   LEVY demanded in person; never coming brings it by letter. The
   levy (1000 per clan tier plus 1500 per fief, times the scale, 1000 to 10000) is paid in person in any mix of coin
   (take_gold), horses or weapons (give_item, at market value) and soldiers (give_troops, cheapest first, never more
