@@ -1737,6 +1737,8 @@ namespace CalradiaRemembers.Chat
          bool isFiefAudience = InterceptionBehavior.Instance?.ActivePursuitIsFiefAudience == true;
          InterceptionTrigger trigger = InterceptionBehavior.Instance?.ActivePursuitTrigger ?? InterceptionTrigger.None;
          string detail = InterceptionBehavior.Instance?.ActivePursuitDetail;
+         // A summons settled or set aside since he set out: the generic cue, the directive says not to press it.
+         if (trigger == InterceptionTrigger.WarDutySummons && !InterceptionBehavior.WarDutyStillStands(speaker.Hero)) trigger = InterceptionTrigger.None;
 
          string opener = BuildInterceptionOpenerCue(isFiefAudience, trigger, detail);
          MarkOpenerPending();
@@ -1814,7 +1816,7 @@ namespace CalradiaRemembers.Chat
                       $"kindness they showed you{InterceptionDetailSuffix(detail)}. Do not wait for them to speak first.]";
             case InterceptionTrigger.WarDutySummons:
                return stood + "Open the conversation YOURSELF, as their liege: hold your sworn vassal to the war " +
-                      "they have sat out, on the terms set out in your reckoning. Do not wait for them to speak first.]";
+                      "they have sat out, on the terms set out under THE PLAYER'S RECKONING BEFORE YOU. Do not wait for them to speak first.]";
             case InterceptionTrigger.NemesisBounty:
                return stood + "Open the conversation YOURSELF: name a nemesis preying on your region and where " +
                       $"he operates{InterceptionDetailSuffix(detail)}, urgent but not a call to arms. Point them " +

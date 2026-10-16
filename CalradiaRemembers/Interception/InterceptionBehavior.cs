@@ -201,6 +201,10 @@ namespace CalradiaRemembers.Interception
          // so his decisions are his own again.
          EndPursuitSteering();
 
+         // The war duty settled or set aside since he set out (the vassal fought, paid, peace came): he does not
+         // accuse a vassal who owes him nothing now (gating before declaration).
+         if (trigger == InterceptionTrigger.WarDutySummons && !WarDutyStillStands(npc)) return SummonsSetAsideOpener;
+
          // A fief audience never rode anywhere -- the NPC was already standing where the player walked in and
          // simply asked for a word. HeardOfDeed, Grudge, AppreciationOwed, and NemesisBounty are all stashed
          // this way (FiefAudiencePolicy.IsFiefValid); only TerritorialPatrol never is (road-only).
@@ -219,8 +223,8 @@ namespace CalradiaRemembers.Interception
             if (trigger == InterceptionTrigger.WarDutySummons)
                return "It is YOU who sought this meeting: the player, your sworn vassal, has sat out your realm's war, " +
                       "and when they came into the place where you stood you had them called before you. Open by " +
-                      "holding them to it, as their liege, in your own voice. What they owe and what follows is set " +
-                      "out in your reckoning below; hold to it and add nothing to it.";
+                      "holding them to it, as their liege, in your own voice. What they owe and what follows is " +
+                      "set out below under THE PLAYER'S RECKONING BEFORE YOU; hold to it and add nothing to it.";
 
             if (trigger == InterceptionTrigger.NemesisBounty)
                return "It is YOU who sought this meeting: a nemesis preys on your region still, and rather than " +
@@ -251,8 +255,8 @@ namespace CalradiaRemembers.Interception
          if (trigger == InterceptionTrigger.WarDutySummons)
             return "It is YOU who sought this meeting: the player, your sworn vassal, has sat out your realm's war, " +
                    "and you rode out to hold them to it in person. Open on that footing, as their liege, in your own " +
-                   "voice. What they owe and what follows is set out in your reckoning below; hold to it and add " +
-                   "nothing to it.";
+                   "voice. What they owe and what follows is " +
+                   "set out below under THE PLAYER'S RECKONING BEFORE YOU; hold to it and add nothing to it.";
 
          if (trigger == InterceptionTrigger.TerritorialPatrol)
             return "It is YOU who sought this meeting: you rode out to challenge the player for crossing your realm's " +
@@ -284,6 +288,8 @@ namespace CalradiaRemembers.Interception
 
          ClearRememberedIntent();
 
+         if (trigger == InterceptionTrigger.WarDutySummons && !WarDutyStillStands(npc)) return SummonsSetAsideOpener;
+
          return trigger switch
          {
             InterceptionTrigger.TerritorialPatrol =>
@@ -301,7 +307,8 @@ namespace CalradiaRemembers.Interception
             InterceptionTrigger.WarDutySummons =>
                "You rode out to hold the player, your sworn vassal, to the war they have sat out, but the chase " +
                "came to nothing, and now they have come to YOU. Hold them to it now, as their liege. What they " +
-               "owe and what follows is set out in your reckoning below; hold to it and add nothing to it.",
+               "owe and what follows is " +
+               "set out below under THE PLAYER'S RECKONING BEFORE YOU; hold to it and add nothing to it.",
             InterceptionTrigger.NemesisBounty =>
                "You rode out to find the player and warn them of a nemesis plaguing your region, but the chase " +
                "came to nothing — and now they have come to YOU. Name him now and where he operates, urgent " +
@@ -310,6 +317,15 @@ namespace CalradiaRemembers.Interception
             _ => ComposeRecentMatterOpener(npc, RecentMatterApproach.RememberedIntent)
          };
       }
+
+      /// <summary>Whether the reckoning that sent this ruler after the player still stands (something is still owed him).</summary>
+      internal static bool WarDutyStillStands(Hero ruler) => GameState.WarLevyDesk.Owed(ruler) > 0;
+
+      /// <summary>The opener for a ruler whose summons was settled or set aside while he rode: no accusation.</summary>
+      private const string SummonsSetAsideOpener =
+         "It is YOU who sought this meeting: you meant to hold the player, your sworn vassal, to the war they had sat " +
+         "out, but the matter has since been settled or set aside. Do not press it or speak as though anything is " +
+         "owed; open as you see fit, in your own voice.";
 
       private void ClearRememberedIntent()
       {
@@ -1487,7 +1503,9 @@ namespace CalradiaRemembers.Interception
          // Called into an army mid-chase: his place is with it now (and a party we hold would stay out of it).
          bool invalid = pursuer is not {IsAlive: true} || pursuerParty == null || main == null
                         || PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(pursuerParty) || atSea
-                        || pursuerParty.Army != null;
+                        || pursuerParty.Army != null
+                        // The war duty settled or set aside while he rode: he has no business with the player now.
+                        || (_activePursuerTrigger == InterceptionTrigger.WarDutySummons && !WarDutyStillStands(pursuer));
 
          float distance = pursuerParty != null && main != null
             ? pursuerParty.GetPosition2D.Distance(main.GetPosition2D)

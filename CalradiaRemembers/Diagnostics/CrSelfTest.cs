@@ -15763,7 +15763,11 @@ namespace CalradiaRemembers.Diagnostics
          // A ruler standing in a town when there is one, so the fief channel can be scanned for real.
          List<Kingdom> realms = Kingdom.All.Where(k => k != null && !k.IsEliminated && k.Leader != null && k.Leader != Hero.MainHero
                                                          && Mapping.HeroPresence.IsInTheWorld(k.Leader) && aims.Book.ForNpc(k.Leader.StringId) == null).ToList();
-         Kingdom realm = realms.FirstOrDefault(k => k.Leader.CurrentSettlement != null && !k.Leader.IsPrisoner) ?? realms.FirstOrDefault();
+         // The player's own realm first (the real case), then one not at war with them, then any.
+         bool AtPeace(Kingdom k) => Hero.MainHero?.MapFaction == null || !FactionManager.IsAtWarAgainstFaction(k, Hero.MainHero.MapFaction);
+         Kingdom realm = realms.FirstOrDefault(k => k == Hero.MainHero?.MapFaction && k.Leader.CurrentSettlement != null && !k.Leader.IsPrisoner)
+                         ?? realms.FirstOrDefault(k => AtPeace(k) && k.Leader.CurrentSettlement != null && !k.Leader.IsPrisoner)
+                         ?? realms.FirstOrDefault(AtPeace) ?? realms.FirstOrDefault();
          if (t.Skip(realm == null, "no realm with a ruler in the world")) return t.Line();
 
          Hero ruler = realm.Leader;
@@ -15803,7 +15807,17 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("theOpenerHoldsTheVassalToTheWar", opener?.Contains("sat out your realm's war") == true, true);
             t.Expect("theOpenerNamesNoSum", opener != null && !opener.Any(char.IsDigit), true);
 
+            // STAKE: a vassal who fought while the ruler rode toward him is not accused of sitting the war out.
+            intercept.StashFiefAudienceReason(ruler, InterceptionTrigger.WarDutySummons, "the war you have sat out");
+            duty.Step(Logic.WarDuty.WarDutyEvent.Served, today);
+            string afterServing = intercept.ConsumeInterceptionReason(ruler);
+            intercept.ForgetConversationSeeker();
+            t.Expect("aSettledSummonsAccusesNoOne", afterServing?.Contains("settled or set aside") == true && afterServing?.Contains("sat out your realm's war") != true, true);
+
             // STAKE: once the vassal has stood before him, he does not send for them again.
+            duty.Ledger = new Logic.WarDuty.WarServiceLedger();
+            duty.Ledger.NoteSworn(realm.StringId, today - 200);
+            duty.Open(ruler, realm, today);
             duty.OnConversationStarted(ruler.StringId);
             t.Expect("heSendsForThemNoMoreOnceTheyCame", GameState.WarLevyDesk.Summoner() == null, true);
          }

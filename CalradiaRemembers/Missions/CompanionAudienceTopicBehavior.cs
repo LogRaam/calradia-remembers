@@ -479,6 +479,10 @@ namespace CalradiaRemembers.Missions
             return;
          }
 
+         // The war duty: a liege calling in his summoned vassal goes before a companion's private word.
+         Hero summoner = GameState.WarLevyDesk.Summoner();
+         if (summoner != null && summoner.CurrentSettlement == settlement && FiefAudienceBehavior.Instance?.TryOfferOnSettlementEntry() == true) return;
+
          if (TryOfferAudience()) return; // one popup per entry: a companion audience already claimed it
 
          FiefAudienceBehavior.Instance?.TryOfferOnSettlementEntry();
