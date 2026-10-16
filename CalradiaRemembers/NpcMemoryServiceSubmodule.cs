@@ -194,6 +194,11 @@ namespace CalradiaRemembers
             return open != null && open.IsOpen && open.RulerId == id;
          };
          // CrAims (tashmetu 14/10, Gabriel 15/10): standing aims and the leave to raise one; internal until the public door is decided.
+         GameState.WarLevyDesk.OwedTo = h => WarDuty.WarDutyBehavior.Instance?.LevyOwedTo(h) ?? 0;
+         GameState.WarLevyDesk.Pay = (h, value) => WarDuty.WarDutyBehavior.Instance?.PayLevy(h, value) ?? 0;
+         GameState.WarLevyDesk.PlanTroops = h => WarDuty.WarDutyBehavior.Instance?.PlanTroops(h) ?? new Logic.WarDuty.LevyTroopTake();
+         GameState.WarLevyDesk.TakeTroops = h => WarDuty.WarDutyBehavior.Instance?.TakeTroops(h) ?? new Logic.WarDuty.LevyTroopTake();
+         GameState.WarLevyDesk.TermsFor = h => WarDuty.WarDutyBehavior.Instance?.TermsFor(h);
          campaignStarter.AddBehavior(new Aims.AimsBehavior());
          Aims.AimsBehavior.PersonalRegard = h => NpcMemoryCampaignBehavior.Instance?.Store?.Get(h.StringId)?.ReputationWithPlayer;
          // Divorce, Phase 1 (the first verb built on the IConversationVerb contract): end_marriage begins a

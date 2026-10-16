@@ -288,6 +288,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("background_hold", Severity.Light, "fkasad (Nexus, 15/10/2026): on a local server, summaries, memory compaction and letters slipped in between two replies, the server swapped its KV cache and replies timed out. With a conversation forced open through the seam: a background call routed to OpenAI-Compatible (local) waits; the same call routed to a cloud provider goes at once; with no conversation open a local call goes at once. Restores the provider dropdowns and the seam (the held wait ends within a second)", TestBackgroundHold),
          new SelfTest("war_duty_ledger", Severity.Light, "Maifailun (Nexus, 15/10/2026): a vassal who sits out the realm's war is called to account, so the mod must see his service. On a fresh ledger through the real upkeep: the realm the player is sworn to (none as a mercenary or a free lord) and its enemy kingdoms are recorded from today, so no one owes on the first day. A battle against a realm at war with his counts as service; one against bandits does not. Restores the player's own ledger", TestWarDutyLedger),
          new SelfTest("aims_conversation", Severity.Light, "CrAims (tashmetu, 14/10/2026: lords with aims of their own; 'the real risk is a lord who brings up Lakonon in every conversation'). A test aim is registered on a real lord not at war with the player; a conversation opening with him gives him leave to raise it and the encounter context carries his want; a second conversation the same day does not give it again; the leave ends with the conversation. An aim Calradia Remembers seeds for its own mechanics is not voiced by the generic section. Retracts both aims", TestAimsConversation),
+         new SelfTest("war_duty_levy", Severity.Light, "Gabriel's ladder (15/10/2026): the levy is paid face to face in coin, horses, weapons or soldiers, and is no gift. With the switch on for the test, a reckoning is opened for a real ruler leading a party and answered in person; his conversation's terms name what is owed; then the REAL bridge (the path an LLM emission takes) runs take_gold, give_item with a horse, and give_troops with recruits arranged into the player's party, and each counts toward the levy until it is settled. No letter is written. Restores the player's and the ruler's gold, the soldiers, the ledger, the switch and the ruler's memories", TestWarDutyLevy),
          new SelfTest("war_duty_reckoning", Severity.Light, "Maifailun (Nexus, 15/10/2026) and Gabriel's ladder: a summons, a levy in coin or goods, a fief. With the switch on for the test and the letters not written (no model call), a reckoning is opened for a real ruler of a realm: he holds the war duty's aim in CrAims; a conversation with him moves it to the levy demanded in person and he remembers it; two hand-overs that meet the levy settle it, he remembers that, and his aim is withdrawn. A second reckoning, never answered, past its deadline brings the levy by letter; riding to war settles it. Restores the ledger, the switch and the ruler's memories; no fief is ever touched", TestWarDutyReckoning),
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Then the refused-beat fallback (04/10/2026): the NSFW model resolves for its own provider, the NSFW role has its own client, a refusal is redone there in Enhanced mode, and nothing is redone with no NSFW model. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
@@ -15741,6 +15742,123 @@ namespace CalradiaRemembers.Diagnostics
             aims.Retract(Aims.AimsBehavior.CrSource, "cr_selftest_own");
             aims.OnConversationEnded(first);
             aims.OnConversationEnded(second);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestWarDutyLevy(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("war_duty_levy");
+
+         WarDuty.WarDutyBehavior duty = WarDuty.WarDutyBehavior.Instance;
+         Aims.AimsBehavior aims = Aims.AimsBehavior.Instance;
+         CrSettings s = CrSettings.Instance;
+         if (t.Skip(duty == null || aims == null || s == null || behavior?.Store == null || behavior.GameStateBridge == null, "the war duty, CrAims, MCM or the bridge is not ready")) return t.Line();
+         if (t.Abort(MobileParty.MainParty == null || Hero.MainHero == null, "no main party")) return t.Line();
+
+         // A ruler who leads his own party with room in it, so soldiers can be taken (and handed back).
+         Kingdom realm = Kingdom.All.FirstOrDefault(k => k != null && !k.IsEliminated && k.Leader != null && k.Leader != Hero.MainHero
+                                                         && Mapping.HeroPresence.IsInTheWorld(k.Leader) && aims.Book.ForNpc(k.Leader.StringId) == null
+                                                         && k.Leader.PartyBelongedTo?.LeaderHero == k.Leader
+                                                         && k.Leader.PartyBelongedTo.Party.PartySizeLimit - k.Leader.PartyBelongedTo.MemberRoster.TotalManCount >= 5);
+         if (t.Skip(realm == null, "no realm whose ruler leads a party with room")) return t.Line();
+
+         Hero ruler = realm.Leader;
+         MobileParty rulerParty = ruler.PartyBelongedTo;
+         int today = WarDuty.WarDutyBehavior.Today;
+         Logic.WarDuty.WarServiceLedger prior = duty.Ledger;
+         bool priorSwitch = s.EnableWarDuty;
+         NpcProfile profile = behavior.Store.Get(ruler.StringId);
+         int priorEvents = profile?.Events?.Count ?? -1;
+         int playerGold = Hero.MainHero.Gold;
+         int rulerGold = ruler.Gold;
+         CharacterObject recruit = Hero.MainHero.Culture?.BasicTroop;
+         ItemObject horse = MBObjectManager.Instance.GetObjectTypeList<ItemObject>()?.Where(i => i != null && i.IsMountable && i.Value > 0).OrderBy(i => i.Value).FirstOrDefault();
+         int rulerRecruitsBefore = recruit == null ? 0 : rulerParty.MemberRoster.GetTroopRoster().Where(e => e.Character == recruit).Sum(e => e.Number);
+
+         try
+         {
+            s.EnableWarDuty = true;
+            WarDuty.WarDutyBehavior.DebugSuppressLetters = true;
+            duty.Ledger = new Logic.WarDuty.WarServiceLedger();
+            duty.Ledger.NoteSworn(realm.StringId, today - 200);
+            duty.Open(ruler, realm, today);
+            duty.OnConversationStarted(ruler.StringId);
+            int levy = duty.Ledger.Case.LevyAmount;
+            var context = new ActionContext(profile ?? GetOrCreate(behavior, ruler), null);
+
+            // STAKE: the summoned vassal stands before a liege who knows what he demands.
+            string terms = duty.TermsFor(ruler);
+            t.Expect("theLiegeKnowsWhatIsOwed", terms?.Contains($"{levy} are still owed") == true, true);
+
+            // STAKE: coin handed over counts toward the levy.
+            Hero.MainHero.ChangeHeroGold(1000);
+            ActionOutcome coin = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "take_gold", Parameters = new Dictionary<string, string> {{"amount", "300"}}}, ruler, context);
+            t.Note($"take_gold: {coin?.Message}");
+            t.Expect("coinCountsTowardTheLevy", duty.LevyOwedTo(ruler), levy - 300);
+
+            // STAKE: a horse counts toward the levy, at its worth, and is no gift.
+            if (horse != null)
+            {
+               int before = duty.LevyOwedTo(ruler);
+               MobileParty.MainParty.ItemRoster.AddToCounts(horse, 1);
+               ActionOutcome given = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "give_item", Parameters = new Dictionary<string, string> {{"item", horse.Name.ToString()}}},
+                  ruler, new ActionContext(context.Profile, null) {OfferedItemId = horse.StringId});
+               t.Note($"give_item {horse.Name} ({horse.Value}): {given?.Message}");
+               t.Expect("aHorseCountsTowardTheLevy", duty.LevyOwedTo(ruler), before - Math.Min(horse.Value, before));
+            }
+            else t.Note("no mount item in the game's objects; the horse step was not run");
+
+            // STAKE: soldiers count toward the levy whatever the liege's own need (give_troops' usual gate).
+            if (recruit != null && duty.LevyOwedTo(ruler) > 0)
+            {
+               MobileParty.MainParty.MemberRoster.AddToCounts(recruit, 20);
+               int before = duty.LevyOwedTo(ruler);
+               Logic.WarDuty.LevyTroopTake plan = duty.PlanTroops(ruler);
+               t.Expect("theLiegeWouldTakeSoldiers", plan.Men > 0, true);
+               ActionOutcome men = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "give_troops"}, ruler, context);
+               t.Note($"give_troops: {men?.Message}");
+               t.Expect("soldiersCountTowardTheLevy", duty.LevyOwedTo(ruler) < before, true);
+            }
+
+            // STAKE: meeting what is left settles the reckoning and withdraws the aim.
+            int rest = duty.LevyOwedTo(ruler);
+            if (rest > 0) duty.PayLevy(ruler, rest);
+            t.Expect("paidInFullSettles", duty.Ledger.Case.Stage, Logic.WarDuty.WarDutyStage.Settled);
+            t.Expect("nothingIsOwedOnceSettled", duty.TermsFor(ruler) == null, true);
+         }
+         finally
+         {
+            WarDuty.WarDutyBehavior.DebugSuppressLetters = false;
+            s.EnableWarDuty = priorSwitch;
+            duty.Ledger = prior;
+            aims.Retract(Aims.AimsBehavior.CrSource, WarDuty.WarDutyBehavior.AimId);
+
+            Hero.MainHero.ChangeHeroGold(playerGold - Hero.MainHero.Gold);
+            ruler.ChangeHeroGold(rulerGold - ruler.Gold);
+
+            // The arranged recruits: whatever went to the ruler comes back, then the player's twenty are removed.
+            if (recruit != null)
+            {
+               int rulerRecruitsNow = rulerParty.MemberRoster.GetTroopRoster().Where(e => e.Character == recruit).Sum(e => e.Number);
+               int moved = rulerRecruitsNow - rulerRecruitsBefore;
+               if (moved > 0) rulerParty.MemberRoster.AddToCounts(recruit, -moved);
+               int playerRecruitsNow = MobileParty.MainParty.MemberRoster.GetTroopRoster().Where(e => e.Character == recruit).Sum(e => e.Number);
+               int extra = Math.Min(playerRecruitsNow, 20 - Math.Max(0, moved));
+               if (extra > 0) MobileParty.MainParty.MemberRoster.AddToCounts(recruit, -extra);
+            }
+
+            NpcProfile now = behavior.Store.Get(ruler.StringId);
+            if (now?.Events != null)
+            {
+               if (priorEvents < 0) behavior.Store.Remove(ruler.StringId);
+               else
+               {
+                  if (now.Events.Count > priorEvents) now.Events.RemoveRange(priorEvents, now.Events.Count - priorEvents);
+                  behavior.Store.Set(now);
+               }
+            }
          }
 
          return t.Line();

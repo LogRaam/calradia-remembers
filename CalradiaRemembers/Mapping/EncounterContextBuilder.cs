@@ -631,6 +631,7 @@ namespace CalradiaRemembers.Mapping
             OwnAimPlayerPart = OwnAim(hero)?.PlayerPart,
             OwnAimApproach = OwnAim(hero)?.Approach,
             OwnAimMayRaise = OwnAim(hero)?.MayRaise ?? false,
+            WarDutyTerms = WarDutyTerms(hero),
             // Resolved HERE, on the game's own thread, rather than inside the prompt builder: the chat call runs
             // the builder inside a Task.Run, and a third-party {{variable}} provider that reads Hero.MainHero or
             // Campaign.Current live (tashmetu's bridge does, on purpose) must never be handed a thread-pool
@@ -1904,6 +1905,13 @@ namespace CalradiaRemembers.Mapping
       ///   When this NPC sought the player out by intercepting them on the map, a one-shot opening
       ///   directive (consumed so it only colours the first turn). Null in an ordinary conversation.
       /// </summary>
+      /// <summary>The terms a liege holds the player to for sitting out his war (the vassal war duty); null when nothing is owed.</summary>
+      private static string WarDutyTerms(Hero hero)
+      {
+         try { return GameState.WarLevyDesk.TermsFor?.Invoke(hero); }
+         catch { return null; }
+      }
+
       private static Aims.AimForContext OwnAim(Hero hero)
       {
          try { return Aims.AimsBehavior.Instance?.ForContext(hero, CrConversation.CurrentSessionId); }

@@ -20,6 +20,7 @@ using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Items;
+using CalradiaRemembers.Logic.WarDuty;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
@@ -2016,6 +2017,19 @@ namespace CalradiaRemembers.GameState
             int totalValue = unitValue * count;
             string gaveDesc = count > 1 ? $"{count} {actualName}" : actualName;
 
+            // The vassal war duty (Gabriel, 15/10/2026: "des troupes, des chevaux, des armes"): horses or weapons handed
+            // to a liege the player owes a levy count toward it at market value. A levy is not a gift: no trust, no
+            // gratitude, no grudge softened, nothing put on.
+            int levyOwed = WarLevyDesk.Owed(npcHero);
+            if (levyOwed > 0 && WarLevyPayment.Counts(LevyGoodsKindOf(found.EquipmentElement.Item)))
+            {
+               int credit = WarLevyPayment.GoodsCredit(totalValue, levyOwed);
+               int stillOwed = WarLevyDesk.Pay?.Invoke(npcHero, credit) ?? levyOwed;
+               ModLog.Info($"[ACTION] give_item: '{gaveDesc}' (value {totalValue}) handed to {npcHero?.Name} toward the levy, {credit} counted.");
+
+               return new ActionOutcome($"You hand {gaveDesc} to {npcHero?.Name} toward the levy; {credit} denars of it are counted.{WarLevyDesk.AfterPayment(stillOwed)}", false);
+            }
+
             StanceService.OnGiftReceived(npcHero); // a freely given gift builds a little trust
             ModLog.Info($"[ACTION] give_item: player gave '{gaveDesc}' (value {totalValue}) to {npcHero?.Name}");
 
@@ -2045,6 +2059,13 @@ namespace CalradiaRemembers.GameState
             return null;
          }
       }
+
+      /// <summary>What an item is, for the war levy: a mount, a weapon, or anything else (never the levy).</summary>
+      private static LevyGoodsKind LevyGoodsKindOf(ItemObject item)
+         => item == null ? LevyGoodsKind.Other
+            : item.IsMountable ? LevyGoodsKind.Horse
+            : item.HasWeaponComponent ? LevyGoodsKind.Weapon
+            : LevyGoodsKind.Other;
 
       /// <summary>
       ///   The "gift equipment gets worn" feature: when a give_item gift is something the NPC can wear or wield,
@@ -4246,6 +4267,10 @@ namespace CalradiaRemembers.GameState
             GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, amount);
             CompleteProvideGoldOnPayment(npcHero, amount); // any payment satisfies AND closes a ProvideGold quest
 
+            // The vassal war duty: coin handed to a liege the player owes a levy counts toward it (-1: nothing owed).
+            int levyOwed = WarLevyDesk.Owed(npcHero);
+            int levyLeft = levyOwed > 0 ? WarLevyDesk.Pay?.Invoke(npcHero, amount) ?? levyOwed : -1;
+
             // Paying a scheming bastard-mother her demand IS settling the blackmail (buys her silence).
             bool silenced = BastardBehavior.Instance?.SettleByPayment(npcHero, amount) == true;
             ModLog.Info($"[ACTION] take_gold: player → {npcHero.Name} {amount} gold{(silenced ? " (bastard silence bought)" : "")}");
@@ -4260,16 +4285,19 @@ namespace CalradiaRemembers.GameState
             // prompt read "you feel a debt of gratitude", the exact opposite of the dynamic. A freely given
             // payment (no demand of any kind) is still a remembered kindness, a channel separate from the relation
             // bump above and the grudge-softening tail below.
-            bool coercedPayment = silenced || owed > 0;
+            // A war levy is owed, not given: no gratitude for it either.
+            bool coercedPayment = silenced || owed > 0 || levyLeft >= 0;
             if (!coercedPayment)
                TryPlantValueAppreciation(npcHero, AppreciationSource.GoldReceived, amount, "The player gave me gold.");
 
             // Grudges pillar (Gift gesture): a payment to the NPC may also soften or mend a grudge they
             // hold against the player, a channel separate from the relation bump above — never lets a
             // resolution failure break the gold transfer itself.
-            string grudgeTail = TryGrudgeGiftTail(npcHero, amount);
+            string grudgeTail = levyLeft >= 0 ? "" : TryGrudgeGiftTail(npcHero, amount);
 
-            string tail = silenced
+            string tail = levyLeft >= 0
+               ? WarLevyDesk.AfterPayment(levyLeft)
+               : silenced
                ? " Her silence is bought, for now."
                : owed > amount
                   ? $" It is not enough: she wants {owed} denars for her silence."

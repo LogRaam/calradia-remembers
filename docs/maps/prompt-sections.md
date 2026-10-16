@@ -107,25 +107,26 @@ shipped). `sealed`: cannot be turned off, moved or reworded; `required`: cannot 
 | 90 | `format_feedback` | `AppendFormatFeedback` | tail |  |  |  | Feedback loop (quest audit C5): when the PREVIOUS reply's [QUEST] or [ACTION] block could not be registered, tell the MODEL so, not just the player. |
 | 91 | `held_prisoners_brief` | `AppendHeldPrisonersBrief` | tail |  | aware |  | Who holds the captives, in one line, in the per-turn tail. |
 | 92 | `captive_terms` | `AppendCaptiveTerms` | tail |  |  |  | What a captive of the player may offer for her freedom, and how readily (the host's CaptiveOfferPolicy). |
-| 93 | `item_on_offer` | `AppendItemOnOffer` | tail |  |  |  | The item the player holds out this turn (picked with the bag), what it is worth, and what this character can pay. 3chmidt (13/10/2026): a buyer named "nine thousand" with no idea of the sword's worth or of its own purse,... |
-| 94 | `volatile_knowledge` | `AppendVolatileKnowledge` | tail |  |  |  | The knowledge that changes under the character - the hour, the sky, where they are standing. |
-| 95 | `day_mood` | `AppendDayMood` | tail |  |  |  | The kind of day the character is having, and how far the player has moved it (THE MOOD OF THE DAY). |
-| 96 | `world_state` | `AppendWorldState` | tail |  |  |  | (no summary) |
-| 97 | `at_sea_note` | `AppendAtSeaNote` | tail |  |  |  | (no summary) |
-| 98 | `player_dress_note` | `AppendPlayerDressNote` | tail |  |  |  | A plain, factual note of how the player is dressed, rendered ONLY for a REMARKABLE state (Naked / Rags): the ordinary Civilian and Armoured states render nothing, or every single prompt in the game would grow for a fact... |
-| 99 | `courtship_challenge` | `AppendCourtshipChallenge` | tail |  |  |  | Courtship-duel opener. |
-| 100 | `witness_turn_directives` | `AppendWitnessTurnDirectives` | tail |  |  |  | Per-turn witness directives, split out of AppendWitnesses (task 1b): the witness LIST and the reaction teaching are stable across a whole conversation and stay in the cacheable prefix; whether THIS turn is a witness-exch... |
-| 101 | `scene_stage_directive` | `AppendSceneStageDirective` | tail |  |  | b.ShouldAppendCaptiveStageDirective(s.Context) | (no summary) |
-| 102 | `scene_style_directive` | `AppendSceneStyleDirective` | tail |  |  |  | (no summary) |
-| 103 | `narration_frequency` | `AppendNarrationFrequency` | tail | sealed |  |  | Replaces standard consent rules when the player is this NPC's captive at Hardcore level. |
-| 104 | `power_balance` | `AppendPowerBalance` | tail |  |  |  | Injects a power-balance note when the game-side resolver detected a meaningful asymmetry between the player's realm and the NPC's position. |
-| 105 | `player_gender_context` | `AppendPlayerGenderContext` | tail |  |  |  | Injects the [DISCOVERY] section format when romantic content is enabled. |
-| 106 | `stay_within_what_you_know` | `AppendStayWithinWhatYouKnow` | tail | required | aware |  | Anti-confabulation guard: the primary fix for invented parent names and made-up troop movements. |
-| 107 | `player_action_narration` | `AppendPlayerActionNarration` | tail | required | aware |  | Teaches that a captive's escape attempt is resolved by fate, not by the captor's narration: the single biggest reason the LLM otherwise "always wins". |
-| 108 | `claims_are_not_proof` | `AppendClaimsAreNotProof` | tail | required | aware |  | The general form of a rule this prompt already stated in three separate silos, and therefore never applied where it was actually needed. |
-| 109 | `language_mirror` | `AppendLanguageMirror` | tail |  | aware |  | Which language the reply is written in. |
-| 110 | `player_description` | `AppendPlayerDescription` | tail |  | aware |  | (no summary) |
-| 111 | `heard_now` | `AppendHeardNow` | tail |  |  |  | heard_now.txt, expanded with this build's variables; nothing when it is empty or expands to nothing. |
-| 112 | `role_anchor` | `AppendRoleAnchor` | tail | required | aware |  | A short, forceful restatement of the machine-read output contract, emitted at the very end of the prompt (highest recency). |
-| 113 | `format_reminder` | `AppendFormatReminder` | tail | required | aware |  | (no summary) |
-| 114 | `post_history_instructions` | `AppendPostHistoryInstructions` | tail |  |  |  | Appends the modder's post_history_instructions.txt verbatim (aside from {{token}} expansion, see PromptVariableExpander) at the very end of the system prompt: the highest-recency position, read immediately before the con... |
+| 93 | `war_duty_terms` | `AppendWarDutyTerms` | tail |  |  |  | The player, a vassal who sat out the war, stands before this liege to answer for it (Maifailun and Gabriel, 15/10/2026: a summons, then a levy in coin, else troops, horses or arms, else a fief). |
+| 94 | `item_on_offer` | `AppendItemOnOffer` | tail |  |  |  | The item the player holds out this turn (picked with the bag), what it is worth, and what this character can pay. 3chmidt (13/10/2026): a buyer named "nine thousand" with no idea of the sword's worth or of its own purse,... |
+| 95 | `volatile_knowledge` | `AppendVolatileKnowledge` | tail |  |  |  | The knowledge that changes under the character - the hour, the sky, where they are standing. |
+| 96 | `day_mood` | `AppendDayMood` | tail |  |  |  | The kind of day the character is having, and how far the player has moved it (THE MOOD OF THE DAY). |
+| 97 | `world_state` | `AppendWorldState` | tail |  |  |  | (no summary) |
+| 98 | `at_sea_note` | `AppendAtSeaNote` | tail |  |  |  | (no summary) |
+| 99 | `player_dress_note` | `AppendPlayerDressNote` | tail |  |  |  | A plain, factual note of how the player is dressed, rendered ONLY for a REMARKABLE state (Naked / Rags): the ordinary Civilian and Armoured states render nothing, or every single prompt in the game would grow for a fact... |
+| 100 | `courtship_challenge` | `AppendCourtshipChallenge` | tail |  |  |  | Courtship-duel opener. |
+| 101 | `witness_turn_directives` | `AppendWitnessTurnDirectives` | tail |  |  |  | Per-turn witness directives, split out of AppendWitnesses (task 1b): the witness LIST and the reaction teaching are stable across a whole conversation and stay in the cacheable prefix; whether THIS turn is a witness-exch... |
+| 102 | `scene_stage_directive` | `AppendSceneStageDirective` | tail |  |  | b.ShouldAppendCaptiveStageDirective(s.Context) | (no summary) |
+| 103 | `scene_style_directive` | `AppendSceneStyleDirective` | tail |  |  |  | (no summary) |
+| 104 | `narration_frequency` | `AppendNarrationFrequency` | tail | sealed |  |  | Replaces standard consent rules when the player is this NPC's captive at Hardcore level. |
+| 105 | `power_balance` | `AppendPowerBalance` | tail |  |  |  | Injects a power-balance note when the game-side resolver detected a meaningful asymmetry between the player's realm and the NPC's position. |
+| 106 | `player_gender_context` | `AppendPlayerGenderContext` | tail |  |  |  | Injects the [DISCOVERY] section format when romantic content is enabled. |
+| 107 | `stay_within_what_you_know` | `AppendStayWithinWhatYouKnow` | tail | required | aware |  | Anti-confabulation guard: the primary fix for invented parent names and made-up troop movements. |
+| 108 | `player_action_narration` | `AppendPlayerActionNarration` | tail | required | aware |  | Teaches that a captive's escape attempt is resolved by fate, not by the captor's narration: the single biggest reason the LLM otherwise "always wins". |
+| 109 | `claims_are_not_proof` | `AppendClaimsAreNotProof` | tail | required | aware |  | The general form of a rule this prompt already stated in three separate silos, and therefore never applied where it was actually needed. |
+| 110 | `language_mirror` | `AppendLanguageMirror` | tail |  | aware |  | Which language the reply is written in. |
+| 111 | `player_description` | `AppendPlayerDescription` | tail |  | aware |  | (no summary) |
+| 112 | `heard_now` | `AppendHeardNow` | tail |  |  |  | heard_now.txt, expanded with this build's variables; nothing when it is empty or expands to nothing. |
+| 113 | `role_anchor` | `AppendRoleAnchor` | tail | required | aware |  | A short, forceful restatement of the machine-read output contract, emitted at the very end of the prompt (highest recency). |
+| 114 | `format_reminder` | `AppendFormatReminder` | tail | required | aware |  | (no summary) |
+| 115 | `post_history_instructions` | `AppendPostHistoryInstructions` | tail |  |  |  | Appends the modder's post_history_instructions.txt verbatim (aside from {{token}} expansion, see PromptVariableExpander) at the very end of the system prompt: the highest-recency position, read immediately before the con... |

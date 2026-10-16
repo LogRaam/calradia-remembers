@@ -7,6 +7,7 @@ using System.Text;
 using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic.Appreciations;
+using CalradiaRemembers.Logic.WarDuty;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -29,11 +30,28 @@ namespace CalradiaRemembers.Verbs
         public string Name => "give_troops";
 
         public bool IsEligible(VerbContext ctx)
-            => ctx?.Npc != null && ctx.Profile != null && CourtActionResolver.TryGiveTroops(ctx.Npc, ctx.Profile, out _);
+            => ctx?.Npc != null && ctx.Profile != null && (LevyTroops(ctx.Npc).Men > 0 || CourtActionResolver.TryGiveTroops(ctx.Npc, ctx.Profile, out _));
 
         public string TeachingText(VerbContext ctx)
         {
             if (ctx?.Npc == null || ctx.Profile == null) return null;
+
+            LevyTroopTake levy = LevyTroops(ctx.Npc);
+            if (levy.Men > 0)
+            {
+                var lb = new StringBuilder();
+                lb.AppendLine("GIVE_TROOPS, SOLDIERS TOWARD THE LEVY THE PLAYER OWES YOU:");
+                lb.AppendLine("If the player offers soldiers from their ranks toward the levy, and you accept them, emit:");
+                lb.AppendLine("[ACTION]");
+                lb.AppendLine("type: give_troops");
+                lb.AppendLine("[/ACTION]");
+                lb.AppendLine($"The game moves {levy.Men} of their soldiers, worth {levy.Value} denars, into your ranks and counts");
+                lb.AppendLine("them toward the levy. Only emit this once you have truly accepted the men in this conversation.");
+                lb.AppendLine();
+
+                return lb.ToString();
+            }
+
             if (!CourtActionResolver.TryGiveTroops(ctx.Npc, ctx.Profile, out int count)) return null;
 
             var sb = new StringBuilder();
@@ -59,6 +77,20 @@ namespace CalradiaRemembers.Verbs
                 NpcProfile profile = ctx?.Profile;
 
                 if (npcHero == null || profile == null) return null;
+
+                // The vassal war duty (Gabriel, 15/10/2026): a liege the player owes a levy takes soldiers toward it,
+                // whatever his own party's need. A levy, not a kindness: no appreciation is planted.
+                if (LevyTroops(npcHero).Men > 0)
+                {
+                    LevyTroopTake taken = WarLevyDesk.TakeTroops?.Invoke(npcHero) ?? new LevyTroopTake();
+                    if (taken.Men <= 0) return ActionOutcome.Refused($"({npcHero.Name} has no room for more soldiers just now.)");
+
+                    int stillOwed = WarLevyDesk.Owed(npcHero);
+                    ModLog.Info($"[ACTION] give_troops: {taken.Men} soldiers (worth {taken.Value}) to {npcHero.Name} toward the levy.");
+
+                    return new ActionOutcome($"{npcHero.Name} takes {taken.Men} soldiers from your ranks toward the levy, counted at {taken.Value} denars.{WarLevyDesk.AfterPayment(stillOwed)}", true);
+                }
+
                 if (!CourtActionResolver.TryGiveTroops(npcHero, profile, out int count))
                     return ActionOutcome.Refused($"({npcHero.Name} has no room or need for more soldiers just now.)");
 
@@ -90,6 +122,13 @@ namespace CalradiaRemembers.Verbs
 
                 return null;
             }
+        }
+
+        /// <summary>The soldiers a liege the player owes a levy would take toward it now; none when nothing is owed.</summary>
+        private static LevyTroopTake LevyTroops(Hero npc)
+        {
+            try { return WarLevyDesk.Owed(npc) > 0 ? WarLevyDesk.PlanTroops?.Invoke(npc) ?? new LevyTroopTake() : new LevyTroopTake(); }
+            catch { return new LevyTroopTake(); }
         }
     }
 }

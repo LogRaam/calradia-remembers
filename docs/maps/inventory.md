@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 498 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1139 types in 30 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 499 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1145 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -363,7 +363,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitData` | public struct | The flat portrait binding a widget renders from: image id, texture provider name, extra args. |
 | `PortraitTextureGuard` | public static class | The single gate for every character portrait the mod shows (chat lines, the courier letter). |
 
-### CalradiaRemembers.GameState (38)
+### CalradiaRemembers.GameState (39)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -405,6 +405,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TroopHandOver` | public class | What a troop hand-over task records when the men have moved: one close for the garrison and the recruit tasks (IGameStateBridge.SettleTroopHandOver), each saying in its own words what was brought. |
 | `TroopTierBucket` | public enum | The three coarse troop-quality buckets council lend_troops reasons over (see TroopTierBucketer's own header). |
 | `TroopTierBucketer` | public static class | The engine-coupled half of council lend_troops (COUNCIL_ACTIONS.md's Kimi review, "CouncilTroopLoanPolicy"): reads a live TroopRoster into the tier-bucketed counts the pure CouncilTroopLoanPolicy reasons over, and moves... |
+| `WarLevyDesk` | internal static class | The one door to the war levy for the conversation's hand-overs and context. |
 
 ### CalradiaRemembers.Grudges (6)
 
@@ -2076,13 +2077,18 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ViolenceVerdict` | public enum | How an attempt ended. |
 | `ViolentAct` | public enum | What the player is attempting against an NPC, from least to most severe. |
 
-### CalradiaRemembers.Logic.WarDuty (18)
+### CalradiaRemembers.Logic.WarDuty (24)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `FiefCandidate` | public class | A fief of the player's clan, as the confiscation reads it. |
 | `LevyFacts` | public class | What a levy letter (or the in-person demand) states. |
+| `LevyGoodsKind` | public enum | What an item handed over is, as the levy reads it. |
+| `LevyTroopFacts` | public class | What the soldiers handed over toward a levy read. |
+| `LevyTroopLot` | public class | One kind of soldier the player could hand over, the lowest tier first. |
+| `LevyTroopTake` | public class | The soldiers taken toward a levy. |
 | `SummonsFacts` | public class | What a summons letter states. |
+| `TermsFacts` | public class | What the liege's terms in person state (the war_duty_terms section of his conversation). |
 | `WarDutyCase` | public class | One reckoning, persisted by the host (plain values, additive JSON). |
 | `WarDutyConfiscation` | public static class | Pure: picks the fief a liege confiscates. |
 | `WarDutyEffect` | public enum | What the host must do after a step. |
@@ -2096,6 +2102,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WarDutyStanding` | public enum | Why the player owes, or does not owe, war service today. |
 | `WarDutyWording` | public static class | Pure: the words of the war duty's letters and terms. |
 | `WarLevyFacts` | public class | What the levy reads. |
+| `WarLevyPayment` | public static class | Pure: what a hand-over counts for against a levy. |
 | `WarLevyPolicy` | public static class | Pure: how much coin stands for a vassal's absence from a war. |
 | `WarServiceLedger` | public class | The war-duty ledger: service, wars, and the reckoning in progress. |
 

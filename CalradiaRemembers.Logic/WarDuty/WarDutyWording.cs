@@ -42,6 +42,25 @@ namespace CalradiaRemembers.Logic.WarDuty
       public bool HoldsATakeableFief { get; init; }
    }
 
+   /// <summary>What the liege's terms in person state (the war_duty_terms section of his conversation).</summary>
+   public sealed class TermsFacts
+   {
+      /// <summary>The levy demanded, in coin.</summary>
+      public int LevyAmount { get; init; }
+
+      /// <summary>What is still owed, in coin.</summary>
+      public int Outstanding { get; init; }
+
+      /// <summary>Days left to serve or pay.</summary>
+      public int DaysLeft { get; init; }
+
+      /// <summary>The player's clan holds a fief the ruler could take.</summary>
+      public bool HoldsATakeableFief { get; init; }
+
+      /// <summary>The liege can take soldiers toward the levy right now (his own party has room, the player has men).</summary>
+      public bool CanTakeTroops { get; init; }
+   }
+
    /// <summary>Pure: the words of the war duty's letters and terms.</summary>
    public static class WarDutyWording
    {
@@ -64,6 +83,29 @@ namespace CalradiaRemembers.Logic.WarDuty
          return $"They did not come. You demand a levy of {f.Outstanding} denars for their absence from the front, to be "
                 + $"paid within {f.DaysLeft} days; troops, horses or arms to that value will serve as well, and riding to "
                 + $"war against your enemies before then settles it too. {Consequence(f.HoldsATakeableFief)}";
+      }
+
+      /// <summary>
+      ///   The terms the liege holds the player to in person: what is owed, by when, how it may be paid here (only the
+      ///   ways the game will take right now), and the one consequence the ladder will carry out.
+      /// </summary>
+      public static string Terms(TermsFacts f)
+      {
+         if (f == null || f.Outstanding <= 0) return null;
+
+         string when = f.DaysLeft <= 1 ? "by tomorrow" : $"within {f.DaysLeft} days";
+         var lines = new List<string> {
+            $"Your realm is at war and the player, your sworn vassal, has not ridden in it. You demand a levy of {f.LevyAmount} denars "
+            + $"for their absence from the front; {f.Outstanding} are still owed, {when}. Riding to war against your enemies "
+            + $"before then settles it too. {Consequence(f.HoldsATakeableFief)}",
+            "They may pay it here, in any mix; each hand-over counts toward the levy, never as a gift:",
+            "- coin: take_gold, with the amount they hand over;",
+            "- horses or weapons from their baggage: give_item, counted at market value;"
+         };
+         if (f.CanTakeTroops)
+            lines.Add("- soldiers from their ranks: give_troops; the game takes men to the value still owed, never more than half their force.");
+
+         return string.Join("\n", lines);
       }
 
       /// <summary>What follows when nothing is given by the deadline, as the ladder will carry it out.</summary>

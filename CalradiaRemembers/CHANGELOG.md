@@ -5,6 +5,20 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.7.12.. open (2.7.11 skipped: a Nexus upload tagged 2.7.10 as both 2.7.10 and 2.7.11)
 
 ### New
+- **A liege holds his vassal to the war** (Maifailun, 15/10: a vassal who never fights the realm's enemy hears
+  nothing from his ruler; Gabriel's ladder the same day). MCM Relationships "Vassal war duty" (OFF by default),
+  "War duty window (days)" (30) and "War levy scale (%)" (100). A sworn vassal who has not fought the realm's
+  enemies (a battle against them, a siege, or a day in one of the realm's armies) for the window while the realm is
+  at war receives a SUMMONS letter from the ruler: come and answer for it within 20 days. Coming before him (a
+  conversation, or riding in his army) brings the LEVY demanded in person; never coming brings it by letter. The
+  levy (1000 per clan tier plus 1500 per fief, times the scale, 1000 to 10000) is paid in person in any mix of coin
+  (take_gold), horses or weapons (give_item, at market value) and soldiers (give_troops, cheapest first, never more
+  than half the player's healthy men); none of it counts as a gift. Riding to war settles it at any step. If nothing
+  is given in the next 20 days the ruler takes one fief (a castle before a town, the poorest, never one under
+  siege) or, with none to take, remembers it. Every step leaves the ruler a memory; the letters and the ruler's
+  terms name only the consequence the game will carry out. Peace, or leaving the realm, drops it; a captive's days
+  do not run. The ruler holds the duty as a standing aim of the mod's own (CrAims, internal for now). Console
+  `cr.war_duty`; cr.testall `war_duty_ledger`, `war_duty_reckoning`, `war_duty_levy`, `aims_conversation`.
 - **Consequences on a stage (`on_enter`)** (tashmetu, 15/10: consequences ran only at an ending, so a lady could not
   leave midway and be given back later in the same tale, which the Troy design needed). A stage's `on_enter` runs as
   the tale enters it, under its own `if`; never on the first stage (the request; the loader and the editor say so).

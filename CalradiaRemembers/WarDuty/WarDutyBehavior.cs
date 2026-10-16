@@ -32,6 +32,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
@@ -315,6 +316,98 @@ namespace CalradiaRemembers.WarDuty
       }
 
       private static void Close() => AimsBehavior.Instance?.Retract(AimsBehavior.CrSource, AimId);
+
+      // ── The levy paid face to face (inc 5) ───────────────────────────────
+
+      /// <summary>What the player still owes this liege for sitting out the war, in coin; 0 when nothing (or the switch is off).</summary>
+      internal int LevyOwedTo(Hero liege)
+      {
+         WarDutyCase c = Ledger.Case;
+         if (!ModSettings.EnableWarDuty || liege == null || c == null || !c.IsOpen || c.RulerId != liege.StringId) return 0;
+
+         return c.LevyOutstanding;
+      }
+
+      /// <summary>
+      ///   Counts a hand-over worth <paramref name="value" /> toward this liege's levy (coin, goods or men) and returns
+      ///   what is still owed after; meeting it settles the reckoning (the ruler remembers, the aim is withdrawn).
+      /// </summary>
+      internal int PayLevy(Hero liege, int value)
+      {
+         int owed = LevyOwedTo(liege);
+         if (owed <= 0) return 0;
+         if (value <= 0) return owed;
+
+         ModLog.Info($"[WAR DUTY] {value} counted toward the levy owed to {liege.Name} ({owed} owed before).");
+         Step(WarDutyEvent.LevyPaid, Today, value);
+
+         return LevyOwedTo(liege);
+      }
+
+      /// <summary>The terms this liege holds the player to, worded for the war_duty_terms section; null when nothing is owed.</summary>
+      internal string TermsFor(Hero liege)
+      {
+         int owed = LevyOwedTo(liege);
+         if (owed <= 0) return null;
+
+         WarDutyCase c = Ledger.Case;
+
+         return WarDutyWording.Terms(new TermsFacts {
+            LevyAmount = c.LevyAmount, Outstanding = owed, DaysLeft = c.DeadlineDay - Today,
+            HoldsATakeableFief = WarDutyConfiscation.HasTakeable(FiefCandidates()), CanTakeTroops = PlanTroops(liege).Men > 0
+         });
+      }
+
+      /// <summary>The soldiers this liege would take toward the levy right now: into his own party, cheapest first. Nothing moves.</summary>
+      internal LevyTroopTake PlanTroops(Hero liege) => PlanTroops(liege, out _);
+
+      /// <summary>Moves the planned soldiers from the player's party into the liege's and counts their worth toward the levy.</summary>
+      internal LevyTroopTake TakeTroops(Hero liege)
+      {
+         LevyTroopTake plan = PlanTroops(liege, out List<CharacterObject> kinds);
+         MobileParty from = MobileParty.MainParty;
+         MobileParty to = liege?.PartyBelongedTo;
+         if (plan.Men <= 0 || from == null || to == null) return new LevyTroopTake();
+
+         for (var i = 0; i < kinds.Count; i++)
+         {
+            int n = plan.Counts[i];
+            if (n <= 0) continue;
+
+            from.MemberRoster.AddToCounts(kinds[i], -n);
+            to.MemberRoster.AddToCounts(kinds[i], n);
+         }
+
+         ModLog.Info($"[WAR DUTY] {plan.Men} soldiers worth {plan.Value} handed to {liege.Name} toward the levy.");
+         PayLevy(liege, plan.Value);
+
+         return plan;
+      }
+
+      private LevyTroopTake PlanTroops(Hero liege, out List<CharacterObject> kinds)
+      {
+         kinds = new List<CharacterObject>();
+         int owed = LevyOwedTo(liege);
+         MobileParty party = liege?.PartyBelongedTo;
+         MobileParty player = MobileParty.MainParty;
+         if (owed <= 0 || party == null || party.LeaderHero != liege || player?.MemberRoster == null) return new LevyTroopTake();
+
+         var lots = new List<LevyTroopLot>();
+         foreach (TroopRosterElement el in player.MemberRoster.GetTroopRoster()
+                     .Where(el => el.Character is {IsHero: false} && el.Number - el.WoundedNumber > 0)
+                     .OrderBy(el => el.Character.Tier))
+         {
+            kinds.Add(el.Character);
+            lots.Add(new LevyTroopLot {
+               Healthy = el.Number - el.WoundedNumber,
+               UnitValue = (int) Campaign.Current.Models.PartyWageModel.GetTroopRecruitmentCost(el.Character, liege).ResultNumber
+            });
+         }
+
+         return WarLevyPayment.Troops(new LevyTroopFacts {
+            Lots = lots, Outstanding = owed, Room = Math.Max(0, party.Party.PartySizeLimit - party.MemberRoster.TotalManCount)
+         });
+      }
 
       private static void Confiscate(Hero ruler, List<FiefCandidate> fiefs, int today)
       {
