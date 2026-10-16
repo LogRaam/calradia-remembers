@@ -256,13 +256,16 @@ namespace CalradiaRemembers.Tests
       }
 
       // STAKE: a vassal who holds a fief is told plainly what he stands to lose, and that goods or riding to war serve too.
+      // Soldiers only on a condition: in person the game takes them only into the liege's own host with room (gating
+      // before declaration), so the letter must not promise them outright.
       [Test]
       public void GIVEN_a_vassal_with_a_fief_WHEN_the_levy_letter_is_worded_THEN_the_fief_goods_and_service_are_named()
       {
          string context = WarDutyWording.LevyLetterContext(new LevyFacts {Outstanding = 2000, DaysLeft = 20, HoldsATakeableFief = true});
 
          context.Should().Contain("a levy of 2000 denars");
-         context.Should().Contain("troops, horses or arms to that value");
+         context.Should().Contain("horses or weapons to that value");
+         context.Should().Contain("soldiers too if your own host has room for them");
          context.Should().Contain("riding to war against your enemies before then settles it");
          context.Should().Contain("you will take one of their fiefs");
       }

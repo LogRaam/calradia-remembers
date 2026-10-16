@@ -15757,15 +15757,27 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(duty == null || aims == null || s == null || behavior?.Store == null || behavior.GameStateBridge == null, "the war duty, CrAims, MCM or the bridge is not ready")) return t.Line();
          if (t.Abort(MobileParty.MainParty == null || Hero.MainHero == null, "no main party")) return t.Line();
 
-         // A ruler who leads his own party with room in it, so soldiers can be taken (and handed back).
+         // A ruler who leads his own party, so soldiers can be taken (and handed back). Room in it is arranged below.
          Kingdom realm = Kingdom.All.FirstOrDefault(k => k != null && !k.IsEliminated && k.Leader != null && k.Leader != Hero.MainHero
                                                          && Mapping.HeroPresence.IsInTheWorld(k.Leader) && aims.Book.ForNpc(k.Leader.StringId) == null
-                                                         && k.Leader.PartyBelongedTo?.LeaderHero == k.Leader
-                                                         && k.Leader.PartyBelongedTo.Party.PartySizeLimit - k.Leader.PartyBelongedTo.MemberRoster.TotalManCount >= 5);
-         if (t.Skip(realm == null, "no realm whose ruler leads a party with room")) return t.Line();
+                                                         && k.Leader.PartyBelongedTo?.LeaderHero == k.Leader);
+         if (t.Skip(realm == null, "no realm whose ruler leads his own party")) return t.Line();
 
          Hero ruler = realm.Leader;
          MobileParty rulerParty = ruler.PartyBelongedTo;
+
+         // GABRIEL'S RULE (13/10/2026): arrange the context. A full host is given room by setting aside a few of its
+         // own lowest-tier men, put back in the finally.
+         var setAside = new List<(CharacterObject Troop, int Count)>();
+         int need = 5 - (rulerParty.Party.PartySizeLimit - rulerParty.MemberRoster.TotalManCount);
+         foreach (TroopRosterElement el in rulerParty.MemberRoster.GetTroopRoster().Where(e => e.Character is {IsHero: false} && e.Number - e.WoundedNumber > 0).OrderBy(e => e.Character.Tier).ToList())
+         {
+            if (need <= 0) break;
+            int n = Math.Min(need, el.Number - el.WoundedNumber);
+            rulerParty.MemberRoster.AddToCounts(el.Character, -n);
+            setAside.Add((el.Character, n));
+            need -= n;
+         }
          int today = WarDuty.WarDutyBehavior.Today;
          Logic.WarDuty.WarServiceLedger prior = duty.Ledger;
          bool priorSwitch = s.EnableWarDuty;
@@ -15848,6 +15860,9 @@ namespace CalradiaRemembers.Diagnostics
                int extra = Math.Min(playerRecruitsNow, 20 - Math.Max(0, moved));
                if (extra > 0) MobileParty.MainParty.MemberRoster.AddToCounts(recruit, -extra);
             }
+
+            foreach ((CharacterObject troop, int count) in setAside)
+               rulerParty.MemberRoster.AddToCounts(troop, count);
 
             NpcProfile now = behavior.Store.Get(ruler.StringId);
             if (now?.Events != null)

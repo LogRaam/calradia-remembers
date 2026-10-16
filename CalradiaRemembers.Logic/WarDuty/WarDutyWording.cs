@@ -81,8 +81,9 @@ namespace CalradiaRemembers.Logic.WarDuty
          if (f == null) return "";
 
          return $"They did not come. You demand a levy of {f.Outstanding} denars for their absence from the front, to be "
-                + $"paid within {f.DaysLeft} days; troops, horses or arms to that value will serve as well, and riding to "
-                + $"war against your enemies before then settles it too. {Consequence(f.HoldsATakeableFief)}";
+                + $"paid within {f.DaysLeft} days; horses or weapons to that value will serve as well, and soldiers too if your own "
+                + $"host has room for them when they come, and riding to war against your enemies before then settles it too. "
+                + Consequence(f.HoldsATakeableFief);
       }
 
       /// <summary>

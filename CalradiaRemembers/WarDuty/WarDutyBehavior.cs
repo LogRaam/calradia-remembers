@@ -278,7 +278,7 @@ namespace CalradiaRemembers.WarDuty
             case WarDutyEffect.Settled:
                Remember(ruler, NotableEventType.Agreement, ev == WarDutyEvent.Served
                   ? "The player rode to war for the realm again, as a vassal owes; the matter of their absence is settled."
-                  : $"The player paid the levy of {c.LevyAmount} denars for their absence from the war; the matter is settled.", today);
+                  : "The player paid the levy I demanded for their absence from the war, in coin or in kind; the matter is settled.", today);
                Close();
                break;
 
