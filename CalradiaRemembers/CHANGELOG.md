@@ -48,6 +48,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   ROADMAP entry.
 
 ### Fixed
+- **No audience at a gate the player cannot walk through** (Gabriel, 16/10: a player sneaking into a town must not
+  be summoned to the hall). The entry popup comes up at the gate, before the player chooses to sneak in, and only
+  war blocked it; a town that turns the player away for a crime (disguise only), a castle barred by its owner, or a
+  player already in disguise still raised a companion's private word or a fief audience. The game's own gate rule
+  is now read (`SettlementAudienceSafetyPolicy.NotOpenlyAdmitted`).
 - **A parent knows a child who died** (Maifailun via tashmetu, 15/10: the player's wife Debana died in childbirth and
   her father asked "Which Debana?"). `RelationshipsBuilder` listed living children only; dead children, a dead
   spouse (the game moves them to the former spouses) and dead siblings are now named "the late", with how and when

@@ -3,14 +3,19 @@
 // enemy castle, and answering inside that hostile entry flow closed the window and dumped the player into the
 // location's encounter. A private word is a social pause: it belongs in a settlement the player is peacefully
 // visiting, never mid-siege, mid-raid, or in enemy territory at war.
+// Gabriel, 16/10/2026: a player who slips into a town in disguise must not be called to the hall, or pulled aside,
+// as though the gates had opened for them. The entry popup comes up at the gate, before the player picks the
+// disguise, so the gate itself is read: the game would not let the player in openly (a crime rating, a barred owner),
+// or the player is already in disguise.
 
 namespace CalradiaRemembers.Logic
 {
     /// <summary>
     ///   Pure gate: is this settlement entry a moment where a companion (or a fief notable, gated through the
     ///   same entry point) may ask the player for a private word? The host gathers the engine facts; this
-    ///   decides. Any one of the three hostilities blocks the offer: a siege in progress, the settlement being
-    ///   raided, or its owning faction at war with the player's.
+    ///   decides. Any one of the hostilities blocks the offer: a siege in progress, the settlement being raided,
+    ///   its owning faction at war with the player's, or a player not openly admitted (barred at the gate, or
+    ///   in disguise).
     /// </summary>
     public static class SettlementAudienceSafetyPolicy
     {
@@ -31,6 +36,9 @@ namespace CalradiaRemembers.Logic
 
            /// <summary>Its owners are at war with the player.</summary>
            public bool AtWarWithPlayer { get; set; }
+
+           /// <summary>The game would not let the player walk in openly (barred, or only by disguise), or they are disguised.</summary>
+           public bool NotOpenlyAdmitted { get; set; }
         }
 
         public static bool IsSafeForPrivateWord(SettlementSafetyFacts facts)
@@ -40,8 +48,9 @@ namespace CalradiaRemembers.Logic
            bool underSiege = facts.UnderSiege;
            bool raidInProgress = facts.RaidInProgress;
            bool atWarWithPlayer = facts.AtWarWithPlayer;
+           bool notOpenlyAdmitted = facts.NotOpenlyAdmitted;
 
-           return !underSiege && !raidInProgress && !atWarWithPlayer;
+           return !underSiege && !raidInProgress && !atWarWithPlayer && !notOpenlyAdmitted;
         }
     }
 }

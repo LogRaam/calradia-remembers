@@ -53,6 +53,15 @@ namespace CalradiaRemembers.Tests
                                           .Should().BeFalse();
         }
 
+        // STAKE (Gabriel, 16/10/2026): a player sneaking into a town in disguise, or turned back at the gate for
+        // a crime, would be called to the hall or pulled aside as though they had walked in openly.
+        [Test]
+        public void GIVEN_a_player_not_openly_admitted_at_the_gate_WHEN_gating_the_audience_THEN_the_offer_is_blocked()
+        {
+            SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(new SettlementAudienceSafetyPolicy.SettlementSafetyFacts {NotOpenlyAdmitted = true})
+                                          .Should().BeFalse();
+        }
+
         // Every combination carrying at least one hostility is blocked — no AND-shaped hole where two
         // hostilities would cancel out.
         [Test]

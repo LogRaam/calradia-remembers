@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-508 rules read 386 facts.
+508 rules read 390 facts.
 
 ## Facts read by more than one rule
 
@@ -680,7 +680,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ServiceOfferPolicy.ChooseEnticement`: `Clan.Settlements`, `Hero.PartyBelongedTo`
 - `ServiceOfferPolicy.Premise`: `Clan.Kingdom`
 - `ServiceOfferPolicy.RulerMayWrite`: `Clan.Kingdom`
-- `SettlementSafetyFacts`: `Hero.MapFaction`, `MapFaction.IsAtWarWith`, `Settlement.IsUnderSiege`, `Settlement.IsVillage`, `Settlement.MapFaction`, `Village.VillageState`, `VillageStates.BeingRaided`
+- `SettlementSafetyFacts`: `AccessLevel.FullAccess`, `Current.IsMainHeroDisguised`, `Hero.MapFaction`, `MapFaction.IsAtWarWith`, `Models.SettlementAccessModel`, `Settlement.IsUnderSiege`, `Settlement.IsVillage`, `Settlement.MapFaction`, `SettlementAccessModel.CanMainHeroEnterSettlement`, `Village.VillageState`, `VillageStates.BeingRaided`
 - `SharedIntimacyFacts`: `GameStateBridge.PermitsIntimacyWith`, `ModSettings.AdultContentLevel`
 - `SkirmishFacts`: `BattleTypes.Raid`, `Hero.Name`, `LeaderParty.LeaderHero`, `MapEvent.EventType`, `MapEvent.GetMapEventSide`, `MapEvent.MapEventSettlement`, `MapEvent.WinningSide`, `MapEventSide.LeaderParty`, `MapFaction.IsBanditFaction`, `Party.LeaderHero`
 - `SkirmishFoe`: `Hero.Name`, `LeaderParty.LeaderHero`, `MapEvent.GetMapEventSide`, `MapEventSide.LeaderParty`, `MapFaction.IsBanditFaction`, `Party.LeaderHero`

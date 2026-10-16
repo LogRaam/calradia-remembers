@@ -60,6 +60,7 @@ using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -494,6 +495,20 @@ namespace CalradiaRemembers.Missions
       ///   make this entry a hostile moment where no audience may pop. Fails OPEN on a read error: the gate
       ///   guards a rare hostile corner, and a broken read must not silently kill the feature everywhere.
       /// </summary>
+      /// <summary>
+      ///   Whether the game would turn the player away from the gate or let them in only by disguise (a crime
+      ///   rating, a barred owner), or they are already disguised. The entry popup comes up at the gate, before
+      ///   the player chooses to sneak in, so the gate's own rule is read rather than the disguise flag alone.
+      /// </summary>
+      private static bool NotOpenlyAdmitted(Settlement settlement)
+      {
+         if (Campaign.Current.IsMainHeroDisguised) return true;
+         if (Campaign.Current.Models.SettlementAccessModel == null) return false;
+         Campaign.Current.Models.SettlementAccessModel.CanMainHeroEnterSettlement(settlement, out SettlementAccessModel.AccessDetails access);
+
+         return access.AccessLevel != SettlementAccessModel.AccessLevel.FullAccess;
+      }
+
       private static bool EntryIsPeaceful(Settlement settlement)
       {
          try
@@ -503,12 +518,13 @@ namespace CalradiaRemembers.Missions
             bool atWar = settlement.MapFaction != null
                          && Hero.MainHero?.MapFaction != null
                          && settlement.MapFaction.IsAtWarWith(Hero.MainHero.MapFaction);
+            bool notOpenlyAdmitted = NotOpenlyAdmitted(settlement);
 
-            bool peaceful = SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(new SettlementAudienceSafetyPolicy.SettlementSafetyFacts {UnderSiege = underSiege, RaidInProgress = raidInProgress, AtWarWithPlayer = atWar});
+            bool peaceful = SettlementAudienceSafetyPolicy.IsSafeForPrivateWord(new SettlementAudienceSafetyPolicy.SettlementSafetyFacts {UnderSiege = underSiege, RaidInProgress = raidInProgress, AtWarWithPlayer = atWar, NotOpenlyAdmitted = notOpenlyAdmitted});
 
             if (!peaceful)
                ModLog.Info($"[AUDIENCE_TOPIC] entry into {settlement.Name} is not peaceful " +
-                           $"(siege={underSiege}, raid={raidInProgress}, atWar={atWar}) — no audience this entry.");
+                           $"(siege={underSiege}, raid={raidInProgress}, atWar={atWar}, notOpenlyAdmitted={notOpenlyAdmitted}): no audience this entry.");
 
             return peaceful;
          }
