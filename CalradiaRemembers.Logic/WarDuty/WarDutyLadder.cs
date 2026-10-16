@@ -131,7 +131,7 @@ namespace CalradiaRemembers.Logic.WarDuty
    {
       /// <summary>
       ///   Days the player has at each step: to come before the ruler, then to serve or pay. Generous because a king on
-      ///   campaign is hard to reach. Claude's default (15/10/2026), to review.
+      ///   campaign is hard to reach. Claude's default, accepted by Gabriel 15/10/2026.
       /// </summary>
       public const int StageDays = 20;
 

@@ -229,7 +229,7 @@ namespace CalradiaRemembers.WarDuty
          AimsBehavior aims = AimsBehavior.Instance;
          if (aims != null)
          {
-            // The duty outranks another mod's aim on the same lord (Claude's default, 15/10/2026, to review): a liege's
+            // The duty outranks another mod's aim on the same lord (Claude's default, accepted by Gabriel 15/10/2026): a liege's
             // reckoning is not set aside for a bridge's ambition. That aim is retracted, and the log says so.
             StandingAim other = aims.Book.ForNpc(ruler.StringId);
             if (other != null && !string.Equals(other.SourceMod, AimsBehavior.CrSource, StringComparison.OrdinalIgnoreCase))

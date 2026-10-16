@@ -4,7 +4,7 @@
 // horses, weapons and soldiers all count toward what is owed, at the game's own price, which the host reads. The
 // hand-over is a levy, not a gift: the host skips the gift's gratitude, and these rules decide only what counts and how
 // much. Soldiers are taken to the value still owed and never more than half the player's healthy men, so paying a levy
-// cannot leave the vassal's own party unable to ride (Claude's default, 15/10/2026, to review).
+// cannot leave the vassal's own party unable to ride (Claude's default, accepted by Gabriel 15/10/2026).
 
 #region
 

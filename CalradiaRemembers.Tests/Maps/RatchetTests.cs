@@ -69,7 +69,7 @@ namespace CalradiaRemembers.Tests.Maps
          // into Mapping would remove the name without untangling anything.
          "CalradiaRemembers.Standing",
 
-         // NEW on 15/10/2026, by Claude, to review: the vassal war duty. A campaign behavior that writes the liege's
+         // NEW on 15/10/2026, by Claude, accepted by Gabriel the same day: the vassal war duty. A campaign behavior that writes the liege's
          // letters (Letters), leaves him memories (Behaviors, Storage), releases a governor before a confiscation
          // (GameState) and reads presence (Mapping), and the console and cr.testall call it: the same shape as Arrests,
          // already in the group. Breaking it would take a hook per effect; Aims, which needed one edge, was kept out.
