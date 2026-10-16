@@ -48,6 +48,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   ROADMAP entry.
 
 ### Fixed
+- **A lord above the player no longer greets them as a servant** (tashmetu, 16/10: a princess greeted a landless
+  player with no troops with "I am at your disposal"). The opening greeting comes from a fixed pool chosen by regard
+  and traits; the lines that offer service ("at your disposal", "What can I do for you?", "You honor me with your
+  company", "Whatever I can spare is yours to ask for", and three more) are now left out when the speaker outranks
+  the player, by the rule of rank letters already follow (a ruler to anyone who does not rule; a house above the
+  player's tier). A spouse, the player's own house or close blood, a romance, a dear friend, and anyone speaking to a
+  ruling player keep them. `GreetingDeferencePolicy`; cr.testall `greeting_rank`.
 - **A mercenary contract signed in the chat no longer runs out at once** (tashmetu, 16/10: hired through the chat
   with Mercenary Management, the clan left the realm three days later and every lord lost 8 regard, judged an
   abandonment). `join_as_mercenary` passed today as the contract's minimum term where every vanilla hiring path

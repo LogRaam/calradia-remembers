@@ -9,6 +9,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Companions;
 using CalradiaRemembers.Interception;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
@@ -250,7 +251,7 @@ namespace CalradiaRemembers.Dialogue
          if (honor > 0) candidates.Add("Speak plainly with me, and you will have a plain answer.");
          if (honor > 0) candidates.Add("I will deal with you straight, as I always have. What is it?");
          if (generosity > 0) candidates.Add("Come now — what is it you need? I will hear you out.");
-         if (generosity > 0) candidates.Add("Whatever I can spare is yours to ask for. Go on.");
+         if (generosity > 0) candidates.Add(GreetingDeferencePolicy.WhateverICanSpare);
          if (valor > 0) candidates.Add("Out with it, then — I respect one who comes straight to the point.");
          if (mercy > 0) candidates.Add("You look as though something weighs on you. Tell me of it.");
          if (calculating < 0) candidates.Add("Ha, no need for cleverness here — just tell me what you need.");
@@ -265,13 +266,13 @@ namespace CalradiaRemembers.Dialogue
             "You are a welcome sight. What would you have of me?",
             "Good, it is you. I always have a moment for you. What is it?",
             "It gladdens me to see your face. Sit — what shall we speak of?",
-            "You honor me with your company. Say what is on your mind.",
+            GreetingDeferencePolicy.HonorMeWithYourCompany,
             "Ha! The very person I would have wished to see. Go on, then.",
             "Come, come — no need to stand on ceremony with me. What is it?",
             "Always a pleasure. Tell me, what brings you to my side today?",
-            "I am glad you came. Whatever you need, you have but to ask.",
-            "Friend! Set your worries down a moment and tell me how I can help.",
-            "Ah, a familiar face in a hard season. What can I do for you?",
+            GreetingDeferencePolicy.WhateverYouNeed,
+            GreetingDeferencePolicy.TellMeHowICanHelp,
+            GreetingDeferencePolicy.FamiliarFaceWhatCanIDo,
             "Welcome, welcome. My door is open to you — what is it you seek?"
          },
          GreetingMood.Cold => new[] {
@@ -300,9 +301,9 @@ namespace CalradiaRemembers.Dialogue
             "Go on — I have a moment. What is it?",
             "Speak your mind. I will hear it.",
             "You wished to see me? Here I am.",
-            "What can I do for you?",
+            GreetingDeferencePolicy.WhatCanIDoForYou,
             "Out with it, then. What do you need?",
-            "I am at your disposal, for the moment. What is it?",
+            GreetingDeferencePolicy.AtYourDisposal,
             "State your business and I will give you my answer.",
             "You have my attention. Use it well."
          }
@@ -749,12 +750,37 @@ namespace CalradiaRemembers.Dialogue
       ///   mood's base pool plus a few lines flavored by the NPC's dominant traits; one is
       ///   chosen at random. Fully fail-soft: any error falls back to the fixed line.
       /// </summary>
+      /// <summary>
+      ///   The greetings <paramref name="hero" /> may open with in this mood: the relation pool and the trait lines,
+      ///   less the lines that offer service when the speaker outranks the player (tashmetu, 16/10/2026).
+      /// </summary>
+      private static List<string> Candidates(GreetingMood mood, Hero hero)
+      {
+         var candidates = new List<string>(BaseGreetings(mood));
+         AddTraitGreetings(candidates, mood, hero);
+         if (hero == null) return candidates;
+
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId);
+
+         return GreetingDeferencePolicy.Filter(candidates, GreetingDeferencePolicy.MayBeDeferential(Letters.CorrespondenceRank.Facts(hero, profile, null)));
+      }
+
+      /// <summary>The cr.testall seam: every greeting <paramref name="hero" /> may open with in each mood, and whether they may defer.</summary>
+      internal static (List<string> Lines, bool MayDefer) DebugCandidates(Hero hero)
+      {
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId);
+         bool mayDefer = GreetingDeferencePolicy.MayBeDeferential(Letters.CorrespondenceRank.Facts(hero, profile, null));
+         var lines = new List<string>();
+         foreach (GreetingMood mood in new[] {GreetingMood.Warm, GreetingMood.Neutral, GreetingMood.Cold}) lines.AddRange(Candidates(mood, hero));
+
+         return (lines, mayDefer);
+      }
+
       private string PickGreeting(GreetingMood mood)
       {
          try
          {
-            var candidates = new List<string>(BaseGreetings(mood));
-            AddTraitGreetings(candidates, mood, Hero.OneToOneConversationHero);
+            List<string> candidates = Candidates(mood, Hero.OneToOneConversationHero);
 
             return candidates.Count == 0
                ? DefaultGreeting(mood)

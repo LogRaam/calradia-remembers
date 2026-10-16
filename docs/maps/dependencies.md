@@ -94,7 +94,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Chat` | 58 | 26 |
 | `CalradiaRemembers.Mapping` | 50 | 36 |
 | `CalradiaRemembers.GameState` | 33 | 20 |
-| `CalradiaRemembers.Letters` | 31 | 9 |
+| `CalradiaRemembers.Letters` | 31 | 10 |
 | `CalradiaRemembers.Quests` | 26 | 10 |
 | `CalradiaRemembers.Behaviors` | 22 | 39 |
 | `CalradiaRemembers.Verbs` | 19 | 7 |
@@ -109,9 +109,9 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Encyclopedia` | 15 | 0 |
 | `CalradiaRemembers.Stance` | 14 | 11 |
 | `CalradiaRemembers.Jealousy` | 14 | 8 |
+| `CalradiaRemembers.Dialogue` | 13 | 2 |
 | `CalradiaRemembers.Services` | 12 | 10 |
 | `CalradiaRemembers.Tournaments` | 12 | 3 |
-| `CalradiaRemembers.Dialogue` | 12 | 2 |
 | `CalradiaRemembers.Nemesis` | 11 | 9 |
 | `CalradiaRemembers.Commitments` | 11 | 8 |
 | `CalradiaRemembers.Logic` | 10 | 51 |
@@ -277,7 +277,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 
 ### CalradiaRemembers.Dialogue
 
-- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Companions`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Storage`, `CalradiaRemembers.Witnesses`, `NpcMemoryService.Core.Models`
+- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Companions`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Storage`, `CalradiaRemembers.Witnesses`, `NpcMemoryService.Core.Models`
 - used by: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Diagnostics`
 
 ### CalradiaRemembers.Duels
@@ -333,7 +333,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 ### CalradiaRemembers.Letters
 
 - uses: `CalradiaRemembers.Arrests`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GUI`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Nemesis`, `CalradiaRemembers.Paths`, `CalradiaRemembers.Portraits`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Services`, `CalradiaRemembers.Social`, `CalradiaRemembers.Stance`, `CalradiaRemembers.Storage`, `CalradiaRemembers.Travel`, `CalradiaRemembers.UI`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.WarDuty`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.WarDuty`
 
 ### CalradiaRemembers.Logic
 

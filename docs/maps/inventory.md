@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 499 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1145 types in 30 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1146 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -855,7 +855,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (688)
+### CalradiaRemembers.Logic (689)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1107,6 +1107,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GiftEquipReason` | public enum | Why an NPC did, or did not, equip a gift the player just handed them. |
 | `GiftQuantityPolicy` | public static class | Resolves how many units of an item a gift transfers, clamped to what the player actually holds. |
 | `GoldTransferLimit` | public static class | The ceiling on a single gold transfer, enforced by the bridge and mirrored by every policy that prices one. |
+| `GreetingDeferencePolicy` | public static class | Which greeting lines offer service, and who may say them to the player. |
 | `GuardEvaluator` | public static class | Combines a rule's guards: every guard must resolve true. |
 | `HappinessBand` | public enum | How a companion feels about being in your service — the bands the score falls into. |
 | `HappinessDriver` | public enum | A reason a companion's happiness moves. |
