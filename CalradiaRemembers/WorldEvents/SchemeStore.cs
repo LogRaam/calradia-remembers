@@ -53,6 +53,12 @@ namespace CalradiaRemembers.WorldEvents
       private const int SchemeWarnedGrudgeMagnitude = 45;
 
       private const int SuccessInfluenceHit = 15; // standing damage the target's clan takes on success
+      /// <summary>The world event status of a scheme that came to light (the long-term memory keeps it: Gabriel, 17/10/2026).</summary>
+      public const string DiscoveredStatus = "discovered";
+
+      /// <summary>The world event status of a scheme that succeeded in the open (kept by the long-term memory as well).</summary>
+      public const string SucceededStatus = "succeeded";
+
       public static SchemeStore Instance;
 
       // Per-instigator last-autonomous-launch day (Increment 2), persisted so one lord's ~30-day plot cooldown
@@ -154,9 +160,9 @@ namespace CalradiaRemembers.WorldEvents
          {
             ApplyStandingDamage(target);
             ApplyFeud(scheme, plotter, target, SchemeState.Succeeded, today);
-            RecordRumor(scheme, plotter, target, today, "succeeded", 34, scheme.Kind == SchemeKind.Slander
-               ? $"{plotter.Name} has blackened {target.Name}'s name, and it has cost them dearly."
-               : $"{plotter.Name} has undermined {target.Name}, weakening their standing.");
+            RecordRumor(scheme, plotter, target, today, SucceededStatus, 34, scheme.Kind == SchemeKind.Slander
+               ? $"{Named(plotter)} has blackened {Named(target)}'s name, and it has cost them dearly."
+               : $"{Named(plotter)} has undermined {Named(target)}, weakening their standing.");
             MaybeAbettorBacklash(scheme, target); // records the player's complicity as its own rumour
             // RP with teeth, increment 2: if the plotter had PLEDGED this scheme to the player, it is
             // now fulfilled. CommitmentBehavior is defensive internally — never throws into this pipeline.
@@ -273,8 +279,8 @@ namespace CalradiaRemembers.WorldEvents
          if (plotter == null) return null;
 
          SchemeAgentPolicy.ExposeToTarget(scheme);
-         RecordRumor(scheme, plotter, target, (int) CampaignTime.Now.ToDays, "discovered", 28,
-            $"{target.Name}, warned in time, has uncovered {plotter.Name}'s plot against them.");
+         RecordRumor(scheme, plotter, target, (int) CampaignTime.Now.ToDays, DiscoveredStatus, 28,
+            $"{Named(target)}, warned in time, has uncovered {Named(plotter)}'s plot against them.");
 
          // The exposed plotter suspects the meddler; the warned target is grateful. Both magnitudes scale
          // with traits: a vindictive calculating plotter hates hardest; an honorable target feels a real debt.
@@ -439,6 +445,10 @@ namespace CalradiaRemembers.WorldEvents
          }
       }
 
+      // These lines outlive the news in the long-term memory, years later, where a bare name would let a namesake be read
+      // as the same person (HeroLabel, as every other world event names its people).
+      private static string Named(Hero h) => HeroLabel.Describe(new HeroLabel.HeroNaming {Name = h?.Name?.ToString(), ClanName = h?.Clan?.Name?.ToString()});
+
       private static void RecordRumor(Scheme scheme, Hero plotter, Hero target, int today, string status, int magnitude, string summary)
       {
          WorldEventStore.Instance?.Record(new WorldEvent {
@@ -528,8 +538,8 @@ namespace CalradiaRemembers.WorldEvents
 
             case SchemeState.Discovered: // it has come to light
                ModLog.Info($"[SCHEME] {plotter.Name} → {target.Name} ({scheme.Kind}) Discovered (progress {scheme.Progress}).");
-               RecordRumor(scheme, plotter, target, today, "discovered", 28,
-                  $"{plotter.Name}'s plot against {target.Name} has come to light.");
+               RecordRumor(scheme, plotter, target, today, DiscoveredStatus, 28,
+                  $"{Named(plotter)}'s plot against {Named(target)} has come to light.");
                ApplyFeud(scheme, plotter, target, SchemeState.Discovered, today);
                MaybeAbettorBacklash(scheme, target);
 
@@ -539,9 +549,9 @@ namespace CalradiaRemembers.WorldEvents
                ModLog.Info($"[SCHEME] {plotter.Name} → {target.Name} ({scheme.Kind}) Succeeded — applying standing damage.");
                ApplyStandingDamage(target);
                ApplyFeud(scheme, plotter, target, SchemeState.Succeeded, today);
-               RecordRumor(scheme, plotter, target, today, "succeeded", 34, scheme.Kind == SchemeKind.Slander
-                  ? $"{plotter.Name} has blackened {target.Name}'s name, and it has cost them dearly."
-                  : $"{plotter.Name} has undermined {target.Name}, weakening their standing.");
+               RecordRumor(scheme, plotter, target, today, SucceededStatus, 34, scheme.Kind == SchemeKind.Slander
+                  ? $"{Named(plotter)} has blackened {Named(target)}'s name, and it has cost them dearly."
+                  : $"{Named(plotter)} has undermined {Named(target)}, weakening their standing.");
                MaybeAbettorBacklash(scheme, target);
                // RP with teeth, increment 2: fulfills a matching pledge, if the plotter had made one.
                CommitmentBehavior.Instance?.OnSchemeResolved(scheme.PlotterId, scheme.TargetId, true);

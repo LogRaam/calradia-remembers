@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 507 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1159 types in 30 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 508 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1164 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -838,13 +838,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StrategicAssessmentContextBuilder` | public static class | Chooses the advisor and gathers the player's strategic context from the live campaign. |
 | `StrategicAssessmentService` | public static class | Populates a Balance of Power view model's Strategic Assessment: offline summary, cached counsel, or a fresh async LLM call. |
 
-### CalradiaRemembers.WorldEvents (12)
+### CalradiaRemembers.WorldEvents (13)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ChronicleWriter` | public static class | Turns WorldEventStore.GetPlayerChronicle into a medieval-chronicle text and writes it to CalradiaRemembers_chronicle.log. |
 | `ConversationEventFeeder` | public static class | Records social outcomes of CR conversations into the world-event store. |
 | `FoodTradeMemoryBehavior` | public class | Records a hungry town's memory of the player's food trade there. |
+| `HistoryQuery` | public class | What to read from the long-term tier (WorldEventStore.GetHistory). |
 | `MercenaryReputationBehavior` | public class | Judges the end of the player's mercenary contracts, and remembers them. |
 | `SchemeStore` | public class | Drives the v1.3 feud schemes: bitter rivals quietly plot against one another, the plots mature or collapse mechanically each day, and word of them spreads through the rumour network. |
 | `SecretLoverGossipBehavior` | public class | Once a secret lover has been secret long enough, an anonymous whisper of its EXISTENCE may begin to circulate (identity never leaks). |
@@ -863,7 +864,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (701)
+### CalradiaRemembers.Logic (706)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1130,11 +1131,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeldItem` | public class | A persisted record of one item taken from the player, enough to rebuild the real EquipmentElement later (wearing it on the holder, or granting it back to the player on recovery). |
 | `HeroLabel` | public static class | Builds a disambiguating label for a hero from primitives, since this project cannot reference the engine Hero type directly (callers pass the strings they already read off it). |
 | `HireAgreementPolicy` | public static class | The price a struck bargain actually costs: the one that was agreed, never a renegotiated one. |
+| `HistoryCandidateFacts` | public class | The facts of a third-party event leaving the news, read to decide whether the world keeps it. |
+| `HistoryKind` | public enum | What kind of happening a world event is, as the long-term memory sorts it. |
+| `HistoryKnowledgeFacts` | public class | One observer's ties to one long-term event, filled by the engine; read to decide whether he knows it. |
 | `HolderGearLedger` | public class | Serializable ledger of every holder's accumulated gear stock. |
 | `HolderGearStock` | public class | Everything a single holder Hero has accumulated from the player's escapes, additive across however many times the player has fled that holder's hold. |
 | `HouseholdKinPolicy` | public static class | Decides who in the player's house is family, and therefore never a retainer to be given away. |
 | `HuntMode` | public enum | How the realm comes after an outlaw. |
 | `HushMoneyPolicy` | public static class | The numeric contract for hush money paid to a lord who holds the player's secret-lover identity. |
+| `IHistoryRecord` | public interface | A long-term entry as eviction sees it. |
 | `ILetterIntentionWorld` | public interface | The live-world signals the per-reason staleness decision needs, keyed by the letter's sender id. |
 | `IManagedPortrait` | public interface | A UI element that owns exactly one character portrait — which, on screen, is backed by a GPU render-target (a character tableau). |
 | `IRandomSource` | public interface | A source of bounded random integers. |
@@ -1201,6 +1206,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LlmCompatibilityMode` | public enum | How the host wants chat-completion sampling parameters shaped for the target model. |
 | `LlmParameterPolicy` | public static class | Resolves the chat-completion parameter wire shape for a target model. |
 | `LlmWireParameters` | public struct | The wire shape the request must use for its sampling parameters. |
+| `LongTermHistoryPolicy` | public static class | Pure rules of the world's long-term memory (Gabriel, 17/10/2026; design 7.7a): which aged-out events are kept, who knows a kept one, and what goes first when the tier is full. |
 | `LordRecruitment` | public static class | Decides whether a lord could be persuaded to defect into the player's clan. |
 | `LordRecruitmentBlock` | public enum | Why a lord cannot (yet) be recruited — LordRecruitmentBlock.None means they can. |
 | `LordRecruitmentFacts` | public class | The engine-gathered facts a lord-recruitment decision rests on — pure to reason over. |

@@ -36,26 +36,50 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>Prunes <paramref name="events"/> in place to the bounds above.</summary>
         public static void Prune<T>(List<T> events, int today) where T : IRumorRecord
+            => PruneAndHandOff(events, today, _ => false);
+
+        /// <summary>
+        ///   Prunes <paramref name="events"/> in place exactly as <see cref="Prune{T}"/>, and returns the ordinary
+        ///   third-party rumours it removed (by the window or by the rumour cap) that <paramref name="isHistory"/> keeps:
+        ///   the world's long-term memory takes them instead of losing them (Gabriel, 17/10/2026: "apres 42 jours, ca
+        ///   devrait basculer vers une memoire long terme"). The player's deeds and the external kept deeds are never
+        ///   handed off: they have lifetimes of their own.
+        /// </summary>
+        public static List<T> PruneAndHandOff<T>(List<T> events, int today, System.Func<T, bool> isHistory) where T : IRumorRecord
         {
-            if (events == null) return;
+            var handedOff = new List<T>();
+            if (events == null) return handedOff;
+
+            System.Func<T, bool> keep = isHistory ?? (_ => false);
 
             // Stale third-party rumours fade; the player's own deeds and externally-fed "kept" deeds
             // never age out by window (they still fall under their own hard caps below).
-            events.RemoveAll(e => !e.InvolvesPlayer && !e.IsPersistentDeed && today - e.Day > RumorWindowDays);
+            foreach (T stale in events.Where(e => !e.InvolvesPlayer && !e.IsPersistentDeed && today - e.Day > RumorWindowDays).ToList())
+            {
+                events.Remove(stale);
+                if (keep(stale)) handedOff.Add(stale);
+            }
 
-            CapOldest(events, e => !e.InvolvesPlayer && !e.IsPersistentDeed, MaxRumorEvents);
+            foreach (T crowded in CapOldest(events, e => !e.InvolvesPlayer && !e.IsPersistentDeed, MaxRumorEvents))
+                if (keep(crowded)) handedOff.Add(crowded);
+
             CapOldest(events, e => !e.InvolvesPlayer && e.IsPersistentDeed, MaxExternalDeedEvents);
             CapOldest(events, e => e.InvolvesPlayer, MaxPlayerEvents);
+
+            return handedOff;
         }
 
-        private static void CapOldest<T>(List<T> events, System.Func<T, bool> belongsToGroup, int max)
+        private static List<T> CapOldest<T>(List<T> events, System.Func<T, bool> belongsToGroup, int max)
             where T : IRumorRecord
         {
             List<T> group = events.Where(belongsToGroup).ToList();
-            if (group.Count <= max) return;
+            if (group.Count <= max) return new List<T>();
 
-            foreach (T old in group.OrderBy(e => e.Day).Take(group.Count - max))
+            List<T> removed = group.OrderBy(e => e.Day).Take(group.Count - max).ToList();
+            foreach (T old in removed)
                 events.Remove(old);
+
+            return removed;
         }
     }
 }

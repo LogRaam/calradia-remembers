@@ -664,6 +664,9 @@ namespace CalradiaRemembers.WorldEvents
                   : magnitude,
                InvolvesPlayer = playerIn,
                Summary = BattleRecordText.Summary(winName, loseName, placeClause, menAtStart),
+               // The long-term memory keeps a battle of several hundred men, or a siege (Gabriel, 17/10/2026, 7.7a).
+               MenAtStart = menAtStart,
+               IsSiege = isSiege,
                ActorIds = Ids(winLeader, loseLeader),
                FactionIds = FactionIds(winLeader, loseLeader).Union(SideFactionIds(mapEvent)).Distinct().ToList(),
                // Influence loop: a battle the player WON harms the beaten side; a loss harms no one
@@ -1171,8 +1174,13 @@ namespace CalradiaRemembers.WorldEvents
 
             // Lordfadooboo (03/10/2026): an empress taken by the Aserai, the player nowhere near, left no trace, so
             // nobody could speak of it. A ruler's or a landed house head's capture is news; a lesser lord's is not.
+            // Gabriel (17/10/2026): a lord taking another lord prisoner is still remembered, by the long-term memory,
+            // so the regard between two lords can stand on it. Not news, so it goes straight into that tier.
+            if (AlreadyRecordedCaptureToday(prisoner)) return;
+
             int magnitude = Logic.CaptiveNotoriety.NewsMagnitude(Mapping.StatureReader.Of(prisoner), prisoner.IsClanLeader);
             if (magnitude > 0) RecordGreatCapture(prisoner, capturingParty, magnitude);
+            else RecordLesserCapture(prisoner, capturingParty?.LeaderHero);
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] prisoner-taken feeder failed: {ex.GetType().Name}: {ex.Message}"); }
       }
@@ -1208,12 +1216,42 @@ namespace CalradiaRemembers.WorldEvents
          Hero captor = capturingParty?.LeaderHero;
          string by = captor != null ? Named(captor) : capturingParty?.MapFaction?.Name?.ToString() ?? capturingParty?.Name?.ToString();
          Store.Record(new WorldEvent {
-            Type = WorldEventType.Other, Day = Today, Magnitude = magnitude,
+            Type = WorldEventType.Other, Day = Today, Magnitude = magnitude, Status = LongTermHistoryPolicy.CaptureStatus,
             Summary = string.IsNullOrEmpty(by) ? $"{Named(prisoner)} was taken captive." : $"{Named(prisoner)} was taken captive by {by}.",
             ActorIds = captor != null ? Ids(prisoner, captor) : Ids(prisoner),
             FactionIds = captor != null ? FactionIds(prisoner, captor) : FactionIds(prisoner)
          });
          ModLog.Info($"[WORLD] {prisoner.Name} taken captive (magnitude {magnitude}): news.");
+      }
+
+      /// <summary>
+      ///   A lord taken by a lord, neither of them the player nor a bandit, and the prisoner too minor for news: written
+      ///   straight into the long-term memory (Gabriel, 17/10/2026), where only those tied to it know it.
+      /// </summary>
+      private void RecordLesserCapture(Hero prisoner, Hero captor)
+      {
+         if (!prisoner.IsLord || IsBandit(prisoner)) return;
+         if (captor == null || captor == Hero.MainHero || !captor.IsLord || IsBandit(captor)) return;
+
+         Store.RecordHistory(new WorldEvent {
+            Type = WorldEventType.Other, Day = Today, Magnitude = LongTermHistoryPolicy.LesserCaptureMagnitude,
+            Status = LongTermHistoryPolicy.CaptureStatus,
+            Summary = $"{Named(prisoner)} was taken captive by {Named(captor)}.",
+            ActorIds = Ids(prisoner, captor),
+            FactionIds = FactionIds(prisoner, captor)
+         });
+      }
+
+      // TakePrisonerAction raises the event once per capture (decompiled 1.4.8, TakePrisonerAction.cs:42), and no NPC
+      // handoff between captors was found to raise it again. This only keeps a repeated raise, should a mod cause one,
+      // from writing the same line twice: one capture per prisoner per day.
+      private static bool AlreadyRecordedCaptureToday(Hero prisoner)
+      {
+         int today = Today;
+         string id = prisoner.StringId;
+
+         return Store.AnyMatching(e => e.Status == LongTermHistoryPolicy.CaptureStatus && e.Day == today && e.ActorIds != null
+                                       && e.ActorIds.Count > 0 && e.ActorIds[0] == id);
       }
 
       /// <summary>Once per unique lord — a capture already chronicled never repeats for the same lord.</summary>

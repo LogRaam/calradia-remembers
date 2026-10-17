@@ -46,6 +46,24 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   Reasoning models (gpt-5, o-series) are sent no temperature at all, as before. Varying it by relationship was
   declined: temperature spreads word choice, it does not make a lord formal (the prompt does).
   `ChatTemperaturePolicy`; cr.testall `chat_temperature`.
+- **The world's long-term memory (increment 1)** (Gabriel, 17/10: "apres 42 jours, ca devrait basculer vers une
+  memoire long terme. La memoire long terme servirait entre autre a definir les relations entre NPC.. et pourrait
+  parfois etre utilise pour des conversations entre joueur et NPC sur le passe"; design NPC_REGARD.md 7.7a, bar
+  accepted the same day). A third-party world event leaving the news (the 42-day window, or the 200-rumour cap) is
+  now kept in a second tier when it is history: a battle of several hundred men or more (250, the record's own
+  "several hundred"; a battle recorded before this version, its size unknown, is kept from magnitude 45), a siege, a
+  fief taken, an execution, a marriage, a war, a peace, a discovered or open scheme, a lord's capture. A skirmish
+  fades as before. The tier is never news (not scored by `RumorAwareness`, never in a companion's report): it is
+  known to the event's actors, their kin and house, the lords of its place, and from magnitude 45 everyone of its
+  realms; the player's secret and hide vetoes still hold. Cap 3000, the least then the oldest evicted first.
+  Captures between NPCs (Gabriel's answer to question 6): a ruler's or house head's capture stays news and is now
+  marked so it reaches the tier; a lesser lord taken by a lord, not news (Lordfadooboo, 03/10), is written straight
+  into it. NPC executions and discovered schemes were already recorded; scheme lines now name both sides with their
+  house (`HeroLabel`). `LongTermHistoryPolicy` (`IsMemorable`, `WouldKnow`, `Evict`), `WorldEventPruner.PruneAndHandOff`,
+  `WorldEventStore.GetHistory(HistoryQuery)` / `RecordHistory`, `WorldEvent.MenAtStart` / `IsSiege` (additive),
+  save key `CalradiaRemembers_WorldHistory_v1bytes` (additive: an older save opens with an empty history, and what is
+  still news at load reaches it in time); console `cr.history [name]`; cr.testall `world_long_term_memory`. Not yet:
+  the encyclopedia lists, the regard between NPCs, the generated past, the conversation.
 
 ### Changed
 - **The game names your character, never "the player"** (Gabriel, 17/10: a grievance read "Holds an old bitterness

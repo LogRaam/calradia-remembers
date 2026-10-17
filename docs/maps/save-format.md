@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (95)
+## Keys (96)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -102,6 +102,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_WearinessWounded_v1` | `WarWearinessBehavior` | constant `WoundCountedSaveKey` passed to `SyncDict`, which reaches SyncData (fact) |
 | `CalradiaRemembers_WeddingDays_v1` | `WeddingDayBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_WorldEvents_v1bytes` | `WorldEventStore` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_WorldHistory_v1bytes` | `WorldEventStore` | constant `HistorySaveKey` passed to SyncData (fact) |
 | `cr_chronicle_lastSeason` | `SeasonalChronicleBehavior` | literal at the SyncData call (fact) |
 | `cr_chronicle_lastSeen` | `SeasonalChronicleBehavior` | literal at the SyncData call (fact) |
 | `cr_standing_aims` | `AimsBehavior` | constant `SaveKey` passed to SyncData (fact) |

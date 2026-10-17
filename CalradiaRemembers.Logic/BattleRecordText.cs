@@ -30,6 +30,12 @@ namespace CalradiaRemembers.Logic
         /// <summary>Below this many men on the field at the start, a fight is a skirmish, and carries less far.</summary>
         public const int SkirmishBelow = 60;
 
+        /// <summary>
+        ///   From this many men on the field at the start, a fight is "a battle of several hundred men" (below, "a clash of
+        ///   a hundred or two"). The long-term memory keeps battles from here up (LongTermHistoryPolicy, design 7.7a).
+        /// </summary>
+        public const int SeveralHundredFrom = 250;
+
         /// <summary>From this many men on the field at the start, a fight is a great battle, and carries further.</summary>
         public const int GreatBattleFrom = 800;
 
@@ -58,7 +64,7 @@ namespace CalradiaRemembers.Logic
         {
             if (menAtStart <= 0) return string.Empty;
             if (menAtStart < SkirmishBelow) return "a skirmish of a few dozen men";
-            if (menAtStart < 250) return "a clash of a hundred or two";
+            if (menAtStart < SeveralHundredFrom) return "a clash of a hundred or two";
             if (menAtStart < GreatBattleFrom) return "a battle of several hundred men";
 
             return menAtStart < 2000 ? "a great battle of over a thousand men" : "a great battle of thousands";

@@ -281,6 +281,48 @@ namespace CalradiaRemembers
       // (RumorDiscretion). They hide the NEWS, not the facts: a marriage that exists in the game is still known
       // to the spouses through their own family lines, and a memory a character keeps is cr.forget's business.
 
+      /// <summary>How many long-term events cr.history prints, newest first.</summary>
+      internal const int HistoryPageSize = 60;
+
+      /// <summary>
+      ///   cr.history [name]
+      ///   The world's long-term memory (Gabriel, 17/10/2026: "apres 42 jours, ca devrait basculer vers une memoire long
+      ///   terme"): every kept event, or with a name only those that character would know (LongTermHistoryPolicy).
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("history", "cr")]
+      public static string History(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+
+         WorldEventStore store = WorldEventStore.Instance;
+
+         if (store == null) return "World-event store is not active.";
+
+         List<string> tokens = args?.Where(a => !string.IsNullOrWhiteSpace(a)).ToList() ?? new List<string>();
+         // No name lists everything: ResolveHero would fall back on the conversation partner, which is not what was asked.
+         Hero hero = tokens.Count > 0 ? ResolveHero(tokens) : null;
+
+         if (tokens.Count > 0 && hero == null) return $"No living character matches '{string.Join(" ", tokens)}'. Usage: cr.history [name]";
+
+         IReadOnlyList<WorldEvent> shown = hero == null ? store.AllHistory() : store.GetHistory(new HistoryQuery {KnownTo = hero});
+
+         var sb = new System.Text.StringBuilder();
+         sb.AppendLine(hero == null
+                          ? $"The world's long-term memory holds {store.HistoryCount} event(s) (at most {LongTermHistoryPolicy.Cap})."
+                          : $"{hero.Name} would know {shown.Count} of the {store.HistoryCount} long-term event(s).");
+
+         foreach (WorldEvent e in shown.Reverse().Take(HistoryPageSize))
+         {
+            string place = e.PlaceId != null ? ", at " + (Settlement.Find(e.PlaceId)?.Name?.ToString() ?? e.PlaceId) : "";
+            sb.AppendLine($"- {e.Id} [day {e.Day}, {WorldEventStore.HistoryKindOf(e)}, magnitude {e.Magnitude}{place}]: {e.Summary}");
+         }
+
+         if (shown.Count > HistoryPageSize) sb.AppendLine($"({shown.Count - HistoryPageSize} older event(s) not shown.)");
+         if (shown.Count == 0) sb.AppendLine("Nothing yet: an event reaches this memory 42 days after it happened, if it was one the world keeps.");
+
+         return sb.ToString().TrimEnd();
+      }
+
       /// <summary>cr.world_events [words]: lists stored world events (newest first) with their ids, filtered by text.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("world_events", "cr")]
       public static string ListWorldEvents(List<string> args)

@@ -94,7 +94,7 @@ namespace CalradiaRemembers.WorldEvents
    ///   chronicle. <see cref="InvolvesPlayer" /> events are the chronicle and are kept long-term;
    ///   third-party events are rumor fodder and age out. Serialized as JSON inside the save.
    /// </summary>
-   public sealed class WorldEvent : IRumorRecord
+   public sealed class WorldEvent : IRumorRecord, IHistoryRecord
    {
       /// <summary>Hero StringIds involved (winner/loser, bride/groom, executioner/executed…).</summary>
       public List<string> ActorIds { get; set; } = new();
@@ -173,5 +173,15 @@ namespace CalradiaRemembers.WorldEvents
 
       /// <summary>Heroes the player kept unaware of this event (cr.world_event_hide). Absent on an older save, so empty.</summary>
       public List<string> HiddenFromIds { get; set; } = new();
+
+      /// <summary>
+      ///   For a battle: the men on the field when it began, both sides. The world's long-term memory keeps a battle of
+      ///   several hundred men or more (Gabriel, 17/10/2026, design 7.7a), which the magnitude cannot tell from a clash
+      ///   of a hundred. 0 when unknown: any other event, and battles recorded before 2.7.13.
+      /// </summary>
+      public int MenAtStart { get; set; }
+
+      /// <summary>For a battle: it was a siege, which the long-term memory keeps whatever its size. Absent on an older save, so false.</summary>
+      public bool IsSiege { get; set; }
    }
 }
