@@ -315,13 +315,44 @@ namespace CalradiaRemembers
          {
             string place = e.PlaceId != null ? ", at " + (Settlement.Find(e.PlaceId)?.Name?.ToString() ?? e.PlaceId) : "";
             sb.AppendLine($"- {e.Id} [day {e.Day}, {WorldEventStore.HistoryKindOf(e)}, magnitude {e.Magnitude}{place}"
-                          + $"{(e.KnownOnlyToThoseInvolved ? ", SECRET" : "")}{(e.HiddenFromIds?.Count > 0 ? $", hidden from {e.HiddenFromIds.Count}" : "")}]: {e.Summary}");
+                          + $"{(e.IsAuthored ? ", authored" : "")}{(e.KnownOnlyToThoseInvolved ? ", SECRET" : "")}{(e.HiddenFromIds?.Count > 0 ? $", hidden from {e.HiddenFromIds.Count}" : "")}]: {e.Summary}");
          }
 
          if (shown.Count > HistoryPageSize) sb.AppendLine($"({shown.Count - HistoryPageSize} older event(s) not shown.)");
          if (shown.Count == 0) sb.AppendLine("Nothing yet: an event reaches this memory 42 days after it happened, if it was one the world keeps.");
 
          return sb.ToString().TrimEnd();
+      }
+
+      /// <summary>
+      ///   cr.history_file: writes this campaign's world snapshot for the history editor page, creates an empty history
+      ///   file when there is none, and prints both paths (Gabriel, 17/10/2026: "A file per save ID. File editable with an
+      ///   external tool").
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("history_file", "cr")]
+      public static string HistoryFile(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+         if (AuthoredHistoryBehavior.Instance == null) return "Authored history is not active.";
+
+         try
+         {
+            string world = AuthoredHistoryBehavior.Instance.WriteSnapshot();
+            bool created = AuthoredHistoryBehavior.EnsureHistoryFile();
+
+            return $"World snapshot: {world}" + Environment.NewLine + $"History file{(created ? " (new, empty)" : "")}: {AuthoredHistoryBehavior.HistoryPath}" + Environment.NewLine
+                   + "Open both in HistoryEditor.html, save, then run cr.history_reload (or reload the save).";
+         }
+         catch (Exception ex) { return $"Could not write the history files: {ex.Message}"; }
+      }
+
+      /// <summary>cr.history_reload: reads this campaign's history file again and brings the world in line with it.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("history_reload", "cr")]
+      public static string HistoryReload(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+
+         return AuthoredHistoryBehavior.Instance?.Sync() ?? "Authored history is not active.";
       }
 
       /// <summary>cr.world_events [words]: lists stored world events (newest first) with their ids, filtered by text.</summary>

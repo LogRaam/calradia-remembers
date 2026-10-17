@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 508 types in 61 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 509 types in 61 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1177 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
@@ -838,10 +838,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StrategicAssessmentContextBuilder` | public static class | Chooses the advisor and gathers the player's strategic context from the live campaign. |
 | `StrategicAssessmentService` | public static class | Populates a Balance of Power view model's Strategic Assessment: offline summary, cached counsel, or a fresh async LLM call. |
 
-### CalradiaRemembers.WorldEvents (13)
+### CalradiaRemembers.WorldEvents (14)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `AuthoredHistoryBehavior` | public class | Loads the campaign's authored history file into the world and keeps its relation ledger. |
 | `ChronicleWriter` | public static class | Turns WorldEventStore.GetPlayerChronicle into a medieval-chronicle text and writes it to CalradiaRemembers_chronicle.log. |
 | `ConversationEventFeeder` | public static class | Records social outcomes of CR conversations into the world-event store. |
 | `FoodTradeMemoryBehavior` | public class | Records a hungry town's memory of the player's food trade there. |

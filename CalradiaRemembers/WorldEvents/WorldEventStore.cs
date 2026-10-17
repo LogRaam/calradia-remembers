@@ -261,7 +261,7 @@ namespace CalradiaRemembers.WorldEvents
                   case LongTermHistoryPolicy.CaptureStatus: return HistoryKind.Capture;
                   case LongTermHistoryPolicy.FellInBattleStatus: return HistoryKind.FellInBattle;
                   case LongTermHistoryPolicy.RebelReturnedStatus: return HistoryKind.Rebellion;
-                  default: return HistoryKind.None;
+                  default: return e.IsAuthored ? HistoryKind.Authored : HistoryKind.None;
                }
             default:
                return HistoryKind.None;
@@ -269,6 +269,20 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       // ── Recording ─────────────────────────────────────────────────────────
+
+      /// <summary>
+      ///   Replaces every authored entry of the long-term tier with these (docs/design/AUTHORED_HISTORY.md section 2:
+      ///   the file owns its events). What the game recorded is untouched. Returns how many were removed.
+      /// </summary>
+      public int ReplaceAuthored(IEnumerable<WorldEvent> authored)
+      {
+         int removed = _history.RemoveAll(e => e.IsAuthored);
+         foreach (WorldEvent e in authored ?? Enumerable.Empty<WorldEvent>())
+            if (e != null && e.IsAuthored && _history.All(h => h.Id != e.Id))
+               _history.Add(e);
+
+         return removed;
+      }
 
       /// <summary>Appends an event (assigning an id/day if absent) and prunes the log to its bounds.</summary>
       public void Record(WorldEvent e)

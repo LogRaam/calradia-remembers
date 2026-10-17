@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-524 rules read 403 facts.
+527 rules read 405 facts.
 
 ## Facts read by more than one rule
 
@@ -194,6 +194,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `GameStateManager.ActiveState` (2) | `DuelStagingSupport.ReadyToOpenTheSquare`, `SquareReadinessFacts` |
 | `GarrisonParty.Party` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `Hero.CivilianEquipment` (2) | `GiftEquipFacts`, `PlayerDressPolicy.Classify` |
+| `Hero.DeadOrDisabledHeroes` (2) | `AuthoredHistoryLoader.Validate`, `HistoryRelationLedger.Plan` |
 | `Hero.Find` (2) | `HistoryKnowledgeFacts`, `LongTermHistoryPolicy.WouldKnow` |
 | `Hero.HasMet` (2) | `AudienceWhoFacts`, `WeddingFacts` |
 | `Hero.HeroState` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
@@ -299,6 +300,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AuthoredCulturePolicy.Describe`: `Requires.Giver`, `Requires.Village`
 - `AuthoredCulturePolicy.Matches`: `Requires.Giver`, `Requires.Village`
 - `AuthoredGiverPolicy.WhyNot`: `Requires.Giver`
+- `AuthoredHistoryDocument`: `Current.UniqueGameId`
+- `AuthoredHistoryLoader.Validate`: `Hero.DeadOrDisabledHeroes`
 - `AuthoredHusbandPolicy.WhyNot`: `Requires.Husband`
 - `AuthoredMapTriggerPolicy.Begins`: `OnMap.ChancePerDay`, `Quest.Weight`
 - `AuthoredMapTriggerPolicy.WhyNot`: `GetPosition2D.DistanceSquared`, `Hero.Culture`, `MobileParty.BesiegedSettlement`, `MobileParty.CurrentSettlement`, `MobileParty.GetPosition2D`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`, `Settlement.Culture`, `Vec2.Zero`
@@ -496,6 +499,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `HireAgreementPolicy.AgreedPrice`: `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice`
 - `HireAgreementPolicy.CanAfford`: `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice`, `Hero.Gold`
 - `HistoryKnowledgeFacts`: `Hero.Clan`, `Hero.Find`, `Hero.HomeSettlement`, `Hero.MapFaction`, `Settlement.Find`, `Settlement.OwnerClan`
+- `HistoryRelationLedger.Plan`: `Hero.DeadOrDisabledHeroes`
 - `HostageBreachFacts`: `Clan.MapFaction`, `Hero.MapFaction`
 - `HostageBreachPolicy.IsPledgerAtFault`: `Clan.MapFaction`
 - `HostageCandidateFacts`: `Clan.Heroes`, `Clan.Leader`, `Hero.Clan`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`

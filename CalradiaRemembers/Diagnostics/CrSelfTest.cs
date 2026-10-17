@@ -301,6 +301,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("authored_quest_branches", Severity.Light, "Branching tales (docs/design/quest-editor/goal.md). A small tale written into this test (never a shipped file) loads through the real loader; a real lord is bound to it and it is taken on. At the crossroads the journal shows the stage and its open ways, not the closed one; meeting the lord takes the first OPEN way (the one under an unset flag is passed over). In the scene, the chat would list only the open ways; a marker for a closed way changes nothing; a finding sets its flag, the way it opened is listed and its marker is taken; closing the scene follows it to its own ending (no regard, gold or memory, so nothing is left behind). Abandons and forgets the tale after.", TestAuthoredQuestBranches),
          new SelfTest("authored_quest_said_choice", Severity.Light, "Branching tales, choices by words. A tale written into this test loads and a real lord takes it on. At its last stage the action interpreter of a conversation with that lord is taught the open choice by words and not the one closed by its flag; another lord's interpreter is taught nothing. Through the REAL bridge (story_choice, the path an LLM report takes): the closed choice is refused and changes nothing, the open one is taken and ends the tale on its own ending (no regard, gold or memory). Abandons and forgets the tale after.", TestAuthoredQuestSaidChoice),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
+         new SelfTest("authored_history", Severity.Light, "Gabriel (17/10/2026): a file per campaign of events from before it began, which can set a starting vanilla relation (docs/design/AUTHORED_HISTORY.md). Without touching the author's file, drives the real sync on the file's text plus one test event naming two real lords, dated ten years before the start, with a relation change of -15: the event is in the long-term memory as authored, the first lord knows it and a stranger does not, the pair's relation moved by exactly -15. Synced again: nothing moves (no stacking). An event dated inside the campaign is set aside. Then the author's file alone is synced back: the test event is gone and the relation is restored.", TestAuthoredHistory),
          new SelfTest("world_long_term_memory", Severity.Light, "Gabriel (17/10/2026): after 42 days a world event must switch to a long-term memory, used for the relations between NPCs and to speak of the past; the 7.7a bar accepted the same day. Records, dated 50 days ago, a battle of 400 men and a skirmish of 40 naming a real lord, through the real Record and its prune: the battle is in the long-term tier and gone from the news, the skirmish is gone entirely; the battle is not offered as news (his known events, a companion's news report); he knows it, and a lord of another realm and house, no kin of his, does not; cr.history lists it under his name. Then (Gabriel, 17/10/2026: a secret is tagged secret and known only to those who know it) cr.world_event_secret reaches the aged battle: a clanmate who knew it no longer does, he still does, cr.history marks it SECRET. Last (his answer 2, same day), a rising, a divorce and his fall in battle, each dated 50 days ago, reach the long-term tier. Removes them all after.", TestWorldLongTermMemory),
          new SelfTest("world_event_discretion", Severity.Light, "IdentityCrysys (Nexus, 03/10/2026): keep a world event from a character, or from all but those it names. Records a loud event naming two lords of a realm, then through the real console commands: public, a third lord hears it; secret, only the two do; hidden from the third, only he is unaware; removed, it is gone. Removes it after.", TestWorldEventDiscretion),
          new SelfTest("chat_art_loads", Severity.Light, "EmperorHaterius (Nexus, 04/10/2026): the Dark Leather window was see-through with no button, because its End Conversation and Memories labels are painted into art read from a hand-built path that missed his install (every shipped file read as not found). Checks the module folder is the one the engine found (SubModule.xml there), loads every chat image through the real loader (a failure writes its reason to the log as [IMAGE]), and checks that Dark Leather opens only when its art loads, Origin otherwise. Changes nothing.", TestChatArtLoads),
@@ -4994,6 +4995,74 @@ namespace CalradiaRemembers.Diagnostics
             Feed.Retract(bogusId);
             Feed.Retract(namedId);
          }
+
+         return t.Line();
+      }
+
+      private static string TestAuthoredHistory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("authored_history");
+
+         AuthoredHistoryBehavior history = AuthoredHistoryBehavior.Instance;
+         WorldEventStore store = WorldEventStore.Instance;
+
+         if (t.Abort(history == null || store == null, "authored history or the world-event store is not active")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && h.IsLord && h.Clan != null && h.MapFaction != null && !h.MapFaction.IsBanditFaction
+                                                          && h.BirthDay.GetYear < Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.GetYear - 20).ToList();
+         Hero a = lords.FirstOrDefault();
+         Hero b = lords.FirstOrDefault(h => a != null && h.MapFaction != a.MapFaction && h.Clan != a.Clan);
+         Hero stranger = lords.FirstOrDefault(h => a != null && b != null && h.Clan != a.Clan && h.Clan != b.Clan && h.MapFaction != a.MapFaction
+                                                   && h.MapFaction != b.MapFaction && h.Spouse != a && h.Spouse != b);
+
+         if (t.Skip(a == null || b == null || stranger == null, "no three adult lords of three houses and realms")) return t.Line();
+
+         // The author's own file is read but never written: the test event rides on a copy of its text.
+         string authorText = null;
+         try { if (System.IO.File.Exists(AuthoredHistoryBehavior.HistoryPath)) authorText = System.IO.File.ReadAllText(AuthoredHistoryBehavior.HistoryPath); }
+         catch (Exception ex) { t.Note("the author's file could not be read: " + ex.Message); }
+
+         var problems = new List<string>();
+         var doc = Logic.AuthoredHistory.AuthoredHistoryLoader.Parse(authorText, problems) ?? new Logic.AuthoredHistory.AuthoredHistoryDocument();
+         int startYear = Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.GetYear;
+         string id = "selftest_" + Guid.NewGuid().ToString("N");
+         doc.Events.Add(new Logic.AuthoredHistory.AuthoredHistoryEvent {
+            Id = id, Year = startYear - 10, Season = "spring", Kind = "betrayal", Summary = "[SELFTEST] " + a.Name + " betrayed " + b.Name + ".",
+            Actors = new List<string> {a.StringId}, Harmed = new List<string> {b.StringId}, Importance = 30,
+            Relations = new List<Logic.AuthoredHistory.AuthoredRelation> {new() {A = a.StringId, B = b.StringId, Change = -15}}
+         });
+         doc.Events.Add(new Logic.AuthoredHistory.AuthoredHistoryEvent {
+            Id = id + "_late", Year = startYear + 1, Kind = "feud", Summary = "[SELFTEST] too late.", Actors = new List<string> {a.StringId}
+         });
+
+         int before = CharacterRelationManager.GetHeroRelation(a, b);
+         bool clamped = before - 15 < -100;
+
+         try
+         {
+            string report = history.SyncFrom(Newtonsoft.Json.JsonConvert.SerializeObject(doc));
+            t.Note("sync: " + report);
+
+            WorldEvent kept = store.GetHistoryById("authored:" + id);
+            t.Expect("theEventIsInTheLongTermMemory", kept != null && kept.IsAuthored, true);
+            t.Expect("theLateEventIsSetAside", store.GetHistoryById("authored:" + id + "_late") == null, true);
+            if (t.Abort(kept == null, "the authored event never reached the long-term memory")) return t.Line();
+
+            t.Expect("theBetrayerKnowsIt", WorldEventStore.WouldKnow(a, kept), true);
+            t.Expect("aStrangerFarAwayDoesNot", WorldEventStore.WouldKnow(stranger, kept), false);
+            if (!clamped) t.Expect("theRelationMovedByTheChange", CharacterRelationManager.GetHeroRelation(a, b) - before, -15);
+
+            history.SyncFrom(Newtonsoft.Json.JsonConvert.SerializeObject(doc));
+            if (!clamped) t.Expect("aSecondLoadDoesNotStack", CharacterRelationManager.GetHeroRelation(a, b) - before, -15);
+         }
+         finally
+         {
+            // The author's file alone: the test event leaves and the ledger takes back its relation.
+            history.SyncFrom(authorText);
+         }
+
+         t.Expect("theTestEventIsGoneAfter", store.GetHistoryById("authored:" + id) == null, true);
+         t.Expect("theRelationIsRestored", CharacterRelationManager.GetHeroRelation(a, b), before);
 
          return t.Line();
       }

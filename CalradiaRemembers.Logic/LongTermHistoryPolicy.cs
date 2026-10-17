@@ -54,7 +54,10 @@ namespace CalradiaRemembers.Logic
         Divorce,
 
         /// <summary>A lord fell in battle (Gabriel, 17/10/2026).</summary>
-        FellInBattle
+        FellInBattle,
+
+        /// <summary>An event of the campaign's authored history the game has no kind of its own for (a betrayal, a feud, a debt...).</summary>
+        Authored
     }
 
     /// <summary>The facts of a third-party event leaving the news, read to decide whether the world keeps it.</summary>

@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (96)
+## Keys (97)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -31,6 +31,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_Appreciations_v1bytes` | `AppreciationBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_Assembly_v1bytes` | `AssemblyBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_AudienceTopicState_v1bytes` | `CompanionAudienceTopicBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_AuthoredHistoryLedger_v1bytes` | `AuthoredHistoryBehavior` | constant `LedgerSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_AuthoredQuestRun_v1` | `AuthoredQuestBehavior` | constant `RunKey` passed to SyncData (fact) |
 | `CalradiaRemembers_AuthoredQuestsDeclined_v1` | `AuthoredQuestBehavior` | constant `DeclinedKey` passed to SyncData (fact) |
 | `CalradiaRemembers_AuthoredQuestsDone_v1` | `AuthoredQuestBehavior` | constant `DoneKey` passed to SyncData (fact) |
