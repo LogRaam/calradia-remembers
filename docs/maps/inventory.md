@@ -20,8 +20,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 20000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
-| 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
+| 4000+ | Mod | `Mapping/EncounterContextBuilder.cs` |
 | 2500+ | Mod | `Chat/ChatViewModel.Exchanges.cs` |
 | 2500+ | Mod | `Chat/CouncilLift.cs` |
 | 2000+ | Sdk | `Models/EncounterContext.cs` |

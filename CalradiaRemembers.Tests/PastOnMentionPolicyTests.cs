@@ -118,6 +118,21 @@ namespace CalradiaRemembers.Tests
          PastOnMentionPolicy.Line(Event("e1", 10, "x"), r).Should().NotContain(PastOnMentionPolicy.BeforeBirthTag);
       }
 
+      // STAKE: 67 settlements end in "Castle"; "did you hold the castle?" naming them all would drag up every old siege,
+      // the very thing only-a-name was meant to prevent.
+      [Test]
+      public void GIVEN_a_word_shared_by_many_place_names_WHEN_the_message_uses_it_THEN_it_names_none_of_them()
+      {
+         var places = new[] {
+            new KeyValuePair<string, string>("castle_1", "Ortongard Castle"), new KeyValuePair<string, string>("castle_2", "Druimmor Castle"),
+            new KeyValuePair<string, string>("castle_3", "Hertogea Castle"), new KeyValuePair<string, string>("town_1", "Pravend")
+         };
+
+         PastOnMentionPolicy.IdsNamedIn(places, new[] {"castle"}, s => s.ToLowerInvariant(), 3).Should().BeEmpty();
+         PastOnMentionPolicy.IdsNamedIn(places, new[] {"ortongard"}, s => s.ToLowerInvariant(), 3).Should().Equal("castle_1");
+         PastOnMentionPolicy.IdsNamedIn(places, new[] {"pravend"}, s => s.ToLowerInvariant(), 3).Should().Equal("town_1");
+      }
+
       // STAKE: Gabriel 17/10/2026, "secret event devrait etre tagged secret": a secret from the past keeps its tag, so
       // the speaker speaks of it only in confidence.
       [Test]

@@ -98,6 +98,42 @@ namespace CalradiaRemembers.Logic
         public const string BeforeBirthTag = "(before you were born: you know it as it was told) ";
 
         /// <summary>
+        ///   A part of a name shared by more than this many of the dead or of the settlements names none of them: 67
+        ///   settlements end in "Castle" and hundreds of map spots are a "Bog" or a "Pasture", so "did you hold the castle?"
+        ///   must not name every castle and drag up their old sieges.
+        /// </summary>
+        public const int MostSharingADistinctiveNamePart = 2;
+
+        /// <summary>
+        ///   The ids of <paramref name="population" /> (id, name) that the message names: a part of the name at least
+        ///   <paramref name="minPartLength" /> long, folded, is among the message's folded tokens, and that part is
+        ///   distinctive (shared by at most <see cref="MostSharingADistinctiveNamePart" /> of the population).
+        /// </summary>
+        public static IReadOnlyCollection<string> IdsNamedIn(IReadOnlyCollection<KeyValuePair<string, string>> population, ICollection<string> foldedMessageTokens,
+                                                             Func<string, string> fold, int minPartLength)
+        {
+            var named = new HashSet<string>();
+            if (population == null || foldedMessageTokens == null || foldedMessageTokens.Count == 0 || fold == null) return named;
+
+            List<(string Id, List<string> Parts)> split = population
+                .Where(p => !string.IsNullOrEmpty(p.Key) && !string.IsNullOrEmpty(p.Value))
+                .Select(p => (p.Key, p.Value.Split(new[] {' ', '-'}, StringSplitOptions.RemoveEmptyEntries)
+                                     .Where(part => part.Length >= minPartLength).Select(fold).Distinct().ToList()))
+                .ToList();
+
+            var sharing = new Dictionary<string, int>();
+            foreach ((string _, List<string> parts) in split)
+                foreach (string part in parts)
+                    sharing[part] = sharing.TryGetValue(part, out int n) ? n + 1 : 1;
+
+            foreach ((string id, List<string> parts) in split)
+                if (parts.Any(part => foldedMessageTokens.Contains(part) && sharing[part] <= MostSharingADistinctiveNamePart))
+                    named.Add(id);
+
+            return named;
+        }
+
+        /// <summary>
         ///   True when the event names someone or something the player named. The cheap test, run before the knowledge
         ///   gate: the past a speaker brings up is the intersection of both, so the order does not change what he knows.
         /// </summary>

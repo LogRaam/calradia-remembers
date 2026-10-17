@@ -4412,7 +4412,8 @@ namespace CalradiaRemembers.Mapping
       }
 
       // The past names the dead (an executed father, a lord fallen at a siege) and places: added to the names the
-      // recent-news scan already found among the living, kingdoms and clans. Hideouts are no one's past.
+      // recent-news scan already found among the living, kingdoms and clans. Hideouts are no one's past. Only a
+      // distinctive part of a name counts ("Castle", "Bog" or an epithet names no one, PastOnMentionPolicy.IdsNamedIn).
       private static void AddNamedDeadAndPlaces(HashSet<string> messageKeywords, HashSet<string> ids)
       {
          if (messageKeywords == null || messageKeywords.Count == 0) return;
@@ -4421,18 +4422,13 @@ namespace CalradiaRemembers.Mapping
 
          try
          {
-            foreach (Hero h in Hero.DeadOrDisabledHeroes)
-            {
-               string name = h?.Name?.ToString();
-               if (!string.IsNullOrEmpty(name) && !h.IsHumanPlayerCharacter && NameSharesFoldedToken(name, folded)) ids.Add(h.StringId);
-            }
+            List<KeyValuePair<string, string>> dead = Hero.DeadOrDisabledHeroes.Where(h => h != null && !h.IsHumanPlayerCharacter)
+                                                          .Select(h => new KeyValuePair<string, string>(h.StringId, h.Name?.ToString())).ToList();
+            List<KeyValuePair<string, string>> places = Settlement.All.Where(s => s != null && !s.IsHideout)
+                                                                  .Select(s => new KeyValuePair<string, string>(s.StringId, s.Name?.ToString())).ToList();
 
-            foreach (Settlement s in Settlement.All)
-            {
-               if (s == null || s.IsHideout) continue;
-               string name = s.Name?.ToString();
-               if (!string.IsNullOrEmpty(name) && NameSharesFoldedToken(name, folded)) ids.Add(s.StringId);
-            }
+            ids.UnionWith(PastOnMentionPolicy.IdsNamedIn(dead, folded, NameNormalization.Fold, WorldFactRelevancePolicy.MinKeywordLength));
+            ids.UnionWith(PastOnMentionPolicy.IdsNamedIn(places, folded, NameNormalization.Fold, WorldFactRelevancePolicy.MinKeywordLength));
          }
          catch { /* best effort: the living, the realms and the clans still count */ }
       }

@@ -5027,7 +5027,7 @@ namespace CalradiaRemembers.Diagnostics
          doc.Events.Add(new Logic.AuthoredHistory.AuthoredHistoryEvent {
             Id = id, Year = Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.GetYear - 9, Season = "autumn", Kind = "betrayal",
             Summary = "[SELFTEST] " + a.Name + " betrayed " + b.Name + " at a parley.", Actors = new List<string> {a.StringId}, Harmed = new List<string> {b.StringId},
-            Importance = 30, Secret = true
+            Importance = 100, Secret = true // the greatest, so a long campaign's real history naming the second lord cannot crowd it out
          });
 
          int today = (int) CampaignTime.Now.ToDays;
@@ -5038,10 +5038,12 @@ namespace CalradiaRemembers.Diagnostics
             string asked = "What do you think of " + b.Name + "?";
             string block = EncounterContextBuilder.ResolvePastOnMention(a, asked, today) ?? "";
             t.Note("block for the betrayer: " + block);
-            t.Expect("theBetrayerAskedByNameRemembersIt", block.Contains("[SELFTEST]"), true);
-            t.Expect("theLineSaysHowLongAgo", block.Contains("years ago"), true);
-            t.Expect("theLineSaysHeWasPartOfIt", block.Contains(Logic.PastOnMentionPolicy.LivedItTag), true);
-            t.Expect("theLineKeepsTheSecretTag", block.Contains(Logic.RumorDiscretion.SecretTag), true);
+            string line = block.Split((char) 10).FirstOrDefault(l => l.Contains("[SELFTEST]")) ?? "";
+            t.Expect("theBetrayerAskedByNameRemembersIt", line.Length > 0, true);
+            t.Expect("theLineSaysHowLongAgo", line.Contains("years ago"), true);
+            t.Expect("theLineSaysHeWasPartOfIt", line.Contains(Logic.PastOnMentionPolicy.LivedItTag), true);
+            t.Expect("theLineKeepsTheSecretTag", line.Contains(Logic.RumorDiscretion.SecretTag), true);
+            t.Expect("aCommonWordInPlaceNamesBringsNoPast", (EncounterContextBuilder.ResolvePastOnMention(a, "Did you hold the castle yesterday?", today) ?? "").Contains("[SELFTEST]"), false);
 
             t.Expect("aStrangerAskedTheSameKnowsNothing", (EncounterContextBuilder.ResolvePastOnMention(stranger, asked, today) ?? "").Contains("[SELFTEST]"), false);
             t.Expect("aWordWithoutANameBringsNoPast", (EncounterContextBuilder.ResolvePastOnMention(a, "How went the battle yesterday?", today) ?? "").Contains("[SELFTEST]"), false);
