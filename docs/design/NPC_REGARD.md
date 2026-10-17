@@ -516,6 +516,13 @@ rule), `prompt-sections.md` if a section moves.
 
 ## 14. Open questions for Gabriel
 
+**Answered 17/10/2026 (Gabriel: "1: les deux, 2: oui, 3: oui, 4: oui"):**
+- Hostile clan: BOTH. A clan is listed hostile by the leader's regard, and a clan of a realm at war is marked as such.
+- Vanilla relation BIASES the draw of a generated past (a pair at vanilla +80 cannot draw a quarrel, and the reverse).
+- Captures, executions and discovered schemes between NPCs ARE recorded as world events, so they reach the long-term tier.
+- The significance bar of 7.7a is accepted as proposed.
+
+
 1. **"Hostile clan": the leader's regard, or being at war?** Recommended: the leader's regard (vanilla itself means
    leader-to-leader by "clan relation", `Clan.cs:939`), with "at war" shown as a tag beside it. Two clans of the same
    realm can hate each other; two enemy realms' clans may respect each other.
