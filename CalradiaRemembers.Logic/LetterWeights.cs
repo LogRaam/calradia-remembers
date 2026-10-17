@@ -193,6 +193,7 @@ namespace CalradiaRemembers.Logic
                 case LetterReason.PlayerLetterReply:
                 case LetterReason.WarSummons:
                 case LetterReason.WarLevyDemand:
+                case LetterReason.PatrolReport:
                     return WeightGuaranteedBypassSentinel;
 
                 default:

@@ -27,6 +27,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   matches no settlement exactly refuses the order with a reason. Taught in the action catalog (the interpreter), the 1:1
   block and the council block; the catalog's `about` and `target_settlement` texts are short to keep the compact
   interpreter prompt under its 28,000-character budget. The number of men is chosen on the screen, not in the order.
+- **Companion patrols, the letters (increment 3 of 4).** Every 30 days a patrolling companion writes (new
+  `LetterReason.PatrolReport`, outside the mailbox budget) with the patrol's real record only (`PatrolLetterText`: the
+  place, the days, the fights won and lost and against how many, the men fit now) and asks whether to keep on. A letter
+  from the player that clearly orders the patrol home carries a "[PATROL] stop" control line the game reads: a letter
+  the player writes first is obeyed when it arrives (even if the companion does not write back); an answer to the
+  monthly letter rides the courier (2 days). No line, or no answer, and the patrol goes on. cr.testall
+  `companion_patrol` now also checks the monthly letter is sent and that a stop order turns the patrol for home.
 - **Chat Temperature setting** (fkasad, 17/10: does the mod tune the temperature by the kind of call? It does,
   from 0.1 for extraction to 0.7 for conversation, but the conversation value was fixed in code). MCM, LLM Provider:
   "Chat Temperature", 0.10 to 1.20, default 0.70, so nothing changes for anyone who leaves it. It drives the

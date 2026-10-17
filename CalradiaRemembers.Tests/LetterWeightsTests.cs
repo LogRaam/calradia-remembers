@@ -63,7 +63,8 @@ namespace CalradiaRemembers.Tests
             { LetterReason.PlayerLetterReply, LetterWeights.WeightGuaranteedBypassSentinel },
             // The vassal war duty (15/10/2026): a summons and a levy carry a deadline the game holds the player to.
             { LetterReason.WarSummons, LetterWeights.WeightGuaranteedBypassSentinel },
-            { LetterReason.WarLevyDemand, LetterWeights.WeightGuaranteedBypassSentinel }
+            { LetterReason.WarLevyDemand, LetterWeights.WeightGuaranteedBypassSentinel },
+            { LetterReason.PatrolReport, LetterWeights.WeightGuaranteedBypassSentinel }
         };
 
         // The exhaustiveness guarantee, moved here now that production degrades gracefully instead of

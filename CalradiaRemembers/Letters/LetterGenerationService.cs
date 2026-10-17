@@ -496,13 +496,20 @@ namespace CalradiaRemembers.Letters
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string writtenBy = CorrespondenceRank.WrittenByFor(senderHero, profile, LetterReason.PlayerLetterReply);
+         // Gabriel (16/10/2026): a patrolling companion is stopped by letter; read on the game thread, before any await.
+         bool onPatrol = Missions.CompanionPatrolBehavior.Instance?.IsPatrolling(profile.Id) == true;
          string message = LetterPromptBuilder.BuildPlayerLetterReplyDecisionMessage(
             profile, playerLetter.Content ?? "", playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy,
-            Mapping.DayMoodReader.Draw(senderHero).Mood);
+            Mapping.DayMoodReader.Draw(senderHero).Mood, onPatrol);
 
          string rawDecision = await CallLlmForLetterAsync(llmServices, profile, message);
 
          if (string.IsNullOrWhiteSpace(rawDecision)) return;
+
+         // The letter has reached them: a stop order is obeyed now, whether or not they write back.
+         if (onPatrol && PatrolLetterText.OrdersStop(rawDecision))
+            LetterMutationQueue.Post(() => Missions.CompanionPatrolBehavior.Instance?.ObeyLetterToStop(profile.Id));
+         rawDecision = PatrolLetterText.StripOrderLine(rawDecision);
 
          // Lordfadooboo (28/09/2026): the reader's judgement of the letter moves their regard, reply or not (an
          // insult is the letter most often passed over, and the one most worth judging).
@@ -601,13 +608,23 @@ namespace CalradiaRemembers.Letters
          // player has just broken; with the follow-up's reason, every reply after it reproached the player again.
          LetterReason replyReason = Logic.LetterReplyReason.Of(originalLetter.Reason);
          string writtenBy = CorrespondenceRank.WrittenByFor(giverHero, profile, replyReason);
+         bool onPatrol = Missions.CompanionPatrolBehavior.Instance?.IsPatrolling(profile.Id) == true;
          string message = LetterPromptBuilder.BuildReplyLetterMessage(
             profile, originalLetter.PlayerReply ?? "", replyReason, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy,
-            Mapping.DayMoodReader.Draw(giverHero).Mood);
+            Mapping.DayMoodReader.Draw(giverHero).Mood, onPatrol);
 
          string raw = await CallLlmForLetterAsync(llmServices, profile, message);
 
          if (string.IsNullOrWhiteSpace(raw)) return;
+
+         // The player answered the monthly letter: "come back" rides the courier (Gabriel, 16/10/2026).
+         if (onPatrol && PatrolLetterText.OrdersStop(raw))
+            LetterMutationQueue.Post(() =>
+            {
+               Hero companion = Hero.FindFirst(h => h.StringId == profile.Id);
+               if (companion != null) Missions.CompanionPatrolBehavior.Instance?.OrderRecallByLetter(companion);
+            });
+         raw = PatrolLetterText.StripOrderLine(raw);
 
          // Lordfadooboo (28/09/2026): the player's answer to this character's letter is judged too.
          LetterTone tone = LetterRegardPolicy.ParseTone(raw);

@@ -46,7 +46,9 @@ namespace CalradiaRemembers.Logic
                 // The vassal war duty (15/10/2026): a summons and a levy demand carry a deadline the game holds the
                 // player to, so they can never lose the day's slot to a livelier subject.
                 || reason == LetterReason.WarSummons
-                || reason == LetterReason.WarLevyDemand;
+                || reason == LetterReason.WarLevyDemand
+                // The patrol's monthly letter (Gabriel, 16/10/2026): the player decides on it whether the men come home.
+                || reason == LetterReason.PatrolReport;
         }
 
         /// <summary>

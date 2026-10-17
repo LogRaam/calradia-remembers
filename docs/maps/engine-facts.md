@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-518 rules read 401 facts.
+521 rules read 401 facts.
 
 ## Facts read by more than one rule
 
@@ -61,6 +61,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.IsClanLeader` (8) | `DivorceBlockFacts`, `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `DivorcedSpouseFacts`, `FactionGuidelinesPolicy.NarrowToOwnCulture`, `PromptKindFacts`, `StationGuidelinesPolicy.ResolveStationKey`, `StationGuidelinesPolicy.SelectStationText` |
 | `Party.PartySizeLimit` (8) | `CourtActionPolicy.IsPartyWeakened`, `GarrisonStrength.BandOf`, `LevyTroopFacts`, `RecruitTroopsPolicy.TroopsToAsk`, `ReinforceGarrisonPolicy.MayAsk`, `ReinforceGarrisonPolicy.TroopsToAsk`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `Array.Empty` (7) | `AppreciationPolicy.SelectDominant`, `GrudgePolicy.SelectDominant`, `PromptProfileFolders.List`, `PromptProfileReader.Read`, `SceneChoiceMenu.Items`, `SceneChoiceMenu.Read`, `SceneChoiceMenuFacts` |
+| `DayMoodReader.Draw` (7) | `CorrespondencePreferenceParser.Parse`, `LetterRegardPolicy.ParseTone`, `LetterRegardPolicy.StripToneLine`, `LetterReplyDecisionParser.Parse`, `PatrolLetterText.OrdersStop`, `PatrolLetterText.StripOrderLine`, `PerceivedImageFacts` |
 | `Hero.Name` (7) | `BattleRecordText.Summary`, `BattleSideFacts`, `QuestMenuEntry`, `SkirmishFacts`, `SkirmishFoe`, `SkirmishLine`, `SkirmishMemoryText.CountIn` |
 | `Hero.PartyBelongedToAsPrisoner` (7) | `GiftEquipFacts`, `GiftEquipPolicy.WearsOnBattleSet`, `HeroNaming`, `NotHisToSellFacts`, `PrisonerRecruitmentPolicy.Evaluate`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
 | `MobileParty.LeaderHero` (7) | `DeedRefusal`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `RideWithMeFacts` |
@@ -85,7 +86,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Town.FoodStocks` (6) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination`, `TownFoodPolicy.StocksAfterRelief` |
 | `Town.Prosperity` (6) | `FiefCandidate`, `HardshipPolicy.ShouldRecord`, `LevyFacts`, `TermsFacts`, `WarDutyConfiscation.HasTakeable`, `WarDutyInput` |
 | `CurrentSettlement.GetPosition2D` (5) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `JealousyHearingPolicy.WithinEarshot` |
-| `DayMoodReader.Draw` (5) | `CorrespondencePreferenceParser.Parse`, `LetterRegardPolicy.ParseTone`, `LetterRegardPolicy.StripToneLine`, `LetterReplyDecisionParser.Parse`, `PerceivedImageFacts` |
 | `Hero.CompanionOf` (5) | `FactionGuidelinesPolicy.NarrowToOwnCulture`, `PrisonerExchangePolicy.IsExchangeable`, `PromptKindFacts`, `StationGuidelinesPolicy.ResolveStationKey`, `StationGuidelinesPolicy.SelectStationText` |
 | `IFaction.IsAtWarWith` (5) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `MarriageStateFacts`, `OutlawPolicy.IsBrigandage` |
 | `Kingdom.RulingClan` (5) | `CaptiveOfferFacts`, `OutlawPolicy.IsBrigandage`, `WarDutyLive`, `WarDutyPolicy.Decide`, `WarLoomingPolicy.ShouldRecord` |
@@ -206,6 +206,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Ledger.OpenCase` (2) | `StandingAim`, `SummonsFacts` |
 | `LocationComplex.GetLocationWithId` (2) | `DuelStagingSupport.CanHoldATownDuel`, `DuelVenuePolicy.Choose` |
 | `MapEventSide.LeaderParty` (2) | `SkirmishFacts`, `SkirmishFoe` |
+| `MemberRoster.TotalHealthyCount` (2) | `AuthoredBandSizeFacts`, `PatrolReportFacts` |
 | `MobileParty.ActualClan` (2) | `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
 | `MobileParty.AttachedTo` (2) | `ChaseFacts`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter` |
 | `MobileParty.CurrentSettlement` (2) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts` |
@@ -593,6 +594,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `PartyCounselFacts`: `Character.HeroObject`, `EquipmentElement.Item`, `Hero.GetSkillValue`, `MemberRoster.GetTroopRoster`, `MobileParty.InventoryCapacity`, `MobileParty.ItemRoster`, `MobileParty.Morale`, `MobileParty.TotalWeightCarried`
 - `PartyMoraleMood.DriverFor`: `MobileParty.Morale`
 - `PatrolLeashFacts`: `AiBehavior.EngageParty`, `AiBehavior.FleeToGate`, `AiBehavior.FleeToParty`, `AiBehavior.FleeToPoint`, `AiBehavior.PatrolAroundPoint`, `GatePosition.ToVec2`, `GetPosition2D.Distance`, `MobileParty.DefaultBehavior`, `MobileParty.GetNumDaysForFoodToLast`, `MobileParty.MapEvent`, `MobileParty.ShortTermBehavior`, `MobileParty.SiegeEvent`, `MobileParty.TargetSettlement`, `Settlement.Find`
+- `PatrolLetterText.OrdersStop`: `DayMoodReader.Draw`
+- `PatrolLetterText.StripOrderLine`: `DayMoodReader.Draw`
+- `PatrolReportFacts`: `MemberRoster.TotalHealthyCount`
 - `PeaceMediationPolicy.CanMediate`: `Hero.GetRelation`, `Hero.IsFactionLeader`, `StatureReader.Player`
 - `PeaceMediationPolicy.Evaluate`: `Hero.GetRelation`, `Profile.ReputationWithPlayer`, `StatureReader.Player`
 - `PendingSummaryJob`: `DialogFlow.Profile`, `GameStateBridge.GetCurrentGameDay`, `ModSettings.ReplyLanguage`

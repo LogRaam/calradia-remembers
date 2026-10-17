@@ -16013,6 +16013,16 @@ namespace CalradiaRemembers.Diagnostics
             patrols.DebugHour();
             t.Expect("theLeashReAnchorsIt", party.TargetSettlement == village && party.DefaultBehavior == AiBehavior.PatrolAroundPoint, true);
 
+            // STAKE: Gabriel: each month the companion writes and asks; the letter is due and sent (logged, not written here).
+            CompanionPatrolBehavior.DebugSuppressLetters = true;
+            patrols.DebugDay(forceReport: true);
+            t.Expect("theMonthlyLetterGoesOut", patrols.DebugStateOf(companion)?.LastReportDay, (int) CampaignTime.Now.ToDays);
+
+            // STAKE: a letter saying "come back" turns the patrol for home within the hour.
+            patrols.ObeyLetterToStop(companion.StringId);
+            patrols.DebugHour();
+            t.Expect("aLetterToStopTurnsItHome", patrols.DebugStateOf(companion)?.State, CompanionPatrolState.Returning);
+
             // STAKE: coming home hands back every man (the spike's stop left the wounded behind).
             patrols.DebugBringHomeNow(companion);
             t.Expect("everyManIsBack", MobileParty.MainParty.MemberRoster.TotalManCount, totalBefore);
@@ -16020,6 +16030,7 @@ namespace CalradiaRemembers.Diagnostics
          }
          finally
          {
+            CompanionPatrolBehavior.DebugSuppressLetters = false;
             if (patrols.IsPatrolling(companion.StringId)) patrols.DebugBringHomeNow(companion);
             if (added > 0) MobileParty.MainParty.MemberRoster.AddToCounts(recruit, -added);
          }

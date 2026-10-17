@@ -294,6 +294,59 @@ namespace CalradiaRemembers.Missions
 
       // ── Every hour ────────────────────────────────────────────────────────
 
+      /// <summary>Each day: a patrol out for a month writes to the player with its record and asks whether to go on.</summary>
+      private void OnDailyTick()
+      {
+         foreach (CompanionPatrol p in _patrols.Where(x => x.State == CompanionPatrolState.Patrolling).ToList())
+         {
+            CompanionPatrol patrol = p;
+            SafeRun.Step($"CompanionPatrolBehavior.Report({patrol.CompanionName})", () =>
+            {
+               if (!CompanionPatrolPolicy.ReportDue(patrol.LastReportDay, Today)) return;
+               patrol.LastReportDay = Today;
+               SendReport(patrol);
+            });
+         }
+      }
+
+      /// <summary>Set by cr.testall so a forced report is logged rather than written.</summary>
+      internal static bool DebugSuppressLetters;
+
+      private void SendReport(CompanionPatrol p)
+      {
+         Hero companion = HeroById(p.CompanionId);
+         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         if (companion == null || behavior?.LlmServices == null || behavior.Store == null) return;
+
+         string context = PatrolLetterText.Context(new PatrolReportFacts {
+            SettlementName = p.SettlementName,
+            DaysOut = Today - p.StartDay,
+            MenAtDeparture = p.MenAtDeparture,
+            MenFitNow = FindParty(p.PartyId)?.MemberRoster.TotalHealthyCount ?? 0,
+            BattlesWon = p.BattlesWon,
+            BattlesLost = p.BattlesLost,
+            FoesBeaten = p.FoesBeaten
+         });
+
+         if (DebugSuppressLetters)
+         {
+            ModLog.Info($"[PATROL] (testall) monthly letter from {p.CompanionName} not written: {context}");
+
+            return;
+         }
+
+         NpcProfile profile = behavior.Store.Get(companion.StringId) ?? Mapping.HeroProfileMapper.FromHero(companion);
+         Letters.LetterGenerationService.QueueInitialLetter(profile, companion, LetterReason.PatrolReport, context, behavior.LlmServices, behavior.Store, Today);
+         ModLog.Info($"[PATROL] monthly letter from {p.CompanionName}: {context}");
+      }
+
+      /// <summary>Runs the daily handler now, with <paramref name="forceReport" /> treating every patrol's letter as due.</summary>
+      internal void DebugDay(bool forceReport)
+      {
+         if (forceReport) foreach (CompanionPatrol p in _patrols) p.LastReportDay = Today - CompanionPatrolPolicy.ReportEveryDays;
+         OnDailyTick();
+      }
+
       private void OnHourlyTick()
       {
          foreach (CompanionPatrol p in _patrols.ToList())
@@ -452,6 +505,16 @@ namespace CalradiaRemembers.Missions
          return (true, $"{companion.Name} breaks off the patrol of {p.SettlementName} and rides back to you with the men.");
       }
 
+      /// <summary>The player's letter, now delivered, orders the patrol home: it turns back at once.</summary>
+      public void ObeyLetterToStop(string companionId)
+      {
+         CompanionPatrol p = _patrols.FirstOrDefault(x => x.CompanionId == companionId && x.State == CompanionPatrolState.Patrolling);
+         if (p == null) return;
+
+         p.RecallOrderDay = Today;
+         ModLog.Info($"[PATROL] {p.CompanionName} reads the player's letter to come back; turning for home.");
+      }
+
       /// <summary>A letter ordering the patrol home: it takes effect when the courier reaches it.</summary>
       public (bool Sent, string Message) OrderRecallByLetter(Hero companion)
       {
@@ -559,6 +622,14 @@ namespace CalradiaRemembers.Missions
       /// <summary>Runs the hourly handler now.</summary>
       internal void DebugHour() => OnHourlyTick();
 
+      /// <summary>The patrol's state and the day of its last letter, for cr.testall.</summary>
+      internal (CompanionPatrolState State, int LastReportDay)? DebugStateOf(Hero companion)
+      {
+         CompanionPatrol p = _patrols.FirstOrDefault(x => x.CompanionId == companion?.StringId);
+
+         return p == null ? null : (p.State, p.LastReportDay);
+      }
+
       /// <summary>The patrol's party, for cr.testall.</summary>
       internal MobileParty DebugPartyOf(Hero companion) => FindParty(_patrols.FirstOrDefault(x => x.CompanionId == companion?.StringId)?.PartyId);
 
@@ -585,6 +656,7 @@ namespace CalradiaRemembers.Missions
       public override void RegisterEvents()
       {
          CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
+         CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
          CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
          CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
          CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);

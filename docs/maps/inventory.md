@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 506 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1157 types in 30 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1159 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -862,7 +862,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (699)
+### CalradiaRemembers.Logic (701)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1288,6 +1288,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PartyMoraleMood` | public static class | Turns the player party's morale into the weekly mood nudge it gives their companions, if any. |
 | `PartyReaction` | public class | One party's verdict on a divorce. |
 | `PatrolLeashFacts` | public class | What the hourly leash knows of a patrolling party. |
+| `PatrolLetterText` | public static class | Pure: the monthly patrol letter's Context, and reading a stop order out of a letter's answer. |
+| `PatrolReportFacts` | public class | The record a monthly patrol letter reports. |
 | `PeaceMediationBlock` | public enum | Why the player cannot (yet) mediate peace with this leader, or None when they can. |
 | `PeaceMediationPolicy` | public static class | The pure gate behind mediate_peace. |
 | `PendingMatchBook` | public class | The matches other mods have registered, and the door they pass. |
