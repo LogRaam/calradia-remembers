@@ -5019,6 +5019,12 @@ namespace CalradiaRemembers.Diagnostics
                                                           && h.Clan != a.Clan && h.MapFaction == a.MapFaction);
          if (t.Skip(a == null || b == null, "no two lords of two houses in one realm")) return t.Line();
 
+         // News of ANOTHER realm, told where the first lord stands: news of their own realm is something they took part
+         // in (LordTookPartIn), never gossip (17/10/2026 first run: neither lord could ask).
+         Kingdom elsewhere = Kingdom.All.FirstOrDefault(k => k != null && !k.IsEliminated && k != a.MapFaction);
+         Settlement near = a.CurrentSettlement ?? a.HomeSettlement ?? b.CurrentSettlement ?? b.HomeSettlement;
+         if (t.Skip(elsewhere == null, "no second realm to hear news of")) return t.Line();
+
          string id = "selftest_gossip_" + Guid.NewGuid().ToString("N");
          string key = "we:" + id;
          bool priorSwitch = s.NpcsRaiseWorldNews;
@@ -5028,12 +5034,14 @@ namespace CalradiaRemembers.Diagnostics
             s.NpcsRaiseWorldNews = true;
             store.Record(new WorldEvent {
                Id = id, Type = WorldEventType.Other, Day = (int) CampaignTime.Now.ToDays, Magnitude = 95,
-               Summary = "[SELFTEST] A great war shakes " + a.MapFaction.Name + ".", FactionIds = new List<string> {a.MapFaction.StringId}
+               Summary = "[SELFTEST] A great war shakes " + elsewhere.Name + ".", FactionIds = new List<string> {elsewhere.StringId}, PlaceId = near?.StringId
             });
 
             bool Offers(Hero lord) => intercept.DebugBuildRecentMatters(lord).Any(m => m.Key == key && m.Register == Logic.Interception.RecentMatterRegister.WorldGossip);
 
-            if (t.Abort(!Offers(a) || !Offers(b), $"the news did not reach both lords as gossip (a={Offers(a)}, b={Offers(b)})")) return t.Line();
+            bool Knows(Hero lord) => store.GetKnownEvents(lord, (int) CampaignTime.Now.ToDays, 4).Any(e => e.Id == id);
+            if (t.Abort(!Offers(a) || !Offers(b),
+                   $"the news did not reach both lords as gossip (a={Offers(a)}, knows={Knows(a)}; b={Offers(b)}, knows={Knows(b)}; told at {near?.Name})")) return t.Line();
 
             intercept.DebugNoteGossipOfferedBy(a, key);
             t.Expect("theNextCharacterDoesNotAskAgain", Offers(b), false);
