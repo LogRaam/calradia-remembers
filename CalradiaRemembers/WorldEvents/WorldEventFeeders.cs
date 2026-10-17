@@ -107,12 +107,6 @@ namespace CalradiaRemembers.WorldEvents
 
       #region private
 
-      // A battle fought over a settlement (a siege assault) carries further than a field skirmish.
-      private static int BattleMagnitude(MapEvent mapEvent)
-         => mapEvent.MapEventSettlement != null
-            ? 45
-            : 35;
-
       private static List<string> FactionIds(params Hero[] heroes)
          => heroes.Where(h => h?.MapFaction != null).Select(h => h.MapFaction.StringId).Distinct().ToList();
 
@@ -437,6 +431,56 @@ namespace CalradiaRemembers.WorldEvents
          => (mapEvent.GetMapEventSide(BattleSideEnum.Attacker)?.TroopCount ?? 0) +
             (mapEvent.GetMapEventSide(BattleSideEnum.Defender)?.TroopCount ?? 0);
 
+      /// <summary>Names a side for the world's record: its hero leader, else what the game knows of its party (BattleRecordText).</summary>
+      private static string SideName(MapEvent mapEvent, BattleSideEnum side, Hero leader)
+      {
+         PartyBase party = mapEvent.GetMapEventSide(side)?.LeaderParty;
+
+         return BattleRecordText.Side(new BattleSideFacts {
+            LeaderName = leader?.Name == null ? null : LeaderName(leader),
+            PartyName = party?.Name?.ToString(),
+            IsBandit = party?.MapFaction?.IsBanditFaction == true,
+            FactionName = party?.MapFaction?.IsBanditFaction == true ? null : party?.MapFaction?.Name?.ToString()
+         });
+      }
+
+      /// <summary>The healthy men both sides brought to the field, read at the start (the end counts only survivors).</summary>
+      private static int MenAtStart(MapEvent mapEvent)
+         => (mapEvent.GetMapEventSide(BattleSideEnum.Attacker)?.HealthyTroopCountAtMapEventStart ?? 0) +
+            (mapEvent.GetMapEventSide(BattleSideEnum.Defender)?.HealthyTroopCountAtMapEventStart ?? 0);
+
+      /// <summary>The realms of both sides (bandits aside), so a leaderless side's own people hear of its fall.</summary>
+      private static IEnumerable<string> SideFactionIds(MapEvent mapEvent)
+         => new[] {BattleSideEnum.Attacker, BattleSideEnum.Defender}
+            .Select(s => mapEvent.GetMapEventSide(s)?.LeaderParty?.MapFaction)
+            .Where(f => f != null && !f.IsBanditFaction)
+            .Select(f => f.StringId);
+
+      /// <summary>The settlement closest to where the battle was fought (hideouts aside), if it is near enough to name.</summary>
+      private static Settlement NearestSettlementTo(MapEvent mapEvent)
+      {
+         try
+         {
+            Vec2 at = mapEvent.Position.ToVec2();
+            Settlement best = null;
+            float bestDistance = BattleRecordText.NearPlaceMaxDistance;
+
+            foreach (Settlement candidate in Settlement.All)
+            {
+               if (candidate == null || candidate.IsHideout) continue;
+
+               float d = candidate.GetPosition2D.Distance(at);
+               if (d >= bestDistance) continue;
+
+               bestDistance = d;
+               best = candidate;
+            }
+
+            return best;
+         }
+         catch { return null; }
+      }
+
       private static Hero SideLeader(MapEvent mapEvent, BattleSideEnum side)
       {
          MapEventSide s = mapEvent.GetMapEventSide(side);
@@ -587,12 +631,15 @@ namespace CalradiaRemembers.WorldEvents
                                 ? BattleSideEnum.Attacker
                                 : BattleSideEnum.Defender);
 
-            Settlement place = mapEvent.MapEventSettlement;
             BattleSetting setting = isSiege
                ? BattleSetting.Siege
                : mapEvent.EventType == MapEvent.BattleTypes.Raid
                   ? BattleSetting.Raid
                   : BattleSetting.OpenField;
+            // fkasad (16/10/2026): a field battle the game tied to no settlement read "in battle", nowhere. It is now
+            // "near" the closest settlement, when one is close enough to be the place people would name.
+            Settlement place = mapEvent.MapEventSettlement
+                               ?? (setting == BattleSetting.OpenField ? NearestSettlementTo(mapEvent) : null);
             string placeClause = BattleMemoryText.PlaceClause(setting, place?.Name?.ToString());
             // The noun-phrase form (no leading preposition): the chronicle line below wants it, and so does the
             // battle-feat reporter, which already adds its own " at " (BattleFeatText's contract).
@@ -600,8 +647,11 @@ namespace CalradiaRemembers.WorldEvents
             // The player fought within a larger host when their own side fielded an army (more than one party), so a
             // siege or pitched battle won that way is a shared triumph, never the solo one lords used to congratulate.
             bool sharedEffort = playerAttacker ? attackerHasArmy : defenderHasArmy;
-            string winName = LeaderName(winLeader);
-            string loseName = LeaderName(loseLeader);
+            // fkasad (16/10/2026): a side no lord led was "a host" whatever it was, and the size was never said.
+            string winName = SideName(mapEvent, mapEvent.WinningSide, winLeader);
+            string loseName = SideName(mapEvent, loseSide, loseLeader);
+            int menAtStart = MenAtStart(mapEvent);
+            int magnitude = BattleRecordText.Magnitude(mapEvent.MapEventSettlement != null, menAtStart);
 
             var e = new WorldEvent {
                Type = playerIn
@@ -610,12 +660,12 @@ namespace CalradiaRemembers.WorldEvents
                Day = Today,
                PlaceId = place?.StringId,
                Magnitude = playerIn
-                  ? Math.Max(40, BattleMagnitude(mapEvent))
-                  : BattleMagnitude(mapEvent),
+                  ? Math.Max(40, magnitude)
+                  : magnitude,
                InvolvesPlayer = playerIn,
-               Summary = $"{winName} defeated {loseName}{(placeClause.Length > 0 ? placeClause : " in battle")}.",
+               Summary = BattleRecordText.Summary(winName, loseName, placeClause, menAtStart),
                ActorIds = Ids(winLeader, loseLeader),
-               FactionIds = FactionIds(winLeader, loseLeader),
+               FactionIds = FactionIds(winLeader, loseLeader).Union(SideFactionIds(mapEvent)).Distinct().ToList(),
                // Influence loop: a battle the player WON harms the beaten side; a loss harms no one
                // by the player's hand, so it aggrieves nobody (the foe who won is not the player's deed).
                AggrievedFactionIds = playerIn && playerWon

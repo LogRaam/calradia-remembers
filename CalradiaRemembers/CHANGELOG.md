@@ -14,6 +14,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   `enemy_meeting_offer`.
 
 ### Fixed
+- **The world's record of a battle says who, where and how big** (fkasad, 16/10: "defeated a host in battle" said
+  nothing of who lost, a band of looters read like an army, and a field battle had no place). A side no hero led is
+  named for what it was ("a band of Looters", "men of Vlandia") instead of "a host"; a field battle the game tied to
+  no settlement is placed "near" the closest one within 40 map units (also in the memories of the player's own
+  battles); the line ends with its scale from the men on the field at the start ("a skirmish of a few dozen men" to
+  "a great battle of thousands"); a skirmish carries less far (magnitude minus 10), a great battle further (plus 10);
+  a leaderless side's realm is now among those who hear of it. `BattleRecordText`. Word already fades with time and
+  distance (RumorAwareness: 40 days, the place's proximity, the hedged "heard secondhand" / "a distant, unverified
+  rumour").
 - **Closing the chat stops the reply being written** (fkasad, 16/10). A reply still in flight when the window closed
   ran to completion and was thrown away; on a local server that held the model for as long as it took, and the next
   call waited behind it. The window's conversation calls (the turn and the NPC's opening words, a commoner, an
