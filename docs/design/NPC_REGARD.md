@@ -522,6 +522,16 @@ rule), `prompt-sections.md` if a section moves.
 - Captures, executions and discovered schemes between NPCs ARE recorded as world events, so they reach the long-term tier.
 - The significance bar of 7.7a is accepted as proposed.
 
+**Answered 17/10/2026, on the long-term memory as built (`27937a7`), Gabriel: "1: secret event devrait etre tagged
+secret et ces secrets ne devraient etres connus que de ceux qui le connaissent. 2: oui, 3: oui, 4: oui":**
+- A secret stays a secret in the long-term tier: `cr.world_event_secret`/`_hide` reach an aged event, and a secret's
+  prompt line carries `RumorDiscretion.SecretTag` (discretion, never denial). Who knows it is still "those it names";
+  no ledger of confidants was built (`4582aa1`).
+- Risings (and the return of a risen house), divorces and lords fallen in battle are on the bar (`HistoryKind`
+  Rebellion, Divorce, FellInBattle; a fall in battle is recorded at magnitude 50, so the realm knows it).
+- In an old save, a field battle whose size was never recorded fades. Accepted.
+- A lesser lord's capture by a lord goes straight into the tier at magnitude 25, so it is evicted first. Accepted.
+
 
 1. **"Hostile clan": the leader's regard, or being at war?** Recommended: the leader's regard (vanilla itself means
    leader-to-leader by "clan relation", `Clan.cs:939`), with "at war" shown as a tag beside it. Two clans of the same

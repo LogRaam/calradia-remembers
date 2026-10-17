@@ -253,8 +253,16 @@ namespace CalradiaRemembers.WorldEvents
                return e.Status == SchemeStore.DiscoveredStatus || e.Status == SchemeStore.SucceededStatus
                   ? HistoryKind.SchemeExposed
                   : HistoryKind.None;
+            case WorldEventType.Rebellion: return HistoryKind.Rebellion;
+            case WorldEventType.Divorce: return HistoryKind.Divorce;
             case WorldEventType.Other:
-               return e.Status == LongTermHistoryPolicy.CaptureStatus ? HistoryKind.Capture : HistoryKind.None;
+               switch (e.Status)
+               {
+                  case LongTermHistoryPolicy.CaptureStatus: return HistoryKind.Capture;
+                  case LongTermHistoryPolicy.FellInBattleStatus: return HistoryKind.FellInBattle;
+                  case LongTermHistoryPolicy.RebelReturnedStatus: return HistoryKind.Rebellion;
+                  default: return HistoryKind.None;
+               }
             default:
                return HistoryKind.None;
          }

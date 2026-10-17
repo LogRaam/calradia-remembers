@@ -527,6 +527,12 @@ namespace CalradiaRemembers.WorldEvents
       private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
       {
          if (victim == null || Store == null) return;
+         if (detail == KillCharacterAction.KillCharacterActionDetail.DiedInBattle)
+         {
+            RecordFellInBattle(victim);
+
+            return;
+         }
          if (detail != KillCharacterAction.KillCharacterActionDetail.Executed) return; // only deliberate executions are news
          try
          {
@@ -556,6 +562,31 @@ namespace CalradiaRemembers.WorldEvents
             Store.Record(e);
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] execution feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   A lord killed in battle (Gabriel, 17/10/2026: lords killed in battle are history). The engine passes no killer
+      ///   for a death in the field (the agent origins call ApplyByBattle with null), so the line names no slayer; the
+      ///   place is the last settlement he was near. The player's own house is left to the battle memory, which knows
+      ///   the fight. Recorded as news, so it reaches the long-term memory after 42 days.
+      /// </summary>
+      private void RecordFellInBattle(Hero victim)
+      {
+         try
+         {
+            if (victim == Hero.MainHero || !victim.IsLord || IsBandit(victim) || victim.Clan == null || victim.Clan == Clan.PlayerClan) return;
+
+            Settlement near = victim.LastKnownClosestSettlement;
+            Store.Record(new WorldEvent {
+               Type = WorldEventType.Other, Day = Today, Magnitude = LongTermHistoryPolicy.FellInBattleMagnitude,
+               Status = LongTermHistoryPolicy.FellInBattleStatus,
+               Summary = near != null ? $"{Named(victim)} fell in battle near {near.Name}." : $"{Named(victim)} fell in battle.",
+               ActorIds = Ids(victim),
+               FactionIds = FactionIds(victim),
+               PlaceId = near?.StringId
+            });
+         }
+         catch (Exception ex) { ModLog.Error($"[WORLD] fallen lord not recorded for {victim?.Name}: {ex.GetType().Name}: {ex.Message}"); }
       }
 
       private void OnMakePeace(IFaction faction1, IFaction faction2, MakePeaceAction.MakePeaceDetail detail)
@@ -968,13 +999,16 @@ namespace CalradiaRemembers.WorldEvents
             if (!joinedRealm || newKingdom == null) return;
 
             var ids = new HashSet<string>(members.Select(h => h.StringId));
-            WorldEvent rising = Store.MostRecentMatching(WorldEventType.Rebellion,
-               e => e.FactionIds != null && e.FactionIds.FirstOrDefault() == newKingdom.StringId && e.ActorIds != null && e.ActorIds.Any(ids.Contains));
+            Func<WorldEvent, bool> roseAgainstIt = e => e.Type == WorldEventType.Rebellion && e.FactionIds != null && e.FactionIds.FirstOrDefault() == newKingdom.StringId
+                                                       && e.ActorIds != null && e.ActorIds.Any(ids.Contains);
+            // The rising may be older than the news: since 17/10/2026 it is kept in the long-term memory.
+            WorldEvent rising = Store.MostRecentMatching(WorldEventType.Rebellion, roseAgainstIt) ?? Store.AllHistory().LastOrDefault(roseAgainstIt);
             if (rising == null) return;
 
             var back = new Logic.RebellionFacts {House = clan.Name?.ToString(), Realm = newKingdom.Name?.ToString()};
             Store.Record(new WorldEvent {
                Type = WorldEventType.Other, Day = Today, Magnitude = 40, Summary = Logic.RebellionWording.ReturnedSummary(back),
+               Status = LongTermHistoryPolicy.RebelReturnedStatus,
                ActorIds = members.Select(h => h.StringId).ToList(), FactionIds = new List<string> {newKingdom.StringId}
             });
             RememberHouse(members, Logic.RebellionWording.ReturnedMemory(back));

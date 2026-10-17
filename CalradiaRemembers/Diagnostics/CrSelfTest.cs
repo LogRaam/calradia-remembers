@@ -301,7 +301,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("authored_quest_branches", Severity.Light, "Branching tales (docs/design/quest-editor/goal.md). A small tale written into this test (never a shipped file) loads through the real loader; a real lord is bound to it and it is taken on. At the crossroads the journal shows the stage and its open ways, not the closed one; meeting the lord takes the first OPEN way (the one under an unset flag is passed over). In the scene, the chat would list only the open ways; a marker for a closed way changes nothing; a finding sets its flag, the way it opened is listed and its marker is taken; closing the scene follows it to its own ending (no regard, gold or memory, so nothing is left behind). Abandons and forgets the tale after.", TestAuthoredQuestBranches),
          new SelfTest("authored_quest_said_choice", Severity.Light, "Branching tales, choices by words. A tale written into this test loads and a real lord takes it on. At its last stage the action interpreter of a conversation with that lord is taught the open choice by words and not the one closed by its flag; another lord's interpreter is taught nothing. Through the REAL bridge (story_choice, the path an LLM report takes): the closed choice is refused and changes nothing, the open one is taken and ends the tale on its own ending (no regard, gold or memory). Abandons and forgets the tale after.", TestAuthoredQuestSaidChoice),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
-         new SelfTest("world_long_term_memory", Severity.Light, "Gabriel (17/10/2026): after 42 days a world event must switch to a long-term memory, used for the relations between NPCs and to speak of the past; the 7.7a bar accepted the same day. Records, dated 50 days ago, a battle of 400 men and a skirmish of 40 naming a real lord, through the real Record and its prune: the battle is in the long-term tier and gone from the news, the skirmish is gone entirely; the battle is not offered as news (his known events, a companion's news report); he knows it, and a lord of another realm and house, no kin of his, does not; cr.history lists it under his name. Then (Gabriel, 17/10/2026: a secret is tagged secret and known only to those who know it) cr.world_event_secret reaches the aged battle: a clanmate who knew it no longer does, he still does, cr.history marks it SECRET. Removes both after.", TestWorldLongTermMemory),
+         new SelfTest("world_long_term_memory", Severity.Light, "Gabriel (17/10/2026): after 42 days a world event must switch to a long-term memory, used for the relations between NPCs and to speak of the past; the 7.7a bar accepted the same day. Records, dated 50 days ago, a battle of 400 men and a skirmish of 40 naming a real lord, through the real Record and its prune: the battle is in the long-term tier and gone from the news, the skirmish is gone entirely; the battle is not offered as news (his known events, a companion's news report); he knows it, and a lord of another realm and house, no kin of his, does not; cr.history lists it under his name. Then (Gabriel, 17/10/2026: a secret is tagged secret and known only to those who know it) cr.world_event_secret reaches the aged battle: a clanmate who knew it no longer does, he still does, cr.history marks it SECRET. Last (his answer 2, same day), a rising, a divorce and his fall in battle, each dated 50 days ago, reach the long-term tier. Removes them all after.", TestWorldLongTermMemory),
          new SelfTest("world_event_discretion", Severity.Light, "IdentityCrysys (Nexus, 03/10/2026): keep a world event from a character, or from all but those it names. Records a loud event naming two lords of a realm, then through the real console commands: public, a third lord hears it; secret, only the two do; hidden from the third, only he is unaware; removed, it is gone. Removes it after.", TestWorldEventDiscretion),
          new SelfTest("chat_art_loads", Severity.Light, "EmperorHaterius (Nexus, 04/10/2026): the Dark Leather window was see-through with no button, because its End Conversation and Memories labels are painted into art read from a hand-built path that missed his install (every shipped file read as not found). Checks the module folder is the one the engine found (SubModule.xml there), loads every chat image through the real loader (a failure writes its reason to the log as [IMAGE]), and checks that Dark Leather opens only when its art loads, Origin otherwise. Changes nothing.", TestChatArtLoads),
          new SelfTest("clan_standing_is_the_leaders", Severity.Light, "tashmetu (Nexus, 04/10/2026), Personal Relations: the prompt's clan standing was the character's own game relation, so under a per-hero relation mod a lord read +100 'clan' and 0 personal. Takes a real lord who is not his clan's leader: the clan standing must be the leader's relation, and his own is said apart only when it differs. Changes nothing.", TestClanStandingIsTheLeaders),
@@ -5026,6 +5026,9 @@ namespace CalradiaRemembers.Diagnostics
          string suffix = Guid.NewGuid().ToString("N");
          string battleId = "selftest_history_battle_" + suffix;
          string skirmishId = "selftest_history_skirmish_" + suffix;
+         string risingId = "selftest_history_rising_" + suffix;
+         string divorceId = "selftest_history_divorce_" + suffix;
+         string fellId = "selftest_history_fell_" + suffix;
 
          try
          {
@@ -5076,11 +5079,33 @@ namespace CalradiaRemembers.Diagnostics
                t.Note("his house has no other living member, so the clanmate is not asserted");
             if (store.AllHistory().Count(e => e.Day >= today - 50) <= ModCheats.HistoryPageSize)
                t.Expect("cr.historyMarksItSecret", (ModCheats.History(new List<string>()) ?? "").Split((char) 10).Any(l => l.Contains(battleId) && l.Contains("SECRET")), true);
+
+            // Gabriel's answer 2 (17/10/2026): risings, divorces and lords fallen in battle are history too.
+            store.Record(new WorldEvent {
+               Id = risingId, Type = WorldEventType.Rebellion, Day = today - 50, Magnitude = 50,
+               Summary = "[SELFTEST] " + lord.Clan.Name + " rose against its realm.", ActorIds = new List<string> {lord.StringId},
+               FactionIds = new List<string> {lord.MapFaction.StringId}
+            });
+            store.Record(new WorldEvent {
+               Id = divorceId, Type = WorldEventType.Divorce, Day = today - 50, Magnitude = 30,
+               Summary = "[SELFTEST] " + lord.Name + " is no longer wed.", ActorIds = new List<string> {lord.StringId}
+            });
+            store.Record(new WorldEvent {
+               Id = fellId, Type = WorldEventType.Other, Status = LongTermHistoryPolicy.FellInBattleStatus, Day = today - 50,
+               Magnitude = LongTermHistoryPolicy.FellInBattleMagnitude, Summary = "[SELFTEST] " + lord.Name + " fell in battle.",
+               ActorIds = new List<string> {lord.StringId}, FactionIds = new List<string> {lord.MapFaction.StringId}
+            });
+            t.Expect("aRisingIsHistory", store.GetHistoryById(risingId) != null, true);
+            t.Expect("aDivorceIsHistory", store.GetHistoryById(divorceId) != null, true);
+            t.Expect("aLordFallenInBattleIsHistory", store.GetHistoryById(fellId) != null, true);
          }
          finally
          {
             store.Remove(battleId);
             store.Remove(skirmishId);
+            store.Remove(risingId);
+            store.Remove(divorceId);
+            store.Remove(fellId);
          }
 
          return t.Line();

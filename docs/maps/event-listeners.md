@@ -70,7 +70,7 @@ mentions: an event with seven ways to happen and a listener that names one of th
 | `HeroKilledEvent` | `QuestDeedTracker.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
 | `HeroKilledEvent` | `ScenarioBehavior.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
 | `HeroKilledEvent` | `SelfEsteemBehavior.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
-| `HeroKilledEvent` | `WorldEventFeeders.OnHeroKilled` | KillCharacterActionDetail: Executed |
+| `HeroKilledEvent` | `WorldEventFeeders.OnHeroKilled` | KillCharacterActionDetail: DiedInBattle, Executed |
 | `HeroPrisonerReleased` | `NemesisBehavior.OnHeroPrisonerReleased` | EndCaptivityDetail: Death, ReleasedAfterEscape, ReleasedByChoice |
 | `HeroPrisonerReleased` | `QuestDeedTracker.OnHeroPrisonerReleased` | EndCaptivityDetail: Death, Ransom, ReleasedAfterBattle, ReleasedAfterEscape, ReleasedAfterPeace, ReleasedByChoice, ReleasedByCompensation |
 | `HeroPrisonerReleased` | `RescueBehavior.OnHeroPrisonerReleased` | EndCaptivityDetail: ReleasedAfterBattle, ReleasedByChoice |

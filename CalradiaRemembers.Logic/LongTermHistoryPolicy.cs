@@ -45,7 +45,16 @@ namespace CalradiaRemembers.Logic
         SchemeExposed,
 
         /// <summary>A lord taken captive (by a lord, or a ruler or house head by anyone).</summary>
-        Capture
+        Capture,
+
+        /// <summary>A house rose against its realm, or was received back after rising (Gabriel, 17/10/2026).</summary>
+        Rebellion,
+
+        /// <summary>Two nobles no longer wed (Gabriel, 17/10/2026).</summary>
+        Divorce,
+
+        /// <summary>A lord fell in battle (Gabriel, 17/10/2026).</summary>
+        FellInBattle
     }
 
     /// <summary>The facts of a third-party event leaving the news, read to decide whether the world keeps it.</summary>
@@ -126,6 +135,19 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>The world event status that marks a lord's capture between NPCs (the player's own uses CaptureNorm.Status).</summary>
         public const string CaptureStatus = "npc_captured";
+
+        /// <summary>The world event status that marks a lord's death in battle.</summary>
+        public const string FellInBattleStatus = "fell_in_battle";
+
+        /// <summary>The world event status that marks a house received back into the realm it rose against.</summary>
+        public const string RebelReturnedStatus = "rebel_returned";
+
+        /// <summary>
+        ///   The magnitude of a lord's death in battle: from <see cref="RealmWideMagnitude" /> up, so his whole realm
+        ///   remembers its fallen lord, and under an execution (65), so a judgement's scandal outlasts a death in the
+        ///   field when the memory is full.
+        /// </summary>
+        public const int FellInBattleMagnitude = 50;
 
         /// <summary>True when a third-party event leaving the news is history the world keeps (the 7.7a bar).</summary>
         public static bool IsMemorable(HistoryCandidateFacts facts)

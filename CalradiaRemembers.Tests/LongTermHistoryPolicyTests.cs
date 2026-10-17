@@ -147,6 +147,38 @@ namespace CalradiaRemembers.Tests
          kept.Should().BeTrue();
       }
 
+      // Gabriel's answer of 17/10/2026 to the agent's second question ("2: oui"): rebellions, divorces and lords killed
+      // in battle are history too. Lost, a house's rising is forgotten six weeks after it split the realm.
+      [TestCase(HistoryKind.Rebellion)]
+      [TestCase(HistoryKind.Divorce)]
+      [TestCase(HistoryKind.FellInBattle)]
+      public void GIVEN_a_rising_a_divorce_or_a_lord_fallen_in_battle_WHEN_it_leaves_the_news_THEN_it_becomes_history(HistoryKind kind)
+      {
+         //Arrange
+         var facts = new HistoryCandidateFacts {Kind = kind, Magnitude = 30};
+
+         //Act
+         bool kept = LongTermHistoryPolicy.IsMemorable(facts);
+
+         //Assert
+         kept.Should().BeTrue();
+      }
+
+      // STAKE: a lord who fell in battle is remembered by his whole realm, not only by his house; below the realm-wide
+      // line, a lord of his own kingdom would never have heard that he died.
+      [Test]
+      public void GIVEN_a_lord_fallen_in_battle_WHEN_a_lord_of_his_realm_with_no_other_tie_asks_THEN_he_knows_it()
+      {
+         //Arrange
+         var facts = new HistoryKnowledgeFacts {IsOfARealmInvolved = true, Magnitude = LongTermHistoryPolicy.FellInBattleMagnitude};
+
+         //Act
+         bool knows = LongTermHistoryPolicy.WouldKnow(facts);
+
+         //Assert
+         knows.Should().BeTrue();
+      }
+
       // Gossip, hardship, omens, looming wars and the rest are news by nature: none is on the bar, and keeping them
       // would fill the tier with what was only ever talk.
       [Test]
