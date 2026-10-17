@@ -1,4 +1,4 @@
-Released in v2.7.10
+Released in v2.7.12
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -64,6 +64,34 @@ _A whole conversation as it CLOSES, delivered by CrConversation.Ended._
 _Read-only readings of the cultures CR plays by (its ModuleData jealousy_cultures.json, or a Custom copy)._
 
 - `static MarriageCustomReading MarriageCustom(string cultureName, int clanTier)`
+
+### CrMatchOutcome
+
+_What came of a registered match when its decider was asked in the chat._
+
+- `bool Wed { get; }`
+- `string BrideId { get; }`
+- `string DeciderId { get; }`
+- `string Reason { get; }`
+- `string Source { get; }`
+- `string SuitorId { get; }`
+
+### CrMatchRequest
+
+_A match offered to CrMatches.Register, its people named by hero StringId._
+
+- `string BrideId { get; set; }`
+- `string DeciderId { get; set; }`
+- `string SourceMod { get; set; }`
+- `string SuitorId { get; set; }`
+
+### CrMatches
+
+_Lets another mod hand the player a match to broker; CR teaches it to the one who decides and settles it._
+
+- `static MatchRegistrationResult Register(CrMatchRequest request)`
+- `static bool Withdraw(string suitorId, string brideId)`
+- `static event Action<CrMatchOutcome> Settled`
 
 ### CrMemoryEntry
 
@@ -145,6 +173,43 @@ _One line as it is DISPLAYED in a conversation, delivered in real time by CrConv
 - `string SpeakerId { get; }`
 - `string SpeakerName { get; }`
 - `string Text { get; }`
+
+### CrTaleConsequence
+
+_One consequence of a stage or an ending, and what became of it._
+
+- `CrTaleConsequenceStatus Status { get; }`
+- `string OtherId { get; }`
+- `string Reason { get; }`
+- `string Type { get; }`
+- `string WhoId { get; }`
+
+### CrTaleConsequenceStatus
+
+_Whether a tale's consequence really happened._
+
+- `Done`
+- `NotDone`
+- `Waiting`
+
+### CrTaleProgress
+
+_A tale's progress, delivered by CrTales._
+
+- `IReadOnlyDictionary<string, string> Roles { get; }`
+- `IReadOnlyList<CrTaleConsequence> Consequences { get; }`
+- `IReadOnlyList<string> Flags { get; }`
+- `int GameDay { get; }`
+- `string TaleId { get; }`
+- `string Where { get; }`
+
+### CrTales
+
+_The public tale-progress events other mods subscribe to._
+
+- `static event Action<CrTaleProgress> ConsequenceSettled`
+- `static event Action<CrTaleProgress> Ended`
+- `static event Action<CrTaleProgress> StageReached`
 
 ### CrTranscriptLine
 

@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.7.12.. open (2.7.11 skipped: a Nexus upload tagged 2.7.10 as both 2.7.10 and 2.7.11)
+## v2.7.12.. 2026-10-16 (2.7.11 skipped: a Nexus upload tagged 2.7.10 as both 2.7.10 and 2.7.11)
 
 ### New
 - **A liege holds his vassal to the war** (Maifailun, 15/10: a vassal who never fights the realm's enemy hears

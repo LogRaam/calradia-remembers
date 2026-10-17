@@ -487,8 +487,27 @@ MUST = [
     ("sdk",   b"ContextFitPolicy"),
     ("sdk",   "counter_offer".encode("utf-16-le")),
     ("sdk",   "sell_item".encode("utf-16-le")),
+    # 2.7.12
+    ("logic", b"WarDutyPolicy"),
+    ("logic", b"WarDutyLadder"),
+    ("logic", b"AimBook"),
+    ("logic", b"IsRoadValid"),
+    ("logic", b"GreetingDeferencePolicy"),
+    ("logic", b"PendingMatchBook"),
+    ("logic", b"SettlementAudienceSafetyPolicy"),
+    ("logic", b"KinDeathDescriber"),
+    ("logic", b"SkirmishMemoryText"),
+    ("logic", b"BackgroundCallHoldPolicy"),
+    ("logic", b"GoldTransferLimit"),
+    ("mod",   b"CrMatches"),
+    ("mod",   b"WarLevyDesk"),
+    ("mod",   "war_duty_audience".encode("utf-16-le")),
+    ("mod",   "registered_match".encode("utf-16-le")),
+    ("mod",   "mercenary_join_term".encode("utf-16-le")),
+    ("sdk",   "war_duty_terms".encode("utf-16-le")),
 ]
 MUST_NOT = [
+    ("mod", b"ActionInterpreterTimingSetting"),   # 2.7.12: the dead "Actions Interpreter Timing" dropdown is removed
     ("mod",   "A predator wearing a lord's title".encode("utf-16-le")),   # 2.6.11: the retired archetype is gone (the testall keeps the 'Sadistic' opening on purpose)
     ("logic", b"MinPlotterRegard"),   # renamed: it reads the ENGINE ledger, not the mod's
     ("logic", b"CompanionIsYourOwnBlood"),   # renamed; a zip built before the family fix still carries it
