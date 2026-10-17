@@ -204,7 +204,8 @@ namespace CalradiaRemembers.Chat
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.AssignPartyRole), StringComparison.OrdinalIgnoreCase))
             targetHint = proposal.TargetRole;
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.DispatchOnMission), StringComparison.OrdinalIgnoreCase))
-            targetHint = proposal.TargetMission;
+            // A patrol also carries the place named (jaserms1, 16/10/2026); an errand stays the bare name.
+            targetHint = DispatchGroundingCodec.Compose(proposal.TargetMission, proposal.TargetSettlement);
          else if (string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GrantStipend), StringComparison.OrdinalIgnoreCase)
                || string.Equals(proposal.Type, ResolutionCatalog.KeyOf(ResolutionKind.GiveGold), StringComparison.OrdinalIgnoreCase)
                // Partie 8 ("tribute", COUNCIL_ACTIONS.md's Kimi review): a THIRD reuse of grant_stipend's own

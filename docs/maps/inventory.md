@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 506 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1156 types in 30 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1157 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1627,7 +1627,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestOutcomeFacts` | public class | A terminated InformalQuest (Completed), as read by the engine-side scan. |
 | `TraitFacts` | public class | A hero's trait levels relevant to appreciation formation and decay: Generosity and Mercy (a warm heart remembers a favour more readily and for longer), Calculating (a cold ledger-keeper is less moved by a mere kindness),... |
 
-### CalradiaRemembers.Logic.Assemblies (109)
+### CalradiaRemembers.Logic.Assemblies (110)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1688,6 +1688,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilVenue` | public enum | Where a settlement-hosted council is staged. |
 | `CouncilVenuePolicy` | public static class | Decides which interior hosts a settlement council, given ownership and what the place has. |
 | `CouncilWard` | public class | One active mentorship bond: which seated clan member mentors which young companion of the player's own clan. |
+| `DispatchGroundingCodec` | public static class | Composes/splits a council dispatch's (mission, settlement) pair into the ledger entry's one grounding slot. |
 | `EngagementLedger` | public class | The live mirror of the conversation's standing decisions, reconciled to each extraction snapshot. |
 | `EngagementSealText` | public static class | Pins the durable memory wording sealed onto a hero when a council engagement is applied at the lift. |
 | `EngagementSnapshotItem` | public class | One item of an extraction snapshot: what the latest reading of the conversation found standing. |

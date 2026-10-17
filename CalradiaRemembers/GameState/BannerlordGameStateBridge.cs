@@ -2515,7 +2515,10 @@ namespace CalradiaRemembers.GameState
             // dispatch_mission lacked before the two were merged (2026-08-05). Null when the player left it open.
             action.Parameters.TryGetValue("about", out string about);
 
-            DispatchMissionVerdict verdict = CourtActionResolver.TryDispatchMission(npcHero, missionName, about);
+            // A patrol names its place (jaserms1, 16/10/2026); the number of men is chosen on the troop screen.
+            action.Parameters.TryGetValue("target_settlement", out string place);
+
+            DispatchMissionVerdict verdict = CourtActionResolver.TryDispatchMission(npcHero, missionName, about, place);
 
             switch (verdict.Result)
             {
@@ -2533,6 +2536,12 @@ namespace CalradiaRemembers.GameState
                   return ActionOutcome.Refused(SilentRefusalMessages.DispatchMissionMissingErrand());
                case DispatchMissionResult.DispatchFailed:
                   return ActionOutcome.Refused($"({verdict.Message})");
+               case DispatchMissionResult.NoSuchPlace:
+                  return ActionOutcome.Refused($"(No place by that name to patrol: name a real town, castle or village for {npcHero.Name}.)");
+               case DispatchMissionResult.PatrolOrdered:
+                  ModLog.Info($"[ACTION] dispatch_mission: {npcHero.Name} takes a patrol order; the troop screen follows on the map.");
+
+                  return new ActionOutcome(verdict.Message, true);
             }
 
             ModLog.Info($"[ACTION] dispatch_mission: {npcHero.Name} dispatched on a {verdict.Type} errand.");

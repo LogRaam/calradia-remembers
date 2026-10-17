@@ -19,7 +19,13 @@ namespace CalradiaRemembers.Logic.Assemblies
         Spy,
         Steal,
         Barter,
-        Envoy
+        Envoy,
+
+        /// <summary>
+        ///   Patrol a settlement the player names, with the player's own men, until called back (jaserms1, 16/10/2026).
+        ///   Not a CompanionMissionBehavior errand: the lift hands it to CompanionPatrolBehavior, with the place.
+        /// </summary>
+        Patrol
     }
 
     /// <summary>Resolves a council resolution's TargetHint string to the companion-mission errand it names.</summary>
@@ -46,6 +52,7 @@ namespace CalradiaRemembers.Logic.Assemblies
                 case "barter":
                 case "trade":        return CouncilMissionType.Barter;
                 case "envoy":        return CouncilMissionType.Envoy;
+                case "patrol":       return CouncilMissionType.Patrol;
                 default:             return CouncilMissionType.None;
             }
         }

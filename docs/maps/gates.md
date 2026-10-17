@@ -212,6 +212,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - $"({npcHero.Name} does not ride in your party, and cannot be sent from it.)"
   - $"({npcHero.Name} is already away on an errand.)"
   - $"({verdict.Message})"
+  - $"(No place by that name to patrol: name a real town, castle or village for {npcHero.Name}.)"
 
 ### end_affair
 

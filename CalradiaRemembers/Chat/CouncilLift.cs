@@ -647,7 +647,8 @@ namespace CalradiaRemembers.Chat
          // system exists, not already away, the errand resolves) is re-checked there in the same order, and the
          // reused CompanionMissionBehavior.Dispatch call happens there too; this method only maps the verdict back
          // onto the council's own ledger + reporting. TargetHint carries the MISSION name for this kind.
-         DispatchMissionVerdict verdict = CourtActionResolver.TryDispatchMission(actorHero, entry.TargetHint);
+         DispatchGroundingCodec.Decompose(entry.TargetHint, out string mission, out string place);
+         DispatchMissionVerdict verdict = CourtActionResolver.TryDispatchMission(actorHero, mission, null, place);
 
          switch (verdict.Result)
          {
@@ -715,6 +716,23 @@ namespace CalradiaRemembers.Chat
                ledger.MarkApplied(entry.Id);
                report?.Invoke(verdict.Message, true);
                ModLog.Info($"[COUNCIL] lift: {actorName} dispatched on a {verdict.Type} errand.");
+
+               return;
+
+            case DispatchMissionResult.NoSuchPlace:
+            {
+               const string reason = "the patrol named no real place to watch.";
+               ledger.MarkFailed(entry.Id, reason);
+               report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+
+               return;
+            }
+
+            case DispatchMissionResult.PatrolOrdered:
+               // The order is given; the men are chosen on the troop screen once the council has risen.
+               ledger.MarkApplied(entry.Id);
+               report?.Invoke(verdict.Message, true);
+               ModLog.Info($"[COUNCIL] lift: {actorName} takes a patrol order ({place}).");
 
                return;
          }

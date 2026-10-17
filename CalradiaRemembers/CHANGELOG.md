@@ -19,6 +19,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   stopping by letter comes with the monthly letter. `CompanionPatrolPolicy`, `CompanionPatrolBehavior`, save key
   `CalradiaRemembers_CompanionPatrols_v1bytes` (additive); console `cr.patrol`, `cr.patrol_home`; cr.testall
   `companion_patrol`. Not yet: the order in chat and council, the monthly letter, the journal.
+- **Companion patrols, the order (increment 2 of 4).** `dispatch_mission` gains `target_mission: patrol` with
+  `target_settlement`, the place the player names (the game never picks it, the model never invents it). In chat, the
+  companion who agrees takes the order and the troop screen opens once the conversation closes; in council, a
+  `dispatch_mission` resolution carries the place through `DispatchGroundingCodec` ("patrol|Ebereth"; a bare errand
+  name from an older save still reads as the errand), and the screen opens once the council has risen. A place that
+  matches no settlement exactly refuses the order with a reason. Taught in the action catalog (the interpreter), the 1:1
+  block and the council block; the catalog's `about` and `target_settlement` texts are short to keep the compact
+  interpreter prompt under its 28,000-character budget. The number of men is chosen on the screen, not in the order.
 - **Chat Temperature setting** (fkasad, 17/10: does the mod tune the temperature by the kind of call? It does,
   from 0.1 for extraction to 0.7 for conversation, but the conversation value was fixed in code). MCM, LLM Provider:
   "Chat Temperature", 0.10 to 1.20, default 0.70, so nothing changes for anyone who leaves it. It drives the

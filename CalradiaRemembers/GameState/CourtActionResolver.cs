@@ -678,7 +678,7 @@ namespace CalradiaRemembers.GameState
       ///   dropped no one. The verdict carries the resolved <see cref="CouncilMissionType" /> and Dispatch's own
       ///   message for the caller.
       /// </summary>
-      public static DispatchMissionVerdict TryDispatchMission(Hero actor, string missionName, string about = null)
+      public static DispatchMissionVerdict TryDispatchMission(Hero actor, string missionName, string about = null, string settlementName = null)
       {
          if (actor is not {IsAlive: true})
             return new DispatchMissionVerdict(DispatchMissionResult.ActorUnavailable, CouncilMissionType.None, null);
@@ -702,6 +702,21 @@ namespace CalradiaRemembers.GameState
          if (type == CouncilMissionType.None)
             return new DispatchMissionVerdict(DispatchMissionResult.NoValidMission, CouncilMissionType.None, null);
 
+         // jaserms1 (16/10/2026): a patrol of a place the player NAMED, with the player's own men (Gabriel's ruling).
+         // The place must match a real settlement exactly; the game never picks one for a patrol.
+         if (type == CouncilMissionType.Patrol)
+         {
+            Settlement place = PatrolPlaceNamed(settlementName);
+            if (place == null) return new DispatchMissionVerdict(DispatchMissionResult.NoSuchPlace, type, null);
+            if (CompanionPatrolBehavior.Instance == null) return new DispatchMissionVerdict(DispatchMissionResult.NoMissionSystem, type, null);
+
+            (bool accepted, string order) = CompanionPatrolBehavior.Instance.RequestPatrol(actor, place, null);
+
+            return accepted
+               ? new DispatchMissionVerdict(DispatchMissionResult.PatrolOrdered, type, order)
+               : new DispatchMissionVerdict(DispatchMissionResult.DispatchFailed, type, order);
+         }
+
          string topic = string.IsNullOrWhiteSpace(about) ? null : about.Trim();
          (bool dispatched, string message) = behavior.Dispatch(actor, ToEngineMissionType(type), topic);
 
@@ -721,6 +736,22 @@ namespace CalradiaRemembers.GameState
             case CouncilPartyRole.Surgeon:       return PartyRole.Surgeon;
             default:                             throw new ArgumentOutOfRangeException(nameof(role), role, "CouncilPartyRole.None must be guarded before this is called.");
          }
+      }
+
+      /// <summary>
+      ///   The settlement a patrol order named: an exact name (case and surrounding spaces aside), hideouts excluded;
+      ///   the nearest to the player when two share the name. Null when nothing matches, so the order is refused
+      ///   rather than sent somewhere the player never named.
+      /// </summary>
+      private static Settlement PatrolPlaceNamed(string name)
+      {
+         if (string.IsNullOrWhiteSpace(name)) return null;
+         string wanted = name.Trim();
+         TaleWorlds.Library.Vec2 at = MobileParty.MainParty?.GetPosition2D ?? TaleWorlds.Library.Vec2.Zero;
+
+         return Settlement.All.Where(s => s != null && !s.IsHideout && string.Equals(s.Name?.ToString(), wanted, StringComparison.OrdinalIgnoreCase))
+                          .OrderBy(s => s.GetPosition2D.Distance(at))
+                          .FirstOrDefault();
       }
 
       /// <summary>Maps the Logic-side <see cref="CouncilMissionType" /> to the mod's own <see cref="CompanionMissionType" />. None never reaches here (guarded in <see cref="TryDispatchMission" />).</summary>
@@ -1465,7 +1496,13 @@ namespace CalradiaRemembers.GameState
       NoValidMission,
 
       /// <summary>The mission system itself refused the dispatch; <see cref="DispatchMissionVerdict.Message" /> carries its reason.</summary>
-      DispatchFailed
+      DispatchFailed,
+
+      /// <summary>A patrol order was taken; the player chooses the men on the troop screen back on the map (nothing has left yet).</summary>
+      PatrolOrdered,
+
+      /// <summary>A patrol named no place, or none that exists by that name.</summary>
+      NoSuchPlace
    }
 
    /// <summary>
