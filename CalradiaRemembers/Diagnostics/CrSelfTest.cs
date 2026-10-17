@@ -1349,9 +1349,12 @@ namespace CalradiaRemembers.Diagnostics
       ///   so the region-eligibility gate genuinely matches instead of being simulated. Returns (null, null, null) when no lord
       ///   has a resolvable region.
       /// </summary>
-      private static (Hero Giver, Hero NemesisHero, NemesisIdentity Identity) MintBountyEligibleNemesis(int today)
+      private static (Hero Giver, Hero NemesisHero, NemesisIdentity Identity) MintBountyEligibleNemesis(int today, NpcMemoryCampaignBehavior behavior = null)
       {
-         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord);
+         // A lord free to give a task (17/10/2026: the first lord still held a task from an earlier run kept in the save,
+         // and the bounty was refused as a second one), with a region to mint the nemesis in.
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !HasOutstandingQuest(behavior, h)
+                                                             && (h.HomeSettlement != null || h.CurrentSettlement != null || h.Culture != null));
 
          if (giver == null) return (null, null, null);
 
@@ -7330,7 +7333,7 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
 
          var today = (int) CampaignTime.Now.ToDays;
-         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today);
+         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today, behavior);
 
          if (t.Skip(giver == null, "no lord with a resolvable region available to hold the bounty")) return t.Line();
          if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
@@ -7361,6 +7364,7 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("rewardGold", after?.RewardGold, expectedGold);
          t.Expect("rewardRelation", after?.RewardRelation, expectedRelation);
          t.Note($"{displayName}: bounty from {giver.Name} ({expectedGold}g/+{expectedRelation}), stamped by a real capture, evidence={after?.Evidence}");
+         DropTestBounty(behavior, giver, nemesisHero);
 
          return t.Line();
       }
@@ -7372,7 +7376,7 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
 
          var today = (int) CampaignTime.Now.ToDays;
-         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today);
+         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today, behavior);
 
          if (t.Skip(giver == null, "no lord with a resolvable region available to hold the bounty")) return t.Line();
          if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
@@ -7406,8 +7410,19 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Expect("stampedByRealExecution", after != null && after.IsAwaitingReward, true);
          t.Note($"{displayName}: bounty from {giver.Name} ({expectedGold}g/+{expectedRelation}), stamped by a real execution, evidence={after?.Evidence}");
+         DropTestBounty(behavior, giver, nemesisHero);
 
          return t.Line();
+      }
+
+      // The test's bounty leaves the giver's profile once checked, so a save made after cr.testall keeps no task of it.
+      private static void DropTestBounty(NpcMemoryCampaignBehavior behavior, Hero giver, Hero nemesisHero)
+      {
+         NpcProfile p = behavior.Store.Get(giver.StringId);
+         if (p == null) return;
+
+         p.ActiveQuests.RemoveAll(q => q.Type == QuestType.NemesisBounty && q.TargetHeroId == nemesisHero.StringId);
+         behavior.Store.Set(p);
       }
 
       private static string TestNemesisExecuted(NpcMemoryCampaignBehavior behavior)
@@ -15494,15 +15509,22 @@ namespace CalradiaRemembers.Diagnostics
 
          try
          {
+            // Both relations arranged at 0 first, restored by the finally (17/10/2026: the target already stood at the
+            // +100 cap in a save made after earlier runs, so his +26 gratitude could not show).
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(plotter, Hero.MainHero, -plotterBefore, false);
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(target, Hero.MainHero, -targetBefore, false);
+            int plotterArranged = behavior.GameStateBridge.GetPlayerRelation(plotter);
+            int targetArranged = behavior.GameStateBridge.GetPlayerRelation(target);
+
             SchemeStore.Instance.ForcePlot(plotter, target, SchemeKind.Slander);
 
             string msg = SchemeStore.Instance.TargetHeeds(target);
 
             if (t.Abort(msg == null, $"TargetHeeds({target.Name}) returned null: no eligible scheme after ForcePlot")) return t.Line();
 
-            int plotterDelta = behavior.GameStateBridge.GetPlayerRelation(plotter) - plotterBefore;
-            int targetDelta = behavior.GameStateBridge.GetPlayerRelation(target) - targetBefore;
-            t.Note($"plotter={plotter.Name} delta={plotterDelta} | target={target.Name} delta={targetDelta}");
+            int plotterDelta = behavior.GameStateBridge.GetPlayerRelation(plotter) - plotterArranged;
+            int targetDelta = behavior.GameStateBridge.GetPlayerRelation(target) - targetArranged;
+            t.Note($"plotter={plotter.Name} delta={plotterDelta} (was {plotterBefore}) | target={target.Name} delta={targetDelta} (was {targetBefore})");
             t.Expect("plotterResents(<=-20)", plotterDelta <= -20, true);
             t.Expect("targetGrateful(>=16)", targetDelta >= 16, true);
          }
@@ -16279,10 +16301,13 @@ namespace CalradiaRemembers.Diagnostics
             patrols.DebugDay(forceReport: true);
             t.Expect("theMonthlyLetterGoesOut", patrols.DebugStateOf(companion)?.LastReportDay, (int) CampaignTime.Now.ToDays);
 
-            // STAKE: a letter saying "come back" turns the patrol for home within the hour.
+            // STAKE: a letter saying "come back" turns the patrol for home within the hour. The test's patrol stands next
+            // to the player, so the same hour may already bring it home (17/10/2026 run: Returning, then home, in one
+            // DebugHour): either is the letter obeyed; still on patrol is not.
             patrols.ObeyLetterToStop(companion.StringId);
             patrols.DebugHour();
-            t.Expect("aLetterToStopTurnsItHome", patrols.DebugStateOf(companion)?.State, CompanionPatrolState.Returning);
+            CompanionPatrolState? afterTheLetter = patrols.DebugStateOf(companion)?.State;
+            t.Expect("aLetterToStopTurnsItHome", afterTheLetter == null || afterTheLetter == CompanionPatrolState.Returning, true);
 
             // STAKE: coming home hands back every man (the spike's stop left the wounded behind).
             patrols.DebugBringHomeNow(companion);
@@ -16392,11 +16417,14 @@ namespace CalradiaRemembers.Diagnostics
          bool AtPeace(Kingdom k) => Hero.MainHero?.MapFaction == null || !FactionManager.IsAtWarAgainstFaction(k, Hero.MainHero.MapFaction);
          Kingdom realm = realms.FirstOrDefault(k => k == Hero.MainHero?.MapFaction && k.Leader.CurrentSettlement != null && !k.Leader.IsPrisoner)
                          ?? realms.FirstOrDefault(k => AtPeace(k) && k.Leader.CurrentSettlement != null && !k.Leader.IsPrisoner)
+                         ?? realms.FirstOrDefault(k => AtPeace(k) && !k.Leader.IsPrisoner) ?? realms.FirstOrDefault(k => !k.Leader.IsPrisoner)
                          ?? realms.FirstOrDefault(AtPeace) ?? realms.FirstOrDefault();
          if (t.Skip(realm == null, "no realm with a ruler in the world")) return t.Line();
 
          Hero ruler = realm.Leader;
-         Settlement hall = ruler.CurrentSettlement;
+         // A captive ruler's settlement is his prison, not a hall he holds (17/10/2026: Lucon, held in Chaikand, was
+         // scanned for an audience the gate rightly refuses a prisoner).
+         Settlement hall = ruler.IsPrisoner ? null : ruler.CurrentSettlement;
          int today = WarDuty.WarDutyBehavior.Today;
          Logic.WarDuty.WarServiceLedger prior = duty.Ledger;
          bool priorSwitch = s.EnableWarDuty;
@@ -16423,7 +16451,7 @@ namespace CalradiaRemembers.Diagnostics
                t.Expect("theRulerIsCalledToTheHall", chosen?.HeroId == ruler.StringId && chosen?.Trigger == InterceptionTrigger.WarDutySummons, true);
                fief.DebugClearCooldown(ruler.StringId);
             }
-            else t.Note($"{ruler.Name} stands in no settlement; the hall scan was not run");
+            else t.Note($"{ruler.Name} stands in no settlement{(ruler.IsPrisoner ? " (a captive)" : "")}; the hall scan was not run");
 
             // STAKE: he opens on the footing of the war and leaves what is owed to the terms the game holds him to.
             intercept.StashFiefAudienceReason(ruler, InterceptionTrigger.WarDutySummons, "the war you have sat out");
@@ -18964,7 +18992,7 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Abort(NemesisBehavior.Instance == null, "NemesisBehavior not active")) return t.Line();
 
          var today = (int) CampaignTime.Now.ToDays;
-         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today);
+         (Hero giver, Hero nemesisHero, NemesisIdentity nem) = MintBountyEligibleNemesis(today, behavior);
 
          if (t.Skip(giver == null, "no lord with a resolvable region available to hold the bounty")) return t.Line();
          if (t.Abort(nemesisHero == null || nem == null, "MintCaptorFor produced no tracked nemesis (check the log for the real reason: a missing bandit clan/template, or a respawn cooldown the harness should now be bypassing)")) return t.Line();
@@ -19918,16 +19946,33 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Skip(npc == null, "no lord to move a stance on")) return t.Line();
 
+         // Arranged from neutral and restored after (17/10/2026: a save made after earlier runs had this lord's trust at
+         // the cap of 100, where no deed can raise it).
          NpcProfile before = GetOrCreate(behavior, npc);
-         int trustBefore = before.StanceTrust;
+         int original = before.StanceTrust;
+         before.StanceTrust = 0;
+         behavior.Store.Set(before);
+         int trustBefore = 0;
 
-         // A proven deed (a freely given gift) raises Trust and must persist to the store
-         StanceService.OnGiftReceived(npc);
+         try
+         {
+            // A proven deed (a freely given gift) raises Trust and must persist to the store
+            StanceService.OnGiftReceived(npc);
 
-         NpcProfile after = behavior.Store.Get(npc.StringId);
-         int trustAfter = after?.StanceTrust ?? trustBefore;
-         t.Note($"{npc.Name}: trust {trustBefore}->{trustAfter}");
-         t.Expect("trustRoseAndPersisted", trustAfter > trustBefore, true);
+            NpcProfile after = behavior.Store.Get(npc.StringId);
+            int trustAfter = after?.StanceTrust ?? trustBefore;
+            t.Note($"{npc.Name}: trust {trustBefore}->{trustAfter} (was {original} before the test)");
+            t.Expect("trustRoseAndPersisted", trustAfter > trustBefore, true);
+         }
+         finally
+         {
+            NpcProfile restore = behavior.Store.Get(npc.StringId);
+            if (restore != null)
+            {
+               restore.StanceTrust = original;
+               behavior.Store.Set(restore);
+            }
+         }
 
          return t.Line();
       }
