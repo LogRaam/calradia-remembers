@@ -1443,8 +1443,38 @@ namespace CalradiaRemembers.Chat
 
          if (Hero.OneToOneConversationHero == null) return;
 
+         // Before the conversation ends: ending it brings the game's meeting menu back at once, and that menu starts a
+         // battle unless it is told the meeting is over (Wallace1067, 17/10/2026).
+         SafeStep(TellTheGameTheMeetingIsOver, "TellTheGameTheMeetingIsOver");
+
          if (Campaign.Current?.ConversationManager != null)
             Campaign.Current.ConversationManager.EndConversation();
+      }
+
+      /// <summary>
+      ///   Does what the game's own "leave" line does (PlayerEncounter.LeaveEncounter), when MapEncounterClosePolicy
+      ///   says the meeting is over. Without it, a chat with a party met on the road ended in a battle with that party.
+      /// </summary>
+      private static void TellTheGameTheMeetingIsOver()
+      {
+         if (PlayerEncounter.Current == null) return;
+
+         TaleWorlds.CampaignSystem.Party.PartyBase met = PlayerEncounter.EncounteredParty;
+         TaleWorlds.CampaignSystem.Party.MobileParty metMobile = met?.MobileParty;
+         var facts = new Logic.Conversation.MeetingLeaveFacts {
+            HasEncounter = true,
+            AtASettlement = PlayerEncounter.EncounterSettlement != null || TaleWorlds.CampaignSystem.Settlements.Settlement.CurrentSettlement != null,
+            BriefingReturnPending = CompanionBriefingCoordinator.HasPendingReturn,
+            TalkedWithTheMetParty = metMobile != null && Campaign.Current?.ConversationManager?.ConversationParty == metMobile,
+            MetPartyGone = met == null || (met.IsMobile && (metMobile == null || !metMobile.IsActive)),
+            AtWarWithTheMetParty = met?.MapFaction != null && TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapFaction != null
+                                   && FactionManager.IsAtWarAgainstFaction(met.MapFaction, TaleWorlds.CampaignSystem.Party.MobileParty.MainParty.MapFaction)
+         };
+
+         if (!Logic.Conversation.MapEncounterClosePolicy.LeavesTheMeeting(facts)) return;
+
+         PlayerEncounter.LeaveEncounter = true;
+         ModLog.Info($"[CLOSE] the meeting is over (talked with the party met={facts.TalkedWithTheMetParty}, party gone={facts.MetPartyGone}): the game is told to leave, as its own leave line does.");
       }
 
       /// <summary>

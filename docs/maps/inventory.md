@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 509 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1177 types in 31 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1178 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1884,7 +1884,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompanionServiceTransferFacts` | public record | Everything the gate needs, as plain facts the caller reads off the live game. |
 | `CompanionServiceTransferPolicy` | public static class | The pure gate behind take_into_service. |
 
-### CalradiaRemembers.Logic.Conversation (19)
+### CalradiaRemembers.Logic.Conversation (20)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1903,6 +1903,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MapEncounterCloseFacts` | public class | What the close knows of the player's encounter. |
 | `MapEncounterClosePolicy` | public static class | Whether the close may finish the encounter. |
 | `MapEventSighting` | public class | A map event as the close saw it, for one of the three places a battle can hide (the encounter itself, the player's own party, or the party met). |
+| `MeetingLeaveFacts` | public class | What the close knows when it ends the conversation, to tell the game whether the meeting is over (Wallace1067, 17/10/2026, see MapEncounterClosePolicy.LeavesTheMeeting). |
 | `ReturnMove` | public enum | What the pending briefing return should do on this tick. |
 | `SilenceOrderContext` | public class | Everything SilenceOrderPolicy.Resolve weighs to decide whether a silence order lands. |
 | `SilenceOrderPolicy` | public static class | Resolves a silence order. |

@@ -88,6 +88,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   `enemy_meeting_offer`.
 
 ### Fixed
+- **A chat on the road ended in a battle** (Wallace1067, 17/10, on 2.7.12; the 13/10 fix aimed at the wrong cause): CR
+  never told the game the meeting was over, so its meeting menu started a battle with the party met after every chat
+  (`encounter_meeting` on init: meeting done, not leaving, `StartBattle`). The close now sets `LeaveEncounter` as the
+  game's own leave line does (`MapEncounterClosePolicy.LeavesTheMeeting`: a friendly party met, or one gone; an enemy at
+  war stays on the encounter menu). A companion recalled from an errand while the player meets his party no longer has
+  that party disbanded mid-talk (it waits for the encounter's end), which left an empty battle with no way out.
+  testall `close_leaves_meeting`.
 - **A council member's own offer no longer becomes your quest** (jaserms1, 16/10: a war council ordered a companion
   to patrol villages; the game handed the player a bandit-clearing task instead). A council "quest" resolution is,
   and always was, a task set FOR the player, but the council was taught to record a member's own pledge with it

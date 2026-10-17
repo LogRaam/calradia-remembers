@@ -14,6 +14,7 @@ using Helpers;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
@@ -296,6 +297,7 @@ namespace CalradiaRemembers.Missions
       {
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
          CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
+         CampaignEvents.TickEvent.AddNonSerializedListener(this, _ => DisbandHeldPartiesOnceTheEncounterIsOver());
       }
 
       public override void SyncData(IDataStore dataStore)
@@ -378,8 +380,35 @@ namespace CalradiaRemembers.Missions
       private static void DestroyParty(CompanionMission m)
       {
          MobileParty party = FindParty(m.PartyId);
-         if (party != null) TravelingParty.Destroy(party);
          m.PartyId = null;
+         if (party == null) return;
+
+         // Wallace1067 (17/10/2026): recalled while the player was meeting his party, the companion's errand party was
+         // disbanded mid-conversation; ending the conversation then failed and the game fought a party that no longer
+         // existed. The party met waits until the encounter is over.
+         if (PlayerEncounter.Current != null && PlayerEncounter.EncounteredMobileParty == party)
+         {
+            PartiesAwaitingTheEncounterEnd.Add(party);
+            ModLog.Info($"[MISSION] {party.Name} is the party the player is meeting: it is disbanded once the encounter is over.");
+
+            return;
+         }
+
+         TravelingParty.Destroy(party);
+      }
+
+      // Errand parties held back while the player is meeting them; disbanded on the first tick with no encounter.
+      private static readonly List<MobileParty> PartiesAwaitingTheEncounterEnd = new();
+
+      private static void DisbandHeldPartiesOnceTheEncounterIsOver()
+      {
+         if (PartiesAwaitingTheEncounterEnd.Count == 0 || PlayerEncounter.Current != null) return;
+
+         foreach (MobileParty party in PartiesAwaitingTheEncounterEnd.ToList())
+            try { TravelingParty.Destroy(party); }
+            catch (Exception ex) { ModLog.Error($"[MISSION] held errand party not disbanded: {ex.Message}"); }
+
+         PartiesAwaitingTheEncounterEnd.Clear();
       }
 
       private static string ErrandVerb(CompanionMissionType type)

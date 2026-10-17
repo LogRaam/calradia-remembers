@@ -51,6 +51,31 @@ namespace CalradiaRemembers.Logic.Conversation
       public bool HasWinner { get; init; }
    }
 
+   /// <summary>
+   ///   What the close knows when it ends the conversation, to tell the game whether the meeting is over (Wallace1067,
+   ///   17/10/2026, see <see cref="MapEncounterClosePolicy.LeavesTheMeeting" />).
+   /// </summary>
+   public sealed class MeetingLeaveFacts
+   {
+      /// <summary>The player has an encounter open.</summary>
+      public bool HasEncounter { get; init; }
+
+      /// <summary>The encounter is at a settlement (a town, castle or village and its menus): not a meeting on the road.</summary>
+      public bool AtASettlement { get; init; }
+
+      /// <summary>This close is a companion briefing, a step inside a meeting that goes on.</summary>
+      public bool BriefingReturnPending { get; init; }
+
+      /// <summary>The conversation was with the party the player met (the engine's ConversationParty is the encountered party).</summary>
+      public bool TalkedWithTheMetParty { get; init; }
+
+      /// <summary>The party met no longer exists or is no longer on the map (disbanded mid-talk, as a recalled errand party was).</summary>
+      public bool MetPartyGone { get; init; }
+
+      /// <summary>The party met is at war with the player's side: the player may still want to attack.</summary>
+      public bool AtWarWithTheMetParty { get; init; }
+   }
+
    /// <summary>Whether the close may finish the encounter. Pure.</summary>
    public static class MapEncounterClosePolicy
    {
@@ -63,6 +88,19 @@ namespace CalradiaRemembers.Logic.Conversation
       ///   encounter settles it mid-close.
       /// </summary>
       public static bool IsLive(MapEventSighting e) => e != null && e.Exists && !e.IsFinalized && !e.HasWinner;
+
+      /// <summary>
+      ///   Whether ending the conversation also ends the meeting, as the game's own "leave" line does
+      ///   (LordConversationsCampaignBehavior.conversation_lord_leave_on_consequence sets PlayerEncounter.LeaveEncounter).
+      ///   Wallace1067 (Nexus, 17/10/2026, on 2.7.12): CR never told the game the meeting was over, so when the game
+      ///   returned to its meeting menu it started a battle with the party met (EncounterGameMenuBehavior,
+      ///   encounter_meeting on init: meeting done, not leaving, so StartBattle). With a friendly lord that left him on the
+      ///   encounter menu after every chat; with a companion recalled from an errand, whose party was gone, the battle had
+      ///   nobody in it and no way out. A party at war is left to the encounter menu, where the player can still attack.
+      /// </summary>
+      public static bool LeavesTheMeeting(MeetingLeaveFacts f)
+         => f != null && f.HasEncounter && !f.AtASettlement && !f.BriefingReturnPending
+            && (f.MetPartyGone || (f.TalkedWithTheMetParty && !f.AtWarWithTheMetParty));
 
       public static bool MayFinish(MapEncounterCloseFacts f)
          => f != null && f.HasEncounter && !f.InMission && !f.InsideSettlement && !f.BriefingReturnPending && (!f.BattleUnderWay || f.BattleIsRaid);

@@ -92,5 +92,59 @@ namespace CalradiaRemembers.Tests
          MapEncounterClosePolicy.IsLive(new MapEventSighting()).Should().BeFalse();
          MapEncounterClosePolicy.IsLive(null).Should().BeFalse();
       }
+
+      // ── Leaving the meeting (Wallace1067, 17/10/2026, on 2.7.12) ──────────────────────────────────────────────
+      // The game starts a battle with the party met when its meeting menu comes back and nobody said the meeting was
+      // over. Its own "leave" line says so; CR's close must too.
+
+      private static MeetingLeaveFacts Meeting() => new() {HasEncounter = true, TalkedWithTheMetParty = true};
+
+      // STAKE: Wallace's every-chat case: a friendly lord on the road, and the encounter menu stayed open after the talk.
+      [Test]
+      public void GIVEN_a_talk_with_a_friendly_party_met_on_the_road_WHEN_the_chat_closes_THEN_the_meeting_is_over()
+      {
+         MapEncounterClosePolicy.LeavesTheMeeting(Meeting()).Should().BeTrue();
+      }
+
+      // STAKE: Wallace's stuck case: the companion recalled from his errand, his party disbanded mid-talk. A battle with
+      // a party that no longer exists has no one in it and no way out, at war or not.
+      [Test]
+      public void GIVEN_the_party_met_is_gone_WHEN_the_chat_closes_THEN_the_meeting_is_over()
+      {
+         MapEncounterClosePolicy.LeavesTheMeeting(new MeetingLeaveFacts {HasEncounter = true, MetPartyGone = true, AtWarWithTheMetParty = true}).Should().BeTrue();
+      }
+
+      // STAKE: an enemy lord met on the road: after the words, the player may still choose to attack from the encounter
+      // menu, as before.
+      [Test]
+      public void GIVEN_a_talk_with_an_enemy_party_WHEN_the_chat_closes_THEN_the_encounter_menu_stays_for_the_player_to_choose()
+      {
+         MeetingLeaveFacts f = Meeting();
+         MapEncounterClosePolicy.LeavesTheMeeting(new MeetingLeaveFacts {HasEncounter = f.HasEncounter, TalkedWithTheMetParty = true, AtWarWithTheMetParty = true})
+                                .Should().BeFalse();
+      }
+
+      // STAKE: a town or castle visit is not a meeting on the road; ending it would throw the player out of the
+      // settlement menus.
+      [Test]
+      public void GIVEN_a_talk_inside_a_settlement_WHEN_the_chat_closes_THEN_the_encounter_is_not_ended()
+      {
+         MapEncounterClosePolicy.LeavesTheMeeting(new MeetingLeaveFacts {HasEncounter = true, TalkedWithTheMetParty = true, AtASettlement = true}).Should().BeFalse();
+      }
+
+      // STAKE: a briefing is a step inside a meeting (Gabriel, 12/09/2026): closing it must leave the meeting standing.
+      [Test]
+      public void GIVEN_a_briefing_WHEN_it_closes_THEN_the_meeting_goes_on()
+      {
+         MapEncounterClosePolicy.LeavesTheMeeting(new MeetingLeaveFacts {HasEncounter = true, TalkedWithTheMetParty = true, BriefingReturnPending = true}).Should().BeFalse();
+      }
+
+      // STAKE: a chat with someone who is not the party met (a companion of the player's own, on the road) is no
+      // reason to end someone else's meeting.
+      [Test]
+      public void GIVEN_a_talk_with_someone_other_than_the_party_met_WHEN_the_chat_closes_THEN_the_meeting_is_not_ended()
+      {
+         MapEncounterClosePolicy.LeavesTheMeeting(new MeetingLeaveFacts {HasEncounter = true}).Should().BeFalse();
+      }
    }
 }

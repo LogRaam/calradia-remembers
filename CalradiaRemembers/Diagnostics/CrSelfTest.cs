@@ -336,6 +336,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
          new SelfTest("local_context", Severity.Light, "A local model's declared context window (fkasad, 13/10/2026: LM Studio cut CR's oversized request in its middle and the rules for a give were lost). On a real character with a CR memory, sends a long conversation through the real prompt builder to a capturing client (no model is called) with an 8,192-token window, and expects what would go out to fit, to still teach GAME ACTIONS, to keep the recap and the new line, to open the raw lines on a player's turn and to carry the compact reply budget; with no window, expects the whole conversation to go as built. Tells the player nothing and keeps nothing.", TestLocalContext),
          new SelfTest("audience_who", Severity.Light, "Who is asking for a word (Lordfadooboo, 13/10/2026: \"who is that?\" and a way to open their encyclopedia page from the invitation). Expects the popup button and its patch in place; writes the Who line for a real lord and expects their name in it; raises a real test invitation and expects it to carry that lord and show the button on the map; then starts the encyclopedia detour without opening the page, expects the invitation hidden, lets the wait run out and expects the same invitation back. Closes it at the end. Checks InformationManager.IsAnyInquiryActive FIRST (GABRIEL'S RULE, 13/10/2026) so a real pre-existing popup is never queued behind or dismissed; MANUAL only then, never for an unexplained race.", TestAudienceWho),
+         new SelfTest("close_leaves_meeting", Severity.Light, "Wallace1067 (Nexus, 17/10/2026, on 2.7.12): CR never told the game a meeting was over, so its meeting menu started a battle with the party met after every chat on the road; recalling a companion while meeting his errand party left an empty battle with no way out. Drives MapEncounterClosePolicy.LeavesTheMeeting: a friendly party met leaves, a party gone leaves, an enemy at war stays on the encounter menu, a settlement visit and a briefing are not ended. Notes the live encounter facts if one is open. Changes no game state.", TestCloseLeavesMeeting),
          new SelfTest("close_settled_battle", Severity.Light, "Wallace1067 (Nexus, 13/10/2026): a friendly lord with no battle anywhere still left him on the vanilla encounter menu after every chat, because a MapEvent merely attached (already finalized, or already with a winner) read as a battle under way. Drives MapEncounterClosePolicy.IsLive on a live sighting, a finalized one and one with a winner, and MayFinish with BattleUnderWay computed from each, expecting a live fight kept and a settled one finished. Notes the real MapEvent on the player's own party if one is attached. Changes no game state.", TestCloseSettledBattle),
          new SelfTest("battle_memory_wording", Severity.Light, "tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): a witness line read 'I saw you cut down 168 of them yourself at at the siege of Thorios Castle', doubling the preposition and addressing the player as 'you'. Builds the same siege place WorldEventFeeders builds and drives the REAL BattleFeatReporter the way it now wires it (the engagement noun phrase, not the already-shaped place clause), expecting exactly one 'at', no 'you', and the player named. Mutates nothing.", TestBattleMemoryWording),
          new SelfTest("realm_faces", Severity.Light, "Queens with a chosen face (Gabriel, 12/10/2026: one queen per realm, made in the character editor; CR dresses the ruler's wife). Reports the faces files read and their problems; on a real ruler's wife, dresses her in a face (the first one read, else a test face) and expects her face to be exactly that one, expects the chat to show her realm's portrait when the faces file names one (Gabriel, 12/10/2026, unless the player dropped their own), then gives it back and expects her own face and usual portrait again, then lets the daily pass dress whom it should. Changes no one for good.", TestRealmFaces),
@@ -11708,6 +11709,25 @@ namespace CalradiaRemembers.Diagnostics
       ///   it", with no battle anywhere. Drives the pure policy with each of the three sighting shapes directly,
       ///   so this stays green without a live fight on the map to arrange.
       /// </summary>
+      private static string TestCloseLeavesMeeting(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("close_leaves_meeting");
+
+         bool Leaves(Logic.Conversation.MeetingLeaveFacts f) => Logic.Conversation.MapEncounterClosePolicy.LeavesTheMeeting(f);
+
+         t.Expect("aFriendlyPartyMetLeaves", Leaves(new() {HasEncounter = true, TalkedWithTheMetParty = true}), true);
+         t.Expect("aPartyGoneLeaves", Leaves(new() {HasEncounter = true, MetPartyGone = true}), true);
+         t.Expect("anEnemyAtWarStays", Leaves(new() {HasEncounter = true, TalkedWithTheMetParty = true, AtWarWithTheMetParty = true}), false);
+         t.Expect("aSettlementVisitIsNotEnded", Leaves(new() {HasEncounter = true, TalkedWithTheMetParty = true, AtASettlement = true}), false);
+         t.Expect("aBriefingIsNotEnded", Leaves(new() {HasEncounter = true, TalkedWithTheMetParty = true, BriefingReturnPending = true}), false);
+
+         if (TaleWorlds.CampaignSystem.Encounters.PlayerEncounter.Current != null)
+            t.Note($"an encounter is open: met={TaleWorlds.CampaignSystem.Encounters.PlayerEncounter.EncounteredParty?.Name}, "
+                   + $"leave={TaleWorlds.CampaignSystem.Encounters.PlayerEncounter.LeaveEncounter}, meetingDone={TaleWorlds.CampaignSystem.Encounters.PlayerEncounter.MeetingDone}");
+
+         return t.Line();
+      }
+
       private static string TestCloseSettledBattle(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("close_settled_battle");
