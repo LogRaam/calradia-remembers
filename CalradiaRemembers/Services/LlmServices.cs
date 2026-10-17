@@ -969,6 +969,10 @@ namespace CalradiaRemembers.Services
                _housekeepingClient = BuildHousekeepingClient(kind, model);
                _builtHousekeepingKind = kind;
                _builtHousekeepingModel = model;
+               // fkasad (17/10/2026): the wire showed the prose model on background calls and nothing said what the
+               // background slot really resolved to. Logged once per (re)build. A local server may still answer with
+               // whatever model it has loaded, whatever name was asked for.
+               ModLog.Info($"[LLM] background client: provider={kind}, model={(string.IsNullOrWhiteSpace(model) ? "(none)" : model)}, address={BaseUrlFor(ServiceRole.Housekeeping, kind)}");
 
                return _housekeepingClient;
             }

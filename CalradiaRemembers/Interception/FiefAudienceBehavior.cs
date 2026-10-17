@@ -254,6 +254,7 @@ namespace CalradiaRemembers.Interception
          // "never silently, but never spammed either" rule CompanionAudienceTopicBehavior's own global cooldown
          // follows, so declining costs nothing BEYOND what the offer itself already started.
          _lastOfferedDay[npc.StringId] = Today;
+         if (trigger == InterceptionTrigger.HeardOfDeed) InterceptionBehavior.NoteGossipOffered(npc, Today);
          _pendingHeroId = npc.StringId;
          _pendingTrigger = trigger;
          _pendingDetail = detail;

@@ -8,7 +8,9 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 #endregion
 
@@ -74,6 +76,29 @@ namespace CalradiaRemembers.Logic.Interception
    /// <summary>Picks the single matter a lord raises: the most recent one, within a recency window, that he has not already raised.</summary>
    public static class RecentMatterSelector
    {
+      /// <summary>
+      ///   Marks a ledger entry for gossip only OFFERED (named in an invitation the player saw, taken up or declined),
+      ///   not yet spoken: "offered:npcId|matterKey". It bars everyone else, not the one who offered it, who must still
+      ///   find his matter when the player accepts.
+      /// </summary>
+      public const string OfferedPrefix = "offered:";
+
+      /// <summary>
+      ///   True when this piece of world gossip was already raised with the player, or offered to them, by anyone other
+      ///   than the one who offered it. The once-per-NPC ledger (entries "npcId|matterKey") stopped one character asking
+      ///   twice, never the next one: froggyluv (Nexus, 17/10/2026) was stopped in town after town by someone asking what
+      ///   he knew of the same war, then of the same capture, "So it seems kind of stuck in a loop". Each piece of news
+      ///   is asked about once, by whoever asks first.
+      /// </summary>
+      public static bool GossipAlreadyRaisedByAnyone(IEnumerable<string> raisedLedger, string matterKey, string askingNpcId)
+      {
+         if (string.IsNullOrEmpty(matterKey) || raisedLedger == null) return false;
+
+         string ownOffer = OfferedPrefix + askingNpcId + "|" + matterKey;
+
+         return raisedLedger.Any(entry => entry != null && entry != ownOffer && entry.EndsWith("|" + matterKey, StringComparison.Ordinal));
+      }
+
       /// <summary>
       ///   From the classified <paramref name="candidates" />, returns the freshest matter within
       ///   <paramref name="windowDays" /> of <paramref name="today" /> whose key is not in <paramref name="raisedKeys" />

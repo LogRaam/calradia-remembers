@@ -903,6 +903,20 @@ namespace CalradiaRemembers.Interception
          => Instance?.PickRecentMatter(lord, today)?.Summary;
 
       /// <summary>
+      ///   The invitation naming this lord's matter was shown: a piece of world gossip counts as raised from then, taken
+      ///   up or declined, so the next character does not offer the same news (froggyluv, 17/10/2026). A matter between
+      ///   the lord and the player is left as it was: it is raised when spoken.
+      /// </summary>
+      internal static void NoteGossipOffered(Hero lord, int today)
+      {
+         if (Instance == null || lord == null) return;
+
+         RecentMatter m = Instance.PickRecentMatter(lord, today);
+         if (m?.Register == RecentMatterRegister.WorldGossip && !string.IsNullOrEmpty(m.Key))
+            Instance._raisedMatterKeys.Add(RecentMatterSelector.OfferedPrefix + lord.StringId + "|" + m.Key);
+      }
+
+      /// <summary>
       ///   The single matter this lord would raise right now: the freshest unraised one from his own profile
       ///   memories of the player (LIVED) and the world events he knows of involving the player (LIVED if he took
       ///   part, else RUMOR), or null when he has nothing fresh left. Pure selection lives in the tested
@@ -983,6 +997,7 @@ namespace CalradiaRemembers.Interception
             }
 
          WorldEventStore store = WorldEventStore.Instance;
+         IEnumerable<string> raisedByAnyone = Instance?._raisedMatterKeys ?? (IEnumerable<string>) Array.Empty<string>();
          if (store != null)
             foreach (WorldEvent we in store.GetKnownEvents(lord, today, 4))
             {
@@ -997,8 +1012,12 @@ namespace CalradiaRemembers.Interception
                   matters.Add(new RecentMatter("we:" + we.Id, we.Day, we.Summary,
                      tookPart ? RecentMatterRegister.LivedMemory : RecentMatterRegister.RumorAboutPlayer));
                }
-               else if (!tookPart && ModSettings.NpcsRaiseWorldNews && we.Magnitude >= GossipMagnitudeThreshold)
+               else if (!tookPart && ModSettings.NpcsRaiseWorldNews && we.Magnitude >= GossipMagnitudeThreshold
+                        && !RecentMatterSelector.GossipAlreadyRaisedByAnyone(raisedByAnyone, "we:" + we.Id, lord.StringId))
                {
+                  // Once per piece of news, not once per character (froggyluv, 17/10/2026: the same war, then the same
+                  // capture, asked by notable after notable).
+                  //
                   // World GOSSIP (phase 2): a noteworthy happening the lord only heard of and had no part in, so he
                   // probes the player about it. The tookPart guard is also what stops a lord gossiping about
                   // himself ("Lucon asks who Lucon's secret lover is") -- if he is a participant it is never gossip.
@@ -1099,7 +1118,7 @@ namespace CalradiaRemembers.Interception
             RecentMatterRegister.RumorAboutPlayer =>
                " You did not witness this; you only HEARD of it, so speak of it as hearsay, hedged, not as something you saw firsthand.",
             _ =>
-               " This concerns neither you nor the player directly; you only heard of it and do not know the whole of it. Do NOT state it as fact or pretend to know more than you do: raise it and ASK the player what THEY know, curious."
+               " This concerns neither you nor the player directly; you only heard of it and do not know the whole of it. Do NOT state it as fact or pretend to know more than you do: raise it and ASK the player what THEY know, curious. They may well know nothing of it, which is only natural: then take it lightly, say what little you heard, and let it go; it is no fault of theirs and no slight to you."
          };
 
          // fkasad (05/10/2026): a lived memory is written to the player; quoted bare, its "you" read as the character.
@@ -1168,6 +1187,14 @@ namespace CalradiaRemembers.Interception
 
          return m == null ? null : RecentMatterLetterText(m);
       }
+
+      /// <summary>cr.testall seam: notes a piece of gossip as offered by this lord, as an invitation naming it does.</summary>
+      internal void DebugNoteGossipOfferedBy(Hero lord, string matterKey)
+         => _raisedMatterKeys.Add(RecentMatterSelector.OfferedPrefix + lord.StringId + "|" + matterKey);
+
+      /// <summary>cr.testall seam: forgets every ledger entry about this matter (cleanup).</summary>
+      internal void DebugForgetMatter(string matterKey)
+         => _raisedMatterKeys.RemoveWhere(entry => entry != null && entry.EndsWith("|" + matterKey, StringComparison.Ordinal));
 
       /// <summary>cr.testall seam: the classified candidate matters this lord could raise right now (no mutation, no dedup marking).</summary>
       internal IReadOnlyList<RecentMatter> DebugBuildRecentMatters(Hero lord)

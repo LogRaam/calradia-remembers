@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-530 rules read 412 facts.
+531 rules read 412 facts.
 
 ## Facts read by more than one rule
 
@@ -56,6 +56,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.GetSkillValue` (9) | `CombatantFacts`, `CompanionCounselPolicy.Select`, `CompanionMissions.CanAttempt`, `CompanionMissions.LootForResult`, `ErrandFacts`, `PartyCounselFacts`, `TeachSkillPolicy.CanTeach`, `TeachSkillPolicy.CanTeachPlayer`, `TeachSkillPolicy.GrantedXp` |
 | `Hero.IsNotable` (9) | `AudienceStationFacts`, `AudienceWhoFacts`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `GiverFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `NotableRecruitmentFacts` |
 | `Settlement.IsTown` (9) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts`, `ProvideGoodsPolicy.MarketKey`, `ScoutTownFacts`, `ScoutTownPolicy.MayAsk`, `TownNeedsPolicy.MostLacking` |
+| `Array.Empty` (8) | `AppreciationPolicy.SelectDominant`, `GrudgePolicy.SelectDominant`, `PromptProfileFolders.List`, `PromptProfileReader.Read`, `RecentMatterSelector.GossipAlreadyRaisedByAnyone`, `SceneChoiceMenu.Items`, `SceneChoiceMenu.Read`, `SceneChoiceMenuFacts` |
 | `Clan.IsUnderMercenaryService` (8) | `ArrestPolicy.CanBeArrested`, `ArrestStandingFacts`, `PlayerStandingFacts`, `PlayerStandingPolicy.Resolve`, `RegardProposal`, `VassalageFacts`, `WarDutyLive`, `WarDutyPolicy.Decide` |
 | `Clan.Renown` (8) | `BastardPrestigePolicy.PrestigeScore`, `BastardPrestigePolicy.Resolve`, `FirstImpressionDescriber.Describe`, `FirstImpressionInputs`, `FirstImpressionPolicy.Resolve`, `InterceptionFacts`, `InterceptionPolicy.Choose`, `InterceptionPolicy.IsRoadValid` |
 | `Hero.HomeSettlement` (8) | `AudienceStationFacts`, `AudienceWhoFacts`, `AuthoredQuestEngine.ConversationOpened`, `AuthoredQuestPrompt.ForCharacter`, `AuthoredTaleImages.ConversationIsTheStep`, `EscortCostPolicy.EscortPremium`, `HistoryKnowledgeFacts`, `LongTermHistoryPolicy.WouldKnow` |
@@ -64,7 +65,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `PartyBase.MobileParty` (8) | `BrigandageFacts`, `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `CourierSecretPolicy.WhoGetsTheSecret`, `MeetingLeaveFacts`, `SecretDefeaterFacts` |
 | `Settlement.CurrentSettlement` (8) | `CouncilSceneImagePolicy.Resolve`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DuelPublicityPolicy.Audience`, `DuelStagingSupport.CanStage`, `DuelVenuePolicy.Choose`, `FoodTradeFacts`, `MeetingLeaveFacts`, `TownFoodPolicy.IsHungry` |
 | `Settlement.Find` (8) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AuthoredQuestEngine.NightPassed`, `CompanionPatrolPolicy.ShouldReissue`, `HistoryKnowledgeFacts`, `LongTermHistoryPolicy.WouldKnow`, `PatrolLeashFacts`, `RumorAwareness.Explain` |
-| `Array.Empty` (7) | `AppreciationPolicy.SelectDominant`, `GrudgePolicy.SelectDominant`, `PromptProfileFolders.List`, `PromptProfileReader.Read`, `SceneChoiceMenu.Items`, `SceneChoiceMenu.Read`, `SceneChoiceMenuFacts` |
 | `DayMoodReader.Draw` (7) | `CorrespondencePreferenceParser.Parse`, `LetterRegardPolicy.ParseTone`, `LetterRegardPolicy.StripToneLine`, `LetterReplyDecisionParser.Parse`, `PatrolLetterText.OrdersStop`, `PatrolLetterText.StripOrderLine`, `PerceivedImageFacts` |
 | `Hero.Name` (7) | `BattleRecordText.Summary`, `BattleSideFacts`, `QuestMenuEntry`, `SkirmishFacts`, `SkirmishFoe`, `SkirmishLine`, `SkirmishMemoryText.CountIn` |
 | `Hero.PartyBelongedToAsPrisoner` (7) | `GiftEquipFacts`, `GiftEquipPolicy.WearsOnBattleSet`, `HeroNaming`, `NotHisToSellFacts`, `PrisonerRecruitmentPolicy.Evaluate`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
@@ -660,6 +660,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `RealmFaceFacts`: `StringComparer.OrdinalIgnoreCase`, `Value.Realm`
 - `RealmServiceWording.Joined`: `Kingdom.Leader`
 - `ReasoningWirePolicy.UsesEffortString`: `ModSettings.ActionInterpreterProviderSelection`, `ModSettings.CncProviderSelection`, `ModSettings.HousekeepingProviderSelection`, `ModSettings.RoleplayProviderSelection`, `Provider.SelectedValue`
+- `RecentMatterSelector.GossipAlreadyRaisedByAnyone`: `Array.Empty`
 - `RecruitTroopsPolicy.TroopsToAsk`: `Hero.PartyBelongedTo`, `MemberRoster.TotalManCount`, `Party.PartySizeLimit`
 - `RegardProposal`: `Clan.IsUnderMercenaryService`, `Clan.Kingdom`, `Hero.Clan`, `Hero.IsFemale`, `Hero.IsPrisoner`, `Hero.Spouse`, `Kingdom.Leader`, `ModSettings.AdultContentLevel`, `ModSettings.RegardDecayDays`, `ModSettings.RelationWarmth`, `PartyBelongedToAsPrisoner.LeaderHero`, `Profile.Romantic`, `Status.IsCuriousOrDeeper`, `Status.IsIntimateOrDeeper`
 - `ReinforceGarrisonPolicy.MayAsk`: `Party.NumberOfHealthyMembers`, `Party.PartySizeLimit`

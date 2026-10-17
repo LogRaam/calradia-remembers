@@ -443,9 +443,9 @@ namespace CalradiaRemembers.Settings
       // Blank means what it has always meant: the same model as the prose reply, so nobody who does not go
       // looking for this is affected by it.
       [SettingPropertyText("Background model", RequireRestart = false, Order = 11,
-         HintText = "Optional. A cheaper or smaller model for the mod's background work: summaries, memory " +
-                    "compression, claim extraction. Blank uses the roleplay model. Useful on a local server, " +
-                    "where two unrelated prompts share one cache.")]
+         HintText = "Optional. A cheaper or smaller chat model (not an embedding model) for the mod's background " +
+                    "work: summaries, memory compression, claim extraction. Blank uses the roleplay model. Useful " +
+                    "on a local server, where two prompts share one cache.")]
       [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
       public string HousekeepingModel { get; set; } = "";
 
