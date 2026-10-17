@@ -761,9 +761,10 @@ var HistoryChecks = (function () {
     function hide() { list.hidden = true; }
     function show() {
       var items = opts.items(), q = input.value.trim().toLowerCase(), words = q.split(/\s+/).filter(Boolean);
+      // Every match, not the first sixty: sorted by name, sixty stopped at the A's (Gabriel, 17/10/2026).
       shown = items.filter(function (it) {
         return values.indexOf(it.id) < 0 && words.every(function (w) { return it.search.indexOf(w) >= 0; });
-      }).slice(0, 60);
+      });
       active = 0;
       clear(list);
       if (!items.length) list.appendChild(h('div', {class: 'opt none', text: q ? 'No snapshot: press Enter to add "' + input.value.trim() + '" as an id' : 'Open a world snapshot to pick by name, or type an id and press Enter'}));
@@ -933,7 +934,12 @@ var HistoryChecks = (function () {
     if (obj === null) return;
     var kind = kindOfFile(obj);
     if (!kind) { toast(name + ' is neither a world snapshot (calendar, heroes) nor a history file (events).', 'error'); return; }
-    if (expect && kind !== expect) toast(name + ' looks like a ' + (kind === 'world' ? 'world snapshot' : 'history file') + ', opened as one.', 'warn');
+    // Opened with the wrong button, the file is refused rather than taken as the other kind (Gabriel, 17/10/2026).
+    if (expect && kind !== expect) {
+      toast(name + ' is a ' + (kind === 'world' ? 'world snapshot (.world.json), not a history file: open it with "Open world snapshot"'
+                                                 : 'history file (.history.json), not a world snapshot: open it with "Open history file"') + '.', 'error');
+      return;
+    }
     if (kind === 'world') loadWorld(obj, name);
     else confirmDiscard().then(function (ok) { if (ok) loadHistory(obj, name, handle); });
   }
