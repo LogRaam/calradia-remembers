@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.7.13.. open
+## v2.7.13.. 2026-10-17
 
 ### New
 - **Companion patrols, the engine (increment 1 of 4)** (jaserms1, 16/10: a war council's patrol order did nothing;

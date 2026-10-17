@@ -505,8 +505,30 @@ MUST = [
     ("mod",   "registered_match".encode("utf-16-le")),
     ("mod",   "mercenary_join_term".encode("utf-16-le")),
     ("sdk",   "war_duty_terms".encode("utf-16-le")),
+    # 2.7.13
+    ("logic", b"PastOnMentionPolicy"),
+    ("logic", b"LongTermHistoryPolicy"),
+    ("logic", b"AuthoredHistoryLoader"),
+    ("logic", b"HistoryRelationLedger"),
+    ("logic", b"CompanionPatrolPolicy"),
+    ("logic", b"PatrolLetterText"),
+    ("logic", b"ChatTemperaturePolicy"),
+    ("logic", b"MeetingLeaveFacts"),
+    ("logic", b"GossipAlreadyRaisedByAnyone"),
+    ("logic", b"BattleRecordText"),
+    ("logic", b"PlayerNameText"),
+    ("logic", b"CouncilQuestTypePolicy"),
+    ("mod",   b"CompanionPatrolBehavior"),
+    ("mod",   b"CompanionPatrolQuest"),
+    ("mod",   b"AuthoredHistoryBehavior"),
+    ("mod",   b"TellTheGameTheMeetingIsOver"),
+    ("mod",   "history_on_mention".encode("utf-16-le")),
+    ("mod",   "gossip_once_per_news".encode("utf-16-le")),
+    ("mod",   "close_leaves_meeting".encode("utf-16-le")),
+    ("sdk",   b"PastOnMentionBlock"),
 ]
 MUST_NOT = [
+    ("mod",   "patrol_spike".encode("utf-16-le")),   # 2.7.13: the patrol engine spike's console command, removed before release
     ("mod", b"ActionInterpreterTimingSetting"),   # 2.7.12: the dead "Actions Interpreter Timing" dropdown is removed
     ("mod",   "A predator wearing a lord's title".encode("utf-16-le")),   # 2.6.11: the retired archetype is gone (the testall keeps the 'Sadistic' opening on purpose)
     ("logic", b"MinPlotterRegard"),   # renamed: it reads the ENGINE ledger, not the mod's

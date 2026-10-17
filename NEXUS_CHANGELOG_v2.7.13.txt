@@ -1,0 +1,36 @@
+Version 2.7.13
+
+Patrols and the past: companions hold a post with your men, the world remembers beyond the news, and you can write the history your campaign starts from.
+
+New
+
+- Companion patrols. Ask a companion, in chat or in a war council, to patrol around a settlement you name. The game's own party screen opens on the map to choose the men from your party; cancel it and nothing moves. The band fights what it meets, stays near its post, and comes back with every man, wounded and prisoners included, when you call it back. Every 30 days the companion writes with the patrol's real record and asks whether to keep on; answer "come back" and they ride home. A patrol has its own entry in the quest journal. (Thank you, jaserms1.)
+- The world remembers beyond the news. Rumours still fade after about 40 days, but great events now stay in a long-term memory: large battles, sieges, fiefs taken, executions, marriages, divorces, wars and peaces, risings, schemes discovered, lords captured or fallen in battle. Those tied to an event remember it (its lords, their kin and house, the lords of the place, and for the greatest, their whole realm), and a secret stays with the few who share it.
+- Write the past your campaign starts from. Each campaign can have a history file of events before day 1: a betrayal, an old war, a marriage, a feud. Lords who would know of it remember it, and an event can set or change a starting relation, yours included. Type cr.history_file in the console to create the file and a snapshot of the world, then open HistoryEditor.html (in the module's Docs folder) to write it on a timeline, with the names picked from your campaign and every date checked. The file is read again at each load.
+- Lords speak of the past you name. Name a person (the dead included), a place or a realm, and the one you speak with brings up what they know of its past: how long ago, whether they were part of it, or only know it as it was told to them.
+- Chat Temperature in Mod Options (LLM Provider), from 0.10 to 1.20, default 0.70 as before. It sets how varied the conversation's wording is. (Thank you, fkasad.)
+
+Fixed
+
+- A chat with a party met on the road no longer ends in a battle with that party, and recalling a companion from an errand while you meet their band no longer leaves you stuck in an empty encounter. The 2.7.12 fix for this aimed at the wrong cause; sorry for the "Fixed" that was not. (Thank you, Wallace1067.)
+- With "NPCs Raise World News" on, a piece of news is asked about once, not by every notable in every town. An invitation you decline counts. The one asking now takes it lightly when you know nothing of it. (Thank you, froggyluv.)
+- A war council member's own pledge (a companion going to patrol) no longer turns into a bandit-clearing task for you; a deed the game cannot set as a quest now fails with a reason. (Thank you, jaserms1.)
+- The record of a battle says who it was against ("a band of Looters", "men of Vlandia"), where (near the closest settlement), and how big (from a skirmish of a few dozen men to a great battle of thousands). A skirmish carries less far as news. (Thank you, fkasad.)
+- Closing the chat now stops a reply still being written, so a local model is free at once for the next call. (Thank you, fkasad.)
+
+Changed
+
+- An enemy lord who reaches you on the road now asks first ("X bars your way": Speak with them / Not now). Declined, nothing opens and nothing is sent to the model. (Thank you, fkasad.)
+- Screens that show memories, grievances, letters, the chronicle and the journal now name your character where a memory said "the player".
+- Memories, summaries and letters now get your character's sex right; they used to guess "he".
+- The log names the background model in use ([LLM] background client), and its help says it must be a chat model, not an embedding model. (Thank you, fkasad.)
+
+Developer tools
+
+- New cr.testall tests: companion_patrol, chat_temperature, world_long_term_memory, authored_history, history_on_mention, gossip_once_per_news, close_leaves_meeting, player_named_on_screen, enemy_meeting_offer.
+- Six tests no longer fail on a save made after an earlier cr.testall run: they arrange their own context and clean up.
+- New console commands: cr.patrol, cr.patrol_home, cr.patrol_kit, cr.history, cr.history_file, cr.history_reload.
+
+Notes
+
+- Your existing saves load as they are. An older save starts with an empty long-term memory; what is still news at load reaches it in time.
