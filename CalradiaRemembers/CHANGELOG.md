@@ -91,6 +91,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   person (waits on `PairRegardPolicy`).
 
 ### Changed
+- **The background model is logged** (fkasad, 17/10: background calls seemed to reach the prose model). Each time
+  the background client is built, `[LLM] background client: provider, model, address` goes to the log; the
+  "Background model" hint now says it must be a chat model, not an embedding model. The code already honoured the
+  setting with the provider on "(default)"; a local server may answer with whatever model it has loaded.
 - **The game names your character, never "the player"** (Gabriel, 17/10: a grievance read "Holds an old bitterness
   against you, over The marriage was ended by the player's own choice"). Every screen that shows stored or written
   text (chat lines and narration, the memory panel, the chat side panel, the encyclopedia's grievances, kindnesses,
@@ -113,6 +117,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   `enemy_meeting_offer`.
 
 ### Fixed
+- **The same news asked about in every town** (froggyluv, 17/10, with "NPCs Raise World News" on: "just about
+  everyone wants to stop me ... and ask me the same question", the same war, then the same capture, "stuck in a
+  loop"). The ledger of raised matters was per character, so the next notable asked again, and each picked the
+  greatest news of the moment. A piece of world gossip is now asked about once, by whoever asks first; an invitation
+  that names it counts, taken up or declined (`RecentMatterSelector.GossipAlreadyRaisedByAnyone`, "offered:" entries
+  in the existing ledger, no new save key). The asking character is told the player may well know nothing of it, and
+  to take that lightly (the model had turned insulting). cr.testall `gossip_once_per_news`.
 - **A chat on the road ended in a battle** (Wallace1067, 17/10, on 2.7.12; the 13/10 fix aimed at the wrong cause): CR
   never told the game the meeting was over, so its meeting menu started a battle with the party met after every chat
   (`encounter_meeting` on init: meeting done, not leaving, `StartBattle`). The close now sets `LeaveEncounter` as the
