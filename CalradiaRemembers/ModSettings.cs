@@ -534,6 +534,12 @@ namespace CalradiaRemembers
       public static int LlmResponseTimeoutSeconds => CrSettings.Instance?.LlmTimeoutSeconds ?? 120;
 
       /// <summary>
+      ///   The temperature a conversation turn is sampled at (the "Chat Temperature" MCM slider, default 0.7), held
+      ///   in range by <see cref="Logic.ChatTemperaturePolicy" />. Read live; the chat service rebuilds when it moves.
+      /// </summary>
+      public static float ChatTemperature => Logic.ChatTemperaturePolicy.Clamp(CrSettings.Instance?.ChatTemperature ?? Logic.ChatTemperaturePolicy.Default);
+
+      /// <summary>
       ///   The model id for consensual-intimate scenes (the "NSFW Consensual model" MCM field). Its stored value
       ///   lives under the legacy <c>CrSettings.NsfwModel</c> persistence identity (see that property's comment), so
       ///   an existing config that set the old single "NSFW model" is preserved as the consensual model after an

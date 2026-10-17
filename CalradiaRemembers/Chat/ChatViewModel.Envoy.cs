@@ -151,7 +151,7 @@ namespace CalradiaRemembers.Chat
             var request = new LlmRequest {
                SystemPrompt = systemPrompt,
                Messages = new[] {new LlmMessage(MessageRole.User, isOpener ? "(The envoy is admitted, and speaks first.)" : playerMessage)},
-               Parameters = new LlmParameters {MaxTokens = 3000, Creativity = 0.7f}
+               Parameters = new LlmParameters {MaxTokens = 3000, Creativity = ModSettings.ChatTemperature}
             };
 
             string raw = null;

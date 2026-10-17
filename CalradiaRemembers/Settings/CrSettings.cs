@@ -366,6 +366,15 @@ namespace CalradiaRemembers.Settings
       // read anywhere. Kept as a plain (un-attributed) property so an old stored value loads without orphaning.
       public string ProseFallbackModel { get; set; } = "";
 
+      // fkasad (Nexus, 17/10/2026) asked whether the mod tunes temperature by the kind of call; it does, but the
+      // conversation value was fixed at 0.7. Gabriel the same day: a setting, for players fitting a local model.
+      [SettingPropertyFloatingInteger("Chat Temperature", ChatTemperaturePolicy.Min, ChatTemperaturePolicy.Max, "0.00", RequireRestart = false, Order = 15,
+         HintText = "How varied conversation replies are (default 0.70). Lower is steadier and more repetitive, higher " +
+                    "more surprising; above 1.0 a local model may lose its character. Reasoning models ignore it. " +
+                    "Applies immediately.")]
+      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      public float ChatTemperature { get; set; } = ChatTemperaturePolicy.Default;
+
       [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 11,
          HintText = "How long to wait for a reply, in seconds (default 120), in conversations and for letters and " +
                     "summaries (never under 60). Raise it for a slow local or reasoning model; lower it to fail fast. " +

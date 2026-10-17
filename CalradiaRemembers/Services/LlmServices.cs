@@ -60,6 +60,7 @@ namespace CalradiaRemembers.Services
       // a realm the player had been expelled from (tashmetu, 19/09/2026). A change now rebuilds the builder.
       private string _builtPlayerFaction;
       private string _builtPlayerClan;
+      private float _builtTemperature;
       private NpcChatService _chatService;
 
       private HttpClient _httpClient;
@@ -120,13 +121,15 @@ namespace CalradiaRemembers.Services
             AdultContentLevel current = ModSettings.AdultContentLevel;
             RelationWarmth warmth = ModSettings.RelationWarmth;
             string replyLanguage = ModSettings.ReplyLanguage;
+            float temperature = ModSettings.ChatTemperature;
 
             string playerFaction = Hero.MainHero?.MapFaction?.Name?.ToString() ?? "";
             string playerClan = Hero.MainHero?.Clan?.Name?.ToString() ?? "";
 
             if (_chatService != null && _builtAdultLevel == current && _builtWarmth == warmth
                                       && _builtReplyLanguage == replyLanguage
-                                      && _builtPlayerFaction == playerFaction && _builtPlayerClan == playerClan)
+                                      && _builtPlayerFaction == playerFaction && _builtPlayerClan == playerClan
+                                      && _builtTemperature == temperature)
                return _chatService;
             _chatService = BuildChatService();
             _builtAdultLevel = current;
@@ -134,6 +137,7 @@ namespace CalradiaRemembers.Services
             _builtReplyLanguage = replyLanguage;
             _builtPlayerFaction = playerFaction;
             _builtPlayerClan = playerClan;
+            _builtTemperature = temperature;
 
             return _chatService;
          }
@@ -1188,7 +1192,8 @@ namespace CalradiaRemembers.Services
             // the rare long beat that actually needs the room. Kept in sync with NpcChatService's default.
             ChatParameters = new LlmParameters {
                MaxTokens = 3000,
-               Creativity = 0.7f,
+               // The "Chat Temperature" setting (fkasad, 17/10/2026), 0.7 unless the player moved it.
+               Creativity = ModSettings.ChatTemperature,
                PresencePenalty = ScenePresencePenalty
             }
          };

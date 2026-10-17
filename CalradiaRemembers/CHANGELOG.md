@@ -4,6 +4,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.13.. open
 
+### New
+- **Chat Temperature setting** (fkasad, 17/10: does the mod tune the temperature by the kind of call? It does,
+  from 0.1 for extraction to 0.7 for conversation, but the conversation value was fixed in code). MCM, LLM Provider:
+  "Chat Temperature", 0.10 to 1.20, default 0.70, so nothing changes for anyone who leaves it. It drives the
+  conversation turn and the envoy; background calls keep their own low values, and the war council its 0.8.
+  Reasoning models (gpt-5, o-series) are sent no temperature at all, as before. Varying it by relationship was
+  declined: temperature spreads word choice, it does not make a lord formal (the prompt does).
+  `ChatTemperaturePolicy`; cr.testall `chat_temperature`.
+
 ### Changed
 - **An enemy lord asks before he talks** (fkasad, 16/10: an enemy lord rode up as the player was about to attack him;
   the chat opened by force and a local model reasoned for half a minute over an opener the player closed unread;

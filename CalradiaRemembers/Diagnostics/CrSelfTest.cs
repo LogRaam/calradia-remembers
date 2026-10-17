@@ -288,6 +288,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("background_hold", Severity.Light, "fkasad (Nexus, 15/10/2026): on a local server, summaries, memory compaction and letters slipped in between two replies, the server swapped its KV cache and replies timed out. With a conversation forced open through the seam: a background call routed to OpenAI-Compatible (local) waits; the same call routed to a cloud provider goes at once; with no conversation open a local call goes at once. Restores the provider dropdowns and the seam (the held wait ends within a second)", TestBackgroundHold),
          new SelfTest("war_duty_ledger", Severity.Light, "Maifailun (Nexus, 15/10/2026): a vassal who sits out the realm's war is called to account, so the mod must see his service. On a fresh ledger through the real upkeep: the realm the player is sworn to (none as a mercenary or a free lord) and its enemy kingdoms are recorded from today, so no one owes on the first day. A battle against a realm at war with his counts as service; one against bandits does not. Restores the player's own ledger", TestWarDutyLedger),
          new SelfTest("aims_conversation", Severity.Light, "CrAims (tashmetu, 14/10/2026: lords with aims of their own; 'the real risk is a lord who brings up Lakonon in every conversation'). A test aim is registered on a real lord not at war with the player; a conversation opening with him gives him leave to raise it and the encounter context carries his want; a second conversation the same day does not give it again; the leave ends with the conversation. An aim Calradia Remembers seeds for its own mechanics is not voiced by the generic section. Retracts both aims", TestAimsConversation),
+         new SelfTest("chat_temperature", Severity.Light, "fkasad (Nexus, 17/10/2026) asked whether the mod tunes the temperature; the conversation value was fixed at 0.7, and Gabriel asked for a setting. Moves the Chat Temperature setting and asserts the live chat service sends the new value, and that an out-of-range value is held in range; restores the setting", TestChatTemperature),
          new SelfTest("enemy_meeting_offer", Severity.Light, "fkasad (Nexus, 16/10/2026): an enemy lord rode up as the player was about to attack him, the chat opened by force and a local model reasoned for half a minute over an opener nobody read; Gabriel the same day: a popup for hostile lords only. On real lords: one at peace with the player, holding a grudge, still opens the meeting at once; the same lord defending his land asks first; a lord of a realm at war with the player asks first whatever his reason (when such a lord exists). Changes nothing", TestEnemyMeetingOffer),
          new SelfTest("war_duty_audience", Severity.Light, "Gabriel's ladder (15/10/2026): the summoned vassal is called in by the ruler himself, at his hall (never on the road: Gabriel, 16/10/2026), and no longer only by letter. With the switch on for the test, a reckoning is opened for a real ruler (one standing in a town when there is one); the duty names him as the one calling the player in; the REAL fief-audience scan of his town picks him with the war duty reason although he has a field party; his opener holds the vassal to the war and leaves the amounts to the terms; once the player has stood before him he no longer sends for them. No letter is written. Restores the ledger, the switch, the audience cooldown and the ruler's memories", TestWarDutyAudience),
          new SelfTest("war_duty_levy", Severity.Light, "Gabriel's ladder (15/10/2026): the levy is paid face to face in coin, horses, weapons or soldiers, and is no gift. With the switch on for the test, a reckoning is opened for a real ruler leading a party and answered in person; his conversation's terms name what is owed; then the REAL bridge (the path an LLM emission takes) runs take_gold, give_item with a horse, and give_troops with recruits arranged into the player's party, and each counts toward the levy until it is settled. No letter is written. Restores the player's and the ruler's gold, the soldiers, the ledger, the switch and the ruler's memories", TestWarDutyLevy),
@@ -15960,6 +15961,34 @@ namespace CalradiaRemembers.Diagnostics
             aims.Retract(Aims.AimsBehavior.CrSource, "cr_selftest_own");
             aims.OnConversationEnded(first);
             aims.OnConversationEnded(second);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestChatTemperature(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("chat_temperature");
+         CrSettings settings = CrSettings.Instance;
+         if (t.Skip(settings == null, "the MCM settings are not loaded")) return t.Line();
+         if (t.Skip(behavior?.LlmServices?.ChatService == null, "the chat service is unavailable (no key or model)")) return t.Line();
+
+         float saved = settings.ChatTemperature;
+         try
+         {
+            // STAKE: the value the player picks is the value the next conversation turn is sent with.
+            settings.ChatTemperature = 0.45f;
+            float sent = behavior.LlmServices.ChatService.ChatParameters.Creativity;
+            t.Expect("thePickIsSent", Math.Abs(sent - 0.45f) < 0.001f, true);
+
+            // STAKE: a hand-edited config cannot push a conversation out of the range a model stays coherent in.
+            settings.ChatTemperature = 3f;
+            sent = behavior.LlmServices.ChatService.ChatParameters.Creativity;
+            t.Expect("heldInRange", Math.Abs(sent - Logic.ChatTemperaturePolicy.Max) < 0.001f, true);
+         }
+         finally
+         {
+            settings.ChatTemperature = saved;
          }
 
          return t.Line();

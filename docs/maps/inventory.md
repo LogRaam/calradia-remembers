@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 502 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1152 types in 30 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1153 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 19500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 20000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
@@ -858,7 +858,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (695)
+### CalradiaRemembers.Logic (696)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -953,6 +953,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatFocusVerdict` | public enum | What the chat overlay should be doing with the input this frame. |
 | `ChatSkinFacts` | public class | The facts the chat window is chosen on. |
 | `ChatSkinFallbackPolicy` | public static class | Picks the window that will actually be usable. |
+| `ChatTemperaturePolicy` | public static class | Pure: the conversation temperature the player picked, held inside a range a model stays coherent in. |
 | `ChatTitleText` | public static class | The chat window's title. |
 | `ChatWindowLivenessPolicy` | public static class | Whether a recorded chat window is genuinely live, or a leftover that must not block the next one. |
 | `ChronicleCalendar` | public static class | The shared calendar constants and year math for the player chronicle and letter archive. |
