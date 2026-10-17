@@ -265,6 +265,7 @@ namespace CalradiaRemembers.Missions
          Remember(companion, $"Rode out at {Hero.MainHero.Name}'s order to patrol around {target.Name}, with {men} men{with}.");
          string notice = $"{companion.Name} rides out to patrol around {target.Name} with {men} men{with}.";
          Notify(notice, companion);
+         SafeRun.Step("CompanionPatrolBehavior.Journal", () => new CompanionPatrolQuest(patrol, companion, notice));
          ModLog.Info($"[PATROL] {notice} (party {party.StringId}).");
 
          return notice;
@@ -337,6 +338,7 @@ namespace CalradiaRemembers.Missions
 
          NpcProfile profile = behavior.Store.Get(companion.StringId) ?? Mapping.HeroProfileMapper.FromHero(companion);
          Letters.LetterGenerationService.QueueInitialLetter(profile, companion, LetterReason.PatrolReport, context, behavior.LlmServices, behavior.Store, Today);
+         CompanionPatrolQuest.Of(p.Id)?.Log($"Day {Today}: a letter from {p.CompanionName}. {context}");
          ModLog.Info($"[PATROL] monthly letter from {p.CompanionName}: {context}");
       }
 
@@ -371,6 +373,7 @@ namespace CalradiaRemembers.Missions
          {
             p.State = CompanionPatrolState.Returning;
             Notify($"{p.CompanionName} has your letter and leaves {p.SettlementName} to bring the men back to you.", companion);
+            CompanionPatrolQuest.Of(p.Id)?.Log($"Day {Today}: {p.CompanionName} has your letter and rides back with the men.");
          }
 
          if (p.State == CompanionPatrolState.Returning)
@@ -434,6 +437,7 @@ namespace CalradiaRemembers.Missions
                p.BattlesLost++;
             }
 
+            CompanionPatrolQuest.Of(p.Id)?.Log($"Day {(int) CampaignTime.Now.ToDays}: {(won ? "beat" : "was beaten by")} {foe?.LeaderParty?.Name?.ToString() ?? "a band"} ({foe?.HealthyTroopCountAtMapEventStart ?? 0} men) near {p.SettlementName}.");
             ModLog.Info($"[PATROL] {p.CompanionName} {(won ? "won" : "lost")} against {foe?.LeaderParty?.Name} ({foe?.HealthyTroopCountAtMapEventStart} men) near {p.SettlementName}; {party.MemberRoster.TotalHealthyCount} fit.");
          }
       }
@@ -454,7 +458,9 @@ namespace CalradiaRemembers.Missions
          {
             _patrols.Remove(p);
             CompanionHappinessService.ApplyDriver(prisoner, HappinessDriver.Captured);
-            Notify($"{p.CompanionName} was taken prisoner by {capturer?.Name?.ToString() ?? "the enemy"} near {p.SettlementName}; the patrol is broken.", prisoner);
+            string taken = $"{p.CompanionName} was taken prisoner by {capturer?.Name?.ToString() ?? "the enemy"} near {p.SettlementName}; the patrol is broken.";
+            Notify(taken, prisoner);
+            CompanionPatrolQuest.Of(p.Id)?.CloseLost(taken);
             ModLog.Info($"[PATROL] {p.CompanionName} captured by {capturer?.Name} near {p.SettlementName}; patrol closed.");
          }
       }
@@ -466,7 +472,9 @@ namespace CalradiaRemembers.Missions
          if (p == null) return;
 
          _patrols.Remove(p);
-         Notify($"{p.CompanionName} fell while patrolling around {p.SettlementName}; the patrol is no more.", null);
+         string fell = $"{p.CompanionName} fell while patrolling around {p.SettlementName}; the patrol is no more.";
+         Notify(fell, null);
+         CompanionPatrolQuest.Of(p.Id)?.CloseLost(fell);
          ModLog.Info($"[PATROL] {p.CompanionName} killed near {p.SettlementName}; patrol closed.");
       }
 
@@ -482,9 +490,11 @@ namespace CalradiaRemembers.Missions
             try { AddHeroToPartyAction.Apply(companion, MobileParty.MainParty, false); }
             catch (Exception ex) { ModLog.Error($"[PATROL] rejoin failed for {p.CompanionName}: {ex.Message}"); }
 
-         Notify(cameBack
+         string end = cameBack
             ? $"{p.CompanionName}'s patrol around {p.SettlementName} was scattered; {p.CompanionName} has made their way back to you."
-            : $"{p.CompanionName}'s patrol around {p.SettlementName} is no more.", companion);
+            : $"{p.CompanionName}'s patrol around {p.SettlementName} is no more.";
+         Notify(end, companion);
+         CompanionPatrolQuest.Of(p.Id)?.CloseLost(end);
          ModLog.Info($"[PATROL] {p.CompanionName}'s patrol party is gone; closed (came back {cameBack}).");
       }
 
@@ -500,6 +510,7 @@ namespace CalradiaRemembers.Missions
          p.State = CompanionPatrolState.Returning;
          MobileParty party = FindParty(p.PartyId);
          if (party != null) TravelingParty.DirectToMovingPoint(party, MobileParty.MainParty.GetPosition2D);
+         CompanionPatrolQuest.Of(p.Id)?.Log($"Day {Today}: called back; {p.CompanionName} rides back with the men.");
          ModLog.Info($"[PATROL] {p.CompanionName} recalled; riding back.");
 
          return (true, $"{companion.Name} breaks off the patrol of {p.SettlementName} and rides back to you with the men.");
@@ -541,7 +552,9 @@ namespace CalradiaRemembers.Missions
             ? "without a fight"
             : $"after {p.BattlesWon} victor{(p.BattlesWon == 1 ? "y" : "ies")} and {p.BattlesLost} defeat{(p.BattlesLost == 1 ? "" : "s")}";
          Remember(companion, $"Patrolled around {p.SettlementName} for {Today - p.StartDay} days {record}, and brought {men} men back to {Hero.MainHero.Name}.");
-         Notify($"{p.CompanionName} is back from {p.SettlementName} with {men} men, {record}.", companion);
+         string back = $"{p.CompanionName} is back from {p.SettlementName} with {men} men, {record}.";
+         Notify(back, companion);
+         CompanionPatrolQuest.Of(p.Id)?.CloseHome(back);
          ModLog.Info($"[PATROL] {p.CompanionName} home: {men} men handed over; won {p.BattlesWon}, lost {p.BattlesLost}, foes beaten {p.FoesBeaten}.");
       }
 
@@ -651,6 +664,20 @@ namespace CalradiaRemembers.Missions
          return $"{companion.Name} and the patrol's men are back.";
       }
 
+      /// <summary>Closes any journal entry whose patrol is no longer tracked (a lost save state, a failed load).</summary>
+      private void OnSessionLaunched(CampaignGameStarter starter)
+      {
+         SafeRun.Step("CompanionPatrolBehavior.ReconcileJournal", () =>
+         {
+            foreach (CompanionPatrolQuest q in Campaign.Current.QuestManager.Quests.OfType<CompanionPatrolQuest>().Where(q => q.IsOngoing).ToList())
+            {
+               if (_patrols.Any(p => p.Id == q.PatrolId)) continue;
+               q.CloseLost("The patrol is no longer tracked.");
+               ModLog.Info($"[PATROL] closed a stale journal entry ({q.StringId}).");
+            }
+         });
+      }
+
       // ── Lifecycle ─────────────────────────────────────────────────────────
 
       public override void RegisterEvents()
@@ -661,6 +688,7 @@ namespace CalradiaRemembers.Missions
          CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
          CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
          CampaignEvents.TickEvent.AddNonSerializedListener(this, OnTick);
+         CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
       }
 
       public override void SyncData(IDataStore dataStore)

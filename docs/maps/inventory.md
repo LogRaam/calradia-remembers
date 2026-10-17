@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 506 types in 61 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 507 types in 61 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1159 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
@@ -557,7 +557,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryCompressionBehavior` | public class | Runs one memory-compression pass a day, for the character whose history has grown longest. |
 | `MemoryCompressionService` | public static class | Runs the LLM memory compressor for one character and applies the result safely. |
 
-### CalradiaRemembers.Missions (17)
+### CalradiaRemembers.Missions (18)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -574,6 +574,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompanionMissionPhase` | public enum | Where a companion's errand is in its out → linger → back → reunion arc. |
 | `CompanionPatrol` | public class | A companion patrolling a settlement for the player with men taken from the player's party (saved as JSON). |
 | `CompanionPatrolBehavior` | public class | Owns the companion patrols: the order, the troop screen, the hourly leash, the battles, and the way home. |
+| `CompanionPatrolQuest` | public class | The journal entry of a companion's patrol, a mirror of CompanionPatrolBehavior's record. |
 | `CompanionPatrolState` | public enum | Where a companion's patrol stands. |
 | `CompanionRapportBehavior` | public class | Drives companion↔companion standing from trait compatibility and weds the well-matched. |
 | `WarWearinessBehavior` | public class | Accrues war-weariness from real battle events and runs the honorable-retirement loop for a spent companion. |

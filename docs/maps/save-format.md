@@ -118,6 +118,7 @@ reused one crashes the boot when another mod holds it.
 | `AddClassDefinition(typeof(CalradiaRemembersQuest), 1)` | `CalradiaRemembersQuestTypeDefiner` |
 | `AddClassDefinition(typeof(CommitmentQuest), 3)` | `CalradiaRemembersQuestTypeDefiner` |
 | `AddClassDefinition(typeof(CompanionErrandQuest), 2)` | `CalradiaRemembersQuestTypeDefiner` |
+| `AddClassDefinition(typeof(Missions.CompanionPatrolQuest), 5)` | `CalradiaRemembersQuestTypeDefiner` |
 
 ## Saveable members
 
@@ -131,5 +132,8 @@ reused one crashes the boot when another mod holds it.
 | `CommitmentQuest._promisorId` | 1 |
 | `CompanionErrandQuest._companionId` | 1 |
 | `CompanionErrandQuest._missionId` | 2 |
+| `CompanionPatrolQuest._companionId` | 1 |
+| `CompanionPatrolQuest._patrolId` | 2 |
+| `CompanionPatrolQuest._title` | 3 |
 | `SeasonalChronicleBehavior._lastSeason` | 2 |
 | `SeasonalChronicleBehavior._lastSeen` | 1 |

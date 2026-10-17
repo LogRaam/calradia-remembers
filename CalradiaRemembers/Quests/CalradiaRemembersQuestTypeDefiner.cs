@@ -88,6 +88,8 @@ namespace CalradiaRemembers.Quests
             AddClassDefinition(typeof(CommitmentQuest), 3);
             // 2026-10-03: authored quests' journal mirror ("Tale:"). Additive id, save-safe: do NOT touch ids 1/2/3 or the base.
             AddClassDefinition(typeof(AuthoredStoryQuest), 4);
+            // 2026-10-17: the companion patrol's journal mirror (jaserms1). Additive id, save-safe: do NOT touch ids 1-4 or the base.
+            AddClassDefinition(typeof(Missions.CompanionPatrolQuest), 5);
         }
     }
 }

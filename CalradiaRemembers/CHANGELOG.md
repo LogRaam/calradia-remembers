@@ -34,6 +34,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   the player writes first is obeyed when it arrives (even if the companion does not write back); an answer to the
   monthly letter rides the courier (2 days). No line, or no answer, and the patrol goes on. cr.testall
   `companion_patrol` now also checks the monthly letter is sent and that a stop order turns the patrol for home.
+- **Companion patrols, the journal (increment 4 of 4).** A patrol has its own entry in the quest journal ("Patrol: X
+  around Y"), a read-only mirror like the errands': it logs the departure, each fight, each monthly letter and the
+  recall, and closes when the band comes home (success) or is broken (capture, death, scattered). An entry whose patrol
+  is no longer tracked is closed at session launch. `CompanionPatrolQuest`, save class id 5 (additive). The engine spike
+  `cr.patrol_spike` is removed; `cr.patrol_kit` stays as a test helper.
 - **Chat Temperature setting** (fkasad, 17/10: does the mod tune the temperature by the kind of call? It does,
   from 0.1 for extraction to 0.7 for conversation, but the conversation value was fixed in code). MCM, LLM Provider:
   "Chat Temperature", 0.10 to 1.20, default 0.70, so nothing changes for anyone who leaves it. It drives the
