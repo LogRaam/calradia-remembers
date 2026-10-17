@@ -5,6 +5,20 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.7.13.. open
 
 ### New
+- **Companion patrols, the engine (increment 1 of 4)** (jaserms1, 16/10: a war council's patrol order did nothing;
+  Gabriel's rulings 16-17/10 and his engine spike at Ebereth). A companion patrols any settlement with the player's
+  own men until called back. The order opens the game's own "create a party" screen (on the map, never inside a
+  conversation), with the companion as leader and the men prefilled; the player chooses men and companions, up to the
+  leader's party size, or cancels and nothing moves. Confirmed, the men leave the player's party (moved, never
+  conjured), with five days of the player's food; the clan pays their wages like any clan party. The AI stays free so
+  the band fights what it meets; an hourly leash sends it back when it strays more than 15, is re-anchored elsewhere
+  (the spike's drift) or leaves its post, never mid-fight or mid-flight, and lets a hungry band go for food. Capture
+  and death of the leader are told by name; a scattered band's leader makes their way back; recalled (chat or the
+  errand recall paths), the band rides back and hands over every man, wounded and prisoners included. Battles won and
+  lost are counted for the monthly letter. A letter to a patrolling companion no longer recalls them (errands only):
+  stopping by letter comes with the monthly letter. `CompanionPatrolPolicy`, `CompanionPatrolBehavior`, save key
+  `CalradiaRemembers_CompanionPatrols_v1bytes` (additive); console `cr.patrol`, `cr.patrol_home`; cr.testall
+  `companion_patrol`. Not yet: the order in chat and council, the monthly letter, the journal.
 - **Chat Temperature setting** (fkasad, 17/10: does the mod tune the temperature by the kind of call? It does,
   from 0.1 for extraction to 0.7 for conversation, but the conversation value was fixed in code). MCM, LLM Provider:
   "Chat Temperature", 0.10 to 1.20, default 0.70, so nothing changes for anyone who leaves it. It drives the

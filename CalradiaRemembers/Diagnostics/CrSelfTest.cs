@@ -290,6 +290,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("aims_conversation", Severity.Light, "CrAims (tashmetu, 14/10/2026: lords with aims of their own; 'the real risk is a lord who brings up Lakonon in every conversation'). A test aim is registered on a real lord not at war with the player; a conversation opening with him gives him leave to raise it and the encounter context carries his want; a second conversation the same day does not give it again; the leave ends with the conversation. An aim Calradia Remembers seeds for its own mechanics is not voiced by the generic section. Retracts both aims", TestAimsConversation),
          new SelfTest("player_named_on_screen", Severity.Light, "Gabriel (17/10/2026): a grievance read 'over The marriage was ended by the player's own choice'; never 'the player' in the game, the character by name. Passes a stored cause saying 'the player' through the real grievance line and the real chat message line, and asserts both show the player's name, never 'the player', and that a sentence cause follows a colon. Changes nothing", TestPlayerNamedOnScreen),
          new SelfTest("chat_temperature", Severity.Light, "fkasad (Nexus, 17/10/2026) asked whether the mod tunes the temperature; the conversation value was fixed at 0.7, and Gabriel asked for a setting. Moves the Chat Temperature setting and asserts the live chat service sends the new value, and that an out-of-range value is held in range; restores the setting", TestChatTemperature),
+         new SelfTest("companion_patrol", Severity.Light, "jaserms1 (Nexus, 16/10/2026): a council's patrol order did nothing; Gabriel's rulings 16-17/10 (the player's own men, chosen on the game's troop screen, until told to stop) and his spike at Ebereth (a free AI patrol drifts off its post). Arranges a companion and men, confirms a 5-man patrol of the nearest village through the same handler the troop screen calls, and asserts the men really left the main party, the patrol is anchored on the village with the AI free; then drags it away and runs the hourly leash, which must re-anchor it; then brings it home and asserts every man is back. Cleans up", TestCompanionPatrol),
          new SelfTest("enemy_meeting_offer", Severity.Light, "fkasad (Nexus, 16/10/2026): an enemy lord rode up as the player was about to attack him, the chat opened by force and a local model reasoned for half a minute over an opener nobody read; Gabriel the same day: a popup for hostile lords only. On real lords: one at peace with the player, holding a grudge, still opens the meeting at once; the same lord defending his land asks first; a lord of a realm at war with the player asks first whatever his reason (when such a lord exists). Changes nothing", TestEnemyMeetingOffer),
          new SelfTest("war_duty_audience", Severity.Light, "Gabriel's ladder (15/10/2026): the summoned vassal is called in by the ruler himself, at his hall (never on the road: Gabriel, 16/10/2026), and no longer only by letter. With the switch on for the test, a reckoning is opened for a real ruler (one standing in a town when there is one); the duty names him as the one calling the player in; the REAL fief-audience scan of his town picks him with the war duty reason although he has a field party; his opener holds the vassal to the war and leaves the amounts to the terms; once the player has stood before him he no longer sends for them. No letter is written. Restores the ledger, the switch, the audience cooldown and the ruler's memories", TestWarDutyAudience),
          new SelfTest("war_duty_levy", Severity.Light, "Gabriel's ladder (15/10/2026): the levy is paid face to face in coin, horses, weapons or soldiers, and is no gift. With the switch on for the test, a reckoning is opened for a real ruler leading a party and answered in person; his conversation's terms name what is owed; then the REAL bridge (the path an LLM emission takes) runs take_gold, give_item with a horse, and give_troops with recruits arranged into the player's party, and each counts toward the levy until it is settled. No letter is written. Restores the player's and the ruler's gold, the soldiers, the ledger, the switch and the ruler's memories", TestWarDutyLevy),
@@ -15962,6 +15963,65 @@ namespace CalradiaRemembers.Diagnostics
             aims.Retract(Aims.AimsBehavior.CrSource, "cr_selftest_own");
             aims.OnConversationEnded(first);
             aims.OnConversationEnded(second);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestCompanionPatrol(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("companion_patrol");
+         CompanionPatrolBehavior patrols = CompanionPatrolBehavior.Instance;
+         if (t.Skip(patrols == null, "the patrol system is not active")) return t.Line();
+         if (t.Skip(MobileParty.MainParty?.MapEvent != null, "the player is in a battle")) return t.Line();
+
+         using var arranged = ArrangedCompanion.Get(behavior, mustBeInMainParty: true);
+         if (t.Skip(arranged == null, "no available companion in your party, and no wanderer template to arrange one")) return t.Line();
+         Hero companion = arranged.Companion;
+
+         TaleWorlds.Library.Vec2 here = MobileParty.MainParty.GetPosition2D;
+         Settlement village = Settlement.All.Where(s => s.IsVillage).OrderBy(s => s.GetPosition2D.Distance(here)).FirstOrDefault();
+         if (t.Skip(village == null, "no village in the world")) return t.Line();
+
+         // Arranged men: the test needs a few healthy soldiers, and takes back exactly what it added.
+         CharacterObject recruit = Hero.MainHero.Culture?.BasicTroop;
+         var added = 0;
+         int healthy = MobileParty.MainParty.MemberRoster.GetTroopRoster().Where(e => e.Character is {IsHero: false}).Sum(e => e.Number - e.WoundedNumber);
+         if (healthy < 10 && recruit != null)
+         {
+            added = 10;
+            MobileParty.MainParty.MemberRoster.AddToCounts(recruit, added);
+         }
+
+         int totalBefore = MobileParty.MainParty.MemberRoster.TotalManCount;
+         try
+         {
+            string notice = patrols.DebugConfirm(companion, village, 5);
+            t.Note(notice);
+            MobileParty party = patrols.DebugPartyOf(companion);
+            if (t.Abort(party == null, "the patrol did not ride out: " + notice)) return t.Line();
+
+            // STAKE: the men are the player's own, moved and never conjured (Gabriel, 16/10/2026).
+            t.Expect("menLeftTheMainParty", MobileParty.MainParty.MemberRoster.TotalManCount, totalBefore - 6);
+            t.Expect("theyRideWithThePatrol", party.MemberRoster.TotalManCount, 6);
+            // STAKE: the spike: with the AI locked a patrol only watches bandits pass.
+            t.Expect("anchoredOnTheVillage", party.TargetSettlement == village && party.DefaultBehavior == AiBehavior.PatrolAroundPoint, true);
+            t.Expect("theAiIsFree", party.Ai.DoNotMakeNewDecisions, false);
+
+            // STAKE: the spike's drift: dragged off its post, the hourly leash sends it back.
+            party.SetMoveGoToPoint(new CampaignVec2(village.GatePosition.ToVec2() + new TaleWorlds.Library.Vec2(40f, 40f), true), MobileParty.NavigationType.Default);
+            patrols.DebugHour();
+            t.Expect("theLeashReAnchorsIt", party.TargetSettlement == village && party.DefaultBehavior == AiBehavior.PatrolAroundPoint, true);
+
+            // STAKE: coming home hands back every man (the spike's stop left the wounded behind).
+            patrols.DebugBringHomeNow(companion);
+            t.Expect("everyManIsBack", MobileParty.MainParty.MemberRoster.TotalManCount, totalBefore);
+            t.Expect("noLongerOnPatrol", patrols.IsPatrolling(companion.StringId), false);
+         }
+         finally
+         {
+            if (patrols.IsPatrolling(companion.StringId)) patrols.DebugBringHomeNow(companion);
+            if (added > 0) MobileParty.MainParty.MemberRoster.AddToCounts(recruit, -added);
          }
 
          return t.Line();

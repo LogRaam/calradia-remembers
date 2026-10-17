@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 503 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1154 types in 30 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 506 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1156 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -557,7 +557,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryCompressionBehavior` | public class | Runs one memory-compression pass a day, for the character whose history has grown longest. |
 | `MemoryCompressionService` | public static class | Runs the LLM memory compressor for one character and applies the result safely. |
 
-### CalradiaRemembers.Missions (14)
+### CalradiaRemembers.Missions (17)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -572,6 +572,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompanionMission` | public class | One errand a companion has been dispatched on, awaiting their return with a report. |
 | `CompanionMissionBehavior` | public class | Tracks the errands companions are away on and advances each daily through its travel arc. |
 | `CompanionMissionPhase` | public enum | Where a companion's errand is in its out → linger → back → reunion arc. |
+| `CompanionPatrol` | public class | A companion patrolling a settlement for the player with men taken from the player's party (saved as JSON). |
+| `CompanionPatrolBehavior` | public class | Owns the companion patrols: the order, the troop screen, the hourly leash, the battles, and the way home. |
+| `CompanionPatrolState` | public enum | Where a companion's patrol stands. |
 | `CompanionRapportBehavior` | public class | Drives companion↔companion standing from trait compatibility and weds the well-matched. |
 | `WarWearinessBehavior` | public class | Accrues war-weariness from real battle events and runs the honorable-retirement loop for a spent companion. |
 | `WarWearinessService` | public static class | The single place a companion's war-weariness is read from / written to their profile. |
@@ -859,7 +862,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (697)
+### CalradiaRemembers.Logic (699)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -993,6 +996,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompanionMissionPayload` | public enum | The KIND of thing an errand brings back — drives how the host gathers it (flavour/voice is per-type). |
 | `CompanionMissionType` | public enum | The errand a companion can be sent on. |
 | `CompanionMissions` | public static class | Pure decision logic for companion missions. |
+| `CompanionPatrolPolicy` | public static class | Pure: the companion patrol's rules (men to prefill, the leash, the monthly letter, food). |
 | `CompanionRapport` | public static class | Pure camp-life arithmetic: the trait COMPATIBILITY that nudges two companions toward bonding or clashing, the band their accumulated relation falls into, whether the feeling is strong enough to raise with the player, and... |
 | `CompanionRescuePolicy` | public static class | Whether (and how likely) the player's companions mount a rescue of their captive lord. |
 | `CompanionRetentionPolicy` | public static class | Pure rules for the unhappy-companion retention loop: whether to ask for an audience, how a refusal or a granted audience moves the count, and when patience finally runs out into a farewell. |
@@ -1283,6 +1287,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PartyCounselKind` | public enum | Which practical condition of the party the counsel is about, or none. |
 | `PartyMoraleMood` | public static class | Turns the player party's morale into the weekly mood nudge it gives their companions, if any. |
 | `PartyReaction` | public class | One party's verdict on a divorce. |
+| `PatrolLeashFacts` | public class | What the hourly leash knows of a patrolling party. |
 | `PeaceMediationBlock` | public enum | Why the player cannot (yet) mediate peace with this leader, or None when they can. |
 | `PeaceMediationPolicy` | public static class | The pure gate behind mediate_peace. |
 | `PendingMatchBook` | public class | The matches other mods have registered, and the door they pass. |

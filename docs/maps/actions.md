@@ -16,7 +16,7 @@ the subject of news, and the verbs a model emits in conversation have their own 
 | `Ambush` | `TownAmbushBehavior.FindArmedAssassin` |
 | `CaptorScene` | `AmbushCaptivityBehavior.ArrivedPaymasterFor`, `CaptiveEncounterService.CheckAndTrigger` |
 | `CompanionAudience` | `CompanionAudienceTopicBehavior.Companions` |
-| `CompanionMission` | `CompanionMissionBehavior.IsUsableCompanion` |
+| `CompanionMission` | `CompanionMissionBehavior.IsUsableCompanion`, `CompanionPatrolBehavior.IsTransferable`, `CompanionPatrolBehavior.IsUsableCompanion` |
 | `CouncilSeat` | `CouncilAttendanceResolver.SeatedInPersonHeroes`, `CouncilAttendanceResolver.TryAppendSeat` |
 | `Duel` | `DuelEligibilityResolver.BothAbleToFight` |
 | `EnterService` | `BannerlordGameStateBridge.HouseholdOfferableTo` |

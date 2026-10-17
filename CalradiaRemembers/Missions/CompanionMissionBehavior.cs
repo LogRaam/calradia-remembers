@@ -85,10 +85,11 @@ namespace CalradiaRemembers.Missions
       /// <summary>A one-line-per-errand summary of what is in flight.</summary>
       public string DescribeActive()
       {
-         if (_active.Count == 0) return "No companions are away on errands.";
+         List<string> lines = _active.Select(m =>
+            $"- {m.CompanionName}: {m.Phase} → {m.DestinationName} (quality {m.Quality}{(m.NewsGathered ? ", news in hand" : "")}).").ToList();
+         if (CompanionPatrolBehavior.Instance != null) lines.AddRange(CompanionPatrolBehavior.Instance.DescribeLines());
 
-         return string.Join("\n", _active.Select(m =>
-            $"- {m.CompanionName}: {m.Phase} → {m.DestinationName} (quality {m.Quality}{(m.NewsGathered ? ", news in hand" : "")})."));
+         return lines.Count == 0 ? "No companions are away on errands." : string.Join("\n", lines);
       }
 
       // ── Dispatch ──────────────────────────────────────────────────────────
@@ -197,7 +198,14 @@ namespace CalradiaRemembers.Missions
       }
 
       /// <summary>True when the companion with this StringId is currently away on an errand.</summary>
-      public bool IsAway(string companionId) => _active.Any(m => m.CompanionId == companionId);
+      public bool IsAway(string companionId) => IsOnErrand(companionId) || CompanionPatrolBehavior.Instance?.IsPatrolling(companionId) == true;
+
+      /// <summary>
+      ///   True when the companion is away on an errand of this behavior (news, spy, steal, barter, envoy), not a
+      ///   patrol. A letter to a companion on an errand is an order home; a letter to a patrol is not (its monthly
+      ///   letter asks whether to go on, and "go on" must not bring it home).
+      /// </summary>
+      public bool IsOnErrand(string companionId) => _active.Any(m => m.CompanionId == companionId);
 
       /// <summary>
       ///   Sends a letter ordering a companion to abandon the errand and return. The order rides by courier
@@ -207,6 +215,7 @@ namespace CalradiaRemembers.Missions
       public (bool Sent, string Message) OrderRecallByLetter(Hero companion)
       {
          if (companion == null) return (false, "No companion to recall.");
+         if (CompanionPatrolBehavior.Instance?.IsPatrolling(companion.StringId) == true) return CompanionPatrolBehavior.Instance.OrderRecallByLetter(companion);
          CompanionMission m = _active.FirstOrDefault(x => x.CompanionId == companion.StringId);
 
          if (m == null) return (false, $"{companion.Name} is not away on an errand.");
@@ -243,6 +252,8 @@ namespace CalradiaRemembers.Missions
       public (bool Recalled, string Message) Recall(Hero companion)
       {
          if (companion == null) return (false, "No companion to recall.");
+         // A patrol rides back with the player's men rather than reappearing (CompanionPatrolBehavior).
+         if (CompanionPatrolBehavior.Instance?.IsPatrolling(companion.StringId) == true) return CompanionPatrolBehavior.Instance.Recall(companion);
          CompanionMission m = _active.FirstOrDefault(x => x.CompanionId == companion.StringId);
 
          if (m == null) return (false, $"{companion.Name} is not away on an errand.");
@@ -260,8 +271,10 @@ namespace CalradiaRemembers.Missions
       /// <summary>Recalls every away companion at once (console safety net). Returns a player-facing tally.</summary>
       public string RecallAll()
       {
-         if (_active.Count == 0) return "No companions are away on errands.";
-         List<Hero> heroes = _active.Select(x => HeroById(x.CompanionId)).Where(h => h != null).Distinct().ToList();
+         List<string> ids = _active.Select(x => x.CompanionId).ToList();
+         if (CompanionPatrolBehavior.Instance != null) ids.AddRange(CompanionPatrolBehavior.Instance.PatrollingIds);
+         if (ids.Count == 0) return "No companions are away on errands.";
+         List<Hero> heroes = ids.Select(HeroById).Where(h => h != null).Distinct().ToList();
          var n = 0;
          var skipped = new List<string>();
          foreach (Hero h in heroes)

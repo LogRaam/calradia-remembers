@@ -105,7 +105,8 @@ namespace CalradiaRemembers.Letters
          // the player orders them home WITHOUT riding out to meet them. Schedule the verified recall (courier
          // delay): on a later daily tick they actually abandon the errand and rejoin the party — a real deed,
          // not just the letter's words. The letter itself still delivers as normal flavour.
-         if (CompanionMissionBehavior.Instance?.IsAway(recipient.StringId) == true)
+         // Errands only: a patrol's letter asks whether to go on, and a reply saying "go on" must not end it.
+         if (CompanionMissionBehavior.Instance?.IsOnErrand(recipient.StringId) == true)
          {
             (bool sent, string msg) = CompanionMissionBehavior.Instance.OrderRecallByLetter(recipient);
             if (sent) ModLog.Info($"[PLAYER LETTER] recall order to away companion {recipient.Name}: {msg}");

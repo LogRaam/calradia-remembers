@@ -15,6 +15,7 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Library;
 
 #endregion
@@ -276,6 +277,41 @@ namespace CalradiaRemembers
          if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
 
          return CompanionMissionBehavior.Instance?.RecallAll() ?? "Companion-mission system is not active.";
+      }
+
+      /// <summary>cr.patrol &lt;companion&gt; &lt;settlement&gt; [men]: orders a companion of your party to patrol, through the real path (the troop screen opens).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("patrol", "cr")]
+      public static string Patrol(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (CompanionPatrolBehavior.Instance == null) return "The patrol system is not active.";
+         if (args == null || args.Count < 2) return "Usage: cr.patrol <companion> <settlement> [men]";
+
+         Hero companion = MobileParty.MainParty.MemberRoster.GetTroopRoster().Select(e => e.Character?.HeroObject)
+                                     .FirstOrDefault(h => h != null && h != Hero.MainHero && h.Name.ToString().IndexOf(args[0], StringComparison.OrdinalIgnoreCase) >= 0);
+         if (companion == null) return $"No hero in your party matches '{args[0]}'.";
+
+         Settlement target = Settlement.All.FirstOrDefault(s => s != null && !s.IsHideout && s.Name.ToString().Equals(args[1], StringComparison.OrdinalIgnoreCase))
+                             ?? Settlement.All.FirstOrDefault(s => s != null && !s.IsHideout && s.Name.ToString().IndexOf(args[1], StringComparison.OrdinalIgnoreCase) >= 0);
+         if (target == null) return $"No settlement matches '{args[1]}'.";
+
+         int? men = args.Count > 2 && int.TryParse(args[2], out int n) && n > 0 ? n : (int?) null;
+         (bool _, string message) = CompanionPatrolBehavior.Instance.RequestPatrol(companion, target, men);
+
+         return message + " (Close the console: the troop screen opens on the map.)";
+      }
+
+      /// <summary>cr.patrol_home &lt;companion&gt;: brings a patrol and all its men back at once, wherever it is (test path).</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("patrol_home", "cr")]
+      public static string PatrolHome(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (CompanionPatrolBehavior.Instance == null) return "The patrol system is not active.";
+         if (args == null || args.Count < 1) return "Usage: cr.patrol_home <companion>";
+
+         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(h => CompanionPatrolBehavior.Instance.IsPatrolling(h.StringId) && h.Name.ToString().IndexOf(args[0], StringComparison.OrdinalIgnoreCase) >= 0);
+
+         return companion == null ? $"No patrol leader matches '{args[0]}'." : CompanionPatrolBehavior.Instance.DebugBringHomeNow(companion);
       }
 
       /// <summary>cr.missions — lists the errands companions are currently away on.</summary>
