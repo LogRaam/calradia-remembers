@@ -311,6 +311,38 @@ Entry: `PairKey`, `AId`, `BId`, `Kind` (enum, values appended only), `Day`, `Pla
 `Summary` (the neutral line), `Version`. A drawn-nothing pair is stored as a `PairKey` in a separate set, a few bytes
 each.
 
+### 7.7a Ruling (Gabriel, 17/10/2026): the world gets a long-term memory
+
+> "Pour le World Events, l'expiration de 42 jours devrait etre pour les evenements recents. Mais apres 42 jours, ca
+> devrait basculer vers une memoire long terme. La memoire long terme servirait entre autre a definir les relations
+> entre NPC.. et pourrait parfois etre utilise pour des conversations entre joueur et NPC sur le passe."
+
+This supersedes options A to C above and answers question 4. The world event store gets two tiers:
+
+- **Recent (up to 42 days), unchanged.** News: it spreads by distance and fades (`RumorAwareness`), the pruner's
+  window still applies to it.
+- **Long-term (after 42 days).** When the pruner would delete a third-party event, it moves it to a second list
+  instead, under a new additive save key. Proposed bar: only what a region would still tell years later (a battle of
+  several hundred men or more, a siege, a fief changing hands, the death or execution of a lord, a marriage, a war or
+  a peace, a discovered scheme). A skirmish of a few dozen men fades as today.
+- **Who knows a long-term event.** Not by distance any more (that is news): its actors, their kin and clan; the
+  people of the place it happened in; for the greatest (magnitude 45 and up, `BattleRecordText.Magnitude`), everyone
+  of the realms involved.
+- **Bound.** A cap (proposed 3000 entries, a few hundred kilobytes of JSON), evicting the lowest magnitude first,
+  then the oldest.
+- **The generated shared past is written straight into it**, dated before the campaign start: this is the literal
+  "injected into world history" of ruling 3, with no separate ledger. A drawn-nothing pair stays a small set of keys.
+- **Uses.** The regard policy reads the long-term events two NPCs share (winner and loser of a battle, a marriage, an
+  execution). In conversation, when the player names a person, a place or a realm, the one to three most relevant
+  long-term events the NPC would know go below the `CURRENT ENCOUNTER:` marker, so a lord can speak of the battle
+  his father lost at Pravend ten years ago. Only on mention, to keep the prompt budget.
+- **Old saves.** Nothing to migrate: events still inside the 42-day window at load age into the long-term tier;
+  older ones were already gone.
+- **Modder API.** The `WorldEvent` record does not change; a read door for the long-term tier can come later.
+
+Still open from this: the significance bar above, and question 6 (should captures, executions and discovered schemes
+between NPCs be recorded as world events, so they reach the long-term tier).
+
 ### 7.8 How it is shown and spoken of
 
 - Encyclopedia: as the reason of a Friend or Enemy entry ("Enemy: quarrelled over grazing land near Pravend, 9 years
@@ -491,7 +523,7 @@ rule), `prompt-sections.md` if a section moves.
    also give the dominant known reason, or stay a band and a number?
 3. **Spouse in Friends?** With the proposed weights no kin lists without a real reason, a spouse included (+15,
    below the Friend line at 20). Should a spouse list as a Friend by default, or stay in the Family grid only?
-4. **"Injected into world history": option C AMENDS your ruling 3**, it is not just an implementation choice. Your
+4. **ANSWERED 17/10/2026, see 7.7a: a long-term world memory.** (Was: "Injected into world history": option C AMENDS your ruling 3**, it is not just an implementation choice. Your
    words were "a real world event"; option B is that literal reading. Option C keeps the past in its own ledger, read
    by the encyclopedia and both parties' prompts, because the world event store prunes anything older than 42 days
    and its awareness fades in 40. What C loses: a THIRD party cannot answer "what happened between A and B?" from the
