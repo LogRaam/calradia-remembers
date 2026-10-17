@@ -90,8 +90,13 @@ Folder: `Documents/Mount and Blade II Bannerlord/CalradiaRemembers/History/`.
 - **Secret and knownBy:** a secret is known to its actors, the harmed, and those listed in `knownBy`; nobody else.
   This is the confidant list asked for on 17/10 ("connus que de ceux qui le connaissent"), which the game-recorded
   secret does not have yet; the store gains an additive `KnownToIds` field and `RumorDiscretion` reads it.
-- **Relations:** each entry moves the vanilla relation between two heroes by `change` (-100 to 100). Applied once,
-  see section 6.
+- **Relations:** each entry either moves the vanilla relation between two heroes by `change`, or sets the value the
+  pair starts at with `set` (-100 to 100; one or the other). Gabriel left the choice open on 17/10 ("continu"), so both
+  are offered: a `change` adds up when several events touch one pair, a `set` makes two lords the game generated at
+  +80 start as enemies. Applied once, see section 6.
+- **The player's character** may be an actor, harmed, or one side of a relation. Such an event is the player's own
+  past; a relation naming the player also moves the mod's personal regard (`NpcProfile.ReputationWithPlayer`), since
+  an NPC's feeling toward the player is judged on that ledger, not vanilla's (chosen 17/10, Gabriel did not object).
 
 ## 5. Validation (pure, `CalradiaRemembers.Logic`)
 
@@ -108,7 +113,9 @@ Set aside:
 
 Accepted with a warning:
 - a marriage between two heroes not married to each other today (they may have divorced or been widowed);
-- a fief taken whose taker's house does not hold it today (history moves on).
+- an unknown season (read as spring).
+
+(A fief taken whose taker's house does not hold it today is simply history moving on: no warning.)
 
 Dropped from an accepted event:
 - a relation entry naming the same hero twice or an unknown hero; a change outside -100..100 is clamped.
@@ -122,9 +129,13 @@ To survive edits and reloads without stacking, the save keeps a ledger (additive
 the change already applied. At each sync the mod applies the difference between what the file asks and what the
 ledger holds:
 
-- a new entry applies its change;
-- an edited change applies only the difference (from -40 to -60 applies -20);
+- a new `change` applies it; an edited one applies only the difference (from -40 to -60 applies -20);
+- a new `set` applies the value minus today's relation; an edited one moves the pair by the edit only (from -60 to
+  -30 applies +30), so what the campaign did to the pair since is kept;
+- switching an entry between `change` and `set` undoes the old one first;
 - a removed entry or event reverts what it had applied.
+
+Built in `HistoryRelationLedger.Plan` (pure); each step says whether the player is one side.
 
 The game may move the relation afterwards (that is the point of a starting relation); the ledger tracks only what the
 file did, never the relation's value.

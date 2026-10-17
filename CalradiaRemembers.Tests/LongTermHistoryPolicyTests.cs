@@ -324,6 +324,26 @@ namespace CalradiaRemembers.Tests
          history.Should().Contain(great, "the oldest entry is also the greatest, and magnitude decides first");
       }
 
+      // Authored history (docs/design/AUTHORED_HISTORY.md section 2): the cap bounds what the game records, not what the
+      // campaign's author wrote. Evicted, an author's founding war would vanish once the game had fought 3000 battles.
+      [Test]
+      public void GIVEN_a_full_history_and_authored_events_WHEN_the_cap_is_applied_THEN_every_authored_event_stays()
+      {
+         //Arrange
+         List<FakeHistory> authored = Enumerable.Range(0, 50).Select(i => new FakeHistory(-1000 + i, 1, authored: true)).ToList();
+         List<FakeHistory> history = Enumerable.Range(0, LongTermHistoryPolicy.Cap + 10)
+                                               .Select(i => new FakeHistory(500 + i % 300, 40))
+                                               .Concat(authored)
+                                               .ToList();
+
+         //Act
+         LongTermHistoryPolicy.Evict(history);
+
+         //Assert
+         history.Should().Contain(authored);
+         history.Count(h => !h.IsAuthored).Should().Be(LongTermHistoryPolicy.Cap);
+      }
+
       // "then the oldest": among equals, the most distant past goes first, so what was lived more recently stays.
       [Test]
       public void GIVEN_a_full_history_of_equal_events_WHEN_one_more_arrives_THEN_the_oldest_is_forgotten()
@@ -436,14 +456,16 @@ namespace CalradiaRemembers.Tests
 
       private sealed class FakeHistory : IHistoryRecord
       {
-         public FakeHistory(int day, int magnitude)
+         public FakeHistory(int day, int magnitude, bool authored = false)
          {
             Day = day;
             Magnitude = magnitude;
+            IsAuthored = authored;
          }
 
          public int Day { get; }
          public int Magnitude { get; }
+         public bool IsAuthored { get; }
       }
 
       private sealed class FakeRumour : IRumorRecord

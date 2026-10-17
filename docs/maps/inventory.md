@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 508 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1164 types in 30 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1177 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1750,6 +1750,24 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardCandidateFacts` | public struct | The flattened facts about one candidate companion needed to judge them ward-eligible. |
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
+
+### CalradiaRemembers.Logic.AuthoredHistory (13)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `AcceptedHistoryEvent` | public class | An event the validation accepted, resolved and dated. |
+| `AcceptedRelation` | public class | A relation entry the validation kept, resolved to hero ids and clamped. |
+| `AuthoredHistoryDocument` | public class | One campaign's authored history file (format 1). |
+| `AuthoredHistoryEvent` | public class | One event of the past, before the campaign began. |
+| `AuthoredHistoryLoadResult` | public class | What a load kept, and every problem found, each naming its event. |
+| `AuthoredHistoryLoader` | public static class | Parses and validates authored history. |
+| `AuthoredRelation` | public class | A starting relation between two heroes. |
+| `HistoryHeroFacts` | public class | What the campaign knows of one hero, read by the validation. |
+| `HistoryRelationLedger` | public static class | Plans the relation moves of a sync. |
+| `HistoryRelationLedgerEntry` | public class | What the file already did to one pair for one event (saved). |
+| `HistoryRelationPlan` | public class | The moves of one sync, and the ledger to save after them. |
+| `HistoryRelationStep` | public class | One relation move to make now. |
+| `HistoryWorldFacts` | public class | The campaign as the validation sees it. |
 
 ### CalradiaRemembers.Logic.AuthoredQuests (81)
 

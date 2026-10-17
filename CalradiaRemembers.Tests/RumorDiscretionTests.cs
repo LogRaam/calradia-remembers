@@ -60,6 +60,19 @@ namespace CalradiaRemembers.Tests
          RumorDiscretion.TagFor(true).Should().Contain("secret").And.Contain("in confidence");
       }
 
+      // Gabriel, 17/10/2026: a secret is known "que de ceux qui le connaissent". An authored history names its
+      // confidants; without them, the trusted friend the author let in would know nothing.
+      [Test]
+      public void GIVEN_a_secret_with_a_confidant_WHEN_the_confidant_and_a_stranger_ask_THEN_only_the_confidant_knows()
+      {
+         var secret = new DiscretionFacts {KnownOnlyToThoseInvolved = true, InvolvedIds = new[] {"bride", "groom"}, KnownToIds = new[] {"friend"}};
+
+         RumorDiscretion.WithheldReason(new DiscretionFacts {ObserverId = "friend", KnownOnlyToThoseInvolved = true, InvolvedIds = secret.InvolvedIds, KnownToIds = secret.KnownToIds})
+                        .Should().BeNull();
+         RumorDiscretion.WithheldReason(new DiscretionFacts {ObserverId = "stranger", KnownOnlyToThoseInvolved = true, InvolvedIds = secret.InvolvedIds, KnownToIds = secret.KnownToIds})
+                        .Should().NotBeNull();
+      }
+
       // STAKE: every ordinary rumour line stays byte for byte what it was (no prompt grows for events nobody hid).
       [Test]
       public void GIVEN_an_ordinary_event_WHEN_its_line_is_tagged_THEN_nothing_is_added()

@@ -106,6 +106,9 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>How far word of it carried (0..100).</summary>
         int Magnitude { get; }
+
+        /// <summary>Written by the campaign's author (docs/design/AUTHORED_HISTORY.md): owned by the file, never evicted.</summary>
+        bool IsAuthored { get; }
     }
 
     /// <summary>
@@ -178,12 +181,18 @@ namespace CalradiaRemembers.Logic
             return facts.IsOfARealmInvolved && facts.Magnitude >= RealmWideMagnitude;
         }
 
-        /// <summary>Bounds the tier to <see cref="Cap" /> in place: the lowest magnitude goes first, then the oldest.</summary>
+        /// <summary>
+        ///   Bounds what the game recorded to <see cref="Cap" /> in place: the lowest magnitude goes first, then the
+        ///   oldest. Authored events do not count and are never evicted: the cap bounds the game, not the author.
+        /// </summary>
         public static void Evict<T>(List<T> history) where T : IHistoryRecord
         {
-            if (history == null || history.Count <= Cap) return;
+            if (history == null) return;
 
-            foreach (T least in history.OrderBy(e => e.Magnitude).ThenBy(e => e.Day).Take(history.Count - Cap).ToList())
+            List<T> recorded = history.Where(e => !e.IsAuthored).ToList();
+            if (recorded.Count <= Cap) return;
+
+            foreach (T least in recorded.OrderBy(e => e.Magnitude).ThenBy(e => e.Day).Take(recorded.Count - Cap).ToList())
                 history.Remove(least);
         }
     }

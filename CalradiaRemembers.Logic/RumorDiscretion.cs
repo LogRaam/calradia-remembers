@@ -26,6 +26,9 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>Heroes the player chose to keep unaware.</summary>
       public IEnumerable<string> HiddenFromIds { get; init; }
+
+      /// <summary>Heroes let in on a secret beyond those it names (an authored history's confidants).</summary>
+      public IEnumerable<string> KnownToIds { get; init; }
    }
 
    /// <summary>Whether a world event is kept from someone whatever their score. Pure.</summary>
@@ -50,7 +53,8 @@ namespace CalradiaRemembers.Logic
          if (f.ObserverId != null && f.HiddenFromIds != null && f.HiddenFromIds.Contains(f.ObserverId))
             return "Hidden from this character by the player.";
 
-         if (f.KnownOnlyToThoseInvolved && (f.ObserverId == null || f.InvolvedIds == null || !f.InvolvedIds.Contains(f.ObserverId)))
+         if (f.KnownOnlyToThoseInvolved && (f.ObserverId == null || ((f.InvolvedIds == null || !f.InvolvedIds.Contains(f.ObserverId))
+                                                                    && (f.KnownToIds == null || !f.KnownToIds.Contains(f.ObserverId)))))
             return "Kept secret: known only to those it names.";
 
          return null;

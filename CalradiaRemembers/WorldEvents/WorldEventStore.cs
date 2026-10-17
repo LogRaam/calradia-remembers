@@ -403,7 +403,7 @@ namespace CalradiaRemembers.WorldEvents
 
          // The player's veto on top of the score (IdentityCrysys, 03/10/2026): every query goes through here.
          verdict.Withheld = RumorDiscretion.WithheldReason(new DiscretionFacts {
-            ObserverId = observerId, KnownOnlyToThoseInvolved = e.KnownOnlyToThoseInvolved, HiddenFromIds = e.HiddenFromIds,
+            ObserverId = observerId, KnownOnlyToThoseInvolved = e.KnownOnlyToThoseInvolved, HiddenFromIds = e.HiddenFromIds, KnownToIds = e.KnownToIds,
             InvolvedIds = (e.ActorIds ?? new List<string>()).Concat(e.AggrievedActorIds ?? new List<string>())
          });
          if (verdict.Withheld != null) verdict.Knows = false;
@@ -478,7 +478,7 @@ namespace CalradiaRemembers.WorldEvents
             IsOfARealmInvolved = observer.MapFaction != null && e.FactionIds != null && e.FactionIds.Contains(observer.MapFaction.StringId),
             Magnitude = e.Magnitude,
             WithheldByThePlayer = RumorDiscretion.WithheldReason(new DiscretionFacts {
-               ObserverId = observer.StringId, KnownOnlyToThoseInvolved = e.KnownOnlyToThoseInvolved, HiddenFromIds = e.HiddenFromIds,
+               ObserverId = observer.StringId, KnownOnlyToThoseInvolved = e.KnownOnlyToThoseInvolved, HiddenFromIds = e.HiddenFromIds, KnownToIds = e.KnownToIds,
                InvolvedIds = actorIds
             }) != null
          };

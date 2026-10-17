@@ -175,6 +175,22 @@ namespace CalradiaRemembers.WorldEvents
       public List<string> HiddenFromIds { get; set; } = new();
 
       /// <summary>
+      ///   Heroes let in on a secret beyond those it names: an authored history's confidants (Gabriel, 17/10/2026:
+      ///   secrets "connus que de ceux qui le connaissent"). Absent on an older save, so empty.
+      /// </summary>
+      public List<string> KnownToIds { get; set; } = new();
+
+      /// <summary>
+      ///   The id of the authored history event this entry mirrors (docs/design/AUTHORED_HISTORY.md); null for what the
+      ///   game recorded. The file owns such an entry: each load replaces it. Absent on an older save, so null.
+      /// </summary>
+      public string AuthoredId { get; set; }
+
+      /// <summary>Written by the campaign's author, so never evicted (LongTermHistoryPolicy.Evict).</summary>
+      [Newtonsoft.Json.JsonIgnore]
+      public bool IsAuthored => !string.IsNullOrEmpty(AuthoredId);
+
+      /// <summary>
       ///   For a battle: the men on the field when it began, both sides. The world's long-term memory keeps a battle of
       ///   several hundred men or more (Gabriel, 17/10/2026, design 7.7a), which the magnitude cannot tell from a clash
       ///   of a hundred. 0 when unknown: any other event, and battles recorded before 2.7.13.
