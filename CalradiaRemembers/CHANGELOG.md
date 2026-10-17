@@ -4,6 +4,21 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.13.. open
 
+### Changed
+- **An enemy lord asks before he talks** (fkasad, 16/10: an enemy lord rode up as the player was about to attack him;
+  the chat opened by force and a local model reasoned for half a minute over an opener the player closed unread;
+  Gabriel the same day: a popup, for hostile lords only). A lord of a realm at war with the player, or one defending
+  his land, who reaches the player on the road now raises "X bars your way" (Speak with them / Not now, with "Who is
+  this?"). Declined, no conversation opens and nothing is sent to the model; the chase simply ends. Anyone else still
+  opens the meeting at once, so a word owed cannot be waved away. `InterceptionPolicy.AsksBeforeMeeting`; cr.testall
+  `enemy_meeting_offer`.
+
+### Fixed
+- **Closing the chat stops the reply being written** (fkasad, 16/10). A reply still in flight when the window closed
+  ran to completion and was thrown away; on a local server that held the model for as long as it took, and the next
+  call waited behind it. The window's conversation calls (the turn and the NPC's opening words, a commoner, an
+  ensemble voice, an envoy) are now cancelled at the start of the close (`ChatViewModel.CancelPendingReplies`).
+
 ## v2.7.12.. 2026-10-16 (2.7.11 skipped: a Nexus upload tagged 2.7.10 as both 2.7.10 and 2.7.11)
 
 ### New

@@ -156,7 +156,7 @@ namespace CalradiaRemembers.Chat
 
             string raw = null;
             string error = null;
-            using (var cts = new CancellationTokenSource())
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_windowClosing.Token))
             {
                cts.CancelAfter(TimeSpan.FromSeconds(Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) + 10));
                try

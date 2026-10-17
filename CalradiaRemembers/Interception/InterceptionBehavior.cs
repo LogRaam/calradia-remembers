@@ -1435,9 +1435,73 @@ namespace CalradiaRemembers.Interception
          EndPursuitSteering();
          ReleaseToVanillaAi(pursuerParty);
 
+         // An enemy asks first (Gabriel, 16/10/2026): the player may be about to attack him, and a declined word costs
+         // no call to the model.
+         if (InterceptionPolicy.AsksBeforeMeeting(_activePursuerTrigger, AtWarWithPlayer(pursuer)))
+         {
+            OfferEnemyMeeting(pursuer, _activePursuerTrigger);
+
+            return;
+         }
+
          ChatSceneStager.StagePlainConversation(pursuer);
          ModLog.Info($"[INTERCEPT] {pursuer.Name} reached the player, forcing the meeting open.");
       }
+
+      /// <summary>
+      ///   The enemy's word, offered by a popup: accepted, the meeting is staged as any other; declined, the chase ends
+      ///   there, with no letter and no errand kept in mind (the player chose not to hear him).
+      /// </summary>
+      private void OfferEnemyMeeting(Hero pursuer, InterceptionTrigger trigger)
+      {
+         string why = trigger == InterceptionTrigger.TerritorialPatrol
+            ? " for crossing their lands"
+            : "";
+         ModLog.Info($"[INTERCEPT] {pursuer.Name} reached the player; an enemy, so the word is offered first ({trigger}).");
+
+         AudienceInquiry.Show(pursuer, $"{pursuer.Name} bars your way",
+            $"{pursuer.Name}, of a realm at war with yours, rides up and demands a word with you{why}.",
+            "Speak with them", "Not now",
+            () => MainThreadDispatcher.Enqueue(() =>
+            {
+               // One frame later, as the fief audience does: opening the chat inside the inquiry's consequence left the
+               // inquiry on screen and the engine showed it again every frame.
+               if (_activePursuerId != pursuer.StringId) return;
+               ChatSceneStager.StagePlainConversation(pursuer);
+               ModLog.Info($"[INTERCEPT] {pursuer.Name}'s word was heard, the meeting is staged.");
+            }),
+            () => DeclineEnemyMeeting(pursuer));
+      }
+
+      private void DeclineEnemyMeeting(Hero pursuer)
+      {
+         if (_activePursuerId != pursuer?.StringId) return;
+
+         _activePursuerId = null;
+         _activePursuerSince = -1;
+         _activePursuerTrigger = InterceptionTrigger.None;
+         _activePursuerDetail = null;
+         _meetingOpened = false;
+         _lastPursuitDistance = -1f;
+         ModLog.Info($"[INTERCEPT] {pursuer.Name}'s word was declined; no conversation, no call to the model.");
+      }
+
+      /// <summary>Whether the lord's realm is at war with the player's (the popup's test; personal dislike is not war).</summary>
+      private static bool AtWarWithPlayer(Hero lord)
+      {
+         try
+         {
+            IFaction lf = lord?.MapFaction,
+                     pf = Hero.MainHero?.MapFaction;
+
+            return lf != null && pf != null && lf != pf && FactionManager.IsAtWarAgainstFaction(lf, pf);
+         }
+         catch { return false; }
+      }
+
+      /// <summary>cr.testall seam: whether this lord, reaching the player for this reason, would ask first.</summary>
+      internal static bool DebugAsksBeforeMeeting(Hero lord, InterceptionTrigger trigger)
+         => InterceptionPolicy.AsksBeforeMeeting(trigger, AtWarWithPlayer(lord));
 
       /// <summary>
       ///   True only when the player is standing free on the open campaign map: not in a scene/battle, an existing

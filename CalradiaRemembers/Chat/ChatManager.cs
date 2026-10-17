@@ -436,6 +436,10 @@ namespace CalradiaRemembers.Chat
          // later still landed on the backdrop's screen, and no "[PANEL] ... closed" line was ever written).
          MainThreadDispatcher.Clear();
 
+         // A reply still being written for this window would only be thrown away; stop it, so a local server is not
+         // left reasoning for nothing (fkasad, 16/10/2026).
+         ActiveViewModel?.CancelPendingReplies();
+
          // CRITICAL: FreeResources() (which nulls _activeLayer) MUST run no matter what.
          // If any teardown step threw before it, _activeLayer would stay non-null, IsOpen
          // would stay true forever, and every future Open() would no-op — silently killing

@@ -290,6 +290,17 @@ namespace CalradiaRemembers.Logic
                    || (reason is AbandonReason.OtherBusiness or AbandonReason.Siege && pursuerAlive));
 
         /// <summary>
+        ///   Whether a lord who reached the player on the road asks first, by a popup the player may decline, instead of
+        ///   opening the conversation at once. An enemy does (Gabriel, 16/10/2026, on fkasad's report the same day: a lord
+        ///   of a realm at war rode up as the player was about to attack him, the chat opened by force and a local model
+        ///   reasoned for half a minute over an opener nobody read): against an enemy, attacking is an answer, not a way
+        ///   of dodging him. A lord defending his realm's land is an enemy by definition. Anyone else keeps the forced
+        ///   meeting, which is there so the player cannot back out of a word owed.
+        /// </summary>
+        public static bool AsksBeforeMeeting(InterceptionTrigger trigger, bool lordsRealmAtWarWithPlayer)
+            => lordsRealmAtWarWithPlayer || trigger == InterceptionTrigger.TerritorialPatrol;
+
+        /// <summary>
         ///   Whether this reason may send a lord riding out after the player on the road. The war duty summons never
         ///   does (Gabriel, 16/10/2026: the king sits for the meeting, he does not go out in person; he is the busiest and
         ///   most important person of the realm). He calls the vassal to his hall, and the summons letter does the rest.

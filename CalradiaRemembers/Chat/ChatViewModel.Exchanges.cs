@@ -42,6 +42,27 @@ namespace CalradiaRemembers.Chat
    public sealed partial class ChatViewModel
    {
       /// <summary>
+      ///   Cancelled when the window closes (fkasad, Nexus 16/10/2026: a hostile lord's opener went on reasoning for 30
+      ///   seconds on a local server after the player had closed the chat to attack him). A reply the closed window would
+      ///   only throw away is no longer left running; every call linked to it returns as a failure the stale check drops.
+      /// </summary>
+      private readonly CancellationTokenSource _windowClosing = new();
+
+      /// <summary>Stops every reply still being written for this window. Called once, at the start of the close.</summary>
+      internal void CancelPendingReplies()
+      {
+         try
+         {
+            if (_windowClosing.IsCancellationRequested) return;
+            _windowClosing.Cancel();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[CLOSE] cancelling the pending replies failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
       ///   The dedicated log for unknown-verb [ACTION] attempts, written next to the main mod log so the whole
       ///   record can be sent to the author as one file (see <see cref="LogUnknownAction" />).
       /// </summary>
@@ -132,7 +153,7 @@ namespace CalradiaRemembers.Chat
             ChatManager.ScrollToBottom();
 
             NpcChatResult result;
-            using (var cts = new CancellationTokenSource())
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_windowClosing.Token))
             {
                try
                {
@@ -302,7 +323,7 @@ namespace CalradiaRemembers.Chat
             ModLog.Info($"[COMMONER] player → {_commonerProfile.Name}: \"{playerMessage}\"");
 
             NpcChatResult result;
-            using (var cts = new CancellationTokenSource())
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_windowClosing.Token))
             {
                try
                {
@@ -435,7 +456,7 @@ namespace CalradiaRemembers.Chat
 
             NpcChatResult result;
             using (var cts =
-                   new CancellationTokenSource())
+                   CancellationTokenSource.CreateLinkedTokenSource(_windowClosing.Token))
             {
                try
                {
@@ -898,7 +919,7 @@ namespace CalradiaRemembers.Chat
             bool usedProseFallback = false;
 
             NpcChatResult result;
-            using (var cts = new CancellationTokenSource())
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_windowClosing.Token))
             {
                // Absorb any fault into a Failure result so the SwitchToMainThread below
                // ALWAYS runs — otherwise a throw here would land the catch off-thread.
@@ -2313,7 +2334,7 @@ namespace CalradiaRemembers.Chat
                ChatManager.ScrollToBottom();
 
                NpcChatResult result;
-               using (var cts = new CancellationTokenSource())
+               using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_windowClosing.Token))
                {
                   try
                   {
