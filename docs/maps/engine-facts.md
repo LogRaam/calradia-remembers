@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-523 rules read 402 facts.
+524 rules read 403 facts.
 
 ## Facts read by more than one rule
 
@@ -678,6 +678,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `RomanticProfilePolicy.DeterminePreferences`: `Hero.GetTraitLevel`, `StatureReader.Of`, `StringId.GetHashCode`
 - `RomanticTraits`: `Hero.GetTraitLevel`
 - `RumorAwareness.Explain`: `GetPosition2D.Distance`, `Settlement.Find`
+- `RumorDiscretion.TagFor`: `Event.KnownOnlyToThoseInvolved`
 - `ScatteredLootItem`: `EquipmentElement.IsEmpty`, `EquipmentElement.Item`, `Hero.BattleEquipment`, `Item.Tier`
 - `ScatteredLootPolicy.SelectRecoverable`: `MapEvent.PartiesOnSide`, `MapEvent.WinningSide`, `Party.MobileParty`
 - `SceneChoiceMenu.Items`: `Array.Empty`, `Ways.Invoke`

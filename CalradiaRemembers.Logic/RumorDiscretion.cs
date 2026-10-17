@@ -31,6 +31,17 @@ namespace CalradiaRemembers.Logic
    /// <summary>Whether a world event is kept from someone whatever their score. Pure.</summary>
    public static class RumorDiscretion
    {
+      /// <summary>
+      ///   The tag a secret event carries in a prompt line (Gabriel, 17/10/2026: "secret event devrait etre tagged
+      ///   secret et ces secrets ne devraient etres connus que de ceux qui le connaissent"). Without it, one of the few
+      ///   who know a secret reads it like common news and spreads it. It asks for discretion, never for denial: an
+      ///   NPC may keep silent or stay vague, but does not lie.
+      /// </summary>
+      public const string SecretTag = "(a secret few share: speak of it only in confidence) ";
+
+      /// <summary>The tag to put before a known event's line: <see cref="SecretTag" /> for a secret, empty otherwise.</summary>
+      public static string TagFor(bool knownOnlyToThoseInvolved) => knownOnlyToThoseInvolved ? SecretTag : "";
+
       /// <summary>Why the event is withheld from this observer, or null when it is not.</summary>
       public static string WithheldReason(DiscretionFacts f)
       {

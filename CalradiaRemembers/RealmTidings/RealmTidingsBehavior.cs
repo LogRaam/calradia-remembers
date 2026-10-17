@@ -123,7 +123,9 @@ namespace CalradiaRemembers.RealmTidings
          {
             // A friend relays news of the wider world, not the player's own deeds back to them, and cannot relay
             // an event that carries no id or no summary to quote.
-            if (evt == null || string.IsNullOrEmpty(evt.Id) || string.IsNullOrWhiteSpace(evt.Summary) || evt.InvolvesPlayer)
+            // Nor a secret: one of the few who know it does not write it to the player as news (Gabriel, 17/10/2026).
+            if (evt == null || string.IsNullOrEmpty(evt.Id) || string.IsNullOrWhiteSpace(evt.Summary) || evt.InvolvesPlayer
+                || evt.KnownOnlyToThoseInvolved)
                continue;
 
             candidates.Add(new RealmTidingsPolicy.RealmTidingsCandidate(evt.Id, RealmTidingsSalience.Of(evt.Magnitude, confidence)));

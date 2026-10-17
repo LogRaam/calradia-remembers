@@ -311,6 +311,7 @@ namespace CalradiaRemembers.Missions
          foreach ((WorldEvent ev, RumorConfidence confidence) in rated)
          {
             if (ev == null || string.IsNullOrEmpty(ev.Id)) continue;
+            if (ev.KnownOnlyToThoseInvolved) continue; // a secret is not a rumour to report (Gabriel, 17/10/2026)
             if (alreadyReported != null && alreadyReported.Contains(ev.Id)) continue;
 
             int strength = CompanionRumourPolicy.Strength(ev.Magnitude, confidence);

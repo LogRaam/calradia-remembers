@@ -51,5 +51,20 @@ namespace CalradiaRemembers.Tests
          RumorDiscretion.WithheldReason(Wedding("rival", false, "rival")).Should().NotBeNull();
          RumorDiscretion.WithheldReason(Wedding("stranger", false, "rival")).Should().BeNull();
       }
+
+      // Gabriel, 17/10/2026: a secret is tagged secret. Without the tag, the bride reads her secret wedding like
+      // common news and tells the next stranger she meets.
+      [Test]
+      public void GIVEN_a_secret_event_WHEN_its_line_is_tagged_THEN_it_asks_for_discretion()
+      {
+         RumorDiscretion.TagFor(true).Should().Contain("secret").And.Contain("in confidence");
+      }
+
+      // STAKE: every ordinary rumour line stays byte for byte what it was (no prompt grows for events nobody hid).
+      [Test]
+      public void GIVEN_an_ordinary_event_WHEN_its_line_is_tagged_THEN_nothing_is_added()
+      {
+         RumorDiscretion.TagFor(false).Should().BeEmpty();
+      }
    }
 }

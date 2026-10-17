@@ -314,7 +314,8 @@ namespace CalradiaRemembers
          foreach (WorldEvent e in shown.Reverse().Take(HistoryPageSize))
          {
             string place = e.PlaceId != null ? ", at " + (Settlement.Find(e.PlaceId)?.Name?.ToString() ?? e.PlaceId) : "";
-            sb.AppendLine($"- {e.Id} [day {e.Day}, {WorldEventStore.HistoryKindOf(e)}, magnitude {e.Magnitude}{place}]: {e.Summary}");
+            sb.AppendLine($"- {e.Id} [day {e.Day}, {WorldEventStore.HistoryKindOf(e)}, magnitude {e.Magnitude}{place}"
+                          + $"{(e.KnownOnlyToThoseInvolved ? ", SECRET" : "")}{(e.HiddenFromIds?.Count > 0 ? $", hidden from {e.HiddenFromIds.Count}" : "")}]: {e.Summary}");
          }
 
          if (shown.Count > HistoryPageSize) sb.AppendLine($"({shown.Count - HistoryPageSize} older event(s) not shown.)");
@@ -358,13 +359,17 @@ namespace CalradiaRemembers
             : $"No world event with id '{id}'. See cr.world_events.";
       }
 
+      // Gabriel, 17/10/2026: a secret stays a secret in the long-term memory, so an aged event can be made one too.
+      private static WorldEvent EventOrHistoryById(string id)
+         => WorldEventStore.Instance?.GetById(id) ?? WorldEventStore.Instance?.GetHistoryById(id);
+
       /// <summary>cr.world_event_secret &lt;id&gt; [off]: only those the event names know of it.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("world_event_secret", "cr")]
       public static string SecretWorldEvent(List<string> args)
       {
          if (!TryContext(out _, out string error)) return error;
-         WorldEvent e = args is {Count: > 0} ? WorldEventStore.Instance?.GetById(args[0].Trim()) : null;
-         if (e == null) return "Usage: cr.world_event_secret <id> [off]   (ids: cr.world_events [words])";
+         WorldEvent e = args is {Count: > 0} ? EventOrHistoryById(args[0].Trim()) : null;
+         if (e == null) return "Usage: cr.world_event_secret <id> [off]   (ids: cr.world_events [words] or cr.history)";
 
          bool off = args.Count > 1 && string.Equals(args[1], "off", StringComparison.OrdinalIgnoreCase);
          e.KnownOnlyToThoseInvolved = !off;
@@ -381,8 +386,8 @@ namespace CalradiaRemembers
       public static string HideWorldEvent(List<string> args)
       {
          if (!TryContext(out _, out string error)) return error;
-         WorldEvent e = args is {Count: > 1} ? WorldEventStore.Instance?.GetById(args[0].Trim()) : null;
-         if (e == null) return "Usage: cr.world_event_hide <id> <name> [off]   (ids: cr.world_events [words])";
+         WorldEvent e = args is {Count: > 1} ? EventOrHistoryById(args[0].Trim()) : null;
+         if (e == null) return "Usage: cr.world_event_hide <id> <name> [off]   (ids: cr.world_events [words] or cr.history)";
 
          List<string> nameTokens = args.Skip(1).ToList();
          bool off = string.Equals(nameTokens.Last(), "off", StringComparison.OrdinalIgnoreCase);
