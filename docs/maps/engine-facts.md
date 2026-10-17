@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-528 rules read 411 facts.
+530 rules read 412 facts.
 
 ## Facts read by more than one rule
 
@@ -111,6 +111,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Clan.Influence` (4) | `ClaimantBackerFacts`, `CourtActionPolicy.CanAffordInfluenceGrant`, `CourtActionPolicy.ClanNeedsInfluence`, `KingdomPowerFacts` |
 | `Clan.Tier` (4) | `MatchFacts`, `StandingAim`, `SummonsFacts`, `WarLevyFacts` |
 | `EndCaptivityDetail.ReleasedByChoice` (4) | `CustodyReleaseFacts`, `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
+| `Event.Day` (4) | `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
+| `Event.Summary` (4) | `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `GatePosition.ToVec2` (4) | `CompanionPatrolPolicy.ShouldReissue`, `CourierGateFacts`, `EscortCostPolicy.EscortPremium`, `PatrolLeashFacts` |
 | `Hero.Culture` (4) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts`, `MercenaryDeparturePolicy.IsAidOfKin`, `MercenaryDeparturePolicy.RegardShift` |
 | `Hero.StayingInSettlement` (4) | `EscortCostPolicy.EscortPremium`, `LetterWhereaboutsPolicy.ForPlayer`, `LetterWhereaboutsPolicy.ForWriter`, `WhereaboutsFacts` |
@@ -133,6 +135,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Current.MapSceneWrapper` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
 | `Directory.Exists` (3) | `PromptProfileFolders.List`, `PromptProfileReader.Read`, `StyleCatalogPolicy.MergeStyleNames` |
 | `EndCaptivityDetail.ReleasedAfterBattle` (3) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
+| `Event.KnownOnlyToThoseInvolved` (3) | `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `RumorDiscretion.TagFor` |
 | `GameStateBridge.GetCurrentGameDay` (3) | `ConversationResumeIdentity`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `PendingSummaryJob` |
 | `GetPosition2D.DistanceSquared` (3) | `AuthoredMapTriggerPolicy.WhyNot`, `CaptureFacts`, `MapTriggerFacts` |
 | `Hero.BattleEquipment` (3) | `GiftEquipFacts`, `PlayerDressPolicy.Classify`, `ScatteredLootItem` |
@@ -185,9 +188,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `EndCaptivityDetail.ReleasedAfterEscape` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.ReleasedAfterPeace` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.ReleasedByCompensation` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
-| `Event.Day` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `Event.InvolvesPlayer` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
-| `Event.Summary` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
+| `Event.Magnitude` (2) | `PastCandidateFacts`, `PastOnMentionPolicy.Block` |
 | `Event.Type` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `Events.FindLastIndex` (2) | `SkirmishLine`, `SkirmishMemoryText.CountIn` |
 | `GameStateBridge.GetCurrentScene` (2) | `EquipmentLoadoutPolicy.PreferCivilianLoadout`, `EquipmentNotabilityPolicy.ComposeWorn` |
@@ -601,6 +603,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `PartnerStanding`: `Romantic.IsOpenArrangement`, `StatureReader.Player`
 - `PartyCounselFacts`: `Character.HeroObject`, `EquipmentElement.Item`, `Hero.GetSkillValue`, `MemberRoster.GetTroopRoster`, `MobileParty.InventoryCapacity`, `MobileParty.ItemRoster`, `MobileParty.Morale`, `MobileParty.TotalWeightCarried`
 - `PartyMoraleMood.DriverFor`: `MobileParty.Morale`
+- `PastCandidateFacts`: `Event.Day`, `Event.KnownOnlyToThoseInvolved`, `Event.Magnitude`, `Event.Summary`
+- `PastOnMentionPolicy.Block`: `Event.Day`, `Event.KnownOnlyToThoseInvolved`, `Event.Magnitude`, `Event.Summary`
 - `PatrolLeashFacts`: `AiBehavior.EngageParty`, `AiBehavior.FleeToGate`, `AiBehavior.FleeToParty`, `AiBehavior.FleeToPoint`, `AiBehavior.PatrolAroundPoint`, `GatePosition.ToVec2`, `GetPosition2D.Distance`, `MobileParty.DefaultBehavior`, `MobileParty.GetNumDaysForFoodToLast`, `MobileParty.MapEvent`, `MobileParty.ShortTermBehavior`, `MobileParty.SiegeEvent`, `MobileParty.TargetSettlement`, `Settlement.Find`
 - `PatrolLetterText.OrdersStop`: `DayMoodReader.Draw`
 - `PatrolLetterText.StripOrderLine`: `DayMoodReader.Draw`

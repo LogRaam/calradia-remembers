@@ -210,6 +210,55 @@ namespace CalradiaRemembers.WorldEvents
          return (query.Max > 0 ? ordered.Take(query.Max) : ordered).ToList();
       }
 
+      /// <summary>
+      ///   The long-term events naming any of <paramref name="namedIds" /> (an actor, one harmed, a realm, the place) that
+      ///   <paramref name="observer" /> would know, each with how close he stands to it: what he can bring up when the
+      ///   player names his people (PastOnMentionPolicy). The name test runs first because it is cheap and this runs on
+      ///   every message; the knowledge gate then runs on the few left. The answer is the intersection either way, so no
+      ///   event he would not know can surface.
+      /// </summary>
+      public IReadOnlyList<(WorldEvent Event, PastTie Tie)> KnownPastNaming(Hero observer, ICollection<string> namedIds)
+      {
+         if (observer == null || namedIds == null || namedIds.Count == 0 || _history.Count == 0) return Array.Empty<(WorldEvent, PastTie)>();
+
+         var found = new List<(WorldEvent, PastTie)>();
+         foreach (WorldEvent e in _history)
+         {
+            if (!NamesAnyOf(e, namedIds)) continue;
+
+            HistoryKnowledgeFacts facts = KnowledgeFacts(observer, e);
+            if (!LongTermHistoryPolicy.WouldKnow(facts)) continue;
+
+            found.Add((e, facts.IsActor ? PastTie.Actor
+                          : facts.IsKinOfAnActor ? PastTie.Kin
+                          : facts.SharesAClanWithAnActor ? PastTie.Clan
+                          : facts.IsOfThePlace ? PastTie.Place
+                          : facts.IsOfARealmInvolved ? PastTie.Realm
+                          : PastTie.None));
+         }
+
+         return found;
+      }
+
+      /// <summary>Every id a long-term event names: its actors, those it harmed, its realms and its place.</summary>
+      public static IReadOnlyCollection<string> NamedIdsOf(WorldEvent e)
+      {
+         var ids = new List<string>();
+         if (e == null) return ids;
+         if (e.ActorIds != null) ids.AddRange(e.ActorIds);
+         if (e.AggrievedActorIds != null) ids.AddRange(e.AggrievedActorIds);
+         if (e.FactionIds != null) ids.AddRange(e.FactionIds);
+         if (!string.IsNullOrEmpty(e.PlaceId)) ids.Add(e.PlaceId);
+
+         return ids;
+      }
+
+      private static bool NamesAnyOf(WorldEvent e, ICollection<string> namedIds)
+         => e.ActorIds != null && e.ActorIds.Any(namedIds.Contains)
+            || e.AggrievedActorIds != null && e.AggrievedActorIds.Any(namedIds.Contains)
+            || e.FactionIds != null && e.FactionIds.Any(namedIds.Contains)
+            || e.PlaceId != null && namedIds.Contains(e.PlaceId);
+
       /// <summary>True when <paramref name="observer" /> would know this long-term event (LongTermHistoryPolicy.WouldKnow).</summary>
       public static bool WouldKnow(Hero observer, WorldEvent e)
       {

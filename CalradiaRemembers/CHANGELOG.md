@@ -64,6 +64,31 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   save key `CalradiaRemembers_WorldHistory_v1bytes` (additive: an older save opens with an empty history, and what is
   still news at load reaches it in time); console `cr.history [name]`; cr.testall `world_long_term_memory`. Not yet:
   the encyclopedia lists, the regard between NPCs, the generated past, the conversation.
+  Later the same day (Gabriel's answers): a secret event reaches the tier with its secret and is spoken of only in
+  confidence (`RumorDiscretion.SecretTag`); risings, divorces and a lord fallen in battle are on the bar
+  (`HistoryKind.Rebellion`, `Divorce`, `FellInBattle`).
+- **Authored history: the past before day 1, written by you** (Gabriel, 17/10: "je pourrais mettre en scene des
+  evenements du passe qui ne se sont pas produits dans le temps de jeu"; "A file per save ID. File editable with an
+  external tool.. something like a web page with a timeline."; design `docs/design/AUTHORED_HISTORY.md`). One file per
+  campaign in `Documents/Mount and Blade II Bannerlord/CalradiaRemembers/History/<campaign id>.history.json`, read at
+  every load and by `cr.history_reload`: its events (dated before the campaign began, by year and season) join the
+  long-term memory as authored, never evicted, known by the same rules plus the people the file names as knowing a
+  secret. An event may change or set a starting relation; a ledger in the save moves the relation by what changed in
+  the file since the last load, so reloading never stacks, and a relation naming your character also moves the
+  character's own regard. What the file gets wrong is set aside with a reason in `<campaign id>.history.problems.txt`.
+  The timeline page `HistoryEditor.html` (in the module's Docs) edits the file and checks it against a snapshot of the
+  world written by `cr.history_file`. `AuthoredHistoryLoader`, `HistoryRelationLedger`, `AuthoredHistoryBehavior`
+  (save key `CalradiaRemembers_AuthoredHistoryLedger_v1bytes`, additive), SDK `VanillaRelation.Bound`; cr.testall
+  `authored_history`.
+- **Lords speak of the past you name** (authored history increment 4; Gabriel, 17/10: the long-term memory serves
+  "des conversations entre joueur et NPC sur le passe"). When your message names a person (the dead included), a
+  place or a realm, the speaker gets up to three long-term events naming it that he would know, the greatest first,
+  each saying how long ago, whether he was part of it or knows it only as told (older than him), and the secret tag.
+  Only a name brings up the past, never a word: "the battle yesterday" raises nothing from ten years ago. Rendered
+  below `CURRENT ENCOUNTER:` under its own heading, which tells the model it is the past, not news.
+  `PastOnMentionPolicy`, `WorldEventStore.KnownPastNaming`, `EncounterContextBuilder.ResolvePastOnMention`, SDK
+  `EncounterContext.PastOnMentionBlock`; cr.testall `history_on_mention`. Not yet: the regard reasons on a named
+  person (waits on `PairRegardPolicy`).
 
 ### Changed
 - **The game names your character, never "the player"** (Gabriel, 17/10: a grievance read "Holds an old bitterness

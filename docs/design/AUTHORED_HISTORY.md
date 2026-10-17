@@ -150,7 +150,9 @@ people of the place, and for importance 45 and up, the realms named. A secret na
 
 - **Conversation:** the planned injection of long-term events on mention (`NPC_REGARD.md` section 9) reads authored
   events like any other: when the player names a person, a place or a realm, the one to three most relevant events
-  the NPC would know go below the `CURRENT ENCOUNTER:` marker. Not built yet; it is the next increment of that work.
+  the NPC would know go below the `CURRENT ENCOUNTER:` marker. Built 17/10/2026 (`PastOnMentionPolicy`,
+  `EncounterContextBuilder.ResolvePastOnMention`): only a name brings up the past, never a keyword; the dead and the
+  settlements count as names; each line says how long ago and whether the speaker lived it or knows it as told.
 - **NPC regard:** `PairRegardPolicy` reads the events a pair shares, authored ones included, and the vanilla
   relation the file set.
 - **cr.history** lists authored events with an `authored` tag.

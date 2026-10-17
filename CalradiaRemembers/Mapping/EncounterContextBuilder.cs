@@ -705,6 +705,7 @@ namespace CalradiaRemembers.Mapping
                                     .ToleratesSharedPartners(StatureReader.Player.ClanTier),
             PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
             QueryRelevantFactsBlock = ResolveQueryRelevantFacts(hero, playerMessage, (int) CampaignTime.Now.ToDays),
+            PastOnMentionBlock = ResolvePastOnMention(hero, playerMessage, (int) CampaignTime.Now.ToDays),
             CompanionOnErrand = ResolveCompanionOnErrand(hero),
             CompanionNewsReport = CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
             CompanionMoodNote = ResolveCompanionMoodNote(hero),
@@ -4370,6 +4371,70 @@ namespace CalradiaRemembers.Mapping
                : null;
          }
          catch { return null; }
+      }
+
+      /// <summary>
+      ///   The long-term past the player just named (Gabriel, 17/10/2026: the long-term memory serves "des conversations
+      ///   entre joueur et NPC sur le passe"; docs/design/AUTHORED_HISTORY.md section 8): the events of the world's
+      ///   long-term memory, authored history included, that name a person, a place or a realm the player named and that
+      ///   the speaker would know. PastOnMentionPolicy picks at most three and says how long ago, and whether he lived it
+      ///   or knows it only as told. Only a name brings up the past, never a keyword: "the battle yesterday" must not raise
+      ///   a battle of ten years ago. The dead are names here too, since history is full of them. Null when nothing named
+      ///   is in his past.
+      /// </summary>
+      internal static string ResolvePastOnMention(Hero hero, string playerMessage, int today)
+      {
+         if (hero == null || string.IsNullOrWhiteSpace(playerMessage) || WorldEventStore.Instance == null) return null;
+
+         try
+         {
+            HashSet<string> keywords = WorldFactRelevancePolicy.Tokenize(playerMessage);
+            HashSet<string> named = ExtractMessageEntityIds(keywords);
+            AddNamedDeadAndPlaces(keywords, named);
+            named.Remove(hero.StringId); // "you" said by name is not a question about his past
+
+            if (named.Count == 0) return null;
+
+            var request = new PastMentionRequest {
+               NamedIds = named, Today = today, DaysInYear = CampaignTime.DaysInSeason * CampaignTime.SeasonsInYear,
+               SpeakerBirthDay = (int) hero.BirthDay.ToDays
+            };
+
+            IEnumerable<PastCandidateFacts> known = WorldEventStore.Instance.KnownPastNaming(hero, named)
+               .Select(t => new PastCandidateFacts {
+                  Id = t.Event.Id, EntityIds = WorldEventStore.NamedIdsOf(t.Event), Summary = t.Event.Summary, Day = t.Event.Day,
+                  Magnitude = t.Event.Magnitude, Tie = t.Tie, Secret = t.Event.KnownOnlyToThoseInvolved
+               });
+
+            return PastOnMentionPolicy.Block(known, request);
+         }
+         catch { return null; }
+      }
+
+      // The past names the dead (an executed father, a lord fallen at a siege) and places: added to the names the
+      // recent-news scan already found among the living, kingdoms and clans. Hideouts are no one's past.
+      private static void AddNamedDeadAndPlaces(HashSet<string> messageKeywords, HashSet<string> ids)
+      {
+         if (messageKeywords == null || messageKeywords.Count == 0) return;
+
+         var folded = new HashSet<string>(messageKeywords.Select(NameNormalization.Fold));
+
+         try
+         {
+            foreach (Hero h in Hero.DeadOrDisabledHeroes)
+            {
+               string name = h?.Name?.ToString();
+               if (!string.IsNullOrEmpty(name) && !h.IsHumanPlayerCharacter && NameSharesFoldedToken(name, folded)) ids.Add(h.StringId);
+            }
+
+            foreach (Settlement s in Settlement.All)
+            {
+               if (s == null || s.IsHideout) continue;
+               string name = s.Name?.ToString();
+               if (!string.IsNullOrEmpty(name) && NameSharesFoldedToken(name, folded)) ids.Add(s.StringId);
+            }
+         }
+         catch { /* best effort: the living, the realms and the clans still count */ }
       }
 
       /// <summary>

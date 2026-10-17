@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 509 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1178 types in 31 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1182 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -20,8 +20,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 20000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
+| 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
-| 4000+ | Mod | `Mapping/EncounterContextBuilder.cs` |
 | 2500+ | Mod | `Chat/ChatViewModel.Exchanges.cs` |
 | 2500+ | Mod | `Chat/CouncilLift.cs` |
 | 2000+ | Sdk | `Models/EncounterContext.cs` |
@@ -865,7 +865,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (706)
+### CalradiaRemembers.Logic (710)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1295,6 +1295,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PartyCounselKind` | public enum | Which practical condition of the party the counsel is about, or none. |
 | `PartyMoraleMood` | public static class | Turns the player party's morale into the weekly mood nudge it gives their companions, if any. |
 | `PartyReaction` | public class | One party's verdict on a divorce. |
+| `PastCandidateFacts` | public class | One long-term event the speaker knows, as the past-on-mention block weighs it. |
+| `PastMentionRequest` | public class | The turn the past is weighed for: what the player named, and when the speaker stands. |
+| `PastOnMentionPolicy` | public static class | Picks and words the past events a speaker brings to a turn in which the player named their people. |
+| `PastTie` | public enum | How close the speaker stands to a past event, from farthest to nearest. |
 | `PatrolLeashFacts` | public class | What the hourly leash knows of a patrolling party. |
 | `PatrolLetterText` | public static class | Pure: the monthly patrol letter's Context, and reading a stop order out of a letter's answer. |
 | `PatrolReportFacts` | public class | The record a monthly patrol letter reports. |
