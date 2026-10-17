@@ -341,8 +341,19 @@ namespace CalradiaRemembers.Chat
             settlement = place;
          }
 
+         // jaserms1 (16/10/2026): a named deed the council cannot ground fails honestly, never another deed.
+         if (!CouncilQuestTypePolicy.TryResolve(questTypeToken, out QuestType questType))
+         {
+            string reason = $"the table named a deed ({questTypeToken.Trim()}) the game cannot set as a task.";
+            ledger.MarkFailed(entry.Id, reason);
+            report?.Invoke($"{actorName}'s pledge ({entry.Detail}) could not be carried out: {reason}", false);
+            ModLog.Info($"[COUNCIL] lift: quest pledge refused, unsupported quest_type '{questTypeToken}'.");
+
+            return;
+         }
+
          var proposal = new QuestProposal {
-            Type = CouncilQuestTypePolicy.Resolve(questTypeToken),
+            Type = questType,
             Description = entry.Detail,
             TargetSettlement = settlement
          };

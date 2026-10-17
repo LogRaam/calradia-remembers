@@ -23,15 +23,15 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_each_teachable_token_WHEN_resolved_THEN_it_maps_to_its_own_deed_type()
         {
-            CouncilQuestTypePolicy.Resolve("siege").Should().Be(QuestType.Siege);
-            CouncilQuestTypePolicy.Resolve("scout_army").Should().Be(QuestType.ScoutArmy);
-            CouncilQuestTypePolicy.Resolve("raid_village").Should().Be(QuestType.RaidVillage);
-            CouncilQuestTypePolicy.Resolve("bandit_hideout").Should().Be(QuestType.BanditHideout);
-            CouncilQuestTypePolicy.Resolve("bandit_clear").Should().Be(QuestType.BanditClear);
+            Resolved("siege").Should().Be(QuestType.Siege);
+            Resolved("scout_army").Should().Be(QuestType.ScoutArmy);
+            Resolved("raid_village").Should().Be(QuestType.RaidVillage);
+            Resolved("bandit_hideout").Should().Be(QuestType.BanditHideout);
+            Resolved("bandit_clear").Should().Be(QuestType.BanditClear);
         }
 
         // The prompt's vocabulary list and the resolver must agree exactly, or the model would be taught a
-        // token that grounds as something else (or falls back), silently breaking the pledge it spoke.
+        // token that grounds as something else (or fails), silently breaking the pledge it spoke.
         [Test]
         public void GIVEN_the_teachable_list_WHEN_resolved_THEN_every_token_grounds_as_its_own_deed()
         {
@@ -39,39 +39,41 @@ namespace CalradiaRemembers.Tests.Assemblies
 
             foreach (string token in CouncilQuestTypePolicy.TeachableTokens)
             {
-                QuestType resolved = CouncilQuestTypePolicy.Resolve(token);
+                CouncilQuestTypePolicy.TryResolve(token, out QuestType resolved).Should().BeTrue();
 
                 if (token == "bandit_clear") resolved.Should().Be(QuestType.BanditClear);
                 else resolved.Should().NotBe(QuestType.BanditClear,
-                    "the taught token '{0}' must ground as its own deed, not the fallback", token);
+                    "the taught token '{0}' must ground as its own deed", token);
             }
         }
 
-        // Legacy behavior is the fallback: a pledge recorded before quest_type existed (or a model that simply
-        // omitted it) grounds exactly as it always has, never refused for lacking a type.
+        // Legacy behavior is kept: a pledge recorded before quest_type existed (or a model that simply omitted it)
+        // grounds exactly as it always has, never refused for lacking a type.
         [Test]
         public void GIVEN_no_token_WHEN_resolved_THEN_the_legacy_bandit_clear_grounding_is_kept()
         {
-            CouncilQuestTypePolicy.Resolve(null).Should().Be(QuestType.BanditClear);
-            CouncilQuestTypePolicy.Resolve("").Should().Be(QuestType.BanditClear);
-            CouncilQuestTypePolicy.Resolve("   ").Should().Be(QuestType.BanditClear);
+            Resolved(null).Should().Be(QuestType.BanditClear);
+            Resolved("").Should().Be(QuestType.BanditClear);
+            Resolved("   ").Should().Be(QuestType.BanditClear);
         }
 
-        // An unrecognized token must never fail the pledge NOR be guessed into a different deed: it grounds
-        // exactly as it would have before quest_type existed.
+        // jaserms1 (Nexus, 16/10/2026): a council pledge to patrol villages became a bandit-clearing task handed to
+        // the player. A deed the table named but the game cannot set as a task must fail the pledge with a reason,
+        // never be grounded as a different deed.
         [Test]
-        public void GIVEN_an_unrecognized_token_WHEN_resolved_THEN_it_falls_back_to_bandit_clear()
+        public void GIVEN_a_named_deed_the_council_cannot_ground_WHEN_resolved_THEN_the_pledge_fails_instead_of_becoming_a_bandit_clear()
         {
-            CouncilQuestTypePolicy.Resolve("show_mercy").Should().Be(QuestType.BanditClear);
+            CouncilQuestTypePolicy.TryResolve("patrol", out _).Should().BeFalse();
+            CouncilQuestTypePolicy.TryResolve("show_mercy", out _).Should().BeFalse();
         }
 
-        // A RECOGNIZED but unsupported deed (hero-bound: the [RESOLUTION] block teaches no target_hero, so it
-        // could never ground) must fall back too, never produce a quest that cannot be completed.
+        // A RECOGNIZED but hero-bound deed (the [RESOLUTION] block teaches no target_hero, so it could never ground)
+        // fails too, rather than producing a quest that cannot be completed or a different one.
         [Test]
-        public void GIVEN_a_recognized_but_hero_bound_token_WHEN_resolved_THEN_it_falls_back_to_bandit_clear()
+        public void GIVEN_a_recognized_but_hero_bound_token_WHEN_resolved_THEN_the_pledge_fails()
         {
-            CouncilQuestTypePolicy.Resolve("capture_prisoner").Should().Be(QuestType.BanditClear);
-            CouncilQuestTypePolicy.Resolve("execute_enemy").Should().Be(QuestType.BanditClear);
+            CouncilQuestTypePolicy.TryResolve("capture_prisoner", out _).Should().BeFalse();
+            CouncilQuestTypePolicy.TryResolve("execute_enemy", out _).Should().BeFalse();
         }
 
         // Synonym tolerance comes from the SDK's single vocabulary: a model that writes "besiege" instead of
@@ -79,8 +81,15 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_a_synonym_token_WHEN_resolved_THEN_the_sdk_vocabulary_applies()
         {
-            CouncilQuestTypePolicy.Resolve("besiege").Should().Be(QuestType.Siege);
-            CouncilQuestTypePolicy.Resolve("scout").Should().Be(QuestType.ScoutArmy);
+            Resolved("besiege").Should().Be(QuestType.Siege);
+            Resolved("scout").Should().Be(QuestType.ScoutArmy);
+        }
+
+        private static QuestType Resolved(string token)
+        {
+            CouncilQuestTypePolicy.TryResolve(token, out QuestType type).Should().BeTrue();
+
+            return type;
         }
     }
 

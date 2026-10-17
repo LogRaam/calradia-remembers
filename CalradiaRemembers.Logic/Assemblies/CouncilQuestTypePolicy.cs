@@ -17,7 +17,7 @@ using NpcMemoryService.Core.Parsing;
 
 namespace CalradiaRemembers.Logic.Assemblies
 {
-    /// <summary>Maps a council "quest" resolution's quest_type token to the deed type the lift grounds, with the legacy bandit-clear fallback.</summary>
+    /// <summary>Maps a council "quest" resolution's quest_type token to the deed type the lift grounds; an unsupported named deed fails.</summary>
     public static class CouncilQuestTypePolicy
     {
         /// <summary>
@@ -45,23 +45,23 @@ namespace CalradiaRemembers.Logic.Assemblies
         };
 
         /// <summary>
-        ///   The deed type to ground. A null/blank token (the model named none, or a ledger entry recorded
-        ///   before quest_type existed) keeps the legacy <see cref="QuestType.BanditClear" /> grounding, exactly
-        ///   as every council quest behaved before this field shipped; the same fallback serves a token that is
-        ///   unrecognized, or recognized but outside <see cref="Supported" /> (e.g. a hero-bound deed the block
-        ///   cannot ground): the pledge then grounds exactly as it would have before, never refused for naming
-        ///   an ambitious type. Synonym tolerance ("besiege", "scout") comes free from the SDK's single
-        ///   vocabulary (<see cref="SectionResponseParser.ParseQuestType" />).
+        ///   The deed type to ground, or false when the token NAMES a deed the council cannot ground. jaserms1
+        ///   (Nexus, 16/10/2026): a pledge to "patrol the villages" grounded as a bandit-clear task; a named but
+        ///   unsupported deed now fails the pledge honestly instead of becoming a different one. A null/blank token
+        ///   (the model named none, or an entry recorded before quest_type existed) still grounds as the legacy
+        ///   bandit-clear.
         /// </summary>
-        public static QuestType Resolve(string token)
+        public static bool TryResolve(string token, out QuestType type)
         {
-            if (string.IsNullOrWhiteSpace(token)) return QuestType.BanditClear;
+            type = QuestType.BanditClear;
+            if (string.IsNullOrWhiteSpace(token)) return true;
 
             QuestType? parsed = SectionResponseParser.ParseQuestType(token);
+            if (!parsed.HasValue || !Supported.Contains(parsed.Value)) return false;
 
-            return parsed.HasValue && Supported.Contains(parsed.Value)
-                ? parsed.Value
-                : QuestType.BanditClear;
+            type = parsed.Value;
+
+            return true;
         }
     }
 }

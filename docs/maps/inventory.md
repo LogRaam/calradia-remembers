@@ -1671,7 +1671,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilPartyRole` | public enum | The four party roles a council may assign a seated companion to. |
 | `CouncilPledgeMemory` | public static class | Builds the memory line a council member stores about a pledge they made. |
 | `CouncilPledgeOutcome` | public enum | What became of a council pledge, for the memory the promiser keeps of it. |
-| `CouncilQuestTypePolicy` | public static class | Maps a council "quest" resolution's quest_type token to the deed type the lift grounds, with the legacy bandit-clear fallback. |
+| `CouncilQuestTypePolicy` | public static class | Maps a council "quest" resolution's quest_type token to the deed type the lift grounds; an unsupported named deed fails. |
 | `CouncilResolutionPolicy` | public static class | Session-ledger decisions for the [RESOLUTION] channel, layered on top of AssemblyLedger and ResolutionLifecycle. |
 | `CouncilRosterPolicy` | public static class | Reads a CouncilMembershipFacts for one hero into a seated/excluded verdict. |
 | `CouncilScope` | public enum | Which of the player's own people a AssemblyType.Council gathers. |

@@ -469,8 +469,8 @@ _Documents the council quest_type grounding (player report 2026-08-25: eight sie
 - GIVEN each teachable token, WHEN resolved, THEN it maps to its own deed type
 - GIVEN the teachable list, WHEN resolved, THEN every token grounds as its own deed
 - GIVEN no token, WHEN resolved, THEN the legacy bandit clear grounding is kept
-- GIVEN an unrecognized token, WHEN resolved, THEN it falls back to bandit clear
-- GIVEN a recognized but hero bound token, WHEN resolved, THEN it falls back to bandit clear
+- GIVEN a named deed the council cannot ground, WHEN resolved, THEN the pledge fails instead of becoming a bandit clear
+- GIVEN a recognized but hero bound token, WHEN resolved, THEN the pledge fails
 - GIVEN a synonym token, WHEN resolved, THEN the sdk vocabulary applies
 - GIVEN a type and settlement, WHEN composed then decomposed, THEN both halves survive
 - GIVEN no quest type, WHEN composed, THEN the bare legacy settlement is written
