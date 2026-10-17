@@ -36,6 +36,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   `enemy_meeting_offer`.
 
 ### Fixed
+- **A council member's own offer no longer becomes your quest** (jaserms1, 16/10: a war council ordered a companion
+  to patrol villages; the game handed the player a bandit-clearing task instead). A council "quest" resolution is,
+  and always was, a task set FOR the player, but the council was taught to record a member's own pledge with it
+  ("Ira will ride to Pravend..."). It is now taught as the player's task, and a member's own deed is not to be
+  recorded as one. A quest naming a deed the game cannot set (patrol, a hero-bound deed) now fails the pledge with a
+  reason instead of silently becoming a bandit-clear; a pledge naming no deed keeps the legacy bandit-clear.
+  `CouncilQuestTypePolicy.TryResolve`. The real companion patrol is in progress.
 - **The world's record of a battle says who, where and how big** (fkasad, 16/10: "defeated a host in battle" said
   nothing of who lost, a band of looters read like an army, and a field battle had no place). A side no hero led is
   named for what it was ("a band of Looters", "men of Vlandia") instead of "a host"; a field battle the game tied to
