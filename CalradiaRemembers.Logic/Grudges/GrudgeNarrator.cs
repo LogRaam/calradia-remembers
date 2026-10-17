@@ -97,7 +97,14 @@ namespace CalradiaRemembers.Logic.Grudges
                 ? DisplayFallbackCause
                 : grudge.CauseSummary.Trim().TrimEnd('.', '!', '?');
 
-            string sentence = $"{verb} {word} against {target}, over {cause}.";
+            // A cause stored as a whole sentence (it ends in its own punctuation) read "...over The marriage was
+            // ended by..." (Gabriel's screenshot, 17/10/2026); it now follows a colon. A bare matter keeps "over".
+            string stored = grudge.CauseSummary?.Trim() ?? string.Empty;
+            bool causeIsSentence = stored.Length > 0 && ".!?".IndexOf(stored[stored.Length - 1]) >= 0;
+
+            string sentence = causeIsSentence
+                ? $"{verb} {word} against {target}: {cause}."
+                : $"{verb} {word} against {target}, over {cause}.";
 
             if (!grudge.ResolutionHintDiscovered) return sentence;
 

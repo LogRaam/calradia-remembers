@@ -24,7 +24,7 @@ namespace CalradiaRemembers.Chat
         {
             _meta = meta ?? "";
             _actionLabel = actionLabel ?? "";
-            _summary = summary ?? "";
+            _summary = Mapping.ShownText.Of(summary ?? "");
         }
 
         [DataSourceProperty]

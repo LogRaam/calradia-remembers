@@ -125,7 +125,7 @@ namespace CalradiaRemembers.Letters
       public LetterArchiveEntryViewModel(string header, string body, bool isIncoming)
       {
          _header = header;
-         _body = body;
+         _body = Mapping.ShownText.Of(body);
          _isIncoming = isIncoming;
       }
 

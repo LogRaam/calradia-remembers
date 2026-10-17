@@ -1356,7 +1356,9 @@ namespace CalradiaRemembers.GameState
             if (spouseWasEstranging) demands.CancelEstrangement(npcHero.StringId);
 
             var today = (int) CampaignTime.Now.ToDays;
-            const string cause = "The marriage was ended by the player's own choice.";
+            // Gabriel (17/10/2026): in-game text names the player's character, never "the player".
+            string playerName = player.Name?.ToString();
+            string cause = $"The marriage was ended by {playerName}'s own choice.";
 
             // The shared tiered engine (Phase 1's own consequence application, exposed for reuse): divorcer
             // and player are the SAME hero here, so this collapses to a single relation channel rather
@@ -1375,8 +1377,8 @@ namespace CalradiaRemembers.GameState
                      ? NotableEventType.Agreement
                      : NotableEventType.Betrayal,
                   mutualConsent
-                     ? "The marriage ended, by mutual agreement, when the player chose to end it."
-                     : "Was set aside by the player, who chose to end our marriage."));
+                     ? $"The marriage ended, by mutual agreement, when {playerName} chose to end it."
+                     : $"Was set aside by {playerName}, who chose to end our marriage."));
                NpcMemoryCampaignBehavior.Instance.Store.Set(profile);
             }
 

@@ -3471,6 +3471,8 @@ namespace CalradiaRemembers.Mapping
          (NpcMemoryService.Core.Mood.DayMood? Mood, bool Wit) mood = DayMoodReader.Draw(hero);
 
          return new EncounterContext {
+            // The interpreter's memory names the player in the third person (Gabriel, 17/10/2026: "he" for a woman).
+            PlayerIsFemale = Hero.MainHero?.IsFemale,
             // Carried on the context because the packs budget themselves by it. Build supplies its own level
             // from the player's setting and never reads this one; the COUNCIL asks for Compact explicitly,
             // since a table multiplies the cost by the number of seats.
@@ -3521,6 +3523,7 @@ namespace CalradiaRemembers.Mapping
             if (bridge == null || hero == null) return EncounterContext.Empty;
 
             return new EncounterContext {
+               PlayerIsFemale = Hero.MainHero?.IsFemale,
                PlayerStatus = ResolvePlayerStatus(hero, profile, bridge),
                SharedRealmName = bridge.GetSharedRealmName(hero),
                // Letters take the same Task.Run path as a conversation, so a third-party variable provider must

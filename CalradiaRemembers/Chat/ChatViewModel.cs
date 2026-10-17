@@ -4134,12 +4134,12 @@ namespace CalradiaRemembers.Chat
 
          if (profile?.DiscoveredTraits != null && profile.DiscoveredTraits.Count > 0)
          {
-            PanelInfoDiscoveries = string.Join("\n",
-               profile.DiscoveredTraits.Select(t => "• " + t.Description));
+            PanelInfoDiscoveries = Mapping.ShownText.Of(string.Join("\n",
+               profile.DiscoveredTraits.Select(t => "• " + t.Description)));
             ShowPanelDiscoveries = PanelInfoDiscoveries.Length > 0;
          }
 
-         PanelGrievances = ResolveKnownGrievances(hero);
+         PanelGrievances = Mapping.ShownText.Of(ResolveKnownGrievances(hero));
          ShowPanelGrievances = !string.IsNullOrEmpty(PanelGrievances);
 
          ShowPanelInfo = true;
@@ -4174,7 +4174,7 @@ namespace CalradiaRemembers.Chat
                   sb.Append("• ").Append(text).Append("  (").Append(MemoryDayFormatter.Describe(e.Day, today)).Append(")\n");
                }
 
-               PanelBackground = sb.ToString().TrimEnd();
+               PanelBackground = Mapping.ShownText.Of(sb.ToString().TrimEnd());
                ShowPanelBackground = !string.IsNullOrWhiteSpace(PanelBackground);
             }
          }

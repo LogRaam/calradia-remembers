@@ -104,8 +104,9 @@ namespace CalradiaRemembers.Letters
                 string rich;
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
                 {
+                    bool? playerIsFemale = Hero.MainHero?.IsFemale;
                     rich = await Task.Run(() => summarizer.SummarizeAsync(
-                                        npc, content, npcIsSender, playerName, ModSettings.ReplyLanguage, cts.Token, writtenBy))
+                                        npc, content, npcIsSender, playerName, ModSettings.ReplyLanguage, cts.Token, writtenBy, playerIsFemale))
                                      .ConfigureAwait(false);
                 }
 

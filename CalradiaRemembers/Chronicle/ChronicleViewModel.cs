@@ -302,7 +302,7 @@ namespace CalradiaRemembers.Chronicle
       public ChronicleEntryViewModel(string dateLine, string body)
       {
          _dateLine = dateLine;
-         _body = body;
+         _body = Mapping.ShownText.Of(body);
       }
 
       [DataSourceProperty]

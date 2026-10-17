@@ -118,7 +118,7 @@ namespace CalradiaRemembers.Encyclopedia
                 }
 
                 CalradiaNemesisLabel = dossier.Label;
-                CalradiaNemesisItems = dossier.Items;
+                CalradiaNemesisItems = Mapping.ShownText.Of(dossier.Items);
                 HasNemesisDossier = true;
             }
             catch (Exception ex)

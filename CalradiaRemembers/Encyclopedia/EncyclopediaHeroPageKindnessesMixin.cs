@@ -140,7 +140,7 @@ namespace CalradiaRemembers.Encyclopedia
                 }
 
                 CalradiaKindnessesLabel = "Kindnesses:";
-                CalradiaKindnessesItems = string.Join("\n", lines.Select(l => "• " + l));
+                CalradiaKindnessesItems = Mapping.ShownText.Of(string.Join("\n", lines.Select(l => "• " + l)));
                 HasKindnesses = true;
             }
             catch (Exception ex)

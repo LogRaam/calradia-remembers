@@ -622,7 +622,7 @@ namespace CalradiaRemembers.Letters
          Title = _title;
          SenderHeading = _senderHeading;
          ReceivedBody = _state.ShowsReceivedBody
-            ? _letter?.Content ?? "(The letter is blank.)"
+            ? Mapping.ShownText.Of(_letter?.Content ?? "(The letter is blank.)")
             : "";
 
          CourierNote = _state.Mode == LetterWindowMode.Compose && _courierCost > 0

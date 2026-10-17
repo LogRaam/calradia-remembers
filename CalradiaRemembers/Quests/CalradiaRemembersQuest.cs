@@ -88,7 +88,7 @@ namespace CalradiaRemembers.Quests
       /// </summary>
       public string QuestKey => _questKey;
 
-      public override TextObject Title => new(ResolveLiveQuest()?.Description ?? _questKey);
+      public override TextObject Title => new(Mapping.ShownText.Of(ResolveLiveQuest()?.Description ?? _questKey));
 
       /// <summary>
       ///   Closes the mirror as cancelled (war ended, giver died, etc.) — no penalty,
@@ -218,7 +218,7 @@ namespace CalradiaRemembers.Quests
          return match;
       }
 
-      private static TextObject BuildDescriptionText(InformalQuest quest) => new(quest.Description);
+      private static TextObject BuildDescriptionText(InformalQuest quest) => new(Mapping.ShownText.Of(quest.Description));
 
       private static string BuildQuestKey(Hero giver, InformalQuest quest)
          => BuildQuestId(giver, quest);

@@ -113,7 +113,7 @@ namespace CalradiaRemembers.Encyclopedia
          }
 
          CalradiaDiscoveryLabel = "Discoveries:";
-         CalradiaDiscoveryItems = BuildItems(profile.DiscoveredTraits);
+         CalradiaDiscoveryItems = Mapping.ShownText.Of(BuildItems(profile.DiscoveredTraits));
       }
 
       #endregion

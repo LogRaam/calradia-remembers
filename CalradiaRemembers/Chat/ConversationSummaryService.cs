@@ -91,8 +91,9 @@ namespace CalradiaRemembers.Chat
             string rich;
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
             {
+               bool? playerIsFemale = Hero.MainHero?.IsFemale;
                rich = await Task.Run(() => summarizer.SummarizeAsync(
-                                   npc, transcript, playerName, ModSettings.ReplyLanguage, cts.Token))
+                                   npc, transcript, playerName, ModSettings.ReplyLanguage, cts.Token, playerIsFemale))
                                 .ConfigureAwait(false);
             }
 
@@ -201,8 +202,9 @@ namespace CalradiaRemembers.Chat
             using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))
             using (CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, ct))
             {
+               bool? playerIsFemale = Hero.MainHero?.IsFemale;
                rich = await Task.Run(() => summarizer.SummarizeAsync(
-                                   npc, job.Transcript, job.PlayerName, job.ReplyLanguage, linked.Token))
+                                   npc, job.Transcript, job.PlayerName, job.ReplyLanguage, linked.Token, playerIsFemale))
                                 .ConfigureAwait(false);
             }
 

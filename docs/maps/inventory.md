@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 502 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1153 types in 30 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 263 types in 17 namespaces, 9 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 503 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1154 types in 30 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -498,7 +498,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (27)
+### CalradiaRemembers.Mapping (28)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -524,6 +524,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RomanticProfileBuilder` | public static class | Builds a deterministic RomanticProfile for a Bannerlord Hero. |
 | `SeductionFactsMapper` | public static class | Builds SeductionFacts for a married NPC from live game state. |
 | `SettlementContextResolver` | public static class | Builds a ready-to-inject geography note for the LLM prompt from live map data. |
+| `ShownText` | public static class | Text on its way to the screen, with "the player" naming the player's character. |
 | `StatureReader` | public static class | Reads a Stature from the live game. |
 | `StoryModeTutorial` | internal static class | Whether the game's Story Mode tutorial restricts the player's interactions right now. |
 | `TownNeeds` | public static class | What the towns a character answers for are short of. |
@@ -858,7 +859,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (696)
+### CalradiaRemembers.Logic (697)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1302,6 +1303,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlayerExecutionPolicy` | public static class | Pure gate deciding whether a captor may actually execute the captive PLAYER. Consulted twice: once by the mod's EncounterContextBuilder (deciding whether the LLM is even TAUGHT the execute_player action this turn) and ag... |
 | `PlayerForcePolicy` | public static class | Resolves the troop count an interlocutor can plainly see standing with the player. |
 | `PlayerNameRevealPolicy` | public static class | Detects the prisoner naming themselves to their captor. |
+| `PlayerNameText` | public static class | Pure: names the player's character where a text shown in game says "the player". |
 | `PlayerPartnersText` | public static class | Lines about the player's partners. |
 | `PlayerStandingFacts` | public class | Plain, engine-agnostic carrier of everything needed to place the player beside one NPC. Each flag is a fact the engine can answer directly, never a conclusion. |
 | `PlayerStandingPolicy` | public static class | Places the player beside one NPC, from facts the engine can answer directly. |
@@ -2466,7 +2468,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SingleCallExtractionPromptBuilder` | public static class | Builds the single-call composer+extractor system prompt used by the spike (cr.single_call_probe). |
 | `VerbCatalogPolicy` | public static class | Decides which verbs the GAME ACTIONS catalogue lists, by reading back what the finished prompt already taught. |
 
-### NpcMemoryService.Core.Services (8)
+### NpcMemoryService.Core.Services (9)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2476,6 +2478,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryLanguagePolicy` | public static class | The ONE rule deciding what language a private memory is written in, asked by every summarizer instead of each carrying its own sentence. |
 | `NpcChatResult` | public class | The result of a single NPC chat turn. |
 | `NpcChatService` | public class | Orchestrates a single NPC dialogue turn: builds the prompt → calls the LLM → parses the response → updates the session. |
+| `PlayerPronounLine` | public static class | Pure: the one line telling a memory-writing model which pronouns the player takes. |
 | `ProfileMutator` | public static class | Applies the structured outcome of an LLM dialogue turn (a ParsedResponse) to an NpcProfile. |
 | `ReasoningTraceBackfill` | public static class | Heals a profile whose stored prose carries a leaked reasoning trace: each event summary and the background context are run through ReasoningTraceStripper. |
 

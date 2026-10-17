@@ -59,7 +59,7 @@ namespace CalradiaRemembers.Commitments
                 ? CommitmentJournalText.BuildOpenedLine(promisor.Name?.ToString(), ResolveRivalName(commitment))
                 : CommitmentJournalText.BuildOpenedLine(commitment.Kind, promisor.Name?.ToString(),
                     CommitmentBehavior.ResolveTargetDisplayName(commitment), commitment.PromisedAmount);
-            AddLog(new TextObject(openedLine));
+            AddLog(new TextObject(Mapping.ShownText.Of(openedLine)));
             SetDialogs();
             StartQuest();
         }
@@ -110,7 +110,7 @@ namespace CalradiaRemembers.Commitments
         /// <summary>Pushes a new status line to the journal log; called just before either closing method.</summary>
         public void UpdateStatus(string logLine)
         {
-            if (!string.IsNullOrWhiteSpace(logLine)) AddLog(new TextObject(logLine));
+            if (!string.IsNullOrWhiteSpace(logLine)) AddLog(new TextObject(Mapping.ShownText.Of(logLine)));
         }
 
         internal static string BuildQuestId(Hero promisor, string commitmentId)

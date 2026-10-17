@@ -88,7 +88,7 @@ namespace CalradiaRemembers.Missions
       /// <summary>Pushes a new status line to the journal log; called on every phase change and at closing.</summary>
       public void UpdateStatus(string logLine)
       {
-         if (!string.IsNullOrWhiteSpace(logLine)) AddLog(new TextObject(logLine));
+         if (!string.IsNullOrWhiteSpace(logLine)) AddLog(new TextObject(Mapping.ShownText.Of(logLine)));
       }
 
       internal static string BuildQuestId(Hero companion, string missionId)

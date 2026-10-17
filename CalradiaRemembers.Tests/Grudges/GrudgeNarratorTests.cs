@@ -295,6 +295,17 @@ namespace CalradiaRemembers.Tests.Grudges
          line.Should().Contain(grudge.CauseSummary);
       }
 
+      // Stake: Gabriel's screenshot (17/10/2026): a cause stored as a whole sentence read "...over The marriage was
+      // ended by..."; it follows a colon now, while a bare matter still reads "over a broken promise".
+      [Test]
+      public void GIVEN_a_cause_stored_as_a_sentence_WHEN_building_the_display_line_THEN_it_follows_a_colon_not_over()
+      {
+         GrudgeNarrator.DisplayLine(NewGrudge(50, "The marriage was ended by Arwen's own choice."), true, null, 20, GrudgeResolutionKind.Amends)
+                       .Should().Be("Holds an old bitterness against you: The marriage was ended by Arwen's own choice.");
+         GrudgeNarrator.DisplayLine(NewGrudge(50), true, null, 20, GrudgeResolutionKind.Amends)
+                       .Should().Be("Holds an old bitterness against you, over a broken promise.");
+      }
+
       // Stake: the hint text must match the grudge's actual GrudgeResolutionKind (the ratified
       // Amends/Gift/Deed/Time trio, GrudgePolicy.ResolutionKindFor); a mismatched hint would send the
       // player toward an action GrudgeResolutionPolicy will not accept for that grudge, wasting their effort.

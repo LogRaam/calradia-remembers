@@ -17,8 +17,8 @@ namespace CalradiaRemembers.Chat
    {
       public CouncilEngagementViewModel(string label, string detail, string status)
       {
-         Label = label ?? "";
-         Detail = detail ?? "";
+         Label = Mapping.ShownText.Of(label ?? "");
+         Detail = Mapping.ShownText.Of(detail ?? "");
          Status = status ?? "";
       }
 

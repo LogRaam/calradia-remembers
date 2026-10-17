@@ -133,7 +133,7 @@ namespace CalradiaRemembers.Encyclopedia
                 }
 
                 CalradiaGrievancesLabel = "Grievances:";
-                CalradiaGrievancesItems = string.Join("\n", lines.Select(l => "• " + l));
+                CalradiaGrievancesItems = Mapping.ShownText.Of(string.Join("\n", lines.Select(l => "• " + l)));
                 HasGrievances = true;
             }
             catch (Exception ex)

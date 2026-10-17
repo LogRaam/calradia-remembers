@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Quests
       {
          _storyId = storyId;
          _title = title;
-         if (!string.IsNullOrWhiteSpace(firstLine)) AddLog(new TextObject(firstLine));
+         if (!string.IsNullOrWhiteSpace(firstLine)) AddLog(new TextObject(Mapping.ShownText.Of(firstLine)));
          SetDialogs();
          StartQuest();
       }
@@ -52,7 +52,7 @@ namespace CalradiaRemembers.Quests
 
       public void Log(string line)
       {
-         try { AddLog(new TextObject(line)); }
+         try { AddLog(new TextObject(Mapping.ShownText.Of(line))); }
          catch (Exception ex) { ModLog.Error($"[TALE] journal log failed: {ex.Message}"); }
       }
 

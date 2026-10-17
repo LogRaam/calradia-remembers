@@ -14,6 +14,19 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   `ChatTemperaturePolicy`; cr.testall `chat_temperature`.
 
 ### Changed
+- **The game names your character, never "the player"** (Gabriel, 17/10: a grievance read "Holds an old bitterness
+  against you, over The marriage was ended by the player's own choice"). Every screen that shows stored or written
+  text (chat lines and narration, the memory panel, the chat side panel, the encyclopedia's grievances, kindnesses,
+  accords, discoveries and nemesis dossier, letters and the letter archive, the chronicle, council engagements, the
+  journal) now shows the character's name where a memory, a cause or a model's reply says "the player"
+  (`PlayerNameText`, `Mapping.ShownText`), so old saves read right too. The divorce texts are written with the name.
+  A grievance whose cause is a whole sentence follows a colon instead of "over". Notifications and popups that pass
+  such text are not covered yet. Logs and the model's own instructions keep the role word. cr.testall
+  `player_named_on_screen`.
+- **Memories get the player's sex right** (Gabriel, 17/10: a companion remembered "the threat he described" of a
+  female character). The model that writes a memory of the turn (the interpreter, in Enhanced) and the conversation
+  and letter summaries knew the player only by name and guessed "he". They are now told her pronouns
+  (`EncounterContext.PlayerIsFemale`, `PlayerPronounLine`, SDK). Memories already written keep their words.
 - **An enemy lord asks before he talks** (fkasad, 16/10: an enemy lord rode up as the player was about to attack him;
   the chat opened by force and a local model reasoned for half a minute over an opener the player closed unread;
   Gabriel the same day: a popup, for hostile lords only). A lord of a realm at war with the player, or one defending

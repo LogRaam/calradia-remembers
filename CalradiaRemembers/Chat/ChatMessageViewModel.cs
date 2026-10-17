@@ -99,7 +99,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public ChatMessageViewModel(string systemText, string colorHex)
       {
-         _displayText = systemText ?? "";
+         _displayText = Mapping.ShownText.Of(systemText ?? "");
          _authorColor = colorHex;
          _showAvatar = false; // no portrait/frame for a system line
       }
@@ -366,7 +366,8 @@ namespace CalradiaRemembers.Chat
          if (string.IsNullOrEmpty(authorName))
             authorName = "Inconnu";
 
-         return $"{authorName}\n{messageText}";
+         // Gabriel (17/10/2026): a reply or a narration that says "the player" names the character on screen.
+         return $"{authorName}\n{Mapping.ShownText.Of(messageText)}";
       }
 
       private void ResolvePortrait(CharacterObject character, string authorName)

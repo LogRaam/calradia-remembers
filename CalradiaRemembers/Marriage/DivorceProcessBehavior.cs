@@ -486,7 +486,7 @@ namespace CalradiaRemembers.Marriage
          {
             NpcProfile npcProfile = store.Get(npc.StringId) ?? HeroProfileMapper.FromHero(npc);
             npcProfile.Events.Add(new NotableEvent(today, NotableEventType.Agreement,
-               $"The marriage to {spouse.Name} is dissolved, at the player's counsel."));
+               $"The marriage to {spouse.Name} is dissolved, at {Hero.MainHero?.Name}'s counsel."));
             store.Set(npcProfile);
 
             NpcProfile spouseProfile = store.Get(spouse.StringId) ?? HeroProfileMapper.FromHero(spouse);

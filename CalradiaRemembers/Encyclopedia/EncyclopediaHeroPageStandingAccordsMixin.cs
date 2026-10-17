@@ -145,7 +145,7 @@ namespace CalradiaRemembers.Encyclopedia
                 }
 
                 CalradiaStandingAccordsLabel = "Standing accords:";
-                CalradiaStandingAccordsItems = string.Join("\n", lines.Select(l => "• " + l));
+                CalradiaStandingAccordsItems = Mapping.ShownText.Of(string.Join("\n", lines.Select(l => "• " + l)));
                 HasStandingAccords = true;
             }
             catch (Exception ex)

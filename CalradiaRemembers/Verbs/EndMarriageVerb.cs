@@ -47,7 +47,7 @@ namespace CalradiaRemembers.Verbs
             processes.Create(npcHero.StringId, spouse.StringId, today);
 
             profile.Events.Add(new NotableEvent(today, NotableEventType.Agreement,
-               $"Resolved to end the marriage to {spouse.Name}, with the player's counsel."));
+               $"Resolved to end the marriage to {spouse.Name}, with {Hero.MainHero?.Name}'s counsel."));
 
             ModLog.Info($"[ACTION] end_marriage: {npcHero.Name} began an estrangement from {spouse.Name}.");
 
