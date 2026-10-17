@@ -228,8 +228,9 @@ namespace CalradiaRemembers.WorldEvents
          Heroes = AllHeroes().Select(h => new HistoryHeroFacts {
             Id = h.StringId, Name = h.Name?.ToString(), BirthDay = (int) h.BirthDay.ToDays, IsDead = h.IsDead, SpouseId = h.Spouse?.StringId
          }).ToList(),
-         PlaceIds = new HashSet<string>(Settlement.All.Where(s => s != null).Select(s => s.StringId)),
-         RealmIds = new HashSet<string>(Kingdom.All.Select(k => k.StringId).Concat(Clan.All.Where(c => c != null).Select(c => c.StringId)))
+         // The same sets the snapshot offers the editor page, so the page and the game never disagree on a place or realm.
+         PlaceIds = new HashSet<string>(Settlement.All.Where(s => s != null && !s.IsHideout).Select(s => s.StringId)),
+         RealmIds = new HashSet<string>(Kingdom.All.Select(k => k.StringId).Concat(Clan.All.Where(c => c != null && !c.IsBanditFaction).Select(c => c.StringId)))
       };
 
       // The kinds the game records map to their own type, so the long-term memory and its readers treat an authored

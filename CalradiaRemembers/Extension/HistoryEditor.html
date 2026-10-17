@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>History Editor</title>
+<!--
+  Calradia Remembers: the History Editor (docs/design/AUTHORED_HISTORY.md, section 9).
+  Writes <campaign>.history.json, the past of a campaign, events from before the game began.
+  Reads <campaign>.world.json, the snapshot the mod writes on cr.history_file and at each save.
+  Standalone and offline: open it from disk. The checks mirror AuthoredHistoryLoader.Validate; the mod stays the authority.
+-->
+<style>
+:root {
+  --bg: #141210;
+  --bg-2: #1b1815;
+  --surface: #221e1a;
+  --surface-2: #2a2520;
+  --surface-3: #332d27;
+  --line: #3a332c;
+  --line-strong: #4d443b;
+  --text: #ece4d6;
+  --text-2: #b9ad99;
+  --text-3: #8a7f6f;
+  --accent: #d9a65a;
+  --accent-strong: #f0c27f;
+  --accent-ink: #1b1409;
+  --accent-soft: rgba(217, 166, 90, 0.14);
+  --danger: #e07563;
+  --danger-soft: rgba(224, 117, 99, 0.14);
+  --warn: #dcb256;
+  --warn-soft: rgba(220, 178, 86, 0.14);
+  --ok: #8dbb7f;
+  --info: #8fb2d6;
+  --shade: rgba(0, 0, 0, 0.28);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-tale: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, "Times New Roman", serif;
+  --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, "Liberation Mono", monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #efe8dc;
+    --bg-2: #e8e0d2;
+    --surface: #fbf7f0;
+    --surface-2: #f4eee4;
+    --surface-3: #ebe3d6;
+    --line: #dccfbd;
+    --line-strong: #c8b8a2;
+    --text: #2a2119;
+    --text-2: #5c4f41;
+    --text-3: #8a7b69;
+    --accent: #9c6a1f;
+    --accent-strong: #7d5214;
+    --accent-ink: #fff8ec;
+    --accent-soft: rgba(156, 106, 31, 0.12);
+    --danger: #b4432f;
+    --danger-soft: rgba(180, 67, 47, 0.1);
+    --warn: #9a6f08;
+    --warn-soft: rgba(154, 111, 8, 0.12);
+    --ok: #3f7a35;
+    --info: #2f5f8f;
+    --shade: rgba(90, 60, 30, 0.12);
+    --shadow: 0 10px 30px rgba(60, 40, 20, 0.14);
+    color-scheme: light;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.5 var(--font); -webkit-font-smoothing: antialiased; overflow: hidden;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+/* ---------- the frame ---------- */
+.app { display: grid; grid-template-rows: auto auto auto 1fr auto; height: 100vh; }
+.topbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 16px; background: var(--bg-2); border-bottom: 1px solid var(--line); min-height: 58px;
+}
+.brand { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.brand-mark {
+  width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+  background: linear-gradient(145deg, var(--accent-strong), var(--accent)); color: var(--accent-ink); font: 700 16px var(--font-tale);
+}
+.brand-name { font: 600 18px var(--font-tale); }
+.title-input {
+  font: 600 16px var(--font-tale); background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm);
+  padding: 4px 8px; min-width: 220px; max-width: 360px; color: var(--text);
+}
+.title-input:hover { border-color: var(--line); }
+.title-input:focus { border-color: var(--accent); outline: none; background: var(--surface); }
+.meta { color: var(--text-3); font-size: 12px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.meta b { color: var(--text-2); font-weight: 600; }
+.meta .dirty { color: var(--accent); }
+.meta .bad { color: var(--danger); }
+.meta .warn { color: var(--warn); }
+.spacer { flex: 1; }
+.toolbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface);
+  cursor: pointer; white-space: nowrap; transition: background 0.12s, border-color 0.12s;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--text-3); }
+.btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn.small { height: 26px; padding: 0 8px; font-size: 12px; }
+.btn.danger { color: var(--danger); }
+.btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-strong); }
+.seg { display: inline-flex; }
+.seg .btn { border-radius: 0; margin-left: -1px; }
+.seg .btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); margin-left: 0; }
+.seg .btn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+
+input[type=text], input[type=number], input[type=search], select, textarea {
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  padding: 5px 8px; min-height: 30px;
+}
+textarea { resize: vertical; min-height: 72px; width: 100%; font-family: var(--font-tale); font-size: 14px; line-height: 1.45; }
+input[type=range] { accent-color: var(--accent); }
+
+/* ---------- banners and filters ---------- */
+.banner { padding: 7px 16px; font-size: 13px; border-bottom: 1px solid var(--line); }
+.banner.info { background: var(--accent-soft); color: var(--text-2); }
+.banner.warn { background: var(--warn-soft); color: var(--warn); }
+.filterbar {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 8px 16px;
+  background: var(--bg-2); border-bottom: 1px solid var(--line); font-size: 13px;
+}
+.filterbar label { color: var(--text-3); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.filterbar select { max-width: 180px; }
+.filterbar .picker { width: 220px; }
+
+/* ---------- main area ---------- */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 390px; min-height: 0; }
+.tl-wrap { display: grid; grid-template-rows: auto 1fr auto; min-height: 0; min-width: 0; }
+.tl-tools { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tl-tools .hint { color: var(--text-3); font-size: 12px; }
+.tl-tools input[type=number] { width: 80px; }
+.tl-scroll { overflow: auto; position: relative; min-height: 0; background:
+  repeating-linear-gradient(0deg, transparent 0 73px, var(--line) 73px 74px); background-position: 0 82px; }
+.tl-inner { position: relative; }
+.tl-axis {
+  position: sticky; top: 0; height: 44px; z-index: 4; background: var(--bg-2); border-bottom: 1px solid var(--line-strong);
+}
+.tick { position: absolute; bottom: 0; width: 1px; background: var(--line-strong); height: 6px; }
+.tick.major { height: 14px; background: var(--text-3); }
+.tick-label { position: absolute; top: 6px; font-size: 11px; color: var(--text-2); transform: translateX(-50%); white-space: nowrap; }
+.tl-body { position: relative; }
+.gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); opacity: 0.55; }
+.start-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); z-index: 2; }
+.start-label {
+  position: absolute; top: 4px; z-index: 3; font-size: 11px; color: var(--accent-strong); white-space: nowrap;
+  background: var(--bg); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 8px; transform: translateX(-100%); margin-left: -6px;
+}
+.after-zone { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, transparent 0 10px, var(--shade) 10px 12px); }
+.unborn {
+  position: absolute; top: 0; bottom: 0; z-index: 1; pointer-events: none;
+  background: repeating-linear-gradient(45deg, var(--shade) 0 8px, transparent 8px 16px); border-right: 2px dashed var(--info);
+}
+.unborn span { position: absolute; right: 6px; top: 30px; font-size: 11px; color: var(--info); white-space: nowrap; }
+.rec {
+  position: absolute; top: 32px; width: 10px; height: 10px; margin-left: -5px; border-radius: 2px;
+  background: var(--text-3); opacity: 0.75; transform: rotate(45deg); cursor: help; z-index: 2;
+}
+.rec:hover { opacity: 1; background: var(--text-2); }
+
+.card {
+  position: absolute; width: 176px; height: 64px; z-index: 3; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line-strong); border-left: 4px solid var(--k, var(--text-3));
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 4px 8px 4px 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  transition: opacity 0.12s, box-shadow 0.12s;
+}
+.card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.3); }
+.card.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+.card.bad { border-color: var(--danger); border-left-color: var(--danger); background: linear-gradient(var(--danger-soft), var(--danger-soft)), var(--surface); }
+.card.dim { opacity: 0.25; }
+.card.sel.dim { opacity: 0.7; }
+.card.hl { box-shadow: 0 0 0 2px var(--info); }
+.card-top { display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; }
+.card-kind { color: var(--k, var(--text-2)); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.card-sum {
+  font: 12px/1.3 var(--font-tale); color: var(--text); overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-top: 2px;
+}
+.badge {
+  margin-left: auto; flex: none; min-width: 18px; height: 16px; border-radius: 999px; padding: 0 5px;
+  font: 700 10px/16px var(--font); text-align: center; color: #fff;
+}
+.badge.err { background: var(--danger); }
+.badge.warn { background: var(--warn); color: #1b1409; }
+.secret-mark { color: var(--info); font-size: 10px; font-weight: 700; }
+.stem { position: absolute; width: 1px; background: var(--line-strong); z-index: 1; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 6px 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--text-3); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; background: var(--k); display: inline-block; }
+
+.empty {
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; z-index: 5; background: var(--bg);
+}
+.empty-card {
+  max-width: 560px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 26px; box-shadow: var(--shadow);
+}
+.empty-card h2 { font: 600 20px var(--font-tale); margin: 0 0 8px; }
+.empty-card p { color: var(--text-2); margin: 8px 0; }
+.empty-card code, .side code { font-family: var(--mono); font-size: 12px; background: var(--surface-3); padding: 1px 5px; border-radius: 4px; }
+
+/* ---------- the side form ---------- */
+.side { border-left: 1px solid var(--line); background: var(--bg-2); overflow-y: auto; min-height: 0; padding: 14px 16px 30px; }
+.side h3 { font: 600 16px var(--font-tale); margin: 0; }
+.side-head { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.field { margin: 12px 0; }
+.field > label, .field > .lab { display: block; font-size: 12px; color: var(--text-3); margin-bottom: 4px; font-weight: 600; letter-spacing: 0.2px; }
+.field .help { font-size: 12px; color: var(--text-3); margin-top: 3px; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > * { min-width: 0; }
+.grow { flex: 1; }
+.side input[type=text], .side select { width: 100%; }
+.mono { font-family: var(--mono); font-size: 12px; }
+.msgs { margin: 6px 0 10px; display: grid; gap: 4px; }
+.msg { font-size: 12px; padding: 5px 8px; border-radius: var(--radius-sm); }
+.msg.err { background: var(--danger-soft); color: var(--danger); }
+.msg.warn { background: var(--warn-soft); color: var(--warn); }
+.msg.ok { color: var(--ok); }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.rel { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px; margin-bottom: 8px; background: var(--surface); }
+.rel .row + .row { margin-top: 6px; }
+.rel input[type=number] { width: 64px; }
+.rel input[type=range] { flex: 1; }
+.rel .vs { color: var(--text-3); font-size: 12px; }
+.imp-val { font-weight: 600; min-width: 28px; text-align: right; }
+
+/* ---------- pickers ---------- */
+.picker { position: relative; }
+.picker-box {
+  display: flex; flex-wrap: wrap; gap: 4px; padding: 3px; min-height: 30px; align-items: center;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+}
+.picker-box:focus-within { border-color: var(--accent); }
+.picker-box input { border: none; background: transparent; flex: 1; min-width: 80px; padding: 2px 4px; min-height: 22px; outline: none; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; overflow: hidden; padding: 1px 2px 1px 8px; border-radius: 999px;
+  background: var(--surface-3); border: 1px solid var(--line-strong); font-size: 12px;
+}
+.chip.bad { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+.chip-label { flex: 0 0 auto; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-sub { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text-3); font-size: 11px; white-space: nowrap; }
+.chip-x { border: none; background: transparent; cursor: pointer; width: 18px; height: 18px; border-radius: 50%; line-height: 1; padding: 0; color: var(--text-3); }
+.chip-x:hover { background: var(--line-strong); color: var(--text); }
+.picker-list {
+  position: absolute; left: 0; right: 0; top: 100%; margin-top: 2px; z-index: 30; max-height: 260px; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow);
+}
+.opt { padding: 5px 9px; cursor: pointer; font-size: 13px; display: flex; gap: 8px; align-items: baseline; }
+.opt .sub { color: var(--text-3); font-size: 11px; margin-left: auto; text-align: right; }
+.opt.act { background: var(--accent-soft); }
+.opt.none { color: var(--text-3); cursor: default; }
+
+/* ---------- problems ---------- */
+.problems { border-top: 1px solid var(--line-strong); background: var(--bg-2); }
+.problems-head { display: flex; align-items: center; gap: 10px; padding: 6px 16px; cursor: pointer; user-select: none; font-size: 13px; }
+.problems-head .chev { color: var(--text-3); width: 12px; }
+.problems-body { max-height: 170px; overflow-y: auto; padding: 0 16px 8px; }
+.prob { display: flex; gap: 8px; padding: 4px 6px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; }
+.prob:hover { background: var(--surface-2); }
+.prob .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: none; }
+.prob.err .dot { background: var(--danger); }
+.prob.warn .dot { background: var(--warn); }
+.prob.info .dot { background: var(--info); }
+
+/* ---------- overlays ---------- */
+.modal-back { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: grid; place-items: center; z-index: 100; }
+.modal { background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 18px 20px; max-width: 440px; box-shadow: var(--shadow); }
+.modal p { margin: 0 0 14px; }
+.modal .row { justify-content: flex-end; }
+.drop-veil {
+  position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; pointer-events: none;
+  background: rgba(20, 16, 10, 0.55); border: 3px dashed var(--accent); font: 600 20px var(--font-tale); color: var(--accent-strong);
+}
+.toasts { position: fixed; right: 16px; bottom: 16px; display: grid; gap: 8px; z-index: 110; max-width: 420px; }
+.toast { background: var(--surface-3); border: 1px solid var(--line-strong); border-left: 4px solid var(--accent); padding: 8px 12px; border-radius: var(--radius-sm); box-shadow: var(--shadow); font-size: 13px; }
+.toast.error { border-left-color: var(--danger); }
+.toast.warn { border-left-color: var(--warn); }
+
+@media (max-width: 1100px) {
+  .main { grid-template-columns: minmax(0, 1fr) 330px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">H</div><div class="brand-name">History Editor</div></div>
+    <input id="title" class="title-input" type="text" placeholder="Title of this history" aria-label="Title of the history" disabled>
+    <div class="meta" id="meta"></div>
+    <div class="spacer"></div>
+    <div class="toolbar">
+      <button class="btn" id="btn-open-world" type="button" title="The <campaign>.world.json the game writes on cr.history_file">Open world snapshot</button>
+      <button class="btn" id="btn-open-history" type="button">Open history file</button>
+      <button class="btn" id="btn-new" type="button">New history</button>
+      <button class="btn primary" id="btn-save" type="button" title="Ctrl+S">Save</button>
+    </div>
+    <input type="file" id="file-world" accept=".json,application/json" hidden>
+    <input type="file" id="file-history" accept=".json,application/json" hidden>
+  </header>
+  <div id="banners"></div>
+  <div class="filterbar" id="filterbar">
+    <label>Hero <span id="f-hero-slot"></span></label>
+    <label>Realm <select id="f-realm"><option value="">All</option></select></label>
+    <label>Place <select id="f-place"><option value="">All</option></select></label>
+    <label>Kind <select id="f-kind"><option value="">All</option></select></label>
+    <label>Search <input type="search" id="f-text" placeholder="Words in a summary or id"></label>
+    <button class="btn small" id="f-clear" type="button">Clear filters</button>
+  </div>
+  <div class="main">
+    <section class="tl-wrap">
+      <div class="tl-tools">
+        <div class="seg" id="zoom">
+          <button class="btn small" type="button" data-zoom="decades">Decades</button>
+          <button class="btn small" type="button" data-zoom="years">Years</button>
+          <button class="btn small" type="button" data-zoom="seasons">Seasons</button>
+          <button class="btn small" type="button" data-zoom="fit">Fit</button>
+        </div>
+        <span class="spacer"></span>
+        <label class="hint">Year <input type="number" id="add-year" step="1"></label>
+        <button class="btn small primary" id="btn-add" type="button">Add event</button>
+        <span class="hint">Double-click the timeline to add an event there.</span>
+      </div>
+      <div class="tl-scroll" id="tl-scroll">
+        <div class="tl-inner" id="tl-inner"></div>
+        <div class="empty" id="empty"></div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </section>
+    <aside class="side" id="side"></aside>
+  </div>
+  <section class="problems" id="problems">
+    <div class="problems-head" id="problems-head"><span class="chev" id="problems-chev">v</span><span id="problems-title">Problems</span></div>
+    <div class="problems-body" id="problems-body"></div>
+  </section>
+</div>
+<div class="toasts" id="toasts"></div>
+<div class="drop-veil" id="drop-veil" hidden>Drop a world snapshot or a history file</div>
+
+<!-- ======================================================================================================== -->
+<!-- The checks. Pure (no window, no document) so a test can load this block alone. Mirrors                    -->
+<!-- CalradiaRemembers.Logic/AuthoredHistory/AuthoredHistoryLoader.cs: same rules, same words, same order.      -->
+<!-- ======================================================================================================== -->
+<script id="history-checks">
+var HistoryChecks = (function () {
+  'use strict';
+
+  var KINDS = ['battle', 'siege', 'fief_taken', 'execution', 'fell_in_battle', 'marriage', 'divorce', 'war', 'peace', 'rebellion',
+    'scheme', 'capture', 'betrayal', 'feud', 'kindness', 'debt', 'rescue', 'duel', 'other'];
+  var KILLING = ['execution', 'fell_in_battle'];
+  var SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+  var DEFAULT_IMPORTANCE = 40;
+
+  function blank(s) { return s === null || s === undefined || String(s).trim() === ''; }
+  function has(v) { return v !== null && v !== undefined; }
+  function toInt(v) { var n = Number(v); return isFinite(n) ? Math.trunc(n) : 0; }
+  function distinct(list) { var out = []; list.forEach(function (x) { if (out.indexOf(x) < 0) out.push(x); }); return out; }
+  function map() { return Object.create(null); }
+
+  // -1 for an unknown season; a missing one is spring (the loader's SeasonIndex).
+  function seasonIndex(season) {
+    if (blank(season)) return 0;
+    var s = String(season).trim().toLowerCase();
+    if (s === 'fall') s = 'autumn';
+    return SEASONS.indexOf(s);
+  }
+
+  function dayOf(year, season, daysInSeason, seasonsInYear) {
+    return year * daysInSeason * seasonsInYear + Math.max(0, seasonIndex(season)) * daysInSeason;
+  }
+
+  // The snapshot as the checks and the page read it.
+  function indexWorld(world) {
+    if (!world) return null;
+    var cal = world.calendar || {};
+    var W = {
+      dis: toInt(cal.daysInSeason) || 21, siy: toInt(cal.seasonsInYear) || 4,
+      startDay: has(cal.startDay) ? toInt(cal.startDay) : null, startYear: toInt(cal.startYear), startSeason: cal.startSeason || 'spring',
+      today: has(cal.today) ? toInt(cal.today) : null, campaign: world.campaign || '', player: world.player || null,
+      heroes: [], byId: map(), clans: map(), kingdoms: map(), places: map(), realms: map()
+    };
+    (world.heroes || []).forEach(function (h) {
+      if (!h || h.id == null) return;
+      W.heroes.push(h);
+      if (!W.byId[h.id]) W.byId[h.id] = h;
+    });
+    (world.clans || []).forEach(function (c) { if (c && c.id != null) { W.clans[c.id] = c; W.realms[c.id] = c; } });
+    (world.kingdoms || []).forEach(function (k) { if (k && k.id != null) { W.kingdoms[k.id] = k; W.realms[k.id] = k; } });
+    (world.settlements || []).forEach(function (s) { if (s && s.id != null) W.places[s.id] = s; });
+    return W;
+  }
+
+  function nameOf(W, id) { var h = W && W.byId[id]; return h && h.name ? h.name : id; }
+
+  // An id first; a hand-written name only when exactly one hero bears it (namesakes are different people).
+  function resolve(token, W) {
+    if (blank(token)) return {id: null, why: null};
+    var t = String(token).trim();
+    if (W.byId[t]) return {id: t, why: null};
+    var low = t.toLowerCase();
+    var named = W.heroes.filter(function (h) { return h.name != null && String(h.name).toLowerCase() === low; });
+    if (named.length === 1) return {id: named[0].id, why: null};
+    return {id: null, why: named.length === 0 ? "'" + t + "' is no hero of this campaign" : "'" + t + "' names " + named.length + ' heroes, use the id'};
+  }
+
+  function resolveAll(tokens, W, role, reasons) {
+    var ids = [];
+    (tokens || []).forEach(function (token) {
+      var r = resolve(token, W);
+      if (r.id === null) { if (r.why !== null) reasons.push(role + ' ' + r.why); return; }
+      if (ids.indexOf(r.id) < 0) ids.push(r.id);
+    });
+    return ids;
+  }
+
+  // Without a snapshot the page still checks what needs no campaign: the raw tokens stand for heroes.
+  function rawTokens(tokens) { return distinct((tokens || []).filter(function (t) { return !blank(t); }).map(function (t) { return String(t).trim(); })); }
+
+  function relationIssues(entries, W, warnings) {
+    (entries || []).forEach(function (r) {
+      if (!r) return;
+      var a, b;
+      if (W) {
+        var ra = resolve(r.a, W), rb = resolve(r.b, W);
+        if (ra.id === null || rb.id === null) { warnings.push('a relation was dropped: ' + (ra.why || rb.why || 'it names no hero')); return; }
+        a = ra.id; b = rb.id;
+      } else {
+        if (blank(r.a) || blank(r.b)) { warnings.push('a relation was dropped: it names no hero'); return; }
+        a = String(r.a).trim(); b = String(r.b).trim();
+      }
+      if (a === b) { warnings.push('a relation was dropped: it names ' + nameOf(W, a) + ' twice'); return; }
+      if (has(r.change) === has(r.set))
+        warnings.push('the relation between ' + nameOf(W, a) + ' and ' + nameOf(W, b) + " was dropped: give either 'change' or 'set'");
+    });
+  }
+
+  // Returns, per event, the reasons it is set aside (errors) and its warnings, plus the problem lines as the
+  // problems file words them. As in the loader, a set-aside event lists only its reasons.
+  function validate(doc, W) {
+    var out = {perEvent: [], lines: [], errors: 0, warnings: 0, limited: !W};
+    var events = (doc && doc.events) || [];
+    var seen = map();
+
+    for (var i = 0; i < events.length; i++) {
+      var e = events[i];
+      var pe = {errors: [], warnings: [], day: null};
+      out.perEvent.push(pe);
+      if (!e) continue;
+
+      var label = blank(e.id) ? 'event #' + (i + 1) : "event '" + e.id + "'";
+      var reasons = [], warnings = [];
+
+      if (blank(e.id)) reasons.push('it has no id');
+      else if (seen[e.id]) reasons.push('another event already has this id');
+      else seen[e.id] = true;
+
+      var kind = typeof e.kind === 'string' ? e.kind.trim().toLowerCase() : null;
+      if (kind === null || KINDS.indexOf(kind) < 0) reasons.push("its kind '" + (e.kind == null ? '' : e.kind) + "' is not one of: " + KINDS.join(', '));
+
+      if (blank(e.summary)) reasons.push('it has no summary');
+
+      if (has(e.season) && seasonIndex(e.season) < 0) warnings.push("season '" + e.season + "' is unknown, read as spring");
+
+      var year = toInt(e.year);
+      if (W) {
+        pe.day = dayOf(year, e.season, W.dis, W.siy);
+        if (W.startDay !== null && pe.day >= W.startDay) reasons.push('it is dated ' + year + ', not before the campaign began (the game owns that time)');
+      }
+
+      var actors = W ? resolveAll(e.actors, W, 'actor', reasons) : rawTokens(e.actors);
+      var harmed = W ? resolveAll(e.harmed, W, 'harmed hero', reasons) : rawTokens(e.harmed);
+      if (W) resolveAll(e.knownBy, W, 'confidant', reasons);
+
+      if (actors.length === 0 && harmed.length === 0) reasons.push('it names no actor and no harmed hero');
+
+      // The snapshot gives the birth YEAR; the loader compares days, so a birth later in the event's own year passes here.
+      if (W) distinct(actors.concat(harmed)).forEach(function (id) {
+        var born = W.byId[id].born;
+        if (typeof born === 'number' && born > year) reasons.push(nameOf(W, id) + ' was not yet born in ' + year);
+      });
+
+      if (kind !== null && KILLING.indexOf(kind) >= 0) {
+        if (harmed.length === 0) reasons.push('a ' + kind + ' must name its dead among the harmed');
+        if (W) harmed.forEach(function (id) {
+          if (!W.byId[id].dead) reasons.push(nameOf(W, id) + ' is alive today, so the ' + kind + ' would be false in the encyclopedia');
+        });
+      }
+
+      if (W && kind === 'marriage') {
+        var pair = distinct(actors.concat(harmed));
+        if (pair.length === 2 && W.byId[pair[0]].spouse !== pair[1])
+          warnings.push(nameOf(W, pair[0]) + ' and ' + nameOf(W, pair[1]) + ' are not married today (kept: they may have divorced or been widowed)');
+      }
+
+      var place = blank(e.place) ? null : String(e.place).trim();
+      if (W && place !== null && !W.places[place]) reasons.push("its place '" + place + "' is not a settlement of this campaign");
+
+      if (W) rawTokens(e.realms).forEach(function (r) {
+        if (!W.realms[r]) reasons.push("its realm '" + r + "' is not a realm or house of this campaign");
+      });
+
+      if (reasons.length > 0) {
+        pe.errors = reasons;
+        out.errors++;
+        out.lines.push({index: i, severity: 'err', text: label + ' set aside: ' + reasons.join('; ') + '.'});
+        continue;
+      }
+
+      relationIssues(e.relations, W, warnings);
+      pe.warnings = warnings;
+      out.warnings += warnings.length;
+      warnings.forEach(function (w) { out.lines.push({index: i, severity: 'warn', text: label + ': ' + w + '.'}); });
+    }
+    return out;
+  }
+
+  var api = {KINDS: KINDS, KILLING: KILLING, SEASONS: SEASONS, DEFAULT_IMPORTANCE: DEFAULT_IMPORTANCE, seasonIndex: seasonIndex,
+    dayOf: dayOf, indexWorld: indexWorld, resolve: resolve, validate: validate, nameOf: nameOf, distinct: distinct, blank: blank};
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  return api;
+})();
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var C = HistoryChecks;
+
+  var KIND_META = {
+    battle: {label: 'Battle', color: '#d26a3f'},
+    siege: {label: 'Siege', color: '#b9813a'},
+    fief_taken: {label: 'Fief taken', color: '#a8963c'},
+    execution: {label: 'Execution', color: '#a8455a'},
+    fell_in_battle: {label: 'Fell in battle', color: '#8c5a7a'},
+    marriage: {label: 'Marriage', color: '#5fa47a'},
+    divorce: {label: 'Divorce', color: '#7f8f6a'},
+    war: {label: 'War declared', color: '#c94a43'},
+    peace: {label: 'Peace', color: '#5aa0a8'},
+    rebellion: {label: 'Rebellion', color: '#d48a2c'},
+    scheme: {label: 'Scheme', color: '#8a72c0'},
+    capture: {label: 'Capture', color: '#9a6a4a'},
+    betrayal: {label: 'Betrayal', color: '#b0508f'},
+    feud: {label: 'Feud', color: '#cf5d7d'},
+    kindness: {label: 'Kindness', color: '#7fb35a'},
+    debt: {label: 'Debt', color: '#c2a85a'},
+    rescue: {label: 'Rescue', color: '#4f8fc4'},
+    duel: {label: 'Duel', color: '#6f7fd0'},
+    other: {label: 'Other', color: '#8a8278'}
+  };
+  var SEASON_LABEL = ['Spring', 'Summer', 'Autumn', 'Winter'];
+  var CARD_W = 176, CARD_H = 64, LANE_H = 74, LANES_TOP = 56, PAD = 40;
+  var ZOOMS = {decades: 2.5, years: 16, seasons: 60};
+
+  var state = {
+    world: null, W: null, doc: null,
+    handle: null, fileName: null, dirty: false,
+    selected: null, nextKey: 1,
+    check: {perEvent: [], lines: [], errors: 0, warnings: 0, limited: true},
+    pps: ZOOMS.years, zoom: 'years', range: null,
+    filter: {hero: '', realm: '', place: '', kind: '', text: ''},
+    problemsOpen: true
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ==============================================================================================================
+  // Small helpers
+  // ==============================================================================================================
+
+  function h(tag, attrs) {
+    var el = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      var v = attrs[k];
+      if (v === null || v === undefined || v === false) return;
+      if (k === 'class') el.className = v;
+      else if (k === 'text') el.textContent = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k === 'style' && typeof v === 'object') Object.keys(v).forEach(function (p) { el.style.setProperty(p, v[p]); });
+      else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+      else if (k === 'value') el.value = v;
+      else if (k === 'checked') el.checked = !!v;
+      else el.setAttribute(k, v === true ? '' : v);
+    });
+    for (var i = 2; i < arguments.length; i++) add(el, arguments[i]);
+    return el;
+  }
+  function add(el, c) {
+    if (c === null || c === undefined || c === false) return;
+    if (Array.isArray(c)) { c.forEach(function (x) { add(el, x); }); return; }
+    el.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+  }
+  function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+  function debounce(fn, ms) { var t; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function arr(v) { return Array.isArray(v) ? v.slice() : []; }
+  function hasVal(v) { return v !== null && v !== undefined; }
+
+  function toast(text, kind) {
+    var t = h('div', {class: 'toast' + (kind ? ' ' + kind : ''), text: text});
+    $('toasts').appendChild(t);
+    setTimeout(function () { t.remove(); }, kind === 'error' ? 7000 : 4200);
+  }
+
+  // The in-page confirm (window.confirm blocks the page and looks foreign). Resolves true or false.
+  function askConfirm(message, okLabel) {
+    return new Promise(function (resolve) {
+      var back, ok, cancel;
+      function done(v) { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); }
+      function onKey(ev) {
+        if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); done(false); }
+        else if (ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); done(document.activeElement !== cancel); }
+      }
+      ok = h('button', {class: 'btn primary', type: 'button', text: okLabel || 'OK', onclick: function () { done(true); }});
+      cancel = h('button', {class: 'btn', type: 'button', text: 'Cancel', onclick: function () { done(false); }});
+      back = h('div', {class: 'modal-back', onclick: function (ev) { if (ev.target === back) done(false); }},
+        h('div', {class: 'modal', role: 'dialog'}, h('p', {text: message}), h('div', {class: 'row'}, cancel, ok)));
+      document.body.appendChild(back);
+      document.addEventListener('keydown', onKey, true);
+      ok.focus();
+    });
+  }
+
+  // ==============================================================================================================
+  // Names: what the snapshot says an id is
+  // ==============================================================================================================
+
+  function clanName(id) { var c = state.W && state.W.clans[id]; return c ? (c.name || id) : (id || ''); }
+  function realmLabel(id) {
+    var W = state.W;
+    if (!W) return id;
+    if (W.kingdoms[id]) return W.kingdoms[id].name || id;
+    if (W.clans[id]) return W.clans[id].name || id;
+    return id;
+  }
+  function placeLabel(id) { var s = state.W && state.W.places[id]; return s ? (s.name || id) : id; }
+
+  function heroSub(hero) {
+    var bits = [];
+    if (hero.clan) bits.push(clanName(hero.clan));
+    if (typeof hero.born === 'number') bits.push('born ' + hero.born);
+    if (hero.dead) bits.push('dead');
+    if (state.W && hero.id === state.W.player) bits.push('your character');
+    return bits.join(', ');
+  }
+  function heroText(id) {
+    var W = state.W;
+    if (!W) return id;
+    var r = C.resolve(id, W);
+    if (r.id === null) return id;
+    var hero = W.byId[r.id];
+    return (hero.name || hero.id) + ' (' + heroSub(hero) + ')';
+  }
+  // A chip: the hero's name and facts, or the raw token in red when the snapshot does not know it.
+  function heroChip(token) {
+    var W = state.W;
+    if (!W) return {label: token, sub: '', bad: false, title: 'No world snapshot: the id cannot be checked'};
+    var r = C.resolve(token, W);
+    if (r.id === null) return {label: token, sub: '', bad: true, title: r.why || 'Unknown'};
+    var hero = W.byId[r.id];
+    return {label: hero.name || hero.id, sub: heroSub(hero), bad: false, title: r.id + (r.id !== token ? ' (written as a name)' : '')};
+  }
+  function realmChip(token) {
+    var W = state.W;
+    if (!W) return {label: token, sub: '', bad: false, title: 'No world snapshot: the id cannot be checked'};
+    if (W.kingdoms[token]) return {label: W.kingdoms[token].name || token, sub: 'realm', bad: false, title: token};
+    if (W.clans[token]) return {label: W.clans[token].name || token, sub: 'house', bad: false, title: token};
+    return {label: token, sub: '', bad: true, title: 'Not a realm or house of this campaign'};
+  }
+  function placeChip(token) {
+    var W = state.W;
+    if (!W) return {label: token, sub: '', bad: false, title: 'No world snapshot: the id cannot be checked'};
+    var s = W.places[token];
+    return s ? {label: s.name || token, sub: s.type || '', bad: false, title: token} : {label: token, sub: '', bad: true, title: 'Not a settlement of this campaign'};
+  }
+
+  function heroItems() {
+    var W = state.W;
+    if (!W) return [];
+    if (!heroItems.cache || heroItems.cacheFor !== W) {
+      heroItems.cacheFor = W;
+      heroItems.cache = W.heroes.slice().sort(function (a, b) {
+        if (!!a.lord !== !!b.lord) return a.lord ? -1 : 1;
+        return String(a.name || a.id).localeCompare(String(b.name || b.id));
+      }).map(function (hero) {
+        var sub = heroSub(hero);
+        return {id: hero.id, label: hero.name || hero.id, sub: sub, search: ((hero.name || '') + ' ' + sub + ' ' + hero.id).toLowerCase()};
+      });
+    }
+    return heroItems.cache;
+  }
+  function realmItems() {
+    var W = state.W;
+    if (!W) return [];
+    var out = [];
+    Object.keys(W.kingdoms).forEach(function (id) { var k = W.kingdoms[id]; out.push({id: id, label: k.name || id, sub: 'realm', search: ((k.name || '') + ' realm ' + id).toLowerCase()}); });
+    Object.keys(W.clans).forEach(function (id) {
+      var c = W.clans[id], of = c.kingdom ? realmLabel(c.kingdom) : 'no realm';
+      out.push({id: id, label: c.name || id, sub: 'house, ' + of, search: ((c.name || '') + ' house ' + of + ' ' + id).toLowerCase()});
+    });
+    return out;
+  }
+  function placeItems() {
+    var W = state.W;
+    if (!W) return [];
+    return Object.keys(W.places).map(function (id) {
+      var s = W.places[id], sub = (s.type || '') + (s.owner ? ', ' + clanName(s.owner) : '');
+      return {id: id, label: s.name || id, sub: sub, search: ((s.name || '') + ' ' + sub + ' ' + id).toLowerCase()};
+    }).sort(function (a, b) { return a.label.localeCompare(b.label); });
+  }
+
+  // ==============================================================================================================
+  // The picker: searchable, single or multi, stores ids
+  // ==============================================================================================================
+
+  function picker(opts) {
+    var values = arr(opts.values).filter(function (v) { return !C.blank(v); });
+    var wrap = h('div', {class: 'picker'});
+    var box = h('div', {class: 'picker-box'});
+    var input = h('input', {type: 'text', placeholder: opts.placeholder || 'Type to search', 'aria-label': opts.label || 'Search'});
+    var list = h('div', {class: 'picker-list', hidden: true});
+    var shown = [], active = 0;
+    wrap.appendChild(box);
+    wrap.appendChild(list);
+
+    function changed() { renderChips(); opts.onChange(opts.multi ? values.slice() : (values[0] || '')); }
+    function renderChips() {
+      clear(box);
+      values.forEach(function (tok, i) {
+        var d = opts.describe(tok);
+        box.appendChild(h('span', {class: 'chip' + (d.bad ? ' bad' : ''), title: d.title || tok},
+          h('span', {class: 'chip-label', text: d.label}), d.sub ? h('span', {class: 'chip-sub', text: d.sub}) : null,
+          h('button', {class: 'chip-x', type: 'button', title: 'Remove', 'aria-label': 'Remove', html: '&times;',
+            onclick: function () { values.splice(i, 1); changed(); if (!opts.multi) input.focus(); }})));
+      });
+      if (opts.multi || values.length === 0) box.appendChild(input);
+    }
+    function choose(id) {
+      if (C.blank(id)) return;
+      if (opts.multi) { if (values.indexOf(id) < 0) values.push(id); }
+      else values = [id];
+      input.value = '';
+      hide();
+      changed();
+      if (opts.multi) input.focus();
+    }
+    function hide() { list.hidden = true; }
+    function show() {
+      var items = opts.items(), q = input.value.trim().toLowerCase(), words = q.split(/\s+/).filter(Boolean);
+      shown = items.filter(function (it) {
+        return values.indexOf(it.id) < 0 && words.every(function (w) { return it.search.indexOf(w) >= 0; });
+      }).slice(0, 60);
+      active = 0;
+      clear(list);
+      if (!items.length) list.appendChild(h('div', {class: 'opt none', text: q ? 'No snapshot: press Enter to add "' + input.value.trim() + '" as an id' : 'Open a world snapshot to pick by name, or type an id and press Enter'}));
+      else if (!shown.length) list.appendChild(h('div', {class: 'opt none', text: 'No match'}));
+      shown.forEach(function (it, i) {
+        list.appendChild(h('div', {class: 'opt' + (i === 0 ? ' act' : ''),
+          onmousedown: function (ev) { ev.preventDefault(); choose(it.id); }},
+          h('span', {text: it.label}), it.sub ? h('span', {class: 'sub', text: it.sub}) : null));
+      });
+      list.hidden = false;
+    }
+    function move(d) {
+      if (!shown.length) return;
+      active = clamp(active + d, 0, shown.length - 1);
+      Array.prototype.forEach.call(list.children, function (el, i) { el.classList.toggle('act', i === active); });
+      var el = list.children[active];
+      if (el && el.scrollIntoView) el.scrollIntoView({block: 'nearest'});
+    }
+    input.addEventListener('focus', show);
+    input.addEventListener('input', show);
+    input.addEventListener('blur', function () { setTimeout(hide, 120); });
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowDown') { ev.preventDefault(); if (list.hidden) show(); else move(1); }
+      else if (ev.key === 'ArrowUp') { ev.preventDefault(); move(-1); }
+      else if (ev.key === 'Enter') {
+        ev.preventDefault();
+        if (shown[active]) choose(shown[active].id);
+        else if (!opts.items().length && input.value.trim()) choose(input.value.trim());
+      }
+      else if (ev.key === 'Escape') { hide(); input.blur(); }
+      else if (ev.key === 'Backspace' && !input.value && values.length && opts.multi) { values.pop(); changed(); }
+    });
+    renderChips();
+    return wrap;
+  }
+
+  // ==============================================================================================================
+  // The document: reading, writing, the format
+  // ==============================================================================================================
+
+  // Newtonsoft reads JSON keys without regard to case, so a hand-written "Year" counts; the page reads it too.
+  function pick(obj, key) {
+    if (!obj || typeof obj !== 'object') return undefined;
+    if (key in obj) return obj[key];
+    var low = key.toLowerCase();
+    for (var k in obj) if (Object.prototype.hasOwnProperty.call(obj, k) && k.toLowerCase() === low) return obj[k];
+    return undefined;
+  }
+  function str(v) { return v === null || v === undefined ? v : String(v); }
+  function strList(v) { return Array.isArray(v) ? v.filter(function (x) { return x !== null && x !== undefined; }).map(String) : []; }
+
+  function normEvent(raw) {
+    var imp = pick(raw, 'importance');
+    var rels = pick(raw, 'relations');
+    return {
+      _key: state.nextKey++,
+      id: str(pick(raw, 'id')) || '',
+      year: hasVal(pick(raw, 'year')) ? Number(pick(raw, 'year')) || 0 : 0,
+      season: str(pick(raw, 'season')),
+      kind: str(pick(raw, 'kind')),
+      summary: str(pick(raw, 'summary')) || '',
+      actors: strList(pick(raw, 'actors')),
+      harmed: strList(pick(raw, 'harmed')),
+      place: str(pick(raw, 'place')) || '',
+      realms: strList(pick(raw, 'realms')),
+      importance: hasVal(imp) && isFinite(Number(imp)) ? Math.trunc(Number(imp)) : C.DEFAULT_IMPORTANCE,
+      secret: !!pick(raw, 'secret'),
+      knownBy: strList(pick(raw, 'knownBy')),
+      relations: (Array.isArray(rels) ? rels : []).filter(Boolean).map(function (r) {
+        var ch = pick(r, 'change'), st = pick(r, 'set');
+        return {a: str(pick(r, 'a')) || '', b: str(pick(r, 'b')) || '',
+          change: hasVal(ch) ? Math.trunc(Number(ch)) || 0 : null, set: hasVal(st) ? Math.trunc(Number(st)) || 0 : null};
+      })
+    };
+  }
+
+  function outEvent(e) {
+    var o = {id: e.id, year: e.year, season: hasVal(e.season) && e.season !== '' ? e.season : 'spring', kind: e.kind || '', summary: e.summary,
+      actors: e.actors.slice(), harmed: e.harmed.slice()};
+    if (!C.blank(e.place)) o.place = e.place.trim();
+    o.realms = e.realms.slice();
+    o.importance = e.importance;
+    o.secret = !!e.secret;
+    o.knownBy = e.knownBy.slice();
+    o.relations = e.relations.map(function (r) {
+      var x = {a: r.a, b: r.b};
+      if (hasVal(r.change)) x.change = r.change;
+      if (hasVal(r.set)) x.set = r.set;
+      return x;
+    });
+    return o;
+  }
+
+  function serialize() {
+    var d = state.doc;
+    return JSON.stringify({format: 1, campaign: d.campaign || '', title: d.title || '', events: d.events.map(outEvent)}, null, 2) + '\n';
+  }
+
+  function docFrom(raw) {
+    var events = pick(raw, 'events');
+    return {campaign: str(pick(raw, 'campaign')) || '', title: str(pick(raw, 'title')) || '', events: (Array.isArray(events) ? events : []).filter(Boolean).map(normEvent)};
+  }
+
+  function eventByKey(key) { return state.doc ? state.doc.events.filter(function (e) { return e._key === key; })[0] || null : null; }
+  function indexOfKey(key) { return state.doc ? state.doc.events.findIndex(function (e) { return e._key === key; }) : -1; }
+
+  function slug(text) {
+    return String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(function (w) {
+      return w.length > 2 || /^\d+$/.test(w);
+    }).slice(0, 5).join('-').slice(0, 40).replace(/-+$/, '');
+  }
+  function uniqueId(base, except) {
+    base = base || 'event';
+    var taken = {};
+    (state.doc ? state.doc.events : []).forEach(function (e) { if (e !== except) taken[e.id] = true; });
+    if (!taken[base]) return base;
+    for (var n = 2; ; n++) if (!taken[base + '-' + n]) return base + '-' + n;
+  }
+
+  // ==============================================================================================================
+  // Opening and saving
+  // ==============================================================================================================
+
+  function stripBom(text) { return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text; }
+
+  function parseJson(text, name) {
+    try { return JSON.parse(stripBom(text)); }
+    catch (e) { toast(name + ' is not valid JSON: ' + e.message, 'error'); return null; }
+  }
+
+  function kindOfFile(obj) {
+    if (!obj || typeof obj !== 'object') return null;
+    if (pick(obj, 'calendar') || pick(obj, 'heroes')) return 'world';
+    if (pick(obj, 'events')) return 'history';
+    return null;
+  }
+
+  function loadWorld(obj, name) {
+    state.world = obj;
+    state.W = C.indexWorld(obj);
+    heroItems.cache = null;
+    if (state.doc && !state.doc.campaign && state.W.campaign) { state.doc.campaign = state.W.campaign; touched(); }
+    $('add-year').value = state.W.startYear ? state.W.startYear - 5 : '';
+    toast('World snapshot ' + (name || '') + ' opened: ' + state.W.heroes.length + ' heroes, ' + Object.keys(state.W.places).length + ' places.');
+    renderFilterOptions();
+    renderAll(true);
+  }
+
+  function loadHistory(obj, name, handle) {
+    state.doc = docFrom(obj);
+    state.handle = handle || null;
+    state.fileName = name || null;
+    state.selected = null;
+    state.dirty = false;
+    toast('History ' + (name || '') + ' opened: ' + state.doc.events.length + ' event' + (state.doc.events.length === 1 ? '' : 's') + '.');
+    renderFilterOptions();
+    renderAll(true);
+  }
+
+  function confirmDiscard() {
+    if (!state.dirty) return Promise.resolve(true);
+    return askConfirm('The history has unsaved changes. Discard them?', 'Discard');
+  }
+
+  function routeText(text, name, handle, expect) {
+    var obj = parseJson(text, name);
+    if (obj === null) return;
+    var kind = kindOfFile(obj);
+    if (!kind) { toast(name + ' is neither a world snapshot (calendar, heroes) nor a history file (events).', 'error'); return; }
+    if (expect && kind !== expect) toast(name + ' looks like a ' + (kind === 'world' ? 'world snapshot' : 'history file') + ', opened as one.', 'warn');
+    if (kind === 'world') loadWorld(obj, name);
+    else confirmDiscard().then(function (ok) { if (ok) loadHistory(obj, name, handle); });
+  }
+
+  function readFile(file, then) {
+    var reader = new FileReader();
+    reader.onload = function () { then(String(reader.result)); };
+    reader.onerror = function () { toast('Could not read ' + file.name + '.', 'error'); };
+    reader.readAsText(file);
+  }
+
+  function openWith(kind) {
+    // Chrome and Edge: keep the history file's handle, so Save writes it in place.
+    if (window.showOpenFilePicker) {
+      window.showOpenFilePicker({types: [{description: 'JSON', accept: {'application/json': ['.json']}}]}).then(function (handles) {
+        var hd = handles[0];
+        return hd.getFile().then(function (file) { readFile(file, function (text) { routeText(text, file.name, hd, kind); }); });
+      }).catch(function (e) { if (e && e.name !== 'AbortError') toast('Could not open: ' + e.message, 'error'); });
+      return;
+    }
+    $(kind === 'world' ? 'file-world' : 'file-history').click();
+  }
+
+  function onFileInput(ev, kind) {
+    var file = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (file) readFile(file, function (text) { routeText(text, file.name, null, kind); });
+  }
+
+  function suggestedName() {
+    if (state.fileName && /\.json$/i.test(state.fileName)) return state.fileName;
+    var c = (state.doc.campaign || (state.W && state.W.campaign) || 'campaign').replace(/[^A-Za-z0-9._-]+/g, '_');
+    return c + '.history.json';
+  }
+
+  function writeHandle(hd, text) {
+    var perm = hd.queryPermission ? hd.queryPermission({mode: 'readwrite'}) : Promise.resolve('granted');
+    return perm.then(function (p) {
+      return p === 'granted' || !hd.requestPermission ? p : hd.requestPermission({mode: 'readwrite'});
+    }).then(function (p) {
+      if (p && p !== 'granted') throw new Error('permission to write was refused');
+      return hd.createWritable();
+    }).then(function (w) { return w.write(text).then(function () { return w.close(); }); });
+  }
+
+  function download(text, name) {
+    var blob = new Blob([text], {type: 'application/json'});
+    var a = h('a', {href: URL.createObjectURL(blob), download: name});
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
+  function saved(name, how) {
+    state.fileName = name;
+    state.dirty = false;
+    // Once written, an id may already be in the game's ledger: it must stop following the summary.
+    state.doc.events.forEach(function (e) { e._autoId = false; });
+    renderHeader();
+    var n = state.check.errors;
+    toast((how || 'Saved ') + name + '.' + (n ? ' The game will set aside ' + n + ' event' + (n > 1 ? 's' : '') + ' until fixed.' : ''), n ? 'warn' : null);
+  }
+
+  function save() {
+    if (!state.doc) { toast('Nothing to save yet: open or start a history.'); return; }
+    var text = serialize(), name = suggestedName();
+    var viaPicker = function () {
+      if (!window.showSaveFilePicker) { download(text, name); saved(name, 'Downloaded '); return; }
+      window.showSaveFilePicker({suggestedName: name, types: [{description: 'History file', accept: {'application/json': ['.json']}}]})
+        .then(function (hd) { return writeHandle(hd, text).then(function () { state.handle = hd; saved(hd.name); }); })
+        .catch(function (e) {
+          if (e && e.name === 'AbortError') return; // the author cancelled: no download behind their back
+          toast('Could not save with the file picker (' + (e && e.message) + '), downloading instead.', 'warn');
+          download(text, name);
+          saved(name, 'Downloaded ');
+        });
+    };
+    if (state.handle && state.handle.createWritable) {
+      writeHandle(state.handle, text).then(function () { saved(state.handle.name); }).catch(function (e) {
+        if (e && e.name === 'AbortError') return;
+        toast('Could not write ' + state.handle.name + ' in place (' + (e && e.message) + '). Choose where to save.', 'warn');
+        state.handle = null;
+        viaPicker();
+      });
+      return;
+    }
+    viaPicker();
+  }
+
+  function newHistory() {
+    confirmDiscard().then(function (ok) {
+      if (!ok) return;
+      state.doc = {campaign: state.W ? state.W.campaign : '', title: 'The past of this campaign', events: []};
+      state.handle = null;
+      state.fileName = null;
+      state.selected = null;
+      state.dirty = false;
+      renderFilterOptions();
+      renderAll(true);
+      toast(state.W ? 'New history for campaign ' + state.W.campaign + '.' : 'New history. Open a world snapshot to bind it to a campaign and check its ids.');
+    });
+  }
+
+  function touched() { state.dirty = true; }
+
+  // ==============================================================================================================
+  // Editing events
+  // ==============================================================================================================
+
+  function ensureDoc() {
+    if (!state.doc) state.doc = {campaign: state.W ? state.W.campaign : '', title: 'The past of this campaign', events: []};
+  }
+
+  function addEvent(year, seasonIdx) {
+    ensureDoc();
+    var e = normEvent({year: year, season: C.SEASONS[seasonIdx || 0], kind: 'other', importance: C.DEFAULT_IMPORTANCE});
+    e.id = uniqueId('event-' + (state.doc.events.length + 1));
+    e._autoId = true;
+    state.doc.events.push(e);
+    touched();
+    select(e._key, true);
+    setTimeout(function () { var s = $('fld-summary'); if (s) s.focus(); }, 30);
+  }
+
+  function duplicateEvent(e) {
+    var copy = normEvent(outEvent(e));
+    copy.id = uniqueId((e.id || 'event') + '-copy');
+    state.doc.events.splice(indexOfKey(e._key) + 1, 0, copy);
+    touched();
+    select(copy._key, true);
+  }
+
+  function deleteEvent(e) {
+    askConfirm('Delete "' + (e.summary ? e.summary.slice(0, 80) : e.id) + (e.summary && e.summary.length > 80 ? '...' : '') + '"?', 'Delete').then(function (ok) {
+      if (!ok) return;
+      var i = indexOfKey(e._key);
+      if (i >= 0) state.doc.events.splice(i, 1);
+      state.selected = null;
+      touched();
+      renderAll();
+    });
+  }
+
+  function select(key, scroll) {
+    state.selected = key;
+    renderAll();
+    if (scroll) scrollToEvent(key);
+  }
+
+  // ==============================================================================================================
+  // Rendering: header, banners, filters
+  // ==============================================================================================================
+
+  var refreshSoon = debounce(function () { refresh(); }, 140);
+
+  function recheck() { state.check = C.validate(state.doc || {events: []}, state.W); }
+
+  function refresh() {
+    recheck();
+    renderHeader();
+    renderProblems();
+    renderTimeline();
+    renderSideMessages();
+  }
+
+  function renderAll(fit) {
+    recheck();
+    renderHeader();
+    renderBanners();
+    renderLegend();
+    renderProblems(); // first: its height decides the timeline's
+    renderSide();
+    if (fit) fitZoom(); else renderTimeline();
+  }
+
+  function renderHeader() {
+    var t = $('title');
+    t.disabled = !state.doc;
+    if (document.activeElement !== t) t.value = state.doc ? state.doc.title : '';
+    var m = $('meta');
+    clear(m);
+    if (!state.doc && !state.W) { add(m, 'Nothing open'); return; }
+    var camp = state.doc && state.doc.campaign ? state.doc.campaign : state.W ? state.W.campaign : '';
+    add(m, h('span', null, 'Campaign ', h('b', {class: 'mono', text: camp || '(none)'})));
+    if (state.doc) {
+      add(m, h('span', null, h('b', {text: String(state.doc.events.length)}), ' event' + (state.doc.events.length === 1 ? '' : 's')));
+      var ck = state.check;
+      add(m, h('span', {class: ck.errors ? 'bad' : ''}, h('b', {text: String(ck.errors)}), ' set aside'));
+      add(m, h('span', {class: ck.warnings ? 'warn' : ''}, h('b', {text: String(ck.warnings)}), ' warning' + (ck.warnings === 1 ? '' : 's')));
+      if (state.dirty) add(m, h('span', {class: 'dirty', text: 'unsaved'}));
+    }
+  }
+
+  function renderBanners() {
+    var b = $('banners');
+    clear(b);
+    if (state.doc && !state.W)
+      b.appendChild(h('div', {class: 'banner info', text: 'No world snapshot: hero, place and realm ids cannot be checked and are shown raw, and dates are not compared with the campaign start. ' +
+        'Open the <campaign>.world.json the game writes (cr.history_file).'}));
+    if (state.doc && state.W && state.doc.campaign && state.W.campaign && state.doc.campaign !== state.W.campaign)
+      b.appendChild(h('div', {class: 'banner warn', text: 'This history was written for campaign ' + state.doc.campaign + ', but the snapshot is of campaign ' +
+        state.W.campaign + '. The game reads a history file only for its own campaign.'}));
+  }
+
+  function renderLegend() {
+    var l = $('legend');
+    clear(l);
+    C.KINDS.forEach(function (k) { l.appendChild(h('span', {style: {'--k': KIND_META[k].color}}, h('i'), KIND_META[k].label)); });
+    l.appendChild(h('span', null, h('i', {style: {'--k': 'var(--text-3)', transform: 'rotate(45deg)'}}), 'Recorded by the game (read-only)'));
+  }
+
+  function fillSelect(sel, items, current) {
+    clear(sel);
+    sel.appendChild(h('option', {value: '', text: 'All'}));
+    items.forEach(function (it) { sel.appendChild(h('option', {value: it.id, text: it.label})); });
+    sel.value = current;
+    if (sel.value !== current) { sel.value = ''; return ''; }
+    return current;
+  }
+
+  function renderFilterOptions() {
+    var used = {realms: {}, places: {}};
+    (state.doc ? state.doc.events : []).forEach(function (e) {
+      e.realms.forEach(function (r) { used.realms[r] = true; });
+      if (e.place) used.places[e.place] = true;
+    });
+    var realms = realmItems(), places = placeItems();
+    Object.keys(used.realms).forEach(function (r) { if (!realms.some(function (x) { return x.id === r; })) realms.push({id: r, label: r}); });
+    Object.keys(used.places).forEach(function (p) { if (!places.some(function (x) { return x.id === p; })) places.push({id: p, label: p}); });
+    state.filter.realm = fillSelect($('f-realm'), realms, state.filter.realm);
+    state.filter.place = fillSelect($('f-place'), places, state.filter.place);
+    state.filter.kind = fillSelect($('f-kind'), C.KINDS.map(function (k) { return {id: k, label: KIND_META[k].label}; }), state.filter.kind);
+
+    var slot = $('f-hero-slot');
+    clear(slot);
+    slot.appendChild(picker({items: heroItems, values: state.filter.hero ? [state.filter.hero] : [], describe: heroChip, placeholder: 'Any hero', label: 'Filter by hero',
+      onChange: function (v) { state.filter.hero = v; renderTimeline(); }}));
+  }
+
+  // ==============================================================================================================
+  // The timeline
+  // ==============================================================================================================
+
+  function S() { return state.W ? state.W.siy : 4; }
+  function evT(e) { return (Number(e.year) || 0) * S() + Math.max(0, C.seasonIndex(e.season)); }
+  function startT() { return state.W && state.W.startDay !== null ? state.W.startDay / state.W.dis : null; }
+  function seasonName(i) { return SEASON_LABEL[i] || ('Season ' + (i + 1)); }
+  function whenText(e) {
+    var si = C.seasonIndex(e.season);
+    return (si < 0 ? '? ' + e.season : seasonName(si)) + ' ' + e.year;
+  }
+
+  function computeRange() {
+    var s = S(), ts = [], st = startT();
+    (state.doc ? state.doc.events : []).forEach(function (e) { ts.push(evT(e)); });
+    if (st !== null) ts.push(st);
+    if (state.W && state.world && Array.isArray(state.world.recorded)) state.world.recorded.forEach(function (r) { if (r && hasVal(r.day)) ts.push(r.day / state.W.dis); });
+    if (state.W && state.W.today !== null) ts.push(state.W.today / state.W.dis);
+    if (!ts.length) return null;
+    var lo = Math.min.apply(null, ts), hi = Math.max.apply(null, ts);
+    if (st !== null && lo > st - 10 * s) lo = st - 10 * s; // room to write in, even for an empty history
+    return {t0: Math.floor(lo / s) * s - s, t1: Math.ceil(hi / s) * s + 2 * s};
+  }
+
+  function x(t) { return PAD + (t - state.range.t0) * state.pps; }
+  function tAt(px) { return state.range.t0 + (px - PAD) / state.pps; }
+
+  function eventMatches(e) {
+    var f = state.filter;
+    if (f.realm && e.realms.indexOf(f.realm) < 0) return false;
+    if (f.place && (e.place || '').trim() !== f.place) return false;
+    if (f.kind && (e.kind || '').trim().toLowerCase() !== f.kind) return false;
+    if (f.text) {
+      var q = f.text.toLowerCase(), names = '';
+      if (state.W) names = e.actors.concat(e.harmed, e.knownBy).map(function (t) { return heroChip(t).label; }).join(' ');
+      if ((e.summary + ' ' + e.id + ' ' + names).toLowerCase().indexOf(q) < 0) return false;
+    }
+    return true;
+  }
+
+  function involves(e, heroId) {
+    var W = state.W;
+    var toks = e.actors.concat(e.harmed, e.knownBy);
+    e.relations.forEach(function (r) { toks.push(r.a, r.b); });
+    return toks.some(function (t) { return t === heroId || (W && C.resolve(t, W).id === heroId); });
+  }
+
+  function ticks(axis, body, height) {
+    var s = S(), pxYear = state.pps * s;
+    var y0 = Math.floor(state.range.t0 / s), y1 = Math.ceil(state.range.t1 / s);
+    var step = pxYear >= 36 ? 1 : pxYear >= 14 ? 5 : 10;
+    var seasonLabels = pxYear >= 200;
+    for (var y = y0; y <= y1; y++) {
+      var major = y % step === 0;
+      var xx = x(y * s);
+      if (pxYear >= 5 || major) axis.appendChild(h('div', {class: 'tick' + (major ? ' major' : ''), style: {left: xx + 'px'}}));
+      if (major) {
+        axis.appendChild(h('div', {class: 'tick-label', style: {left: xx + 'px'}, text: seasonLabels ? 'Spring ' + y : String(y)}));
+        body.appendChild(h('div', {class: 'gridline', style: {left: xx + 'px'}}));
+      }
+      if (state.pps >= 10) for (var q = 1; q < s; q++) {
+        var xq = x(y * s + q);
+        axis.appendChild(h('div', {class: 'tick', style: {left: xq + 'px'}}));
+        if (seasonLabels) axis.appendChild(h('div', {class: 'tick-label', style: {left: xq + 'px'}, text: seasonName(q)}));
+      }
+    }
+  }
+
+  function renderTimeline() {
+    var inner = $('tl-inner'), scroller = $('tl-scroll'), empty = $('empty');
+    var keepLeft = scroller.scrollLeft, keepTop = scroller.scrollTop;
+    clear(inner);
+    state.range = computeRange();
+    if (!state.range) { empty.hidden = false; renderEmpty(); return; }
+    empty.hidden = true;
+
+    var events = state.doc ? state.doc.events : [];
+    var placed = [], lanesEnd = [];
+    events.forEach(function (e, i) {
+      if (!eventMatches(e)) return;
+      placed.push({e: e, i: i, x: x(evT(e))});
+    });
+    placed.sort(function (a, b) { return a.x - b.x || a.i - b.i; });
+    placed.forEach(function (p) {
+      var lane = 0;
+      while (lane < lanesEnd.length && lanesEnd[lane] > p.x - 6) lane++;
+      lanesEnd[lane] = p.x + CARD_W;
+      p.lane = lane;
+    });
+
+    var width = Math.max(x(state.range.t1) + CARD_W + PAD, scroller.clientWidth);
+    var height = Math.max(LANES_TOP + Math.max(lanesEnd.length, 1) * LANE_H + 30, scroller.clientHeight - 46);
+    inner.style.width = width + 'px';
+    var axis = h('div', {class: 'tl-axis', style: {width: width + 'px'}});
+    var body = h('div', {class: 'tl-body', style: {width: width + 'px', height: height + 'px'},
+      onclick: function (ev) { if (ev.target === body && state.selected !== null) { state.selected = null; renderAll(); } },
+      ondblclick: function (ev) {
+        if (ev.target !== body && !ev.target.classList.contains('gridline') && !ev.target.classList.contains('after-zone')) return;
+        var rect = body.getBoundingClientRect(), t = Math.floor(tAt(ev.clientX - rect.left));
+        addEvent(Math.floor(t / S()), ((t % S()) + S()) % S());
+      }});
+    inner.appendChild(axis);
+    inner.appendChild(body);
+    ticks(axis, body, height);
+
+    var st = startT();
+    if (st !== null) {
+      body.appendChild(h('div', {class: 'after-zone', style: {left: x(st) + 'px', width: (width - x(st)) + 'px'}}));
+      body.appendChild(h('div', {class: 'start-line', style: {left: x(st) + 'px'}}));
+      var W = state.W;
+      body.appendChild(h('div', {class: 'start-label', style: {left: x(st) + 'px'}, text: 'Campaign begins (' + String(W.startSeason).toLowerCase() + ' ' + W.startYear + ')'}));
+      axis.appendChild(h('div', {class: 'tick major', style: {left: x(st) + 'px', background: 'var(--accent)', height: '44px', width: '2px'}}));
+      if (Array.isArray(state.world.recorded)) state.world.recorded.forEach(function (r) {
+        if (!r || !hasVal(r.day)) return;
+        var yr = Math.floor(r.day / (W.dis * W.siy)), si = Math.floor((r.day % (W.dis * W.siy)) / W.dis);
+        body.appendChild(h('div', {class: 'rec', style: {left: x(r.day / W.dis) + 'px'},
+          title: seasonName(si) + ' ' + yr + ', ' + (r.kind || 'event') + ' (recorded by the game): ' + (r.summary || '')}));
+      });
+    }
+
+    var hero = state.filter.hero && state.W ? state.W.byId[state.filter.hero] : null;
+    if (hero && typeof hero.born === 'number') {
+      var bx = x(hero.born * S());
+      if (bx > PAD) body.appendChild(h('div', {class: 'unborn', style: {left: '0px', width: bx + 'px'}},
+        h('span', {text: 'Before ' + (hero.name || hero.id) + ' was born (' + hero.born + ')'})));
+    }
+
+    placed.forEach(function (p) { body.appendChild(cardFor(p, hero)); });
+
+    if (!events.length) body.appendChild(h('div', {class: 'start-label', style: {left: (x(st !== null ? st : state.range.t1) - 40) + 'px', top: '120px', borderColor: 'var(--line-strong)', color: 'var(--text-3)'},
+      text: 'No events yet: use Add event, or double-click the timeline'}));
+
+    scroller.scrollLeft = keepLeft;
+    scroller.scrollTop = keepTop;
+    $('add-year').placeholder = state.W ? String(state.W.startYear - 5) : '';
+  }
+
+  function cardFor(p, hero) {
+    var e = p.e, pe = state.check.perEvent[p.i] || {errors: [], warnings: []};
+    var k = (e.kind || '').trim().toLowerCase(), meta = KIND_META[k];
+    var cls = 'card' + (e._key === state.selected ? ' sel' : '') + (pe.errors.length ? ' bad' : '');
+    if (hero) cls += involves(e, hero.id) ? ' hl' : ' dim';
+    var tip = pe.errors.concat(pe.warnings).join('\n');
+    var top = LANES_TOP + p.lane * LANE_H;
+    var badge = pe.errors.length ? h('span', {class: 'badge err', text: String(pe.errors.length)}) :
+      pe.warnings.length ? h('span', {class: 'badge warn', text: String(pe.warnings.length)}) : null;
+    return h('div', {class: cls, style: {left: p.x + 'px', top: top + 'px', '--k': meta ? meta.color : 'var(--danger)'}, 'data-key': String(e._key),
+      title: (e.summary || '(no summary)') + (tip ? '\n\n' + tip : ''), tabindex: '0',
+      onclick: function (ev) { ev.stopPropagation(); select(e._key); },
+      onkeydown: function (ev) { if (ev.key === 'Enter') select(e._key); }},
+      h('div', {class: 'card-top'}, h('span', {text: whenText(e)}), h('span', {class: 'card-kind', text: meta ? meta.label : (e.kind || 'no kind')}),
+        e.secret ? h('span', {class: 'secret-mark', title: 'Secret', text: 'S'}) : null, badge),
+      h('div', {class: 'card-sum', text: e.summary || '(no summary)'}));
+  }
+
+  function renderEmpty() {
+    var empty = $('empty');
+    clear(empty);
+    empty.appendChild(h('div', {class: 'empty-card'},
+      h('h2', {text: 'Write the past of your campaign'}),
+      h('p', {html: 'In the game, run <code>cr.history_file</code> in the console. It writes two files in ' +
+        '<code>Documents/Mount and Blade II Bannerlord/CalradiaRemembers/History/</code>: the world snapshot ' +
+        '<code>&lt;campaign&gt;.world.json</code> and the history <code>&lt;campaign&gt;.history.json</code>.'}),
+      h('p', {text: 'Open both here (or drop them on the page), write events from before the campaign began, and save the history file back in that folder. ' +
+        'The game reads it at the next load, or at once with cr.history_reload.'}),
+      h('div', {class: 'row', style: {'margin-top': '14px'}},
+        h('button', {class: 'btn', type: 'button', text: 'Open world snapshot', onclick: function () { openWith('world'); }}),
+        h('button', {class: 'btn', type: 'button', text: 'Open history file', onclick: function () { openWith('history'); }}),
+        h('button', {class: 'btn primary', type: 'button', text: 'New history', onclick: newHistory}))));
+  }
+
+  function setZoom(name) {
+    var scroller = $('tl-scroll');
+    if (name === 'fit') { fitZoom(); return; }
+    var centre = state.range ? tAt(scroller.scrollLeft + scroller.clientWidth / 2) : null;
+    state.zoom = name;
+    state.pps = ZOOMS[name];
+    renderTimeline();
+    if (centre !== null) scroller.scrollLeft = Math.max(0, x(centre) - scroller.clientWidth / 2);
+    markZoom();
+  }
+
+  // Fits the authored events (and the campaign start) in the visible width.
+  function fitZoom() {
+    var scroller = $('tl-scroll');
+    state.range = computeRange();
+    if (!state.range) { renderTimeline(); return; }
+    var s = S(), ts = (state.doc ? state.doc.events : []).map(evT), st = startT();
+    if (st !== null) ts.push(st);
+    var lo = ts.length ? Math.min.apply(null, ts) : state.range.t0, hi = ts.length ? Math.max.apply(null, ts) : state.range.t1;
+    var span = Math.max(hi - lo + 2 * s, 4 * s);
+    state.pps = clamp((scroller.clientWidth - 2 * PAD - CARD_W) / span, 1.2, ZOOMS.seasons);
+    state.zoom = 'fit';
+    renderTimeline();
+    scroller.scrollLeft = Math.max(0, x(lo - s) - PAD);
+    markZoom();
+  }
+
+  function markZoom() {
+    Array.prototype.forEach.call($('zoom').children, function (b) { b.classList.toggle('on', b.getAttribute('data-zoom') === state.zoom); });
+  }
+
+  function scrollToEvent(key) {
+    var el = document.querySelector('.card[data-key="' + key + '"]'), scroller = $('tl-scroll');
+    if (!el) return;
+    var left = el.offsetLeft, top = el.offsetTop + 44;
+    if (left < scroller.scrollLeft + 20 || left + CARD_W > scroller.scrollLeft + scroller.clientWidth - 20) scroller.scrollLeft = Math.max(0, left - scroller.clientWidth / 3);
+    if (top < scroller.scrollTop + 44 || top + CARD_H > scroller.scrollTop + scroller.clientHeight) scroller.scrollTop = Math.max(0, top - 120);
+  }
+
+  // ==============================================================================================================
+  // The side form
+  // ==============================================================================================================
+
+  function field(label, control, help) {
+    return h('div', {class: 'field'}, h('div', {class: 'lab', text: label}), control, help ? h('div', {class: 'help', text: help}) : null);
+  }
+
+  function renderSide() {
+    var side = $('side');
+    clear(side);
+    var e = state.selected !== null ? eventByKey(state.selected) : null;
+    if (!e) { renderSideOverview(side); return; }
+
+    side.appendChild(h('div', {class: 'side-head'}, h('h3', {class: 'grow', text: 'Event'}),
+      h('button', {class: 'btn small', type: 'button', text: 'Duplicate', onclick: function () { duplicateEvent(e); }}),
+      h('button', {class: 'btn small danger', type: 'button', text: 'Delete', title: 'Delete key', onclick: function () { deleteEvent(e); }}),
+      h('button', {class: 'btn small', type: 'button', text: 'Close', onclick: function () { select(null); }})));
+    side.appendChild(h('div', {class: 'msgs', id: 'side-msgs'}));
+
+    // id: follows the summary until the author types one
+    var idInput = h('input', {type: 'text', class: 'mono', id: 'fld-id', value: e.id, spellcheck: 'false',
+      oninput: function () { e.id = idInput.value; e._autoId = false; touched(); refreshSoon(); }});
+    side.appendChild(field('Id', idInput, 'Stable: an edit keeps it, so the game updates the event instead of adding a new one.'));
+
+    var year = h('input', {type: 'number', step: '1', value: String(e.year), style: {width: '110px'},
+      oninput: function () { e.year = Math.trunc(Number(year.value)) || 0; touched(); refreshSoon(); }});
+    var season = h('select', {onchange: function () { e.season = season.value; touched(); refresh(); scrollToEvent(e._key); }});
+    var si = C.seasonIndex(e.season);
+    if (si < 0) season.appendChild(h('option', {value: e.season, text: '(unknown: ' + e.season + ')'}));
+    C.SEASONS.forEach(function (s, i) { season.appendChild(h('option', {value: s, text: seasonName(i)})); });
+    season.value = si < 0 ? e.season : C.SEASONS[si];
+    side.appendChild(field('When', h('div', {class: 'row'}, year, season)));
+
+    var kind = h('select', {onchange: function () { e.kind = kind.value; touched(); refresh(); }});
+    var kn = (e.kind || '').trim().toLowerCase();
+    if (C.KINDS.indexOf(kn) < 0) kind.appendChild(h('option', {value: e.kind || '', text: '(unknown: ' + (e.kind || 'none') + ')'}));
+    C.KINDS.forEach(function (k) { kind.appendChild(h('option', {value: k, text: KIND_META[k].label})); });
+    kind.value = C.KINDS.indexOf(kn) < 0 ? (e.kind || '') : kn;
+    side.appendChild(field('Kind', kind, 'Execution and Fell in battle need their dead among the harmed, dead today.'));
+
+    var sum = h('textarea', {id: 'fld-summary', rows: '3', placeholder: 'The line NPCs remember', value: e.summary,
+      oninput: function () {
+        e.summary = sum.value;
+        if (e._autoId && slug(e.summary)) { e.id = uniqueId(slug(e.summary), e); idInput.value = e.id; }
+        touched();
+        refreshSoon();
+      }});
+    side.appendChild(field('Summary', sum));
+
+    var onList = function (prop) { return function (v) { e[prop] = v; touched(); refresh(); renderFilterOptions(); }; };
+    side.appendChild(field('Actors', picker({items: heroItems, values: e.actors, multi: true, describe: heroChip, placeholder: 'Who did it', onChange: onList('actors')})));
+    side.appendChild(field('Harmed', picker({items: heroItems, values: e.harmed, multi: true, describe: heroChip, placeholder: 'Who it harmed (the dead, for a killing)', onChange: onList('harmed')})));
+    side.appendChild(field('Place', picker({items: placeItems, values: e.place ? [e.place] : [], describe: placeChip, placeholder: 'Where (optional)',
+      onChange: function (v) { e.place = v; touched(); refresh(); renderFilterOptions(); }})));
+    side.appendChild(field('Realms', picker({items: realmItems, values: e.realms, multi: true, describe: realmChip, placeholder: 'Realms or houses it concerns', onChange: onList('realms')})));
+
+    var impVal = h('span', {class: 'imp-val', text: String(e.importance)});
+    var impHint = h('div', {class: 'help'});
+    var setHint = function () { impHint.textContent = '45 and up: the realms named know it. ' + (e.importance >= 45 ? 'Now: known across the realms named.' : 'Now: known to those tied to it.'); };
+    var imp = h('input', {type: 'range', min: '0', max: '100', step: '1', value: String(clamp(e.importance, 0, 100)), class: 'grow',
+      oninput: function () { e.importance = Number(imp.value); impVal.textContent = imp.value; setHint(); touched(); refreshSoon(); }});
+    setHint();
+    side.appendChild(h('div', {class: 'field'}, h('div', {class: 'lab', text: 'Importance'}), h('div', {class: 'row'}, imp, impVal), impHint));
+
+    // knownBy is checked by the game even on an event that is not secret, so it stays visible while it holds anyone.
+    var knownWrap = h('div');
+    var renderKnown = function () {
+      clear(knownWrap);
+      if (!e.secret && !e.knownBy.length) return;
+      knownWrap.appendChild(field('Known by', picker({items: heroItems, values: e.knownBy, multi: true, describe: heroChip, placeholder: 'Confidants let in on the secret',
+        onChange: function (v) { e.knownBy = v; touched(); refresh(); if (!v.length && !e.secret) renderKnown(); }}),
+        e.secret ? 'Besides the actors and the harmed, only these know it.' : 'Ignored while the event is not secret; remove them or tick Secret.'));
+    };
+    var secret = h('input', {type: 'checkbox', id: 'fld-secret', checked: e.secret,
+      onchange: function () { e.secret = secret.checked; touched(); refresh(); renderKnown(); }});
+    side.appendChild(h('div', {class: 'field'}, h('label', {class: 'check', for: 'fld-secret'}, secret, 'Secret: known only to its actors, the harmed and its confidants')));
+    renderKnown();
+    side.appendChild(knownWrap);
+
+    var relWrap = h('div');
+    side.appendChild(h('div', {class: 'field'}, h('div', {class: 'lab', text: 'Starting relations'}),
+      h('div', {class: 'help', style: {'margin-bottom': '6px'}, text: 'Change adds to what the game made; Set is the value the pair starts at.'}), relWrap,
+      h('button', {class: 'btn small', type: 'button', text: 'Add relation', onclick: function () {
+        e.relations.push({a: e.actors[0] || '', b: e.harmed[0] || '', change: 0, set: null});
+        touched(); renderRelations(e, relWrap); refresh();
+      }})));
+    renderRelations(e, relWrap);
+    renderSideMessages();
+  }
+
+  function renderRelations(e, wrap) {
+    clear(wrap);
+    e.relations.forEach(function (r, i) {
+      var mode = hasVal(r.set) && !hasVal(r.change) ? 'set' : 'change';
+      var value = mode === 'set' ? r.set : (hasVal(r.change) ? r.change : 0);
+      var num, range;
+      var setVal = function (v) {
+        v = clamp(Math.trunc(Number(v)) || 0, -100, 100);
+        if (mode === 'set') { r.set = v; r.change = null; } else { r.change = v; r.set = null; }
+        num.value = String(v); range.value = String(v);
+        touched(); refreshSoon();
+      };
+      var modeBtn = function (m, label) {
+        return h('button', {class: 'btn small' + (mode === m ? ' on' : ''), type: 'button', text: label,
+          title: m === 'set' ? 'The value the pair starts at' : 'Added to the pair\'s relation',
+          onclick: function () { mode = m; setVal(value); renderRelations(e, wrap); }});
+      };
+      range = h('input', {type: 'range', min: '-100', max: '100', step: '1', value: String(clamp(value, -100, 100)),
+        oninput: function () { value = Number(range.value); setVal(value); }});
+      num = h('input', {type: 'number', min: '-100', max: '100', step: '1', value: String(value),
+        oninput: function () { if (num.value !== '' && num.value !== '-') { value = Number(num.value); setVal(value); } }});
+      var side = function (prop, ph) {
+        return h('div', {class: 'grow'}, picker({items: heroItems, values: r[prop] ? [r[prop]] : [], describe: heroChip, placeholder: ph,
+          onChange: function (v) { r[prop] = v; touched(); refresh(); }}));
+      };
+      var both = hasVal(r.change) && hasVal(r.set);
+      wrap.appendChild(h('div', {class: 'rel'},
+        h('div', {class: 'row'}, side('a', 'Hero A'), h('span', {class: 'vs', text: 'and'}), side('b', 'Hero B')),
+        h('div', {class: 'row'}, h('div', {class: 'seg'}, modeBtn('change', 'Change'), modeBtn('set', 'Set')), range, num,
+          h('button', {class: 'btn small danger', type: 'button', title: 'Remove this relation', html: '&times;',
+            onclick: function () { e.relations.splice(i, 1); touched(); renderRelations(e, wrap); refresh(); }})),
+        both || (!hasVal(r.change) && !hasVal(r.set)) ? h('div', {class: 'msg warn', style: {'margin-top': '6px'},
+          text: both ? 'The file gives both change and set: pick one (the game drops it as it is).' : 'Neither change nor set: pick one.'}) : null));
+    });
+  }
+
+  function renderSideMessages() {
+    var box = $('side-msgs');
+    if (!box) return;
+    clear(box);
+    var i = indexOfKey(state.selected), pe = state.check.perEvent[i];
+    if (!pe) return;
+    pe.errors.forEach(function (t) { box.appendChild(h('div', {class: 'msg err', text: 'Set aside: ' + t + '.'})); });
+    pe.warnings.forEach(function (t) { box.appendChild(h('div', {class: 'msg warn', text: t.charAt(0).toUpperCase() + t.slice(1) + '.'})); });
+    if (!pe.errors.length && !pe.warnings.length) box.appendChild(h('div', {class: 'msg ok', text: state.W ? 'The game will accept this event.' : 'No problem found (ids not checked without a snapshot).'}));
+  }
+
+  function renderSideOverview(side) {
+    side.appendChild(h('h3', {text: state.doc ? 'No event selected' : 'Nothing open yet'}));
+    side.appendChild(h('p', {class: 'help', style: {color: 'var(--text-2)'},
+      text: 'Click a card on the timeline to edit it, or use Add event. Delete removes the selected event, Ctrl+S saves.'}));
+    var W = state.W;
+    if (W) {
+      side.appendChild(h('div', {class: 'field'}, h('div', {class: 'lab', text: 'World snapshot'}),
+        h('div', {class: 'help', text: 'Campaign ' + W.campaign + ', begun in ' + String(W.startSeason).toLowerCase() + ' ' + W.startYear + '.'}),
+        h('div', {class: 'help', text: W.heroes.length + ' heroes, ' + Object.keys(W.clans).length + ' houses, ' + Object.keys(W.kingdoms).length + ' realms, ' +
+          Object.keys(W.places).length + ' settlements, ' + ((state.world.recorded || []).length) + ' events recorded by the game.'})));
+    }
+    side.appendChild(h('div', {class: 'field'}, h('div', {class: 'lab', text: 'What the game checks'}),
+      h('div', {class: 'help', text: 'An event must be dated before the campaign began, name at least one actor or harmed hero the campaign knows, ' +
+        'not involve anyone before their birth, and a killing must name a hero who is dead today. Problems show on the cards and below.'})));
+  }
+
+  // ==============================================================================================================
+  // Problems panel
+  // ==============================================================================================================
+
+  function renderProblems() {
+    var ck = state.check, body = $('problems-body');
+    $('problems-title').textContent = 'Problems: ' + ck.errors + ' set aside, ' + ck.warnings + ' warning' + (ck.warnings === 1 ? '' : 's') +
+      (state.doc && !state.W ? ' (ids not checked: no world snapshot)' : '');
+    $('problems-chev').textContent = state.problemsOpen ? 'v' : '>';
+    body.hidden = !state.problemsOpen;
+    clear(body);
+    if (state.doc && !state.W) body.appendChild(h('div', {class: 'prob info'}, h('span', {class: 'dot'}),
+      h('span', {text: 'Without a world snapshot, hero, place and realm ids, birth years, deaths and the campaign start cannot be checked.'})));
+    ck.lines.forEach(function (line) {
+      var e = state.doc && state.doc.events[line.index];
+      body.appendChild(h('div', {class: 'prob ' + line.severity, onclick: function () { if (e) select(e._key, true); }},
+        h('span', {class: 'dot'}), h('span', {text: line.text})));
+    });
+    if (state.doc && !ck.lines.length) body.appendChild(h('div', {class: 'help', style: {padding: '4px 6px'}, text: 'No problem: the game will accept every event.'}));
+  }
+
+  // ==============================================================================================================
+  // Wiring
+  // ==============================================================================================================
+
+  function inField(el) { return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable); }
+
+  function wire() {
+    $('btn-open-world').addEventListener('click', function () { openWith('world'); });
+    $('btn-open-history').addEventListener('click', function () { openWith('history'); });
+    $('btn-new').addEventListener('click', newHistory);
+    $('btn-save').addEventListener('click', save);
+    $('file-world').addEventListener('change', function (ev) { onFileInput(ev, 'world'); });
+    $('file-history').addEventListener('change', function (ev) { onFileInput(ev, 'history'); });
+    $('title').addEventListener('input', function () { if (state.doc) { state.doc.title = $('title').value; touched(); renderHeader(); } });
+    $('btn-add').addEventListener('click', function () {
+      var y = Math.trunc(Number($('add-year').value));
+      if (!$('add-year').value || !isFinite(y)) y = state.W ? state.W.startYear - 5 : 1080;
+      addEvent(y, 0);
+    });
+    Array.prototype.forEach.call($('zoom').children, function (b) { b.addEventListener('click', function () { setZoom(b.getAttribute('data-zoom')); }); });
+
+    $('f-realm').addEventListener('change', function () { state.filter.realm = this.value; renderTimeline(); });
+    $('f-place').addEventListener('change', function () { state.filter.place = this.value; renderTimeline(); });
+    $('f-kind').addEventListener('change', function () { state.filter.kind = this.value; renderTimeline(); });
+    $('f-text').addEventListener('input', debounce(function () { state.filter.text = $('f-text').value.trim(); renderTimeline(); }, 150));
+    $('f-clear').addEventListener('click', function () {
+      state.filter = {hero: '', realm: '', place: '', kind: '', text: ''};
+      $('f-text').value = '';
+      renderFilterOptions();
+      renderTimeline();
+    });
+    $('problems-head').addEventListener('click', function () { state.problemsOpen = !state.problemsOpen; renderProblems(); });
+
+    document.addEventListener('keydown', function (ev) {
+      if ((ev.ctrlKey || ev.metaKey) && (ev.key === 's' || ev.key === 'S')) { ev.preventDefault(); save(); return; }
+      if (document.querySelector('.modal-back')) return;
+      if (inField(ev.target)) return;
+      if (ev.key === 'Delete' && state.selected !== null) { var e = eventByKey(state.selected); if (e) { ev.preventDefault(); deleteEvent(e); } }
+      else if (ev.key === 'Escape' && state.selected !== null) select(null);
+    });
+
+    window.addEventListener('beforeunload', function (ev) {
+      if (!state.dirty) return;
+      ev.preventDefault();
+      ev.returnValue = '';
+    });
+    window.addEventListener('resize', debounce(function () { if (state.zoom === 'fit') fitZoom(); else renderTimeline(); }, 200));
+
+    // Drop either file anywhere. In Chrome and Edge a dropped file can still give a handle, so Save writes it in place.
+    var depth = 0;
+    document.addEventListener('dragenter', function (ev) { if (hasFiles(ev)) { depth++; $('drop-veil').hidden = false; } });
+    document.addEventListener('dragleave', function () { depth = Math.max(0, depth - 1); if (!depth) $('drop-veil').hidden = true; });
+    document.addEventListener('dragover', function (ev) { if (hasFiles(ev)) ev.preventDefault(); });
+    document.addEventListener('drop', function (ev) {
+      if (!hasFiles(ev)) return;
+      ev.preventDefault();
+      depth = 0;
+      $('drop-veil').hidden = true;
+      var items = ev.dataTransfer.items ? Array.prototype.slice.call(ev.dataTransfer.items) : [];
+      var files = Array.prototype.slice.call(ev.dataTransfer.files || []);
+      var handles = files.map(function (f, i) {
+        var it = items.filter(function (x) { return x.kind === 'file'; })[i];
+        return it && it.getAsFileSystemHandle ? it.getAsFileSystemHandle().catch(function () { return null; }) : Promise.resolve(null);
+      });
+      // A world snapshot first, so the history opened with it is checked at once.
+      Promise.all(files.map(function (f) {
+        return new Promise(function (res) { readFile(f, function (text) { res(text); }); });
+      })).then(function (texts) {
+        var order = texts.map(function (t, i) { return i; }).sort(function (a, b) { return (/"calendar"/.test(texts[b]) ? 1 : 0) - (/"calendar"/.test(texts[a]) ? 1 : 0); });
+        order.forEach(function (i) { handles[i].then(function (hd) { routeText(texts[i], files[i].name, hd && hd.kind === 'file' ? hd : null); }); });
+      });
+    });
+  }
+
+  function hasFiles(ev) { return ev.dataTransfer && Array.prototype.indexOf.call(ev.dataTransfer.types || [], 'Files') >= 0; }
+
+  wire();
+  renderFilterOptions();
+  renderAll(true);
+  markZoom();
+})();
+</script>
+</body>
+</html>

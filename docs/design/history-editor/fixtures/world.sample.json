@@ -1,0 +1,54 @@
+{
+  "format": 1,
+  "campaign": "sample-campaign-7f3a",
+  "calendar": {
+    "daysInSeason": 21,
+    "seasonsInYear": 4,
+    "startDay": 91077,
+    "startYear": 1084,
+    "startSeason": "summer",
+    "today": 91119,
+    "year": 1084
+  },
+  "player": "main_hero",
+  "heroes": [
+    { "id": "main_hero", "name": "Aldric", "clan": "player_faction", "culture": "Vlandia", "female": false, "born": 1060, "dead": false, "spouse": null, "lord": true },
+    { "id": "lord_1_1", "name": "Garios", "clan": "clan_empire_west_1", "culture": "Empire", "female": false, "born": 1030, "dead": false, "spouse": "lord_1_2", "lord": true },
+    { "id": "lord_1_2", "name": "Ira", "clan": "clan_empire_west_1", "culture": "Empire", "female": true, "born": 1035, "dead": false, "spouse": "lord_1_1", "lord": true },
+    { "id": "lord_1_3", "name": "Lucon", "clan": "clan_empire_west_1", "culture": "Empire", "female": false, "born": 1058, "dead": false, "spouse": null, "lord": true },
+    { "id": "lord_1_4", "name": "Phoros", "clan": "clan_empire_west_1", "culture": "Empire", "female": false, "born": 1033, "dead": true, "spouse": null, "lord": true },
+    { "id": "lord_1_5", "name": "Vadrios", "clan": "clan_empire_west_1", "culture": "Empire", "female": false, "born": 1062, "dead": false, "spouse": null, "lord": true },
+    { "id": "lord_1_7", "name": "Ceno", "clan": "clan_empire_west_3", "culture": "Empire", "female": false, "born": 1040, "dead": false, "spouse": null, "lord": true },
+    { "id": "lord_1_8", "name": "Mestys", "clan": "clan_empire_west_3", "culture": "Empire", "female": false, "born": 1044, "dead": true, "spouse": null, "lord": true },
+    { "id": "lord_1_9", "name": "Elea", "clan": "clan_empire_west_3", "culture": "Empire", "female": true, "born": 1066, "dead": false, "spouse": null, "lord": true },
+    { "id": "lord_1_10", "name": "Neretzes", "clan": "clan_empire_west_3", "culture": "Empire", "female": false, "born": 1072, "dead": false, "spouse": null, "lord": true },
+    { "id": "lord_4_1", "name": "Derthert", "clan": "clan_vlandia_1", "culture": "Vlandia", "female": false, "born": 1028, "dead": false, "spouse": "lord_4_2", "lord": true },
+    { "id": "lord_4_2", "name": "Wyntha", "clan": "clan_vlandia_1", "culture": "Vlandia", "female": true, "born": 1036, "dead": false, "spouse": "lord_4_1", "lord": true },
+    { "id": "lord_4_3", "name": "Rovald", "clan": "clan_vlandia_1", "culture": "Vlandia", "female": false, "born": 1050, "dead": true, "spouse": null, "lord": true },
+    { "id": "lord_4_4", "name": "Ladys", "clan": "clan_vlandia_1", "culture": "Vlandia", "female": false, "born": 1056, "dead": false, "spouse": null, "lord": true },
+    { "id": "lord_4_5", "name": "Unwid", "clan": "clan_vlandia_1", "culture": "Vlandia", "female": false, "born": 1070, "dead": false, "spouse": null, "lord": true }
+  ],
+  "clans": [
+    { "id": "player_faction", "name": "Aldric's House", "kingdom": null, "leader": "main_hero" },
+    { "id": "clan_empire_west_1", "name": "Pethrids", "kingdom": "empire_w", "leader": "lord_1_1" },
+    { "id": "clan_empire_west_3", "name": "Vetranids", "kingdom": "empire_w", "leader": "lord_1_7" },
+    { "id": "clan_vlandia_1", "name": "dey Meroc", "kingdom": "vlandia", "leader": "lord_4_1" }
+  ],
+  "kingdoms": [
+    { "id": "empire_w", "name": "Western Empire", "ruler": "lord_1_1" },
+    { "id": "vlandia", "name": "Vlandia", "ruler": "lord_4_1" }
+  ],
+  "settlements": [
+    { "id": "town_EN1", "name": "Pravend", "type": "town", "owner": "clan_vlandia_1" },
+    { "id": "town_EW2", "name": "Zeonica", "type": "town", "owner": "clan_empire_west_1" },
+    { "id": "town_V1", "name": "Ocs Hall", "type": "town", "owner": "clan_vlandia_1" },
+    { "id": "castle_EW1", "name": "Rhemtoil Castle", "type": "castle", "owner": "clan_empire_west_3" },
+    { "id": "castle_V3", "name": "Haringoth Castle", "type": "castle", "owner": "clan_vlandia_1" },
+    { "id": "village_EN1_1", "name": "Ormidoros", "type": "village", "owner": "clan_vlandia_1" }
+  ],
+  "recorded": [
+    { "id": "lt-0001", "day": 91081, "kind": "War", "summary": "Vlandia declared war on the Western Empire." },
+    { "id": "lt-0002", "day": 91096, "kind": "Battle", "summary": "Lucon of the Pethrids routed Ladys of dey Meroc near Ocs Hall." },
+    { "id": "lt-0003", "day": 91112, "kind": "FiefTaken", "summary": "The Western Empire took Rhemtoil Castle back by siege." }
+  ]
+}

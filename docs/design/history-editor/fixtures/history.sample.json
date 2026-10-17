@@ -1,0 +1,106 @@
+{
+  "format": 1,
+  "campaign": "sample-campaign-7f3a",
+  "title": "The Pravend years",
+  "events": [
+    {
+      "id": "garios-weds-ira",
+      "year": 1052,
+      "season": "summer",
+      "kind": "marriage",
+      "summary": "Garios of the Pethrids wed Ira at Zeonica, and the western houses drank for a week.",
+      "actors": ["lord_1_1", "lord_1_2"],
+      "harmed": [],
+      "place": "town_EW2",
+      "realms": ["clan_empire_west_1"],
+      "importance": 50,
+      "secret": false,
+      "knownBy": [],
+      "relations": []
+    },
+    {
+      "id": "pravend-betrayal",
+      "year": 1078,
+      "season": "spring",
+      "kind": "betrayal",
+      "summary": "Ladys opened the gates of Pravend to the Vlandians, and Ceno lost the town he had sworn to hold.",
+      "actors": ["lord_4_4"],
+      "harmed": ["lord_1_7"],
+      "place": "town_EN1",
+      "realms": ["empire_w", "vlandia"],
+      "importance": 60,
+      "secret": false,
+      "knownBy": [],
+      "relations": [
+        { "a": "lord_4_4", "b": "lord_1_7", "change": -40 }
+      ]
+    },
+    {
+      "id": "mestys-falls-at-ormidoros",
+      "year": 1079,
+      "season": "autumn",
+      "kind": "fell_in_battle",
+      "summary": "Mestys fell at Ormidoros, cut down by Ladys's riders while covering the retreat.",
+      "actors": ["lord_4_4"],
+      "harmed": ["lord_1_8"],
+      "place": "village_EN1_1",
+      "realms": ["clan_empire_west_3"],
+      "importance": 45,
+      "secret": false,
+      "knownBy": [],
+      "relations": [
+        { "a": "lord_1_9", "b": "lord_4_4", "change": -30 }
+      ]
+    },
+    {
+      "id": "phoros-executed",
+      "year": 1080,
+      "season": "winter",
+      "kind": "execution",
+      "summary": "Derthert had Phoros, Garios's brother, beheaded in the yard of Haringoth Castle.",
+      "actors": ["lord_4_1"],
+      "harmed": ["lord_1_4"],
+      "place": "castle_V3",
+      "realms": ["vlandia", "empire_w"],
+      "importance": 70,
+      "secret": false,
+      "knownBy": [],
+      "relations": [
+        { "a": "lord_1_1", "b": "lord_4_1", "set": -70 }
+      ]
+    },
+    {
+      "id": "elea-pays-the-ransom",
+      "year": 1082,
+      "season": "summer",
+      "kind": "debt",
+      "summary": "Elea paid Aldric's ransom from her own purse and asked that no one ever learn of it.",
+      "actors": ["lord_1_9"],
+      "harmed": [],
+      "realms": [],
+      "importance": 25,
+      "secret": true,
+      "knownBy": ["lord_1_3"],
+      "relations": [
+        { "a": "main_hero", "b": "lord_1_9", "change": 30 }
+      ]
+    },
+    {
+      "id": "unwid-hanged",
+      "year": 1083,
+      "season": "spring",
+      "kind": "execution",
+      "summary": "Lucon hanged young Unwid at Rhemtoil for raiding the villages of the west.",
+      "actors": ["lord_1_3"],
+      "harmed": ["lord_4_5"],
+      "place": "castle_EW1",
+      "realms": ["empire_w"],
+      "importance": 55,
+      "secret": false,
+      "knownBy": [],
+      "relations": [
+        { "a": "lord_1_3", "b": "lord_4_1", "change": -50 }
+      ]
+    }
+  ]
+}
