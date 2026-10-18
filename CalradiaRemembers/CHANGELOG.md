@@ -12,6 +12,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`InterceptionPolicy.IsOutnumbered`, the engine's `EstimatedStrength`, the player's army when they lead one) never
   rides out at all, for any reason, as the game has such a lord flee. A stronger enemy still presses a grudge (and asks
   first, 2.7.12). testall `enemy_no_border_challenge`.
+- **A written tale is set in a quiet village, and ends when its giver loses the village** (fkasad, Nexus 18/10: the
+  Drowned Bridge was set in a burned village whose town was besieged and fell). `TaleVillagePolicy`: a tale's village is
+  no longer the giver's first one whatever its state; a village being raided, looted, or bound to a besieged fortress is
+  passed over for a quiet one, and with none the tale is not offered now. While the tale runs, when the giver's house no
+  longer holds the village (`StopIfVillageLost`, daily), the tale ends without reward or penalty and its journal says
+  who holds it now (Gabriel, 18/10). testall `tale_quiet_village`.
 
 ## v2.7.15.. 2026-10-17
 

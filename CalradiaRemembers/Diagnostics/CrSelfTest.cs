@@ -299,6 +299,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("prose_fallback", Severity.Light, "Mechanical (Prose + Interpreter truncation safety net): drives the pure TruncationFallbackPolicy for every clean/not-clean finish reason (length/content_filter/empty -> fallback, stop -> no fallback, no model configured -> no fallback), then asserts LlmServices.ResolveProseFallbackModel resolves the Phase 2 NSFW model, reusing the PROSE model when the NSFW field is blank and honouring a distinct configured NSFW model instead. Then the refused-beat fallback (04/10/2026): the NSFW model resolves for its own provider, the NSFW role has its own client, a refusal is redone there in Enhanced mode, and nothing is redone with no NSFW model. Restores the NSFW model field", TestProseFallback),
          new SelfTest("manual_model_toggle", Severity.Light, "Three-state in-chat switch (Enhanced/Roleplay/NSFW, replaces the old binary manual toggle): drives the pure ModelModePolicy mapping each state to its (main role, composition) pair and the fixed Cycle order (wraps NSFW -> Enhanced), then the live LlmServices.ActiveModelId/ActiveComposition: the NSFW state resolves the configured NSFW model with no MCM gate to pass (the switch is always live now), Roleplay/Enhanced resolve the PROSE model (Roleplay never auto-routes to NSFW for a captivity scene), and only Enhanced yields Enhanced composition. Snapshots and restores the NSFW model field and the active mode", TestManualModelToggle),
          new SelfTest("authored_quest_opening", Severity.Light, "Authored quests Inc 1 (docs/design/AUTHORED_QUESTS.md). The werewolf loads; a real lord holding a village by a forest is bound to it and told to raise it; accepting puts a 'Tale:' entry in the journal and moves past the request; a local of that village believes in the beast and knows nothing of the slavers; two locals heard moves the tale to the watch. Then the watch ends in the scene: a declared finding recorded, an undeclared one refused, the snare hurts but never kills (health restored), closing early still yields the missed clue and moves on to the lord; the lord sends the player hunting, a real band is spawned near the village, and beaten by the player the tale turns home. Every tale binds {player} to the player's name (tashmetu, 11/10/2026). Stops before the reward; abandons the tale (the band is released) and forgets it after. Before the band is beaten, the player loses to it twice through the real after-battle handling (on_defeat, Gabriel 10/10/2026): the tale stays at the hunt and the lord remembers the defeat once.", TestAuthoredQuestOpening),
+         new SelfTest("tale_quiet_village", Severity.Light, "fkasad (Nexus, 18/10/2026): the Drowned Bridge was set in a burned village whose town was besieged and fell, its people out of reach, and the tale asked him to retake the town. A raided, looted or besieged village reads as not quiet (when the world has one); a real lord is offered the Drowned Bridge about a quiet village; accepted, it goes on while his house holds the village, and when the village is arranged to belong to another house the tale ends and its journal entry closes. Abandons the tale and forgets it", TestTaleQuietVillage),
          new SelfTest("authored_quest_branches", Severity.Light, "Branching tales (docs/design/quest-editor/goal.md). A small tale written into this test (never a shipped file) loads through the real loader; a real lord is bound to it and it is taken on. At the crossroads the journal shows the stage and its open ways, not the closed one; meeting the lord takes the first OPEN way (the one under an unset flag is passed over). In the scene, the chat would list only the open ways; a marker for a closed way changes nothing; a finding sets its flag, the way it opened is listed and its marker is taken; closing the scene follows it to its own ending (no regard, gold or memory, so nothing is left behind). Abandons and forgets the tale after.", TestAuthoredQuestBranches),
          new SelfTest("authored_quest_said_choice", Severity.Light, "Branching tales, choices by words. A tale written into this test loads and a real lord takes it on. At its last stage the action interpreter of a conversation with that lord is taught the open choice by words and not the one closed by its flag; another lord's interpreter is taught nothing. Through the REAL bridge (story_choice, the path an LLM report takes): the closed choice is refused and changes nothing, the open one is taken and ends the tale on its own ending (no regard, gold or memory). Abandons and forgets the tale after.", TestAuthoredQuestSaidChoice),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
@@ -10471,6 +10472,56 @@ namespace CalradiaRemembers.Diagnostics
          finally { town.Town.FoodStocks = before; }
 
          t.Expect("theStoresAreRestored", town.Town.FoodStocks, before);
+
+         return t.Line();
+      }
+
+      private static string TestTaleQuietVillage(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_quiet_village");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null, "authored quests are not active")) return t.Line();
+         if (t.Skip(b.ActiveRun is {Status: Logic.AuthoredQuests.AuthoredQuestStatus.Active}, "a real tale is under way; not disturbing it")) return t.Line();
+         Logic.AuthoredQuests.AuthoredQuest bridge = b.Quests.FirstOrDefault(q => q.Id == "cr_the_drowned_bridge");
+         t.Expect("theDrownedBridgeLoaded", bridge != null, true);
+         if (bridge == null) return t.Line();
+
+         // STAKE: the reading of a village's state follows the game: a raided, looted or besieged one is never quiet.
+         Settlement troubled = Settlement.All.FirstOrDefault(s => s.IsVillage && (s.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided || s.Village.Bound?.IsUnderSiege == true));
+         if (troubled != null)
+            t.Expect("aTroubledVillageIsNotQuiet", Logic.AuthoredQuests.TaleVillagePolicy.IsQuiet(Quests.AuthoredQuestBehavior.DebugVillageFacts(troubled)), false);
+         else t.Note("no village is raided, looted or besieged right now; that reading is covered by the unit tests");
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && b.TryOffer(h, today, 0, bridge.Id));
+         if (t.Skip(giver == null, "no lord at peace with the player holds a village of his own now")) return t.Line();
+
+         try
+         {
+            Settlement village = Settlement.Find(Logic.AuthoredQuests.AuthoredQuestEngine.Bound(b.Offer, "{village}"));
+            // STAKE: fkasad's report: the tale is set in a village its people can be found in.
+            t.Expect("theChosenVillageIsQuiet", Logic.AuthoredQuests.TaleVillagePolicy.IsQuiet(Quests.AuthoredQuestBehavior.DebugVillageFacts(village)), true);
+            t.Note($"{giver.Name} would raise it, about {village?.Name}");
+
+            b.Accept(bridge, b.Offer);
+            // STAKE: while the giver's house holds the village, the tale goes on.
+            t.Expect("heldStillGoesOn", b.StopIfVillageLost(bridge), false);
+
+            // The village passes to another house: arranged by binding the tale to a lord of a house that does not hold it.
+            Hero other = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.Clan != null && h.Clan != giver.Clan && h.Clan != village?.OwnerClan);
+            if (t.Skip(other == null, "no lord of another house to arrange the loss with")) return t.Line();
+            b.ActiveRun.BoundIds["giver"] = other.StringId;
+            // STAKE: Gabriel 18/10/2026: lost with its village, the tale ends without penalty, not as a campaign to retake it.
+            t.Expect("lostEndsTheTale", b.StopIfVillageLost(bridge), true);
+            t.Expect("noTaleUnderWay", b.ActiveRun == null, true);
+            t.Expect("theJournalIsClosed", Campaign.Current.QuestManager.Quests.OfType<Quests.AuthoredStoryQuest>().Any(q => q.IsOngoing && q.StoryId == bridge.Id), false);
+         }
+         finally
+         {
+            b.Abandon("Self-test.");
+            b.ForgetPlayed(bridge.Id);
+         }
 
          return t.Line();
       }

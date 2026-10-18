@@ -436,13 +436,19 @@ namespace CalradiaRemembers.Quests
                : new[] {giver.HomeSettlement}.Where(s => s != null && s.IsVillage);
             List<Settlement> owned = candidates.ToList();
             List<Settlement> ofCulture = owned.Where(s => AuthoredCulturePolicy.Matches(v.Culture, s.Culture?.StringId, s.Culture?.Name?.ToString())).ToList();
-            Settlement village = ofCulture.FirstOrDefault(s => v.Near != "forest" || NearForest(s));
+            List<Settlement> placed = ofCulture.Where(s => v.Near != "forest" || NearForest(s)).ToList();
+            // fkasad (18/10/2026): never a raided or looted village, nor one whose fortress is besieged (TaleVillagePolicy).
+            List<TaleVillageFacts> states = placed.Select(VillageFacts).ToList();
+            TaleVillageFacts quiet = TaleVillagePolicy.Pick(states);
+            Settlement village = quiet == null ? null : placed[states.IndexOf(quiet)];
             if (village == null)
             {
                whyNot = owned.Count == 0 ? "no village is theirs to give the quest about"
                   : ofCulture.Count == 0
                      ? $"none of their villages ({string.Join(", ", owned.Select(s => s.Name))}) is of {AuthoredCulturePolicy.Describe(v.Culture)}"
-                     : $"none of their villages of that culture ({string.Join(", ", ofCulture.Select(s => s.Name))}) lies by a forest";
+                  : placed.Count == 0
+                     ? $"none of their villages of that culture ({string.Join(", ", ofCulture.Select(s => s.Name))}) lies by a forest"
+                     : $"none of their villages is quiet now ({TaleVillagePolicy.WhyNoneQuiet(states)})";
 
                return false;
             }
@@ -556,6 +562,7 @@ namespace CalradiaRemembers.Quests
          ReconcileJournal();
          if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return;
          if (StopIfContentLowered(q)) return;
+         if (StopIfVillageLost(q)) return;
          Apply(q, AuthoredQuestEngine.Day(_run, q, (int) CampaignTime.Now.ToDays));
       }
 
@@ -570,6 +577,37 @@ namespace CalradiaRemembers.Quests
 
          return true;
       }
+
+      /// <summary>
+      ///   fkasad (18/10/2026): the tale's village fell with its town, and the tale asked him to retake it. Gabriel the same
+      ///   day: when the giver no longer holds the village a tale is about, the tale ends without reward or penalty, its
+      ///   journal saying who holds the village now. Only for a tale whose giver holds the village ("holds": "{village}").
+      ///   True when it stopped.
+      /// </summary>
+      internal bool StopIfVillageLost(AuthoredQuest q)
+      {
+         if (q?.Requires?.Giver?.Holds != "{village}") return false;
+         Hero giver = Find(AuthoredQuestEngine.Bound(_run, "{giver}"));
+         Settlement village = Settlement.Find(AuthoredQuestEngine.Bound(_run, "{village}") ?? "");
+         if (giver?.Clan == null || village == null) return false;
+         if (!TaleVillagePolicy.GiverLostIt(giver.Clan.StringId, village.OwnerClan?.StringId)) return false;
+
+         Abandon(TaleVillagePolicy.LostLine(village.Name?.ToString(), village.OwnerClan?.Name?.ToString()));
+
+         return true;
+      }
+
+      /// <summary>The state of a village a tale could be about, as the game reports it.</summary>
+      private static TaleVillageFacts VillageFacts(Settlement s)
+         => new() {
+            Name = s?.Name?.ToString(),
+            BeingRaided = s?.Village?.VillageState == Village.VillageStates.BeingRaided,
+            Looted = s?.Village?.VillageState == Village.VillageStates.Looted,
+            FortressUnderSiege = s?.Village?.Bound?.IsUnderSiege == true
+         };
+
+      /// <summary>cr.testall seam: the state of a village as the tale's choice reads it.</summary>
+      internal static TaleVillageFacts DebugVillageFacts(Settlement s) => VillageFacts(s);
 
       /// <summary>
       ///   Hourly: arriving at a be_at place (the stage's own, or a choice's), the bands the stage hunts, keeping watch

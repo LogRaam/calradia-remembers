@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 516 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1197 types in 31 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1199 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1796,7 +1796,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HistoryRelationStep` | public class | One relation move to make now. |
 | `HistoryWorldFacts` | public class | The campaign as the validation sees it. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (81)
+### CalradiaRemembers.Logic.AuthoredQuests (83)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1881,6 +1881,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TaleJournalPolicy` | public static class | tashmetu (07/10/2026): "a finished tale stays listed twice, under Old Quests and still under Active Quests". |
 | `TaleJournalVerdict` | public enum | What becomes of a tale's journal entry. |
 | `TaleModuleFolder` | public class | Another mod's tales folder. |
+| `TaleVillageFacts` | public class | The state of one village a tale could be about. |
+| `TaleVillagePolicy` | public static class | Which village a tale may be about, and when the giver has lost it. |
 
 ### CalradiaRemembers.Logic.Battles (8)
 
