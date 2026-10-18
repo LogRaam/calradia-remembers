@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (97)
+## Keys (98)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -86,6 +86,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_SecretLoverHush_v1bytes` | `SecretLoverGossipBehavior` | constant `HushSaveKey` passed to `SaveDict`, which reaches SyncData (fact) |
 | `CalradiaRemembers_SecretLoverKnown_v1bytes` | `SecretLoverGossipBehavior` | constant `KnownSaveKey` passed to `SaveLedger`, which reaches SyncData (fact) |
 | `CalradiaRemembers_SecretLoverLeaks_v1bytes` | `SecretLoverGossipBehavior` | constant `SaveKey` passed to `SaveLedger`, which reaches SyncData (fact) |
+| `CalradiaRemembers_SharedPastDrawn_v1bytes` | `SharedPastBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_SpouseDivorceAnnounceCycle_v1` | `SpouseDivorceDemandBehavior` | constant `AnnounceCycleSaveKey` passed to `SyncDictionary`, which reaches SyncData (fact) |
 | `CalradiaRemembers_SpouseDivorceAnnounceRetries_v1` | `SpouseDivorceDemandBehavior` | constant `AnnounceRetriesSaveKey` passed to `SyncDictionary`, which reaches SyncData (fact) |
 | `CalradiaRemembers_SpouseDivorceDemand_v1` | `SpouseDivorceDemandBehavior` | constant `SaveKey` passed to `SyncDictionary`, which reaches SyncData (fact) |

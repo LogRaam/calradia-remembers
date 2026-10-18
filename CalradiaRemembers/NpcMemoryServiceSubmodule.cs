@@ -181,6 +181,10 @@ namespace CalradiaRemembers
          // long-term tier at session launch, so it is registered after it. Console: cr.history_file / cr.history_reload.
          campaignStarter.AddBehavior(new AuthoredHistoryBehavior());
 
+         // The generated shared past of two lords (NPC_REGARD.md section 7): drawn when an encyclopedia page opens,
+         // written into the long-term tier above; its own save key keeps who was drawn, nothing included.
+         campaignStarter.AddBehavior(new SharedPastBehavior());
+
          // The seasonal historian writes INTO the store above, so it is registered after it (Gabriel's design,
          // 2026-09-12: one historian for the world, and no fourth memory store - the chronicle is WorldEvents).
          campaignStarter.AddBehavior(new WorldAlmanac.SeasonalChronicleBehavior());

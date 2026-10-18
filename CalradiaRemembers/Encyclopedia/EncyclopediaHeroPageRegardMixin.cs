@@ -245,6 +245,10 @@ namespace CalradiaRemembers.Encyclopedia
          var derivedEnemies = new List<(Hero Hero, string Why)>();
          var turned = new HashSet<Hero>();
 
+         // The page is looked at: the pairs it would show that have no story yet may draw their shared past (design 7.1),
+         // the house lords of the realm and the neighbours too, at most six new pairs per opening.
+         WorldEvents.SharedPastBehavior.Instance?.DrawFor(hero, vanillaFriends.Concat(vanillaEnemies).Concat(RealmLords(hero)));
+
          foreach (Hero other in vanillaFriends.Concat(vanillaEnemies).Concat(PairRegardReader.TiedTo(hero)).Distinct())
          {
             PairRegard r = PairRegardReader.Assess(hero, other);
@@ -268,6 +272,12 @@ namespace CalradiaRemembers.Encyclopedia
                             .Concat(derivedFriends.Select(x => $"• {x.Hero.Name} (friend): {x.Why}"))
                             .Take(MaxReasons).ToList());
       }
+
+      // The other house lords of the hero's realm: the people a lord would have crossed before the campaign.
+      private static IEnumerable<Hero> RealmLords(Hero hero)
+         => hero.MapFaction is Kingdom k
+            ? k.Clans.Where(c => c != null && !c.IsEliminated && c != hero.Clan && c.Leader != null).Select(c => c.Leader)
+            : Enumerable.Empty<Hero>();
 
       private void Fill(List<Hero> friends, List<Hero> enemies)
       {

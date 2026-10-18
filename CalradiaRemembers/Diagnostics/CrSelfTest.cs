@@ -301,6 +301,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("authored_quest_branches", Severity.Light, "Branching tales (docs/design/quest-editor/goal.md). A small tale written into this test (never a shipped file) loads through the real loader; a real lord is bound to it and it is taken on. At the crossroads the journal shows the stage and its open ways, not the closed one; meeting the lord takes the first OPEN way (the one under an unset flag is passed over). In the scene, the chat would list only the open ways; a marker for a closed way changes nothing; a finding sets its flag, the way it opened is listed and its marker is taken; closing the scene follows it to its own ending (no regard, gold or memory, so nothing is left behind). Abandons and forgets the tale after.", TestAuthoredQuestBranches),
          new SelfTest("authored_quest_said_choice", Severity.Light, "Branching tales, choices by words. A tale written into this test loads and a real lord takes it on. At its last stage the action interpreter of a conversation with that lord is taught the open choice by words and not the one closed by its flag; another lord's interpreter is taught nothing. Through the REAL bridge (story_choice, the path an LLM report takes): the closed choice is refused and changes nothing, the open one is taken and ends the tale on its own ending (no regard, gold or memory). Abandons and forgets the tale after.", TestAuthoredQuestSaidChoice),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
+         new SelfTest("shared_past_draw", Severity.Light, "Gabriel's rulings on the generated shared past (NPC_REGARD.md section 7, 17/10/2026): drawn once and never re-rolled, written into the world's long-term memory before the campaign began, both adults then, a good share get nothing. Picks lords never drawn with a lord of their realm, drives the real draw (SharedPastBehavior.DrawFor) for up to six pairs: each is marked drawn; each past drawn is in the long-term memory, dated before the start, with both of age then; a second draw changes nothing. Forgets the pairs and their pasts after.", TestSharedPastDraw),
          new SelfTest("npc_regard_reason", Severity.Light, "Gabriel (17/10/2026): every friend or enemy carries its reason (docs/design/NPC_REGARD.md section 9). Without touching the author's file, syncs a test betrayal of the past in which one lord wronged another, and drives the real name resolution (ContextualNameResolver.Resolve) on a message naming the betrayer: the wronged lord is told the betrayer is an enemy, for what lies between them, with the betrayal and how long ago; a lord of another house and realm asked the same is told nothing of it. The wronged lord's encyclopedia page (built here, then refreshed) lists the betrayer among his enemies and not his friends. Then the author's file alone is synced back.", TestNpcRegardReason),
          new SelfTest("companion_news_fresh", Severity.Light, "LapitaPolata (Nexus, 17/10/2026): a companion told of a castle being besieged after it had fallen, and of a war breaking out while the player was already riding to a siege in it. Records test news and reads it through the real glue (CompanionAudienceTopicResolver.FreshnessFacts): a siege fight at a place recorded as fallen since is overtaken; a war naming the player's own realm or clan is theirs; news ten days old is too old; fresh news of two other realms may still be brought. Removes the test news.", TestCompanionNewsFresh),
          new SelfTest("reply_language_everywhere", Severity.Light, "RaveN017Mod (Nexus, 17/10/2026): French game, Reply Language French, yet a character who came to him on the map and every council opened in English; he asked whether the mod could read the game's language. With the setting blank, the language resolved is the game's (none for an English game); with it set to Spanish, an opening cue ends naming Spanish and the council prompt carries Spanish. Restores the setting.", TestReplyLanguageEverywhere),
@@ -5003,6 +5004,51 @@ namespace CalradiaRemembers.Diagnostics
             Feed.Retract(placedId);
             Feed.Retract(bogusId);
             Feed.Retract(namedId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestSharedPastDraw(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("shared_past_draw");
+
+         SharedPastBehavior past = SharedPastBehavior.Instance;
+         WorldEventStore store = WorldEventStore.Instance;
+         if (t.Abort(past == null || store == null, "the shared past or the world-event store is not active")) return t.Line();
+
+         Hero hero = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsChild && h.Clan != null && h.MapFaction is Kingdom);
+         if (t.Skip(hero == null, "no adult lord of a realm")) return t.Line();
+
+         List<Hero> others = ((Kingdom) hero.MapFaction).Clans.Where(c => c != null && !c.IsEliminated && c != hero.Clan && c.Leader != null && !c.Leader.IsChild)
+                                                       .Select(c => c.Leader).Where(o => !past.WasDrawn(hero, o)).Take(6).ToList();
+         if (t.Skip(others.Count == 0, $"every house lord of {hero.MapFaction.Name} was already drawn with {hero.Name}")) return t.Line();
+
+         int start = (int) Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ToDays;
+         int year = CampaignTime.DaysInSeason * CampaignTime.SeasonsInYear;
+         int ofAge = Campaign.Current.Models.AgeModel.HeroComesOfAge;
+
+         try
+         {
+            int drawn = past.DrawFor(hero, others);
+            t.Note($"{hero.Name}: {drawn} pair(s) drawn among {others.Count}");
+            if (t.Skip(drawn == 0, "every candidate pair already has a story of its own (a trace of 10 or more) or is kin")) return t.Line();
+            t.Expect("everyDrawIsMarked", others.Count(o => past.WasDrawn(hero, o)), drawn);
+
+            var pasts = others.Select(o => store.GetHistoryById(SharedPastBehavior.RecordId(SharedPastBehavior.PairKey(hero, o)))).Where(e => e != null).ToList();
+            t.Note($"{pasts.Count} past(s): " + string.Join(" | ", pasts.Select(e => e.Summary)));
+            t.Expect("everyPastIsBeforeTheCampaign", pasts.All(e => e.Day < start), true);
+            t.Expect("bothWereOfAgeThen", pasts.All(e => e.ActorIds.All(id => {
+               Hero h = Hero.FindFirst(x => x.StringId == id);
+               return h != null && (e.Day - (int) h.BirthDay.ToDays) / Math.Max(1, year) >= ofAge;
+            })), true);
+
+            int again = past.DrawFor(hero, others);
+            t.Expect("aSecondDrawChangesNothing", again == 0 && others.Select(o => store.GetHistoryById(SharedPastBehavior.RecordId(SharedPastBehavior.PairKey(hero, o)))).Count(e => e != null) == pasts.Count, true);
+         }
+         finally
+         {
+            foreach (Hero o in others) past.DebugForget(hero, o);
          }
 
          return t.Line();

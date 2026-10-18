@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 515 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1192 types in 31 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 516 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1197 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -844,7 +844,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StrategicAssessmentContextBuilder` | public static class | Chooses the advisor and gathers the player's strategic context from the live campaign. |
 | `StrategicAssessmentService` | public static class | Populates a Balance of Power view model's Strategic Assessment: offline summary, cached counsel, or a fresh async LLM call. |
 
-### CalradiaRemembers.WorldEvents (14)
+### CalradiaRemembers.WorldEvents (15)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -856,6 +856,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MercenaryReputationBehavior` | public class | Judges the end of the player's mercenary contracts, and remembers them. |
 | `SchemeStore` | public class | Drives the v1.3 feud schemes: bitter rivals quietly plot against one another, the plots mature or collapse mechanically each day, and word of them spreads through the rumour network. |
 | `SecretLoverGossipBehavior` | public class | Once a secret lover has been secret long enough, an anonymous whisper of its EXISTENCE may begin to circulate (identity never leaks). |
+| `SharedPastBehavior` | public class | Draws the shared past of the pairs a page shows, once each, and keeps who was drawn. |
 | `WorldClaimInjector` | public static class | Adopts the claims an NPC made in conversation into the world, as low-weight rumours that travel the same road every other piece of news travels. |
 | `WorldConditionsFeeder` | public class | Weekly scanner for standing world conditions. |
 | `WorldEvent` | public class | One dated thing that happened in Calradia. |
@@ -871,7 +872,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (720)
+### CalradiaRemembers.Logic (725)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1513,6 +1514,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SharedIntimacyFacts` | public class | What the decision is made on. |
 | `SharedIntimacyPolicy` | public static class | Decides a reported night. |
 | `SharedIntimacyResult` | public enum | What becomes of a night another mod reports. |
+| `SharedPastDraw` | public class | A drawn past: who stands first (the one the kind's first weight applies to), when, and its line. |
+| `SharedPastKind` | public enum | What two lords may have shared before the campaign (design 7.3). |
+| `SharedPastPairFacts` | public class | The pair and the facts its draw reads. |
+| `SharedPastPolicy` | public static class | Draws, dates, words and weighs the shared past of two lords. |
+| `SharedPastSide` | public class | One side of the pair, as the game knows them now. |
 | `SiegeParticipationMarker` | public static class | Decides whether a buffered "the player just stormed this settlement" marker still applies to a settlement whose ownership is changing. |
 | `SilentRefusalMessages` | public static class | Wording for the bridge executor refusal branches that used to return null. |
 | `SkirmishFacts` | public class | The facts of one small fight a companion shared with the player, as its memory line reads them. |

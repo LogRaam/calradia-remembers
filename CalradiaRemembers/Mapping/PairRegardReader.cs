@@ -158,7 +158,14 @@ namespace CalradiaRemembers.Mapping
             List<string> harmed = e.AggrievedActorIds ?? new List<string>();
 
             int weight = 0;
-            if (e.IsAuthored)
+            SharedPastKind past = SharedPastPolicy.KindOf(e.Status);
+            if (past != SharedPastKind.None)
+            {
+               // A generated past (SharedPastBehavior): the kind's own weight for this side, aged from today.
+               if (actors.Count >= 2 && (actors[0] == me || actors[1] == me))
+                  weight = SharedPastPolicy.WeightToward(past, actors[0] == me, years);
+            }
+            else if (e.IsAuthored)
             {
                string kind = AuthoredKind(e);
                if (UnsignedKinds.Contains(kind)) continue;

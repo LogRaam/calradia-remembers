@@ -440,6 +440,13 @@ Change:
   a "Why:" block in InfoContainer. Clan lists built the same day (`ClanRegardListPolicy`, a "Houses:" block: the page
   house lord's derived regard toward each house lord, else vanilla, "(at war)" marked; the player's page by personal
   regard). Q2 taken as proposed (no answer, "continu"): the "Personal regard" row appends the dominant known reason.
+- **Built 17/10/2026, the generated shared past (section 7):** `SharedPastPolicy` (catalog 7.3, rolls 7.2 on
+  `Seed(a, b)` = pair key + "|past|v1", dating 7.4 from the start, ageing 7.5, vanilla bias: VanillaRelation.CloseTier
+  forbids a grievance, BitterTier a bond) and `SharedPastBehavior` (in `WorldEvents`: a namespace of its own joined the
+  dependency cycle). Drawn on a character page opening for its lists and the realm's house lords (fief neighbours are
+  a fit condition, not yet a candidate source), at most six, nearest first; written with `RecordHistory` at magnitude
+  30, status `shared_past_<kind>`, actors first then second; drawing stops 500 below the long-term cap so a drawn past
+  is not evicted. No per-NPC memory entry (Q4 option).
 - The companion camp note (`ResolveCompanionCampNote`, trace `EncounterContextBuilder.cs:1464-1485`) stays on vanilla
   relation for now: companions earn vanilla relation through real campaign events, and that is a mechanic, not a
   page. Listed as Q9.

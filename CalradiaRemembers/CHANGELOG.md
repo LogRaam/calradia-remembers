@@ -32,6 +32,20 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   most six each: by what really happened between the two house lords, with its reason, else by the vanilla relation
   between them; a house of a realm at war is marked "(at war)". On your own page, by each house lord's personal
   regard for you. `ClanRegardListPolicy`; cr.testall `npc_regard_reason` checks the betrayer's house is at odds.
+- **Lords with no story may have shared a past** (NPC regard, design section 7; Gabriel's rulings: drawn once and
+  never re-rolled, a good share get nothing, written into the world's long-term memory, vanilla relation biases the
+  draw). When a character's encyclopedia page opens, up to six of the lords it would show (its lists and the house
+  lords of the realm, the nearest first) who are not kin and have no story of their own draw, once, what passed
+  between them before the campaign: a boundary quarrel, an insult never forgiven, an old friendship, riding together
+  against raiders, a rescue, an unpaid debt, a rivalry in the lists, a refused suit; about two pairs in three draw
+  nothing. Each kind fits only what the game holds (neighbouring fiefs, opposed or alike traits, the same realm and
+  culture, valour, generosity, never married); a pair warm by the vanilla number draws no grievance, a bitter one no
+  bond. It is dated one to twenty years before the start, when both were of age, placed near a town, never a death,
+  marriage, child, conquest or third person. It joins the long-term memory, so the two, their kin and houses know it,
+  the friends lists and the conversation weigh it (full for two years, then a grievance halves every 8, a bond every
+  15), and a lord speaks of it when it is named. `SharedPastPolicy`, `SharedPastBehavior` (save key
+  `CalradiaRemembers_SharedPastDrawn_v1bytes`, additive: an old save has drawn nothing), `WorldEventStore
+  .RemoveHistory`; cr.testall `shared_past_draw`. A conversation never draws.
 - **The "Personal regard" row gives its reason** (design Q2, proposed and taken as the default): "bitter grudge
   (-80): ..." with the strongest known grudge (for a low regard) or kindness (for a high one).
 
