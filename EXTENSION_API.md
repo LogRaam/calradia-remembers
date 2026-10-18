@@ -202,6 +202,19 @@ Every `CrPatrolInfo` is a copy taken when you asked or when the event fired: cha
 after the patrol left `Current`. A patrol leaves only through one of the four ends, so each one you saw in `Current`
 ends with exactly one `Ended`.
 
+### A letter from your mod, in CR's letter window (`CrLetters.Deliver`, since 2.7.17)
+
+```csharp
+bool sent = CrLetters.Deliver(lord, "My friend, the lists open in Pravend in five days...", "MyMod");
+```
+
+The body is yours, written in full; CR never rewrites it. It travels as CR's letters do: a courier rides out at once
+and the letter opens in CR's window (parchment, the sender's hand and portrait) when it reaches the player, then stays
+in the letter book. The player may reply, and the sender answers in CR's own voice; the sender remembers having
+written it. False when refused: no campaign loaded, an empty body or one over 4000 characters, the player as sender,
+or a sender who cannot write now (a child, a captive, dead or out of the world). There are no answer buttons yet: keep
+your own Accept/Decline where you need one.
+
 ### Queens with a chosen face (`ModuleData/cr_faces.json`, since 2.7.10)
 
 `{ "queens": { "<realm id>": "<BodyProperties version=... key=... />" } }`: the line the face editor copies with

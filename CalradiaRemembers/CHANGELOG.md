@@ -28,6 +28,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   the same ones).
 
 ### For modders
+- **A letter from another mod, in CR's letter window** (tashmetu, 18/10: R&S's tournament invitations opened in the
+  game's plain popup). `CrLetters.Deliver(sender, body, sourceMod)`: the body as given, CR's courier, window and
+  letter book, the sender remembers it, the player may reply. Gated by `ActionKind.Letter`. SDK `6c50fdd`: new last
+  `LetterReason.FromAnotherMod` (memory purpose, reply occasion); bypasses the mailbox budget. No answer buttons
+  yet. EXTENSION_API. cr.testall `letter_from_another_mod` (`de097dd`).
 - **Other mods add to what lies between two characters** (tashmetu, 18/10: lords R&S made close through years of
   battles side by side showed as "neither" or "enemy" beside its own tooltip). `IPairRegardSource`,
   `CrPairRegard.RegisterPairRegardSource`; `PairRegardFacts.OutsideTraces`, counted together for at most
